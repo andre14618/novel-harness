@@ -236,7 +236,7 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 > Superseded operationally by exp #272: writer fine-tunes are no longer a runtime fallback; fantasy now carries structural priors only.
 
-**Decision:** Move away from writer-layer fine-tunes as the strategic path, even though Salvatore v4 remains the temporary production fallback. Future work should remediate the base-model route rather than run more Salvatore-vs-DeepSeek bake-offs designed to defend the LoRA.
+**Decision:** Move away from writer-layer fine-tunes as the strategic path. At decision time Salvatore v4 remained a temporary production fallback; exp #272 later removed that fallback from runtime. Future work should remediate and measure the base-model route rather than run more Salvatore-vs-DeepSeek bake-offs designed to defend the LoRA.
 
 **Why:** The reason to leave writer fine-tunes is architectural, not just empirical: the writing layer increasingly needs complex prompt following, rich beat context, planner payoffs, character state constraints, and future context-engineering levers. A small writer LoRA trained on a narrow prompt shape is brittle when the harness evolves. Exp #265 did not prove base DeepSeek cannot replace the LoRA; it proved the migration path is blocked by route coupling and downstream corruption. Base DeepSeek was tested inside the LoRA-shaped compact route, while the approved prose was also contaminated by lint-fixer merge artifacts and planner/continuity failures.
 
@@ -332,6 +332,8 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 - Add obligation-specific beat checkers in the same slice — rejected because checker promotion needs a frozen surface and labeled cases.
 
 **Ongoing:** Next validation must generate fresh plans on the new surface and inspect orphan/overload telemetry before adding obligation-aware beat checkers.
+
+**Superseded by exp #289:** `planning-beats` no longer authors obligations directly. It emits beat shape only; `planning-state-mapper` now owns state/payoff/obligation placement. The writer-visible contract and checker-promotion caution remain valid.
 
 ---
 
@@ -653,10 +655,12 @@ Stage 4 (brief extraction) complete for all three books as of 2026-04-17: **2,47
 
 ## Planning
 
-### Two-phase planner (skeleton + per-chapter beat expansion) with beat-count floor
+### Initial two-phase planner (skeleton + per-chapter beat expansion) with beat-count floor
 *2026-04-17 · tested on fantasy-healer + fantasy-cultivation-void*
 
-**Decision:** Planning is split into two phases. Phase 1 (`planning-plotter`) emits chapter skeletons only — title, POV, setting, purpose, targetWords, charactersPresent — in a single call (~2K output tokens). Phase 2 (`planning-beats`) expands each chapter in parallel into `scenes` + `establishedFacts` + `characterStateChanges` + `knowledgeChanges`, with N parallel calls and ~4K budget each. `enforcePlanningOutput` now requires `ceil(targetWords / 150)` beats per chapter; chapters below the floor get one targeted re-expansion before the phase hard-fails.
+**Initial decision:** Planning was split into two phases. Phase 1 (`planning-plotter`) emitted chapter skeletons only — title, POV, setting, purpose, targetWords, charactersPresent — in a single call (~2K output tokens). Phase 2 (`planning-beats`) expanded each chapter in parallel into `scenes` + `establishedFacts` + `characterStateChanges` + `knowledgeChanges`, with N parallel calls and ~4K budget each. `enforcePlanningOutput` required `ceil(targetWords / 150)` beats per chapter; chapters below the floor got one targeted re-expansion before the phase hard-failed.
+
+**Updated 2026-05-01 by exp #289:** The split is now skeleton -> beat-shape expansion -> state/obligation mapping. `planning-beats` emits `scenes` only; `planning-state-mapper` maps `establishedFacts`, `knowledgeChanges`, `characterStateChanges`, `requiredPayoffs`, and `scene.obligations` onto the fixed beat list.
 
 **Why:** The single-call planner was hitting DeepSeek V3.2's 8192 output-token ceiling on 10-chapter novels (fantasy-cultivation-void failed with truncated JSON mid-object) and was emitting only 3–4 beats per chapter when Salvatore's training corpus averages 14.4 beats at ~100w per beat. That shape guaranteed word-count failures — the Salvatore voice LoRA was producing exactly what it was trained for, but the planner wasn't asking for enough of it. Prior sweep (2026-04-17 earlier): dark-fantasy 37% fail rate, fantasy-healer stuck at Ch7, cultivation-void 0 chapters generated. After the split on the same two seeds: Ch1–Ch4 all approved on attempt 1/3 with word counts of 1370–1898w (vs prior 340–545w), 12–15 beats per chapter (vs prior 3–4), no JSON truncation.
 
@@ -667,8 +671,8 @@ Stage 4 (brief extraction) complete for all three books as of 2026-04-17: **2,47
 
 **Ongoing implications:**
 - Attention-scope-per-call is now a first-class design constraint in the pipeline. Future planners targeting longer novels (20+ chapters) or more elaborate chapter metadata should split further rather than fight the output ceiling.
-- The beat-count floor formula (`ceil(targetWords / 150)`) assumes a ~100w-median-beat voice LoRA. If we retrain Salvatore with longer beat targets or swap to a different writer, update the divisor to match.
-- `src/agents/planning-beats/` is a new tunable surface for the daemon (prompt + temperature/maxTokens).
+- The beat-count floor formula (`ceil(targetWords / 150)`) assumes a ~100w-median beat. If the active writer's observed beat length materially changes, update the divisor to match.
+- `src/agents/planning-beats/` remains the beat-shape tunable surface. `src/agents/planning-state-mapper/` is now the judgment-heavy state/obligation placement surface and has its own prompt/model budget.
 
 ---
 
@@ -2447,13 +2451,13 @@ D1: 0/5 features improved. D2: 1/5 (dialogueRatio, 0.79→0.54σ). D3: 0/5. Prog
 ### DeepSeek V3.2 → V4 Flash pipeline-wide; thinking mode is per-agent
 *2026-04-29 · commit `eb2993d`*
 
-**Decision:** All DeepSeek-using slots route to **DeepSeek V4 Flash** (replacing V3.2). Thinking mode is OFF by default; ON only on three slots that reason over multi-element structure with cross-element dependencies — `planning-beats`, `chapter-plan-checker`, `chapter-plan-reviser`. Decision rule documented as a comment block above `deepseekV4Flash` in `src/models/roles.ts` so future model swaps inherit the rule.
+**Decision:** All DeepSeek-using slots route to **DeepSeek V4 Flash** (replacing V3.2). Thinking mode is OFF by default; ON only on slots that reason over multi-element structure with cross-element dependencies. At ship time this was `planning-beats`, `chapter-plan-checker`, `chapter-plan-reviser`; exp #289 moved thinking from `planning-beats` to `planning-state-mapper` when beat sequencing split from state/obligation placement. Decision rule documented as a comment block above `deepseekV4Flash` in `src/models/roles.ts` so future model swaps inherit the rule.
 
-**Why:** V4 Flash is DeepSeek's current production tier with optional thinking mode. The instinct to flip `thinking: true` for all 10 DeepSeek-using slots was caught by the user ("are they literally all being used for thinking?") — thinking tokens cost latency and money in exchange for *multi-step structural reasoning*, not for creative output or one-shot transforms. The three thinking-on slots all run cross-beat / multi-element analyses (14-beat per-chapter expansion + state flow; cross-beat coherence judgment over 14 beats; smallest-edit diff over a multi-issue cluster); the other seven (writer, world-builder, character-agent, plotter, planning-plotter, planning-extractor, artifact-adjuster) are creative or one-shot and stay non-thinking.
+**Why:** V4 Flash is DeepSeek's current production tier with optional thinking mode. The instinct to flip `thinking: true` for all 10 DeepSeek-using slots was caught by the user ("are they literally all being used for thinking?") — thinking tokens cost latency and money in exchange for *multi-step structural reasoning*, not for creative output or one-shot transforms. The thinking-on slots run cross-beat / multi-element analyses (state/obligation placement across a fixed beat list; cross-beat coherence judgment over 14 beats; smallest-edit diff over a multi-issue cluster); writer, world-builder, character-agent, plotter, planning-plotter, planning-extractor, artifact-adjuster, and beat-shape expansion stay non-thinking unless future evidence says otherwise.
 
 **Implementation surface:**
 - `src/models/registry.ts` — added `deepseek-v4-flash` ($0.14 / $0.28 / $0.0028 cache hit; thinking optional; maxOutput 64K) and `deepseek-v4-pro` ($1.74 / $3.48 base, currently 75% off until 2026-05-31; thinking always-on; reserved as escalation, NOT routed in `roles.ts`). Removed legacy `deepseek-chat` and `deepseek-reasoner` entries entirely (no aliases).
-- `src/models/roles.ts` — renamed `deepseekV3` → `deepseekV4Flash` constant; thinking-true set is exactly `{planning-beats, chapter-plan-checker, chapter-plan-reviser}`.
+- `src/models/roles.ts` — renamed `deepseekV3` -> `deepseekV4Flash` constant. Current thinking-true set after exp #289 is `{planning-state-mapper, chapter-plan-checker, chapter-plan-reviser}`.
 - `src/llm.ts` — `thinking: boolean` plumbed through `makeRequest()` into the request body as `{ thinking: { type: "enabled" } }` for the deepseek provider only. Other providers ignore the flag.
 - 22+ scripts string-replaced from `deepseek-chat` → `deepseek-v4-flash`.
 

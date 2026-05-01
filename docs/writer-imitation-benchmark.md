@@ -7,6 +7,8 @@ philosophy: imitation-first — deconstruct a successful target novel, build a p
 
 # Writer Imitation Benchmark — R.A. Salvatore Deconstruction
 
+> **Status update 2026-05-01:** This document preserves the writer-imitation research design, but references to Howard primer, Salvatore writer-LoRA routing, and DeepSeek V3 as the current default are historical. Runtime writing now uses DeepSeek V4 Flash base for all genres; fantasy supplies planner structural priors only. Treat this benchmark as a research oracle, not the live routing plan.
+
 ## Thesis
 
 Treat novel writing as an engineering problem with a measurable ground truth. Pick one published, commercially successful novel in our target genre. Deconstruct it down to scene-level beats with full tagged metadata. Use the resulting `(beat brief + context) → (real published prose)` pairs as the permanent quality oracle for every writer experiment going forward.
@@ -39,13 +41,13 @@ Before spending ~$75 on a Kimi K2.5 training run, settle a strategic question th
 
 ### Phase 0-POC-mini — Qwen3-14B quadrant only (~$1, ~2 days)
 
-Three cells only — all essentially free because Qwen3-14B training is $0 on W&B ART preview and DeepSeek+primer is already our production default.
+Three cells only — all essentially free because Qwen3-14B training is $0 on W&B ART preview and DeepSeek+primer was the production default at the time of this design.
 
 | cell | methodology | cost |
 |---|---|---:|
 | A | Qwen3-14B + Howard primer, untuned | $0 (W&B inference) |
 | B | Qwen3-14B LoRA on ~100 Salvatore pairs (3 Crystal Shard training chapters) | $0 training (ART preview) + ~$0.50 inference |
-| C | DeepSeek V3 + Howard primer (current default) | ~$0.30 inference |
+| C | DeepSeek V3 + Howard primer (historical default) | ~$0.30 inference |
 
 **Eval:** generate prose for ~60 held-out beats (2 Crystal Shard chapters) under each cell. Sonnet sub-agent pref-eval blind A/B each cell vs real Salvatore prose. Add perplexity + feature-KL as supporting signals.
 
@@ -61,7 +63,7 @@ Adds cell D (Llama 3.3 70B LoRA) to the three mini cells:
 | | Untuned (in-context only) | Tuned (LoRA SFT) |
 |---|---|---|
 | **Small base** (Qwen3-14B) | **A** — Qwen3-14B + Howard primer | **B** — Qwen3-14B LoRA on Salvatore pairs |
-| **Large base** (DeepSeek / Llama 70B) | **C** — DeepSeek V3 + Howard primer (current default) | **D** — Llama 3.3 70B LoRA on Salvatore pairs |
+| **Large base** (DeepSeek / Llama 70B) | **C** — DeepSeek V3 + Howard primer (historical default) | **D** — Llama 3.3 70B LoRA on Salvatore pairs |
 
 Adds:
 - A vs C: base-capability isolation at zero training spend
@@ -234,7 +236,7 @@ CREATE TABLE writer_benchmark (
 
 | ID | generation unit | primer strategy | hypothesis |
 |---|---|---|---|
-| **M1** | beat | static Howard primer | current default — baseline to beat |
+| **M1** | beat | static Howard primer | historical baseline to beat |
 | **M2** | beat | static Salvatore primer | swap exemplars to actual target author |
 | **M3** | beat | dynamic primer: top-3 Salvatore scenes by tag similarity | per-call relevance, breaks cache but smaller payload |
 | **M4** | beat | hybrid: 5K cached fundamentals + 2K dynamic | best-of-both: cache savings + scene-specific exemplars |

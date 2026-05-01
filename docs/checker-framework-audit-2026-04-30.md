@@ -40,7 +40,7 @@ prose, and unresolved checker findings reaching approval.
 | `detectSyncDefects` | deterministic optional quality-redraft | repetition loops and underlength beats | only if quality-redraft enabled; otherwise inert | reclassify as experimental, not framework core |
 | `adherence-events` | LLM + deterministic presence | beat event enactment and character presence | beat rewrite; unresolved blockers now halt approval | keep concept, recalibrate on new route |
 | `halluc-ungrounded` | LLM | named entity/world grounding against checker-visible surface | beat rewrite; unresolved blockers now halt approval | keep concept, rebuild evidence surface |
-| `halluc-leak-salvatore` | LLM + regex | Salvatore-corpus vocabulary leaks | Salvatore `leakProfile` only | keep for fallback route only; needs user-intent exceptions |
+| `halluc-leak-salvatore` | retired LLM + regex | Salvatore-corpus vocabulary leaks | removed with writer-LoRA route | historical only; do not revive unless a future runtime writer is trained on a known corpus |
 | `chapter-plan-checker` | LLM | cross-beat setting, emotional direction, major contradiction | targeted rewrites, reviser, plan-assist | keep but split or extend axes; currently ignores fact/state establishment |
 | `continuity-*` | LLM | prior fact/state contradictions | now blocking if severity `blocker` | do not trust as blocking until revalidated on current route |
 | `checker-blockers` | policy | promote unresolved beat/continuity blockers | plan-assist gate | right idea; contract is incomplete |
@@ -54,7 +54,7 @@ prose, and unresolved checker findings reaching approval.
 | route decoupling | exp #268 SQL + logs | base DeepSeek can run `compact=false`, `leak=none` | writer quality after checker rebuild |
 | adherence-events | old SFT evidence in model-role comments | worked on prior labeled beat cases | accuracy on rich-context base-DeepSeek route |
 | halluc-ungrounded | production report + beat-entity-list improvement | context-surface mismatch was real and partially fixable | current precision/recall under new writer context |
-| halluc-leak-salvatore | regex OR-combine report | regex catches many Salvatore token misses | user-intended fantasy vocabulary handling |
+| halluc-leak-salvatore | regex OR-combine report | regex catches many Salvatore token misses | historical only after exp #272 removed route-specific leak checking |
 | continuity | old W&B adapter evidence | adapter can perform narrow fact/state checks on prior distribution | current blocking precision/recall or repair usefulness |
 | chapter-plan-checker | anecdotal DeepSeek V4 route plus prior SFT false-positive audit | SFT was not reliable; base model is plausible | calibrated axis-level accuracy today |
 

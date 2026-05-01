@@ -241,6 +241,7 @@ Keep this section as a bullet log so anyone picking this up cold can follow the 
 - **2026-04-16 · exp #201 — VICTORY.** Narrow-strip v3 probe on `fantasy-echo-mage` passed **all three chapters in 5 total attempts**: ch1 attempt 1, ch2 attempt 1, ch3 attempt 3. Compare: exp #199 (v3 full ctx) needed 5 for ch1 + 4 for ch2 + failed ch3; exp #200 (aggressive strip) failed ch1 in 9 attempts. **The narrow strip was the right balance.** v3 voice LoRA does not have a hard capability ceiling on complex beats — it was context-noise-bound, not capability-bound. Per-beat-drives / plan-granularity / tiered-escape-valve proposals all deferred; they're potential future cleanups but not needed for production viability.
 - **2026-04-16 · exp #202 — ABORTED.** Howard-primer diagnostic probe; killed after Andre's directive to retire Howard methodology. Superseded by exp #201 verdict anyway (narrow strip worked, so the DeepSeek-capability diagnostic wasn't needed).
 - **2026-04-16 — Howard methodology RETIRED.** Salvatore becomes the only primer we maintain; per-genre voice LoRAs replace universal primer. See `docs/decisions.md` "Howard primer/tonal-pass methodology retired" for scope.
+- **2026-05-01 — writer LoRA runtime routing RETIRED.** The Salvatore LoRA path is now historical; fantasy seeds supply planner structural priors only, and all genres use the base DeepSeek V4 Flash beat-writer route. See `docs/decisions.md` "Writer LoRA runtime route removed; fantasy now supplies structural priors only".
 
 Each new probe + result gets a line here.
 

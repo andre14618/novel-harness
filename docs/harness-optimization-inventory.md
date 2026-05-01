@@ -92,19 +92,18 @@ complete knob list.
 | Chapter-level richness tier | prompt-variant | file | implicit | Y |
 | POV-assignment explicitness | prompt-variant | file | implicit | Y |
 
-### 1.2 `planning-beats` (per-chapter beat expansion — Phase 0 PRIMARY)
+### 1.2 `planning-beats` (per-chapter beat-shape expansion)
 
 | Surface | Type | Storage | Current default | Loop-tunable? |
 |---|---|---|---|---|
 | System prompt | prompt | `file:src/agents/planning-beats/beat-expansion-system.md` | current | Y |
-| Model | model | `roles.ts:planning-beats` | DeepSeek V4 Flash (thinking ON) | Y |
+| Model | model | `roles.ts:planning-beats` | DeepSeek V4 Flash (non-thinking) | Y |
 | Temperature | config-float | `roles.ts` + DB | 0.6 | Y |
 | Max tokens | config-int | `roles.ts` | 8192 | Y |
 | `SeedInput.directives` → `renderDirectivesForPlanner()` threading | prompt-rider | `src/types.ts` + `src/agents/planning-beats/context.ts:71-73` | passthrough from Studio Director chat | Y |
 | Beat-description richness tier (compact / standard / rich) | prompt-variant | file | standard | Y |
-| `establishedFacts` per-beat target (0 / 1-2 / 3-5) | prompt-rider | file | implicit | Y |
-| `knowledgeChanges` explicitness (implicit / named-character / named-+-reason) | prompt-rider | file | implicit | Y |
-| Payoff-link depth in `beat.description` (0 / 1-hop / 2-hop) | prompt-rider | file | 1-hop (V1a) | Y |
+| Structural-prior emphasis | prompt-rider | file | soft | Y |
+| Beat-kind / value-shift / MICE annotation pressure | prompt-rider | file | soft | Y |
 | Beat-count floor multiplier (0.8× / 1.0× / 1.2× of ceil(targetWords/150)) | code | `src/phases/planning.ts` enforcePlanningOutput | 1.0× | Y |
 | Universal structural rules rider | prompt-const | `roles.ts:UNIVERSAL_STRUCTURAL_RULES` | current | **later** (demoted per Codex: shared by `planning-plotter` + `planning-beats` via `src/agents/planning-plotter/context.ts:75-76` and `src/agents/planning-beats/context.ts:72-73` — editing it breaks Phase 0 attribution) |
 | Beat-kind distribution priors (`SALVATORE_PRIORS`) | code | `roles.ts:240-248` | fantasy preset | **later** (demoted per Codex: shared priors touch planner AND beat-context reads at `roles.ts:298-345`, not isolated to `planning-beats`) |
@@ -114,7 +113,22 @@ complete knob list.
 | Beats-per-scene range | code | `roles.ts:SALVATORE_PRIORS` | [2, 15] | **later** (same reason) |
 | Beats-per-chapter range | code | `roles.ts:SALVATORE_PRIORS` | [11, 40] | **later** (same reason) |
 
-### 1.3 Planning-level state schema (what planner MAY output)
+`planning-beats` no longer owns `establishedFacts`, `knowledgeChanges`, `characterStateChanges`, `requiredPayoffs`, or writer-visible obligations. Exp #289 moved those surfaces to `planning-state-mapper`.
+
+### 1.3 `planning-state-mapper` (state, payoff, and obligation placement)
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| System prompt | prompt | `file:src/agents/planning-state-mapper/state-mapper-system.md` | current | Y |
+| Model | model | `roles.ts:planning-state-mapper` | DeepSeek V4 Flash (thinking ON) | Y |
+| Temperature | config-float | `roles.ts` + DB | 0.25 | Y |
+| Max tokens | config-int | `roles.ts` | 8192 | Y |
+| State-density target | prompt-rider | file | implicit | Y |
+| Knowledge-transfer explicitness | prompt-rider | file | mapper-authored obligations | Y |
+| Payoff-link placement | prompt-rider | file | mapper-authored links | Y |
+| Coverage retry policy | code/config | `src/phases/planning.ts` | up to 2 mapper retries, then auto-repair fallback | Y |
+
+### 1.4 Planning-level state schema (what planner MAY output)
 
 | Surface | Type | Storage | Current default | Loop-tunable? |
 |---|---|---|---|---|

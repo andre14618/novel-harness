@@ -64,7 +64,9 @@ Exp #286 promotes the contract into planner output and writer context while
 keeping checker severity unchanged:
 
 - `sceneBeatSchema.obligations` is optional/defaulted for legacy outlines.
-- `planning-beats` is instructed to emit compact per-beat obligations.
+- `planning-beats` was initially instructed to emit compact per-beat obligations;
+  exp #289 supersedes that by making `planning-beats` beat-shape only and moving
+  obligation placement into `planning-state-mapper`.
 - `beat-context-render.ts` renders the obligations as `BEAT OBLIGATIONS`.
 - the shadow derivation layer treats planner-authored obligations as explicit
   assignments and still logs orphan/overload telemetry.
@@ -118,6 +120,14 @@ Validation run `novel-1777601516385` on deployed commit `8d57662` exercised the
 new path: chapters 2 and 3 retried for obligation gaps, then final planning
 telemetry reported zero orphan facts, zero orphan knowledge changes, zero orphan
 state changes, and zero overloaded beats across all three chapters.
+
+Exp #289 splits the judgment-heavy placement step out of `planning-beats` into
+`planning-state-mapper`. Coverage retries now rerun the mapper against a fixed
+beat list, not the whole beat expander. Planner-isolated LXC runs `576` and `577`
+both reached final zero orphans with zero deterministic auto-repairs, but mapper
+retries were still needed. The mapper maxTokens was raised to 8192 after run `576`
+hit JSON-retry recoveries at the 6144 cap, and retry prompts now preserve prior
+valid state so the mapper cannot pass coverage by deleting facts.
 
 ## Why Not Render Immediately
 

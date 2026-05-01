@@ -130,6 +130,8 @@ Two held-out sets:
 
 ## 5. Harness integration plan
 
+> **Superseded 2026-05-01:** Runtime writer-LoRA routing is retired. Fantasy genre matching now supplies planner structural priors only; all genres use the base DeepSeek V4 Flash beat-writer route. This section is retained as historical experiment design, not active integration guidance.
+
 1. **Genre-slot routing in `src/models/roles.ts`.** Per-seed writer override: fantasy-genre seeds → `wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v3` (voice LoRA with compact beat-context); other seeds → DeepSeek V4 Flash (no primer — Howard methodology retired 2026-04-16; per-genre voice LoRAs replace universal primer).
 2. **Proper-noun blocklist in the LoRA system prompt.** Append: "Do not use the following names: Drizzt, Bruenor, Wulfgar, Regis, Catti-brie, Icewind Dale, Ten-Towns, Mithril Hall, Lonelywood, Bryn Shander, Targos, Crystal Shard." Expand as new leaks are observed.
 3. **Drop the per-beat word-count gate from the adherence checker for all writers.** Voice LoRAs land shorter or longer than the brief's target words. The value of the fine-tune is in cadence and prose quality — word count was never the load-bearing signal.

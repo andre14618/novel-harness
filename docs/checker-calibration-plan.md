@@ -26,9 +26,11 @@ This plan is operational. The broader framework contract remains in
 
 ## Current Surface Audit
 
-Exp #283 traced the current runtime path: `planning-plotter` emits chapter
-skeletons, `planning-beats` emits per-chapter beats/state, `enforcePlanningOutput`
-sanitizes structural defects, and `drafting.ts` renders each beat through
+Exp #283 traced the runtime path before the split mapper. Current path after
+exp #289: `planning-plotter` emits chapter skeletons, `planning-beats` emits
+beat shape only, `planning-state-mapper` maps facts/knowledge/state/payoffs and
+beat obligations onto the fixed beat list, `enforcePlanningOutput` sanitizes
+structural defects, and `drafting.ts` renders each beat through
 `buildBeatContext()` before the `beat-writer` call.
 
 Important finding: not every planner field is writer-visible. Score-bearing eval
@@ -41,9 +43,9 @@ rows must therefore freeze which surface is being judged.
 | `scene.kind` | yes | yes | Rendered as a local hint, not a blocker by itself. |
 | `scene.requiredPayoffs` | yes, as resolved fact text in `SEEDS` / `PAYOFFS DUE` | yes in chapter/functional checks; entity checker sees only derived names | Safe to test as writer-visible when the fact resolves. |
 | `scene.obligations` | yes, as compact `BEAT OBLIGATIONS` | not yet consumed by active beat checkers | Candidate future checker contract; do not block until orphan coverage and labels are calibrated. |
-| `establishedFacts` | only if encoded in beat descriptions or payoff links | yes in chapter/functional checks; partial entity derivation in `halluc-ungrounded` | Do not expect prose to establish orphan facts the writer never saw. |
-| `characterStateChanges` | no direct current-chapter end-state surface | yes in chapter/functional checks | Missing state establishment should stay warning until writer-visible contract is explicit. |
-| `knowledgeChanges` | no direct surface | yes in chapter/functional checks | Must be written into beat descriptions before beat-level checkers can fairly block. |
+| `establishedFacts` | only if encoded in beat descriptions, payoff links, or `scene.obligations` | yes in chapter/functional checks; partial entity derivation in `halluc-ungrounded` | Do not expect prose to establish orphan facts the writer never saw. |
+| `characterStateChanges` | yes only when mapper places a `mustShowStateChange` obligation | yes in chapter/functional checks | Beat-level blockers must reference mapper-authored obligations, not hidden end-state metadata. |
+| `knowledgeChanges` | yes only when mapper places a `mustTransferKnowledge` obligation | yes in chapter/functional checks | Beat-level blockers must reference mapper-authored obligations, not hidden knowledge metadata. |
 | `valueShifted`, `gapPresent`, `lifeValueAxes`, `mice*` | no | no active runtime checker surface | These are planning soft priors only in the current surface; do not score writer/checker behavior against them. |
 | structural priors/directives | indirect, through the generated plan | indirect | They shape planning; they are not direct writer instructions. |
 
@@ -198,6 +200,13 @@ current-surface labels.
 Validation run `novel-1777601516385` on `8d57662` reached planning completion with
 zero obligation orphans after targeted retries. This validates the planning gate
 mechanically; it does not yet validate beat-checker precision on the new surface.
+
+Exp #289 split state/obligation placement into `planning-state-mapper`. LXC
+planner-isolated runs `576` and `577` reached final zero obligation orphans with
+zero deterministic auto-repairs. Mapper retries were still needed, so checker
+promotion remains blocked pending fresh post-validator current-surface labels and
+more mapper telemetry. Run `577` also showed retries must preserve prior valid
+state; retry prompts now anchor existing state before naming coverage failures.
 
 ### Phase 2 - `halluc-ungrounded` Oracle Dataset
 

@@ -1,6 +1,6 @@
 ---
 status: proposed
-updated: 2026-04-20
+updated: 2026-05-01
 ---
 
 # Component Isolation Testing
@@ -11,7 +11,8 @@ This charter follows the live split in `docs/current-state.md` and `CLAUDE.md`: 
 
 Planning layer:
 - `planning-plotter`: freeze `novels.seed_json`, `world_bibles.content_json`, `characters.profile_json`, and `story_spines.content_json`; measure chapter count, POV/setting completeness, and target-word distribution. Harness plugs into `src/agents/planning-plotter/context.ts` + `src/agents/planning-plotter/schema.ts`, as called from `src/phases/planning.ts`. Concrete shape: same seed in, chapter skeletons out.
-- `planning-beats`: freeze the Phase-1 skeleton plus the same concept artifacts; measure beat count per chapter, `requiredPayoffs` coverage from `src/schemas/shared.ts`, `establishedFacts` count, and `knowledgeChanges` count. Harness plugs into `src/agents/planning-beats/context.ts` + `src/agents/planning-beats/schema.ts`.
+- `planning-beats`: freeze the Phase-1 skeleton plus the same concept artifacts; measure beat count per chapter, beat-kind mix, structural annotations, and whether the generated beat list gives the mapper enough dramatic anchors. Harness plugs into `src/agents/planning-beats/context.ts` + `src/agents/planning-beats/schema.ts`.
+- `planning-state-mapper`: freeze concept artifacts, chapter skeleton, and the fixed `planning-beats` scene list; measure `establishedFacts`, `knowledgeChanges`, `characterStateChanges`, `requiredPayoffs`, writer-visible obligation coverage, ignored mappings, retry count, and deterministic auto-repair count. Harness plugs into `src/agents/planning-state-mapper/context.ts` + `src/agents/planning-state-mapper/schema.ts` plus `src/harness/beat-obligations.ts`.
 - `savePlannedState`: freeze parsed `chapter_outlines.outline_json`; measure deterministic writes into `facts`, `character_states`, and `character_knowledge`. Harness plugs into `src/planned-state.ts` and the write helpers in `src/db/facts.ts`, `src/db/character-states.ts`, and `src/db/knowledge.ts`.
 
 Writing layer:

@@ -1,621 +1,72 @@
 ---
 status: active
-updated: 2026-04-30
+updated: 2026-05-01
 ---
 
 # To Do
 
-Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
+Pending action items only. Completed work and rationale live in `docs/decisions.md`, `docs/current-state.md`, session retrospectives, and per-charter result docs.
 
-## Current Priorities (2026-04-30)
+## Current Priorities (2026-05-01)
 
-### Corpus pattern mining — P49-54 + P55-71 + P72-75 LANDED
+### 1. Stabilize the split planning contract
 
-All P49-54 measurements landed in commit `a3da6d1`; P55-71 voice-signature + lint research wave landed in `0f199ca`; P72-75 interaction patterns + magic lexicon landed in `788b7a2`. Cumulative count is now ~75 patterns probed across the IWD trilogy under the directional-gate methodology. Mining surface is approaching saturation — the marginal new pattern is unlikely to produce a harness lever the existing 75 don't already cover. Next priority is synthesis (composite-prior bundles → variant prompts → phase-eval probe), not additional single-pattern measurements.
+The planner now splits beat shape from state/obligation mapping. Exp #289 proved the split can reach final zero obligation orphans without deterministic auto-repair, but mapper retries still happen and retry prompts needed a state-preservation fix.
 
-- [x] **P49–54 sweep** — chapter openers/closers, scene cadence, POV, sensory modes, time-skip markers. Commit `a3da6d1`.
-- [x] **P55–71 sweep** — voice-signature + lint research wave, 17 measurements. Commit `0f199ca`.
-- [x] **P72–75 sweep** — interaction patterns + magic lexicon. Commit `788b7a2`. Verdicts: P72 PASS_PARTIAL (3/7 pairs PASS — Bruenor anchor pairs); P73 DIVERGE (top-kind shuffles 3/3, surviving action top-2 + BARE-rate cluster); P74 DIVERGE (top-3 intersection 0/3, universal book1→book2 affinity rise 10/10 as series-progression prior); P75 KILL (climax-spike CS-only, magic-antagonist 2× WITHIN book per-book localized).
+- [ ] **Run 2-3 more planner-isolated split-mapper samples on different seeds.** Inspect per-chapter mapper orphan counts, mapper retry count, ignored mappings, overloaded beats, JSON retries, and final auto-repair count. Use `scripts/test-planner-isolated.ts` and link runs to exp #289 or a follow-up experiment.
+- [ ] **Add a durable mapper telemetry summary.** Today the signal lives in harness logs plus `llm_calls`. Add a small DB/queryable summary or script output for `planning-state-mapper`: initial orphan counts, retry pass counts, final orphan counts, auto-repair count, max completion tokens, JSON retries, and cost.
+- [ ] **Decide auto-repair policy after the sample set.** Options: keep final auto-repair as warning-class safety net, route remaining gaps to plan-assist in human mode, or keep auto-repair only for short-story/auto mode. Do not remove auto-repair until mapper retry evidence is stable.
+- [ ] **Evaluate stable IDs for knowledge/state changes.** Deterministic coverage still matches knowledge/state by text and character. Consider adding IDs to `knowledgeChanges[]` and `characterStateChanges[]` only if mapper retries keep missing or mutating state under text matching.
 
-### Pivot to synthesis (HIGH PRIORITY — post-P75 sweep)
+### 2. Freeze and calibrate the current checker surface
 
-The cumulative ~75-pattern view exposes 4 composite-prior bundles that could each become a single phase-eval probe variant arm. Pick the highest-leverage bundle first; the user's prior signal that context-engineering is the priority points the spend at writer-prompt-side bundles (voice-shaping, action-beat assembly) before planner-side composites.
+Checker promotion remains blocked until fresh labels are generated against the new writer-visible surface. Do not add obligation-aware beat blockers yet.
 
-- [ ] **Pick the highest-leverage composite-prior bundle** for the next variant arm. Candidates ordered by likely impact under context-engineering priority:
-  - **Voice-shaping bundle (P29 + P39 + P57 + P65 + P67)** — narrator-voice + dialogue-attribution + per-character voice signature. Writer-side prompt edits to `src/agents/writer/`. Likely highest leverage given voice-shaping-ablation-v1 KILL on D0/D1/D2/D3 — composite bundle exposes whether the bundle works where individual levers didn't.
-  - **Action-beat assembly bundle (P64 + P53 + P56 + P66)** — combat-cadence + sensory mode + body-part vocabulary + action-verb tier. Writer-side; targets a known production weak spot (action beat density / cadence).
-  - **Per-pair `interactionMode` (P72 over P65)** — planner-side prior layered on top of per-character fewshots. Lower priority than writer-side bundles for now; planner expressiveness is already getting attention via the planning-beats variant work.
-  - **Chapter-CLOSE narrator-seam (P50 + P54 + P55)** — planner-side closer-kind guidance composite. Already in flight as the P3b plotter-regression follow-up below; bundle into the same arm.
-  Sequencing: charter the chosen bundle as a variant arm, build the variant prompt, register it with the existing `phase-variant-screen` instrument, run the probe, decide ship/iterate against directional gates. Do NOT bundle three of these into one arm — composite priors are already multi-variable; one bundle per variant keeps the causal signal readable.
-- [ ] **Decide bundle-PASS-stack-into-v2 vs single-lever variant.** Now that the full 75-pattern view is in the roadmap, the trade-off is concrete: bundle ~10-15 PASS-class non-`watched` patterns into a single v2 plotter prompt (broad-coverage, lots of variables, harder causal attribution) vs ship the strongest single lever as its own variant arm (narrower signal, more arms required, slower convergence). Decision call before the first composite-arm charter lands.
-- [ ] **Fix P3b plotter regression before re-probe.** LXC probe of the corpus-v1 plotter variant showed Pattern 3b (chapter closer kind) REGRESSED to 0/3 action vs 2/3 action in the default — the variant prompt's closer-kind guidance is producing the opposite of the corpus distribution. Revise the closer-kind guidance in the plotter variant prompt and re-probe before bundling any PASS-class patterns into v2.
-- [ ] **Generalize `print-screen-verdict.ts` for arbitrary variant pairs.** Currently hard-codes the planning-beats default-vs-loud variant pair. Generalize to take `--control` + `--test` flags so the same verdict computer drives any phase-eval probe variant pair, not just planning-beats. Pure scripting work; no schema or transport touches.
-- [ ] **Soften beats variant from rank-ordered to set-based.** Per the directional re-score conclusion: the rank-ordered version of the beats variant prompt over-constrains the planner; convert the prompt to a set-based formulation (the planner picks N beats from a set, ordering decided downstream). Bounded prompt edit; re-runs through the existing phase-eval probe instrument.
-- [ ] **Re-measure P16 facts density on 5+ chapters.** LXC probe at n=3 chapters showed facts density dropped (median 4 vs 6 default) on the corpus-v1 plotter variant, but n=3 is below the noise floor — the median can flip on a single chapter. Re-run on ≥5 chapters before treating P16 as a regression vs noise.
-- [ ] **`atomic_append_section` robustness work — LOW PRIORITY.** Patterns 72-75 N=4 parallel run silently lost 3 of 4 sections in `crystal_shard-conclusions.md` despite each subagent's stdout reporting success — see `docs/lessons-learned.md` "atomic_append_section is not safe under N≥3 concurrent subagent processes." Workaround stands: don't run >2 parallel pattern subagents writing to the same conclusions doc, OR verify post-run with `grep -c "^## Pattern N:" target.md` against the expected count. Durable fix is the conclusions-stubs flow named in the prior parallel-write lesson — each subagent writes `novels/<key>/structure-calibration/conclusions-stubs/<pattern>.md`, single-writer reconciliation step gathers stubs into the canonical doc. Helper at `scripts/structure-calibration/lib/atomic_io.py`. Not blocking: the row helper (`atomic_insert_row_before_anchor`) and JSON helper (`write_timestamped_json`) are unaffected; only the append helper has the failure mode.
+- [ ] **Run a fresh post-validator current-surface drafting sample.** Use the deployed split mapper surface and inspect obligation coverage logs, adherence blockers, `halluc-ungrounded` blockers, functional-state warnings, continuity findings, lint/prose-integrity events, and plan-assist gates.
+- [ ] **Build the current-surface hallucination panel.** Run `scripts/hallucination/current-surface-manifest.ts` and `scripts/hallucination/build-current-surface-panel.ts` from the fresh run. Start with the exp #282 `Spire` seed case as the known calibration anchor.
+- [ ] **Label the panel before changing checker severity.** Use quote-required oracle labels and record the checker-visible evidence surface for each row. Checker labels must be judged against the exact evidence the checker saw, not the wider writer context.
+- [ ] **Only then design obligation-aware beat checks.** Candidate checks must verify obligations the writer saw in `BEAT OBLIGATIONS`; chapter-level planned-state grounding remains warning-class until calibrated.
 
-### Deferred-but-don't-lose architectural items
+### 3. Build the evaluation/variant harness needed for next prompt work
 
-- [ ] **Scene-level-vs-beat-level writer architecture question — PARKED.** The user explicitly parked this. Whether the writer should generate scene-level (multiple beats per call, ~500-1500w/call, fewer LLM round-trips, more in-context coherence within a scene) vs the current beat-level (one beat per call, ~290 out tokens/call, tight retry granularity, current production shape) is a real architectural fork that affects context-engineering surface area, retry-loop shape, voice-LoRA inference economics, and the writer-visible state surface. Don't lose track of it; revisit after the current synthesis-pivot wave produces concrete probe verdicts on composite-prior bundles. Until then, beat-level remains the default and no spec work proceeds on the scene-level alternative.
+The one-off planning variant probes were useful but too bespoke. The next prompt/composite-prior work needs reusable comparison plumbing.
 
-- [ ] **Reshape checks/validation toward fine-tune-free architecture (HIGH-LEVEL DIRECTIONAL CONSTRAINT, 2026-04-30).** User direction this session: "shape the harness to not be dependent on fine-tunes" because (a) no local LLM inference machine, (b) DeepSeek V4 Flash is cheap, cached-prefix friendly, and likely to remain widely available long-term, (c) AI harness shifts will keep creating gaps in fine-tuned Qwen 14B model performance. This is NOT a single ticket — it's a constraint that should bias every checker / writer / validation decision toward DeepSeek V4 Flash + deterministic-rule layering, away from new SFT adapter spend. Concrete near-term implications: (1) When evaluating any checker change, prefer V4 Flash + structured prompt + deterministic guard rails over training a new SFT adapter; (2) Treat the existing 14B SFT checkers (`adherence-checker-v4`, `continuity-v2`, candidate `halluc-ungrounded-v2` + `halluc-leak-salvatore-v1`) as legacy — when one needs material change, replace with V4 Flash rather than retrain; (3) The voice-LoRA track is already FROZEN per 2026-04-21 decision (`docs/decisions.md`); voice-shaping bundle work explicitly tests the V4-Flash-replaces-LoRA hypothesis. Do NOT charter new SFT training without explicit user re-authorization. Composes with `feedback_together_explicit_only` (Together fine-tunes need per-job auth) — extend that to W&B SFT going forward.
+- [ ] **Generalize `scripts/phase-eval/print-screen-verdict.ts`.** It currently assumes the old planning-beats default-vs-loud pair. Add `--control` and `--test` flags and make verdict thresholds explicit so any phase-eval variant pair can reuse it.
+- [ ] **Refresh phase-eval variant assumptions for the split mapper.** The old `planning-beats` variants predate the state mapper and measured state/fact density inside a now beat-only agent. Decide whether future variants target `planning-beats`, `planning-state-mapper`, or both.
+- [ ] **MVP durable eval/testing module.** Design draft: `docs/designs/eval-testing-module-v1.md`. Replace bespoke scripts with `(variant config, seed set, metric set) -> results table + UI`, reusing `llm_calls`, `tuning_experiments`, `pipeline_events`, and `eval_results` where possible.
 
-- [x] **Track A: validate-and-retire the Salvatore writer LoRA — NO-SHIP on single-run validation.** DONE 2026-04-30 (exp #265, novel `novel-1777573197451`, seed `dark-fantasy`, 3 chapters, commit `f3f5c9c`). Route verified as `salvatore-fantasy (deepseek-v4-flash)`. Result: do NOT retire the Salvatore writer LoRA from production on this evidence. Read-through positives: strong dark-fantasy atmosphere, stable clinical Istra voice, coherent macro arc. Blockers: approved ch2/ch3 had lint-fixer merge corruption; raw drafts already had continuity/content defects (duplicate beat seam, Elara role flip, "wife" error, Aldric knowledge violation). Production route restored to Salvatore v4. Reopen only after separating base-writer signal from lint-fixer corruption and continuity/seam defects.
-- [ ] **Remediate the base-DeepSeek fantasy route and retire writer fine-tune dependency.** Salvatore v4 remains a temporary production fallback, not the strategic route. Execute `docs/writer-finetune-retirement-remediation-plan.md`: decouple genre packs from compact LoRA context, guard lint-fixer output, rerun base DeepSeek with rich/default context, and fix the planner/continuity failure classes from exp #265 before another retirement verdict.
-- [ ] **Fix lint-fixer merge corruption before using approved prose as writer-route evidence.** Exp #265 showed the approved draft can be worse than the raw draft: ch3 raw opening was clean, approved opening contained `blade.She`, `againShe`, and `.ind her` merge artifacts introduced by the lint-fixer pass. Add a deterministic post-fix integrity guard or compare raw-vs-approved before treating linted prose as the writer verdict.
-- [ ] **Measurement scaffold for voice-shaping bundle — DEFERRED.** Only build the brief-set + variant runner + deterministic/Sonnet scorers if Track A exposes a prose gap that the existing v1 evidence does not already answer. Do not draft a v2 voice-shaping charter without re-reading `docs/charters/voice-shaping-ablation-v1-results.md`.
+### 4. Pick the next corpus-informed synthesis probe after runtime stabilization
 
-### Rules added this session
+Corpus mining has enough single-pattern evidence. Do not mine more one-off patterns until a composite prior has been tested through the refreshed variant harness.
 
-- [x] **CLAUDE.md Rule 14 — capture lessons learned at the moment of methodology surprise** — committed `d492d61`. Trigger surface enumerated in CLAUDE.md.
-- [x] **CLAUDE.md Rule 15 — findings must land in tracked documentation, not just chat** — committed `11a8178`. Per-finding cadence, not session-end batch.
+- [ ] **Pick one composite-prior bundle for the next variant arm.** Current candidates: action-beat assembly, voice/dialogue shaping, per-pair interaction mode, or chapter-close narrator seam. Prefer one bundle per arm so causal signal stays readable.
+- [ ] **Fix P3b closer-kind regression before re-probing plotter variants.** The corpus-v1 plotter variant regressed chapter closer kind to 0/3 action vs 2/3 default. Revise the closer guidance before using it in a larger bundle.
+- [ ] **Re-measure P16 facts density on 5+ chapters.** The n=3 corpus-v1 probe showed a facts-density drop, but the sample is below noise floor.
+- [ ] **Soften the rank-ordered beats variant to set-based guidance.** The directional re-score found rank-ordering over-constrains the planner. Convert to a set the planner can select from before another probe.
 
-### Schema-prompt sync fix
+### 5. Runtime and repo hygiene
 
-- [x] **`beat-expansion-system.md` synced to schema** — committed `0c8457d`. Production `MICE_ACTIVE_THREADS=["I"]` + `MICE_OPENS_THREADS=["M","I"]` enums now match the planner prompt; LXC probe had emitted invalid `miceActive=['E','C']` before the fix.
+- [ ] **Tighten the TypeScript baseline.** Full `bunx tsc --noEmit` still fails on pre-existing strictness/test-fixture issues, including missing `obligations` in fixtures, optional `functional-state-checker` fields, implicit `any` DB mappers, and `llm.test.ts` typing. Fix separately from planning changes.
+- [ ] **Fix DB-backed phase parity reliability.** `tests/phase-parity/phase-parity.test.ts` can still fail with `ERR_POSTGRES_CONNECTION_CLOSED` in local runs.
+- [ ] **Full restart recovery for plan-assist gates.** MVP orphan detection exists; full recovery needs drafting attempt-loop changes so resume can re-fire and re-await pending gates.
+- [ ] **Extend LLM call inspector tags.** `chapter`, `beat_index`, and `attempt` are populated for key drafting calls; thread tags through remaining planner/checker/support calls where missing.
+- [ ] **Historical-superseded doc pass.** Add inline superseded callouts to older docs that still speak in current tense about retired adapters, Howard primer, tonal pass, and writer LoRA runtime routes.
 
-## Current Priorities (2026-04-29)
+## Parked Or Deferred
 
-### Phase-eval probe scaffold + parity fixture P0b — COMPLETED
+These are real ideas but not active next steps.
 
-- [x] **Parity fixture P0b recorder run + commit.** DONE — committed at `0d78adf` (101 LLM calls, 12m 22s wall clock against `fantasy-system-heretic` 3-chapter litrpg seed).
-- [x] **First phase-eval probe end-to-end against `fantasy-system-heretic`.** DONE — SCREEN-PASS verdict on the first run (loud variant cleared all 4 charter gates: facts_median 8 ≥ 1.5×3 AND ≥8; know_median 5 ≥ 1.5×3 AND ≥3; total_beats 43 ≥ 1.10×30; 3 outlines parse). Retrospective at `docs/sessions/2026-04-29-phase-eval-probe.md`.
-- [x] **Codex pass on Slice 1.** DONE — `codex:codex-rescue gpt-5.5 effort=high` (thread `a09d5baaad90af744`) returned RED with 3 blockers (verdict-script didn't implement charter screen, audits outside transaction, orphan DB state on child crash) + 3 warnings + 2 suggestions. All integrated in commit `28c2e57`. Retrospective updated at `ed18f17`.
-- [x] **Decide post-probe scaling — instrument iteration is NOT the next move.** Decision from end-of-session conversation: the 4 instrument-iteration options (5-chapter seed / temperature noise band / fold seam into harness / close as validated) all have diminishing returns once the probe is Codex-clean and produced clean SCREEN-PASS. The actual next moves split into 3 buckets — see the new section below.
+- [ ] **Branch search and multi-candidate drafting.** First milestone is V0 candidate plan sampler plus deterministic branch filters. See `docs/features-expansion-todo.md`.
+- [ ] **Prose quality improvement track.** Wait until plan/obligation/runtime and checker calibration are stable. Prefer multi-draft local selection and targeted beat/window rewrites over full-chapter rewrites. See `docs/features-expansion-todo.md`.
+- [ ] **Audiobook voice tagging / multi-cast TTS exploration.** First milestone is a tagged JSON/SSML sidecar export, not TTS generation. See `docs/features-expansion-todo.md`.
+- [ ] **Scene-level vs beat-level writer architecture.** Parked by user direction. Beat-level remains default until current runtime evidence justifies reopening.
+- [ ] **Deep-authoring / post-planning edit UI.** Still valuable for human-shaped novels, but lower priority than runtime contract and eval infrastructure.
+- [ ] **Small-model/local checker POCs.** Preserved as optional checker cost/latency work, not writer-route strategy. Do not start new SFT spend without explicit user authorization.
+- [ ] **Adapter registry/provenance hardening.** Useful for archived/future fine-tunes: registry-backed UI, training-data SHA256, formatter provenance, and experiment lineage hooks.
+- [ ] **Character-name normalization.** Split titles from first/last names only when a future feature becomes sensitive to surname/title matching.
 
-### Three-bucket forward plan (2026-04-29 end-of-session re-framing)
+## Explicitly Not Current
 
-The harness can iterate on prompts/levers, but lacks (a) empirical grounding (corpus distributions over framework prescriptions) and (b) a durable testing/eval surface to make A/B decisions outside one-off scripts. These split into two parallel workstreams plus a gated third bucket.
-
-- [ ] **Bucket 1 — Corpus Structural Decomposition (vertical slice, ~2 weeks).** Charter draft: `docs/charters/corpus-structural-decomposition-v1.md`. Extends existing `corpus-pipeline.md` with framework-tagging passes (per-chapter MICE type, per-scene value-charge, per-novel PromiseRegistry, per-novel Lie/Truth/Want/Need extraction, per-beat Yorke-phase) on 5–10 reference novels (Cradle Bk1-2, DCC Bk1, HWFWM Bk1, Mother of Learning, plus 2–3 Salvatore/Sanderson anchors). Output: `novels/<key>/structure.json` per book + aggregate `corpus-distributions.json`. Decision-grade output: which framework prescriptions the corpus actually validates. Read-only against existing corpus; no runtime pipeline impact.
-  - **Crystal Shard reference Phase A/B/C (2026-04-29) status (`novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md`):**
-    - [x] character-arcs CELL PASS, F1=1.00 — **harness integration shipped (commit `4ec5d8b`)**. LTWN + arc_resolution enum live on `characterProfileSchema`; planning-plotter renders the arc block.
-    - [x] McKee-gap full-corpus extraction (824/858 beats, gap_size + gap_type distributions). Calibration sample + Pro judge in flight at session end.
-    - [x] Phase C Round 2 — cardinality pivot, mice prompt v2 + value-charge prompt v2 drafts, harness mapping, cross-book brief, Sonnet pair-matcher confirmation. Commit `9e45ece`.
-    - [x] **v2 architecture** — draft design doc at `docs/designs/decomposed-extractor-sonnet-anchor-v1.md` + decisions.md entry "Corpus structural-decomposition v2 — decomposed extractor + Sonnet anchor". Pivots from monolithic Flash×Pro to decomposed Flash + Sonnet anchor. Supersedes the v1 mice / value-charge prompt drafts (their close-criteria absorb as sub-rubric source material).
-    - [~] **v2 Gate 1** — Sonnet self-consistency on the 4 simpler dims COMPLETE (n=50 + binary-collapse + beat-level extension, 2026-04-30 conclusions doc). Outcomes:
-      - [x] **mice** — 4 binary sub-calls validated; ship enums narrowed to `miceActive=["I"]`, `miceOpens=["M","I"]`, `miceCloses=["M","I","C","E"]` per the granularity-rotation intersection. `sceneBeatSchema` shipped (commit `cd4347a`).
-      - [x] **value-charge** — 3-class polarity unstable (J=0.639) → binary collapse `valueShifted: boolean` PASSES at both granularities (J=0.852–0.923). Schema swapped (commit `c48a232`).
-      - [x] **lifeValueAxes** — 5-class single-pick unstable → 5 binary multi-tags PASS at beat level (granularity rotation). All 5 axes ship (commit `c48a232` + beat-level extension `cd4347a`).
-      - [~] **mckee-gap** — `gapPresent: boolean` at J=0.818 NEAR (scene); shipped with low-confidence caveat. Rubric sharpen queued.
-      - [ ] **promise sub-dim split** (arc-promise vs setup-payoff-bridge) — Sonnet self-consistency NOT yet run. Gate 1 still pending for this dim.
-    - [ ] **Sharpen v3 mckee-gap rubric** — `gapPresent` at scene-level Jaccard 0.818 NEAR. Borderline gap-vs-no-gap cases stay borderline under binary collapse, so this is rubric-sharpen territory (next step in the binary-collapse-before-relabel SOP). Cheap: ~$3, half-day wall-clock with the existing Sonnet subagent path.
-    - [x] **v2 mice re-extraction on full Crystal Shard** — DONE 2026-04-30 ~02:24 UTC. 8 subagents (M / I-v2 / C / E × 2 runs each on 139 scenes). **Verdict: scene-level full-corpus FAILs anchor stability on most subfields** — only E `is_present` passes (J=0.920); opens/closes/dominant FAIL across all threads (J=0.10–0.75). The earlier n=50 waves were sample-underpowered. Conclusions doc session ~02:24 UTC + artifacts `crystal_shard.20260430T022320.v2-mice-*.jsonl` + anchor-stability JSON.
-    - [ ] **Beat-level full-corpus mice re-extraction (deferred — see "Why mice comes back" below)** — does beat-level pass at full corpus where scene-level FAILed? Re-run the 4 v2 binary sub-decisions on all 858 beats. Cost ~$8 + half-day wall-clock with the existing Sonnet subagent path. Critical: this is the load-bearing validation for the schema fields (which emit at beat granularity); the n=50 beat-level wave passed but small-sample J estimates have proven misleading on this rubric.
-    - [ ] **Sharpen v2 mice rubric (deferred — see "Why mice comes back" below)** — 2026-04-30 ~02:24 UTC analysis showed largest disagreement on `opens` (M run1=23 / run2=11) and `is_dominant` (E run1=52 / run2=71). Disagreement axis is "first scene of an arc" (loose) vs "this scene introduces a NEW commitment" (strict). Sharpen rubric to one or the other before any further re-labeling.
-    - [ ] **Re-cut `chapter-outline-system.md` plotter prompt with mice priors — STAYS PARKED.** v2 full-corpus mice did not clear the J ≥ 0.85 ship gate. The agreement-subset chapter rollup (E-opens 56% / E-closes 56% / E→E 16-of-34 transitions) is exploratory only, NOT eligible as a planner prior. Re-evaluate after rubric sharpen + beat-level full-corpus pass.
-
-    **Why mice comes back later (rationale 2026-04-30):** Per the series-engineering vision (memory `project_series_engineering_vision`, CLAUDE.md "Series Engineering Vision"), multi-book series is the commercial unlock — and mice-thread tracking across books would be load-bearing for cross-book character-arc continuity (C-thread per character), thread-debt accounting (opens in book N must close by book N+M), and narrative-spine alignment between volumes. For SINGLE-book novel generation, mice tags are SOFT priors with no checker gates and lower harness impact than the non-mice corpus patterns (1-4 + 7) and prompt-edit variants those patterns enable; defer. For MULTI-book series work, mice rubric stability becomes structural and unavoidable, so the rubric sharpen + beat-level full-corpus + cross-author validation become the entry-gate to series engineering. Also: mice is the highest-rubric-latitude dim across the 5 R7 dims (promise, mice, value-charge, mckee-gap, character-arcs) — the ground truth on whether decomposed Sonnet anchor + binary-collapse + granularity rotation is enough to stabilize a hard rubric, vs needing sub-dim splits or schema reshape. That methodological question is also load-bearing for any future stochastic-schema dim we add.
-    - [ ] **Plotter-prompt edits for non-mice patterns (Patterns 1–4 + 7)** — kind distribution, opener/closer kinds, position effects, beat boundary signals — these can land independently of mice; gated only on cross-book validation (Streams of Silver / Halfling's Gem confirming distributions within ±5–10%).
-    - [ ] **v2 Gate 2** — sub-prompt drafts for dims that pass Gate 1 (mice 4× per-thread sub-prompts; promise 2× sub-dim once Gate 1 done; value-charge / mckee-gap retain single-call shape but absorb the v2 draft sharpenings).
-    - [ ] **v2 Gate 3** — Flash extraction + Sonnet anchor calibration; per-dim ship/hold verdict per the design doc's measurement plan.
-    - [ ] **v2 adversary review** — Codex `codex-rescue gpt-5.5 effort=high` on the design doc once v1 Phase C close-out is committed and McKee-gap verdict landed.
-    - [ ] **Streams of Silver Stage 6** (~$3 + 30 min) — author-stability test for Salvatore fingerprint. Brief at `docs/cross-book-cross-author-brief.md`. Already on disk; only `normalize-for-structure --book streams_of_silver` is required before Stage 6. **Doubles as cross-book validation** for the 7 chapter-level structural patterns identified in the 2026-04-30 ~02:05 UTC session — re-run `chapter-level-structural.ts` + `chapter-mice-rollup.ts` and compare distributions to Crystal Shard within ±5–10%.
-    - [ ] **Halfling's Gem cross-book validation** (~$3 + 30 min) — third Salvatore book to gate "Crystal Shard quirk vs action-fantasy genre prior" determination on the 7 chapter-level patterns.
-    - [ ] **Jim Butcher Storm Front** (cross-author probe, ~$15 acquisition + ~$2 extraction). Same brief. Cross-genre signal: I-thread (inquiry) should dominate; opener/closer threads should rotate vs Salvatore action-fantasy.
-    - [ ] **Update `feedback_gold_stability_first` memory** — promote from "single-granularity check" to "granularity-aware check"; add binary-collapse-before-relabel as the canonical pre-flight step on a FAILED stability check. Two new lessons-learned entries (cross-model F1 vs anchor stability, granularity rotation) extend the memory framework.
-- [ ] **Bucket 2 — Durable Eval/Testing Module (harness infrastructure, ~1–2 weeks MVP).** Design draft: `docs/designs/eval-testing-module-v1.md`. New tables (`test_runs`, `test_metric_results`, `test_suites`), service layer in `src/harness/`, side-by-side compare UI (generalize the tonal-pass paragraph-aligned diff renderer), human-rating widget, generalized variant runner (per-agent prompt-override seam, not just `planning-beats`). Replaces bespoke one-off scripts with a unified shape: `(variant config, seed set, metric set) → results table + UI`. Composes with existing `llm_calls`, `tuning_experiments`, `pipeline_events`, `eval_briefs`/`eval_results`.
-- [ ] **Bucket 3 — Pipeline Refactors (gated, one at a time).** The 5 structural changes from the framework synthesis at `docs/research/writing-frameworks/SYNTHESIS.md` (upstream concept expansion, MICE thread tracking, character web as graph, PromiseRegistry, beat-schema with valueIn/valueOut). Each requires its own charter; each is gated on (a) Bucket 1 corpus distributions agreeing with the framework prescription AND (b) Bucket 2 eval module showing the change measurably improves outputs. The 50-knob lever list (additive checkers, lint patterns, schema fields) is **explicitly NOT** the roadmap — most are expert prescriptions that may not survive corpus filtering.
-
-Sequencing: Buckets 1 and 2 run in parallel (different domains, no shared state). Bucket 3 starts only after both — corpus says what's worth doing, eval module says whether the doing actually helped. Charters for Buckets 1 and 2 land as drafts pending Codex review.
-
-## Current Priorities (2026-04-21)
-
-### NEW — Late 2026-04-21 voice-LoRA pivot + voice-shaping ablation
-
-- [x] **Voice-shaping ablation v1 results synthesis** — DONE 2026-04-30 (commit `3c4f40b`, exp #263). Verdict: KILL on all 3 prompt-shaping arms (D1/D2/D3 all FLAT vs D0 bare DeepSeek baseline). D0 was already 0.39–0.89σ from Salvatore reference on 3/5 features — no room for prompt shaping to add value. Notable secondary: D2 (few-shot with Salvatore excerpts) had 0/20 halluc-leak fires vs Salvatore v4 LoRA's ~15% — Salvatore in the prompt doesn't leak; Salvatore in the weights does. Corroborates the LoRA-track pivot.
-- [ ] **Character-distinctness audit on D3-style directive prompts** (named follow-on from voice-shaping KILL). Whether per-character directive-heavy prompts produce measurably distinct dialogue voices on a Sonnet quote-required pairwise audit, even though they don't move the narrator-voice metric. ~$5–10 + half-day. Not chartered yet; named in `docs/decisions.md` 2026-04-30 voice-shaping entry as the next experiment.
-- [x] **Successor to `arm-b-detector-preflight`** — SUPERSEDED by the LoRA-track pivot (2026-04-21). The preflight arc → arm-b-direct-pairwise (CAUTION) → arm-d-writer-upgrade → pivot to DeepSeek + voice-shaping-ablation-v1. The replay-ladder-v1 charter remains RED-blocked but is deprioritized: the voice-shaping program answers the same "where should next $N go" question under the new architecture. Re-open the ladder only if voice-shaping produces a SHIP-candidate arm and the full ladder becomes the right follow-on.
-
-- [x] **Measure `qualityRedraftEnabled` in production** — DONE 2026-04-21 (novel PID 315593 complete, 93 beats, 29 retries = 31%, $0.0462). **Outcome: 0 redraft fires across the run** despite flag on. Inconclusive as a gate-value measurement; more likely finding is that the detector thresholds (`detectRepetition` + `detectUnderlength(<100w)`) are too strict to ever trigger on real Salvatore-route production prose. Flag stays default OFF. Counted as signal #3 in the 2026-04-21 LoRA-track-evidence retrospective (`docs/retrospectives/2026-04-21-lora-track-evidence.md`).
-- [ ] **rewrite-capability-probe charter: round-2 re-review or formal withdrawal.** Charter (`docs/charters/rewrite-capability-probe.md`) got a round-1 RED verdict (commit `d36bfae`). Session context: the rigorous probe (commit `eb3e7c8`) provided the decisive evidence that was needed. The directional signal (LoRA cannot rewrite with critique) is now clear enough to consider the charter's research question answered, making round-2 review optional. Options: (a) write a brief "verdict: answered" addendum to the charter and close, or (b) run round-2 re-review focused only on whether the redraft-gate design adequately addresses the probe's findings. Decision call for next session.
-- [ ] **`salvatore-v5-corpus-expansion` charter** — DRAFT landed 2026-04-23 at `docs/charters/salvatore-v5-corpus-expansion.md`. Status stays `draft` until pre-gate cleared: PDFs for 3-5 Legacy-of-the-Drow-series novels on disk. Charter implements Option D from the "Salvatore voice LoRA" section (Icewind Dale + Legacy of the Drow, same training config, measure distinctness before adding archetype tags). Cheapest-counterfactual detection plan: POV distribution analysis at Stage 3 catches Drizzt-POV > 60% imbalance before training spend. Adversary review gated on PDF acquisition; re-read the v1 Codex review in `docs/decisions.md` before submitting.
-- [ ] **Context-engineering priority items (from CLAUDE.md strategic direction).** Session set the direction: context engineering + editing passes + writer-model upgrade over more conditioning tricks. Specific items: (a) `speaker_directives` per beat (V1b — gated on completed 4-arm V1a pilot), (b) reader-information state tracker, (c) world-expansion budget per chapter. See §3 and §4 below.
-- [ ] **Concurrent-Codex invocation research (low priority).** The `codex exec` subprocess pool hung on the conditioning-floor cross-judge run (16+ min, zero returns). Investigate whether a Codex CLI flag or wrapper pattern enables safe sequential-batch invocation for eval automation, or confirm Agent subagents are the only safe parallel path. See `docs/lessons-learned.md` "codex exec does not compose under concurrency."
-- [x] **tier-ordering-validation-v1 charter** — CONCLUDED 2026-04-21 (exp #264, commits `db9d8f6` → `b4426fb`). Full lifecycle: roadmap v2 → RED adversary review → terrain survey killed v1 lever (`establishedFacts` density vacuous per `beat-context.ts:255-281` render surface) → pivoted to v2 lever (`requiredPayoffs` density) → probe FLAT within noise (88.5% → 80.8%, McNemar p ≈ 0.68 at n=26/cell, actual cost $0.028 = 21× under $0.60 budget). Charter and revised lever both killed; 3-tier sequential ordering promoted to "working hypothesis, revisit if Tier 1 winners collapse under Tier 2 writer swaps." Results: `docs/charters/tier-ordering-validation-v1-results.md`. Retrospective: `docs/sessions/2026-04-21-tier-ordering-probe.md`.
-- [ ] **Ship Tier 1B writer-visible threading.** The terrain survey established that most "planner-side structural state" assumed writer-visible in the roadmap doesn't actually reach the writer. Tier 1B is the un-shipped glue that would change that:
-  - Bulk `establishedFacts` injection into `src/agents/writer/beat-context.ts` (today: only `requiredPayoffs`-linked facts render as SEEDS / PAYOFFS DUE)
-  - `worldExpansionBudget` wiring per chapter (count new named entities; surface as a constraint to the writer)
-  - `priorBeatEstablishedFacts` threading via `getFactsUpToChapter` (today: no prior-chapter fact state reaches the writer at all)
-  Requires a production code change in the writer context surface, NOT just a planner-prompt intervention. Measurement via decomposed audit at full-novel scale (not chapter-probe — that instrument bottomed out at n=26/cell per exp #264 noise-floor finding). Sequence against the `voice-shaping-ablation-v1` result before scoping a charter.
-
-### Housekeeping findings from Codex code audit (2026-04-21, job `ba3olk3os`)
-
-Codex audit raised four issues unrelated to today's experiments but worth fixing before they affect future runs:
-
-- [x] **[high] Together fine-tune submitter reuses stale uploads by basename match** — FIXED 2026-04-21 (`scripts/finetune/train-together-small.py`). Default behavior is now fresh upload every time (no basename-match reuse — Together's file listing only exposes filename, not content hash, so the old path silently trained on stale data after any local regeneration). `--reuse-file-id <id>` is the explicit opt-in for re-submitting a failed job against a known-good upload. Always computes + logs `sha256` of the local data file; emits a provenance manifest under `finetune-data/together-runs/{exp-<id>|job-<id>}.json` with job_id, file_id, data path/bytes/sha256, base model, hyperparams, and UTC submission time. Manifest key uses `--experiment-id` when supplied so the record joins to `tuning_experiments` downstream. Script compiles + `--help` renders clean.
-- [x] **[high] Leak formatter throws away Sonnet label corrections** — FIXED 2026-04-21 (`scripts/hallucination/format-v3-two-adapters.ts`). `toLeakPair()` now derives `has_leak` + `leaks[]` from two sources UNION'd: (1) `regexLeakMatches(prose)` from the canonical `src/agents/halluc-leak-salvatore/regex-leak.ts` token list; (2) the corrected assistant payload's `issues[].entity` list, filtered to entries matching a `LEAK_TOKEN` via possessive-tolerant lookup. Variant-agnostic — a Sonnet-flipped PASS on a FAIL_CORPUS_LEAK variant now correctly labels as `has_leak=false`, and an accidental leak in a non-FAIL_CORPUS_LEAK variant now gets caught. Smoke-tested the four corner cases. Any leak training/eval artifacts derived from the prior formatter must be regenerated before the next `halluc-leak-salvatore` retrain (tied to the deferred v2 SFT ticket below).
-- [x] **[medium] Natural leak val auto-labels generic names as positives** — FIXED 2026-04-21 (`scripts/hallucination/build-natural-leak-val.ts`). Replaced hand-maintained `LEAK_TERMS` + case-insensitive `.includes()` with (a) `regexLeakMatches` from `src/agents/halluc-leak-salvatore/regex-leak.ts` (inference-parity, word-boundary), (b) post-filter against benign injection-pool names (`injection-pools.json.characterNames` ∪ `realWorldRefs`) — specifically handles the `Cassius` overlap Codex called out, plus all other potential benign-pool collisions. Dropped tokens are logged per-beat (`_meta.dropped_benign_overlaps`) and aggregated in the run summary. Smoke-tested: `Cassius`-only prose now correctly labels negative; `drowsy`/`crowded` no longer trip a `drow` substring false positive. The prior `halluc-leak-salvatore-natural-val.jsonl` artifact must be regenerated before it's used for any new eval.
-- [x] **[medium] `qualityRedraftEnabled` flag is process-wide, not per-run** — FIXED 2026-04-21. Env-var read removed from `src/config/pipeline.ts`; `SeedInput.pipelineOverrides?.qualityRedraftEnabled` added as the per-novel scope point; `--quality-redraft` CLI flag in `src/config/run.ts` + `src/index.ts` writes the override into the seed before `createNovel`; `src/phases/drafting.ts` reads once via `effectivePipeline(novel.seed)` at the top of `runDraftingPhase`. HTTP `POST /api/novel/start` with `customSeed.pipelineOverrides` works the same way. Drafting tests pass.
-
-## Current Priorities (2026-04-18)
-
-**Architectural direction locked:** context-engineering-forward. Planner expressiveness + beat-context delivery are the quality lever. Checkers are narrow (adherence + hallucination). Craft is a model-weights problem. See `docs/decisions.md` "Context-engineering-forward architecture."
-
-### 0. Preflight invariants — DONE (exp #243, 2026-04-19)
-
-Five starting blocking preflight invariants shipped per `docs/invariants.md` registry. Canonical invocation: `bun scripts/preflight.ts`. Codex final verdict PASS after 2 fix-pass iterations.
-
-- [x] **Invariant #1** — revisionUsed restart persistence (runtime). Commit `10ce979`.
-- [x] **Invariant #2** — Seam-recheck symmetry (AST). Commits `ce6452c` + `7afe4dd` + `dedc0b6`.
-- [x] **Invariant #3** — Trace-seeded watcher for post-start event assertions (AST lint). Commit `ce6452c`.
-- [x] **Invariant #4** — Branch-symmetric event emission (runtime, narrow). Commits `10ce979` + `7afe4dd`.
-- [x] **Invariant #5** — Body-already-used detection (regex). Commit `ce6452c`.
-- [x] **Registry doc** — `docs/invariants.md` updated with shipped statuses. Commit `2c29b91`.
-
-Follow-ups (low priority):
-
-- [x] **Widen invariant #5 to AST-based detection** — DONE (T1, exp #244, 2026-04-19). `scripts/lint/invariants-check.ts` now uses a `typescript` compiler API walk to flag any source-ordered pair of body-consuming calls (`.text()` / `.json()` / `.arrayBuffer()` / `.blob()`) on the same receiver within one enclosing function, method-name-agnostic. Reachability heuristic suppresses pairs where the first call sits in a branch that unconditionally terminates (throw/return/continue/break, including try-blocks where both try-last and catch-last return). Fresh-object receivers (`new Response(...).text()`) are excluded from grouping. Regression belt: `body-already-used.ts` (template) + `body-already-used-sequential.ts` + `body-already-used-json-first.ts`.
-- [x] **Refactor the 4 HEAD allowlist entries for invariant #5** — DONE (T1, exp #244, 2026-04-19). Subsumed by the widen ticket. AST reachability heuristic sees the `if (!res.ok) throw ... ${await res.text()}` short-circuit and correctly marks the `.json()` sibling as safe; all 4 entries removed from `.claude/invariants-allowlist.yaml` (now `entries: []`).
-- [x] **Tighten `BASELINE_TEST_FAILURES` to 0** — DONE (T3, exp #246, commits to follow 477bc04). Extended the two `mock.module("./beat-checks", ...)` bodies in `src/phases/drafting-reviser-escalation.test.ts` and `src/phases/drafting-revision-used-persistence.test.ts` to re-export the full beat-checks shape (`aggregateIssues` + `formatRetryLine` + `summarizeIssues` with real-signature parity). `bun test src/` now 71/0; preflight baseline dropped from 1 to 0 so any new failure fails preflight immediately.
-
-### 1. Hallucination checker v3 — wire decomposed adapters into retry loop
-
-**v2 rejected (2026-04-18):** pure-synth training hit 95%+ synth-val but regressed to 77.8%/51.2% natural-val. Distribution-shift. See `docs/decisions.md` 2026-04-18.
-
-**v3 architecture shipped + wired (2026-04-18):** decomposed into two parallel narrow adapters (see `docs/decisions.md` 2026-04-18 "v3 two-adapter architecture"):
-- [x] `halluc-ungrounded-v2` — grounded-context check, 1273 pairs (Cerebras + DeepSeek + v1 natural merged). Synth 96.8%/88.2%; natural val combined with leak: 77.8%/85.4%/81.4% F1.
-- [x] `halluc-leak-salvatore-v1` — per-writer Salvatore-leak check, prose-only input. Synth 100%/90%; natural strict-§A val 80%/40%.
-- [x] Combined via OR logic matches v1 baseline F1 (81.4 vs 82.1) with different trade-off (+7.4 recall, −8.7 precision).
-- [x] `format-v3-two-adapters.ts` builds both training sets from shared pool; `eval-combined-v3.ts` runs both adapters in parallel.
-- [x] **Wired into `drafting.ts`** (2026-04-18) — `runBeatChecks()` in `src/phases/beat-checks.ts` fans out adherence + ungrounded (always) + leak (Salvatore-route only), aggregates into unified `BeatIssue[]`, OR-gates retries. Leak gating is by `WRITER_GENRE_PACKS` label. See commits `1bf119d` → `df2c5f0` and `docs/hallucination-v3-wire-in-plan.md`.
-- [x] **Measure production fire rate per adapter over 7 clean novels.** Done 2026-04-20 on panel of 7 natural Salvatore-routed novels (261 beat attempts). Full report: `docs/halluc-v3-production-report-2026-04-20.md`. Headline: adherence 10.8%, ungrounded 46.7% (precision 60–75% on solo fires; dominant FP is adapter overfiring on brief-grounded proper nouns), leak 15.7%. Retry clearance poor (9–28%) → prescribed action per runbook §8.10 is retry-wording fix + context tweak before retraining.
-- [x] **Retry-wording + From-brief context fix** — SHIPPED 2026-04-20. `src/phases/beat-checks.ts` `formatRetryLine` now tells the writer the valid resolution space; `src/agents/halluc-ungrounded/context.ts` now extracts proper-noun candidates from `beat.description` + `outline.setting` and adds a `From-brief:` line to the WORLD BIBLE block. Offline replay on 20 samples: flipped 1/1 of the true in-scope FPs (Heartstone); 19 "FPs" from the original adjudication were actually context-surface mismatches (see below), not adapter issues.
-- [x] **Measure retry clearance + FP rate on next 3-5 natural novels** with the shipped fixes. Subsumed by the beat-entity-list charter (§1 below) which ran a within-seed V0/V1 pair on `fantasy-debt`; V0 on shipped prod code measured 44.9% fire rate (close to the 7-novel panel 46.7%), V1 drops to 28.9%.
-- [x] **Context-surface mismatch between writer and checker** — root cause of the 46.7% fire rate. **Fixed 2026-04-20 via beat-entity-list-v1** (exp #254, commit `ff555bc`). Shipped the cheapest fix on the ladder (option b equivalent — widened the checker's grounded surface at check time via derived entities from `outline.establishedFacts` + prior-beat `description`, surfaced as a new `Beat-entities:` sub-line in the WORLD BIBLE block). `BEAT_ENTITY_LIST_VARIANT=v1` is now default. See `docs/decisions.md` "beat-entity-list V1 shipped" and `docs/charters/beat-entity-list-v1.md`. Option (a) — enriching `beat.description` at plan-time — deferred; V4 (`sceneBeat.mentionedEntities` planner-emitted) remains on the shelf if V1 plateaus.
-- [x] **Non-Salvatore-route verification** — DONE 2026-04-20 (exp #255, novel-1776702712258, seed `coastal-mystery` genre "literary thriller"). After 7 beat-level gate firings: halluc-ungrounded called 7/7 with `groundedSources.variant='v1'` (new default via commit `620dc71`); halluc-leak-salvatore called 0 times — correctly gated by `WRITER_GENRE_PACKS.label` null. V1 changes are safe on non-fantasy routes.
-- [ ] Active-learning harvest from production for v4: 76 solo-ungrounded fires in the current panel are candidate v4 training seeds; combine with adapter disagreement + human-accept signal. Beat-entity-list charter Class-B residual (~17% of V1 fires — all "Aldric" overfires despite grounding) is also a training seed for a surface-widened retrain.
-- [x] **halluc-leak-salvatore recall gap — CLOSED via regex OR-combine** (2026-04-20, commit `cc57752`). Rung 0 measurement (`docs/rung-0-regex-ceiling-results.md`) on 3,081 production calls: regex OR-combine adds +31.6% recall (158 → 208 beats flagged). Top adapter misses caught: Harpells (35), Baldur's Gate (32), Waterdeep (15). Spot-check ≥95% precision on regex-only catches. No SFT spend. `src/agents/halluc-leak-salvatore/regex-leak.ts` is the token list; keep in sync with `scripts/hallucination/rung-0-regex-ceiling.ts` when widening.
-- [x] **halluc-leak-salvatore regex FN follow-up** — DONE 2026-04-23. Widened `src/agents/halluc-leak-salvatore/regex-leak.ts` LEAK_TOKENS (+dark elves/dark elf/drow elves/drow elf/mithril) and `buildRegex` possessive-suffix group `(?:'s?|s')?` after each alternation. `scripts/hallucination/rung-0-regex-ceiling.ts` synced. Alternation ordering is load-bearing — longer variants placed before bare `drow`/`dark` so the regex engine doesn't prefer the shorter prefix. 13/13 synthetic tests pass (possessive × 2, dark-elf × 4, lowercase-mithril × 1, regressions × 6).
-- [ ] **halluc-leak-salvatore v2 SFT training (deferred).** Addresses **weight-level** leakage (writer LoRA leaking tokens before detector runs) rather than detection. Distinct from Rung 0. Scoped at `docs/scoping/halluc-leak-salvatore-v2.md`. Re-open only if Rung 0 + regex-widen followup fail to keep production leak below threshold.
-- [ ] Paired leak adapter for non-Salvatore writers when those LoRAs ship (Gemmell, Cook, etc.).
-
-### 2. Unified issue aggregator (partially shipped 2026-04-18)
-
-- [x] Refactor `drafting.ts` so adherence + hallucination emit issues to a common queue per beat. Lives at `src/phases/beat-checks.ts` (`BeatIssue[]` + `runBeatChecks()` + `aggregateIssues()`).
-- [x] Single targeted-rewrite call addresses ALL flagged issues at once (not per-checker retries). `previousIssues` in drafting's retry loop now carries the merged `retryLines` from every fired checker.
-- [ ] Fold continuity-v2 into the same aggregator once the cross-chapter state charter resolves (currently invoked per-chapter, not per-beat, and deprioritized per `docs/current-state.md`).
-- [ ] Severity tags — infrastructure exists (`BeatIssue.severity: "blocker" | "warning"`) but every current checker emits only `blocker`. Reserved for future voting / soft-signal modes; revisit after the production-telemetry runbook (§1 above) gives data on false-positive rates.
-
-### 3. Planner Phase-2 enrichment (next experiment after checker wired)
-
-Add to chapter outline output. **V1a shipped 2026-04-18** per `docs/current-state.md:59` — pilot measurement gated on an adversary-GREEN verdict on `docs/charters/planner-phase2-contract.md`; V1b/V1c gated on V1a pilot results.
-
-- [x] `establishedFact.id` as stable identifiers for cross-referencing — shipped V1a. `src/schemas/shared.ts:32` `payoffLinkSchema`.
-- [x] `requiredPayoffs: [{fact_id, payoff_beat}]` — planner links setups to payoffs explicitly. Shipped V1a. `src/schemas/shared.ts:45`.
-- [x] Update `beat-context.ts` to surface new fields to the writer — shipped V1a with SEEDS / PAYOFFS DUE blocks. `src/agents/writer/beat-context.ts`.
-- [~] **V1a mini-pilot — PARTIAL (exp #256, 2026-04-20).** 2 of 4 arms run. Baseline + prompt on 3 seeds × 5 chapters = 15 slots. Mean paired Δ retry_ratio = −0.0309, prompt 6/baseline 8/tie 1; ITERATE per charter §7. Next-session action below.
-- [ ] **Complete V1a pilot — run the two missing arms.** Charter §4 specifies 4 arms; session 2026-04-20 under-scoped to 2. Next session must run:
-  - `extractor` arm (measurement-only inference extractor, `pre-planner-phase2-v1a` tag) on same 3 seeds × 5 chapters. Isolates verifier sensitivity.
-  - `mainv1a` observational arm (current `main` with V1a in production) on same 3 seeds × 5 chapters. Anchors prompt arm to actual current-prod. Caveat per charter §2: 2026-04-18 hallucination v3 wire-in means `mainv1a` runs with 3 beat-level checkers vs tag's 1 — compare on adherence-only failing-chapter count. Full report in `docs/pp2-floor-pilot-results.md`. After 4-arm data: Codex adversary re-review, then V1b/V1c decision.
-- [ ] `subplot_id` per beat — tags which narrative thread advances. **V1c — gated on V1a pilot results.**
-- [ ] `speaker_directives` per beat — per-character: what each speaker specifically advances/reveals/conceals (content, not voice). **V1b — gated on V1a pilot results.**
-- [ ] `thematic_focus` — which aspect of theme this beat leans on. **V1c — gated on V1a pilot results.**
-- [ ] Extend adherence-events to verify payoffs land and directives are honored — gated on V1b/V1c shipping.
-
-### 4. Context-engineering direction — other items
-
-- [ ] Reader-information state tracker — "what has the narrative revealed so far" separate from character_knowledge
-- [ ] World-expansion budget per chapter (count new named entities; alert on overload)
-
-### 5. Non-blind-retry architecture — follow-through (2026-04-19)
-
-Shipped: chapter-plan-checker swap to DeepSeek V3.2 base (commit `1e52baf`),
-beat-targeted rewrites for plan-check + validation (`892944f`, `1125287`),
-chapter-plan-reviser agent + escalation (`5d8e5d3`), post-revision sanity
-checks (`1c367d6`), revision persistence (`a1476b7`), revision telemetry
-+ `/api/novel/:id/revisions` + RevisionsPanel (`18f4444..343b266`).
-
-Codex review (session ac8df7a8 + ac7442d6) flagged remaining work:
-
-- [x] **Stub test — reviser escalation fires exactly once per chapter.**
-  Shipped 2026-04-19 in `src/phases/drafting-reviser-escalation.test.ts`
-  (commits `73542f8` + `6eb9bd9`). Covers both accepted and thrown reviser-call paths.
-- [x] **Fix `migrate()` pathing bug.** Shipped 2026-04-19 (commits `ce64e28` + `6eb9bd9`).
-  Path resolves `../../sql` from `src/db/`. Regression test in
-  `src/db/migrate-path.test.ts`. `_migrations` backfilled on LXC with
-  rows 021-025, 028 (had been applied manually) before the fix deployed
-  so the migrator would not re-run destructive 022/023.
-- [x] **Human gate for plan-check-exhausted** — shipped as `plan-assist` gate
-  (commits `2f012de`..`e75ee01`). Web-mode: `PlanAssistPanel` with override/edit-plan/abort decisions. Auto-mode: `PipelineBailError` thrown, `lastRunError` written to state.
-- [x] **Upstream escalation for validation-exhausted** — shipped path (C)
-  (commits `e829b81` + `8ee7e3f`). `buildContextForValidation` + validation-driven reviser escalation.
-- [x] **Human gate for reviser-rejected plans** — same `plan-assist` gate covers
-  both `kind="plan-check-exhausted"` and `kind="reviser-rejected"` (commits `5767ab9` + `8fd2097`).
-- [x] **`chapter_exhaustions` telemetry** — shipped (commit `22fd021`). Table, `GET /api/novel/:id/exhaustions`, `ExhaustionsPanel`. UI live in commit `1d1b4e1`.
-- [x] **Debug-injection MVP** — shipped (commits `7d53dac`..`4ad2413`). `src/config/debug-injection.ts` with `DEBUG_FORCE_PLAN_CHECK`, `DEBUG_FORCE_VALIDATION`, `DEBUG_FORCE_REVISER` flags.
-- [x] **Fresh end-to-end validation run (no DEBUG_FORCE_* flags)** — DONE 2026-04-20 on the 7-novel natural panel used for the halluc-v3 measurement pass. 0 `chapter_exhaustions`, 0 `chapter_revisions`, 0 `PipelineBailError` across 261 beat attempts; chapter-plan-checker reject rate 0% (vs 35–44% pp2-floor baseline). Non-blind-retry handlers are silent on clean novels. Full evidence in `docs/halluc-v3-production-report-2026-04-20.md`. Verification queries still apply once the novel completes:
-  - chapter-plan-checker reject rate per chapter (target: <10%, down from
-    35-44% pre-fix baseline on pp2-floor__* novels) — query `llm_calls`
-    WHERE agent='chapter-plan-checker' AND novel_id=<new-id>,
-    count rows where `response_content` contains `"pass":false`.
-  - reviser invocation + acceptance rate — `SELECT outcome, COUNT(*) FROM
-    chapter_revisions WHERE novel_id=<new-id> GROUP BY outcome`.
-  - retry_ratio (rows with attempt>1 / total) on beat-writer calls,
-    compared to the 3 pp2-floor fantasy-debt cells.
-  - Inspect RevisionsPanel at `/app/<new-id>` — renders real telemetry?
-  - If reject rate still high OR reviser acceptance low: root-cause before
-    declaring the non-blind-retry architecture validated.
-- [ ] **V2 transport interceptor** — recommended by Codex (review ae23f96a5f5cf8247)
-  as follow-on to the debug-injection MVP. Cleaner seam than env flags for
-  injecting faults at the transport layer. Full spec at
-  `docs/debug-injection-v2-spec.md` (Codex a892e3f5b4c79a3ea).
-- [ ] **`src/invariants/debug.ts`** — recommended by Codex (review ae23f96a5f5cf8247)
-  as a centralized invariant-assertion module replacing the scattered `DEBUG_FORCE_*` checks.
-- [x] **Orphan plan-assist gate detection (MVP)** — shipped 2026-04-19 in commit
-  `13f8143`. Startup sweep in `src/orchestrator/server.ts` logs every pending
-  row older than 60s. `GET /api/novel/orphaned-gates` + `POST /api/novel/:id/
-  plan-assist/:chapter/mark-orphaned` for cleanup. ExhaustionDecision now
-  includes "orphaned".
-- [ ] **Full restart recovery for plan-assist gates** — MVP orphan detection
-  shipped above. Full auto-recovery (re-fire the gate on resume so drafting
-  loop can re-await) needs drafting.ts attempt-loop changes to re-enter the
-  exhaustion branch on novel resume. Flagged by Codex review a252aecbb785a0eb3.
-- [x] **`revisionUsed` persisted to chapter_outlines.revision_used** — shipped
-  2026-04-19 in commit `0c9b1ef` (migration sql/031 + `isRevisionUsed` /
-  `setRevisionUsed` in `src/db/outlines.ts` + await-then-flip at both reviser
-  invocation sites in `src/phases/drafting.ts`). Two-case regression test
-  in `drafting-revision-used-persistence.test.ts` plus a DB-reject case
-  proving the reviser doesn't fire when persistence fails (Codex review
-  aad6d35 HIGH A, fix commit `0c9fa3b`).
-- [x] **Propagate `callerId` into transport** — shipped 2026-04-19 in commit
-  `13f8143`. src/llm.ts makeRequest threads agentName; executeAndLog sets
-  callerId on the effectiveRequest. Timeout log `[LLM] TIMEOUT:` now names
-  the agent reliably.
-- [x] **Clean no-forced-flags validation run** — DONE 2026-04-20 (see the "Fresh end-to-end validation run" item above — same panel, same evidence).
-- [ ] **Continuity-throws stays blind** — by design per Codex (transport
-  instability, not content failure; human intervention cost too high for
-  a transient checker outage). No change needed.
-- [ ] **Historical-superseded doc pass** — recommended by Codex (review ac11a277b179df8b0). Several docs contain current-tense statements that are now stale: `decisions.md` (references to chapter-plan-checker-v2 as deployed, Howard primer as "under evaluation"), `adapter-changelog.md`, `lessons-learned.md` earlier sections, `fine-tuning-strategy.md`, `adapter-training-reference.md`, `retry-surface-audit.md`. Pass: add inline "Superseded by …" callouts, not rewrites. Separate commit from code changes.
-- [x] **Kill-orphan helper** — shipped 2026-04-19 in commit `83ffce0` as
-  `scripts/cleanup-orphans.ts`. Cascade delete across 26 novel-scoped tables
-  (22 with FK → novels(id) + 4 no-FK telemetry); default dry-run, `--apply`
-  required; pattern defaults to `test-*`; excludes novels with approved
-  drafts; active-phase novels need 2-hour idle guard; per-novel transaction.
-  Codex review aad6d35 HIGH C flagged 4 missing FK tables in the initial
-  list — fixed in commit `0c9fa3b`; dry-run on live DB finds 5 stale test
-  novels and queries all 26 tables without error.
-
----
-
-## Corpus Pipeline — Salvatore bundle (STAGES 1-4 DONE)
-
-Reference bundle validating the canonical corpus-pipeline architecture (`docs/corpus-pipeline.md`, `novels/salvatore-icewind-dale/`):
-
-- [x] **Stage 1 — ingestion** — 3 books canonicalized (~307K words total)
-- [x] **Stage 2 — scene extraction** — 352 scenes across all 3 books, every chapter covered
-- [x] **Stage 3 — beat segmentation** — 2,470 beats via 71 parallel Sonnet subagents, zero failures
-- [x] **Stage 4 — brief extraction** — **2,470/2,470 training pairs** across all 3 books (124 parallel subagents: 43 for Crystal Shard + 81 for Streams/Halfling's Gem). End-to-end verify CLEAN (2026-04-17).
-- [ ] **Stage 5 — analysis** — 10 analyzers declared in `config.yml` (structural / voice / dialogue / dialogue-density / tension / chapter-hooks / sensory / sentence-rhythm / pov-rotation / metaphor). Plugin framework not yet built. Wave 1 wiring (structural, voice, dialogue, tension, dialogue-density, chapter-hooks) directly addresses known harness weaknesses.
-- [x] **14 conservation invariants pass** end-to-end. Salvatore bundle is now training-ready.
-
-## Archetype-Pass POC — exp #220 (COMPLETED 2026-04-17)
-
-- [x] Dialogue extraction + training-pair build + 14B LoRA training (`archetype-poc-v1`)
-- [x] 3-way comparison: LoRA vs DeepSeek+profile vs Sonnet+profile — 300 Opus pairwise judgments
-- [x] **Verdict: Sonnet+profile wins 55% / LoRA 33% / DeepSeek 8%.** Decision tree resolved: LoRA-zoo architecture rejected; voice-as-data via exampleLines + in-context few-shot is the pattern. See `docs/decisions.md` "Context-engineering-forward architecture."
-- [x] Follow-up (reframed) test: DeepSeek + 5 few-shot examples matches archetype-poc-v1 LoRA on per-line dialogue voice. Confirms context-first approach.
-- [x] Learning baked into v4 writer LoRA (exp #222) — per-speaker exampleLines injected at training-time AND inference-time.
-
-
-
-## Fantasy Structural Context Engineering — TOP PRIORITY
-
-**Genre focus (2026-04-16 directive):** laser-focused on fantasy genre exclusively. All harness building targets action-pulp fantasy (Salvatore voice) and eventually gamelit/litrpg. Lessons learned will inform future genre expansion; we are NOT building a generalizable AI harness right now.
-
-### Planner structural priors (from `docs/salvatore-structural-analysis.md`) — SHIPPED 2026-04-17
-
-Salvatore corpus structural signature is now rendered into the planner prompt via `renderStructuralPriorsForPlanner()` (genre-matched through `WRITER_GENRE_PACKS`). Items marked below reflect what's live:
-
-- [x] **Beat-type budget per chapter**: rendered in priors (~34% action / 31% dialogue / 22% interiority / 14% description).
-- [x] **Opener/closer rules**: rendered (open with description/action; close with action/interiority, never description).
-- [x] **Cluster-sustain rule**: rendered (action sequences sustain 3–5 beats; dialogue 2–4).
-- [x] **Scene size guidance**: rendered (3–8 beats per scene, mean 5.5 soft cap).
-- [x] **Active character cap**: rendered (≤3 named active characters per beat).
-- [x] **Beats-per-chapter floor enforced**: two-phase planner emits per-chapter `ceil(targetWords / 150)` beats minimum, with targeted re-expansion on miss — validated on fantasy-healer + fantasy-cultivation-void 2026-04-17.
-- [ ] **Per-beat drives** (proposed): planner authors one-line situational drives per character per beat instead of writer translating stable traits. Deferred pending compact-mode validation.
-
-### Tension/pacing curve extraction
-
-- [ ] Build tension scorer (heuristic from sentence compression + action-verb density + stakes-language)
-- [ ] Plot tension curve for Salvatore corpus → extract characteristic shape
-- [ ] Build fantasy-tension-template as a planner constraint ("by chapter 5 of 10, tension should be 0.7")
-
-### Plot arc position tagging
-
-- [ ] Tag each Salvatore chapter with arc position (setup / rising / midpoint / escalation / dark_night / climax / resolution)
-- [ ] Verify position distribution matches three-act structure norms for fantasy
-- [ ] Build arc-position checker (evaluates planner output for structural pacing)
-
-### Additional corpus ingestion (same pipeline, more fantasy)
-
-- [ ] Ingest a second fantasy author (Gemmell Drenai series or Cook Black Company) for cross-author structural comparison
-- [ ] Run structural analysis on second corpus → compare transition matrices, beat-type budgets, opener/closer patterns
-- [ ] Identify genre-universal vs author-specific structural signatures
-
----
-
-## Writer Imitation Benchmark — Salvatore deconstruction (TRAINING IN FLIGHT)
-
-Treat writer quality as an engineering problem with a measurable ground truth. Deconstruct the Icewind Dale Trilogy into beat-level training pairs, build a permanent quality oracle that scores every methodology (model swap, primer change, generation unit change, SFT adapter) against actual published prose for the same beats.
-
-**Full plan:** `docs/writer-imitation-benchmark.md` (measurement layer) + `docs/writer-style-imitation-design-space.md` (method layer). Phase A + B results in `docs/corpus-structural-analysis.md`. Decisions in `docs/decisions.md` ("Writer Voice Imprinting").
-
-**Status (2026-04-16):**
-- Phase A (corpus decomposition): **DONE** — 777 paired (brief, prose) beats, 83,641 prose words, 703/74 train/val
-- Phase B (chunk-size A/B on DeepSeek baseline): **DONE** — 120w wins (Δ-sum 1.81); identifies the rhythm + sensory-density gaps the LoRA must close
-- Phase C (LoRA training + validation): **DONE** — `salvatore-1988-v1` trained and validated; Δ-sum 0.45 vs DeepSeek 2.45 (exp #192 concluded)
-- Phase C.2 (capability vs tuning, 3-cell A/B): **DONE** — exp #193. Tuning beats ICL by ~2.7×: primer 0.73 Δ-sum improvement; LoRA an additional 1.96. Sentence rhythm does not transfer via ICL on DeepSeek. See `docs/decisions.md` "Phase C.2 verdict."
-
-### Phase D — production validation (DONE 2026-04-16/17)
-
-- v3 + narrow-strip compact context passed all 3 chapters of `fantasy-echo-mage` in 5 attempts (exp #201)
-- 17-seed validation sweep completed: 6 of 13 LoRA-routed seeds completed all chapters; word-count + required-fact-miss patterns identified and addressed via structural priors + planner-level fix
-- Howard primer methodology retired 2026-04-16; per-genre voice LoRAs replace universal primer
-- Chapter-level rewriter removed 2026-04-17 — validation is diagnostic-only; beat-writer retry is the quality gate
-- See `docs/decisions.md` + `docs/voice-lora-salvatore.md` + `docs/beat-writer-architecture.md`
-
-**Next:** monitor 3-seed re-run (dark-fantasy, fantasy-healer, fantasy-debt) with structural priors + planner fact fix deployed. If word-count issue resolves with more beats/chapter, structural priors are confirmed effective.
-
----
-
-## Lint fixer (conditional deprecation candidate)
-
-Voice LoRA may make lint patterns irrelevant — Salvatore corpus prose doesn't contain AI-fiction tells. Before SFT'ing a lint-fixer, measure lint-fire rate on voice-LoRA output. If ≤1 issue/chapter, retire instead of migrate. See `docs/pipeline-14b-consolidation.md` Tier 1 conditional-deprecation gate.
-
-## W&B Storage Management
-
-**Resolved (2026-04-12):** Purged 20.8 GB of superseded artifacts (21.81 → 1.02 GB). Required enabling "models write access" in W&B team settings (was restricted by default on pay-as-you-go plan). Aliases must be stripped before deletion (`v.aliases = []; v.save(); v.delete()`). `train-lora.py` now auto-cleans after each training run. Cleanup script: `python3 scripts/finetune/cleanup-wandb-storage.py --delete`.
-
-**Ongoing:** Each training run creates ~3.7 GB of intermediate artifacts. Post-training auto-cleanup keeps it under 5 GB free tier. Train one adapter at a time. No checkpoint frequency controls exist in ART — this is server-side, not configurable. Modal is the fallback if W&B becomes untenable.
-
-## Beat Architecture — DONE
-
-Dramatic beats + dramatize writer + no-prescribed-dialogue rule shipped and validated (exp #173, #176). 5-novel validation (50 chapters): echo 0.35→0.20 (target met), dialogue 11.8%→17-28% (genre-dependent, target met for sci-fi/romance), first-attempt 79%→73-100% (target met). Full evidence in `docs/decisions.md` under "Beat Architecture."
-
-**Remaining known issues (tracked elsewhere):**
-- **Interiority** still near-zero (0.1-0.3/100w). Writer prompt issue, not beat architecture. Tracked under Structural Diversity.
-- **Fantasy-siege low dialogue** (13.7%). Genre-specific. Tracked under Character Voice & Dialogue Phase 1.
-- **Continuity location violations** from planner's chapter-level settings. Tracked under Planner Setting Coherence.
-
-## SFT Data Distribution Shift (Beat Architecture)
-
-All existing SFT training data was generated with screenplay-style beats (pre-exp #173/#176). Now that the pipeline uses dramatic-style beats, training data for future adapter versions should be regenerated:
-- **Adherence checker** — 2,134 pairs (V4) trained on screenplay beats. V4 handles dramatic beats without retraining (validated exp #161), but V5+ should be regenerated with dramatic beat distribution.
-- **Chapter plan checker** — 520 pairs (V2 dataset) trained on screenplay beats. V2 Sonnet relabeling (in progress) should use dramatic-style plans as input.
-- **Continuity checker** — 253 pairs trained on screenplay beats. V2 deployed and working. V3 data generation should use dramatic-style plans.
-- **Not urgent** — current adapters work. Regeneration is for the next training round of each checker.
-
-## Adherence Checker — V4 DEPLOYED
-
-- **V4 deployed and concluded** (exp #161, 2026-04-12) — `adherence-checker-v4` live at 512 token budget. Production eval: 79% first-attempt pass (23/30 beats), all failures resolved on retry, zero false positives. V2 config removed from `models/roles.ts` (dead — never invoked at runtime, only `adherence-events` is called). See `docs/decisions.md`.
-- **GRPO/RL reward loop** (conditional, post-V4 validation) — adherence-checker is the only pipeline agent with a clean automatic reward signal (deterministic checks + synthetic labels). Design a GRPO loop on W&B/ART. Now unblocked since V4 is validated.
-
-## Chapter Plan Checker — DeepSeek V4 Flash thinking-mode base (2026-04-29 swap from V3.2)
-
-**SFT adapter `chapter-plan-checker-v2:v1` removed from active duty 2026-04-18** after planner-phase2 pilot audit revealed ~92% false-positive rate on real fantasy plans (12-row dual-oracle audit by Sonnet + Codex gpt-5.4 — both flagged 11/12 verdicts as wrong). The adapter hallucinated a "required fact must be verbatim" failure mode not present in its system prompt; validated 96% accuracy from exp #178 did not generalize to live fantasy-genre plans. Distribution drift between training scenarios and production output. Now using **DeepSeek V4 Flash with thinking mode ON** (V3.2 → V4 Flash swap landed 2026-04-29, commit `eb2993d`) with the same system prompt — handles the 3-question yes/no check natively.
-
-### Low-priority — SFT recalibration (deferred until after context engineering work)
-
-- Don't re-open without evidence DeepSeek V4 Flash is creating real friction (cost or latency budget exceeded).
-- Context engineering takes precedence over local-model SFT experimentation. The whole "small model offline harness" north-star is downstream of having clean baselines and a working context-engineering layer first.
-- If we revisit: regenerate training data on real harness output (not synthetic scenarios), explicitly punish "missing fact" rejections that are actually paraphrased, expand variant set beyond the original 8.
-- V1 pilot (exp #154) and V2 (exp #170/#178) datasets retained for reference.
-
-## Continuity — DEPRIORITIZED (2026-04-18)
-
-Continuity checker is de-emphasized in the current roadmap. The context-engineering shifts (beat-level context, trimmed state feed) mean continuity no longer operates on ~7,300-token dumps — inputs are now substantially smaller, and beat-level adherence + hallucination checks subsume most of its role. `continuity-v2:v1` remains wired in `drafting.ts` as a per-chapter check but is not an optimization focus. Phase 2 (scale to 300 pairs) and Phase 3 (compact diff format) are on hold — don't re-open without evidence the checker is catching something adherence + hallucination miss.
-
-## Tonal Pass
-
-- **Together AI now Tier 2 hot standby** — V3 tonal-pass on Together retired (V4 on W&B preferred, pref eval 2026-04-11). All 4 adapters retraining on Together's Qwen 3.5 9B (submitted 2026-04-12) as Tier 2 fallback. Keep `TOGETHER_API_KEY`. Once training completes, verify adapter quality against W&B baselines before declaring Tier 2 ready.
-- **Tonal pass expansion** — v3/v4 training data is dark-fantasy-specific (Howard corpus). Multi-genre corpus needed before tonal pass is usable as a general pipeline stage. Public domain candidates: Hemingway (pre-1929), London, Cather, Fitzgerald.
-
-## Open Experiments (need concludeExperiment())
-
-- **Exp #154** (chapter-plan-checker-v1) — superseded by V2. Conclude with note: "V1 pilot on gpt-oss labels superseded by chapter-plan-checker-v2 (Sonnet labels, 96% accuracy, exp #170/#178). V1 not evaluated."
-- **Exp #155** (continuity-v1) — superseded by V2. Conclude with note: "V1 pilot superseded by continuity-v2 (253 pairs, 99% Sonnet accuracy, exp #175). V1 not evaluated."
-- **Exp #159** (adherence-v3-sonnet) — partial eval done (character 61% regression documented). Conclude with notes.
-
-## Fine-Tuning (Other)
-
-### Small-model local checker POC (NEW 2026-04-18)
-
-Research question: can we distill the current 14B checkers down to 2B or 4B bases and run them locally on Apple Silicon, with accuracy within 2-3 points of the 14B baseline? Motivation is NOT cost (savings are trivial) — it's serving independence (no W&B dependency), latency floor (50-100ms warm on MLX vs 200-600ms W&B), and headroom to run multiple checkers co-resident on 24GB RAM.
-
-**Infrastructure reality (confirmed 2026-04-18 from ART docs):**
-
-| Path | Supports 2B/4B? | Notes |
-|---|---|---|
-| **W&B ServerlessBackend (zero-ops)** | **No** | ART-on-W&B serverless supports only `OpenPipe/Qwen3-14B-Instruct` and `Qwen3-30B-A3B-Instruct`. Anything smaller requires LocalBackend. |
-| **W&B deploy_wandb() (for inference hosting)** | **No** | Separate whitelist of 4 models: Llama-3.1-{8B,70B}, Qwen3-14B, Qwen2.5-14B. |
-| **ART LocalBackend** (requires user-supplied GPUs) | **Yes** | Explicitly supports Llama-3.2-{1B,3B}, Qwen2.5-7B, plus "Qwen3 family" with vLLM (likely Qwen3-1.7B). |
-
-**Split-path POC is viable but training runs outside W&B Serverless:**
-- **Training** — ART LocalBackend on **Modal** (A100 on-demand, ~$1-3/run) or rented GPU. Can use Llama-3.2-1B, Llama-3.2-3B, or Qwen3-1.7B-Instruct. Gemma-2-2B, Phi-3.5-mini, Phi-4-mini not explicitly listed — Discord/support confirmation needed before commitment.
-- **Serving** — MLX on Apple Silicon locally. Skip W&B Inference entirely; it can't host a LoRA on any sub-8B base anyway. Ollama as operational fallback.
-
-- [ ] **2B POC — adherence-events first**. Target base: `Qwen3-1.7B-Instruct` or `Gemma-2-2B`. Task: closed binary classification, 2,134 existing training pairs + 3,000 synthetic extension via Cerebras 235B. Train on Modal/Unsloth, serve on MLX, eval head-to-head vs `adherence-checker-v4` using the `eval_results` checker columns. **Decision gate:** accuracy within 2 points AND JSON validity ≥99% → ship as a local-inference candidate in parallel with W&B (not replacement).
-- [ ] **4B POC — same task, bigger base for cross-hop reasoning**. Target base: `microsoft/Phi-3.5-mini` (3.8B) or `microsoft/Phi-4-mini-instruct` (3.8B, also served by W&B Inference so head-to-head is easier). Run after 2B result is known.
-- [ ] **Grammar-constrained decoding** — hidden risk: smaller models fail JSON schema more often. MLX supports grammar constraints; budget for either that or a lightweight retry-on-malformed parser. Spike before committing to small-model serving path.
-- [ ] **Local-inference harness integration** — `src/transport.ts` needs a `local` provider talking to MLX/Ollama. Already logged as Tier 4 evaluation elsewhere; small-model POC unblocks it.
-- [ ] **Hallucination on 2B — second POC target after adherence**. Distill hallucination-checker-v2 (once v2 ships). NER + grounding is a classic distillation target and the 2B attempt is cheap (~$15-30 all-in).
-
-Skip continuity for this experiment — it's deprioritized (see Continuity section) and the long-context task is the least favorable shape for a 2B base anyway.
-
-### Other
-
-- **Beat writer SFT** (opportunistic, high risk) — 7.8× cost reduction if it works. Shadow-run in parallel with 235B. Validation bar: adherence rate ≥ 235B baseline, lint counts ≤ baseline, 2 full novels without regression. Blocked until structural diversity in the training corpus is addressed.
-
-## Planner Setting Coherence
-
-- **Beat specs assign wrong settings when scenes cross locations** — production data (563 adherence-setting calls, 24 flags = 4.3%) shows the planner assigns a chapter-level setting to all beats even when the narrative naturally transitions mid-chapter (e.g., "Drowned Row Gym" assigned but prose correctly moves to "Statless Hideout"). This is a planner-level bug, not a writer-level bug. The beat writer can't fix it by rewriting.
-  - **Investigation**: query `llm_calls` for adherence-setting flags, cross-reference with chapter outlines to identify which planning patterns produce stale settings on mid/late beats.
-  - **Fix options**: (1) planner outputs per-beat settings instead of chapter-level; (2) post-plan validation that checks beat descriptions against their assigned settings for location transitions; (3) beat context assembly detects setting shifts from prior beat prose and overrides the stale plan setting.
-  - **Chapter plan checker already has `setting_match`** — once beat-level setting checks are removed (done), the chapter plan checker is the only remaining setting gate. Consider whether it should validate setting coherence *across* beats rather than per-beat.
-
-## Pipeline Tuning
-
-- **Word count below target** — 550–770w vs 800–1100w target. Measure pre- vs post-tonal-pass word counts to isolate cause (model, prompt, beat granularity, or tonal pass shortening).
-- **Re-evaluate lint system role** — if tonal pass LoRA already reduces AI clichés, lint becomes a safety net rather than a pipeline stage. Test: run lint on tonal-pass outputs vs base outputs.
-- **Strip anti-pattern list from rewriter prompt** — rewriter can't self-police clichés (proven). Lint + tonal pass handles this.
-- **Skip re-extraction for prose-only rewrites** — if a rewrite fixes only cosmetic issues, extraction results remain valid.
-
-## Structural Diversity — PARTIALLY ADDRESSED
-
-- **Structural priors deployed (2026-04-17)** — planner now receives beat-type distribution targets + cluster-sustain rules + opener/closer patterns + scene-size guidance for fantasy genres via `StructuralPriors` config in genre packs. Salvatore-derived targets: 35% action / 30% dialogue / 20% interiority / 15% description.
-- **Beat-kind labeling added** — planner now emits `kind` per beat (action/dialogue/interiority/description). Writer sees `Kind: X` in beat spec header.
-- **Monitoring:** compare pipeline output structure against `docs/salvatore-structural-analysis.md` baseline after the current re-run. Track improvement via `scripts/analysis/beat-sequence-analysis.py` on new novels.
-
-## Seeds & Data Diversity
-
-- **Run 10–15 novels across new seeds** — 30 seeds created (2026-04-09): 8 post-apoc, 7 sci-fi, 7 epic fantasy, 4 portal fantasy, plus 6 originals. All 131 approved chapters come from only 5 premises. Chapter-plan-checker and continuity SFT need plan/world-state diversity synthetic generation can't provide.
-
-## Character Voice & Dialogue
-
-### Phase 1 — Context engineering (no training required, build now)
-- **Structured `SpeechProfile` schema** — replace the free-text `speechPattern` field in character snapshots with concrete attributes: `register`, `sentenceLength`, `vocabulary[]`, `forbiddenPhrases[]`, `syntacticPatterns[]`, `emotionalExpression`. Render in beat context as a structured block with 2–3 example lines, not attribute lists. Q14B follows examples far better than abstract descriptions.
-- **Forbidden phrase lint (character-scoped)** — extend the deterministic lint layer to flag per-character `forbiddenPhrases` in dialogue. Same mechanism as existing cliché patterns, scoped by character name. Zero model cost.
-- **Planner dialogue quantity guidance** — add explicit dialogue beat targets to the planning-plotter prompt. At least 2 of 4–6 scene beats should be primarily dialogue-driven. Current output: 15.7% dialogue vs 25–50% published norm. Measure with `scripts/analysis/analyze-structure.ts` before and after.
-
-### Phase 2 — Archetype library (no training required)
-- **15–20 named archetypes** with structured speech profiles and 3–5 canonical example dialogue lines each. Map every generated character to an archetype at concept time; beat context gets examples automatically. Target archetypes: `stoic_warrior`, `scheming_noble`, `earnest_apprentice`, `reluctant_hero`, `cynical_mentor`, `naive_innocent`, `calculating_villain`, `world_weary_professional`, `hot_tempered_youth`, `diplomatic_deceiver`, `hard_boiled_detective`, `theatrical_authority`.
-
-### Salvatore voice LoRA — multi-character distinctness options (2026-04-17)
-
-**Context:** Current Salvatore v3 trains on 777 beats from the Icewind Dale Trilogy only. It produces excellent Salvatore cadence but multi-character voice discrimination is limited because the training corpus is narrow. Below are options ordered roughly by cost; the diagnostic question is whether multi-character voice is corpus-limited (fixable cheap) or model-capacity-limited (needs 70B).
-
-- [ ] **Option A — Expand Salvatore corpus to full bibliography.** Current v3: 777 beats, one arc, Drizzt/Wulfgar/Bruenor dominant. Salvatore has 30+ novels with radically distinct voices already in-corpus (Jarlaxle's theatrical charm, Zaknafein's clipped menace, Cattie-brie's rural warmth). Ingest 3–5 more books → ~3000+ beats → retrain same 14B. Cost: ~$5–10 on W&B + ~1 day corpus-ingestion work via `scripts/finetune/ingest-corpus.py`. Risk: minimal — Salvatore's voice is consistent across his career. Expected effect: same voice, meaningfully better multi-character discrimination because the LoRA has now seen examples of him ventriloquizing many characters.
-- [ ] **Option B — Archetype-tagged training (prefix conditioning) on the expanded corpus.** Re-label each beat in the expanded corpus with an explicit archetype tag in the user prompt (`ARCHETYPE: STOIC_WARRIOR | FERAL_ROGUE | COLD_NOBLE | GRUFF_MENTOR | …`, ~8–12 total). Planner maps each POV character to the closest archetype; the tag injects into beat-writer context. Single LoRA, single call, but archetype-conditioned output. Cost: ~$10–15 training + ~2 days of labeling (Sonnet labels the corpus, human spot-checks). Risk: mushy archetype boundaries — if labeling quality is low, the model won't learn to switch cleanly. Works cleanly with the existing 3-char/beat cap (≤2 dominant archetypes per beat keeps per-class signal strong).
-- [ ] **Option C — Jump base model to 70B.** Train a LoRA on Qwen2.5-72B-Instruct or Llama-3.3-70B with same corpus (or expanded). More attention heads + better instruction-following → stronger character discrimination even from the same training signal. Keeps Salvatore voice because the LoRA targets Salvatore data. Cost: ~$50–150 training + 2–4× inference cost **per beat forever** (permanent economics tax, not a one-time fix). Risk: overkill if the real issue is training-data breadth, not base-model capacity. Only worth pursuing if (A) and (B) plateau.
-- [ ] **Option D — Stacked path: do (A) first, add (B) if needed, hold (C) in reserve.** Train Salvatore v5 on the expanded corpus as a baseline measurement. If v5 alone materially improves multi-character distinctness on evals, we're done cheap. If v5 plateaus, add archetype tags for v6. Only escalate to 70B if v6 still can't discriminate.
-
-**Recommendation:** start (A). Lowest cost, lowest risk, likeliest single-variable fix. The 14B should be able to ventriloquize multiple voices if it's seen enough varied training examples — and it hasn't, really.
-
-### Deep-authoring mode — human-in-the-loop world + planning layer (2026-04-17)
-
-**Intent:** A separate UX track from the seed-driven harness-validation flow. The harness mode runs 8 seeds in parallel unattended for capability testing. Deep-authoring mode is for novels the user actually cares about, where upfront world-building and character commitment matter more than throughput.
-
-**Scope clarification (2026-04-17):** This is a world/planning exercise, not a different writer. Salvatore voice LoRA stays. Howard-style tonal passes are NOT revived (they under-performed vs generation-time voice). The extra value comes from feeding the planner + beat-writer *richer committed material* that the user has explicitly shaped, rather than LLM extrapolation from a premise.
-
-- [ ] **Specialized conversational chats in sequence:** (1) per-character deep-dive chat for each major character (protagonist + antagonist + 1-2 supporting) building structured `SpeechProfile` + behavioral drivers + relationship nuance, (2) world/magic-system chat committing rules and constraints, (3) plot-spine chat shaping the arc. Each stage's structured output feeds the next as context, so planner lands with fully-committed material.
-- [ ] **Archetype-mapping at character-chat conclusion:** once the character is defined, map to nearest archetype (from Phase 2 archetype library above) for beat-writer voice routing. This is how deep-authoring mode and the voice LoRA stay coupled.
-- [ ] **UX trade-off:** deep-authoring is 45–90 min of human time per novel before generation starts. Not appropriate for harness validation, essential for commercial-quality output. Both paths coexist — pick at Studio entry.
-- [ ] **Context-engineering question (open):** how to elegantly pass the richer per-character material into the beat-writer without blowing out the LoRA's trained attention scope (~1500 input tokens). Likely answer: structured `SpeechProfile` + 2-3 canonical example lines per POV character, not prose paragraphs. The 3-char/beat cap keeps the context compact even for dense scenes.
-
-### Phase 2 data — Dialogue pattern ingestion (feeds Phase 3)
-- **Archetype pattern research + synthetic generation** — study modern fiction freely to extract archetype speech patterns (what a `stoic_warrior` or `scheming_noble` sounds like is a pattern, not a copyrightable expression). Use 235B to generate synthetic training pairs from those patterns: `(flat_dialogue + archetype_profile) → (voiced_dialogue)`. Do not use verbatim copyrighted dialogue lines as training targets — extract the pattern, generate the examples. Modern genre fiction is more relevant than public domain for the seeds the pipeline targets (post-apoc, sci-fi, fantasy). Target: 400–500 pairs across 10–12 archetypes. ~$3–5 at 235B rates.
-
-### Phase 3 — Voice-pass LoRA (after Phase 1+2 in production)
-- **Beats-compatible voice-pass adapter** on W&B Qwen3-14B. Beat-writer generates voice-agnostic prose; voice-pass rewrites dialogue-only paragraphs conditioned on the character's `SpeechProfile`. Training format: `[system: voice-pass] [user: CHARACTER_PROFILE: {...} DIALOGUE: "..." CONTEXT: "..."] [assistant: "voiced dialogue"]`. Train `voice-pass-archetype-v1` once 400+ pairs assembled from the ingestion pipeline above. Blocked on Phase 1 infrastructure.
-
-### Future — Character voice checker (blocked on Phase 1)
-- Per-beat classifier checking whether dialogue matches the character's `SpeechProfile`. Train from `(dialogue_line, speech_profile, matches: bool)` once voice-pass infrastructure generates labeled examples naturally.
-
-## Studio
-
-- **Chat-driven creation flow** — Studio was rebuilt as a pipeline-first interface (compact creation bar + inline pipeline view with narrative activity feed, 2026-04-11). Next step: replace the form-based seed input with a conversational chat interface where an LLM (Cerebras Qwen 235B) shapes user input into `CustomSeed` format, asks for confirmation, then kicks off the pipeline.
-
-### Chat-based Planning Control (three intervention points)
-
-The chat UI is a reusable shell; the question is *where in the pipeline* it plugs in. Ship #1 first (additive, no schema changes), add #2 once the UX is proven, defer #3 until gates are ready.
-
-#### Option 1 — Pre-planning directives — SHIPPED 2026-04-14
-- Two-agent split: `planning-conversationalist` (Groq Qwen3-32B, guided 8-phase Q&A with sparsity detection) + `planning-extractor` (Cerebras Qwen 235B, one-shot compile of transcript → `PlanningDirectives`).
-- Directives live on the seed (`SeedInput.directives`), persisted via `seed_json` — no new table.
-- Injected into concept phase (world-builder, character-agent, plotter) via `renderDirectivesForConcept()` and into the planner via `renderDirectivesForPlanner()` (includes required beats).
-- UI: `DirectorChat.tsx` two-pane (transcript + live directives chips). Endpoints `POST /api/novel/director/chat` (plain text) and `POST /api/novel/director/compile` (structured).
-- **Next**: chip-edit (inline quick edit + AI-modify scoped call), validate guided flow produces well-formed directives on 2–3 real runs.
-
-#### Option 2 — Post-planning editing
-- **Where it plugs in**: after `runPlanningPhase()` produces chapter outlines, before `presentForApproval()` transitions to drafting. New "Edit Plan" gate in the Studio pipeline view.
-- **Model**: chat agent emits a structured diff against the `chapter_outlines` rows — add/remove/edit beat, swap POV, re-order beats, change chapter-level setting. Diffs are applied transactionally; a plain regeneration of affected chapters is the fallback when the diff is ambiguous.
-- **Requires**:
-  - Diff schema covering beat/outline mutations (new Zod schema in `src/schemas/`)
-  - Apply layer in `src/harness/novels.ts` that mutates `chapter_outlines` + keeps `planned_state` consistent (character state / knowledge changes may need recomputation)
-  - UI: plan tree on the left, chat on the right, pending-diff preview at the bottom with Apply/Discard
-  - Re-runs of the `chapter-plan-checker` after each apply so the user sees whether edits broke cross-beat coherence
-- **Risk**: medium. Edits to `chapter_outlines` after approval can desync `planned_state` tables. Needs careful transaction boundaries.
-
-#### Option 3 — Mid-run steering
-- **Where it plugs in**: at every existing gate (`src/gates.ts`) and optionally at custom breakpoints (end of chapter, before tonal pass). Steering message is injected into the *next* agent's context.
-- **Requires**:
-  - Gate extension: `presentForApproval` returns `{ decision, steeringMessage? }` instead of just decision
-  - Per-phase context hooks that accept an optional steering blob and render it into the agent prompt
-  - SSE event types for "gate:chat-open" / "gate:chat-message" so the UI can slide in a chat panel when the pipeline pauses
-  - Transcript persisted per gate event for audit / daemon training data
-- **Risk**: high. Every agent site that calls `callAgent` needs to accept/route steering. Steering can contradict already-persisted `planned_state`, so drafting-phase steering may need partial plan invalidation. Defer until #1 and #2 have validated the chat UX.
-
-## Autonomous Improvement Loop (post-daemon)
-
-Old `Improvement Daemon` deleted. Replacement in progress on the
-`autonomous-harness-loop` branch. See `docs/designs/autonomous-context-loop.md`
-(revision 2, Codex-reviewed) and `docs/harness-optimization-inventory.md`
-(revision 2, Codex-amended). Phase 0 gating work tracked in
-`scripts/autonomous-loop/README.md` "Prerequisites" section:
-
-- Migrate 4 env-var writer overrides to `seed.pipelineOverrides.*`
-- Build the calibration-substrate drift detector
-- Run Codex's cheapest-counterfactual: 5-chapter planner-only A/B
-- Build held-out 10-beat replay set on a second novel
-
-## Local Apple Silicon Inference (Tier 4 Evaluation)
-
-Evaluate running LoRA adapters locally on MacBook Air M4 24GB instead of W&B.
-
-**Cost savings are minimal** (~$3/year) — adapter calls are already ~$0.004/novel on W&B. The value is zero provider dependency and unlimited experimentation at zero marginal cost.
-
-**Evaluation steps:**
-1. Install MLX or Ollama, download Qwen 3.5 9B Q4/Q8
-2. Convert Together-trained LoRA adapters (SafeTensors) to MLX format
-3. Run all 4 adapters on quantized local base and compare accuracy to W&B (FP16 base) — adherence, chapter-plan, continuity, tonal
-4. If quality holds: register as `local` provider in `models/registry.ts`, add transport support for local endpoint
-5. Benchmark latency on real pipeline calls (expect ~3-10s/call vs 157-609ms W&B)
-6. Test Mac Mini 16GB with 9B Q4 under sustained load (memory pressure risk)
-
-**Together AI training (2026-04-12):** All 4 adapters submitted for LoRA training on `Qwen/Qwen3.5-9B` (r=16, alpha=32). Check status: `ssh novel-harness-lxc "cd ~/apps/novel-harness && python3 scripts/train-together.py --status"`. Once complete, these adapters can serve double duty — Together Tier 2 inference AND local Tier 4 inference (same SafeTensors format).
-
-**GPU rental benchmarked (2026-04-12):** Per-second analysis against 20 real novels. GPU rental is 3-5x more expensive than current API setup. Break-even requires ~530 novels/day. Viable for batch jobs (SFT data gen, eval sweeps) but not per-novel pipeline. Full report: `docs/gpu-rental-analysis.md`.
-
-## Infrastructure
-
-### Adapter registry (HIGH PRIORITY 2026-04-18 — schema + seed + CLI SHIPPED)
-
-**The gap (closed by `sql/027`):** previously `tuning_experiments`, `experiment_lineage`, `eval_briefs`, `eval_results` existed but no single row-per-adapter table. "What's deployed and how was it built" required grepping `src/models/roles.ts` + `docs/adapter-changelog.md` + joining tuning_experiments manually.
-
-- [x] **New table `adapter_registry`** via `sql/027_adapter_registry.sql` — applied on LXC 2026-04-18. Columns: uri (PK), name, slot, base_model, training_experiment_id → tuning_experiments, eval_experiment_ids INT[], status (deployed|candidate|retired|rejected), deployed_at, retired_at, headline_metrics JSONB, training_data_path, training_data_sha256, supersedes (self-FK for lineage), notes.
-- [x] **Seeded** with 8 adapters via `scripts/finetune/seed-adapter-registry.ts`: 5 deployed (adherence-v4, chapter-plan-v2, continuity-v2, salvatore-v4, howard-tonal-v4), 1 candidate (hallucination-v1), 1 retired (salvatore-v3), 1 rejected (archetype-poc-v1).
-- [x] **CLI `bun scripts/finetune/adapter-status.ts`** — prints slate grouped by status with headline metrics; `--deployed` and `--slot <name>` filters.
-- [ ] Cross-reference from `src/models/roles.ts`: every W&B adapter URI in roles must exist in `adapter_registry` with `status='deployed'`. Add a startup assertion that reads the registry and validates roles.ts against it.
-- [ ] UI: `/app/finetune` currently renders a static adapter table — make it query `adapter_registry` instead.
-- [ ] **Registry update hooks** — when `train-lora.py` completes, insert a `candidate` row automatically. When `concludeExperiment()` fires on a checker-eval experiment, patch `headline_metrics` on the referenced adapter. Avoids manual reseeding as new adapters land.
-
-### Experiment-lineage hardening (complements the registry)
-
-- [ ] **Training-data SHA256 in `tuning_experiments.config`** (2026-04-16) — add `train_file_sha256` and `val_file_sha256` fields at submission time. Finetune files on LXC (`finetune-data/*.jsonl`) can be overwritten across runs; without a content hash the `config.train_file` path becomes a dead reference once the file changes. Cheap to compute at `train-lora.py` submission time. Enables "exactly what bytes produced this adapter" verification via `sha256sum` against the file on disk or an archived copy. Back-patch existing experiments by computing hashes from current on-disk files and noting drift.
-- [ ] **Formatter-pipeline provenance in `tuning_experiments.config`** (2026-04-16) — add a `formatter` section recording `{script, script_commit, args, input_corpus_file, input_corpus_sha256, output_file, generated_at}`. Right now `config.train_file` points at the output but we can't tell *what produced it* without grepping git log around `commit_hash`. With this field, `bun scripts/finetune/provenance-report.ts` can print the full chain: corpus → formatter script → formatter args → training file → adapter. Back-patch v1/v2/v3/v4/v5 experiments manually with the correct formatter references.
-- [ ] **Actively use `experiment_lineage`** — link v2 training experiments to their v1 parent at `createTuningExperiment` time. Currently the table exists but is rarely populated. A simple `linkExperiment(newId, parentId, "supersedes")` call in training-submission scripts.
-- [ ] **Backfill checker eval rows** — `adherence-checker-v4`, `chapter-plan-checker-v2:v1`, `continuity-v2:v1` have headline accuracy numbers in docs but no rows in `eval_results`. Re-run their evals under the new `sql/026_checker_eval_columns.sql` schema so the whole slate is queryable from one place.
-
-### Other infra
-
-- **Extend LLM call inspector tags** — `chapter` / `beat_index` / `attempt` populated for beat-writer and adherence-checker. Need to thread through reference-resolver, continuity, chapter-plan-checker, rewriter, and planner. Columns already exist; each agent's `callAgent` site needs the tags. See `docs/llm-call-inspector.md`.
-
-## Pipeline Stability
-
-- **Deduplicate timeline events** — rewrite re-extractions create duplicate timeline events in DB.
-- **Clean up stale DB data** — incomplete novels, orphan benchmark runs, experiments without conclusions.
-
-### Character-name normalization in planner + beat writer — LOW PRIORITY (2026-04-18)
-
-Not blocking anything in production today. Logged because the Stage 1 hallucination-authoring bug (scenarios carrying titled keys like `"Lord Halvern Drayce"` that broke naive first/last splitters) has a shape that could recur any time production-pipeline code starts caring about "first name" vs "surname" — e.g. a future voice adapter keyed on surname, a dialogue-attribution lint pattern, a character-knowledge graph query. For now the hallucination-checker rubric already handles title+grounded-surname cleanly via the rubric itself, and the Stage 2 generator uses a local title allowlist.
-
-When this becomes load-bearing:
-- [ ] Split title from personal name in `CharacterProfile` — `title?: string` + `firstName: string` + `lastName: string`; display form reconstructs to `"Captain Voss Marin"`.
-- [ ] Planner schema + instructions to emit structured name fields instead of a single titled string.
-- [ ] Beat-writer context renders display form but exposes canonical `firstName lastName` as grounded lookup key.
-- [ ] Centralize the title allowlist in `src/lib/name-normalizer.ts` so training-data generation and production code share one source of truth. Reference audit at `scripts/hallucination/audit-speaker-names.ts`.
-
-## Future
-
-- **Worldbuilding Workbench** (separate project) — interactive chat frontend backed by the knowledge graph. Author converses with their world, modifies plotlines, generates beats, adjusts world state. Output is a structured plan that feeds the harness. Same Postgres tables, different interface. Entirely separate from the prose generation pipeline.
+- Writer-layer LoRA routing, tonal/voice LoRA generation, Salvatore leak detection, and Howard-primer style prompting are retired from runtime.
+- New writer/checker fine-tunes are not the default path. Prefer DeepSeek V4 Flash plus deterministic guards and calibrated, bounded checkers.
+- Continuity SFT expansion and halluc-leak Salvatore SFT v2 are deferred unless fresh evidence shows the current DeepSeek/deterministic surfaces are insufficient.

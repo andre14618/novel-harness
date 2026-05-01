@@ -24,11 +24,15 @@ world and character building items."
 Revision 1 (beat-writer-only) was rejected. Codex consult
 `af1875be5a79f4e3b` confirmed: one flat loop spanning all surfaces is
 incoherent because of layer coupling; the loop should be decomposed
-into per-layer sub-loops with an explicit composition rule; Phase 0
-should start at `planning-beats`, not `buildBeatContext`, because
-`planning-beats` is the upstream owner of the structured state
-(`establishedFacts`, `characterStateChanges`, `knowledgeChanges`)
-that feeds both drafting and checking.
+into per-layer sub-loops with an explicit composition rule. The original Phase 0
+proposal started at `planning-beats`, not `buildBeatContext`, because the planner
+owned the structured state that feeds both drafting and checking.
+
+**Updated 2026-05-01:** exp #289 split that planner surface. `planning-beats`
+now owns beat shape only; `planning-state-mapper` owns `establishedFacts`,
+`characterStateChanges`, `knowledgeChanges`, payoff links, and writer-visible
+obligations. Any autonomous planning loop now needs either two sub-loops or a
+composed planner loop that treats beat shape and state mapping as separate arms.
 
 This doc is **not a charter** — it's a subsystem spec that will
 generate charters for each sub-loop's Phase 0.
