@@ -58,6 +58,20 @@ checker severity. It derives a shadow obligation plan from the existing outline:
 This is deliberately measurement-first. A shadow warning means the current plan
 does not prove the writer saw the obligation. It is not yet a drafting blocker.
 
+## Slice 2: Planner-Authored Obligations
+
+Exp #286 promotes the contract into planner output and writer context while
+keeping checker severity unchanged:
+
+- `sceneBeatSchema.obligations` is optional/defaulted for legacy outlines.
+- `planning-beats` is instructed to emit compact per-beat obligations.
+- `beat-context-render.ts` renders the obligations as `BEAT OBLIGATIONS`.
+- the shadow derivation layer treats planner-authored obligations as explicit
+  assignments and still logs orphan/overload telemetry.
+
+This is not yet a checker promotion. Beat checkers must be updated and calibrated
+against the new current surface before they can block on obligations.
+
 ## Why Not Render Immediately
 
 The current audit found that several planner fields are not writer-visible:

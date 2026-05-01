@@ -77,6 +77,7 @@ Beat writing bypasses semantic retrieval. Context comes from the plan + determin
 
 **Beat context** (`src/agents/writer/beat-context.ts`):
 - Beat spec (description, characters, POV, setting)
+- Planner-authored beat obligations (must establish/pay off/transfer knowledge/show state change/not reveal + allowed new entities)
 - Transition bridge (last 2-3 sentences of previous beat)
 - Landing target (first sentence of next beat)
 - Character snapshots (speech pattern, behavioral drivers [goals/avoids/internal conflict], emotional state, relationship to POV, doesn't-know constraints)
@@ -85,6 +86,7 @@ Beat writing bypasses semantic retrieval. Context comes from the plan + determin
 
 **Planned state** (`src/planned-state.ts`):
 - Planning-plotter outputs `establishedFacts`, `characterStateChanges`, `knowledgeChanges` per chapter
+- Planning-beats also emits compact per-beat `obligations`; these are rendered to the writer as the local contract and are the intended future checker surface. Shadow derivation in `src/harness/beat-obligations.ts` measures orphan/overload gaps.
 - Saved to DB tables after chapter approval (`extractionMode: "plan"` — planner-declared state only, LLM extractors removed)
 
 **Semantic retrieval** (`src/db/retrieval.ts`, `src/db/embed.ts`):

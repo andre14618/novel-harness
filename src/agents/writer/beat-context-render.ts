@@ -91,7 +91,32 @@ function renderBeatSpec(spec: BeatSpec): string {
     lines.push("", "PAYOFFS DUE (this beat must realize):", payoffLines)
   }
 
+  const obligationLines = renderObligationLines(spec.obligations)
+  if (obligationLines) lines.push("", "BEAT OBLIGATIONS:", obligationLines)
+
   return lines.join("\n")
+}
+
+function renderObligationLines(obligations: BeatSpec["obligations"]): string {
+  const sections: string[] = []
+  pushObligationSection(sections, "Must establish", obligations.mustEstablish.map(i => i.text))
+  pushObligationSection(sections, "Must pay off", obligations.mustPayOff.map(i => i.text))
+  pushObligationSection(sections, "Must transfer knowledge", obligations.mustTransferKnowledge.map(i => formatCharacterObligation(i.characterName, i.text)))
+  pushObligationSection(sections, "Must show state change", obligations.mustShowStateChange.map(i => formatCharacterObligation(i.characterName, i.text)))
+  pushObligationSection(sections, "Must not reveal", obligations.mustNotReveal.map(i => i.text))
+  pushObligationSection(sections, "Allowed new named entities", obligations.allowedNewEntities)
+  return sections.join("\n")
+}
+
+function pushObligationSection(sections: string[], label: string, items: string[]): void {
+  const clean = items.map(i => i.trim()).filter(Boolean)
+  if (clean.length === 0) return
+  sections.push(`${label}:`)
+  for (const item of clean) sections.push(`  - ${item}`)
+}
+
+function formatCharacterObligation(characterName: string | undefined, text: string): string {
+  return characterName ? `${characterName}: ${text}` : text
 }
 
 // ── Character snapshots ──────────────────────────────────────────────────

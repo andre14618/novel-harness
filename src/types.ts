@@ -75,7 +75,7 @@ export interface ValidationResult {
 
 export { locationSchema } from "./schemas/shared"
 export { relationshipSchema, actSchema, sceneBeatSchema, continuityIssueSchema } from "./schemas/shared"
-export type { SceneBeat, ContinuityIssue } from "./schemas/shared"
+export type { BeatObligationsContract, SceneBeat, ContinuityIssue } from "./schemas/shared"
 
 export { worldBibleSchema, type WorldBible } from "./agents/world-builder/schema"
 export { characterProfileSchema, characterProfilesSchema, type CharacterProfile } from "./agents/character-agent/schema"

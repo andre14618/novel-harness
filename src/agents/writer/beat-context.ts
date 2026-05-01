@@ -40,7 +40,7 @@
 import { getRelationshipBetween } from "../../db"
 import { resolveReferences, type ResolvedReferences } from "./reference-resolver"
 import { renderBeatContext } from "./beat-context-render"
-import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
+import type { BeatObligationsContract, ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
 
 // ── exampleLines conditioning presets ────────────────────────────────────
 // Implementation lives in `./example-line-subset.ts`; re-exported here so
@@ -114,6 +114,8 @@ export interface BeatSpec {
   seeds: SeedLink[]
   /** requiredPayoffs of EARLIER beats whose payoff_beat === this index. */
   payoffsDue: PayoffDue[]
+  /** Planner-authored compact obligations for this beat. */
+  obligations: BeatObligationsContract
 }
 
 export interface CharacterSnapshot {
@@ -202,6 +204,7 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
     charactersPresent: beat.characters,
     seeds,
     payoffsDue,
+    obligations: normalizeBeatObligations(beat.obligations),
   }
 
   // Transition bridge slot ────────────────────────────────────────────────
@@ -275,6 +278,17 @@ export async function buildBeatContext(input: BeatContextInput): Promise<BeatCon
   return {
     userPrompt: renderBeatContext(ctx, { compact: !!input.compactMode }),
     targetWords,
+  }
+}
+
+function normalizeBeatObligations(obligations: BeatObligationsContract | undefined): BeatObligationsContract {
+  return {
+    mustEstablish: obligations?.mustEstablish ?? [],
+    mustPayOff: obligations?.mustPayOff ?? [],
+    mustTransferKnowledge: obligations?.mustTransferKnowledge ?? [],
+    mustShowStateChange: obligations?.mustShowStateChange ?? [],
+    mustNotReveal: obligations?.mustNotReveal ?? [],
+    allowedNewEntities: obligations?.allowedNewEntities ?? [],
   }
 }
 

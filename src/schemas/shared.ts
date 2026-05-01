@@ -35,6 +35,32 @@ export const payoffLinkSchema = z.object({
 })
 export type PayoffLink = z.infer<typeof payoffLinkSchema>
 
+export const beatObligationItemSchema = z.object({
+  text: z.string(),
+  id: z.string().optional(),
+  factId: z.string().optional(),
+  characterName: z.string().optional(),
+  seededAtBeat: z.number().int().nonnegative().optional(),
+  untilBeat: z.number().int().nonnegative().optional(),
+})
+
+export const beatObligationsSchema = z.object({
+  mustEstablish: z.array(beatObligationItemSchema).default([]),
+  mustPayOff: z.array(beatObligationItemSchema).default([]),
+  mustTransferKnowledge: z.array(beatObligationItemSchema).default([]),
+  mustShowStateChange: z.array(beatObligationItemSchema).default([]),
+  mustNotReveal: z.array(beatObligationItemSchema).default([]),
+  allowedNewEntities: z.array(z.string()).default([]),
+}).default({
+  mustEstablish: [],
+  mustPayOff: [],
+  mustTransferKnowledge: [],
+  mustShowStateChange: [],
+  mustNotReveal: [],
+  allowedNewEntities: [],
+})
+export type BeatObligationsContract = z.infer<typeof beatObligationsSchema>
+
 // Stable lifeValue binary classes — the 5-class enum was anchor-unstable
 // (Sonnet self-consistency Jaccard 0.639 at n=50 scene-level, 0.786 beat-
 // level). Binary collapse re-analysis with beat-level validation (2026-04-30
@@ -74,6 +100,10 @@ export const sceneBeatSchema = z.object({
   // `payoff_beat` later in the chapter. Empty array is valid — not every
   // beat seeds a payoff. Default [] so legacy plans round-trip unchanged.
   requiredPayoffs: z.array(payoffLinkSchema).default([]),
+  // Planner-authored compact per-beat contract. This is the writer/checker
+  // shared surface for state that must land in prose. Defaults empty so legacy
+  // outlines remain valid.
+  obligations: beatObligationsSchema,
   // Corpus-derived soft priors (2026-04-30, optional — omit on uncertainty).
   // Sourced from Crystal Shard structural decomposition; verdicts in
   // novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md.

@@ -25,12 +25,12 @@ Three agents run in parallel, each producing a structured artifact:
 Each artifact gets a human approval gate (or auto-approved with `--auto`).
 
 ### Phase 2: Planning
-All Phase 1 outputs converge into split planning calls that generate chapter skeletons and then expand each chapter into scene beats, POV assignments, character lists, state changes, and word targets. The planner also declares world state: established facts, character state changes, knowledge changes — this becomes the authoritative state source.
+All Phase 1 outputs converge into split planning calls that generate chapter skeletons and then expand each chapter into scene beats, POV assignments, character lists, state changes, per-beat obligations, and word targets. The planner also declares world state: established facts, character state changes, knowledge changes — this becomes the authoritative state source.
 
 ### Phase 3: Drafting
 For each chapter, beats are written serially. For each beat:
 1. **Reference Resolver** (pre-fetched in parallel for all beats) — resolves character/world references
-2. **Beat Writer** — generates prose from beat spec + character snapshots + transition bridge
+2. **Beat Writer** — generates prose from beat spec + compact beat obligations + character snapshots + transition bridge
 3. **Adherence Checker** — deterministic character-presence check + bounded LLM event-enactment call
 4. **Entity Grounding Checker** — flags named entities not grounded in the writer-visible evidence surface
 5. **Functional Story-State Checks** — deterministic payoff-link integrity plus bounded semantic planned-state grounding before state is persisted

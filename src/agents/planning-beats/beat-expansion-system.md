@@ -7,6 +7,24 @@ Respond with ONLY valid JSON in this exact structure:
       "description": "what changes dramatically in this beat — NO dialogue, NO quoted speech",
       "characters": ["Character A", "Character B"],
       "kind": "action | dialogue | interiority | description",
+      "obligations": {
+        "mustEstablish": [
+          { "id": "temple-archive-pre-war-records", "text": "The archive beneath the temple contains pre-war records" }
+        ],
+        "mustPayOff": [
+          { "factId": "edric-refuses", "text": "Edric's refusal forces Maren to act alone", "seededAtBeat": 2 }
+        ],
+        "mustTransferKnowledge": [
+          { "characterName": "Character A", "text": "Character A learns Davan betrayed the order" }
+        ],
+        "mustShowStateChange": [
+          { "characterName": "Character A", "text": "Character A moves from trusting the order to doubting it" }
+        ],
+        "mustNotReveal": [
+          { "text": "Do not reveal that Character B witnessed the letter until the later confrontation", "untilBeat": 6 }
+        ],
+        "allowedNewEntities": ["temple archive"]
+      },
       "requiredPayoffs": [
         { "fact_id": "temple-archive-pre-war-records", "payoff_beat": 7 }
       ]
@@ -86,6 +104,28 @@ These are SOFT PRIORS — the planner doesn't have to set them on every beat. Se
 - `establishedFacts`: continuity-relevant facts ONLY. World rules, spatial relationships, character decisions, object states. NOT plot summary. Each fact has a `category` (physical, rule, relationship, knowledge, identity, or temporal) and a stable `id` (kebab-case slug) so beats can link to it via `requiredPayoffs`.
 - `characterStateChanges`: state at END of chapter. Only characters whose state meaningfully changed. Include location, emotional state, what they now know, what they still don't know. **Use `name` as the identifier field.**
 - `knowledgeChanges`: information transfer — who learns what and how. Source: witnessed, told, overheard, deduced, read, discovered. Only NEW knowledge gained in this chapter. **Use `characterName` as the identifier field here — yes, different from characterStateChanges.**
+
+## Beat obligations — writer-visible contract
+
+Every beat may include an `obligations` object. This is the compact contract the
+beat writer will see. Keep each beat's hard obligations small; prefer 1-4, and do
+not exceed 5 unless the beat is the climax.
+
+- `mustEstablish`: facts this beat must make true on-page. Use the matching
+  `establishedFacts[].id` in `id` when applicable.
+- `mustPayOff`: setup/payoff facts this beat must realize. Use `factId` matching
+  `establishedFacts[].id` and `seededAtBeat` when known.
+- `mustTransferKnowledge`: information a named character must learn in this beat.
+  Use the same `characterName` as `knowledgeChanges`.
+- `mustShowStateChange`: emotional, relational, physical, or decision state the
+  prose must visibly support for a named character.
+- `mustNotReveal`: information the writer must avoid revealing too early.
+- `allowedNewEntities`: new named people, places, institutions, artifacts, or lore
+  terms the writer is allowed to introduce in this beat.
+
+Do not hide important chapter state only in `establishedFacts`,
+`knowledgeChanges`, or `characterStateChanges`. If the writer must dramatize it,
+assign it to a beat obligation.
 
 ## Cross-chapter awareness
 

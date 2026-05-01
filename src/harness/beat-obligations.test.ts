@@ -26,6 +26,40 @@ test("deriveBeatObligations maps payoff links to seed and payoff beat obligation
   ])
 })
 
+test("deriveBeatObligations treats planner-authored obligations as explicit assignments", () => {
+  const result = deriveBeatObligations(chapter({
+    scenes: [
+      beat({
+        description: "Calla studies Davan's skin.",
+        obligations: {
+          mustEstablish: [{ id: "old-script", text: "Davan bears the Old Tongue on his skin" }],
+          mustPayOff: [],
+          mustTransferKnowledge: [{ characterName: "Calla", text: "Calla learns Davan bears the Old Tongue" }],
+          mustShowStateChange: [{ characterName: "Calla", text: "Calla changes from detached executioner to protective witness" }],
+          mustNotReveal: [{ text: "Do not reveal Orvath's full plan" }],
+          allowedNewEntities: ["Old Tongue"],
+        },
+      }),
+    ],
+    establishedFacts: [
+      { id: "old-script", fact: "Davan bears the Old Tongue on his skin", category: "identity" },
+    ],
+    knowledgeChanges: [
+      { characterName: "Calla", knowledge: "Davan bears the Old Tongue", source: "discovered" },
+    ],
+    characterStateChanges: [
+      { name: "Calla", location: "Iron Hall", emotionalState: "protective witness", knows: [], doesNotKnow: [] },
+    ],
+  }))
+
+  expect(result.summary.orphanFacts).toBe(0)
+  expect(result.summary.orphanKnowledgeChanges).toBe(0)
+  expect(result.summary.orphanStateChanges).toBe(0)
+  expect(result.beats[0].mustEstablish[0]).toEqual(expect.objectContaining({ confidence: "explicit", source: "scene.obligations.mustEstablish" }))
+  expect(result.beats[0].mustNotReveal[0]).toEqual(expect.objectContaining({ kind: "avoid", text: "Do not reveal Orvath's full plan" }))
+  expect(result.beats[0].allowedNewEntities).toContain("Old Tongue")
+})
+
 test("deriveBeatObligations infers fact and knowledge obligations from beat text", () => {
   const outline = chapter({
     scenes: [

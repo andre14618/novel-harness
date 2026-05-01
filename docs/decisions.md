@@ -319,6 +319,22 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### Planner-authored beat obligations become the writer-visible local contract
+*2026-05-01 · exp #286 · follows exp #285 telemetry*
+
+**Decision:** Add optional/defaulted `scene.obligations` to the beat schema, instruct `planning-beats` to emit compact per-beat obligations, and render those obligations into the beat-writer context. Keep checker prompts and blocker severity unchanged until fresh current-surface calibration is complete.
+
+**Why:** Exp #285 measured the shadow layer on a fresh 3-chapter run: facts mapped cleanly, most knowledge mapped, but character state changes frequently remained orphaned. That means relying on downstream chapter-level semantic checks would still blame the writer for state it may not have seen. The next low-risk step is to make the planner explicitly assign the state/fact/knowledge contract to beats and give the writer that compact local contract.
+
+**Alternatives rejected:**
+- Render only derived obligations — rejected because state-change assignment was too weak in the fresh telemetry run.
+- Jump straight to blocking planning-readiness gates — rejected because planner-authored obligations need at least one fresh surface measurement first.
+- Add obligation-specific beat checkers in the same slice — rejected because checker promotion needs a frozen surface and labeled cases.
+
+**Ongoing:** Next validation must generate fresh plans on the new surface and inspect orphan/overload telemetry before adding obligation-aware beat checkers.
+
+---
+
 ### Writer LoRA runtime route removed; fantasy now supplies structural priors only
 *2026-04-30 · exp #272*
 

@@ -173,11 +173,11 @@ Acceptance:
 - deterministic blockers are limited to mechanical corruption.
 - ambiguous story-quality judgments stay out of this layer.
 
-Status: exp #284 starts this as shadow measurement, not blocking enforcement.
-`src/harness/beat-obligations.ts` derives per-beat obligations from existing
-planner fields and logs orphan/overload warnings during planning. The shadow
-contract must prove which obligations can be assigned before they are rendered to
-the writer or used by beat checkers.
+Status: exp #284 started this as shadow measurement. Exp #286 adds
+planner-authored `scene.obligations` and renders them to the beat writer as
+`BEAT OBLIGATIONS`. The shadow layer remains active as telemetry and must prove
+orphan/overload rates improve before beat checkers are allowed to block on the
+new obligation surface.
 
 ### Phase 2 - `halluc-ungrounded` Oracle Dataset
 

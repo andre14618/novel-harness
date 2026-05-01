@@ -1,4 +1,4 @@
-import type { ChapterOutline, SceneBeat } from "../types"
+import type { BeatObligationsContract, ChapterOutline, SceneBeat } from "../types"
 
 export type BeatObligationKind =
   | "establish"
@@ -72,7 +72,12 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
 
   for (let beatIndex = 0; beatIndex < outline.scenes.length; beatIndex++) {
     const beat = outline.scenes[beatIndex]
-    beats[beatIndex].allowedNewEntities = deriveAllowedNewEntities(beat, outline)
+    const authored = normalizeAuthoredObligations(beat.obligations)
+    addAuthoredObligations(beats[beatIndex], authored, beatIndex, factAssignments)
+    beats[beatIndex].allowedNewEntities = mergeUnique([
+      ...authored.allowedNewEntities,
+      ...deriveAllowedNewEntities(beat, outline),
+    ])
 
     for (const link of beat.requiredPayoffs ?? []) {
       const factId = link.fact_id?.trim()
@@ -116,6 +121,12 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
     }
     if (factAssignments.has(factId)) continue
 
+    const authoredMatch = bestAuthoredObligationMatch(outline.scenes, fact.fact, factId, "mustEstablish")
+    if (authoredMatch !== null) {
+      assignFact(factAssignments, factId, authoredMatch)
+      continue
+    }
+
     const match = bestBeatMatch(outline.scenes, fact.fact, { minScore: 2, minCoverage: 0.25 })
     if (match) {
       addObligation(beats[match.beatIndex].mustEstablish, {
@@ -134,6 +145,8 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
 
   let orphanKnowledgeChanges = 0
   for (const change of outline.knowledgeChanges ?? []) {
+    if (authoredKnowledgeCovers(outline.scenes, change)) continue
+
     const match = bestBeatMatch(outline.scenes, change.knowledge, {
       characterName: change.characterName,
       minScore: 2,
@@ -161,6 +174,7 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
       ...(change.knows ?? []),
     ].filter(Boolean).join(" ")
     if (!text.trim()) continue
+    if (authoredStateCovers(outline.scenes, change, text)) continue
 
     const match = bestBeatMatch(outline.scenes, text, {
       characterName: change.name,
@@ -203,6 +217,140 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
       overloadedBeats,
     },
   }
+}
+
+function normalizeAuthoredObligations(obligations: BeatObligationsContract | undefined): BeatObligationsContract {
+  return {
+    mustEstablish: obligations?.mustEstablish ?? [],
+    mustPayOff: obligations?.mustPayOff ?? [],
+    mustTransferKnowledge: obligations?.mustTransferKnowledge ?? [],
+    mustShowStateChange: obligations?.mustShowStateChange ?? [],
+    mustNotReveal: obligations?.mustNotReveal ?? [],
+    allowedNewEntities: obligations?.allowedNewEntities ?? [],
+  }
+}
+
+function addAuthoredObligations(
+  target: BeatObligations,
+  authored: BeatObligationsContract,
+  beatIndex: number,
+  factAssignments: Map<string, Set<number>>,
+): void {
+  for (const item of authored.mustEstablish) {
+    addObligation(target.mustEstablish, {
+      kind: "establish",
+      text: item.text,
+      confidence: "explicit",
+      source: "scene.obligations.mustEstablish",
+      factId: item.factId ?? item.id,
+      characterName: item.characterName,
+    })
+    const factId = item.factId ?? item.id
+    if (factId) assignFact(factAssignments, factId, beatIndex)
+  }
+
+  for (const item of authored.mustPayOff) {
+    addObligation(target.mustPayOff, {
+      kind: "payoff",
+      text: item.text,
+      confidence: "explicit",
+      source: "scene.obligations.mustPayOff",
+      factId: item.factId ?? item.id,
+      characterName: item.characterName,
+      seededAtBeat: item.seededAtBeat,
+    })
+    const factId = item.factId ?? item.id
+    if (factId) assignFact(factAssignments, factId, beatIndex)
+  }
+
+  for (const item of authored.mustTransferKnowledge) {
+    addObligation(target.mustTransferKnowledge, {
+      kind: "knowledge",
+      text: item.text,
+      confidence: "explicit",
+      source: "scene.obligations.mustTransferKnowledge",
+      characterName: item.characterName,
+    })
+  }
+
+  for (const item of authored.mustShowStateChange) {
+    addObligation(target.mustShowStateChange, {
+      kind: "state",
+      text: item.text,
+      confidence: "explicit",
+      source: "scene.obligations.mustShowStateChange",
+      characterName: item.characterName,
+    })
+  }
+
+  for (const item of authored.mustNotReveal) {
+    addObligation(target.mustNotReveal, {
+      kind: "avoid",
+      text: item.text,
+      confidence: "explicit",
+      source: "scene.obligations.mustNotReveal",
+      characterName: item.characterName,
+    })
+  }
+}
+
+function bestAuthoredObligationMatch(
+  scenes: SceneBeat[],
+  targetText: string,
+  factId: string,
+  key: "mustEstablish" | "mustPayOff",
+): number | null {
+  let best: { beatIndex: number; score: number; coverage: number } | null = null
+  for (let i = 0; i < scenes.length; i++) {
+    const items = normalizeAuthoredObligations(scenes[i].obligations)[key]
+    for (const item of items) {
+      if ((item.id && item.id === factId) || (item.factId && item.factId === factId)) return i
+      const score = overlapScore(targetText, item.text)
+      if (score.score < 2 || score.coverage < 0.25) continue
+      if (!best || score.score > best.score || (score.score === best.score && score.coverage > best.coverage)) {
+        best = { beatIndex: i, ...score }
+      }
+    }
+  }
+  return best?.beatIndex ?? null
+}
+
+function authoredKnowledgeCovers(
+  scenes: SceneBeat[],
+  change: { characterName: string; knowledge: string },
+): boolean {
+  for (const beat of scenes) {
+    for (const item of normalizeAuthoredObligations(beat.obligations).mustTransferKnowledge) {
+      if (item.characterName && !sameCharacterName(item.characterName, change.characterName)) continue
+      const score = overlapScore(change.knowledge, item.text)
+      if (score.score >= 2 && score.coverage >= 0.25) return true
+    }
+  }
+  return false
+}
+
+function authoredStateCovers(
+  scenes: SceneBeat[],
+  change: { name: string },
+  stateText: string,
+): boolean {
+  for (const beat of scenes) {
+    for (const item of normalizeAuthoredObligations(beat.obligations).mustShowStateChange) {
+      if (item.characterName && !sameCharacterName(item.characterName, change.name)) continue
+      const score = overlapScore(stateText, item.text)
+      if (score.score >= 2 && score.coverage >= 0.2) return true
+    }
+  }
+  return false
+}
+
+function overlapScore(targetText: string, candidateText: string): { score: number; coverage: number } {
+  const targetTokens = meaningfulTokens(targetText)
+  if (targetTokens.length === 0) return { score: 0, coverage: 0 }
+  const candidateTokens = new Set(meaningfulTokens(candidateText))
+  let score = 0
+  for (const token of targetTokens) if (candidateTokens.has(token)) score++
+  return { score, coverage: score / targetTokens.length }
 }
 
 export function renderBeatObligations(obligations: BeatObligations): string {
@@ -273,11 +421,14 @@ function meaningfulTokens(text: string): string[] {
 }
 
 function beatIncludesCharacter(beat: SceneBeat, characterName: string): boolean {
-  const aliases = nameAliases(characterName)
-  return beat.characters.some(name => {
-    for (const alias of nameAliases(name)) if (aliases.has(alias)) return true
-    return false
-  })
+  return beat.characters.some(name => sameCharacterName(name, characterName))
+}
+
+function sameCharacterName(a: string, b: string): boolean {
+  const aAliases = nameAliases(a)
+  const bAliases = nameAliases(b)
+  for (const alias of aAliases) if (bAliases.has(alias)) return true
+  return false
 }
 
 function nameAliases(name: string): Set<string> {
@@ -326,6 +477,20 @@ function extractProperNouns(text: string): string[] {
     if (value.length < 3 || seen.has(value)) continue
     seen.add(value)
     out.push(value)
+  }
+  return out
+}
+
+function mergeUnique(values: string[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const value of values) {
+    const normalized = value.trim()
+    if (!normalized) continue
+    const key = normalized.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(normalized)
   }
   return out
 }
