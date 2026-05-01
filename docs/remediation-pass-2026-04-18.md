@@ -1,5 +1,7 @@
 # Remediation Pass Plan — 2026-04-18
 
+> **HISTORICAL — superseded.** Execution plan derived from the (also historical) audit on 2026-04-18. The bulk of the items listed here have been addressed in subsequent commits — `bun test` now runs, root TS is down to ~12 errors (see exp #298), CLI shell-out path was patched, etc. Some items in the further-out sections may still be valid; treat individual entries as candidates rather than active work. For current pending work see [`todo.md`](todo.md).
+
 This document is meant as an execution handoff for Claude. It converts the audit in [codebase-audit-2026-04-18.md](./codebase-audit-2026-04-18.md) into a bounded remediation sequence.
 
 ## Context

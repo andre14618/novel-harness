@@ -9,6 +9,8 @@ codex-review: Consult output captured 2026-04-21 — verdict PROCEED WITH AMENDM
 
 # Harness Optimization Inventory
 
+> **HISTORICAL — superseded.** Catalogues knobs for the autonomous-loop subsystem at `docs/designs/autonomous-context-loop.md`. The autonomous-loop direction was deprioritized 2026-04-21 in favor of context engineering + editing passes (see memory `project_context_engineering_priority`). The Salvatore voice-LoRA route, Howard primer, route-specific leak detection, and other knobs listed below are also retired (see [`current-state.md`](current-state.md) "Retired Or Rejected Methodologies"). The list of tunable surfaces is still useful as a reference, but absence/presence is no longer authoritative — verify each surface against the live code before relying on this document.
+
 Every knob, prompt, model slot, threshold, and pipeline flag that the
 autonomous loop could legitimately change. Organized by the four-tier
 sub-loop decomposition from `docs/designs/autonomous-context-loop.md`

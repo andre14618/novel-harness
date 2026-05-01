@@ -1,5 +1,7 @@
 # Codebase Audit — 2026-04-18
 
+> **HISTORICAL — superseded.** Snapshot of repo state on 2026-04-18; many findings have been resolved. The 76-error TS baseline is now ~12 (see [exp #298 commit `414d97c`](decisions.md)); the `bash -c` shell-out on `/api/run/novel` was patched; the `getTokenCost()` `NaN` cases were addressed; many of the file-shape concerns were reorganized in subsequent service-layer refactors. For current state see [`current-state.md`](current-state.md). Kept for historical reference on the repo's evolution.
+
 ## Scope
 
 This review covers the current working tree on `2026-04-18`, not just the last clean commit.
