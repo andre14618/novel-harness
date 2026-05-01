@@ -73,7 +73,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "plotter":                   { ...deepseekV4Flash, maxTokens: 8192 },
   "planning-plotter":          { ...deepseekV4Flash, temperature: 0.6, maxTokens: 8192 },
   "planning-beats":            { ...deepseekV4Flash, temperature: 0.6, maxTokens: 8192 },
-  "planning-state-mapper":     { ...deepseekV4Flash, thinking: true, temperature: 0.25, maxTokens: 8192 },
+  "planning-state-mapper":     { ...deepseekV4Flash, thinking: true, temperature: 0.25, maxTokens: 16384 },
 
   // ── Studio: pre-planning chat + extraction ───────────────────────────
   // Chat: Groq Qwen3-32B (high-volume, cheap).

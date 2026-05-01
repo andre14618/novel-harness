@@ -88,7 +88,7 @@ complete knob list.
 | System prompt | prompt | `file:src/agents/planning-plotter/chapter-outline-system.md` | current | Y |
 | Model | model | `roles.ts:planning-plotter` | DeepSeek V4 Flash | Y (narrow set: DeepSeek / Cerebras 235B / Kimi K2) |
 | Temperature | config-float | `roles.ts` + DB | 0.6 | Y |
-| Max tokens | config-int | `roles.ts` | 8192 | Y |
+| Max tokens | config-int | `roles.ts` | 16384 | Y |
 | Chapter-level richness tier | prompt-variant | file | implicit | Y |
 | POV-assignment explicitness | prompt-variant | file | implicit | Y |
 
