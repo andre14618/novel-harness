@@ -347,7 +347,9 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 - Let deterministic auto-repair choose placement as the normal path — rejected because deterministic visibility is correct, but deterministic dramatic placement is only a safety net.
 - Re-expand the whole chapter on coverage miss — rejected for this slice because coverage failure usually means state/obligation mapping missed a beat assignment, not that the beat sequence is wrong.
 
-**Ongoing:** Exp #289 needs a fresh LXC planner-isolated comparison. Telemetry to inspect: mapper orphan counts before retry, mapper retry counts, auto-repair count, ignored mapping count, overloaded beats, cost/latency for `planning-state-mapper`, and whether the split reduces auto-repair reliance versus exp #288.
+**Evidence:** LXC planner-isolated run `576` (`test-planner-fantasy-healer-1777603163263`, deployed `ec57a3d`) reached final zero obligation orphans with zero auto-repair, but `planning-state-mapper` had 2 JSON-retry recoveries at the 6144 cap. Run `577` (`test-planner-fantasy-healer-1777603718185`, deployed `4b81609`) after raising mapper maxTokens to 8192 also reached final zero orphans with zero auto-repair and no JSON retries. Mapper coverage retries were still needed (run `576`: 1 chapter, two retry passes; run `577`: 3 chapters, one retry pass). Run `577` also exposed a retry failure mode where a mapper could satisfy coverage by dropping previously declared facts; the retry prompt now anchors existing state and tells the mapper to add/move obligations rather than delete valid state.
+
+**Ongoing:** The split reduces reliance on deterministic auto-repair, but mapper retry rate and state preservation need more samples before disabling auto-repair or promoting obligation-aware beat checkers. Track mapper orphan counts before retry, mapper retry counts, auto-repair count, ignored mapping count, overloaded beats, and cost/latency for `planning-state-mapper` on the next fresh current-surface runs.
 
 ---
 

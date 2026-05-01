@@ -365,7 +365,7 @@ async function mapChapterState(
     seed,
   })
   if (retryFeedback) {
-    userPrompt += `\n\n--- PREVIOUS STATE MAPPING FAILED COVERAGE VALIDATION ---\n${retryFeedback}\n\nReturn a complete replacement JSON object for this chapter's state mapping only. Keep the existing beat indexes unchanged.`
+    userPrompt += `\n\n--- EXISTING STATE MAPPING TO PRESERVE ---\n${renderExistingStateMapping(skeleton)}\n\n--- PREVIOUS STATE MAPPING FAILED COVERAGE VALIDATION ---\n${retryFeedback}\n\nReturn a complete replacement JSON object for this chapter's state mapping only. Keep the existing beat indexes unchanged. Preserve existing valid chapter-level state; fix missing coverage by adding or moving beat obligations rather than deleting valid facts, knowledge changes, or state changes.`
   }
 
   emit(novelId, { type: "progress", data: { step: "planning-state-mapper", status: "running", chapter: skeleton.chapterNumber, attempt } })
@@ -461,6 +461,31 @@ function emptyBeatObligations(): BeatObligationsContract {
     mustNotReveal: [],
     allowedNewEntities: [],
   }
+}
+
+function renderExistingStateMapping(outline: ChapterOutline): string {
+  const lines: string[] = []
+  if ((outline.establishedFacts ?? []).length > 0) {
+    lines.push("Established facts:")
+    for (const fact of outline.establishedFacts ?? []) {
+      lines.push(`- ${fact.id || "(missing-id)"}: [${fact.category}] ${fact.fact}`)
+    }
+  }
+  if ((outline.knowledgeChanges ?? []).length > 0) {
+    lines.push("Knowledge changes:")
+    for (const change of outline.knowledgeChanges ?? []) {
+      lines.push(`- ${change.characterName}: ${change.knowledge} (${change.source})`)
+    }
+  }
+  if ((outline.characterStateChanges ?? []).length > 0) {
+    lines.push("Character state changes:")
+    for (const change of outline.characterStateChanges ?? []) {
+      const knows = change.knows.length ? `; knows: ${change.knows.join(", ")}` : ""
+      const doesNotKnow = change.doesNotKnow.length ? `; doesNotKnow: ${change.doesNotKnow.join(", ")}` : ""
+      lines.push(`- ${change.name}: location: ${change.location || "?"}; state: ${change.emotionalState || "?"}${knows}${doesNotKnow}`)
+    }
+  }
+  return lines.length ? lines.join("\n") : "No existing state mapping was available."
 }
 
 function logStateMapperTelemetry(

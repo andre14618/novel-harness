@@ -17,6 +17,12 @@ JavaScript regex engines use leftmost-match semantics: in an alternation `(a|ab)
 ### Deterministic validators should not own judgment-heavy placement (2026-05-01)
 Exp #288's obligation auto-repair correctly enforced the mechanical invariant that declared planner state must be writer-visible, but choosing the dramatically right beat for hidden knowledge/state can require story judgment. Rule: use deterministic code to detect coverage gaps and enforce final visibility, but insert a narrow LLM mapper before deterministic repair when the fix requires semantic placement, pacing, or causality judgment. Deterministic auto-repair should remain an auditable safety net, not the primary authoring path.
 
+### Retry prompts must anchor valid prior state, not just name validation failures (2026-05-01)
+Exp #289's first split-mapper runs showed a state mapper can pass coverage by deleting previously declared facts if the retry prompt only lists the missing coverage error. Rule: when retrying a structured planning/mapping artifact, include the prior valid artifact sections that should be preserved and state explicitly that coverage should be fixed by adding/moving local obligations, not by dropping valid state.
+
+### Thinking structured calls need budget for reasoning plus JSON emission (2026-05-01)
+Exp #289 initially capped `planning-state-mapper` at 6144 completion tokens. Late chapters hit the cap and required JSON-extraction retries even though the visible schema was moderate-sized. Rule: for thinking-enabled structured emitters, set maxTokens for reasoning plus the full JSON object, not just the visible JSON estimate; a reasoning route with too-low output headroom becomes slower and less reliable than a larger bounded cap.
+
 ### Optional LLM metadata schemas must be lenient at the production boundary (2026-05-01)
 Exp #286 promoted planner-authored beat obligations into the `planning-beats` output. The first fresh run emitted usable chapter beats but some optional obligation items were malformed (`mustPayOff` id-only objects without `text`, `untilBeat: "later"`), causing Zod to reject whole chapters and collapse them to zero beats. Exp #287 then hit the same class through optional soft-prior tags (`miceOpens: "E"`). Rule: when optional metadata is not the primary artifact, schema-parse it leniently, filter unusable items deterministically, and keep strictness for the primary artifact. Optional scaffolding should not erase valid prose/planning structure.
 

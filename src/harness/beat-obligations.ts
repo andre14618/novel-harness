@@ -273,6 +273,13 @@ export function formatObligationCoverageRetryFeedback(
     lines.push("", "Specific missing assignments:", ...specificWarnings.map(w => `- ${w}`))
   }
 
+  if ((outline.establishedFacts ?? []).length > 0) {
+    lines.push("", "Established facts that must be preserved and covered:")
+    for (const fact of outline.establishedFacts ?? []) {
+      lines.push(`- ${fact.id || "(missing-id)"}: ${fact.fact}`)
+    }
+  }
+
   if ((outline.knowledgeChanges ?? []).length > 0) {
     lines.push("", "Knowledge changes that must be covered:")
     for (const change of outline.knowledgeChanges ?? []) {

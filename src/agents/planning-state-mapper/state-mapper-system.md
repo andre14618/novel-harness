@@ -63,6 +63,8 @@ Respond with ONLY valid JSON in this exact structure:
 
 If an item does not matter after the chapter, do not put it in chapter-level state. If it does matter, make it writer-visible through a beat obligation.
 
+On retry, you may receive an existing state mapping. Preserve existing established facts, knowledge changes, and character state changes unless they are clearly invalid or contradicted by the beat list. Do not pass coverage validation by deleting valid state. Fix missing coverage by adding or moving beat obligations first.
+
 ## Coverage Rules
 
 These are hard rules. The deterministic validator will reject output that misses them.

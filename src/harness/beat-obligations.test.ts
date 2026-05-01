@@ -133,6 +133,9 @@ test("deriveBeatObligations warns about orphan state that is not writer-visible"
 test("validateBeatObligationCoverage fails when chapter state is not writer-visible", () => {
   const outline = chapter({
     scenes: [beat({ description: "Istra prepares another dose." })],
+    establishedFacts: [
+      { id: "ledger-forgery", fact: "Aldric falsified the plague ledgers", category: "knowledge" },
+    ],
     knowledgeChanges: [
       { characterName: "Istra", knowledge: "Aldric falsified the plague ledgers", source: "deduced" },
     ],
@@ -151,6 +154,9 @@ test("validateBeatObligationCoverage fails when chapter state is not writer-visi
 test("formatObligationCoverageRetryFeedback names missing knowledge and state", () => {
   const outline = chapter({
     scenes: [beat({ description: "Istra prepares another dose." })],
+    establishedFacts: [
+      { id: "ledger-forgery", fact: "Aldric falsified the plague ledgers", category: "knowledge" },
+    ],
     knowledgeChanges: [
       { characterName: "Istra", knowledge: "Aldric falsified the plague ledgers", source: "deduced" },
     ],
@@ -163,6 +169,8 @@ test("formatObligationCoverageRetryFeedback names missing knowledge and state", 
   const feedback = formatObligationCoverageRetryFeedback(outline, validation)
 
   expect(feedback).toContain("failed writer-visible obligation coverage")
+  expect(feedback).toContain("Established facts that must be preserved and covered")
+  expect(feedback).toContain("ledger-forgery: Aldric falsified the plague ledgers")
   expect(feedback).toContain("Istra: Aldric falsified the plague ledgers")
   expect(feedback).toContain("Istra: location: The sealed archive; state: furious clarity")
 })
