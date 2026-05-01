@@ -37,7 +37,7 @@ If a character must do something specific (refuse, reveal, sacrifice, discover),
 Use these as soft structural priors, not hard constraints. The mapper will handle facts, knowledge, payoff links, and obligations later.
 
 - **Kind rhythm (Pattern 4, Salvatore IWD trilogy):** description front-loads, dialogue mid-peaks, action stays steady, and interiority remains fairly flat. In a 14-beat chapter, beats 1-3 should lean description/action setup, beats 5-9 should carry much of the dialogue, and beats 10-14 should close with action/interiority rather than pure description.
-- **Boundary signals (Pattern 7):** POV attention shift and stakes recalibration are the dominant justifications for a new beat. Speaker changes alone rarely need a cut unless they also shift attention or stakes. Sensory-channel changes almost never warrant their own beat.
+- **Boundary signals (Pattern 7, top-4 set):** the four corpus-stable justifications for cutting a new beat are POV attention shift, stakes recalibration, action shift, and scene start. The corpus does NOT consistently rank one above the others — the dominant signal varies across books. Pick whichever member of the top-4 set the chapter's dramatic logic actually justifies; do not force POV/stakes when an action shift or scene start is the natural cut. Speaker changes alone rarely need a cut unless they also shift attention or stakes. Sensory-channel changes almost never warrant their own beat.
 - **Pacing curve (Pattern 8):** action density should rise toward the 70-90% region of the chapter, then briefly dip into cost-reckoning, interiority, or revelation before the closing beat. Do not flatten the back half into uniform action.
 
 ## Soft Structural Priors

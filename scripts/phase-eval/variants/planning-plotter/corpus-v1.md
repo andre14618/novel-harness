@@ -44,3 +44,9 @@ Structural requirements across the whole arc:
 - The **final act** (last ~10–20% of chapters) is NOT pure action escalation; the corpus shows a brief reflective dip just before the climax sequence. Use that beat for character-cost reckoning, lull-before-the-storm tension, or the protagonist's final commitment moment, then transition into the climactic action.
 - Don't write the entire final third as continuous high-action; the rhythm beats land harder against contrast.
 - Reflect this curve in chapter `purpose` text so the downstream beat-expansion phase plans pacing accordingly.
+
+**Chapter opener / closer kinds (Pattern 3, corpus-validated):**
+- ~50% of chapters open with description (setting/mood/situation establishment); the rest open with action.
+- Chapter closes split ~41% action / ~35% interiority / ~0% pure description. **NEVER close a chapter with pure description.**
+- The "reflective dip" guidance above is a content cue (cost reckoning, lull, commitment) — not a kind cue. A reflective close is still typically action or interiority that lands the reflection on a beat the reader can feel as resolution or hook, not a description fade-out.
+- When `purpose` text leans into a chapter's close, frame it as either an action consequence or an interiority decision — never as a static descriptive image of the setting.
