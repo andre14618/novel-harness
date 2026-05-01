@@ -425,6 +425,6 @@ Acceptance:
 
 ## Next Concrete Step
 
-Next step: run a base-writer validation with the retired LoRA path removed and
-the first functional checks enabled, then sample functional-state warnings before
-promoting any semantic grounding finding to blocker status.
+Next step: execute `docs/checker-calibration-plan.md` Phase 2. The exp #282
+`Spire` bail is the seed case for `halluc-ungrounded-oracle-v1`; collect and
+label 20-50 natural `halluc-ungrounded` fires before changing blocker policy.

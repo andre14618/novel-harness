@@ -1281,6 +1281,12 @@ During exp #282 monitoring, an ad-hoc status query guessed `novels.last_error` a
 
 **The rule:** every ad-hoc production SQL query gets an `information_schema.columns` check before selecting table columns, even when the query is read-only and "just for monitoring." The cost is one cheap query; the benefit is avoiding noisy failures during live-run diagnosis. (exp #282 monitoring, 2026-04-30)
 
+### Checker eval rows must freeze the prompt/context surface they score
+
+During exp #283 planning, the current surface audit found that `planning-beats` can emit soft structural fields (`valueShifted`, `gapPresent`, `lifeValueAxes`, `mice*`) that the runtime beat writer and beat checkers do not currently see. Mixing older runs, historical seeds, synthetic fixtures, and current-surface rows under one precision number would therefore measure a moving target: the label might be right for one evidence surface and wrong for another.
+
+**The rule:** every score-bearing checker eval row records the runtime surface it scores — deployed commit or manifest, writer/checker prompt family, model route, context-builder hashes, and evidence-surface variant. Historical rows can seed taxonomy and regression fixtures, but precision/recall for blocker policy only counts rows generated under the same prompt/context surface. (exp #283, 2026-04-30)
+
 ### Fast-fail SSE watchers must distinguish expected errors from unexpected errors
 
 The first draft of `watchForExpectations` rejected the test on any `error` SSE event. Auto-mode `PipelineBailError` correctly emits an error event when forced-failure flags trigger the bail path — it's the expected outcome for R1 and similar auto-mode tests. The watcher's blanket rejection caused R1 to fail even though the pipeline was behaving correctly.
