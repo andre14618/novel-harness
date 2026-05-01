@@ -111,6 +111,13 @@ Every beat may include an `obligations` object. This is the compact contract the
 beat writer will see. Keep each beat's hard obligations small; prefer 1-4, and do
 not exceed 5 unless the beat is the climax.
 
+Coverage rule: every chapter-level `knowledgeChanges[]` item MUST be mirrored in
+exactly one beat's `obligations.mustTransferKnowledge`. Every chapter-level
+`characterStateChanges[]` item MUST be mirrored in at least one beat's
+`obligations.mustShowStateChange`. If the state or knowledge does not need to be
+shown in prose, do not declare it as a chapter-level change. The writer cannot
+fulfill hidden chapter metadata.
+
 Every obligation item MUST include a concrete `text` string. If you cannot write
 the one-sentence on-page requirement, omit the item rather than emitting an id-only
 object. Beat indexes are zero-based numbers, never labels like `later` or `final`.
@@ -120,9 +127,11 @@ object. Beat indexes are zero-based numbers, never labels like `later` or `final
 - `mustPayOff`: setup/payoff facts this beat must realize. Use `factId` matching
   `establishedFacts[].id` and `seededAtBeat` when known.
 - `mustTransferKnowledge`: information a named character must learn in this beat.
-  Use the same `characterName` as `knowledgeChanges`.
+  Use the same `characterName` as `knowledgeChanges`, and copy the key knowledge
+  phrase so deterministic coverage can match it.
 - `mustShowStateChange`: emotional, relational, physical, or decision state the
-  prose must visibly support for a named character.
+  prose must visibly support for a named character. Use the same character name as
+  `characterStateChanges[].name`, and include the key final-state phrase.
 - `mustNotReveal`: information the writer must avoid revealing too early.
 - `allowedNewEntities`: new named people, places, institutions, artifacts, or lore
   terms the writer is allowed to introduce in this beat.
