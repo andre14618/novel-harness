@@ -195,6 +195,10 @@ into compact beat obligations before approval/persistence. This is still a
 planning-layer gate; beat checkers should wait for fresh post-validator
 current-surface labels.
 
+Validation run `novel-1777601516385` on `8d57662` reached planning completion with
+zero obligation orphans after targeted retries. This validates the planning gate
+mechanically; it does not yet validate beat-checker precision on the new surface.
+
 ### Phase 2 - `halluc-ungrounded` Oracle Dataset
 
 Goal: calibrate the current beat-level entity-grounding blocker before changing

@@ -114,6 +114,11 @@ coverage-error packet. Any remaining gaps are deterministically auto-repaired by
 injecting compact obligations into the nearest plausible beat, so hidden state is
 not discovered later by chapter/function checkers.
 
+Validation run `novel-1777601516385` on deployed commit `8d57662` exercised the
+new path: chapters 2 and 3 retried for obligation gaps, then final planning
+telemetry reported zero orphan facts, zero orphan knowledge changes, zero orphan
+state changes, and zero overloaded beats across all three chapters.
+
 ## Why Not Render Immediately
 
 The current audit found that several planner fields are not writer-visible:
