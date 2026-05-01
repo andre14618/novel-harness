@@ -31,7 +31,7 @@ Checker promotion remains blocked until fresh labels are generated against the n
 
 The one-off planning variant probes were useful but too bespoke. The next prompt/composite-prior work needs reusable comparison plumbing.
 
-- [ ] **Rerun mapper variant with larger output headroom.** Exp #291's revised `coverage-balanced` passed outline gates but failed G5 due JSON/Zod failures and an 8192-token cap hit. `planning-state-mapper` now has a 16384-token cap; rerun `default` vs `coverage-balanced` before deciding whether prompt/output compaction or a split mapper response is still needed.
+- [ ] **Diagnose mapper auto-repair mismatch before another variant run.** Exp #292 showed 16384 mapper headroom fixes JSON/Zod/cap health, but `coverage-balanced` still had one overloaded beat. Exp #293's stricter overload prompt failed planning because one knowledge orphan survived mapper retries plus deterministic auto-repair. Reproduce with a fixture or add repair diagnostics before spending another LXC variant run.
 - [ ] **MVP durable eval/testing module.** Design draft: `docs/designs/eval-testing-module-v1.md`. Replace bespoke scripts with `(variant config, seed set, metric set) -> results table + UI`, reusing `llm_calls`, `tuning_experiments`, `pipeline_events`, and `eval_results` where possible.
 
 ### 4. Pick the next corpus-informed synthesis probe after runtime stabilization
