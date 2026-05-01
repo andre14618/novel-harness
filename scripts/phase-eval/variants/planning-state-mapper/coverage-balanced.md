@@ -52,7 +52,7 @@ Respond with ONLY valid JSON in this exact structure:
 
 - Use only existing beat indexes from the provided beat list. Indexes are zero-based numbers.
 - Do not rewrite, renumber, add, remove, or summarize beats.
-- Keep obligations compact. Prefer 1-3 hard obligations per beat; avoid more than 5 on any beat.
+- Keep obligations compact. Prefer 1-3 hard obligations per beat. Hard cap: no beat may carry more than 5 hard obligations, including climax beats.
 - Do not reduce chapter-level state to avoid overload. Solve overload by distributing obligations across plausible beats, shortening obligation text, or merging duplicate obligations.
 - Only include `beatMappings` for beats that need obligations, payoff links, or allowed entities. Omit empty mappings.
 - Every obligation item must include a concrete `text` string. Never emit id-only obligation objects.
@@ -89,6 +89,8 @@ These are hard rules. The deterministic validator will reject output that misses
 - Spread unrelated obligations across adjacent plausible beats instead of piling them on one setup beat.
 - If one beat carries too many obligations, preserve the same chapter-level state and move some visibility obligations to the next or previous beat where the state is still causally visible.
 - Prefer one concise obligation per state item over deleting or collapsing distinct state items.
+- For climactic reveal clusters, do not put every fact, knowledge transfer, and state change on the reveal beat. Put the factual reveal on the reveal beat, then place character knowledge/state reactions on the immediate aftermath beat where characters process, accept, reject, flee, release someone, or choose a new course.
+- If a reveal creates state for multiple characters, split those state obligations across the reveal beat and the next reaction beat rather than stacking both on the same beat.
 - Do not overload early setup beats with late realizations.
 - Do not place a revelation before the beat that causally enables it.
 - Use `mustNotReveal` only for information that later beats need preserved as a secret.
@@ -101,7 +103,7 @@ These are hard rules. The deterministic validator will reject output that misses
 - For each `establishedFacts[]` item, point to one beat description, `mustEstablish`, `mustPayOff`, or `requiredPayoffs` link that makes it writer-visible.
 - For each `knowledgeChanges[]` item, ensure one matching `mustTransferKnowledge` obligation names the same character and repeats the key knowledge phrase.
 - For each `characterStateChanges[]` item, ensure one matching `mustShowStateChange` obligation names the same character and repeats the key final emotional/knowledge/location change.
-- Count hard obligations per beat. Move or merge obligations if any non-climax beat exceeds 5.
+- Count hard obligations per beat. If any beat exceeds 5, move the least immediate knowledge/state reaction to an adjacent plausible beat. A no-orphan result with an overloaded beat is a failure.
 - Keep enough chapter-level state to preserve continuity; do not win by deleting valid facts, knowledge, or state changes. A no-orphan result with thin state is a failure.
 
 The output should make hidden planner metadata impossible: anything declared in chapter-level state must be available to the beat writer in the relevant beat contract.
