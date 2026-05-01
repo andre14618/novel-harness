@@ -371,6 +371,8 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 **Ongoing:** Revise the mapper variant to explicitly preserve all valid continuity-relevant state while spreading obligations to avoid overload, then rerun on at least one additional seed before considering default-prompt changes. Keep auto-repair policy unchanged.
 
+**Update — exp #291 (2026-05-01):** The state-preservation revision passed the state-mapper screen on the same seed. `coverage-balanced` cleared no-orphans, no-overload, state-retention, and structural gates: facts_median=6, knowledge_median=4, state_median=2, state_items=35 vs gate floor 33, obligations=42, orphans=0, overloaded=0, auto-repair=0, cost $0.009526. Default in the same run had facts_median=6, knowledge_median=7, state_median=3, state_items=44, obligations=52, orphans=0, overloaded=0, but needed deterministic auto-repair once. **Caveat:** `coverage-balanced` still hit the 8192 completion cap and recorded JSON/Zod failure telemetry (`json_retried=2`, `json_failed=1`, `zod_failed=1`, `failed=1`). The verdict script currently ignores mapper call-health, so this is prompt-direction evidence, not ship evidence.
+
 ---
 
 ### Writer LoRA runtime route removed; fantasy now supplies structural priors only

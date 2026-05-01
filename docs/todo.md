@@ -31,7 +31,7 @@ Checker promotion remains blocked until fresh labels are generated against the n
 
 The one-off planning variant probes were useful but too bespoke. The next prompt/composite-prior work needs reusable comparison plumbing.
 
-- [ ] **Revise the mapper coverage-balanced variant and rerun.** Exp #290 showed `coverage-balanced` removed overload and kept zero orphans, but failed state retention by emitting 28 state items vs a 30-item floor. Tighten the variant to preserve valid continuity-relevant state while spreading obligations, then rerun `default` vs revised arm with `--metric-set=state-mapper`.
+- [ ] **Add mapper call-health gates to the state-mapper metric set.** Exp #291 passed the current `coverage-balanced` screen but still had mapper JSON/Zod failure telemetry. Extend `print-screen-verdict.ts --metric-set=state-mapper` or a companion persisted summary to gate/report JSON retries, failed calls, Zod failures, auto-repair count, and max completion-token headroom before treating mapper variant screens as ship evidence.
 - [ ] **MVP durable eval/testing module.** Design draft: `docs/designs/eval-testing-module-v1.md`. Replace bespoke scripts with `(variant config, seed set, metric set) -> results table + UI`, reusing `llm_calls`, `tuning_experiments`, `pipeline_events`, and `eval_results` where possible.
 
 ### 4. Pick the next corpus-informed synthesis probe after runtime stabilization
