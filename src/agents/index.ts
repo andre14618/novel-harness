@@ -3,6 +3,7 @@ export * as characterAgent from "./character-agent"
 export * as plotter from "./plotter"
 export * as planningPlotter from "./planning-plotter"
 export * as planningBeats from "./planning-beats"
+export * as planningStateMapper from "./planning-state-mapper"
 export * as writer from "./writer"
 export * as continuity from "./continuity"
 // rewriter removed 2026-04-17: validation is diagnostic-only now

@@ -14,6 +14,9 @@ JavaScript regex engines use leftmost-match semantics: in an alternation `(a|ab)
 
 ## LLM Evaluation
 
+### Deterministic validators should not own judgment-heavy placement (2026-05-01)
+Exp #288's obligation auto-repair correctly enforced the mechanical invariant that declared planner state must be writer-visible, but choosing the dramatically right beat for hidden knowledge/state can require story judgment. Rule: use deterministic code to detect coverage gaps and enforce final visibility, but insert a narrow LLM mapper before deterministic repair when the fix requires semantic placement, pacing, or causality judgment. Deterministic auto-repair should remain an auditable safety net, not the primary authoring path.
+
 ### Optional LLM metadata schemas must be lenient at the production boundary (2026-05-01)
 Exp #286 promoted planner-authored beat obligations into the `planning-beats` output. The first fresh run emitted usable chapter beats but some optional obligation items were malformed (`mustPayOff` id-only objects without `text`, `untilBeat: "later"`), causing Zod to reject whole chapters and collapse them to zero beats. Exp #287 then hit the same class through optional soft-prior tags (`miceOpens: "E"`). Rule: when optional metadata is not the primary artifact, schema-parse it leniently, filter unusable items deterministically, and keep strictness for the primary artifact. Optional scaffolding should not erase valid prose/planning structure.
 

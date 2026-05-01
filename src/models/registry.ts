@@ -362,7 +362,7 @@ export const MODELS: ModelDef[] = [
     thinking: "optional",
     maxContext: 128_000,
     maxOutput: 64_000,
-    notes: "V4 Flash. Thinking mode toggled via `thinking: {type:'enabled'}` request param (plumbed via roles.ts:thinking flag). Same pricing in both modes. Cache hit input drops to $0.0028/M (98% off). Default for production roles; thinking enabled for chapter-plan-checker, chapter-plan-reviser, and planning-beats only.",
+    notes: "V4 Flash. Thinking mode toggled via `thinking: {type:'enabled'}` request param (plumbed via roles.ts:thinking flag). Same pricing in both modes. Cache hit input drops to $0.0028/M (98% off). Default for production roles; thinking enabled for planning-state-mapper, chapter-plan-checker, and chapter-plan-reviser only.",
   },
   {
     id: "deepseek-v4-pro",

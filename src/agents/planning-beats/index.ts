@@ -1,6 +1,6 @@
 import { config } from "./config"
 export { config }
-export { schema, type ChapterBeats } from "./schema"
+export { schema, beatExpansionSchema, type BeatExpansion, type ChapterBeats } from "./schema"
 export { buildContext } from "./context"
 
 // Variant-runner seam: when PLANNING_BEATS_PROMPT_OVERRIDE is set (absolute path),

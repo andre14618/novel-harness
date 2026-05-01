@@ -85,5 +85,5 @@ ${allSkelSection}${priorSection}
 
 ${targetSection}${directivesSection}${structuralSection}
 
-Expand Chapter ${targetChapter.chapterNumber} into its full beat structure plus end-of-chapter state (establishedFacts, characterStateChanges, knowledgeChanges).`
+Expand Chapter ${targetChapter.chapterNumber} into its beat sequence only. Do not emit chapter-level state or beat obligations; the state mapper assigns those in the next planning step.`
 }

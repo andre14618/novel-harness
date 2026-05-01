@@ -335,6 +335,22 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### Planning state mapping split from beat expansion
+*2026-05-01 · exp #289 · follows exp #288 auto-repair discussion*
+
+**Decision:** Split Phase-2 planning into beat-shape expansion followed by a dedicated `planning-state-mapper`. `planning-beats` now emits the dramatic beat list only. `planning-state-mapper` sees that fixed beat list and maps `establishedFacts`, `knowledgeChanges`, `characterStateChanges`, `requiredPayoffs`, and writer-visible beat obligations onto existing beat indexes. Coverage retries now rerun the mapper, not the beat expander; deterministic auto-repair remains the final fallback.
+
+**Why:** Exp #288 proved deterministic validation + auto-repair can force zero writer-hidden state, but the auto-repair placement heuristic is exactly where story judgment can matter. A separate mapper gives the LLM the judgment-heavy placement task with a narrower schema and explicit deterministic post-validation, while keeping beat sequencing focused and cacheable.
+
+**Alternatives rejected:**
+- Keep tightening the all-in-one `planning-beats` prompt — rejected because exp #287/#288 showed prompt pressure improves coverage but still misses state/knowledge obligations variably.
+- Let deterministic auto-repair choose placement as the normal path — rejected because deterministic visibility is correct, but deterministic dramatic placement is only a safety net.
+- Re-expand the whole chapter on coverage miss — rejected for this slice because coverage failure usually means state/obligation mapping missed a beat assignment, not that the beat sequence is wrong.
+
+**Ongoing:** Exp #289 needs a fresh LXC planner-isolated comparison. Telemetry to inspect: mapper orphan counts before retry, mapper retry counts, auto-repair count, ignored mapping count, overloaded beats, cost/latency for `planning-state-mapper`, and whether the split reduces auto-repair reliance versus exp #288.
+
+---
+
 ### Writer LoRA runtime route removed; fantasy now supplies structural priors only
 *2026-04-30 · exp #272*
 

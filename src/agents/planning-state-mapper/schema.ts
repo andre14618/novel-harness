@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { sceneBeatSchema } from "../../schemas/shared"
+import { beatObligationsSchema, payoffLinkSchema } from "../../schemas/shared"
 
 const factCategoryMap: Record<string, string> = {
   spatial: "physical", environmental: "physical", geographic: "physical", appearance: "physical", visual: "physical", object: "physical", location: "physical",
@@ -12,23 +12,13 @@ const factCategoryMap: Record<string, string> = {
 
 const knowledgeSourceValid = ["witnessed", "told", "overheard", "deduced", "read", "discovered"]
 
-// Phase-2a output — the beat-level dramatic sequence for a SINGLE chapter.
-// Chapter-level state and writer-visible obligations are assigned by the
-// follow-up planning-state-mapper surface.
-export const beatExpansionSchema = z.object({
-  scenes: z.array(sceneBeatSchema),
+export const stateMapperBeatMappingSchema = z.object({
+  beatIndex: z.number().int().nonnegative(),
+  obligations: beatObligationsSchema,
+  requiredPayoffs: z.array(payoffLinkSchema).default([]).catch([]),
 })
 
-// Full outline-fragment shape retained for the chapter-plan-reviser and legacy
-// parsing paths. The live planner uses beatExpansionSchema first.
-export const chapterBeatsSchema = beatExpansionSchema.extend({
-
-  // Planner-Phase-2 V1a addition: `id` is a stable, kebab-case slug the
-  // planner assigns per fact (e.g. "temple-archive-pre-war-records") so
-  // beats can reference the fact via `sceneBeatSchema.requiredPayoffs[].fact_id`.
-  // Default is an empty string so legacy rows round-trip; the prompt asks for
-  // a non-empty id going forward.
-  // See docs/charters/planner-phase2-contract.md.
+export const planningStateMapperSchema = z.object({
   establishedFacts: z.array(z.object({
     id: z.string().default(""),
     fact: z.string(),
@@ -61,8 +51,10 @@ export const chapterBeatsSchema = beatExpansionSchema.extend({
       knowledgeSourceValid.includes(v) ? v : "witnessed"
     ),
   })).default([]),
+
+  beatMappings: z.array(stateMapperBeatMappingSchema).default([]),
 })
 
-export type BeatExpansion = z.infer<typeof beatExpansionSchema>
-export type ChapterBeats = z.infer<typeof chapterBeatsSchema>
-export const schema = chapterBeatsSchema
+export type StateMapperBeatMapping = z.infer<typeof stateMapperBeatMappingSchema>
+export type PlanningStateMapperOutput = z.infer<typeof planningStateMapperSchema>
+export const schema = planningStateMapperSchema

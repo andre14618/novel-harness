@@ -55,7 +55,7 @@ async function testSeed(seedName: string): Promise<{ seedName: string; novelId: 
            max_tokens, failed, error_text
     FROM llm_calls
     WHERE novel_id = ${novelId}
-      AND agent IN ('planning-plotter', 'planning-beats')
+      AND agent IN ('planning-plotter', 'planning-beats', 'planning-state-mapper')
     ORDER BY timestamp
   ` as any[]
 

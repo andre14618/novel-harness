@@ -66,13 +66,14 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
 
   // ── Planners (structured creative output) ─────────────────────────────
   // Most planners emit creative artifacts and don't benefit from think tokens.
-  // planning-beats is the exception: per-chapter beat sequencing + state-flow
-  // tracking is real multi-step reasoning, so it gets thinking: true.
+  // planning-beats is now beat-shape only. planning-state-mapper owns the
+  // judgment-heavy state/obligation placement, so it keeps thinking enabled.
   "world-builder":             { ...deepseekV4Flash, maxTokens: 8192 },
   "character-agent":           { ...deepseekV4Flash, maxTokens: 8192 },
   "plotter":                   { ...deepseekV4Flash, maxTokens: 8192 },
   "planning-plotter":          { ...deepseekV4Flash, temperature: 0.6, maxTokens: 8192 },
-  "planning-beats":            { ...deepseekV4Flash, thinking: true, temperature: 0.6, maxTokens: 8192 },
+  "planning-beats":            { ...deepseekV4Flash, temperature: 0.6, maxTokens: 8192 },
+  "planning-state-mapper":     { ...deepseekV4Flash, thinking: true, temperature: 0.25, maxTokens: 6144 },
 
   // ── Studio: pre-planning chat + extraction ───────────────────────────
   // Chat: Groq Qwen3-32B (high-volume, cheap).

@@ -10,11 +10,14 @@ import { PLANNING_PLOTTER_PROMPT } from "../prompts"
 import { buildContext as buildPlanningContext } from "../agents/planning-plotter/context"
 import { chapterSkeletonsSchema, type ChapterSkeleton } from "../agents/planning-plotter/schema"
 import { buildContext as buildBeatContext } from "../agents/planning-beats/context"
-import { schema as beatSchema, prompt as PLANNING_BEATS_PROMPT } from "../agents/planning-beats"
+import { beatExpansionSchema, prompt as PLANNING_BEATS_PROMPT } from "../agents/planning-beats"
+import { buildContext as buildStateMapperContext } from "../agents/planning-state-mapper/context"
+import { schema as stateMapperSchema, prompt as PLANNING_STATE_MAPPER_PROMPT, type PlanningStateMapperOutput } from "../agents/planning-state-mapper"
 import { displayPhaseHeader, presentForApproval, formatChapterOutlines } from "../cli"
 import { emit } from "../events"
 import { log } from "../logger"
 import * as harness from "../harness"
+import type { BeatObligationsContract, SceneBeat } from "../types"
 
 const PLANNING_OBLIGATION_WARNING_LIMIT = 8
 const PLANNING_OBLIGATION_COVERAGE_MAX_RETRIES = 2
@@ -38,7 +41,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
 
   // ── Phase 1: chapter skeletons ──────────────────────────────────────
   const skeletonContext = buildPlanningContext(worldBible, characters, spine, novel.seed)
-  console.log(`  Phase 1/2: chapter skeletons${targetChapters ? ` (target: ${targetChapters} chapters)` : ""}...`)
+  console.log(`  Phase 1/3: chapter skeletons${targetChapters ? ` (target: ${targetChapters} chapters)` : ""}...`)
   emit(novelId, { type: "progress", data: { step: "planning-plotter", status: "running" } })
 
   let skeletons: ChapterOutline[] | null = null
@@ -99,8 +102,8 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   if (!skeletons) throw new Error("Skeleton phase produced no valid output")
   console.log(`  ${skeletons.length} skeletons ready.`)
 
-  // ── Phase 2: per-chapter beat expansion ─────────────────────────────
-  console.log(`  Phase 2/2: expanding beats (parallel across ${skeletons.length} chapters)...`)
+  // ── Phase 2: per-chapter beat expansion + state mapping ─────────────
+  console.log(`  Phase 2/3: expanding beats (parallel across ${skeletons.length} chapters)...`)
   emit(novelId, { type: "progress", data: { step: "planning-beats", status: "running", chapters: skeletons.length } })
 
   const expanded: ChapterOutline[] = new Array(skeletons.length)
@@ -115,6 +118,8 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
       })
   )
   await Promise.all(expansions)
+
+  console.log(`  Phase 3/3: state mappings ready; enforcing obligation coverage...`)
 
   // Post-expansion enforcement — beat count floor, POV, setting
   const postEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters)
@@ -161,23 +166,25 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
     if (coverageRetries.length === 0) break
 
     emit(novelId, { type: "progress", data: { step: "planning-obligations", status: "retrying", chapters: coverageRetries.length, attempt: coverageAttempt } })
+    log(novelId, "info", `Planning obligation coverage retry attempt=${coverageAttempt}: chapters=${coverageRetries.length} errors=${coverageRetries.reduce((sum, item) => sum + item.validation.errors.length, 0)}`)
     for (const item of coverageRetries) {
       for (const error of item.validation.errors) {
         log(novelId, "warn", `Planning obligation coverage attempt ${coverageAttempt}: ${error}`)
-        console.log(`  Ch ${item.outline.chapterNumber}: ${error} — retrying expansion (${coverageAttempt}/${PLANNING_OBLIGATION_COVERAGE_MAX_RETRIES})`)
+        console.log(`  Ch ${item.outline.chapterNumber}: ${error} — retrying state mapping (${coverageAttempt}/${PLANNING_OBLIGATION_COVERAGE_MAX_RETRIES})`)
       }
     }
 
     const retries = coverageRetries.map(item => {
       const feedback = harness.beatObligations.formatObligationCoverageRetryFeedback(item.outline, item.validation)
-      return expandChapter(
+      return mapChapterState(
         novelId,
-        skeletons![item.idx],
+        item.outline,
         skeletons!,
         worldBible,
         characters,
         spine,
         novel.seed,
+        item.outline.scenes ?? [],
         PLANNING_OBLIGATION_COVERAGE_RETRY_BASE_ATTEMPT + coverageAttempt - 1,
         feedback,
       )
@@ -200,11 +207,13 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   const coverageRepairs = chapters
     .map((outline, idx) => ({ outline, idx, validation: harness.beatObligations.validateBeatObligationCoverage(outline) }))
     .filter(item => !item.validation.valid)
+  let autoRepairCount = 0
   if (coverageRepairs.length > 0) {
     emit(novelId, { type: "progress", data: { step: "planning-obligations", status: "repairing", chapters: coverageRepairs.length } })
     for (const item of coverageRepairs) {
       const repaired = harness.beatObligations.repairBeatObligationCoverage(item.outline)
       expanded[item.idx] = repaired.outline
+      autoRepairCount += repaired.repairs.length
       for (const repair of repaired.repairs) {
         log(novelId, "warn", `Planning obligation auto-repair: ${repair}`)
         console.log(`  ${repair}`)
@@ -216,6 +225,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
     }
     chapters = finalEnforcement.chapters
   }
+  log(novelId, "info", `Planning obligation auto-repair summary: chapters=${coverageRepairs.length} repairs=${autoRepairCount}`)
 
   const remainingCoverageErrors = chapters.flatMap(outline =>
     harness.beatObligations.validateBeatObligationCoverage(outline).errors,
@@ -223,6 +233,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   if (remainingCoverageErrors.length > 0) {
     throw new Error(`Planning obligation coverage failed after retry + auto-repair: ${remainingCoverageErrors.join("; ")}`)
   }
+  emit(novelId, { type: "progress", data: { step: "planning-obligations", status: "complete", chapters: chapters.length, repairs: autoRepairCount } })
 
   for (const outline of chapters) {
     const obligationPlan = harness.beatObligations.deriveBeatObligations(outline)
@@ -306,9 +317,8 @@ async function expandChapter(
   spine: any,
   seed: any,
   attempt: number = 1,
-  retryFeedback?: string,
 ): Promise<ChapterOutline> {
-  let userPrompt = buildBeatContext({
+  const userPrompt = buildBeatContext({
     targetChapter: skeleton,
     allSkeletons,
     priorChapters: [], // cross-chapter coherence lives in the skeleton tier
@@ -317,9 +327,6 @@ async function expandChapter(
     spine,
     seed,
   })
-  if (retryFeedback) {
-    userPrompt += `\n\n--- PREVIOUS EXPANSION FAILED COVERAGE VALIDATION ---\n${retryFeedback}\n\nReturn a complete replacement JSON object for this chapter only. Preserve the chapter skeleton's title, POV, setting, purpose, target length, and surrounding-chapter continuity.`
-  }
 
   const result = await callAgent({
     novelId,
@@ -328,15 +335,144 @@ async function expandChapter(
     chapter: skeleton.chapterNumber,
     systemPrompt: PLANNING_BEATS_PROMPT,
     userPrompt,
-    schema: beatSchema,
+    schema: beatExpansionSchema,
   })
 
-  // Merge skeleton (phase 1) + beats (phase 2) into a full ChapterOutline.
+  const scenes = (result.output.scenes as SceneBeat[]).map(stripBeatMapperFields)
+  return mapChapterState(novelId, skeleton, allSkeletons, worldBible, characters, spine, seed, scenes, attempt)
+}
+
+async function mapChapterState(
+  novelId: string,
+  skeleton: ChapterOutline,
+  allSkeletons: ChapterOutline[],
+  worldBible: any,
+  characters: any[],
+  spine: any,
+  seed: any,
+  scenes: SceneBeat[],
+  attempt: number = 1,
+  retryFeedback?: string,
+): Promise<ChapterOutline> {
+  let userPrompt = buildStateMapperContext({
+    targetChapter: skeleton,
+    allSkeletons,
+    priorChapters: [], // cross-chapter coherence lives in the skeleton tier
+    scenes,
+    worldBible,
+    characters,
+    spine,
+    seed,
+  })
+  if (retryFeedback) {
+    userPrompt += `\n\n--- PREVIOUS STATE MAPPING FAILED COVERAGE VALIDATION ---\n${retryFeedback}\n\nReturn a complete replacement JSON object for this chapter's state mapping only. Keep the existing beat indexes unchanged.`
+  }
+
+  emit(novelId, { type: "progress", data: { step: "planning-state-mapper", status: "running", chapter: skeleton.chapterNumber, attempt } })
+  try {
+    const result = await callAgent({
+      novelId,
+      agentName: "planning-state-mapper",
+      attempt,
+      chapter: skeleton.chapterNumber,
+      systemPrompt: PLANNING_STATE_MAPPER_PROMPT,
+      userPrompt,
+      schema: stateMapperSchema,
+    })
+
+    const mapping = result.output as PlanningStateMapperOutput
+    const outline = mergeStateMapping(skeleton, scenes, mapping)
+    const validation = harness.beatObligations.validateBeatObligationCoverage(outline)
+    logStateMapperTelemetry(novelId, outline, mapping, validation.summary, attempt)
+    emit(novelId, { type: "progress", data: { step: "planning-state-mapper", status: "complete", chapter: skeleton.chapterNumber, attempt, valid: validation.valid } })
+    return outline
+  } catch (err) {
+    emit(novelId, { type: "progress", data: { step: "planning-state-mapper", status: "failed", chapter: skeleton.chapterNumber, attempt } })
+    throw err
+  }
+}
+
+function stripBeatMapperFields(scene: SceneBeat): SceneBeat {
+  return {
+    ...scene,
+    requiredPayoffs: [],
+    obligations: emptyBeatObligations(),
+  }
+}
+
+function mergeStateMapping(
+  skeleton: ChapterOutline,
+  scenes: SceneBeat[],
+  mapping: PlanningStateMapperOutput,
+): ChapterOutline {
+  const mappedScenes = scenes.map(stripBeatMapperFields)
+
+  for (const beatMapping of mapping.beatMappings ?? []) {
+    if (!Number.isInteger(beatMapping.beatIndex) || beatMapping.beatIndex < 0 || beatMapping.beatIndex >= mappedScenes.length) continue
+    const scene = mappedScenes[beatMapping.beatIndex]
+    scene.obligations = mergeBeatObligations(scene.obligations, beatMapping.obligations)
+    scene.requiredPayoffs = mergeRequiredPayoffs(scene.requiredPayoffs, beatMapping.requiredPayoffs)
+  }
+
   return {
     ...skeleton,
-    scenes: result.output.scenes,
-    establishedFacts: result.output.establishedFacts,
-    characterStateChanges: result.output.characterStateChanges,
-    knowledgeChanges: result.output.knowledgeChanges,
+    scenes: mappedScenes,
+    establishedFacts: (mapping.establishedFacts ?? []) as ChapterOutline["establishedFacts"],
+    characterStateChanges: (mapping.characterStateChanges ?? []) as ChapterOutline["characterStateChanges"],
+    knowledgeChanges: (mapping.knowledgeChanges ?? []) as ChapterOutline["knowledgeChanges"],
   } as ChapterOutline
+}
+
+function mergeBeatObligations(
+  existing: BeatObligationsContract | undefined,
+  incoming: BeatObligationsContract | undefined,
+): BeatObligationsContract {
+  return {
+    mustEstablish: [...(existing?.mustEstablish ?? []), ...(incoming?.mustEstablish ?? [])],
+    mustPayOff: [...(existing?.mustPayOff ?? []), ...(incoming?.mustPayOff ?? [])],
+    mustTransferKnowledge: [...(existing?.mustTransferKnowledge ?? []), ...(incoming?.mustTransferKnowledge ?? [])],
+    mustShowStateChange: [...(existing?.mustShowStateChange ?? []), ...(incoming?.mustShowStateChange ?? [])],
+    mustNotReveal: [...(existing?.mustNotReveal ?? []), ...(incoming?.mustNotReveal ?? [])],
+    allowedNewEntities: Array.from(new Set([...(existing?.allowedNewEntities ?? []), ...(incoming?.allowedNewEntities ?? [])])),
+  }
+}
+
+function mergeRequiredPayoffs(
+  existing: SceneBeat["requiredPayoffs"] | undefined,
+  incoming: SceneBeat["requiredPayoffs"] | undefined,
+): SceneBeat["requiredPayoffs"] {
+  const seen = new Set<string>()
+  const merged: SceneBeat["requiredPayoffs"] = []
+  for (const link of [...(existing ?? []), ...(incoming ?? [])]) {
+    const key = `${link.fact_id}:${link.payoff_beat}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    merged.push(link)
+  }
+  return merged
+}
+
+function emptyBeatObligations(): BeatObligationsContract {
+  return {
+    mustEstablish: [],
+    mustPayOff: [],
+    mustTransferKnowledge: [],
+    mustShowStateChange: [],
+    mustNotReveal: [],
+    allowedNewEntities: [],
+  }
+}
+
+function logStateMapperTelemetry(
+  novelId: string,
+  outline: ChapterOutline,
+  mapping: PlanningStateMapperOutput,
+  summary: ReturnType<typeof harness.beatObligations.validateBeatObligationCoverage>["summary"],
+  attempt: number,
+): void {
+  const validMappings = (mapping.beatMappings ?? [])
+    .filter(m => Number.isInteger(m.beatIndex) && m.beatIndex >= 0 && m.beatIndex < outline.scenes.length)
+  const mappedBeatCount = new Set(validMappings.map(m => m.beatIndex)).size
+  const ignoredMappingCount = (mapping.beatMappings ?? []).length - validMappings.length
+  log(novelId, "info", `Planning state mapper ch${outline.chapterNumber} attempt=${attempt}: mappedBeats=${mappedBeatCount}/${outline.scenes.length} ignoredMappings=${ignoredMappingCount} facts=${summary.factCount} orphanFacts=${summary.orphanFacts} knowledge=${summary.knowledgeCount} orphanKnowledge=${summary.orphanKnowledgeChanges} state=${summary.stateChangeCount} orphanState=${summary.orphanStateChanges} overloadedBeats=${summary.overloadedBeats}`)
 }

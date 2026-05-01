@@ -25,7 +25,7 @@ Three agents run in parallel, each producing a structured artifact:
 Each artifact gets a human approval gate (or auto-approved with `--auto`).
 
 ### Phase 2: Planning
-All Phase 1 outputs converge into split planning calls that generate chapter skeletons and then expand each chapter into scene beats, POV assignments, character lists, state changes, per-beat obligations, and word targets. The planner also declares world state: established facts, character state changes, knowledge changes — this becomes the authoritative state source. Planning validates that declared state is writer-visible through beat text or obligations and re-expands chapters with coverage gaps before drafting.
+All Phase 1 outputs converge into split planning calls: `planning-plotter` creates chapter skeletons, `planning-beats` expands each chapter into beat shape only, and `planning-state-mapper` maps established facts, knowledge changes, character state changes, payoff links, and per-beat obligations onto those existing beats. Planning validates that declared state is writer-visible through beat text or obligations, retries the mapper on coverage gaps, and only falls back to deterministic auto-repair after mapper retries are exhausted.
 
 ### Phase 3: Drafting
 For each chapter, beats are written serially. For each beat:
@@ -44,7 +44,7 @@ Diagnostic-only. Deterministic checks run and issues are logged; the chapter-lev
 ## Stack
 
 - **Runtime**: Bun
-- **LLM**: Multi-provider. Assignments per agent in `src/models/roles.ts`. Default writer is DeepSeek V4 Flash. Fantasy genre data now supplies planner structural priors only; it does not route the writer through a LoRA, compact context, or corpus-leak profile. Thinking mode is per-agent — ON only on `planning-beats`, `chapter-plan-checker`, `chapter-plan-reviser`. Other active providers: Cerebras (lint-fixer), Groq (reference-resolver), OpenRouter, OpenAI
+- **LLM**: Multi-provider. Assignments per agent in `src/models/roles.ts`. Default writer is DeepSeek V4 Flash. Fantasy genre data now supplies planner structural priors only; it does not route the writer through a LoRA, compact context, or corpus-leak profile. Thinking mode is per-agent — ON only on `planning-state-mapper`, `chapter-plan-checker`, `chapter-plan-reviser`. Other active providers: Cerebras (lint-fixer), Groq (reference-resolver), OpenRouter, OpenAI
 - **DB**: Single Postgres (`novel_harness_orchestrator`) — all novel content, world state, experiments, LLM calls, and cost tracking
 - **Fine-tuning**: Historical W&B/Together SFT infrastructure remains for archived experiments, but no writer or checker LoRA is active in the base-writer runtime path.
 - **Transport**: `src/transport.ts` — DirectTransport (real-time HTTP with retries). Per-call telemetry persists to `llm_calls`.

@@ -184,9 +184,16 @@ export const COMPONENTS: Component[] = [
   },
   {
     id: "prompt.planning-beats", name: "Planning Beats Prompt",
-    description: "System prompt for per-chapter beat expansion (phase 2 of planning)",
+    description: "System prompt for per-chapter beat-shape expansion (phase 2a of planning)",
     type: "prompt", storage: "file", path: "src/agents/planning-beats/beat-expansion-system.md",
     measuredBy: ["beat-specificity", "dialogue-cues", "emotional-arc"],
+    category: "agent-prompt",
+  },
+  {
+    id: "prompt.planning-state-mapper", name: "Planning State Mapper Prompt",
+    description: "System prompt for mapping chapter state and writer-visible beat obligations (phase 2b of planning)",
+    type: "prompt", storage: "file", path: "src/agents/planning-state-mapper/state-mapper-system.md",
+    measuredBy: ["obligation-coverage", "state-grounding", "beat-specificity"],
     category: "agent-prompt",
   },
   // rewriter prompt removed 2026-04-17 — validation is diagnostic-only
