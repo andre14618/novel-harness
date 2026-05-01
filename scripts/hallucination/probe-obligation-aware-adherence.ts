@@ -29,20 +29,29 @@ import { callAgent } from "../../src/llm"
 interface Args {
   inPath: string
   outPath: string
+  persist: boolean
+  expId?: number
+  note?: string
 }
 
 function parseArgs(): Args {
   const argv = process.argv.slice(2)
   let inPath = "", outPath = ""
+  let persist = false
+  let expId: number | undefined
+  let note: string | undefined
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--in") inPath = argv[++i]
     else if (argv[i] === "--out") outPath = argv[++i]
+    else if (argv[i] === "--persist") persist = true
+    else if (argv[i] === "--exp-id") expId = Number(argv[++i])
+    else if (argv[i] === "--note") note = argv[++i]
   }
   if (!inPath || !outPath) {
-    console.error("usage: --in <panel.jsonl> --out <results.jsonl>")
+    console.error("usage: --in <panel.jsonl> --out <results.jsonl> [--persist [--exp-id N] [--note STR]]")
     process.exit(1)
   }
-  return { inPath, outPath }
+  return { inPath, outPath, persist, expId, note }
 }
 
 const perEventSchema = z.object({
@@ -219,13 +228,40 @@ async function main() {
 
   const peRecalls = results.map(r => r.per_event_recall_on_missing).filter((v): v is number => v !== null)
   const pePrecisions = results.map(r => r.per_event_precision).filter((v): v is number => v !== null)
+  const avg = (a: number[]) => a.length === 0 ? null : a.reduce((s, v) => s + v, 0) / a.length
+  const meanPeRecall = avg(peRecalls)
+  const meanPePrec = avg(pePrecisions)
   if (peRecalls.length > 0) {
-    const avg = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length
-    console.log(`Per-event recall on missing events (TP rows, n=${peRecalls.length}): mean ${(avg(peRecalls) * 100).toFixed(1)}%`)
-    console.log(`Per-event precision on prototype-flagged events (n=${pePrecisions.length}): mean ${(avg(pePrecisions) * 100).toFixed(1)}%`)
+    console.log(`Per-event recall on missing events (TP rows, n=${peRecalls.length}): mean ${(meanPeRecall! * 100).toFixed(1)}%`)
+    console.log(`Per-event precision on prototype-flagged events (n=${pePrecisions.length}): mean ${(meanPePrec! * 100).toFixed(1)}%`)
   }
 
   console.log(`\nWrote ${results.length} rows to ${args.outPath}`)
+
+  if (args.persist) {
+    const { persistPhaseEvalRun, currentGitCommit } = await import("../phase-eval/persist-run")
+    const summary = {
+      panel_path: args.inPath,
+      n_natural: results.length,
+      binary_calibration: { TP: tp, FP: fp, FN: fn, TN: tn },
+      binary_match_pct: Math.round((binaryMatches / Math.max(1, results.length)) * 1000) / 10,
+      per_event_recall_pct: meanPeRecall === null ? null : Math.round(meanPeRecall * 1000) / 10,
+      per_event_precision_pct: meanPePrec === null ? null : Math.round(meanPePrec * 1000) / 10,
+      per_row_results: results,
+    }
+    const verdict = `per-event-prototype binary-match=${(binaryMatches / Math.max(1, results.length) * 100).toFixed(0)}% per-event-recall=${meanPeRecall === null ? "n/a" : (meanPeRecall * 100).toFixed(0) + "%"}`
+    const runId = await persistPhaseEvalRun({
+      probeName: "adherence-per-event-prototype",
+      gitCommit: currentGitCommit(),
+      experimentId: args.expId ?? null,
+      seedsUsed: ["fantasy-system-heretic"],
+      variantLabels: ["per-event-prototype"],
+      summaryJson: summary,
+      verdict,
+      notes: args.note ?? null,
+    })
+    console.log(`[persist] phase_eval_runs.id=${runId} probe=adherence-per-event-prototype verdict=${verdict}`)
+  }
 }
 
 main().catch(err => { console.error(err); process.exit(1) })

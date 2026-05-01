@@ -20,21 +20,30 @@ import { HALLUC_UNGROUNDED_SYSTEM, hallucUngroundedSchema } from "../../src/agen
 interface Args {
   inPath: string
   outPath: string
+  persist: boolean
+  expId?: number
+  note?: string
 }
 
 function parseArgs(): Args {
   const argv = process.argv.slice(2)
   let inPath = ""
   let outPath = ""
+  let persist = false
+  let expId: number | undefined
+  let note: string | undefined
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--in") inPath = argv[++i]
     else if (argv[i] === "--out") outPath = argv[++i]
+    else if (argv[i] === "--persist") persist = true
+    else if (argv[i] === "--exp-id") expId = Number(argv[++i])
+    else if (argv[i] === "--note") note = argv[++i]
   }
   if (!inPath || !outPath) {
-    console.error("usage: --in <panel.jsonl> --out <results.jsonl>")
+    console.error("usage: --in <panel.jsonl> --out <results.jsonl> [--persist [--exp-id N] [--note STR]]")
     process.exit(1)
   }
-  return { inPath, outPath }
+  return { inPath, outPath, persist, expId, note }
 }
 
 const eventsSchema = z.object({
@@ -193,6 +202,35 @@ async function main() {
   console.log("\nSynthetic calibration matrix:")
   for (const [checker, counts] of Object.entries(sum)) {
     console.log(`  ${checker}:`, counts)
+  }
+
+  if (args.persist) {
+    const { persistPhaseEvalRun, currentGitCommit } = await import("../phase-eval/persist-run")
+    const hRecall = (sum["halluc-ungrounded"].TP ?? 0) /
+      Math.max(1, (sum["halluc-ungrounded"].TP ?? 0) + (sum["halluc-ungrounded"].FN ?? 0))
+    const aRecall = (sum["adherence-events"].TP ?? 0) /
+      Math.max(1, (sum["adherence-events"].TP ?? 0) + (sum["adherence-events"].FN ?? 0))
+    const summary = {
+      panel_path: args.inPath,
+      n_synthetic: results.length,
+      halluc_calibration: sum["halluc-ungrounded"],
+      adherence_calibration: sum["adherence-events"],
+      halluc_recall_pct: Math.round(hRecall * 1000) / 10,
+      adherence_recall_pct: Math.round(aRecall * 1000) / 10,
+      per_row_results: results,
+    }
+    const verdict = `synthetic-fire-rate halluc=${(hRecall * 100).toFixed(0)}% adherence=${(aRecall * 100).toFixed(0)}%`
+    const runId = await persistPhaseEvalRun({
+      probeName: "halluc-synthetic-fire-rate",
+      gitCommit: currentGitCommit(),
+      experimentId: args.expId ?? null,
+      seedsUsed: ["fantasy-system-heretic"],
+      variantLabels: ["live-checkers"],
+      summaryJson: summary,
+      verdict,
+      notes: args.note ?? null,
+    })
+    console.log(`[persist] phase_eval_runs.id=${runId} probe=halluc-synthetic-fire-rate verdict=${verdict}`)
   }
 }
 
