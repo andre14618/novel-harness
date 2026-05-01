@@ -188,8 +188,8 @@ was still variable (`novel-1777598438754` left chapter-3 knowledge/state orphans
 Next readiness work should be deterministic coverage validation plus targeted
 re-expansion/exemption, not beat-checker promotion.
 
-Exp #288 implements deterministic coverage validation plus one targeted
-re-expansion pass for chapters whose planned facts/knowledge/state are not
+Exp #288 implements deterministic coverage validation plus up to two targeted
+re-expansion passes for chapters whose planned facts/knowledge/state are not
 writer-visible through beat text or obligations. This is still a planning-layer
 gate; beat checkers should wait for fresh post-validator current-surface labels.
 

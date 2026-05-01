@@ -17,7 +17,8 @@ import { log } from "../logger"
 import * as harness from "../harness"
 
 const PLANNING_OBLIGATION_WARNING_LIMIT = 8
-const PLANNING_OBLIGATION_COVERAGE_RETRY_ATTEMPT = 3
+const PLANNING_OBLIGATION_COVERAGE_MAX_RETRIES = 2
+const PLANNING_OBLIGATION_COVERAGE_RETRY_BASE_ATTEMPT = 3
 
 /** Planning phase implementation. Kept exported for scripts that compose
  *  phases outside the runNovel driver (3 callers:
@@ -153,16 +154,17 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   }
 
   let chapters = finalEnforcement.chapters
-  const coverageRetries = chapters
-    .map((outline, idx) => ({ outline, idx, validation: harness.beatObligations.validateBeatObligationCoverage(outline) }))
-    .filter(item => !item.validation.valid)
+  for (let coverageAttempt = 1; coverageAttempt <= PLANNING_OBLIGATION_COVERAGE_MAX_RETRIES; coverageAttempt++) {
+    const coverageRetries = chapters
+      .map((outline, idx) => ({ outline, idx, validation: harness.beatObligations.validateBeatObligationCoverage(outline) }))
+      .filter(item => !item.validation.valid)
+    if (coverageRetries.length === 0) break
 
-  if (coverageRetries.length > 0) {
-    emit(novelId, { type: "progress", data: { step: "planning-obligations", status: "retrying", chapters: coverageRetries.length } })
+    emit(novelId, { type: "progress", data: { step: "planning-obligations", status: "retrying", chapters: coverageRetries.length, attempt: coverageAttempt } })
     for (const item of coverageRetries) {
       for (const error of item.validation.errors) {
-        log(novelId, "warn", `Planning obligation coverage: ${error}`)
-        console.log(`  Ch ${item.outline.chapterNumber}: ${error} — retrying expansion`)
+        log(novelId, "warn", `Planning obligation coverage attempt ${coverageAttempt}: ${error}`)
+        console.log(`  Ch ${item.outline.chapterNumber}: ${error} — retrying expansion (${coverageAttempt}/${PLANNING_OBLIGATION_COVERAGE_MAX_RETRIES})`)
       }
     }
 
@@ -176,7 +178,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
         characters,
         spine,
         novel.seed,
-        PLANNING_OBLIGATION_COVERAGE_RETRY_ATTEMPT,
+        PLANNING_OBLIGATION_COVERAGE_RETRY_BASE_ATTEMPT + coverageAttempt - 1,
         feedback,
       )
         .then(full => {

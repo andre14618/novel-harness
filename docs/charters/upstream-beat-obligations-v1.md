@@ -109,7 +109,7 @@ checker promotion.
 Exp #288 adds the first deterministic coverage validator. Before planning approval
 and DB persistence, each chapter is checked for orphan facts, knowledge changes,
 and character state changes using the same writer-visible obligation derivation.
-Chapters with gaps get one targeted `planning-beats` re-expansion with a concrete
+Chapters with gaps get up to two targeted `planning-beats` re-expansions with a concrete
 coverage-error packet. Remaining gaps after the retry fail planning instead of
 being discovered later by chapter/function checkers.
 
