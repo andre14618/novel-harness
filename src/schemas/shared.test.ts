@@ -34,3 +34,19 @@ test("sceneBeatSchema accepts planner-authored beat obligations", () => {
   expect(beat.obligations.mustPayOff).toEqual([])
   expect(beat.obligations.allowedNewEntities).toEqual(["Old Tongue"])
 })
+
+test("sceneBeatSchema tolerates malformed optional obligation metadata", () => {
+  const beat = sceneBeatSchema.parse({
+    description: "Calla deciphers Davan's inscription.",
+    characters: ["Calla", "Davan"],
+    obligations: {
+      mustPayOff: [{ factId: "old-script" }],
+      mustNotReveal: [{ text: "Do not reveal Orvath's plan", untilBeat: "later" }],
+      mustTransferKnowledge: ["Calla learns Davan is marked"],
+    },
+  })
+
+  expect(beat.obligations.mustPayOff[0].text).toBe("")
+  expect(beat.obligations.mustNotReveal[0].untilBeat).toBeUndefined()
+  expect(beat.obligations.mustTransferKnowledge[0].text).toBe("Calla learns Davan is marked")
+})

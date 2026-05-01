@@ -60,6 +60,30 @@ test("deriveBeatObligations treats planner-authored obligations as explicit assi
   expect(result.beats[0].allowedNewEntities).toContain("Old Tongue")
 })
 
+test("deriveBeatObligations ignores blank planner-authored obligation items", () => {
+  const result = deriveBeatObligations(chapter({
+    scenes: [
+      beat({
+        description: "Calla studies Davan's skin.",
+        obligations: {
+          mustEstablish: [{ id: "old-script", text: "" }],
+          mustPayOff: [],
+          mustTransferKnowledge: [],
+          mustShowStateChange: [],
+          mustNotReveal: [],
+          allowedNewEntities: [],
+        },
+      }),
+    ],
+    establishedFacts: [
+      { id: "old-script", fact: "Davan bears the Old Tongue on his skin", category: "identity" },
+    ],
+  }))
+
+  expect(result.beats[0].mustEstablish).toEqual([])
+  expect(result.summary.orphanFacts).toBe(1)
+})
+
 test("deriveBeatObligations infers fact and knowledge obligations from beat text", () => {
   const outline = chapter({
     scenes: [

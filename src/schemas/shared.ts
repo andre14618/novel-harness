@@ -35,22 +35,31 @@ export const payoffLinkSchema = z.object({
 })
 export type PayoffLink = z.infer<typeof payoffLinkSchema>
 
-export const beatObligationItemSchema = z.object({
-  text: z.string(),
-  id: z.string().optional(),
-  factId: z.string().optional(),
-  characterName: z.string().optional(),
-  seededAtBeat: z.number().int().nonnegative().optional(),
-  untilBeat: z.number().int().nonnegative().optional(),
-})
+const optionalBeatIndexSchema = z.preprocess(value => {
+  if (value === undefined || value === null || value === "") return undefined
+  const number = typeof value === "number" ? value : Number(value)
+  return Number.isInteger(number) && number >= 0 ? number : undefined
+}, z.number().int().nonnegative().optional())
+
+export const beatObligationItemSchema = z.preprocess(
+  value => typeof value === "string" ? { text: value } : value,
+  z.object({
+    text: z.string().default(""),
+    id: z.coerce.string().optional(),
+    factId: z.coerce.string().optional(),
+    characterName: z.coerce.string().optional(),
+    seededAtBeat: optionalBeatIndexSchema,
+    untilBeat: optionalBeatIndexSchema,
+  }).passthrough(),
+).catch({ text: "" })
 
 export const beatObligationsSchema = z.object({
-  mustEstablish: z.array(beatObligationItemSchema).default([]),
-  mustPayOff: z.array(beatObligationItemSchema).default([]),
-  mustTransferKnowledge: z.array(beatObligationItemSchema).default([]),
-  mustShowStateChange: z.array(beatObligationItemSchema).default([]),
-  mustNotReveal: z.array(beatObligationItemSchema).default([]),
-  allowedNewEntities: z.array(z.string()).default([]),
+  mustEstablish: z.array(beatObligationItemSchema).default([]).catch([]),
+  mustPayOff: z.array(beatObligationItemSchema).default([]).catch([]),
+  mustTransferKnowledge: z.array(beatObligationItemSchema).default([]).catch([]),
+  mustShowStateChange: z.array(beatObligationItemSchema).default([]).catch([]),
+  mustNotReveal: z.array(beatObligationItemSchema).default([]).catch([]),
+  allowedNewEntities: z.array(z.coerce.string()).default([]).catch([]),
 }).default({
   mustEstablish: [],
   mustPayOff: [],

@@ -14,6 +14,9 @@ JavaScript regex engines use leftmost-match semantics: in an alternation `(a|ab)
 
 ## LLM Evaluation
 
+### Optional LLM metadata schemas must be lenient at the production boundary (2026-05-01)
+Exp #286 promoted planner-authored beat obligations into the `planning-beats` output. The first fresh run emitted usable chapter beats but some optional obligation items were malformed (`mustPayOff` id-only objects without `text`, `untilBeat: "later"`), causing Zod to reject whole chapters and collapse them to zero beats. Rule: when optional metadata is not the primary artifact, schema-parse it leniently, filter unusable items deterministically, and keep strictness for the primary artifact. Optional scaffolding should not erase valid prose/planning structure.
+
 ### Previous-chapter character locations are not blocker evidence by themselves (2026-04-30)
 Exp #279 (`novel-1777588579141`) reached chapter 2 on the base DeepSeek writer route, then `continuity-state` blocked on Aldric moving from the Chancel Infirmary to his planned High Ward study and Wren appearing in "the infirmary" despite the chapter setting being the Chancel Infirmary. Rule: a previous-state location is a starting hint, not an immutable invariant. Location drift from previous state should be warning-class unless the checker has explicit same-time/impossibility evidence or a current-plan contradiction. Pass the current chapter plan into location-sensitive checkers before asking them to judge movement.
 

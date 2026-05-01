@@ -111,6 +111,10 @@ Every beat may include an `obligations` object. This is the compact contract the
 beat writer will see. Keep each beat's hard obligations small; prefer 1-4, and do
 not exceed 5 unless the beat is the climax.
 
+Every obligation item MUST include a concrete `text` string. If you cannot write
+the one-sentence on-page requirement, omit the item rather than emitting an id-only
+object. Beat indexes are zero-based numbers, never labels like `later` or `final`.
+
 - `mustEstablish`: facts this beat must make true on-page. Use the matching
   `establishedFacts[].id` in `id` when applicable.
 - `mustPayOff`: setup/payoff facts this beat must realize. Use `factId` matching

@@ -221,13 +221,17 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
 
 function normalizeAuthoredObligations(obligations: BeatObligationsContract | undefined): BeatObligationsContract {
   return {
-    mustEstablish: obligations?.mustEstablish ?? [],
-    mustPayOff: obligations?.mustPayOff ?? [],
-    mustTransferKnowledge: obligations?.mustTransferKnowledge ?? [],
-    mustShowStateChange: obligations?.mustShowStateChange ?? [],
-    mustNotReveal: obligations?.mustNotReveal ?? [],
+    mustEstablish: cleanAuthoredItems(obligations?.mustEstablish),
+    mustPayOff: cleanAuthoredItems(obligations?.mustPayOff),
+    mustTransferKnowledge: cleanAuthoredItems(obligations?.mustTransferKnowledge),
+    mustShowStateChange: cleanAuthoredItems(obligations?.mustShowStateChange),
+    mustNotReveal: cleanAuthoredItems(obligations?.mustNotReveal),
     allowedNewEntities: obligations?.allowedNewEntities ?? [],
   }
+}
+
+function cleanAuthoredItems<T extends { text: string }>(items: T[] | undefined): T[] {
+  return (items ?? []).filter(item => item.text.trim().length > 0)
 }
 
 function addAuthoredObligations(

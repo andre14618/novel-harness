@@ -283,13 +283,17 @@ export async function buildBeatContext(input: BeatContextInput): Promise<BeatCon
 
 function normalizeBeatObligations(obligations: BeatObligationsContract | undefined): BeatObligationsContract {
   return {
-    mustEstablish: obligations?.mustEstablish ?? [],
-    mustPayOff: obligations?.mustPayOff ?? [],
-    mustTransferKnowledge: obligations?.mustTransferKnowledge ?? [],
-    mustShowStateChange: obligations?.mustShowStateChange ?? [],
-    mustNotReveal: obligations?.mustNotReveal ?? [],
+    mustEstablish: cleanObligationItems(obligations?.mustEstablish),
+    mustPayOff: cleanObligationItems(obligations?.mustPayOff),
+    mustTransferKnowledge: cleanObligationItems(obligations?.mustTransferKnowledge),
+    mustShowStateChange: cleanObligationItems(obligations?.mustShowStateChange),
+    mustNotReveal: cleanObligationItems(obligations?.mustNotReveal),
     allowedNewEntities: obligations?.allowedNewEntities ?? [],
   }
+}
+
+function cleanObligationItems<T extends { text: string }>(items: T[] | undefined): T[] {
+  return (items ?? []).filter(item => item.text.trim().length > 0)
 }
 
 // ── Snapshot builders (slot-side, async-or-sync per compactMode) ─────────
