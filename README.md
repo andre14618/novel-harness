@@ -25,7 +25,7 @@ Three agents run in parallel, each producing a structured artifact:
 Each artifact gets a human approval gate (or auto-approved with `--auto`).
 
 ### Phase 2: Planning
-All Phase 1 outputs converge into split planning calls that generate chapter skeletons and then expand each chapter into scene beats, POV assignments, character lists, state changes, per-beat obligations, and word targets. The planner also declares world state: established facts, character state changes, knowledge changes — this becomes the authoritative state source.
+All Phase 1 outputs converge into split planning calls that generate chapter skeletons and then expand each chapter into scene beats, POV assignments, character lists, state changes, per-beat obligations, and word targets. The planner also declares world state: established facts, character state changes, knowledge changes — this becomes the authoritative state source. Planning validates that declared state is writer-visible through beat text or obligations and re-expands chapters with coverage gaps before drafting.
 
 ### Phase 3: Drafting
 For each chapter, beats are written serially. For each beat:

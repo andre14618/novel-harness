@@ -17,6 +17,7 @@ import { log } from "../logger"
 import * as harness from "../harness"
 
 const PLANNING_OBLIGATION_WARNING_LIMIT = 8
+const PLANNING_OBLIGATION_COVERAGE_RETRY_ATTEMPT = 3
 
 /** Planning phase implementation. Kept exported for scripts that compose
  *  phases outside the runNovel driver (3 callers:
@@ -146,12 +147,61 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
     await Promise.all(retries)
   }
 
-  const finalEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters)
+  let finalEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters)
   if (!finalEnforcement.valid) {
     throw new Error(`Planning failed after beat expansion + retry: ${finalEnforcement.errors.join("; ")}`)
   }
 
-  const chapters = finalEnforcement.chapters
+  let chapters = finalEnforcement.chapters
+  const coverageRetries = chapters
+    .map((outline, idx) => ({ outline, idx, validation: harness.beatObligations.validateBeatObligationCoverage(outline) }))
+    .filter(item => !item.validation.valid)
+
+  if (coverageRetries.length > 0) {
+    emit(novelId, { type: "progress", data: { step: "planning-obligations", status: "retrying", chapters: coverageRetries.length } })
+    for (const item of coverageRetries) {
+      for (const error of item.validation.errors) {
+        log(novelId, "warn", `Planning obligation coverage: ${error}`)
+        console.log(`  Ch ${item.outline.chapterNumber}: ${error} — retrying expansion`)
+      }
+    }
+
+    const retries = coverageRetries.map(item => {
+      const feedback = harness.beatObligations.formatObligationCoverageRetryFeedback(item.outline, item.validation)
+      return expandChapter(
+        novelId,
+        skeletons![item.idx],
+        skeletons!,
+        worldBible,
+        characters,
+        spine,
+        novel.seed,
+        PLANNING_OBLIGATION_COVERAGE_RETRY_ATTEMPT,
+        feedback,
+      )
+        .then(full => {
+          const floor = Math.max(3, Math.ceil((full.targetWords ?? 1000) / 150))
+          if (full.scenes && full.scenes.length >= floor) expanded[item.idx] = full
+          else log(novelId, "warn", `Ch ${full.chapterNumber}: obligation retry still short (${full.scenes?.length ?? 0} < ${floor})`)
+        })
+        .catch(err => log(novelId, "warn", `Ch ${item.outline.chapterNumber} obligation retry failed: ${err.message}`))
+    })
+    await Promise.all(retries)
+
+    finalEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters)
+    if (!finalEnforcement.valid) {
+      throw new Error(`Planning failed after obligation coverage retry: ${finalEnforcement.errors.join("; ")}`)
+    }
+    chapters = finalEnforcement.chapters
+  }
+
+  const remainingCoverageErrors = chapters.flatMap(outline =>
+    harness.beatObligations.validateBeatObligationCoverage(outline).errors,
+  )
+  if (remainingCoverageErrors.length > 0) {
+    throw new Error(`Planning obligation coverage failed after retry: ${remainingCoverageErrors.join("; ")}`)
+  }
+
   for (const outline of chapters) {
     const obligationPlan = harness.beatObligations.deriveBeatObligations(outline)
     const s = obligationPlan.summary
@@ -234,8 +284,9 @@ async function expandChapter(
   spine: any,
   seed: any,
   attempt: number = 1,
+  retryFeedback?: string,
 ): Promise<ChapterOutline> {
-  const userPrompt = buildBeatContext({
+  let userPrompt = buildBeatContext({
     targetChapter: skeleton,
     allSkeletons,
     priorChapters: [], // cross-chapter coherence lives in the skeleton tier
@@ -244,6 +295,9 @@ async function expandChapter(
     spine,
     seed,
   })
+  if (retryFeedback) {
+    userPrompt += `\n\n--- PREVIOUS EXPANSION FAILED COVERAGE VALIDATION ---\n${retryFeedback}\n\nReturn a complete replacement JSON object for this chapter only. Preserve the chapter skeleton's title, POV, setting, purpose, target length, and surrounding-chapter continuity.`
+  }
 
   const result = await callAgent({
     novelId,

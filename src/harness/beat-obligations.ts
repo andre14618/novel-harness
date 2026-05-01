@@ -42,6 +42,13 @@ export interface BeatObligationShadowPlan {
   }
 }
 
+export interface BeatObligationCoverageValidation {
+  valid: boolean
+  errors: string[]
+  warnings: string[]
+  summary: BeatObligationShadowPlan["summary"]
+}
+
 const EMPTY_OBLIGATIONS = (): BeatObligations => ({
   mustEstablish: [],
   mustPayOff: [],
@@ -217,6 +224,69 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
       overloadedBeats,
     },
   }
+}
+
+export function validateBeatObligationCoverage(outline: ChapterOutline): BeatObligationCoverageValidation {
+  const plan = deriveBeatObligations(outline)
+  const errors: string[] = []
+  const s = plan.summary
+
+  if (s.orphanFacts > 0) {
+    errors.push(`Chapter ${outline.chapterNumber}: ${s.orphanFacts}/${s.factCount} established fact(s) are not writer-visible through beat text or obligations`)
+  }
+  if (s.orphanKnowledgeChanges > 0) {
+    errors.push(`Chapter ${outline.chapterNumber}: ${s.orphanKnowledgeChanges}/${s.knowledgeCount} knowledge change(s) are not writer-visible through beat text or obligations`)
+  }
+  if (s.orphanStateChanges > 0) {
+    errors.push(`Chapter ${outline.chapterNumber}: ${s.orphanStateChanges}/${s.stateChangeCount} character state change(s) are not writer-visible through beat text or obligations`)
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings: plan.warnings,
+    summary: plan.summary,
+  }
+}
+
+export function formatObligationCoverageRetryFeedback(
+  outline: ChapterOutline,
+  validation: BeatObligationCoverageValidation,
+): string {
+  const lines = [
+    `Chapter ${outline.chapterNumber} failed writer-visible obligation coverage. Re-expand this chapter so the beat writer receives every required state/fact/knowledge obligation before drafting.`,
+    "",
+    "Hard requirements:",
+    "- Every establishedFacts[] item must appear in a beat description or in a beat obligations.mustEstablish/mustPayOff item.",
+    "- Every knowledgeChanges[] item must be mirrored in exactly one beat obligations.mustTransferKnowledge item, using the same character name and key knowledge phrase.",
+    "- Every characterStateChanges[] item must be mirrored in at least one beat obligations.mustShowStateChange item, using the same character name and key final-state phrase.",
+    "- Keep hard obligations compact: prefer 1-4 per beat and avoid overloading any beat.",
+    "",
+    "Coverage errors:",
+    ...validation.errors.map(error => `- ${error}`),
+  ]
+
+  const specificWarnings = validation.warnings.filter(w => w.includes("not assigned") || w.includes("without id"))
+  if (specificWarnings.length > 0) {
+    lines.push("", "Specific missing assignments:", ...specificWarnings.map(w => `- ${w}`))
+  }
+
+  if ((outline.knowledgeChanges ?? []).length > 0) {
+    lines.push("", "Knowledge changes that must be covered:")
+    for (const change of outline.knowledgeChanges ?? []) {
+      lines.push(`- ${change.characterName}: ${change.knowledge}`)
+    }
+  }
+
+  if ((outline.characterStateChanges ?? []).length > 0) {
+    lines.push("", "Character state changes that must be covered:")
+    for (const change of outline.characterStateChanges ?? []) {
+      const state = summarizeStateChange(change)
+      lines.push(`- ${change.name}: ${state || "state changed"}`)
+    }
+  }
+
+  return lines.join("\n")
 }
 
 function normalizeAuthoredObligations(obligations: BeatObligationsContract | undefined): BeatObligationsContract {

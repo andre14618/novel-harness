@@ -1,6 +1,11 @@
 import { expect, test } from "bun:test"
 
-import { deriveBeatObligations, renderBeatObligations } from "./beat-obligations"
+import {
+  deriveBeatObligations,
+  formatObligationCoverageRetryFeedback,
+  renderBeatObligations,
+  validateBeatObligationCoverage,
+} from "./beat-obligations"
 import type { ChapterOutline, SceneBeat } from "../types"
 
 test("deriveBeatObligations maps payoff links to seed and payoff beat obligations", () => {
@@ -122,6 +127,43 @@ test("deriveBeatObligations warns about orphan state that is not writer-visible"
   expect(result.summary.orphanStateChanges).toBe(1)
   expect(result.warnings[0]).toContain("characterStateChange")
   expect(result.warnings[0]).toContain("Istra")
+})
+
+test("validateBeatObligationCoverage fails when chapter state is not writer-visible", () => {
+  const outline = chapter({
+    scenes: [beat({ description: "Istra prepares another dose." })],
+    knowledgeChanges: [
+      { characterName: "Istra", knowledge: "Aldric falsified the plague ledgers", source: "deduced" },
+    ],
+    characterStateChanges: [
+      { name: "Istra", location: "The sealed archive", emotionalState: "furious clarity", knows: ["Aldric falsified the plague ledgers"], doesNotKnow: [] },
+    ],
+  })
+
+  const validation = validateBeatObligationCoverage(outline)
+
+  expect(validation.valid).toBe(false)
+  expect(validation.errors).toContain("Chapter 1: 1/1 knowledge change(s) are not writer-visible through beat text or obligations")
+  expect(validation.errors).toContain("Chapter 1: 1/1 character state change(s) are not writer-visible through beat text or obligations")
+})
+
+test("formatObligationCoverageRetryFeedback names missing knowledge and state", () => {
+  const outline = chapter({
+    scenes: [beat({ description: "Istra prepares another dose." })],
+    knowledgeChanges: [
+      { characterName: "Istra", knowledge: "Aldric falsified the plague ledgers", source: "deduced" },
+    ],
+    characterStateChanges: [
+      { name: "Istra", location: "The sealed archive", emotionalState: "furious clarity", knows: ["Aldric falsified the plague ledgers"], doesNotKnow: [] },
+    ],
+  })
+  const validation = validateBeatObligationCoverage(outline)
+
+  const feedback = formatObligationCoverageRetryFeedback(outline, validation)
+
+  expect(feedback).toContain("failed writer-visible obligation coverage")
+  expect(feedback).toContain("Istra: Aldric falsified the plague ledgers")
+  expect(feedback).toContain("Istra: location: The sealed archive; state: furious clarity")
 })
 
 test("deriveBeatObligations counts id-less established facts as orphan telemetry", () => {

@@ -86,7 +86,7 @@ Beat writing bypasses semantic retrieval. Context comes from the plan + determin
 
 **Planned state** (`src/planned-state.ts`):
 - Planning-plotter outputs `establishedFacts`, `characterStateChanges`, `knowledgeChanges` per chapter
-- Planning-beats also emits compact per-beat `obligations`; these are rendered to the writer as the local contract and are the intended future checker surface. Shadow derivation in `src/harness/beat-obligations.ts` measures orphan/overload gaps.
+- Planning-beats also emits compact per-beat `obligations`; these are rendered to the writer as the local contract and are the intended future checker surface. `src/harness/beat-obligations.ts` measures writer-visible coverage and planning triggers one targeted re-expansion when facts/knowledge/state would otherwise be hidden from the writer.
 - Saved to DB tables after chapter approval (`extractionMode: "plan"` — planner-declared state only, LLM extractors removed)
 
 **Semantic retrieval** (`src/db/retrieval.ts`, `src/db/embed.ts`):

@@ -106,6 +106,13 @@ but insufficient. The next slice should add a deterministic coverage validator
 and targeted chapter re-expansion or explicit non-prose exemption field before
 checker promotion.
 
+Exp #288 adds the first deterministic coverage validator. Before planning approval
+and DB persistence, each chapter is checked for orphan facts, knowledge changes,
+and character state changes using the same writer-visible obligation derivation.
+Chapters with gaps get one targeted `planning-beats` re-expansion with a concrete
+coverage-error packet. Remaining gaps after the retry fail planning instead of
+being discovered later by chapter/function checkers.
+
 ## Why Not Render Immediately
 
 The current audit found that several planner fields are not writer-visible:
@@ -126,7 +133,8 @@ schema changes or human review.
 2. Planner schema adds authored `beatObligations` if shadow derivation shows
    orphan rates are material. Done in exp #286.
 3. Writer prompt renders compact `BEAT OBLIGATIONS` per beat. Done in exp #286.
-4. Planning-readiness coverage validator detects missing obligation mirrors.
+4. Planning-readiness coverage validator detects missing obligation mirrors. Done
+   in exp #288.
 5. Studio exposes obligations for human review before drafting.
 6. Planning-readiness gate blocks only mechanical contract defects.
 7. Beat checkers consume the same obligation packet after calibration.
