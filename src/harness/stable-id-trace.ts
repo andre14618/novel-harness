@@ -10,6 +10,7 @@ export interface BeatStableIdTraceMeta {
   obligationIds: string[]
   sourceIds: string[]
   characterIds: string[]
+  [key: string]: unknown
 }
 
 export function collectObligationIds(obligations: BeatObligationsContract | undefined): string[] {

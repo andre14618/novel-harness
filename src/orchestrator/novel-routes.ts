@@ -282,7 +282,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
   if (path === "/api/novel/list" && req.method === "GET") {
     try {
       const rows = await db`SELECT id, phase, current_chapter, total_chapters, created_at, seed_json FROM novels ORDER BY created_at DESC`
-      const novels = rows.map(row => {
+      const novels = rows.map((row: any) => {
         const current = gates.getPendingGate(row.id)
         return {
           id: row.id,
@@ -613,7 +613,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     const novelId = charsMatch[1]
     try {
       const rows = await db`SELECT profile_json FROM characters WHERE novel_id = ${novelId}`
-      return Response.json(rows.map(r => r.profile_json))
+      return Response.json(rows.map((r: any) => r.profile_json))
     } catch (err) {
       return Response.json({ error: String(err) }, { status: 500 })
     }
@@ -736,7 +736,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     const novelId = outlinesMatch[1]
     try {
       const rows = await db`SELECT outline_json FROM chapter_outlines WHERE novel_id = ${novelId} ORDER BY chapter_number`
-      return Response.json(rows.map(r => r.outline_json))
+      return Response.json(rows.map((r: any) => r.outline_json))
     } catch (err) {
       return Response.json({ error: String(err) }, { status: 500 })
     }
@@ -779,7 +779,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
             FROM chapter_drafts
             WHERE novel_id = ${novelId} AND status = 'approved'
             ORDER BY chapter_number, version DESC`
-      return Response.json(rows.map(r => ({
+      return Response.json(rows.map((r: any) => ({
         chapter: r.chapter_number,
         prose: r.prose,
         wordCount: r.word_count,
@@ -835,7 +835,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
           AND response_content IS NOT NULL
           AND failed IS NOT TRUE
         ORDER BY chapter, beat_index, attempt DESC`
-      return Response.json(rows.map(r => ({
+      return Response.json(rows.map((r: any) => ({
         chapter: r.chapter,
         beatIndex: r.beat_index,
         prose: r.response_content,

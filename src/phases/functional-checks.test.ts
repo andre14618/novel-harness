@@ -1,13 +1,37 @@
 import { expect, test } from "bun:test"
 import { runFunctionalStoryChecks } from "./functional-checks"
-import type { ChapterOutline } from "../types"
+import type { ChapterOutline, SceneBeat } from "../types"
+
+const emptyObligations = {
+  mustEstablish: [],
+  mustPayOff: [],
+  mustTransferKnowledge: [],
+  mustShowStateChange: [],
+  mustNotReveal: [],
+  allowedNewEntities: [],
+}
+
+function makeBeat(overrides: Partial<SceneBeat>): SceneBeat {
+  return {
+    description: "",
+    characters: [],
+    kind: "action",
+    requiredPayoffs: [],
+    obligations: emptyObligations,
+    lifeValueAxes: [],
+    miceActive: [],
+    miceOpens: [],
+    miceCloses: [],
+    ...overrides,
+  } as SceneBeat
+}
 
 test("functional checks pass valid payoff links", () => {
   const outline = baseOutline({
     establishedFacts: [{ id: "cure", fact: "The bell tower hides the fever cure", category: "knowledge" }],
     scenes: [
-      { description: "Aldric plants a clue.", characters: ["Aldric"], kind: "dialogue", requiredPayoffs: [{ fact_id: "cure", payoff_beat: 1 }] },
-      { description: "Aldric finds the cure.", characters: ["Aldric"], kind: "action", requiredPayoffs: [] },
+      makeBeat({ description: "Aldric plants a clue.", characters: ["Aldric"], kind: "dialogue", requiredPayoffs: [{ fact_id: "cure", payoff_beat: 1 }] }),
+      makeBeat({ description: "Aldric finds the cure.", characters: ["Aldric"], kind: "action" }),
     ],
   })
 
@@ -21,8 +45,8 @@ test("functional checks block payoff links with missing fact ids", () => {
   const outline = baseOutline({
     establishedFacts: [{ id: "cure", fact: "The bell tower hides the fever cure", category: "knowledge" }],
     scenes: [
-      { description: "Aldric plants a clue.", characters: ["Aldric"], kind: "dialogue", requiredPayoffs: [{ fact_id: "missing", payoff_beat: 1 }] },
-      { description: "Aldric finds the cure.", characters: ["Aldric"], kind: "action", requiredPayoffs: [] },
+      makeBeat({ description: "Aldric plants a clue.", characters: ["Aldric"], kind: "dialogue", requiredPayoffs: [{ fact_id: "missing", payoff_beat: 1 }] }),
+      makeBeat({ description: "Aldric finds the cure.", characters: ["Aldric"], kind: "action" }),
     ],
   })
 
@@ -50,8 +74,8 @@ test("functional checks block payoff links that point backward or to the same be
   const outline = baseOutline({
     establishedFacts: [{ id: "cure", fact: "The bell tower hides the fever cure", category: "knowledge" }],
     scenes: [
-      { description: "Aldric finds the cure.", characters: ["Aldric"], kind: "action", requiredPayoffs: [] },
-      { description: "Aldric plants a late clue.", characters: ["Aldric"], kind: "dialogue", requiredPayoffs: [{ fact_id: "cure", payoff_beat: 0 }] },
+      makeBeat({ description: "Aldric finds the cure.", characters: ["Aldric"], kind: "action" }),
+      makeBeat({ description: "Aldric plants a late clue.", characters: ["Aldric"], kind: "dialogue", requiredPayoffs: [{ fact_id: "cure", payoff_beat: 0 }] }),
     ],
   })
 
@@ -70,12 +94,13 @@ function baseOutline(overrides: Partial<ChapterOutline> = {}): ChapterOutline {
     purpose: "Test the checks",
     targetWords: 1000,
     charactersPresent: ["Aldric", "Wren"],
+    charactersPresentIds: [],
     scenes: [
-      { description: "Aldric speaks with Wren.", characters: ["Aldric", "Wren"], kind: "dialogue", requiredPayoffs: [] },
+      makeBeat({ description: "Aldric speaks with Wren.", characters: ["Aldric", "Wren"], kind: "dialogue" }),
     ],
     establishedFacts: [],
     characterStateChanges: [],
     knowledgeChanges: [],
     ...overrides,
-  }
+  } as ChapterOutline
 }

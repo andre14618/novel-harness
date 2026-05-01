@@ -73,7 +73,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
         establishedFacts: [],
         characterStateChanges: [],
         knowledgeChanges: [],
-      })) as ChapterOutline[]
+      })) as unknown as ChapterOutline[]
 
       const enforcement = harness.enforce.enforceSkeletons(
         skeletonChapters, targetChapters, characters,

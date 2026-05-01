@@ -10,7 +10,7 @@ export async function getOpenIssues(novelId: string, chapterNum?: number): Promi
   const rows = chapterNum !== undefined
     ? await db`SELECT severity, description, conflicts_with, suggested_fix FROM issues WHERE novel_id = ${novelId} AND status = 'open' AND chapter = ${chapterNum}`
     : await db`SELECT severity, description, conflicts_with, suggested_fix FROM issues WHERE novel_id = ${novelId} AND status = 'open'`
-  return rows.map(r => ({
+  return rows.map((r: any) => ({
     severity: r.severity,
     description: r.description,
     conflictsWith: r.conflicts_with ?? undefined,

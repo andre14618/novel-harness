@@ -13,7 +13,7 @@ export async function getRecentSummaries(novelId: string, chapterNum: number, co
   const rows = await db`SELECT chapter_number, summary, key_events_json, emotional_state, open_threads_json
                         FROM chapter_summaries WHERE novel_id = ${novelId} AND chapter_number < ${chapterNum}
                         ORDER BY chapter_number DESC LIMIT ${count}`
-  return rows.reverse().map(r => ({
+  return rows.reverse().map((r: any) => ({
     chapterNumber: r.chapter_number,
     summary: r.summary,
     keyEvents: r.key_events_json as string[],

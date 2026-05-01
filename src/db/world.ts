@@ -23,7 +23,7 @@ export async function getCharacters(novelId: string): Promise<CharacterProfile[]
   // would leak into prompt bytes between A/B arms (Codex conditioning-floor
   // review leak #3, 2026-04-20).
   const rows = await db`SELECT profile_json FROM characters WHERE novel_id = ${novelId} ORDER BY id`
-  return rows.map(r => r.profile_json as CharacterProfile)
+  return rows.map((r: any) => r.profile_json as CharacterProfile)
 }
 
 export async function saveStorySpine(novelId: string, spine: StorySpine): Promise<void> {

@@ -14,7 +14,7 @@ export async function getChapterOutline(novelId: string, chapterNum: number): Pr
 
 export async function getChapterOutlines(novelId: string): Promise<ChapterOutline[]> {
   const rows = await db`SELECT outline_json FROM chapter_outlines WHERE novel_id = ${novelId} ORDER BY chapter_number`
-  return rows.map(r => r.outline_json as ChapterOutline)
+  return rows.map((r: any) => r.outline_json as ChapterOutline)
 }
 
 /**

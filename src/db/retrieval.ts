@@ -328,7 +328,7 @@ export async function getRelationshipArc(novelId: string, charA: string, charB: 
       AND ((character_a = ${charA} AND character_b = ${charB}) OR (character_a = ${charB} AND character_b = ${charA}))
       AND chapter_number <= ${upToChapter}
     ORDER BY chapter_number ASC`
-  return rows.map(r => ({
+  return rows.map((r: any) => ({
     chapterNumber: r.chapter_number,
     trustLevel: r.trust_level,
     dynamic: r.dynamic,
@@ -358,7 +358,7 @@ export async function getKnowledgeGraph(novelId: string, characterId: string, up
     LEFT JOIN knowledge_propagation kp ON kp.knowledge_id = ck.id AND kp.to_character_id = ${characterId}
     WHERE ck.novel_id = ${novelId} AND ck.character_id = ${characterId} AND ck.chapter_learned <= ${upToChapter}
     ORDER BY ck.chapter_learned ASC`
-  return rows.map(r => ({
+  return rows.map((r: any) => ({
     id: r.id,
     knowledge: r.knowledge,
     source: r.source,

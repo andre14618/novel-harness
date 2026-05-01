@@ -120,7 +120,7 @@ export async function getCharacterCultures(novelId: string, characterId: string)
     FROM character_cultures cc
     JOIN cultures c ON cc.culture_id = c.id AND cc.novel_id = c.novel_id
     WHERE cc.novel_id = ${novelId} AND cc.character_id = ${characterId}`
-  return rows.map(r => ({
+  return rows.map((r: any) => ({
     characterId: r.character_id, cultureId: r.culture_id, relationship: r.relationship,
     culture: {
       id: r.culture_id, name: r.name, description: r.description,
@@ -148,7 +148,7 @@ export async function getCharacterSystemAwareness(novelId: string, characterId: 
     FROM character_system_awareness csa
     JOIN world_systems ws ON csa.system_id = ws.id AND csa.novel_id = ws.novel_id
     WHERE csa.novel_id = ${novelId} AND csa.character_id = ${characterId}`
-  return rows.map(r => ({
+  return rows.map((r: any) => ({
     characterId: r.character_id, systemId: r.system_id,
     awarenessLevel: r.awareness_level, perspective: r.perspective,
     chapterEstablished: r.chapter_established,

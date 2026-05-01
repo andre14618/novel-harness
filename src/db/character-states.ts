@@ -17,7 +17,7 @@ export async function getCharacterStatesAtChapter(novelId: string, chapterNum: n
       GROUP BY character_id
     ) latest ON cs.character_id = latest.character_id AND cs.chapter_number = latest.max_ch
     WHERE cs.novel_id = ${novelId}`
-  return rows.map(r => r.state_json as CharacterState)
+  return rows.map((r: any) => r.state_json as CharacterState)
 }
 
 export async function getAllCharacterStatesBeforeChapter(novelId: string, chapterNum: number): Promise<CharacterState[]> {
@@ -25,7 +25,7 @@ export async function getAllCharacterStatesBeforeChapter(novelId: string, chapte
     SELECT state_json FROM character_states
     WHERE novel_id = ${novelId} AND chapter_number < ${chapterNum}
     ORDER BY chapter_number ASC`
-  return rows.map(r => r.state_json as CharacterState)
+  return rows.map((r: any) => r.state_json as CharacterState)
 }
 
 export async function clearCharacterStatesForChapter(novelId: string, chapterNum: number): Promise<void> {

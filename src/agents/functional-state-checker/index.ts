@@ -51,9 +51,13 @@ export async function checkFunctionalStateGrounding(
       },
     })
 
-    const warnings = result.output.findings
+    const warnings = (result.output.findings ?? [])
       .slice(0, 10)
-      .map(f => findingToWarning(f, prose))
+      .map((f: any) => findingToWarning({
+        ...f,
+        beat_index: f.beat_index ?? null,
+        evidence_quote: f.evidence_quote ?? "",
+      } as FunctionalStateCheckerFinding, prose))
     return { warnings }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

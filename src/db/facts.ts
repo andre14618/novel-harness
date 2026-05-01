@@ -12,14 +12,14 @@ export async function getFactsUpToChapter(novelId: string, chapterNum: number): 
   const rows = await db`SELECT id, fact, category, established_in_chapter FROM facts
                         WHERE novel_id = ${novelId} AND established_in_chapter <= ${chapterNum}
                         ORDER BY established_in_chapter`
-  return rows.map(r => ({ id: r.id, fact: r.fact, category: r.category, establishedInChapter: r.established_in_chapter }))
+  return rows.map((r: any) => ({ id: r.id, fact: r.fact, category: r.category, establishedInChapter: r.established_in_chapter }))
 }
 
 export async function getFactsForChapter(novelId: string, chapterNum: number): Promise<Fact[]> {
   const rows = await db`SELECT id, fact, category, established_in_chapter FROM facts
                         WHERE novel_id = ${novelId} AND established_in_chapter = ${chapterNum}
                         ORDER BY created_at`
-  return rows.map(r => ({ id: r.id, fact: r.fact, category: r.category, establishedInChapter: r.established_in_chapter }))
+  return rows.map((r: any) => ({ id: r.id, fact: r.fact, category: r.category, establishedInChapter: r.established_in_chapter }))
 }
 
 export async function clearFactsForChapter(novelId: string, chapterNum: number): Promise<void> {

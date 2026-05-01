@@ -585,8 +585,10 @@ function addRepairObligation(
     sourceKind: operation.sourceKind,
     text: source.text,
   }
-  if (source.characterId) item.characterId = source.characterId
-  if (source.characterName) item.characterName = source.characterName
+  if (source.kind === "knowledge" || source.kind === "state") {
+    item.characterId = source.characterId
+    item.characterName = source.characterName
+  }
   items.push(item)
   return { ok: true, message: `addObligation: ${beat.beatId} ${operation.list} ${operation.sourceId}` }
 }
