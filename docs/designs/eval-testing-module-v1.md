@@ -1,10 +1,10 @@
 ---
-status: draft (pending Codex R6 adversarial review)
+status: shipped (R6 v1 implementation landed 2026-04-29 commit `31f26b4`; R7 confirms second-probe-shape promotion gate fired and works as designed without schema changes)
 kind: subsystem-design
 name: eval-testing-module-v1
 owner: andre
-date: 2026-04-29
-revision: 6
+date: 2026-05-01 (R7 update)
+revision: 7
 parent-context: docs/todo.md "Three-bucket forward plan", docs/eval-infrastructure.md, docs/charters/corpus-structural-decomposition-v1.md (sibling — Bucket 1)
 adversary-verdict:
   R1: RED (codex:codex-rescue gpt-5.5 effort=high, agent aff15da9fb18060ec, 2026-04-29) — 5 blockers, 6 warnings, named cheapest counterfactual: "planning-beats-only migration v1." Recommended action: RUN CHEAPER COUNTERFACTUAL.
@@ -22,7 +22,49 @@ related:
   - docs/experiment-design-rules.md §4.7 (request-construction parity rule that v1 sidesteps via "no production code path rewritten" exemption)
 ---
 
-# Durable Eval / Testing Module — Design Sketch (Revision 6)
+# Durable Eval / Testing Module — Design Sketch (Revision 7)
+
+## R7 update — 2026-05-01: promotion gate trigger 1 fired, helper supports it as-is
+
+The R6 §0 promotion-gate trigger 1 ("a second probe shape needs the same persistence + query surface") fired naturally during the §2 checker calibration cycle (2026-05-01). The session produced 3 new probe shapes:
+
+1. **halluc-ungrounded-prompt-ab** (`scripts/hallucination/ab-halluc-prompt.ts`) — re-invokes halluc-ungrounded with a candidate system prompt against a labeled current-surface panel, produces a TP/FP/FN/TN calibration matrix + recall/precision/F1.
+2. **halluc-synthetic-fire-rate** (`scripts/hallucination/run-synthetic-checkers.ts`) — invokes halluc-ungrounded + adherence-events on the 10 synthetic candidate-score fixtures, compares to expected_pass.
+3. **adherence-per-event-prototype** (`scripts/hallucination/probe-obligation-aware-adherence.ts`) — runs an experimental per-event variant of adherence-events on the labeled panel, produces per-event recall/precision plus binary calibration.
+
+**The R6 design's prediction held up.** All three probe shapes use the existing `persistPhaseEvalRun` helper without schema or helper changes:
+
+- `probe_name` discriminates the shape (planner-probe vs checker-A/B vs synthetic-fire-rate vs per-event-prototype).
+- `summary_json` JSONB carries the shape-specific payload (planner has `g_metrics`; checker-A/B has `calibration_matrix` + `recall_pct` + `precision_pct` + `f1` + `per_row_results`).
+- `verdict` is a free-text string covering both shapes (`SCREEN-PASS`/`SCREEN-FAIL` for planner; `PROMOTE-CANDIDATE`/`REGRESS`/`NO-DATA` for checker-A/B).
+- `seeds_used` and `variant_labels` are top-level filters that work for both.
+
+**Acceptance evidence (commit `e41c8ce`):** ab-halluc-prompt with `--persist --exp-id 303 --variant-label v3-live` produces phase_eval_runs.id=14 alongside the existing planner-probe rows, queryable via `SELECT verdict, summary_json -> 'recall_pct' FROM phase_eval_runs WHERE probe_name = 'halluc-ungrounded-prompt-ab'`.
+
+### What R7 explicitly does NOT change
+
+R6 said: "v2.1 = small shared write helper; v2.2 = service-layer module IF AND ONLY IF a third probe materializes." A literal reading would graduate to v2.2 now (3 probe shapes exist). R7 declines:
+
+- The shared helper (`scripts/phase-eval/persist-run.ts`) ALREADY serves all 4 probes (1 planner + 3 checker). The "small shared write helper" of v2.1 is the existing `persistPhaseEvalRun` — it was generic enough from R6 because the design constrained the shape to (probeName, gitCommit, expId, seedsUsed, variantLabels, summaryJson, verdict, notes), which is checker-shape-tolerant by accident-of-good-narrowing.
+- The "service-layer module IF a third probe materializes" trigger was a contingency for the case where each probe needed its own custom persistence. In practice, the helper's narrow signature is sufficient — 3 of 4 probes use it without touching it. There is no service-layer module to write because there is no orchestration to centralize.
+- The R6 retrospective at git commit `3a1effd` (pre-pivot R5 design) remains the starting point if a future trigger requires it. R7 does not pre-design that.
+
+### Remaining R7 follow-ups
+
+- [ ] Wire `--persist` into `run-synthetic-checkers.ts` and `probe-obligation-aware-adherence.ts` (each ~15 LOC, mirroring the ab-halluc-prompt shape).
+- [ ] Update `list-runs.ts` to display `summary_json -> 'recall_pct'` and `'verdict'` columns for checker-A/B probes (~5 LOC delta — currently shows generic columns that work but don't surface checker-specific signal).
+- [ ] (Defer) UI surface for cross-run calibration deltas. Belongs to the original §0 trigger 4 (LLM-judge / human-rating consumer); not needed yet.
+
+### Promotion-gate triggers status (R7)
+
+| Trigger | R6 status | R7 status |
+|---|---|---|
+| 1. Second probe shape needs same persistence | Pending | **FIRED** — 3 new shapes; helper handles all 3 with zero schema change. R7 does NOT trigger v2.2 because the helper is sufficient. |
+| 2. Autonomous-context-loop needs immutable per-iteration snapshots | Pending | Pending — context engineering direction (memory `project_context_engineering_priority`) deprioritized the autonomous loop; trigger may not fire. |
+| 3. Cross-run JSONB query painful at production volume | Pending | Pending — at 14 rows total, ergonomics fine; `summary_json -> 'recall_pct'` syntax handles checker-A/B drilldowns cleanly. |
+| 4. LLM-judge / human-rating consumer | Pending | Pending — no concrete consumer yet. |
+
+Net: R7 confirms the R6 design works for its intended scope and the cheapest counterfactual (no v2 module) remains correct.
 
 ## 0. Tl;dr (R6 — pivot to probe + tiny result index per Codex R5 cheapest counterfactual)
 
