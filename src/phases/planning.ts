@@ -197,11 +197,31 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
     chapters = finalEnforcement.chapters
   }
 
+  const coverageRepairs = chapters
+    .map((outline, idx) => ({ outline, idx, validation: harness.beatObligations.validateBeatObligationCoverage(outline) }))
+    .filter(item => !item.validation.valid)
+  if (coverageRepairs.length > 0) {
+    emit(novelId, { type: "progress", data: { step: "planning-obligations", status: "repairing", chapters: coverageRepairs.length } })
+    for (const item of coverageRepairs) {
+      const repaired = harness.beatObligations.repairBeatObligationCoverage(item.outline)
+      expanded[item.idx] = repaired.outline
+      for (const repair of repaired.repairs) {
+        log(novelId, "warn", `Planning obligation auto-repair: ${repair}`)
+        console.log(`  ${repair}`)
+      }
+    }
+    finalEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters)
+    if (!finalEnforcement.valid) {
+      throw new Error(`Planning failed after obligation coverage auto-repair: ${finalEnforcement.errors.join("; ")}`)
+    }
+    chapters = finalEnforcement.chapters
+  }
+
   const remainingCoverageErrors = chapters.flatMap(outline =>
     harness.beatObligations.validateBeatObligationCoverage(outline).errors,
   )
   if (remainingCoverageErrors.length > 0) {
-    throw new Error(`Planning obligation coverage failed after retry: ${remainingCoverageErrors.join("; ")}`)
+    throw new Error(`Planning obligation coverage failed after retry + auto-repair: ${remainingCoverageErrors.join("; ")}`)
   }
 
   for (const outline of chapters) {

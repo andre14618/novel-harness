@@ -190,8 +190,10 @@ re-expansion/exemption, not beat-checker promotion.
 
 Exp #288 implements deterministic coverage validation plus up to two targeted
 re-expansion passes for chapters whose planned facts/knowledge/state are not
-writer-visible through beat text or obligations. This is still a planning-layer
-gate; beat checkers should wait for fresh post-validator current-surface labels.
+writer-visible through beat text or obligations. Remaining gaps are auto-repaired
+into compact beat obligations before approval/persistence. This is still a
+planning-layer gate; beat checkers should wait for fresh post-validator
+current-surface labels.
 
 ### Phase 2 - `halluc-ungrounded` Oracle Dataset
 

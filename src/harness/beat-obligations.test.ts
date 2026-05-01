@@ -3,6 +3,7 @@ import { expect, test } from "bun:test"
 import {
   deriveBeatObligations,
   formatObligationCoverageRetryFeedback,
+  repairBeatObligationCoverage,
   renderBeatObligations,
   validateBeatObligationCoverage,
 } from "./beat-obligations"
@@ -164,6 +165,34 @@ test("formatObligationCoverageRetryFeedback names missing knowledge and state", 
   expect(feedback).toContain("failed writer-visible obligation coverage")
   expect(feedback).toContain("Istra: Aldric falsified the plague ledgers")
   expect(feedback).toContain("Istra: location: The sealed archive; state: furious clarity")
+})
+
+test("repairBeatObligationCoverage injects remaining hidden state into beat obligations", () => {
+  const outline = chapter({
+    scenes: [
+      beat({ description: "Istra prepares another dose.", characters: ["Istra"] }),
+      beat({ description: "Aldric waits outside.", characters: ["Aldric"] }),
+    ],
+    knowledgeChanges: [
+      { characterName: "Istra", knowledge: "Aldric falsified the plague ledgers", source: "deduced" },
+    ],
+    characterStateChanges: [
+      { name: "Istra", location: "The sealed archive", emotionalState: "furious clarity", knows: ["Aldric falsified the plague ledgers"], doesNotKnow: [] },
+    ],
+  })
+
+  const repaired = repairBeatObligationCoverage(outline)
+
+  expect(repaired.validation.valid).toBe(true)
+  expect(repaired.repairs).toEqual([
+    expect.stringContaining("added mustTransferKnowledge for Istra"),
+    expect.stringContaining("added mustShowStateChange for Istra"),
+  ])
+  expect(repaired.outline.scenes[0].obligations.mustTransferKnowledge[0]).toEqual({
+    characterName: "Istra",
+    text: "Aldric falsified the plague ledgers",
+  })
+  expect(repaired.outline.scenes[0].obligations.mustShowStateChange[0].text).toContain("furious clarity")
 })
 
 test("deriveBeatObligations counts id-less established facts as orphan telemetry", () => {

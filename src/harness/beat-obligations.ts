@@ -49,6 +49,12 @@ export interface BeatObligationCoverageValidation {
   summary: BeatObligationShadowPlan["summary"]
 }
 
+export interface BeatObligationCoverageRepair {
+  outline: ChapterOutline
+  repairs: string[]
+  validation: BeatObligationCoverageValidation
+}
+
 const EMPTY_OBLIGATIONS = (): BeatObligations => ({
   mustEstablish: [],
   mustPayOff: [],
@@ -175,11 +181,7 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
 
   let orphanStateChanges = 0
   for (const change of outline.characterStateChanges ?? []) {
-    const text = [
-      change.location,
-      change.emotionalState,
-      ...(change.knows ?? []),
-    ].filter(Boolean).join(" ")
+    const text = stateChangeSearchText(change)
     if (!text.trim()) continue
     if (authoredStateCovers(outline.scenes, change, text)) continue
 
@@ -287,6 +289,100 @@ export function formatObligationCoverageRetryFeedback(
   }
 
   return lines.join("\n")
+}
+
+export function repairBeatObligationCoverage(outline: ChapterOutline): BeatObligationCoverageRepair {
+  const repairs: string[] = []
+
+  for (const fact of outline.establishedFacts ?? []) {
+    if (factIsWriterVisible(outline, fact)) continue
+    const beatIndex = chooseBeatForText(outline.scenes, fact.fact)
+    if (beatIndex === null) continue
+    const obligations = ensureAuthoredObligations(outline.scenes[beatIndex])
+    obligations.mustEstablish.push({ id: fact.id || undefined, text: fact.fact })
+    repairs.push(`Chapter ${outline.chapterNumber} beat ${beatIndex + 1}: added mustEstablish for fact ${fact.id || fact.fact}`)
+  }
+
+  for (const change of outline.knowledgeChanges ?? []) {
+    if (knowledgeIsWriterVisible(outline, change)) continue
+    const beatIndex = chooseBeatForText(outline.scenes, change.knowledge, change.characterName)
+    if (beatIndex === null) continue
+    const obligations = ensureAuthoredObligations(outline.scenes[beatIndex])
+    obligations.mustTransferKnowledge.push({ characterName: change.characterName, text: change.knowledge })
+    repairs.push(`Chapter ${outline.chapterNumber} beat ${beatIndex + 1}: added mustTransferKnowledge for ${change.characterName}`)
+  }
+
+  for (const change of outline.characterStateChanges ?? []) {
+    const text = stateChangeSearchText(change)
+    if (!text.trim() || stateIsWriterVisible(outline, change, text)) continue
+    const beatIndex = chooseBeatForText(outline.scenes, text, change.name)
+    if (beatIndex === null) continue
+    const obligations = ensureAuthoredObligations(outline.scenes[beatIndex])
+    obligations.mustShowStateChange.push({ characterName: change.name, text: summarizeStateChange(change) })
+    repairs.push(`Chapter ${outline.chapterNumber} beat ${beatIndex + 1}: added mustShowStateChange for ${change.name}`)
+  }
+
+  return { outline, repairs, validation: validateBeatObligationCoverage(outline) }
+}
+
+function factIsWriterVisible(outline: ChapterOutline, fact: { id?: string; fact: string }): boolean {
+  const factId = fact.id?.trim()
+  if (!factId) return false
+  if (bestAuthoredObligationMatch(outline.scenes, fact.fact, factId, "mustEstablish") !== null) return true
+  if (bestAuthoredObligationMatch(outline.scenes, fact.fact, factId, "mustPayOff") !== null) return true
+  if (bestBeatMatch(outline.scenes, fact.fact, { minScore: 2, minCoverage: 0.25 })) return true
+  return (outline.scenes ?? []).some((beat, beatIndex) =>
+    (beat.requiredPayoffs ?? []).some(link =>
+      link.fact_id?.trim() === factId
+      && Number.isInteger(link.payoff_beat)
+      && link.payoff_beat >= 0
+      && link.payoff_beat < outline.scenes.length
+      && link.payoff_beat > beatIndex,
+    ),
+  )
+}
+
+function knowledgeIsWriterVisible(
+  outline: ChapterOutline,
+  change: { characterName: string; knowledge: string },
+): boolean {
+  return authoredKnowledgeCovers(outline.scenes, change)
+    || bestBeatMatch(outline.scenes, change.knowledge, {
+      characterName: change.characterName,
+      minScore: 2,
+      minCoverage: 0.25,
+    }) !== null
+}
+
+function stateIsWriterVisible(
+  outline: ChapterOutline,
+  change: { name: string },
+  stateText: string,
+): boolean {
+  return authoredStateCovers(outline.scenes, change, stateText)
+    || bestBeatMatch(outline.scenes, stateText, {
+      characterName: change.name,
+      minScore: 2,
+      minCoverage: 0.2,
+    }) !== null
+}
+
+function ensureAuthoredObligations(beat: SceneBeat): BeatObligationsContract {
+  const obligations = normalizeAuthoredObligations(beat.obligations)
+  beat.obligations = obligations
+  return obligations
+}
+
+function chooseBeatForText(scenes: SceneBeat[], text: string, characterName?: string): number | null {
+  if (scenes.length === 0) return null
+  const match = bestBeatMatch(scenes, text, { characterName, minScore: 1, minCoverage: 0 })
+  if (match) return match.beatIndex
+  if (characterName) {
+    for (let i = scenes.length - 1; i >= 0; i--) {
+      if (beatIncludesCharacter(scenes[i], characterName)) return i
+    }
+  }
+  return scenes.length - 1
 }
 
 function normalizeAuthoredObligations(obligations: BeatObligationsContract | undefined): BeatObligationsContract {
@@ -522,6 +618,14 @@ function summarizeStateChange(change: { location?: string; emotionalState?: stri
   if (change.emotionalState) parts.push(`state: ${change.emotionalState}`)
   if (change.knows?.length) parts.push(`knows: ${change.knows.join("; ")}`)
   return parts.join("; ")
+}
+
+function stateChangeSearchText(change: { location?: string; emotionalState?: string; knows?: string[] }): string {
+  return [
+    change.location,
+    change.emotionalState,
+    ...(change.knows ?? []),
+  ].filter(Boolean).join(" ")
 }
 
 function countHardObligations(obligations: BeatObligations): number {
