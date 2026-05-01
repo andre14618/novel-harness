@@ -25,23 +25,35 @@ interface Args {
   candidatePath: string
   outPath: string
   temperature?: number
+  persist: boolean
+  expId?: number
+  variantLabel: string
+  note?: string
 }
 
 function parseArgs(): Args {
   const argv = process.argv.slice(2)
   let inPath = "", candidatePath = "", outPath = ""
   let temperature: number | undefined
+  let persist = false
+  let expId: number | undefined
+  let variantLabel = "candidate"
+  let note: string | undefined
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--in") inPath = argv[++i]
     else if (argv[i] === "--candidate") candidatePath = argv[++i]
     else if (argv[i] === "--out") outPath = argv[++i]
     else if (argv[i] === "--temperature") temperature = Number(argv[++i])
+    else if (argv[i] === "--persist") persist = true
+    else if (argv[i] === "--exp-id") expId = Number(argv[++i])
+    else if (argv[i] === "--variant-label") variantLabel = argv[++i]
+    else if (argv[i] === "--note") note = argv[++i]
   }
   if (!inPath || !candidatePath || !outPath) {
-    console.error("usage: --in <panel.jsonl> --candidate <prompt.md> --out <results.jsonl> [--temperature N]")
+    console.error("usage: --in <panel.jsonl> --candidate <prompt.md> --out <results.jsonl> [--temperature N] [--persist [--exp-id N] [--variant-label LABEL] [--note STR]]")
     process.exit(1)
   }
-  return { inPath, candidatePath, outPath, temperature }
+  return { inPath, candidatePath, outPath, temperature, persist, expId, variantLabel, note }
 }
 
 function buildHallucUserPrompt(row: any): string {
@@ -189,9 +201,43 @@ async function main() {
   const tp = counts.TP ?? 0, fp = counts.FP ?? 0, fn = counts.FN ?? 0, tn = counts.TN ?? 0
   const recall = tp + fn > 0 ? (tp / (tp + fn) * 100).toFixed(1) : "n/a"
   const precision = tp + fp > 0 ? (tp / (tp + fp) * 100).toFixed(1) : "n/a"
-  console.log(`  Recall: ${recall}%   Precision: ${precision}%`)
+  const f1 = (tp + fp > 0 && tp + fn > 0)
+    ? (2 * tp / (2 * tp + fp + fn)).toFixed(3)
+    : "n/a"
+  console.log(`  Recall: ${recall}%   Precision: ${precision}%   F1: ${f1}`)
 
   console.log(`\nWrote ${results.length} rows to ${args.outPath}`)
+
+  if (args.persist) {
+    const { persistPhaseEvalRun, currentGitCommit } = await import("../phase-eval/persist-run")
+    const summary = {
+      panel_path: args.inPath,
+      candidate_prompt_path: args.candidatePath,
+      temperature: args.temperature ?? null,
+      n_total: results.length,
+      n_natural: results.filter(r => r.case_role === "current_surface_natural").length,
+      n_synthetic: results.filter(r => r.case_role === "synthetic_fixture").length,
+      calibration_matrix: { TP: tp, FP: fp, FN: fn, TN: tn },
+      recall_pct: recall === "n/a" ? null : Number(recall),
+      precision_pct: precision === "n/a" ? null : Number(precision),
+      f1: f1 === "n/a" ? null : Number(f1),
+      per_row_results: results,
+    }
+    const verdict = (recall === "n/a" || precision === "n/a")
+      ? "NO-DATA"
+      : (Number(recall) >= 50 && Number(precision) >= 60 ? "PROMOTE-CANDIDATE" : "REGRESS")
+    const runId = await persistPhaseEvalRun({
+      probeName: "halluc-ungrounded-prompt-ab",
+      gitCommit: currentGitCommit(),
+      experimentId: args.expId ?? null,
+      seedsUsed: ["fantasy-system-heretic"],  // current panel; future panels expand this
+      variantLabels: [args.variantLabel],
+      summaryJson: summary,
+      verdict,
+      notes: args.note ?? null,
+    })
+    console.log(`[persist] phase_eval_runs.id=${runId} probe=halluc-ungrounded-prompt-ab verdict=${verdict}`)
+  }
 }
 
 main().catch(err => { console.error(err); process.exit(1) })
