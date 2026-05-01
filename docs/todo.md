@@ -34,7 +34,8 @@ Checker promotion remains blocked until fresh labels are generated against the n
 
 The one-off planning variant probes were useful but too bespoke. The next prompt/composite-prior work needs reusable comparison plumbing.
 
-- [ ] **Sample `coverage-balanced` mapper variant on another seed.** Exp #294 passed all state-mapper gates on `fantasy-system-heretic` after the 16384 mapper cap and exact short-obligation repair fix. Run the same health-gated `default` vs `coverage-balanced` screen on a second seed before considering default-prompt promotion.
+- [x] ~~Sample `coverage-balanced` mapper variant on another seed.~~ **Done 2026-05-01.** Exp #296 SCREEN-PASS on `fantasy-inscription` at commit `08cff71`; persisted `phase_eval_runs.id=13`. coverage-balanced cleared G1-G5 with 0 ID/sourceKind/characterId mismatches, 0 overloaded beats, 35 state items vs floor 26.3, max completion 7113/16384. Combined with exp #295, coverage-balanced now has clean evidence on two seeds. Default-prompt promotion is a separate follow-up.
+- [ ] **Promote `coverage-balanced` to the default mapper system prompt.** With clean two-seed evidence (exp #295 `fantasy-system-heretic`, exp #296 `fantasy-inscription`), replace `src/agents/planning-state-mapper/state-mapper-system.md` with the `coverage-balanced` body and re-run the health-gated screen on at least one of the two seeds against the live (no-override) path to confirm the promoted prompt still passes.
 - [ ] **MVP durable eval/testing module.** Design draft: `docs/designs/eval-testing-module-v1.md`. Replace bespoke scripts with `(variant config, seed set, metric set) -> results table + UI`, reusing `llm_calls`, `tuning_experiments`, `pipeline_events`, and `eval_results` where possible.
 
 ### 4. Pick the next corpus-informed synthesis probe after runtime stabilization
