@@ -93,6 +93,48 @@ export function clearAbandonedBeatLevelState(state: BeatLevelFallbackState): voi
  *   - pov-missing → rewrite the beat that plans the POV character with the
  *     smallest cast size (tie-break earliest index)
  */
+// ── Stable-ID traceability helpers (Phase 10) ─────────────────────────────
+// Collect obligation/source/character IDs from a beat's obligations contract
+// for inclusion in beat-writer llm_calls metadata. The writer prompt does
+// NOT expose these IDs (preserves byte-parity); they live only in
+// `llm_calls.request_json` for downstream provenance queries.
+
+function collectObligationIds(obligations: any): string[] {
+  if (!obligations) return []
+  const ids: string[] = []
+  for (const key of ["mustEstablish", "mustPayOff", "mustTransferKnowledge", "mustShowStateChange", "mustNotReveal"]) {
+    for (const item of obligations[key] ?? []) {
+      const id = item.obligationId
+      if (id && typeof id === "string") ids.push(id)
+    }
+  }
+  return ids
+}
+
+function collectSourceIds(obligations: any): string[] {
+  if (!obligations) return []
+  const ids = new Set<string>()
+  for (const key of ["mustEstablish", "mustPayOff", "mustTransferKnowledge", "mustShowStateChange"]) {
+    for (const item of obligations[key] ?? []) {
+      const id = item.sourceId
+      if (id && typeof id === "string") ids.add(id)
+    }
+  }
+  return [...ids]
+}
+
+function collectCharacterIds(obligations: any): string[] {
+  if (!obligations) return []
+  const ids = new Set<string>()
+  for (const key of ["mustTransferKnowledge", "mustShowStateChange"]) {
+    for (const item of obligations[key] ?? []) {
+      const id = item.characterId
+      if (id && typeof id === "string") ids.add(id)
+    }
+  }
+  return [...ids]
+}
+
 function routeValidationBlockers(
   blockers: string[],
   outline: ChapterOutline,
@@ -338,6 +380,15 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                       beatCharacters: beatSpec.characters,
                       totalBeats: outline.scenes.length,
                       chapterTitle: outline.title,
+                      // Stable-ID traceability (Phase 10): persists into
+                      // llm_calls.request_json so the inspector view can
+                      // answer "which obligations / source items drove
+                      // this beat-writer call?" by exact ID lookup.
+                      chapterId: outline.chapterId,
+                      beatId: beatSpec.beatId,
+                      obligationIds: collectObligationIds(beatSpec.obligations),
+                      sourceIds: collectSourceIds(beatSpec.obligations),
+                      characterIds: collectCharacterIds(beatSpec.obligations),
                     },
                   },
                 )

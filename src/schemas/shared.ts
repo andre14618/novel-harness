@@ -50,6 +50,16 @@ export const beatObligationItemSchema = z.preprocess(
     characterName: z.coerce.string().optional(),
     seededAtBeat: optionalBeatIndexSchema,
     untilBeat: optionalBeatIndexSchema,
+    // ── Stable-ID contract (assigned by harness/ids.ts post-mapper):
+    // obligationId — unique within the beat; sourceId — references the
+    // upstream fact/knowledge/state/payoff item; sourceKind — disambiguates
+    // the registry to look up; characterId — present for knowledge/state
+    // obligations. The LLM may emit these directly or `enrichOutlineIds`
+    // populates them from text-match against the chapter-level registries.
+    obligationId: z.coerce.string().optional(),
+    sourceId: z.coerce.string().optional(),
+    sourceKind: z.enum(["fact", "knowledge", "state", "payoff", "avoid"]).optional(),
+    characterId: z.coerce.string().optional(),
   }).passthrough(),
 ).catch({ text: "" })
 
@@ -105,6 +115,11 @@ export const sceneBeatSchema = z.object({
   description: z.string(),
   characters: z.array(z.string()).default([]),
   kind: z.enum(BEAT_KINDS).default("action").catch("action"),
+  // Stable beat ID assigned by harness/ids.ts after planning-beats expansion;
+  // preserved across mapper retries so obligations can reference beats by ID
+  // even when beats are reordered. Optional in zod because legacy outlines
+  // and LLM responses round-trip without it; `enrichOutlineIds` fills it.
+  beatId: z.coerce.string().optional(),
   // Planner-Phase-2 V1a: setups declared here are expected to be realized at
   // `payoff_beat` later in the chapter. Empty array is valid — not every
   // beat seeds a payoff. Default [] so legacy plans round-trip unchanged.

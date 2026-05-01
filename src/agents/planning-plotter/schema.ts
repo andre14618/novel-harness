@@ -37,12 +37,17 @@ export type ChapterSkeleton = z.infer<typeof chapterSkeletonSchema>
 export const chapterOutlineSchema = z.object({
   chapterNumber: z.number(),
   title: z.string(),
+  // Stable chapter ID assigned by harness/ids.ts (e.g. ch-001-scribes-secret).
+  // Optional in zod for legacy round-trip; populated by `enrichOutlineIds`.
+  chapterId: z.coerce.string().optional(),
   povCharacter: z.string().default(""),
+  povCharacterId: z.coerce.string().optional(),
   setting: z.string().default(""),
   purpose: z.string().default(""),
   scenes: z.array(sceneBeatSchema).default([]),
   targetWords: z.number().default(1000),
   charactersPresent: z.array(z.string()).default([]),
+  charactersPresentIds: z.array(z.coerce.string()).default([]),
 
   // World state updates — what changes in this chapter. `id` is a stable
   // kebab-case slug assigned by planning-beats (see Planner-Phase-2 V1a in
@@ -68,8 +73,13 @@ export const chapterOutlineSchema = z.object({
         return v
       },
       z.object({
+        // Stable IDs (assigned by enrichOutlineIds). `id` is unique within
+        // the chapter; `characterId` resolves to the character registry.
+        id: z.coerce.string().optional(),
+        characterId: z.coerce.string().optional(),
         name: z.string(),
         location: z.string().default(""),
+        locationId: z.coerce.string().optional(),
         emotionalState: z.string().default(""),
         knows: z.array(z.string()).default([]),
         doesNotKnow: z.array(z.string()).default([]),
@@ -77,6 +87,8 @@ export const chapterOutlineSchema = z.object({
     ),
   ).default([]),
   knowledgeChanges: z.array(z.object({
+    id: z.coerce.string().optional(),
+    characterId: z.coerce.string().optional(),
     characterName: z.string(),
     knowledge: z.string(),
     source: z.string().default("witnessed").transform(v =>

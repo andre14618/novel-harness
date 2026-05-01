@@ -7,7 +7,7 @@ import {
   type ProviderName, type ProviderDef,
 } from "./models/registry"
 import { getModelForAgent, getAgentConfig, type ModelAssignment } from "./models/roles"
-import { getTransport, type LLMResponse } from "./transport"
+import { CompletionCapHitError, getTransport, isCompletionCapHitError, type LLMResponse } from "./transport"
 
 export type { ProviderName } from "./models/registry"
 
@@ -94,6 +94,8 @@ interface MakeRequestResult {
   totalLatencyMs: number
   httpAttempts: number
   retryErrors: Array<{ status: number; delay: number }>
+  finishReason?: string | null
+  hitCompletionCap?: boolean
 }
 
 // ── Agent Module Interface ────────────────────────────────────────────────
@@ -209,6 +211,15 @@ function formatErrorForLog(err: unknown): string {
   }
 }
 
+function completionCapHit(completionTokens: number, maxTokens: number, finishReason?: string | null): boolean {
+  return finishReason === "length" || (maxTokens > 0 && completionTokens >= maxTokens)
+}
+
+function capHitErrorMessage(agentName: string, provider: ProviderName, model: string, completionTokens: number, maxTokens: number, finishReason?: string | null): string {
+  const finish = finishReason ? ` finish_reason=${finishReason}` : ""
+  return `LLM completion hit max token cap for ${agentName} (${provider}/${model}): completion_tokens=${completionTokens} maxTokens=${maxTokens}${finish}`
+}
+
 // Guarantee: every call to executeAndLog produces exactly one row in llm_calls
 // when novelId is set, regardless of whether the underlying execute() succeeded
 // or threw. On failure, the row has failed=true and error_text populated.
@@ -320,8 +331,13 @@ export async function executeAndLog(
 
   try {
     response = await getTransport().execute(effectiveRequest)
+    if (completionCapHit(response.usage.completion_tokens, request.maxTokens, response.finishReason)) {
+      response.hitCompletionCap = true
+      throw new CompletionCapHitError(request, response)
+    }
     return response
   } catch (err) {
+    if (isCompletionCapHitError(err)) response = err.response
     caughtError = err
     throw err
   } finally {
@@ -334,6 +350,7 @@ export async function executeAndLog(
     const hasExperimentRun = getRunId() !== null && !novelId
     if (novelId || hasExperimentRun) {
       const failed = caughtError != null
+      const capHit = response?.hitCompletionCap ?? (response ? response.usage.completion_tokens >= request.maxTokens : false)
       const latencyMs = response?.latencyMs ?? (Date.now() - startedAt)
       const promptTokens = response?.usage.prompt_tokens ?? 0
       const completionTokens = response?.usage.completion_tokens ?? 0
@@ -354,8 +371,12 @@ export async function executeAndLog(
         // per beat were indistinguishable in llm_calls.
         const requestEnvelope = requestEnvelopeForLog(request)
         const requestJsonWithMeta = opts?.meta
-          ? { ...requestEnvelope, meta: opts.meta }
+          ? { ...requestEnvelope, meta: opts.meta, finishReason: response?.finishReason ?? null, hitCompletionCap: capHit }
           : requestEnvelope
+        if (!opts?.meta) {
+          requestJsonWithMeta.finishReason = response?.finishReason ?? null
+          requestJsonWithMeta.hitCompletionCap = capHit
+        }
         llmCallId = await logLLMCallStructured(novelId ?? null, {
           timestamp: new Date().toISOString(),
           agent: agentName,
@@ -466,6 +487,8 @@ async function makeRequest(
     totalLatencyMs: response.latencyMs,
     httpAttempts: response.httpAttempts,
     retryErrors: response.retryErrors,
+    finishReason: response.finishReason ?? null,
+    hitCompletionCap: response.hitCompletionCap ?? false,
   }
 }
 
@@ -573,6 +596,10 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
   try {
     requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model, providerName, config.agentName ?? "unknown", thinking, debugContext)
     content = requestResult.content
+    if (completionCapHit(requestResult.usage.completion_tokens, maxTokens, requestResult.finishReason)) {
+      requestResult.hitCompletionCap = true
+      throw new Error(capHitErrorMessage(config.agentName ?? "unknown", providerName, model, requestResult.usage.completion_tokens, maxTokens, requestResult.finishReason))
+    }
 
     totalTokens.prompt += requestResult.usage.prompt_tokens
     totalTokens.completion += requestResult.usage.completion_tokens
@@ -593,6 +620,10 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
       )
       requestResult = retryResult
       content = retryResult.content
+      if (completionCapHit(retryResult.usage.completion_tokens, maxTokens, retryResult.finishReason)) {
+        retryResult.hitCompletionCap = true
+        throw new Error(capHitErrorMessage(config.agentName ?? "unknown", providerName, model, retryResult.usage.completion_tokens, maxTokens, retryResult.finishReason))
+      }
       jsonStr = extractJSON(content)
       jsonExtractionSuccess = true
     }
@@ -614,6 +645,18 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
       tokensUsed: { prompt: requestResult.usage.prompt_tokens, completion: requestResult.usage.completion_tokens },
     }
   } catch (err) {
+    if (isCompletionCapHitError(err)) {
+      const response = err.response
+      requestResult = {
+        content: response.content,
+        usage: response.usage,
+        totalLatencyMs: response.latencyMs,
+        httpAttempts: response.httpAttempts,
+        retryErrors: response.retryErrors,
+        finishReason: response.finishReason ?? null,
+        hitCompletionCap: true,
+      }
+    }
     // Capture the error so the finally block can record it. We re-throw below
     // so caller behavior is unchanged.
     caughtError = err
@@ -675,6 +718,8 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
           responseFormat: { type: "json_object" },
           extraBody: provider.extraBody(),
           needsNothink,
+          finishReason: requestResult?.finishReason ?? null,
+          hitCompletionCap: requestResult?.hitCompletionCap ?? false,
           ...(config.logMetadata ?? {}),
         },
         failed,

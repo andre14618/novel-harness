@@ -40,7 +40,8 @@ function renderBeatLine(beat: SceneBeat, index: number): string {
   if (beat.miceActive?.length) soft.push(`miceActive=${beat.miceActive.join("/")}`)
   if (beat.miceOpens?.length) soft.push(`miceOpens=${beat.miceOpens.join("/")}`)
   if (beat.miceCloses?.length) soft.push(`miceCloses=${beat.miceCloses.join("/")}`)
-  return `  ${index}. [${beat.kind}] chars: ${chars}${soft.length ? ` (${soft.join(", ")})` : ""}\n     ${beat.description}`
+  const idTag = beat.beatId ? ` [${beat.beatId}]` : ""
+  return `  ${index}.${idTag} [${beat.kind}] chars: ${chars}${soft.length ? ` (${soft.join(", ")})` : ""}\n     ${beat.description}`
 }
 
 export function buildContext(args: StateMapperContextArgs): string {

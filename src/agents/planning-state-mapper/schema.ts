@@ -14,6 +14,10 @@ const knowledgeSourceValid = ["witnessed", "told", "overheard", "deduced", "read
 
 export const stateMapperBeatMappingSchema = z.object({
   beatIndex: z.number().int().nonnegative(),
+  // Optional beatId echo — when the LLM emits it, harness validates the
+  // beatIndex/beatId pair are consistent. Otherwise enrichOutlineIds fills
+  // it from the beatIndex lookup.
+  beatId: z.coerce.string().optional(),
   obligations: beatObligationsSchema,
   requiredPayoffs: z.array(payoffLinkSchema).default([]).catch([]),
 })
@@ -35,8 +39,11 @@ export const planningStateMapperSchema = z.object({
         return v
       },
       z.object({
+        id: z.coerce.string().optional(),
+        characterId: z.coerce.string().optional(),
         name: z.string(),
         location: z.string().default(""),
+        locationId: z.coerce.string().optional(),
         emotionalState: z.string().default(""),
         knows: z.array(z.string()).default([]),
         doesNotKnow: z.array(z.string()).default([]),
@@ -45,6 +52,8 @@ export const planningStateMapperSchema = z.object({
   ).default([]),
 
   knowledgeChanges: z.array(z.object({
+    id: z.coerce.string().optional(),
+    characterId: z.coerce.string().optional(),
     characterName: z.string(),
     knowledge: z.string(),
     source: z.string().default("witnessed").transform(v =>

@@ -6,6 +6,7 @@ import {
 } from "../db"
 import type { Phase, PhaseResult, PlanningOutput, ConceptOutput } from "./contract"
 import { callAgent } from "../llm"
+import { enrichOutlineIds } from "../harness/ids"
 import { PLANNING_PLOTTER_PROMPT } from "../prompts"
 import { buildContext as buildPlanningContext } from "../agents/planning-plotter/context"
 import { chapterSkeletonsSchema, type ChapterSkeleton } from "../agents/planning-plotter/schema"
@@ -212,6 +213,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
     emit(novelId, { type: "progress", data: { step: "planning-obligations", status: "repairing", chapters: coverageRepairs.length } })
     for (const item of coverageRepairs) {
       const repaired = harness.beatObligations.repairBeatObligationCoverage(item.outline)
+      enrichOutlineIds(repaired.outline)
       expanded[item.idx] = repaired.outline
       autoRepairCount += repaired.repairs.length
       for (const repair of repaired.repairs) {
@@ -354,8 +356,22 @@ async function mapChapterState(
   attempt: number = 1,
   retryFeedback?: string,
 ): Promise<ChapterOutline> {
+  // Pre-assign chapterId + beatIds + characterId on chapter-level state so
+  // the mapper context can render IDs and the mapper output can reference
+  // them. enrichOutlineIds is idempotent — running it again after merge
+  // preserves the IDs.
+  const preEnrichOutline: ChapterOutline = {
+    ...skeleton,
+    scenes,
+    establishedFacts: skeleton.establishedFacts ?? [],
+    characterStateChanges: skeleton.characterStateChanges ?? [],
+    knowledgeChanges: skeleton.knowledgeChanges ?? [],
+  } as ChapterOutline
+  enrichOutlineIds(preEnrichOutline)
+  // Mutate scenes in place; preEnrichOutline.scenes is a reference to the
+  // same array passed in.
   let userPrompt = buildStateMapperContext({
-    targetChapter: skeleton,
+    targetChapter: preEnrichOutline,
     allSkeletons,
     priorChapters: [], // cross-chapter coherence lives in the skeleton tier
     scenes,
@@ -382,6 +398,12 @@ async function mapChapterState(
 
     const mapping = result.output as PlanningStateMapperOutput
     const outline = mergeStateMapping(skeleton, scenes, mapping)
+    const enrichment = enrichOutlineIds(outline)
+    if (enrichment.obligationLinkFailures.length > 0) {
+      for (const failure of enrichment.obligationLinkFailures.slice(0, 8)) {
+        log(novelId, "warn", `Planning state mapper ch${outline.chapterNumber} unlinked obligation ${failure.obligationKey}#${failure.obligationIndex} on ${failure.beatId}: ${failure.reason} text="${failure.text.slice(0, 80)}"`)
+      }
+    }
     const validation = harness.beatObligations.validateBeatObligationCoverage(outline)
     logStateMapperTelemetry(novelId, outline, mapping, validation.summary, attempt)
     emit(novelId, { type: "progress", data: { step: "planning-state-mapper", status: "complete", chapter: skeleton.chapterNumber, attempt, valid: validation.valid } })
@@ -466,23 +488,27 @@ function emptyBeatObligations(): BeatObligationsContract {
 function renderExistingStateMapping(outline: ChapterOutline): string {
   const lines: string[] = []
   if ((outline.establishedFacts ?? []).length > 0) {
-    lines.push("Established facts:")
+    lines.push("Established facts (preserve every id):")
     for (const fact of outline.establishedFacts ?? []) {
-      lines.push(`- ${fact.id || "(missing-id)"}: [${fact.category}] ${fact.fact}`)
+      lines.push(`- id=${fact.id || "(missing-id)"} [${fact.category}] ${fact.fact}`)
     }
   }
   if ((outline.knowledgeChanges ?? []).length > 0) {
-    lines.push("Knowledge changes:")
+    lines.push("Knowledge changes (preserve every id and characterId):")
     for (const change of outline.knowledgeChanges ?? []) {
-      lines.push(`- ${change.characterName}: ${change.knowledge} (${change.source})`)
+      const id = (change as any).id ? `id=${(change as any).id} ` : ""
+      const cid = (change as any).characterId ? `characterId=${(change as any).characterId} ` : ""
+      lines.push(`- ${id}${cid}${change.characterName}: ${change.knowledge} (${change.source})`)
     }
   }
   if ((outline.characterStateChanges ?? []).length > 0) {
-    lines.push("Character state changes:")
+    lines.push("Character state changes (preserve every id and characterId):")
     for (const change of outline.characterStateChanges ?? []) {
       const knows = change.knows.length ? `; knows: ${change.knows.join(", ")}` : ""
       const doesNotKnow = change.doesNotKnow.length ? `; doesNotKnow: ${change.doesNotKnow.join(", ")}` : ""
-      lines.push(`- ${change.name}: location: ${change.location || "?"}; state: ${change.emotionalState || "?"}${knows}${doesNotKnow}`)
+      const id = (change as any).id ? `id=${(change as any).id} ` : ""
+      const cid = (change as any).characterId ? `characterId=${(change as any).characterId} ` : ""
+      lines.push(`- ${id}${cid}${change.name}: location: ${change.location || "?"}; state: ${change.emotionalState || "?"}${knows}${doesNotKnow}`)
     }
   }
   return lines.length ? lines.join("\n") : "No existing state mapping was available."

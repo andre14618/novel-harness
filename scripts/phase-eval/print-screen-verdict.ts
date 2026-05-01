@@ -112,6 +112,15 @@ interface VariantMetrics {
   orphan_state: number
   total_orphans: number
   overloaded_beats: number
+  // Exact-ID coverage metrics (Phase 5+).
+  missing_source_ids: number
+  unknown_source_ids: number
+  duplicate_source_ids: number
+  character_id_mismatches: number
+  // Diagnostic only — fuzzy beat-text matches that COULD have covered an
+  // orphan but did not because no obligation was authored. Never affects
+  // the screen verdict.
+  implicit_text_matches: number
 }
 
 interface MapperHealthMetrics {
@@ -244,6 +253,11 @@ function computeVariantMetrics(data: VariantData): VariantMetrics {
       orphan_state: 0,
       total_orphans: 0,
       overloaded_beats: 0,
+      missing_source_ids: 0,
+      unknown_source_ids: 0,
+      duplicate_source_ids: 0,
+      character_id_mismatches: 0,
+      implicit_text_matches: 0,
     }
   }
 
@@ -272,6 +286,11 @@ function computeVariantMetrics(data: VariantData): VariantMetrics {
     orphan_state: orphanState,
     total_orphans: orphanFacts + orphanKnowledge + orphanState,
     overloaded_beats: sum(coverage.map(c => c.summary.overloadedBeats)),
+    missing_source_ids: sum(coverage.map(c => c.summary.missingSourceIds)),
+    unknown_source_ids: sum(coverage.map(c => c.summary.unknownObligationSourceIds)),
+    duplicate_source_ids: sum(coverage.map(c => c.summary.duplicateSourceIds)),
+    character_id_mismatches: sum(coverage.map(c => c.summary.characterIdMismatches)),
+    implicit_text_matches: sum(coverage.map(c => c.summary.implicitTextMatches)),
   }
 }
 
@@ -447,6 +466,9 @@ async function main(): Promise<void> {
   console.log(`Expected chapters per variant: ${expectedChapters} (from src/seeds/${summary.seed}.json)`)
   console.log(`Variants: ${summary.variants.map(v => v.id).join(", ")}`)
   console.log(`Comparison: control=${args.controlId} test=${args.testId}`)
+  console.log(metricSet === "state-mapper"
+    ? "Signal provenance: LLMs produce concept artifacts, skeletons, fixed beats, and mapper obligations; this script applies deterministic file/SQL gates over those artifacts and llm_calls telemetry."
+    : "Signal provenance: LLMs produce concept artifacts and planning outlines; this script applies deterministic file gates over those artifacts.")
   console.log()
 
   const controlV = summary.variants.find(v => v.id === args.controlId)
@@ -483,9 +505,16 @@ async function main(): Promise<void> {
   const mapperStateFloor = Math.max(expectedChapters, 0.75 * controlMetrics.total_state_items)
   // Planning-beats keeps the historical R5 directional gates. State-mapper
   // screens focus on writer-visible coverage and avoiding empty-state wins.
+  // G1 for state-mapper is now exact-ID coverage: missing/unknown/duplicate
+  // source IDs and character-ID mismatches must all be zero. Fuzzy
+  // beat-text overlap (implicit_text_matches) is diagnostic only and never
+  // contributes to the verdict.
   const G1 = metricSet === "planning-beats"
     ? m.test_facts_median >= 1.5 * m.control_facts_median && m.test_facts_median >= 8
-    : testMetrics.total_orphans === 0
+    : (testMetrics.missing_source_ids === 0
+        && testMetrics.unknown_source_ids === 0
+        && testMetrics.duplicate_source_ids === 0
+        && testMetrics.character_id_mismatches === 0)
   const G2 = metricSet === "planning-beats"
     ? m.test_know_median >= 1.5 * m.control_know_median && m.test_know_median >= 3
     : testMetrics.overloaded_beats === 0
@@ -495,13 +524,16 @@ async function main(): Promise<void> {
   const G5 = metricSet === "planning-beats" ? true : mapperHealthPass(testHealth!)
 
   // ── Print metrics ───────────────────────────────────────────────────
-  console.log("Metrics:")
+  console.log("Metrics (deterministic counts from parsed LLM-produced outlines):")
   for (const [id, data, metrics] of [[args.controlId, control, controlMetrics], [args.testId, test, testMetrics]] as const) {
-    console.log(`  ${id}: facts_median=${fmt(metrics.facts_median)}  know_median=${fmt(metrics.knowledge_median)}  state_median=${fmt(metrics.state_median)}  total_beats=${metrics.total_beats}  payoffs=${metrics.total_payoff_links}  obligations=${metrics.total_obligations}  orphans=${metrics.total_orphans}  overloaded=${metrics.overloaded_beats}  status=${data.ok ? "ok" : `BROKEN (${data.reason})`}`)
+    const idCoverage = metricSet === "state-mapper"
+      ? `  missing_source_ids=${metrics.missing_source_ids}  unknown_source_ids=${metrics.unknown_source_ids}  duplicate_source_ids=${metrics.duplicate_source_ids}  characterId_mismatches=${metrics.character_id_mismatches}  implicit_text_matches=${metrics.implicit_text_matches}`
+      : ""
+    console.log(`  ${id}: facts_median=${fmt(metrics.facts_median)}  know_median=${fmt(metrics.knowledge_median)}  state_median=${fmt(metrics.state_median)}  total_beats=${metrics.total_beats}  payoffs=${metrics.total_payoff_links}  obligations=${metrics.total_obligations}  orphans=${metrics.total_orphans}  overloaded=${metrics.overloaded_beats}${idCoverage}  status=${data.ok ? "ok" : `BROKEN (${data.reason})`}`)
   }
   if (metricSet === "state-mapper") {
     console.log()
-    console.log("Mapper health:")
+    console.log("Mapper health (SQL telemetry from llm_calls; deterministic health predicates):")
     for (const [id, health] of [[args.controlId, controlHealth!], [args.testId, testHealth!]] as const) {
       if (!health.available) {
         console.log(`  ${id}: unavailable (${health.reason})`)
@@ -511,20 +543,20 @@ async function main(): Promise<void> {
     }
   }
   console.log()
-  console.log("Gate evaluation:")
+  console.log("Gate evaluation (all gates are deterministic checks; no judge LLM is called here):")
   if (metricSet === "planning-beats") {
-    console.log(`  G1 rich-facts:        ${args.testId}_facts_median (${fmt(m.test_facts_median)}) ≥ 1.5 × ${args.controlId}_facts_median (${fmt(1.5 * m.control_facts_median)}) AND ≥ 8       → ${G1 ? "PASS" : "FAIL"}`)
-    console.log(`  G2 knowledge-changes: ${args.testId}_know_median (${fmt(m.test_know_median)}) ≥ 1.5 × ${args.controlId}_know_median (${fmt(1.5 * m.control_know_median)}) AND ≥ 3        → ${G2 ? "PASS" : "FAIL"}`)
-    console.log(`  G3 beat-floor:        ${args.testId}_total_beats (${m.test_total_beats}) ≥ 1.10 × ${args.controlId}_total_beats (${fmt(1.10 * m.control_total_beats)})                                  → ${G3 ? "PASS" : "FAIL"}`)
+    console.log(`  G1 rich-facts [code]:        ${args.testId}_facts_median (${fmt(m.test_facts_median)}) ≥ 1.5 × ${args.controlId}_facts_median (${fmt(1.5 * m.control_facts_median)}) AND ≥ 8       → ${G1 ? "PASS" : "FAIL"}`)
+    console.log(`  G2 knowledge-changes [code]: ${args.testId}_know_median (${fmt(m.test_know_median)}) ≥ 1.5 × ${args.controlId}_know_median (${fmt(1.5 * m.control_know_median)}) AND ≥ 3        → ${G2 ? "PASS" : "FAIL"}`)
+    console.log(`  G3 beat-floor [code]:        ${args.testId}_total_beats (${m.test_total_beats}) ≥ 1.10 × ${args.controlId}_total_beats (${fmt(1.10 * m.control_total_beats)})                                  → ${G3 ? "PASS" : "FAIL"}`)
   } else {
-    console.log(`  G1 no-orphans:        ${args.testId}_total_orphans (${testMetrics.total_orphans}) = 0                                                                  → ${G1 ? "PASS" : "FAIL"}`)
-    console.log(`  G2 no-overload:       ${args.testId}_overloaded_beats (${testMetrics.overloaded_beats}) = 0                                                            → ${G2 ? "PASS" : "FAIL"}`)
-    console.log(`  G3 state-retention:   ${args.testId}_state_items (${testMetrics.total_state_items}) ≥ max(${expectedChapters}, 0.75 × ${args.controlId}_state_items=${fmt(0.75 * controlMetrics.total_state_items)}) → ${G3 ? "PASS" : "FAIL"}`)
+    console.log(`  G1 exact-id coverage [code]: ${args.testId} missing_source_ids=${testMetrics.missing_source_ids}, unknown_source_ids=${testMetrics.unknown_source_ids}, duplicate_source_ids=${testMetrics.duplicate_source_ids}, characterId_mismatches=${testMetrics.character_id_mismatches} (all = 0 required; implicit_text_matches=${testMetrics.implicit_text_matches} is diagnostic) → ${G1 ? "PASS" : "FAIL"}`)
+    console.log(`  G2 no-overload [code]:       ${args.testId}_overloaded_beats (${testMetrics.overloaded_beats}) = 0                                                            → ${G2 ? "PASS" : "FAIL"}`)
+    console.log(`  G3 state-retention [code]:   ${args.testId}_state_items (${testMetrics.total_state_items}) ≥ max(${expectedChapters}, 0.75 × ${args.controlId}_state_items=${fmt(0.75 * controlMetrics.total_state_items)}) → ${G3 ? "PASS" : "FAIL"}`)
   }
-  console.log(`  G4 structural:        ${args.testId} planning complete + ${expectedChapters} outlines parse                                                                  → ${G4 ? "PASS" : "FAIL"}`)
+  console.log(`  G4 structural [code]:        ${args.testId} planning complete + ${expectedChapters} outlines parse                                                                  → ${G4 ? "PASS" : "FAIL"}`)
   if (metricSet === "state-mapper") {
     const h = testHealth!
-    console.log(`  G5 mapper-health:     telemetry available + no retries/failures/cap-hit/auto-repair (${h.available ? `json_retried=${h.json_retried_calls}, failed=${h.failed_calls}, cap=${h.hit_completion_cap}, auto_repair=${h.auto_repair_repairs ?? "unknown"}` : h.reason}) → ${G5 ? "PASS" : "FAIL"}`)
+    console.log(`  G5 mapper-health [SQL+code]: telemetry available + no retries/failures/cap-hit/auto-repair (${h.available ? `json_retried=${h.json_retried_calls}, failed=${h.failed_calls}, cap=${h.hit_completion_cap}, auto_repair=${h.auto_repair_repairs ?? "unknown"}` : h.reason}) → ${G5 ? "PASS" : "FAIL"}`)
   }
   console.log()
 

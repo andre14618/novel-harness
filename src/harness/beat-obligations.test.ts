@@ -7,6 +7,7 @@ import {
   renderBeatObligations,
   validateBeatObligationCoverage,
 } from "./beat-obligations"
+import { enrichOutlineIds } from "./ids"
 import type { ChapterOutline, SceneBeat } from "../types"
 
 test("deriveBeatObligations maps payoff links to seed and payoff beat obligations", () => {
@@ -25,14 +26,14 @@ test("deriveBeatObligations maps payoff links to seed and payoff beat obligation
 
   expect(result.summary.orphanFacts).toBe(0)
   expect(result.beats[0].mustEstablish).toEqual([
-    expect.objectContaining({ text: "The marsh fungus compound slows Ashrot symptoms", confidence: "explicit", factId: "fungus-slows-ashrot" }),
+    expect.objectContaining({ text: "The marsh fungus compound slows Ashrot symptoms", confidence: "explicit", sourceId: "fungus-slows-ashrot", sourceKind: "fact" }),
   ])
   expect(result.beats[2].mustPayOff).toEqual([
-    expect.objectContaining({ text: "The marsh fungus compound slows Ashrot symptoms", confidence: "explicit", seededAtBeat: 0 }),
+    expect.objectContaining({ text: "The marsh fungus compound slows Ashrot symptoms", confidence: "explicit", sourceId: "fungus-slows-ashrot", sourceKind: "payoff", seededAtBeat: 0 }),
   ])
 })
 
-test("deriveBeatObligations treats planner-authored obligations as explicit assignments", () => {
+test("deriveBeatObligations treats planner-authored obligations as explicit assignments and resolves sourceId by text", () => {
   const result = deriveBeatObligations(chapter({
     scenes: [
       beat({
@@ -61,7 +62,7 @@ test("deriveBeatObligations treats planner-authored obligations as explicit assi
   expect(result.summary.orphanFacts).toBe(0)
   expect(result.summary.orphanKnowledgeChanges).toBe(0)
   expect(result.summary.orphanStateChanges).toBe(0)
-  expect(result.beats[0].mustEstablish[0]).toEqual(expect.objectContaining({ confidence: "explicit", source: "scene.obligations.mustEstablish" }))
+  expect(result.beats[0].mustEstablish[0]).toEqual(expect.objectContaining({ confidence: "explicit", source: "scene.obligations.mustEstablish", sourceId: "old-script", sourceKind: "fact" }))
   expect(result.beats[0].mustNotReveal[0]).toEqual(expect.objectContaining({ kind: "avoid", text: "Do not reveal Orvath's full plan" }))
   expect(result.beats[0].allowedNewEntities).toContain("Old Tongue")
 })
@@ -90,7 +91,11 @@ test("deriveBeatObligations ignores blank planner-authored obligation items", ()
   expect(result.summary.orphanFacts).toBe(1)
 })
 
-test("deriveBeatObligations infers fact and knowledge obligations from beat text", () => {
+test("deriveBeatObligations does NOT cover state items via beat-text overlap (exact-ID only)", () => {
+  // Even though the beat description contains all the keywords from the
+  // fact + knowledge change, no obligation was authored — so under the
+  // exact-ID contract, both items are orphans. Beat-text matches are
+  // diagnostic-only via summary.implicitTextMatches.
   const outline = chapter({
     scenes: [
       beat({ description: "Istra examines Wren's green-lit memory and realizes the cure damages language." }),
@@ -106,10 +111,10 @@ test("deriveBeatObligations infers fact and knowledge obligations from beat text
 
   const result = deriveBeatObligations(outline)
 
-  expect(result.summary.orphanFacts).toBe(0)
-  expect(result.summary.orphanKnowledgeChanges).toBe(0)
-  expect(result.beats[0].mustEstablish[0]).toEqual(expect.objectContaining({ source: "establishedFacts.text-match", confidence: "inferred" }))
-  expect(result.beats[0].mustTransferKnowledge[0]).toEqual(expect.objectContaining({ characterName: "Istra", source: "knowledgeChanges.text-match" }))
+  expect(result.summary.orphanFacts).toBe(1)
+  expect(result.summary.orphanKnowledgeChanges).toBe(1)
+  expect(result.summary.implicitTextMatches).toBeGreaterThan(0)
+  expect(result.beats[0].mustEstablish).toEqual([])
 })
 
 test("deriveBeatObligations warns about orphan state that is not writer-visible", () => {
@@ -126,11 +131,10 @@ test("deriveBeatObligations warns about orphan state that is not writer-visible"
   const result = deriveBeatObligations(outline)
 
   expect(result.summary.orphanStateChanges).toBe(1)
-  expect(result.warnings[0]).toContain("characterStateChange")
-  expect(result.warnings[0]).toContain("Istra")
+  expect(result.warnings.some(w => w.includes("source id") && w.includes("state-istra"))).toBe(true)
 })
 
-test("validateBeatObligationCoverage fails when chapter state is not writer-visible", () => {
+test("validateBeatObligationCoverage fails when chapter state has no covering sourceId obligation", () => {
   const outline = chapter({
     scenes: [beat({ description: "Istra prepares another dose." })],
     establishedFacts: [
@@ -147,11 +151,36 @@ test("validateBeatObligationCoverage fails when chapter state is not writer-visi
   const validation = validateBeatObligationCoverage(outline)
 
   expect(validation.valid).toBe(false)
-  expect(validation.errors).toContain("Chapter 1: 1/1 knowledge change(s) are not writer-visible through beat text or obligations")
-  expect(validation.errors).toContain("Chapter 1: 1/1 character state change(s) are not writer-visible through beat text or obligations")
+  expect(validation.errors.some(e => e.includes("established fact"))).toBe(true)
+  expect(validation.errors.some(e => e.includes("knowledge change"))).toBe(true)
+  expect(validation.errors.some(e => e.includes("character state change"))).toBe(true)
+  expect(validation.missingSourceIds).toContain("ledger-forgery")
 })
 
-test("formatObligationCoverageRetryFeedback names missing knowledge and state", () => {
+test("validateBeatObligationCoverage flags unknown obligation source IDs", () => {
+  const outline = chapter({
+    scenes: [
+      beat({
+        description: "Istra prepares another dose.",
+        obligations: {
+          mustEstablish: [
+            { sourceId: "fact-not-in-registry", sourceKind: "fact", text: "Some fact" } as any,
+          ],
+          mustPayOff: [], mustTransferKnowledge: [], mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [],
+        },
+      }),
+    ],
+    establishedFacts: [],
+  })
+  const validation = validateBeatObligationCoverage(outline)
+
+  expect(validation.valid).toBe(false)
+  expect(validation.unknownObligations).toEqual([
+    expect.objectContaining({ obligationKey: "mustEstablish", sourceId: "fact-not-in-registry" }),
+  ])
+})
+
+test("formatObligationCoverageRetryFeedback names missing source IDs and preserves chapter ids", () => {
   const outline = chapter({
     scenes: [beat({ description: "Istra prepares another dose." })],
     establishedFacts: [
@@ -168,14 +197,15 @@ test("formatObligationCoverageRetryFeedback names missing knowledge and state", 
 
   const feedback = formatObligationCoverageRetryFeedback(outline, validation)
 
-  expect(feedback).toContain("failed writer-visible obligation coverage")
-  expect(feedback).toContain("Established facts that must be preserved and covered")
-  expect(feedback).toContain("ledger-forgery: Aldric falsified the plague ledgers")
-  expect(feedback).toContain("Istra: Aldric falsified the plague ledgers")
-  expect(feedback).toContain("Istra: location: The sealed archive; state: furious clarity")
+  expect(feedback).toContain("failed exact-ID obligation coverage")
+  expect(feedback).toContain("Missing source IDs")
+  expect(feedback).toContain("ledger-forgery")
+  expect(feedback).toContain("Established facts (preserve all ids)")
+  expect(feedback).toContain("Knowledge changes (preserve all ids and characterIds)")
+  expect(feedback).toContain("characterId=char-istra")
 })
 
-test("repairBeatObligationCoverage injects remaining hidden state into beat obligations", () => {
+test("repairBeatObligationCoverage inserts obligations referencing the missing source IDs", () => {
   const outline = chapter({
     scenes: [
       beat({ description: "Istra prepares another dose.", characters: ["Istra"] }),
@@ -192,18 +222,18 @@ test("repairBeatObligationCoverage injects remaining hidden state into beat obli
   const repaired = repairBeatObligationCoverage(outline)
 
   expect(repaired.validation.valid).toBe(true)
-  expect(repaired.repairs).toEqual([
-    expect.stringContaining("added mustTransferKnowledge for Istra"),
-    expect.stringContaining("added mustShowStateChange for Istra"),
-  ])
-  expect(repaired.outline.scenes[0].obligations.mustTransferKnowledge[0]).toEqual({
-    characterName: "Istra",
-    text: "Aldric falsified the plague ledgers",
-  })
-  expect(repaired.outline.scenes[0].obligations.mustShowStateChange[0].text).toContain("furious clarity")
+  expect(repaired.repairs.some(r => r.includes("mustTransferKnowledge") && r.includes("char-istra"))).toBe(true)
+  expect(repaired.repairs.some(r => r.includes("mustShowStateChange") && r.includes("char-istra"))).toBe(true)
+
+  const beat0 = repaired.outline.scenes[0]
+  const knowObl = beat0.obligations.mustTransferKnowledge[0] as any
+  expect(knowObl.sourceId).toMatch(/^know-/)
+  expect(knowObl.sourceKind).toBe("knowledge")
+  expect(knowObl.characterId).toBe("char-istra")
+  expect(knowObl.obligationId).toMatch(/^obl-/)
 })
 
-test("repairBeatObligationCoverage covers short exact knowledge obligations", () => {
+test("repairBeatObligationCoverage covers short knowledge items by ID reference", () => {
   const outline = chapter({
     scenes: [beat({ description: "Istra watches the seal break.", characters: ["Istra"] })],
     knowledgeChanges: [
@@ -213,8 +243,8 @@ test("repairBeatObligationCoverage covers short exact knowledge obligations", ()
 
   const repaired = repairBeatObligationCoverage(outline)
 
-  expect(repaired.repairs).toEqual([expect.stringContaining("added mustTransferKnowledge for Istra")])
   expect(repaired.validation.valid).toBe(true)
+  expect(repaired.repairs.some(r => r.includes("mustTransferKnowledge"))).toBe(true)
 })
 
 test("deriveBeatObligations counts id-less established facts as orphan telemetry", () => {
@@ -227,7 +257,6 @@ test("deriveBeatObligations counts id-less established facts as orphan telemetry
 
   expect(result.summary.factCount).toBe(1)
   expect(result.summary.orphanFacts).toBe(1)
-  expect(result.warnings[0]).toContain("without id")
 })
 
 test("deriveBeatObligations warns when a payoff target is outside the chapter", () => {
@@ -240,8 +269,8 @@ test("deriveBeatObligations warns when a payoff target is outside the chapter", 
     ],
   }))
 
-  expect(result.warnings[0]).toContain("points outside the chapter")
-  expect(result.beats[0].mustEstablish[0]).toEqual(expect.objectContaining({ factId: "cure-clue" }))
+  expect(result.warnings.some(w => w.includes("points outside the chapter"))).toBe(true)
+  expect(result.beats[0].mustEstablish[0]).toEqual(expect.objectContaining({ sourceId: "cure-clue" }))
 })
 
 test("deriveBeatObligations does not mark known chapter characters as allowed new entities", () => {
@@ -252,22 +281,6 @@ test("deriveBeatObligations does not mark known chapter characters as allowed ne
 
   expect(result.beats[0].allowedNewEntities).not.toContain("Wren")
   expect(result.beats[0].allowedNewEntities).toContain("Ledger Key")
-})
-
-test("deriveBeatObligations avoids substring character matches", () => {
-  const result = deriveBeatObligations(chapter({
-    charactersPresent: ["Al", "Istra"],
-    scenes: [
-      beat({ description: "Aldric reads the plague ledgers and falsified dates.", characters: ["Aldric"] }),
-      beat({ description: "Al hides in the infirmary.", characters: ["Al"] }),
-    ],
-    knowledgeChanges: [
-      { characterName: "Al", knowledge: "plague ledgers and falsified dates", source: "read" },
-    ],
-  }))
-
-  expect(result.summary.orphanKnowledgeChanges).toBe(1)
-  expect(result.beats[0].mustTransferKnowledge).toEqual([])
 })
 
 test("renderBeatObligations emits compact writer-facing sections", () => {
@@ -290,6 +303,18 @@ test("renderBeatObligations emits compact writer-facing sections", () => {
   expect(rendered).toContain("Ledger Key")
 })
 
+test("enrichOutlineIds is idempotent across repeated calls", () => {
+  const outline = chapter({
+    scenes: [beat({ description: "Istra reads the ledger." })],
+    establishedFacts: [{ id: "fact-some-fact", fact: "Some fact", category: "knowledge" }],
+  })
+  const r1 = enrichOutlineIds(outline)
+  const r2 = enrichOutlineIds(outline)
+  expect(r1.chapterId).toBe(r2.chapterId)
+  expect(r1.beatIds).toEqual(r2.beatIds)
+  expect(outline.scenes[0].beatId).toBe(r1.beatIds[0])
+})
+
 function chapter(overrides: Partial<ChapterOutline> = {}): ChapterOutline {
   return {
     chapterNumber: 1,
@@ -304,7 +329,7 @@ function chapter(overrides: Partial<ChapterOutline> = {}): ChapterOutline {
     characterStateChanges: [],
     knowledgeChanges: [],
     ...overrides,
-  }
+  } as ChapterOutline
 }
 
 function beat(overrides: Partial<SceneBeat> = {}): SceneBeat {
@@ -318,5 +343,5 @@ function beat(overrides: Partial<SceneBeat> = {}): SceneBeat {
     miceOpens: [],
     miceCloses: [],
     ...overrides,
-  }
+  } as SceneBeat
 }

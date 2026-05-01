@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-30
+updated: 2026-05-01
 ---
 
 # Lessons Learned
@@ -22,6 +22,12 @@ Exp #289's first split-mapper runs showed a state mapper can pass coverage by de
 
 ### Thinking structured calls need budget for reasoning plus JSON emission (2026-05-01)
 Exp #289 initially capped `planning-state-mapper` at 6144 completion tokens. Late chapters hit the cap and required JSON-extraction retries even though the visible schema was moderate-sized. Rule: for thinking-enabled structured emitters, set maxTokens for reasoning plus the full JSON object, not just the visible JSON estimate; a reasoning route with too-low output headroom becomes slower and less reliable than a larger bounded cap.
+
+### Completion cap hits are truncation failures, not normal long outputs (2026-05-01)
+Exp #291 showed a mapper arm could pass outline metrics while hitting the completion ceiling and recording JSON/Zod recovery failures. Rule: treat provider `finish_reason="length"` or `completion_tokens >= maxTokens` as an error-class cap hit across structured and prose calls. Human-facing logs should say `hit max token cap`, not just `length`, because `length` is a provider enum while the actual failure is token-budget truncation.
+
+### Exact authored obligations should bypass fuzzy-token coverage thresholds (2026-05-01)
+Exp #293 exposed a deterministic repair mismatch: auto-repair could add a short exact `mustTransferKnowledge` item, but validation still failed because the matcher required at least two meaningful-token overlaps. Rule: for structured authored obligations, first accept exact normalized text plus matching character/fact identity, then use fuzzy overlap only as fallback. Fuzzy thresholds are for inferred beat-text coverage, not for rejecting explicit deterministic repairs.
 
 ### Optional LLM metadata schemas must be lenient at the production boundary (2026-05-01)
 Exp #286 promoted planner-authored beat obligations into the `planning-beats` output. The first fresh run emitted usable chapter beats but some optional obligation items were malformed (`mustPayOff` id-only objects without `text`, `untilBeat: "later"`), causing Zod to reject whole chapters and collapse them to zero beats. Exp #287 then hit the same class through optional soft-prior tags (`miceOpens: "E"`). Rule: when optional metadata is not the primary artifact, schema-parse it leniently, filter unusable items deterministically, and keep strictness for the primary artifact. Optional scaffolding should not erase valid prose/planning structure.
@@ -1663,3 +1669,16 @@ This is the SECOND parallel-write failure mode the project has hit. The first (P
 - **Mandatory post-run verification**: after any parallel-batch run, the orchestrator must run `grep -c "^## Pattern N:" target.md` and assert the count equals the number of parallel subagents. If the count is below expected, recover from each subagent's stdout/stderr verdict report before the commit sweep lands. This is the cheap defense regardless of which fix above is adopted.
 
 The conclusions-stubs design was already named in the prior parallel-write lesson ("each measurement subagent writes a per-pattern conclusions stub at `novels/<key>/structure-calibration/conclusions-stubs/<pattern>.md`, and a periodic sweep gathers stubs into the canonical conclusions doc"). The 2026-04-30 P72-75 incident is the first concrete evidence that the flock-only path doesn't suffice and the stubs design is load-bearing — not optional. Until the stubs flow lands, post-run grep verification is mandatory for any N≥3 parallel pattern batch. (P72-75 silent loss + manual recovery, 2026-04-30, commit `788b7a2`; helper at `scripts/structure-calibration/lib/atomic_io.py`.)
+
+## Fuzzy text matching is a derivation pathway, never a contract validation pathway
+
+When code can resolve "did the planner cover X?" by token overlap against a beat description, the gate passes by accident: it reflects tokenization choices and prompt-bytes drift, not the planner's actual contract intent. The pre-prose contract for beat obligations (2026-05-01 stable-ID rewrite) had been accepting three different "writer-visible" pathways — authored obligation, payoff-link derivation, and beat-text overlap above a tunable threshold — and the third pathway made the validator silently dependent on stopword lists, the `meaningfulTokens` regex, and the `bestBeatMatch` score floor. Coverage flipped on prompt edits that should not have affected coverage at all.
+
+**The rule:** code may use fuzzy matching as a *derivation* step (e.g. "given an obligation without a sourceId, propose a link by best-text-match"), but the *validation* step must be exact-ID equality. A contract gate that accepts paraphrase + token-overlap as a passing signal will degrade silently as either the prompt or the matching heuristic evolves; the only way to keep the gate meaningful is to require an explicit reference (`sourceId === id`) that downstream consumers can also rely on.
+
+**How to apply:**
+- Validation gates check exact equality on stable IDs. Fuzzy/text matching is allowed *behind* the validator (in enrichment/derivation/repair steps) where its decisions show up as concrete linked-IDs in the artifact, not as hidden boolean votes.
+- When you find yourself reaching for `tokenOverlap >= threshold` inside a pass/fail check, that is the smell. Either the upstream artifact needs a stable ID it doesn't have, or the gate is measuring the wrong thing.
+- Surface the diagnostic counterpart anyway (`implicit_text_matches`) — it tells you when a contract failure is "merely" missing wiring (the text *would* have matched if obligated) vs. genuine omission. But the diagnostic must never feed back into the gate.
+
+(2026-05-01 stable-ID rewrite, `src/harness/ids.ts` + `src/harness/beat-obligations.ts`.)

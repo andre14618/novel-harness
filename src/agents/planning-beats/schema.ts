@@ -45,8 +45,11 @@ export const chapterBeatsSchema = beatExpansionSchema.extend({
         return v
       },
       z.object({
+        id: z.coerce.string().optional(),
+        characterId: z.coerce.string().optional(),
         name: z.string(),
         location: z.string().default(""),
+        locationId: z.coerce.string().optional(),
         emotionalState: z.string().default(""),
         knows: z.array(z.string()).default([]),
         doesNotKnow: z.array(z.string()).default([]),
@@ -55,6 +58,8 @@ export const chapterBeatsSchema = beatExpansionSchema.extend({
   ).default([]),
 
   knowledgeChanges: z.array(z.object({
+    id: z.coerce.string().optional(),
+    characterId: z.coerce.string().optional(),
     characterName: z.string(),
     knowledge: z.string(),
     source: z.string().default("witnessed").transform(v =>

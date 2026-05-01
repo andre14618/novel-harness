@@ -1,4 +1,13 @@
 import type { BeatObligationsContract, ChapterOutline, SceneBeat } from "../types"
+import {
+  enrichOutlineIds,
+  characterIdFromName,
+  knowledgeIdFromContent,
+  stateIdFromContent,
+  obligationIdGen,
+  ID_RE,
+  type SourceKind,
+} from "./ids"
 
 export type BeatObligationKind =
   | "establish"
@@ -15,7 +24,11 @@ export interface BeatObligationItem {
   confidence: BeatObligationConfidence
   source: string
   factId?: string
+  sourceId?: string
+  sourceKind?: SourceKind | "avoid"
+  obligationId?: string
   characterName?: string
+  characterId?: string
   seededAtBeat?: number
 }
 
@@ -28,25 +41,39 @@ export interface BeatObligations {
   allowedNewEntities: string[]
 }
 
+export interface BeatObligationShadowPlanSummary {
+  factCount: number
+  knowledgeCount: number
+  stateChangeCount: number
+  orphanFacts: number
+  orphanKnowledgeChanges: number
+  orphanStateChanges: number
+  overloadedBeats: number
+  // Stable-ID metrics (Phase 5).
+  missingSourceIds: number
+  unknownObligationSourceIds: number
+  duplicateSourceIds: number
+  characterIdMismatches: number
+  // Diagnostic only — fuzzy beat-text matches that COULD have covered an
+  // orphan source if obligations had been authored. NEVER affects coverage.
+  implicitTextMatches: number
+}
+
 export interface BeatObligationShadowPlan {
   beats: BeatObligations[]
   warnings: string[]
-  summary: {
-    factCount: number
-    knowledgeCount: number
-    stateChangeCount: number
-    orphanFacts: number
-    orphanKnowledgeChanges: number
-    orphanStateChanges: number
-    overloadedBeats: number
-  }
+  summary: BeatObligationShadowPlanSummary
 }
 
 export interface BeatObligationCoverageValidation {
   valid: boolean
   errors: string[]
   warnings: string[]
-  summary: BeatObligationShadowPlan["summary"]
+  summary: BeatObligationShadowPlanSummary
+  /** Names of source IDs that have no covering obligation. */
+  missingSourceIds: string[]
+  /** Obligation entries whose `sourceId` does not match any source registry. */
+  unknownObligations: Array<{ beatId: string; obligationKey: string; sourceId: string }>
 }
 
 export interface BeatObligationCoverageRepair {
@@ -64,6 +91,8 @@ const EMPTY_OBLIGATIONS = (): BeatObligations => ({
   allowedNewEntities: [],
 })
 
+const PROPER_NOUN_STOPWORDS = new Set(["A", "An", "The"])
+const OVERLOADED_BEAT_OBLIGATION_LIMIT = 5
 const STOPWORDS = new Set([
   "about", "after", "again", "against", "being", "before", "chapter", "could",
   "every", "from", "have", "into", "must", "only", "over", "that", "their",
@@ -71,14 +100,18 @@ const STOPWORDS = new Set([
   "would",
 ])
 
-const PROPER_NOUN_STOPWORDS = new Set(["A", "An", "The"])
-const OVERLOADED_BEAT_OBLIGATION_LIMIT = 5
+// ── deriveBeatObligations ────────────────────────────────────────────────
+// Builds a per-beat snapshot of authored obligations + payoff-link
+// derivations. Pure passthrough of authored items — no inference from beat
+// text into obligations (that would defeat the exact-ID contract). Fuzzy
+// beat-text matches are reported via `summary.implicitTextMatches` for
+// diagnostics only.
 
 export function deriveBeatObligations(outline: ChapterOutline): BeatObligationShadowPlan {
+  enrichOutlineIds(outline)
+
   const beats = outline.scenes.map(() => EMPTY_OBLIGATIONS())
   const warnings: string[] = []
-  const factAssignments = new Map<string, Set<number>>()
-  let orphanFacts = 0
   const factById = new Map((outline.establishedFacts ?? [])
     .filter(f => f.id?.trim())
     .map(f => [f.id.trim(), f.fact]))
@@ -86,7 +119,7 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
   for (let beatIndex = 0; beatIndex < outline.scenes.length; beatIndex++) {
     const beat = outline.scenes[beatIndex]
     const authored = normalizeAuthoredObligations(beat.obligations)
-    addAuthoredObligations(beats[beatIndex], authored, beatIndex, factAssignments)
+    addAuthoredObligations(beats[beatIndex], authored)
     beats[beatIndex].allowedNewEntities = mergeUnique([
       ...authored.allowedNewEntities,
       ...deriveAllowedNewEntities(beat, outline),
@@ -106,8 +139,9 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
         confidence: "explicit",
         source: "requiredPayoffs.seed",
         factId,
+        sourceId: factId,
+        sourceKind: "fact",
       })
-      assignFact(factAssignments, factId, beatIndex)
 
       if (Number.isInteger(link.payoff_beat) && link.payoff_beat >= 0 && link.payoff_beat < beats.length) {
         addObligation(beats[link.payoff_beat].mustPayOff, {
@@ -116,139 +150,253 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
           confidence: "explicit",
           source: "requiredPayoffs.payoff",
           factId,
+          sourceId: factId,
+          sourceKind: "payoff",
           seededAtBeat: beatIndex,
         })
-        assignFact(factAssignments, factId, link.payoff_beat)
       } else {
         warnings.push(`Chapter ${outline.chapterNumber} beat ${beatIndex + 1}: payoff link for "${factId}" points outside the chapter and cannot become a payoff obligation`)
       }
     }
   }
 
-  for (const fact of outline.establishedFacts ?? []) {
-    const factId = fact.id?.trim()
-    if (!factId) {
-      orphanFacts++
-      warnings.push(`Chapter ${outline.chapterNumber}: establishedFact without id is not assigned to any beat obligation`)
-      continue
-    }
-    if (factAssignments.has(factId)) continue
-
-    const authoredMatch = bestAuthoredObligationMatch(outline.scenes, fact.fact, factId, "mustEstablish")
-    if (authoredMatch !== null) {
-      assignFact(factAssignments, factId, authoredMatch)
-      continue
-    }
-
-    const match = bestBeatMatch(outline.scenes, fact.fact, { minScore: 2, minCoverage: 0.25 })
-    if (match) {
-      addObligation(beats[match.beatIndex].mustEstablish, {
-        kind: "establish",
-        text: fact.fact,
-        confidence: "inferred",
-        source: "establishedFacts.text-match",
-        factId,
-      })
-      assignFact(factAssignments, factId, match.beatIndex)
-    } else {
-      orphanFacts++
-      warnings.push(`Chapter ${outline.chapterNumber}: establishedFact "${factId}" is not assigned to any beat obligation`)
-    }
+  // ── Coverage analysis (exact-ID) ──────────────────────────────────────
+  const validation = computeCoverage(outline)
+  const summary: BeatObligationShadowPlanSummary = {
+    factCount: outline.establishedFacts?.length ?? 0,
+    knowledgeCount: outline.knowledgeChanges?.length ?? 0,
+    stateChangeCount: outline.characterStateChanges?.length ?? 0,
+    orphanFacts: validation.orphanFacts,
+    orphanKnowledgeChanges: validation.orphanKnowledge,
+    orphanStateChanges: validation.orphanState,
+    overloadedBeats: 0,
+    missingSourceIds: validation.missingSourceIds.length,
+    unknownObligationSourceIds: validation.unknownObligations.length,
+    duplicateSourceIds: validation.duplicateSourceIds,
+    characterIdMismatches: validation.characterIdMismatches,
+    implicitTextMatches: validation.implicitTextMatches,
   }
 
-  const knowledgeChanges = writerVisibleKnowledgeChanges(outline)
-  let orphanKnowledgeChanges = 0
-  for (const change of knowledgeChanges) {
-    if (authoredKnowledgeCovers(outline.scenes, change)) continue
-
-    const match = bestBeatMatch(outline.scenes, change.knowledge, {
-      characterName: change.characterName,
-      minScore: 2,
-      minCoverage: 0.25,
-    })
-    if (match) {
-      addObligation(beats[match.beatIndex].mustTransferKnowledge, {
-        kind: "knowledge",
-        text: change.knowledge,
-        confidence: "inferred",
-        source: "knowledgeChanges.text-match",
-        characterName: change.characterName,
-      })
-    } else {
-      orphanKnowledgeChanges++
-      warnings.push(`Chapter ${outline.chapterNumber}: knowledgeChange for "${change.characterName}" (${change.knowledge}) is not assigned to any beat obligation`)
-    }
+  for (const id of validation.missingSourceIds) {
+    warnings.push(`Chapter ${outline.chapterNumber}: source id "${id}" is not covered by any beat obligation`)
+  }
+  for (const obl of validation.unknownObligations) {
+    warnings.push(`Chapter ${outline.chapterNumber}: obligation on ${obl.beatId} (${obl.obligationKey}) references unknown sourceId "${obl.sourceId}"`)
+  }
+  for (const issue of validation.characterIssues) {
+    warnings.push(`Chapter ${outline.chapterNumber}: ${issue}`)
   }
 
-  let orphanStateChanges = 0
-  for (const change of outline.characterStateChanges ?? []) {
-    const text = stateChangeSearchText(change)
-    if (!text.trim()) continue
-    if (authoredStateCovers(outline.scenes, change, text)) continue
-
-    const match = bestBeatMatch(outline.scenes, text, {
-      characterName: change.name,
-      minScore: 2,
-      minCoverage: 0.2,
-    })
-    if (match) {
-      addObligation(beats[match.beatIndex].mustShowStateChange, {
-        kind: "state",
-        text: summarizeStateChange(change),
-        confidence: "inferred",
-        source: "characterStateChanges.text-match",
-        characterName: change.name,
-      })
-    } else {
-      orphanStateChanges++
-      warnings.push(`Chapter ${outline.chapterNumber}: characterStateChange for "${change.name}" is not assigned to any beat obligation`)
-    }
-  }
-
+  // Overloaded-beat warning (by hard-obligation count, count includes
+  // payoff-derived obligations).
   let overloadedBeats = 0
   for (let i = 0; i < beats.length; i++) {
     const hardCount = countHardObligations(beats[i])
     if (hardCount > OVERLOADED_BEAT_OBLIGATION_LIMIT) {
       overloadedBeats++
-      warnings.push(`Chapter ${outline.chapterNumber} beat ${i + 1}: ${hardCount} inferred/explicit obligations may overload the writer`)
+      warnings.push(`Chapter ${outline.chapterNumber} beat ${i + 1}: ${hardCount} obligations may overload the writer`)
+    }
+  }
+  summary.overloadedBeats = overloadedBeats
+
+  return { beats, warnings, summary }
+}
+
+interface InternalCoverage {
+  orphanFacts: number
+  orphanKnowledge: number
+  orphanState: number
+  missingSourceIds: string[]
+  unknownObligations: Array<{ beatId: string; obligationKey: string; sourceId: string }>
+  duplicateSourceIds: number
+  characterIdMismatches: number
+  characterIssues: string[]
+  implicitTextMatches: number
+}
+
+function computeCoverage(outline: ChapterOutline): InternalCoverage {
+  const out: InternalCoverage = {
+    orphanFacts: 0,
+    orphanKnowledge: 0,
+    orphanState: 0,
+    missingSourceIds: [],
+    unknownObligations: [],
+    duplicateSourceIds: 0,
+    characterIdMismatches: 0,
+    characterIssues: [],
+    implicitTextMatches: 0,
+  }
+
+  // Build registries with duplicate detection.
+  const factRegistry = new Map<string, { fact: string }>()
+  for (const fact of outline.establishedFacts ?? []) {
+    const id = (fact.id ?? "").trim()
+    if (!id) continue
+    if (factRegistry.has(id)) out.duplicateSourceIds++
+    factRegistry.set(id, { fact: fact.fact })
+  }
+
+  const knowRegistry = new Map<string, { characterId: string; characterName: string; knowledge: string }>()
+  for (const change of outline.knowledgeChanges ?? []) {
+    const id = ((change as any).id ?? "").trim()
+    if (!id) continue
+    if (knowRegistry.has(id)) out.duplicateSourceIds++
+    knowRegistry.set(id, {
+      characterId: (change as any).characterId ?? characterIdFromName(change.characterName),
+      characterName: change.characterName,
+      knowledge: change.knowledge,
+    })
+  }
+
+  const stateRegistry = new Map<string, { characterId: string; name: string }>()
+  for (const change of outline.characterStateChanges ?? []) {
+    const id = ((change as any).id ?? "").trim()
+    if (!id) continue
+    if (stateRegistry.has(id)) out.duplicateSourceIds++
+    stateRegistry.set(id, {
+      characterId: (change as any).characterId ?? characterIdFromName(change.name),
+      name: change.name,
+    })
+  }
+
+  // Collect all obligations with their context.
+  const coveredFactIds = new Set<string>()
+  const coveredKnowIds = new Set<string>()
+  const coveredStateIds = new Set<string>()
+
+  for (const beat of outline.scenes ?? []) {
+    const beatId = beat.beatId ?? `beat-${(outline.scenes ?? []).indexOf(beat) + 1}`
+    const obligations = beat.obligations
+    if (!obligations) continue
+
+    for (const item of obligations.mustEstablish ?? []) {
+      const sId = (item as any).sourceId
+      if (sId && factRegistry.has(sId)) coveredFactIds.add(sId)
+      else if (sId) out.unknownObligations.push({ beatId, obligationKey: "mustEstablish", sourceId: sId })
+    }
+    for (const item of obligations.mustPayOff ?? []) {
+      const sId = (item as any).sourceId
+      if (sId && factRegistry.has(sId)) coveredFactIds.add(sId)
+      else if (sId) out.unknownObligations.push({ beatId, obligationKey: "mustPayOff", sourceId: sId })
+    }
+    for (const item of obligations.mustTransferKnowledge ?? []) {
+      const sId = (item as any).sourceId
+      if (sId && knowRegistry.has(sId)) {
+        coveredKnowIds.add(sId)
+        const reg = knowRegistry.get(sId)!
+        const itemCharId = (item as any).characterId
+        if (itemCharId && itemCharId !== reg.characterId) {
+          out.characterIdMismatches++
+          out.characterIssues.push(`obligation ${(item as any).obligationId ?? "(unnamed)"} on ${beatId} characterId "${itemCharId}" ≠ source "${reg.characterId}"`)
+        }
+      } else if (sId) out.unknownObligations.push({ beatId, obligationKey: "mustTransferKnowledge", sourceId: sId })
+    }
+    for (const item of obligations.mustShowStateChange ?? []) {
+      const sId = (item as any).sourceId
+      if (sId && stateRegistry.has(sId)) {
+        coveredStateIds.add(sId)
+        const reg = stateRegistry.get(sId)!
+        const itemCharId = (item as any).characterId
+        if (itemCharId && itemCharId !== reg.characterId) {
+          out.characterIdMismatches++
+          out.characterIssues.push(`obligation ${(item as any).obligationId ?? "(unnamed)"} on ${beatId} characterId "${itemCharId}" ≠ source "${reg.characterId}"`)
+        }
+      } else if (sId) out.unknownObligations.push({ beatId, obligationKey: "mustShowStateChange", sourceId: sId })
     }
   }
 
-  return {
-    beats,
-    warnings,
-    summary: {
-      factCount: outline.establishedFacts?.length ?? 0,
-      knowledgeCount: knowledgeChanges.length,
-      stateChangeCount: outline.characterStateChanges?.length ?? 0,
-      orphanFacts,
-      orphanKnowledgeChanges,
-      orphanStateChanges,
-      overloadedBeats,
-    },
+  // Also: a fact can be "covered" if a requiredPayoffs link points at a
+  // valid in-chapter beat (the link itself implies a future obligation
+  // contract that the planning loop will materialize on the seeding+payoff
+  // beats).
+  const beatCount = (outline.scenes ?? []).length
+  for (const beat of outline.scenes ?? []) {
+    for (const link of beat.requiredPayoffs ?? []) {
+      const factId = link.fact_id?.trim()
+      if (!factId || !factRegistry.has(factId)) continue
+      if (Number.isInteger(link.payoff_beat) && link.payoff_beat >= 0 && link.payoff_beat < beatCount) {
+        coveredFactIds.add(factId)
+      }
+    }
   }
+
+  // Orphans: source IDs without coverage.
+  for (const id of factRegistry.keys()) {
+    if (!coveredFactIds.has(id)) {
+      out.orphanFacts++
+      out.missingSourceIds.push(id)
+    }
+  }
+  for (const id of knowRegistry.keys()) {
+    if (!coveredKnowIds.has(id)) {
+      out.orphanKnowledge++
+      out.missingSourceIds.push(id)
+    }
+  }
+  for (const id of stateRegistry.keys()) {
+    if (!coveredStateIds.has(id)) {
+      out.orphanState++
+      out.missingSourceIds.push(id)
+    }
+  }
+
+  // Diagnostic: count fuzzy beat-text matches that *could* have covered an
+  // orphan if obligations had been authored. Never affects coverage; useful
+  // for retry feedback to suggest placement.
+  for (const sourceId of out.missingSourceIds) {
+    const text = factRegistry.get(sourceId)?.fact
+      ?? knowRegistry.get(sourceId)?.knowledge
+      ?? null
+    if (!text) continue
+    if (bestBeatMatch(outline.scenes ?? [], text, { minScore: 2, minCoverage: 0.25 })) {
+      out.implicitTextMatches++
+    }
+  }
+
+  // Facts/knowledge/state items missing IDs entirely.
+  const missingIdFacts = (outline.establishedFacts ?? []).filter(f => !((f.id ?? "").trim())).length
+  const missingIdKnow = (outline.knowledgeChanges ?? []).filter(c => !(((c as any).id ?? "").trim())).length
+  const missingIdState = (outline.characterStateChanges ?? []).filter(c => !(((c as any).id ?? "").trim())).length
+  out.orphanFacts += missingIdFacts
+  out.orphanKnowledge += missingIdKnow
+  out.orphanState += missingIdState
+
+  return out
 }
 
 export function validateBeatObligationCoverage(outline: ChapterOutline): BeatObligationCoverageValidation {
+  enrichOutlineIds(outline)
   const plan = deriveBeatObligations(outline)
   const errors: string[] = []
   const s = plan.summary
 
   if (s.orphanFacts > 0) {
-    errors.push(`Chapter ${outline.chapterNumber}: ${s.orphanFacts}/${s.factCount} established fact(s) are not writer-visible through beat text or obligations`)
+    errors.push(`Chapter ${outline.chapterNumber}: ${s.orphanFacts}/${s.factCount} established fact(s) have no beat obligation referencing their sourceId`)
   }
   if (s.orphanKnowledgeChanges > 0) {
-    errors.push(`Chapter ${outline.chapterNumber}: ${s.orphanKnowledgeChanges}/${s.knowledgeCount} knowledge change(s) are not writer-visible through beat text or obligations`)
+    errors.push(`Chapter ${outline.chapterNumber}: ${s.orphanKnowledgeChanges}/${s.knowledgeCount} knowledge change(s) have no beat obligation referencing their sourceId`)
   }
   if (s.orphanStateChanges > 0) {
-    errors.push(`Chapter ${outline.chapterNumber}: ${s.orphanStateChanges}/${s.stateChangeCount} character state change(s) are not writer-visible through beat text or obligations`)
+    errors.push(`Chapter ${outline.chapterNumber}: ${s.orphanStateChanges}/${s.stateChangeCount} character state change(s) have no beat obligation referencing their sourceId`)
+  }
+  if (s.unknownObligationSourceIds > 0) {
+    errors.push(`Chapter ${outline.chapterNumber}: ${s.unknownObligationSourceIds} obligation(s) reference unknown source IDs`)
+  }
+  if (s.duplicateSourceIds > 0) {
+    errors.push(`Chapter ${outline.chapterNumber}: ${s.duplicateSourceIds} duplicate source ID(s) declared at chapter level`)
+  }
+  if (s.characterIdMismatches > 0) {
+    errors.push(`Chapter ${outline.chapterNumber}: ${s.characterIdMismatches} obligation(s) have characterId not matching the source item`)
   }
 
+  const cov = computeCoverage(outline)
   return {
     valid: errors.length === 0,
     errors,
     warnings: plan.warnings,
     summary: plan.summary,
+    missingSourceIds: cov.missingSourceIds,
+    unknownObligations: cov.unknownObligations,
   }
 }
 
@@ -257,123 +405,182 @@ export function formatObligationCoverageRetryFeedback(
   validation: BeatObligationCoverageValidation,
 ): string {
   const lines = [
-    `Chapter ${outline.chapterNumber} failed writer-visible obligation coverage. Re-expand this chapter so the beat writer receives every required state/fact/knowledge obligation before drafting.`,
+    `Chapter ${outline.chapterNumber} (${outline.chapterId ?? "(missing-chapterId)"}) failed exact-ID obligation coverage. Re-emit the state mapping with every chapter-level item covered by a beat obligation whose sourceId references it.`,
     "",
-    "Hard requirements:",
-    "- Every establishedFacts[] item must appear in a beat description or in a beat obligations.mustEstablish/mustPayOff item.",
-    "- Every knowledgeChanges[] item must be mirrored in exactly one beat obligations.mustTransferKnowledge item, using the same character name and key knowledge phrase.",
-    "- Every characterStateChanges[] item must be mirrored in at least one beat obligations.mustShowStateChange item, using the same character name and key final-state phrase.",
-    "- Keep hard obligations compact: prefer 1-4 per beat and avoid overloading any beat.",
+    "Hard requirements (validation is strict; text overlap does not count):",
+    "- Every establishedFacts[].id must appear as the sourceId of at least one mustEstablish or mustPayOff obligation, or as the fact_id of a valid in-chapter requiredPayoffs link.",
+    "- Every knowledgeChanges[].id must appear as the sourceId of exactly one mustTransferKnowledge obligation; characterId must match.",
+    "- Every characterStateChanges[].id must appear as the sourceId of at least one mustShowStateChange obligation; characterId must match.",
+    "- Obligation sourceId must reference a real chapter-level item; sourceKind must match the registry.",
+    "- Preserve every existing id and beatId verbatim. Do not delete valid state to make coverage pass.",
     "",
     "Coverage errors:",
     ...validation.errors.map(error => `- ${error}`),
   ]
 
-  const specificWarnings = validation.warnings.filter(w => w.includes("not assigned") || w.includes("without id"))
-  if (specificWarnings.length > 0) {
-    lines.push("", "Specific missing assignments:", ...specificWarnings.map(w => `- ${w}`))
-  }
-
-  if ((outline.establishedFacts ?? []).length > 0) {
-    lines.push("", "Established facts that must be preserved and covered:")
-    for (const fact of outline.establishedFacts ?? []) {
-      lines.push(`- ${fact.id || "(missing-id)"}: ${fact.fact}`)
+  if (validation.missingSourceIds.length > 0) {
+    lines.push("", "Missing source IDs (add obligations with these as sourceId):")
+    for (const id of validation.missingSourceIds) {
+      lines.push(`- ${id}`)
     }
   }
 
-  const knowledgeChanges = writerVisibleKnowledgeChanges(outline)
-  if (knowledgeChanges.length > 0) {
-    lines.push("", "Knowledge changes that must be covered:")
-    for (const change of knowledgeChanges) {
-      lines.push(`- ${change.characterName}: ${change.knowledge}`)
+  if (validation.unknownObligations.length > 0) {
+    lines.push("", "Unknown obligation source IDs (rename to a real chapter-level item id, or remove):")
+    for (const obl of validation.unknownObligations) {
+      lines.push(`- ${obl.beatId} ${obl.obligationKey} → ${obl.sourceId}`)
+    }
+  }
+
+  if ((outline.establishedFacts ?? []).length > 0) {
+    lines.push("", "Established facts (preserve all ids):")
+    for (const fact of outline.establishedFacts ?? []) {
+      lines.push(`- id=${fact.id || "(missing-id)"}: ${fact.fact}`)
+    }
+  }
+
+  if ((outline.knowledgeChanges ?? []).length > 0) {
+    lines.push("", "Knowledge changes (preserve all ids and characterIds):")
+    for (const change of outline.knowledgeChanges ?? []) {
+      const id = (change as any).id ?? "(missing-id)"
+      const cid = (change as any).characterId ?? "(missing-characterId)"
+      lines.push(`- id=${id} characterId=${cid} ${change.characterName}: ${change.knowledge}`)
     }
   }
 
   if ((outline.characterStateChanges ?? []).length > 0) {
-    lines.push("", "Character state changes that must be covered:")
+    lines.push("", "Character state changes (preserve all ids and characterIds):")
     for (const change of outline.characterStateChanges ?? []) {
-      const state = summarizeStateChange(change)
-      lines.push(`- ${change.name}: ${state || "state changed"}`)
+      const id = (change as any).id ?? "(missing-id)"
+      const cid = (change as any).characterId ?? "(missing-characterId)"
+      lines.push(`- id=${id} characterId=${cid} ${change.name}: ${summarizeStateChange(change) || "state changed"}`)
     }
   }
 
   return lines.join("\n")
 }
 
+// ── Auto-repair (Phase 6) ────────────────────────────────────────────────
+// Rebuilds missing obligations for every uncovered source ID. Repair only
+// chooses placement; it never invents new source items, and the obligations
+// it inserts always carry an exact sourceId/sourceKind reference.
+
 export function repairBeatObligationCoverage(outline: ChapterOutline): BeatObligationCoverageRepair {
+  enrichOutlineIds(outline)
   const repairs: string[] = []
 
-  for (const fact of outline.establishedFacts ?? []) {
-    if (factIsWriterVisible(outline, fact)) continue
-    const beatIndex = chooseBeatForText(outline.scenes, fact.fact)
-    if (beatIndex === null) continue
-    const obligations = ensureAuthoredObligations(outline.scenes[beatIndex])
-    obligations.mustEstablish.push({ id: fact.id || undefined, text: fact.fact })
-    repairs.push(`Chapter ${outline.chapterNumber} beat ${beatIndex + 1}: added mustEstablish for fact ${fact.id || fact.fact}`)
+  const ordinalByBeatKind = new Map<string, number>()
+  function nextOrdinal(beatId: string, key: string): number {
+    const k = `${beatId}:${key}`
+    const n = ordinalByBeatKind.get(k) ?? countExisting(outline, beatId, key)
+    ordinalByBeatKind.set(k, n + 1)
+    return n
   }
 
-  for (const change of writerVisibleKnowledgeChanges(outline)) {
-    if (knowledgeIsWriterVisible(outline, change)) continue
-    const beatIndex = chooseBeatForText(outline.scenes, change.knowledge, change.characterName)
-    if (beatIndex === null) continue
-    const obligations = ensureAuthoredObligations(outline.scenes[beatIndex])
-    obligations.mustTransferKnowledge.push({ characterName: change.characterName, text: change.knowledge })
-    repairs.push(`Chapter ${outline.chapterNumber} beat ${beatIndex + 1}: added mustTransferKnowledge for ${change.characterName}`)
-  }
+  const cov = computeCoverage(outline)
 
-  for (const change of outline.characterStateChanges ?? []) {
-    const text = stateChangeSearchText(change)
-    if (!text.trim() || stateIsWriterVisible(outline, change, text)) continue
-    const beatIndex = chooseBeatForText(outline.scenes, text, change.name)
-    if (beatIndex === null) continue
-    const obligations = ensureAuthoredObligations(outline.scenes[beatIndex])
-    obligations.mustShowStateChange.push({ characterName: change.name, text: summarizeStateChange(change) })
-    repairs.push(`Chapter ${outline.chapterNumber} beat ${beatIndex + 1}: added mustShowStateChange for ${change.name}`)
+  for (const sourceId of cov.missingSourceIds) {
+    const placement = chooseRepairBeat(outline, sourceId)
+    if (!placement) continue
+    const { beat, kind, sourceItem } = placement
+    const obligations = ensureAuthoredObligations(beat)
+    const beatId = beat.beatId ?? "unknown-beat"
+    const ord = nextOrdinal(beatId, kind)
+
+    if (kind === "mustEstablish") {
+      obligations.mustEstablish.push({
+        obligationId: obligationIdGen(beatId, "fact", sourceId, ord),
+        sourceId,
+        sourceKind: "fact",
+        text: (sourceItem as any).fact ?? "",
+      } as any)
+      repairs.push(`Chapter ${outline.chapterNumber} ${beatId}: added mustEstablish referencing ${sourceId}`)
+    } else if (kind === "mustTransferKnowledge") {
+      const k = sourceItem as { characterId: string; characterName: string; knowledge: string }
+      obligations.mustTransferKnowledge.push({
+        obligationId: obligationIdGen(beatId, "know", sourceId, ord),
+        sourceId,
+        sourceKind: "knowledge",
+        characterId: k.characterId,
+        characterName: k.characterName,
+        text: k.knowledge,
+      } as any)
+      repairs.push(`Chapter ${outline.chapterNumber} ${beatId}: added mustTransferKnowledge referencing ${sourceId} (${k.characterId})`)
+    } else if (kind === "mustShowStateChange") {
+      const s = sourceItem as { characterId: string; name: string; summary: string }
+      obligations.mustShowStateChange.push({
+        obligationId: obligationIdGen(beatId, "state", sourceId, ord),
+        sourceId,
+        sourceKind: "state",
+        characterId: s.characterId,
+        characterName: s.name,
+        text: s.summary,
+      } as any)
+      repairs.push(`Chapter ${outline.chapterNumber} ${beatId}: added mustShowStateChange referencing ${sourceId} (${s.characterId})`)
+    }
   }
 
   return { outline, repairs, validation: validateBeatObligationCoverage(outline) }
 }
 
-function factIsWriterVisible(outline: ChapterOutline, fact: { id?: string; fact: string }): boolean {
-  const factId = fact.id?.trim()
-  if (!factId) return false
-  if (bestAuthoredObligationMatch(outline.scenes, fact.fact, factId, "mustEstablish") !== null) return true
-  if (bestAuthoredObligationMatch(outline.scenes, fact.fact, factId, "mustPayOff") !== null) return true
-  if (bestBeatMatch(outline.scenes, fact.fact, { minScore: 2, minCoverage: 0.25 })) return true
-  return (outline.scenes ?? []).some((beat, beatIndex) =>
-    (beat.requiredPayoffs ?? []).some(link =>
-      link.fact_id?.trim() === factId
-      && Number.isInteger(link.payoff_beat)
-      && link.payoff_beat >= 0
-      && link.payoff_beat < outline.scenes.length
-      && link.payoff_beat > beatIndex,
-    ),
-  )
+function countExisting(outline: ChapterOutline, beatId: string, key: string): number {
+  for (const beat of outline.scenes ?? []) {
+    if (beat.beatId !== beatId) continue
+    return ((beat.obligations as any)?.[key] ?? []).length
+  }
+  return 0
 }
 
-function knowledgeIsWriterVisible(
-  outline: ChapterOutline,
-  change: { characterName: string; knowledge: string },
-): boolean {
-  return authoredKnowledgeCovers(outline.scenes, change)
-    || bestBeatMatch(outline.scenes, change.knowledge, {
-      characterName: change.characterName,
-      minScore: 2,
-      minCoverage: 0.25,
-    }) !== null
+interface RepairPlacement {
+  beat: SceneBeat
+  kind: "mustEstablish" | "mustTransferKnowledge" | "mustShowStateChange"
+  sourceItem: { fact?: string; characterId?: string; characterName?: string; knowledge?: string; name?: string; summary?: string }
 }
 
-function stateIsWriterVisible(
-  outline: ChapterOutline,
-  change: { name: string },
-  stateText: string,
-): boolean {
-  return authoredStateCovers(outline.scenes, change, stateText)
-    || bestBeatMatch(outline.scenes, stateText, {
-      characterName: change.name,
-      minScore: 2,
-      minCoverage: 0.2,
-    }) !== null
+function chooseRepairBeat(outline: ChapterOutline, sourceId: string): RepairPlacement | null {
+  const scenes = outline.scenes ?? []
+  if (scenes.length === 0) return null
+
+  // Identify which registry the source belongs to.
+  const fact = (outline.establishedFacts ?? []).find(f => f.id === sourceId)
+  if (fact) {
+    const beatIndex = chooseBeatForText(scenes, fact.fact)
+    if (beatIndex === null) return null
+    return { beat: scenes[beatIndex], kind: "mustEstablish", sourceItem: { fact: fact.fact } }
+  }
+
+  const know = (outline.knowledgeChanges ?? []).find(c => (c as any).id === sourceId)
+  if (know) {
+    const beatIndex = chooseBeatForText(scenes, know.knowledge, know.characterName)
+    if (beatIndex === null) return null
+    return {
+      beat: scenes[beatIndex],
+      kind: "mustTransferKnowledge",
+      sourceItem: {
+        characterId: (know as any).characterId ?? characterIdFromName(know.characterName),
+        characterName: know.characterName,
+        knowledge: know.knowledge,
+      },
+    }
+  }
+
+  const state = (outline.characterStateChanges ?? []).find(c => (c as any).id === sourceId)
+  if (state) {
+    const summary = summarizeStateChange(state) || "state changed"
+    const beatIndex = chooseBeatForText(scenes, stateChangeSearchText(state) || summary, state.name)
+    if (beatIndex === null) return null
+    return {
+      beat: scenes[beatIndex],
+      kind: "mustShowStateChange",
+      sourceItem: {
+        characterId: (state as any).characterId ?? characterIdFromName(state.name),
+        name: state.name,
+        summary,
+      },
+    }
+  }
+
+  return null
 }
 
 function ensureAuthoredObligations(beat: SceneBeat): BeatObligationsContract {
@@ -405,150 +612,81 @@ function normalizeAuthoredObligations(obligations: BeatObligationsContract | und
   }
 }
 
-function writerVisibleKnowledgeChanges(outline: ChapterOutline): { characterName: string; knowledge: string }[] {
-  return (outline.knowledgeChanges ?? []).filter(change => change.knowledge?.trim().length > 0)
-}
-
 function cleanAuthoredItems<T extends { text: string }>(items: T[] | undefined): T[] {
   return (items ?? []).filter(item => item.text.trim().length > 0)
 }
 
-function addAuthoredObligations(
-  target: BeatObligations,
-  authored: BeatObligationsContract,
-  beatIndex: number,
-  factAssignments: Map<string, Set<number>>,
-): void {
+function addAuthoredObligations(target: BeatObligations, authored: BeatObligationsContract): void {
   for (const item of authored.mustEstablish) {
     addObligation(target.mustEstablish, {
       kind: "establish",
       text: item.text,
       confidence: "explicit",
       source: "scene.obligations.mustEstablish",
-      factId: item.factId ?? item.id,
-      characterName: item.characterName,
+      factId: (item as any).factId ?? (item as any).id,
+      sourceId: (item as any).sourceId ?? (item as any).factId ?? (item as any).id,
+      sourceKind: ((item as any).sourceKind as SourceKind) ?? "fact",
+      obligationId: (item as any).obligationId,
+      characterName: (item as any).characterName,
+      characterId: (item as any).characterId,
     })
-    const factId = item.factId ?? item.id
-    if (factId) assignFact(factAssignments, factId, beatIndex)
   }
-
   for (const item of authored.mustPayOff) {
     addObligation(target.mustPayOff, {
       kind: "payoff",
       text: item.text,
       confidence: "explicit",
       source: "scene.obligations.mustPayOff",
-      factId: item.factId ?? item.id,
-      characterName: item.characterName,
-      seededAtBeat: item.seededAtBeat,
+      factId: (item as any).factId ?? (item as any).id,
+      sourceId: (item as any).sourceId ?? (item as any).factId ?? (item as any).id,
+      sourceKind: ((item as any).sourceKind as SourceKind) ?? "payoff",
+      obligationId: (item as any).obligationId,
+      characterName: (item as any).characterName,
+      characterId: (item as any).characterId,
+      seededAtBeat: (item as any).seededAtBeat,
     })
-    const factId = item.factId ?? item.id
-    if (factId) assignFact(factAssignments, factId, beatIndex)
   }
-
   for (const item of authored.mustTransferKnowledge) {
     addObligation(target.mustTransferKnowledge, {
       kind: "knowledge",
       text: item.text,
       confidence: "explicit",
       source: "scene.obligations.mustTransferKnowledge",
-      characterName: item.characterName,
+      sourceId: (item as any).sourceId,
+      sourceKind: "knowledge",
+      obligationId: (item as any).obligationId,
+      characterName: (item as any).characterName,
+      characterId: (item as any).characterId,
     })
   }
-
   for (const item of authored.mustShowStateChange) {
     addObligation(target.mustShowStateChange, {
       kind: "state",
       text: item.text,
       confidence: "explicit",
       source: "scene.obligations.mustShowStateChange",
-      characterName: item.characterName,
+      sourceId: (item as any).sourceId,
+      sourceKind: "state",
+      obligationId: (item as any).obligationId,
+      characterName: (item as any).characterName,
+      characterId: (item as any).characterId,
     })
   }
-
   for (const item of authored.mustNotReveal) {
     addObligation(target.mustNotReveal, {
       kind: "avoid",
       text: item.text,
       confidence: "explicit",
       source: "scene.obligations.mustNotReveal",
-      characterName: item.characterName,
+      sourceKind: "avoid",
+      obligationId: (item as any).obligationId,
+      characterName: (item as any).characterName,
+      characterId: (item as any).characterId,
     })
   }
 }
 
-function bestAuthoredObligationMatch(
-  scenes: SceneBeat[],
-  targetText: string,
-  factId: string,
-  key: "mustEstablish" | "mustPayOff",
-): number | null {
-  let best: { beatIndex: number; score: number; coverage: number } | null = null
-  for (let i = 0; i < scenes.length; i++) {
-    const items = normalizeAuthoredObligations(scenes[i].obligations)[key]
-    for (const item of items) {
-      if ((item.id && item.id === factId) || (item.factId && item.factId === factId)) return i
-      const score = textCoverageScore(targetText, item.text, { minScore: 2, minCoverage: 0.25 })
-      if (!score.covered) continue
-      if (!best || score.score > best.score || (score.score === best.score && score.coverage > best.coverage)) {
-        best = { beatIndex: i, ...score }
-      }
-    }
-  }
-  return best?.beatIndex ?? null
-}
-
-function authoredKnowledgeCovers(
-  scenes: SceneBeat[],
-  change: { characterName: string; knowledge: string },
-): boolean {
-  for (const beat of scenes) {
-    for (const item of normalizeAuthoredObligations(beat.obligations).mustTransferKnowledge) {
-      if (item.characterName && !sameCharacterName(item.characterName, change.characterName)) continue
-      if (textCoverageScore(change.knowledge, item.text, { minScore: 2, minCoverage: 0.25 }).covered) return true
-    }
-  }
-  return false
-}
-
-function authoredStateCovers(
-  scenes: SceneBeat[],
-  change: { name: string },
-  stateText: string,
-): boolean {
-  for (const beat of scenes) {
-    for (const item of normalizeAuthoredObligations(beat.obligations).mustShowStateChange) {
-      if (item.characterName && !sameCharacterName(item.characterName, change.name)) continue
-      if (textCoverageScore(stateText, item.text, { minScore: 2, minCoverage: 0.2 }).covered) return true
-    }
-  }
-  return false
-}
-
-function textCoverageScore(
-  targetText: string,
-  candidateText: string,
-  opts: { minScore: number; minCoverage: number },
-): { covered: boolean; score: number; coverage: number } {
-  if (normalizeCoverageText(targetText) === normalizeCoverageText(candidateText)) {
-    return { covered: true, score: Number.MAX_SAFE_INTEGER, coverage: 1 }
-  }
-  const score = overlapScore(targetText, candidateText)
-  return { covered: score.score >= opts.minScore && score.coverage >= opts.minCoverage, ...score }
-}
-
-function normalizeCoverageText(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
-}
-
-function overlapScore(targetText: string, candidateText: string): { score: number; coverage: number } {
-  const targetTokens = meaningfulTokens(targetText)
-  if (targetTokens.length === 0) return { score: 0, coverage: 0 }
-  const candidateTokens = new Set(meaningfulTokens(candidateText))
-  let score = 0
-  for (const token of targetTokens) if (candidateTokens.has(token)) score++
-  return { score, coverage: score / targetTokens.length }
-}
+// ── Rendering (writer-context) ───────────────────────────────────────────
 
 export function renderBeatObligations(obligations: BeatObligations): string {
   const sections: string[] = []
@@ -570,15 +708,16 @@ function pushSection(sections: string[], title: string, items: BeatObligationIte
 }
 
 function addObligation(items: BeatObligationItem[], item: BeatObligationItem): void {
-  if (items.some(existing => existing.kind === item.kind && existing.text === item.text && existing.characterName === item.characterName)) return
+  if (items.some(existing =>
+    existing.kind === item.kind
+    && existing.text === item.text
+    && existing.characterName === item.characterName
+    && existing.sourceId === item.sourceId,
+  )) return
   items.push(item)
 }
 
-function assignFact(assignments: Map<string, Set<number>>, factId: string, beatIndex: number): void {
-  const existing = assignments.get(factId) ?? new Set<number>()
-  existing.add(beatIndex)
-  assignments.set(factId, existing)
-}
+// ── Beat-text matching (DIAGNOSTIC ONLY — never affects coverage) ────────
 
 function bestBeatMatch(
   scenes: SceneBeat[],
@@ -699,3 +838,6 @@ function mergeUnique(values: string[]): string[] {
   }
   return out
 }
+
+// Re-export ID helpers for consumers who want the same surface.
+export { ID_RE }

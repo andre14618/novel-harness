@@ -60,6 +60,25 @@ export interface LLMResponse {
   latencyMs: number
   httpAttempts: number
   retryErrors: Array<{ status: number; delay: number; error?: string }>
+  finishReason?: string | null
+  hitCompletionCap?: boolean
+}
+
+export class CompletionCapHitError extends Error {
+  readonly response: LLMResponse
+  readonly maxTokens: number
+
+  constructor(request: LLMRequest, response: LLMResponse) {
+    const finish = response.finishReason ? ` finish_reason=${response.finishReason}` : ""
+    super(`LLM completion hit max token cap for ${request.callerId ?? "unknown"} (${request.provider}/${request.model}): completion_tokens=${response.usage.completion_tokens} maxTokens=${request.maxTokens}${finish}`)
+    this.name = "CompletionCapHitError"
+    this.response = response
+    this.maxTokens = request.maxTokens
+  }
+}
+
+export function isCompletionCapHitError(err: unknown): err is CompletionCapHitError {
+  return err instanceof CompletionCapHitError
 }
 
 export interface LLMTransport {
@@ -102,10 +121,12 @@ export class DirectTransport implements LLMTransport {
       // the wall clock so downstream logging sees a non-zero value even
       // when the action doesn't specify one.
       const synthetic = preLoop.response
-      return {
+      const response = {
         ...synthetic,
         latencyMs: synthetic.latencyMs || (performance.now() - startTime),
       }
+      assertNoCompletionCapHit(request, response)
+      return response
     }
 
     const tokenParam = request.useMaxCompletionTokens
@@ -234,28 +255,49 @@ export class DirectTransport implements LLMTransport {
 
       if (useStreaming) {
         const streamResult = await consumeSSEStream(res, request.onChunk)
-        return {
+        const response = {
           content: streamResult.content,
           usage: streamResult.usage,
           latencyMs: performance.now() - startTime,
           httpAttempts,
           retryErrors,
+          finishReason: streamResult.finishReason,
+          hitCompletionCap: completionHitCap(streamResult.usage.completion_tokens, request.maxTokens, streamResult.finishReason),
         }
+        assertNoCompletionCapHit(request, response)
+        return response
       }
 
       const data = await res.json() as any
       if (data.error) throw new Error(`LLM error: ${JSON.stringify(data.error)}`)
-      return {
+      const finishReason = data.choices?.[0]?.finish_reason ?? null
+      const usage = extractUsage(data.usage)
+      const response = {
         content: data.choices[0].message.content,
-        usage: extractUsage(data.usage),
+        usage,
         latencyMs: performance.now() - startTime,
         httpAttempts,
         retryErrors,
+        finishReason,
+        hitCompletionCap: completionHitCap(usage.completion_tokens, request.maxTokens, finishReason),
       }
+      assertNoCompletionCapHit(request, response)
+      return response
     }
 
     throw new Error("LLM request: unreachable")
   }
+}
+
+function assertNoCompletionCapHit(request: LLMRequest, response: LLMResponse): void {
+  if (response.hitCompletionCap ?? completionHitCap(response.usage.completion_tokens, request.maxTokens, response.finishReason)) {
+    response.hitCompletionCap = true
+    throw new CompletionCapHitError(request, response)
+  }
+}
+
+function completionHitCap(completionTokens: number, maxTokens: number, finishReason?: string | null): boolean {
+  return finishReason === "length" || (maxTokens > 0 && completionTokens >= maxTokens)
 }
 
 // Normalize the OpenAI-compatible `usage` field. Providers expose cached-token
@@ -287,13 +329,14 @@ function extractUsage(raw: any): { prompt_tokens: number; completion_tokens: num
 async function consumeSSEStream(
   res: Response,
   onChunk?: (delta: string) => void,
-): Promise<{ content: string; usage: { prompt_tokens: number; completion_tokens: number; cached_tokens: number } }> {
+): Promise<{ content: string; usage: { prompt_tokens: number; completion_tokens: number; cached_tokens: number }; finishReason: string | null }> {
   if (!res.body) throw new Error("streaming response missing body")
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ""
   let content = ""
   let usage = { prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0 }
+  let finishReason: string | null = null
   const chunkIdleTimeoutMs = parseInt(process.env.LLM_STREAM_IDLE_TIMEOUT_MS ?? "60000", 10)
 
   try {
@@ -341,6 +384,9 @@ async function consumeSSEStream(
           if (parsed.usage) {
             usage = extractUsage(parsed.usage)
           }
+          if (parsed.choices?.[0]?.finish_reason) {
+            finishReason = parsed.choices[0].finish_reason
+          }
         } catch (err) {
           // Swallow parse errors for malformed chunks; the stream may contain
           // provider-specific lines we don't care about.
@@ -352,5 +398,5 @@ async function consumeSSEStream(
     reader.cancel().catch(() => {})
   }
 
-  return { content, usage }
+  return { content, usage, finishReason }
 }
