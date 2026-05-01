@@ -31,7 +31,7 @@ Checker promotion remains blocked until fresh labels are generated against the n
 
 The one-off planning variant probes were useful but too bespoke. The next prompt/composite-prior work needs reusable comparison plumbing.
 
-- [ ] **Run the first mapper variant probe through the refreshed phase-eval plumbing.** The runner now accepts `PLANNING_STATE_MAPPER_PROMPT_OVERRIDE` and `print-screen-verdict.ts --metric-set=state-mapper` reports facts/knowledge/state/payoffs/obligations plus orphan/overload gates. First candidate arm: `coverage-balanced` vs `default` in `scripts/phase-eval/variants/planning-state-mapper/`. Example command after deploy: `bun scripts/phase-eval/probe-planning-beats.ts --seed=fantasy-system-heretic --variants=default,coverage-balanced --variant-dir=scripts/phase-eval/variants/planning-state-mapper --output-base=output/phase-eval/<run-tag> --prompt-env=PLANNING_STATE_MAPPER_PROMPT_OVERRIDE`.
+- [ ] **Revise the mapper coverage-balanced variant and rerun.** Exp #290 showed `coverage-balanced` removed overload and kept zero orphans, but failed state retention by emitting 28 state items vs a 30-item floor. Tighten the variant to preserve valid continuity-relevant state while spreading obligations, then rerun `default` vs revised arm with `--metric-set=state-mapper`.
 - [ ] **MVP durable eval/testing module.** Design draft: `docs/designs/eval-testing-module-v1.md`. Replace bespoke scripts with `(variant config, seed set, metric set) -> results table + UI`, reusing `llm_calls`, `tuning_experiments`, `pipeline_events`, and `eval_results` where possible.
 
 ### 4. Pick the next corpus-informed synthesis probe after runtime stabilization

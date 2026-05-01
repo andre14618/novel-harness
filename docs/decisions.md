@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-30
+updated: 2026-05-01
 ---
 
 # Decisions
@@ -352,6 +352,24 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 **Evidence:** LXC planner-isolated run `576` (`test-planner-fantasy-healer-1777603163263`, deployed `ec57a3d`) reached final zero obligation orphans with zero auto-repair, but `planning-state-mapper` had 2 JSON-retry recoveries at the 6144 cap. Run `577` (`test-planner-fantasy-healer-1777603718185`, deployed `4b81609`) after raising mapper maxTokens to 8192 also reached final zero orphans with zero auto-repair and no JSON retries. Mapper coverage retries were still needed (run `576`: 1 chapter, two retry passes; run `577`: 3 chapters, one retry pass). Run `577` also exposed a retry failure mode where a mapper could satisfy coverage by dropping previously declared facts; the retry prompt now anchors existing state and tells the mapper to add/move obligations rather than delete valid state.
 
 **Ongoing:** The split reduces reliance on deterministic auto-repair, but mapper retry rate and state preservation need more samples before disabling auto-repair or promoting obligation-aware beat checkers. Track mapper orphan counts before retry, mapper retry counts, auto-repair count, ignored mapping count, overloaded beats, and cost/latency for `planning-state-mapper` on the next fresh current-surface runs.
+
+---
+
+### Mapper prompt variants optimize coverage without deleting state
+*2026-05-01 · exp #290 · phase-eval `default` vs `coverage-balanced`*
+
+**Decision:** Keep `coverage-balanced` as a useful mapper prompt direction, but do not promote it as the default. The first A/B showed it improves overload behavior while preserving zero final orphans, but it failed the state-retention gate by emitting less chapter-level state than the default mapper.
+
+**Why:** On `fantasy-system-heretic` with `PLANNING_STATE_MAPPER_PROMPT_OVERRIDE`, both arms reached final zero obligation orphans and required no deterministic auto-repair. `coverage-balanced` removed the overloaded-beat warning (`0` vs default `1`) and lowered mapper cost slightly ($0.008351 vs $0.009032), but emitted 28 state items against the gate floor of 30 (`0.75 × default_state_items=40`). The screen verdict was `SCREEN-FAIL (non-compliant)` on G3 only.
+
+**Evidence:** LXC phase-eval run `mapper-coverage-balanced-exp290`, deployed commit `4b2af5daf602`. Default arm novel `phase-eval-fantasy-system-heretic-default-2026-05-01T14-32-37-982Z`: 5 mapper calls, 2 retry calls, max completion 7829/8192, no JSON/Zod failures, final counts facts=19 knowledge=13 state=8, final orphans=0, overloaded=1, auto-repair=0. Coverage-balanced arm novel `phase-eval-fantasy-system-heretic-coverage-balanced-2026-05-01T14-32-37-982Z`: 5 mapper calls, 2 retry calls, max completion 7787/8192, no JSON/Zod failures, final counts facts=9 knowledge=12 state=7, final orphans=0, overloaded=0, auto-repair=0. Persisted verdict row: `phase_eval_runs.id=7`.
+
+**Alternatives rejected:**
+- Promote `coverage-balanced` immediately — rejected because state retention regressed below the screen floor.
+- Discard the variant — rejected because it removed overload without introducing orphans, which is the desired direction if state preservation is tightened.
+- Lower the retention gate after one run — rejected because the drop may represent prompt-induced deletion of valid continuity state, the exact failure mode the mapper retry fix was meant to prevent.
+
+**Ongoing:** Revise the mapper variant to explicitly preserve all valid continuity-relevant state while spreading obligations to avoid overload, then rerun on at least one additional seed before considering default-prompt changes. Keep auto-repair policy unchanged.
 
 ---
 
