@@ -101,6 +101,8 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
           seededAtBeat: beatIndex,
         })
         assignFact(factAssignments, factId, link.payoff_beat)
+      } else {
+        warnings.push(`Chapter ${outline.chapterNumber} beat ${beatIndex + 1}: payoff link for "${factId}" points outside the chapter and cannot become a payoff obligation`)
       }
     }
   }

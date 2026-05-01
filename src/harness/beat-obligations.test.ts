@@ -79,6 +79,20 @@ test("deriveBeatObligations counts id-less established facts as orphan telemetry
   expect(result.warnings[0]).toContain("without id")
 })
 
+test("deriveBeatObligations warns when a payoff target is outside the chapter", () => {
+  const result = deriveBeatObligations(chapter({
+    scenes: [
+      beat({ description: "Istra plants a cure clue.", requiredPayoffs: [{ fact_id: "cure-clue", payoff_beat: 9 }] }),
+    ],
+    establishedFacts: [
+      { id: "cure-clue", fact: "The cure clue points to the archive", category: "knowledge" },
+    ],
+  }))
+
+  expect(result.warnings[0]).toContain("points outside the chapter")
+  expect(result.beats[0].mustEstablish[0]).toEqual(expect.objectContaining({ factId: "cure-clue" }))
+})
+
 test("deriveBeatObligations does not mark known chapter characters as allowed new entities", () => {
   const result = deriveBeatObligations(chapter({
     charactersPresent: ["Istra", "Wren"],
