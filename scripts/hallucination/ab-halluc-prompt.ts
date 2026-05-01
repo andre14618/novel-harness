@@ -24,21 +24,24 @@ interface Args {
   inPath: string
   candidatePath: string
   outPath: string
+  temperature?: number
 }
 
 function parseArgs(): Args {
   const argv = process.argv.slice(2)
   let inPath = "", candidatePath = "", outPath = ""
+  let temperature: number | undefined
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--in") inPath = argv[++i]
     else if (argv[i] === "--candidate") candidatePath = argv[++i]
     else if (argv[i] === "--out") outPath = argv[++i]
+    else if (argv[i] === "--temperature") temperature = Number(argv[++i])
   }
   if (!inPath || !candidatePath || !outPath) {
-    console.error("usage: --in <panel.jsonl> --candidate <prompt.md> --out <results.jsonl>")
+    console.error("usage: --in <panel.jsonl> --candidate <prompt.md> --out <results.jsonl> [--temperature N]")
     process.exit(1)
   }
-  return { inPath, candidatePath, outPath }
+  return { inPath, candidatePath, outPath, temperature }
 }
 
 function buildHallucUserPrompt(row: any): string {
@@ -121,7 +124,8 @@ async function main() {
   const candidatePrompt = readFileSync(resolve(args.candidatePath), "utf8")
   const lines = readFileSync(resolve(args.inPath), "utf8").trim().split("\n")
   const rows = lines.map(l => JSON.parse(l)).filter(r => r.checker === "halluc-ungrounded")
-  console.log(`Testing candidate prompt on ${rows.length} halluc rows…`)
+  const tempLabel = args.temperature !== undefined ? ` at temp=${args.temperature}` : ""
+  console.log(`Testing candidate prompt on ${rows.length} halluc rows${tempLabel}…`)
 
   const results: any[] = []
   for (const row of rows) {
@@ -133,6 +137,7 @@ async function main() {
         systemPrompt: candidatePrompt,
         userPrompt,
         schema: hallucUngroundedSchema,
+        ...(args.temperature !== undefined ? { temperature: args.temperature } : {}),
       })
       invoked = result.output
     } catch (err) {
