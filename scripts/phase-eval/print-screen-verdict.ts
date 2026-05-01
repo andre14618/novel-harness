@@ -118,6 +118,20 @@ interface VariantMetrics {
   duplicate_source_ids: number
   source_kind_mismatches: number
   character_id_mismatches: number
+  // Pattern 3 chapter-edge kind diagnostics (P3a opener / P3b closer).
+  // Counts of chapters whose first/last beat had each kind. Diagnostic
+  // only — not used as a G-gate today; surfaces whether a plotter
+  // variant recovered the corpus-validated closer rule (~41% action /
+  // ~35% interiority / NEVER pure description).
+  chapters_total: number
+  opener_action: number
+  opener_dialogue: number
+  opener_interiority: number
+  opener_description: number
+  closer_action: number
+  closer_dialogue: number
+  closer_interiority: number
+  closer_description: number
 }
 
 interface MapperHealthMetrics {
@@ -254,6 +268,15 @@ function computeVariantMetrics(data: VariantData): VariantMetrics {
       duplicate_source_ids: 0,
       source_kind_mismatches: 0,
       character_id_mismatches: 0,
+      chapters_total: 0,
+      opener_action: 0,
+      opener_dialogue: 0,
+      opener_interiority: 0,
+      opener_description: 0,
+      closer_action: 0,
+      closer_dialogue: 0,
+      closer_interiority: 0,
+      closer_description: 0,
     }
   }
 
@@ -268,6 +291,21 @@ function computeVariantMetrics(data: VariantData): VariantMetrics {
   const orphanKnowledge = sum(coverage.map(c => c.summary.orphanKnowledgeChanges))
   const orphanState = sum(coverage.map(c => c.summary.orphanStateChanges))
   const totalStateItems = sum(facts) + sum(knowledge) + sum(state)
+
+  // Pattern 3 chapter-edge kind diagnostics — count first/last beat kind
+  // across chapters. Beats with no kind field default to "action" per
+  // sceneBeatSchema.kind default; that matches how the writer prompt
+  // resolves it.
+  const kindAt = (beats: typeof data.outlines[number]["scenes"], idx: number) =>
+    beats[idx]?.kind ?? "action"
+  const opener_action = data.outlines.filter(o => o.scenes.length > 0 && kindAt(o.scenes, 0) === "action").length
+  const opener_dialogue = data.outlines.filter(o => o.scenes.length > 0 && kindAt(o.scenes, 0) === "dialogue").length
+  const opener_interiority = data.outlines.filter(o => o.scenes.length > 0 && kindAt(o.scenes, 0) === "interiority").length
+  const opener_description = data.outlines.filter(o => o.scenes.length > 0 && kindAt(o.scenes, 0) === "description").length
+  const closer_action = data.outlines.filter(o => o.scenes.length > 0 && kindAt(o.scenes, o.scenes.length - 1) === "action").length
+  const closer_dialogue = data.outlines.filter(o => o.scenes.length > 0 && kindAt(o.scenes, o.scenes.length - 1) === "dialogue").length
+  const closer_interiority = data.outlines.filter(o => o.scenes.length > 0 && kindAt(o.scenes, o.scenes.length - 1) === "interiority").length
+  const closer_description = data.outlines.filter(o => o.scenes.length > 0 && kindAt(o.scenes, o.scenes.length - 1) === "description").length
 
   return {
     facts_median: median(facts),
@@ -287,6 +325,15 @@ function computeVariantMetrics(data: VariantData): VariantMetrics {
     duplicate_source_ids: sum(coverage.map(c => c.summary.duplicateSourceIds)),
     source_kind_mismatches: sum(coverage.map(c => c.summary.sourceKindMismatches)),
     character_id_mismatches: sum(coverage.map(c => c.summary.characterIdMismatches)),
+    chapters_total: data.outlines.length,
+    opener_action,
+    opener_dialogue,
+    opener_interiority,
+    opener_description,
+    closer_action,
+    closer_dialogue,
+    closer_interiority,
+    closer_description,
   }
 }
 
@@ -507,6 +554,9 @@ async function main(): Promise<void> {
       ? `  missing_source_ids=${metrics.missing_source_ids}  unknown_source_ids=${metrics.unknown_source_ids}  duplicate_source_ids=${metrics.duplicate_source_ids}  source_kind_mismatches=${metrics.source_kind_mismatches}  characterId_mismatches=${metrics.character_id_mismatches}`
       : ""
     console.log(`  ${id}: facts_median=${fmt(metrics.facts_median)}  know_median=${fmt(metrics.knowledge_median)}  state_median=${fmt(metrics.state_median)}  total_beats=${metrics.total_beats}  payoffs=${metrics.total_payoff_links}  obligations=${metrics.total_obligations}  orphans=${metrics.total_orphans}  overloaded=${metrics.overloaded_beats}${idCoverage}  status=${data.ok ? "ok" : `BROKEN (${data.reason})`}`)
+    if (metrics.chapters_total > 0) {
+      console.log(`        opener kinds: action=${metrics.opener_action}/dialogue=${metrics.opener_dialogue}/interiority=${metrics.opener_interiority}/description=${metrics.opener_description}  closer kinds: action=${metrics.closer_action}/dialogue=${metrics.closer_dialogue}/interiority=${metrics.closer_interiority}/description=${metrics.closer_description} (P3 diagnostic, of ${metrics.chapters_total} chapters)`)
+    }
   }
   if (metricSet === "state-mapper") {
     console.log()
