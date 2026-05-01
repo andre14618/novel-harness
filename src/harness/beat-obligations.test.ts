@@ -66,6 +66,45 @@ test("deriveBeatObligations warns about orphan state that is not writer-visible"
   expect(result.warnings[0]).toContain("Istra")
 })
 
+test("deriveBeatObligations counts id-less established facts as orphan telemetry", () => {
+  const result = deriveBeatObligations(chapter({
+    scenes: [beat({ description: "Istra records the cure result." })],
+    establishedFacts: [
+      { id: "", fact: "The cure result is unstable", category: "knowledge" },
+    ],
+  }))
+
+  expect(result.summary.factCount).toBe(1)
+  expect(result.summary.orphanFacts).toBe(1)
+  expect(result.warnings[0]).toContain("without id")
+})
+
+test("deriveBeatObligations does not mark known chapter characters as allowed new entities", () => {
+  const result = deriveBeatObligations(chapter({
+    charactersPresent: ["Istra", "Wren"],
+    scenes: [beat({ description: "Wren coughs behind the curtain while the Ledger Key glows.", characters: ["Istra"] })],
+  }))
+
+  expect(result.beats[0].allowedNewEntities).not.toContain("Wren")
+  expect(result.beats[0].allowedNewEntities).toContain("Ledger Key")
+})
+
+test("deriveBeatObligations avoids substring character matches", () => {
+  const result = deriveBeatObligations(chapter({
+    charactersPresent: ["Al", "Istra"],
+    scenes: [
+      beat({ description: "Aldric reads the plague ledgers and falsified dates.", characters: ["Aldric"] }),
+      beat({ description: "Al hides in the infirmary.", characters: ["Al"] }),
+    ],
+    knowledgeChanges: [
+      { characterName: "Al", knowledge: "plague ledgers and falsified dates", source: "read" },
+    ],
+  }))
+
+  expect(result.summary.orphanKnowledgeChanges).toBe(1)
+  expect(result.beats[0].mustTransferKnowledge).toEqual([])
+})
+
 test("renderBeatObligations emits compact writer-facing sections", () => {
   const result = deriveBeatObligations(chapter({
     scenes: [

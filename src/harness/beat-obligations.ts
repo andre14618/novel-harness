@@ -58,10 +58,14 @@ const STOPWORDS = new Set([
   "would",
 ])
 
+const PROPER_NOUN_STOPWORDS = new Set(["A", "An", "The"])
+const OVERLOADED_BEAT_OBLIGATION_LIMIT = 5
+
 export function deriveBeatObligations(outline: ChapterOutline): BeatObligationShadowPlan {
   const beats = outline.scenes.map(() => EMPTY_OBLIGATIONS())
   const warnings: string[] = []
   const factAssignments = new Map<string, Set<number>>()
+  let orphanFacts = 0
   const factById = new Map((outline.establishedFacts ?? [])
     .filter(f => f.id?.trim())
     .map(f => [f.id.trim(), f.fact]))
@@ -73,7 +77,10 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
     for (const link of beat.requiredPayoffs ?? []) {
       const factId = link.fact_id?.trim()
       const fact = factId ? factById.get(factId) : null
-      if (!factId || !fact) continue
+      if (!factId || !fact) {
+        warnings.push(`Chapter ${outline.chapterNumber} beat ${beatIndex + 1}: payoff link cannot become an obligation because fact_id "${factId ?? ""}" is missing`)
+        continue
+      }
 
       addObligation(beats[beatIndex].mustEstablish, {
         kind: "establish",
@@ -100,7 +107,12 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
 
   for (const fact of outline.establishedFacts ?? []) {
     const factId = fact.id?.trim()
-    if (!factId || factAssignments.has(factId)) continue
+    if (!factId) {
+      orphanFacts++
+      warnings.push(`Chapter ${outline.chapterNumber}: establishedFact without id is not assigned to any beat obligation`)
+      continue
+    }
+    if (factAssignments.has(factId)) continue
 
     const match = bestBeatMatch(outline.scenes, fact.fact, { minScore: 2, minCoverage: 0.25 })
     if (match) {
@@ -113,6 +125,7 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
       })
       assignFact(factAssignments, factId, match.beatIndex)
     } else {
+      orphanFacts++
       warnings.push(`Chapter ${outline.chapterNumber}: establishedFact "${factId}" is not assigned to any beat obligation`)
     }
   }
@@ -169,7 +182,7 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
   let overloadedBeats = 0
   for (let i = 0; i < beats.length; i++) {
     const hardCount = countHardObligations(beats[i])
-    if (hardCount > 5) {
+    if (hardCount > OVERLOADED_BEAT_OBLIGATION_LIMIT) {
       overloadedBeats++
       warnings.push(`Chapter ${outline.chapterNumber} beat ${i + 1}: ${hardCount} inferred/explicit obligations may overload the writer`)
     }
@@ -182,7 +195,7 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
       factCount: outline.establishedFacts?.length ?? 0,
       knowledgeCount: outline.knowledgeChanges?.length ?? 0,
       stateChangeCount: outline.characterStateChanges?.length ?? 0,
-      orphanFacts: (outline.establishedFacts ?? []).filter(f => f.id?.trim() && !factAssignments.has(f.id.trim())).length,
+      orphanFacts,
       orphanKnowledgeChanges,
       orphanStateChanges,
       overloadedBeats,
@@ -258,8 +271,22 @@ function meaningfulTokens(text: string): string[] {
 }
 
 function beatIncludesCharacter(beat: SceneBeat, characterName: string): boolean {
-  const normalized = characterName.toLowerCase()
-  return beat.characters.some(name => name.toLowerCase() === normalized || normalized.includes(name.toLowerCase()) || name.toLowerCase().includes(normalized))
+  const aliases = nameAliases(characterName)
+  return beat.characters.some(name => {
+    for (const alias of nameAliases(name)) if (aliases.has(alias)) return true
+    return false
+  })
+}
+
+function nameAliases(name: string): Set<string> {
+  const normalized = name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
+  const aliases = new Set<string>()
+  if (!normalized) return aliases
+  aliases.add(normalized)
+  const parts = normalized.split(/\s+/).filter(p => p.length >= 3)
+  if (parts[0]) aliases.add(parts[0])
+  if (parts.length > 1) aliases.add(parts[parts.length - 1])
+  return aliases
 }
 
 function summarizeStateChange(change: { location?: string; emotionalState?: string; knows?: string[] }): string {
@@ -280,6 +307,7 @@ function countHardObligations(obligations: BeatObligations): number {
 function deriveAllowedNewEntities(beat: SceneBeat, outline: ChapterOutline): string[] {
   const known = new Set([
     ...beat.characters,
+    ...(outline.charactersPresent ?? []),
     outline.povCharacter,
     outline.setting,
   ].filter(Boolean).map(v => v.toLowerCase()))
@@ -292,6 +320,7 @@ function extractProperNouns(text: string): string[] {
   const out: string[] = []
   for (const match of text.matchAll(/\b[A-Z][A-Za-z'’-]*(?:\s+(?:of|the|and|de|la|le|du|von|'s|[A-Z][A-Za-z'’-]*))*\b/g)) {
     const value = match[0].trim()
+    if (PROPER_NOUN_STOPWORDS.has(value)) continue
     if (value.length < 3 || seen.has(value)) continue
     seen.add(value)
     out.push(value)

@@ -16,6 +16,8 @@ import { emit } from "../events"
 import { log } from "../logger"
 import * as harness from "../harness"
 
+const PLANNING_OBLIGATION_WARNING_LIMIT = 8
+
 /** Planning phase implementation. Kept exported for scripts that compose
  *  phases outside the runNovel driver (3 callers:
  *  scripts/fork-writer-test.ts, fork-writer-v4-llama.ts,
@@ -154,11 +156,11 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
     const obligationPlan = harness.beatObligations.deriveBeatObligations(outline)
     const s = obligationPlan.summary
     log(novelId, "info", `Planning obligations ch${outline.chapterNumber}: facts=${s.factCount} orphanFacts=${s.orphanFacts} knowledge=${s.knowledgeCount} orphanKnowledge=${s.orphanKnowledgeChanges} state=${s.stateChangeCount} orphanState=${s.orphanStateChanges} overloadedBeats=${s.overloadedBeats}`)
-    for (const warning of obligationPlan.warnings.slice(0, 8)) {
+    for (const warning of obligationPlan.warnings.slice(0, PLANNING_OBLIGATION_WARNING_LIMIT)) {
       log(novelId, "warn", `Planning obligations: ${warning}`)
     }
-    if (obligationPlan.warnings.length > 8) {
-      log(novelId, "warn", `Planning obligations: ${obligationPlan.warnings.length - 8} additional warning(s) suppressed for chapter ${outline.chapterNumber}`)
+    if (obligationPlan.warnings.length > PLANNING_OBLIGATION_WARNING_LIMIT) {
+      log(novelId, "warn", `Planning obligations: ${obligationPlan.warnings.length - PLANNING_OBLIGATION_WARNING_LIMIT} additional warning(s) suppressed for chapter ${outline.chapterNumber}`)
     }
   }
   log(novelId, "info", `Planning complete: ${chapters.length} chapters, avg ${Math.round(chapters.reduce((s, c) => s + (c.scenes?.length ?? 0), 0) / chapters.length)} beats/chapter`)
