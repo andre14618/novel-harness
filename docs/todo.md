@@ -53,7 +53,7 @@ Corpus mining has enough single-pattern evidence. Do not mine more one-off patte
 - [ ] **Fix DB-backed phase parity reliability.** `tests/phase-parity/phase-parity.test.ts` can still fail with `ERR_POSTGRES_CONNECTION_CLOSED` in local runs.
 - [ ] **Full restart recovery for plan-assist gates.** MVP orphan detection exists; full recovery needs drafting attempt-loop changes so resume can re-fire and re-await pending gates.
 - [ ] **Extend LLM call inspector tags.** `chapter`, `beat_index`, and `attempt` are populated for key drafting calls; thread tags through remaining planner/checker/support calls where missing.
-- [ ] **Historical-superseded doc pass.** Add inline superseded callouts to older docs that still speak in current tense about retired adapters, Howard primer, tonal pass, and writer LoRA runtime routes.
+- [ ] **Historical-superseded doc pass.** Add inline superseded callouts to older docs that still speak in current tense about retired adapters, Howard primer, tonal pass, and writer LoRA runtime routes. _Partial 2026-05-01 (commit `1905c50`):_ added callouts to hallucination-v3-wire-in-plan, pipeline-14b-consolidation, beat-writer-architecture, hallucination-checker-findings, lora-style-transfer-report, next-session-plan-2026-04-21. Remaining stale docs (codebase-audit-2026-04-18, remediation-pass-2026-04-18, harness-optimization-inventory) can be addressed incrementally if a future reader hits confusion.
 
 ## Parked Or Deferred
 
