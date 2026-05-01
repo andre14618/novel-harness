@@ -12,8 +12,8 @@
  *      --target-phase=concept-done) so every variant plans from the SAME
  *      frozen concept state.
  *   3. Spawn run-variant.ts as a child process per variant, with the
- *      PLANNING_BEATS_PROMPT_OVERRIDE env var pointing at that variant's
- *      prompt file. The child runs the planning phase and writes
+ *      selected prompt override env var pointing at that variant's prompt
+ *      file. The child runs the planning phase and writes
  *      `outlines.json` to its output dir.
  *   4. Aggregate the per-variant outlines into a single summary.json under
  *      the output base dir for offline scoring (G1-G4 gates per charter).
@@ -58,8 +58,9 @@ interface Args {
   outputBase: string
   /** Env var the child run-variant should use to override the system
    *  prompt. Defaults to PLANNING_BEATS_PROMPT_OVERRIDE so existing
-   *  invocations keep working. Set PLANNING_PLOTTER_PROMPT_OVERRIDE to
-   *  probe chapter-skeleton variants instead of beat-expansion variants. */
+   *  invocations keep working. Set PLANNING_PLOTTER_PROMPT_OVERRIDE for
+   *  chapter-skeleton variants or PLANNING_STATE_MAPPER_PROMPT_OVERRIDE for
+   *  mapper variants. */
   promptEnv: string
   conceptSnapshotId?: string
   keepNovels: boolean
@@ -68,6 +69,7 @@ interface Args {
 const SUPPORTED_PROMPT_ENVS = new Set([
   "PLANNING_BEATS_PROMPT_OVERRIDE",
   "PLANNING_PLOTTER_PROMPT_OVERRIDE",
+  "PLANNING_STATE_MAPPER_PROMPT_OVERRIDE",
 ])
 
 function parseArgs(): Args {
@@ -88,7 +90,7 @@ function parseArgs(): Args {
       "  --variants=<id1,id2,...> \\\n" +
       "  --variant-dir=<dir-with-{id}.md-files> \\\n" +
       "  --output-base=<absolute-output-dir> \\\n" +
-      "  [--prompt-env=PLANNING_BEATS_PROMPT_OVERRIDE|PLANNING_PLOTTER_PROMPT_OVERRIDE] \\\n" +
+      "  [--prompt-env=PLANNING_BEATS_PROMPT_OVERRIDE|PLANNING_PLOTTER_PROMPT_OVERRIDE|PLANNING_STATE_MAPPER_PROMPT_OVERRIDE] \\\n" +
       "  [--concept-snapshot-id=<existing-snapshot-id>] \\\n" +
       "  [--keep-novels]   (default: cleanup created novels at end)"
     )
@@ -281,6 +283,7 @@ async function main() {
       seed: args.seed,
       runTag,
       conceptSnapshotId,
+      promptEnv: args.promptEnv,
       variantDir: args.variantDir,
       variants: args.variants.map(v => ({
         id: v,
