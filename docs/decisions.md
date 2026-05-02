@@ -3382,3 +3382,33 @@ Rationale: `request_json` is the LLM request envelope (wrong semantics for post-
 - v4 prompt variant saved at `scripts/phase-eval/variants/halluc-ungrounded/v4.md`.
 - "§2 Run a clean 3-chapter current-surface drafting sample" remains open — L17 smoke after L14+L15+L16 land.
 - Convergence mechanism (temp=0.5 + k-of-N, exp #L1) remains the ultimate solution for stochastic FPs at scale. v4-disam is an incremental prompt improvement; the convergence mechanism addresses the class systematically.
+
+---
+
+### L19 — Asymmetric voting policy probe — KEEP AND-GATE-V1 (2026-05-01, exp #336)
+*2026-05-01 · exp #336 · phase_eval_runs.id=78 · script: `scripts/hallucination/asymmetric-voting-probe.ts`*
+
+**Decision:** Keep the current AND-gate-v1 production policy. Do not promote any asymmetric policy variant.
+
+**Policies tested:** AND-gate-v1 (current), Asym-A (NER blocks + LLM≥3-of-5 @ T=0.5), Asym-B (NER blocks + LLM≥2-of-5 @ T=0.5), Asym-C (NER blocks + single T=0.1 call). Panels: labeled natural-mixed (n=22) + expanded synthetic (n=27) = 49 combined.
+
+**Combined-panel comparison:**
+
+| Policy | TP | FP | FN | TN | Recall | Precision | F1 |
+|--------|:--:|:--:|:--:|:--:|-------:|----------:|---:|
+| AND-gate-v1 (current) | 28 | **6** | 0 | 15 | 1.000 | **0.824** | **0.903** |
+| Asym-A | 28 | 10 | 0 | 11 | 1.000 | 0.737 | 0.848 |
+| Asym-B | 28 | 10 | 0 | 11 | 1.000 | 0.737 | 0.848 |
+| Asym-C | 28 | **6** | 0 | 15 | 1.000 | **0.824** | **0.903** |
+
+**Why:** NER fires on 100% of oracle-FAIL rows on both panels (recall=1.000). There is no recall gap for asymmetric LLM policies to fill. Asym-A/B worsen precision by +4 FPs because T=0.5 multi-call LLM is noisier on clean natural prose. Asym-C is functionally equivalent to AND-gate-v1 (same call count, same behavior on all observed rows).
+
+**FP root cause:** The 6 residual FPs (b12 generic-document-type cluster) are LLM-only systematic failures — NER correctly passes all 12 oracle-PASS rows (NER FP rate = 0). Fix path is LLM prompt work (L14 direction: explicit categorical descriptor disambiguation), not voting policy changes.
+
+**L20 follow-up (recommended):** If reducing the 6 FPs is a priority, A/B the v4 prompt's generic-document disambiguation additions explicitly against the 6 FP rows; confirm suppression; measure recall regression. This is a prompt loop, not a policy loop. Tracking: add new §7 todo item if the FP rate on natural prose is deemed production-blocking.
+
+**Alternatives rejected:**
+- **Asym-A/B (5× cost):** 5× per beat with −0.055 F1. No justification.
+- **Asym-C (NER hard-blocker):** Identical results to AND-gate-v1; the "hard vs warning" label distinction has no observable effect on these calibration panels (all NER fires are oracle FAIL). Reserve as a potential future change if NER FP rate rises.
+
+**Ongoing implications:** The asymmetric voting evaluation backlog item (§7 of todo.md) is closed. AND-gate-v1 is confirmed as the correct policy given current NER F1=1.000 on both calibration panels. The remaining precision headroom (0.824 combined) is a prompt-improvement opportunity, not a policy-architecture gap.
