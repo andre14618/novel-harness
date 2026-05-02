@@ -240,6 +240,8 @@ If a commit changes current runtime behavior, architecture, or active methodolog
 
 `docs-impact: none` means the author explicitly checked and concluded that the change does not alter the current-state contract.
 
+`scripts/preflight-docs-impact.ts` enforces the discipline. It runs in four modes: default (staged files), `--commit <ref>` (single commit incl. message), `--range <rev-range>` (every non-merge commit in the range), and `--since <date>` (every non-merge commit reachable from HEAD since the date). All modes share the same classification, footer detection, and exit-code rules; `--strict` exits non-zero on any violation. Use the range/since modes for morning pickup or long-loop review, e.g. `bun scripts/preflight-docs-impact.ts --since "yesterday" --strict`.
+
 ### Document roles
 
 Use these categories consistently:

@@ -18,6 +18,8 @@
  *   bun scripts/preflight-docs-impact.ts --strict   # exit 1 on warnings
  *   bun scripts/preflight-docs-impact.ts --commit HEAD  # check HEAD's diff
  *                                                       # + message
+ *   bun scripts/preflight-docs-impact.ts --range 81397bf..HEAD  # audit a range
+ *   bun scripts/preflight-docs-impact.ts --since "yesterday"    # audit by date
  *
  * Pre-commit hook integration (opt-in, not tracked in git by default):
  *
@@ -141,6 +143,46 @@ export function evaluate(args: {
   }
 }
 
+// ── Range aggregation (pure) ──────────────────────────────────────────────
+
+export interface CommitInput {
+  sha: string
+  shortSha?: string
+  subject?: string
+  files: string[]
+  message: string
+}
+
+export interface CommitCheckResult extends CheckResult {
+  sha: string
+  shortSha: string
+  subject: string
+}
+
+export interface RangeResult {
+  ok: boolean
+  total: number
+  violations: CommitCheckResult[]
+  passes: CommitCheckResult[]
+}
+
+export function evaluateRange(commits: CommitInput[]): RangeResult {
+  const violations: CommitCheckResult[] = []
+  const passes: CommitCheckResult[] = []
+  for (const c of commits) {
+    const r = evaluate({ stagedFiles: c.files, commitMessage: c.message })
+    const cr: CommitCheckResult = {
+      ...r,
+      sha: c.sha,
+      shortSha: c.shortSha ?? c.sha.slice(0, 7),
+      subject: c.subject ?? c.message.split("\n")[0] ?? "",
+    }
+    if (r.ok) passes.push(cr)
+    else violations.push(cr)
+  }
+  return { ok: violations.length === 0, total: commits.length, violations, passes }
+}
+
 // ── Git helpers (impure; only called from main()) ─────────────────────────
 
 function stagedFiles(): string[] {
@@ -173,25 +215,61 @@ function commitMessage(ref: string): string {
   return r.stdout ?? ""
 }
 
+interface RangeRow {
+  sha: string
+  shortSha: string
+  subject: string
+}
+
+function rangeCommits(opts: { range?: string | null; since?: string | null }): RangeRow[] {
+  const args = [
+    "log",
+    "--reverse",
+    "--no-merges",
+    "--pretty=tformat:%H%x09%h%x09%s",
+  ]
+  if (opts.since) args.push(`--since=${opts.since}`)
+  if (opts.range) args.push(opts.range)
+  const r = spawnSync("git", args, { encoding: "utf8" })
+  if (r.status !== 0) {
+    throw new Error(`git log failed for range/since: ${r.stderr}`)
+  }
+  const rows: RangeRow[] = []
+  for (const line of (r.stdout ?? "").split("\n")) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+    const [sha, shortSha, ...rest] = trimmed.split("\t")
+    if (!sha) continue
+    rows.push({ sha, shortSha: shortSha ?? sha.slice(0, 7), subject: rest.join("\t") })
+  }
+  return rows
+}
+
 // ── CLI ───────────────────────────────────────────────────────────────────
 
 interface Args {
   strict: boolean
   commit: string | null
+  range: string | null
+  since: string | null
 }
 
 function parseArgs(argv: string[]): Args {
-  const out: Args = { strict: false, commit: null }
+  const out: Args = { strict: false, commit: null, range: null, since: null }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === "--strict") out.strict = true
     else if (a === "--commit") out.commit = argv[++i] ?? "HEAD"
+    else if (a === "--range") out.range = argv[++i] ?? ""
+    else if (a === "--since") out.since = argv[++i] ?? ""
     else if (a === "--help" || a === "-h") {
       console.log(
-        "Usage: bun scripts/preflight-docs-impact.ts [--strict] [--commit <ref>]\n\n" +
+        "Usage: bun scripts/preflight-docs-impact.ts [--strict] [--commit <ref> | --range <rev-range> | --since <date>]\n\n" +
           "Default mode: inspect staged changes (`git diff --cached`).\n" +
-          "  --strict        Exit 1 when discipline is violated (default: warn-only).\n" +
-          "  --commit <ref>  Inspect the commit at <ref> instead, including its message.",
+          "  --strict           Exit 1 when discipline is violated (default: warn-only).\n" +
+          "  --commit <ref>     Inspect the commit at <ref>, including its message.\n" +
+          "  --range <range>    Audit each non-merge commit in <range> (e.g. 81397bf..HEAD).\n" +
+          "  --since <date>     Audit each non-merge commit reachable from HEAD since <date>.",
       )
       process.exit(0)
     }
@@ -199,8 +277,47 @@ function parseArgs(argv: string[]): Args {
   return out
 }
 
+function runRangeMode(args: Args): number {
+  const rows = rangeCommits({ range: args.range, since: args.since })
+  if (rows.length === 0) {
+    console.log("[docs-impact] OK — no commits in range")
+    return 0
+  }
+  const inputs: CommitInput[] = rows.map(row => ({
+    sha: row.sha,
+    shortSha: row.shortSha,
+    subject: row.subject,
+    files: commitDiffFiles(row.sha),
+    message: commitMessage(row.sha),
+  }))
+  const result = evaluateRange(inputs)
+  for (const p of result.passes) {
+    console.log(`[docs-impact] OK   ${p.shortSha} ${p.subject}`)
+  }
+  for (const v of result.violations) {
+    console.log(`[docs-impact] WARN ${v.shortSha} ${v.subject}`)
+    for (const f of v.runtimeFiles) console.log(`               ${f}`)
+  }
+  console.log(
+    `[docs-impact] summary: ${result.violations.length} violation(s) / ${result.total} commit(s)`,
+  )
+  if (result.violations.length > 0) {
+    console.log("Resolution options for each violation:")
+    console.log("  (a) ensure `docs/current-state.md` was co-staged with the runtime change, OR")
+    console.log("  (b) confirm the commit message body carries `docs-impact: none`.")
+  }
+  return args.strict && !result.ok ? 1 : 0
+}
+
 function main(argv: string[]): number {
   const args = parseArgs(argv)
+  if (args.range || args.since) {
+    if (args.commit) {
+      console.error("[docs-impact] --commit cannot be combined with --range/--since")
+      return 2
+    }
+    return runRangeMode(args)
+  }
   let files: string[]
   let message: string | null = null
   if (args.commit) {

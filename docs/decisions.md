@@ -4418,3 +4418,26 @@ The writer continues to invent some walk-on names (`Master Halden`, `Guildmistre
 **Ongoing implications:** `lane-runner.ts` does not yet auto-invoke the gate. That coupling is deferred — the gate is an explicit operator step today, which keeps it visible in the launch log. If a future overnight session shows operators forgetting to run it, the runner can wire it in as a startup check.
 
 ---
+
+### L55 — Commit-range docs-impact audit lands as preflight extension (2026-05-02, exp #379)
+
+**Decision:** Extend `scripts/preflight-docs-impact.ts` with two new audit modes — `--range <rev-range>` and `--since <date>` — and a pure `evaluateRange` aggregator. Each mode resolves non-merge commits oldest-first via `git log --reverse --no-merges --pretty=tformat:%H%x09%h%x09%s`, runs the existing `evaluate()` per commit (re-using `commitDiffFiles` and `commitMessage`), prints `OK <shortSha> <subject>` / `WARN <shortSha> <subject>` lines (with offending runtime files indented), prints a `summary: N violation(s) / M commit(s)` tail, and exits non-zero under `--strict` if any commit violated discipline. `--commit` is mutually exclusive with `--range`/`--since` (exit 2 with a clear message). The single-commit and staged modes are unchanged.
+
+**Why:** `docs/todo.md` §L46 kept the morning-pickup audit item open because operators had to call `--commit <sha>` once per commit by hand to identify docs-impact misses across an overnight run. That made the audit a fiddly multi-step task and discouraged routine use. Folding the range and since modes into the existing script reuses every classification, footer-detection, and exit-code rule already covered by 39 unit tests, so single-commit semantics cannot drift from range semantics.
+
+**Design:** `evaluateRange(commits: CommitInput[]): RangeResult` is the entire decision logic — a pure aggregator over `evaluate()` results. The CLI wrapper resolves commit rows, hydrates files/messages via the existing impure helpers, formats the per-commit lines, and threads `--strict` through to the exit code. Adding the mode as a script extension (rather than a new sibling script) prevents two parallel implementations of the same discipline, keeps `evaluate()` as the single source of truth, and means future surface-pattern changes propagate automatically to range audits.
+
+**Tests (`scripts/preflight-docs-impact.test.ts`):** 5 new aggregator cases under "evaluateRange" — empty range, all clean (mix of doc co-stage / non-runtime / `docs-impact: none`), mixed range (verifies per-commit shas, shortShas, subjects, and runtimeFiles surface to the violation report), shortSha + subject derivation from `sha`/`message` fallbacks, and non-runtime-only passes. 44/44 unit tests pass (was 39).
+
+**Smoke validation:** `bun scripts/preflight-docs-impact.ts --range 81397bf..HEAD` over the L51-L54 lane window → 0 violations across 8 commits (matches expectation; all those lanes already shipped clean). `bun scripts/preflight-docs-impact.ts --range 7381ba0~1..397adca --strict` → catches both known historical violations (`7381ba0`, `397adca`), prints offending runtime files, and exits 1. `--since "2026-05-01"` against the broader history surfaces the L29-L43 violations recorded in `docs/todo.md` §L44 reconciliation. The conflict guard between `--commit` and `--range` returns exit 2.
+
+**Alternatives rejected:**
+- A separate sibling script (`preflight-docs-impact-range.ts`). Rejected — would duplicate the runtime-surface pattern list, `evaluate()` semantics, and footer regex. Two scripts that drift apart silently is exactly the failure mode the discipline exists to prevent.
+- A runbook command using `git rev-list ... | xargs -n1 bun scripts/preflight-docs-impact.ts --commit`. Rejected — boots Bun once per commit, doesn't aggregate, and an empty range would produce no output (no clear "OK on N commits" signal). The in-process implementation also makes `--strict` exit-code aggregation trivial.
+- Auto-invoking the range audit from the pre-loop gate (L54). Deferred — the audit answers "did the last overnight run leave drift," not "is this lane safe to launch." Wiring it into the morning runbook keeps that distinction explicit.
+
+**Documentation:** `docs/todo.md` §L46 closed inline with the smoke evidence. The script's header docstring already documented `--commit` usage; the `--range` and `--since` lines were added there and the `--help` output now lists all four modes (default staged, `--commit`, `--range`, `--since`).
+
+**Ongoing implications:** Morning pickup can now run `bun scripts/preflight-docs-impact.ts --since "yesterday" --strict` (or `--range <last-shipped-sha>..HEAD`) as a one-command audit. If overnight loops start producing violations regularly, a future lane can teach `lane-runner` to fail-closed when its starting-vs-ending commit range trips the audit.
+
+---

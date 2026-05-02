@@ -13,6 +13,7 @@ import {
   classifyStagedFiles,
   commitMessageDeclaresNoDocs,
   evaluate,
+  evaluateRange,
 } from "./preflight-docs-impact"
 
 // ── isRuntimeFile ─────────────────────────────────────────────────────────
@@ -169,5 +170,94 @@ describe("evaluate", () => {
       stagedFiles: ["src/agents/foo/index.ts", "docs/decisions.md"],
     })
     expect(r.ok).toBe(false)
+  })
+})
+
+// ── evaluateRange ─────────────────────────────────────────────────────────
+
+describe("evaluateRange", () => {
+  test("empty range → ok with zero totals", () => {
+    const r = evaluateRange([])
+    expect(r.ok).toBe(true)
+    expect(r.total).toBe(0)
+    expect(r.violations).toHaveLength(0)
+    expect(r.passes).toHaveLength(0)
+  })
+
+  test("all clean commits → ok", () => {
+    const r = evaluateRange([
+      {
+        sha: "aaaaaaaaaaaaaaaa",
+        files: ["src/agents/foo/index.ts", "docs/current-state.md"],
+        message: "feat: foo\n",
+      },
+      {
+        sha: "bbbbbbbbbbbbbbbb",
+        files: ["scripts/cleanup.ts"],
+        message: "chore: cleanup\n",
+      },
+      {
+        sha: "cccccccccccccccc",
+        files: ["src/llm.ts"],
+        message: "refactor: tighten transport\n\ndocs-impact: none\n",
+      },
+    ])
+    expect(r.ok).toBe(true)
+    expect(r.total).toBe(3)
+    expect(r.violations).toHaveLength(0)
+    expect(r.passes).toHaveLength(3)
+  })
+
+  test("mixed range → reports per-commit shas, subjects, and shortShas", () => {
+    const r = evaluateRange([
+      {
+        sha: "1111111111111111",
+        shortSha: "1111111",
+        subject: "good commit",
+        files: ["src/llm.ts", "docs/current-state.md"],
+        message: "good commit\n",
+      },
+      {
+        sha: "2222222222222222",
+        shortSha: "2222222",
+        subject: "bad commit",
+        files: ["src/agents/foo/index.ts"],
+        message: "bad commit\n\nNo footer here.\n",
+      },
+    ])
+    expect(r.ok).toBe(false)
+    expect(r.total).toBe(2)
+    expect(r.violations).toHaveLength(1)
+    expect(r.violations[0].sha).toBe("2222222222222222")
+    expect(r.violations[0].shortSha).toBe("2222222")
+    expect(r.violations[0].subject).toBe("bad commit")
+    expect(r.violations[0].runtimeFiles).toEqual(["src/agents/foo/index.ts"])
+    expect(r.passes).toHaveLength(1)
+    expect(r.passes[0].sha).toBe("1111111111111111")
+  })
+
+  test("derives shortSha and subject from sha/message when not provided", () => {
+    const r = evaluateRange([
+      {
+        sha: "abcdef0123456789",
+        files: ["src/agents/foo/index.ts"],
+        message: "subject line only\n",
+      },
+    ])
+    expect(r.violations[0].shortSha).toBe("abcdef0")
+    expect(r.violations[0].subject).toBe("subject line only")
+  })
+
+  test("non-runtime-only commits are passes (discipline not applicable)", () => {
+    const r = evaluateRange([
+      {
+        sha: "ddddddddddddddddd",
+        files: ["docs/todo.md", "scripts/agent/foo.ts"],
+        message: "docs: todo cleanup\n",
+      },
+    ])
+    expect(r.ok).toBe(true)
+    expect(r.passes).toHaveLength(1)
+    expect(r.violations).toHaveLength(0)
   })
 })

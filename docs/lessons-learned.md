@@ -2024,3 +2024,16 @@ L49 (exp #373) closed the last title+surname grounding gap in the halluc-ungroun
 Rule: when closing a deterministic matching gap where the candidate phrase may carry extraneous prefix tokens, prefer a bounded fallback tier gated on a closed lexicon that retries existing matching logic, over adding new independent matching paths. The closed lexicon bounds over-generalization; retry reuses validated paths and avoids code duplication. The L49 TITLE_TOKENS approach is the reference pattern: import the lexicon from a shared source, build a normalized lookup set, gate the strip on token count + lexicon membership, and retry the existing tiers on the remainder. If a future prefix class needs analogous treatment, extend the bounding lexicon rather than adding a new independent matching tier.
 
 (L49, exp #373, commit `559e8c8`. Companion: `docs/sessions/2026-05-02-L49-grounded-union-allowlist.md`, `docs/decisions.md` §L49.)
+
+## When extending a discipline-enforcing tool, fold new modes into the same script rather than building a sibling (2026-05-02)
+
+L55 (exp #379) added range and since modes to `scripts/preflight-docs-impact.ts` instead of creating a sibling `preflight-docs-impact-range.ts`. The tempting alternative would have re-declared the runtime-surface pattern list, the `evaluate()` semantics, and the footer regex in a second file. Two scripts that share intent but diverge over time is exactly the failure mode the discipline exists to catch — drift in what counts as a runtime surface or what counts as a satisfied footer.
+
+**The rule:** when a tool already owns a deterministic discipline (file classification, message-shape detection, exit-code policy), new audit modes go into that tool with the existing pure helpers as the core. The CLI grows new flags; the decision logic stays single-source-of-truth. A new pure aggregator (here: `evaluateRange` over `evaluate`) is fine because it composes existing rules, but a parallel re-implementation of those rules is a regression risk.
+
+**How to apply:**
+- Before writing a sibling script for a "wider scope" version of an existing audit, ask whether the existing script's pure helpers can be reused with a thin aggregator.
+- Cover the aggregator with unit tests that hand it both clean and violating fixture commits — those tests guard against future surface-pattern changes silently breaking the wider mode.
+- Smoke-validate the new mode against a known-violating range (e.g. a historical commit pair) so the strict exit code is exercised end-to-end.
+
+(L55, exp #379. Companion: `docs/sessions/2026-05-02-L55-commit-range-docs-impact-audit.md`, `docs/decisions.md` §L55.)
