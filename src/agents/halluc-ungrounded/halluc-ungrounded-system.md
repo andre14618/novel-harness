@@ -38,3 +38,5 @@ Output ONLY valid JSON:
 {"pass": bool, "issues": [{"entity": "...", "excerpt": "..."}]}
 
 Empty issues array if pass. excerpt is a 10-30 word context span around the entity. Corpus-leakage / style imitation is NOT in scope; only judge whether named entities are grounded in the supplied evidence.
+
+NER prepass note: A deterministic named-entity extractor runs before this call and pre-filters multi-word capitalized phrases (title+name pairs, suffix-class institutions/places, consecutive-capitalized multi-word spans) against the same grounded surface you see. You do NOT need to repeat surface-form entity extraction for those classes — focus on semantic grounding judgment and on entity classes the NER pass cannot catch (single-word proper names, X-of-Y lowercase-connector phrases, dialogue-introduced characters).

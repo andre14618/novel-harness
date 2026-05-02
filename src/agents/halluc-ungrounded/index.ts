@@ -4,11 +4,21 @@ import { resolve, dirname } from "node:path"
 import { callAgent } from "../../llm"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
 import { buildContext } from "./context"
-import { hallucUngroundedSchema, type HallucUngroundedOutput } from "./schema"
+import {
+  hallucUngroundedSchema,
+  type HallucUngroundedOutput,
+  type HallucUngroundedResult,
+  type NerFinding,
+} from "./schema"
 import { deriveBeatEntities, extractProperNouns } from "../../phases/beat-entity-list"
+import {
+  extractEntityCandidates,
+  normalizeForGroundedMatch,
+  type EntityCandidate,
+} from "../../lint/entity-candidates"
 
 export { buildContext, hallucUngroundedSchema }
-export type { HallucUngroundedOutput }
+export type { HallucUngroundedOutput, HallucUngroundedResult, NerFinding }
 
 // Load the bounded checker prompt from disk so rubric updates don't require a
 // TS recompile.
@@ -16,11 +26,6 @@ export const HALLUC_UNGROUNDED_SYSTEM = readFileSync(
   resolve(dirname(new URL(import.meta.url).pathname), "halluc-ungrounded-system.md"),
   "utf-8",
 )
-
-export interface HallucUngroundedResult {
-  pass: boolean
-  issues: string[]   // normalized to the BeatIssue.description shape
-}
 
 /** Parses the BEAT_ENTITY_LIST_VARIANT env into a canonical variant tag.
  *  The checker-side is active for v1 and v3; v2 is writer-only.
@@ -35,6 +40,117 @@ function resolveVariant(): "v0" | "v1" | "v2" | "v3" | "v4" {
   const raw = (process.env.BEAT_ENTITY_LIST_VARIANT ?? "v1").toLowerCase()
   if (raw === "v0" || raw === "v1" || raw === "v2" || raw === "v3" || raw === "v4") return raw
   return "v1"
+}
+
+// ── NER prepass helpers ───────────────────────────────────────────────────────
+
+/**
+ * Build a normalized grounded-surface set from all the evidence sources that
+ * the checker has access to. Used by the NER prepass to decide whether a
+ * candidate phrase is already grounded (and should not fire).
+ *
+ * Mirrors the logic in `scripts/hallucination/ner-vs-llm-calibration.ts`
+ * `buildGroundedSurface` + `isGrounded`, but operates directly on the runtime
+ * components rather than on a serialized JSONL row. Both the lowercase-exact
+ * tier and the normalized (possessive/plural/article-stripped) tier are built
+ * so `isNerGrounded` can apply the same four-tier check the calibration loop
+ * validated.
+ */
+function buildNerGroundedSet(components: {
+  bibleNames: string[]
+  beatCharacters: string[]
+  fromBrief: string[]
+  derivedOutlineFact: string[]
+  derivedPriorBeat: string[]
+  allowedNewEntities: string[]
+  povCharacter: string | undefined
+}): { lower: Set<string>; normalized: Set<string> } {
+  const lower = new Set<string>()
+  const normalized = new Set<string>()
+
+  const allSources: string[] = [
+    ...components.bibleNames,
+    ...components.beatCharacters,
+    ...components.fromBrief,
+    ...components.derivedOutlineFact,
+    ...components.derivedPriorBeat,
+    ...components.allowedNewEntities,
+    ...(components.povCharacter ? [components.povCharacter] : []),
+  ]
+
+  for (const raw of allSources) {
+    if (typeof raw !== "string") continue
+    const trimmed = raw.trim()
+    if (trimmed.length === 0) continue
+
+    // Add the whole-phrase forms.
+    const lo = trimmed.toLowerCase()
+    lower.add(lo)
+    const norm = normalizeForGroundedMatch(trimmed)
+    if (norm.length > 0) normalized.add(norm)
+
+    // Also add per-token shards (handles embedded newlines, compound entries).
+    const tokens = trimmed.split(/\s+/).filter(t => t.length > 0)
+    for (const t of tokens) {
+      const cleaned = t.replace(/[''](s|S)?$/, "").toLowerCase()
+      if (cleaned.length > 0) lower.add(cleaned)
+      const normT = normalizeForGroundedMatch(t)
+      if (normT.length > 0) normalized.add(normT)
+    }
+  }
+
+  return { lower, normalized }
+}
+
+/**
+ * Four-tier grounding check for a NER candidate phrase.
+ *
+ * Tiers (in order):
+ *   1. Exact lowercase match against `surface.lower`.
+ *   2. Substring: any surface.lower entry contains the candidate.
+ *   3. Normalized exact: normalizeForGroundedMatch(candidate) ∈ surface.normalized.
+ *   4. Normalized substring: any surface.normalized entry contains the normalized candidate.
+ *
+ * Returns `true` (grounded) when any tier matches.
+ */
+function isNerGrounded(
+  candidatePhrase: string,
+  surface: { lower: Set<string>; normalized: Set<string> },
+): boolean {
+  const c = candidatePhrase.toLowerCase().trim()
+  if (c.length === 0) return true
+  // 1. exact lowercase
+  if (surface.lower.has(c)) return true
+  // 2. lowercase substring
+  for (const s of surface.lower) {
+    if (s.length >= c.length && s.includes(c)) return true
+  }
+  // 3. normalized exact
+  const normC = normalizeForGroundedMatch(candidatePhrase)
+  if (normC.length > 0 && surface.normalized.has(normC)) return true
+  // 4. normalized substring
+  if (normC.length > 0) {
+    for (const s of surface.normalized) {
+      if (s.length >= normC.length && s.includes(normC)) return true
+    }
+  }
+  return false
+}
+
+/**
+ * Run the deterministic NER prepass over `prose`.
+ *
+ * Returns the list of entity candidates that are NOT grounded against the
+ * evidence surface. Empty array = prepass passes (no ungrounded candidates
+ * detected by NER). Non-empty array = prepass fires; the AND-gate decides
+ * whether this becomes a blocker or warning.
+ */
+export function runNerPrepass(
+  prose: string,
+  groundedSurface: { lower: Set<string>; normalized: Set<string> },
+): EntityCandidate[] {
+  const candidates = extractEntityCandidates(prose)
+  return candidates.filter(c => !isNerGrounded(c.phrase, groundedSurface))
 }
 
 /**
@@ -60,6 +176,20 @@ function resolveVariant(): "v0" | "v1" | "v2" | "v3" | "v4" {
  * provenance-only at this stage; checker pass/fail logic is unchanged
  * (calibration of "use it as a sanction" is a separate L4-adjacent
  * loop, see docs/todo.md §7).
+ *
+ * **NER prepass (L4-followup-3, exp #322):** For variants v1/v3/v4, a
+ * deterministic entity-candidate prepass runs before the LLM call.
+ * AND-gate behavior:
+ *   - NER fires AND LLM fires → **blocker** (same as current LLM-only fail)
+ *   - NER fires, LLM passes → **warning** (issues include a NER-only note;
+ *     `nerOnlyFindings` is populated; the beat is NOT passed — Design A
+ *     treats a NER signal without LLM confirmation as a soft fail)
+ *   - NER passes, LLM fires → **LLM-only blocker** (existing behavior)
+ *   - Neither fires → **pass**
+ *
+ * The warning vs blocker distinction lets the retry loop escalate
+ * selectively: NER+LLM agreement = high-confidence fail worth retrying;
+ * NER-only = ambiguous, surface but don't burn retries indefinitely.
  */
 export async function checkHallucUngrounded(
   prose: string,
@@ -113,7 +243,7 @@ export async function checkHallucUngrounded(
     .map(e => (typeof e === "string" ? e.trim() : ""))
     .filter(Boolean)
 
-  const groundedSources = {
+  const groundedSourcesObj = {
     variant,
     bible: bibleNames,
     from_brief: fromBrief,
@@ -121,6 +251,26 @@ export async function checkHallucUngrounded(
     derived_prior_beat: derivation?.sources.derivedPriorBeat ?? [],
     allowed_new_entities: allowedNewEntities,
     planner_emitted: [] as string[],
+  }
+
+  // ── NER prepass (variants v1 / v3 / v4 only) ──────────────────────────────
+  // Build the same grounded-surface the LLM checker sees, run the
+  // deterministic extractor, and record which candidates escape grounding.
+  // The LLM call below is only gated on its own output — the NER signal
+  // is combined at the result-assembly stage (AND-gate).
+  const nerEnabled = variant === "v1" || variant === "v3" || variant === "v4"
+  let nerUngrounded: EntityCandidate[] = []
+  if (nerEnabled) {
+    const groundedSurface = buildNerGroundedSet({
+      bibleNames,
+      beatCharacters: beat.characters,
+      fromBrief,
+      derivedOutlineFact: derivation?.sources.derivedOutlineFact ?? [],
+      derivedPriorBeat: derivation?.sources.derivedPriorBeat ?? [],
+      allowedNewEntities,
+      povCharacter: outline.povCharacter ?? undefined,
+    })
+    nerUngrounded = runNerPrepass(prose, groundedSurface)
   }
 
   try {
@@ -133,17 +283,90 @@ export async function checkHallucUngrounded(
       systemPrompt: HALLUC_UNGROUNDED_SYSTEM,
       userPrompt,
       schema: hallucUngroundedSchema,
-      logMetadata: { groundedSources },
+      logMetadata: { groundedSources: groundedSourcesObj },
     })
     const output = result.output
-    if (output.pass) return { pass: true, issues: [] }
+    const llmPass = output.pass
+
+    // Build NER finding list for result provenance.
+    const allNerFindings: NerFinding[] = nerUngrounded.map(c => ({
+      phrase: c.phrase,
+      class: c.class,
+    }))
+
+    if (llmPass && nerUngrounded.length === 0) {
+      // Both pass → clean beat.
+      return { pass: true, issues: [], nerFindings: nerEnabled ? [] : undefined }
+    }
+
     // Zod's `.default([])` resolves to an array at parse time, but the
     // inferred input type keeps the field optional — fall back to [] so
     // downstream consumers never see undefined.
-    const issues = (output.issues ?? []).map(i =>
+    const llmIssues = (output.issues ?? []).map(i =>
       `Ungrounded entity "${i.entity}"${i.excerpt ? ` — context: "${i.excerpt}"` : ""}`,
     )
-    return { pass: false, issues }
+
+    if (!nerEnabled) {
+      // NER prepass not active (variant v0 / v2) — preserve prior behavior exactly.
+      if (llmPass) return { pass: true, issues: [] }
+      return { pass: false, issues: llmIssues }
+    }
+
+    // AND-gate assembly:
+    //
+    //   • NER fires ∩ LLM fires → **blocker**: both agree, high confidence.
+    //   • NER fires ∩ LLM passes → **warning**: NER-only, surface but flag.
+    //   • NER passes ∩ LLM fires → **LLM-only blocker**: existing behavior.
+    //   • NER passes ∩ LLM passes → covered above (clean return).
+    //
+    // In all non-pass cases we return pass=false so the retry loop acts. The
+    // distinction between high-confidence blockers vs NER-only warnings is
+    // carried in the issue message prefix and the nerOnlyFindings field so
+    // callers that want to treat them differently can.
+
+    const nerFires = nerUngrounded.length > 0
+    const llmFires = !llmPass
+
+    if (nerFires && llmFires) {
+      // Blocker: NER ∩ LLM — merge both issue sets.
+      // LLM issues are the canonical description (they carry excerpt context).
+      // NER phrases that have NO corresponding LLM issue get appended so no
+      // NER-caught entity is silently dropped.
+      const llmEntitiesLower = new Set(
+        (output.issues ?? []).map(i => i.entity.toLowerCase().trim()),
+      )
+      const nerExtraIssues = nerUngrounded
+        .filter(c => !llmEntitiesLower.has(c.phrase.toLowerCase().trim()))
+        .map(c => `Ungrounded entity "${c.phrase}" [NER prepass]`)
+      return {
+        pass: false,
+        issues: [...llmIssues, ...nerExtraIssues],
+        nerFindings: allNerFindings,
+        nerOnlyFindings: [],
+      }
+    }
+
+    if (nerFires && !llmFires) {
+      // Warning: NER-only — LLM did not confirm. Still fail so the retry
+      // loop sees it, but label the issues clearly so operators can triage.
+      const nerOnlyIssues = nerUngrounded.map(
+        c => `Ungrounded entity "${c.phrase}" [NER-only warning — LLM passed]`,
+      )
+      return {
+        pass: false,
+        issues: nerOnlyIssues,
+        nerFindings: allNerFindings,
+        nerOnlyFindings: allNerFindings,
+      }
+    }
+
+    // NER passes, LLM fires — LLM-only blocker; existing behavior.
+    return {
+      pass: false,
+      issues: llmIssues,
+      nerFindings: [],
+      nerOnlyFindings: [],
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     return {
