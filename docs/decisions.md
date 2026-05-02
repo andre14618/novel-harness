@@ -3063,3 +3063,30 @@ If either fails, convergence is wasted compute. Adherence-events fails BOTH (F1=
 - L5 two-stage detail enrichment IS the right adherence improvement (per-event quote enumeration on FAIL gives writer better retry hints — which is what the §8 backlog asked for, NOT recall lift).
 - The L1 convergence finding stays valid: halluc-ungrounded benefits from convergence at temp=0.5 k=3.
 - For future semantic checkers without labeled panels: run a quick convergence eval at temp=0.1 first to MEASURE F1 + unanimity rate. If both are below threshold, convergence is the right tool. Otherwise, calibrate or refactor instead.
+
+### L4-followup-3: NER prepass wired into production halluc-ungrounded checker (2026-05-01, exp #322, linked to #321)
+
+**Decision:** Promoted the deterministic NER prepass (`src/lint/entity-candidates.ts`, post L4-followup-2 fixes, F1=0.947 small panel / F1=0.839 big panel) from TELEMETRY-ONLY to a live prepass in `src/agents/halluc-ungrounded/index.ts`.
+
+**Design A (AND-gate) chosen as v1 implementation:**
+- **NER ∩ LLM fires → blocker**: both agree → high confidence, standard retry behavior.
+- **NER fires, LLM passes → warning**: NER-only, labeled `[NER-only warning]` in issue text, `nerOnlyFindings` populated; `pass=false` so retry loop still acts (conservative).
+- **NER passes, LLM fires → LLM-only blocker**: existing behavior unchanged.
+- **Neither fires → pass**: unchanged.
+
+**Why Design A over B/C:** Design B (NER-gated LLM call) also saves LLM cost on clean beats but is still gated on LLM accuracy for NER hits. Design C (convergence ladder) is complex. Design A is the simplest correct first step; we can iterate to B/C if production metrics warrant.
+
+**NER grounded-surface construction:** `buildNerGroundedSet` assembles a `{lower, normalized}` surface from the same evidence components the LLM checker sees: bibleNames, beatCharacters, fromBrief, derivedOutlineFact, derivedPriorBeat, allowedNewEntities, povCharacter. Uses `normalizeForGroundedMatch` (from L4-followup-2) for four-tier normalized matching: exact lowercase → substring → normalized exact → normalized substring. Per-token fallback (tier 5 from calibration script) is intentionally OMITTED from the runtime to avoid over-grounding of title-pair phrases.
+
+**Schema changes (backward-compatible):** `HallucUngroundedResult` now lives in `schema.ts` and gains two optional fields: `nerFindings?: NerFinding[]` (all ungrounded NER candidates) and `nerOnlyFindings?: NerFinding[]` (NER-only subset). Callers reading only `pass`/`issues` are unaffected.
+
+**System prompt updated:** `halluc-ungrounded-system.md` now notes that NER pre-filters multi-word candidates; the LLM should focus on semantic grounding and entity classes NER cannot catch (single-word proper names, X-of-Y phrases, dialogue-introduced characters).
+
+**Active for:** variants v1, v3, v4. Disabled for v0 and v2 (exact prior behavior preserved).
+
+**Test coverage:** 20 unit tests in `src/agents/halluc-ungrounded/index.test.ts` covering all three AND-gate paths, NER grounding (exact/normalized/plural), title-pair, suffix-class, and empty-prose edge cases.
+
+**Open follow-ups:**
+- Smoke validate on a 3-chapter novel run (queued after LXC L6 probe frees the host).
+- If production NER-only warning rate is too high, add per-token fallback (tier 5) to the runtime's `buildNerGroundedSet`.
+- beat-checks.ts still marks all ungrounded issues as `"blocker"` severity. If NER-only warnings should be true warnings (no retry), that distinction needs to propagate through the severity field — a future pass.
