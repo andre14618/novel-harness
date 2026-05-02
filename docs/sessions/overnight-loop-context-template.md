@@ -28,7 +28,7 @@ Use this template for any unattended Claude loop. Copy it to `docs/sessions/YYYY
 - Evidence artifact:
 - Event log: output/agent-runs/<lane-id>/events.jsonl
 - Dashboard command: monitor docs/sessions/<lane>.md
-- Runner command: bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md
+- Runner command: bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md --pickup-terminal-on-stop
 
 ## Baseline
 
@@ -51,7 +51,7 @@ Use this template for any unattended Claude loop. Copy it to `docs/sessions/YYYY
 - Expected cost:
 - Command 1:
 - Command 2:
-- Runner dry-run: `bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --queue docs/sessions/lane-queue.md --dry-run`
+- Runner dry-run: `bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --queue docs/sessions/lane-queue.md --pickup-terminal-on-stop --dry-run`
 - Verification command(s):
 
 ## Progress Log

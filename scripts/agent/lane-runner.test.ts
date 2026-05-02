@@ -7,6 +7,7 @@ import {
   buildCyclePrompt,
   buildDisplayCommand,
   buildOpencodeArgs,
+  buildPickupTerminalArgs,
   missingConclusionFields,
   nextLaneFromQueueText,
   parseLaneQueue,
@@ -36,6 +37,7 @@ function baseArgs(overrides: Partial<RunnerArgs> = {}): RunnerArgs {
     dryRun: false,
     dangerouslySkipPermissions: false,
     reviewGate: true,
+    pickupTerminalOnStop: false,
     ...overrides,
   }
 }
@@ -54,6 +56,7 @@ describe("lane-runner args", () => {
     expect(workerIdentity(args)).toBe("captain-opencode")
     expect(args.dryRun).toBe(false)
     expect(args.reviewGate).toBe(true)
+    expect(args.pickupTerminalOnStop).toBe(false)
   })
 
   test("parses OpenCode controls", () => {
@@ -75,6 +78,7 @@ describe("lane-runner args", () => {
       "--dry-run",
       "--dangerously-skip-permissions",
       "--no-review-gate",
+      "--pickup-terminal-on-stop",
     ])
     expect(args.maxCycles).toBe(6)
     expect(args.engine).toBe("claude")
@@ -93,6 +97,7 @@ describe("lane-runner args", () => {
     expect(args.dryRun).toBe(true)
     expect(args.dangerouslySkipPermissions).toBe(true)
     expect(args.reviewGate).toBe(false)
+    expect(args.pickupTerminalOnStop).toBe(true)
   })
 
   test("rejects missing lane", () => {
@@ -157,6 +162,15 @@ describe("lane-runner prompt and command", () => {
     expect(command).toContain("claude")
     expect(command).toContain("<cycle-prompt>")
     expect(command).not.toContain("Required workflow")
+  })
+
+  test("builds pickup terminal command args for stopped runner", () => {
+    expect(buildPickupTerminalArgs("docs/sessions/lane.md", "human-needed", "max cycles reached (8)")).toEqual([
+      "scripts/agent/open-pickup-terminal.ts",
+      "docs/sessions/lane.md",
+      "--title",
+      "lane-runner human-needed: max cycles reached (8)",
+    ])
   })
 })
 

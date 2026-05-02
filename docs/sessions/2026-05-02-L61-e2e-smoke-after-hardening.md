@@ -26,7 +26,7 @@ role: primary-lane-context
 - Evidence artifact: Experiment #384; LXC log path; novel id; `operator-summary --json` output; `smoke-stop-classifier` output; result doc.
 - Event log: output/agent-runs/2026-05-02-L61-e2e-smoke-after-hardening/events.jsonl
 - Dashboard command: monitor
-- Runner command: bun scripts/agent/lane-runner.ts docs/sessions/2026-05-02-L61-e2e-smoke-after-hardening.md --engine claude --model opus --permission-mode auto --worker-role captain --worker-id captain-claude --max-cycles 8 --max-hours 6 --max-no-change-cycles 1 --queue docs/sessions/lane-queue.md
+- Runner command: bun scripts/agent/lane-runner.ts docs/sessions/2026-05-02-L61-e2e-smoke-after-hardening.md --engine claude --model opus --permission-mode auto --worker-role captain --worker-id captain-claude --max-cycles 8 --max-hours 6 --max-no-change-cycles 1 --queue docs/sessions/lane-queue.md --pickup-terminal-on-stop
 
 ## Baseline
 

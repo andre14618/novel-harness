@@ -37,6 +37,7 @@ export interface RunnerArgs {
   dryRun: boolean
   dangerouslySkipPermissions: boolean
   reviewGate: boolean
+  pickupTerminalOnStop: boolean
 }
 
 export interface CycleRunResult {
@@ -86,6 +87,7 @@ export function parseArgs(argv: string[]): RunnerArgs {
     dryRun: false,
     dangerouslySkipPermissions: false,
     reviewGate: true,
+    pickupTerminalOnStop: false,
   }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!
@@ -116,6 +118,7 @@ export function parseArgs(argv: string[]): RunnerArgs {
     else if (a === "--dry-run") out.dryRun = true
     else if (a === "--dangerously-skip-permissions") out.dangerouslySkipPermissions = true
     else if (a === "--no-review-gate") out.reviewGate = false
+    else if (a === "--pickup-terminal-on-stop") out.pickupTerminalOnStop = true
     else if (a === "--help" || a === "-h") {
       console.log(
         "Usage: bun scripts/agent/lane-runner.ts <docs/sessions/lane.md> [options]\n\n" +
@@ -139,7 +142,8 @@ export function parseArgs(argv: string[]): RunnerArgs {
           "  --instruction <text>         Extra instruction appended to each cycle prompt\n" +
           "  --dry-run                    Print the first worker command and prompt, do not execute\n" +
           "  --dangerously-skip-permissions  Pass through to the worker (not recommended)\n" +
-          "  --no-review-gate             Historical-lane escape hatch; skip Results: Review gate\n",
+          "  --no-review-gate             Historical-lane escape hatch; skip Results: Review gate\n" +
+          "  --pickup-terminal-on-stop    Spawn a WezTerm/OpenCode pickup terminal before exiting on stop/block/human-needed/infra-failure\n",
       )
       process.exit(0)
     } else if (!a.startsWith("--")) {
@@ -377,6 +381,41 @@ function refreshStaleHeartbeatIfNeeded(lanePath: string, summary: ReturnType<typ
   return laneSummaryForPrompt(lanePath, staleMinutes)
 }
 
+function compactOneLine(value: string, max = 120): string {
+  const text = value.replace(/\s+/g, " ").trim()
+  return text.length <= max ? text : `${text.slice(0, max - 1)}…`
+}
+
+export function buildPickupTerminalArgs(lanePath: string, state: LaneRunState, reason: string): string[] {
+  return [
+    "scripts/agent/open-pickup-terminal.ts",
+    lanePath,
+    "--title",
+    `lane-runner ${state}: ${compactOneLine(reason, 90)}`,
+  ]
+}
+
+function maybeSpawnPickupTerminal(args: RunnerArgs, lanePath: string, state: LaneRunState, reason: string): void {
+  if (!args.pickupTerminalOnStop || args.dryRun) return
+  const pickupArgs = buildPickupTerminalArgs(lanePath, state, reason)
+  const command = `bun ${pickupArgs.map(part => JSON.stringify(part)).join(" ")}`
+  const result = spawnSync("bun", pickupArgs, { encoding: "utf8", maxBuffer: 1024 * 1024 })
+  appendRunnerEvent(lanePath, {
+    ...workerEventFields(args),
+    type: result.status === 0 && !result.error ? "runner_pickup_terminal_spawned" : "runner_pickup_terminal_failed",
+    status: state,
+    message: result.status === 0 && !result.error
+      ? compactOneLine(result.stdout || "pickup terminal spawned")
+      : compactOneLine(result.error ? String(result.error.message || result.error) : result.stderr || `pickup terminal exited ${result.status ?? "unknown"}`),
+    command,
+  })
+}
+
+function exitWithPickup(args: RunnerArgs, lanePath: string, state: LaneRunState, reason: string, exitCode: number): number {
+  maybeSpawnPickupTerminal(args, lanePath, state, reason)
+  return exitCode
+}
+
 function elapsedHours(startMs: number): number {
   return (Date.now() - startMs) / 3_600_000
 }
@@ -448,19 +487,21 @@ function main(argv: string[]): number {
   })
 
   if (args.workerIo === "terminal" && !args.dryRun && (!process.stdin.isTTY || !process.stdout.isTTY)) {
+    const reason = "--worker-io terminal requires an attached TTY; use capture mode for background/nohup runs"
     appendRunnerEvent(lanePath, {
       ...workerEventFields(args),
       type: "runner_terminal_unavailable",
       status: "human-needed",
-      message: "--worker-io terminal requires an attached TTY; use capture mode for background/nohup runs",
+      message: reason,
     })
-    return 21
+    return exitWithPickup(args, lanePath, "human-needed", reason, 21)
   }
 
   for (let cycle = 1; cycle <= args.maxCycles; cycle++) {
     if (elapsedHours(startMs) >= args.maxHours) {
-      appendRunnerEvent(lanePath, { ...workerEventFields(args), type: "runner_limit", status: "human-needed", message: `max hours reached before cycle ${cycle}` })
-      return 21
+      const reason = `max hours reached before cycle ${cycle}`
+      appendRunnerEvent(lanePath, { ...workerEventFields(args), type: "runner_limit", status: "human-needed", message: reason })
+      return exitWithPickup(args, lanePath, "human-needed", reason, 21)
     }
 
     let summary = laneSummaryForPrompt(lanePath, args.staleMinutes)
@@ -475,10 +516,12 @@ function main(argv: string[]): number {
           appendRunnerEvent(lanePath, { ...workerEventFields(args), type: "runner_advance_start", step: `continued from queue ${args.queuePath}`, message: advance.message })
           continue
         }
-        return advance.exitCode ?? 10
+        const exitCode = advance.exitCode ?? 10
+        const state: LaneRunState = advance.exitCode === 21 ? "human-needed" : "stop"
+        return exitWithPickup(args, lanePath, state, advance.message, exitCode)
       }
       appendRunnerEvent(lanePath, { ...workerEventFields(args), type: "runner_stop", status: summary.state, message: `lane-status is ${summary.state}` })
-      return summary.exitCode
+      return exitWithPickup(args, lanePath, summary.state, summary.reason, summary.exitCode)
     }
 
     const cycleArgs: RunnerArgs = { ...args, lanePath }
@@ -509,7 +552,7 @@ function main(argv: string[]): number {
         ? `cycle ${cycle} timed out after ${args.cycleTimeoutMinutes}m`
         : `cycle ${cycle} exited ${result.status ?? "unknown"}${result.error ? `: ${result.error}` : ""}`
       appendRunnerEvent(lanePath, { ...workerEventFields(cycleArgs), type: "cycle_failed", status: "infra-failure", message: `${reason}; artifacts=${artifactBase}.*`, command: commandText })
-      return 22
+      return exitWithPickup(args, lanePath, "infra-failure", reason, 22)
     }
 
     let postSummary = laneSummaryForPrompt(lanePath, args.staleMinutes)
@@ -535,25 +578,29 @@ function main(argv: string[]): number {
           appendRunnerEvent(lanePath, { ...workerEventFields(args), type: "runner_advance_start", step: `continued from queue ${args.queuePath}`, message: advance.message })
           continue
         }
-        return advance.exitCode ?? postSummary.exitCode
+        const exitCode = advance.exitCode ?? postSummary.exitCode
+        const state: LaneRunState = advance.exitCode === 21 ? "human-needed" : "stop"
+        return exitWithPickup(args, lanePath, state, advance.message, exitCode)
       }
-      return postSummary.exitCode
+      return exitWithPickup(args, lanePath, postSummary.state, postSummary.reason, postSummary.exitCode)
     }
 
     noChangeCycles = changed ? 0 : noChangeCycles + 1
     if (noChangeCycles >= args.maxNoChangeCycles) {
+      const reason = `${noChangeCycles} consecutive cycle(s) made no tracked workspace change; inspect artifacts before continuing`
       appendRunnerEvent(lanePath, {
         ...workerEventFields(args),
         type: "runner_no_change_limit",
         status: "human-needed",
-        message: `${noChangeCycles} consecutive cycle(s) made no tracked workspace change; inspect artifacts before continuing`,
+        message: reason,
       })
-      return 21
+      return exitWithPickup(args, lanePath, "human-needed", reason, 21)
     }
   }
 
-  appendRunnerEvent(lanePath, { ...workerEventFields(args), type: "runner_limit", status: "human-needed", message: `max cycles reached (${args.maxCycles})` })
-  return 21
+  const reason = `max cycles reached (${args.maxCycles})`
+  appendRunnerEvent(lanePath, { ...workerEventFields(args), type: "runner_limit", status: "human-needed", message: reason })
+  return exitWithPickup(args, lanePath, "human-needed", reason, 21)
 }
 
 if (import.meta.main) {

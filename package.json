@@ -10,6 +10,7 @@
     "monitor:full": "bun scripts/agent/monitor.ts --full",
     "lane-runner": "bun scripts/agent/lane-runner.ts",
     "lane-message": "bun scripts/agent/lane-message.ts",
+    "pickup-terminal": "bun scripts/agent/open-pickup-terminal.ts",
     "finalize-docs": "bun scripts/agent/finalize-docs.ts",
     "finalizer-packet": "bun scripts/agent/finalizer-packet.ts"
   },

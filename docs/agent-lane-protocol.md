@@ -55,6 +55,15 @@ monitor --full
 monitor --panel outside --panel coordination --panel evidence
 ```
 
+Open an interactive pickup terminal when a lane is blocked/stale and the human wants context before continuing:
+
+```bash
+bun scripts/agent/open-pickup-terminal.ts
+bun scripts/agent/open-pickup-terminal.ts docs/sessions/<lane>.md --only-if-blocked
+```
+
+The helper opens a new WezTerm window by default, starts interactive OpenCode with a generated pickup prompt, writes that prompt under `output/agent-runs/<lane-id>/pickup/`, records a `pickup_terminal_spawn` event, and refreshes the lane heartbeat so stale-heartbeat blocking clears. Use `--tab` for a new tab instead of a new window, `--no-model` to use OpenCode's configured default model, and `--dry-run --print-prompt` to inspect the handoff without launching anything.
+
 Coordinate operational handoffs between agents:
 
 ```bash
@@ -77,8 +86,8 @@ Run bounded unattended OpenCode or Claude cycles:
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --dry-run
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --max-cycles 4 --max-hours 3 --model openai/gpt-5.5
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8
-bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md
-nohup bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md > /tmp/lane-runner-<lane-id>.log 2>&1 &
+bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md --pickup-terminal-on-stop
+nohup bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md --pickup-terminal-on-stop > /tmp/lane-runner-<lane-id>.log 2>&1 &
 ```
 
 Run a visible terminal worker instead of captured one-shot mode:
@@ -97,6 +106,8 @@ Older session docs created before the lane-contract template are intentionally s
 `preflight-loop.ts` is the launch gate that should run before `lane-runner.ts` starts an unattended cycle. It validates the lane doc's `Loop Contract` (REQUIRED_LOOP_FIELDS plus an explicit `Files/scripts expected to change` deploy implication), confirms the starting commit resolves in git, confirms the experiment id is a positive integer, and checks the worktree is clean (or `--allow-dirty` is explicit). Exit codes: 0 pass, 10 lane-context, 20 dirty-worktree, 22 git-infra. Run `bun scripts/agent/preflight-loop.ts docs/sessions/<lane>.md` before launching the runner.
 
 `lane-runner.ts` is a bounded supervisor, not an infinite daemon. It checks `lane-status`, records runner/cycle events, launches one worker cycle (`opencode run` by default, or `claude -p` with `--engine claude`), stores prompt/stdout/stderr/result artifacts under `output/agent-runs/<lane-id>/cycles/`, then checks status again. It stops on non-`continue` lane state, worker failure/timeout, max cycles, max hours, or consecutive cycles with no tracked workspace change. Use `--dry-run` before walking away to verify the prompt and command. The runner intentionally does not use `--dangerously-skip-permissions` unless explicitly requested.
+
+Use `--pickup-terminal-on-stop` for supervised unattended runs where a human is nearby. When the runner exits on blocked, human-needed, infra-failure, stop-without-advance, max cycles/hours, or no-change limit, it calls `open-pickup-terminal.ts` before exiting. The pickup terminal opens WezTerm/OpenCode with the current lane context and a single recommended next action. The flag is opt-in so CI/headless environments do not try to open a GUI terminal unexpectedly.
 
 Queued advancement has a review gate by default. Before a stopped lane can advance, `Results: Review` must be populated with independent commit-pinned review evidence such as `impl-review <sha> PASS`, or an explicit waiver reason and reviewer. Use `--no-review-gate` only for historical-lane replay where old Results sections predate this field.
 
