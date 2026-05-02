@@ -2,6 +2,58 @@ import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
 import { extractProperNouns } from "../../phases/beat-entity-list"
 
 /**
+ * Build the novel-spanning character roster from the full character-agent output.
+ *
+ * All character names (not just those present in the current beat) are included
+ * so the checker treats established novel characters as grounded, even when they
+ * appear as "Lord Sorcerer Brennan" (title + full name) or "Brennan" (surname
+ * alone) in prose. The four-tier normalizeForGroundedMatch logic in
+ * `buildNerGroundedSet` handles title-prefix and partial-name matching.
+ *
+ * L20: closes the FP cluster from L17 (exp #335) where characters like
+ * "Brennan", "Aldric", "Collector Marwick" were flagged as ungrounded because
+ * only beat.characters (a subset) reached the grounded surface.
+ */
+export function buildCharacterRoster(characters: CharacterProfile[]): string[] {
+  return characters
+    .map(c => c.name)
+    .filter(Boolean)
+}
+
+/**
+ * Extract planner-emitted named entities from the chapter outline.
+ *
+ * The chapter outline carries names in three places that the writer may
+ * reference in prose:
+ *   1. `outline.setting` — the chapter's primary location (e.g. "Eastern Reach")
+ *   2. `outline.scenes[*].description` — beat-level action descriptions that
+ *      name locations, factions, and minor characters
+ *   3. `outline.establishedFacts[*].fact` — facts the planner established that
+ *      may carry named locations or characters
+ *
+ * `extractProperNouns` is the same RFC-extracter used for the From-brief line,
+ * so its coverage matches the LLM checker's training shape.
+ *
+ * L20: covers locations like "Silver Street", "Temple of Mercy", "Eastern Reach"
+ * that appear in beat descriptions / established facts but are absent from the
+ * world-bible `locations` array.
+ */
+export function buildOutlineEntityList(outline: ChapterOutline): string[] {
+  const corpus: string[] = [outline.setting ?? ""]
+  for (const scene of outline.scenes ?? []) {
+    if (scene.description) corpus.push(scene.description)
+  }
+  for (const fact of outline.establishedFacts ?? []) {
+    if (fact.fact) corpus.push(fact.fact)
+  }
+  // Use ". " as separator so extractProperNouns treats each chunk as a
+  // sentence boundary. " \n " would be absorbed into multi-word spans by
+  // the capitalizedMultiWordRegex and produce spurious cross-chunk entries.
+  const rawEntities = extractProperNouns(corpus.join(". "))
+  return rawEntities
+}
+
+/**
  * Render the grounded-context check prompt. Keeps the checker bounded to a
  * writer-visible evidence surface:
  *
@@ -40,7 +92,13 @@ export function buildContext(
   outline: ChapterOutline,
   characters: CharacterProfile[],
   worldBible: any,
-  opts?: { beatEntities?: string[] },
+  opts?: {
+    beatEntities?: string[]
+    /** Novel-spanning character roster from character-agent outputs (L20). */
+    characterRoster?: string[]
+    /** Planner-emitted named entities from chapter outline text (L20). */
+    outlineEntities?: string[]
+  },
 ): string {
   const beatChars = new Set(beat.characters.map(n => n.toLowerCase()))
   const speakers = characters
@@ -92,6 +150,33 @@ export function buildContext(
       return !bibleKnown.has(k) && !briefKnown.has(k) && !beatEntitiesKnown.has(k)
     })
 
+  // Character-roster (L20): all novel characters from character-agent outputs.
+  // Deduped against the already-known surface (beat.characters is a subset of
+  // the roster; POV is also there) so the sub-line only carries *additional*
+  // grounding signal the checker can't already see.
+  const allowedNewKnown = new Set(allowedNewEntities.map(e => e.toLowerCase()))
+  const characterRosterRaw = (opts?.characterRoster ?? [])
+  const characterRosterFiltered = characterRosterRaw
+    .map(n => (typeof n === "string" ? n.trim() : ""))
+    .filter(Boolean)
+    .filter(n => {
+      const k = n.toLowerCase()
+      return !bibleKnown.has(k) && !briefKnown.has(k) && !beatEntitiesKnown.has(k) && !allowedNewKnown.has(k)
+    })
+
+  // Outline-entities (L20): planner-emitted named entities extracted from
+  // the chapter outline's setting, beat descriptions, and established facts.
+  // Deduped against all prior buckets.
+  const rosterKnown = new Set(characterRosterFiltered.map(e => e.toLowerCase()))
+  const outlineEntitiesRaw = (opts?.outlineEntities ?? [])
+  const outlineEntitiesFiltered = outlineEntitiesRaw
+    .map(n => (typeof n === "string" ? n.trim() : ""))
+    .filter(Boolean)
+    .filter(n => {
+      const k = n.toLowerCase()
+      return !bibleKnown.has(k) && !briefKnown.has(k) && !beatEntitiesKnown.has(k) && !allowedNewKnown.has(k) && !rosterKnown.has(k)
+    })
+
   const briefLines = [
     `Summary: ${beat.description}`,
     `Kind: ${beat.kind ?? "action"}`,
@@ -111,6 +196,14 @@ export function buildContext(
     worldBibleBlock.push(`  Beat-entities: ${beatEntitiesFiltered.join(", ") || "(none)"}`)
   }
   worldBibleBlock.push(`  Allowed-new-entities: ${allowedNewEntities.join(", ") || "(none)"}`)
+  // L20: character roster and outline-entities — only added when caller provides them
+  // (opts present with non-undefined values). Keeps v0/v2 context byte-identical.
+  if (opts?.characterRoster !== undefined) {
+    worldBibleBlock.push(`  Character-roster: ${characterRosterFiltered.join(", ") || "(none)"}`)
+  }
+  if (opts?.outlineEntities !== undefined) {
+    worldBibleBlock.push(`  Outline-entities: ${outlineEntitiesFiltered.join(", ") || "(none)"}`)
+  }
 
   return [
     "BEAT BRIEF:",

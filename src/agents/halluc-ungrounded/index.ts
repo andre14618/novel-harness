@@ -4,7 +4,7 @@ import { resolve, dirname } from "node:path"
 import { callAgent } from "../../llm"
 import { patchLLMCallNerPrepass } from "../../db/ops"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
-import { buildContext } from "./context"
+import { buildContext, buildCharacterRoster, buildOutlineEntityList } from "./context"
 import {
   hallucUngroundedSchema,
   type HallucUngroundedOutput,
@@ -18,7 +18,7 @@ import {
   type EntityCandidate,
 } from "../../lint/entity-candidates"
 
-export { buildContext, hallucUngroundedSchema }
+export { buildContext, buildCharacterRoster, buildOutlineEntityList, hallucUngroundedSchema }
 export type { HallucUngroundedOutput, HallucUngroundedResult, NerFinding }
 
 // Load the bounded checker prompt from disk so rubric updates don't require a
@@ -65,6 +65,10 @@ function buildNerGroundedSet(components: {
   derivedPriorBeat: string[]
   allowedNewEntities: string[]
   povCharacter: string | undefined
+  /** Novel-spanning character roster from character-agent outputs (L20). */
+  characterRoster?: string[]
+  /** Planner-emitted named entities from chapter outline text (L20). */
+  outlineEntities?: string[]
 }): { lower: Set<string>; normalized: Set<string> } {
   const lower = new Set<string>()
   const normalized = new Set<string>()
@@ -77,6 +81,8 @@ function buildNerGroundedSet(components: {
     ...components.derivedPriorBeat,
     ...components.allowedNewEntities,
     ...(components.povCharacter ? [components.povCharacter] : []),
+    ...(components.characterRoster ?? []),
+    ...(components.outlineEntities ?? []),
   ]
 
   for (const raw of allSources) {
@@ -206,9 +212,19 @@ export async function checkHallucUngrounded(
 
   const derivation = derive ? deriveBeatEntities(beat, outline, opts?.prevBeat) : null
 
+  // L20: compute novel-spanning character roster + outline-emitted entities.
+  // These are always computed (not gated on variant) so every checker call
+  // has access to established characters and planner-named locations.
+  const characterRoster = buildCharacterRoster(characters)
+  const outlineEntities = buildOutlineEntityList(outline)
+
   const userPrompt = buildContext(
     prose, beat, outline, characters, worldBible,
-    derive ? { beatEntities: derivation!.entities } : undefined,
+    {
+      ...(derive ? { beatEntities: derivation!.entities } : {}),
+      characterRoster,
+      outlineEntities,
+    },
   )
 
   // Per charter §3 + §9: write the provenance-tagged grounded-surface
@@ -252,6 +268,10 @@ export async function checkHallucUngrounded(
     derived_prior_beat: derivation?.sources.derivedPriorBeat ?? [],
     allowed_new_entities: allowedNewEntities,
     planner_emitted: [] as string[],
+    // L20: novel-spanning character roster + planner-emitted outline entities.
+    // Default to empty arrays for backward compatibility with existing analyses.
+    character_roster: characterRoster,
+    outline_entities: outlineEntities,
   }
 
   // ── NER prepass (variants v1 / v3 / v4 only) ──────────────────────────────
@@ -270,6 +290,8 @@ export async function checkHallucUngrounded(
       derivedPriorBeat: derivation?.sources.derivedPriorBeat ?? [],
       allowedNewEntities,
       povCharacter: outline.povCharacter ?? undefined,
+      characterRoster,
+      outlineEntities,
     })
     nerUngrounded = runNerPrepass(prose, groundedSurface)
   }
