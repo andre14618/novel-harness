@@ -6,7 +6,8 @@
     "start": "bun src/index.ts",
     "dev": "bun --watch src/index.ts",
     "test": "bun test",
-    "monitor": "bun scripts/agent/monitor.ts"
+    "monitor": "bun scripts/agent/monitor.ts",
+    "lane-runner": "bun scripts/agent/lane-runner.ts"
   },
   "dependencies": {
     "yaml": "^2.8.3",

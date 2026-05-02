@@ -52,11 +52,20 @@ monitor --panel outside --panel evidence
 bun scripts/agent/lane-dashboard.ts docs/sessions/<lane>.md --watch --latest-novel
 ```
 
+Run bounded unattended OpenCode cycles:
+
+```bash
+bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --dry-run
+bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --max-cycles 4 --max-hours 3 --model openai/gpt-5.5
+```
+
 `monitor` is the shell shortcut for `bun run monitor` in this repo. It defaults to the latest non-template session doc with a complete `Loop Contract`, watches continuously, and includes all panels. If no active lane exists, bare `monitor` stays open in a waiting state and polls until a complete lane doc appears. Use `monitor --once` for a single render, `monitor --append` to append snapshots instead of redrawing in place, `monitor --no-latest-novel` to hide inside-harness novel data, or `monitor --panel <name>` to narrow the dashboard.
 
 Panels are `all`, `outside`, `inside`, `evidence`, `hygiene`, and `process`. `outside` renders the lane contract, heartbeat/event log, and git state. `inside` delegates to `scripts/operator-summary.ts`. `evidence` shows the lane experiment and latest `phase_eval_runs`. `hygiene` shows dirty/unpushed git state, pending/stale gates, open experiments, and docs-impact status. `process` shows DB reachability, recent LLM calls, local/LXC generation process state, and LXC orchestrator state.
 
 Older session docs created before the lane-contract template are intentionally skipped by bare `monitor`; pass the path explicitly if you want to inspect a legacy doc.
+
+`lane-runner.ts` is a bounded supervisor, not an infinite daemon. It checks `lane-status`, records runner/cycle events, launches one `opencode run` work cycle, stores prompt/stdout/stderr/result artifacts under `output/agent-runs/<lane-id>/cycles/`, then checks status again. It stops on non-`continue` lane state, OpenCode failure/timeout, max cycles, max hours, or consecutive cycles with no tracked workspace change. Use `--dry-run` before walking away to verify the prompt and command. The runner intentionally does not use `--dangerously-skip-permissions` unless explicitly requested.
 
 Exit codes from `lane-status.ts`:
 
