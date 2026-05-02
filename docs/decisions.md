@@ -3506,6 +3506,32 @@ not flagged as missing an event. The checker is safe for production prose.
 
 **Full analysis:** `docs/partial-enactment-adherence-panel-2026-05-01.md`.
 
+### L21 — EVENTS_SYSTEM v2: ambient/mechanical action equality (2026-05-02, exp #338)
+*2026-05-02 · exp #338 · phase_eval_runs.id=81*
+
+**Decision:** Promote EVENTS_SYSTEM v2 in `src/agents/writer/adherence-checker.ts`. Changes: (1) first instruction line adds "whether dramatic, mechanical, or ambient" to the event-identification step; (2) replaces "If ANY key action" with "Treat every listed action as equally obligated regardless of dramatic weight. Mechanical or ambient actions (lighting candles, opening doors, picking up objects, asking sub-questions) are as obligated as dramatic actions if the beat specifies them"; (3) "key action" → "action" in the verdict rule. All positive framing; no neg-prime patterns.
+
+**Why:** L18 (exp #337) identified that the word "key" in "If ANY key action from the beat is missing" enabled implicit salience weighting — the model treated ambient/mechanical beat events as optional. two-of-three recall was 33-67% (run-dependent) with the candle-lighting case a persistent FN. v2 makes the equality instruction explicit.
+
+**A/B evidence (exp #338):**
+- L18 partial-enact panel (14 rows): v2 two-of-three recall=67% (2/3), precision=100%, all other shapes unchanged. Embellishment TN=2/2 preserved.
+- Labeled panel (17 rows, exp #299): v2 TP=4 FP=0 FN=0 TN=13 — exact match of v1 baseline (100%/100%).
+- Lint: 0 errors (no neg-prime in new instructions).
+
+**Remaining FN (two-of-three-fail-02, candle case):** Persistent across v1–v7. Model's reasoning correctly identifies "lighting candles is omitted" but outputs `events_present=true` — a reasoning-verdict self-consistency failure in DeepSeek V4 Flash. Approaches that fix this (reordering JSON fields to put reasoning first) caused 3 new FPs on labeled panel (precision → 57%). The fix requires per-event structured extraction in stage 1 — deferred.
+
+**Alternatives rejected:**
+- v3 (added "your reasoning must be consistent with verdict"): same FN on candle, introduced 1 FN on labeled panel.
+- v4/v5/v6/v7 (JSON field reordering to force reasoning-before-verdict commitment): fixed candle case but introduced 1–3 FPs on labeled panel by making "enacted" definition too strict for physical causal-chain implied actions.
+
+**Files changed:** `src/agents/writer/adherence-checker.ts`
+
+**Cost:** ~$0.006 across 4 panel runs.
+
+**Next:** L22 — re-run clean 3-chapter smoke on fantasy-debt after L20 + L21 deploy to LXC.
+
+---
+
 ### L20 — Expanded halluc groundedSources with character roster + named-location rosters (2026-05-01, exp #339)
 *2026-05-01 · exp #339 · no LXC run needed — code + unit tests only*
 
