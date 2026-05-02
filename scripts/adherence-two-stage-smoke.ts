@@ -21,7 +21,7 @@
  */
 
 import { writeFileSync } from "node:fs"
-import * as llm from "../src/llm"
+import db from "../src/db/connection"
 import { checkBeatAdherence } from "../src/agents/writer/adherence-checker"
 import type { ChapterOutline, CharacterProfile, SceneBeat, BeatObligationsContract } from "../src/types"
 
@@ -137,34 +137,48 @@ interface FixtureResult {
   issues: string[]
 }
 
+async function countAdherenceCalls(novelId: string): Promise<number> {
+  const rows = await db`
+    SELECT COUNT(*)::int AS n
+    FROM llm_calls
+    WHERE agent = 'adherence-events' AND novel_id = ${novelId}
+  ` as Array<{ n: number }>
+  return rows[0]?.n ?? 0
+}
+
 async function main(): Promise<void> {
   const args = parseArgs()
+  const runStamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)
 
-  // Spy on callAgent — count only adherence-events invocations so any
-  // unrelated DB / context calls don't pollute the gating signal.
-  const originalCallAgent = llm.callAgent
-  const callCounter = { adherence: 0 }
-  ;(llm as any).callAgent = async (config: any) => {
-    if (config?.agentName === "adherence-events") callCounter.adherence++
-    return originalCallAgent(config)
-  }
+  // Each fixture gets a unique novelId so its adherence-events calls land
+  // in llm_calls under a distinct tag and can be counted post-hoc. This
+  // sidesteps the ESM-readonly-export problem with monkey-patching
+  // src/llm.callAgent and observes the persisted source of truth that
+  // production already relies on.
 
   const results: FixtureResult[] = []
   for (const fx of FIXTURES) {
-    callCounter.adherence = 0
+    const novelId = `smoke-${fx.id}-${runStamp}`
     const t0 = Date.now()
-    const r = await checkBeatAdherence(fx.prose, fx.beat, fx.outline, fx.characters)
+    const r = await checkBeatAdherence(
+      fx.prose,
+      fx.beat,
+      fx.outline,
+      fx.characters,
+      { novelId, chapter: 1, beatIndex: 0, attempt: 1 },
+    )
     const t1 = Date.now()
+    const actualCallCount = await countAdherenceCalls(novelId)
 
     const expectedPass = fx.expected === "pass"
-    const passed = r.pass === expectedPass && callCounter.adherence === fx.expectedCallCount
+    const passed = r.pass === expectedPass && actualCallCount === fx.expectedCallCount
 
     const result: FixtureResult = {
       id: fx.id,
       expected: fx.expected,
       expectedCallCount: fx.expectedCallCount,
-      actualCallCount: callCounter.adherence,
-      callCountOk: callCounter.adherence === fx.expectedCallCount,
+      actualCallCount,
+      callCountOk: actualCallCount === fx.expectedCallCount,
       pass: r.pass,
       issues: r.issues,
     }
@@ -172,14 +186,12 @@ async function main(): Promise<void> {
 
     const tag = passed ? "OK" : "MISMATCH"
     console.log(
-      `[${tag}] ${fx.id}: expected=${fx.expected} pass=${r.pass} calls=${callCounter.adherence}/${fx.expectedCallCount} latency=${t1 - t0}ms`,
+      `[${tag}] ${fx.id}: expected=${fx.expected} pass=${r.pass} calls=${actualCallCount}/${fx.expectedCallCount} latency=${t1 - t0}ms novel_id=${novelId}`,
     )
     if (r.issues.length > 0) {
       for (const issue of r.issues) console.log(`         issue: ${issue}`)
     }
   }
-
-  ;(llm as any).callAgent = originalCallAgent
 
   const summary = {
     git_commit: process.env.GIT_COMMIT ?? null,
@@ -203,6 +215,11 @@ async function main(): Promise<void> {
     console.error("\nFAIL: at least one fixture had the wrong adherence-events call count.")
     process.exit(1)
   }
+
+  // Cleanly close the DB pool so the script terminates without an
+  // unreleased Postgres connection holding the event loop open.
+  await db.end()
+  process.exit(0)
 }
 
 main().catch(err => {
