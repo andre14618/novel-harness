@@ -100,7 +100,7 @@ export function parseArgs(argv: string[]): Args {
           "  --latest-novel         Include latest novel summary (default)\n" +
           "  --no-latest-novel      Hide inside-harness novel summary\n" +
           "  --novel <id>           Include specific novel summary\n" +
-          "  --panel <name>         Panel to show: all,outside,inside,evidence,hygiene,process (default: all)\n" +
+          "  --panel <name>         Panel to show: all,outside,coordination,inside,evidence,hygiene,process (default: all)\n" +
           "  --interval-sec <n>     Watch refresh interval\n" +
           "  --stale-minutes <n>    Heartbeat stale threshold\n",
       )

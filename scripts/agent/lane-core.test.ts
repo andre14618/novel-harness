@@ -4,13 +4,18 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
   appendLaneEvent,
+  appendLaneMessage,
   assessLane,
   field,
   laneEventLogPath,
   laneIdFromPath,
+  laneMessageLogPath,
   normalizePanels,
   parseLaneDoc,
   readLaneEvents,
+  readLaneMessages,
+  reduceLaneMessages,
+  summarizeLaneMessages,
   summarizeOperatorJson,
 } from "./lane-core"
 
@@ -127,6 +132,94 @@ describe("event log helpers", () => {
   })
 })
 
+describe("lane message bus helpers", () => {
+  test("laneMessageLogPath uses output/agent-runs/<lane>/messages.jsonl", () => {
+    expect(laneMessageLogPath("docs/sessions/L50.md")).toBe("output/agent-runs/L50/messages.jsonl")
+  })
+
+  test("appendLaneMessage writes JSONL that readLaneMessages loads", () => {
+    const dir = mkdtempSync(join(tmpdir(), "lane-message-"))
+    const path = join(dir, "messages.jsonl")
+    appendLaneMessage(path, {
+      id: "msg-1",
+      ts: "2026-05-02T12:00:00Z",
+      lane: "L50",
+      from: "captain",
+      to: "evidence",
+      kind: "request",
+      status: "open",
+      subject: "Monitor replay",
+    })
+    const messages = readLaneMessages(path)
+    expect(messages).toHaveLength(1)
+    expect(messages[0]!.subject).toBe("Monitor replay")
+  })
+
+  test("reduceLaneMessages collapses claim and resolve updates by message id", () => {
+    const reduced = reduceLaneMessages([
+      {
+        id: "msg-1",
+        ts: "2026-05-02T12:00:00Z",
+        lane: "L50",
+        from: "captain",
+        to: "evidence",
+        kind: "request",
+        status: "open",
+        subject: "Monitor replay",
+        refs: ["novel-1"],
+      },
+      {
+        id: "msg-1",
+        ts: "2026-05-02T12:01:00Z",
+        lane: "L50",
+        from: "captain",
+        to: "evidence",
+        kind: "request",
+        status: "claimed",
+        subject: "Monitor replay",
+        claimBy: "evidence",
+        leaseUntil: "2026-05-02T12:31:00Z",
+      },
+      {
+        id: "msg-1",
+        ts: "2026-05-02T12:02:00Z",
+        lane: "L50",
+        from: "captain",
+        to: "evidence",
+        kind: "request",
+        status: "resolved",
+        subject: "Monitor replay",
+        resolvedBy: "evidence",
+        result: "row #84 found",
+      },
+    ])
+    expect(reduced).toHaveLength(1)
+    expect(reduced[0]!.status).toBe("resolved")
+    expect(reduced[0]!.claimBy).toBe("evidence")
+    expect(reduced[0]!.refs).toEqual(["novel-1"])
+    expect(reduced[0]!.result).toBe("row #84 found")
+  })
+
+  test("summarizeLaneMessages highlights expired claimed work", () => {
+    const lines = summarizeLaneMessages([
+      {
+        id: "msg-1",
+        ts: "2026-05-02T12:00:00Z",
+        lane: "L50",
+        from: "captain",
+        to: "evidence",
+        kind: "request",
+        status: "claimed",
+        subject: "Monitor replay",
+        claimBy: "evidence",
+        leaseUntil: "2026-05-02T12:10:00Z",
+      },
+    ], "messages.jsonl", new Date("2026-05-02T12:11:00Z"))
+    expect(lines[1]).toContain("expired_leases=1")
+    expect(lines[2]).toContain("EXPIRED msg-1")
+  })
+})
+
 describe("operator-summary JSON summarizer", () => {
   test("summarizes cost, calls, and latest gate", () => {
     const lines = summarizeOperatorJson({
@@ -178,7 +271,7 @@ describe("monitor panel parsing", () => {
   })
 
   test("accepts repeated and comma-separated panels", () => {
-    expect(normalizePanels(["outside,evidence", "hygiene"])).toEqual(["outside", "evidence", "hygiene"])
+    expect(normalizePanels(["outside,coordination,evidence", "hygiene"])).toEqual(["outside", "coordination", "evidence", "hygiene"])
   })
 
   test("rejects unknown panels", () => {

@@ -21,6 +21,7 @@ Every lane uses:
 
 - `docs/sessions/<lane>.md` for the durable loop contract.
 - `output/agent-runs/<lane-id>/events.jsonl` for append-only heartbeat and event records.
+- `output/agent-runs/<lane-id>/messages.jsonl` for addressed operational requests, claims, handoffs, and results.
 - `tuning_experiments`, `phase_eval_runs`, and `llm_calls` for persistent evidence.
 - Git commits for completed coherent work.
 
@@ -48,8 +49,17 @@ Watch the terminal dashboard:
 ```bash
 monitor
 monitor docs/sessions/<lane>.md
-monitor --panel outside --panel evidence
+monitor --panel outside --panel coordination --panel evidence
 bun scripts/agent/lane-dashboard.ts docs/sessions/<lane>.md --watch --latest-novel
+```
+
+Coordinate operational handoffs between agents:
+
+```bash
+bun scripts/agent/lane-message.ts send docs/sessions/<lane>.md --actor captain --to evidence --kind request --subject "Monitor LXC replay" --body "Watch novel-123 until chapter 2 completes or gates" --ref "novel-123" --ref "/tmp/smoke.log"
+bun scripts/agent/lane-message.ts claim docs/sessions/<lane>.md <msg-id> --actor evidence --lease-minutes 30
+bun scripts/agent/lane-message.ts resolve docs/sessions/<lane>.md <msg-id> --actor evidence --result "Replay gated on chapter_exhaustions.id=84" --ref "chapter_exhaustions#84"
+bun scripts/agent/lane-message.ts list docs/sessions/<lane>.md --open
 ```
 
 Run bounded unattended OpenCode or Claude cycles:
@@ -62,13 +72,26 @@ bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model
 nohup bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md > /tmp/lane-runner-<lane-id>.log 2>&1 &
 ```
 
+Run a visible terminal worker instead of captured one-shot mode:
+
+```bash
+bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --worker-io terminal
+bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine opencode --model openai/gpt-5.5 --worker-io terminal
+```
+
 `monitor` is the shell shortcut for `bun run monitor` in this repo. It defaults to the latest non-template session doc with a complete `Loop Contract`, watches continuously, and includes all panels. If no active lane exists, bare `monitor` stays open in a waiting state and polls until a complete lane doc appears. Use `monitor --once` for a single render, `monitor --append` to append snapshots instead of redrawing in place, `monitor --no-latest-novel` to hide inside-harness novel data, or `monitor --panel <name>` to narrow the dashboard.
 
-Panels are `all`, `outside`, `inside`, `evidence`, `hygiene`, and `process`. `outside` renders the lane contract, heartbeat/event log, and git state. `inside` delegates to `scripts/operator-summary.ts`. `evidence` shows the lane experiment and latest `phase_eval_runs`. `hygiene` shows dirty/unpushed git state, pending/stale gates, open experiments, and docs-impact status. `process` shows DB reachability, recent LLM calls, local/LXC generation process state, and LXC orchestrator state.
+Panels are `all`, `outside`, `coordination`, `inside`, `evidence`, `hygiene`, and `process`. `outside` renders the lane contract, heartbeat/event log, and git state. `coordination` shows open lane messages, claimed work, and expired leases from `output/agent-runs/<lane-id>/messages.jsonl`. `inside` delegates to `scripts/operator-summary.ts`. `evidence` shows the lane experiment and latest `phase_eval_runs`. `hygiene` shows dirty/unpushed git state, pending/stale gates, open experiments, and docs-impact status. `process` shows DB reachability, recent LLM calls, local/LXC generation process state, and LXC orchestrator state.
 
 Older session docs created before the lane-contract template are intentionally skipped by bare `monitor`; pass the path explicitly if you want to inspect a legacy doc.
 
 `lane-runner.ts` is a bounded supervisor, not an infinite daemon. It checks `lane-status`, records runner/cycle events, launches one worker cycle (`opencode run` by default, or `claude -p` with `--engine claude`), stores prompt/stdout/stderr/result artifacts under `output/agent-runs/<lane-id>/cycles/`, then checks status again. It stops on non-`continue` lane state, worker failure/timeout, max cycles, max hours, or consecutive cycles with no tracked workspace change. Use `--dry-run` before walking away to verify the prompt and command. The runner intentionally does not use `--dangerously-skip-permissions` unless explicitly requested.
+
+Use `--worker-io terminal` only from an attached terminal. In terminal mode the runner launches visible Claude Code without `-p`, or OpenCode TUI with `--prompt`, then waits until that worker exits. Stdout/stderr are inherited by the terminal instead of captured, so the result artifact records that the live transcript was visible but not stored. This mode is for supervised handoffs, live questioning, Claude Code subagents, OpenCode harness features, and cases where the worker should stay interactive while a background LXC job runs. Do not use terminal mode under `nohup`; use default capture mode for unattended overnight loops.
+
+Agents coordinate through durable shared state rather than private chat. Use the terminal session for immediate discussion, but make cross-agent requests durable with `lane-message`, current progress durable with `lane-heartbeat`, conclusions durable in lane-doc progress/results, evidence durable in DB rows, and completed work durable in commits. A useful pattern is: lane captain owns runtime edits, evidence agent claims fixed-panel or LXC monitoring requests, support agent claims tests/docs-impact requests, and `monitor --panel coordination` renders open ownership.
+
+The lane message bus is intentionally small and operational. `send` creates an addressed message. `claim` records who owns it and for how long. `resolve` records the finding and evidence references. `cancel` closes obsolete requests. Messages are append-only JSONL under `output/agent-runs/<lane-id>/messages.jsonl`; the dashboard collapses updates by message id and flags expired claims. Use messages for short-lived operational coordination, not as a replacement for lane docs, experiments, or commits.
 
 When running in the background, treat the `/tmp/lane-runner-<lane-id>.log` file as the supervisor process log and the per-cycle files under `output/agent-runs/<lane-id>/cycles/` as the worker transcript artifacts. Use `monitor --once --no-latest-novel` or `monitor --append --no-latest-novel` for snapshots without taking over the terminal.
 

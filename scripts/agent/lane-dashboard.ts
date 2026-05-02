@@ -64,7 +64,7 @@ function parseArgs(argv: string[]): Args {
           "  --stale-minutes <n>    Mark heartbeat stale after n minutes (default: 10)\n" +
           "  --latest-novel         Include inside-harness summary from newest novel\n" +
           "  --novel <id>           Include inside-harness summary for a specific novel\n" +
-          "  --panel <name>         Panel to show: all,outside,inside,evidence,hygiene,process (default: all)\n",
+          "  --panel <name>         Panel to show: all,outside,coordination,inside,evidence,hygiene,process (default: all)\n",
       )
       process.exit(0)
     } else if (!a.startsWith("--")) {

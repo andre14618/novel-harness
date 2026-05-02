@@ -15,6 +15,7 @@ import {
 } from "./lane-core"
 
 export type RunnerEngine = "opencode" | "claude"
+export type WorkerIo = "capture" | "terminal"
 
 export interface RunnerArgs {
   lanePath: string | null
@@ -27,6 +28,7 @@ export interface RunnerArgs {
   agent: string | null
   model: string | null
   permissionMode: string | null
+  workerIo: WorkerIo
   queuePath: string | null
   title: string | null
   extraInstruction: string
@@ -72,6 +74,7 @@ export function parseArgs(argv: string[]): RunnerArgs {
     agent: null,
     model: null,
     permissionMode: null,
+    workerIo: "capture",
     queuePath: null,
     title: null,
     extraInstruction: "",
@@ -93,6 +96,12 @@ export function parseArgs(argv: string[]): RunnerArgs {
     else if (a === "--agent") out.agent = argv[++i] ?? null
     else if (a === "--model") out.model = argv[++i] ?? null
     else if (a === "--permission-mode") out.permissionMode = argv[++i] ?? null
+    else if (a === "--worker-io") {
+      const value = argv[++i]
+      if (value !== "capture" && value !== "terminal") throw new Error("--worker-io must be one of capture|terminal")
+      out.workerIo = value
+    }
+    else if (a === "--interactive") out.workerIo = "terminal"
     else if (a === "--queue") out.queuePath = argv[++i] ?? null
     else if (a === "--title") out.title = argv[++i] ?? null
     else if (a === "--instruction") out.extraInstruction = argv[++i] ?? ""
@@ -112,6 +121,8 @@ export function parseArgs(argv: string[]): RunnerArgs {
           "  --agent <name>               Pass --agent to the worker\n" +
           "  --model <provider/model>     Pass --model to the worker\n" +
           "  --permission-mode <mode>     Claude only: pass --permission-mode\n" +
+          "  --worker-io <mode>           Worker I/O: capture|terminal (default: capture)\n" +
+          "  --interactive                Alias for --worker-io terminal\n" +
           "  --queue <path>               Markdown queue of pre-created lane docs\n" +
           "  --title <text>               Pass --title/--name to the worker\n" +
           "  --instruction <text>         Extra instruction appended to each cycle prompt\n" +
@@ -129,6 +140,9 @@ export function parseArgs(argv: string[]): RunnerArgs {
   if (out.agent === "") throw new Error("--agent requires a value")
   if (out.model === "") throw new Error("--model requires a value")
   if (out.permissionMode === "") throw new Error("--permission-mode requires a value")
+  if (out.engine === "opencode" && out.workerIo === "terminal" && out.dangerouslySkipPermissions) {
+    throw new Error("--dangerously-skip-permissions is not supported for opencode terminal mode")
+  }
   if (out.queuePath === "") throw new Error("--queue requires a value")
   return out
 }
@@ -137,6 +151,14 @@ export function buildCyclePrompt(args: RunnerArgs, cycle: number, laneSummary: s
   const lanePath = args.lanePath!
   const extra = args.extraInstruction.trim()
   const actor = args.engine === "claude" ? "claude" : "opencode"
+  const terminalNote = args.workerIo === "terminal"
+    ? [
+      "",
+      "Terminal worker mode:",
+      "- You are running in an attached terminal; communicate visible status there and durable status via lane-heartbeat events.",
+      "- If you launch background validation, either stay in the session to monitor it or record an explicit heartbeat/status that says what should be checked next.",
+    ]
+    : []
   const queueNote = args.queuePath
     ? `- Queue handoff is configured at ${args.queuePath}; complete finalization before writing a stop gate so the runner can advance deterministically.`
     : "- No queue handoff is configured; still complete finalization before stopping so pickup is clean."
@@ -163,6 +185,13 @@ export function buildCyclePrompt(args: RunnerArgs, cycle: number, laneSummary: s
     "8. Update the lane doc progress/results if the cycle reaches a durable finding.",
     "9. End with a concise status: what changed, checks run, next safe command.",
     "",
+    "Operational coordination:",
+    `- Use lane messages for cross-agent requests, claims, monitoring handoffs, questions, and results: bun scripts/agent/lane-message.ts send ${lanePath} --actor ${actor} --to evidence --kind request --subject "<short task>" --body "<details>"`,
+    `- Claim work before doing delegated monitoring/support: bun scripts/agent/lane-message.ts claim ${lanePath} <msg-id> --actor ${actor} --lease-minutes 30`,
+    `- Resolve delegated work with evidence refs: bun scripts/agent/lane-message.ts resolve ${lanePath} <msg-id> --actor ${actor} --result "<finding>" --ref "<path/row/id>"`,
+    "- Use monitor --panel coordination to see open messages and expired leases.",
+    ...terminalNote,
+    "",
     "Lane finalization before stop or queue handoff:",
     "- Do not merely emit a stop event when the lane has a durable result.",
     "- First update Results: Outcome, Stop gate fired, Evidence link/row/path, Cost, and Commit(s).",
@@ -180,6 +209,13 @@ export function buildCyclePrompt(args: RunnerArgs, cycle: number, laneSummary: s
 }
 
 export function buildOpencodeArgs(args: RunnerArgs, prompt: string, cycle: number): string[] {
+  if (args.workerIo === "terminal") {
+    const out = ["."]
+    if (args.model) out.push("--model", args.model)
+    if (args.agent) out.push("--agent", args.agent)
+    out.push("--prompt", prompt)
+    return out
+  }
   const out = ["run"]
   if (args.model) out.push("--model", args.model)
   if (args.agent) out.push("--agent", args.agent)
@@ -191,7 +227,7 @@ export function buildOpencodeArgs(args: RunnerArgs, prompt: string, cycle: numbe
 }
 
 export function buildClaudeArgs(args: RunnerArgs, prompt: string, cycle: number): string[] {
-  const out = ["-p"]
+  const out = args.workerIo === "capture" ? ["-p"] : []
   if (args.model) out.push("--model", args.model)
   if (args.agent) out.push("--agent", args.agent)
   if (args.permissionMode) out.push("--permission-mode", args.permissionMode)
@@ -241,7 +277,23 @@ function writeCycleArtifacts(lanePath: string, cycle: number, command: string, p
   return base
 }
 
-function runWorkerCycle(command: string, commandArgs: string[], timeoutMinutes: number): CycleRunResult {
+function runWorkerCycle(command: string, commandArgs: string[], timeoutMinutes: number, workerIo: WorkerIo): CycleRunResult {
+  if (workerIo === "terminal") {
+    const result = spawnSync(command, commandArgs, {
+      stdio: "inherit",
+      timeout: Math.round(timeoutMinutes * 60_000),
+    })
+    const errorMessage = result.error ? String(result.error.message || result.error) : null
+    const timedOut = Boolean(result.error && (result.error as any).code === "ETIMEDOUT")
+    return {
+      ok: result.status === 0 && !result.error,
+      status: result.status,
+      stdout: "[terminal worker mode: stdout was inherited by the parent terminal and was not captured]\n",
+      stderr: "[terminal worker mode: stderr was inherited by the parent terminal and was not captured]\n",
+      error: errorMessage,
+      timedOut,
+    }
+  }
   const result = spawnSync(command, commandArgs, {
     encoding: "utf8",
     timeout: Math.round(timeoutMinutes * 60_000),
@@ -276,7 +328,7 @@ function appendRunnerEvent(lanePath: string, event: {
 }
 
 function laneSummaryForPrompt(lanePath: string, staleMinutes: number): { text: string; state: LaneRunState; reason: string; exitCode: number } {
-  const report = buildLaneStatusReport({ lanePath, staleMinutes, panels: ["outside"] })
+  const report = buildLaneStatusReport({ lanePath, staleMinutes, panels: ["outside", "coordination"] })
   return {
     text: renderLaneStatus(report),
     state: report.assessment.state,
@@ -354,8 +406,17 @@ function main(argv: string[]): number {
 
   appendRunnerEvent(lanePath, {
     type: "runner_start",
-    step: `maxCycles=${args.maxCycles} maxHours=${args.maxHours} cycleTimeoutMinutes=${args.cycleTimeoutMinutes}`,
+    step: `maxCycles=${args.maxCycles} maxHours=${args.maxHours} cycleTimeoutMinutes=${args.cycleTimeoutMinutes} workerIo=${args.workerIo}`,
   })
+
+  if (args.workerIo === "terminal" && !args.dryRun && (!process.stdin.isTTY || !process.stdout.isTTY)) {
+    appendRunnerEvent(lanePath, {
+      type: "runner_terminal_unavailable",
+      status: "human-needed",
+      message: "--worker-io terminal requires an attached TTY; use capture mode for background/nohup runs",
+    })
+    return 21
+  }
 
   for (let cycle = 1; cycle <= args.maxCycles; cycle++) {
     if (elapsedHours(startMs) >= args.maxHours) {
@@ -399,7 +460,7 @@ function main(argv: string[]): number {
     }
 
     const before = workspaceFingerprint()
-    const result = runWorkerCycle(command, commandArgs, args.cycleTimeoutMinutes)
+    const result = runWorkerCycle(command, commandArgs, args.cycleTimeoutMinutes, args.workerIo)
     const artifactBase = writeCycleArtifacts(lanePath, cycle, command, prompt, commandArgs, result)
     const after = workspaceFingerprint()
     const changed = before !== after

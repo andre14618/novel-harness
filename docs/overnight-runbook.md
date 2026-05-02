@@ -67,6 +67,7 @@ For LXC smoke-style loops (longer-running, real novel runs), the loop is structu
 | Log | Path | Retained |
 |---|---|---|
 | Agent lane events | `output/agent-runs/<lane-id>/events.jsonl` | Until manual cleanup |
+| Agent lane messages | `output/agent-runs/<lane-id>/messages.jsonl` | Until manual cleanup |
 | LXC smoke novel runs | `/tmp/smoke-<name>-<seed>-<unix-ts>.log` on LXC | Until `/tmp` is cleared (boot/manual) |
 | Local A/B / probe runs | Stdout — pipe through `tee output/phase-eval/<probe>/run-<ts>.log` (per `feedback_no_overwrite_runs`) | Forever (until manual cleanup) |
 | Subagent transcripts | `/private/tmp/claude-501/<session-id>/tasks/<agent-id>.output` | Per-claude-session |
@@ -81,18 +82,30 @@ bun scripts/agent/lane-heartbeat.ts docs/sessions/<lane>.md --actor opencode --s
 bun scripts/agent/lane-status.ts docs/sessions/<lane>.md --latest-novel
 monitor
 monitor --append
-monitor --panel outside --panel evidence
+monitor --panel outside --panel coordination --panel evidence
 bun scripts/agent/lane-dashboard.ts docs/sessions/<lane>.md --watch --latest-novel
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --dry-run
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --max-cycles 4 --max-hours 3 --model openai/gpt-5.5
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md
+bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --worker-io terminal
 nohup bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md > /tmp/lane-runner-<lane-id>.log 2>&1 &
+bun scripts/agent/lane-message.ts list docs/sessions/<lane>.md --open
 ```
 
 `monitor` selects the latest non-template session doc with a complete Loop Contract. If none exists, it stays open in a waiting state and polls until one appears; `monitor --once` still exits immediately. Legacy session docs are skipped by default so they do not permanently show missing-field noise; pass a path explicitly to inspect one. `lane-status.ts` returns exit code `0` only when the outside loop should continue. It stops or blocks on missing lane-contract fields, stale heartbeat, explicit stop events, result stop gates, human-needed events, infra-failure events, and stale outside-loop state. The default dashboard shows all panels: outside lane state, inside-harness novel summary, evidence rows, repo hygiene, and process health. Use `--panel outside|inside|evidence|hygiene|process` to narrow it. The `--latest-novel` / `--novel <id>` flags control the inside-harness novel summary delegated to `scripts/operator-summary.ts`.
 
 For unattended work, use `lane-runner.ts` rather than trusting chat continuation. The runner launches bounded worker cycles only while lane-status remains `continue`, writes cycle artifacts under `output/agent-runs/<lane-id>/cycles/`, and stops on worker failure/timeout, max cycles, max hours, or no tracked workspace change. Default engine is OpenCode (`opencode run`); use `--engine claude` to make Claude Code the lane worker through `claude -p`. Always run `--dry-run` first to inspect the generated prompt and command. Avoid `--dangerously-skip-permissions` unless you explicitly accept the risk for that session.
+
+For supervised work, add `--worker-io terminal`. This starts visible Claude Code without `-p`, or OpenCode TUI with `--prompt`, and the runner waits until the terminal worker exits before checking lane status again. Terminal mode requires an attached TTY and is not appropriate for `nohup`. Use it when you want to question the active worker, let it use native Claude/OpenCode interactive affordances, or keep it alive while background LXC validation runs. The worker should still record durable progress with `lane-heartbeat`; terminal chat is only live operator communication, not persistent lane state.
+
+For cross-agent operational coordination, use `lane-message.ts`. The lane captain sends requests, evidence/support agents claim them with leases, and the assignee resolves them with evidence refs. `monitor --panel coordination` shows open messages, claimed work, and expired leases. This prevents the common failure mode where one agent launches a background replay and no visible owner remains responsible for monitoring it.
+
+```bash
+bun scripts/agent/lane-message.ts send docs/sessions/<lane>.md --actor captain --to evidence --kind request --subject "Monitor LXC replay" --body "Watch novel-123 until chapter 2 completes or gates" --ref "novel-123"
+bun scripts/agent/lane-message.ts claim docs/sessions/<lane>.md <msg-id> --actor evidence --lease-minutes 30
+bun scripts/agent/lane-message.ts resolve docs/sessions/<lane>.md <msg-id> --actor evidence --result "Replay gated on chapter_exhaustions.id=84" --ref "chapter_exhaustions#84"
+```
 
 For background launches, the `/tmp/lane-runner-<lane-id>.log` file is only the supervisor process log. The durable worker prompt, command, stdout, stderr, and result files live under `output/agent-runs/<lane-id>/cycles/`. Check `monitor --once --no-latest-novel` between cycles instead of relying on chat continuation.
 

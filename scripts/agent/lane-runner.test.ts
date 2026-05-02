@@ -22,6 +22,7 @@ function baseArgs(overrides: Partial<RunnerArgs> = {}): RunnerArgs {
     agent: null,
     model: null,
     permissionMode: null,
+    workerIo: "capture",
     queuePath: null,
     title: null,
     extraInstruction: "",
@@ -40,6 +41,7 @@ describe("lane-runner args", () => {
     expect(args.maxHours).toBe(3)
     expect(args.cycleTimeoutMinutes).toBe(45)
     expect(args.maxNoChangeCycles).toBe(1)
+    expect(args.workerIo).toBe("capture")
     expect(args.dryRun).toBe(false)
   })
 
@@ -53,6 +55,7 @@ describe("lane-runner args", () => {
       "--agent", "build",
       "--model", "openai/gpt-5.5",
       "--permission-mode", "auto",
+      "--worker-io", "terminal",
       "--queue", "docs/sessions/lane-queue.md",
       "--title", "L38-A",
       "--instruction", "stay narrow",
@@ -66,6 +69,7 @@ describe("lane-runner args", () => {
     expect(args.agent).toBe("build")
     expect(args.model).toBe("openai/gpt-5.5")
     expect(args.permissionMode).toBe("auto")
+    expect(args.workerIo).toBe("terminal")
     expect(args.queuePath).toBe("docs/sessions/lane-queue.md")
     expect(args.title).toBe("L38-A")
     expect(args.extraInstruction).toBe("stay narrow")
@@ -75,6 +79,11 @@ describe("lane-runner args", () => {
 
   test("rejects missing lane", () => {
     expect(() => parseArgs([])).toThrow("lane-runner requires")
+  })
+
+  test("parses interactive as terminal worker I/O", () => {
+    const args = parseArgs(["docs/sessions/lane.md", "--interactive"])
+    expect(args.workerIo).toBe("terminal")
   })
 })
 
@@ -100,9 +109,25 @@ describe("lane-runner prompt and command", () => {
     expect(args).toEqual(["run", "--model", "openai/gpt-5.5", "--agent", "build", "--title", "L38-A", "hello"])
   })
 
+  test("builds opencode terminal args with a visible prompt", () => {
+    const args = buildOpencodeArgs(baseArgs({ agent: "build", model: "openai/gpt-5.5", title: "L38-A", workerIo: "terminal" }), "hello", 1)
+    expect(args).toEqual([".", "--model", "openai/gpt-5.5", "--agent", "build", "--prompt", "hello"])
+  })
+
   test("builds claude args with print mode and permission mode", () => {
     const args = buildClaudeArgs(baseArgs({ agent: "build", model: "opus", permissionMode: "auto", title: "L38-A" }), "hello", 1)
     expect(args).toEqual(["-p", "--model", "opus", "--agent", "build", "--permission-mode", "auto", "--name", "L38-A", "hello"])
+  })
+
+  test("builds claude terminal args without print mode", () => {
+    const args = buildClaudeArgs(baseArgs({ engine: "claude", agent: "build", model: "opus", permissionMode: "auto", title: "L38-A", workerIo: "terminal" }), "hello", 1)
+    expect(args).toEqual(["--model", "opus", "--agent", "build", "--permission-mode", "auto", "--name", "L38-A", "hello"])
+  })
+
+  test("terminal prompt tells workers how to communicate", () => {
+    const prompt = buildCyclePrompt(baseArgs({ workerIo: "terminal" }), 1, "state: CONTINUE")
+    expect(prompt).toContain("Terminal worker mode")
+    expect(prompt).toContain("durable status via lane-heartbeat events")
   })
 
   test("display command omits full prompt", () => {

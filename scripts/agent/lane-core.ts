@@ -4,7 +4,10 @@ import { basename, extname, dirname, join } from "node:path"
 import { spawnSync } from "node:child_process"
 
 export type LaneRunState = "continue" | "stop" | "blocked" | "human-needed" | "infra-failure"
-export type MonitorPanel = "all" | "outside" | "inside" | "evidence" | "hygiene" | "process"
+export type MonitorPanel = "all" | "outside" | "coordination" | "inside" | "evidence" | "hygiene" | "process"
+export type LaneMessageKind = "request" | "claim" | "status" | "result" | "handoff" | "question" | "answer"
+export type LaneMessageStatus = "open" | "claimed" | "resolved" | "cancelled"
+export type LaneMessageAction = "send" | "claim" | "resolve" | "cancel"
 
 export interface LaneEvent {
   ts: string
@@ -15,6 +18,26 @@ export interface LaneEvent {
   message?: string
   command?: string
   [key: string]: unknown
+}
+
+export interface LaneMessage {
+  id: string
+  ts: string
+  lane: string
+  from: string
+  to: string
+  kind: LaneMessageKind
+  status: LaneMessageStatus
+  subject: string
+  action?: LaneMessageAction
+  body?: string
+  refs?: string[]
+  parentId?: string
+  leaseUntil?: string
+  claimBy?: string
+  resolvedBy?: string
+  result?: string
+  updatedBy?: string
 }
 
 export interface ParsedLaneDoc {
@@ -45,6 +68,7 @@ export interface LaneStatusReport {
   lane: ParsedLaneDoc
   assessment: LaneAssessment
   git: GitSnapshot | null
+  coordination: CoordinationSnapshot | null
   harness: HarnessSnapshot | null
   evidence: EvidenceSnapshot | null
   hygiene: HygieneSnapshot | null
@@ -56,6 +80,16 @@ export interface HarnessSnapshot {
   ok: boolean
   mode: "none" | "latest" | "novel"
   summaryLines: string[]
+  error?: string
+}
+
+export interface CoordinationSnapshot {
+  ok: boolean
+  messageLogPath: string
+  summaryLines: string[]
+  openCount: number
+  claimedCount: number
+  expiredLeaseCount: number
   error?: string
 }
 
@@ -113,6 +147,10 @@ export function laneEventLogPath(lanePath: string): string {
   return join("output", "agent-runs", laneIdFromPath(lanePath), "events.jsonl")
 }
 
+export function laneMessageLogPath(lanePath: string): string {
+  return join("output", "agent-runs", laneIdFromPath(lanePath), "messages.jsonl")
+}
+
 export function parseLaneDoc(text: string, lanePath = "lane.md"): ParsedLaneDoc {
   const fields: Record<string, Record<string, string>> = {}
   let section = ""
@@ -165,7 +203,7 @@ export function isLaneContractComplete(doc: ParsedLaneDoc): boolean {
 export function normalizePanels(values: string[]): MonitorPanel[] {
   if (values.length === 0) return ["all"]
   const out: MonitorPanel[] = []
-  const valid = new Set<MonitorPanel>(["all", "outside", "inside", "evidence", "hygiene", "process"])
+  const valid = new Set<MonitorPanel>(["all", "outside", "coordination", "inside", "evidence", "hygiene", "process"])
   for (const raw of values) {
     for (const item of raw.split(",")) {
       const panel = item.trim() as MonitorPanel
@@ -202,6 +240,107 @@ export function readLaneEvents(eventLogPath: string): LaneEvent[] {
 export function appendLaneEvent(eventLogPath: string, event: LaneEvent): void {
   mkdirSync(dirname(eventLogPath), { recursive: true })
   appendFileSync(eventLogPath, `${JSON.stringify(event)}\n`)
+}
+
+export function readLaneMessages(messageLogPath: string): LaneMessage[] {
+  if (!existsSync(messageLogPath)) return []
+  const messages: LaneMessage[] = []
+  const raw = readFileSync(messageLogPath, "utf8")
+  let malformed = 0
+  for (const line of raw.split(/\r?\n/)) {
+    if (!line.trim()) continue
+    try {
+      const parsed = JSON.parse(line) as LaneMessage
+      if (
+        typeof parsed.id === "string" &&
+        typeof parsed.ts === "string" &&
+        typeof parsed.lane === "string" &&
+        typeof parsed.from === "string" &&
+        typeof parsed.to === "string" &&
+        typeof parsed.kind === "string" &&
+        typeof parsed.status === "string" &&
+        typeof parsed.subject === "string"
+      ) {
+        messages.push(parsed)
+      } else {
+        malformed += 1
+      }
+    } catch {
+      malformed += 1
+    }
+  }
+  for (let i = 0; i < malformed; i++) {
+    messages.push({
+      id: `malformed-${i + 1}`,
+      ts: new Date(0).toISOString(),
+      lane: "(unknown)",
+      from: "message-log",
+      to: "human",
+      kind: "status",
+      status: "open",
+      subject: "malformed message log row",
+    })
+  }
+  return messages
+}
+
+export function appendLaneMessage(messageLogPath: string, message: LaneMessage): void {
+  mkdirSync(dirname(messageLogPath), { recursive: true })
+  appendFileSync(messageLogPath, `${JSON.stringify(message)}\n`)
+}
+
+export function reduceLaneMessages(records: LaneMessage[]): LaneMessage[] {
+  const byId = new Map<string, LaneMessage>()
+  for (const record of records) {
+    const previous = byId.get(record.id)
+    byId.set(record.id, previous ? {
+      ...previous,
+      ...record,
+      body: record.body ?? previous.body,
+      refs: record.refs ?? previous.refs,
+      parentId: record.parentId ?? previous.parentId,
+      leaseUntil: record.leaseUntil ?? previous.leaseUntil,
+      claimBy: record.claimBy ?? previous.claimBy,
+      resolvedBy: record.resolvedBy ?? previous.resolvedBy,
+      result: record.result ?? previous.result,
+    } : record)
+  }
+  return [...byId.values()].sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts))
+}
+
+export function isLeaseExpired(message: LaneMessage, now = new Date()): boolean {
+  if (message.status !== "claimed" || !message.leaseUntil) return false
+  const leaseMs = Date.parse(message.leaseUntil)
+  return Number.isFinite(leaseMs) && leaseMs <= now.getTime()
+}
+
+export function summarizeLaneMessages(messages: LaneMessage[], messageLogPath: string, now = new Date()): string[] {
+  const reduced = reduceLaneMessages(messages)
+  const open = reduced.filter(message => message.status === "open")
+  const claimed = reduced.filter(message => message.status === "claimed")
+  const expired = claimed.filter(message => isLeaseExpired(message, now))
+  const active = [...open, ...claimed].sort((a, b) => {
+    const aExpired = isLeaseExpired(a, now) ? 0 : 1
+    const bExpired = isLeaseExpired(b, now) ? 0 : 1
+    return aExpired - bExpired || Date.parse(a.ts) - Date.parse(b.ts)
+  })
+  const lines = [
+    `message bus: ${messageLogPath}`,
+    `open=${open.length} claimed=${claimed.length} expired_leases=${expired.length} total=${reduced.length}`,
+  ]
+  if (active.length === 0) {
+    lines.push("no open coordination messages")
+    return lines
+  }
+  for (const message of active.slice(0, 8)) {
+    const leaseState = isLeaseExpired(message, now) ? "EXPIRED" : message.status.toUpperCase()
+    lines.push(`${leaseState} ${message.id} ${message.kind} to=${message.to} from=${message.from} :: ${compact(message.subject, 70)}`)
+    if (message.status === "claimed") lines.push(`  claim=${message.claimBy ?? "?"} lease_until=${message.leaseUntil ?? "?"}`)
+    if (message.refs?.length) lines.push(`  refs=${compact(message.refs.join(", "), 110)}`)
+    if (message.body) lines.push(`  body=${compact(message.body, 110)}`)
+  }
+  if (active.length > 8) lines.push(`... +${active.length - 8} more active message(s)`)
+  return lines
 }
 
 export function assessLane(doc: ParsedLaneDoc, events: LaneEvent[], opts: {
@@ -362,6 +501,20 @@ export function summarizeOperatorJson(raw: unknown): string[] {
     lines.push(`pending gates clear; latest resolved gate: #${latestResolved.id} ${status}`)
   }
   return lines
+}
+
+export function collectCoordinationSnapshot(doc: ParsedLaneDoc, now = new Date()): CoordinationSnapshot {
+  const messageLogPath = laneMessageLogPath(doc.path)
+  const messages = readLaneMessages(messageLogPath)
+  const reduced = reduceLaneMessages(messages)
+  return {
+    ok: true,
+    messageLogPath,
+    summaryLines: summarizeLaneMessages(messages, messageLogPath, now),
+    openCount: reduced.filter(message => message.status === "open").length,
+    claimedCount: reduced.filter(message => message.status === "claimed").length,
+    expiredLeaseCount: reduced.filter(message => isLeaseExpired(message, now)).length,
+  }
 }
 
 export function collectHarnessSnapshot(mode: "none" | "latest" | "novel", novelId?: string): HarnessSnapshot | null {
@@ -568,6 +721,7 @@ export function buildLaneStatusReport(args: {
   novelId?: string
   panels?: MonitorPanel[]
 }): LaneStatusReport {
+  const now = args.now ?? new Date()
   const lane = readLaneDoc(args.lanePath)
   const eventLogPath = laneEventLogPath(args.lanePath)
   const events = readLaneEvents(eventLogPath)
@@ -575,14 +729,15 @@ export function buildLaneStatusReport(args: {
   const git = panelEnabled(panels, "outside") || panelEnabled(panels, "hygiene") ? collectGitSnapshot() : null
   const harness = panelEnabled(panels, "inside") ? collectHarnessSnapshot(args.harnessMode ?? "none", args.novelId) : null
   return {
-    assessedAt: (args.now ?? new Date()).toISOString(),
+    assessedAt: now.toISOString(),
     lane,
     assessment: assessLane(lane, events, {
-      now: args.now,
+      now,
       staleMinutes: args.staleMinutes,
       eventLogPath,
     }),
     git,
+    coordination: panelEnabled(panels, "coordination") ? collectCoordinationSnapshot(lane, now) : null,
     harness,
     evidence: panelEnabled(panels, "evidence") ? collectEvidenceSnapshot(lane) : null,
     hygiene: panelEnabled(panels, "hygiene") ? collectHygieneSnapshot(git) : null,
@@ -592,7 +747,7 @@ export function buildLaneStatusReport(args: {
 }
 
 export function renderLaneStatus(report: LaneStatusReport): string {
-  const { lane, assessment, git, harness, evidence, hygiene, process } = report
+  const { lane, assessment, git, coordination, harness, evidence, hygiene, process } = report
   const lines: string[] = []
   lines.push(`Lane Dashboard  ${report.assessedAt}`)
   lines.push(`panels: ${report.panels.join(",")}`)
@@ -631,6 +786,12 @@ export function renderLaneStatus(report: LaneStatusReport): string {
       for (const f of git.dirtyFiles.slice(0, 12)) lines.push(`    ${f}`)
       if (git.dirtyFiles.length > 12) lines.push(`    ... +${git.dirtyFiles.length - 12} more`)
     }
+  }
+  if (coordination) {
+    lines.push("")
+    lines.push("Operational coordination:")
+    if (!coordination.ok && coordination.error) lines.push(`  unavailable: ${coordination.error}`)
+    for (const line of coordination.summaryLines) lines.push(`  ${line}`)
   }
   if (harness) {
     lines.push("")
