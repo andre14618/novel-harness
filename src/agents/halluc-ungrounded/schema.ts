@@ -25,9 +25,10 @@ export interface NerFinding {
   /**
    * The NER candidate class that produced this finding.
    * Kept in sync with `EntityCandidateClass` in `src/lint/entity-candidates.ts`.
-   * `x-of-y-capitalized` was added in L15; `number-word-tail` reserved for future use.
+   * `x-of-y-capitalized` and `number-word-tail` were added in L15;
+   * `initials` and `capitalized-first-only` added in L23a (exp #341).
    */
-  class: "title-pair" | "capitalized-multi-word" | "suffix-class" | "x-of-y-capitalized" | "number-word-tail"
+  class: "title-pair" | "capitalized-multi-word" | "suffix-class" | "x-of-y-capitalized" | "number-word-tail" | "initials" | "capitalized-first-only"
 }
 
 /**

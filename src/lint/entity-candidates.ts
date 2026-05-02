@@ -18,7 +18,7 @@
  *   - This module BUILDS the extractor only. Calibration vs the LLM checker
  *     and any blocker promotion are separate loops (see `docs/todo.md` §7).
  *
- * Five candidate classes:
+ * Seven candidate classes:
  *
  *   1. `title-pair` — A title token (Master, Lord, Captain, Arbiter, ...)
  *      followed by a Capitalized Word. e.g. "Master Orin", "Castellan Vesh".
@@ -48,6 +48,22 @@
  *      Seven", "the Forty-Seven Tongues" where the numeric tail is not in the
  *      existing suffix vocabulary.
  *      See L15 (commit context, exp #TBD).
+ *
+ *   6. `initials` (L23a) — Single-token abbreviated initials like `T.C.`,
+ *      `J.R.R.`, `K.J.`. Matches `[A-Z].[A-Z].` with an optional third
+ *      initial. Raw extraction is unconditional; FP suppression is handled
+ *      by the caller grounding against derived initials from the character
+ *      roster (see `deriveInitials`). Sentence-initial filter is OMITTED —
+ *      initials pattern is high-signal regardless of position.
+ *      See L23a (exp #341).
+ *
+ *   7. `capitalized-first-only` (L23a) — Domain term where only the first
+ *      word is capitalized: `Aether waste`, `Crystal lattice`, `Soul fire`.
+ *      HIGH FP RISK — sentence-initial capitalization matches this pattern.
+ *      SAFE FALLBACK: the extractor emits unconditionally; `runNerPrepass`
+ *      gates the finding by requiring the first word to appear in the
+ *      grounded set. First-word ungrounded → suppressed before the AND-gate.
+ *      See L23a (exp #341).
  *
  * Filters (do NOT emit):
  *   - Sentence-initial capitalization (the first capitalized token after
@@ -90,6 +106,17 @@
  *   - `number-word-tail` matches any CapWord ending in a number-word,
  *     including grounded entities. The downstream grounded-surface check
  *     suppresses those; the extractor's job is recall-floor coverage.
+ *   - `capitalized-first-only` emits candidates unconditionally from this
+ *     extractor (including sentence-initial). The high-FP suppression gate
+ *     (first-word grounding check) lives in `runNerPrepass` in
+ *     `src/agents/halluc-ungrounded/index.ts`, NOT here. Pure extraction
+ *     callers that bypass the NER prepass must apply their own first-word
+ *     filter if they do not want the FP flood.
+ *   - `initials` emits all `[A-Z].[A-Z].(.[A-Z].)?` patterns including
+ *     grounded ones. The grounded-surface suppression happens in
+ *     `runNerPrepass`, where derived initials from the character_roster are
+ *     added to the grounded set before the pass filter. Callers that bypass
+ *     `runNerPrepass` must handle suppression themselves.
  */
 
 // ── Lexicons ─────────────────────────────────────────────────────────────────
@@ -322,6 +349,149 @@ export function numberWordTailRegex(): RegExp {
   )
 }
 
+/**
+ * Initials regex (L23a): matches abbreviated initials like `T.C.`, `J.R.R.`,
+ * `K.J.`. Each initial is a single uppercase letter followed by a literal
+ * period. Two or three initials are matched; one-letter abbreviations like
+ * "A." are NOT matched (too ambiguous with abbreviations such as "p. 42").
+ *
+ * Pattern:
+ *   \b          — word boundary (start of token)
+ *   [A-Z]\.     — first initial + period
+ *   [A-Z]\.     — second initial + period (mandatory — minimum two)
+ *   (?:[A-Z]\.)? — optional third initial + period
+ *   (?=[\s,;:!?]|$) — lookahead: must be followed by whitespace/punctuation
+ *                      or end-of-string (prevents matching "T.C.s" mid-word)
+ *
+ * Examples that MUST fire:
+ *   "T.C.", "J.R.R.", "K.J.", "R.A.S."
+ *
+ * Examples that MUST NOT fire:
+ *   "A." (single initial), "T.C.s" (trailing non-period char),
+ *   "e.g." (lowercase), "i.e." (lowercase), "p.m." (lowercase)
+ *
+ * Sentence-initial filter is INTENTIONALLY OMITTED — the character `[A-Z].[A-Z].`
+ * pattern is high-signal regardless of sentence position. It cannot collide
+ * with generic sentence-starting articles or conjunctions.
+ *
+ * Note: This regex is EXEMPT from the grounding check inside
+ * `extractEntityCandidates`. FP suppression happens in `runNerPrepass` by
+ * adding derived initials (see `deriveInitials`) to the grounded set.
+ */
+export function initialsRegex(): RegExp {
+  return /\b[A-Z]\.[A-Z]\.(?:[A-Z]\.)?(?=[\s,;:!?]|$)/g
+}
+
+/**
+ * Capitalized-first-only regex (L23a): matches two-word phrases where the
+ * FIRST word starts with an uppercase letter followed by 1+ lowercase letters,
+ * and the SECOND word starts with a lowercase letter (i.e., entirely lowercase).
+ * This targets domain terms like "Aether waste", "Crystal lattice", "Soul fire"
+ * where only the magic-system/proper-noun first word is capitalized.
+ *
+ * Pattern:
+ *   \b              — word boundary
+ *   [A-Z][a-z]{3,}  — first word: starts uppercase, ≥3 more lowercase chars
+ *                      (total ≥4 chars). Excludes short function words like
+ *                      "The" (3 chars), "She" (3), "But" (3), "His" (3),
+ *                      "Her" (3), "He" (2), "It" (2), "We" (2), "An" (2).
+ *                      Still matches domain terms: "Aether" (6), "Crystal" (7),
+ *                      "Soul" (4), "Mana" (4), "Flux" (4).
+ *   \s+             — whitespace separator (one or more)
+ *   [a-z]{4,}       — second word: ALL lowercase, ≥4 chars. This excludes
+ *                      common 2-3 char function words that appear after a
+ *                      capitalized proper noun in normal prose: "in" (2),
+ *                      "of" (2), "to" (2), "by" (2), "on" (2), "at" (2),
+ *                      "or" (2), "and" (3), "but" (3), "for" (3), "the" (3),
+ *                      "not" (3), "was" (3), "had" (3). Still matches domain
+ *                      second words: "waste" (5), "lattice" (7), "fire" (4),
+ *                      "drain" (5), "core" (4), "flow" (4).
+ *   \b              — word boundary
+ *
+ * Examples that MUST fire:
+ *   "Aether waste", "Crystal lattice", "Soul fire", "Mana drain", "Flux core"
+ *
+ * Examples that MUST NOT fire:
+ *   "Crystal Lattice" (capitalized-multi-word handles this)
+ *   "the waste" (first word lowercase)
+ *   "aether waste" (both lowercase)
+ *   "A waste" (single-letter first word — too short)
+ *   "The boots" (first word only 3 chars — filtered by {3,} minimum)
+ *   "She walked" (first word only 3 chars — filtered by {3,} minimum)
+ *   "Thornwall in" (second word "in" = 2 chars — filtered by {4,})
+ *   "Aether of" (second word "of" = 2 chars — filtered)
+ *
+ * HIGH FP RISK: sentence-initial capitalization with longer first words
+ * (e.g. "Darkness creep" — "Darkness" ≥4 chars, "creep" ≥4 chars all lower).
+ * This regex fires unconditionally. The suppression gate — requiring the
+ * first word to appear in the BIBLE-only token set — is applied in
+ * `runNerPrepass`, NOT here.
+ */
+export function capitalizedFirstOnlyRegex(): RegExp {
+  return /\b[A-Z][a-z]{3,}\s+[a-z]{4,}\b/g
+}
+
+/**
+ * Derive abbreviated initials from a character name.
+ *
+ * Given a character's full name (e.g. "Taryn Coombs Vey"), produces all
+ * two-and-three-initial forms by extracting the first letter of each
+ * whitespace-separated token and constructing:
+ *   - Full initials (all tokens): `T.C.V.`
+ *   - All pairs of adjacent first-letters: `T.C.`, `C.V.`
+ *   - All pairs of non-adjacent first+last: `T.V.` (if ≥3 tokens)
+ *
+ * This ensures that "T.C." (first+second) and "T.V." (first+last) are both
+ * derived from "Taryn Coombs Vey", covering prose patterns where a character
+ * uses two of their three initials.
+ *
+ * Tokens of length 0 are skipped (handles double-spaces or apostrophe splits).
+ * Single-word names produce no initials (you need at least 2 tokens for a
+ * 2-initial abbreviation).
+ *
+ * Apply `normalizeForGroundedMatch` to results before adding to the grounded
+ * set, since initials with periods don't benefit from the possessive/plural
+ * stripping but the lowercase-normalization step is still correct (the grounded
+ * set uses lowercase keys).
+ *
+ * @param name The full character name, e.g. "Taryn Coombs Vey".
+ * @returns Array of derived initial strings, e.g. `["T.C.V.", "T.C.", "C.V.", "T.V."]`.
+ *          Empty array if fewer than 2 name tokens.
+ */
+export function deriveInitials(name: string): string[] {
+  if (!name) return []
+  const tokens = name
+    .trim()
+    .split(/\s+/)
+    .filter(t => t.length > 0)
+    .map(t => t[0]?.toUpperCase())
+    .filter((c): c is string => !!c && /[A-Z]/.test(c))
+
+  if (tokens.length < 2) return []
+
+  const results: string[] = []
+
+  // Full initials (all tokens)
+  results.push(tokens.map(c => `${c}.`).join(""))
+
+  if (tokens.length === 2) {
+    // "A.B." is already added above as the full initials; done.
+    return [...new Set(results)]
+  }
+
+  // For ≥3 tokens: add all adjacent pairs + first+last
+  for (let i = 0; i < tokens.length - 1; i++) {
+    results.push(`${tokens[i]}.${tokens[i + 1]}.`)
+  }
+  // first + last (non-adjacent, only when they're not already an adjacent pair)
+  if (tokens.length >= 3) {
+    const firstLast = `${tokens[0]}.${tokens[tokens.length - 1]}.`
+    results.push(firstLast)
+  }
+
+  return [...new Set(results)]
+}
+
 // ── Public types ────────────────────────────────────────────────────────────
 
 export type EntityCandidateClass =
@@ -330,6 +500,8 @@ export type EntityCandidateClass =
   | "suffix-class"
   | "x-of-y-capitalized"
   | "number-word-tail"
+  | "initials"
+  | "capitalized-first-only"
 
 export interface EntityCandidate {
   /** The matched phrase, exact substring of the original prose. */
@@ -516,6 +688,49 @@ export function extractEntityCandidates(prose: string): EntityCandidate[] {
     })
   }
 
+  // 6. initials (L23a)
+  //
+  // Sentence-initial filter OMITTED — `[A-Z].[A-Z].` is high-signal
+  // regardless of position (it cannot match a generic sentence-starting
+  // article or conjunction). FP suppression (via derived character initials
+  // in the grounded set) happens in `runNerPrepass`, not here.
+  const initialsRe = initialsRegex()
+  while ((m = initialsRe.exec(prose)) !== null) {
+    const start = m.index
+    const end = start + m[0].length
+    if (offsetIsInsideAnySpan(start, italics)) continue
+    candidates.push({
+      phrase: m[0],
+      class: "initials",
+      offsetStart: start,
+      offsetEnd: end,
+    })
+  }
+
+  // 7. capitalized-first-only (L23a)
+  //
+  // HIGH FP RISK: sentence-initial capitalization matches this pattern.
+  // This pass emits unconditionally; the SAFE FALLBACK gate — requiring the
+  // first word to appear in the grounded set — is applied in `runNerPrepass`
+  // (see `src/agents/halluc-ungrounded/index.ts`). Pure callers that bypass
+  // `runNerPrepass` MUST apply a first-word grounding filter themselves.
+  //
+  // Sentence-initial filter NOT applied here (see note above — the grounded-
+  // set gate in runNerPrepass supersedes this because any ungrounded
+  // sentence-initial cap word is exactly the FP class we want to suppress).
+  const capFirstRe = capitalizedFirstOnlyRegex()
+  while ((m = capFirstRe.exec(prose)) !== null) {
+    const start = m.index
+    const end = start + m[0].length
+    if (offsetIsInsideAnySpan(start, italics)) continue
+    candidates.push({
+      phrase: m[0],
+      class: "capitalized-first-only",
+      offsetStart: start,
+      offsetEnd: end,
+    })
+  }
+
   candidates.sort((a, b) => {
     if (a.offsetStart !== b.offsetStart) return a.offsetStart - b.offsetStart
     // Stable secondary order: title-pair < capitalized-multi-word < suffix-class
@@ -532,6 +747,8 @@ function classOrder(c: EntityCandidateClass): number {
     case "suffix-class": return 2
     case "x-of-y-capitalized": return 3
     case "number-word-tail": return 4
+    case "initials": return 5
+    case "capitalized-first-only": return 6
   }
 }
 

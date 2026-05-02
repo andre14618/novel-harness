@@ -4,7 +4,7 @@ import { resolve, dirname } from "node:path"
 import { callAgent } from "../../llm"
 import { patchLLMCallNerPrepass } from "../../db/ops"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
-import { buildContext, buildCharacterRoster, buildOutlineEntityList } from "./context"
+import { buildContext, buildCharacterRoster, buildOutlineEntityList, deriveTitleNouns } from "./context"
 import {
   hallucUngroundedSchema,
   type HallucUngroundedOutput,
@@ -15,10 +15,11 @@ import { deriveBeatEntities, extractProperNouns } from "../../phases/beat-entity
 import {
   extractEntityCandidates,
   normalizeForGroundedMatch,
+  deriveInitials,
   type EntityCandidate,
 } from "../../lint/entity-candidates"
 
-export { buildContext, buildCharacterRoster, buildOutlineEntityList, hallucUngroundedSchema }
+export { buildContext, buildCharacterRoster, buildOutlineEntityList, deriveTitleNouns, hallucUngroundedSchema }
 export type { HallucUngroundedOutput, HallucUngroundedResult, NerFinding }
 
 // Load the bounded checker prompt from disk so rubric updates don't require a
@@ -69,6 +70,8 @@ function buildNerGroundedSet(components: {
   characterRoster?: string[]
   /** Planner-emitted named entities from chapter outline text (L20). */
   outlineEntities?: string[]
+  /** Character-profile derived title nouns (L23b). */
+  derivedTitles?: string[]
 }): { lower: Set<string>; normalized: Set<string> } {
   const lower = new Set<string>()
   const normalized = new Set<string>()
@@ -83,6 +86,7 @@ function buildNerGroundedSet(components: {
     ...(components.povCharacter ? [components.povCharacter] : []),
     ...(components.characterRoster ?? []),
     ...(components.outlineEntities ?? []),
+    ...(components.derivedTitles ?? []),
   ]
 
   for (const raw of allSources) {
@@ -103,6 +107,26 @@ function buildNerGroundedSet(components: {
       if (cleaned.length > 0) lower.add(cleaned)
       const normT = normalizeForGroundedMatch(t)
       if (normT.length > 0) normalized.add(normT)
+    }
+  }
+
+  // L23a: Derive abbreviated initials from character roster entries.
+  // This allows "T.C." in prose to be grounded when "Taryn Coombs" is in
+  // the character roster. deriveInitials produces all 2- and 3-initial forms;
+  // we add them in lowercase (initials are case-insensitive in grounding).
+  const rosterEntries = [
+    ...(components.characterRoster ?? []),
+    ...components.beatCharacters,
+    ...(components.povCharacter ? [components.povCharacter] : []),
+  ]
+  for (const name of rosterEntries) {
+    if (typeof name !== "string") continue
+    const derived = deriveInitials(name.trim())
+    for (const init of derived) {
+      lower.add(init.toLowerCase())
+      // No normalized form needed — initials don't have plural/possessive
+      // variants that normalizeForGroundedMatch handles. Exact lowercase match
+      // is sufficient for the `isNerGrounded` tier-1 check.
     }
   }
 
@@ -151,13 +175,85 @@ function isNerGrounded(
  * evidence surface. Empty array = prepass passes (no ungrounded candidates
  * detected by NER). Non-empty array = prepass fires; the AND-gate decides
  * whether this becomes a blocker or warning.
+ *
+ * L23a: Applies the `capitalized-first-only` safe-fallback gate here (not
+ * inside `extractEntityCandidates` which is a pure function). A
+ * `capitalized-first-only` candidate is suppressed (not returned as
+ * ungrounded) when its first word is NOT in the BIBLE-only token set
+ * (worldBible.systems + locations + cultures). This prevents sentence-initial
+ * FPs from character names: "Kael walked" should NOT fire even though "Kael"
+ * is in the full grounded set — "Kael" is a character name, not a bible
+ * concept. "Aether waste" fires ONLY when "Aether" appears in a world-bible
+ * systems/locations/cultures entry, because that is the usage pattern we are
+ * trying to detect (a derived domain compound of a known system/concept).
+ *
+ * `bibleTokens` (optional): a Set<string> of lowercase first-word tokens
+ * derived ONLY from worldBible.systems + .locations + .cultures name fields.
+ * Callers that do not provide it get the pre-L23a behavior (no cap-first-only
+ * candidates emitted — safe fallback to 0 FP risk when context is unavailable).
+ *
+ * Note: `initials` candidates that ARE grounded (e.g. "T.C." matching
+ * derived initials from character_roster) are suppressed by the standard
+ * `isNerGrounded` check, same as all other classes.
  */
+/**
+ * Common English prepositions, conjunctions, and function words that
+ * commonly follow a capitalized proper noun in normal prose but are NOT
+ * domain-term second words. Used to suppress FP cap-first-only candidates
+ * like "Thornwall before" or "Aether into" where a world-bible name is
+ * followed by a preposition.
+ *
+ * Curated to cover ≥4-char words (shorter ones are already filtered by the
+ * `[a-z]{4,}` second-word constraint in `capitalizedFirstOnlyRegex`).
+ */
+const CAP_FIRST_ONLY_STOP_WORDS: ReadonlySet<string> = new Set([
+  "before", "after", "since", "while", "above", "below", "under", "until",
+  "where", "which", "whose", "when", "what", "whom", "that", "this", "then",
+  "than", "thus", "also", "even", "only", "back", "down", "away", "into",
+  "onto", "upon", "over", "from", "with", "through", "along", "among",
+  "between", "during", "against", "toward", "within", "without", "across",
+  "behind", "beside", "beyond", "inside", "outside", "around", "about",
+  "near", "next", "like", "just", "both", "each", "many", "some", "more",
+  "most", "much", "very", "been", "were", "have", "will", "would", "could",
+  "should", "might", "must", "shall", "said", "told", "knew", "made", "gave",
+  "took", "came", "went", "kept", "left", "sent", "held", "knew", "came",
+])
+
 export function runNerPrepass(
   prose: string,
   groundedSurface: { lower: Set<string>; normalized: Set<string> },
+  bibleTokens?: Set<string>,
 ): EntityCandidate[] {
   const candidates = extractEntityCandidates(prose)
-  return candidates.filter(c => !isNerGrounded(c.phrase, groundedSurface))
+  return candidates.filter(c => {
+    // Standard grounding check for all classes.
+    if (isNerGrounded(c.phrase, groundedSurface)) return false
+
+    // L23a safe fallback: suppress capitalized-first-only candidates where
+    // the first word is NOT in the bible-only token set. We use BIBLE tokens
+    // (not the full grounded set) to avoid sentence-initial FPs from character
+    // names: "Kael walked" must NOT fire even though "Kael" is grounded —
+    // character names are not the source of domain-term derived compounds.
+    // "Aether waste" fires only when "Aether" ∈ worldBible.systems names.
+    if (c.class === "capitalized-first-only") {
+      if (!bibleTokens || bibleTokens.size === 0) {
+        // No bible context available — suppress all cap-first-only candidates
+        // (safe fallback to 0 FP risk).
+        return false
+      }
+      const words = c.phrase.split(/\s+/)
+      const firstWord = (words[0] ?? "").toLowerCase()
+      const secondWord = (words[1] ?? "").toLowerCase()
+      // Gate 1: first word must be a bible-entry first-word token.
+      if (!bibleTokens.has(firstWord)) return false
+      // Gate 2: second word must not be a common function word (prepositions,
+      // conjunctions, auxiliary verbs). This prevents FPs like "Thornwall before"
+      // where a city name happens to be followed by a preposition.
+      if (CAP_FIRST_ONLY_STOP_WORDS.has(secondWord)) return false
+    }
+
+    return true
+  })
 }
 
 /**
@@ -217,6 +313,8 @@ export async function checkHallucUngrounded(
   // has access to established characters and planner-named locations.
   const characterRoster = buildCharacterRoster(characters)
   const outlineEntities = buildOutlineEntityList(outline)
+  // L23b: derive title noun forms from character role fields.
+  const derivedTitles = deriveTitleNouns(characters)
 
   const userPrompt = buildContext(
     prose, beat, outline, characters, worldBible,
@@ -224,6 +322,7 @@ export async function checkHallucUngrounded(
       ...(derive ? { beatEntities: derivation!.entities } : {}),
       characterRoster,
       outlineEntities,
+      derivedTitles,
     },
   )
 
@@ -272,6 +371,8 @@ export async function checkHallucUngrounded(
     // Default to empty arrays for backward compatibility with existing analyses.
     character_roster: characterRoster,
     outline_entities: outlineEntities,
+    // L23b: character-profile derived title nouns.
+    derived_titles: derivedTitles,
   }
 
   // ── NER prepass (variants v1 / v3 / v4 only) ──────────────────────────────
@@ -292,8 +393,29 @@ export async function checkHallucUngrounded(
       povCharacter: outline.povCharacter ?? undefined,
       characterRoster,
       outlineEntities,
+      derivedTitles,
     })
-    nerUngrounded = runNerPrepass(prose, groundedSurface)
+
+    // L23a: Build a bible-ONLY first-word token set (worldBible.systems +
+    // .locations + .cultures names) for the cap-first-only gate in
+    // runNerPrepass. Only the FIRST word of each bible name is added —
+    // e.g. "Aether" from "Aether System", "Vesh" from "Vesh Order". This
+    // ensures that "Aether waste" fires (Aether is a bible first-word) but
+    // "Order hall" does NOT fire (Order is the SECOND word of "Vesh Order",
+    // not a bible-name first-word). The set intentionally excludes character
+    // names and outline entities to prevent sentence-initial character-name FPs
+    // like "Kael walked" (Kael is a character roster entry, not a bible term).
+    const bibleTokens = new Set<string>()
+    for (const name of bibleNames) {
+      if (typeof name === "string") {
+        const firstWord = name.trim().split(/\s+/)[0] ?? ""
+        if (firstWord.length > 0) {
+          bibleTokens.add(firstWord.toLowerCase())
+        }
+      }
+    }
+
+    nerUngrounded = runNerPrepass(prose, groundedSurface, bibleTokens)
   }
 
   try {
