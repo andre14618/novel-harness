@@ -55,6 +55,11 @@ role: primary-lane-context
 ## Progress Log
 
 - Pending. Queued from L38-A refutation: the writer sees prior-state facts but does not reliably use them.
+- 2026-05-02 (cycle 2): Added a single READER-INFO STATE binding rule to the production beat-writer system prompt (and mirrored into the dormant Salvatore primer variant). Rule teaches the writer that "Reader already knows" facts are established history for the POV character and any character who acted in them — those characters cannot be drafted as discovering or first-realizing the fact. Only "Hidden from {char}" lines mark information as new for that character. This is the smallest writer-side instruction change targeted at the L38-A refutation failure mode (writer drafted Maret discovering a sealed report she had copied months ago).
+  - Files: `src/agents/writer/beat-writer-system.md`, `src/agents/writer/beat-writer-system-salvatore.md`, `scripts/evals/writer-prompts.test.ts`.
+  - Tests: `bun test scripts/evals/writer-prompts.test.ts src/agents/writer/ tests/beat-context-parity.test.ts` → 89 pass / 0 fail. `bunx tsc --noEmit` clean.
+  - Commit: `d5c8e95` (`[agent:writer] L38-F: bind READER-INFO STATE in beat-writer system prompt`).
+  - Pending: deploy + paired replay on `novel-1777721066908` chapter 2 to evaluate stop gates (a)/(b)/(c).
 
 ## Heartbeat Commands
 
