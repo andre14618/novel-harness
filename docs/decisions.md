@@ -3224,3 +3224,49 @@ The L10 variance finding is now visually confirmed at a glance: `coverage-balanc
 **Commit:** `7bd7081` | **Experiment:** #328 (parent #320)
 
 **Ongoing:** §9 sub-bullet "Update list-runs.ts to show aggregate verdict history" closed. The "Define a probe-family key" sub-bullet is implicitly addressed by the (probe_name, test_variant, git_commit, seed) tuple used here, but a formal doc entry in `docs/experiment-design-rules.md` remains pending.
+
+---
+
+### L12 — Expanded synthetic hallucination panel + per-class matrix (2026-05-01, exp #327, phase_eval_runs.id=73)
+
+**Decision:** The v1+NER-prepass production checker (exp #322) achieves **83% recall / 100% precision / 91% F1** on the expanded 27-fixture panel across 6 FAIL classes + 3 generic-document FP controls. Full result doc: `docs/expanded-synthetic-halluc-panel-2026-05-01.md`.
+
+**Panel:** 6 FAIL classes × 3 fixtures + 6 grounded PASS controls + 3 generic-document FP controls = 27 total.
+
+**Per-class results:**
+
+| Class                     | Recall | Precision | F1   | FN root cause |
+|---------------------------|--------|-----------|------|---------------|
+| title-surname             | 100%   | 100%      | 100% | — (all caught) |
+| named-institution         | 100%   | 100%      | 100% | — (all caught) |
+| named-historical-event    | 100%   | 100%      | 100% | — (all caught) |
+| named-place-realm         | 67%    | 100%      | 80%  | "X of Y" connector (Crown of Hyran) |
+| named-artifact            | 67%    | 100%      | 80%  | "the Sigil of Eight" (article+number-word tail) |
+| plural-faction            | 67%    | 100%      | 80%  | "the Veiled Eight" (article+number-word tail) |
+| generic-document-fp-ctrl  | —      | —         | —    | 0 FP (FP guard holds) |
+
+**Root cause of 3 FNs (all are NER+LLM double-miss):**
+All 3 follow the same structural pattern: `X of Y` connector names ("Crown of Hyran") or article-prefixed number-word tails ("the Sigil of Eight", "the Veiled Eight"). Both NER and LLM pass:
+- NER: `X of Y` breaks consecutive-capitalisation detection; article-prefix filter hides "the Veiled Eight"; "Eight" not in suffix-class vocabulary.
+- LLM: historical/dissolved framing may trigger the "generic reference" pass heuristic at T=0.1; "Crown" + "Sigil" are ambiguous common-word X values.
+
+**Why this matters:** The 3 at-risk classes (place-realm, artifact, plural-faction) share the same NER gap. Fixing the NER extractor first is the right path before asymmetric voting — the vote policy change would not have caught any of these 3 FNs since NER didn't fire on them.
+
+**Baseline comparison:** exp #302 (Veyr Dominion, v3, no NER) had 0% recall on 5 fixtures. v1+NER = 83% recall with 0 FP, a large improvement.
+
+**Precision / FP guard:** 0 FP across all 9 PASS controls. The 3 generic-document FP controls ("the reconciliation report", "the porter's testimony", "the master archivist") all passed cleanly. The FP guard from exp #304 holds.
+
+**Alternatives considered:**
+- Asymmetric voting (NER fire = auto blocker) — ruled out as the primary next step; it wouldn't catch these FNs since NER also missed them.
+- Prompt temperature increase — deferred; precision is already 100%, so a warmer temperature risks introducing FPs without a clear FN payoff.
+- Majority-vote LLM (3-of-5) — might help on the LLM-only FNs but NER missed all 3 first; fix NER then re-eval.
+
+**Recommended next steps (per §7):**
+1. NER extractor extension: add `x-of-y-capitalized` class; add number-words to suffix-class vocabulary; relax article-prefix filter for confirmed suffix-class/number-word tail matches. (Closes the known structural gap.)
+2. Re-run L12 panel after NER extension to verify 100% recall on all 6 classes.
+3. Only then evaluate per-class asymmetric blocker thresholds — the 3 fully-recalled classes (title-surname, institution, historical-event) are already safe to promote.
+4. Asymmetric voting policy evaluation (§7 follow-on) should use the post-NER-extension panel.
+
+**§7 items closed:** "Expand synthetic hallucination fixtures beyond Veyr Dominion" and "Run current v3 checker on the expanded synthetic panel. Persist a per-class recall/precision matrix."
+
+**Commit:** `fe5152d` (panel + script) + docs commit (this session). **Cost:** $0.0027.
