@@ -3505,3 +3505,24 @@ not flagged as missing an event. The checker is safe for production prose.
 **Cost:** ~$0.0009 for 19 LLM calls (DeepSeek V4 Flash, cache-warm). Well under $1 cap.
 
 **Full analysis:** `docs/partial-enactment-adherence-panel-2026-05-01.md`.
+
+### L20 — Expanded halluc groundedSources with character roster + named-location rosters (2026-05-01, exp #339)
+*2026-05-01 · exp #339 · no LXC run needed — code + unit tests only*
+
+**Decision:** Expand `groundedSources` in `halluc-ungrounded` with two new buckets: `character_roster` (all character names from the `characters[]` parameter, not just beat-scoped subset) and `outline_entities` (proper nouns extracted from the chapter outline's `setting`, beat `description` fields, and `establishedFacts` text). Both buckets flow into `buildNerGroundedSet` (NER prepass) and `buildContext` (LLM prompt). This closes the L17 FP cluster that blocked end-to-end novel completion.
+
+**Root cause confirmed:** `getCharacters()` already returned all novel characters and they were already passed into `checkHallucUngrounded` as `characters: CharacterProfile[]`, but the code only used this array for the SPEAKERS section (beat-scoped filter). The full name list was never added to the grounded surface. Named locations like "Eastern Reach", "Silver Street", "Temple of Mercy" appeared in planner beat descriptions / established facts but were absent from `worldBible.locations`, so they had no path into the grounded surface.
+
+**L17 fire cluster (10/10 entities now grounded):** Lord Sorcerer Brennan → exact match via character_roster; Brennan (surname-only) → substring tier against "Lord Sorcerer Brennan"; Collector Marwick → exact match via outline_entities (beat description); Magistrate Dorn → substring against "Magistrate Dorn of the Eastern Reach"; Sorcerer's Tower → exact via outline_entities (establishedFacts text); Eastern Reach → substring; Silver Street → exact; Master Collector → substring against "Master Collector Luken Ashby"; Luken Ashby → substring; Aldric → exact via both character_roster ("Aldric Vey") and outline_entities.
+
+**Normalize-symmetry check:** Title+surname forms ("Lord Sorcerer Brennan") in the roster ground surname-only prose references ("Brennan") via the `buildNerGroundedSet` per-token shard tier: the roster entry is split on whitespace into shards including "brennan", which is added to `lower`. Single-word NER candidates don't extract from the NER prepass (only multi-word patterns), so "Brennan" alone is LLM-only territory — and the LLM sees the full Character-roster sub-line in the WORLD BIBLE block.
+
+**Backward compatibility:** New opts fields in `buildContext` (`characterRoster`, `outlineEntities`) default to `undefined`; the sub-lines are NOT rendered when the caller omits them. `groundedSourcesObj.character_roster` and `.outline_entities` default to the computed values (empty array when characters=[]). Existing v0/v2 analyses that read prior snapshots are unaffected (new keys not present in old rows).
+
+**Tests:** 55/55 pass (35 prior + 10 context tests + 10 index tests). New tests cover: character roster extraction, outline entity extraction from setting/description/facts, buildContext Character-roster + Outline-entities lines, dedup against bible/beat-chars, L17 fire entities (Brennan title+surname, Silver Street, NEW-name still blocks), and provenance assertions.
+
+**Files changed:** `src/agents/halluc-ungrounded/context.ts`, `src/agents/halluc-ungrounded/index.ts`, `src/agents/halluc-ungrounded/index.test.ts`, `src/agents/halluc-ungrounded/context.test.ts`
+
+**Cost:** $0 (no LLM calls; code + unit tests only).
+
+**Next:** L22 — re-run clean 3-chapter smoke on fantasy-debt after this + L21 land on LXC.
