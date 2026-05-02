@@ -4302,3 +4302,20 @@ The writer continues to invent some walk-on names (`Master Halden`, `Guildmistre
 **Ongoing implications:** Do not queue deeper context plumbing as the immediate follow-up. L38-B planner prior-fact context is parked until writer-side prior-state adherence improves. L38-C chapter-summary wiring remains independently useful, but not as an L38-A continuation. The next targeted lane should be writer prompt-discipline / beat-level adherence to READER-INFO STATE, or a writer model-routing probe, tested first on the same paired chapter-2 replay.
 
 ---
+
+### L38-F — Writer-side READER-INFO STATE binding rule confirmed (2026-05-02, exp #370, commits `d5c8e95`, `b77d206`)
+
+**Decision:** Keep the writer-side READER-INFO STATE binding rule shipped in `src/agents/writer/beat-writer-system.md`. A single instruction telling the writer that "Reader already knows" lines are binding history for the POV character and any character who performed/witnessed/authored the listed action collapses the chapter-2 prior-state writer-conflation cluster that survived L38-A.
+
+**Implementation shipped:**
+- `src/agents/writer/beat-writer-system.md` adds one bullet: "READER-INFO STATE is binding when present. Lines under 'Reader already knows' are established history as of this chapter — the POV character and any character who performed, witnessed, or authored the listed action already knows it. Do not dramatize those facts as first-time discoveries, fresh realizations, surprises, or new information for those characters... A character only treats a piece of information as new when it is listed under 'Hidden from {that character}'."
+- `src/agents/writer/beat-writer-system-salvatore.md` mirrors the rule into the dormant Salvatore primer variant.
+- `scripts/evals/writer-prompts.test.ts` pins the rule exists in both prompt files.
+
+**Validation:** Local tests passed before commit: `bun test scripts/evals/writer-prompts.test.ts src/agents/writer/ tests/beat-context-parity.test.ts` -> 89 pass, TypeScript clean. Deployed `b77d206` to LXC, then ran a paired replay on `novel-1777721066908` chapter 2 (same novel as L38-A). The new system prompt (2960 chars) and the existing READER-INFO STATE block (offset 2105 in user_prompt, all 8 chapter-1 facts) were both verified live in `llm_calls.id=58378`+. Chapter 2 attempt 1 produced `chapter_exhaustions.id=84` with **1 blocker** instead of the L38-A 4-blocker cluster. Three-way comparison: baseline (id=81, 5 blockers, no READER-INFO STATE) → L38-A (id=83, 4 blockers, READER-INFO STATE rendered but no binding rule, prior-state cluster persisted) → L38-F (id=84, 1 blocker, binding rule + READER-INFO STATE, **zero prior-state writer-conflation blockers**). Remaining blocker is intra-chapter consistency (Maret washes hands twice in chapter 2, removing smudges Cassel notes in the same chapter) — a separate failure mode unrelated to prior-state adherence.
+
+**Result:** Telling the writer that prior-state lines are binding for characters who acted in them is sufficient to remove the dominant chapter-2 prior-state writer-conflation cluster on this novel. Prompt size grew negligibly; no prose/adherence regression observed. Cost $0.021 on the resume run.
+
+**Ongoing implications:** L38-A context plumbing is now load-bearing — the binding rule depends on the READER-INFO STATE block being rendered. The new dominant chapter-2 blocker is intra-chapter consistency (writer breaks a fact established earlier in the same chapter); queue separately if it recurs across seeds. L38-B planner prior-fact context and L38-C chapter-summary wiring remain parked unless future evidence motivates them. The "writer-side prompt discipline" path is preferred over writer model-routing probes for this class of failure unless future paired replays show the binding rule is insufficient on a different novel.
+
+---

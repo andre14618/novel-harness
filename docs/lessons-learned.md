@@ -1989,3 +1989,17 @@ L38-A showed the prior-chapter facts were absent from production beat-writer pro
 - Use paired replay on the same novel/chapter when possible so stochastic seed differences do not hide whether the changed surface mattered.
 
 (2026-05-02 L38-A paired replay, exp #369. Companion: `docs/sessions/2026-05-02-L38-A-prior-context.md`, `docs/decisions.md` §L38-A.)
+
+## Surface visibility ≠ surface authority — bind the rule on the writer side
+
+L38-F is the corollary to "Prompt presence is evidence, not proof of writer use." After L38-A wired READER-INFO STATE into beat-writer prompts and the chapter-2 prior-state conflation cluster persisted (writer saw the facts, still dramatized them as discoveries), the cheapest next move was a single sentence in `beat-writer-system.md` telling the writer what the surface *means*: lines under "Reader already knows" are binding history for the POV character and any character who performed/witnessed/authored the listed action. The paired replay collapsed the cluster (4 prior-state blockers → 0) while system-prompt size grew negligibly.
+
+**The rule:** when a writer-visible context surface fails to change behavior, the next hypothesis is binding/authority — not more facts and not model swap. The surface needs an explicit instruction that says "treat this section as a constraint on character interiority," scoped to which characters it binds (the actors in the listed event) and what behavior it forbids (first-time discoveries, fresh realizations, surprises) plus the explicit escape hatch ("Hidden from {char}" lines mark information that *is* still new for that character).
+
+**How to apply:**
+- Add the binding rule in the system prompt, not as an inline reminder per beat — the rule is durable, the facts change.
+- Name the forbidden writer behaviors specifically ("first-time discovery", "fresh realization", "surprise"), not abstractly ("don't contradict prior state").
+- State the per-character scope explicitly so multi-character scenes don't accidentally bind characters who genuinely don't know the fact.
+- Pair the binding rule with an explicit escape hatch ("only treat as new when listed under Hidden from {char}") so the writer doesn't overcorrect to omniscience for everyone in the room.
+
+(2026-05-02 L38-F paired replay, exp #370, commit `d5c8e95`. Companion: `docs/sessions/2026-05-02-L38-F-reader-info-adherence.md`, `docs/decisions.md` §L38-F.)

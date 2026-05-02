@@ -4,6 +4,9 @@ updated: 2026-05-02
 role: canonical-current-truth
 ---
 
+<!-- Latest 2026-05-02: L38-F shipped writer-side READER-INFO STATE binding rule (d5c8e95). Paired replay on novel-1777721066908 ch2 dropped prior-state writer-conflation cluster from 4 blockers (L38-A) to 0 (L38-F); remaining 1 blocker is intra-chapter consistency, queued separately. -->
+
+
 # Current State
 
 This is the canonical current-state document for the novel harness.
@@ -158,7 +161,7 @@ Primary code references:
 
 ### Known gaps under investigation
 
-- **Cumulative prior-chapter context for the writer (L38).** L38-A (2026-05-02, exp #369) wired the READER-INFO STATE block into production beat context for chapters > 1: prior-chapter establishedFacts and per-present-character `doesNotKnow` render between resolved-references and SETTING. Slot-selection lives in `selectReaderInfoStateForBeat` (`src/agents/writer/enriched-context.ts`), and drafting wires `getFactsUpToChapter(novelId, ch - 1)` at all three `buildBeatContext` call sites (`src/phases/drafting.ts`). Validation refuted the original causal hypothesis: paired replay on `novel-1777721066908` showed the writer received all 8 chapter-1 facts in beat-writer prompts (`llm_calls.id` 58325/58371) but still bailed on the same prior-state conflation cluster (`chapter_exhaustions.id` 83 vs baseline 81). Missing context is no longer the suspected dominant cause. Next direction is writer prompt-discipline / beat-level adherence to READER-INFO STATE or writer model swap. L38-C chapter-summary wiring remains independently motivated; L38-B planner prior-fact context is not the next move unless writer-side conflation is reduced first. Diagnosis in `docs/l38-investigation-2026-05-02.md`; lane result in `docs/sessions/2026-05-02-L38-A-prior-context.md`.
+- **Cumulative prior-chapter context for the writer (L38).** L38-A (2026-05-02, exp #369) wired the READER-INFO STATE block into production beat context for chapters > 1: prior-chapter establishedFacts and per-present-character `doesNotKnow` render between resolved-references and SETTING. Slot-selection lives in `selectReaderInfoStateForBeat` (`src/agents/writer/enriched-context.ts`), and drafting wires `getFactsUpToChapter(novelId, ch - 1)` at all three `buildBeatContext` call sites (`src/phases/drafting.ts`). L38-A alone refuted the original causal hypothesis (writer saw the facts and still drafted prior-state as new). **L38-F (2026-05-02, exp #370, commits `d5c8e95`+`b77d206`) closes the cluster** by adding a single writer-side binding rule to `src/agents/writer/beat-writer-system.md`: "Reader already knows" lines are binding history for the POV character and any character who performed/witnessed/authored the listed action. Paired replay on the same `novel-1777721066908` chapter 2: baseline `chapter_exhaustions.id=81` 5 blockers → L38-A `id=83` 4 blockers (cluster persisted) → L38-F `id=84` 1 blocker (zero prior-state writer-conflation; remaining blocker is intra-chapter hand-washing/smudges contradiction, queued separately). The new dominant chapter-2 failure mode is intra-chapter consistency, not prior-state. L38-B planner prior-fact context and L38-C chapter-summary wiring remain parked. Diagnosis in `docs/l38-investigation-2026-05-02.md`; lane results in `docs/sessions/2026-05-02-L38-A-prior-context.md` and `docs/sessions/2026-05-02-L38-F-reader-info-adherence.md`.
 
 ## Retired Or Rejected Methodologies
 
