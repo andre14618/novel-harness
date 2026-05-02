@@ -3090,3 +3090,48 @@ If either fails, convergence is wasted compute. Adherence-events fails BOTH (F1=
 - Smoke validate on a 3-chapter novel run (queued after LXC L6 probe frees the host).
 - If production NER-only warning rate is too high, add per-token fallback (tier 5) to the runtime's `buildNerGroundedSet`.
 - beat-checks.ts still marks all ungrounded issues as `"blocker"` severity. If NER-only warnings should be true warnings (no retry), that distinction needs to propagate through the severity field — a future pass.
+
+### L6: multi-seed probe-shape variance — keep single-seed-deep as the default phase-eval shape (2026-05-01, exp #318)
+
+**Decision:** Multi-seed (3 seeds × 5 chapters × 3 reruns) was 3-4× NOISIER than single-seed-deep (1 seed × 10 chapters × 5 reruns) on the per-chapter median metrics at near-equal cost. **Future planner-prompt phase-eval probes stay on single-seed-deep as the default**; the new multi-seed probe sibling is for diagnostic seed-generalization questions only, not for variance-reduction. Persisted as `phase_eval_runs.id=67`. Result doc `docs/multi-seed-probe-shape-2026-05-01.md`. Cost ~$0.30-0.50 (well under $6 cap).
+
+**The data:**
+
+| metric           | Config A across-rerun σ (1 seed × 10 ch × 5 rerun, default control of #311) | Config B across-cell σ (3 seeds × 5 ch × 3 rerun, this exp) | ratio |
+|------------------|-----------------------:|-----------------------:|------:|
+| facts_median     |                  0.274 |                  1.202 | **4.4×** |
+| knowledge_median |                  0.447 |                  1.394 | **3.1×** |
+| total_beats      |                  27.14 |                   4.95 | (n/a — see caveat) |
+
+`total_beats` Config A vs Config B is not apples-to-apples (10ch vs 5ch novels — beat counts scale with chapter count). Use facts_median + knowledge_median (per-chapter) as the primary directionality signal.
+
+**Why multi-seed is noisier:** the planner produces meaningfully different distributions per seed. Per-seed within-rerun stddevs and means:
+- fantasy-debt (n=3): facts μ=6.33 σ=0.58, know μ=5.00 σ=1.00, beats μ=69.3 σ=5.86 (the lowest-variance, "safe" seed — basically matches Config A's per-rerun noise pattern at smaller n)
+- fantasy-system-heretic (n=3): facts μ=6.33 σ=1.53, know μ=6.33 σ=1.53, beats μ=76.0 σ=5.00 (~3× higher within-seed variance than fantasy-debt)
+- fantasy-inscription (n=3): facts μ=7.67 σ=1.15, know μ=4.33 σ=1.15, beats μ=74.7 σ=1.15 (different mean from the other two seeds — the planner thinks inscription is fact-heavy/know-light)
+- across-seed-mean σ: facts 0.770, knowledge 1.018 — seeds disagree on the typical value by an amount that's already 2-3× larger than the within-seed-across-rerun σ in Config A.
+
+So multi-seed across-cell σ = within-seed-across-rerun σ + across-seed-mean σ (roughly), and the second term dominates the first by ~2× — making multi-seed strictly worse for noise-floor measurement at fixed total cost.
+
+**Decision logic (pre-registered in `docs/multi-seed-probe-shape-2026-05-01.md` before run):**
+- B ≤ 75% × A on **all three** primary metrics → adopt multi-seed as the default. **NOT MET.**
+- B ≤ A on **at least two of three** primary metrics → adopt multi-seed as a secondary recommended shape. **NOT MET** (B exceeds A on both per-chapter medians).
+- B ≥ A on **two or more** primary metrics → keep single-seed-deep as the default. **MET on the comparable metrics; recommendation is bucket 3.**
+
+**However, multi-seed has a different real use case:** "does this prompt change generalize across seeds, or is it specific to fantasy-debt?" That is exactly what the per-seed cross-comparison answers. The right reading is:
+- For **noise quantification** (e.g., "how big a delta on `fantasy-debt` is real?") → use single-seed-deep with multiple reruns. Single-seed across-rerun σ is the cleanest noise floor.
+- For **promotion decisions on prompt changes** → run single-seed-deep on `fantasy-debt` for the existing G1-G5 verdict + the multi-run promotion gate (already shipped, commit `6a42adc`); then if SCREEN-PASS, sample 1-2 reruns on a second seed to verify directionality before promoting.
+- For **discovering seed-specific failures** (e.g., "does the rule break heretic but not debt?") → multi-seed is the right tool, but interpret per-seed deltas, not flat across-cell stddev.
+
+**Alternatives considered:**
+- *Use multi-seed at much larger N per seed (e.g., 5 seeds × 10ch × 5 reruns each)* — might still beat single-seed-deep on per-metric σ, but that's not "near-equal cost." Out of scope for the user-set comparison.
+- *Use multi-seed restricted to genre-similar seeds (e.g., 3 epic-fantasy seeds)* — might show smaller across-seed σ. Not measured here. Could be a follow-up if a probe wants seed-coverage WITHOUT genre confound.
+- *Use a 2-seed × 7-chapter shape (closer to A's total cost)* — would split the difference. Probably also noisier than A, but not as noisy as 3-seed; not measured.
+
+**Ongoing implications:**
+- `print-screen-verdict.ts` shape stays single-seed (n=10 chapters × 1 rerun, with multi-run promotion gate from commit `6a42adc`). No runtime code change.
+- `scripts/phase-eval/probe-planning-beats-multiseed.ts` (commit `fb4d5b5`) lives as a sibling for seed-generalization diagnostic probes ONLY — when the question is "does this generalize?" not "is this delta real?".
+- `scripts/phase-eval/multiseed-shape-analysis.ts` is a one-shot CLI for reading any multi-seed phase_eval_runs row and printing the variance comparison vs the #311 baseline. Useful next time we ask the same question with different seed/N parameters.
+- §9 todo "Compare 1 seed × 10 chapters vs 3 seeds × 5 chapters" closed (this entry).
+
+**Lesson appended to `docs/lessons-learned.md`:** "multi-seed probes measure between-seed variation, not within-seed stochastic noise floors — they are NOT a noise-reduction substitute for repeated single-seed reruns at fixed total cost."

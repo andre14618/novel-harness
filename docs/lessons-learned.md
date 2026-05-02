@@ -1746,3 +1746,29 @@ The mechanism: the "FIRST beat is action OR description" framing successfully re
 - Track this anti-pattern when reviewing prompt edits: any new "X OR Y" enumeration with a negative warning gets a baseline check.
 
 (2026-05-01 exp #313 beats-variant probe; corpus-v1 with "FIRST beat is action OR description... do NOT default to description" produced 10/10 description openers on shared chapter skeletons where default beats produced 6/10 with 1/1/1 spread for action/dialogue/interiority.)
+
+## Multi-seed probes measure between-seed variation, not within-seed stochastic noise
+
+When the question is "is this prompt-change delta real or noise?", spreading the same total compute across multiple seeds at shallower depth (e.g., 3 seeds × 5 chapters × 3 reruns) is **strictly worse** than concentrating on a single seed (e.g., 1 seed × 10 chapters × 5 reruns). Multi-seed across-cell σ on per-chapter medians (`facts_median`, `know_median`) is 3-4× larger than single-seed across-rerun σ — because between-seed structural variation in the planner's output distribution dominates the within-seed temperature noise that the rerun-driven shape was already measuring.
+
+**The phenomenon (exp #318):**
+- Config A (1 seed `fantasy-debt` × 10 ch × 5 reruns of `default` planning-beats): facts_median σ = 0.27, knowledge_median σ = 0.45.
+- Config B (3 seeds × 5 ch × 3 reruns each of the same `default` planning-beats): facts_median across-cell σ = 1.20 (4.4×), knowledge_median across-cell σ = 1.39 (3.1×).
+- Decomposing Config B: across-seed-mean σ alone is 0.77 / 1.02 — already ~2-3× larger than the within-seed-across-rerun σ Config A measured. The seeds disagree on what "typical" looks like; mixing them in one summary inflates noise.
+
+**Why this happens:** the planner reads each seed's premise + chapterCount + characters + genre and outputs structurally different beat distributions per seed. fantasy-inscription leans facts-heavy/know-light; fantasy-system-heretic has high run-to-run variance; fantasy-debt is the lowest-variance seed. Pooling these into a flat "across-cell σ" computation captures **structural between-seed differences**, not the **stochastic-temperature within-seed noise** the question was asking about.
+
+**The rule:** pick the probe shape based on the question.
+
+- **"How big a delta on this prompt is real?"** (noise quantification) → single-seed-deep with multiple reruns. Single-seed across-rerun σ is the cleanest noise floor.
+- **"Does this prompt change generalize across seeds?"** (seed-coverage) → multi-seed at shallower depth, but interpret per-seed deltas, not flat across-cell σ.
+- **"Which seed has the worst stochastic noise?"** → multi-seed with N reruns per seed, look at per-seed within-rerun σ.
+
+**How to apply:**
+- Default to single-seed-deep + multi-run promotion gate (existing infrastructure, commit `6a42adc`) for "is this prompt change real?" decisions.
+- When promoting a single-seed SCREEN-PASS, sample 1-2 reruns on a second seed to verify directionality before promotion — but this is a directional check, not a noise-reduction step.
+- If you want to know "does this rule break heretic but not debt?", that IS multi-seed's job — run it, compare per-seed deltas, do not aggregate to a single σ across seeds.
+
+**Generalization to other measurement infrastructure:** the same trap applies any time multiple structural sources of variation get pooled into a single σ. Before quoting a stddev, ask "what's the population I'm sampling from? am I averaging over things that have different means?" If so, the σ over-states stochastic noise and under-states structural diversity.
+
+(2026-05-01 exp #318, persisted `phase_eval_runs.id=67`. Result doc `docs/multi-seed-probe-shape-2026-05-01.md`.)

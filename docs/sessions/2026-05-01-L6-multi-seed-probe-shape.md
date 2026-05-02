@@ -1,5 +1,5 @@
 ---
-status: active
+status: complete
 updated: 2026-05-01
 role: overnight-loop-context
 ---
@@ -44,17 +44,21 @@ Closes `docs/todo.md` §9 backlog item: "Compare 1 seed × 10 chapters vs 3 seed
 
 ## Progress Log
 
-- 2026-05-01: created experiment row 318, drafted this context. Implementation pending.
+- 2026-05-01 03:22: created experiment row 318, drafted this context.
+- 2026-05-01 03:25: smoke ran 2 seeds × 2 chapters × 1 rerun (heretic+inscription). Cleanup verified.
+- 2026-05-01 03:28: kicked full Config B run (3 seeds × 5 ch × 3 reruns) on LXC nohup.
+- 2026-05-01 03:56: probe completed cleanly. 9/9 ok cells. `phase_eval_runs.id=67`.
+- 2026-05-01 03:58: ran `scripts/phase-eval/multiseed-shape-analysis.ts 67`. Variance comparison written to result doc.
 
 ## Results
 
-- Outcome: pending.
-- Evidence link/row/path: pending.
-- Cost: pending.
-- Commit(s): pending.
+- Outcome: **multi-seed is 3-4× noisier than single-seed-deep on per-chapter medians at near-equal cost. Recommendation: keep single-seed-deep as default.**
+- Evidence link/row/path: `phase_eval_runs.id=67` (Config B); 17-21 (Config A baseline). Result doc `docs/multi-seed-probe-shape-2026-05-01.md`.
+- Cost: ~$0.30-0.50 actual (well under $6 cap).
+- Commits: `fb4d5b5` (probe script), `30848e7` (loop context), `9f3c5b6` (result doc + analysis CLI), plus pending decisions/lessons-learned/todo commit.
 
 ## Pickup Instructions
 
-- Last safe command: experiment row 318 created; no DB or runtime mutations yet.
-- If the loop crashes mid-run: cleanup novels with `phase-eval-multiseed-` prefix via `scripts/phase-eval/probe-planning-beats-multiseed.ts --cleanup-only` (to be implemented) or manually via `clearNovelState`.
-- Next action: implement script.
+- Loop is complete. No further action.
+- The `multi-seed-probe-shape-comparison` probe persists per-cell + per-seed + across aggregates in `phase_eval_runs.summary_json` for any future re-comparisons.
+- If a future experiment wants seed-generalization data (not noise reduction), use `bun scripts/phase-eval/probe-planning-beats-multiseed.ts` and analyze with `multiseed-shape-analysis.ts`.
