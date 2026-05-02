@@ -48,6 +48,8 @@ Not allowed in the same validation smoke unless explicitly part of the lane:
 
 The reason is attribution. If a smoke passes after multiple unrelated runtime changes, the repo cannot tell which change mattered. If it regresses, the repo cannot tell which change caused the regression.
 
+Before any candidate prompt or checker change advances to live smoke, dry-run a replay-first plan over the saved fixed panels with `bun scripts/agent/replay-first-plan.ts <panel.jsonl> [--exp-id N] [--label probe-family:vN]`. The helper inventories rows, detects the checker shape, prints the oracle-label distribution and an estimated call count, and emits the exact `run-expanded-class-panel.ts` / `run-partial-enactment-panel.ts` follow-up command for replay. It never makes model calls; treat it as the cheap pre-smoke filter for halluc-ungrounded and adherence-events fixture panels.
+
 DeepSeek V4 Flash concurrency is encouraged when it adds statistical power inside the active lane. Use it for repeated same-family runs, fixed-panel checker reruns, paired replay over saved `llm_calls`, or multi-seed confirmation after a single-seed signal. Before launching concurrent calls, declare:
 - sample shape and N
 - probe-family key / fixed panel identity
@@ -94,6 +96,7 @@ nohup bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude -
 bun scripts/agent/lane-message.ts list docs/sessions/<lane>.md --open
 bun scripts/agent/finalizer-packet.ts docs/sessions/<lane>.md --result "new blocker" --commit <sha> --evidence "experiment#<id>" --print
 bun scripts/agent/finalize-docs.ts docs/sessions/<lane>.md --result "new blocker" --commit <sha> --evidence "experiment#<id>" --evidence "chapter_exhaustions#<id>"
+bun scripts/agent/replay-first-plan.ts scripts/hallucination/expanded-fail-classes-panel.jsonl scripts/hallucination/synthetic-partial-enactment-fixtures/partial-enactment-panel.jsonl --label <probe-family> --exp-id <id>
 ```
 
 `monitor` selects the latest non-template session doc with a complete Loop Contract. Human-facing monitoring instructions should default to bare `monitor`; use expanded `bun run monitor`, `bun scripts/agent/monitor.ts`, or `lane-dashboard` commands only when debugging the alias or working where the alias is unavailable. If none exists, it stays open in a waiting state and polls until one appears; `monitor --once` still exits immediately. Legacy session docs are skipped by default so they do not permanently show missing-field noise; pass a path explicitly to inspect one. `lane-status.ts` returns exit code `0` only when the outside loop should continue. It stops or blocks on missing lane-contract fields, stale heartbeat, explicit stop events, result stop gates, human-needed events, infra-failure events, and stale outside-loop state. The default `monitor` alias is compact: it hides latest-novel wall text and shows only `outside`, `coordination`, and `process`; its `Lane progress` block comes from the lane doc's latest `Progress Log` bullets and populated `Results` fields. Use `monitor --full` for all panels plus latest novel summary, or `--panel outside|inside|evidence|hygiene|process` to choose panels explicitly. In non-TTY/captured output, watch mode renders one snapshot instead of repeating forever unless `--append` is explicit.

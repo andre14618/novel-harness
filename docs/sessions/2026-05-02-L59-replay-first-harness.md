@@ -54,7 +54,10 @@ role: primary-lane-context
 
 ## Progress Log
 
-- Pending.
+- 2026-05-02 captain-claude: implemented `scripts/agent/replay-first-plan.ts` MVP. Reads one or more JSONL panels, classifies each row (`halluc-ungrounded-fixture`, `adherence-events-fixture`, or unsupported), reports row count, oracle-label distribution, source provenance, estimated call count, optional cost (default $0), and the exact replay command. Never launches model calls; `--json` for machine output; exits non-zero on unsupported schemas.
+- 2026-05-02 captain-claude: added `scripts/agent/replay-first-plan.test.ts` with 14 focused tests covering args, both tracked panels (27 + 14 rows), unsupported and mixed-shape errors, JSON output, and the `main()` exit-code surface.
+- 2026-05-02 captain-claude: ran the helper over the two tracked panels — halluc-ungrounded panel: 27 rows, oracle `true_hallucination=18, pass=9`; adherence-events panel: 14 rows, `events_not_fully_enacted=9, events_fully_enacted=5`; total estimated calls 55; cost $0 at default per-call price. Shape detection clean, unsupported=0.
+- 2026-05-02 captain-claude: documented the helper in `docs/overnight-runbook.md`, `docs/harness-next-work-process.md` (L59 status), `docs/current-state.md`, and closed `[L48 replay-first harness]` bullet in `docs/todo.md`.
 
 ## Heartbeat Commands
 

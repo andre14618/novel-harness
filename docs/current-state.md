@@ -66,6 +66,8 @@ Bare `monitor` is the compact default alias for human loop visibility: route def
 
 Queued lane advancement now has a review gate by default. `Results: Review` must cite independent commit-pinned review evidence such as `impl-review <sha> PASS`, or an explicit waiver reason and reviewer, before the runner advances through `docs/sessions/lane-queue.md`; `--no-review-gate` is reserved for historical-lane replay.
 
+Replay-first verification has an MVP entry point: `bun scripts/agent/replay-first-plan.ts <panel.jsonl>` reads tracked JSONL panels (currently the L12 expanded halluc fail classes and L18 partial-enactment adherence panels), classifies each row as `halluc-ungrounded-fixture`, `adherence-events-fixture`, or unsupported, and prints row count, oracle-label distribution, source provenance, estimated call count, and the exact `run-expanded-class-panel.ts` / `run-partial-enactment-panel.ts` follow-up command for replay. The helper never makes model calls and exits non-zero on unsupported schemas. Use it as the cheap pre-smoke filter for halluc-ungrounded and adherence-events candidates; DB-backed `llm_calls` replay is queued separately.
+
 Do not mix unrelated runtime levers in one validation smoke. Prompt edits, routing changes, schema changes, checker threshold changes, planner/context changes, and retry-policy changes can be bundled only when the declared lane requires the bundle. Otherwise, validate them as separate lanes so a pass, regression, or new blocker has a readable cause.
 
 Default stop gates:
