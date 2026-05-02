@@ -45,15 +45,39 @@ export function detectProseIntegrityIssues(text: string): LintFixIntegrityIssue[
 
 function detectFusedBoundaries(text: string): LintFixIntegrityIssue[] {
   const issues: LintFixIntegrityIssue[] = []
+  const allCapsDottedSpans = collectAllCapsDottedSpans(text)
   for (let i = 0; i < text.length - 1; i++) {
     const ch = text[i]
     const next = text[i + 1]
     if (!".!?".includes(ch)) continue
     if (!/[A-Za-z]/.test(next)) continue
     if (ch === "." && text[i - 1] === ".") continue
+    if (ch === "." && spanContains(allCapsDottedSpans, i)) continue
     issues.push({ kind: "fused-boundary", excerpt: contextExcerpt(text, i) })
   }
   return dedupeIssues(issues)
+}
+
+// LitRPG System path identifiers (e.g. SCRIBE.GUILD.VALDRIS.MARET.ANNUAL) are a
+// legitimate genre construct: their internal dots are part of the token, not
+// sentence terminators. Match runs of ≥2 all-caps segments joined by `.`,
+// each segment ≥2 chars so single-letter abbreviations like "O.She" still fuse.
+const ALL_CAPS_DOTTED_RE = /[A-Z][A-Z0-9_]+(?:\.[A-Z][A-Z0-9_]+)+/g
+
+function collectAllCapsDottedSpans(text: string): Array<{ start: number; end: number }> {
+  const spans: Array<{ start: number; end: number }> = []
+  for (const match of text.matchAll(ALL_CAPS_DOTTED_RE)) {
+    const start = match.index ?? 0
+    spans.push({ start, end: start + match[0].length })
+  }
+  return spans
+}
+
+function spanContains(spans: Array<{ start: number; end: number }>, index: number): boolean {
+  for (const span of spans) {
+    if (index >= span.start && index < span.end) return true
+  }
+  return false
 }
 
 function detectCamelFusions(text: string): LintFixIntegrityIssue[] {

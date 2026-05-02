@@ -10,6 +10,21 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §L62 LitRPG System path identifiers exempt from fused-boundary detection (2026-05-02)
+
+**Decision:** `detectFusedBoundaries` in `src/lint/integrity.ts` skips internal dots inside all-caps dotted identifier runs that match `/[A-Z][A-Z0-9_]+(?:\.[A-Z][A-Z0-9_]+)+/` — at least two segments and at least two characters per segment. Single-letter abbreviation pairs like `O.She` continue to fuse so genuine sentence-boundary corruption is still caught.
+
+**Why:** L61 e2e smoke (exp #384, `novel-1777761636607`) bailed at chapter 1 attempt 3 with 8 fused-boundary issues, all from in-world LitRPG System UIDs (`SCRIBE.GUILD.VALDRIS.MARET.ANNUAL.`). The harness ships `litrpg`/`fantasy-system-*` seeds; this construct is a legitimate genre artefact, not malformed prose. Without an exemption the integrity guard exhausts chapter-attempt retries on every System-style novel.
+
+**Alternatives rejected:**
+- Strip System UIDs from prose before integrity check. Rejected: System UIDs carry plot semantics; the writer needs them in the rendered text and downstream readers want them too.
+- Whitelist by post-fix lint context only. Rejected: `detectProseIntegrityIssues` runs on raw drafts as well as post-fix prose, and both paths see the false positives.
+- Loosen the regex to `[A-Z][A-Z0-9_]*` per segment (≥1 char). Rejected by unit fixture: it accepts `O.She turned away.` and silently lets a real fused boundary through.
+
+**Ongoing implications:** chapter-attempt retry escalation behavior (L61's secondary finding — issues went 1→5→7 across attempts) is unchanged and tracked separately as the L63 candidate. If a future genre needs a different identifier shape (e.g. mixed-case path segments) the regex must be revisited rather than inflated to "any dotted run."
+
+---
+
 ### Interactive Claude Code captain becomes the default loop control plane (2026-05-02)
 
 **Decision:** Retire `scripts/agent/lane-runner.ts` as the default autonomous engineering orchestration layer. Use Claude Code or OpenCode as the primary engineering harness for coding, subagent orchestration, review, docs finalization, and queue handoff. `bun scripts/agent/open-claude-captain.ts` is the repo helper for starting a Claude Code captain with lane context. Keep lane docs, queue docs, monitor, heartbeats/messages, experiment rows, replay-first helpers, stop classifiers, docs-impact checks, review evidence, and finalization discipline as the durable contract artifacts.

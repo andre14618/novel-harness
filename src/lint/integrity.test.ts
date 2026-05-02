@@ -85,4 +85,36 @@ He set his daughter down on the cot with a tenderness that made Istra's chest ti
 
     expect(issues.filter(i => i.kind === "quote-integrity")).toEqual([])
   })
+
+  // L62: LitRPG / System-style identifiers like SCRIBE.GUILD.VALDRIS.MARET.ANNUAL
+  // are a legitimate genre construct (see exp #384, novel-1777761636607 ch1 a3).
+  // Internal dots inside an all-caps dotted run are part of the token, not
+  // sentence terminators.
+  test("allows LitRPG System path identifier inside narration (L62)", () => {
+    const prose = "She stared at the System UID: SCRIBE.GUILD.VALDRIS.MARET.ANNUAL. The class flickered."
+    const issues = detectProseIntegrityIssues(prose)
+
+    expect(issues.filter(i => i.kind === "fused-boundary")).toEqual([])
+  })
+
+  test("allows multi-segment System UID at sentence start (L62)", () => {
+    const prose = "*SCRIBE.GUILD.VALDRIS.MARET.ANNUAL.* Class: Archivist. Rank: Journeyman."
+    const issues = detectProseIntegrityIssues(prose)
+
+    expect(issues.filter(i => i.kind === "fused-boundary")).toEqual([])
+  })
+
+  test("still catches a real fused boundary near a System UID (L62)", () => {
+    const prose = "He read SCRIBE.GUILD.VALDRIS.MARET.ANNUAL. then frowned.She turned away."
+    const issues = detectProseIntegrityIssues(prose)
+
+    expect(issues.some(i => i.kind === "fused-boundary" && i.excerpt.includes("frowned.She"))).toBe(true)
+  })
+
+  test("does not falsely accept a single-letter abbreviation (L62 boundary check)", () => {
+    const prose = "She said O.She turned away."
+    const issues = detectProseIntegrityIssues(prose)
+
+    expect(issues.some(i => i.kind === "fused-boundary" && i.excerpt.includes("O.She"))).toBe(true)
+  })
 })
