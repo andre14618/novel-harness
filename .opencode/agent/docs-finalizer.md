@@ -1,6 +1,6 @@
 ---
 description: Finalize Novel Harness lane/session documentation from a session context. Use when a lane has a durable result and docs/current-state.md, docs/todo.md, docs/decisions.md, docs/lessons-learned.md, or session Results need synchronized updates.
-mode: subagent
+mode: primary
 model: deepseek/deepseek-v4-flash
 tools:
   bash: true
