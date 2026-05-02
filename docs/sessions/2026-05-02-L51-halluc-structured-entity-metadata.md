@@ -63,11 +63,11 @@ role: primary-lane-context
 
 ## Results
 
-- Outcome:
-- Stop gate fired:
-- Evidence link/row/path:
-- Cost:
-- Commit(s):
+- Outcome: SHIPPED. A/B reporter rows now carry structured per-issue metadata (`entity`, `excerpt`, `candidate_class`, `ner_grounded`, `vote_count`) plus a deduped `ner_candidates` summary and `n_calls`. The persisted `summary_json.per_row_results` inherits the new shape automatically. Causal hypothesis confirmed: prior rows kept only `candidate_entities: string[]`, dropping excerpt + NER class + grounded status + vote count, which forced reruns to inspect failures.
+- Stop gate fired: (a) clean pass — structured metadata implemented and tested.
+- Evidence link/row/path: `tests/halluc-issue-metadata.test.ts` (14/14 pass), `tests/halluc-per-class-summary.test.ts` regression (9/9 pass), commit `ffce72b`.
+- Cost: $0 (no live LLM calls; pure helper + unit tests).
+- Commit(s): `ffce72b [infra] L51 structured entity metadata in halluc A/B reporter`.
 
 ## Finalization Checklist
 
