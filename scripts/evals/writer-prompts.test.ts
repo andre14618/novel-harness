@@ -18,6 +18,12 @@ describe("writer prompt guardrails", () => {
       expect(prompt).toContain("Allowed-new-entities")
       expect(prompt).toContain("natural, subtextual wording")
       expect(prompt).toContain("does not satisfy a verbal-action beat")
+      // L38-F writer-discipline rule: READER-INFO STATE must be binding for
+      // POV/actor characters; "Reader already knows" facts cannot be drafted
+      // as first-time discoveries. See docs/sessions/2026-05-02-L38-F-reader-info-adherence.md.
+      expect(prompt).toContain("READER-INFO STATE is binding when present")
+      expect(prompt).toContain("first-time discoveries")
+      expect(prompt).toContain("Hidden from {that character}")
     }
   })
 
