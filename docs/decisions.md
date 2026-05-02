@@ -3552,3 +3552,36 @@ not flagged as missing an event. The checker is safe for production prose.
 **Cost:** $0 (no LLM calls; code + unit tests only).
 
 **Next:** L22 — re-run clean 3-chapter smoke on fantasy-debt after this + L21 land on LXC.
+
+---
+
+### L22 — LXC smoke validating L20 character_roster + outline_entities (2026-05-01, exp #340)
+*2026-05-01 · exp #340 · novel novel-1777701435782 · seed fantasy-debt · deploy commit `6172e68`*
+
+**Decision:** L20 fix VALIDATED in production. Plan-assist gate did NOT fire on the L17 cluster (Brennan, Aldric, Sorcerer's Tower, Silver Street, Magistrate Dorn — 0 fires across 31 halluc-ungrounded calls). NER extracted these phrases via existing classes (e.g. "Lord Brennan" as title-pair, "Eastern Reach" as capitalized-multi-word + suffix-class) but they were caught by the new `character_roster` / `outline_entities` grounded buckets and passed the AND-gate. **L17 acceptance criterion met.**
+
+**Stop condition (b) triggered:** chapter 1 plan-assist gate fired on a NEW 4-entity cluster outside the L20-fix class:
+- `T.C.` (initials/abbreviation pattern — NER's multi-word extractors don't catch single-token initials)
+- `Guildmaster` (single-word capitalized title-only — world-bible has "Guild" but not the title noun)
+- `senior auditors` (lowercase plural generic — v4 prompt's lowercase exception isn't matching the plural form)
+- `Aether waste` (capitalized-first-only domain term — NER capitalized-multi-word requires `[Cap] [Cap]+`)
+
+**FIRST production AND-gate measurement (enabled by L16 ner_prepass_json column):**
+| Decision | Count | % |
+|----------|-------|---|
+| pass | 9 | 29% |
+| llm-only-blocker | 9 | 29% |
+| ner-only-warning | 7 | 23% |
+| ner+llm-blocker | 6 | 19% |
+
+The 4 unresolved blockers are LLM-only-blocker fires — NER doesn't see them, LLM v4 prompt fires. This is consistent with L19's KEEP recommendation (asymmetric voting won't help; prompt iteration + NER extension is the right lever).
+
+**L15 X-of-Y + number-word-tail extractors validated in production:** "the Temple of Echoes" (x-of-y-capitalized), "Section Twelve" + "Subclause Three" (number-word-tail) all fired correctly.
+
+**L20 closes the L17 layer; L23 follow-up sprint addresses the new layer.** Each iteration is making the blocker class smaller (10 entities → 4 entities) and more diverse (1 root cause → 4 root causes), suggesting we're approaching a steady state where the long tail of LLM/NER edge cases needs orthogonal small fixes rather than one-shot rewrites.
+
+**Cost:** $0.041 (well under $4 cap). Two-stage adherence: 31 stage-1 calls, 0 stage-2 calls (all `events_present=true` — gate working as designed).
+
+**Files written:** `docs/l22-smoke-l20-validation-2026-05-01.md`, `docs/sessions/2026-05-01-L22-smoke-l20-validation.md` (status: shipped).
+
+**Next (L23):** Address 4 sub-classes in parallel: (a) NER initials extractor `[A-Z]\.[A-Z]\.+` + grounding against character initials; (b) character-profile derived title nouns (Guildmaster from "Guild Master"); (c) v5 prompt iteration for lowercase plural role exceptions; (d) NER capitalized-first-only extractor + world-bible domain-term derivation. Re-smoke after.
