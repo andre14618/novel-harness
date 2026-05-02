@@ -1,118 +1,591 @@
 /**
  * phase-eval results browser.
  *
- * Reads `phase_eval_runs` and prints the most recent rows in tabular
- * form. Designed per docs/designs/eval-testing-module-v1.md (R6) — the
- * cheap query surface that makes "what was loud variant's facts_median
- * on the 2026-04-29 run?" a one-line answer.
+ * Default mode: per-probe-family rollup. Groups rows by
+ * (probe_name, test_variant, git_commit, seed) and shows aggregate
+ * columns: N, PASS, FAIL, consecutive-PASS streak, facts_median range,
+ * know_median range, total_beats range, parse_fails total.
+ *
+ * Family key format: "<probe>:<variant>:<commit8>:<seed>"
  *
  * Usage:
- *   bun scripts/phase-eval/list-runs.ts [--probe=<name>] [--limit=<n>] [--full]
+ *   bun scripts/phase-eval/list-runs.ts
+ *     [--family <probe>:<variant>:<commit>:<seed>]  drill into one family
+ *     [--probe <name>]        filter rollup by probe_name
+ *     [--variant <name>]      filter rollup by test_variant membership
+ *     [--limit <n>]           max families to show in rollup (default 20)
+ *     [--rows]                legacy per-row table (original behavior)
+ *     [--full]                legacy: print full JSON per row
  *
- * Without --probe, lists across all probes. Default limit: 20.
- * --full prints the full row including verdict + notes + the
- * summary_json -> 'g_metrics' block; default is a compact summary.
+ * Designed per docs/todo.md §9 backlog — see docs/decisions.md L13 entry.
  */
 
 import db from "../../src/db/connection"
 
+// ── Types ────────────────────────────────────────────────────────────────
+
 interface Args {
+  family?: string
   probe?: string
+  variant?: string
   limit: number
+  rows: boolean
   full: boolean
 }
 
+interface RawRow {
+  id: number
+  probe_name: string
+  git_commit: string
+  experiment_id: number | null
+  seeds_used: string[]
+  variant_labels: string[]
+  verdict: string
+  ran_at: Date
+  notes: string | null
+  g_metrics: Record<string, any> | null
+  recall_pct: number | null
+  precision_pct: number | null
+  f1: number | null
+  calibration_matrix: { TP?: number; FP?: number; FN?: number; TN?: number } | null
+}
+
+interface FamilyKey {
+  probe_name: string
+  test_variant: string
+  git_commit: string
+  seed: string
+}
+
+interface FamilyStats {
+  key: FamilyKey
+  keyStr: string
+  rows: RawRow[]
+  n: number
+  passCount: number
+  failCount: number
+  streak: number        // consecutive PASS from latest backwards; negative = consecutive FAIL
+  factsRange: [number, number] | null
+  knowRange: [number, number] | null
+  beatsRange: [number, number] | null
+  parseFails: number
+  latestRanAt: Date
+}
+
+// ── Arg parsing ───────────────────────────────────────────────────────────
+
 function parseArgs(): Args {
+  const argv = process.argv.slice(2)
   const map: Record<string, string | true> = {}
-  for (const arg of process.argv.slice(2)) {
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]!
     const m = arg.match(/^--([^=]+)=(.*)$/)
-    if (m) map[m[1]!] = m[2]!
-    else if (arg.startsWith("--")) map[arg.slice(2)] = true
+    if (m) {
+      map[m[1]!] = m[2]!
+    } else if (arg.startsWith("--")) {
+      const key = arg.slice(2)
+      // next arg is value if it doesn't start with "--"
+      const next = argv[i + 1]
+      if (next !== undefined && !next.startsWith("--")) {
+        map[key] = next
+        i++
+      } else {
+        map[key] = true
+      }
+    }
   }
+
   const limitRaw = map["limit"]
   const limit = limitRaw && typeof limitRaw === "string" ? Number(limitRaw) : 20
   if (!Number.isFinite(limit) || limit <= 0) {
     console.error(`--limit must be a positive integer, got: ${limitRaw}`)
     process.exit(2)
   }
+
   return {
+    family: typeof map["family"] === "string" ? map["family"] : undefined,
     probe: typeof map["probe"] === "string" ? map["probe"] : undefined,
+    variant: typeof map["variant"] === "string" ? map["variant"] : undefined,
     limit,
-    full: map["full"] === true,
+    rows: map["rows"] === true || map["rows"] === "true",
+    full: map["full"] === true || map["full"] === "true",
   }
+}
+
+// ── Verdict classification ────────────────────────────────────────────────
+
+/**
+ * Returns true for any pass-class verdict:
+ * - "SCREEN-PASS" (legacy bare form)
+ * - "SCREEN-PASS-SUGGESTIVE ..."
+ * - "PROMOTION-PASS ..."
+ */
+export function isPassVerdict(verdict: string): boolean {
+  const v = verdict.trim()
+  return v.startsWith("SCREEN-PASS") || v.startsWith("PROMOTION-PASS")
+}
+
+/**
+ * Returns a short verdict label for display (first token before the first " — ").
+ */
+export function shortVerdict(verdict: string): string {
+  return verdict.split(" — ")[0]!.trim()
+}
+
+// ── Metric extraction from summary_json g_metrics ────────────────────────
+
+/**
+ * Defensively extract a number from g_metrics.
+ * Keys vary between probe shapes:
+ *   planning-beats: test_facts_median, test_know_median, test_total_beats
+ *   state-mapper: same keys (prefixed test_)
+ * Returns null when key absent or non-numeric.
+ */
+export function extractMetric(gMetrics: Record<string, any> | null, key: string): number | null {
+  if (!gMetrics) return null
+  const v = gMetrics[key]
+  if (v === null || v === undefined) return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
+/**
+ * Count parse failures from a g_metrics block.
+ * The block doesn't store parse_failures directly — a SCREEN-FAIL (broken)
+ * verdict indicates parse failure. Returns 1 if the row's verdict is
+ * SCREEN-FAIL (broken), 0 otherwise.
+ */
+export function countParseFails(row: RawRow): number {
+  return row.verdict.includes("SCREEN-FAIL (broken)") ? 1 : 0
+}
+
+/**
+ * Extract the prompt_hash from summary_json if available.
+ * Stored as g_metrics.prompt_hash or top-level in summary_json (varies).
+ * Returns "—" if not found.
+ */
+export function extractPromptHash(gMetrics: Record<string, any> | null): string {
+  if (!gMetrics) return "—"
+  const h = gMetrics["prompt_hash"] ?? gMetrics["promptHash"]
+  if (typeof h === "string" && h.length > 0) return h.slice(0, 8)
+  return "—"
+}
+
+// ── Family key computation ────────────────────────────────────────────────
+
+/**
+ * Derive the probe-family key from a raw row.
+ *
+ * probe_name: the probe_name column.
+ * test_variant: the non-"default" entry in variant_labels, if any; otherwise
+ *   variant_labels[1] if present, else variant_labels[0]. This heuristic
+ *   mirrors how print-screen-verdict.ts stores variants — [control, test].
+ * git_commit: the git_commit column.
+ * seed: seeds_used[0] for single-seed probes (the standard probe shape).
+ *
+ * For multi-seed rows (multiple seeds_used), seed is joined as
+ * "seed1+seed2+..." so they form their own family.
+ */
+export function familyKeyFor(row: RawRow): FamilyKey {
+  const variants = row.variant_labels as string[]
+  // The "test" variant is the non-default entry. For a [control, test] pair,
+  // pick the last entry that isn't "default". If all are "default" (e.g. a
+  // multi-seed default-arm probe), fall back to joining them all.
+  let testVariant: string
+  const nonDefault = variants.filter(v => v !== "default")
+  if (nonDefault.length > 0) {
+    testVariant = nonDefault[nonDefault.length - 1]!
+  } else if (variants.length > 0) {
+    testVariant = variants.join("+")
+  } else {
+    testVariant = "unknown"
+  }
+
+  const seeds = row.seeds_used as string[]
+  const seed = seeds.length === 1 ? seeds[0]! : seeds.join("+")
+
+  return {
+    probe_name: row.probe_name,
+    test_variant: testVariant,
+    git_commit: row.git_commit,
+    seed,
+  }
+}
+
+export function familyKeyStr(key: FamilyKey): string {
+  return `${key.probe_name}:${key.test_variant}:${key.git_commit.slice(0, 8)}:${key.seed}`
+}
+
+/**
+ * Parse a --family <key> string back into components.
+ * Format: "<probe>:<variant>:<commit8>:<seed>"
+ * probe and variant may contain colons (seed never does).
+ */
+export function parseFamilyKey(keyStr: string): Partial<FamilyKey> {
+  // Split on ":" but only 3 times from the right so probe_name with colons works.
+  // Actually safer to split at the last 3 colons (variant+commit+seed).
+  const parts = keyStr.split(":")
+  if (parts.length < 4) return {}
+  // seed is always last, commit8 second-to-last, variant is second, probe is first
+  // But probe and variant may contain ":". The canonical format is
+  // probe:variant:commit8:seed where none of commit8 or seed contain ":".
+  // commit8 is exactly 8 hex chars; seed never contains ":".
+  const seed = parts[parts.length - 1]!
+  const commit8 = parts[parts.length - 2]!
+  const remaining = parts.slice(0, parts.length - 2).join(":")
+  // remaining is "<probe>:<variant>"
+  const sepIdx = remaining.indexOf(":")
+  if (sepIdx === -1) return {}
+  const probe_name = remaining.slice(0, sepIdx)
+  const test_variant = remaining.slice(sepIdx + 1)
+  return { probe_name, test_variant, git_commit: commit8, seed }
+}
+
+// ── Consecutive-streak calculation ───────────────────────────────────────
+
+/**
+ * Compute the current consecutive-PASS streak starting from the most recent
+ * row (index 0 = most recent). Positive = N consecutive passes. If the
+ * latest verdict is a FAIL, returns -(number of consecutive fails).
+ * Returns 0 for an empty list.
+ *
+ * Examples:
+ *   [PASS, PASS, FAIL] → 2
+ *   [FAIL, PASS, PASS] → -1
+ *   [PASS, FAIL, PASS, PASS] → 1
+ *   [FAIL, FAIL, PASS] → -2
+ *   [] → 0
+ */
+export function consecutiveStreak(verdicts: string[]): number {
+  if (verdicts.length === 0) return 0
+  const firstIsPass = isPassVerdict(verdicts[0]!)
+  let count = 0
+  for (const v of verdicts) {
+    if (isPassVerdict(v) === firstIsPass) {
+      count++
+    } else {
+      break
+    }
+  }
+  return firstIsPass ? count : -count
+}
+
+function formatStreak(streak: number): string {
+  if (streak === 0) return "0"
+  if (streak > 0) return `${streak}-PASS`
+  return `${-streak}-FAIL`
+}
+
+// ── Range utilities ───────────────────────────────────────────────────────
+
+export function computeRange(values: (number | null)[]): [number, number] | null {
+  const nums = values.filter((v): v is number => v !== null && Number.isFinite(v))
+  if (nums.length === 0) return null
+  return [Math.min(...nums), Math.max(...nums)]
+}
+
+function formatRange(range: [number, number] | null): string {
+  if (!range) return "—"
+  if (range[0] === range[1]) return String(range[0])
+  // Round to 1 decimal if fractional
+  const fmt = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1)
+  return `${fmt(range[0])}-${fmt(range[1])}`
+}
+
+// ── Family grouping ───────────────────────────────────────────────────────
+
+export function groupIntoFamilies(rows: RawRow[]): Map<string, FamilyStats> {
+  const families = new Map<string, FamilyStats>()
+
+  for (const row of rows) {
+    const key = familyKeyFor(row)
+    const ks = familyKeyStr(key)
+    if (!families.has(ks)) {
+      families.set(ks, {
+        key,
+        keyStr: ks,
+        rows: [],
+        n: 0,
+        passCount: 0,
+        failCount: 0,
+        streak: 0,
+        factsRange: null,
+        knowRange: null,
+        beatsRange: null,
+        parseFails: 0,
+        latestRanAt: new Date(0),
+      })
+    }
+    families.get(ks)!.rows.push(row)
+  }
+
+  for (const stats of families.values()) {
+    // Sort by ran_at desc (most recent first) for streak calculation
+    stats.rows.sort((a, b) => new Date(b.ran_at).getTime() - new Date(a.ran_at).getTime())
+
+    stats.n = stats.rows.length
+    stats.passCount = stats.rows.filter(r => isPassVerdict(r.verdict)).length
+    stats.failCount = stats.n - stats.passCount
+    stats.streak = consecutiveStreak(stats.rows.map(r => r.verdict))
+    stats.parseFails = stats.rows.reduce((acc, r) => acc + countParseFails(r), 0)
+    stats.latestRanAt = stats.rows[0] ? new Date(stats.rows[0].ran_at) : new Date(0)
+
+    const factsVals = stats.rows.map(r => extractMetric(r.g_metrics, "test_facts_median"))
+    const knowVals = stats.rows.map(r => extractMetric(r.g_metrics, "test_know_median"))
+    const beatsVals = stats.rows.map(r => extractMetric(r.g_metrics, "test_total_beats"))
+
+    stats.factsRange = computeRange(factsVals)
+    stats.knowRange = computeRange(knowVals)
+    stats.beatsRange = computeRange(beatsVals)
+  }
+
+  return families
+}
+
+// ── Rollup display ────────────────────────────────────────────────────────
+
+function printFamilyRollup(families: FamilyStats[], limit: number): void {
+  const rows = families
+    .sort((a, b) => b.latestRanAt.getTime() - a.latestRanAt.getTime())
+    .slice(0, limit)
+
+  if (rows.length === 0) {
+    console.log("No phase_eval_runs rows match the filter. Use `print-screen-verdict.ts --persist` to populate.")
+    return
+  }
+
+  // Column widths (dynamic based on content)
+  const COL_KEY = Math.max(12, Math.max(...rows.map(r => r.keyStr.length)))
+  const w = (s: string, n: number) => s.padEnd(n)
+  const wn = (s: string, n: number) => s.padStart(n)
+
+  const header = [
+    w("PROBE_FAMILY", COL_KEY),
+    wn("N", 3),
+    wn("PASS", 5),
+    wn("FAIL", 5),
+    wn("STREAK", 8),
+    wn("FACTS_MED", 12),
+    wn("KNOW_MED", 12),
+    wn("BEATS", 12),
+    wn("PARSE_FAILS", 11),
+  ].join("  ")
+
+  console.log(header)
+  console.log("-".repeat(header.length))
+
+  for (const fam of rows) {
+    const line = [
+      w(fam.keyStr, COL_KEY),
+      wn(String(fam.n), 3),
+      wn(String(fam.passCount), 5),
+      wn(String(fam.failCount), 5),
+      wn(formatStreak(fam.streak), 8),
+      wn(formatRange(fam.factsRange), 12),
+      wn(formatRange(fam.knowRange), 12),
+      wn(formatRange(fam.beatsRange), 12),
+      wn(String(fam.parseFails), 11),
+    ].join("  ")
+    console.log(line)
+  }
+
+  console.log()
+  console.log(`Showing ${rows.length} of ${families.length} probe families (most recent first).`)
+  console.log("STREAK = consecutive PASS/FAIL count from latest run backwards.")
+  console.log("Use --family <key> to drill into a single family's run history.")
+  console.log("Use --rows to see the full per-row table (legacy mode).")
+}
+
+// ── Family drill-down display ─────────────────────────────────────────────
+
+function printFamilyDrillDown(fam: FamilyStats): void {
+  console.log(`Family: ${fam.keyStr}`)
+  console.log(`  probe=${fam.key.probe_name}  variant=${fam.key.test_variant}`)
+  console.log(`  commit=${fam.key.git_commit}  seed=${fam.key.seed}`)
+  console.log(`  N=${fam.n}  PASS=${fam.passCount}  FAIL=${fam.failCount}  streak=${formatStreak(fam.streak)}`)
+  console.log()
+
+  const header = [
+    "RUN_ID".padEnd(7),
+    "RAN_AT".padEnd(22),
+    "VERDICT".padEnd(28),
+    "FACTS_MED".padStart(10),
+    "KNOW_MED".padStart(9),
+    "BEATS".padStart(7),
+    "PARSE_FAIL".padStart(11),
+    "PROMPT_HASH".padEnd(12),
+  ].join("  ")
+
+  console.log(header)
+  console.log("-".repeat(header.length))
+
+  for (const row of fam.rows) {
+    const gm = row.g_metrics
+    const facts = extractMetric(gm, "test_facts_median")
+    const know = extractMetric(gm, "test_know_median")
+    const beats = extractMetric(gm, "test_total_beats")
+    const fmt1 = (v: number | null) => v !== null ? v.toFixed(1) : "—"
+    const fmtI = (v: number | null) => v !== null ? String(Math.round(v)) : "—"
+    const parseFail = countParseFails(row)
+    const hash = extractPromptHash(gm)
+
+    const line = [
+      String(row.id).padEnd(7),
+      new Date(row.ran_at).toISOString().slice(0, 19) + "Z".padEnd(3),
+      shortVerdict(row.verdict).slice(0, 27).padEnd(28),
+      fmt1(facts).padStart(10),
+      fmt1(know).padStart(9),
+      fmtI(beats).padStart(7),
+      String(parseFail).padStart(11),
+      hash.padEnd(12),
+    ].join("  ")
+    console.log(line)
+  }
+
+  console.log()
+  console.log(`Gate note: 3 consecutive PASS on this tuple = promotion-eligible (per exp #323/L10).`)
+}
+
+// ── Legacy per-row table ──────────────────────────────────────────────────
+
+function printRowsTable(rows: RawRow[], full: boolean): void {
+  if (full) {
+    for (const r of rows) {
+      console.log(JSON.stringify(r, null, 2))
+      console.log("---")
+    }
+    return
+  }
+
+  console.table(rows.map((r: any) => {
+    const matrix = r.calibration_matrix as { TP?: number; FP?: number; FN?: number; TN?: number } | null
+    const matrixStr = matrix
+      ? `TP=${matrix.TP ?? 0}/FP=${matrix.FP ?? 0}/FN=${matrix.FN ?? 0}/TN=${matrix.TN ?? 0}`
+      : "—"
+    const rpf = (r.recall_pct !== null && r.precision_pct !== null)
+      ? `${r.recall_pct}/${r.precision_pct}/${r.f1 ?? "—"}`
+      : "—"
+    return {
+      id: r.id,
+      probe: r.probe_name,
+      ran_at: new Date(r.ran_at).toISOString(),
+      seeds: (r.seeds_used as string[]).join(","),
+      variants: (r.variant_labels as string[]).join(","),
+      git: (r.git_commit as string).slice(0, 8),
+      exp: r.experiment_id ?? "—",
+      verdict: (r.verdict as string).split(" — ")[0],
+      "R/P/F1": rpf,
+      matrix: matrixStr,
+    }
+  }))
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────
+
+async function fetchRows(args: Args): Promise<RawRow[]> {
+  const base = `
+    SELECT id, probe_name, git_commit, experiment_id,
+           seeds_used, variant_labels, verdict, ran_at, notes,
+           summary_json -> 'g_metrics' AS g_metrics,
+           summary_json -> 'recall_pct' AS recall_pct,
+           summary_json -> 'precision_pct' AS precision_pct,
+           summary_json -> 'f1' AS f1,
+           summary_json -> 'calibration_matrix' AS calibration_matrix
+    FROM phase_eval_runs
+  `
+
+  if (args.probe) {
+    return db`
+      SELECT id, probe_name, git_commit, experiment_id,
+             seeds_used, variant_labels, verdict, ran_at, notes,
+             summary_json -> 'g_metrics' AS g_metrics,
+             summary_json -> 'recall_pct' AS recall_pct,
+             summary_json -> 'precision_pct' AS precision_pct,
+             summary_json -> 'f1' AS f1,
+             summary_json -> 'calibration_matrix' AS calibration_matrix
+      FROM phase_eval_runs
+      WHERE probe_name = ${args.probe}
+      ORDER BY ran_at DESC
+      LIMIT ${args.limit * 20}
+    ` as Promise<RawRow[]>
+  }
+
+  return db`
+    SELECT id, probe_name, git_commit, experiment_id,
+           seeds_used, variant_labels, verdict, ran_at, notes,
+           summary_json -> 'g_metrics' AS g_metrics,
+           summary_json -> 'recall_pct' AS recall_pct,
+           summary_json -> 'precision_pct' AS precision_pct,
+           summary_json -> 'f1' AS f1,
+           summary_json -> 'calibration_matrix' AS calibration_matrix
+    FROM phase_eval_runs
+    ORDER BY ran_at DESC
+    LIMIT ${args.limit * 20}
+  ` as Promise<RawRow[]>
 }
 
 async function main(): Promise<void> {
   const args = parseArgs()
 
-  // Surface checker-A/B specific summary keys (recall_pct, precision_pct,
-  // f1, calibration_matrix) alongside the planner-probe g_metrics. Both
-  // shapes coexist in summary_json — keys absent from a given probe's
-  // shape come back as null and the compact view collapses them gracefully.
-  const rows = args.probe
-    ? await db`
-        SELECT id, probe_name, git_commit, experiment_id,
-               seeds_used, variant_labels, verdict, ran_at, notes,
-               summary_json -> 'g_metrics' AS g_metrics,
-               summary_json -> 'recall_pct' AS recall_pct,
-               summary_json -> 'precision_pct' AS precision_pct,
-               summary_json -> 'f1' AS f1,
-               summary_json -> 'calibration_matrix' AS calibration_matrix
-        FROM phase_eval_runs
-        WHERE probe_name = ${args.probe}
-        ORDER BY ran_at DESC
-        LIMIT ${args.limit}
-      `
-    : await db`
-        SELECT id, probe_name, git_commit, experiment_id,
-               seeds_used, variant_labels, verdict, ran_at, notes,
-               summary_json -> 'g_metrics' AS g_metrics,
-               summary_json -> 'recall_pct' AS recall_pct,
-               summary_json -> 'precision_pct' AS precision_pct,
-               summary_json -> 'f1' AS f1,
-               summary_json -> 'calibration_matrix' AS calibration_matrix
-        FROM phase_eval_runs
-        ORDER BY ran_at DESC
-        LIMIT ${args.limit}
-      `
+  // --rows / --full: legacy per-row mode
+  if (args.rows || args.full) {
+    const rows = await fetchRows(args) as RawRow[]
+    if (rows.length === 0) {
+      console.log(args.probe
+        ? `No phase_eval_runs rows for probe='${args.probe}'.`
+        : "No phase_eval_runs rows yet. Use `print-screen-verdict.ts --persist` to populate.")
+      process.exit(0)
+    }
+    printRowsTable(rows.slice(0, args.limit), args.full)
+    process.exit(0)
+  }
 
-  if (rows.length === 0) {
+  const allRows = await fetchRows(args) as RawRow[]
+
+  if (allRows.length === 0) {
     console.log(args.probe
       ? `No phase_eval_runs rows for probe='${args.probe}'.`
       : "No phase_eval_runs rows yet. Use `print-screen-verdict.ts --persist` to populate.")
     process.exit(0)
   }
 
-  if (args.full) {
-    for (const r of rows) {
-      console.log(JSON.stringify(r, null, 2))
-      console.log("---")
-    }
-  } else {
-    console.table(rows.map((r: any) => {
-      const matrix = r.calibration_matrix as { TP?: number; FP?: number; FN?: number; TN?: number } | null
-      const matrixStr = matrix
-        ? `TP=${matrix.TP ?? 0}/FP=${matrix.FP ?? 0}/FN=${matrix.FN ?? 0}/TN=${matrix.TN ?? 0}`
-        : "—"
-      // R/P/F1 only meaningful for checker-A/B rows; planner probes leave them null
-      const rpf = (r.recall_pct !== null && r.precision_pct !== null)
-        ? `${r.recall_pct}/${r.precision_pct}/${r.f1 ?? "—"}`
-        : "—"
-      return {
-        id: r.id,
-        probe: r.probe_name,
-        ran_at: new Date(r.ran_at).toISOString(),
-        seeds: (r.seeds_used as string[]).join(","),
-        variants: (r.variant_labels as string[]).join(","),
-        git: (r.git_commit as string).slice(0, 8),
-        exp: r.experiment_id ?? "—",
-        verdict: (r.verdict as string).split(" — ")[0],   // strip the long explanation tail
-        // Checker-A/B specific columns; "—" when not present
-        "R/P/F1": rpf,
-        matrix: matrixStr,
+  // Apply --variant filter (post-fetch): keep rows where the variant is in variant_labels
+  const filteredRows = args.variant
+    ? allRows.filter(r => (r.variant_labels as string[]).includes(args.variant!))
+    : allRows
+
+  const families = groupIntoFamilies(filteredRows)
+
+  // --family drill-down mode
+  if (args.family) {
+    const parsed = parseFamilyKey(args.family)
+    // Match families where keyStr starts with the supplied key (allow commit prefix match)
+    let match: FamilyStats | undefined
+    for (const [ks, fam] of families.entries()) {
+      if (ks === args.family) { match = fam; break }
+      // Also try prefix match on commit (user may supply 8-char prefix of longer)
+      if (parsed.probe_name && fam.key.probe_name === parsed.probe_name
+        && fam.key.test_variant === parsed.test_variant
+        && fam.key.seed === parsed.seed
+        && (fam.key.git_commit.startsWith(parsed.git_commit ?? "") || (parsed.git_commit ?? "").startsWith(fam.key.git_commit.slice(0, 8)))) {
+        match = fam
+        break
       }
-    }))
+    }
+    if (!match) {
+      console.error(`No family found matching --family="${args.family}"`)
+      console.error(`Available keys:`)
+      for (const ks of families.keys()) {
+        console.error(`  ${ks}`)
+      }
+      process.exit(1)
+    }
+    printFamilyDrillDown(match)
+    process.exit(0)
   }
+
+  // Default: family rollup
+  printFamilyRollup(Array.from(families.values()), args.limit)
 }
 
 main().catch(err => {
