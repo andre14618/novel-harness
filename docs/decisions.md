@@ -4024,3 +4024,48 @@ Belongs in **L40** sprint.
 **Ongoing implications:** L31 + L39 stack is now the production baseline. Heretic-class long-action-beat failures are substantially reduced (52% fewer retries). Next bottlenecks for unattended completion are seed/genre-specific gaps (gamelit vocabulary in L40, prose-integrity instability in L41). Continuity cluster (L38) remains queued but lower priority per L37-data fire-rate evidence.
 
 ---
+
+### L40 — NER post-filter for LLM-flagged entities (2026-05-02, exp #365, commit `d356443`)
+
+**Decision:** Apply NER's deterministic grounded-surface (`isNerGrounded` four-tier check) as a post-pass on LLM-raised issues in `checkHallucUngrounded`. Any LLM-flagged entity that the NER surface considers grounded is rescued (dropped from the issues list before the AND-gate computes the final decision).
+
+**Root cause** (surfaced by L39-validation in `docs/l39-validation-2026-05-02.md`): heretic ch1 attempt 3 bailed on `andGateDecision = "llm-only-blocker"` for `Ungrounded entity "System"`. World-bible `systems[]` actually contains `The System`; `normalizeForGroundedMatch("System")` and `normalizeForGroundedMatch("The System")` both collapse to `"system"`. NER would have grounded the entity (via the per-token shard / normalized-substring tier of `isNerGrounded`). But the LLM checker — which has the same surface in its prompt context — under-attended to the `Systems: The System` line and flagged anyway. Per L31b's design, llm-only-blockers preserve the blocker class. Hence the bail.
+
+**Three options were considered** (queued in `docs/todo.md` at L40 entry):
+
+| Option | Approach | Cost / risk | Picked? |
+|---|---|---|---|
+| (a) Audit + patch the LLM prompt's grounded-list assembly to match NER's `bibleKnown` | Prompt change — risky for cached prefixes + production stability | Medium | No |
+| (b) Post-process LLM output to filter entities NER already grounded | Deterministic post-filter; reuses existing `isNerGrounded`; no prompt change | Low | **Yes** |
+| (c) Feed NER's normalized grounded set into the LLM prompt directly | New prompt section; potentially confusing surface forms | Medium-high | No |
+
+Picked **(b)** because: (1) zero LLM prompt change → cached-prefix unaffected; (2) deterministic — uses the same four-tier check NER already validates; (3) telemetry-friendly — `llmRescuedByNer` count goes into `llm_calls.ner_prepass_json` for auditing; (4) backward-compatible — only runs when `nerEnabled` (variants v1/v3/v4); (5) symmetric to NER's own ground-check.
+
+**Implementation** (commit `d356443`, `src/agents/halluc-ungrounded/index.ts`):
+
+- Lifted `groundedSurface` declaration to outer scope (was local to the `if (nerEnabled)` block).
+- After `output` parse, partition `output.issues` into `llmRescuedByNer[]` (NER says grounded) and `llmKeptRawIssues[]` (NER also disagrees).
+- Compute `llmEffectivelyFires = !llmPass && llmKeptRawIssues.length > 0`.
+- Replace `llmPass` / `!llmPass` with `!llmEffectivelyFires` / `llmEffectivelyFires` in the AND-gate fast-path and assembly.
+- The intersection-overlap step (L31b) uses `llmKeptRawIssues` so rescued entries don't reappear as "extra" NER phrases.
+- Telemetry: `patchLLMCallNerPrepass` payload extended with optional `llmRescuedByNer: number` (forward-compatible JSONB).
+
+**Behavior matrix** (post-L40, `nerEnabled=true`):
+
+| LLM `pass` | Issues | Rescue effect | New decision |
+|---|---|---|---|
+| `true` | `[]` | n/a | `pass` (unchanged) |
+| `false` | All rescued; NER passes | full rescue + clean | `pass` (was `llm-only-blocker` → bail) |
+| `false` | All rescued; NER fires elsewhere | full rescue + NER-only | `ner-only-warning` (pass=true; was `ner+llm-blocker` or `llm-only-blocker`) |
+| `false` | Some kept; NER passes | partial rescue | `llm-only-blocker` (smaller issue list) |
+| `false` | Some kept; NER fires same entity | partial rescue + intersection | `ner+llm-blocker` (intersection on kept set) |
+
+**Backward compatibility:** v0 and v2 variants set `nerEnabled = false`; the rescue branch is skipped (`llmKeptRawIssues = rawLlmIssues`, `llmRescuedByNer = []`). Pre-L40 behavior preserved exactly. The 74 pre-existing halluc-ungrounded tests pass unchanged; 8 new L40 tests cover the rescue paths.
+
+**Acceptance** (heretic re-smoke, in flight): heretic ch1 should not bail on `Ungrounded entity "System"` llm-only-blocker. If it bails on a different cluster, that's a new finding (stop condition b → next sprint).
+
+**Cost analysis:** rescue is pure CPU (set lookup + string operations) — zero LLM cost. Telemetry write adds 1 small int field per `halluc-ungrounded` call. Negligible.
+
+**Ongoing implications:** L31 + L39 + L40 stack is now the production baseline. The NER+LLM AND-gate is symmetric in both directions — NER catches LLM FNs (via NER-only-warning) and LLM catches NER FNs (via llm-only-blocker), and now NER catches LLM FPs (via the L40 rescue). Genre-specific (gamelit, litRPG) entity grounding gaps that were previously llm-only-blocker tail bails should now be deterministically suppressed when the world-bible carries the term.
+
+---
