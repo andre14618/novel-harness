@@ -30,9 +30,9 @@ role: primary-lane-context
 
 ## Baseline
 
-- Current behavior: Pending first-cycle inspection.
-- Baseline command(s): Inspect `scripts/preflight-docs-impact.ts` and docs around morning audits.
-- Baseline result: Pending.
+- Current behavior: `scripts/preflight-docs-impact.ts` supports staged-file mode (default) and single-commit mode (`--commit <ref>`). To audit a range, operators had to call `--commit <sha>` per commit by hand, with no aggregation and no clean exit-code rollup.
+- Baseline command(s): `bun scripts/preflight-docs-impact.ts --commit <sha>` repeated for each commit in the range; manual collation.
+- Baseline result: Slow, error-prone morning pickup; commits silently miss audit when operators skip them. `docs/todo.md` §L46 kept the audit item open as the documented gap.
 
 ## Stop Gates
 
@@ -53,7 +53,10 @@ role: primary-lane-context
 
 ## Progress Log
 
-- Pending. Queued as lane 5 of 6 in the bounded post-L50 harness/eval loop.
+- 2026-05-02 (cycle 1, captain-claude): Inspected `scripts/preflight-docs-impact.ts`. Existing per-commit mode already exposes `evaluate()`, `commitDiffFiles()`, and `commitMessage()`. Folded the range audit into the same script (avoiding a sibling script that could drift on classification rules) by adding (a) a pure `evaluateRange(commits): RangeResult` aggregator over `evaluate()`, (b) two new CLI modes `--range <rev-range>` and `--since <date>` resolving non-merge commits oldest-first via `git log --reverse --no-merges --pretty=tformat:%H%x09%h%x09%s`, (c) per-commit `OK`/`WARN` output with runtime files indented under each violation, (d) a `summary: N violation(s) / M commit(s)` tail line, (e) `--strict` exit-code aggregation, and (f) a mutual-exclusion guard between `--commit` and `--range`/`--since` (exit 2 with a clear message).
+- 2026-05-02 (cycle 1, captain-claude): Added 5 unit tests for `evaluateRange` (empty, all-clean mix of doc co-stage / non-runtime / `docs-impact: none`, mixed range, shortSha+subject derivation, non-runtime-only). 44/44 unit tests pass (was 39).
+- 2026-05-02 (cycle 1, captain-claude): Smoke validation. `--range 81397bf..HEAD` → 0 violations across 8 commits (L51-L54 window). `--range HEAD~30..HEAD --strict` → 0 violations across 30 commits, exit 0. `--range 7381ba0~1..397adca --strict` → 2 violations (`7381ba0`, `397adca`) flagged with offending runtime files, exit 1, matching the historical L25/L29 cases. `--since "2026-05-01"` surfaces 18 violations across 223 commits (consistent with the L44 docs-impact reconciliation audit). `--commit HEAD --range HEAD~1..HEAD` returns the conflict guard (exit 2).
+- 2026-05-02 (cycle 1, captain-claude): Updated `docs/todo.md` §L46 (closed inline with smoke evidence), `docs/current-state.md` §"Docs-impact Discipline" (added a paragraph describing the four modes), `docs/decisions.md` §L55 (full decision + alternatives rejected), and `docs/lessons-learned.md` (new section: extend discipline-enforcing tools rather than building siblings).
 
 ## Heartbeat Commands
 
@@ -63,11 +66,11 @@ role: primary-lane-context
 
 ## Results
 
-- Outcome:
-- Stop gate fired:
-- Evidence link/row/path:
-- Cost:
-- Commit(s):
+- Outcome: Range/since audit modes shipped on `scripts/preflight-docs-impact.ts` with a pure `evaluateRange` aggregator. Morning pickup is now one command (`bun scripts/preflight-docs-impact.ts --since "yesterday" --strict`). 44/44 unit tests pass; smoke runs confirm 0 violations across the L51-L54 window and correct flagging on the historical L25/L29 commits.
+- Stop gate fired: (a) clean pass — range audit implemented and tested.
+- Evidence link/row/path: `scripts/preflight-docs-impact.ts` + `scripts/preflight-docs-impact.test.ts`; `docs/decisions.md` §L55; smoke transcripts above in Progress Log.
+- Cost: $0 (no LLM calls; local Bun + git only).
+- Commit(s): `8858a9b` (implementation + companion docs); lane finalization commit (this).
 
 ## Finalization Checklist
 
@@ -78,6 +81,6 @@ role: primary-lane-context
 
 ## Pickup Instructions
 
-- Last safe command: `bun scripts/agent/lane-status.ts docs/sessions/2026-05-02-L55-commit-range-docs-impact-audit.md --json`
-- If failed, failure fingerprint:
-- Next action: Inspect `preflight-docs-impact.ts --commit` and design a minimal range wrapper.
+- Last safe command: `bun scripts/preflight-docs-impact.ts --since "yesterday" --strict`
+- If failed, failure fingerprint: any per-commit `WARN` line lists the runtime files that lack a co-staged `docs/current-state.md` or a `docs-impact: none` footer. Inspect each violating commit with `git show <sha>` and either (a) backfill the docs in a follow-up commit if the runtime change actually altered current-state, or (b) confirm the omission was intentional.
+- Next action: lane complete; runner advances per `docs/sessions/lane-queue.md`.
