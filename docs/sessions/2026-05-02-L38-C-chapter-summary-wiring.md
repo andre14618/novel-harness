@@ -73,7 +73,7 @@ role: primary-lane-context
   - `src/planned-state.ts:18` and `src/phases/drafting.ts:1331` — `savePlannedState(novelId, ch, outline)` runs after each chapter approval and writes the replacement state.
   - `src/agents/writer/enriched-context.ts` (`selectReaderInfoStateForBeat`) + L38-A wiring in `src/phases/drafting.ts` — replacement bridge that surfaces prior-chapter facts to the writer.
 - Cost: $0 — local code/decisions audit only; no LLM calls.
-- Commit(s): docs-only finalization commit (this cycle).
+- Commit(s): `6b86969` (docs-only finalization).
 
 ## Finalization Checklist
 
