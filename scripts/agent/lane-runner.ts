@@ -1,4 +1,14 @@
 #!/usr/bin/env bun
+/**
+ * LEGACY: lane-runner.ts is retired as the default engineering control plane.
+ *
+ * The default loop is an interactive Claude Code or OpenCode captain session
+ * launched via `bun scripts/agent/open-claude-captain.ts <lane>`; see
+ * `docs/interactive-claude-captain-loop.md`. This supervisor remains available
+ * for headless one-shot experiments and historical replay only — do not add
+ * new orchestration features here unless they serve as reusable sensors/tools
+ * for the captain loop.
+ */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { spawnSync } from "node:child_process"

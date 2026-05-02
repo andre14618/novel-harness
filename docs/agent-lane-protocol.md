@@ -91,20 +91,17 @@ bun scripts/agent/finalizer-packet.ts docs/sessions/<lane>.md --result "<pass|re
 bun scripts/agent/finalize-docs.ts docs/sessions/<lane>.md --result "<pass|refuted|new blocker|regression|infra failure|human-needed>" --commit <sha> --evidence "experiment#<id>" --evidence "chapter_exhaustions#<id>"
 ```
 
-Legacy only: run bounded unattended OpenCode or Claude cycles:
+### Legacy: Unattended Runner (Deprecated)
+
+`scripts/agent/lane-runner.ts` is retained only for headless one-shot experiments and historical replay. Do not reach for it as the default engineering loop — start an interactive Claude Code or OpenCode captain via `open-claude-captain.ts` instead. See `docs/interactive-claude-captain-loop.md`.
 
 ```bash
-# Legacy runner only; do not use as the default engineering loop.
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --dry-run
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --max-cycles 4 --max-hours 3 --model openai/gpt-5.5
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md --pickup-terminal-on-stop
 nohup bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md --pickup-terminal-on-stop > /tmp/lane-runner-<lane-id>.log 2>&1 &
-```
-
-Run a visible terminal worker instead of captured one-shot mode:
-
-```bash
+# Visible-terminal workers (legacy; prefer open-claude-captain.ts):
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --worker-role captain --worker-id captain-claude --worker-io terminal
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine opencode --model openai/gpt-5.5 --worker-role evidence --worker-id evidence-dsv4 --worker-io terminal
 ```

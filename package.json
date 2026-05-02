@@ -8,12 +8,12 @@
     "test": "bun test",
     "monitor": "bun scripts/agent/monitor.ts --no-latest-novel --panel outside,coordination,process",
     "monitor:full": "bun scripts/agent/monitor.ts --full",
-    "lane-runner": "bun scripts/agent/lane-runner.ts",
-    "lane-message": "bun scripts/agent/lane-message.ts",
     "captain-terminal": "bun scripts/agent/open-claude-captain.ts",
     "pickup-terminal": "bun scripts/agent/open-pickup-terminal.ts",
+    "lane-message": "bun scripts/agent/lane-message.ts",
     "finalize-docs": "bun scripts/agent/finalize-docs.ts",
-    "finalizer-packet": "bun scripts/agent/finalizer-packet.ts"
+    "finalizer-packet": "bun scripts/agent/finalizer-packet.ts",
+    "lane-runner-legacy": "bun scripts/agent/lane-runner.ts"
   },
   "dependencies": {
     "yaml": "^2.8.3",

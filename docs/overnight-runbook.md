@@ -96,6 +96,8 @@ For LXC smoke-style loops (longer-running, real novel runs), the loop is structu
 
 Use the repo-local lane tools so Claude Code and OpenCode share the same outside-loop state:
 
+Primary commands (interactive captain loop):
+
 ```bash
 bun scripts/agent/lane-heartbeat.ts docs/sessions/<lane>.md --actor opencode --step "running tests"
 bun scripts/agent/lane-status.ts docs/sessions/<lane>.md --latest-novel
@@ -105,17 +107,21 @@ monitor --full
 monitor --panel outside --panel coordination --panel evidence
 bun scripts/agent/open-claude-captain.ts docs/sessions/<lane>.md
 bun scripts/agent/open-claude-captain.ts docs/sessions/<lane>.md --dry-run --print-prompt
-# Legacy runner only; do not use as the default engineering loop.
+bun scripts/agent/lane-message.ts list docs/sessions/<lane>.md --open
+bun scripts/agent/finalizer-packet.ts docs/sessions/<lane>.md --result "new blocker" --commit <sha> --evidence "experiment#<id>" --print
+bun scripts/agent/finalize-docs.ts docs/sessions/<lane>.md --result "new blocker" --commit <sha> --evidence "experiment#<id>" --evidence "chapter_exhaustions#<id>"
+bun scripts/agent/replay-first-plan.ts scripts/hallucination/expanded-fail-classes-panel.jsonl scripts/hallucination/synthetic-partial-enactment-fixtures/partial-enactment-panel.jsonl --label <probe-family> --exp-id <id>
+```
+
+Legacy runner (deprecated; do not use as the default engineering loop — see `docs/interactive-claude-captain-loop.md`):
+
+```bash
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --dry-run
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --max-cycles 4 --max-hours 3 --model openai/gpt-5.5
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md --pickup-terminal-on-stop
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --worker-role captain --worker-id captain-claude --worker-io terminal
 nohup bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md --pickup-terminal-on-stop > /tmp/lane-runner-<lane-id>.log 2>&1 &
-bun scripts/agent/lane-message.ts list docs/sessions/<lane>.md --open
-bun scripts/agent/finalizer-packet.ts docs/sessions/<lane>.md --result "new blocker" --commit <sha> --evidence "experiment#<id>" --print
-bun scripts/agent/finalize-docs.ts docs/sessions/<lane>.md --result "new blocker" --commit <sha> --evidence "experiment#<id>" --evidence "chapter_exhaustions#<id>"
-bun scripts/agent/replay-first-plan.ts scripts/hallucination/expanded-fail-classes-panel.jsonl scripts/hallucination/synthetic-partial-enactment-fixtures/partial-enactment-panel.jsonl --label <probe-family> --exp-id <id>
 ```
 
 `monitor` selects the latest non-template session doc with a complete Loop Contract. Human-facing monitoring instructions should default to bare `monitor`; use expanded `bun run monitor`, `bun scripts/agent/monitor.ts`, or `lane-dashboard` commands only when debugging the alias or working where the alias is unavailable. If none exists, it stays open in a waiting state and polls until one appears; `monitor --once` still exits immediately. Legacy session docs are skipped by default so they do not permanently show missing-field noise; pass a path explicitly to inspect one. `lane-status.ts` returns exit code `0` only when the outside loop should continue. It stops or blocks on missing lane-contract fields, stale heartbeat, explicit stop events, result stop gates, human-needed events, infra-failure events, and stale outside-loop state. The default `monitor` alias is compact: it hides latest-novel wall text and shows only `outside`, `coordination`, and `process`; its `Lane progress` block comes from the lane doc's latest `Progress Log` bullets and populated `Results` fields. Use `monitor --full` for all panels plus latest novel summary, or `--panel outside|inside|evidence|hygiene|process` to choose panels explicitly. In non-TTY/captured output, watch mode renders one snapshot instead of repeating forever unless `--append` is explicit.
