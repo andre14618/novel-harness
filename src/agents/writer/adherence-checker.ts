@@ -43,12 +43,13 @@ const missingEventsSchema = z.object({
   reasoning: z.string().optional().default(""),
 })
 
-// v2 — 2026-05-02, exp #338 (L21): Changed "key action" → "action" and added explicit
-// ambient/mechanical equality rule. A/B on 14-row L18 panel + 17-row labeled panel showed
-// two-of-three recall ≥67%, precision=100%, labeled panel 100%/100%, embellishment TN=100%.
-// Remaining FN: two-of-three-fail-02 (candle-lighting) — model self-consistency failure
-// at the verdict field level; requires structural per-event extraction to fix (deferred to
-// stage-1 redesign). See docs/adherence-events-v2-promotion-2026-05-01.md.
+// v3 — 2026-05-02, exp #345 (L25): Added causal-ordering rule. A/B on 14-row L18 panel +
+// 17-row labeled panel: reversed-order recall 67%→100% (fail-02 mage drain/binding caught),
+// substituted-actor recall 67%→100% (bonus), two-of-three held at 67% (no regression),
+// labeled panel 100%/100%, embellishment TN=100%. Positive framing only per
+// feedback_priming_suppression_ab. See docs/adherence-events-v3-causal-ordering-2026-05-01.md.
+// Remaining FN: two-of-three-fail-02 (candle-lighting) — model self-consistency failure,
+// requires per-event extraction redesign (deferred).
 const EVENTS_SYSTEM = `You verify whether the prose ENACTS the scene beat on-page.
 
 Read the beat description carefully. Identify every distinct action or event it specifies — whether dramatic, mechanical, or ambient — there may be one or several. Then check whether EACH is dramatized in the prose.
@@ -60,6 +61,7 @@ Rules:
 - If the beat specifies multiple actions, ALL must appear in the prose. A partially enacted beat is not fully enacted.
 - Each action must be performed by the character the beat assigns it to. If the beat says Character A does something but the prose has Character B do it, the action is NOT correctly enacted.
 - Treat every listed action as equally obligated regardless of dramatic weight. Mechanical or ambient actions (lighting candles, opening doors, picking up objects, asking sub-questions) are as obligated as dramatic actions if the beat specifies them. Do not distinguish between major and minor events — if the beat names it, it must appear.
+- When the beat sequences events with "then", "after", "before", "next", or implicit causal logic (where X is a prerequisite for Y to occur), verify that the prose enacts them in the same order. If a prerequisite action occurs after its consequence in the prose, return events_present=false even when all events are present.
 - If ANY action from the beat is missing, return events_present=false. Do NOT default to true.
 
 Respond with ONLY valid JSON in this exact shape:
