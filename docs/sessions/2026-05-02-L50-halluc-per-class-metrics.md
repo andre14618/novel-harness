@@ -1,5 +1,5 @@
 ---
-status: active
+status: complete
 updated: 2026-05-02
 role: primary-lane-context
 ---
@@ -67,7 +67,7 @@ role: primary-lane-context
 - Stop gate fired: (a) clean pass — per-class metrics implemented and tested.
 - Evidence link/row/path: `scripts/hallucination/per-class-summary.ts`, `scripts/hallucination/ab-halluc-prompt.ts`, `tests/halluc-per-class-summary.test.ts` (9 pass / 0 fail). Experiment #374.
 - Cost: $0 — no LLM panel runs; deterministic unit tests only.
-- Commit(s): pending finalization commit on this cycle.
+- Commit(s): 168f37a `[infra] L50 per-class halluc-ungrounded A/B reporter`. Experiment #374 concluded.
 
 ## Finalization Checklist
 
