@@ -1844,3 +1844,31 @@ When you add a positive-framed writer-side rule (e.g. "use role descriptors inst
 - This pairs with `feedback_priming_suppression_ab` (positive framing only) — positive rules tend to produce partial compliance with shape-shift, while negative rules tend to prime the forbidden tokens. Both effects are class-shift effects, not class-elimination.
 
 (2026-05-02 L42-validation exp #366. Result doc `docs/l42-validation-2026-05-02.md`. Companion: `docs/decisions.md` §L42, §L42-validation.)
+
+## Cluster ladders shift the dominant bail cluster predictably
+
+When you fix one cluster, the next bail cluster surfaces with high signal — often within a single re-smoke. Plan the ladder; don't chase clusters opportunistically. By the time you've closed 4-5 clusters in a row, the structural pattern of which class fixes which cluster becomes clear, and you have strong evidence about which infrastructure layer the next sprint should target.
+
+**The phenomenon (L40 → L42 → L43 → L41, 2026-05-02):**
+
+Closed in this order during a single autonomous-loop session:
+
+1. **L39 (already shipped):** adherence-checker prose truncation 2000 → 8000 chars. Closed truncation FN cluster.
+2. **L40:** NER post-filter on LLM-flagged entities (`isNerGrounded` after the LLM call). Closed gamelit "System" / "Guild" llm-only-blocker cluster.
+3. **L42:** writer walk-on-entity discipline rule (use role descriptors for ambient entities). Closed writer-invented walk-on llm-only-blocker cluster (shifted blocker → warning class).
+4. **L43:** writer verbal-action obligation enactment rule (enact verbal actions as direct dialogue). Closed adherence FN cluster on physical-vs-verbal mismatch.
+5. **L41 (next, queued):** prose-integrity instability — convergence 3 → 2 → 1 across attempts, retry budget exhausted before reaching 0.
+
+**The pattern:** each fix exposes the next bottleneck within the SAME re-smoke novel. L40-validation surfaced the L42 cluster (writer-invented entities). L42-validation surfaced the L43 cluster (verbal-action adherence). L43-validation surfaced the L41 cluster (prose-integrity). Each surfacing was unambiguous — no need to wait for multi-novel evidence.
+
+**The structural pattern that emerges after 4 closes:** L40 / L42 / L43 are all writer-discipline-OR-checker-discipline gaps; the fixes are ≤30 lines each (L40: code change + tests; L42 + L43: 1-line prompt diffs each). These are the cheapest layer to fix. The remaining cluster (L41 prose integrity) sits in the lint-fixer / retry-context infrastructure — different class, requires different fix shape (passing failure descriptions back through retry context). The cheapest fix layer is shifting from writer-discipline → retry-context infrastructure.
+
+**The rule:** when you close a cluster, immediately re-smoke. The next bail will tell you what to sprint next. Don't speculate about what's next; run the smoke and read the bail. After 4-5 closes, plan the ladder ahead instead of chasing clusters opportunistically — the structural pattern of which layer needs fixing next becomes predictable.
+
+**How to apply:**
+- After each cluster fix ships, kick off a re-smoke immediately (same seed, same scope).
+- Read the bail cluster from the smoke log + telemetry; queue it as the next sprint candidate.
+- Don't try to predict which cluster will surface next from analysis alone — let the smoke tell you.
+- After 4-5 closes, look at the layer-distribution of fixes shipped. If you've been hitting writer-discipline rules consistently, the next cluster is likely outside that layer (retry-context, planner-state, lint infrastructure). Plan the next 2-3 sprints from layer signal, not just from cluster signal.
+
+(2026-05-02 L40 + L42 + L43 + L41-queued, exps #365 / #366 / #367 / pending. Result docs: `docs/l40-validation-2026-05-02.md`, `docs/l42-validation-2026-05-02.md`, `docs/l43-validation-2026-05-02.md`. Companion: `docs/decisions.md` §L40 → §L43-validation.)

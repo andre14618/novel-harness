@@ -4178,3 +4178,62 @@ The writer continues to invent some walk-on names (`Master Halden`, `Guildmistre
 **Ongoing implications:** L31 + L39 + L40 + L42 stack closes 3 distinct heretic-class clusters: truncation FNs (L39), grounded-but-disagreed entities (L40), writer-invented walk-on entities (L42 + L31a). Next bottleneck is verbal-action adherence interpretation — same conceptual class as L31d-(NEW1) but at the writer-side instead of checker-side. Healthy ladder progress; each fix is small and well-scoped.
 
 ---
+
+### L43 — Writer-side verbal-action obligation enactment (2026-05-02, exp #367, commit `091eaa3`)
+
+**Decision:** Add a positive-framed rule to both beat-writer prompts (`beat-writer-system.md` default + `beat-writer-system-salvatore.md` variant) instructing the writer to enact verbal-action obligations as direct dialogue rather than substituting silent physical equivalents.
+
+**Rule wording (production):**
+> When your beat brief names a specific verbal action (a character claims X, asks Y, refuses Z, agrees, demands), include that line as direct dialogue. The spoken line IS the obligation. A silent physical equivalent (the character does something else without saying anything) does not satisfy a verbal-action beat — it adds color around the dialogue, not in place of it.
+
+**Why option (a) over (b)/(c):** L42-validation queued three remediation options. Option (a) (writer-side prompt rule) ships with a +1-line prompt diff per file, no schema change, no checker change, no test churn. Option (b) (adherence-checker enactment-mode tolerance gate) risks hiding genuine adherence FNs by accepting physical-equivalent enactment. Option (c) (planner-side obligation type tagging `literal` vs `directional`) requires schema change + retraining. Per CLAUDE.md "smallest correct change" — pick (a) first; escalate only if (a) underperforms. Mirrors the L42 design pattern.
+
+**Framing per `feedback_priming_suppression_ab`:** positive-framed (use direct dialogue) rather than prohibition (don't substitute physical equivalent). Continues the pattern established by L42.
+
+---
+
+### L43-validation — Heretic re-smoke validates verbal-action rule closes adherence FN cluster (2026-05-02, exp #367)
+
+**Decision:** L43 SOLIDLY VALIDATED. Zero adherence checker blockers fired across all 3 chapter attempts (vs 2 fires in L42-val that caused the bail). Plan check, continuity, and adherence all PASSED on every attempt. Chapter exhausted retry budget purely on prose-integrity failures (L41 cluster, was already queued).
+
+**Per-attempt walk-through (L43-val ch1, 12 beats):**
+
+| Attempt | Beats drafted | Plan | Continuity | Adherence | Lint | Prose integrity |
+|---|---|---|---|---|---|---|
+| 1 | 12/12 | ✅ PASS | ✅ no issues | ✅ 0 blockers | 12 issues (10 fixed) | ❌ FAIL (3 issues) |
+| 2 | 12/12 | ✅ PASS | ✅ no issues | ✅ 0 blockers | 17 issues (lint-fix-rejected) | ❌ FAIL (2 issues) |
+| 3 | 12/12 | ✅ PASS | ✅ no issues | ✅ 0 blockers | 10 issues (1 unfixed) | ❌ FAIL (1 issue) |
+
+**Direct A/B vs L42-val:**
+
+| Metric | L42-val (`novel-1777718105222`) | L43-val (`novel-1777719198533`) | Delta |
+|---|---|---|---|
+| Adherence checker blockers (chapter-bailing) | 2 | **0** | -100% |
+| Halluc llm-only-blocker | 0 | 0 | unchanged |
+| Halluc ner+llm-blocker (chapter-bailing) | 0 | 2 (beat-level, resolved on retry) | resolved |
+| L40 rescues | 1 | 1 | unchanged |
+| Bail cluster | adherence FN | L41 prose-integrity | DIFFERENT |
+| Bail code path | plan-assist gate | chapter-attempts-exhausted | DIFFERENT |
+
+**Halluc telemetry (39 calls across 3 attempts):** 19 `pass` (49%), 18 `ner-only-warning` (46%), 2 `ner+llm-blocker` (5%, both resolved on beat-level retry without chapter-level escalation), **0 `llm-only-blocker`** (L40 + L42 stack continues to suppress). L40 rescue activated 1× (correct).
+
+**Stop condition: (b) — NEW out-of-scope cluster found.** L41 prose-integrity instability is now THE dominant heretic bail cluster after L31/L39/L40/L42/L43 close their respective clusters. Convergence trend: 3 → 2 → 1 integrity issues across attempts, never reaching 0 within retry budget. Recommended L41 sprint: pass integrity issue descriptions back to writer in next-attempt prompt (analogous to existing adherence retry context in `retry-context.ts`).
+
+**Cluster hold list (validated by L43-val):**
+
+| Cluster | Status |
+|---|---|
+| L17 entity grounding | ✅ HOLDS |
+| L22 FN entity expansion | ✅ HOLDS |
+| L24-(a) NER-only-warning exhaust (L31a) | ✅ HOLDS — 18 NER-only-warnings, all `pass: true` |
+| L24-(b) adherence stage-1 stochastic (L31c) | ✅ HOLDS |
+| L26/L32 mapper allowedNewEntities dup-FPs (L32) | ✅ HOLDS |
+| L39 adherence prose truncation | ✅ HOLDS |
+| L40 NER post-filter | ✅ HOLDS — 1 correct rescue |
+| L42 writer walk-on discipline | ✅ HOLDS — 0 chapter-bailing entity blockers |
+| **L43 writer verbal-action enactment** | ✅ **VALIDATED** — 0 adherence FN blockers across 3 attempts |
+| **L41 prose-integrity instability** | ⚠ NOW DOMINANT (was queued, surfaced as solo bail cluster) |
+
+**Ongoing implications:** L31 + L39 + L40 + L42 + L43 stack closes 5 distinct heretic-class clusters: truncation FNs (L39), grounded-but-disagreed entities (L40), writer-invented walk-on entities (L42 + L31a), verbal-action adherence (L43). The cluster ladder is producing systematic gains. The next sprint (L41) shifts to retry-context infrastructure rather than writer-discipline prompt rules — the writer-side discipline ladder may be approaching saturation; the next opportunities are in the lint-fixer / retry-context / multi-attempt-state layers.
+
+---
