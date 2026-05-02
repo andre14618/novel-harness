@@ -31,6 +31,8 @@ If this file and code disagree, trust code for runtime behavior. If this file an
 
 ## Development Workflow
 
+- **Session start contract:** every session opens with a written goal + component, a one-sentence why citing concrete evidence (experiment ID, smoke result, calibration row), a measurable signal that says the work worked, and the validated stop gates that fire (a/b/c/d/e). Capture these in `docs/sessions/YYYY-MM-DD-<short-name>.md` before code or runtime action. See `docs/session-start-contract.md`. If the four questions cannot be answered, the work is exploration — bound it explicitly rather than drifting into changes.
+- **Cost-threshold autonomy:** runtime actions costing under $2 per run proceed without asking — deploy + smoke + paired-replay + DB writes for normal lanes. Anything ≥$2 per run, anything touching shared/external state (orchestrator service config, shared infra), or anything that would push the standing $26 overnight budget close to its cap requires a check-in first. Record the actual cost in the lane doc when a run exceeds its quote.
 - **Engineering orchestration boundary:** use established interactive engineering harnesses — Claude Code or OpenCode — as the primary layer for coding, agent orchestration, review, and queue handoff. Novel Harness should not rebuild a custom autonomous coding supervisor inside the repo. `scripts/agent/lane-runner.ts` is retired as the default engineering control plane and remains legacy/optional for headless one-shot experiments only. Runtime LLM/API calls inside Novel Harness remain appropriate for novel planning, writing, checking, evaluation, and observability features.
 - Build context from code before editing. Avoid assuming schema, routing, or model details from memory.
 - Make the smallest correct change. Prefer one coherent concern per commit.
@@ -60,9 +62,10 @@ If this file and code disagree, trust code for runtime behavior. If this file an
 
 - `docs/todo.md` contains pending action items only. Completed work and rationale belong in `docs/decisions.md`, `docs/current-state.md`, result docs, or session retrospectives.
 - When an experiment concludes or a path is ruled out, update `docs/decisions.md`, remove rationale from `docs/todo.md`, conclude the DB experiment, and commit docs separately when practical.
-- Capture methodology surprises in `docs/lessons-learned.md` during the same session. Use generalized “when X, then Y” lessons.
+- Capture methodology surprises in `docs/lessons-learned.md` during the same session. Use generalized “when X, then Y” lessons. **A failure-mode unit fixture that caught an over-relaxed implementation is a lesson.** Missing this entry is a docs-sweep failure even if every other doc is updated.
 - Capture specific findings in the appropriate persistent doc during the same session. Chat summaries die.
 - After meaningful PR-sized work, update `docs/current-state.md`, `docs/lessons-learned.md`, and `docs/todo.md` as needed.
+- **End-of-work documentation sweep is part of the clean-pass gate, not optional polish.** Before declaring a session/lane finished: co-stage `docs/current-state.md` (or footer `docs-impact: none`), append `docs/decisions.md` §Lxx, close the `docs/todo.md` item, append `docs/lessons-learned.md` if applicable, fill the lane doc Results, conclude the experiment row, advance `docs/sessions/lane-queue.md`, run `bun scripts/preflight-docs-impact.ts --strict` and `git diff --check`. See `docs/session-start-contract.md` for the full sweep checklist.
 - Write session retrospectives under `docs/sessions/` for sessions with multiple architectural iterations, Codex reviews, or supersession chains.
 
 ## Deployment Model

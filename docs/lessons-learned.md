@@ -2037,3 +2037,16 @@ L55 (exp #379) added range and since modes to `scripts/preflight-docs-impact.ts`
 - Smoke-validate the new mode against a known-violating range (e.g. a historical commit pair) so the strict exit code is exercised end-to-end.
 
 (L55, exp #379. Companion: `docs/sessions/2026-05-02-L55-commit-range-docs-impact-audit.md`, `docs/decisions.md` §L55.)
+
+## Add the failure-mode boundary fixture before the implementation, not after (2026-05-02)
+
+L62 (exp #385) shipped a regex carve-out for LitRPG System path identifiers in `detectFusedBoundaries`. The first-pass regex `[A-Z][A-Z0-9_]*(?:\.[A-Z][A-Z0-9_]*)+` accepted single-letter segments and silently let `O.She turned away.` through — a real fused boundary the existing detector caught. The unit test that *forced* the tightening was the deliberately-added "single-letter abbreviation" boundary control, not the LitRPG-positive fixtures (which all passed under either regex).
+
+**The rule:** when a deterministic guard relaxes to allow a previously-flagged construct, write the failure-mode fixture (the case that *should* still fail under the new rule) before iterating on the regex. Positive fixtures only confirm the new construct passes; the boundary fixture is what catches over-relaxation. Without it, the unit suite goes green on a too-permissive rule and the failure surfaces in production.
+
+**How to apply:**
+- For any "exempt X from rule Y" change, name a near-miss case that resembles X but should still trigger Y. Add it to the test suite first, before editing the implementation.
+- Prefer fixtures drawn from the *original* failure mode (here: `O.She` is the canonical "dropped space + capital after period" case the integrity guard exists for) so the boundary anchors to documented behavior.
+- If you can't construct a near-miss that distinguishes the exemption from the original rule, the exemption is probably too broad — revisit the spec before writing more positive fixtures.
+
+(L62, exp #385, commit `31e16a8`. Companion: `docs/sessions/2026-05-02-L62-litrpg-integrity-guard.md`, `docs/decisions.md` §L62.)
