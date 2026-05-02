@@ -3,7 +3,7 @@ status: active
 updated: 2026-05-01
 ---
 
-<!-- Latest: 2026-05-01 — labeled current-surface calibration (#301) + synthetic invocation (#302) + halluc-ungrounded v3 prompt promotion (#303) + temp=0 stability investigation (#304) + obligation-aware adherence prototype (#305). halluc recall 10% → 65-70% deployed; adherence per-event probe demonstrated on the b12 cluster (3/3 attempts caught missing event exactly per oracle), live wiring queued for two-stage design. §2 calibration cycle complete; next item is §3 MVP eval/testing module or §4 composite-prior bundle. See decisions.md. -->
+<!-- Latest: 2026-05-01 — major sweep across §2/§3/§4/§5. §2 calibration cycle complete (#301-#305). §3 MVP eval module shipped + R7 trigger fired naturally. §4: P3 closer-rule promoted to LIVE plotter (#307+#312); opener-kind intervention failed in both prompts and reverted (#311+#313 — see X-OR-Y anti-pattern lesson); n=10 noise-baseline established and verdict noise-caveat shipped. §5: phase-parity reliability fixed (reconnect shim), historical-superseded doc pass complete, TS baseline 12→0 errors, plan-assist gate restart recovery shipped. Active §1/§2/§5 items are all DONE or DEFERRED; only §4 composite-prior bundle picking remains as a design decision. See decisions.md and lessons-learned.md for the full picture. -->
 
 
 # To Do
