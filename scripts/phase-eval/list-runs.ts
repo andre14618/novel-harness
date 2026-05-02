@@ -59,6 +59,13 @@ interface RawRow {
   binary_match_pct: number | null
   per_event_recall_pct: number | null
   per_event_precision_pct: number | null
+  // Extended family-key dimensions (L53). Top-level summary_json keys
+  // persisted by print-screen-verdict.ts (--persist) augmented summary.
+  // Older rows lack these and degrade to the legacy 4-part family key.
+  metric_set: string | null
+  expected_chapters: number | null
+  model_route: string | null
+  prompt_hash: string | null
 }
 
 interface FamilyKey {
@@ -66,7 +73,17 @@ interface FamilyKey {
   test_variant: string
   git_commit: string
   seed: string
+  // Extended dimensions (L53). All optional for backward compat: when every
+  // extended field is "—" or absent, familyKeyStr emits the legacy 4-part
+  // form so older rows continue to group identically and existing --family
+  // lookups keep working.
+  metric_set?: string
+  chapter_count?: string
+  prompt_hash?: string
+  model_route?: string
 }
+
+const EXTENDED_DIM_DEFAULT = "—"
 
 interface FamilyStats {
   key: FamilyKey
@@ -271,6 +288,17 @@ export function extractPromptHash(gMetrics: Record<string, any> | null): string 
  *
  * For multi-seed rows (multiple seeds_used), seed is joined as
  * "seed1+seed2+..." so they form their own family.
+ *
+ * Extended dimensions (L53) are derived from summary_json top-level keys
+ * persisted by print-screen-verdict.ts:
+ * - metric_set: "planning-beats" | "state-mapper" (charter §G branch)
+ * - chapter_count: expected_chapters (5 by default; varies per seed)
+ * - prompt_hash: g_metrics.prompt_hash or summary_json.prompt_hash, if any
+ * - model_route: g_metrics.model_route or summary_json.model_route, if any
+ *
+ * Older rows that predate the producer-side persistence of these fields
+ * resolve to EXTENDED_DIM_DEFAULT and the family key collapses to the
+ * legacy 4-part form via familyKeyStr.
  */
 export function familyKeyFor(row: RawRow): FamilyKey {
   const variants = row.variant_labels as string[]
@@ -295,36 +323,104 @@ export function familyKeyFor(row: RawRow): FamilyKey {
     test_variant: testVariant,
     git_commit: row.git_commit,
     seed,
+    metric_set: extractExtendedDim(row, "metric_set"),
+    chapter_count: extractChapterCount(row),
+    prompt_hash: extractExtendedDim(row, "prompt_hash"),
+    model_route: extractExtendedDim(row, "model_route"),
   }
 }
 
+/**
+ * Read an extended dim from a row's top-level column first, then fall back
+ * to the matching g_metrics key. Defaults to EXTENDED_DIM_DEFAULT when
+ * absent so legacy rows still group as a single family.
+ */
+function extractExtendedDim(row: RawRow, key: "metric_set" | "prompt_hash" | "model_route"): string {
+  const direct = (row as any)[key]
+  if (typeof direct === "string" && direct.length > 0) {
+    // For prompt_hash: short to 8 chars for stable, comparable display.
+    return key === "prompt_hash" ? direct.slice(0, 8) : direct
+  }
+  const fromG = row.g_metrics?.[key] ?? row.g_metrics?.[camelCase(key)]
+  if (typeof fromG === "string" && fromG.length > 0) {
+    return key === "prompt_hash" ? fromG.slice(0, 8) : fromG
+  }
+  return EXTENDED_DIM_DEFAULT
+}
+
+function extractChapterCount(row: RawRow): string {
+  if (typeof row.expected_chapters === "number" && Number.isFinite(row.expected_chapters)) {
+    return String(row.expected_chapters)
+  }
+  const fromG = row.g_metrics?.["expected_chapters"] ?? row.g_metrics?.["expectedChapters"]
+  if (typeof fromG === "number" && Number.isFinite(fromG)) return String(fromG)
+  return EXTENDED_DIM_DEFAULT
+}
+
+function camelCase(snake: string): string {
+  return snake.replace(/_([a-z])/g, (_m, c) => c.toUpperCase())
+}
+
+/**
+ * True iff the key has any non-default extended dim (i.e. came from a row
+ * with the L53-augmented summary_json).
+ */
+function hasExtendedDims(key: FamilyKey): boolean {
+  return [key.metric_set, key.chapter_count, key.prompt_hash, key.model_route]
+    .some(v => v !== undefined && v !== EXTENDED_DIM_DEFAULT)
+}
+
 export function familyKeyStr(key: FamilyKey): string {
-  return `${key.probe_name}:${key.test_variant}:${key.git_commit.slice(0, 8)}:${key.seed}`
+  const base = `${key.probe_name}:${key.test_variant}:${key.git_commit.slice(0, 8)}:${key.seed}`
+  if (!hasExtendedDims(key)) return base
+  // Extended form. Brackets isolate extended dims so commit/seed parsing
+  // of the legacy 4-part prefix is unambiguous, and each dim defaults to
+  // EXTENDED_DIM_DEFAULT when absent so the suffix is fixed-width.
+  const ext = [
+    key.metric_set ?? EXTENDED_DIM_DEFAULT,
+    key.chapter_count ?? EXTENDED_DIM_DEFAULT,
+    key.prompt_hash ?? EXTENDED_DIM_DEFAULT,
+    key.model_route ?? EXTENDED_DIM_DEFAULT,
+  ].join("|")
+  return `${base}[${ext}]`
 }
 
 /**
  * Parse a --family <key> string back into components.
- * Format: "<probe>:<variant>:<commit8>:<seed>"
- * probe and variant may contain colons (seed never does).
+ * Legacy format: "<probe>:<variant>:<commit8>:<seed>"
+ * Extended form (L53): "<probe>:<variant>:<commit8>:<seed>[<metric>|<chapters>|<prompt8>|<route>]"
+ * probe and variant may contain colons (seed never does; commit8 is hex).
  */
 export function parseFamilyKey(keyStr: string): Partial<FamilyKey> {
-  // Split on ":" but only 3 times from the right so probe_name with colons works.
-  // Actually safer to split at the last 3 colons (variant+commit+seed).
-  const parts = keyStr.split(":")
+  // Strip and capture optional extended suffix "[a|b|c|d]" first so the
+  // legacy parser sees a clean 4-part base.
+  let base = keyStr
+  let extended: { metric_set?: string; chapter_count?: string; prompt_hash?: string; model_route?: string } = {}
+  const extMatch = keyStr.match(/^(.*)\[([^\]]*)\]$/)
+  if (extMatch) {
+    base = extMatch[1]!
+    const parts = extMatch[2]!.split("|")
+    if (parts.length === 4) {
+      const [metric_set, chapter_count, prompt_hash, model_route] = parts as [string, string, string, string]
+      extended = {
+        metric_set: metric_set === EXTENDED_DIM_DEFAULT ? undefined : metric_set,
+        chapter_count: chapter_count === EXTENDED_DIM_DEFAULT ? undefined : chapter_count,
+        prompt_hash: prompt_hash === EXTENDED_DIM_DEFAULT ? undefined : prompt_hash,
+        model_route: model_route === EXTENDED_DIM_DEFAULT ? undefined : model_route,
+      }
+    }
+  }
+
+  const parts = base.split(":")
   if (parts.length < 4) return {}
-  // seed is always last, commit8 second-to-last, variant is second, probe is first
-  // But probe and variant may contain ":". The canonical format is
-  // probe:variant:commit8:seed where none of commit8 or seed contain ":".
-  // commit8 is exactly 8 hex chars; seed never contains ":".
   const seed = parts[parts.length - 1]!
   const commit8 = parts[parts.length - 2]!
   const remaining = parts.slice(0, parts.length - 2).join(":")
-  // remaining is "<probe>:<variant>"
   const sepIdx = remaining.indexOf(":")
   if (sepIdx === -1) return {}
   const probe_name = remaining.slice(0, sepIdx)
   const test_variant = remaining.slice(sepIdx + 1)
-  return { probe_name, test_variant, git_commit: commit8, seed }
+  return { probe_name, test_variant, git_commit: commit8, seed, ...extended }
 }
 
 // ── Consecutive-streak calculation ───────────────────────────────────────
@@ -707,7 +803,11 @@ async function fetchRows(args: Args): Promise<RawRow[]> {
              summary_json -> 'binary_calibration' AS binary_calibration,
              summary_json -> 'binary_match_pct' AS binary_match_pct,
              summary_json -> 'per_event_recall_pct' AS per_event_recall_pct,
-             summary_json -> 'per_event_precision_pct' AS per_event_precision_pct
+             summary_json -> 'per_event_precision_pct' AS per_event_precision_pct,
+             summary_json ->> 'metric_set' AS metric_set,
+             (summary_json ->> 'expected_chapters')::int AS expected_chapters,
+             summary_json ->> 'model_route' AS model_route,
+             summary_json ->> 'prompt_hash' AS prompt_hash
       FROM phase_eval_runs
       WHERE probe_name = ${args.probe}
       ORDER BY ran_at DESC
@@ -730,7 +830,11 @@ async function fetchRows(args: Args): Promise<RawRow[]> {
            summary_json -> 'binary_calibration' AS binary_calibration,
            summary_json -> 'binary_match_pct' AS binary_match_pct,
            summary_json -> 'per_event_recall_pct' AS per_event_recall_pct,
-           summary_json -> 'per_event_precision_pct' AS per_event_precision_pct
+           summary_json -> 'per_event_precision_pct' AS per_event_precision_pct,
+           summary_json ->> 'metric_set' AS metric_set,
+           (summary_json ->> 'expected_chapters')::int AS expected_chapters,
+           summary_json ->> 'model_route' AS model_route,
+           summary_json ->> 'prompt_hash' AS prompt_hash
     FROM phase_eval_runs
     ORDER BY ran_at DESC
     LIMIT ${args.limit * 20}

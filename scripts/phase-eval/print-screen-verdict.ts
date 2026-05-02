@@ -53,6 +53,7 @@
 
 import { readFileSync, existsSync } from "node:fs"
 import { dirname, join, isAbsolute, basename } from "node:path"
+import { createHash } from "node:crypto"
 import { chapterBeatsSchema } from "../../src/agents/planning-beats/schema"
 import { validateBeatObligationCoverage } from "../../src/harness/beat-obligations"
 
@@ -449,6 +450,22 @@ function loadVariantData(summaryDir: string, v: VariantBlock, expectedChapters: 
   return { id: v.id, ok: true, outlines: parsed }
 }
 
+/**
+ * Compute a short SHA256 of the test variant's prompt file bytes. Persisted
+ * to summary_json.prompt_hash so list-runs.ts can fold it into the family
+ * key (L53). Returns "—" when the file is missing — old summaries that
+ * pointed at deleted variant prompts shouldn't poison persistence.
+ */
+function computePromptHash(summaryDir: string, v: VariantBlock): string {
+  const path = isAbsolute(v.promptFile) ? v.promptFile : join(summaryDir, v.promptFile)
+  if (!existsSync(path)) {
+    // Try relative-to-cwd fallback for legacy summaries that store cwd-relative paths.
+    if (!existsSync(v.promptFile)) return "—"
+    return createHash("sha256").update(readFileSync(v.promptFile)).digest("hex").slice(0, 8)
+  }
+  return createHash("sha256").update(readFileSync(path)).digest("hex").slice(0, 8)
+}
+
 function readSeedChapterCount(seedName: string, charterDefault: number): number {
   // Anchor seed lookups on the project root; charter R5 specifies 5 chapters.
   const seedPath = join(import.meta.dir, "..", "..", "src", "seeds", `${seedName}.json`)
@@ -651,6 +668,10 @@ async function main(): Promise<void> {
   // docs/designs/eval-testing-module-v1.md §5.
   if (args.persist) {
     const { persistPhaseEvalRun, currentGitCommit } = await import("./persist-run")
+    // L53: compute prompt_hash for the test variant's prompt file so the
+    // family-key calculation in list-runs can discriminate reruns whose
+    // prompt bytes differ from prior runs at the same commit.
+    const promptHash = computePromptHash(summaryDir, testV)
     const augmentedSummary = {
       ...summary,
       control_variant: args.controlId,
@@ -660,6 +681,7 @@ async function main(): Promise<void> {
       mapper_health: metricSet === "state-mapper" ? { control: controlHealth, test: testHealth } : undefined,
       gates: metricSet === "state-mapper" ? { G1, G2, G3, G4, G5 } : { G1, G2, G3, G4 },
       expected_chapters: expectedChapters,
+      prompt_hash: promptHash,
     }
     try {
       const runId = await persistPhaseEvalRun({

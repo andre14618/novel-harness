@@ -4370,3 +4370,28 @@ The writer continues to invent some walk-on names (`Master Halden`, `Guildmistre
 **Ongoing implications:** The system prompt comment in `src/agents/halluc-ungrounded/halluc-ungrounded-system.md` already references title+name pairs (§13). If a future surface-form reveals a non-title prefix class that should benefit from analogous bounded stripping (e.g., role nouns derived from `deriveTitleNouns`), extend the bounding lexicon rather than introducing the unbounded per-token tier. Do not promote NER to a hard blocker on the strength of L49 alone — promotion still requires a fresh expanded-panel calibration run, per `docs/todo.md` §7.
 
 ---
+### L53 — Phase-eval probe-family key extended with metric_set/chapter_count/prompt_hash/model_route (2026-05-02, exp #377)
+
+**Decision:** Extend the `FamilyKey` in `scripts/phase-eval/list-runs.ts` from the legacy `(probe_name, test_variant, git_commit, seed)` tuple to also include `metric_set`, `chapter_count` (from `expected_chapters`), `prompt_hash` (8-char SHA-256 of the test variant's prompt file), and `model_route`. `print-screen-verdict.ts --persist` now writes `prompt_hash` to the augmented `summary_json` so newly persisted rows actually populate the new dim. The keyStr stays backward-compatible: legacy rows whose extended fields all default to "—" still emit the 4-part `<probe>:<variant>:<commit8>:<seed>`; rows with at least one extended dim emit `<base>[<metric>|<chapters>|<prompt8>|<route>]`.
+
+**Why:** Promotion decisions in the family rollup (exp #323/L10, exp #328) currently key only on `(probe, variant, commit, seed)`. Reruns at the same commit but different `metric_set` (planning-beats vs state-mapper), different chapter counts (n=5 vs n=10), different prompt bytes (variant prompt edits not bumping commit), or different model routes silently collapse into the same family. That hides comparable reruns that should aggregate, and (worse) mixes incomparable reruns under one PASS streak. The L53 fingerprint pulls those four dimensions out of `summary_json` and folds them into the family key so each comparison cell stays homogeneous.
+
+**Implementation (scripts/phase-eval/list-runs.ts):**
+- `RawRow` adds `metric_set`, `expected_chapters`, `model_route`, `prompt_hash` (all nullable).
+- `FamilyKey` adds optional `metric_set`, `chapter_count`, `prompt_hash`, `model_route`; absent values use `EXTENDED_DIM_DEFAULT = "—"`.
+- `familyKeyFor(row)` reads each dim from the dedicated column first, then falls back to `g_metrics[snake_case]` / `g_metrics[camelCase]`, defaulting to "—".
+- `familyKeyStr(key)` prints the legacy 4-part form when every extended dim is default; otherwise appends `[<metric>|<chapters>|<prompt8>|<route>]`. `groupIntoFamilies` uses the keyStr verbatim, so distinct extended dims form distinct families.
+- `parseFamilyKey` parses both legacy and extended forms, leaving extended fields `undefined` when the suffix slot is "—" so partial `--family` lookups still work.
+- `fetchRows` SELECTs the four extra fields from `summary_json` (`->>` for text, `(->>'expected_chapters')::int` for the count).
+
+**Implementation (scripts/phase-eval/print-screen-verdict.ts):**
+- New `computePromptHash(summaryDir, testV)` reads the test variant's prompt file (absolute, summary-relative, or cwd-relative) and returns the 8-char SHA-256 prefix of its bytes; "—" when the file is missing.
+- `augmentedSummary` now includes `prompt_hash: promptHash`. No other persistence shape change.
+
+**Tests (scripts/phase-eval/list-runs.test.ts):** 10 new cases under "L53 extended family-key dimensions" cover legacy rows keeping the 4-part form, full-extended rows emitting the bracketed suffix, g_metrics fallback, four "different X forms a different family" cases (metric_set, chapter_count, prompt_hash, model_route), the legacy-vs-extended split, and `parseFamilyKey` round-trips for both forms. 66/66 list-runs tests pass (was 56). Repo-wide `bunx tsc --noEmit` clean.
+
+**Result:** L53 closes on stop gate (a) — family key implemented and tested. No DB migration required (the new dims live as additive `summary_json` keys), `--rows`/`--full` legacy modes unchanged, existing `--family` lookups still work, and pre-L53 `phase_eval_runs` rows continue to group under their original 4-part keyStr.
+
+**Ongoing implications:** `scripts/phase-eval/promotion-check.ts` continues to look up prior passes on the legacy 4-part `(probe_name, test_variant, git_commit, seed)` tuple. That is the conservative choice — it keeps the existing PROMOTION-PASS gate stable and never makes promotion *easier* — but it means a flap across e.g. two prompt_hashes at the same commit could still be counted as consecutive passes by the gate. If a future probe/run set surfaces that leak in practice, extend `checkPromotionEligibility` to also accept the four extended dims. Producer-side persistence of `model_route` is still TODO; the family key reads it when present but no probe writes it today.
+
+---

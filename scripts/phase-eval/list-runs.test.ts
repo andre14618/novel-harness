@@ -298,6 +298,10 @@ function makeRow(overrides: {
   verdict: string
   ranAt: string
   gMetrics?: Record<string, any> | null
+  metricSet?: string | null
+  expectedChapters?: number | null
+  modelRoute?: string | null
+  promptHash?: string | null
 }): any {
   return {
     id: overrides.id,
@@ -314,6 +318,10 @@ function makeRow(overrides: {
     precision_pct: null,
     f1: null,
     calibration_matrix: null,
+    metric_set: overrides.metricSet ?? null,
+    expected_chapters: overrides.expectedChapters ?? null,
+    model_route: overrides.modelRoute ?? null,
+    prompt_hash: overrides.promptHash ?? null,
   }
 }
 
@@ -428,6 +436,160 @@ describe("groupIntoFamilies", () => {
     expect(match).toBeDefined()
     expect(match!.rows).toHaveLength(1)
     expect(match!.rows[0]!.id).toBe(1)
+  })
+})
+
+// ── L53 extended family-key dimensions ───────────────────────────────────
+//
+// Verify that metric_set, expected_chapters, model_route, and prompt_hash
+// are folded into the family key so reruns with mismatching probe shape
+// do NOT collapse into the same family.
+
+describe("familyKeyFor extended dims", () => {
+  const PASS = "SCREEN-PASS"
+
+  test("legacy rows (no extended metadata) keep the 4-part key string", () => {
+    const r = makeRow({
+      id: 1, probe: "phase-variant-comparison", commit: "abc12345", seed: "fantasy-debt",
+      variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T00:00:00Z",
+    })
+    const key = familyKeyFor(r)
+    // Extended fields all default ⇒ key string is the legacy 4-part form
+    expect(familyKeyStr(key)).toBe("phase-variant-comparison:loud:abc12345:fantasy-debt")
+  })
+
+  test("rows with metric_set/chapters/route/hash emit extended key string", () => {
+    const r = makeRow({
+      id: 1, probe: "phase-variant-comparison", commit: "abc12345", seed: "fantasy-debt",
+      variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T00:00:00Z",
+      metricSet: "planning-beats", expectedChapters: 5,
+      modelRoute: "deepseek-v3.2", promptHash: "abcdef1234567890",
+    })
+    const key = familyKeyFor(r)
+    expect(key.metric_set).toBe("planning-beats")
+    expect(key.chapter_count).toBe("5")
+    expect(key.model_route).toBe("deepseek-v3.2")
+    expect(key.prompt_hash).toBe("abcdef12")
+    expect(familyKeyStr(key)).toBe(
+      "phase-variant-comparison:loud:abc12345:fantasy-debt[planning-beats|5|abcdef12|deepseek-v3.2]",
+    )
+  })
+
+  test("falls back to g_metrics when top-level metadata is absent", () => {
+    const r = makeRow({
+      id: 1, probe: "p", commit: "abc", seed: "s",
+      variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T00:00:00Z",
+      gMetrics: { prompt_hash: "ffeedd00", model_route: "wb-qwen3-14b", expected_chapters: 7 },
+    })
+    const key = familyKeyFor(r)
+    expect(key.prompt_hash).toBe("ffeedd00")
+    expect(key.model_route).toBe("wb-qwen3-14b")
+    expect(key.chapter_count).toBe("7")
+  })
+
+  test("different metric_set forms a different family", () => {
+    const rows = [
+      makeRow({
+        id: 1, probe: "p", commit: "abc", seed: "s",
+        variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T00:00:00Z",
+        metricSet: "planning-beats", expectedChapters: 5,
+      }),
+      makeRow({
+        id: 2, probe: "p", commit: "abc", seed: "s",
+        variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T01:00:00Z",
+        metricSet: "state-mapper", expectedChapters: 5,
+      }),
+    ]
+    const families = groupIntoFamilies(rows)
+    expect(families.size).toBe(2)
+  })
+
+  test("different chapter_count forms a different family", () => {
+    const rows = [
+      makeRow({
+        id: 1, probe: "p", commit: "abc", seed: "s",
+        variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T00:00:00Z",
+        metricSet: "planning-beats", expectedChapters: 5,
+      }),
+      makeRow({
+        id: 2, probe: "p", commit: "abc", seed: "s",
+        variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T01:00:00Z",
+        metricSet: "planning-beats", expectedChapters: 8,
+      }),
+    ]
+    expect(groupIntoFamilies(rows).size).toBe(2)
+  })
+
+  test("different prompt_hash forms a different family", () => {
+    const rows = [
+      makeRow({
+        id: 1, probe: "p", commit: "abc", seed: "s",
+        variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T00:00:00Z",
+        promptHash: "aaaaaaaa", metricSet: "planning-beats", expectedChapters: 5,
+      }),
+      makeRow({
+        id: 2, probe: "p", commit: "abc", seed: "s",
+        variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T01:00:00Z",
+        promptHash: "bbbbbbbb", metricSet: "planning-beats", expectedChapters: 5,
+      }),
+    ]
+    expect(groupIntoFamilies(rows).size).toBe(2)
+  })
+
+  test("different model_route forms a different family", () => {
+    const rows = [
+      makeRow({
+        id: 1, probe: "p", commit: "abc", seed: "s",
+        variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T00:00:00Z",
+        modelRoute: "deepseek-v3.2", metricSet: "planning-beats", expectedChapters: 5,
+      }),
+      makeRow({
+        id: 2, probe: "p", commit: "abc", seed: "s",
+        variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T01:00:00Z",
+        modelRoute: "wb-qwen3-14b", metricSet: "planning-beats", expectedChapters: 5,
+      }),
+    ]
+    expect(groupIntoFamilies(rows).size).toBe(2)
+  })
+
+  test("legacy rows + extended rows do NOT collapse together", () => {
+    // Same probe/variant/commit/seed but one row has extended metadata,
+    // the other doesn't — they MUST form distinct families because the
+    // legacy row's extended dims are unknown and could differ.
+    const rows = [
+      makeRow({
+        id: 1, probe: "p", commit: "abc", seed: "s",
+        variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T00:00:00Z",
+      }),
+      makeRow({
+        id: 2, probe: "p", commit: "abc", seed: "s",
+        variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T01:00:00Z",
+        metricSet: "planning-beats", expectedChapters: 5,
+      }),
+    ]
+    expect(groupIntoFamilies(rows).size).toBe(2)
+  })
+
+  test("parseFamilyKey round-trips an extended key string", () => {
+    const parsed = parseFamilyKey(
+      "phase-variant-comparison:loud:abc12345:fantasy-debt[planning-beats|5|abcdef12|deepseek-v3.2]",
+    )
+    expect(parsed.probe_name).toBe("phase-variant-comparison")
+    expect(parsed.test_variant).toBe("loud")
+    expect(parsed.git_commit).toBe("abc12345")
+    expect(parsed.seed).toBe("fantasy-debt")
+    expect(parsed.metric_set).toBe("planning-beats")
+    expect(parsed.chapter_count).toBe("5")
+    expect(parsed.prompt_hash).toBe("abcdef12")
+    expect(parsed.model_route).toBe("deepseek-v3.2")
+  })
+
+  test("parseFamilyKey leaves extended fields undefined when suffix is all '—'", () => {
+    const parsed = parseFamilyKey("p:loud:abcdef12:s[—|—|—|—]")
+    expect(parsed.metric_set).toBeUndefined()
+    expect(parsed.chapter_count).toBeUndefined()
+    expect(parsed.prompt_hash).toBeUndefined()
+    expect(parsed.model_route).toBeUndefined()
   })
 })
 

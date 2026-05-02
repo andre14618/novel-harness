@@ -53,7 +53,14 @@ role: primary-lane-context
 
 ## Progress Log
 
-- Pending. Queued as lane 3 of 6 in the bounded post-L50 harness/eval loop.
+- 2026-05-02 cycle 3 — captain-claude:
+  - Inspected `scripts/phase-eval/list-runs.ts` (`familyKeyFor`/`familyKeyStr`/`groupIntoFamilies`/`parseFamilyKey`) and `scripts/phase-eval/print-screen-verdict.ts` augmented summary; confirmed only `(probe, variant, commit, seed)` was being keyed and that the augmented `summary_json` already persists `metric_set` + `expected_chapters`.
+  - Extended `RawRow` and `FamilyKey` with `metric_set`, `chapter_count`, `prompt_hash`, `model_route` (defaulting to `EXTENDED_DIM_DEFAULT="—"`).
+  - `familyKeyFor` now reads each dim from the dedicated row column first, then `g_metrics[snake/camel]`. `familyKeyStr` keeps the legacy 4-part form for legacy rows and emits `<base>[<metric>|<chapters>|<prompt8>|<route>]` for rows with any extended dim. `parseFamilyKey` parses both forms.
+  - `fetchRows` SELECT extended to pull the four extra `summary_json` keys.
+  - `print-screen-verdict.ts --persist`: `computePromptHash(summaryDir, testV)` writes the test variant prompt file's 8-char SHA-256 prefix to `summary_json.prompt_hash` so newly persisted rows actually populate the new dim.
+  - 10 new tests under "L53 extended family-key dimensions"; total 66/66 list-runs tests green; repo-wide `bunx tsc --noEmit` clean.
+  - Documented closure in `docs/todo.md` §9 and added §L53 to `docs/decisions.md`.
 
 ## Heartbeat Commands
 
@@ -63,11 +70,11 @@ role: primary-lane-context
 
 ## Results
 
-- Outcome:
-- Stop gate fired:
-- Evidence link/row/path:
-- Cost:
-- Commit(s):
+- Outcome: Family key extended with `metric_set`, `chapter_count`, `prompt_hash`, `model_route`. Backward-compatible: legacy 4-part `<probe>:<variant>:<commit8>:<seed>` keyStr preserved when extended dims default; new bracketed suffix `[<metric>|<chapters>|<prompt8>|<route>]` for rows that carry the L53 metadata. `print-screen-verdict.ts --persist` now writes `prompt_hash` to `summary_json` so newly persisted rows discriminate prompt-byte variation at the same commit.
+- Stop gate fired: (a) Clean pass — family key implemented and tested; no DB schema migration required (purely additive `summary_json` keys).
+- Evidence link/row/path: `scripts/phase-eval/list-runs.ts`, `scripts/phase-eval/list-runs.test.ts` (66/66 pass; +10 new), `scripts/phase-eval/print-screen-verdict.ts`. Decision: `docs/decisions.md` §L53. Todo closure: `docs/todo.md` §9.
+- Cost: $0 (local unit tests + tsc only).
+- Commit(s): pending — finalization commit at end of this cycle.
 
 ## Finalization Checklist
 
