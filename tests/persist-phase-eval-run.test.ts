@@ -15,18 +15,9 @@
 import { describe, expect, test, beforeAll, afterAll } from "bun:test"
 import db from "../src/db/connection"
 import { persistPhaseEvalRun, currentGitCommit } from "../scripts/phase-eval/persist-run"
+import { dbReachable } from "../src/db/test-helpers"
 
 const SMOKE_PROBE_NAME = "phase-eval-smoke-test"
-
-async function dbReachable(): Promise<boolean> {
-  if (!(process.env.DATABASE_URL ?? process.env.ORCHESTRATOR_DB_URL)) return false
-  try {
-    await db`SELECT 1`
-    return true
-  } catch {
-    return false
-  }
-}
 
 describe("persist-phase-eval-run", () => {
   let reachable = false

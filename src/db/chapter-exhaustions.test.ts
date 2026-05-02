@@ -5,7 +5,11 @@
  * novel as orphaned in one shot, leaves resolved rows alone, and is safe to
  * call on a novel with no pending rows.
  *
- * Skipped if DATABASE_URL is unset.
+ * Skipped via `describe.skipIf(!reachable)` when Postgres is not reachable
+ * — the reachability ping uses top-level await so the skip decision is
+ * available at describe time. Env-var-only skip pattern is NOT used because
+ * a stale `DATABASE_URL` shell var with no listener produces 4 false
+ * failures (Codex review of d055f60).
  */
 
 import { describe, expect, test, beforeEach, afterEach } from "bun:test"
@@ -16,8 +20,9 @@ import {
   listExhaustionsForNovel,
   markExhaustionOrphaned,
 } from "./chapter-exhaustions"
+import { dbReachable } from "./test-helpers"
 
-const reachable = !!(process.env.DATABASE_URL ?? process.env.ORCHESTRATOR_DB_URL)
+const reachable = await dbReachable()
 
 const TEST_NOVEL = `test-restart-recovery-${Date.now()}`
 
