@@ -83,6 +83,59 @@ The DeepSeek V4 Flash overnight cap is **$26 across all loops** (`docs/todo.md` 
 | Unblock a stuck plan-assist gate | Mark the row decided: `UPDATE chapter_exhaustions SET decision='manual-stop', decided_at=now() WHERE id=<N>` |
 | Cancel a pending DeepSeek call | The call is already in-flight at the provider; kill the bun process and the response is discarded but cost is incurred |
 
+## Continuity-blocker plan-assist halts
+
+A common autonomous-run halt class. As of 2026-05-02 (L37, evidence in L31d exp #358 + L37-data exp #361), chapter-level continuity blockers route directly to the plan-assist gate **on first attempt** — they do NOT consume the chapter-attempt retry budget. This is intentional design, not a bug.
+
+**Mechanism** (`src/phases/drafting.ts:1116-1133`):
+- After plan check + continuity check run in parallel on the draft, `buildCheckerBlockerDeviations` collects every `severity: "blocker"` continuity issue.
+- Any non-empty result sets `pendingExhaustion` (`kind: "plan-check-exhausted"`) and `bail = true` immediately — even on attempt 1/3.
+- In `--auto` mode, the gate fires `PipelineBailError`; the run halts.
+
+**Why it exists:** continuity is the FINAL gate after beat-level rewrites and plan-check rewrites. The expectation is that the writer/beat-writer chain produces correct state propagation, and continuity catches the rare planner→prose divergence that escaped beat-level checking. A chapter-level continuity blocker typically means the prose contradicts a `mustEstablish` fact / character knowledge / world-bible rule that was set in a prior chapter, which a beat-level retry alone cannot fix (the writer would still get the same beat-brief lacking the rule).
+
+**Cross-seed evidence (3 fantasy seeds):**
+- `fantasy-debt` (L31d): chapter 2 attempt 1 — sole continuity blocker (ledger-color contradiction, ch1 had `mustEstablish: ledger glows red near false debts`).
+- `fantasy-inscription` (L37-data): chapter 2 attempt 2 — continuity blocker co-occurring with 2 adherence beat blockers (Calla had-already-cut state divergence).
+- `fantasy-system-heretic` (L37-data): zero continuity blockers across all 3 chapter-1 attempts (bailed on adherence-beat-blocker exhaustion instead).
+
+**Operator response options (in priority order):**
+
+1. **Edit the outline.** Inspect `chapter_exhaustions.unresolved_deviations` for the description; locate the conflicting beat in the chapter outline. If the rule the prose violated is genuinely missing from the next chapter's outline / beat briefs, edit the chapter outline to surface it explicitly:
+   ```sql
+   SELECT outline_json FROM chapter_outlines
+   WHERE novel_id = '<id>' AND chapter_number = <N>;
+   ```
+   Add the rule as a `mustEstablish` fact or beat description detail; persist via `/api/novel/edit-plan`.
+
+2. **Override.** If the continuity blocker is a model-level false positive (rare but possible — verify the planner state vs. the prose with `psql` lookups), resolve the gate with `action: "override"` via the orchestrator UI or:
+   ```sql
+   UPDATE chapter_exhaustions
+   SET decided_at = now(), decision = 'override'
+   WHERE id = <N>;
+   ```
+
+3. **Abort.** If the divergence is severe and the chapter would need significant rewriting, abort the chapter and consider the run failed:
+   ```sql
+   UPDATE chapter_exhaustions
+   SET decided_at = now(), decision = 'abort'
+   WHERE id = <N>;
+   ```
+
+**Heuristics for distinguishing real state divergence vs. transient writer hallucination:**
+
+| Signal | Real state divergence | Transient hallucination |
+|---|---|---|
+| The contradicted fact appears in a prior chapter's `mustEstablish` (`SELECT outline_json FROM chapter_outlines WHERE chapter_number < <current>`) | yes | no — fact isn't actually established |
+| The contradiction is reproducible (re-running the same beat produces the same wrong rendering) | yes | no — re-runs vary |
+| The fact is in the world-bible (`SELECT world_bible_json FROM novels`) | yes | sometimes |
+| The continuity description quotes specific contradicted state ("X had already done Y", "X glows Z when …") | yes (typically) | rarely |
+| The chapter is in early novel (chapter 1, no prior state) | unusual | possible |
+
+For real state divergences, the right fix is often to **edit the chapter outline** to surface the rule (Option 1). For transient hallucinations on rare beats, **override** is acceptable. Pure abort is rarely right unless the novel is so off-rails that the operator wants to start fresh.
+
+**Why no automatic continuity-once retry (as of 2026-05-02):** L37 evaluated this and chose not to ship. Continuity blockers fire on ~22% of chapters that reach chapter 2 (2/9 across 3 seeds). Of those fires, only one was a sole continuity blocker; the other co-occurred with adherence beat blockers that a continuity-only retry would not have addressed. The dominant remaining halt class is **adherence-beat-blocker chapter-attempt exhaustion** (a separate problem) and the deeper writer-state-propagation issue (planned as L38). See `docs/decisions.md` §L37-data and `docs/l37-data-multiseed-2026-05-02.md`.
+
 ## Persisting + concluding experiments
 
 Every loop must:
