@@ -137,7 +137,17 @@ export async function checkBeatAdherence(
 
   // ── LLM adherence check — two-stage (binary first, per-event on FAIL) ──
 
-  const proseTrimmed = prose.slice(0, 2000)
+  // L39 (2026-05-02, exp #363): raised from 2000 → 8000 chars after
+  // discovering 52% of writer outputs exceed 2000 (heretic ch1 evidence
+  // novel-1777709036403). Truncation was dropping resolution actions in
+  // long action beats — e.g., heretic ch1 beat 4 emitted "She slid it
+  // back into its slot" near char 2400, the obligated reshelve event
+  // was off-screen, and adherence stage 1 + stage 2 both flagged it
+  // missing. Per cross-novel sample: 8000 covers 100% of observed
+  // beats. DeepSeek V4 Flash 32K context easily fits + prompt cache
+  // dominates cost — per-call uncached prose tokens go from ~500 →
+  // ~2000, marginal $.
+  const proseTrimmed = prose.slice(0, 8000)
   const charsLine = beat.characters.join(", ")
   const userPrompt = `BEAT: ${beat.description}
 CHARACTERS EXPECTED: ${charsLine}

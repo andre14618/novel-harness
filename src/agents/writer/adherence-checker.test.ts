@@ -14,11 +14,11 @@ import { expect, test, mock, beforeEach } from "bun:test"
 // "stage 1 + stage 2".
 
 let callAgentResponses: any[] = []
-const callAgentInvocations: Array<{ systemPrompt: string }> = []
+const callAgentInvocations: Array<{ systemPrompt: string; userPrompt: string }> = []
 
 mock.module("../../llm", () => ({
   callAgent: async (config: any) => {
-    callAgentInvocations.push({ systemPrompt: config.systemPrompt })
+    callAgentInvocations.push({ systemPrompt: config.systemPrompt, userPrompt: config.userPrompt })
     if (callAgentResponses.length === 0) {
       throw new Error(`adherence-checker.test: callAgent invoked with no stubbed response (stage prompt: ${config.systemPrompt.slice(0, 60)}…)`)
     }
@@ -298,4 +298,61 @@ test("two-stage: stage 2 emits one issue per missing event when multiple events 
   // Issue with quote evidence includes the closest-prose suffix.
   expect(result.issues[1]).toContain("Beat event missing: Istra opens the isolation room door")
   expect(result.issues[1]).toContain('thought about the door')
+})
+
+// ── L39: prose truncation ─────────────────────────────────────────────────
+// Heretic ch1 beat 4 root-cause analysis (2026-05-02, novel-1777709036403):
+// 52% of writer outputs exceed 2000 chars. The original truncation at 2000
+// dropped resolution actions in long action beats, causing adherence FNs.
+// The fix raises the limit to 8000 (covers 100% of observed beats).
+
+test("L39: prose truncation preserves beat resolution at chars 2000-3000", async () => {
+  callAgentResponses = [{ events_present: true, evidence: "covered", reasoning: "all enacted" }]
+
+  // Build a long-prose beat that has the obligated resolution near char 2400
+  // (in the historically-truncated zone). Pre-L39 (limit=2000) would not
+  // see "She slid it back into its slot"; post-L39 (limit=8000) does.
+  const filler = "The lamplight flickered. ".repeat(80) // ~2000 chars of filler
+  const longProse = `Maret pulled her file from the cabinet. ${filler}She slid it back into its slot, untouched.`
+
+  expect(longProse.length).toBeGreaterThan(2000)
+  expect(longProse.length).toBeLessThan(8000)
+
+  await checkBeatAdherence(
+    longProse,
+    beat({ description: "Maret pulls her file, hesitates, reshelves it untouched.", characters: ["Maret"] }),
+    outline(),
+    [] as CharacterProfile[],
+  )
+
+  // The userPrompt sent to stage 1 must contain the resolution action,
+  // not just the opening. Pre-L39 this assertion would have failed.
+  expect(callAgentInvocations).toHaveLength(1)
+  expect(callAgentInvocations[0].userPrompt).toContain("She slid it back into its slot")
+})
+
+test("L39: prose truncation cap is 8000 chars (above which the model gets a slice)", async () => {
+  callAgentResponses = [{ events_present: true, evidence: "covered", reasoning: "all enacted" }]
+
+  // Build a prose >8000 chars; the resolution is intentionally placed
+  // past the 8000 boundary so the test verifies where the cut happens.
+  const huge = "The room was vast. ".repeat(500) // ~10000 chars
+  const longProse = `Maret entered the records room. ${huge}She finally reshelved the file untouched.`
+
+  expect(longProse.length).toBeGreaterThan(8000)
+
+  await checkBeatAdherence(
+    longProse,
+    beat({ description: "Maret enters and reshelves the file untouched.", characters: ["Maret"] }),
+    outline(),
+    [] as CharacterProfile[],
+  )
+
+  expect(callAgentInvocations).toHaveLength(1)
+  // The opening (well within 8000) is present.
+  expect(callAgentInvocations[0].userPrompt).toContain("Maret entered the records room")
+  // The far-tail resolution (past 8000) is NOT present — confirms the
+  // cap exists and beats >8000 are still partially truncated. If we
+  // need to bump the cap further, this test fails loudly.
+  expect(callAgentInvocations[0].userPrompt).not.toContain("She finally reshelved the file untouched")
 })
