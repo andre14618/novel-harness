@@ -45,8 +45,9 @@ Structural requirements across the whole arc:
 - Don't write the entire final third as continuous high-action; the rhythm beats land harder against contrast.
 - Reflect this curve in chapter `purpose` text so the downstream beat-expansion phase plans pacing accordingly.
 
-**Chapter opener / closer kinds (Pattern 3, corpus-validated):**
-- **Opener distribution across the book: roughly half description, half action.** This is a per-book target, not a per-chapter default — pick each chapter's opener from its dramatic need (a chapter that drops into mid-action should open in action; one that re-establishes setting after a POV shift should open in description). If you find yourself writing seven description openers in a row, the corpus says the next chapter should open in action.
+**Chapter close kinds (Pattern 3, corpus-validated):**
 - Chapter closes split ~41% action / ~35% interiority / ~0% pure description. **NEVER close a chapter with pure description.** Action and interiority closes are roughly balanced; mix them across the book rather than leaning all-action or all-interiority.
 - The "reflective dip" guidance above is a content cue (cost reckoning, lull, commitment) — not a kind cue. A reflective close is still typically action or interiority that lands the reflection on a beat the reader can feel as resolution or hook, not a description fade-out.
 - When `purpose` text leans into a chapter's close, frame it as either an action consequence or an interiority decision — never as a static descriptive image of the setting.
+
+**Note:** Opener-kind guidance (action vs description for the first beat of each chapter) lives in the planning-beats prompt, not here. Plotter `purpose` text should describe the chapter's dramatic need; the beats expander has the corpus-validated opener distribution rule and decides the actual kind. (Move per exp #311 noise-baseline finding: the opener guidance was too weak when split across both prompts; consolidating it where the kind decision is made was the noise-floor recommendation.)
