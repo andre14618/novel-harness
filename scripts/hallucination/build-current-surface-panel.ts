@@ -106,21 +106,34 @@ async function assertLlmCallColumns() {
   if (missing.length > 0) throw new Error(`llm_calls missing expected columns: ${missing.join(", ")}`)
 }
 
+// bun-pg helpers: convert JS arrays to Postgres array literals so the
+// driver doesn't mis-serialize them. (Plain `${arr}` inside a tagged
+// template can produce either "Unknown object is not a valid PostgreSQL
+// type" or "number of array dimensions (598) exceeds the maximum
+// allowed" depending on bun version. Hand-formatting the {a,b,c} literal
+// + an explicit cast is the cross-version-safe pattern, mirroring what
+// promotion-check.test.ts and persist-run.ts already do for text[].)
+function pgIntArrayLit(xs: number[]): string {
+  return xs.length === 0 ? "{}" : `{${xs.join(",")}}`
+}
+function pgTextArrayLit(xs: string[]): string {
+  if (xs.length === 0) return "{}"
+  const escaped = xs.map(x => `"${x.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`)
+  return `{${escaped.join(",")}}`
+}
+
 async function loadRows(args: Args): Promise<LlmRow[]> {
   await assertLlmCallColumns()
   const agents: Agent[] = ["beat-writer", "halluc-ungrounded", "adherence-events"]
-  // Use `= ANY(${arr})` instead of `IN ${db(arr)}` — bun-pg's IN-list
-  // helper started rejecting plain JS arrays at some point ("Unknown
-  // object is not a valid PostgreSQL type"). ANY+array literal is the
-  // robust pattern that works across bun versions.
+  const agentsLit = pgTextArrayLit(agents)
   if (args.runIds.length > 0 && args.novelIds.length > 0) {
     return await db`
       SELECT id, run_id, novel_id, chapter, beat_index, attempt, agent,
              response_content, request_json, failed, error_text
       FROM llm_calls
-      WHERE run_id = ANY(${args.runIds}::int[])
-        AND novel_id = ANY(${args.novelIds}::text[])
-        AND agent = ANY(${agents}::text[])
+      WHERE run_id = ANY(${pgIntArrayLit(args.runIds)}::int[])
+        AND novel_id = ANY(${pgTextArrayLit(args.novelIds)}::text[])
+        AND agent = ANY(${agentsLit}::text[])
       ORDER BY novel_id, chapter, beat_index, attempt, agent, id
     ` as LlmRow[]
   }
@@ -129,8 +142,8 @@ async function loadRows(args: Args): Promise<LlmRow[]> {
       SELECT id, run_id, novel_id, chapter, beat_index, attempt, agent,
              response_content, request_json, failed, error_text
       FROM llm_calls
-      WHERE run_id = ANY(${args.runIds}::int[])
-        AND agent = ANY(${agents}::text[])
+      WHERE run_id = ANY(${pgIntArrayLit(args.runIds)}::int[])
+        AND agent = ANY(${agentsLit}::text[])
       ORDER BY novel_id, chapter, beat_index, attempt, agent, id
     ` as LlmRow[]
   }
@@ -138,8 +151,8 @@ async function loadRows(args: Args): Promise<LlmRow[]> {
     SELECT id, run_id, novel_id, chapter, beat_index, attempt, agent,
            response_content, request_json, failed, error_text
     FROM llm_calls
-    WHERE novel_id = ANY(${args.novelIds}::text[])
-      AND agent = ANY(${agents}::text[])
+    WHERE novel_id = ANY(${pgTextArrayLit(args.novelIds)}::text[])
+      AND agent = ANY(${agentsLit}::text[])
     ORDER BY novel_id, chapter, beat_index, attempt, agent, id
   ` as LlmRow[]
 }
