@@ -11,8 +11,12 @@ afterEach(() => {
 })
 
 test("callAgent explicitly disables DeepSeek thinking for non-thinking roles", async () => {
-  let captured: LLMRequest | null = null
-  setTransport(capturingTransport(req => { captured = req }))
+  // Wrap in an object so TypeScript's control-flow analysis doesn't narrow
+  // the variable to `null` (the inline callback that reassigns it can't be
+  // traced into closure-mutation analysis, so a bare `let captured = null`
+  // ends up typed `never` at the post-await access site).
+  const cap: { req: LLMRequest | null } = { req: null }
+  setTransport(capturingTransport(req => { cap.req = req }))
 
   await callAgent({
     provider: "deepseek",
@@ -24,12 +28,12 @@ test("callAgent explicitly disables DeepSeek thinking for non-thinking roles", a
     agentName: "test-agent",
   })
 
-  expect(captured?.extraBody).toEqual({ thinking: { type: "disabled" } })
+  expect(cap.req?.extraBody).toEqual({ thinking: { type: "disabled" } })
 })
 
 test("callAgent explicitly enables DeepSeek thinking for thinking roles", async () => {
-  let captured: LLMRequest | null = null
-  setTransport(capturingTransport(req => { captured = req }))
+  const cap: { req: LLMRequest | null } = { req: null }
+  setTransport(capturingTransport(req => { cap.req = req }))
 
   await callAgent({
     provider: "deepseek",
@@ -41,7 +45,7 @@ test("callAgent explicitly enables DeepSeek thinking for thinking roles", async 
     agentName: "test-agent",
   })
 
-  expect(captured?.extraBody).toEqual({ thinking: { type: "enabled" } })
+  expect(cap.req?.extraBody).toEqual({ thinking: { type: "enabled" } })
 })
 
 test("callAgent rejects completion cap hits before JSON parsing", async () => {

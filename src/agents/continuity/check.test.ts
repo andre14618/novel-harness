@@ -61,12 +61,14 @@ function outline(overrides: Partial<ChapterOutline> = {}): ChapterOutline {
     purpose: "Show the echo spreading and Aldric forcing production.",
     targetWords: 3000,
     charactersPresent: ["Istra Vayne", "Aldric Vane", "Wren"],
+    charactersPresentIds: [],
     scenes: [
       {
         kind: "dialogue",
         description: "Aldric welcomes Istra into his study in the High Ward.",
         characters: ["Aldric Vane", "Istra Vayne"],
         requiredPayoffs: [],
+        obligations: { mustEstablish: [], mustPayOff: [], mustTransferKnowledge: [], mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [] },
         lifeValueAxes: [],
         miceActive: [],
         miceOpens: [],

@@ -1,7 +1,16 @@
 import { expect, test } from "bun:test"
 
 import { characterMentionedInProse, findMissingCharacterMentions } from "./adherence-checker"
-import type { ChapterOutline, SceneBeat } from "../../types"
+import type { BeatObligationsContract, ChapterOutline, SceneBeat } from "../../types"
+
+const emptyObligations: BeatObligationsContract = {
+  mustEstablish: [],
+  mustPayOff: [],
+  mustTransferKnowledge: [],
+  mustShowStateChange: [],
+  mustNotReveal: [],
+  allowedNewEntities: [],
+}
 
 test("character presence accepts possessive relationship labels with curly apostrophes", () => {
   expect(characterMentionedInProse(
@@ -33,13 +42,20 @@ test("deterministic character presence does not require spelling out the POV cha
 })
 
 function beat(overrides: Partial<SceneBeat> = {}): SceneBeat {
+  // Cast: SceneBeat is z.infer<typeof sceneBeatSchema>, and obligations is
+  // a Zod-inferred shape with `objectOutputType<...>` generics. TypeScript
+  // sometimes treats two structurally-identical Zod-inferred types as
+  // unrelated when the inference path differs (z.infer reaches the same
+  // shape via slightly different generic instantiations). The runtime
+  // shape is correct; the cast bypasses the nominal-identity check.
   return {
     description: "Istra walks toward the isolation room door.",
     characters: ["Istra Vellian"],
     kind: "action",
     requiredPayoffs: [],
+    obligations: emptyObligations,
     ...overrides,
-  }
+  } as SceneBeat
 }
 
 function outline(overrides: Partial<ChapterOutline> = {}): ChapterOutline {
@@ -52,6 +68,7 @@ function outline(overrides: Partial<ChapterOutline> = {}): ChapterOutline {
     scenes: [],
     targetWords: 1000,
     charactersPresent: ["Istra Vellian"],
+    charactersPresentIds: [],
     establishedFacts: [],
     characterStateChanges: [],
     knowledgeChanges: [],

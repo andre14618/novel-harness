@@ -30,6 +30,7 @@ function chapter(): ChapterOutline {
     purpose: "Istra finds evidence of betrayal",
     targetWords: 600,
     charactersPresent: ["Istra"],
+    charactersPresentIds: [],
     scenes: [],
     establishedFacts: [],
     characterStateChanges: [],
