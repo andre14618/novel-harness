@@ -91,3 +91,46 @@ export function buildRetryPrompt(input: RetryPromptInput): RetryPromptOutput {
     userPrompt: beatContext.userPrompt + retryContext,
   }
 }
+
+/**
+ * Format chapter-level prose-integrity issues from a prior chapter-attempt
+ * into a context block to append to every beat's userPrompt in the next
+ * chapter-attempt.
+ *
+ * Returns an empty string when `issues` is empty (no chapter retry, or the
+ * prior attempt's integrity passed). The block is intended to be appended
+ * to each beat's `userPrompt` AFTER any beat-level retry context, so the
+ * writer reads a chapter-wide structural reminder alongside their per-beat
+ * brief.
+ *
+ * L41 (exp #368): closes the prose-integrity-instability cluster surfaced
+ * by L43-validation. Chapter retries previously discarded the prior
+ * attempt's integrity issue list — the writer never saw what they had to
+ * avoid. The convergence pattern in L43-val (3 → 2 → 1 issues across
+ * attempts) suggests the writer was making stochastic progress without
+ * guidance; explicit issue carry-over should accelerate convergence.
+ *
+ * Issue shape from `detectProseIntegrityIssues` in `src/lint/integrity.ts`:
+ *   { kind: "fused-boundary" | "camel-fusion" | "duplicate-sentence" |
+ *           "duplicate-fragment" | "quote-integrity"
+ *   , excerpt: string }
+ *
+ * Format kept tight (≤ ~500 chars) to avoid diluting the per-beat brief.
+ * Excerpts are slice(0, 200) to bound prompt growth on long-quoted issues.
+ */
+export function formatChapterIntegrityRetryContext(
+  issues: Array<{ kind: string; excerpt: string }>,
+): string {
+  if (issues.length === 0) return ""
+  const lines = issues
+    .slice(0, 12) // bound — typical attempt has 1-5 issues; cap protects extreme cases
+    .map(i => `- ${i.kind}: "${i.excerpt.trim().slice(0, 200)}"`)
+    .join("\n")
+  return (
+    "\n\n--- AVOID THESE INTEGRITY ISSUES FROM YOUR PRIOR DRAFT ---\n" +
+    lines +
+    "\n\nKeep sentence boundaries clean (period + space + capital). " +
+    "Do not repeat the same phrase verbatim across paragraphs. " +
+    "Pair and attribute every quote mark."
+  )
+}

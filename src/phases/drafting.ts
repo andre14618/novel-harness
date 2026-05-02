@@ -17,7 +17,7 @@ import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CHAPTER_PLAN_CHECKER_PROMPT } 
 import { buildContext as buildWriterContext } from "../agents/writer/context"
 import { buildBeatContext } from "../agents/writer/beat-context"
 import { resolveReferences } from "../agents/writer/reference-resolver"
-import { buildRetryPrompt } from "../agents/writer/retry-context"
+import { buildRetryPrompt, formatChapterIntegrityRetryContext } from "../agents/writer/retry-context"
 import { detectSyncDefects } from "../lint/quality-detectors"
 import { runBeatChecks, summarizeIssues } from "./beat-checks"
 import { checkContinuity } from "../agents/continuity/check"
@@ -219,6 +219,12 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
     }
     let lastUnresolvedSig = ""
     let chapterAborted = false
+    // L41 (exp #368): carry the prior chapter-attempt's integrity issues
+    // forward so the next attempt's beat-writer prompts include a
+    // structural-issue avoidance reminder. Reset per chapter (declared
+    // inside the for-each-chapter loop). Each entry is a {kind, excerpt}
+    // pair from `detectProseIntegrityIssues` in src/lint/integrity.ts.
+    let priorIntegrityIssues: Array<{ kind: string; excerpt: string }> = []
 
     while (!approved && attempts < maxAttempts && !chapterAborted) {
       attempts++
@@ -308,7 +314,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             let previousProse: string | null = null
             let previousIssues: string[] = []
             for (let retry = 0; retry <= pipeline.maxBeatRetries; retry++) {
-              const { userPrompt: resolvedUserPrompt } = retry > 0 && previousProse && previousIssues.length > 0
+              const { userPrompt: baseUserPrompt } = retry > 0 && previousProse && previousIssues.length > 0
                 ? buildRetryPrompt({
                     beatContext: beatCtx,
                     systemPrompt: beatSystemPrompt,
@@ -318,6 +324,11 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                     priorBeatProse: bi > 0 ? beatProses[bi - 1] : null,
                   })
                 : { userPrompt: beatCtx.userPrompt }
+              // L41: append chapter-level integrity-issue avoidance context
+              // when the prior chapter attempt failed prose integrity. Empty
+              // string when no prior failure (attempt 1 of fresh chapter, or
+              // attempt N+1 where attempt N's integrity passed).
+              const resolvedUserPrompt = baseUserPrompt + formatChapterIntegrityRetryContext(priorIntegrityIssues)
               try {
                 const response = await executeAndLog(
                   {
@@ -1265,12 +1276,19 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             chapter: ch,
           })
         }
+        // L41: stash the issue list so the next chapter-attempt's beat-writer
+        // calls include the avoidance reminder. Cleared on integrity pass below.
+        priorIntegrityIssues = proseIntegrityIssues.map(i => ({ kind: i.kind, excerpt: i.excerpt }))
         continue
       }
       await trace(novelId, {
         eventType: "prose-integrity-check", chapter: ch,
         payload: { passed: true, issues: [] },
       })
+      // L41: integrity passed → clear the carry-over so subsequent beats
+      // don't see stale avoidance context (defensive; the chapter will exit
+      // the while-loop on approval shortly).
+      priorIntegrityIssues = []
 
       // 5. Human gate
       let displayContent = prose
