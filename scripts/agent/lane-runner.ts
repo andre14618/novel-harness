@@ -36,6 +36,7 @@ export interface RunnerArgs {
   extraInstruction: string
   dryRun: boolean
   dangerouslySkipPermissions: boolean
+  reviewGate: boolean
 }
 
 export interface CycleRunResult {
@@ -84,6 +85,7 @@ export function parseArgs(argv: string[]): RunnerArgs {
     extraInstruction: "",
     dryRun: false,
     dangerouslySkipPermissions: false,
+    reviewGate: true,
   }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!
@@ -113,6 +115,7 @@ export function parseArgs(argv: string[]): RunnerArgs {
     else if (a === "--instruction") out.extraInstruction = argv[++i] ?? ""
     else if (a === "--dry-run") out.dryRun = true
     else if (a === "--dangerously-skip-permissions") out.dangerouslySkipPermissions = true
+    else if (a === "--no-review-gate") out.reviewGate = false
     else if (a === "--help" || a === "-h") {
       console.log(
         "Usage: bun scripts/agent/lane-runner.ts <docs/sessions/lane.md> [options]\n\n" +
@@ -135,7 +138,8 @@ export function parseArgs(argv: string[]): RunnerArgs {
           "  --title <text>               Pass --title/--name to the worker\n" +
           "  --instruction <text>         Extra instruction appended to each cycle prompt\n" +
           "  --dry-run                    Print the first worker command and prompt, do not execute\n" +
-          "  --dangerously-skip-permissions  Pass through to the worker (not recommended)\n",
+          "  --dangerously-skip-permissions  Pass through to the worker (not recommended)\n" +
+          "  --no-review-gate             Historical-lane escape hatch; skip Results: Review gate\n",
       )
       process.exit(0)
     } else if (!a.startsWith("--")) {
@@ -223,6 +227,7 @@ export function buildCyclePrompt(args: RunnerArgs, cycle: number, laneSummary: s
     "Lane finalization before stop or queue handoff:",
     "- Do not merely emit a stop event when the lane has a durable result.",
     "- First update Results: Outcome, Stop gate fired, Evidence link/row/path, Cost, and Commit(s).",
+    "- Record Results: Review before stop/queue handoff. Prefer an independent commit-pinned review (`impl-review <sha> PASS`) after the implementation commit; if review is intentionally waived, record the waiver reason and reviewer.",
     "- Prefer systematic docs handoff when the result is known: bun scripts/agent/finalize-docs.ts " + lanePath + " --result \"<classification>\" --commit <sha> --evidence \"<ref>\".",
     "- If not using finalize-docs, update persistent docs that should survive chat: docs/current-state.md, docs/todo.md, docs/decisions.md, docs/lessons-learned.md, and the lane doc as applicable.",
     "- Conclude the Experiment ID with bun scripts/agent/conclude-experiment.ts --id <id> --conclusion \"<summary>\" when the lane result is known.",
@@ -405,19 +410,21 @@ export function nextLaneFromQueueText(text: string, currentLanePath: string): st
   return queue.next[0] ?? null
 }
 
-export function missingConclusionFields(lanePath: string): string[] {
+export function missingConclusionFields(lanePath: string, opts: { requireReview?: boolean } = {}): string[] {
   const doc = readLaneDoc(lanePath)
+  const requireReview = opts.requireReview ?? true
   const missing: string[] = []
   if (!field(doc, "results", "outcome")) missing.push("Results: Outcome")
   if (!field(doc, "results", "stop gate fired")) missing.push("Results: Stop gate fired")
   if (!field(doc, "results", "evidence link/row/path")) missing.push("Results: Evidence link/row/path")
   if (!field(doc, "results", "commit(s)")) missing.push("Results: Commit(s)")
+  if (requireReview && !field(doc, "results", "review")) missing.push("Results: Review")
   return missing
 }
 
-function tryAdvanceLane(lanePath: string, queuePath: string | null): { lanePath: string | null; exitCode: number | null; message: string } {
+function tryAdvanceLane(lanePath: string, queuePath: string | null, opts: { requireReview?: boolean } = {}): { lanePath: string | null; exitCode: number | null; message: string } {
   if (!queuePath) return { lanePath: null, exitCode: 10, message: "lane stopped and no queue was configured" }
-  const missing = missingConclusionFields(lanePath)
+  const missing = missingConclusionFields(lanePath, opts)
   if (missing.length > 0) {
     return { lanePath: null, exitCode: 21, message: `lane stopped but conclusion is incomplete: ${missing.join(", ")}` }
   }
@@ -460,7 +467,7 @@ function main(argv: string[]): number {
     summary = refreshStaleHeartbeatIfNeeded(lanePath, summary, `lane-runner cycle ${cycle} status check`, args.staleMinutes)
     if (summary.state !== "continue") {
       if (summary.state === "stop") {
-        const advance = tryAdvanceLane(lanePath, args.queuePath)
+        const advance = tryAdvanceLane(lanePath, args.queuePath, { requireReview: args.reviewGate })
         appendRunnerEvent(lanePath, { ...workerEventFields(args), type: advance.lanePath ? "runner_advance" : "runner_stop", status: advance.lanePath ? "continue" : (advance.exitCode === 21 ? "human-needed" : "stop"), message: advance.message })
         if (advance.lanePath) {
           lanePath = advance.lanePath
@@ -520,7 +527,7 @@ function main(argv: string[]): number {
 
     if (postSummary.state !== "continue") {
       if (postSummary.state === "stop") {
-        const advance = tryAdvanceLane(lanePath, args.queuePath)
+        const advance = tryAdvanceLane(lanePath, args.queuePath, { requireReview: args.reviewGate })
         appendRunnerEvent(lanePath, { ...workerEventFields(args), type: advance.lanePath ? "runner_advance" : "runner_stop", status: advance.lanePath ? "continue" : (advance.exitCode === 21 ? "human-needed" : "stop"), message: advance.message })
         if (advance.lanePath) {
           lanePath = advance.lanePath

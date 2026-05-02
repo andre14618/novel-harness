@@ -121,6 +121,7 @@ export function buildPrompt(args: FinalizeDocsArgs): string {
     args.packetPath ? `- Read the deterministic handoff packet first: ${args.packetPath}` : "- No deterministic handoff packet was supplied; rely on the explicit inputs and lane doc, and block if evidence is insufficient.",
     "- Read the lane/session doc and durable docs listed in .opencode/agent/docs-finalizer.md.",
     "- Update all relevant durable docs, not just the lane doc, when the result affects current state, decisions, lessons, or pending todo items.",
+    "- Preserve `Results: Review`; fill it only when supplied independent review evidence or an explicit waiver exists. Do not invent a self-review.",
     "- Run `bun scripts/preflight-docs-impact.ts --strict` and `git diff --check`.",
     "- Commit only allowed documentation files. Do not include runtime code, tests, package manifests, generated artifacts, output artifacts, secrets, or unrelated dirty files.",
     "- Do not push.",

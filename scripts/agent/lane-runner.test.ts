@@ -1,9 +1,13 @@
 import { describe, expect, test } from "bun:test"
+import { mkdtempSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import {
   buildClaudeArgs,
   buildCyclePrompt,
   buildDisplayCommand,
   buildOpencodeArgs,
+  missingConclusionFields,
   nextLaneFromQueueText,
   parseLaneQueue,
   parseArgs,
@@ -31,6 +35,7 @@ function baseArgs(overrides: Partial<RunnerArgs> = {}): RunnerArgs {
     extraInstruction: "",
     dryRun: false,
     dangerouslySkipPermissions: false,
+    reviewGate: true,
     ...overrides,
   }
 }
@@ -48,6 +53,7 @@ describe("lane-runner args", () => {
     expect(args.workerRole).toBe("captain")
     expect(workerIdentity(args)).toBe("captain-opencode")
     expect(args.dryRun).toBe(false)
+    expect(args.reviewGate).toBe(true)
   })
 
   test("parses OpenCode controls", () => {
@@ -68,6 +74,7 @@ describe("lane-runner args", () => {
       "--instruction", "stay narrow",
       "--dry-run",
       "--dangerously-skip-permissions",
+      "--no-review-gate",
     ])
     expect(args.maxCycles).toBe(6)
     expect(args.engine).toBe("claude")
@@ -85,6 +92,7 @@ describe("lane-runner args", () => {
     expect(args.extraInstruction).toBe("stay narrow")
     expect(args.dryRun).toBe(true)
     expect(args.dangerouslySkipPermissions).toBe(true)
+    expect(args.reviewGate).toBe(false)
   })
 
   test("rejects missing lane", () => {
@@ -108,6 +116,8 @@ describe("lane-runner prompt and command", () => {
     expect(prompt).toContain("--actor captain-claude")
     expect(prompt).toContain("Do not touch deferred out-of-lane runtime changes")
     expect(prompt).toContain("Lane finalization before stop or queue handoff")
+    expect(prompt).toContain("Results: Review")
+    expect(prompt).toContain("impl-review <sha> PASS")
     expect(prompt).toContain("scripts/agent/finalize-docs.ts")
     expect(prompt).toContain("Results: Outcome, Stop gate fired, Evidence link/row/path, Cost, and Commit(s)")
     expect(prompt).toContain("conclude-experiment.ts")
@@ -147,6 +157,37 @@ describe("lane-runner prompt and command", () => {
     expect(command).toContain("claude")
     expect(command).toContain("<cycle-prompt>")
     expect(command).not.toContain("Required workflow")
+  })
+})
+
+describe("lane-runner review gate", () => {
+  function writeLane(results: string): string {
+    const dir = mkdtempSync(join(tmpdir(), "lane-runner-review-"))
+    const path = join(dir, "lane.md")
+    writeFileSync(path, `## Results\n\n${results}\n`)
+    return path
+  }
+
+  test("requires Results: Review for queued advancement by default", () => {
+    const path = writeLane(`- Outcome: done
+- Stop gate fired: (a) clean pass
+- Evidence link/row/path: tests
+- Cost: $0
+- Commit(s): abc123`)
+
+    expect(missingConclusionFields(path)).toContain("Results: Review")
+    expect(missingConclusionFields(path, { requireReview: false })).not.toContain("Results: Review")
+  })
+
+  test("accepts a populated Results: Review field", () => {
+    const path = writeLane(`- Outcome: done
+- Stop gate fired: (a) clean pass
+- Evidence link/row/path: tests
+- Cost: $0
+- Commit(s): abc123
+- Review: impl-review abc123 PASS`)
+
+    expect(missingConclusionFields(path)).toEqual([])
   })
 })
 

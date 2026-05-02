@@ -71,6 +71,7 @@ Use this template for any unattended Claude loop. Copy it to `docs/sessions/YYYY
 - Evidence link/row/path:
 - Cost:
 - Commit(s):
+- Review:
 
 ## Finalization Checklist
 
@@ -78,6 +79,7 @@ Use this template for any unattended Claude loop. Copy it to `docs/sessions/YYYY
 - Experiment concluded: `bun scripts/agent/conclude-experiment.ts --id <id> --conclusion "<summary>"`.
 - Classified pending gates resolved as `orphaned` after dry-run, if any.
 - Final checks run: `bun scripts/preflight-docs-impact.ts --strict`; `git diff --check`.
+- Independent review recorded in `Results: Review` before stop/queue handoff.
 - Final docs/cleanup commit created before stop/queue handoff.
 
 ## Pickup Instructions

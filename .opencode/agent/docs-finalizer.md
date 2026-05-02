@@ -69,6 +69,7 @@ Do not edit source code, migrations, tests, package files, package manifests, or
    - `Evidence link/row/path`
    - `Cost` when available
    - `Commit(s)`
+   - `Review` only from supplied independent review evidence or an explicit waiver; do not invent a self-review.
 2. Update `docs/current-state.md` only when live architecture, runtime status, or operating model changed.
 3. Update `docs/todo.md` by removing completed pending work or adding the next unresolved action. Keep it pending-only.
 4. Append `docs/decisions.md` for durable conclusions, rejected paths, or promoted runtime behavior.

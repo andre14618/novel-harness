@@ -53,6 +53,7 @@ If this file and code disagree, trust code for runtime behavior. If this file an
 - Every benchmark/novel/eval run that produces evidence links to an experiment with `EXPERIMENT_ID=N`.
 - Every experiment links to a git commit. Commit changes before running experiments.
 - Results and findings persist to the DB or tracked docs. Never leave measurement findings only in chat or stdout.
+- Queued autonomous lane advancement requires `Results: Review` by default. Record independent commit-pinned review evidence such as `impl-review <sha> PASS`, or an explicit waiver reason and reviewer, before stop/queue handoff.
 
 ## Documentation Discipline
 
@@ -101,6 +102,7 @@ Use `nohup ... > /tmp/name.log 2>&1 &` for long-running LXC scripts. Do not pipe
 - Run the narrowest relevant tests first, then broader checks when the touched surface warrants it.
 - For runtime changes, verify locally before deploying, then run LXC experiments only after commit + deploy.
 - Existing full TypeScript/check baselines may have known failures; document whether a failure is pre-existing or introduced.
+- For human lane monitoring, route defaults through the bare `monitor` alias. Use expanded `bun run monitor`, `bun scripts/agent/monitor.ts`, or `lane-dashboard` commands only when debugging the alias or working in an environment where the alias is unavailable.
 - For frontend changes, verify desktop and mobile behavior and preserve the existing design system unless explicitly changing it.
 
 ## Source Map
