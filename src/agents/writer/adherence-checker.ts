@@ -20,6 +20,7 @@
 
 import { callAgent } from "../../llm"
 import { trace } from "../../trace"
+import { log } from "../../logger"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
 import { z } from "zod"
 
@@ -165,11 +166,38 @@ ${proseTrimmed}
       // prompt names each missing action with quote evidence instead
       // of a single approximate sentence (exp #305 demonstrated this on
       // the b12 partial-enactment cluster).
-      issues.push(...(await enumerateMissingEvents({
+      //
+      // L31c (2026-05-02, exp #346): when stage 2 reports ALL events as
+      // enacted, override the stage-1 fail and accept the beat. Stage 2
+      // is more authoritative — it provides per-event quote evidence.
+      // The override is traced for audit.
+      const stage2Result = await enumerateMissingEvents({
         userPrompt,
         fallbackReasoning: stage1.output.reasoning,
         tags,
-      })))
+      })
+      if (stage2Result.stage2Override) {
+        // Unanimous stage-2 enactment overrides stage-1 fail.
+        if (tags?.novelId) {
+          await trace(tags.novelId, {
+            eventType: "adherence-stage2-override",
+            chapter: tags.chapter,
+            beatIndex: tags.beatIndex,
+            payload: {
+              attempt: tags.attempt,
+              stage1Reasoning: stage1.output.reasoning || "",
+              stage2Override: true,
+            },
+          })
+        }
+        log(
+          tags?.novelId ?? "",
+          "info",
+          `Beat ${(tags?.beatIndex ?? 0) + 1} adherence: stage-2 override — all events enacted, stage-1 false-negative suppressed`,
+        )
+      } else {
+        issues.push(...stage2Result.issues)
+      }
     }
   } catch (err) {
     issues.push(`Adherence events check failed: ${err instanceof Error ? err.message : String(err)}`)
@@ -184,11 +212,21 @@ ${proseTrimmed}
 /**
  * Stage 2 of the two-stage adherence design — per-event enumeration.
  *
- * Returns an array of issue strings (one per missing event) suitable for
- * the writer's targeted-rewrite prompt. On any failure (transport / schema
- * error, or all events report enacted=true even though stage 1 said fail),
- * falls back to the original generic single-line message so the retry
- * loop never silently loses the stage-1 verdict.
+ * Returns an object with:
+ *   - `issues`: per-missing-event strings for the writer's retry prompt
+ *   - `stage2Override`: true when stage 2 reports ALL events as enacted,
+ *     overriding the stage-1 fail verdict (L31c, 2026-05-02, exp #346)
+ *
+ * Override semantics: stage 2 is more authoritative than stage 1 because
+ * it does per-event verification with quote evidence. When stage 2 finds
+ * ALL events enacted, the stage-1 `events_present=false` is treated as a
+ * stochastic false negative (temperature self-inconsistency on implicit-
+ * action edge cases, e.g. "filling out a complaint form = deciding to
+ * report"). The beat is accepted; the override is traced for audit.
+ *
+ * On any failure (transport / schema error), falls back to the original
+ * generic single-line message so the retry loop never silently loses the
+ * stage-1 verdict.
  */
 async function enumerateMissingEvents(input: {
   userPrompt: string
@@ -197,7 +235,7 @@ async function enumerateMissingEvents(input: {
   // quirk of optional+default), so widen the param type to match.
   fallbackReasoning: string | undefined
   tags?: { novelId?: string; chapter?: number; beatIndex?: number; attempt?: number }
-}): Promise<string[]> {
+}): Promise<{ issues: string[]; stage2Override: boolean }> {
   const { userPrompt, fallbackReasoning, tags } = input
   const fallback = `Beat events not enacted on-page: ${fallbackReasoning || "no evidence found"}`
   try {
@@ -213,21 +251,24 @@ async function enumerateMissingEvents(input: {
     })
     const missing = stage2.output.obligated_events.filter(e => !e.enacted)
     if (missing.length === 0) {
-      // Stage 2 disagreed with stage 1. Preserve the stage-1 blocker so
-      // the writer still retries — exp #305 saw this happen on ~12% of
-      // panel rows and stage 1's binary disposition was correct in every
-      // case there. Falling through to the generic message is safer than
-      // dropping the issue entirely.
-      return [fallback]
+      // Stage 2 found ALL events enacted — override the stage-1 fail.
+      // L31c (exp #346): unanimous stage-2 enactment is more authoritative
+      // than stage-1's binary verdict because stage 2 provides per-event
+      // quote evidence. Return an empty issues list plus the override flag
+      // so the caller can trace the decision for audit.
+      return { issues: [], stage2Override: true }
     }
-    return missing.map(e => {
-      const quote = e.evidence_quote?.trim() ?? ""
-      return quote
-        ? `Beat event missing: ${e.event} — closest prose: "${quote}"`
-        : `Beat event missing: ${e.event}`
-    })
+    return {
+      issues: missing.map(e => {
+        const quote = e.evidence_quote?.trim() ?? ""
+        return quote
+          ? `Beat event missing: ${e.event} — closest prose: "${quote}"`
+          : `Beat event missing: ${e.event}`
+      }),
+      stage2Override: false,
+    }
   } catch {
-    return [fallback]
+    return { issues: [fallback], stage2Override: false }
   }
 }
 

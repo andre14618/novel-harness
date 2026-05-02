@@ -32,6 +32,7 @@ export type TraceEventType =
   | "validation-check"
   | "functional-check"
   | "adherence-deterministic"
+  | "adherence-stage2-override"
   | "reference-resolution"
   | "state-extraction"
   | "gate-wait"

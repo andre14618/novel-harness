@@ -169,32 +169,88 @@ test("two-stage: FAIL path fires stage 2 and returns per-event detail with quote
   expect(result.issues[0]).toContain('thought about the door but did not move')
 })
 
-test("two-stage: stage 2 with no missing events falls back to generic stage-1 message (does not lose the verdict)", async () => {
-  // Stage 1 says fail; stage 2 disagrees and reports all enacted. Per the
-  // exp #305 calibration, stage 1's binary disposition was correct in
-  // every disagreement on the labeled panel — preserve the blocker via
-  // the generic fallback instead of dropping the issue.
+// ── L31c: stage-2 override tests (exp #346, 2026-05-02) ────────────────
+//
+// When stage 1 returns `events_present=false` but stage 2 reports ALL events
+// as `enacted: true`, the beat passes (stage 2 overrides stage 1). This aligns
+// the two-stage design with its original intent: stage 2 is authoritative
+// because it provides per-event quote evidence.
+//
+// Override fires only on UNANIMOUS enactment. If stage 2 lists ANY event as
+// `enacted: false`, the stage-1 fail stands.
+
+test("L31c: stage 1 false, stage 2 all-enacted — beat PASSES (override)", async () => {
+  // L24 beat 7 shape: stage 1 called events_present=false (stochastic
+  // self-inconsistency on "filling out form = deciding to report"), but stage
+  // 2 confirmed all 4 events enacted. Beat must pass after the override.
   callAgentResponses = [
     { events_present: false, evidence: "no door action", reasoning: "door open never happens" },
     {
       obligated_events: [
-        { event: "Istra opens the door", enacted: true, evidence_quote: "(disagreement)" },
+        { event: "Istra opens the door", enacted: true, evidence_quote: "pushed open the door" },
+        { event: "Istra crosses the corridor", enacted: true, evidence_quote: "crossed the corridor" },
       ],
-      reasoning: "actually fine",
+      reasoning: "all events enacted on-page",
+    },
+  ]
+
+  const result = await checkBeatAdherence(
+    PASS_PROSE,
+    beat({ description: "Istra crosses the corridor and opens the isolation room door." }),
+    outline(),
+    [] as CharacterProfile[],
+  )
+
+  expect(result.pass).toBe(true)
+  expect(result.issues).toEqual([])
+  // Both stage 1 and stage 2 must have been invoked.
+  expect(callAgentInvocations).toHaveLength(2)
+  expect(callAgentInvocations[0].systemPrompt.startsWith(STAGE1_PROMPT_PREFIX)).toBe(true)
+  expect(callAgentInvocations[1].systemPrompt.startsWith(STAGE2_PROMPT_PREFIX)).toBe(true)
+})
+
+test("L31c: stage 1 false, stage 2 partial-enacted — beat FAILS (no override)", async () => {
+  // At least one enacted=false means override does NOT fire.
+  callAgentResponses = [
+    { events_present: false, evidence: "no door action", reasoning: "door open never happens" },
+    {
+      obligated_events: [
+        { event: "Istra crosses the corridor", enacted: false, evidence_quote: "" },
+        { event: "Istra opens the door", enacted: true, evidence_quote: "pushed open" },
+      ],
+      reasoning: "crossing missing",
     },
   ]
 
   const result = await checkBeatAdherence(
     FAIL_PROSE,
-    beat({ description: "Istra opens the isolation room door." }),
+    beat({ description: "Istra crosses the corridor and opens the isolation room door." }),
     outline(),
     [] as CharacterProfile[],
   )
 
   expect(result.pass).toBe(false)
-  expect(callAgentInvocations).toHaveLength(2)
   expect(result.issues).toHaveLength(1)
-  expect(result.issues[0]).toBe("Beat events not enacted on-page: door open never happens")
+  expect(result.issues[0]).toContain("Beat event missing: Istra crosses the corridor")
+})
+
+test("L31c: stage 1 true — stage 2 never fires, no override path involved", async () => {
+  // Pass path: stage 2 must not be invoked at all.
+  callAgentResponses = [
+    { events_present: true, evidence: "pushed open the isolation room door", reasoning: "door action enacted" },
+  ]
+
+  const result = await checkBeatAdherence(
+    PASS_PROSE,
+    beat({ description: "Istra opens the isolation room door." }),
+    outline(),
+    [] as CharacterProfile[],
+  )
+
+  expect(result.pass).toBe(true)
+  expect(result.issues).toEqual([])
+  expect(callAgentInvocations).toHaveLength(1)
+  expect(callAgentInvocations[0].systemPrompt.startsWith(STAGE1_PROMPT_PREFIX)).toBe(true)
 })
 
 test("two-stage: stage 2 transport failure falls back to generic stage-1 message", async () => {
