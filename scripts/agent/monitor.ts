@@ -5,7 +5,7 @@
  * Defaults:
  *   - latest non-template docs/sessions/*.md lane with a complete Loop Contract
  *   - --watch
- *   - --latest-novel
+ *   - outside/coordination/process panels only
  */
 
 import { readFileSync, readdirSync, statSync } from "node:fs"
@@ -23,6 +23,8 @@ interface Args {
   staleMinutes: string | null
   panels: MonitorPanel[]
 }
+
+const DEFAULT_MONITOR_PANELS: MonitorPanel[] = ["outside", "coordination", "process"]
 
 export function findLatestLaneDoc(sessionsDir = "docs/sessions", requireComplete = true): string | null {
   const entries = readdirSync(sessionsDir, { withFileTypes: true })
@@ -51,11 +53,11 @@ export function parseArgs(argv: string[]): Args {
     lanePath: null,
     watch: true,
     append: false,
-    latestNovel: true,
+    latestNovel: false,
     novelId: null,
     intervalSec: null,
     staleMinutes: null,
-    panels: ["all"],
+    panels: [...DEFAULT_MONITOR_PANELS],
   }
   const panelValues: string[] = []
   for (let i = 0; i < argv.length; i++) {
@@ -63,6 +65,11 @@ export function parseArgs(argv: string[]): Args {
     if (a === "--once") out.watch = false
     else if (a === "--watch") out.watch = true
     else if (a === "--append") out.append = true
+    else if (a === "--full") {
+      out.latestNovel = true
+      panelValues.length = 0
+      panelValues.push("all")
+    }
     else if (a === "--no-latest-novel") out.latestNovel = false
     else if (a === "--latest-novel") {
       out.latestNovel = true
@@ -92,15 +99,16 @@ export function parseArgs(argv: string[]): Args {
     else if (a === "--help" || a === "-h") {
       console.log(
         "Usage: monitor [docs/sessions/lane.md] [options]\n\n" +
-          "Defaults to latest complete non-template docs/sessions/*.md, --watch, and --latest-novel.\n\n" +
+          "Defaults to latest complete non-template docs/sessions/*.md, --watch, --no-latest-novel, and outside/coordination/process panels.\n\n" +
           "Options:\n" +
           "  --once                 Render once instead of watching\n" +
           "  --watch                Watch until interrupted (default)\n" +
           "  --append               Append snapshots instead of redrawing in place\n" +
-          "  --latest-novel         Include latest novel summary (default)\n" +
-          "  --no-latest-novel      Hide inside-harness novel summary\n" +
+          "  --full                 Show all panels and latest novel summary\n" +
+          "  --latest-novel         Include latest novel summary\n" +
+          "  --no-latest-novel      Hide inside-harness novel summary (default)\n" +
           "  --novel <id>           Include specific novel summary\n" +
-          "  --panel <name>         Panel to show: all,outside,coordination,inside,evidence,hygiene,process (default: all)\n" +
+          "  --panel <name>         Panel to show: all,outside,coordination,inside,evidence,hygiene,process (default: outside,coordination,process)\n" +
           "  --interval-sec <n>     Watch refresh interval\n" +
           "  --stale-minutes <n>    Heartbeat stale threshold\n",
       )
@@ -111,7 +119,7 @@ export function parseArgs(argv: string[]): Args {
       throw new Error(`unknown option: ${a}`)
     }
   }
-  out.panels = normalizePanels(panelValues)
+  out.panels = panelValues.length > 0 ? normalizePanels(panelValues) : out.panels
   return out
 }
 
@@ -153,10 +161,15 @@ function sleep(ms: number): Promise<void> {
 async function waitForLane(args: Args): Promise<number> {
   const intervalMs = Number(args.intervalSec ?? "5") * 1000
   const append = args.append
+  if (!append && !process.stdout.isTTY) {
+    console.log(renderWaiting(args))
+    console.error("[monitor] stdout is not a TTY; rendered one waiting snapshot instead of repeating watch frames. Use --append to force repeated snapshots.")
+    return 2
+  }
   if (!append) {
-    process.stdout.write("\x1b[?25l")
+    process.stdout.write("\x1b[?1049h\x1b[?25l")
     const restore = () => {
-      process.stdout.write("\x1b[?25h\n")
+      process.stdout.write("\x1b[?25h\x1b[?1049l\n")
       process.exit(0)
     }
     process.on("SIGINT", restore)
@@ -166,7 +179,7 @@ async function waitForLane(args: Args): Promise<number> {
   for (;;) {
     const lanePath = findLatestLaneDoc()
     if (lanePath) {
-      if (!append) process.stdout.write("\x1b[?25h\n")
+      if (!append) process.stdout.write("\x1b[?25h\x1b[?1049l\n")
       const result = spawnSync("bun", dashboardArgsFor(args, lanePath), { stdio: "inherit" })
       return result.status ?? 1
     }

@@ -110,16 +110,26 @@ export function renderInPlaceFrame(frame: string): string {
   return `\x1b[H${frame}\x1b[J`
 }
 
+export function shouldRenderSingleSnapshotInsteadOfWatch(append: boolean, stdoutIsTty = Boolean(process.stdout.isTTY)): boolean {
+  return !append && !stdoutIsTty
+}
+
 async function main(argv: string[]): Promise<number> {
   const args = parseArgs(argv)
   if (!args.watch) {
     printOnce(args)
     return 0
   }
+  if (shouldRenderSingleSnapshotInsteadOfWatch(args.append)) {
+    const started = Date.now()
+    console.log(renderWatchFrame(renderSnapshot(args), args, Date.now() - started))
+    console.error("[lane-dashboard] stdout is not a TTY; rendered one snapshot instead of repeating watch frames. Use --append to force repeated snapshots.")
+    return 0
+  }
   if (!args.append) {
-    process.stdout.write("\x1b[?25l")
+    process.stdout.write("\x1b[?1049h\x1b[?25l")
     const restoreCursor = () => {
-      process.stdout.write("\x1b[?25h\n")
+      process.stdout.write("\x1b[?25h\x1b[?1049l\n")
       process.exit(0)
     }
     process.on("SIGINT", restoreCursor)

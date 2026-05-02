@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { parseArgs, renderInPlaceFrame, renderWatchFrame } from "./lane-dashboard"
+import { parseArgs, renderInPlaceFrame, renderWatchFrame, shouldRenderSingleSnapshotInsteadOfWatch } from "./lane-dashboard"
 
 describe("lane-dashboard watch rendering", () => {
   test("parses watch options", () => {
@@ -23,5 +23,11 @@ describe("lane-dashboard watch rendering", () => {
     expect(frame.startsWith("\x1b[HLane Dashboard")).toBe(true)
     expect(frame.endsWith("\x1b[J")).toBe(true)
     expect(frame).not.toContain("\x1b[H\x1b[JLane Dashboard")
+  })
+
+  test("does not repeat watch frames when stdout is not a TTY", () => {
+    expect(shouldRenderSingleSnapshotInsteadOfWatch(false, false)).toBe(true)
+    expect(shouldRenderSingleSnapshotInsteadOfWatch(false, true)).toBe(false)
+    expect(shouldRenderSingleSnapshotInsteadOfWatch(true, false)).toBe(false)
   })
 })

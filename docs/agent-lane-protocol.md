@@ -49,8 +49,8 @@ Watch the terminal dashboard:
 ```bash
 monitor
 monitor docs/sessions/<lane>.md
+monitor --full
 monitor --panel outside --panel coordination --panel evidence
-bun scripts/agent/lane-dashboard.ts docs/sessions/<lane>.md --watch --latest-novel
 ```
 
 Coordinate operational handoffs between agents:
@@ -86,7 +86,7 @@ bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine opencode --model openai/gpt-5.5 --worker-role evidence --worker-id evidence-dsv4 --worker-io terminal
 ```
 
-`monitor` is the shell shortcut for `bun run monitor` in this repo. It defaults to the latest non-template session doc with a complete `Loop Contract`, watches continuously, and includes all panels. If no active lane exists, bare `monitor` stays open in a waiting state and polls until a complete lane doc appears. Use `monitor --once` for a single render, `monitor --append` to append snapshots instead of redrawing in place, `monitor --no-latest-novel` to hide inside-harness novel data, or `monitor --panel <name>` to narrow the dashboard.
+`monitor` is the compact shell shortcut for `bun run monitor` in this repo. It defaults to the latest non-template session doc with a complete `Loop Contract`, watches continuously, hides latest-novel wall text, and shows only the operational panels: `outside`, `coordination`, and `process`. If no active lane exists, bare `monitor` stays open in a waiting state and polls until a complete lane doc appears. Use `monitor --once` for a single render, `monitor --append` to append snapshots intentionally, `monitor --full` for all panels plus latest novel summary, or `monitor --panel <name>` to choose panels explicitly. In non-TTY/captured output, watch mode renders one snapshot instead of repeating forever unless `--append` is explicit.
 
 Panels are `all`, `outside`, `coordination`, `inside`, `evidence`, `hygiene`, and `process`. `outside` renders the lane contract, heartbeat/event log, and git state. `coordination` shows the active runner worker id, latest heartbeat actor, claimed work by actor, open lane messages, claimed work, and expired leases from `output/agent-runs/<lane-id>/messages.jsonl`. `inside` delegates to `scripts/operator-summary.ts`. `evidence` shows the lane experiment and latest `phase_eval_runs`. `hygiene` shows dirty/unpushed git state, pending/stale gates, open experiments, and docs-impact status. `process` shows DB reachability, recent LLM calls, local/LXC generation process state, and LXC orchestrator state.
 
@@ -104,7 +104,7 @@ The lane message bus is intentionally small and operational. `send` creates an a
 
 `docs-finalizer` is a repo-local OpenCode subagent stored at `.opencode/agent/docs-finalizer.md`. `scripts/agent/finalize-docs.ts` first builds a deterministic handoff packet with `scripts/agent/finalizer-packet.ts`, then invokes OpenCode on `deepseek/deepseek-v4-flash` with the high reasoning variant. The packet gives DeepSeek required evidence (lane fields, supplied commits/evidence, current Results), supporting context (recent events/messages and git state), and inventory (durable docs, log paths, warnings). Point it at a lane/session doc plus result classification, commits, and evidence refs when the lane has a durable result. It may update the lane Results, `docs/current-state.md`, `docs/todo.md`, `docs/decisions.md`, and `docs/lessons-learned.md`, then run docs-impact and whitespace checks. It commits only allowed documentation files with a `[docs] ...` message and must not edit runtime code or push.
 
-When running in the background, treat the `/tmp/lane-runner-<lane-id>.log` file as the supervisor process log and the per-cycle files under `output/agent-runs/<lane-id>/cycles/` as the worker transcript artifacts. Use `monitor --once --no-latest-novel` or `monitor --append --no-latest-novel` for snapshots without taking over the terminal.
+When running in the background, treat the `/tmp/lane-runner-<lane-id>.log` file as the supervisor process log and the per-cycle files under `output/agent-runs/<lane-id>/cycles/` as the worker transcript artifacts. Use `monitor --once` for a compact snapshot without taking over the terminal, or `monitor --append` only when you intentionally want repeated snapshots in a log.
 
 Queued advancement is deterministic. With `--queue docs/sessions/lane-queue.md`, the runner advances only after the stopped lane has `Results: Outcome`, `Results: Stop gate fired`, `Results: Evidence link/row/path`, and `Results: Commit(s)` filled. Queue entries must point to pre-created lane docs:
 

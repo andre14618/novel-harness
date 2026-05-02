@@ -33,11 +33,17 @@ const LEGACY_DOC = `# Legacy
 `
 
 describe("monitor args", () => {
-  test("defaults to watch and latest novel", () => {
+  test("defaults to compact watch without latest novel", () => {
     const args = parseArgs([])
     expect(args.watch).toBe(true)
-    expect(args.latestNovel).toBe(true)
+    expect(args.latestNovel).toBe(false)
     expect(args.append).toBe(false)
+    expect(args.panels).toEqual(["outside", "coordination", "process"])
+  })
+
+  test("parses full monitor mode", () => {
+    const args = parseArgs(["--full"])
+    expect(args.latestNovel).toBe(true)
     expect(args.panels).toEqual(["all"])
   })
 

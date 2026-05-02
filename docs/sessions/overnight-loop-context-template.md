@@ -27,7 +27,7 @@ Use this template for any unattended Claude loop. Copy it to `docs/sessions/YYYY
 - Files/scripts expected to change:
 - Evidence artifact:
 - Event log: output/agent-runs/<lane-id>/events.jsonl
-- Dashboard command: bun scripts/agent/lane-dashboard.ts docs/sessions/<lane>.md --watch --latest-novel
+- Dashboard command: monitor docs/sessions/<lane>.md
 - Runner command: bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md
 
 ## Baseline
