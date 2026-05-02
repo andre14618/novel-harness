@@ -49,7 +49,11 @@
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs"
 import { resolve } from "node:path"
-import { extractEntityCandidates, type EntityCandidate } from "../../src/lint/entity-candidates"
+import {
+  extractEntityCandidates,
+  normalizeForGroundedMatch,
+  type EntityCandidate,
+} from "../../src/lint/entity-candidates"
 
 interface Args {
   inPath: string
@@ -148,11 +152,23 @@ function getOracleLabel(row: any): OracleLabel {
  *  on the cleaner pieces. The original full string is kept too, so multi-word
  *  entities stay matchable as a whole.
  *
- *  Returns a Set<string> of lowercase grounded surface strings. Each NER
- *  candidate is checked via `groundedContains(set, candidate)` below.
+ *  Returns the surface as two parallel Sets: `lower` is the legacy
+ *  lowercase-only set (preserved for back-compat with existing callers /
+ *  exact-match path), and `normalized` is the `normalizeForGroundedMatch`
+ *  set used to collapse plural/singular/possessive/article variants. Both
+ *  whole-entry forms and per-token shards are added to each.
+ *
+ *  L4-followup-2 added the normalized set to close the `Scribe's Guildhall`
+ *  vs `The Scribes' Guildhall` FP class observed in exp #319.
  */
-function buildGroundedSurface(row: any): Set<string> {
-  const out = new Set<string>()
+interface GroundedSurface {
+  lower: Set<string>
+  normalized: Set<string>
+}
+
+function buildGroundedSurface(row: any): GroundedSurface {
+  const lower = new Set<string>()
+  const normalized = new Set<string>()
   const gs = row.task?.checker_request_meta?.groundedSources ?? {}
   const meta = row.task?.writer_request_meta ?? {}
   const sourceArrays: string[][] = [
@@ -164,12 +180,19 @@ function buildGroundedSurface(row: any): Set<string> {
     gs.allowed_new_entities ?? [],
     meta.beatCharacters ?? [],
   ]
+  function addAll(s: string) {
+    if (s.length > 0) {
+      lower.add(s.toLowerCase())
+      const norm = normalizeForGroundedMatch(s)
+      if (norm.length > 0) normalized.add(norm)
+    }
+  }
   for (const arr of sourceArrays) {
     for (const raw of arr) {
       if (typeof raw !== "string") continue
       const trimmed = raw.trim()
       if (trimmed.length === 0) continue
-      out.add(trimmed.toLowerCase())
+      addAll(trimmed)
       // Split on whitespace + apostrophe-s to handle entries like
       // "Thornwall\nThe" or "Cassel\nCassel's" — each whitespace-separated
       // token also becomes a grounded surface, so a candidate substring
@@ -177,29 +200,35 @@ function buildGroundedSurface(row: any): Set<string> {
       const tokens = trimmed.split(/\s+/).filter(t => t.length > 0)
       for (const t of tokens) {
         const cleaned = t.replace(/[’'](s|S)?$/, "").toLowerCase()
-        if (cleaned.length > 0) out.add(cleaned)
+        if (cleaned.length > 0) {
+          lower.add(cleaned)
+          const norm = normalizeForGroundedMatch(t)
+          if (norm.length > 0) normalized.add(norm)
+        }
       }
     }
   }
-  return out
+  return { lower, normalized }
 }
 
 /** Decide whether a NER candidate is grounded.
  *
  *  Match logic (case-insensitive throughout):
- *    1. Exact match: candidate.lowercase() ∈ surface ⇒ grounded.
- *    2. Substring fall-back: any grounded surface entry contains the
- *       candidate as a substring ⇒ grounded. Also: candidate contains a
- *       grounded entry as a substring (handles "Master Orin" when "Orin"
- *       is grounded — except the L4 calibration is specifically interested
- *       in surfacing those, so we ONLY match the tighter "candidate is
- *       contained by surface" direction).
- *    3. Per-token fall-back: every token in the candidate appears as a
+ *    1. Exact match: candidate.lowercase() ∈ surface.lower ⇒ grounded.
+ *    2. Substring fall-back: any lowercase grounded surface entry contains
+ *       the candidate as a substring ⇒ grounded.
+ *    3. Normalized exact match: normalizeForGroundedMatch(candidate) ∈
+ *       surface.normalized ⇒ grounded. This collapses article + possessive
+ *       + plural variants so `Scribe's Guildhall` (prose) matches
+ *       `The Scribes' Guildhall` (bible). Added in L4-followup-2.
+ *    4. Normalized substring fall-back: any normalized surface entry
+ *       contains the normalized candidate ⇒ grounded.
+ *    5. Per-token fall-back: every token in the candidate appears as a
  *       standalone grounded entry ⇒ grounded. This catches "Arbiter
  *       Cassel" being grounded because both "Arbiter" and "Cassel" appear
  *       in derived_outline_fact.
  *
- *  We deliberately use #1+#2 first then fall back to #3. Direction #3 can
+ *  We deliberately use #1–#4 first then fall back to #5. Direction #5 can
  *  over-ground (claim "Master Orin" is grounded if both "Master" and
  *  "Orin" leak into the surface separately); the L4 telemetry purpose is
  *  to find candidates that DON'T have either an exact or whole-phrase
@@ -209,20 +238,30 @@ function buildGroundedSurface(row: any): Set<string> {
  *  Returns true if grounded (i.e. NER should NOT fire), false if NER should
  *  fire on this candidate.
  */
-function isGrounded(candidatePhrase: string, surface: Set<string>): boolean {
+function isGrounded(candidatePhrase: string, surface: GroundedSurface): boolean {
   const c = candidatePhrase.toLowerCase().trim()
   if (c.length === 0) return true
-  if (surface.has(c)) return true
-  // Substring: surface entry contains the candidate.
-  for (const s of surface) {
+  // 1. exact lowercase
+  if (surface.lower.has(c)) return true
+  // 2. lowercase substring (surface entry contains the candidate)
+  for (const s of surface.lower) {
     if (s.length >= c.length && s.includes(c)) return true
   }
-  // Per-token: every token in candidate is itself in the surface.
+  // 3. normalized exact (closes plural/singular/article/possessive variants)
+  const normCandidate = normalizeForGroundedMatch(candidatePhrase)
+  if (normCandidate.length > 0 && surface.normalized.has(normCandidate)) return true
+  // 4. normalized substring
+  if (normCandidate.length > 0) {
+    for (const s of surface.normalized) {
+      if (s.length >= normCandidate.length && s.includes(normCandidate)) return true
+    }
+  }
+  // 5. per-token: every token in candidate is itself in the surface.
   const tokens = c.split(/\s+/).filter(t => t.length > 0)
   if (tokens.length === 0) return false
   const allIn = tokens.every(t => {
     const cleaned = t.replace(/[’'](s|S)?$/, "")
-    return surface.has(cleaned)
+    return surface.lower.has(cleaned)
   })
   return allIn
 }

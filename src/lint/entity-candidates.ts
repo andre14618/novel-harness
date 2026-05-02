@@ -37,7 +37,14 @@
  *
  * Filters (do NOT emit):
  *   - Sentence-initial capitalization (the first capitalized token after
- *     ., !, ?, paragraph break, or string start).
+ *     ., !, ?, paragraph break, or string start) — applies to the
+ *     `capitalized-multi-word` and `suffix-class` passes only. The
+ *     `title-pair` pass is EXEMPT from the sentence-initial filter because
+ *     the leading TITLE_TOKEN (Arbiter, Master, Captain, …) is high-signal
+ *     on its own and never collides with a generic article like "The"; the
+ *     calibration L4-followup loop showed the filter was dropping real
+ *     positives (e.g. `Arbiter Vesh` opening a paragraph) without buying
+ *     any precision back. See L4-followup-2 result-doc updates.
  *   - Single capitalized words (the LLM checker handles bare names well).
  *   - Phrases composed entirely of common-words.
  *   - Anything inside `*italics*` markdown spans (per the existing
@@ -274,13 +281,21 @@ export function extractEntityCandidates(prose: string): EntityCandidate[] {
   const candidates: EntityCandidate[] = []
 
   // 1. title-pair
+  //
+  // Sentence-initial filter is INTENTIONALLY OMITTED here. A TITLE_TOKEN
+  // followed by a Capitalized Word ("Arbiter Vesh", "Captain Brevus") is
+  // high-signal regardless of position; the L4-followup calibration showed
+  // the filter was sweeping real positives (e.g. paragraph-initial title
+  // mentions) with no precision benefit, since titles never collide with
+  // generic sentence-initial articles. The `capitalized-multi-word` and
+  // `suffix-class` passes still keep the filter because their leading
+  // tokens are not lexicon-bound and DO collide with sentence-start noise.
   const titleRe = titlePairRegex()
   let m: RegExpExecArray | null
   while ((m = titleRe.exec(prose)) !== null) {
     const start = m.index
     const end = start + m[0].length
     if (offsetIsInsideAnySpan(start, italics)) continue
-    if (isSentenceInitial(prose, start)) continue
     candidates.push({
       phrase: m[0],
       class: "title-pair",
@@ -337,4 +352,70 @@ function classOrder(c: EntityCandidateClass): number {
     case "capitalized-multi-word": return 1
     case "suffix-class": return 2
   }
+}
+
+// ── Grounded-surface match normalization ────────────────────────────────────
+
+/**
+ * Normalize a phrase for case/article/possessive/plural-insensitive matching
+ * against a grounded-surface entry. Used by the calibration loop (and any
+ * future pre-pass) to decide whether a NER candidate is "the same entity"
+ * as a name in the bible / brief / derived facts.
+ *
+ * Closes the only NER-FP class observed in the L4-followup calibration
+ * loop (commit `3f7e8d7`, exp #319): `Scribe's Guildhall` (in prose) ≠
+ * `The Scribes' Guildhall` (in bible) under naive lowercase compare. They
+ * are the same entity; the difference is only article + plural-vs-singular
+ * possessive surface form.
+ *
+ * Steps applied (in order):
+ *   1. Lowercase + collapse whitespace.
+ *   2. Strip leading article (`the`, `a`, `an`) and any whitespace after.
+ *   3. Strip trailing/leading possessive `'s` and `s'` from each token.
+ *      (`scribe's` → `scribe`; `scribes'` → `scribes`; `maret’s` → `maret`,
+ *      including the curly apostrophe `’` used by the writer.)
+ *   4. Strip a trailing `s` from each token (singular/plural collapse).
+ *      `scribes` → `scribe`; `guildhalls` → `guildhall`. We keep tokens of
+ *      length ≤ 2 untouched ("us", "is" etc. are not plural targets).
+ *
+ * Pure function. Returns "" for empty/whitespace-only input.
+ *
+ * Apply to BOTH sides of any comparison (candidate AND grounded entry).
+ *
+ * Known limitations (deliberate punts):
+ *   - English-only. Non-English plurals (e.g. `criteria`/`criterion`,
+ *     `data`/`datum`, foreign-language plural rules) are not handled.
+ *   - Naive `s`-stripping over-collapses `Bess` → `Bes`, `Chris` → `Chri`.
+ *     For the calibration domain (fantasy proper nouns mixed with English
+ *     plurals) this is acceptable; both sides of the compare are
+ *     stripped, so a perfect-name match still succeeds.
+ *   - Does NOT handle irregular plurals (`men`/`man`, `children`/`child`).
+ *   - The `s'` strip happens before the trailing-`s` strip, so
+ *     `scribes'` → `scribes` → `scribe` collapses cleanly.
+ */
+export function normalizeForGroundedMatch(phrase: string): string {
+  if (!phrase) return ""
+  // 1. lowercase + collapse whitespace
+  let s = phrase.toLowerCase().trim().replace(/\s+/g, " ")
+  if (s.length === 0) return ""
+  // 2. strip leading article
+  s = s.replace(/^(the|a|an)\s+/, "")
+  if (s.length === 0) return ""
+  // Tokenize for per-token possessive + plural collapse.
+  const tokens = s.split(" ").filter(t => t.length > 0)
+  const normalized = tokens.map(tok => {
+    let t = tok
+    // 3a. trailing possessive: `'s`, `’s`, `s'`, `s’`
+    t = t.replace(/['’]s$/, "")
+    t = t.replace(/s['’]$/, "s") // `scribes'` → `scribes` (keep the s, drop the apostrophe)
+    // 3b. trailing bare apostrophe (e.g. `Maret'`) — rare but harmless
+    t = t.replace(/['’]$/, "")
+    // 4. trailing-s strip for plural collapse, but only if the token would
+    //    still have ≥3 chars left. `us`, `is`, `as` stay as-is.
+    if (t.length > 3 && t.endsWith("s")) {
+      t = t.slice(0, -1)
+    }
+    return t
+  })
+  return normalized.join(" ")
 }

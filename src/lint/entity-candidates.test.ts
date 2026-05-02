@@ -26,6 +26,7 @@ import {
   titlePairRegex,
   capitalizedMultiWordRegex,
   suffixClassRegex,
+  normalizeForGroundedMatch,
   TITLE_TOKENS,
   SUFFIX_TOKENS,
   type EntityCandidate,
@@ -174,6 +175,114 @@ describe("filter: sentence-start", () => {
     const classes = new Set(matches.map(m => m.class))
     expect(classes.has("capitalized-multi-word")).toBe(true)
     expect(classes.has("suffix-class")).toBe(true)
+  })
+})
+
+// ── L4-followup-2 Fix 2: title-pair sentence-initial relaxation ─────────────
+
+describe("title-pair: sentence-initial allowed (L4-followup-2 Fix 2)", () => {
+  test("Sentence-initial title-pair fires (was 0 before fix)", () => {
+    // Mirrors the cs-598-…-b10 row from the L4-followup big panel: a
+    // paragraph-initial "Arbiter Vesh" was being dropped by the previous
+    // filter. After Fix 2, title-pair is exempt from the sentence-initial
+    // filter and this fires.
+    const out = extractEntityCandidates("Arbiter Vesh entered the hall.")
+    const tp = out.filter(c => c.class === "title-pair")
+    expect(tp).toHaveLength(1)
+    expect(tp[0].phrase).toBe("Arbiter Vesh")
+    expect(tp[0].offsetStart).toBe(0)
+  })
+
+  test("Paragraph-break-initial title-pair fires (mirrors real prose pattern)", () => {
+    // The real disagreement-row has the title-pair right after `\n\n`.
+    const prose = "Her heart was not.\n\nArbiter Vesh signed the warrant."
+    const out = extractEntityCandidates(prose)
+    const tp = out.filter(c => c.class === "title-pair" && c.phrase === "Arbiter Vesh")
+    expect(tp).toHaveLength(1)
+  })
+
+  test("Sentence-initial Guildmaster Aldric fires (other LLM-WIN row)", () => {
+    // Mirrors cs-598-…-b5 small-panel row that the LLM unanimously caught
+    // and NER missed because of sentence-initial drop on `Guildmaster
+    // Aldric`. After Fix 2, NER catches it.
+    const prose = "She closed the ledger.\n\nGuildmaster Aldric crossed the floor."
+    const out = extractEntityCandidates(prose)
+    const tp = out.filter(c => c.class === "title-pair" && c.phrase === "Guildmaster Aldric")
+    expect(tp).toHaveLength(1)
+  })
+
+  test("capitalized-multi-word at sentence start STILL filtered (Fix 2 is title-only)", () => {
+    // Regression guard: Fix 2 must NOT relax the filter for the other two
+    // passes. "Sundered Crown" at sentence-start should still be dropped.
+    const out = extractEntityCandidates("Sundered Crown fell from the sky.")
+    const cm = out.filter(c => c.class === "capitalized-multi-word")
+    expect(cm).toHaveLength(0)
+  })
+
+  test("suffix-class at sentence start STILL filtered (Fix 2 is title-only)", () => {
+    // Same regression guard for suffix-class.
+    const out = extractEntityCandidates("Bellward Order met that night.")
+    const sc = out.filter(c => c.class === "suffix-class")
+    expect(sc).toHaveLength(0)
+  })
+})
+
+// ── L4-followup-2 Fix 1: normalizeForGroundedMatch helper ────────────────────
+
+describe("normalizeForGroundedMatch (L4-followup-2 Fix 1)", () => {
+  test("strips leading article", () => {
+    expect(normalizeForGroundedMatch("The Bellward Order")).toBe("bellward order")
+    expect(normalizeForGroundedMatch("a Quill Society")).toBe("quill society")
+    expect(normalizeForGroundedMatch("an Imperial Decree")).toBe("imperial decree")
+  })
+
+  test("plural-vs-singular collapse — primary FP target", () => {
+    // The Scribes' Guildhall (bible) vs Scribe's Guildhall (prose).
+    const bible = normalizeForGroundedMatch("The Scribes' Guildhall")
+    const prose = normalizeForGroundedMatch("Scribe's Guildhall")
+    expect(bible).toBe(prose)
+  })
+
+  test("strips ASCII apostrophe possessive", () => {
+    expect(normalizeForGroundedMatch("Maret's Apartment")).toBe("maret apartment")
+  })
+
+  test("strips curly apostrophe possessive", () => {
+    expect(normalizeForGroundedMatch("Maret’s Apartment")).toBe("maret apartment")
+  })
+
+  test("strips trailing s'", () => {
+    expect(normalizeForGroundedMatch("Scribes' Guildhall")).toBe("scribe guildhall")
+  })
+
+  test("plural collapse on long enough tokens only", () => {
+    expect(normalizeForGroundedMatch("Scribes")).toBe("scribe")
+    expect(normalizeForGroundedMatch("Guildhalls")).toBe("guildhall")
+    // Short tokens stay (us, is, as).
+    expect(normalizeForGroundedMatch("Bus")).toBe("bus")
+  })
+
+  test("collapses whitespace and is case-insensitive", () => {
+    expect(normalizeForGroundedMatch("  THE   bellward    order  ")).toBe("bellward order")
+  })
+
+  test("empty / whitespace-only input → empty", () => {
+    expect(normalizeForGroundedMatch("")).toBe("")
+    expect(normalizeForGroundedMatch("   ")).toBe("")
+  })
+
+  test("idempotent — applying twice equals applying once", () => {
+    const inputs = [
+      "The Scribes' Guildhall",
+      "Maret’s Apartment",
+      "Bellward Order",
+      "Captain Brevus",
+    ]
+    for (const s of inputs) {
+      const once = normalizeForGroundedMatch(s)
+      const twice = normalizeForGroundedMatch(once)
+      expect(twice).toBe(once)
+    }
   })
 })
 
