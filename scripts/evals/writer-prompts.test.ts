@@ -24,6 +24,13 @@ describe("writer prompt guardrails", () => {
       expect(prompt).toContain("READER-INFO STATE is binding when present")
       expect(prompt).toContain("first-time discoveries")
       expect(prompt).toContain("Hidden from {that character}")
+      // L38-G writer-discipline rule: same-chapter physical-state continuity
+      // must persist across beats; writers should prefer ambiguity over
+      // inventing visible details that earlier beats may already have changed.
+      // See docs/sessions/2026-05-02-L38-G-intra-chapter-state.md.
+      expect(prompt).toContain("Same-chapter physical-state continuity is binding")
+      expect(prompt).toContain("persists across beats once a prior beat in this chapter establishes it")
+      expect(prompt).toContain("prefer ambiguity over naming a specific detail")
     }
   })
 
