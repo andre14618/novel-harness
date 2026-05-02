@@ -332,3 +332,88 @@ After three consecutive charters in the same adapter family fail to beat baselin
 ### 11.8 Fine-tune charter must cite which rungs 1–6 were measured
 
 Every fine-tune charter's §5 ("Cheapest counterfactuals considered") must name specific measured results for at least rungs 1, 2, and 4 on the current production model. "Considered and rejected because X" without a measurement is not a rejection — it is a guess. The adversary review (`/charter-review` — Codex primary, Opus fallback; see `docs/experiment-adversary-prompt.md`) will block any charter whose rejections are unmeasured.
+
+---
+
+## 12. Promotion Thresholds
+
+Phase-eval and prompt-A/B results are noisy. A single PASS verdict is suggestive, not promotion-grade. Every promotion path is gated by structural evidence — multi-run, multi-seed, or per-class FN/FP closure — not by best-run cherry-picking. Every rule below was learned from a real promotion miss (or near-miss) in the L7–L23 sequence.
+
+### 12.1 Verdict ladder
+
+| Verdict | Meaning | Action allowed |
+|---------|---------|----------------|
+| `SCREEN-FAIL (broken)` | Probe could not produce outlines / parser failed | Investigate parse, do not promote |
+| `SCREEN-FAIL (non-compliant)` | Probe ran but failed a G1–Gn structural gate | Iterate or kill; do not promote |
+| `SCREEN-PASS-SUGGESTIVE` | Single run cleared all gates | Eligible for re-probe; **not promote-eligible** |
+| `PROMOTION-PASS` | This run passed AND ≥1 prior consecutive PASS exists on the same probe-family tuple | Promotion-eligible |
+
+`scripts/phase-eval/print-screen-verdict.ts` emits these labels automatically; `scripts/phase-eval/promotion-check.ts` does the prior-run lookup. *(L13 + L10.)*
+
+### 12.2 Probe-family tuple
+
+Two runs are comparable only if they share `(probe_name, test_variant, git_commit, seed)`. Group families with `scripts/phase-eval/list-runs.ts` (default rollup mode). Mixing seeds, commits, or variants across "the same" probe is the most common source of false promotion claims. *(L13: family rollup added because cherry-picked PASS rows from different commits / seeds were being read as a streak.)*
+
+### 12.3 Minimum promotion gate: 3 consecutive PASS on the tuple
+
+Or equivalently, **2 seeds × 2 reruns (4 cells) all-passing** when seed-generalization is the gate. Single n=10 PASS is insufficient. *(L10, exp #323: Family A's coverage-balanced variant flapped 4 PASS / 2 FAIL on the same tuple — without the 3-consecutive guard, two of those runs would have triggered incorrect KILL decisions.)*
+
+The probability calculation (n=3 consecutive PASS): P(3 consec | true 60% pass-rate) = 22% vs P(3 consec | true 85% pass-rate) = 61%. The gap is what makes the gate informative.
+
+### 12.4 Coefficient-of-variation reference table
+
+Use these CV values to decide whether a metric is gateable from a single run:
+
+| Metric class | Typical CV | Gateable from 1 run? | Source |
+|--------------|-----------|----------------------|--------|
+| `total_beats` (well-conditioned) | 0.04–0.16 | Yes (if delta is ≥1.5σ) | L10 Family C control |
+| `facts_median` (typical) | 0.16–0.18 | Suggestive only | L10 Family A/D |
+| `facts_median` (high-noise) | 0.30–0.40 | **No — multi-run required** | L10 Family A test arm |
+| `know_median` | 0.16–0.22 | Suggestive only | L10 Family C |
+| `closer_action` rate | 0.55+ | **No — never gate from rate** | L10 Family C |
+| Adherence-checker recall (panel) | 0.05–0.15 | Yes for binary; suggestive for two-of-three | L18 |
+| Halluc-ungrounded F1 (panel) | 0.05–0.12 | Yes if delta ≥0.05 | L23b |
+
+A CV ≥ 0.35 on the gating metric means the verdict is unreliable — promote only after 3-consecutive-PASS on the tuple.
+
+### 12.5 At CV=0.18, ±15% of mean requires n=4 runs
+
+The standard 90% CI calculation gives n=4 for ±15% precision and n=31 for ±5%. This is why the practical gate is "3 consecutive" not "3/5" — the latter requires too many runs to be cost-effective at production CV levels. *(L10.)*
+
+### 12.6 Single-seed-deep beats multi-seed-shallow at near-equal cost
+
+Multi-seed (3 seeds × 5 chapters × 3 reruns = 9 cells) was 3-4× noisier than single-seed-deep (1 seed × 10 chapters × 5 reruns) on per-chapter medians. Between-seed structural variation in the planner output distribution dominates within-seed temperature noise. Default phase-eval shape is **single-seed-deep**; multi-seed lives as a sibling for explicit seed-generalization probes only. *(L6, exp #318, `phase_eval_runs.id=67`.)*
+
+### 12.7 Prompt-A/B promotion gate: 100% on production-equivalent panel + no regression on labeled panel
+
+Two parallel acceptance gates for any prompt iteration:
+1. **Target gate:** the new shape's recall/precision on the dedicated synthetic panel (the FN/FP class the iteration is closing).
+2. **Regression gate:** the labeled production-equivalent panel's exact previous numbers must hold (e.g., `current-surface-panel-exp299-labeled.jsonl` for halluc-ungrounded → must stay at 100/100).
+
+Iterate until both gates pass. If only the target gate passes but the regression gate breaks, the iteration is a side-grade, not a promotion. *(L21 needed 5 iterations; v3-v7 reasoning-first variants closed the candle case but caused 3 FPs on the regression panel.)*
+
+### 12.8 A/B prompt iterations: positive framing, no negative-prime "X OR Y"
+
+Negative priming ("never use X, NEVER add Y, do NOT default to Z") consistently makes the model emit the forbidden tokens MORE, not less — observed in 2026-04-20 Salvatore A/B (+10.5 pts worse) and L21 (the explicit-prohibition reasoning-first variants regressed precision by 14 pts). Reframe as "Treat X as equally obligated as Y" or "Pass [positive description]" instead. The lint at `scripts/phase-eval/lint-prompts.ts` warns on `X OR Y` + negative-prime patterns — heed it. *(`feedback_priming_suppression_ab` + `feedback_act_on_codex_consensus`.)*
+
+### 12.9 Cluster verification: prior closures must not regress
+
+When promoting a fix that closes a new FN class, also verify the prior closures still hold. The L17→L20→L22→L23 ratchet uses the same fantasy-debt seed across smokes precisely so each iteration's plan-assist gate fires can be class-checked: L20 must close the L17 cluster (Brennan/Aldric); L23 must close the L22 cluster (T.C./Guildmaster) AND the L17 cluster. A regression on a prior cluster is a stop-condition (c) — roll back, don't patch in-place. *(L22 + L24.)*
+
+### 12.10 Atomic FN closures: one ticket = one orthogonal fix
+
+L23 split into L23a (NER initials + capitalized-first-only extractors) and L23b (derived titles + v5 prompt) because the 4 entities had 4 root causes. Bundling all 4 into one prompt rewrite would have produced an uninterpretable A/B result if the ratio of fixed-vs-broken changed unevenly. The atomic structure also lets git revert a single-cause regression without unwinding the others. *(L23a/L23b parallel-dispatch sprint, atomic commits per concern.)*
+
+### 12.11 Adopt the `--persist` discipline: probe results live in `phase_eval_runs`, not stdout
+
+Every checker A/B / planner variant / synthetic-panel run should pass `--persist` to the script (or call `persistPhaseEvalRun()` directly). Stdout is volatile and lost; the DB row is queryable, comparable, and stays linked to the experiment. Persistence is also the prerequisite for the family-rollup (§12.2) and consecutive-PASS gate (§12.3). *(R6 v1, commit `31f26b4`.)*
+
+### 12.12 Stop-condition labels for any iteration loop
+
+Every loop should declare which of (a)/(b)/(c)/(d) fired:
+- (a) Acceptance criterion met — promote, doc, commit
+- (b) New cluster fires that is NOT in any prior known class — document the new cluster, propose follow-up sprint
+- (c) Prior cluster regresses — roll back the offending commit, doc the regression
+- (d) Cost cap crossed — doc partial findings + remaining budget
+
+Without a stop-condition label, future loops can't tell whether the work was a clean win, a planned-followup, a regression, or an exhausted budget. *(Standing practice across L17–L24.)*
