@@ -17,6 +17,8 @@ import {
   consecutiveStreak,
   computeRange,
   groupIntoFamilies,
+  isCheckerProbe,
+  extractCheckerSummary,
 } from "./list-runs"
 
 // ── Synthetic fixture builder ─────────────────────────────────────────────
@@ -426,5 +428,130 @@ describe("groupIntoFamilies", () => {
     expect(match).toBeDefined()
     expect(match!.rows).toHaveLength(1)
     expect(match!.rows[0]!.id).toBe(1)
+  })
+})
+
+// ── isCheckerProbe ────────────────────────────────────────────────────────
+
+describe("isCheckerProbe", () => {
+  test("recognises halluc-synthetic-fire-rate", () => {
+    expect(isCheckerProbe("halluc-synthetic-fire-rate")).toBe(true)
+  })
+  test("recognises adherence-per-event-prototype", () => {
+    expect(isCheckerProbe("adherence-per-event-prototype")).toBe(true)
+  })
+  test("rejects planning-style probe", () => {
+    expect(isCheckerProbe("phase-variant-comparison")).toBe(false)
+  })
+  test("rejects empty / unknown probe", () => {
+    expect(isCheckerProbe("")).toBe(false)
+    expect(isCheckerProbe("some-other-probe")).toBe(false)
+  })
+})
+
+// ── extractCheckerSummary ─────────────────────────────────────────────────
+
+function checkerRow(overrides: Partial<PartialRow & {
+  halluc_calibration: any
+  adherence_calibration: any
+  halluc_recall_pct: number | null
+  adherence_recall_pct: number | null
+  binary_calibration: any
+  binary_match_pct: number | null
+  per_event_recall_pct: number | null
+  per_event_precision_pct: number | null
+}>): any {
+  return {
+    id: 1,
+    probe_name: "halluc-synthetic-fire-rate",
+    git_commit: "abc12345",
+    seeds_used: ["seed-x"],
+    variant_labels: ["live-checkers"],
+    verdict: "synthetic-fire-rate halluc=80% adherence=100%",
+    ran_at: new Date("2026-05-02T12:00:00Z"),
+    experiment_id: null,
+    notes: null,
+    g_metrics: null,
+    recall_pct: null,
+    precision_pct: null,
+    f1: null,
+    calibration_matrix: null,
+    halluc_calibration: null,
+    adherence_calibration: null,
+    halluc_recall_pct: null,
+    adherence_recall_pct: null,
+    binary_calibration: null,
+    binary_match_pct: null,
+    per_event_recall_pct: null,
+    per_event_precision_pct: null,
+    ...overrides,
+  }
+}
+
+describe("extractCheckerSummary", () => {
+  test("returns null for non-checker probe", () => {
+    const r = checkerRow({ probe_name: "phase-variant-comparison" })
+    expect(extractCheckerSummary(r)).toBeNull()
+  })
+
+  test("extracts halluc-synthetic shape with calibration matrices and recall", () => {
+    const r = checkerRow({
+      probe_name: "halluc-synthetic-fire-rate",
+      halluc_calibration: { TP: 4, FP: 0, FN: 1, TN: 5 },
+      adherence_calibration: { TP: 2, FP: 0, FN: 0, TN: 8 },
+      halluc_recall_pct: 80,
+      adherence_recall_pct: 100,
+    })
+    const summary = extractCheckerSummary(r)
+    expect(summary).not.toBeNull()
+    expect(summary!.shape).toBe("halluc-synthetic")
+    expect(summary!.hallucCalibration).toEqual({ TP: 4, FP: 0, FN: 1, TN: 5 })
+    expect(summary!.adherenceCalibration).toEqual({ TP: 2, FP: 0, FN: 0, TN: 8 })
+    expect(summary!.hallucRecallPct).toBe(80)
+    expect(summary!.adherenceRecallPct).toBe(100)
+    expect(summary!.binaryCalibration).toBeNull()
+    expect(summary!.perEventRecallPct).toBeNull()
+  })
+
+  test("extracts adherence-per-event shape with binary + per-event metrics", () => {
+    const r = checkerRow({
+      probe_name: "adherence-per-event-prototype",
+      binary_calibration: { TP: 11, FP: 1, FN: 1, TN: 3 },
+      binary_match_pct: 92,
+      per_event_recall_pct: 85,
+      per_event_precision_pct: 80,
+    })
+    const summary = extractCheckerSummary(r)
+    expect(summary).not.toBeNull()
+    expect(summary!.shape).toBe("adherence-per-event")
+    expect(summary!.binaryCalibration).toEqual({ TP: 11, FP: 1, FN: 1, TN: 3 })
+    expect(summary!.binaryMatchPct).toBe(92)
+    expect(summary!.perEventRecallPct).toBe(85)
+    expect(summary!.perEventPrecisionPct).toBe(80)
+    expect(summary!.hallucCalibration).toBeNull()
+    expect(summary!.adherenceCalibration).toBeNull()
+  })
+
+  test("zero-fills missing matrix entries instead of dropping the row", () => {
+    const r = checkerRow({
+      probe_name: "halluc-synthetic-fire-rate",
+      halluc_calibration: { TP: 3 },
+      adherence_calibration: null,
+      halluc_recall_pct: 50,
+    })
+    const summary = extractCheckerSummary(r)
+    expect(summary!.hallucCalibration).toEqual({ TP: 3, FP: 0, FN: 0, TN: 0 })
+    expect(summary!.adherenceCalibration).toBeNull()
+  })
+
+  test("treats non-numeric percentages as null", () => {
+    const r = checkerRow({
+      probe_name: "halluc-synthetic-fire-rate",
+      halluc_recall_pct: NaN as unknown as number,
+      adherence_recall_pct: "100" as unknown as number,
+    })
+    const summary = extractCheckerSummary(r)
+    expect(summary!.hallucRecallPct).toBeNull()
+    expect(summary!.adherenceRecallPct).toBeNull()
   })
 })

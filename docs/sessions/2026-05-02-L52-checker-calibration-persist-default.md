@@ -30,9 +30,12 @@ role: primary-lane-context
 
 ## Baseline
 
-- Current behavior: Pending first-cycle inspection.
-- Baseline command(s): Inspect target scripts and existing phase-eval tests.
-- Baseline result: Pending.
+- Current behavior:
+  - `scripts/hallucination/run-synthetic-checkers.ts` accepts `--persist [--exp-id N] [--note STR]` and writes a `phase_eval_runs` row with probe_name `halluc-synthetic-fire-rate` and a top-level `summary_json` block (`halluc_calibration`, `adherence_calibration`, `halluc_recall_pct`, `adherence_recall_pct`, `per_row_results`). Default is dry (file-only via `--out`).
+  - `scripts/hallucination/probe-obligation-aware-adherence.ts` accepts the same `--persist [--exp-id N] [--note STR]` shape and writes a row with probe_name `adherence-per-event-prototype` and a top-level `summary_json` block (`binary_calibration`, `binary_match_pct`, `per_event_recall_pct`, `per_event_precision_pct`, `per_row_results`). Default is dry.
+  - `scripts/phase-eval/list-runs.ts` only knew the planning-shape `g_metrics` block (`test_facts_median`, `test_know_median`, `test_total_beats`) plus legacy `recall_pct/precision_pct/f1/calibration_matrix` for `--rows` mode. Checker-shape rows therefore appeared in the family rollup with FACTS/KNOW/BEATS columns all `—` and the SCREEN-PASS/FAIL counter mis-classifying their non-screen verdicts.
+- Baseline command: `bun test scripts/phase-eval/list-runs.test.ts` → 47 pass / 0 fail.
+- Baseline result: Persistence flag is already consistent across the two calibration scripts; the gap is purely on the reporting side.
 
 ## Stop Gates
 
@@ -53,7 +56,15 @@ role: primary-lane-context
 
 ## Progress Log
 
-- Pending. Queued as lane 2 of 6 in the bounded post-L50 harness/eval loop.
+- 2026-05-02: Audited the three target scripts. `--persist` parity already exists (same flag set in both calibration scripts). Per the escalation rule, kept persistence opt-in (the runtime concern is opportunistic DB writes during local testing, not unintended live LLM calls — LLM calls happen regardless of `--persist`).
+- 2026-05-02: Extended `scripts/phase-eval/list-runs.ts` to recognise the two checker probes (`halluc-synthetic-fire-rate`, `adherence-per-event-prototype`). Added:
+  - `isCheckerProbe(probeName)` registry.
+  - `extractCheckerSummary(row)` returning a typed `CheckerSummary` with shape-specific calibration matrices and recall/precision percentages.
+  - Two shape-aware rollup renderers (`printHallucSyntheticRollup`, `printAdherencePerEventRollup`) that show H_RECALL / A_RECALL / matrices for halluc-synthetic and BIN_MATCH / PE_RECALL / PE_PREC / matrix for per-event.
+  - `partitionFamiliesByShape()` so the default `bun list-runs.ts` rollup prints legacy + each checker shape as separate sub-tables (preserves byte-identical legacy output for non-checker probes).
+  - Extended `fetchRows` to slice the new top-level `summary_json` keys: `halluc_calibration`, `adherence_calibration`, `halluc_recall_pct`, `adherence_recall_pct`, `binary_calibration`, `binary_match_pct`, `per_event_recall_pct`, `per_event_precision_pct`.
+- 2026-05-02: Added 9 unit tests covering `isCheckerProbe` and `extractCheckerSummary` (zero-fill of partial matrices, NaN/string rejection on percentages, shape dispatch). Total `list-runs.test.ts` count: 47 → 56.
+- 2026-05-02: Verified `bun build` succeeds for the script and tests.
 
 ## Heartbeat Commands
 
@@ -63,11 +74,11 @@ role: primary-lane-context
 
 ## Results
 
-- Outcome:
-- Stop gate fired:
-- Evidence link/row/path:
-- Cost:
-- Commit(s):
+- Outcome: Clean pass. Persistence flag was already consistent on both calibration scripts; the actionable gap was reporting. `list-runs.ts` now surfaces checker-specific columns (recall%, precision%, calibration matrices) for the two known checker probes, with shape-aware sub-tables in the default rollup so legacy planning output is unchanged.
+- Stop gate fired: (a) — clean pass, persistence/reporting behaviour implemented and tested.
+- Evidence link/row/path: `bun test scripts/phase-eval/list-runs.test.ts` → 56 pass / 0 fail (47 baseline + 9 new); `scripts/phase-eval/list-runs.ts` (`isCheckerProbe`, `extractCheckerSummary`, `partitionFamiliesByShape`, `printHallucSyntheticRollup`, `printAdherencePerEventRollup`).
+- Cost: $0 (unit tests only, no live LLM / DB).
+- Commit(s): pending finalization commit.
 
 ## Finalization Checklist
 

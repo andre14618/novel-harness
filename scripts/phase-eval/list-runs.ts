@@ -48,6 +48,17 @@ interface RawRow {
   precision_pct: number | null
   f1: number | null
   calibration_matrix: { TP?: number; FP?: number; FN?: number; TN?: number } | null
+  // Checker-calibration shapes (top-level summary_json keys persisted by
+  // scripts/hallucination/run-synthetic-checkers.ts and
+  // scripts/hallucination/probe-obligation-aware-adherence.ts).
+  halluc_calibration: { TP?: number; FP?: number; FN?: number; TN?: number } | null
+  adherence_calibration: { TP?: number; FP?: number; FN?: number; TN?: number } | null
+  halluc_recall_pct: number | null
+  adherence_recall_pct: number | null
+  binary_calibration: { TP?: number; FP?: number; FN?: number; TN?: number } | null
+  binary_match_pct: number | null
+  per_event_recall_pct: number | null
+  per_event_precision_pct: number | null
 }
 
 interface FamilyKey {
@@ -109,6 +120,81 @@ function parseArgs(): Args {
     limit,
     rows: map["rows"] === true || map["rows"] === "true",
     full: map["full"] === true || map["full"] === "true",
+  }
+}
+
+// ── Checker-probe classification ──────────────────────────────────────────
+
+/**
+ * Probes that persist checker-calibration summaries (top-level halluc/
+ * adherence calibration matrices + recall/precision percentages) instead
+ * of the planning-shape g_metrics block. Listed exhaustively so the
+ * rollup can pick the right columns and skip SCREEN-PASS/FAIL counting,
+ * which doesn't apply to these verdicts.
+ */
+const CHECKER_PROBE_NAMES = new Set([
+  "halluc-synthetic-fire-rate",
+  "adherence-per-event-prototype",
+])
+
+export function isCheckerProbe(probeName: string): boolean {
+  return CHECKER_PROBE_NAMES.has(probeName)
+}
+
+export type CheckerShape = "halluc-synthetic" | "adherence-per-event"
+
+export interface CheckerSummary {
+  shape: CheckerShape
+  hallucCalibration: { TP: number; FP: number; FN: number; TN: number } | null
+  adherenceCalibration: { TP: number; FP: number; FN: number; TN: number } | null
+  hallucRecallPct: number | null
+  adherenceRecallPct: number | null
+  binaryCalibration: { TP: number; FP: number; FN: number; TN: number } | null
+  binaryMatchPct: number | null
+  perEventRecallPct: number | null
+  perEventPrecisionPct: number | null
+}
+
+function calibrationOrNull(m: any): { TP: number; FP: number; FN: number; TN: number } | null {
+  if (!m || typeof m !== "object") return null
+  return {
+    TP: typeof m.TP === "number" ? m.TP : 0,
+    FP: typeof m.FP === "number" ? m.FP : 0,
+    FN: typeof m.FN === "number" ? m.FN : 0,
+    TN: typeof m.TN === "number" ? m.TN : 0,
+  }
+}
+
+function numberOrNull(v: any): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null
+}
+
+export function extractCheckerSummary(row: RawRow): CheckerSummary | null {
+  if (!isCheckerProbe(row.probe_name)) return null
+  if (row.probe_name === "halluc-synthetic-fire-rate") {
+    return {
+      shape: "halluc-synthetic",
+      hallucCalibration: calibrationOrNull(row.halluc_calibration),
+      adherenceCalibration: calibrationOrNull(row.adherence_calibration),
+      hallucRecallPct: numberOrNull(row.halluc_recall_pct),
+      adherenceRecallPct: numberOrNull(row.adherence_recall_pct),
+      binaryCalibration: null,
+      binaryMatchPct: null,
+      perEventRecallPct: null,
+      perEventPrecisionPct: null,
+    }
+  }
+  // adherence-per-event-prototype
+  return {
+    shape: "adherence-per-event",
+    hallucCalibration: null,
+    adherenceCalibration: null,
+    hallucRecallPct: null,
+    adherenceRecallPct: null,
+    binaryCalibration: calibrationOrNull(row.binary_calibration),
+    binaryMatchPct: numberOrNull(row.binary_match_pct),
+    perEventRecallPct: numberOrNull(row.per_event_recall_pct),
+    perEventPrecisionPct: numberOrNull(row.per_event_precision_pct),
   }
 }
 
@@ -396,6 +482,117 @@ function printFamilyRollup(families: FamilyStats[], limit: number): void {
   console.log("Use --rows to see the full per-row table (legacy mode).")
 }
 
+// ── Checker-shape rollup display ──────────────────────────────────────────
+
+function fmtPct(n: number | null): string {
+  return n === null ? "—" : `${n.toFixed(1)}%`
+}
+
+function fmtMatrix(m: { TP?: number; FP?: number; FN?: number; TN?: number } | null): string {
+  if (!m) return "—"
+  return `TP=${m.TP ?? 0}/FP=${m.FP ?? 0}/FN=${m.FN ?? 0}/TN=${m.TN ?? 0}`
+}
+
+function partitionFamiliesByShape(families: FamilyStats[]): {
+  hallucSynthetic: FamilyStats[]
+  adherencePerEvent: FamilyStats[]
+  legacy: FamilyStats[]
+} {
+  const hallucSynthetic: FamilyStats[] = []
+  const adherencePerEvent: FamilyStats[] = []
+  const legacy: FamilyStats[] = []
+  for (const fam of families) {
+    if (fam.key.probe_name === "halluc-synthetic-fire-rate") hallucSynthetic.push(fam)
+    else if (fam.key.probe_name === "adherence-per-event-prototype") adherencePerEvent.push(fam)
+    else legacy.push(fam)
+  }
+  return { hallucSynthetic, adherencePerEvent, legacy }
+}
+
+function printHallucSyntheticRollup(families: FamilyStats[], limit: number): void {
+  const sorted = families
+    .sort((a, b) => b.latestRanAt.getTime() - a.latestRanAt.getTime())
+    .slice(0, limit)
+  if (sorted.length === 0) return
+
+  const COL_KEY = Math.max(12, Math.max(...sorted.map(f => f.keyStr.length)))
+  const w = (s: string, n: number) => s.padEnd(n)
+  const wn = (s: string, n: number) => s.padStart(n)
+
+  const header = [
+    w("HALLUC_SYNTHETIC_FAMILY", COL_KEY),
+    wn("N", 3),
+    wn("H_RECALL", 9),
+    wn("A_RECALL", 9),
+    w("HALLUC_MATRIX", 28),
+    w("ADHERENCE_MATRIX", 28),
+    w("LATEST", 21),
+  ].join("  ")
+
+  console.log(header)
+  console.log("-".repeat(header.length))
+
+  for (const fam of sorted) {
+    const latest = fam.rows[0] as RawRow | undefined
+    const summary = latest ? extractCheckerSummary(latest) : null
+    const line = [
+      w(fam.keyStr, COL_KEY),
+      wn(String(fam.n), 3),
+      wn(fmtPct(summary?.hallucRecallPct ?? null), 9),
+      wn(fmtPct(summary?.adherenceRecallPct ?? null), 9),
+      w(fmtMatrix(summary?.hallucCalibration ?? null), 28),
+      w(fmtMatrix(summary?.adherenceCalibration ?? null), 28),
+      w(fam.latestRanAt.toISOString().slice(0, 19) + "Z", 21),
+    ].join("  ")
+    console.log(line)
+  }
+  console.log()
+  console.log(`Showing ${sorted.length} of ${families.length} halluc-synthetic-fire-rate families.`)
+  console.log("Metrics shown reflect the most recent run in each family. Use --family <key> to see full history.")
+}
+
+function printAdherencePerEventRollup(families: FamilyStats[], limit: number): void {
+  const sorted = families
+    .sort((a, b) => b.latestRanAt.getTime() - a.latestRanAt.getTime())
+    .slice(0, limit)
+  if (sorted.length === 0) return
+
+  const COL_KEY = Math.max(12, Math.max(...sorted.map(f => f.keyStr.length)))
+  const w = (s: string, n: number) => s.padEnd(n)
+  const wn = (s: string, n: number) => s.padStart(n)
+
+  const header = [
+    w("ADHERENCE_PER_EVENT_FAMILY", COL_KEY),
+    wn("N", 3),
+    wn("BIN_MATCH", 10),
+    wn("PE_RECALL", 10),
+    wn("PE_PREC", 9),
+    w("BINARY_MATRIX", 28),
+    w("LATEST", 21),
+  ].join("  ")
+
+  console.log(header)
+  console.log("-".repeat(header.length))
+
+  for (const fam of sorted) {
+    const latest = fam.rows[0] as RawRow | undefined
+    const summary = latest ? extractCheckerSummary(latest) : null
+    const line = [
+      w(fam.keyStr, COL_KEY),
+      wn(String(fam.n), 3),
+      wn(fmtPct(summary?.binaryMatchPct ?? null), 10),
+      wn(fmtPct(summary?.perEventRecallPct ?? null), 10),
+      wn(fmtPct(summary?.perEventPrecisionPct ?? null), 9),
+      w(fmtMatrix(summary?.binaryCalibration ?? null), 28),
+      w(fam.latestRanAt.toISOString().slice(0, 19) + "Z", 21),
+    ].join("  ")
+    console.log(line)
+  }
+  console.log()
+  console.log(`Showing ${sorted.length} of ${families.length} adherence-per-event-prototype families.`)
+  console.log("Metrics shown reflect the most recent run in each family. Use --family <key> to see full history.")
+}
+
 // ── Family drill-down display ─────────────────────────────────────────────
 
 function printFamilyDrillDown(fam: FamilyStats): void {
@@ -502,7 +699,15 @@ async function fetchRows(args: Args): Promise<RawRow[]> {
              summary_json -> 'recall_pct' AS recall_pct,
              summary_json -> 'precision_pct' AS precision_pct,
              summary_json -> 'f1' AS f1,
-             summary_json -> 'calibration_matrix' AS calibration_matrix
+             summary_json -> 'calibration_matrix' AS calibration_matrix,
+             summary_json -> 'halluc_calibration' AS halluc_calibration,
+             summary_json -> 'adherence_calibration' AS adherence_calibration,
+             summary_json -> 'halluc_recall_pct' AS halluc_recall_pct,
+             summary_json -> 'adherence_recall_pct' AS adherence_recall_pct,
+             summary_json -> 'binary_calibration' AS binary_calibration,
+             summary_json -> 'binary_match_pct' AS binary_match_pct,
+             summary_json -> 'per_event_recall_pct' AS per_event_recall_pct,
+             summary_json -> 'per_event_precision_pct' AS per_event_precision_pct
       FROM phase_eval_runs
       WHERE probe_name = ${args.probe}
       ORDER BY ran_at DESC
@@ -517,7 +722,15 @@ async function fetchRows(args: Args): Promise<RawRow[]> {
            summary_json -> 'recall_pct' AS recall_pct,
            summary_json -> 'precision_pct' AS precision_pct,
            summary_json -> 'f1' AS f1,
-           summary_json -> 'calibration_matrix' AS calibration_matrix
+           summary_json -> 'calibration_matrix' AS calibration_matrix,
+           summary_json -> 'halluc_calibration' AS halluc_calibration,
+           summary_json -> 'adherence_calibration' AS adherence_calibration,
+           summary_json -> 'halluc_recall_pct' AS halluc_recall_pct,
+           summary_json -> 'adherence_recall_pct' AS adherence_recall_pct,
+           summary_json -> 'binary_calibration' AS binary_calibration,
+           summary_json -> 'binary_match_pct' AS binary_match_pct,
+           summary_json -> 'per_event_recall_pct' AS per_event_recall_pct,
+           summary_json -> 'per_event_precision_pct' AS per_event_precision_pct
     FROM phase_eval_runs
     ORDER BY ran_at DESC
     LIMIT ${args.limit * 20}
@@ -584,8 +797,24 @@ async function main(): Promise<void> {
     process.exit(0)
   }
 
-  // Default: family rollup
-  printFamilyRollup(Array.from(families.values()), args.limit)
+  // Default: family rollup. Partition by checker vs legacy shape so
+  // each block uses the columns appropriate to its summary_json schema.
+  const all = Array.from(families.values())
+  const { hallucSynthetic, adherencePerEvent, legacy } = partitionFamiliesByShape(all)
+
+  if (legacy.length > 0) {
+    printFamilyRollup(legacy, args.limit)
+  }
+
+  if (hallucSynthetic.length > 0) {
+    if (legacy.length > 0) console.log()
+    printHallucSyntheticRollup(hallucSynthetic, args.limit)
+  }
+
+  if (adherencePerEvent.length > 0) {
+    if (legacy.length > 0 || hallucSynthetic.length > 0) console.log()
+    printAdherencePerEventRollup(adherencePerEvent, args.limit)
+  }
 }
 
 if (import.meta.main) {
