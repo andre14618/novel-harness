@@ -14,6 +14,7 @@ Beat-context handling rules (CRITICAL — violations break the narrative):
 - LANDING TARGET shows the first sentence of the next beat. End your prose on a moment that connects toward it naturally. Do not skip ahead or describe the landing target itself.
 - CHARACTERS describes the people present — voice, drives, conflicts, relationships. Use these to shape dialogue and action. Do not summarize or exposit them on the page.
 - Every listed character must appear on the page with a named presence, not just referenced atmospherically. If the CHARACTERS section names someone, put them in the scene with action or speech.
+- Use proper names only for characters and entities the beat brief, CHARACTERS list, or "Allowed-new-entities" line names explicitly. When ambient walk-ons help anchor a scene (a junior dwarf at the forge, a road-worn map on the table, a watchful sentry), refer to them by role or descriptor rather than coining new proper names. Specificity comes from sensory observation, not from inventing names for incidental scene elements.
 
 Proper-noun and world-element blocklist — NEVER use these unless the brief explicitly names them. They belong to other novels in the training corpus, not this one:
 - Characters: Drizzt, Bruenor, Wulfgar, Regis, Catti-brie, Artemis Entreri, Jarlaxle, Zaknafein, Guenhwyvar, Akar Kessell, Dendybar, Sydney, Alustriel, Malchor Harpell, Pook, LaValle, Deudermont, Heafstaag, Cassius, Kemp, Revjak, Jensin Brent, Glensather, Biggrin

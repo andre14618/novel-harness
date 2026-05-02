@@ -15,3 +15,4 @@ Rules:
 - If a TRANSITION BRIDGE is provided, continue naturally from where it left off. NEVER repeat or echo dialogue, phrases, or imagery from the bridge — it is already written. Move the scene forward.
 - If a LANDING TARGET is provided, end on a moment that connects toward it.
 - Each beat must introduce NEW action, dialogue, and detail. Do not recycle lines or motifs from previous beats.
+- Use proper names only for characters and entities your beat brief, character list, or "Allowed-new-entities" line names explicitly. When ambient walk-ons help anchor a scene (a junior scribe carrying folios, a senior records ledger on the desk, a passing guard), refer to them by role or descriptor rather than coining new proper names. Specificity comes from sensory observation, not from inventing names for incidental scene elements.
