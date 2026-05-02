@@ -2959,6 +2959,33 @@ The natural-mixed regime (small panel) is closer to production distribution, so 
 - Cost-per-beat ramp from $0.0003 to $0.0015 (5x) is trivial — never the blocker.
 - The convergence-eval.ts script is reusable for any other semantic checker (adherence-events, functional-state-checker, etc.) — same N-parallel-calls pattern. Future loops in §8 (adherence) and §10 (corpus probes) can adopt it directly.
 
+### L4-followup: deterministic NER beats LLM halluc-ungrounded on F1, catches the FN floor on SUFFIX_TOKEN class (2026-05-01, exp #319, linked to #316)
+
+**Decision:** The L4 deterministic entity-candidate extractor (`src/lint/entity-candidates.ts`, commit `0eeabf9`) calibrated against the L1 N=5 LLM-vote signal on both labeled panels:
+
+| Panel | NER F1 | LLM F1 (k=1 of 5 @ T=0.1) | NER lift |
+|---|---:|---:|---:|
+| Small (n=22, 10 oracle FAIL) | **0.842** | 0.720 | +0.122 abs (+17%) |
+| Big-synthetic (n=28, 14 oracle FAIL) | **0.800** | 0.606 | +0.194 abs (+32%) |
+
+NER catches **3 oracle-FAIL rows the LLM unanimously missed** (5/5 votes pass), all on the SUFFIX_TOKEN class — `Veyr Dominion` (small panel), `the Bellward Order` + `the Quiet Concord` (big panel). The LLM catches **2 oracle-FAIL rows NER missed** (`Guildmaster Aldric`+`Yarrow` in one row, `Vault of Witnesses` in another), all due to documented NER blind-spots: sentence-initial filtering, single-word entities, and `X of Y` lowercase-connector phrases. **The residual FN floor that neither side cracks is 0 rows on small panel and 2 rows on big panel** (`the Withering of '47` — X-of-Y; `Arbiter Vesh` — sentence-initial after `\n\n`).
+
+Per-row evidence: `phase_eval_runs.id={60,61}`. Result doc `docs/ner-vs-llm-calibration-2026-05-01.md`. Per-row JSONLs at `/tmp/halluc-ner-calibration-{small,big}-20260502T03{2111,2119}.jsonl`. Cost: ~$0 (pure deterministic, no LLM calls).
+
+**Why this matters for L1's open promotion question:** L1 left a "1-3 systematic FNs survive every threshold" floor as the blocker on convergence going to production. NER lifts that floor by 1 (small) + 2 (big) = 3 FNs at zero LLM cost, with a CLEANER false-positive profile than the LLM (1 NER-FP per panel vs 6/9 LLM-FPs). The most useful production policy is **OR-combine NER + LLM convergence** — recall-monotone, FP-cost dominated by the LLM term, not the NER term.
+
+**Two cheap pre-promotion fixes identified, neither yet shipped:**
+1. **Plural-vs-singular normalization** in the grounded-surface match (strip trailing `s'`/`'s` before substring check) — closes the only NER-FP class observed (`Scribe's Guildhall` vs bible's `The Scribes' Guildhall`).
+2. **Sentence-initial filter relaxation for TITLE_TOKEN matches** — closes `Arbiter Vesh` + `Guildmaster Aldric` true-FN cases without re-introducing the article-noise that the filter exists to suppress.
+
+These two fixes would close both BOTH-MISS rows on the big panel and one of the two LLM-WIN rows on the small panel, leaving the X-of-Y class as the only remaining structural NER blind spot.
+
+**Ongoing implications:**
+- **L4 is closed as a calibration probe.** NER is provably accretive — it does NOT just duplicate the LLM signal.
+- **L4-followup-2 (promotion gate)** queued: implement the two fixes above, re-run on a re-adjudicated natural-mixed panel (depends on L1-followup adjudicating the big panel's 17 unlabeled natural rows), pre-register F1 ≥ 0.85 as the gate.
+- **The OR-gate policy is reachable now** without any code change — production could route NER and LLM in parallel and OR their `pass` flags. But the precision-cost from the un-fixed NER FPs (1 per panel) means it's worth landing fix #1 first.
+- The two-line pattern observed here (NER catches structurally, LLM catches semantically) generalizes: future deterministic prepasses for OTHER checkers (continuity, leak) should expect a similar accretive-not-redundant relationship to their LLM counterparts.
+
 ### L7: adherence-events convergence — convergence is checker-specific, not generic (2026-05-01, exp #320, linked to #316)
 
 **Decision:** Applied L1's N=5 convergence methodology to the binary `adherence-events` checker (`EVENTS_SYSTEM` from `src/agents/writer/adherence-checker.ts`) on the same 22-row labeled panel. Result is the OPPOSITE of L1: single-call temp=0.1 is **already at F1=1.000** (perfect on this panel), voting adds nothing, higher temperature HURTS (T=0.5 k=1 drops F1 to 0.947 by introducing 1 FP). Persisted to `phase_eval_runs.id={62, 63}`. Result doc `docs/adherence-convergence-results-2026-05-01.md`. Cost ~$0.07.

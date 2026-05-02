@@ -1,9 +1,10 @@
 ---
-status: in-progress
+status: completed
 updated: 2026-05-01
 role: overnight-loop-context
 loop: L4-followup-ner-calibration
 parent_loop: L1-halluc-convergence-panel (2026-05-01-L1-halluc-convergence-panel.md)
+experiment: 319
 ---
 
 # L4-followup — Deterministic NER vs LLM-Halluc Calibration
@@ -62,16 +63,20 @@ parent_loop: L1-halluc-convergence-panel (2026-05-01-L1-halluc-convergence-panel
 ## Progress Log
 
 - 2026-05-01 — Context file created. Plan: implement script, run, write result doc, two atomic commits, conclude exp.
+- 2026-05-01 — Script implemented + smoke-tested locally (commit 1: `9d5f4db`). Deployed to LXC. Created tuning_experiments id=319, linked to #316 as continuation.
+- 2026-05-01 — Ran on small panel: F1 NER=0.842 vs LLM=0.720, NER-WIN=1, LLM-WIN=2, BOTH-MISS=0. phase_eval_runs.id=60.
+- 2026-05-01 — Ran on big panel: F1 NER=0.800 vs LLM=0.606, NER-WIN=2, LLM-WIN=0, BOTH-MISS=2. phase_eval_runs.id=61.
+- 2026-05-01 — Result doc + decisions.md entry written. Experiment #319 concluded.
 
 ## Results
 
-- **Outcome:** TBD until both panels run.
-- **Evidence link/row/path:** TBD.
-- **Cost:** TBD (~$0 expected).
-- **Commit(s):** TBD.
+- **Outcome:** NER-CATCHES-3-OF-22-LLM-MISSES-on-suffix-token-class. NER F1 0.842 (small) / 0.800 (big) beats LLM convergence F1 0.720 / 0.606 by +0.12 to +0.19 absolute. Three oracle-FAIL rows the LLM unanimously missed (Veyr Dominion, the Bellward Order, the Quiet Concord) caught deterministically by NER suffix-class regex. Residual FN floor 0 (small) + 2 (big). Recommended path: OR-combine NER + LLM convergence after landing two pre-promotion fixes (plural-singular normalization + sentence-initial filter relaxation for TITLE_TOKENS) in L4-followup-2.
+- **Evidence link/row/path:** `phase_eval_runs.id=60` (small), `61` (big). `tuning_experiments.id=319`. Per-row JSONLs `/tmp/halluc-ner-calibration-{small,big}-20260502T03{2111,2119}.jsonl`. Result doc `docs/ner-vs-llm-calibration-2026-05-01.md`. Decisions.md entry under §Hallucination ("L4-followup: deterministic NER beats LLM …").
+- **Cost:** $0 (pure deterministic + 2 DB INSERTs).
+- **Commit(s):** `9d5f4db` (script + context); commit 2 = result doc + decisions update (this session).
 
 ## Pickup Instructions
 
-- **Last safe command:** None yet — loop just opened.
-- **If failed, failure fingerprint:** Most likely causes if interrupted: (a) panel JSONL row missing `task.prose` for synthetic-pass-control rows (handle with empty-prose short-circuit), (b) `groundedSources` missing one of the expected keys (treat absent key as empty array — already handled in `ab-halluc-prompt.ts` patterns).
-- **Next action:** Resume by re-running the calibration script on the panel that didn't complete; outputs are timestamped per `feedback_no_overwrite_runs` so re-running creates a fresh file.
+- **Last safe command:** Loop closed; no pending steps. L4-followup-2 (the promotion gate) is the natural successor.
+- **If failed, failure fingerprint:** N/A.
+- **Next action:** L4-followup-2 (when scheduled) — implement plural-singular normalization in `src/lint/entity-candidates.ts` (or in a calibration-side helper to keep entity-candidates pure), implement sentence-initial relaxation for TITLE_TOKEN matches, then re-run this calibration on a re-adjudicated natural-mixed panel (depends on L1-followup labeling the big panel's 17 unlabeled natural rows).
