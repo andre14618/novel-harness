@@ -3453,6 +3453,50 @@ Prioritized prompt-improvement target: **two-of-three** (33% recall, 2 FNs — t
 **Acceptable-embellishment: 0 FP.** Cinematic detail (creaking hinges, voice-tightness) is
 not flagged as missing an event. The checker is safe for production prose.
 
+---
+
+### L17 — 3-chapter LXC smoke validating v4 halluc + L15 NER + L16 telemetry (2026-05-01, exp #335)
+*2026-05-01 · exp #335 · phase\_eval\_runs.id=80 · novel novel-1777698707087 · seed fantasy-debt*
+
+**Decision:** L11 cluster definitively closed by v4 prompt (L14). New FP cluster (character names + world locations not in grounded surface) is a context assembly gap requiring L18 follow-up, not another prompt iteration. AND-gate matrix (first production data), L15 x-of-y-capitalized, and L16 persistence all validated.
+
+**Stack under test:** v4-disam halluc-ungrounded prompt + L15 NER x-of-y/number-word-tail + L16 ner_prepass_json persistence
+
+**L11 cluster verdict (0 fires):** "district archive", "trade corporation", "Grand Ledger", "Guild Master" — all 0 fires across 3 ch1 attempts. v4 prompt closes the L14 target cluster completely on the production seed.
+
+**Stop condition b triggered:** New cluster fired on ch1/attempt 3. Plan-check-exhausted after all 3 attempts. Chapters completed: 1 of 3.
+
+**New cluster entities (top by frequency):** Lord Sorcerer Brennan (3x), Brennan (2x), Sorcerer's Tower, Eastern Reach, Collector Marwick, Magistrate Dorn, Silver Street, Master Collector, Luken Ashby, Aldric. These are all established novel characters or world locations that appear in the plotter/world-builder outputs but are not surfaced in the halluc checker's `groundedSources` at beat-write time.
+
+**Root cause:** `groundedSources` only includes beat-scoped entities. The full named-character roster (character-agent outputs) and named location/place vocabulary (world-builder outputs) are not in the grounded union. This is a context assembly gap, not a prompt logic gap.
+
+**AND-gate matrix (55 halluc calls, ch1 only):**
+
+| decision | count |
+|----------|-------|
+| pass | 33 (60.0%) |
+| ner+llm-blocker | 8 (14.5%) |
+| llm-only-blocker | 7 (12.7%) |
+| ner-only-warning | 7 (12.7%) |
+
+**NER class histogram:** capitalized-multi-word=24, title-pair=4, suffix-class=3, x-of-y-capitalized=1
+
+**L15 validated:** x-of-y-capitalized fired in production on "The Temple of Mercy" (beat 5).
+**L16 validated:** ner_prepass_json populated on all 55 calls. AND-gate matrix queryable from DB.
+
+**Adherence:** 58/58 pass (100%). Plan checker: 3/3 pass. Blockers were entirely halluc-ungrounded.
+
+**Cost:** $0.062
+
+**Alternatives rejected:**
+- **Iterative prompt fix for new cluster:** This is not a prompt disambiguation issue. Brennan, Aldric, and the named locations are grounded in the novel context — the checker doesn't have access to that ground truth at check time. Prompt exceptions for "character names" would be overly broad and undermine entity recall.
+- **Stop without documenting root cause:** Documented as L18 context assembly gap with specific surfacing target: character-agent character names + world-builder location names into `groundedSources`.
+
+**Ongoing implications:**
+- L18 follow-up: surface full character roster and named-location vocabulary into halluc grounded surface. Candidate source: `grounded_sources.characters` from character-agent + world-builder location names from world-state context assembly.
+- 3-chapter clean run (§12 todo item) remains open pending L18 context fix.
+- Result doc: `docs/l17-smoke-v4-validation-2026-05-01.md`
+
 **Next iteration queued (NOT shipped in L18 — doc only):**
 1. two-of-three: Add explicit "ambient/mechanical actions are equally obligated" language.
 2. reversed-order: Add causal-ordering language for beats using "then" and prerequisite chains.
