@@ -85,11 +85,14 @@ monitor --panel outside --panel evidence
 bun scripts/agent/lane-dashboard.ts docs/sessions/<lane>.md --watch --latest-novel
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --dry-run
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --max-cycles 4 --max-hours 3 --model openai/gpt-5.5
+bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8
 ```
 
 `monitor` selects the latest non-template session doc with a complete Loop Contract. If none exists, it stays open in a waiting state and polls until one appears; `monitor --once` still exits immediately. Legacy session docs are skipped by default so they do not permanently show missing-field noise; pass a path explicitly to inspect one. `lane-status.ts` returns exit code `0` only when the outside loop should continue. It stops or blocks on missing lane-contract fields, stale heartbeat, explicit stop events, result stop gates, human-needed events, infra-failure events, and stale outside-loop state. The default dashboard shows all panels: outside lane state, inside-harness novel summary, evidence rows, repo hygiene, and process health. Use `--panel outside|inside|evidence|hygiene|process` to narrow it. The `--latest-novel` / `--novel <id>` flags control the inside-harness novel summary delegated to `scripts/operator-summary.ts`.
 
-For unattended work, use `lane-runner.ts` rather than trusting chat continuation. The runner launches bounded `opencode run` cycles only while lane-status remains `continue`, writes cycle artifacts under `output/agent-runs/<lane-id>/cycles/`, and stops on OpenCode failure/timeout, max cycles, max hours, or no tracked workspace change. Always run `--dry-run` first to inspect the generated prompt and command. Avoid `--dangerously-skip-permissions` unless you explicitly accept the risk for that session.
+For unattended work, use `lane-runner.ts` rather than trusting chat continuation. The runner launches bounded worker cycles only while lane-status remains `continue`, writes cycle artifacts under `output/agent-runs/<lane-id>/cycles/`, and stops on worker failure/timeout, max cycles, max hours, or no tracked workspace change. Default engine is OpenCode (`opencode run`); use `--engine claude` to make Claude Code the lane worker through `claude -p`. Always run `--dry-run` first to inspect the generated prompt and command. Avoid `--dangerously-skip-permissions` unless you explicitly accept the risk for that session.
+
+Use `--queue docs/sessions/lane-queue.md` only with pre-created lane docs. The runner advances after a stopped lane only when `Outcome`, `Stop gate fired`, and `Evidence link/row/path` are filled in that lane's Results section. It will not invent a new lane from a vague queue title while unattended.
 
 Keep the inside-harness panel clean by resolving abandoned pending plan-assist gates as `orphaned` after dry-run review. This preserves evidence while removing rows from live monitoring:
 

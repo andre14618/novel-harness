@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { mkdirSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { spawnSync } from "node:child_process"
 import {
@@ -9,12 +9,16 @@ import {
   field,
   laneEventLogPath,
   laneIdFromPath,
+  readLaneDoc,
   renderLaneStatus,
   type LaneRunState,
 } from "./lane-core"
 
+export type RunnerEngine = "opencode" | "claude"
+
 export interface RunnerArgs {
   lanePath: string | null
+  engine: RunnerEngine
   maxCycles: number
   maxHours: number
   cycleTimeoutMinutes: number
@@ -22,6 +26,8 @@ export interface RunnerArgs {
   maxNoChangeCycles: number
   agent: string | null
   model: string | null
+  permissionMode: string | null
+  queuePath: string | null
   title: string | null
   extraInstruction: string
   dryRun: boolean
@@ -35,6 +41,11 @@ export interface CycleRunResult {
   stderr: string
   error: string | null
   timedOut: boolean
+}
+
+export interface LaneQueue {
+  active: string[]
+  next: string[]
 }
 
 function positiveInteger(value: string | undefined, label: string): number {
@@ -52,6 +63,7 @@ function positiveNumber(value: string | undefined, label: string): number {
 export function parseArgs(argv: string[]): RunnerArgs {
   const out: RunnerArgs = {
     lanePath: null,
+    engine: "opencode",
     maxCycles: 4,
     maxHours: 3,
     cycleTimeoutMinutes: 45,
@@ -59,6 +71,8 @@ export function parseArgs(argv: string[]): RunnerArgs {
     maxNoChangeCycles: 1,
     agent: null,
     model: null,
+    permissionMode: null,
+    queuePath: null,
     title: null,
     extraInstruction: "",
     dryRun: false,
@@ -66,13 +80,20 @@ export function parseArgs(argv: string[]): RunnerArgs {
   }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!
-    if (a === "--max-cycles") out.maxCycles = positiveInteger(argv[++i], "--max-cycles")
+    if (a === "--engine") {
+      const value = argv[++i]
+      if (value !== "opencode" && value !== "claude") throw new Error("--engine must be one of opencode|claude")
+      out.engine = value
+    }
+    else if (a === "--max-cycles") out.maxCycles = positiveInteger(argv[++i], "--max-cycles")
     else if (a === "--max-hours") out.maxHours = positiveNumber(argv[++i], "--max-hours")
     else if (a === "--cycle-timeout-minutes") out.cycleTimeoutMinutes = positiveNumber(argv[++i], "--cycle-timeout-minutes")
     else if (a === "--stale-minutes") out.staleMinutes = positiveNumber(argv[++i], "--stale-minutes")
     else if (a === "--max-no-change-cycles") out.maxNoChangeCycles = positiveInteger(argv[++i], "--max-no-change-cycles")
     else if (a === "--agent") out.agent = argv[++i] ?? null
     else if (a === "--model") out.model = argv[++i] ?? null
+    else if (a === "--permission-mode") out.permissionMode = argv[++i] ?? null
+    else if (a === "--queue") out.queuePath = argv[++i] ?? null
     else if (a === "--title") out.title = argv[++i] ?? null
     else if (a === "--instruction") out.extraInstruction = argv[++i] ?? ""
     else if (a === "--dry-run") out.dryRun = true
@@ -80,19 +101,22 @@ export function parseArgs(argv: string[]): RunnerArgs {
     else if (a === "--help" || a === "-h") {
       console.log(
         "Usage: bun scripts/agent/lane-runner.ts <docs/sessions/lane.md> [options]\n\n" +
-          "Runs bounded OpenCode cycles while lane-status remains continue.\n\n" +
+          "Runs bounded OpenCode or Claude cycles while lane-status remains continue.\n\n" +
           "Options:\n" +
-          "  --max-cycles <n>             Maximum OpenCode cycles (default: 4)\n" +
+          "  --engine <name>              Worker engine: opencode|claude (default: opencode)\n" +
+          "  --max-cycles <n>             Maximum worker cycles (default: 4)\n" +
           "  --max-hours <n>              Wall-clock cap in hours (default: 3)\n" +
-          "  --cycle-timeout-minutes <n>  Per-cycle OpenCode timeout (default: 45)\n" +
+          "  --cycle-timeout-minutes <n>  Per-cycle worker timeout (default: 45)\n" +
           "  --stale-minutes <n>          Heartbeat stale threshold for lane-status (default: 10)\n" +
           "  --max-no-change-cycles <n>   Stop after n consecutive no-worktree-change cycles (default: 1)\n" +
-          "  --agent <name>               Pass --agent to opencode run\n" +
-          "  --model <provider/model>     Pass --model to opencode run\n" +
-          "  --title <text>               Pass --title to opencode run\n" +
+          "  --agent <name>               Pass --agent to the worker\n" +
+          "  --model <provider/model>     Pass --model to the worker\n" +
+          "  --permission-mode <mode>     Claude only: pass --permission-mode\n" +
+          "  --queue <path>               Markdown queue of pre-created lane docs\n" +
+          "  --title <text>               Pass --title/--name to the worker\n" +
           "  --instruction <text>         Extra instruction appended to each cycle prompt\n" +
-          "  --dry-run                    Print the first OpenCode command and prompt, do not execute\n" +
-          "  --dangerously-skip-permissions  Pass through to opencode run (not recommended)\n",
+          "  --dry-run                    Print the first worker command and prompt, do not execute\n" +
+          "  --dangerously-skip-permissions  Pass through to the worker (not recommended)\n",
       )
       process.exit(0)
     } else if (!a.startsWith("--")) {
@@ -104,14 +128,17 @@ export function parseArgs(argv: string[]): RunnerArgs {
   if (!out.lanePath) throw new Error("lane-runner requires a lane session doc path")
   if (out.agent === "") throw new Error("--agent requires a value")
   if (out.model === "") throw new Error("--model requires a value")
+  if (out.permissionMode === "") throw new Error("--permission-mode requires a value")
+  if (out.queuePath === "") throw new Error("--queue requires a value")
   return out
 }
 
 export function buildCyclePrompt(args: RunnerArgs, cycle: number, laneSummary: string): string {
   const lanePath = args.lanePath!
   const extra = args.extraInstruction.trim()
+  const actor = args.engine === "claude" ? "claude" : "opencode"
   return [
-    `Run one bounded autonomous work cycle for Novel Harness lane ${lanePath}.`,
+    `Run one bounded autonomous ${args.engine} work cycle for Novel Harness lane ${lanePath}.`,
     `Cycle ${cycle}/${args.maxCycles}. Stop after one coherent work unit; the repo-side runner will decide whether another cycle starts.`,
     "",
     "Source of truth:",
@@ -124,7 +151,7 @@ export function buildCyclePrompt(args: RunnerArgs, cycle: number, laneSummary: s
     "",
     "Required workflow:",
     `1. Read ${lanePath} before editing.` ,
-    `2. Record a heartbeat before substantial work: bun scripts/agent/lane-heartbeat.ts ${lanePath} --actor opencode --step "<current step>"`,
+    `2. Record a heartbeat before substantial work: bun scripts/agent/lane-heartbeat.ts ${lanePath} --actor ${actor} --step "<current step>"`,
     "3. Work only on the declared primary lane and allowed support work.",
     "4. Do not touch deferred out-of-lane runtime changes.",
     "5. If blocked, record a heartbeat with --status blocked, human-needed, or infra-failure and stop.",
@@ -149,9 +176,29 @@ export function buildOpencodeArgs(args: RunnerArgs, prompt: string, cycle: numbe
   return out
 }
 
+export function buildClaudeArgs(args: RunnerArgs, prompt: string, cycle: number): string[] {
+  const out = ["-p"]
+  if (args.model) out.push("--model", args.model)
+  if (args.agent) out.push("--agent", args.agent)
+  if (args.permissionMode) out.push("--permission-mode", args.permissionMode)
+  if (args.title) out.push("--name", args.title)
+  else out.push("--name", `${laneIdFromPath(args.lanePath!)} cycle ${cycle}`)
+  if (args.dangerouslySkipPermissions) out.push("--dangerously-skip-permissions")
+  out.push(prompt)
+  return out
+}
+
+export function commandForEngine(engine: RunnerEngine): string {
+  return engine === "claude" ? "claude" : "opencode"
+}
+
+export function buildWorkerArgs(args: RunnerArgs, prompt: string, cycle: number): string[] {
+  return args.engine === "claude" ? buildClaudeArgs(args, prompt, cycle) : buildOpencodeArgs(args, prompt, cycle)
+}
+
 export function buildDisplayCommand(args: RunnerArgs, cycle: number): string {
-  const displayArgs = buildOpencodeArgs(args, "<cycle-prompt>", cycle)
-  return `opencode ${displayArgs.map(a => JSON.stringify(a)).join(" ")}`
+  const displayArgs = buildWorkerArgs(args, "<cycle-prompt>", cycle)
+  return `${commandForEngine(args.engine)} ${displayArgs.map(a => JSON.stringify(a)).join(" ")}`
 }
 
 function workspaceFingerprint(): string {
@@ -168,20 +215,20 @@ function cycleDir(lanePath: string): string {
   return join("output", "agent-runs", laneIdFromPath(lanePath), "cycles")
 }
 
-function writeCycleArtifacts(lanePath: string, cycle: number, prompt: string, commandArgs: string[], result: CycleRunResult): string {
+function writeCycleArtifacts(lanePath: string, cycle: number, command: string, prompt: string, commandArgs: string[], result: CycleRunResult): string {
   const dir = cycleDir(lanePath)
   mkdirSync(dir, { recursive: true })
   const base = join(dir, `cycle-${String(cycle).padStart(2, "0")}-${safeStamp()}`)
   writeFileSync(`${base}.prompt.txt`, prompt)
-  writeFileSync(`${base}.command.json`, JSON.stringify({ command: "opencode", args: commandArgs }, null, 2))
+  writeFileSync(`${base}.command.json`, JSON.stringify({ command, args: commandArgs }, null, 2))
   writeFileSync(`${base}.stdout.log`, result.stdout)
   writeFileSync(`${base}.stderr.log`, result.stderr)
   writeFileSync(`${base}.result.json`, JSON.stringify(result, null, 2))
   return base
 }
 
-function runOpenCodeCycle(commandArgs: string[], timeoutMinutes: number): CycleRunResult {
-  const result = spawnSync("opencode", commandArgs, {
+function runWorkerCycle(command: string, commandArgs: string[], timeoutMinutes: number): CycleRunResult {
+  const result = spawnSync(command, commandArgs, {
     encoding: "utf8",
     timeout: Math.round(timeoutMinutes * 60_000),
     maxBuffer: 1024 * 1024 * 20,
@@ -234,9 +281,59 @@ function elapsedHours(startMs: number): number {
   return (Date.now() - startMs) / 3_600_000
 }
 
+export function parseLaneQueue(text: string): LaneQueue {
+  const queue: LaneQueue = { active: [], next: [] }
+  let section: keyof LaneQueue | null = null
+  for (const line of text.split(/\r?\n/)) {
+    const sectionMatch = line.match(/^##\s+(Active|Next)\s*$/i)
+    if (sectionMatch) {
+      section = sectionMatch[1]!.toLowerCase() as keyof LaneQueue
+      continue
+    }
+    if (!section) continue
+    const matches = line.match(/docs\/sessions\/[^\s)`]+\.md/g) ?? []
+    for (const match of matches) {
+      if (!queue[section].includes(match)) queue[section].push(match)
+    }
+  }
+  return queue
+}
+
+export function nextLaneFromQueueText(text: string, currentLanePath: string): string | null {
+  const queue = parseLaneQueue(text)
+  const normalizedCurrent = currentLanePath.replace(/^\.\//, "")
+  const activeIndex = queue.active.indexOf(normalizedCurrent)
+  if (activeIndex >= 0) return queue.next[0] ?? null
+  const nextIndex = queue.next.indexOf(normalizedCurrent)
+  if (nextIndex >= 0) return queue.next[nextIndex + 1] ?? null
+  return queue.next[0] ?? null
+}
+
+export function missingConclusionFields(lanePath: string): string[] {
+  const doc = readLaneDoc(lanePath)
+  const missing: string[] = []
+  if (!field(doc, "results", "outcome")) missing.push("Results: Outcome")
+  if (!field(doc, "results", "stop gate fired")) missing.push("Results: Stop gate fired")
+  if (!field(doc, "results", "evidence link/row/path")) missing.push("Results: Evidence link/row/path")
+  return missing
+}
+
+function tryAdvanceLane(lanePath: string, queuePath: string | null): { lanePath: string | null; exitCode: number | null; message: string } {
+  if (!queuePath) return { lanePath: null, exitCode: 10, message: "lane stopped and no queue was configured" }
+  const missing = missingConclusionFields(lanePath)
+  if (missing.length > 0) {
+    return { lanePath: null, exitCode: 21, message: `lane stopped but conclusion is incomplete: ${missing.join(", ")}` }
+  }
+  if (!existsSync(queuePath)) return { lanePath: null, exitCode: 21, message: `queue file not found: ${queuePath}` }
+  const next = nextLaneFromQueueText(readFileSync(queuePath, "utf8"), lanePath)
+  if (!next) return { lanePath: null, exitCode: 10, message: `lane stopped and queue has no next lane after ${lanePath}` }
+  if (!existsSync(next)) return { lanePath: null, exitCode: 21, message: `next lane doc does not exist: ${next}` }
+  return { lanePath: next, exitCode: null, message: `advancing from ${lanePath} to ${next}` }
+}
+
 function main(argv: string[]): number {
   const args = parseArgs(argv)
-  const lanePath = args.lanePath!
+  let lanePath = args.lanePath!
   const startMs = Date.now()
   let noChangeCycles = 0
 
@@ -254,18 +351,31 @@ function main(argv: string[]): number {
     let summary = laneSummaryForPrompt(lanePath, args.staleMinutes)
     summary = refreshStaleHeartbeatIfNeeded(lanePath, summary, `lane-runner cycle ${cycle} status check`, args.staleMinutes)
     if (summary.state !== "continue") {
+      if (summary.state === "stop") {
+        const advance = tryAdvanceLane(lanePath, args.queuePath)
+        appendRunnerEvent(lanePath, { type: advance.lanePath ? "runner_advance" : "runner_stop", status: advance.lanePath ? "continue" : (advance.exitCode === 21 ? "human-needed" : "stop"), message: advance.message })
+        if (advance.lanePath) {
+          lanePath = advance.lanePath
+          noChangeCycles = 0
+          appendRunnerEvent(lanePath, { type: "runner_advance_start", step: `continued from queue ${args.queuePath}`, message: advance.message })
+          continue
+        }
+        return advance.exitCode ?? 10
+      }
       appendRunnerEvent(lanePath, { type: "runner_stop", status: summary.state, message: `lane-status is ${summary.state}` })
       return summary.exitCode
     }
 
-    const prompt = buildCyclePrompt(args, cycle, summary.text)
-    const commandArgs = buildOpencodeArgs(args, prompt, cycle)
-    const commandText = buildDisplayCommand(args, cycle)
+    const cycleArgs: RunnerArgs = { ...args, lanePath }
+    const prompt = buildCyclePrompt(cycleArgs, cycle, summary.text)
+    const command = commandForEngine(args.engine)
+    const commandArgs = buildWorkerArgs(cycleArgs, prompt, cycle)
+    const commandText = buildDisplayCommand(cycleArgs, cycle)
     appendRunnerEvent(lanePath, { type: "cycle_start", step: `cycle ${cycle}/${args.maxCycles}`, command: commandText })
 
     if (args.dryRun) {
       const result = { ok: true, status: 0, stdout: "", stderr: "", error: null, timedOut: false }
-      const artifactBase = writeCycleArtifacts(lanePath, cycle, prompt, commandArgs, result)
+      const artifactBase = writeCycleArtifacts(lanePath, cycle, command, prompt, commandArgs, result)
       console.log(commandText)
       console.log("\n--- prompt ---\n")
       console.log(prompt)
@@ -274,8 +384,8 @@ function main(argv: string[]): number {
     }
 
     const before = workspaceFingerprint()
-    const result = runOpenCodeCycle(commandArgs, args.cycleTimeoutMinutes)
-    const artifactBase = writeCycleArtifacts(lanePath, cycle, prompt, commandArgs, result)
+    const result = runWorkerCycle(command, commandArgs, args.cycleTimeoutMinutes)
+    const artifactBase = writeCycleArtifacts(lanePath, cycle, command, prompt, commandArgs, result)
     const after = workspaceFingerprint()
     const changed = before !== after
 
@@ -299,7 +409,20 @@ function main(argv: string[]): number {
       changed,
     })
 
-    if (postSummary.state !== "continue") return postSummary.exitCode
+    if (postSummary.state !== "continue") {
+      if (postSummary.state === "stop") {
+        const advance = tryAdvanceLane(lanePath, args.queuePath)
+        appendRunnerEvent(lanePath, { type: advance.lanePath ? "runner_advance" : "runner_stop", status: advance.lanePath ? "continue" : (advance.exitCode === 21 ? "human-needed" : "stop"), message: advance.message })
+        if (advance.lanePath) {
+          lanePath = advance.lanePath
+          noChangeCycles = 0
+          appendRunnerEvent(lanePath, { type: "runner_advance_start", step: `continued from queue ${args.queuePath}`, message: advance.message })
+          continue
+        }
+        return advance.exitCode ?? postSummary.exitCode
+      }
+      return postSummary.exitCode
+    }
 
     noChangeCycles = changed ? 0 : noChangeCycles + 1
     if (noChangeCycles >= args.maxNoChangeCycles) {
