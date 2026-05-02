@@ -3412,3 +3412,52 @@ Rationale: `request_json` is the LLM request envelope (wrong semantics for post-
 - **Asym-C (NER hard-blocker):** Identical results to AND-gate-v1; the "hard vs warning" label distinction has no observable effect on these calibration panels (all NER fires are oracle FAIL). Reserve as a potential future change if NER FP rate rises.
 
 **Ongoing implications:** The asymmetric voting evaluation backlog item (§7 of todo.md) is closed. AND-gate-v1 is confirmed as the correct policy given current NER F1=1.000 on both calibration panels. The remaining precision headroom (0.824 combined) is a prompt-improvement opportunity, not a policy-architecture gap.
+
+---
+
+### L18 — Synthetic partial-enactment adherence panel — per-shape matrix (2026-05-02, exp #337)
+*2026-05-02 · exp #337 · phase\_eval\_runs.id=79 · commits dc1ceda, 6279f84*
+
+**Decision:** Per-shape matrix establishes that the two-stage checker (ae50e99) achieves
+precision=100% (zero false positives) across all shapes but has shape-dependent recall gaps.
+Prioritized prompt-improvement target: **two-of-three** (33% recall, 2 FNs — the weakest shape).
+
+**Panel:** 14 rows — 9 FAIL × 3 shapes + 5 PASS controls. Fixture file:
+`scripts/hallucination/synthetic-partial-enactment-fixtures/partial-enactment-panel.jsonl`.
+
+**Per-shape results:**
+
+| Shape | N\_fail | N\_pass | TP | FP | FN | TN | Recall | Prec | F1 | Stage-2 correct |
+|-------|--------|--------|----|----|----|----|--------|------|----|-----------------------|
+| two-of-three | 3 | 1 | 1 | 0 | 2 | 1 | 33% | 100% | 50% | 1/1 |
+| reversed-order | 3 | 1 | 2 | 0 | 1 | 1 | 67% | 100% | 80% | 1/2 |
+| substituted-actor | 3 | 1 | 2 | 0 | 1 | 1 | 67% | 100% | 80% | 2/2 |
+| acceptable-embellishment | 0 | 2 | 0 | 0 | 0 | 2 | N/A | N/A | N/A | 0/0 |
+
+**Panel-level: TP=5 FP=0 FN=4 TN=5. Precision=100%. Recall=55.6%. F1=71.4%.**
+
+**Root causes per shape:**
+- **two-of-three (33%):** Implicit salience weighting — the model treats minor/mechanical beat
+  actions (candle-lighting, sub-questions) as optional despite "ALL must appear" instruction.
+  The word "key" in the events prompt is doing invisible work.
+- **reversed-order (1 FN):** Structural gap — the events prompt checks *presence* not *order*.
+  All-events-present causality-breaking reversals (mage drains then binds, Sara calls before
+  seeing body) are undetectable without ordering language.
+- **substituted-actor (1 FN):** Passive-witnessing edge case — when the named character speaks
+  about the action after the fact ("as if granting permission"), the model incorrectly credits
+  enactment. The Maret/porter key-pass and Captain/Lieutenant verdict cases were caught.
+
+**Stage-2 per-event detail:** 4/5 fires correctly named the missing/substituted element (80%).
+5/5 fires included a verbatim prose quote as grounding evidence.
+
+**Acceptable-embellishment: 0 FP.** Cinematic detail (creaking hinges, voice-tightness) is
+not flagged as missing an event. The checker is safe for production prose.
+
+**Next iteration queued (NOT shipped in L18 — doc only):**
+1. two-of-three: Add explicit "ambient/mechanical actions are equally obligated" language.
+2. reversed-order: Add causal-ordering language for beats using "then" and prerequisite chains.
+3. substituted-actor: Add "passive witnessing is not enactment" language.
+
+**Cost:** ~$0.0009 for 19 LLM calls (DeepSeek V4 Flash, cache-warm). Well under $1 cap.
+
+**Full analysis:** `docs/partial-enactment-adherence-panel-2026-05-01.md`.
