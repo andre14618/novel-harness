@@ -86,6 +86,14 @@ interface AgentConfig<T> {
 interface AgentResult<T> {
   output: T
   tokensUsed: { prompt: number; completion: number }
+  /**
+   * The `llm_calls.id` of the row that was persisted for this call, or null
+   * when persistence was skipped (no active run / novel context). Callers that
+   * need to write post-LLM derived data back to the row (e.g. NER prepass
+   * findings in halluc-ungrounded) can use this to patch via
+   * `patchLLMCallNerPrepass`. Added in L16.
+   */
+  llmCallId?: number | null
 }
 
 interface MakeRequestResult {
@@ -532,6 +540,12 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
   let zodErrors: string[] = []
   let caughtError: unknown = null
   const startedAt = Date.now()
+  // Mutable container so the finally block can write llmCallId back to the
+  // caller. The return statement inside the try block commits the value object
+  // reference; finally runs afterwards and populates the field. Callers that
+  // need to patch the row (e.g. halluc-ungrounded NER persistence) read
+  // result.llmCallId after awaiting callAgent. Added in L16.
+  const pendingResult: { value: AgentResult<T> | null } = { value: null }
 
   // Broadcast call-start so the live UI can render an in-flight row before
   // the LLM actually returns. Fire-and-forget — failures never block the call.
@@ -640,7 +654,11 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
     }
 
     zodValidationSuccess = true
-    return {
+    // Store result in the pending container so the finally block can attach
+    // llmCallId before this value reaches the caller. We cannot use `return`
+    // here and then mutate in finally — the return value is committed at the
+    // return statement. Instead, we store + let finally run + return below.
+    pendingResult.value = {
       output: result.data,
       tokensUsed: { prompt: requestResult.usage.prompt_tokens, completion: requestResult.usage.completion_tokens },
     }
@@ -736,6 +754,13 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
         console.error(`[llm-inspector] failed to log ${entry.agent} call:`, logErr)
       }
 
+      // Surface llmCallId on the pending result so callers can patch the row
+      // with post-LLM derived data (e.g. NER prepass findings). Only set when
+      // the call succeeded (pendingResult.value is non-null). Added in L16.
+      if (pendingResult.value !== null) {
+        pendingResult.value.llmCallId = llmCallId
+      }
+
       // Unified trace: persists to pipeline_events + broadcasts via SSE.
       try {
         if (failed) {
@@ -761,4 +786,10 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
       }
     }
   }
+
+  // Return the result assembled in the try block (with llmCallId now attached
+  // by the finally block above). If pendingResult.value is null here, the try
+  // block threw — caughtError is set and the catch re-threw, so we never reach
+  // this line. The non-null assertion is therefore safe.
+  return pendingResult.value!
 }

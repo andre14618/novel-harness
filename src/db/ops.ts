@@ -553,6 +553,38 @@ export async function logLLMCall(runId: number, data: LLMCallData): Promise<numb
   return (row as any)?.id ?? null
 }
 
+// ── NER prepass persistence (L16) ────────────────────────────────────────
+
+/**
+ * Patch a halluc-ungrounded `llm_calls` row with the NER prepass result.
+ *
+ * Called by `checkHallucUngrounded` after `callAgent` returns so the
+ * post-LLM derived findings are queryable from `llm_calls.ner_prepass_json`.
+ * No-op (silently skips) when `id` is null — this covers the case where
+ * `callAgent` didn't persist a row (e.g. no active run or novel context).
+ *
+ * Shape persisted:
+ *   { nerEnabled, nerFindings, nerOnlyFindings, andGateDecision }
+ *
+ * Added in migration 034_llm_call_ner_prepass.sql.
+ */
+export async function patchLLMCallNerPrepass(
+  id: number | null,
+  data: {
+    nerEnabled: boolean
+    nerFindings: Array<{ phrase: string; class: string }>
+    nerOnlyFindings: Array<{ phrase: string; class: string }>
+    andGateDecision: "ner+llm-blocker" | "ner-only-warning" | "llm-only-blocker" | "pass" | "disabled"
+  },
+): Promise<void> {
+  if (id === null) return
+  await db`
+    UPDATE llm_calls
+    SET ner_prepass_json = ${data as any}
+    WHERE id = ${id}
+  `
+}
+
 // ── Benchmark generations & scores ───────────────────────────────────────
 
 export async function saveGeneration(

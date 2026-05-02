@@ -22,8 +22,12 @@ export type HallucUngroundedOutput = z.infer<typeof hallucUngroundedSchema>
 export interface NerFinding {
   /** The exact phrase extracted from prose. */
   phrase: string
-  /** The NER candidate class that produced this finding. */
-  class: "title-pair" | "capitalized-multi-word" | "suffix-class"
+  /**
+   * The NER candidate class that produced this finding.
+   * Kept in sync with `EntityCandidateClass` in `src/lint/entity-candidates.ts`.
+   * `x-of-y-capitalized` was added in L15; `number-word-tail` reserved for future use.
+   */
+  class: "title-pair" | "capitalized-multi-word" | "suffix-class" | "x-of-y-capitalized" | "number-word-tail"
 }
 
 /**

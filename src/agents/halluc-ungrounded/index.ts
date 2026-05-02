@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs"
 import { resolve, dirname } from "node:path"
 
 import { callAgent } from "../../llm"
+import { patchLLMCallNerPrepass } from "../../db/ops"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
 import { buildContext } from "./context"
 import {
@@ -294,11 +295,6 @@ export async function checkHallucUngrounded(
       class: c.class,
     }))
 
-    if (llmPass && nerUngrounded.length === 0) {
-      // Both pass → clean beat.
-      return { pass: true, issues: [], nerFindings: nerEnabled ? [] : undefined }
-    }
-
     // Zod's `.default([])` resolves to an array at parse time, but the
     // inferred input type keeps the field optional — fall back to [] so
     // downstream consumers never see undefined.
@@ -306,67 +302,97 @@ export async function checkHallucUngrounded(
       `Ungrounded entity "${i.entity}"${i.excerpt ? ` — context: "${i.excerpt}"` : ""}`,
     )
 
+    // Build the final result and determine the AND-gate decision label for
+    // persistence. We defer `return` until after the NER patch call so the
+    // llm_calls row is enriched before this function returns. (L16)
+    let finalResult: HallucUngroundedResult
+    let andGateDecision: "ner+llm-blocker" | "ner-only-warning" | "llm-only-blocker" | "pass" | "disabled"
+
     if (!nerEnabled) {
       // NER prepass not active (variant v0 / v2) — preserve prior behavior exactly.
-      if (llmPass) return { pass: true, issues: [] }
-      return { pass: false, issues: llmIssues }
-    }
+      andGateDecision = "disabled"
+      if (llmPass) {
+        finalResult = { pass: true, issues: [] }
+      } else {
+        finalResult = { pass: false, issues: llmIssues }
+      }
+    } else if (llmPass && nerUngrounded.length === 0) {
+      // Both pass → clean beat.
+      andGateDecision = "pass"
+      finalResult = { pass: true, issues: [], nerFindings: [] }
+    } else {
+      // AND-gate assembly:
+      //
+      //   • NER fires ∩ LLM fires → **blocker**: both agree, high confidence.
+      //   • NER fires ∩ LLM passes → **warning**: NER-only, surface but flag.
+      //   • NER passes ∩ LLM fires → **LLM-only blocker**: existing behavior.
+      //
+      // In all non-pass cases we return pass=false so the retry loop acts. The
+      // distinction between high-confidence blockers vs NER-only warnings is
+      // carried in the issue message prefix and the nerOnlyFindings field so
+      // callers that want to treat them differently can.
 
-    // AND-gate assembly:
-    //
-    //   • NER fires ∩ LLM fires → **blocker**: both agree, high confidence.
-    //   • NER fires ∩ LLM passes → **warning**: NER-only, surface but flag.
-    //   • NER passes ∩ LLM fires → **LLM-only blocker**: existing behavior.
-    //   • NER passes ∩ LLM passes → covered above (clean return).
-    //
-    // In all non-pass cases we return pass=false so the retry loop acts. The
-    // distinction between high-confidence blockers vs NER-only warnings is
-    // carried in the issue message prefix and the nerOnlyFindings field so
-    // callers that want to treat them differently can.
+      const nerFires = nerUngrounded.length > 0
+      const llmFires = !llmPass
 
-    const nerFires = nerUngrounded.length > 0
-    const llmFires = !llmPass
-
-    if (nerFires && llmFires) {
-      // Blocker: NER ∩ LLM — merge both issue sets.
-      // LLM issues are the canonical description (they carry excerpt context).
-      // NER phrases that have NO corresponding LLM issue get appended so no
-      // NER-caught entity is silently dropped.
-      const llmEntitiesLower = new Set(
-        (output.issues ?? []).map(i => i.entity.toLowerCase().trim()),
-      )
-      const nerExtraIssues = nerUngrounded
-        .filter(c => !llmEntitiesLower.has(c.phrase.toLowerCase().trim()))
-        .map(c => `Ungrounded entity "${c.phrase}" [NER prepass]`)
-      return {
-        pass: false,
-        issues: [...llmIssues, ...nerExtraIssues],
-        nerFindings: allNerFindings,
-        nerOnlyFindings: [],
+      if (nerFires && llmFires) {
+        // Blocker: NER ∩ LLM — merge both issue sets.
+        // LLM issues are the canonical description (they carry excerpt context).
+        // NER phrases that have NO corresponding LLM issue get appended so no
+        // NER-caught entity is silently dropped.
+        const llmEntitiesLower = new Set(
+          (output.issues ?? []).map(i => i.entity.toLowerCase().trim()),
+        )
+        const nerExtraIssues = nerUngrounded
+          .filter(c => !llmEntitiesLower.has(c.phrase.toLowerCase().trim()))
+          .map(c => `Ungrounded entity "${c.phrase}" [NER prepass]`)
+        andGateDecision = "ner+llm-blocker"
+        finalResult = {
+          pass: false,
+          issues: [...llmIssues, ...nerExtraIssues],
+          nerFindings: allNerFindings,
+          nerOnlyFindings: [],
+        }
+      } else if (nerFires && !llmFires) {
+        // Warning: NER-only — LLM did not confirm. Still fail so the retry
+        // loop sees it, but label the issues clearly so operators can triage.
+        const nerOnlyIssues = nerUngrounded.map(
+          c => `Ungrounded entity "${c.phrase}" [NER-only warning — LLM passed]`,
+        )
+        andGateDecision = "ner-only-warning"
+        finalResult = {
+          pass: false,
+          issues: nerOnlyIssues,
+          nerFindings: allNerFindings,
+          nerOnlyFindings: allNerFindings,
+        }
+      } else {
+        // NER passes, LLM fires — LLM-only blocker; existing behavior.
+        andGateDecision = "llm-only-blocker"
+        finalResult = {
+          pass: false,
+          issues: llmIssues,
+          nerFindings: [],
+          nerOnlyFindings: [],
+        }
       }
     }
 
-    if (nerFires && !llmFires) {
-      // Warning: NER-only — LLM did not confirm. Still fail so the retry
-      // loop sees it, but label the issues clearly so operators can triage.
-      const nerOnlyIssues = nerUngrounded.map(
-        c => `Ungrounded entity "${c.phrase}" [NER-only warning — LLM passed]`,
-      )
-      return {
-        pass: false,
-        issues: nerOnlyIssues,
+    // Persist NER prepass findings to llm_calls.ner_prepass_json so future
+    // LXC runs can audit AND-gate firing rates without re-running. Fail-open:
+    // a patch failure never blocks the beat pipeline. (L16)
+    if (result.llmCallId != null) {
+      patchLLMCallNerPrepass(result.llmCallId, {
+        nerEnabled,
         nerFindings: allNerFindings,
-        nerOnlyFindings: allNerFindings,
-      }
+        nerOnlyFindings: finalResult.nerOnlyFindings ?? [],
+        andGateDecision,
+      }).catch(err => {
+        console.error(`[halluc-ungrounded] NER prepass patch failed for llm_call ${result.llmCallId}:`, err)
+      })
     }
 
-    // NER passes, LLM fires — LLM-only blocker; existing behavior.
-    return {
-      pass: false,
-      issues: llmIssues,
-      nerFindings: [],
-      nerOnlyFindings: [],
-    }
+    return finalResult
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     return {
