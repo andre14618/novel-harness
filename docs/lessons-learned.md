@@ -1962,3 +1962,17 @@ Plan-assist gates are evidence. Deleting a stale `chapter_exhaustions` row remov
 - Never use ad hoc `DELETE` for `chapter_exhaustions` hygiene.
 
 (2026-05-02 L51 stale-gate resolver. Companion: `docs/agent-lane-protocol.md`.)
+
+## Background agent workers need process logs plus durable cycle artifacts
+
+Launching Claude Code or OpenCode as a background subprocess solves the chat-wakeup problem only if the repo can reconstruct what was asked, what ran, and why the loop stopped. A `/tmp` log alone is insufficient: it can be truncated, overwritten, or contain only the supervisor's stdout rather than the worker prompt and result.
+
+**The rule:** background workers should run under a bounded repo supervisor that records the generated prompt, command, stdout, stderr, result, and lane events per cycle. Human monitoring should read the repo's lane dashboard and artifact directory, not the private chat transcript.
+
+**How to apply:**
+- Start with `bun scripts/agent/lane-runner.ts <lane> --dry-run` to inspect the exact worker command and prompt.
+- For Claude-led loops, use `--engine claude --model opus --permission-mode auto` instead of relying on an interactive Claude session to wake itself up.
+- Redirect the background supervisor to `/tmp/lane-runner-<lane-id>.log`, but treat `output/agent-runs/<lane-id>/cycles/` as the durable source for cycle prompts/results.
+- Queue advancement should reference pre-created lane docs and require completed Results fields before moving to the next lane.
+
+(2026-05-02 L52 lane runner Claude-worker sweep. Companion: `docs/agent-lane-protocol.md`, `docs/overnight-runbook.md`.)

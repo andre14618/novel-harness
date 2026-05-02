@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-01
+updated: 2026-05-02
 ---
 
 # Overnight Loop Runbook
@@ -19,14 +19,14 @@ Before kicking off an overnight session:
 
 ## Starting an autonomous loop
 
-The conventional invocation is `/loop` in dynamic mode (the assistant self-paces wakeups via `ScheduleWakeup`). Each loop cycle:
+The preferred unattended path is repo-supervised: create a lane doc, dry-run `lane-runner.ts`, then launch bounded worker cycles. Interactive `/loop` remains useful for manual Claude sessions, but it is not the source of truth for continuation. Each loop cycle:
 
 1. Check the queue — read `docs/todo.md` for next-action items.
 2. Pick one **primary lane**; write a session-context file under `docs/sessions/<DATE>-<LOOP>-<topic>.md` BEFORE editing code (per §6 todo rules).
 3. Declare baseline, changed runtime lever, feedback signal, stop gate, and escalation rule.
 4. Make the lane change, run tests, commit.
 5. Update `docs/decisions.md` (concluded items) + `docs/todo.md` (close the bullet).
-6. Loop back to step 1 OR sleep until next condition.
+6. Let `lane-runner.ts` decide whether to start another worker cycle from `lane-status.ts`.
 
 ## Primary lane contract
 
@@ -86,11 +86,14 @@ bun scripts/agent/lane-dashboard.ts docs/sessions/<lane>.md --watch --latest-nov
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --dry-run
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --max-cycles 4 --max-hours 3 --model openai/gpt-5.5
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8
+nohup bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 > /tmp/lane-runner-<lane-id>.log 2>&1 &
 ```
 
 `monitor` selects the latest non-template session doc with a complete Loop Contract. If none exists, it stays open in a waiting state and polls until one appears; `monitor --once` still exits immediately. Legacy session docs are skipped by default so they do not permanently show missing-field noise; pass a path explicitly to inspect one. `lane-status.ts` returns exit code `0` only when the outside loop should continue. It stops or blocks on missing lane-contract fields, stale heartbeat, explicit stop events, result stop gates, human-needed events, infra-failure events, and stale outside-loop state. The default dashboard shows all panels: outside lane state, inside-harness novel summary, evidence rows, repo hygiene, and process health. Use `--panel outside|inside|evidence|hygiene|process` to narrow it. The `--latest-novel` / `--novel <id>` flags control the inside-harness novel summary delegated to `scripts/operator-summary.ts`.
 
 For unattended work, use `lane-runner.ts` rather than trusting chat continuation. The runner launches bounded worker cycles only while lane-status remains `continue`, writes cycle artifacts under `output/agent-runs/<lane-id>/cycles/`, and stops on worker failure/timeout, max cycles, max hours, or no tracked workspace change. Default engine is OpenCode (`opencode run`); use `--engine claude` to make Claude Code the lane worker through `claude -p`. Always run `--dry-run` first to inspect the generated prompt and command. Avoid `--dangerously-skip-permissions` unless you explicitly accept the risk for that session.
+
+For background launches, the `/tmp/lane-runner-<lane-id>.log` file is only the supervisor process log. The durable worker prompt, command, stdout, stderr, and result files live under `output/agent-runs/<lane-id>/cycles/`. Check `monitor --once --no-latest-novel` between cycles instead of relying on chat continuation.
 
 Use `--queue docs/sessions/lane-queue.md` only with pre-created lane docs. The runner advances after a stopped lane only when `Outcome`, `Stop gate fired`, and `Evidence link/row/path` are filled in that lane's Results section. It will not invent a new lane from a vague queue title while unattended.
 

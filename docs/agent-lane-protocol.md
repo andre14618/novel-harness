@@ -58,6 +58,7 @@ Run bounded unattended OpenCode or Claude cycles:
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --dry-run
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --max-cycles 4 --max-hours 3 --model openai/gpt-5.5
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8
+nohup bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 > /tmp/lane-runner-<lane-id>.log 2>&1 &
 ```
 
 `monitor` is the shell shortcut for `bun run monitor` in this repo. It defaults to the latest non-template session doc with a complete `Loop Contract`, watches continuously, and includes all panels. If no active lane exists, bare `monitor` stays open in a waiting state and polls until a complete lane doc appears. Use `monitor --once` for a single render, `monitor --append` to append snapshots instead of redrawing in place, `monitor --no-latest-novel` to hide inside-harness novel data, or `monitor --panel <name>` to narrow the dashboard.
@@ -67,6 +68,8 @@ Panels are `all`, `outside`, `inside`, `evidence`, `hygiene`, and `process`. `ou
 Older session docs created before the lane-contract template are intentionally skipped by bare `monitor`; pass the path explicitly if you want to inspect a legacy doc.
 
 `lane-runner.ts` is a bounded supervisor, not an infinite daemon. It checks `lane-status`, records runner/cycle events, launches one worker cycle (`opencode run` by default, or `claude -p` with `--engine claude`), stores prompt/stdout/stderr/result artifacts under `output/agent-runs/<lane-id>/cycles/`, then checks status again. It stops on non-`continue` lane state, worker failure/timeout, max cycles, max hours, or consecutive cycles with no tracked workspace change. Use `--dry-run` before walking away to verify the prompt and command. The runner intentionally does not use `--dangerously-skip-permissions` unless explicitly requested.
+
+When running in the background, treat the `/tmp/lane-runner-<lane-id>.log` file as the supervisor process log and the per-cycle files under `output/agent-runs/<lane-id>/cycles/` as the worker transcript artifacts. Use `monitor --once --no-latest-novel` or `monitor --append --no-latest-novel` for snapshots without taking over the terminal.
 
 Queued advancement is deterministic. With `--queue docs/sessions/lane-queue.md`, the runner advances only after the stopped lane has `Results: Outcome`, `Results: Stop gate fired`, and `Results: Evidence link/row/path` filled. Queue entries must point to pre-created lane docs:
 

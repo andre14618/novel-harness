@@ -26,6 +26,7 @@ role: primary-lane-context
 - Evidence artifact: Experiment #369 plus test output; post-deploy smoke evidence should link to operator-summary output, `chapter_exhaustions`, and any persisted run/eval row.
 - Event log: output/agent-runs/2026-05-02-L38-A-prior-context/events.jsonl
 - Dashboard command: bun scripts/agent/lane-dashboard.ts docs/sessions/2026-05-02-L38-A-prior-context.md --watch --latest-novel
+- Runner command: bun scripts/agent/lane-runner.ts docs/sessions/2026-05-02-L38-A-prior-context.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8
 
 ## Baseline
 
@@ -48,11 +49,13 @@ role: primary-lane-context
 - Expected cost: Local tests $0; first live smoke capped at $4.
 - Command 1: `bun test <focused writer context tests>`
 - Command 2: `bun scripts/preflight-docs-impact.ts --strict`
+- Runner dry-run: `bun scripts/agent/lane-runner.ts docs/sessions/2026-05-02-L38-A-prior-context.md --engine claude --model opus --permission-mode auto --dry-run`
 - Verification command(s): `bun scripts/agent/lane-status.ts docs/sessions/2026-05-02-L38-A-prior-context.md --json`; after commit/deploy, LXC smoke plus `bun scripts/operator-summary.ts --latest`.
 
 ## Progress Log
 
 - 2026-05-02: Lane created from monitor-ready template. Experiment #369 created. Runtime work not started yet.
+- 2026-05-02: Claude-capable `lane-runner.ts` supervisor documented and ready; start with dry-run, then bounded `--engine claude` cycles.
 
 ## Heartbeat Commands
 
@@ -70,6 +73,6 @@ role: primary-lane-context
 
 ## Pickup Instructions
 
-- Last safe command: `bun scripts/agent/lane-status.ts docs/sessions/2026-05-02-L38-A-prior-context.md`
+- Last safe command: `bun scripts/agent/lane-runner.ts docs/sessions/2026-05-02-L38-A-prior-context.md --engine claude --model opus --permission-mode auto --dry-run`
 - If failed, failure fingerprint:
 - Next action: Inspect the existing enriched-context renderer and production beat-context assembly; add the smallest parity test that proves prior-chapter reader-info state appears only where intended.
