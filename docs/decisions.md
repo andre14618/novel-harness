@@ -4069,3 +4069,59 @@ Picked **(b)** because: (1) zero LLM prompt change → cached-prefix unaffected;
 **Ongoing implications:** L31 + L39 + L40 stack is now the production baseline. The NER+LLM AND-gate is symmetric in both directions — NER catches LLM FNs (via NER-only-warning) and LLM catches NER FNs (via llm-only-blocker), and now NER catches LLM FPs (via the L40 rescue). Genre-specific (gamelit, litRPG) entity grounding gaps that were previously llm-only-blocker tail bails should now be deterministically suppressed when the world-bible carries the term.
 
 ---
+
+### L40-validation — Heretic re-smoke validates NER post-filter (2026-05-02, exp #365)
+
+**Decision:** L40 fix VALIDATED via mechanistic + retroactive analysis. The forward stochastic re-smoke did not trigger the exact `System` disagreement case (writer prose was different), but mechanistic verification at the L39-val bail point confirms L40 closes the cluster.
+
+**Mechanistic — at the L39-val bail point.** L39-val novel (`novel-1777712370271`) bailed at `chapter 1 beat 1 attempt 3` with `llm-only-blocker` flagging `[System]`. Reconstructed that call's grounded surface from `request_json.groundedSources` and ran the L40 grounding check directly:
+
+```
+Candidate: System
+groundedSurface.lower has "system":      true   (tier 1 — per-token shard)
+groundedSurface.normalized has "system": true   (tier 3 — normalize)
+isNerGrounded("System", surface):        TRUE
+L40 outcome:                             RESCUE → drop from issues → andGateDecision = pass
+```
+
+Pre-L40 the chapter bailed here. Post-L40 the call would `pass` and the chapter would continue.
+
+**Retroactive — entire L39-val novel.** Re-ran the L40 grounding check across all 43 L39-val halluc-ungrounded calls:
+
+| Metric | Value |
+|---|---|
+| Total LLM-flagged entities | 7 |
+| Would-be rescued by L40 | **3 (43%)** |
+| Rescues per decision class | `llm-only-blocker`: 3, `ner+llm-blocker`: 0 |
+
+**100% of LLM-only-blocker entities would be rescued. 0% of consensus `ner+llm-blocker` entities are touched.** L40 is precise: it only rescues the disagreement class, never overrides the consensus class.
+
+**L40-val novel telemetry (`novel-1777716659610`):**
+
+| Metric | Value |
+|---|---|
+| Halluc-ungrounded calls | 19 |
+| AND-gate decisions | `pass`: 13 / `ner-only-warning`: 5 / `llm-only-blocker`: 1 / `ner+llm-blocker`: 0 |
+| `llmRescuedByNer` events | **0** (writer didn't trigger disagreement; rescue stayed inert) |
+| Spurious rescues | **0** |
+
+The single `llm-only-blocker` (beat 3 attempt 3) flagged `[Journeyman Veth, Senior Scribe Haldor, Chronicle of Northern Incursions]` — three writer-invented walk-on entities NOT in any grounded surface. L40 correctly did NOT rescue these (genuinely ungrounded; planner did not pre-sanction in `allowedNewEntities`).
+
+**Stop condition: (b) — NEW out-of-scope cluster found.** L40-val heretic ch1 bailed at plan-assist on a NEW cluster: writer-invented unsanctioned named entities. This is a planner-writer interface gap at the `allowedNewEntities` layer. Queued as **L42** sprint.
+
+**Cluster hold list (validated by L40-val):**
+
+| Cluster | Status |
+|---|---|
+| L17 entity grounding | ✅ HOLDS |
+| L22 FN entity expansion | ✅ HOLDS |
+| L24-(a) NER-only-warning exhaust (L31a) | ✅ HOLDS — 5 NER-only-warnings, all `pass: true` |
+| L24-(b) adherence stage-1 stochastic (L31c) | ✅ HOLDS |
+| L26/L32 mapper allowedNewEntities dup-FPs (L32) | ✅ HOLDS |
+| L39 adherence prose truncation | ✅ HOLDS — no truncation FNs |
+| **L40 NER post-filter** | ✅ **VALIDATED** — 3/3 retroactive L39-val rescues, 0 spurious live rescues |
+| **L40-val-NEW writer-invented unsanctioned entities** | ⚠ NEW (L42 candidate) |
+
+**Ongoing implications:** L31 + L39 + L40 stack is the production baseline. The dominant heretic bail cluster is now planner-writer interface (writer invents ambient walk-on entities the planner did not sanction). Three remediation options — writer-side prompt instruction (cheapest), planner-side ambient budget (best quality), lint-fixer-side rewrite (most invasive). L42 should pick option 1 first.
+
+---

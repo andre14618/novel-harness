@@ -1772,3 +1772,53 @@ When the question is "is this prompt-change delta real or noise?", spreading the
 **Generalization to other measurement infrastructure:** the same trap applies any time multiple structural sources of variation get pooled into a single σ. Before quoting a stddev, ask "what's the population I'm sampling from? am I averaging over things that have different means?" If so, the σ over-states stochastic noise and under-states structural diversity.
 
 (2026-05-01 exp #318, persisted `phase_eval_runs.id=67`. Result doc `docs/multi-seed-probe-shape-2026-05-01.md`.)
+
+## Stochastic re-smokes need mechanistic backstops
+
+When a fix targets a specific disagreement class (e.g. "LLM disagrees with NER on a grounded entity") but the live re-smoke happens to not trigger that class, the run looks unhelpful: 0 rescue events, no behavior change, no proof. The case just didn't recur. Don't conclude the fix doesn't help — concentrate validation on mechanistic + retroactive analysis.
+
+**The phenomenon (L40-validation, exp #365):** L40 added `isNerGrounded` as a post-filter on LLM-flagged entities in `checkHallucUngrounded`. The L39-val novel had bailed on `chapter 1 beat 1 attempt 3 [System]` (llm-only-blocker). After L40 shipped, re-ran `fantasy-system-heretic` 3 chapters ($4 budget). The new run had 19 halluc calls; **0 of them activated L40's rescue path**. Chapter 1 bailed on a different cluster (writer-invented unsanctioned entities). On the surface this looks like "L40 didn't help" — but the writer's stochastic prose this time simply never produced an LLM-disagrees-with-grounded-entity event.
+
+**The mechanistic backstop:**
+1. Pull the prior bail's halluc-ungrounded LLM call from `llm_calls` (filter by novel_id + agent + decision class).
+2. Reconstruct that call's grounded surface from `request_json.groundedSources` (fields `bible`, `from_brief`, `derived_outline_fact`, `derived_prior_beat`, `allowed_new_entities`, `character_roster`, `outline_entities`, `derived_titles`).
+3. Re-run the fix's check function (`isNerGrounded`) directly on the entity that triggered the bail.
+4. If the function returns "would rescue", the fix mechanistically closes the cluster — even though the live re-smoke didn't trigger it.
+
+**For L40 specifically:** at the L39-val bail point, `isNerGrounded("System", surface)` returned true via tier-1 (per-token shard `"system"` in `lower`) AND tier-3 (normalize: `"system"` in `normalized`). Pre-L40 the chapter bailed there. Post-L40 the call would `pass` and the chapter would continue. Strong proof without waiting for the case to recur.
+
+**Retroactive scaling:** can also re-run the check across the whole prior novel and quantify the rescue rate. L39-val: 7 LLM-flagged entities total; 3 would be rescued (43%); 100% of `llm-only-blocker` entities rescued; 0% of consensus `ner+llm-blocker` entities touched. That precision proof is impossible to extract from a single live re-smoke.
+
+**The rule:**
+- Live re-smoke validates the integration path, the cost profile, and that the fix doesn't break unrelated paths.
+- Mechanistic + retroactive analysis validates that the fix actually solves the targeted case.
+- For any defensive fix on a stochastic disagreement class (NER/LLM, judge/gate, retry-vs-bail), do BOTH.
+
+**How to apply:**
+- Whenever you ship a checker-side fix, include a `request_json` snapshot of the inputs that drive the fix's decision. (L40 already had `groundedSources` from prior charters; this is why retroactive analysis was possible.)
+- Whenever a re-smoke fails to trigger the targeted case, immediately run the fix's check function on the prior bail's reconstructed input. Don't conclude "fix doesn't help" until you've done this.
+- Quantify across the whole prior novel — rescue rate, decision-class breakdown, FP risk on consensus class. Single bail-point proof + whole-novel proof = solid validation.
+
+(2026-05-02 L40-validation exp #365. Result doc `docs/l40-validation-2026-05-02.md`. Companion: §L40 NER post-filter + §L40-validation in `docs/decisions.md`.)
+
+## Telemetry payload extensions pay for themselves on the same day they ship
+
+When you add a defensive code path that may or may not fire, extend the persistence schema in the same commit to record whether it fired. Otherwise on the next re-smoke you can't distinguish "code working but inactive" from "code broken silently" without re-instrumenting and re-running.
+
+**The phenomenon (L40, commit `d356443`):** L40 added a NER post-filter that drops LLM-flagged entities `isNerGrounded` would have grounded. The same commit extended `patchLLMCallNerPrepass`'s data param with an optional `llmRescuedByNer: number` field, which lands in `llm_calls.ner_prepass_json` (forward-compatible JSONB; old rows have no field, new rows do).
+
+On the L40-validation re-smoke, the immediate question was "did L40 fire spuriously and rescue something it shouldn't?" Without the new field, the answer would require either:
+1. Re-running the novel with extra logging (re-spending compute, re-deploying).
+2. Reading the LLM call response_content + reconstructing the grounded surface for every halluc call to compute the would-rescue-count manually.
+
+**With the field:** one SQL query returned `Total LLM-rescued-by-NER entities: 0` across all 19 halluc calls. Question answered. Cost: negligible (one int per call into an existing JSONB column).
+
+**The rule:** if you're adding a fix that does something conditionally (rescue, retry, override, suppress), record whether it fired. The persistence schema extension is part of the fix, not optional follow-up work. JSONB columns make this nearly free.
+
+**How to apply:**
+- Any new conditional code path → add a count field to the relevant telemetry payload.
+- Type the field as optional (`number?` / `boolean?`) so older rows stay valid.
+- Document the schema extension in the function's JSDoc with a versioning note ("forward-compatible — older runs persist without it").
+- The payload becomes self-explaining for future operators: scan `decisions.md` for the field name, find the sprint that introduced it, understand its semantic.
+
+(2026-05-02 L40 exp #365. Source: `src/agents/halluc-ungrounded/index.ts` + `src/db/ops.ts patchLLMCallNerPrepass`. Companion: `docs/decisions.md` §L40, §L40-validation.)
