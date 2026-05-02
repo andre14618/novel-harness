@@ -2791,3 +2791,39 @@ corpus-v1's closer mix (70% interiority / 20% action / 10% dialogue / 0% descrip
 - Followup: revise corpus-v1 opener guidance from "~50% description" to a balanced guideline that the planner reads as a target distribution, not a default behavior. Then re-run the wider probe.
 - The P7 top-4-set softening did not collapse beat counts (135 → 223) — that revision can be considered safe and stays in.
 - Pattern: when adding kind/distribution guidance to a planner prompt, it tends to read as "almost always do X" unless framed as an explicit distribution. Future kind-rule edits should specify "across the chapter set" wording.
+
+### Opener-balance prompt edit — partial improvement, closer mix wins, facts metric noisy at n=10 (2026-05-01, exp #311)
+
+**Decision:** Re-probed corpus-v1 plotter at commit `31d7f16` after replacing the "~50% description" guidance with a per-book-distribution rule plus an explicit "if seven in a row, the next is action" anchor. Same 10-chapter `fantasy-debt` setup as exp #307. Persisted as `phase_eval_runs.id=18`.
+
+**Metrics (n=10 chapters per variant):**
+- default:    facts_median=6.0, know_median=4.0, total_beats=130, payoffs=2, orphans=0, status=ok
+- corpus-v1:  facts_median=5.5, know_median=4.0, total_beats=217, payoffs=4, orphans=0, status=ok
+
+**Gates (vs exp #307):**
+- G1 rich-facts:        FAIL — corpus-v1 (5.5) < 1.5 × default (6.0) = 9.0  [#307: PASS-equivalent, FAIL by margin]
+- G2 knowledge-changes: FAIL — corpus-v1 (4.0) < 1.5 × default (4.0) = 6.0  [#307: PASS]
+- G3 beat-floor:        PASS — corpus-v1 (217) ≥ 1.10 × default (130) = 143
+- G4 structural:        PASS
+
+**P3 chapter-edge diagnostic (the actual hypothesis under test):**
+- Opener kinds (corpus reference: ~50% action / ~50% description):
+  - exp #307 corpus-v1: action=0/dialogue=0/interiority=1/description=9 (90% description — over-rotation)
+  - exp #311 corpus-v1: action=2/dialogue=0/interiority=0/description=8 (80% description — modest improvement, still over-rotated)
+- Closer kinds (corpus reference: ~41% action / ~35% interiority / 0% description):
+  - exp #307 corpus-v1: action=2/dialogue=1/interiority=7/description=0 (interiority-heavy)
+  - exp #311 corpus-v1: action=6/dialogue=0/interiority=4/description=0 (60% action, 40% interiority — within corpus range)
+
+**Why this matters:** the closer-mix fix landed cleanly — 6/4 action/interiority is the closest to the corpus reference any variant has produced in this seed family, and the "NEVER close with description" rule held at 0/10 for both variants. The opener fix was directionally correct (9→8 description) but too small to call a win; the per-book-distribution framing did not shift the planner enough.
+
+**Why the facts/knowledge regression is probably noise, not a real signal:** the same upstream concept artifact and identical mapper prompt produced facts_median 7.5/know_median 7.5 in exp #307 and 5.5/4.0 in exp #311 for corpus-v1. The plotter prompt change should not influence mapper density that strongly — the mapper reads the beat list and produces facts independently. At n=10 the median is one-chapter-sensitive, and the default also moved (5.5 → 6.0 facts). A multi-run baseline would be needed to confirm whether the opener wording has any real density effect or it's just sample variance.
+
+**Alternatives considered for the opener fix iteration:**
+- *Add an explicit count rule.* Something like "no more than 5 description openers across the chapter set" would force the distribution numerically. Risk: planner over-rotates the other way or rejects the guidance as too rigid for chapters that genuinely need a description opener.
+- *Restructure the prompt to put the action/description choice at the start of each chapter purpose.* Push the kind decision into the per-chapter `purpose` text rather than a global rule. Probably the highest-leverage edit but riskier — touches the chapter-shape contract, not just the kind hint.
+- *Re-run exp #311 multiple times to establish the n=10 median variance baseline first.* Cheap (~$0.04/run) and would let us judge whether the facts regression is real before iterating prompts. Defensible next step.
+
+**Ongoing implications:**
+- The closer-kind portion of the corpus-v1 plotter prompt is producing the corpus-reference distribution; that part of the variant is ready for inclusion in a composite-prior bundle.
+- The opener-kind portion is still over-rotating; one more prompt iteration plus a multi-run noise baseline is the cheap path before declaring the variant ready.
+- Followup: re-run exp #311 (same prompt, same seed) twice more to bracket median variance before deciding whether the facts/knowledge regression is real. Meanwhile, draft the next opener-rule edit.
