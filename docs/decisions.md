@@ -3951,3 +3951,32 @@ Stage 2 is more authoritative than stage 1 because it provides per-event quote e
 **Ongoing implications:** L31 stack continues as production baseline across 3 fantasy seeds (debt, system-heretic, inscription). Adherence-beat-blocker chapter-attempt exhaustion is the dominant remaining halt class — open a separate sprint to investigate why a single beat-level adherence blocker survives 3 writer retries on the same beat. (Specifically: `fantasy-system-heretic` ch1 Beat 4 obligated event "Maret considers destroying the file but reshelves it untouched because the System logs all accesses" survived all three retries.)
 
 ---
+
+### L39 — Adherence-checker prose truncation 2000→8000 chars (2026-05-02, exp #363)
+*2026-05-02 · exp #363 · commit `0dc2b0c`*
+
+**Decision:** Raised `proseTrimmed = prose.slice(0, 2000)` to `prose.slice(0, 8000)` in `src/agents/writer/adherence-checker.ts`. Both stage 1 (binary) and stage 2 (per-event) now see up to 8000 chars of prose. Covers 100% of observed beats; eliminates the truncation-FN class for adherence checking.
+
+**Discovery:** Root-cause analysis of L37-data heretic chapter 1 beat 4 (`novel-1777709036403`):
+
+The continuity-blocker exhaustion class identified in L37-data turned out to have a deeper origin. Beat 4's obligated event was "Maret pulls her own file, considers destroying it, but reshelves it untouched, establishing the file remains." Across 3 chapter retries the writer produced different drafts of beat 4. Multiple drafts (e.g., id `57303`, `57372`, `57429`) DID enact pulling + considering + reshelving — including the explicit phrase "She slid it back into its slot" near char 2400. **But the adherence stage-1 + stage-2 output reported "reshelves untouched: enacted=false" with reasoning "the prose ends before she reshelves it."** The model couldn't see the resolution because the prose was truncated at char 2000.
+
+**Scope of impact:** sampled `novel-1777709036403` ch1 — 27 of 52 writer outputs (52%) exceed 2000 chars. Long action beats are systematically at risk. Estimated cluster size: any beat with ~750+ words of prose and a resolution action in the final third gets a truncation-FN.
+
+**Cost analysis:**
+- Pre-L39: ~500 prose tokens per stage-1 call (~2000 chars).
+- Post-L39: ~2000 prose tokens per stage-1 call (~8000 chars).
+- Stage-2 same shape; fires only on stage-1 fail.
+- DeepSeek V4 Flash 32K context easily fits; cached prefix (system prompt) dominates per-call cost.
+- Estimated per-call cost increase: ~$0.0001 → ~$0.0003 (3×, but on a per-call basis it's negligible).
+- Cluster impact: should turn truncation-FN beats from "exhaust retry" into "pass first attempt" — net cost REDUCTION since fewer chapter retries.
+
+**Tests:** 2 new structural guards in `adherence-checker.test.ts`:
+- `prose between chars 2000-3000 reaches the model` — verifies the resolution-zone is visible.
+- `cap is 8000 chars (above which the model gets a slice)` — documents the hard cap so future bumps require deliberate test updates.
+
+**Validation plan:** re-smoke heretic 3-chapter run after deploy to confirm beat 4 (or analogous long-action beats) now passes adherence on first attempt. Expected: chapter completion rate improves on long-beat chapters.
+
+**Ongoing implications:** L31 stack accuracy improves materially. The L37-data L31d-(NEW) cluster is now split into two: chapter-level continuity blockers (real plan-vs-prose contradictions, addressed by future L38 writer-state-propagation work) vs. adherence truncation-FNs (closed by L39). Heretic-class failures should be substantially reduced.
+
+---
