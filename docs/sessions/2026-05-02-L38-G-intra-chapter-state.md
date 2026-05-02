@@ -72,7 +72,7 @@ role: primary-lane-context
 - Stop gate fired: (a) clean pass — paired replay removes the intra-chapter physical-state contradiction without reviving prior-state conflation.
 - Evidence link/row/path: LXC log `/tmp/smoke-l38g-resume-1777739195.log` (chapter 2 attempt 1 success, 15 beats, plan check passed; smudges/iron-bars exchange at lines ~252–255). Prior-state baseline: `chapter_exhaustions` rows 81/83/84 (all `orphaned`, with #84 isolating the hand-washing/smudges deviation).
 - Cost: $0.1285 total for novel-1777721066908 (338 calls, 0 failed); incremental ch2 attempt-1 cost well under the $4 cap.
-- Commit(s): a27a8a1 (writer rule), 19c74bf (cycle-2 progress doc), this finalization commit.
+- Commit(s): a27a8a1 (writer rule), 19c74bf (cycle-2 progress doc), b226f68 (finalization docs).
 
 ## Finalization Checklist
 
