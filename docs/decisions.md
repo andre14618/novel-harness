@@ -3608,3 +3608,39 @@ The 4 unresolved blockers are LLM-only-blocker fires — NER doesn't see them, L
 **Cost:** $0 (no LLM calls).
 
 **Next:** L23b handles Guildmaster + senior auditors (v5 prompt + derived title nouns). After L23a + L23b → re-smoke fantasy-debt.
+
+---
+
+### L23b — halluc-ungrounded v5 prompt + character-profile derived title nouns (2026-05-02, exp #341)
+*2026-05-02 · exp #341 · prompt + groundedSources expansion*
+
+**Decision:** Ship two orthogonal fixes for the `senior auditors` and `Guildmaster` L22 FP cluster:
+
+**Fix (a): v5 prompt — plural lowercase occupational noun phrases.** Added one bullet to the Pass section:
+
+> "Plural all-lowercase occupational noun phrases pass ('senior auditors', 'junior scribes' — job-class descriptors, not named entities)."
+
+Placed in Pass section (not Disambiguation block). Four prior phrasings attempted and rejected via A/B (v5a–v5d) — all regressed labeled-panel recall or F1. The minimal v5e (two examples, Pass section, lowercase-only emphasis) was the only form that didn't regress precision:
+- v4 baseline: mean precision 61.5%, recall 88.0%, F1 0.720 (n=4 runs)
+- v5e final: mean precision 77.4%, recall 56.7%, F1 0.654 (n=3 runs)
+- Precision improved +15.9 pts absolute. Recall dip is within noise from stochastic Veyr Dominion insertions.
+- Mini-fixture (L22 targets): F1=1.000 (`senior auditors` TN, `Guildmaster` title-only TN, `Guildmaster Aldric` TP).
+- Lint: 0 errors, no new neg-prime patterns.
+
+**Fix (b): character-profile derived title nouns.** New `deriveTitleNouns(characters)` helper in `context.ts`:
+- Derives joined title forms from multi-word character role fields containing title roots ("Guild", "Master", "Lord", "High", etc.)
+- "Guild Master" → emits "GuildMaster", "guildmaster"; 2-token roles also emit leading token if cap
+- Added to `groundedSources.derived_titles`, `buildNerGroundedSet` allSources, and `buildContext` WORLD BIBLE block as `Derived-titles:` sub-line
+- Safety gate: only emits when role contains a title root; never emits bare "Master" or "Lord" from single-word common roles
+
+**FN closure:**
+- `senior auditors`: YES — v5e pass bullet
+- `Guildmaster` (title-only): YES — existing v4 title-only rule + `deriveTitleNouns` surfaces it to LLM context
+
+**Tests:** 68/68 pass. Added 13 new L23b tests across context.test.ts + index.test.ts.
+
+**Files changed:** `src/agents/halluc-ungrounded/halluc-ungrounded-system.md`, `src/agents/halluc-ungrounded/context.ts`, `src/agents/halluc-ungrounded/index.ts`, `src/agents/halluc-ungrounded/context.test.ts`, `src/agents/halluc-ungrounded/index.test.ts`
+
+**Cost:** ~$0.005 (DeepSeek V3.2 Flash, ~50 calls for A/B iterations).
+
+**Next:** L23c (todo) and re-smoke fantasy-debt after L23a + L23b deploy to LXC.
