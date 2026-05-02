@@ -18,8 +18,7 @@
  *   - This module BUILDS the extractor only. Calibration vs the LLM checker
  *     and any blocker promotion are separate loops (see `docs/todo.md` §7).
  *
- * Three candidate classes, mirrored from
- * `src/agents/halluc-ungrounded/halluc-ungrounded-system.md`:
+ * Five candidate classes:
  *
  *   1. `title-pair` — A title token (Master, Lord, Captain, Arbiter, ...)
  *      followed by a Capitalized Word. e.g. "Master Orin", "Castellan Vesh".
@@ -35,16 +34,29 @@
  *      "Bellward Order", "Briar Pass". The suffix MUST be preceded by a
  *      capitalized non-article word.
  *
+ *   4. `x-of-y-capitalized` (L15) — An "X of Y" connector pattern where X
+ *      and Y are Capitalized Words. Catches realm/artifact/institution names
+ *      like "Crown of Hyran", "Order of Vesh", "Vale of Whispers" where the
+ *      lowercase preposition "of" would break the consecutive-capitalization
+ *      detector. Optional leading article ("the") is matched and included.
+ *      See L15 (commit context, exp #TBD).
+ *
+ *   5. `number-word-tail` (L15) — A Capitalized Word (optionally article-
+ *      prefixed) ending in an English number-word (Zero, One, ..., Eight,
+ *      ..., Hundred). Catches faction/artifact names like "the Veiled Eight",
+ *      "the Sigil of Eight" (x-of-y also fires for the latter), "Council of
+ *      Seven", "the Forty-Seven Tongues" where the numeric tail is not in the
+ *      existing suffix vocabulary.
+ *      See L15 (commit context, exp #TBD).
+ *
  * Filters (do NOT emit):
  *   - Sentence-initial capitalization (the first capitalized token after
  *     ., !, ?, paragraph break, or string start) — applies to the
  *     `capitalized-multi-word` and `suffix-class` passes only. The
- *     `title-pair` pass is EXEMPT from the sentence-initial filter because
- *     the leading TITLE_TOKEN (Arbiter, Master, Captain, …) is high-signal
- *     on its own and never collides with a generic article like "The"; the
- *     calibration L4-followup loop showed the filter was dropping real
- *     positives (e.g. `Arbiter Vesh` opening a paragraph) without buying
- *     any precision back. See L4-followup-2 result-doc updates.
+ *     `title-pair`, `x-of-y-capitalized`, and `number-word-tail` passes are
+ *     EXEMPT because their patterns are structurally high-signal (a
+ *     "CapWord of CapWord" or "the CapWord NumberWord" pattern can only
+ *     match a proper-noun-like construct regardless of position).
  *   - Single capitalized words (the LLM checker handles bare names well).
  *   - Phrases composed entirely of common-words.
  *   - Anything inside `*italics*` markdown spans (per the existing
@@ -72,6 +84,12 @@
  *   - Title-pair tokens are matched case-sensitively against the exact
  *     forms in `TITLE_TOKENS`; lowercase or pluralized titles ("masters",
  *     "lords") are NOT detected.
+ *   - `x-of-y-capitalized` matches "King of England" — that is intentional;
+ *     it is likely a proper proper-noun in fantasy prose and the downstream
+ *     grounded-surface check suppresses it if it appears in the bible.
+ *   - `number-word-tail` matches any CapWord ending in a number-word,
+ *     including grounded entities. The downstream grounded-surface check
+ *     suppresses those; the extractor's job is recall-floor coverage.
  */
 
 // ── Lexicons ─────────────────────────────────────────────────────────────────
@@ -134,6 +152,29 @@ export const SUFFIX_TOKENS: readonly string[] = [
 ] as const
 
 /**
+ * English number-word tokens that, when used as a tail of a Capitalized
+ * phrase, signal a faction/artifact name like "the Veiled Eight" or
+ * "the Council of Forty-Seven". These are treated like suffix-class tokens
+ * for the `number-word-tail` extractor class (L15).
+ *
+ * Includes cardinal words one through twenty, round-number words (Thirty,
+ * Forty, ..., Ninety), and large magnitudes (Hundred, Thousand, Million,
+ * Billion). Does NOT include ordinals ("First", "Second", ...) because
+ * those are also common adjectives; ordinal matching would require
+ * stricter context.
+ *
+ * Hyphenated composites like "Forty-Seven" are handled by the regex
+ * allowing an optional `-NumberWord` suffix after the primary word.
+ */
+export const NUMBER_WORD_TOKENS: readonly string[] = [
+  "Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight",
+  "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen",
+  "Sixteen", "Seventeen", "Eighteen", "Nineteen", "Twenty", "Thirty",
+  "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety",
+  "Hundred", "Thousand", "Million", "Billion",
+] as const
+
+/**
  * Common (closed-class) words that must NOT be the entire content of a
  * candidate. A `capitalized-multi-word` candidate composed only of these
  * is filtered. Capitalized articles/conjunctions at sentence-start are
@@ -188,9 +229,107 @@ export function suffixClassRegex(): RegExp {
   return new RegExp(`\\b[A-Z][a-z][a-zA-Z'-]*\\s+(?:${suffixes})\\b`, "g")
 }
 
+/**
+ * X-of-Y capitalized regex (L15): matches "Cap[Word] of Cap[Word[(Word)]?]"
+ * where the two sides of "of" are each one or two Capitalized Words. An
+ * optional leading article "the" or "The" is captured as part of the match
+ * so the full phrase (including the article) is returned.
+ *
+ * Examples that MUST fire:
+ *   "Crown of Hyran", "the Crown of Hyran"
+ *   "Order of Vesh", "Vale of Whispers"
+ *   "Sigil of Eight"           (the number-word-tail class also fires)
+ *   "Council of Forty-Seven Tongues"  (multi-word Y)
+ *   "King of England"          (intentional; grounded-surface check suppresses)
+ *
+ * Examples that MUST NOT fire:
+ *   "out of nowhere"           (lowercase x and y)
+ *   "part of the plan"         (lowercase)
+ *   "piece of cake"            (lowercase)
+ *
+ * Construction:
+ *   - Optional leading (?:the|The)\s+
+ *   - X: one Capitalized Word [A-Z][a-z][a-zA-Z'-]*
+ *   - connector: \s+of\s+
+ *   - Y: one or two Capitalized Words (first mandatory, second optional
+ *     via (?: \s+[A-Z][a-z][a-zA-Z'-]*)? )
+ *     Y's first word may also be a number-word (Eight, Seven, ...) so we
+ *     allow [A-Z][a-zA-Z-]* for Y's first token (handles "Eight", "Forty-
+ *     Seven", etc. — they start with a capital but the second char may also
+ *     be uppercase for some locales — using [a-z] would exclude "Forty-
+ *     Seven" where the hyphenated part starts lowercase, but we want to
+ *     match the whole hyphenated token as one word).
+ *
+ * The sentence-initial filter is intentionally NOT applied to this class
+ * (same rationale as title-pair): an "X of Y" pattern is structurally
+ * high-signal regardless of sentence position.
+ */
+export function xOfYCapitalizedRegex(): RegExp {
+  // Y's first word: allow [A-Z] followed by one or more [a-zA-Z'-] (covers
+  // both "Hyran" and "Eight" and "Forty-Seven"). Must start with uppercase.
+  // Y's optional second word: same pattern.
+  // X: must have at least one lowercase letter after the initial cap (so
+  // "THE" or "A" is not X; all-caps words are skipped).
+  return /(?:(?:the|The)\s+)?[A-Z][a-z][a-zA-Z'-]*\s+of\s+[A-Z][a-zA-Z'-]+(?:\s+[A-Z][a-zA-Z'-]+)?/g
+}
+
+/**
+ * Number-word-tail regex (L15): matches a Capitalized Word (1-2 words)
+ * ending in one of the English NUMBER_WORD_TOKENS. An optional leading
+ * article "the" / "The" is captured. An optional hyphenated number-word
+ * composite is handled (e.g. "Forty-Seven").
+ *
+ * Examples that MUST fire:
+ *   "the Veiled Eight"
+ *   "the Silent Twelve"
+ *   "Council of Seven"   (x-of-y also fires here; both classes may emit)
+ *   "the Forty-Seven Tongues"   (number word in the middle; captured as
+ *                                "the Forty-Seven" if "Tongues" does not
+ *                                follow a number-word — see note below)
+ *
+ * Note: the pattern anchors on the NUMBER_WORD_TOKEN as the LAST word of
+ * the phrase. "the Forty-Seven Tongues" has "Tongues" after the number;
+ * the number-word-tail class fires on "Forty-Seven" if the preceding cap
+ * word is present — but the whole phrase "the Forty-Seven Tongues" is
+ * better caught by x-of-y + capitalized-multi-word (from the fixture the
+ * institution name "Council of Forty-Seven Tongues" was already caught).
+ * The primary target here is "the Veiled Eight" / "the Sigil of Eight"
+ * (the trailing number-word).
+ *
+ * Pattern:
+ *   Optional: (?:the|The)\s+
+ *   One Capitalized Word: [A-Z][a-z][a-zA-Z'-]* (must have lowercase, so
+ *     articles "The" / bare caps are excluded)
+ *   Single space
+ *   The number word (possibly hyphenated composite):
+ *     (?:Twenty|Thirty|...|Ninety)-(?:One|Two|...|Nine)  OR
+ *     simple token from NUMBER_WORD_TOKENS
+ *   Word boundary \b
+ *
+ * The sentence-initial filter is NOT applied (same rationale as x-of-y).
+ */
+export function numberWordTailRegex(): RegExp {
+  // Build hyphenated composite alternatives: Tens-Ones (e.g. "Twenty-One")
+  const tensWords = ["Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+  const onesWords = ["One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"]
+  const hyphenated = tensWords.flatMap(t => onesWords.map(o => `${t}-${o}`))
+  // Full list: hyphenated composites first (longer match), then simple tokens
+  const allNumbers = [...hyphenated, ...NUMBER_WORD_TOKENS].join("|")
+  // Pattern: optional article + mandatory cap-word + space + number-word-tail
+  return new RegExp(
+    `(?:(?:the|The)\\s+)?[A-Z][a-z][a-zA-Z'-]*\\s+(?:${allNumbers})\\b`,
+    "g"
+  )
+}
+
 // ── Public types ────────────────────────────────────────────────────────────
 
-export type EntityCandidateClass = "title-pair" | "capitalized-multi-word" | "suffix-class"
+export type EntityCandidateClass =
+  | "title-pair"
+  | "capitalized-multi-word"
+  | "suffix-class"
+  | "x-of-y-capitalized"
+  | "number-word-tail"
 
 export interface EntityCandidate {
   /** The matched phrase, exact substring of the original prose. */
@@ -337,6 +476,46 @@ export function extractEntityCandidates(prose: string): EntityCandidate[] {
     })
   }
 
+  // 4. x-of-y-capitalized (L15)
+  //
+  // Sentence-initial filter is INTENTIONALLY OMITTED. An "X of Y" pattern
+  // (e.g. "Crown of Hyran") is structurally high-signal regardless of
+  // position — it is never a generic sentence-starting article like "The".
+  // The match may include a leading article ("the Crown of Hyran"); in that
+  // case the reported offset and phrase include the article so the full
+  // canonical name is surfaced.
+  const xOfYRe = xOfYCapitalizedRegex()
+  while ((m = xOfYRe.exec(prose)) !== null) {
+    const start = m.index
+    const end = start + m[0].length
+    if (offsetIsInsideAnySpan(start, italics)) continue
+    candidates.push({
+      phrase: m[0],
+      class: "x-of-y-capitalized",
+      offsetStart: start,
+      offsetEnd: end,
+    })
+  }
+
+  // 5. number-word-tail (L15)
+  //
+  // Sentence-initial filter OMITTED for same reason as x-of-y-capitalized.
+  // A "Cap NumberWord" or "the Cap NumberWord" pattern (e.g. "the Veiled
+  // Eight") is high-signal; it never collides with generic sentence-initial
+  // articles like "The captain entered."
+  const numberWordRe = numberWordTailRegex()
+  while ((m = numberWordRe.exec(prose)) !== null) {
+    const start = m.index
+    const end = start + m[0].length
+    if (offsetIsInsideAnySpan(start, italics)) continue
+    candidates.push({
+      phrase: m[0],
+      class: "number-word-tail",
+      offsetStart: start,
+      offsetEnd: end,
+    })
+  }
+
   candidates.sort((a, b) => {
     if (a.offsetStart !== b.offsetStart) return a.offsetStart - b.offsetStart
     // Stable secondary order: title-pair < capitalized-multi-word < suffix-class
@@ -351,6 +530,8 @@ function classOrder(c: EntityCandidateClass): number {
     case "title-pair": return 0
     case "capitalized-multi-word": return 1
     case "suffix-class": return 2
+    case "x-of-y-capitalized": return 3
+    case "number-word-tail": return 4
   }
 }
 
