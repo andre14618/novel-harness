@@ -1,5 +1,5 @@
 ---
-status: active
+status: complete
 updated: 2026-05-02
 role: primary-lane-context
 ---
@@ -30,9 +30,9 @@ role: primary-lane-context
 
 ## Baseline
 
-- Current behavior: Pending first-cycle inspection.
-- Baseline command(s): Inspect `scripts/operator-summary.ts`, recent lane result docs, and chapter_exhaustions evidence patterns.
-- Baseline result: Pending.
+- Current behavior: Result docs (e.g. `2026-05-02-L31d-resmoke.md`, `2026-05-01-L17-smoke-v4-validation.md`) reconstruct stop condition (a/b/c/d) by hand from `operator-summary --json` plus `chapter_exhaustions` rows.
+- Baseline command(s): Inspected `scripts/operator-summary.ts` (novel/agentCosts/exhaustions/failedCalls JSON shape) and the four most recent smoke result docs.
+- Baseline result: All four signals are already in `operator-summary --json`; classifier needs no new telemetry.
 
 ## Stop Gates
 
@@ -53,7 +53,7 @@ role: primary-lane-context
 
 ## Progress Log
 
-- Pending. Queued as lane 6 of 6 in the bounded post-L50 harness/eval loop.
+- 2026-05-02 cycle 6: Inspected `scripts/operator-summary.ts` JSON shape and recent smoke result docs. Added `scripts/agent/smoke-stop-classifier.ts` (pure `classifySmokeStop()` + CLI that reads `operator-summary --json` from stdin or `--input`). Conservative bias: ambiguous signals report `human_needed` rather than guessing (protects stop-gate (c)). Added 15 tests in `scripts/agent/smoke-stop-classifier.test.ts` — all pass.
 
 ## Heartbeat Commands
 
@@ -63,11 +63,11 @@ role: primary-lane-context
 
 ## Results
 
-- Outcome:
-- Stop gate fired:
-- Evidence link/row/path:
-- Cost:
-- Commit(s):
+- Outcome: PASS — smoke-stop classifier implemented and tested.
+- Stop gate fired: (a) clean pass — classifier helper + tests landed.
+- Evidence link/row/path: `scripts/agent/smoke-stop-classifier.ts`, `scripts/agent/smoke-stop-classifier.test.ts` (15/15 pass), tuning_experiments.id=380.
+- Cost: $0 (no LLM calls; local-only tests).
+- Commit(s): TBD (this finalization commit).
 
 ## Finalization Checklist
 

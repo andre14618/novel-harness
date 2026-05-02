@@ -4441,3 +4441,32 @@ The writer continues to invent some walk-on names (`Master Halden`, `Guildmistre
 **Ongoing implications:** Morning pickup can now run `bun scripts/preflight-docs-impact.ts --since "yesterday" --strict` (or `--range <last-shipped-sha>..HEAD`) as a one-command audit. If overnight loops start producing violations regularly, a future lane can teach `lane-runner` to fail-closed when its starting-vs-ending commit range trips the audit.
 
 ---
+
+### L56 — Smoke-stop classifier lands as a pure helper over operator-summary JSON (2026-05-02, exp #380)
+
+**Decision:** Add `scripts/agent/smoke-stop-classifier.ts` exposing `classifySmokeStop(input, options)` plus a CLI that reads `operator-summary --json` (from stdin or `--input <path>`) and reports one of `clean_pass | new_blocker | regression | infra_failure | human_needed` with a one-line reason and an evidence list. No new telemetry; the classifier is a pure function over the existing operator-summary shape (`novel`, `agentCosts`, `exhaustions`, `failedCalls`).
+
+**Why:** `docs/todo.md` §L47 kept the smoke-stop classifier item open because every smoke result doc reconstructed the same (a) clean pass / (b) new blocker / (c) regression / (d) infra failure decision by hand from the same SQL. That made result docs slow and inconsistent. Inspecting `2026-05-02-L31d-resmoke.md`, `2026-05-01-L17-smoke-v4-validation.md`, and `2026-05-01-L11-lxc-smoke-ner-prepass.md` showed all four signals already live in `operator-summary --json` — phase + chapter coverage, total/failed call ratio, and `chapter_exhaustions` decision states.
+
+**Design — order of checks (matters):**
+1. **Infra failure first.** If reported failed calls exceed an absolute (`maxFailedAbsolute=10`) or ratio (`maxFailedRatio=0.30`) threshold, return `infra_failure`. A broken provider poisons every downstream signal, so this gate runs before phase / gate logic.
+2. **Sub-threshold call counts** (no calls, or fewer than `minCallsForSignal=3`) on a non-complete novel return `human_needed` — too thin to classify.
+3. **Regression** on `phase=failed`/`aborted` *with no pending gate*. If a gate is still pending, return `human_needed` instead — the cause is genuinely ambiguous between an infra blip and a real failure.
+4. **New blocker** when any pending or denied `chapter_exhaustions` gate has a kind not in `--known-kinds`. Pending gates restricted to known kinds report `human_needed` (on-policy stop awaiting operator action), not `new_blocker`.
+5. **Clean pass** strictly requires `phase=complete`, `current_chapter >= total_chapters`, and zero pending or denied gates.
+6. Anything else falls through to `human_needed` with the gate counts in the reason string.
+
+**Conservative bias:** This protects stop-gate (c) of the L56 contract — "ambiguous evidence is over-classified instead of human-needed." Every non-decisive combination (failed phase + pending gate, partial run with no gates, low call count, only known-class gates pending) returns `human_needed` rather than guessing.
+
+**Tests (`scripts/agent/smoke-stop-classifier.test.ts`, 15 pass):** Each branch above has a positive case (`clean_pass`, `new_blocker` for unknown-kind pending, `new_blocker` for denied, `regression`, `infra_failure` by ratio, `infra_failure` by absolute count) plus the conservative-fallback cases (`human_needed` for known-kind-only pending, `human_needed` for failed-phase-with-pending-gate, `human_needed` for zero calls, `human_needed` for partial run with no gates). `parseArgs` tests cover `--input`, `--known-kinds`, `--json`, and the missing-value error paths.
+
+**Alternatives rejected:**
+- Adding new pipeline telemetry (e.g. an explicit "stop reason" column on `chapter_exhaustions`). Rejected — the existing operator-summary shape carries enough signal; new telemetry would be a separate lane per the L56 escalation rule.
+- Embedding the classifier inside `operator-summary.ts`. Rejected — `operator-summary` is the data source for *humans* and may be piped to a result doc as-is. Keeping the classifier as a separate helper means it can be A/B'd or extended (e.g. with checker-fire counts) without churn on the summary CLI.
+- A heuristic that auto-promotes ambiguous runs to `clean_pass` when failure-rate is low. Rejected — explicitly violates stop-gate (c). Result docs benefit more from `human_needed` flags than from optimistic mis-classification.
+
+**Documentation:** `docs/todo.md` §L47 closed inline. Lane doc Results updated.
+
+**Ongoing implications:** Smoke result docs can now start with `bun scripts/operator-summary.ts --json <novel> | bun scripts/agent/smoke-stop-classifier.ts` and either accept the classification or override it (with the `human_needed` cases flagged for human review). If a future lane introduces new design-class blocker kinds, callers pass `--known-kinds` to keep the previously-approved kinds out of `new_blocker`. If checker-fire telemetry becomes useful for classification, the input shape extends without changing the existing branches.
+
+---
