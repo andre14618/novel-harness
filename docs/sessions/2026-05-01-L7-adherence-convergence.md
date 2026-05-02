@@ -1,5 +1,5 @@
 ---
-status: in_progress
+status: completed
 updated: 2026-05-01
 role: overnight-loop-context
 loop: L7-adherence-convergence
@@ -39,13 +39,13 @@ loop: L7-adherence-convergence
 
 ## Results
 
-- **Outcome:** TBD
-- **Evidence link/row/path:** TBD
-- **Cost:** TBD
-- **Commit(s):** TBD
+- **Outcome:** CONVERGENCE-NOT-NEEDED. Adherence-events single-call temp=0.1 already at F1=1.000 on the 22-row labeled panel (k=1..4 of 5). Voting adds nothing; higher temperature only hurts (F1 drops to 0.947 at T=0.5 k=1). Methodology lesson: convergence helps ONLY where single-call F1 ≤ 0.85 AND temp=0.1 unanimous-rate < 80%.
+- **Evidence link/row/path:** `tuning_experiments.id=320` (concluded; linked to L1's exp #316 as methodology-replication). `phase_eval_runs.id=62,63`. Per-row JSONL on LXC. Result doc `docs/adherence-convergence-results-2026-05-01.md`.
+- **Cost:** ~$0.07 across 220 calls.
+- **Commit(s):** TBD — committing L7 docs now.
 
 ## Pickup Instructions
 
-- **Last safe command:** Pre-deploy. Convergence script is at HEAD.
+- **Last safe command:** L7 is closed. Two convergence runs persisted, experiment concluded, result doc written.
 - **If failed, failure fingerprint:** N/A.
-- **Next action:** Wait for L5 commit, deploy, run convergence (parallel T=0.1 + T=0.5).
+- **Next action:** Move to next loop. L4-followup (NER calibration) and L6 (multi-seed probe) still in flight from Wave 2 dispatch.

@@ -2958,3 +2958,22 @@ The natural-mixed regime (small panel) is closer to production distribution, so 
 - L2 (`allowedNewEntities` threading, commit `5054fd4`) shipped in parallel — once the mapper consistently emits the field on legitimate walk-ons, the checker should stop firing on sanctioned new names.
 - Cost-per-beat ramp from $0.0003 to $0.0015 (5x) is trivial — never the blocker.
 - The convergence-eval.ts script is reusable for any other semantic checker (adherence-events, functional-state-checker, etc.) — same N-parallel-calls pattern. Future loops in §8 (adherence) and §10 (corpus probes) can adopt it directly.
+
+### L7: adherence-events convergence — convergence is checker-specific, not generic (2026-05-01, exp #320, linked to #316)
+
+**Decision:** Applied L1's N=5 convergence methodology to the binary `adherence-events` checker (`EVENTS_SYSTEM` from `src/agents/writer/adherence-checker.ts`) on the same 22-row labeled panel. Result is the OPPOSITE of L1: single-call temp=0.1 is **already at F1=1.000** (perfect on this panel), voting adds nothing, higher temperature HURTS (T=0.5 k=1 drops F1 to 0.947 by introducing 1 FP). Persisted to `phase_eval_runs.id={62, 63}`. Result doc `docs/adherence-convergence-results-2026-05-01.md`. Cost ~$0.07.
+
+**Methodology lesson — convergence has two prerequisites to be worth running:**
+1. Single-call F1 ≤ ~0.85 (room to lift), AND
+2. Temp=0.1 unanimous-vote rate < ~80% (real stochastic disagreement to vote-aggregate).
+
+If either fails, convergence is wasted compute. Adherence-events fails BOTH (F1=1.000 is at the ceiling; 95% unanimous at temp=0.1 means there's nothing to aggregate).
+
+**Why adherence is "easier" than halluc on this panel:** adherence asks a concrete on-page-events question with a short reference set (the beat description). Halluc asks the model to maintain a mental model of the entire grounded surface (world bible + brief + beat-entities) — false negatives are structurally easier when the reference set is large.
+
+**Implications for §11 backlog:** the "checker convergence sweeps" item should be scoped to checkers that fail the F1 OR unanimity threshold. Don't sweep adherence; do sweep functional-state-checker (also semantic, no labeled panel yet, unknown F1) AND continuity-{facts,state} (also semantic, no convergence yet).
+
+**Generalization to other harness work:**
+- L5 two-stage detail enrichment IS the right adherence improvement (per-event quote enumeration on FAIL gives writer better retry hints — which is what the §8 backlog asked for, NOT recall lift).
+- The L1 convergence finding stays valid: halluc-ungrounded benefits from convergence at temp=0.5 k=3.
+- For future semantic checkers without labeled panels: run a quick convergence eval at temp=0.1 first to MEASURE F1 + unanimity rate. If both are below threshold, convergence is the right tool. Otherwise, calibrate or refactor instead.
