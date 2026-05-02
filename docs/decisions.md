@@ -3007,6 +3007,44 @@ These two fixes would close both BOTH-MISS rows on the big panel and one of the 
 - **The OR-gate policy is reachable now** without any code change — production could route NER and LLM in parallel and OR their `pass` flags. But the precision-cost from the un-fixed NER FPs (1 per panel) means it's worth landing fix #1 first.
 - The two-line pattern observed here (NER catches structurally, LLM catches semantically) generalizes: future deterministic prepasses for OTHER checkers (continuity, leak) should expect a similar accretive-not-redundant relationship to their LLM counterparts.
 
+### L4-followup-2: NER pre-promotion fixes shipped — F1 lifted on both panels (2026-05-02, exp #321, linked to #319)
+
+**Decision:** Both L4-followup-identified pre-promotion fixes shipped in commit `0c7ef06`:
+
+1. **Plural-vs-singular normalization** — new exported `normalizeForGroundedMatch(phrase)` helper in `src/lint/entity-candidates.ts`. Strips leading article (`the`/`a`/`an`), trailing/leading possessives (`'s`, `s'`, including curly `’` apostrophe), and trailing-`s` plural collapse on tokens > 3 chars. Calibration script's `buildGroundedSurface` now returns `{lower, normalized}`; `isGrounded` adds normalized-exact + normalized-substring tiers between the lowercase-substring fallback and the per-token fallback. Helper is idempotent and symmetric.
+2. **Sentence-initial relaxation for TITLE_TOKEN matches** — `extractEntityCandidates` no longer applies `isSentenceInitial` to the `title-pair` pass. The `capitalized-multi-word` and `suffix-class` passes keep the filter (regression-guard tests verify Fix 2 is title-only).
+
+**Calibration rerun results (same panels + convergence files as #319):**
+
+| Panel | Baseline NER F1 | Post-fix NER F1 | Δ absolute | Δ relative |
+|---|---:|---:|---:|---:|
+| Small (n=22) | 0.842 | **0.947** | **+0.105** | **+12%** |
+| Big-synthetic (n=28) | 0.800 | **0.839** | **+0.039** | **+5%** |
+
+Targeted disagreement-row resolution (the 3 rows the L4-followup result doc flagged):
+
+- **`Vault of Witnesses`** (small `b9`, X-of-Y class, LLM-WIN unchanged) — not addressed in L4-followup-2 by design; X-of-Y remains the documented NER blind spot.
+- **`Arbiter Vesh`** (big `b10`, sentence-initial after `\n\n`, was BOTH-MISS) — now NER-fires, big residual FN floor 2 → 1.
+- **`Guildmaster Aldric` / `Yarrow`** (small `b5-a1`, sentence-initial, was LLM-WIN) — `Guildmaster Aldric` now NER-fires; `Yarrow` is single-word and remains a documented punt. Row went from "NER passes (LLM-WIN)" to "both fire (correctly)".
+- **`Scribe's Guildhall` plural-pair** (small `b3` FP) — now NER-passes via Fix 1 normalization (`Scribe's Guildhall` ↔ bible's `The Scribes' Guildhall`); small panel NER FP count 1 → 0.
+
+Per-row evidence: `phase_eval_runs.id={64, 66}` (postfix small + big). Per-row JSONLs at `/tmp/ner-calibration-postfix-{small,big}-20260502T033{519,546}.jsonl`. Cost: $0 (deterministic). Result doc `docs/ner-vs-llm-calibration-2026-05-01.md` updated with full post-fix section.
+
+**Acceptance gate cleared.** L4-followup-2 pre-registered "NER F1 strictly higher than baseline on at least one panel" — achieved on both. Small panel post-fix F1 (0.947) is well above the 0.85 promotion target; big panel (0.839) is just under, but the synthetic-only composition makes it a looser ceiling and the +0.039 lift is monotone.
+
+**Tests:** 47/47 (35 prior + 12 new). New tests cover: title-pair sentence-initial firing on `Arbiter Vesh` / `Guildmaster Aldric` / paragraph-break opener; regression-guards that Fix 2 is title-only (capitalized-multi-word and suffix-class still filtered at sentence-start); 8 normalization cases (article strip, plural-vs-singular, ASCII + curly apostrophe possessives, short-token preservation, whitespace, empty, idempotency).
+
+**Why this matters:** With the residual FN floor at 0/1 (small/big) and small-panel precision at 1.000, NER is now strictly stronger than the LLM convergence on every dimension on the small panel and on F1 on the big panel. The OR-combine policy with LLM convergence becomes recall-additive without precision degradation.
+
+**What this does NOT yet do:**
+- NER remains TELEMETRY-ONLY in the production halluc-ungrounded checker pipeline. Runtime promotion is L4-followup-3.
+- The `Withering of '47` X-of-Y row is still a residual BOTH-MISS — neither side cracks it. Closing this would need a fourth NER class for `[CapWord] of [CapWord/Year]` patterns; not yet justified by panel volume.
+
+**Ongoing implications:**
+- **L4-followup-3 (production promotion gate)** queued: depends on L1-followup adjudicating the big panel's 17 unlabeled natural rows. Pre-register F1 ≥ 0.85 on the resulting natural-mixed panel. If the natural-row FP rate stays at ~0/panel as it did on the labeled small panel, NER as an OR-prepass becomes the production default.
+- The `normalizeForGroundedMatch` helper is exported from `src/lint/entity-candidates.ts` so any future caller (e.g. the production wiring for L4-followup-3, or other lint utilities that compare candidate phrases against grounded surfaces) can reuse it.
+- Generic methodology takeaway: when a deterministic checker has a small, observable FP class (≤ 1/panel), look for a normalization fix (article/possessive/plural) BEFORE adding LLM-arbitration overhead — the lexical fix is cheaper, deterministic, and idempotent.
+
 ### L7: adherence-events convergence — convergence is checker-specific, not generic (2026-05-01, exp #320, linked to #316)
 
 **Decision:** Applied L1's N=5 convergence methodology to the binary `adherence-events` checker (`EVENTS_SYSTEM` from `src/agents/writer/adherence-checker.ts`) on the same 22-row labeled panel. Result is the OPPOSITE of L1: single-call temp=0.1 is **already at F1=1.000** (perfect on this panel), voting adds nothing, higher temperature HURTS (T=0.5 k=1 drops F1 to 0.947 by introducing 1 FP). Persisted to `phase_eval_runs.id={62, 63}`. Result doc `docs/adherence-convergence-results-2026-05-01.md`. Cost ~$0.07.
