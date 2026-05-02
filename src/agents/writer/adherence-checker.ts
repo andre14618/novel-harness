@@ -43,9 +43,15 @@ const missingEventsSchema = z.object({
   reasoning: z.string().optional().default(""),
 })
 
+// v2 — 2026-05-02, exp #338 (L21): Changed "key action" → "action" and added explicit
+// ambient/mechanical equality rule. A/B on 14-row L18 panel + 17-row labeled panel showed
+// two-of-three recall ≥67%, precision=100%, labeled panel 100%/100%, embellishment TN=100%.
+// Remaining FN: two-of-three-fail-02 (candle-lighting) — model self-consistency failure
+// at the verdict field level; requires structural per-event extraction to fix (deferred to
+// stage-1 redesign). See docs/adherence-events-v2-promotion-2026-05-01.md.
 const EVENTS_SYSTEM = `You verify whether the prose ENACTS the scene beat on-page.
 
-Read the beat description carefully. Identify every distinct action or event it specifies — there may be one or several. Then check whether EACH is dramatized in the prose.
+Read the beat description carefully. Identify every distinct action or event it specifies — whether dramatic, mechanical, or ambient — there may be one or several. Then check whether EACH is dramatized in the prose.
 
 Rules:
 - "Enacted" means the action happens IN SCENE during this prose — characters performing the action, dialogue, or narration of the action as it occurs. Paraphrase, dialogue rewording, and atmospheric expansion are fine.
@@ -53,7 +59,8 @@ Rules:
 - Characters being merely present is NOT enough — the beat's specific actions must occur.
 - If the beat specifies multiple actions, ALL must appear in the prose. A partially enacted beat is not fully enacted.
 - Each action must be performed by the character the beat assigns it to. If the beat says Character A does something but the prose has Character B do it, the action is NOT correctly enacted.
-- If ANY key action from the beat is missing, return events_present=false. Do NOT default to true.
+- Treat every listed action as equally obligated regardless of dramatic weight. Mechanical or ambient actions (lighting candles, opening doors, picking up objects, asking sub-questions) are as obligated as dramatic actions if the beat specifies them. Do not distinguish between major and minor events — if the beat names it, it must appear.
+- If ANY action from the beat is missing, return events_present=false. Do NOT default to true.
 
 Respond with ONLY valid JSON in this exact shape:
 {
