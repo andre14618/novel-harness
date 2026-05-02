@@ -5,10 +5,10 @@
 
 ## Next
 - docs/sessions/2026-05-02-L60-finished-product-acceptance.md
-- docs/sessions/2026-05-02-L61-e2e-smoke-after-hardening.md
 
 ## Completed
 
+- docs/sessions/2026-05-02-L61-e2e-smoke-after-hardening.md — stop gate (b) new dominant blocker: prose-integrity false-positive on LitRPG System path identifiers + chapter-attempt retry escalates duplicate fragments. L62 candidate queued in `docs/todo.md`.
 - docs/sessions/2026-05-02-L57-runner-review-gate.md — clean pass for review evidence before queued lane advance.
 - docs/sessions/2026-05-02-L38-A-prior-context.md — refuted original missing-prior-context hypothesis.
 - docs/sessions/2026-05-02-L38-F-reader-info-adherence.md — confirmed writer-side READER-INFO binding rule.

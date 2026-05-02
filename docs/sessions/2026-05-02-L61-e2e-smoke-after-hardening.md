@@ -1,7 +1,8 @@
 ---
-status: queued
+status: closed
 updated: 2026-05-02
 role: primary-lane-context
+stop_gate: b
 ---
 
 # L61 End-To-End Smoke After Hardening
@@ -54,7 +55,10 @@ role: primary-lane-context
 
 ## Progress Log
 
-- Pending.
+- 2026-05-02T22:40Z (cycle 3, captain-claude): pre-launch checks — `ssh novel-harness-lxc "pgrep -af 'bun src/index'"` returned no active generation; `git diff --stat 6d89447..HEAD -- src/ sql/` empty so deployed runtime already matches lane starting commit; experiment #384 verified in `tuning_experiments` (status=completed, conclusion=null, commit_hash=6d89447f88d2).
+- 2026-05-02T22:40Z (cycle 3, captain-claude): launched smoke `EXPERIMENT_ID=384 nohup bun src/index.ts --auto --seed fantasy-system-heretic --chapters 3 --experiment 384` on LXC; log path `/tmp/smoke-l61-fantasy-system-heretic-1777761636.log`; pid 1202268; concept phase auto-approved, planning phase running phase 2 beat expansion across 3 chapters.
+- 2026-05-02T23:00Z (cycle 4, captain-claude): smoke completed with halt at chapter 1 — pause reason `chapter-attempts-exhausted:ch1`, all three attempts rejected by `detectProseIntegrityIssues` (1 → 5 → 7 issues). Plan check passed each attempt; continuity clean; functional-state checker fired warnings only. Total cost ≈ $0.066 / 177 LLM calls (well under $4 cap). Smoke-stop classifier returned `human_needed` (`gates_total=0`) because the failure surfaces as integrity guard, not a plan-assist gate. Result doc: `docs/sessions/2026-05-02-L61-e2e-smoke-after-hardening-result.md`.
+- 2026-05-02T23:00Z (cycle 4, captain-claude): classified as Stop gate (b) — new dominant blocker. Two findings: (i) `detectFusedBoundaries` (src/lint/integrity.ts:46) treats LitRPG System path identifiers like `SCRIBE.GUILD.VALDRIS.MARET.ANNUAL.` as fused boundaries (8 of 13 issue rows on attempt 3); (ii) chapter-attempt retry loop escalates duplicate fragments (1 → 5 → 7) rather than steering the writer off the repeated System UID block. L62 candidate queued: harden integrity guard for SYSTEM_PATH identifiers under a regression fixture drawn from this novel's draft. No runtime change inside this lane per escalation rule.
 
 ## Heartbeat Commands
 
@@ -64,12 +68,12 @@ role: primary-lane-context
 
 ## Results
 
-- Outcome:
-- Stop gate fired:
-- Evidence link/row/path:
-- Cost:
-- Commit(s):
-- Review:
+- Outcome: new dominant blocker (LitRPG System-path identifiers misclassified as fused boundaries; retry loop escalates duplicate fragments). Lane is validation-only — no runtime change here.
+- Stop gate fired: (b) new dominant blocker.
+- Evidence link/row/path: `docs/sessions/2026-05-02-L61-e2e-smoke-after-hardening-result.md`; experiment #384; novel `novel-1777761636607`; LXC log `/tmp/smoke-l61-fantasy-system-heretic-1777761636.log`; `issues` table rows for `novel_id='novel-1777761636607' AND chapter=1`.
+- Cost: ≈ $0.066 / 177 LLM calls (well under $4 cap).
+- Commit(s): starting commit `6d89447`; finalization commit recorded in this lane (docs/result capture only).
+- Review: review-waived — classification-only docs; no runtime change shipped. Reviewer/actor: captain-claude.
 
 ## Finalization Checklist
 
