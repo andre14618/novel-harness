@@ -3135,3 +3135,46 @@ So multi-seed across-cell σ = within-seed-across-rerun σ + across-seed-mean σ
 - §9 todo "Compare 1 seed × 10 chapters vs 3 seeds × 5 chapters" closed (this entry).
 
 **Lesson appended to `docs/lessons-learned.md`:** "multi-seed probes measure between-seed variation, not within-seed stochastic noise floors — they are NOT a noise-reduction substitute for repeated single-seed reruns at fixed total cost."
+
+---
+
+### L10: Phase-eval variance backfill — per-tuple CV + promotion-threshold numeric basis (2026-05-01, exp #323)
+
+**Decision:** The §9 promotion rule ("single n=10 is suggestive; need multi-run/multi-seed") is confirmed with numeric grounding. Minimum promotion gate: **3 consecutive PASS on the same probe-family tuple** OR **2 seeds × 2 reruns (4 cells) all-passing**. Full analysis: `docs/phase-eval-variance-backfill-2026-05-01.md`.
+
+**Evidence:** Queried 27 `phase_eval_runs` rows (5-week window); identified 3 analyzable probe families:
+
+- **Family A (state-mapper coverage-balanced, fantasy-system-heretic, N=6 runs):** facts_median CV=0.376, total_beats CV=0.056. Verdict: 4 PASS / 2 FAIL on the same git-commit/seed tuple. This is the canonical flapping case: the variant was ultimately correct but 40% of single runs returned FAIL. Single-run verdict is unreliable when CV ≥ 0.35 on the primary gating metric.
+- **Family C (planning-beats corpus-v1, fantasy-debt, N=5 runs, exps #307/#311/#312/#313):** facts_median CV=0.159, know_median CV=0.220, total_beats CV=0.156. Verdict: 0 PASS / 5 FAIL. Control arm CV was 0.043 (remarkably stable). The consistent FAIL is noise-tolerant because even at 2σ upper bound the test arm cannot reach the 1.5× gate. The closer_action rate CV=0.551 confirms that single-run closer-mix distributions are not gateable metrics.
+- **Family D (default arm, 3 seeds × 3 reruns × 5 chapters from exp #318):** facts_median CV=0.167 across 9 cells, within-seed range 0.47–1.53 stdev per seed.
+
+**N-runs calculation:** At CV=0.18 (typical), 90% CI ± 15% of mean requires n=4 runs; ± 5% requires n=31. The practical gate is 3 consecutive PASS (not 3/5), which achieves meaningful discrimination: P(3 consecutive PASS | true 60% pass-rate) = 22% vs P(3 consecutive PASS | true 85% pass-rate) = 61%.
+
+**Why:** The single-run verdict for Family A showed 40% false-failure rate on a variant that was ultimately correct. Without the 3-consecutive-PASS guard, two of the five Family A runs would have caused incorrect KILL decisions. The numeric threshold is directly anchored to the observed flapping data.
+
+**Ongoing:** `docs/experiment-design-rules.md` should encode the 3-consecutive-PASS rule and the CV reference table when created (§9 sub-bullet). The backfill analysis is complete; future probes use the existing `promotion-check.ts` multi-run gate (commit `6a42adc`). Cost: $0.00 (pure SQL).
+
+---
+
+### L9 — allowedNewEntities into halluc grounded surface (2026-05-01, exp #325)
+
+**Decision:** `allowedNewEntities` is fully wired into the halluc-ungrounded grounded union with acceptance tests and a panel fixture stub. Code was already in place (commits `5054fd4` and `f019c60`); L9 adds the required acceptance tests and panel fixture to close the official acceptance gate.
+
+**What is wired:**
+- `context.ts` (`buildContext`): appends an `Allowed-new-entities:` sub-line to the WORLD BIBLE block, sourced from `beat.obligations.allowedNewEntities`. Deduped against bible / From-brief / Beat-entities so it carries only additional grounding signal.
+- `index.ts` (`buildNerGroundedSet`): includes `allowedNewEntities` in the grounded-surface union using the same `normalizeForGroundedMatch` four-tier check (exact/substring/normalized-exact/normalized-substring). `runNerPrepass` does NOT fire on sanctioned new entities.
+- `index.ts` (`checkHallucUngrounded`): `groundedSourcesObj.allowed_new_entities` carries the cleaned planner-authored sanction list in every `llm_calls.request_json` provenance snapshot.
+
+**Acceptance tests (4 new, `src/agents/halluc-ungrounded/index.test.ts`):**
+- (b1) `runNerPrepass` on a surface built with `normalizeForGroundedMatch("Marra the Innkeeper")` does NOT fire on that entity in prose.
+- (d-pass) `checkHallucUngrounded` with `allowedNewEntities: ["Marra the Innkeeper"]` + prose mentioning her → clean PASS.
+- (d-fail) Same beat with prose also introducing "Veyl the Deepforger" (not in allowed list) and LLM fires → blocker FAIL; "Marra the Innkeeper" does NOT appear in issue text.
+- (c) `normalizeForGroundedMatch` symmetry: `nfgm("The Innkeepers") === nfgm("Innkeeper")` — plural/article collapse is symmetric on both sides of the allowed-list compare.
+
+**Panel fixture stub:** `scripts/hallucination/synthetic-allowed-new-entity-fixtures/allowed-walk-on.jsonl` — 2 rows: pass control (sanctioned "Marra the Innkeeper") + fail control (unsanctioned "Veyl the Deepforger" in same beat). Available for the next panel build via `case_role: "synthetic_fixture"` filter.
+
+**Why:** The FP class (sanctioned new entities incorrectly flagged as hallucinations) is the highest-risk side effect of promoting the NER prepass to a blocker. Wiring the field and proving it with tests is the prerequisite for any future blocker-promotion work on NER+LLM AND-gate.
+
+**Alternatives rejected:** Deferring the fixture to the next panel build (the acceptance gate required it; adding it as a stub now costs nothing and prevents accidental omission).
+
+**Ongoing implications:** §7 todo first bullet and third bullet closed. Next open §7 item: "Teach/verify the mapper emits `allowedNewEntities` only when a new named entity is sanctioned."
