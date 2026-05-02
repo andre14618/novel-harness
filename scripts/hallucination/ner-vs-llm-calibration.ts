@@ -52,6 +52,7 @@ import { resolve } from "node:path"
 import {
   extractEntityCandidates,
   normalizeForGroundedMatch,
+  deriveInitials,
   type EntityCandidate,
 } from "../../src/lint/entity-candidates"
 
@@ -178,6 +179,8 @@ function buildGroundedSurface(row: any): GroundedSurface {
     gs.derived_prior_beat ?? [],
     gs.planner_emitted ?? [],
     gs.allowed_new_entities ?? [],
+    gs.character_roster ?? [],
+    gs.outline_entities ?? [],
     meta.beatCharacters ?? [],
   ]
   function addAll(s: string) {
@@ -194,12 +197,12 @@ function buildGroundedSurface(row: any): GroundedSurface {
       if (trimmed.length === 0) continue
       addAll(trimmed)
       // Split on whitespace + apostrophe-s to handle entries like
-      // "Thornwall\nThe" or "Cassel\nCassel's" — each whitespace-separated
+      // "Thornwall\nThe" or "Cassel\nCassel’s" — each whitespace-separated
       // token also becomes a grounded surface, so a candidate substring
       // match can hit the clean piece without fighting the embedded newline.
       const tokens = trimmed.split(/\s+/).filter(t => t.length > 0)
       for (const t of tokens) {
-        const cleaned = t.replace(/[’'](s|S)?$/, "").toLowerCase()
+        const cleaned = t.replace(/[‘’](s|S)?$/, "").toLowerCase()
         if (cleaned.length > 0) {
           lower.add(cleaned)
           const norm = normalizeForGroundedMatch(t)
@@ -208,8 +211,52 @@ function buildGroundedSurface(row: any): GroundedSurface {
       }
     }
   }
+  // L23a: add derived initials from character roster + beatCharacters.
+  const rosterEntries = [
+    ...(gs.character_roster ?? []),
+    ...(meta.beatCharacters ?? []),
+  ]
+  for (const name of rosterEntries) {
+    if (typeof name !== "string") continue
+    for (const init of deriveInitials(name.trim())) {
+      lower.add(init.toLowerCase())
+    }
+  }
   return { lower, normalized }
 }
+
+/**
+ * Build a set of lowercase first-word tokens from bible names only.
+ * Used to gate the `capitalized-first-only` class in the calibration loop —
+ * same logic as `buildNerGroundedSet` + `bibleTokens` in index.ts (L23a).
+ * Only the first word of each bible name is added (e.g. "Aether" from
+ * "Aether System") — not all tokens — to avoid FPs from shared words.
+ */
+function buildBibleFirstWordTokens(row: any): Set<string> {
+  const bibleNames: string[] = row.task?.checker_request_meta?.groundedSources?.bible ?? []
+  const tokens = new Set<string>()
+  for (const name of bibleNames) {
+    if (typeof name !== "string") continue
+    const first = name.trim().split(/\s+/)[0] ?? ""
+    if (first.length > 0) tokens.add(first.toLowerCase())
+  }
+  return tokens
+}
+
+/** Common function words that follow a proper noun in normal prose but are
+ *  NOT domain-term second words. Mirrors CAP_FIRST_ONLY_STOP_WORDS in index.ts. */
+const CAP_FIRST_ONLY_STOP_WORDS = new Set([
+  "before", "after", "since", "while", "above", "below", "under", "until",
+  "where", "which", "whose", "when", "what", "whom", "that", "this", "then",
+  "than", "thus", "also", "even", "only", "back", "down", "away", "into",
+  "onto", "upon", "over", "from", "with", "through", "along", "among",
+  "between", "during", "against", "toward", "within", "without", "across",
+  "behind", "beside", "beyond", "inside", "outside", "around", "about",
+  "near", "next", "like", "just", "both", "each", "many", "some", "more",
+  "most", "much", "very", "been", "were", "have", "will", "would", "could",
+  "should", "might", "must", "shall", "said", "told", "knew", "made", "gave",
+  "took", "came", "went", "kept", "left", "sent", "held", "knew", "came",
+])
 
 /** Decide whether a NER candidate is grounded.
  *
@@ -349,10 +396,23 @@ async function main() {
     const prose: string = row.task?.prose ?? ""
     const candidates = extractEntityCandidates(prose)
     const surface = buildGroundedSurface(row)
-    const classifications: CandidateClassification[] = candidates.map(c => ({
-      candidate: c,
-      grounded: isGrounded(c.phrase, surface),
-    }))
+    // L23a: build bible-first-word token set for cap-first-only gate.
+    const bibleFirstWords = buildBibleFirstWordTokens(row)
+    const classifications: CandidateClassification[] = candidates.map(c => {
+      if (isGrounded(c.phrase, surface)) return { candidate: c, grounded: true }
+      // L23a cap-first-only gate (mirrors runNerPrepass logic in index.ts).
+      if (c.class === "capitalized-first-only") {
+        if (bibleFirstWords.size === 0) return { candidate: c, grounded: true }
+        const words = c.phrase.split(/\s+/)
+        const firstWord = (words[0] ?? "").toLowerCase()
+        const secondWord = (words[1] ?? "").toLowerCase()
+        // Gate 1: first word must be a bible-entry first-word token.
+        if (!bibleFirstWords.has(firstWord)) return { candidate: c, grounded: true }
+        // Gate 2: second word must not be a common function word.
+        if (CAP_FIRST_ONLY_STOP_WORDS.has(secondWord)) return { candidate: c, grounded: true }
+      }
+      return { candidate: c, grounded: false }
+    })
     const ungrounded = classifications.filter(c => !c.grounded)
     const ner_fires = ungrounded.length > 0
 
