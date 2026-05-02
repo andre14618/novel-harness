@@ -3,9 +3,15 @@
  *
  * See `docs/charters/arm-b-detector-preflight.md` §6. This module produces
  * the `ENRICHED CONTEXT:` section that Arm B inserts into Arm A's recovered
- * `sections[]`. It is DELIBERATELY not imported from any production code
- * path — production drafting runs unmodified. The preflight runner +
- * parity harness are the only callers.
+ * `sections[]`. The Arm B preflight runner + parity harness are the
+ * historical callers and remain unchanged.
+ *
+ * L38-A (2026-05-02): the READER-INFO STATE sub-block is also exported as
+ * `renderReaderInfoStateBlock` and consumed by the production
+ * `buildBeatContextSlots` for chapters > 1, so chapter-N writers see prior-
+ * chapter establishedFacts and per-character `doesNotKnow` instead of
+ * improvising fresh state. The other two sub-blocks (SPEAKER DIRECTIVES,
+ * FOCUSED WORLD SLICE) remain Arm-B only.
  *
  * Three sub-blocks, all deterministic (no LLM calls):
  *
@@ -135,6 +141,53 @@ function renderSpeakerDirectives(
 
   if (lines.length === 1) return "" // no character had additive data
   return lines.join("\n")
+}
+
+/**
+ * Render the READER-INFO STATE sub-block (no surrounding ENRICHED CONTEXT
+ * wrapper). Returns "" when neither prior-chapter facts nor per-present-
+ * character `doesNotKnow` lines have any signal — caller can use the empty
+ * string to skip section emission entirely.
+ *
+ * Exported for production use by `buildBeatContextSlots` (L38-A); also
+ * still consumed internally by `buildEnrichedContext` for the Arm B
+ * preflight.
+ */
+export function renderReaderInfoStateBlock(
+  priorChapterFacts: Fact[],
+  outline: ChapterOutline,
+  beat: SceneBeat,
+  characters: CharacterProfile[],
+  characterStates: CharacterState[],
+): string {
+  return renderReaderInfoState(priorChapterFacts, outline, beat, characters, characterStates)
+}
+
+/**
+ * L38-A slot selector: returns the rendered READER-INFO STATE block for a
+ * specific beat, or null when the slot should be suppressed.
+ *
+ * Gating:
+ *   - chapterNumber <= 1 → null (no prior chapter to surface).
+ *   - else, render via `renderReaderInfoStateBlock` and return null when
+ *     the renderer produced no signal (empty string).
+ *
+ * Lives in this module (not in beat-context.ts) so unit tests can exercise
+ * it without colliding with the process-global `mock.module` shims that
+ * the drafting suite installs on `../agents/writer/beat-context`.
+ */
+export function selectReaderInfoStateForBeat(
+  chapterNumber: number,
+  priorChapterFacts: Fact[] | undefined,
+  outline: ChapterOutline,
+  beat: SceneBeat,
+  characters: CharacterProfile[],
+  characterStates: CharacterState[],
+): string | null {
+  if (chapterNumber <= 1) return null
+  const facts = priorChapterFacts ?? []
+  const block = renderReaderInfoStateBlock(facts, outline, beat, characters, characterStates)
+  return block.length > 0 ? block : null
 }
 
 function renderReaderInfoState(

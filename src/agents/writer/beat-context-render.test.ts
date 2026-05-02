@@ -28,6 +28,7 @@ test("renderBeatContext includes compact planner-authored beat obligations", () 
     landingTarget: null,
     characterSnapshots: [],
     resolvedReferencesText: null,
+    readerInfoState: null,
     setting: null,
   } satisfies BeatContext, { compact: false })
 
@@ -38,4 +39,71 @@ test("renderBeatContext includes compact planner-authored beat obligations", () 
   expect(rendered).toContain("  - Calla: Calla learns the script predates the empire")
   expect(rendered).toContain("Allowed new named entities:")
   expect(rendered).toContain("  - Old Tongue")
+})
+
+// L38-A: prior-chapter reader-info state placement + compact-mode parity.
+//
+// The slot is rendered as a standalone section between resolvedReferencesText
+// and setting, mirroring `insertEnrichedSection`'s anchor in the Arm B
+// preflight (enriched-context.ts:328). When the slot is null (chapter 1 or
+// no prior signal), no section is emitted — protecting the byte-parity gate.
+test("renderBeatContext emits readerInfoState before SETTING when present", () => {
+  const ctx: BeatContext = {
+    beatSpec: {
+      beatNumber: 1,
+      totalBeats: 1,
+      pov: "Maret",
+      setting: "Temple",
+      kind: "action",
+      description: "Maret enters the High Temple.",
+      charactersPresent: ["Maret"],
+      seeds: [],
+      payoffsDue: [],
+      obligations: {
+        mustEstablish: [], mustPayOff: [], mustTransferKnowledge: [],
+        mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [],
+      },
+    },
+    transitionBridge: null,
+    landingTarget: null,
+    characterSnapshots: [],
+    resolvedReferencesText: null,
+    readerInfoState: "READER-INFO STATE:\nReader already knows:\n- [ch1] Maret copied the sealed report months ago",
+    setting: { name: "High Temple", description: "Marble vault.", sensoryDetails: "incense, cold stone" },
+  }
+  const rendered = renderBeatContext(ctx, { compact: false })
+  const readerIdx = rendered.indexOf("READER-INFO STATE:")
+  const settingIdx = rendered.indexOf("SETTING:")
+  expect(readerIdx).toBeGreaterThan(0)
+  expect(settingIdx).toBeGreaterThan(readerIdx)
+  expect(rendered).toContain("Reader already knows:")
+  expect(rendered).toContain("[ch1] Maret copied the sealed report months ago")
+})
+
+test("renderBeatContext omits readerInfoState section when slot is null", () => {
+  const ctx: BeatContext = {
+    beatSpec: {
+      beatNumber: 1,
+      totalBeats: 1,
+      pov: "Maret",
+      setting: "Guildhall",
+      kind: "action",
+      description: "Maret opens the floorboard.",
+      charactersPresent: ["Maret"],
+      seeds: [],
+      payoffsDue: [],
+      obligations: {
+        mustEstablish: [], mustPayOff: [], mustTransferKnowledge: [],
+        mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [],
+      },
+    },
+    transitionBridge: null,
+    landingTarget: null,
+    characterSnapshots: [],
+    resolvedReferencesText: null,
+    readerInfoState: null,
+    setting: null,
+  }
+  const rendered = renderBeatContext(ctx, { compact: false })
+  expect(rendered).not.toContain("READER-INFO STATE:")
 })

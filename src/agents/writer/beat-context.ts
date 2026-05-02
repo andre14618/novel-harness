@@ -40,7 +40,8 @@
 import { getRelationshipBetween } from "../../db"
 import { resolveReferences, type ResolvedReferences } from "./reference-resolver"
 import { renderBeatContext } from "./beat-context-render"
-import type { BeatObligationsContract, ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
+import { selectReaderInfoStateForBeat } from "./enriched-context"
+import type { BeatObligationsContract, ChapterOutline, CharacterProfile, Fact, SceneBeat } from "../../types"
 
 // ── exampleLines conditioning presets ────────────────────────────────────
 // Implementation lives in `./example-line-subset.ts`; re-exported here so
@@ -75,6 +76,14 @@ export interface BeatContextInput {
   /** Seed genre string — used to resolve the writer pack's conditioning mode
    *  for exampleLines subset selection. When omitted, falls back to "fixed". */
   genre?: string
+  /** L38-A: facts established in chapters 1..chapterNumber-1, surfaced as
+   *  the READER-INFO STATE section so the writer sees what the reader
+   *  already knows before drafting chapter N. Caller is expected to pass
+   *  `getFactsUpToChapter(novelId, chapterNumber - 1)` for chapters > 1
+   *  and to omit this field (or pass []) for chapter 1. The slot builder
+   *  also gates on `chapterNumber > 1`, so passing facts for chapter 1
+   *  has no effect (they belong to chapter 1's plan, not prior state). */
+  priorChapterFacts?: Fact[]
 }
 
 export interface BeatContextResult {
@@ -158,6 +167,11 @@ export interface BeatContext {
   characterSnapshots: CharacterSnapshot[]
   /** ResolvedReferences.context, or null when empty. */
   resolvedReferencesText: string | null
+  /** L38-A reader-state block: prior-chapter establishedFacts + per-present-
+   *  character `doesNotKnow` lines, pre-rendered as a `READER-INFO STATE:
+   *  …` section. Null when chapterNumber === 1 (nothing prior), when no
+   *  prior facts were passed, or when the renderer found no signal. */
+  readerInfoState: string | null
   /** Setting payload — null when section is suppressed (not beat 0 AND no
    *  location-change heuristic fire) OR no matching world-bible location. */
   setting: SettingBlock | null
@@ -255,12 +269,22 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
     setting = lookupSetting(worldBible, outline.setting)
   }
 
+  // Reader-info state slot (L38-A) ────────────────────────────────────────
+  // Gating + rendering live in `selectReaderInfoStateForBeat` so the slot
+  // logic stays unit-testable without colliding with drafting-suite mocks
+  // on this module. Returns null for chapter 1 (no prior to surface) and
+  // when the renderer finds no signal.
+  const readerInfoState = selectReaderInfoStateForBeat(
+    chapterNumber, input.priorChapterFacts, outline, beat, characters, characterStates,
+  )
+
   return {
     beatSpec,
     transitionBridge,
     landingTarget,
     characterSnapshots,
     resolvedReferencesText,
+    readerInfoState,
     setting,
   }
 }

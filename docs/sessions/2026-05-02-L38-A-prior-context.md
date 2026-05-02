@@ -56,6 +56,14 @@ role: primary-lane-context
 
 - 2026-05-02: Lane created from monitor-ready template. Experiment #369 created. Runtime work not started yet.
 - 2026-05-02: Claude-capable `lane-runner.ts` supervisor documented and ready; start with dry-run, then bounded `--engine claude` cycles.
+- 2026-05-02 (cycle 1): Wired READER-INFO STATE into production beat context.
+  - `src/agents/writer/enriched-context.ts`: exported `renderReaderInfoStateBlock` + new `selectReaderInfoStateForBeat` slot-selector (chapter > 1 gate).
+  - `src/agents/writer/beat-context.ts`: added `priorChapterFacts?: Fact[]` to `BeatContextInput`, `readerInfoState: string | null` to `BeatContext`; slot builder calls `selectReaderInfoStateForBeat`.
+  - `src/agents/writer/beat-context-render.ts`: appends the section between resolved-references and SETTING, mirroring `insertEnrichedSection` anchor.
+  - `src/phases/drafting.ts`: fetches `getFactsUpToChapter(novelId, ch - 1)` and threads `priorChapterFacts` at all three `buildBeatContext` call sites (initial draft + chapter-plan-check rewrite + validation rewrite).
+  - Tests: new `beat-context-prior-state.test.ts` (5 cases pinning the gate), `beat-context-render.test.ts` (placement + null-suppression), updated render-test fixture for the new slot. Byte-parity gate (20 fixtures) still passes — fixtures pass no `priorChapterFacts` so the gate returns null and the rendered prompt is byte-identical.
+  - Checks: `bun test src/agents/writer/ src/phases/ tests/beat-context-parity.test.ts` → 136 pass / 0 fail; `bunx tsc --noEmit` clean; `bun scripts/preflight-docs-impact.ts --strict` OK.
+  - Pending: commit + LXC deploy + heretic ch2 smoke (stop-gate evaluation).
 
 ## Heartbeat Commands
 
@@ -73,6 +81,6 @@ role: primary-lane-context
 
 ## Pickup Instructions
 
-- Last safe command: `bun scripts/agent/lane-runner.ts docs/sessions/2026-05-02-L38-A-prior-context.md --engine claude --model opus --permission-mode auto --dry-run`
+- Last safe command: `bun test src/agents/writer/ src/phases/ tests/beat-context-parity.test.ts` (136 pass / 0 fail at HEAD post-cycle-1 commit).
 - If failed, failure fingerprint:
-- Next action: Inspect the existing enriched-context renderer and production beat-context assembly; add the smallest parity test that proves prior-chapter reader-info state appears only where intended.
+- Next action: Commit + `bash scripts/deploy-lxc.sh`, then run a heretic ch2 smoke (paired replay / one live run) to evaluate stop gate (a) clean pass vs (b) new dominant blocker. Cap at $4 per the lane contract.

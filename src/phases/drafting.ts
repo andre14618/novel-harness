@@ -274,6 +274,11 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           const characters = await getCharacters(novelId)
           const charStates = await getCharacterStatesAtChapter(novelId, ch)
           const worldBible = await getWorldBible(novelId)
+          // L38-A: prior-chapter facts (chapters 1..ch-1) for the writer's
+          // READER-INFO STATE. Empty for chapter 1 by design — the slot
+          // builder also gates on chapterNumber > 1, so a non-empty fetch
+          // here would be ignored anyway.
+          const priorChapterFacts = ch > 1 ? await getFactsUpToChapter(novelId, ch - 1) : []
 
           // Pre-resolve all beat references in parallel before the serial writing loop.
           // Kept for all writer routes; world-fact requirements travel through
@@ -305,6 +310,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               outline, characters, characterStates: charStates, worldBible,
               preResolvedRefs: preResolvedRefs[bi],
               genre: novel.seed?.genre,
+              priorChapterFacts,
             })
 
             let beatProse: string | null = null
@@ -628,6 +634,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               const characters = await getCharacters(novelId)
               const charStates = await getCharacterStatesAtChapter(novelId, ch)
               const worldBible = await getWorldBible(novelId)
+              const priorChapterFacts = ch > 1 ? await getFactsUpToChapter(novelId, ch - 1) : []
               const beatSpec = outline.scenes[bi]
               const preResolved = await resolveReferences(beatSpec, outline, novelId, ch, characters)
                 .catch(() => ({ context: "", lookupCount: 0, llmUsed: false }))
@@ -637,6 +644,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 outline, characters, characterStates: charStates, worldBible,
                 preResolvedRefs: preResolved,
                 genre: novel.seed?.genre,
+                priorChapterFacts,
               })
               const priorProse = beatProses[bi]
               const retryContext = `\n\n--- TARGETED REWRITE (chapter-plan check) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nChapter-plan issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
@@ -887,6 +895,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             const characters = await getCharacters(novelId)
             const charStates = await getCharacterStatesAtChapter(novelId, ch)
             const worldBible = await getWorldBible(novelId)
+            const priorChapterFacts = ch > 1 ? await getFactsUpToChapter(novelId, ch - 1) : []
             const beatSpec = outline.scenes[bi]
             const preResolved = await resolveReferences(beatSpec, outline, novelId, ch, characters)
               .catch(() => ({ context: "", lookupCount: 0, llmUsed: false }))
@@ -896,6 +905,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               outline, characters, characterStates: charStates, worldBible,
               preResolvedRefs: preResolved,
               genre: novel.seed?.genre,
+              priorChapterFacts,
             })
             const priorProse = beatProses[bi]
             const retryContext = `\n\n--- TARGETED REWRITE (validation) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nValidation issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`

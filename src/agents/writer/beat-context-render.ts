@@ -53,7 +53,14 @@ export function renderBeatContext(ctx: BeatContext, opts: { compact: boolean }):
   // ── 5. Resolved references ────────────────────────────────────────────
   if (ctx.resolvedReferencesText) sections.push(ctx.resolvedReferencesText)
 
-  // ── 6. Setting ────────────────────────────────────────────────────────
+  // ── 6. Reader-info state (L38-A) ──────────────────────────────────────
+  // Position mirrors `insertEnrichedSection` (enriched-context.ts:328) so
+  // chapter-N readers see prior-chapter facts + per-character ignorance
+  // immediately before the SETTING block, where the writer is about to
+  // ground the next beat. Always null for chapter 1 (gated in slot builder).
+  if (ctx.readerInfoState) sections.push(ctx.readerInfoState)
+
+  // ── 7. Setting ────────────────────────────────────────────────────────
   if (ctx.setting) {
     const settingText = renderSetting(ctx.setting, opts.compact)
     if (settingText) sections.push(settingText)
