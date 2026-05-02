@@ -31,6 +31,7 @@ If this file and code disagree, trust code for runtime behavior. If this file an
 
 ## Development Workflow
 
+- **Engineering orchestration boundary:** use established interactive engineering harnesses — Claude Code or OpenCode — as the primary layer for coding, agent orchestration, review, and queue handoff. Novel Harness should not rebuild a custom autonomous coding supervisor inside the repo. `scripts/agent/lane-runner.ts` is retired as the default engineering control plane and remains legacy/optional for headless one-shot experiments only. Runtime LLM/API calls inside Novel Harness remain appropriate for novel planning, writing, checking, evaluation, and observability features.
 - Build context from code before editing. Avoid assuming schema, routing, or model details from memory.
 - Make the smallest correct change. Prefer one coherent concern per commit.
 - Default improvement-loop shape: one primary lane owns the causal hypothesis under validation. Parallel support work is allowed only when it improves attribution or operability without changing unrelated runtime behavior.
@@ -53,7 +54,7 @@ If this file and code disagree, trust code for runtime behavior. If this file an
 - Every benchmark/novel/eval run that produces evidence links to an experiment with `EXPERIMENT_ID=N`.
 - Every experiment links to a git commit. Commit changes before running experiments.
 - Results and findings persist to the DB or tracked docs. Never leave measurement findings only in chat or stdout.
-- Queued autonomous lane advancement requires `Results: Review` by default. Record independent commit-pinned review evidence such as `impl-review <sha> PASS`, or an explicit waiver reason and reviewer, before stop/queue handoff.
+- Queued lane handoff requires `Results: Review` by default. Record independent commit-pinned review evidence such as `impl-review <sha> PASS`, or an explicit waiver reason and reviewer, before stop/queue handoff.
 
 ## Documentation Discipline
 
@@ -122,6 +123,7 @@ Use `nohup ... > /tmp/name.log 2>&1 &` for long-running LXC scripts. Do not pipe
 ## Reference Docs
 
 - `docs/current-state.md` — live architecture and runtime status
+- `docs/interactive-claude-captain-loop.md` — engineering orchestration boundary and captain loop
 - `docs/todo.md` — pending action items only
 - `docs/decisions.md` — append-only decisions and rationale
 - `docs/overnight-runbook.md` — unattended loop contract, stop gates, and audit checklist

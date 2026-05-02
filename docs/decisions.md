@@ -1,4 +1,3 @@
----
 status: active
 updated: 2026-05-02
 ---
@@ -8,6 +7,23 @@ updated: 2026-05-02
 Architectural decisions with rationale, evidence, and alternatives rejected. Append-only: decisions are never removed, only superseded (mark old decision superseded and add a new one). Use git blame / experiment IDs for full detail.
 
 **Format per entry:** decision → why → alternatives rejected → ongoing implications.
+
+---
+
+### Interactive Claude Code captain becomes the default loop control plane (2026-05-02)
+
+**Decision:** Retire `scripts/agent/lane-runner.ts` as the default autonomous engineering orchestration layer. Use Claude Code or OpenCode as the primary engineering harness for coding, subagent orchestration, review, docs finalization, and queue handoff. `bun scripts/agent/open-claude-captain.ts` is the repo helper for starting a Claude Code captain with lane context. Keep lane docs, queue docs, monitor, heartbeats/messages, experiment rows, replay-first helpers, stop classifiers, docs-impact checks, review evidence, and finalization discipline as the durable contract artifacts.
+
+**Why:** The runner enforced useful discipline but became its own orchestration surface with liveness, stop, pickup-terminal, review, progress, and queue semantics. That debugging work was not improving the novel harness itself. Claude Code and OpenCode already provide the interactive engineering layer and agent orchestration we need; the repo should provide sensors and durable artifacts rather than a second supervisor.
+
+**Boundary:** Novel Harness may still use model/API calls internally for novel planning, writing, checking, evaluation, and observability. Engineering and coding work should rely on established engineering harnesses with their own agents and orchestration.
+
+**Alternatives rejected:**
+- Keep adding runner features. Rejected because each improvement moved more operator logic into a bespoke script and increased the surface area we had to debug.
+- Drop lane contracts entirely. Rejected because the artifacts were the valuable part: they preserve attribution, evidence, queue state, and handoff discipline across tools.
+- Build a custom in-repo coding orchestrator. Rejected because established engineering harnesses already provide the agent orchestration layer.
+
+**Ongoing implications:** New lane templates should include a `Captain command` and only a `Legacy runner command`. Process docs should treat `lane-runner.ts` as optional/headless. Future work should improve contract artifacts, sensors, and observability that Claude Code/OpenCode can consume, not add more runner orchestration features.
 
 ---
 

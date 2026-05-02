@@ -222,14 +222,25 @@ function oneLine(value: string): string {
   return value.replace(/\s+/g, " ").trim()
 }
 
-export function summarizeLaneProgress(doc: ParsedLaneDoc, progressLimit = 4): string[] {
+function summarizeEvent(event: LaneEvent): string {
+  const actor = event.actor ? `/${event.actor}` : ""
+  const detail = event.step ?? event.message ?? event.command ?? ""
+  return `${event.type}${actor}${detail ? `: ${compact(oneLine(detail), 140)}` : ""}`
+}
+
+export function summarizeLaneProgress(doc: ParsedLaneDoc, progressLimit = 4, fallbackEvent: LaneEvent | null = null): string[] {
   const lines: string[] = []
   const progress = sectionBullets(doc, "progress log")
     .map(oneLine)
     .filter(Boolean)
     .filter(item => !/^pending\.?$/i.test(item))
   if (progress.length === 0) {
-    lines.push("latest progress: (none recorded)")
+    if (fallbackEvent) {
+      lines.push("progress log: (none recorded yet)")
+      lines.push(`latest event: ${summarizeEvent(fallbackEvent)}`)
+    } else {
+      lines.push("latest progress: (none recorded)")
+    }
   } else {
     lines.push("latest progress:")
     for (const item of progress.slice(-progressLimit)) lines.push(`- ${compact(item, 160)}`)
@@ -890,7 +901,7 @@ export function renderLaneStatus(report: LaneStatusReport): string {
   if (panelEnabled(report.panels, "outside")) {
     lines.push("")
     lines.push("Lane progress:")
-    for (const line of summarizeLaneProgress(lane)) lines.push(`  ${line}`)
+    for (const line of summarizeLaneProgress(lane, 4, assessment.lastEvent)) lines.push(`  ${line}`)
   }
   if (panelEnabled(report.panels, "outside") || panelEnabled(report.panels, "hygiene")) {
     lines.push("")

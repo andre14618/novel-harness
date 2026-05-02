@@ -100,6 +100,24 @@ describe("lane doc parsing", () => {
     expect(lines).toContain("commits: abc123")
   })
 
+  test("falls back to latest event when progress log is empty", () => {
+    const doc = parseLaneDoc(`## Progress Log
+
+- Pending.
+`, "docs/sessions/lane.md")
+
+    const lines = summarizeLaneProgress(doc, 4, {
+      ts: "2026-05-02T12:00:00Z",
+      type: "heartbeat",
+      actor: "captain-claude",
+      status: "continue",
+      step: "cycle 3 start: check LXC + plan smoke launch",
+    })
+
+    expect(lines).toContain("progress log: (none recorded yet)")
+    expect(lines).toContain("latest event: heartbeat/captain-claude: cycle 3 start: check LXC + plan smoke launch")
+  })
+
   test("laneIdFromPath sanitizes spaces", () => {
     expect(laneIdFromPath("docs/sessions/My Lane.md")).toBe("My-Lane")
   })

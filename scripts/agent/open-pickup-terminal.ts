@@ -165,20 +165,20 @@ export function buildRecommendation(report: ReturnType<typeof buildLaneStatusRep
   const dirtyCount = report.git?.dirtyFiles.length ?? 0
   if (dirtyCount > 0) {
     return {
-      action: "Do not launch an unattended runner yet; first resolve or intentionally accept the dirty worktree, then run the lane dry-run.",
-      command: `git status --short && bun scripts/agent/lane-runner.ts ${lanePath} --engine claude --model opus --permission-mode auto --queue docs/sessions/lane-queue.md --dry-run`,
+      action: "Do not launch a new captain yet; first inspect the dirty worktree and preserve any active lane-worker changes.",
+      command: "git status --short && monitor --once",
     }
   }
   if (report.assessment.state === "blocked" && report.assessment.reason.includes("stale")) {
     return {
-      action: "Refresh liveness and run a lane-runner dry-run; the stale heartbeat is a supervisor stop, not a runtime failure.",
-      command: `bun scripts/agent/lane-runner.ts ${lanePath} --engine claude --model opus --permission-mode auto --queue docs/sessions/lane-queue.md --dry-run`,
+      action: "Start an interactive Claude Code captain; the stale heartbeat is a supervisor stop, not a runtime failure.",
+      command: `bun scripts/agent/open-claude-captain.ts ${lanePath}`,
     }
   }
   if (report.assessment.state === "continue") {
     return {
-      action: "Run the lane-runner dry-run before launching the autonomous cycle.",
-      command: `bun scripts/agent/lane-runner.ts ${lanePath} --engine claude --model opus --permission-mode auto --queue docs/sessions/lane-queue.md --dry-run`,
+      action: "Use the interactive Claude Code captain as the control plane; inspect monitor before changing or launching work.",
+      command: `bun scripts/agent/open-claude-captain.ts ${lanePath}`,
     }
   }
   return {

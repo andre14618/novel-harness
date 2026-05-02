@@ -5,7 +5,7 @@ updated: 2026-05-02
 
 # Overnight Loop Runbook
 
-How to start, monitor, stop, and audit a long unattended Claude loop on this harness. Closes the §12 todo "Document overnight runbook." Treat this as the durable companion to `docs/todo.md` §6 (overnight loop operating rules).
+How to start, monitor, stop, and audit a long Claude Code/OpenCode engineering captain loop on this harness. Treat this as the durable companion to `docs/todo.md` §6 (overnight loop operating rules).
 
 ## Preconditions
 
@@ -16,18 +16,34 @@ Before kicking off an overnight session:
 3. **`.env` populated.** `ORCHESTRATOR_DB_URL` must resolve to a working Postgres listener (the SSH tunnel is the standard local form).
 4. **No active LXC generation.** `bash scripts/deploy-lxc.sh` checks for in-progress runs; if one is active, either let it finish or kill it before starting overnight work.
 5. **Tests green.** `bun test src/` should pass at HEAD before starting — autonomous subagents will inherit any pre-existing breakage and may amplify it.
-6. **Pre-loop gate clean.** Run `bun scripts/agent/preflight-loop.ts docs/sessions/<lane>.md` (add `--allow-dirty` only if the dirty files are intentionally part of the lane). The gate validates loop-contract completeness, starting commit, experiment id, declared file/script scope, and worktree state. Non-zero exit means do not launch the runner: 10 = lane-context, 20 = dirty worktree, 22 = git/infra.
+6. **Pre-loop gate clean.** Run `bun scripts/agent/preflight-loop.ts docs/sessions/<lane>.md` (add `--allow-dirty` only if the dirty files are intentionally part of the lane). The gate validates loop-contract completeness, starting commit, experiment id, declared file/script scope, and worktree state. Non-zero exit means do not launch the captain: 10 = lane-context, 20 = dirty worktree, 22 = git/infra.
 
-## Starting an autonomous loop
+## Starting A Captain Loop
 
-The preferred unattended path is repo-supervised: create a lane doc, dry-run `lane-runner.ts`, then launch bounded worker cycles. Interactive `/loop` remains useful for manual Claude sessions, but it is not the source of truth for continuation. Each loop cycle:
+The preferred path is an interactive Claude Code or OpenCode captain session launched from repo-local context. The lane doc, monitor, heartbeats, messages, experiments, and commits are the source of truth. `lane-runner.ts` is retired as the default control plane and retained only for legacy/headless experiments.
+
+Do not rebuild engineering orchestration inside Novel Harness. Runtime model/API calls belong in Novel Harness when they support novel planning, writing, checking, evaluation, or observability. Coding work belongs in established engineering harnesses: Claude Code or OpenCode.
+
+Start the Claude Code captain helper:
+
+```bash
+bun scripts/agent/open-claude-captain.ts docs/sessions/<lane>.md
+```
+
+Dry-run the prompt first when changing process docs:
+
+```bash
+bun scripts/agent/open-claude-captain.ts docs/sessions/<lane>.md --dry-run --print-prompt
+```
+
+Each loop cycle:
 
 1. Check the queue — read `docs/todo.md` for next-action items.
 2. Pick one **primary lane**; write a session-context file under `docs/sessions/<DATE>-<LOOP>-<topic>.md` BEFORE editing code (per §6 todo rules).
 3. Declare baseline, changed runtime lever, feedback signal, stop gate, and escalation rule.
 4. Make the lane change, run tests, commit.
 5. Update `docs/decisions.md` (concluded items) + `docs/todo.md` (close the bullet).
-6. Let `lane-runner.ts` decide whether to start another worker cycle from `lane-status.ts`.
+6. The captain decides whether to continue, delegate support work, finalize the lane, or advance the queue, using `monitor` and lane docs as durable state.
 
 ## Primary lane contract
 
@@ -87,6 +103,9 @@ monitor
 monitor --append
 monitor --full
 monitor --panel outside --panel coordination --panel evidence
+bun scripts/agent/open-claude-captain.ts docs/sessions/<lane>.md
+bun scripts/agent/open-claude-captain.ts docs/sessions/<lane>.md --dry-run --print-prompt
+# Legacy runner only; do not use as the default engineering loop.
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --dry-run
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --max-cycles 4 --max-hours 3 --model openai/gpt-5.5
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8
@@ -101,13 +120,15 @@ bun scripts/agent/replay-first-plan.ts scripts/hallucination/expanded-fail-class
 
 `monitor` selects the latest non-template session doc with a complete Loop Contract. Human-facing monitoring instructions should default to bare `monitor`; use expanded `bun run monitor`, `bun scripts/agent/monitor.ts`, or `lane-dashboard` commands only when debugging the alias or working where the alias is unavailable. If none exists, it stays open in a waiting state and polls until one appears; `monitor --once` still exits immediately. Legacy session docs are skipped by default so they do not permanently show missing-field noise; pass a path explicitly to inspect one. `lane-status.ts` returns exit code `0` only when the outside loop should continue. It stops or blocks on missing lane-contract fields, stale heartbeat, explicit stop events, result stop gates, human-needed events, infra-failure events, and stale outside-loop state. The default `monitor` alias is compact: it hides latest-novel wall text and shows only `outside`, `coordination`, and `process`; its `Lane progress` block comes from the lane doc's latest `Progress Log` bullets and populated `Results` fields. Use `monitor --full` for all panels plus latest novel summary, or `--panel outside|inside|evidence|hygiene|process` to choose panels explicitly. In non-TTY/captured output, watch mode renders one snapshot instead of repeating forever unless `--append` is explicit.
 
-For unattended work, use `lane-runner.ts` rather than trusting chat continuation. The runner launches bounded worker cycles only while lane-status remains `continue`, writes cycle artifacts under `output/agent-runs/<lane-id>/cycles/`, and stops on worker failure/timeout, max cycles, max hours, or no tracked workspace change. Default engine is OpenCode (`opencode run`); use `--engine claude` to make Claude Code the lane worker through `claude -p`. Always run `--dry-run` first to inspect the generated prompt and command. Avoid `--dangerously-skip-permissions` unless you explicitly accept the risk for that session.
+For ongoing work, use an interactive Claude Code/OpenCode captain rather than trusting chat continuation or `lane-runner.ts`. The captain can use native agents/subagents directly while keeping progress durable through lane-heartbeat, lane-message, lane docs, experiments, and commits.
 
-For local supervised unattended runs, add `--pickup-terminal-on-stop`. On blocked, human-needed, infra-failure, stop-without-advance, max cycles/hours, or no-change limit, the runner opens a WezTerm/OpenCode pickup terminal before exiting. This is opt-in so headless/CI runs do not attempt to open a GUI terminal.
+`lane-runner.ts` is legacy/optional. Use it only for headless one-shot experiments or historical replay where a scripted bounded worker is more useful than an interactive captain.
 
-For supervised work, add `--worker-io terminal`. This starts visible Claude Code without `-p`, or OpenCode TUI with `--prompt`, and the runner waits until the terminal worker exits before checking lane status again. Terminal mode requires an attached TTY and is not appropriate for `nohup`. Use it when you want to question the active worker, let it use native Claude/OpenCode interactive affordances, or keep it alive while background LXC validation runs. The worker should still record durable progress with `lane-heartbeat`; terminal chat is only live operator communication, not persistent lane state.
+For local supervised legacy-runner runs, add `--pickup-terminal-on-stop`. On blocked, human-needed, infra-failure, stop-without-advance, max cycles/hours, or no-change limit, the runner opens a WezTerm/OpenCode pickup terminal before exiting. This is opt-in so headless/CI runs do not attempt to open a GUI terminal. This does not make the runner the recommended control plane.
 
-Give every runner an explicit identity with `--worker-role` and `--worker-id`. The coordination panel displays the active runner worker, latest heartbeat actor, claimed work by actor, and expired leases, so a walk-away session should make ownership obvious without reading full transcripts.
+Do not use legacy-runner `--worker-io terminal` as the normal supervised path. Start Claude Code/OpenCode directly, preferably through `open-claude-captain.ts`, and use lane artifacts for durable state.
+
+Give every captain/support agent an explicit identity such as `captain-claude`, `captain-opencode`, `evidence-claude`, or `support-opencode`. The coordination panel displays active worker identity when present, latest heartbeat actor, claimed work by actor, and expired leases, so a walk-away session should make ownership obvious without reading full transcripts.
 
 For cross-agent operational coordination, use `lane-message.ts`. The lane captain sends requests, evidence/support agents claim them with leases, and the assignee resolves them with evidence refs. `monitor --panel coordination` shows open messages, claimed work, and expired leases. This prevents the common failure mode where one agent launches a background replay and no visible owner remains responsible for monitoring it.
 
@@ -117,11 +138,11 @@ bun scripts/agent/lane-message.ts claim docs/sessions/<lane>.md <msg-id> --actor
 bun scripts/agent/lane-message.ts resolve docs/sessions/<lane>.md <msg-id> --actor evidence --result "Replay gated on chapter_exhaustions.id=84" --ref "chapter_exhaustions#84"
 ```
 
-For background launches, the `/tmp/lane-runner-<lane-id>.log` file is only the supervisor process log. The durable worker prompt, command, stdout, stderr, and result files live under `output/agent-runs/<lane-id>/cycles/`. Check `monitor --once` between cycles instead of relying on chat continuation.
+For legacy runner background launches, the `/tmp/lane-runner-<lane-id>.log` file is only the supervisor process log. The durable worker prompt, command, stdout, stderr, and result files live under `output/agent-runs/<lane-id>/cycles/`. Prefer an interactive Claude Code/OpenCode captain for normal engineering work.
 
 When the queue stops with no next lane, use `docs/harness-next-work-process.md` to pick the next harness lane. It turns the backlog into one primary lane plus at most two queued follow-ups, with a specificity gate, ranking rubric, and review requirement.
 
-Use `--queue docs/sessions/lane-queue.md` only with pre-created lane docs. The runner advances after a stopped lane only when `Outcome`, `Stop gate fired`, `Evidence link/row/path`, `Commit(s)`, and `Review` are filled in that lane's Results section. `Review` should cite independent commit-pinned review evidence such as `impl-review <sha> PASS`, or an explicit waiver reason and reviewer. It will not invent a new lane from a vague queue title while unattended.
+Use `docs/sessions/lane-queue.md` only with pre-created lane docs. A captain should advance after a stopped lane only when `Outcome`, `Stop gate fired`, `Evidence link/row/path`, `Commit(s)`, and `Review` are filled in that lane's Results section. `Review` should cite independent commit-pinned review evidence such as `impl-review <sha> PASS`, or an explicit waiver reason and reviewer. Do not invent a new lane from a vague queue title; run `docs/harness-next-work-process.md` instead.
 
 The worker prompt now carries the end-of-lane finalization contract. Before a lane writes its stop gate for queue handoff, it should update durable docs (`docs/current-state.md`, `docs/todo.md`, `docs/decisions.md`, `docs/lessons-learned.md`, and the lane doc as applicable), conclude the experiment row, dry-run/apply stale-gate orphaning for classified evidence rows, run docs-impact and whitespace checks, record `Results: Review`, and commit the final docs/cleanup unit. This is the automated version of the manual sweep normally done by the supervising chat after a lane stops.
 

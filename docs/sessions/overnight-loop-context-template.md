@@ -6,7 +6,7 @@ role: overnight-loop-context-template
 
 # Overnight Loop Context Template
 
-Use this template for any unattended Claude loop. Copy it to `docs/sessions/YYYY-MM-DD-<short-loop-name>.md` before starting the loop and keep it current enough that a fresh agent can resume safely without chat history. The primary lane is mandatory; support work is allowed only when it does not change unrelated runtime behavior.
+Use this template for any Claude Code captain loop. Copy it to `docs/sessions/YYYY-MM-DD-<short-loop-name>.md` before starting the loop and keep it current enough that a fresh agent can resume safely without chat history. The primary lane is mandatory; support work is allowed only when it does not change unrelated runtime behavior.
 
 ## Loop Contract
 
@@ -28,7 +28,8 @@ Use this template for any unattended Claude loop. Copy it to `docs/sessions/YYYY
 - Evidence artifact:
 - Event log: output/agent-runs/<lane-id>/events.jsonl
 - Dashboard command: monitor docs/sessions/<lane>.md
-- Runner command: bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md --pickup-terminal-on-stop
+- Captain command: bun scripts/agent/open-claude-captain.ts docs/sessions/<lane>.md
+- Legacy runner command: bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md --pickup-terminal-on-stop
 
 ## Baseline
 
@@ -51,7 +52,8 @@ Use this template for any unattended Claude loop. Copy it to `docs/sessions/YYYY
 - Expected cost:
 - Command 1:
 - Command 2:
-- Runner dry-run: `bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --queue docs/sessions/lane-queue.md --pickup-terminal-on-stop --dry-run`
+- Captain dry-run: `bun scripts/agent/open-claude-captain.ts docs/sessions/<lane>.md --dry-run --print-prompt`
+- Legacy runner dry-run: `bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --queue docs/sessions/lane-queue.md --pickup-terminal-on-stop --dry-run`
 - Verification command(s):
 
 ## Progress Log

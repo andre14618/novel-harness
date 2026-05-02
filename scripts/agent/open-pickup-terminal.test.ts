@@ -36,21 +36,21 @@ describe("open-pickup-terminal prompt", () => {
       state: "blocked",
       reason: "latest heartbeat is stale",
       monitorSnapshot: "state: BLOCKED",
-      recommendedAction: "Run the dry-run",
-      recommendedCommand: "bun scripts/agent/lane-runner.ts docs/sessions/lane.md --dry-run",
+      recommendedAction: "Start the captain",
+      recommendedCommand: "bun scripts/agent/open-claude-captain.ts docs/sessions/lane.md",
     })
 
     expect(prompt).toContain("Do not begin implementation")
     expect(prompt).toContain("Lane doc: docs/sessions/lane.md")
     expect(prompt).toContain("Current outside-loop state: BLOCKED")
-    expect(prompt).toContain("Recommended next action: Run the dry-run")
+    expect(prompt).toContain("Recommended next action: Start the captain")
     expect(prompt).toContain("First response format")
     expect(prompt).toContain("Do not ask `what do you want next?`")
   })
 })
 
 describe("open-pickup-terminal recommendation", () => {
-  test("recommends resolving dirty worktree before runner launch", () => {
+  test("recommends inspecting dirty worktree before new captain launch", () => {
     const report = {
       assessment: { state: "continue", reason: "lane contract complete" },
       git: { dirtyFiles: ["M package.json"] },
@@ -58,10 +58,10 @@ describe("open-pickup-terminal recommendation", () => {
 
     const recommendation = buildRecommendation(report, "docs/sessions/lane.md")
     expect(recommendation.action).toContain("dirty worktree")
-    expect(recommendation.command).toContain("git status --short")
+    expect(recommendation.command).toBe("git status --short && monitor --once")
   })
 
-  test("recommends dry-run for stale heartbeat stops on clean worktree", () => {
+  test("recommends Claude captain for stale heartbeat stops on clean worktree", () => {
     const report = {
       assessment: { state: "blocked", reason: "latest heartbeat is stale" },
       git: { dirtyFiles: [] },
@@ -69,7 +69,7 @@ describe("open-pickup-terminal recommendation", () => {
 
     const recommendation = buildRecommendation(report, "docs/sessions/lane.md")
     expect(recommendation.action).toContain("stale heartbeat")
-    expect(recommendation.command).toContain("--dry-run")
+    expect(recommendation.command).toContain("open-claude-captain.ts")
   })
 })
 
