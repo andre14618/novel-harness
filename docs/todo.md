@@ -52,7 +52,7 @@ Corpus mining has enough single-pattern evidence. Do not mine more one-off patte
 
 - [ ] **Pick one composite-prior bundle for the next variant arm.** Current candidates: action-beat assembly, voice/dialogue shaping, per-pair interaction mode, or chapter-close narrator seam. Prefer one bundle per arm so causal signal stays readable.
 - [ ] **Fix P3b closer-kind regression before re-probing plotter variants.** The corpus-v1 plotter variant regressed chapter closer kind to 0/3 action vs 2/3 default. Revise the closer guidance before using it in a larger bundle.
-- [ ] **Re-measure P16 facts density on 5+ chapters.** The n=3 corpus-v1 probe showed a facts-density drop, but the sample is below noise floor.
+- [x] ~~Re-measure P16 facts density on 5+ chapters.~~ **Done 2026-05-01 (exp #307).** 10-chapter fantasy-debt probe: corpus-v1 facts_median rose 5.5→7.5, knowledge_median 4.5→7.5, total_beats 135→223 — G2/G3/G4 PASS, G1 narrowly FAIL (7.5 < 1.5×5.5=8.25). The earlier n=3 facts-drop signal was noise. New finding: corpus-v1 over-rotates toward description openers (9/10 vs corpus ~50%) — see exp #307 finding for the followup.
 - [ ] **Soften the rank-ordered beats variant to set-based guidance.** The directional re-score found rank-ordering over-constrains the planner. Convert to a set the planner can select from before another probe.
 
 ### 5. Runtime and repo hygiene
