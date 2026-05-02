@@ -4395,3 +4395,26 @@ The writer continues to invent some walk-on names (`Master Halden`, `Guildmistre
 **Ongoing implications:** `scripts/phase-eval/promotion-check.ts` continues to look up prior passes on the legacy 4-part `(probe_name, test_variant, git_commit, seed)` tuple. That is the conservative choice — it keeps the existing PROMOTION-PASS gate stable and never makes promotion *easier* — but it means a flap across e.g. two prompt_hashes at the same commit could still be counted as consecutive passes by the gate. If a future probe/run set surfaces that leak in practice, extend `checkPromotionEligibility` to also accept the four extended dims. Producer-side persistence of `model_route` is still TODO; the family key reads it when present but no probe writes it today.
 
 ---
+
+### L54 — Pre-loop gate script enforces lane-launch discipline (2026-05-02, exp #378)
+
+**Decision:** Add `scripts/agent/preflight-loop.ts` as the standard pre-launch check before `lane-runner.ts` starts an unattended cycle. The gate enforces five conditions on the lane doc + worktree: (1) `Loop Contract` has every entry in `REQUIRED_LOOP_FIELDS`, (2) the `Starting commit` resolves via `git rev-parse --verify <sha>^{commit}`, (3) `Experiment ID` parses as a positive integer, (4) `Files/scripts expected to change` is non-empty (deploy implication declared), and (5) the worktree is clean unless `--allow-dirty` is explicit. Exit codes: 0 pass, 10 lane-context, 20 dirty-worktree, 22 git-infra. The vocabulary matches `lane-runner` so the runner can interpret a non-zero gate without ambiguity.
+
+**Why:** `docs/todo.md` §L45 kept the pre-loop gate item open because context completeness, experiment id, starting commit, deploy implication, and worktree state were checked informally by humans. `lane-status` already validated `REQUIRED_LOOP_FIELDS`, but it did not validate commit linkage, experiment-id shape, deploy implication, or worktree state. A loop launched from chat-only context with a missing experiment id or a stale "TBD" commit would still pass `lane-status`.
+
+**Design:** The script is a thin layer with a pure-functional core (`runPreflightChecks(ctx, opts)`) and a side-effecting CLI wrapper. The wrapper reads dirty files via `git status --porcelain=v1` and resolves commits via `git rev-parse --verify`. The pure core takes a `PreflightContext` injected with a `resolveCommit` callback, which keeps fixture-based tests fully hermetic. Exit-code precedence is `git-infra` > `lane-context` > `dirty-worktree`, so a single failure surfaces a single dominant code.
+
+**Tests (`scripts/agent/preflight-loop.test.ts`):** 14 tests / 38 expects cover complete lane on a clean tree, missing required field, non-numeric experiment id, missing files/scripts scope, unresolvable commit, empty starting commit, dirty worktree (default + `--allow-dirty`), multi-failure code precedence (`git-infra` dominates `lane-context` dominates `dirty-worktree`), and CLI arg parsing.
+
+**Smoke validation:** Ran the gate against L51, L52, L53, and L54 lane docs. All pass with `--allow-dirty`. L54 fails without `--allow-dirty` (exit 20) because of pre-existing lane-dashboard/monitor in-flight changes — exactly the case the gate exists to surface.
+
+**Alternatives rejected:**
+- Folding the new checks into `lane-status` directly. Rejected — `lane-status` is a continuous monitoring tool that returns operational state (`continue`/`stop`/`blocked`/...). The pre-launch gate has different semantics: it answers "is this lane safe to launch" once, not continuously.
+- Adding `Files/scripts expected to change` to `REQUIRED_LOOP_FIELDS`. Rejected — that would retroactively invalidate older lane docs that did not include the field. The gate enforces it for new launches without breaking historical lane parsing.
+- Querying the DB to confirm the experiment id exists. Deferred — the gate intentionally has zero external dependencies so it can run in tight loops, dry-runs, and CI without a Postgres listener.
+
+**Documentation:** `docs/overnight-runbook.md` precondition #6 and `docs/agent-lane-protocol.md` (above the `lane-runner.ts` paragraph) now point at the gate.
+
+**Ongoing implications:** `lane-runner.ts` does not yet auto-invoke the gate. That coupling is deferred — the gate is an explicit operator step today, which keeps it visible in the launch log. If a future overnight session shows operators forgetting to run it, the runner can wire it in as a startup check.
+
+---

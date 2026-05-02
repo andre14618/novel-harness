@@ -53,7 +53,11 @@ role: primary-lane-context
 
 ## Progress Log
 
-- Pending. Queued as lane 4 of 6 in the bounded post-L50 harness/eval loop.
+- 2026-05-02: Inspected `lane-core.REQUIRED_LOOP_FIELDS` (15 fields) and confirmed `lane-status` already validates lane-doc context completeness but not commit linkage, experiment-id shape, deploy implication, or worktree state. Designed the gate as a thin layer that adds those four checks plus an exit-code vocabulary aligned with `lane-runner` (10/20/22).
+- 2026-05-02: Implemented `scripts/agent/preflight-loop.ts` with pure-functional `runPreflightChecks(ctx, opts)` core. Side-effecting CLI shells out to `git status --porcelain=v1` and `git rev-parse --verify <sha>^{commit}`.
+- 2026-05-02: Added 14 fixture-based tests in `scripts/agent/preflight-loop.test.ts` covering complete pass, missing required field, non-numeric experiment id, missing files/scripts scope, unresolvable commit, empty starting commit, dirty worktree (default + `--allow-dirty`), and multi-failure exit-code precedence (`git-infra` > `lane-context` > `dirty-worktree`).
+- 2026-05-02: Smoke-validated against live lane docs L51–L54 (all pass with `--allow-dirty`) and confirmed dirty-worktree default fails L54 with exit 20.
+- 2026-05-02: Updated `docs/overnight-runbook.md` (precondition #6) and `docs/agent-lane-protocol.md` to point at the new gate.
 
 ## Heartbeat Commands
 
@@ -63,11 +67,11 @@ role: primary-lane-context
 
 ## Results
 
-- Outcome:
-- Stop gate fired:
-- Evidence link/row/path:
-- Cost:
-- Commit(s):
+- Outcome: Pre-loop gate shipped. `scripts/agent/preflight-loop.ts` enforces lane-contract completeness (15 required fields), starting-commit resolution, experiment-id shape, declared file/script scope (deploy implication), and worktree state. Exit codes 0/10/20/22 match `lane-runner` vocabulary so the runner can interpret a non-zero gate without ambiguity.
+- Stop gate fired: (a) Clean pass — gate script implemented and tested; no policy decisions required, no valid lane docs blocked.
+- Evidence link/row/path: `scripts/agent/preflight-loop.ts`, `scripts/agent/preflight-loop.test.ts` (14 tests, 38 expects, all green); smoke output captured in Progress Log.
+- Cost: $0 (local script + unit tests only).
+- Commit(s): pending finalization commit on `synthesis-bundle-v1`.
 
 ## Finalization Checklist
 
