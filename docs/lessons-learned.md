@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-01
+updated: 2026-05-02
 ---
 
 # Lessons Learned
@@ -1891,3 +1891,20 @@ The 1→8 case is the salient one: with no negative anchor pulling the writer aw
 - Worst case to design for is "writer drifts into novel failures on retry" — not "writer makes slow but monotonic progress."
 
 (2026-05-02 L41 retroactive validation, exp #368. Source: 17 `prose-integrity-check` events in `pipeline_events`, query in `docs/l41-validation-2026-05-02.md`. Companion: `docs/decisions.md` §L41-validation.)
+
+## "Not in production code path" parity-harness modules can hide load-bearing context-engineering levers
+
+When investigating a writer-side bug (chapter-N writer dramatizing facts already established in chapter N-1), I expected the disconnect to be "missing data in the upstream pipeline." Instead, the data existed: `chapter_outlines` had the right `establishedFacts` for both chapters, character_states declared `outline.characterStateChanges[].knows`, and a renderer `enriched-context.ts` already knew how to format prior-chapter facts as a `READER-INFO STATE` block.
+
+The gap was: `enriched-context.ts` had a comment "DELIBERATELY not imported from any production code path — production drafting runs unmodified. The preflight runner + parity harness are the only callers." It had been built as a parity-harness artifact for a future preflight experiment and never wired into production.
+
+**Effect:** the production beat-writer for chapter N has no surface for cumulative establishedFacts from chapters 1..N-1. It sees only the current chapter's beats + character snapshots + setting + last-3-sentences-of-prior-beat. Hence chapter 2 of L41-val novel had Maret "discovering" facts chapter 1 had already established her possessing.
+
+**The rule:** when investigating a context-engineering gap, search for "not in production" / "parity harness" / "preflight only" code paths before concluding the gap requires new code. Especially for context-builder modules — they are often built ahead of their wiring, and the missing wiring is cheaper than re-deriving the design.
+
+**How to apply:**
+- When a checker fires on a prior-chapter-state-vs-current-prose mismatch, query whether the writer's prompt actually contains the prior-chapter fact. If it doesn't, look for an existing prior-context renderer before designing one.
+- `grep -rn "DELIBERATELY not imported\|not wired into production\|parity harness only\|preflight only"` in `src/` is a useful first step on any context-bug investigation.
+- When shipping a parity-harness/preflight-only context module, leave a TODO breadcrumb pointing to the production wiring decision (what would need to be true to import it). Otherwise the module silently drifts into "unused code we forgot about."
+
+(2026-05-02 L38 investigation, exp pending. Source: `src/agents/writer/enriched-context.ts` header comment + `src/agents/writer/beat-context.ts` slot list. Companion: `docs/l38-investigation-2026-05-02.md`.)
