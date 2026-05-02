@@ -27,6 +27,7 @@ Pass (do NOT flag) — alias and exception rules:
 - Generic locations with NO accompanying proper noun pass ("the storeroom", "the hall", "the market", "the road").
 - Lowercase generic intra-text anaphora — short phrases like "the guild", "the order", "the council", "the temple" when the prose has earlier referenced a specific grounded named version OR when it is a generic reference within the scene — pass.
 - Calendar dates and numerical year references — "year ninety-three", "the year 1247", "the 3rd century", "the fifth age" — pass. Days of the week, months, real-world references (Earth, Sun), cardinal directions, lowercase generic race/profession terms (humans, scribes, soldiers) all pass.
+- Plural all-lowercase occupational noun phrases pass ("senior auditors", "junior scribes" — job-class descriptors, not named entities).
 - Sentence-initial common nouns and pronouns pass.
 
 Disambiguation:
