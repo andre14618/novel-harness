@@ -31,7 +31,7 @@ test("aggregate: retryLines preserves order (adherence, then ungrounded)", () =>
   expect(r.retryLines.length).toBe(2)
   expect(r.retryLines[0]).toBe("A")
   expect(r.retryLines[1]).toContain("U")
-  expect(r.retryLines[1]).toContain("beat brief or world bible")
+  expect(r.retryLines[1]).toContain("beat brief, world bible, character roster, or planner-sanctioned new entities")
 })
 
 test("aggregate: descriptions round-trip verbatim in `issues[]`", () => {
@@ -72,6 +72,6 @@ test("formatRetryLine: adherence passes through; ungrounded appends pinned resol
   expect(
     formatRetryLine({ source: "halluc-ungrounded", severity: "blocker", description: "D" }),
   ).toBe(
-    "D — Fix: replace with an entity from the beat brief or world bible, or remove the reference entirely. Do not invent new named entities.",
+    "D — Fix: use only entities from the beat brief, world bible, character roster, or planner-sanctioned new entities; otherwise remove the reference.",
   )
 })

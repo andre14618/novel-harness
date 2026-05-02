@@ -100,11 +100,17 @@ export function aggregateIssues(outputs: RawCheckerOutputs): BeatCheckResult {
  * was wrong but not *how* to fix it. The appended guidance tells the writer
  * the valid resolution space: replace with a brief/bible entity or remove the
  * reference.
+ *
+ * 2026-05-01 (L29): expanded source enumeration to match the L9/L20-era
+ * grounded surface (beat brief, world bible, character roster, planner-
+ * sanctioned new-entities list). Reframed from negative-prime "Do not invent"
+ * to positive "use only [...]" per `feedback_priming_suppression_ab` (L21
+ * showed negative-prime variants WORSEN compliance).
  */
 export function formatRetryLine(issue: BeatIssue): string {
   switch (issue.source) {
     case "halluc-ungrounded":
-      return `${issue.description} — Fix: replace with an entity from the beat brief or world bible, or remove the reference entirely. Do not invent new named entities.`
+      return `${issue.description} — Fix: use only entities from the beat brief, world bible, character roster, or planner-sanctioned new entities; otherwise remove the reference.`
     case "adherence":
     default:
       return issue.description

@@ -29,7 +29,7 @@ import type { BeatIssue, RawCheckerOutputs } from "./beat-checks"
 function mirroredFormatRetryLine(issue: BeatIssue): string {
   switch (issue.source) {
     case "halluc-ungrounded":
-      return `${issue.description} — Fix: replace with an entity from the beat brief or world bible, or remove the reference entirely. Do not invent new named entities.`
+      return `${issue.description} — Fix: use only entities from the beat brief, world bible, character roster, or planner-sanctioned new entities; otherwise remove the reference.`
     case "adherence":
     default:
       return issue.description
