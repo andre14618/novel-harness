@@ -1925,3 +1925,40 @@ The useful compromise is not "one task only." It is "one primary runtime lane, p
 - Commit support tooling separately from runtime behavior when practical, and do not treat support-tool completion as proof that the runtime lane worked.
 
 (2026-05-02 loop-architecture documentation pass. Companion docs: `CLAUDE.md`, `docs/current-state.md`, `docs/overnight-runbook.md`, `docs/experiment-design-rules.md`, `docs/sessions/overnight-loop-context-template.md`.)
+
+## Long-running agent loops need repo-owned heartbeat state, not chat-owned intent
+
+When an agent is asked to "keep monitoring" from chat alone, it tends to stop at ambiguity, dirty worktree state, or a wait boundary. Claude Code has stronger native loop/wakeup behavior than OpenCode, but tool-specific wakeups are still the wrong source of truth for this repo. The shared loop state has to live in tracked docs plus append-only event logs that both tools can read.
+
+**The rule:** outside-loop continuation should be decided by a repo script that reads the lane contract, heartbeat events, git state, and optional inside-harness DB summary. Chat agents perform bounded work; the repo-local supervisor decides whether the loop continues, stops, blocks, needs a human, or hit infrastructure failure.
+
+**How to apply:**
+- Write heartbeats to `output/agent-runs/<lane-id>/events.jsonl` with `scripts/agent/lane-heartbeat.ts`.
+- Use `scripts/agent/lane-status.ts` as the supervisor gate; only exit code `0` continues.
+- Use `scripts/agent/lane-dashboard.ts --watch` for human visibility while Claude Code or OpenCode is working.
+- Use `--panel outside|inside|evidence|hygiene|process` to narrow a noisy dashboard while preserving one shared monitor command.
+- Keep inside-harness visibility delegated to `scripts/operator-summary.ts` so the dashboard does not duplicate detailed novel inspection logic.
+
+(2026-05-02 L50 lane dashboard. Companion: `docs/agent-lane-protocol.md`.)
+
+## Process probes must avoid matching their own monitor command
+
+Process-health panels can create false positives if the probe command contains the same pattern it searches for. During L50 panel expansion, `pgrep -fl 'bun.*src/index'` over SSH matched the remote shell command itself and reported `bash` as a running generation process.
+
+**The rule:** process probes that use `pgrep` should use a self-excluding regex such as `[b]un.*src/index`, or otherwise filter out the probe process explicitly. A monitor that cries wolf about active generation can block deploys or send an agent down the wrong recovery path.
+
+(2026-05-02 L50 process panel verification.)
+
+## Resolve stale live-monitoring rows, do not delete evidence rows
+
+Plan-assist gates are evidence. Deleting a stale `chapter_exhaustions` row removes the record of why a smoke/probe halted. Leaving abandoned rows with `decision IS NULL` also creates monitoring noise because live dashboards correctly interpret unresolved gates as active work.
+
+**The rule:** abandoned gates should be resolved as `decision='orphaned'` with a reason, not deleted. Live monitoring filters on `decision IS NULL`; historical analysis can still query orphaned rows and their `decision_details`.
+
+**How to apply:**
+- Use `scripts/operator-summary.ts --stale-gates` to audit pending rows.
+- Use `scripts/agent/resolve-stale-gates.ts` in dry-run mode before applying.
+- Use `--ids` plus an explicit reason for known completed smoke artifacts.
+- Never use ad hoc `DELETE` for `chapter_exhaustions` hygiene.
+
+(2026-05-02 L51 stale-gate resolver. Companion: `docs/agent-lane-protocol.md`.)

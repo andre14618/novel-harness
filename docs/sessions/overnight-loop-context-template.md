@@ -26,6 +26,8 @@ Use this template for any unattended Claude loop. Copy it to `docs/sessions/YYYY
 - Deferred out-of-lane runtime changes:
 - Files/scripts expected to change:
 - Evidence artifact:
+- Event log: output/agent-runs/<lane-id>/events.jsonl
+- Dashboard command: bun scripts/agent/lane-dashboard.ts docs/sessions/<lane>.md --watch --latest-novel
 
 ## Baseline
 
@@ -53,6 +55,12 @@ Use this template for any unattended Claude loop. Copy it to `docs/sessions/YYYY
 ## Progress Log
 
 - Pending.
+
+## Heartbeat Commands
+
+- Start/continue: `bun scripts/agent/lane-heartbeat.ts docs/sessions/<lane>.md --actor <opencode|claude|supervisor> --step "<current step>"`
+- Blocked: `bun scripts/agent/lane-heartbeat.ts docs/sessions/<lane>.md --actor <actor> --type blocked --status blocked --message "<reason>"`
+- Stop gate: `bun scripts/agent/lane-heartbeat.ts docs/sessions/<lane>.md --actor <actor> --type stop_gate --status stop --message "<gate + reason>"`
 
 ## Results
 

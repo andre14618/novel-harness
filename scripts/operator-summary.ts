@@ -18,9 +18,11 @@
  *
  * STALE-GATE AUDIT MODE (cross-novel)
  *
- *   --stale-gates surveys all novels for chapter_exhaustions WHERE decision
- *   IS NULL with age + recommended action. Useful at the start of an
- *   overnight loop to surface orphaned gates from prior runs.
+  *   --stale-gates surveys all novels for chapter_exhaustions WHERE decision
+  *   IS NULL with age + recommended action. Useful at the start of an
+  *   overnight loop to surface stale gates from prior runs. Use
+  *   scripts/agent/resolve-stale-gates.ts to mark stale rows orphaned after
+  *   dry-run review.
  *
  * USAGE
  *
@@ -358,7 +360,7 @@ function printStaleGatesAudit(rows: StaleGateRow[], minAgeHours: number): void {
     console.log(`  ${id} ${novelShort}  ${seed}  ${cha}  ${kind}  ${age}  ${phase}  ${action} ${rec.reason}`)
   }
   console.log()
-  console.log(`  ORPHAN: mark with markExhaustionOrphaned(<id>, '<reason>') or via the orchestrator UI.`)
+  console.log(`  ORPHAN: resolve with scripts/agent/resolve-stale-gates.ts --ids <id> --apply after dry-run review.`)
   console.log(`  RESUME: drive the resolver via /api/novel/resume on the active novel.`)
   console.log(`  INVESTIGATE: check novel logs / planner state before deciding.`)
 }

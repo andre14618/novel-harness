@@ -66,10 +66,40 @@ For LXC smoke-style loops (longer-running, real novel runs), the loop is structu
 
 | Log | Path | Retained |
 |---|---|---|
+| Agent lane events | `output/agent-runs/<lane-id>/events.jsonl` | Until manual cleanup |
 | LXC smoke novel runs | `/tmp/smoke-<name>-<seed>-<unix-ts>.log` on LXC | Until `/tmp` is cleared (boot/manual) |
 | Local A/B / probe runs | Stdout — pipe through `tee output/phase-eval/<probe>/run-<ts>.log` (per `feedback_no_overwrite_runs`) | Forever (until manual cleanup) |
 | Subagent transcripts | `/private/tmp/claude-501/<session-id>/tasks/<agent-id>.output` | Per-claude-session |
 | Orchestrator service | `journalctl -u novel-harness-orchestrator -f` on LXC | systemd-journal default |
+
+## Monitoring loops
+
+Use the repo-local lane tools so Claude Code and OpenCode share the same outside-loop state:
+
+```bash
+bun scripts/agent/lane-heartbeat.ts docs/sessions/<lane>.md --actor opencode --step "running tests"
+bun scripts/agent/lane-status.ts docs/sessions/<lane>.md --latest-novel
+monitor
+monitor --append
+monitor --panel outside --panel evidence
+bun scripts/agent/lane-dashboard.ts docs/sessions/<lane>.md --watch --latest-novel
+```
+
+`monitor` selects the latest non-template session doc with a complete Loop Contract. If none exists, it stays open in a waiting state and polls until one appears; `monitor --once` still exits immediately. Legacy session docs are skipped by default so they do not permanently show missing-field noise; pass a path explicitly to inspect one. `lane-status.ts` returns exit code `0` only when the outside loop should continue. It stops or blocks on missing lane-contract fields, stale heartbeat, explicit stop events, result stop gates, human-needed events, infra-failure events, and stale outside-loop state. The default dashboard shows all panels: outside lane state, inside-harness novel summary, evidence rows, repo hygiene, and process health. Use `--panel outside|inside|evidence|hygiene|process` to narrow it. The `--latest-novel` / `--novel <id>` flags control the inside-harness novel summary delegated to `scripts/operator-summary.ts`.
+
+Keep the inside-harness panel clean by resolving abandoned pending plan-assist gates as `orphaned` after dry-run review. This preserves evidence while removing rows from live monitoring:
+
+```bash
+bun scripts/operator-summary.ts --stale-gates --min-age-hours 24
+bun scripts/agent/resolve-stale-gates.ts --older-than-hours 24
+bun scripts/agent/resolve-stale-gates.ts --older-than-hours 24 --apply
+```
+
+For known completed smoke artifacts, resolve explicit IDs with a reason:
+
+```bash
+bun scripts/agent/resolve-stale-gates.ts --ids 78,81 --reason "validation evidence captured; no active generation" --apply
+```
 
 ## Checking spend
 

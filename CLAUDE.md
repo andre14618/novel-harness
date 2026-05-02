@@ -123,6 +123,7 @@ Use `nohup ... > /tmp/name.log 2>&1 &` for long-running LXC scripts. Do not pipe
 - `docs/todo.md` — pending action items only
 - `docs/decisions.md` — append-only decisions and rationale
 - `docs/overnight-runbook.md` — unattended loop contract, stop gates, and audit checklist
+- `docs/agent-lane-protocol.md` — multi-agent lane roles, heartbeat, status, and dashboard commands
 - `docs/experiment-design-rules.md` — experiment design, promotion thresholds, and lane discipline
 - `docs/lessons-learned.md` — reusable methodology/process lessons
 - `docs/harness-tuning-roadmap.md` — corpus pattern and variant-eval matrix
