@@ -22,6 +22,7 @@
 
 import { writeFileSync } from "node:fs"
 import db from "../src/db/connection"
+import { initExperimentRun } from "../src/logger"
 import { checkBeatAdherence } from "../src/agents/writer/adherence-checker"
 import type { ChapterOutline, CharacterProfile, SceneBeat, BeatObligationsContract } from "../src/types"
 
@@ -150,6 +151,14 @@ async function main(): Promise<void> {
   const args = parseArgs()
   const runStamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)
 
+  // Initialize an experiment-scoped run so logger.logLLMCallStructured
+  // has a `currentRunId` to attach adherence-events rows to. Without it,
+  // the logger drops every call (printed `[logger] ... no currentRunId`)
+  // and the post-hoc COUNT(*) returns 0 even though the LLM ran.
+  const experimentId = process.env.EXPERIMENT_ID ? Number(process.env.EXPERIMENT_ID) : 317
+  const runId = await initExperimentRun(experimentId, "smoke", `adherence-two-stage-${runStamp}`)
+  console.log(`[smoke] initExperimentRun id=${runId} experiment=${experimentId}`)
+
   // Each fixture gets a unique novelId so its adherence-events calls land
   // in llm_calls under a distinct tag and can be counted post-hoc. This
   // sidesteps the ESM-readonly-export problem with monkey-patching
@@ -195,7 +204,8 @@ async function main(): Promise<void> {
 
   const summary = {
     git_commit: process.env.GIT_COMMIT ?? null,
-    experiment_id: process.env.EXPERIMENT_ID ? Number(process.env.EXPERIMENT_ID) : null,
+    experiment_id: experimentId,
+    run_id: runId,
     timestamp: new Date().toISOString(),
     fixtures: results,
     aggregate: {
