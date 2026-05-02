@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-02
+updated: 2026-05-01
 ---
 
 # Decisions
@@ -3294,3 +3294,59 @@ All 3 follow the same structural pattern: `X of Y` connector names ("Crown of Hy
 **§7 items closed:** "Expand synthetic hallucination fixtures beyond Veyr Dominion" and "Run current v3 checker on the expanded synthetic panel. Persist a per-class recall/precision matrix."
 
 **Commit:** `fe5152d` (panel + script) + docs commit (this session). **Cost:** $0.0027.
+
+---
+
+### L16 — NER findings persistence in halluc-ungrounded llm_calls (2026-05-01, exp #331)
+*2026-05-01 · exp #331 · linked to exp #322 (L4-followup-3)*
+
+**Problem:** L11 (exp #326, novel `novel-1777695343246`) confirmed that `nerFindings` and `nerOnlyFindings` are computed in-process after the LLM call returns and are NOT serialized to `llm_calls.response_content`. This made AND-gate firing rates (NER∩LLM blocker / NER-only warning / LLM-only blocker) unqueryable from SQL — the only audit path was running the pipeline again.
+
+**Decision: Approach A — new `ner_prepass_json JSONB` column on `llm_calls`.**
+
+Rationale: `request_json` is the LLM request envelope (wrong semantics for post-call derived data). `response_content` is raw LLM output text (NER is TypeScript-derived, not LLM output). A dedicated nullable column has clear semantics — present only when the NER prepass ran and the agent is halluc-ungrounded; NULL for all other agents.
+
+**What shipped:**
+1. Migration `sql/034_llm_call_ner_prepass.sql`: adds `ner_prepass_json JSONB` + GIN partial index to `llm_calls`. Applied on LXC.
+2. `callAgent` in `src/llm.ts`: extended `AgentResult<T>` to carry optional `llmCallId: number | null`. The `finally` block already had `llmCallId`; now it surfaces it on the return value.
+3. `patchLLMCallNerPrepass` added to `src/db/ops.ts`: minimal `UPDATE llm_calls SET ner_prepass_json = $data WHERE id = $id`. No-op on `id = null`.
+4. `checkHallucUngrounded` in `src/agents/halluc-ungrounded/index.ts`: calls `patchLLMCallNerPrepass` fire-and-forget after AND-gate assembly, persisting `{ nerEnabled, nerFindings, nerOnlyFindings, andGateDecision }`.
+5. `NerFinding.class` in `schema.ts` updated to include `"x-of-y-capitalized"` and `"number-word-tail"` — these were added by L15 to `EntityCandidateClass` but the schema type was out of sync.
+6. 5 new unit tests in `index.test.ts` assert all four AND-gate paths produce correctly shaped `nerPatchCalls`.
+7. `scripts/phase-eval/halluc-and-gate-summary.ts`: per-novel AND-gate breakdown CLI.
+
+**Backward compatibility:** `ner_prepass_json` is NULL for all existing rows. Calls on variants v0/v2 (NER disabled) persist `andGateDecision: "disabled"` rather than no row at all, making the disabled-variant cohort queryable.
+
+**Cost:** $0 (no LLM calls — pure infrastructure). **5 new tests, all passing.**
+
+### L15 — NER X-of-Y + number-word-tail extension (2026-05-01, exp #330)
+*2026-05-01 · exp #330 · commits `74171d5`, `ccec328` · `phase_eval_runs.id={75, 76}`*
+
+**Decision:** Add two new deterministic NER extractor classes to `src/lint/entity-candidates.ts` to close all 3 FNs from the L12 expanded synthetic panel. Both classes ship to telemetry-only; they do not affect production blocking behavior.
+
+**What shipped:**
+1. `x-of-y-capitalized` — regex `(?:(?:the|The)\s+)?[A-Z][a-z][a-zA-Z'-]*\s+of\s+[A-Z][a-zA-Z'-]+(?:\s+[A-Z][a-zA-Z'-]+)?` captures "Crown of Hyran", "Sigil of Eight", "Order of Vesh", "Year of Fallen Axes".
+2. `number-word-tail` — dynamic regex from NUMBER_WORD_TOKENS (32 tokens, including hyphenated composites) captures "the Veiled Eight", "the Silent Twelve", "the Fallen Forty-Seven".
+3. `EntityCandidateClass` type union extended from 3 → 5 values. `NUMBER_WORD_TOKENS` exported. Both regex functions exported.
+4. 33 new unit tests (80 total); all pass.
+
+**FN closure:** 3/3 L12 FNs closed:
+- `Crown of Hyran` → x-of-y-capitalized fires
+- `the Sigil of Eight` → x-of-y-capitalized fires
+- `The Veiled Eight` → number-word-tail fires
+
+**Bonus FN closure:** `the Vault of Witnesses` (pre-existing FN on the small labeled panel, not part of the L12 target) also closed by x-of-y-capitalized.
+
+**F1 deltas:**
+| Panel | Pre-L15 F1 | Post-L15 F1 | Delta |
+|-------|------------|-------------|-------|
+| Small (labeled, n=22) | 0.947 | 1.000 | +0.053 |
+| Expanded synthetic (n=27) | 0.909 | 1.000 | +0.091 |
+
+**FP regression: 0.** All PASS controls (9 expanded + 12 small) still not fired.
+
+**Why these two classes (alternatives rejected):**
+- Adding number-words to `SUFFIX_TOKENS` directly: would require a capitalized prefix token immediately before the number-word, which would miss "the Veiled Eight" (article → whitespace → "Veiled Eight"). The explicit `number-word-tail` class handles the article.
+- Relaxing the article-prefix filter on all classes: too broad; would reintroduce sentence-initial noise for `capitalized-multi-word` and `suffix-class`. Both new classes are exempt from sentence-initial filter for the same reason as `title-pair` — structurally high-signal patterns.
+
+**Ongoing implications:** NER is now at recall=1.000 / precision=1.000 on both calibration panels. The §7 asymmetric voting evaluation is now unblocked (was waiting for NER coverage to be complete). NER remains TELEMETRY-ONLY; promotion to strict blocker requires the asymmetric voting policy decision.
