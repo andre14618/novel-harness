@@ -4,9 +4,14 @@
  * Covers:
  *   - recommendForStaleGate: branching action/reason classifier
  *   - parseArgs: CLI surface for stale-gates mode + flag interactions
+ *   - adherence stage 1/2 prompt fingerprint guard (L36): operator-summary's
+ *     two-stage SQL relies on system_prompt prefixes; if the prompts move,
+ *     this test fails loudly so the SQL can be updated in lockstep.
  */
 
 import { describe, expect, test } from "bun:test"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { recommendForStaleGate, parseArgs } from "./operator-summary"
 
 describe("recommendForStaleGate", () => {
@@ -165,5 +170,31 @@ describe("parseArgs", () => {
     const a = parseArgs(["novel-abc", "--json"])
     expect(a.novelId).toBe("novel-abc")
     expect(a.json).toBe(true)
+  })
+})
+
+describe("adherence stage prompt prefix guard (L36)", () => {
+  // operator-summary.ts fetchTwoStageAdherence distinguishes stage 1 from
+  // stage 2 by `system_prompt LIKE 'You enumerate%'`. If either prompt
+  // header changes, the SQL silently misclassifies — these tests fail
+  // loudly so the dependency stays in sync.
+  test("EVENTS_SYSTEM (stage 1) starts with 'You verify'", () => {
+    const src = readFileSync(
+      join(import.meta.dir, "..", "src", "agents", "writer", "adherence-checker.ts"),
+      "utf8",
+    )
+    const m = src.match(/const EVENTS_SYSTEM = `([^\n]+)/)
+    expect(m).not.toBeNull()
+    expect(m![1]).toMatch(/^You verify/)
+  })
+
+  test("MISSING_EVENTS_SYSTEM (stage 2) starts with 'You enumerate'", () => {
+    const src = readFileSync(
+      join(import.meta.dir, "..", "src", "agents", "writer", "adherence-checker.ts"),
+      "utf8",
+    )
+    const m = src.match(/const MISSING_EVENTS_SYSTEM = `([^\n]+)/)
+    expect(m).not.toBeNull()
+    expect(m![1]).toMatch(/^You enumerate/)
   })
 })

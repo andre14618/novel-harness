@@ -143,15 +143,22 @@ async function fetchAndGate(novelId: string): Promise<AndGateRow[]> {
 }
 
 async function fetchTwoStageAdherence(novelId: string): Promise<{ stage1: number; stage2: number }> {
-  const rows = await db<{ agent: string; n: number }[]>`
-    SELECT agent, COUNT(*)::int AS n
+  // Both stages use agent='adherence-events' (single agent name; see
+  // src/agents/writer/adherence-checker.ts callAgent calls). The
+  // distinguisher is the system prompt: stage 1 (EVENTS_SYSTEM) starts with
+  // "You verify"; stage 2 (MISSING_EVENTS_SYSTEM) starts with "You enumerate".
+  // L36 fix — L33 originally assumed two distinct agent names.
+  const rows = await db<{ stage: string; n: number }[]>`
+    SELECT
+      CASE WHEN system_prompt LIKE 'You enumerate%' THEN 'stage2' ELSE 'stage1' END AS stage,
+      COUNT(*)::int AS n
     FROM llm_calls
     WHERE novel_id = ${novelId}
-      AND agent IN ('adherence-events', 'adherence-events-detailed')
-    GROUP BY agent
+      AND agent = 'adherence-events'
+    GROUP BY stage
   `
-  const stage1 = rows.find(r => r.agent === "adherence-events")?.n ?? 0
-  const stage2 = rows.find(r => r.agent === "adherence-events-detailed")?.n ?? 0
+  const stage1 = rows.find(r => r.stage === "stage1")?.n ?? 0
+  const stage2 = rows.find(r => r.stage === "stage2")?.n ?? 0
   return { stage1, stage2 }
 }
 
