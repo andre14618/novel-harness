@@ -109,14 +109,18 @@ async function assertLlmCallColumns() {
 async function loadRows(args: Args): Promise<LlmRow[]> {
   await assertLlmCallColumns()
   const agents: Agent[] = ["beat-writer", "halluc-ungrounded", "adherence-events"]
+  // Use `= ANY(${arr})` instead of `IN ${db(arr)}` — bun-pg's IN-list
+  // helper started rejecting plain JS arrays at some point ("Unknown
+  // object is not a valid PostgreSQL type"). ANY+array literal is the
+  // robust pattern that works across bun versions.
   if (args.runIds.length > 0 && args.novelIds.length > 0) {
     return await db`
       SELECT id, run_id, novel_id, chapter, beat_index, attempt, agent,
              response_content, request_json, failed, error_text
       FROM llm_calls
-      WHERE run_id IN ${db(args.runIds)}
-        AND novel_id IN ${db(args.novelIds)}
-        AND agent IN ${db(agents)}
+      WHERE run_id = ANY(${args.runIds}::int[])
+        AND novel_id = ANY(${args.novelIds}::text[])
+        AND agent = ANY(${agents}::text[])
       ORDER BY novel_id, chapter, beat_index, attempt, agent, id
     ` as LlmRow[]
   }
@@ -125,8 +129,8 @@ async function loadRows(args: Args): Promise<LlmRow[]> {
       SELECT id, run_id, novel_id, chapter, beat_index, attempt, agent,
              response_content, request_json, failed, error_text
       FROM llm_calls
-      WHERE run_id IN ${db(args.runIds)}
-        AND agent IN ${db(agents)}
+      WHERE run_id = ANY(${args.runIds}::int[])
+        AND agent = ANY(${agents}::text[])
       ORDER BY novel_id, chapter, beat_index, attempt, agent, id
     ` as LlmRow[]
   }
@@ -134,8 +138,8 @@ async function loadRows(args: Args): Promise<LlmRow[]> {
     SELECT id, run_id, novel_id, chapter, beat_index, attempt, agent,
            response_content, request_json, failed, error_text
     FROM llm_calls
-    WHERE novel_id IN ${db(args.novelIds)}
-      AND agent IN ${db(agents)}
+    WHERE novel_id = ANY(${args.novelIds}::text[])
+      AND agent = ANY(${agents}::text[])
     ORDER BY novel_id, chapter, beat_index, attempt, agent, id
   ` as LlmRow[]
 }
