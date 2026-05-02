@@ -1,5 +1,5 @@
 ---
-status: queued
+status: closed
 updated: 2026-05-02
 role: primary-lane-context
 ---
@@ -68,11 +68,11 @@ role: primary-lane-context
 
 ## Results
 
-- Outcome:
-- Stop gate fired:
-- Evidence link/row/path:
-- Cost:
-- Commit(s):
+- Outcome: Pass. Same-chapter physical-state writer rule (commit a27a8a1) cleared the hand-washing/smudges contradiction. Paired replay of `novel-1777721066908` chapter 2 wrote 15/15 beats on attempt 1 (6806 words after edit), `Plan check: passed`, no new `chapter_exhaustions` row, and prior-state conflation cluster did not return. Beat 1 prose now has Maret enter with smudges intact; Cassel notes "the same smudges you bear now"; Maret covers with the iron-bars/ledger explanation rather than re-establishing washed hands.
+- Stop gate fired: (a) clean pass — paired replay removes the intra-chapter physical-state contradiction without reviving prior-state conflation.
+- Evidence link/row/path: LXC log `/tmp/smoke-l38g-resume-1777739195.log` (chapter 2 attempt 1 success, 15 beats, plan check passed; smudges/iron-bars exchange at lines ~252–255). Prior-state baseline: `chapter_exhaustions` rows 81/83/84 (all `orphaned`, with #84 isolating the hand-washing/smudges deviation).
+- Cost: $0.1285 total for novel-1777721066908 (338 calls, 0 failed); incremental ch2 attempt-1 cost well under the $4 cap.
+- Commit(s): a27a8a1 (writer rule), 19c74bf (cycle-2 progress doc), this finalization commit.
 
 ## Finalization Checklist
 
@@ -85,5 +85,5 @@ role: primary-lane-context
 ## Pickup Instructions
 
 - Last safe command: `bun scripts/agent/lane-status.ts docs/sessions/2026-05-02-L38-G-intra-chapter-state.md --json`
-- If failed, failure fingerprint:
-- Next action: Inspect the L38-F paired replay blocker and identify the smallest local physical-state discipline change. Do not change continuity severity or retry budget in this lane.
+- If failed, failure fingerprint: n/a (lane closed on stop gate (a)).
+- Next action: Lane closed. Continue queue advancement; if a same-chapter physical-state contradiction recurs in a future replay despite the rule, queue a deterministic local-state extraction/checker lane per the original escalation rule rather than reopening this lane.

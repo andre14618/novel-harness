@@ -2003,3 +2003,17 @@ L38-F is the corollary to "Prompt presence is evidence, not proof of writer use.
 - Pair the binding rule with an explicit escape hatch ("only treat as new when listed under Hidden from {char}") so the writer doesn't overcorrect to omniscience for everyone in the room.
 
 (2026-05-02 L38-F paired replay, exp #370, commit `d5c8e95`. Companion: `docs/sessions/2026-05-02-L38-F-reader-info-adherence.md`, `docs/decisions.md` §L38-F.)
+
+## Same-chapter physical state needs its own writer rule, not just cross-chapter binding
+
+L38-G generalised L38-F's writer-side binding lesson to a same-draft scope. After the cross-chapter READER-INFO STATE binding rule cleared chapter 2's prior-state conflation cluster, the residual blocker was an intra-chapter contradiction: beat 0 had Maret enter with washed hands, beat 1 dramatized the smudges anew because the writer received only the last 3 sentences of beat 0 (no hand-state) plus a planner brief mentioning her hands plus the chapter-1 READER-INFO fact that the smudges were noticed. Adding a paired same-chapter physical-state continuity rule to `beat-writer-system.md` — once a prior beat establishes a visible physical state (washed/unwashed hands, bandages, drawn weapons, removed cloaks, food/drink, lit torches), later beats respect it or prefer ambiguity — cleared the contradiction on the next paired replay (15/15 beats, plan check passed, no new exhaustion row).
+
+**The rule:** cross-chapter binding rules do not generalise to same-chapter physical state, because the writer's local context window only sees the tail of the previous beat (typically 3 sentences) and may not encode physical-state changes at all. Once a physical state has a category list and an "ambiguity over re-introduction" instruction, the writer can self-correct without needing the previous beat's full prose. The rule must enumerate the visible-state categories explicitly — open-ended phrasing ("any physical state") underconstrains, and closed enumerations ("only hands and weapons") leave gaps the writer will exploit.
+
+**How to apply:**
+- When a same-chapter contradiction surfaces and the prior beat's prose isn't visible to the next writer call, the cheapest first move is a writer-side enumeration rule — not a beat-context plumbing change.
+- Enumerate the bound physical-state categories explicitly (washed/unwashed hands, bandages, drawn weapons, removed cloaks, food/drink, lit torches) with a "or anything similar" clause so the writer treats it as a representative list, not a closed set.
+- Pair the rule with an explicit ambiguity escape hatch ("prefer ambiguity over re-introducing a specific detail an earlier beat may already have changed"); first-time writers default to specificity and the escape hatch is what unlocks the safe behavior.
+- Reserve a deterministic local-state extractor / per-beat physical-state surface for the case where the prompt rule fails on a different novel/seed — do not stack a heavier surface preemptively.
+
+(2026-05-02 L38-G paired replay, exp #372, commit `a27a8a1`. Companion: `docs/sessions/2026-05-02-L38-G-intra-chapter-state.md`, `docs/decisions.md` §L38-G.)
