@@ -380,6 +380,7 @@ export function parseLaneQueue(text: string): LaneQueue {
   const queue: LaneQueue = { active: [], next: [] }
   let section: keyof LaneQueue | null = null
   for (const line of text.split(/\r?\n/)) {
+    if (/^##\s+/.test(line)) section = null
     const sectionMatch = line.match(/^##\s+(Active|Next)\s*$/i)
     if (sectionMatch) {
       section = sectionMatch[1]!.toLowerCase() as keyof LaneQueue

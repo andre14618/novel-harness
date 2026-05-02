@@ -177,4 +177,23 @@ describe("lane-runner queue parsing", () => {
   test("finds next lane after current next item", () => {
     expect(nextLaneFromQueueText(QUEUE, "docs/sessions/next-a.md")).toBe("docs/sessions/next-b.md")
   })
+
+  test("ignores completed lane docs when advancing queue", () => {
+    const queue = `# Lane Queue
+
+## Active
+- docs/sessions/current.md
+
+## Next
+
+## Completed
+- docs/sessions/closed-a.md — closed
+- docs/sessions/closed-b.md — closed
+`
+    expect(parseLaneQueue(queue)).toEqual({
+      active: ["docs/sessions/current.md"],
+      next: [],
+    })
+    expect(nextLaneFromQueueText(queue, "docs/sessions/current.md")).toBeNull()
+  })
 })
