@@ -46,7 +46,7 @@ Structural requirements across the whole arc:
 - Reflect this curve in chapter `purpose` text so the downstream beat-expansion phase plans pacing accordingly.
 
 **Chapter opener / closer kinds (Pattern 3, corpus-validated):**
-- ~50% of chapters open with description (setting/mood/situation establishment); the rest open with action.
-- Chapter closes split ~41% action / ~35% interiority / ~0% pure description. **NEVER close a chapter with pure description.**
+- **Opener distribution across the book: roughly half description, half action.** This is a per-book target, not a per-chapter default — pick each chapter's opener from its dramatic need (a chapter that drops into mid-action should open in action; one that re-establishes setting after a POV shift should open in description). If you find yourself writing seven description openers in a row, the corpus says the next chapter should open in action.
+- Chapter closes split ~41% action / ~35% interiority / ~0% pure description. **NEVER close a chapter with pure description.** Action and interiority closes are roughly balanced; mix them across the book rather than leaning all-action or all-interiority.
 - The "reflective dip" guidance above is a content cue (cost reckoning, lull, commitment) — not a kind cue. A reflective close is still typically action or interiority that lands the reflection on a beat the reader can feel as resolution or hook, not a description fade-out.
 - When `purpose` text leans into a chapter's close, frame it as either an action consequence or an interiority decision — never as a static descriptive image of the setting.
