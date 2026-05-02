@@ -64,6 +64,11 @@ role: primary-lane-context
   - Tests: new `beat-context-prior-state.test.ts` (5 cases pinning the gate), `beat-context-render.test.ts` (placement + null-suppression), updated render-test fixture for the new slot. Byte-parity gate (20 fixtures) still passes — fixtures pass no `priorChapterFacts` so the gate returns null and the rendered prompt is byte-identical.
   - Checks: `bun test src/agents/writer/ src/phases/ tests/beat-context-parity.test.ts` → 136 pass / 0 fail; `bunx tsc --noEmit` clean; `bun scripts/preflight-docs-impact.ts --strict` OK.
   - Pending: commit + LXC deploy + heretic ch2 smoke (stop-gate evaluation).
+- 2026-05-02 (cycle 2): Deployed cycle-1 commit `0f92be3` to LXC and launched the heretic ch2 smoke for stop-gate evaluation.
+  - Deploy: `bash scripts/deploy-lxc.sh` clean (orchestrator restarted, migrations applied).
+  - Pre-deploy guard: `ssh novel-harness-lxc "ps aux | grep 'bun src/index'"` → no active generation.
+  - Smoke launch: `EXPERIMENT_ID=369 nohup bun src/index.ts --auto --seed fantasy-system-heretic --chapters 2 --runs 1` → log `/tmp/smoke-l38a-heretic-1777734605.log` (LXC PID 1121178).
+  - Pending: monitor smoke completion; evaluate stop gates (a) clean ch2 vs (b) new dominant blocker vs (c) regression.
 
 ## Heartbeat Commands
 
@@ -81,6 +86,6 @@ role: primary-lane-context
 
 ## Pickup Instructions
 
-- Last safe command: `bun test src/agents/writer/ src/phases/ tests/beat-context-parity.test.ts` (136 pass / 0 fail at HEAD post-cycle-1 commit).
+- Last safe command: `ssh novel-harness-lxc "tail -60 /tmp/smoke-l38a-heretic-1777734605.log"` (cycle 2 launched smoke; LXC PID 1121178; EXPERIMENT_ID=369).
 - If failed, failure fingerprint:
-- Next action: Commit + `bash scripts/deploy-lxc.sh`, then run a heretic ch2 smoke (paired replay / one live run) to evaluate stop gate (a) clean pass vs (b) new dominant blocker. Cap at $4 per the lane contract.
+- Next action: Monitor smoke completion. Tail the log; once novel reaches ch2 plan-assist or completes, classify the stop class — (a) clean ch2 pass / (b) new dominant blocker / (c) regression. Pull telemetry from `llm_calls` + `chapter_exhaustions` for the novel id, then write Results section + run `bun scripts/operator-summary.ts --latest`. Cap at $4 per the lane contract.
