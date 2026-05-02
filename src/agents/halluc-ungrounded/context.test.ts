@@ -159,3 +159,65 @@ test("buildContext: From-brief line renders '(none)' when brief has no proper no
   // Kael is in beat.characters so it's in bibleKnown; should be excluded from From-brief.
   expect(out).toContain("From-brief: (none)")
 })
+
+test("buildContext: Allowed-new-entities surfaces planner-sanctioned walk-ons", () => {
+  // Simulate the planner authorizing "Master Orin" as a sanctioned new
+  // walk-on for this beat via beat.obligations.allowedNewEntities. The
+  // checker context must surface that name so the rubric can treat it
+  // as grounded for this beat (sanction calibration is a separate loop;
+  // here we only verify threading).
+  const beat = {
+    description: "Kael meets the master swordsmith.",
+    kind: "action" as const,
+    characters: ["Kael"],
+    requiredPayoffs: [],
+    obligations: {
+      mustEstablish: [],
+      mustPayOff: [],
+      mustTransferKnowledge: [],
+      mustShowStateChange: [],
+      mustNotReveal: [],
+      allowedNewEntities: ["Master Orin"],
+    },
+  } as any
+  const out = buildContext("prose", beat, baseOutline, baseChars, baseWorldBible)
+  expect(out).toContain("Allowed-new-entities:")
+  expect(out).toContain("Master Orin")
+  const allowedLine = out.split("\n").find(l => l.trim().startsWith("Allowed-new-entities:")) ?? ""
+  expect(allowedLine).toContain("Master Orin")
+})
+
+test("buildContext: Allowed-new-entities renders '(none)' when obligation list is empty", () => {
+  // Backward-compat: beats with no obligations.allowedNewEntities (or
+  // with an empty list) still render the sub-line as "(none)" so the
+  // checker sees a stable surface shape.
+  const out = buildContext("prose", baseBeat as any, baseOutline, baseChars, baseWorldBible)
+  expect(out).toContain("Allowed-new-entities: (none)")
+})
+
+test("buildContext: Allowed-new-entities dedupes against world bible / brief / beat-entities", () => {
+  // If the planner re-emits a name that's already in the bible, brief,
+  // or derived beat-entities, don't duplicate it into the
+  // Allowed-new-entities sub-line — keep only *additional* sanction
+  // signal.
+  const beat = {
+    description: "Kael returns to The Broken Anchor.",
+    kind: "action" as const,
+    characters: ["Kael"],
+    requiredPayoffs: [],
+    obligations: {
+      mustEstablish: [],
+      mustPayOff: [],
+      mustTransferKnowledge: [],
+      mustShowStateChange: [],
+      mustNotReveal: [],
+      // "The Broken Anchor" is already in bible.locations; "Heartstone"
+      // would be in From-brief; "Master Orin" is genuinely new.
+      allowedNewEntities: ["The Broken Anchor", "Master Orin"],
+    },
+  } as any
+  const out = buildContext("prose", beat, baseOutline, baseChars, baseWorldBible)
+  const allowedLine = out.split("\n").find(l => l.trim().startsWith("Allowed-new-entities:")) ?? ""
+  expect(allowedLine).toContain("Master Orin")
+  expect(allowedLine).not.toContain("The Broken Anchor")
+})

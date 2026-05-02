@@ -22,6 +22,13 @@ import { extractProperNouns } from "../../phases/beat-entity-list"
  *                   per docs/charters/beat-entity-list-v1.md. Off by
  *                   default; caller toggles via the `beatEntities`
  *                   parameter.
+ *                 + Allowed-new-entities: planner-sanctioned new named
+ *                   entities the writer is permitted to introduce in
+ *                   THIS beat, sourced from
+ *                   `scene.obligations.allowedNewEntities`. These are
+ *                   grounded for the purposes of this checker — the
+ *                   planner explicitly authorized them as walk-ons /
+ *                   props / minor lore introductions.
  *   SPEAKERS      — only the character profiles matching the beat,
  *                   rendered as "name: speechPattern"
  *   PROSE TO CHECK — the prose being evaluated
@@ -69,6 +76,22 @@ export function buildContext(
     return !bibleKnown.has(k) && !briefKnown.has(k)
   })
 
+  // Allowed-new-entities: planner-sanctioned walk-ons / props / lore
+  // names the writer may introduce in this beat. Sourced from
+  // `beat.obligations.allowedNewEntities` (planner schema, see
+  // src/schemas/shared.ts beatObligationsSchema). Filter empties +
+  // dedupe against bible / brief / beat-entities so the sub-line only
+  // carries *additional* grounding signal.
+  const beatEntitiesKnown = new Set(beatEntitiesFiltered.map(e => e.toLowerCase()))
+  const allowedNewRaw = (beat.obligations?.allowedNewEntities ?? []) as string[]
+  const allowedNewEntities = allowedNewRaw
+    .map(e => (typeof e === "string" ? e.trim() : ""))
+    .filter(Boolean)
+    .filter(e => {
+      const k = e.toLowerCase()
+      return !bibleKnown.has(k) && !briefKnown.has(k) && !beatEntitiesKnown.has(k)
+    })
+
   const briefLines = [
     `Summary: ${beat.description}`,
     `Kind: ${beat.kind ?? "action"}`,
@@ -87,6 +110,7 @@ export function buildContext(
   if (opts?.beatEntities !== undefined) {
     worldBibleBlock.push(`  Beat-entities: ${beatEntitiesFiltered.join(", ") || "(none)"}`)
   }
+  worldBibleBlock.push(`  Allowed-new-entities: ${allowedNewEntities.join(", ") || "(none)"}`)
 
   return [
     "BEAT BRIEF:",

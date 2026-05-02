@@ -7,6 +7,7 @@ Grounded context includes ALL of these sublists. An entity is grounded if its na
 - brief.characters / brief.setting / brief.pov / brief.summary
 - world_bible.locations / world_bible.cultures / world_bible.systems
 - From-brief / Beat-entities (when present)
+- Allowed-new-entities (planner-sanctioned new named entities the writer may introduce in THIS beat — walk-ons, props, lore terms; treat any name appearing here as grounded for this beat, since the planner explicitly authorized it)
 
 Named entities you MUST flag if absent from grounded context:
 - Personal names (full names, surnames, given names) of characters introduced cold.

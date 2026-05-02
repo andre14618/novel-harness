@@ -51,7 +51,15 @@ function resolveVariant(): "v0" | "v1" | "v2" | "v3" | "v4" {
  * variant (including v0) we write a `groundedSources` object to
  * `llm_calls.request_json` so the mechanism-falsifier can join fired
  * entities against per-source provenance (bible / from_brief /
- * derived_outline_fact / derived_prior_beat / planner_emitted).
+ * derived_outline_fact / derived_prior_beat / allowed_new_entities /
+ * planner_emitted).
+ *
+ * `allowed_new_entities` carries `beat.obligations.allowedNewEntities`
+ * — planner-sanctioned new named entities the writer is permitted to
+ * introduce in THIS beat (walk-ons, props, lore terms). Threading is
+ * provenance-only at this stage; checker pass/fail logic is unchanged
+ * (calibration of "use it as a sanction" is a separate L4-adjacent
+ * loop, see docs/todo.md §7).
  */
 export async function checkHallucUngrounded(
   prose: string,
@@ -94,12 +102,24 @@ export async function checkHallucUngrounded(
   }
   const fromBrief = extractProperNouns(briefSources).filter(e => !bibleKnown.has(e.toLowerCase()))
 
+  // Planner-sanctioned new named entities for this beat. Cleaned
+  // (string-coerced + trimmed + non-empty) so the snapshot matches the
+  // shape the checker actually receives. Not deduped against bible /
+  // from_brief here — the snapshot records the planner's authored
+  // sanction set; the rendered context.ts handles display dedup.
+  const allowedNewEntities: string[] = (
+    (beat.obligations?.allowedNewEntities ?? []) as unknown[]
+  )
+    .map(e => (typeof e === "string" ? e.trim() : ""))
+    .filter(Boolean)
+
   const groundedSources = {
     variant,
     bible: bibleNames,
     from_brief: fromBrief,
     derived_outline_fact: derivation?.sources.derivedOutlineFact ?? [],
     derived_prior_beat: derivation?.sources.derivedPriorBeat ?? [],
+    allowed_new_entities: allowedNewEntities,
     planner_emitted: [] as string[],
   }
 
