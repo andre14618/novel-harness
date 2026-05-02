@@ -132,6 +132,7 @@ These are hard rules. The deterministic validator will reject output that misses
 - Do not place a revelation before the beat that causally enables it.
 - Use `mustNotReveal` only for information that later beats need preserved as a secret.
 - Use `allowedNewEntities` only for new named people, places, institutions, artifacts, or lore terms the writer may introduce in that beat.
+- `allowedNewEntities` is for entities genuinely NEW to the chapter — absent from both the current beat's character list and the chapter's `charactersPresent` list. Treat any character already in `beat.characters` or `chapter.charactersPresent` as established (already grounded); their inclusion in `allowedNewEntities` is redundant and should be omitted.
 
 ## Self-Check Before Returning JSON
 
