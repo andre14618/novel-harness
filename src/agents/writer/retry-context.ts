@@ -26,12 +26,14 @@
 
 import type { BeatContextResult } from "./beat-context"
 
+const RETRY_PRIOR_PROSE_CHAR_LIMIT = 8000
+
 export interface RetryPromptInput {
   /** Output of buildBeatContext for this beat. */
   beatContext: BeatContextResult
   /** The system prompt string (packPrompt ?? BEAT_WRITER_PROMPT). */
   systemPrompt: string
-  /** The prior-attempt prose that failed checks. Truncated to 2,000 chars. */
+  /** The prior-attempt prose that failed checks. Truncated to 8,000 chars. */
   v1Prose: string
   /** Checker/detector issue strings — the retryLines from BeatCheckResult. */
   issues: string[]
@@ -84,7 +86,7 @@ export function buildRetryPrompt(input: RetryPromptInput): RetryPromptOutput {
       : ""
 
   const retryContext =
-    `\n\n--- TARGETED REWRITE ---\nYour previous prose for this beat:\n---\n${v1Prose.slice(0, 2000)}\n---\nIssues found:\n${issues.map(i => `- ${i}`).join("\n")}${alignmentNote}\nRewrite this beat to address the issues above while preserving what works.`
+    `\n\n--- TARGETED REWRITE ---\nYour previous prose for this beat:\n---\n${v1Prose.slice(0, RETRY_PRIOR_PROSE_CHAR_LIMIT)}\n---\nIssues found:\n${issues.map(i => `- ${i}`).join("\n")}${alignmentNote}\nRewrite this beat to address the issues above while preserving what works.`
 
   return {
     systemPrompt,
@@ -115,8 +117,8 @@ export function buildRetryPrompt(input: RetryPromptInput): RetryPromptOutput {
  *           "duplicate-fragment" | "quote-integrity"
  *   , excerpt: string }
  *
- * Format kept tight (≤ ~500 chars) to avoid diluting the per-beat brief.
- * Excerpts are slice(0, 200) to bound prompt growth on long-quoted issues.
+ * Format is bounded by capping the issue list at 12 entries and slicing
+ * excerpts to 200 chars to limit prompt growth on long-quoted issues.
  */
 export function formatChapterIntegrityRetryContext(
   issues: Array<{ kind: string; excerpt: string }>,

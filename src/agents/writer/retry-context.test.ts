@@ -8,7 +8,23 @@
  */
 
 import { test, expect } from "bun:test"
-import { formatChapterIntegrityRetryContext } from "./retry-context"
+import { buildRetryPrompt, formatChapterIntegrityRetryContext } from "./retry-context"
+
+test("buildRetryPrompt: includes prior prose beyond 2000 chars up to the 8000-char adherence window", () => {
+  const previousProse = "a".repeat(2500) + "VISIBLE_AFTER_2000" + "b".repeat(5500) + "TRUNCATED_AFTER_8000"
+  const out = buildRetryPrompt({
+    beatContext: { userPrompt: "BASE PROMPT", targetWords: 500 },
+    systemPrompt: "SYSTEM PROMPT",
+    v1Prose: previousProse,
+    issues: ["Beat event missing: opened the locked door"],
+    attempt: 2,
+  })
+
+  expect(out.systemPrompt).toBe("SYSTEM PROMPT")
+  expect(out.userPrompt).toContain("BASE PROMPT")
+  expect(out.userPrompt).toContain("VISIBLE_AFTER_2000")
+  expect(out.userPrompt).not.toContain("TRUNCATED_AFTER_8000")
+})
 
 test("formatChapterIntegrityRetryContext: empty issues array returns empty string", () => {
   expect(formatChapterIntegrityRetryContext([])).toBe("")

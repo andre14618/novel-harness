@@ -644,7 +644,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 const response = await executeAndLog(
                   {
                     systemPrompt: beatSystemPrompt,
-                    userPrompt: beatCtx.userPrompt + retryContext,
+                    userPrompt: beatCtx.userPrompt + retryContext + formatChapterIntegrityRetryContext(priorIntegrityIssues),
                     model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
                     provider: beatWriterModel?.provider ?? "cerebras",
                     temperature: beatWriterModel?.temperature ?? 0.8,
@@ -903,7 +903,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               const response = await executeAndLog(
                 {
                   systemPrompt: beatSystemPrompt,
-                  userPrompt: beatCtx.userPrompt + retryContext,
+                  userPrompt: beatCtx.userPrompt + retryContext + formatChapterIntegrityRetryContext(priorIntegrityIssues),
                   model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
                   provider: beatWriterModel?.provider ?? "cerebras",
                   temperature: beatWriterModel?.temperature ?? 0.8,

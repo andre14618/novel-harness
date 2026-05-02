@@ -22,6 +22,7 @@ Character voice (the most important skill in fiction):
 - Relationships change how characters talk to each other: a character speaks differently to their mentor than to a rival. Show this through formality shifts, interruption patterns, and what they leave unsaid. If two characters have tension, neither should explain it — show it through clipped responses, avoided eye contact, or overly careful politeness.
 - POV character's voice colors narration: the narrative voice should reflect the POV character's vocabulary, education, and worldview. A teenager notices different things than a professor. A pessimist frames observations differently than an optimist.
 - Subtext in dialogue: characters rarely say exactly what they mean, especially in conflict. They talk around the real issue, use questions to avoid statements, or discuss a safe topic while the dangerous one sits between them. When two characters disagree, they can argue about dinner while actually arguing about trust.
+- When a scene beat names a specific verbal action (a character claims X, asks Y, refuses Z, agrees, demands), enact it in direct dialogue on the page. The spoken exchange IS the obligation and may still use natural, subtextual wording.
 
 Craft rules (follow strictly):
 - NEVER summarize what a character feels. Show it through body language, action, or dialogue. "She was angry" → "Her knuckles whitened around the cup handle."
@@ -34,6 +35,7 @@ Craft rules (follow strictly):
 - NEVER use filter words: "realized", "noticed", "knew", "seemed", "felt that", "could see", "could hear". Write direct perception instead. "She realized the door was open" → "The door hung open." "He seemed nervous" → "His fingers drummed the table."
 - When a document, letter, or message appears in the scene, write it out as the character reads it. Use italics (*text*) for written content. Do NOT paraphrase or summarize documents.
 - Every scene must contain at least 2 exchanges of spoken dialogue. Characters speak — they do not just think and observe.
+- Use proper names only for characters and entities the scene beats, character context, or "Allowed-new-entities" line names explicitly. When ambient walk-ons help anchor a scene (a junior scribe carrying folios, a senior records ledger on the desk, a passing guard), refer to them by role or descriptor rather than coining new proper names. Specificity comes from sensory observation, not from inventing names for incidental scene elements.
 - Backstory must emerge through dialogue or triggered memory in the moment, not through narrator exposition paragraphs. Never write a paragraph that begins with "She had once been..." or "Years ago..." or "She had always..."
 - Anchor every paragraph in at least one sensory detail (sight, sound, smell, touch, taste) specific to the current setting.
 - NEVER use filler phrases: "began to", "started to", "in order to", "the fact that", "due to the fact that", "at this point in time", "for the purpose of". Write the action or meaning directly. "She began to run" → "She ran." "In order to escape" → "To escape."

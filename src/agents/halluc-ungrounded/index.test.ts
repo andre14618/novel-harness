@@ -7,7 +7,7 @@
  *   2. Suffix-class entity IN grounded union: NER passes → no NER fire
  *      (gated on LLM mock passing too → clean pass)
  *   3. NER fires but LLM mock passes → warning (nerOnlyFindings non-empty,
- *      issue carries [NER-only warning] marker, pass=false)
+ *      issue carries [NER-only warning] marker, pass=true)
  *
  * These tests exercise the runtime wiring logic (buildNerGroundedSet +
  * runNerPrepass + AND-gate in checkHallucUngrounded) without making real LLM
@@ -153,11 +153,17 @@ import { mock as bunMock } from "bun:test"
 // Captured calls to patchLLMCallNerPrepass — reset in beforeEach.
 // Mutable so individual tests can inspect what was persisted. (L16)
 let nerPatchCalls: Array<{ id: number | null; data: any }> = []
+let nerPatchStarted = 0
+let nerPatchDelay: Promise<void> | null = null
 
 bunMock.module("../../db/ops", () => ({
   // Capture NER patch calls so persistence tests can assert the payload
   // shape without needing a real DB connection.
   patchLLMCallNerPrepass: async (id: number | null, data: any) => {
+    nerPatchStarted += 1
+    if (nerPatchDelay) {
+      await nerPatchDelay
+    }
     nerPatchCalls.push({ id, data })
   },
 }))
@@ -184,6 +190,8 @@ beforeEach(() => {
   mockLLMResult = { pass: true, issues: [] }
   mockLLMCallId = 42
   nerPatchCalls = []
+  nerPatchStarted = 0
+  nerPatchDelay = null
 })
 
 // Reimport the module after mock is registered so callAgent is the mock.
@@ -429,9 +437,8 @@ test("allowedNewEntities (L9-b2): NER prepass grounded-surface includes allowedN
 // ── L16: NER findings persistence tests ──────────────────────────────────────
 //
 // Verify that checkHallucUngrounded calls patchLLMCallNerPrepass with the
-// correct shape after each AND-gate path. The patch is fire-and-forget
-// (Promise not awaited in the main call path), so we flush pending microtasks
-// before asserting.
+// correct shape after each AND-gate path. The patch is awaited before return,
+// while remaining fail-open if persistence rejects.
 
 test("L16 persistence: NER+LLM blocker persists nerFindings and andGateDecision=ner+llm-blocker", async () => {
   mockLLMResult = {
@@ -440,8 +447,6 @@ test("L16 persistence: NER+LLM blocker persists nerFindings and andGateDecision=
   }
   const prose = "Kael walked toward the Vesh Order hall at midnight."
   await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
-  // The patch is fire-and-forget; flush microtask queue.
-  await Promise.resolve()
   expect(nerPatchCalls.length).toBe(1)
   const { id, data } = nerPatchCalls[0]
   expect(id).toBe(42)
@@ -459,7 +464,6 @@ test("L16 persistence: NER-only warning persists nerOnlyFindings populated and a
   mockLLMResult = { pass: true, issues: [] }
   const prose = "Kael walked toward the Vesh Order hall at midnight."
   await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
-  await Promise.resolve()
   expect(nerPatchCalls.length).toBe(1)
   const { id, data } = nerPatchCalls[0]
   expect(id).toBe(42)
@@ -478,7 +482,6 @@ test("L16 persistence: LLM-only blocker persists nerFindings=[] and andGateDecis
   // Clean prose: NER won't fire (no suffix-class or title-pair entities).
   const prose = "She called out to Yarrow across the hall."
   await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
-  await Promise.resolve()
   expect(nerPatchCalls.length).toBe(1)
   const { data } = nerPatchCalls[0]
   expect(data.nerEnabled).toBe(true)
@@ -492,7 +495,6 @@ test("L16 persistence: clean pass persists andGateDecision=pass and empty findin
   // No NER-triggering entities in prose.
   const prose = "She walked down the hall and greeted the captain."
   await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
-  await Promise.resolve()
   expect(nerPatchCalls.length).toBe(1)
   const { data } = nerPatchCalls[0]
   expect(data.nerEnabled).toBe(true)
@@ -506,9 +508,64 @@ test("L16 persistence: llmCallId=null → patch is skipped (no nerPatchCalls)", 
   mockLLMResult = { pass: true, issues: [] }
   const prose = "She walked down the hall and greeted the captain."
   await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
-  await Promise.resolve()
   // patchLLMCallNerPrepass should NOT be called when llmCallId is null.
   expect(nerPatchCalls.length).toBe(0)
+})
+
+test("L16 persistence: awaits NER patch before returning", async () => {
+  mockLLMResult = { pass: true, issues: [] }
+  let releasePatch!: () => void
+  nerPatchDelay = new Promise(resolve => {
+    releasePatch = resolve
+  })
+  let returned = false
+
+  const prose = "Kael walked toward the Vesh Order hall at midnight."
+  const pending = checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+    .then(result => {
+      returned = true
+      return result
+    })
+
+  await Promise.resolve()
+  expect(nerPatchStarted).toBe(1)
+  expect(nerPatchCalls.length).toBe(0)
+  expect(returned).toBe(false)
+
+  releasePatch()
+  const result = await pending
+
+  expect(result.pass).toBe(true)
+  expect(returned).toBe(true)
+  expect(nerPatchCalls.length).toBe(1)
+})
+
+test("L16 persistence: patch failure remains fail-open", async () => {
+  mockLLMResult = { pass: true, issues: [] }
+  let rejectPatch!: (err: Error) => void
+  nerPatchDelay = new Promise((_, reject) => {
+    rejectPatch = reject
+  })
+  const originalConsoleError = console.error
+  const consoleError = mock(() => {})
+  console.error = consoleError as any
+
+  try {
+    const prose = "Kael walked toward the Vesh Order hall at midnight."
+    const pending = checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+
+    await Promise.resolve()
+    expect(nerPatchStarted).toBe(1)
+
+    rejectPatch(new Error("patch failed"))
+    const result = await pending
+
+    expect(result.pass).toBe(true)
+    expect(result.issues.every(s => s.includes("[NER-only warning"))).toBe(true)
+    expect(consoleError).toHaveBeenCalled()
+  } finally {
+    console.error = originalConsoleError
+  }
 })
 
 // ── L20: character roster + outline-entity grounding tests ───────────────────

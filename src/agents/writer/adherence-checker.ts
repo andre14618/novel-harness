@@ -40,7 +40,7 @@ const missingEventsSchema = z.object({
     event: z.string(),
     enacted: z.boolean(),
     evidence_quote: z.string().optional().default(""),
-  })),
+  })).min(1),
   reasoning: z.string().optional().default(""),
 })
 
@@ -259,6 +259,9 @@ async function enumerateMissingEvents(input: {
       userPrompt,
       schema: missingEventsSchema,
     })
+    if (stage2.output.obligated_events.length === 0) {
+      return { issues: [fallback], stage2Override: false }
+    }
     const missing = stage2.output.obligated_events.filter(e => !e.enacted)
     if (missing.length === 0) {
       // Stage 2 found ALL events enacted — override the stage-1 fail.

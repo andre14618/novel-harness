@@ -234,6 +234,29 @@ test("L31c: stage 1 false, stage 2 partial-enacted — beat FAILS (no override)"
   expect(result.issues[0]).toContain("Beat event missing: Istra crosses the corridor")
 })
 
+test("L31c: stage 1 false, stage 2 empty obligated_events — beat FAILS (no override)", async () => {
+  // Empty stage-2 enumeration is invalid evidence for an override; preserve
+  // the stage-1 failure instead of treating vacuous unanimity as success.
+  callAgentResponses = [
+    { events_present: false, evidence: "no door action", reasoning: "door open never happens" },
+    {
+      obligated_events: [],
+      reasoning: "no events identified",
+    },
+  ]
+
+  const result = await checkBeatAdherence(
+    FAIL_PROSE,
+    beat({ description: "Istra opens the isolation room door." }),
+    outline(),
+    [] as CharacterProfile[],
+  )
+
+  expect(result.pass).toBe(false)
+  expect(callAgentInvocations).toHaveLength(2)
+  expect(result.issues).toEqual(["Beat events not enacted on-page: door open never happens"])
+})
+
 test("L31c: stage 1 true — stage 2 never fires, no override path involved", async () => {
   // Pass path: stage 2 must not be invoked at all.
   callAgentResponses = [

@@ -285,8 +285,8 @@ export function runNerPrepass(
  * AND-gate behavior:
  *   - NER fires AND LLM fires → **blocker** (same as current LLM-only fail)
  *   - NER fires, LLM passes → **warning** (issues include a NER-only note;
- *     `nerOnlyFindings` is populated; the beat is NOT passed — Design A
- *     treats a NER signal without LLM confirmation as a soft fail)
+ *     `nerOnlyFindings` is populated; `pass: true` — L31a treats a NER
+ *     signal without LLM confirmation as warning-only)
  *   - NER passes, LLM fires → **LLM-only blocker** (existing behavior)
  *   - Neither fires → **pass**
  *
@@ -627,11 +627,12 @@ export async function checkHallucUngrounded(
       }
     }
 
-    // Persist NER prepass findings to llm_calls.ner_prepass_json so future
-    // LXC runs can audit AND-gate firing rates without re-running. Fail-open:
-    // a patch failure never blocks the beat pipeline. (L16)
+    // Persist NER prepass findings to llm_calls.ner_prepass_json before
+    // returning so future LXC runs can audit AND-gate firing rates without
+    // re-running. Fail-open: a patch failure never blocks the beat pipeline.
+    // (L16)
     if (result.llmCallId != null) {
-      patchLLMCallNerPrepass(result.llmCallId, {
+      await patchLLMCallNerPrepass(result.llmCallId, {
         nerEnabled,
         nerFindings: allNerFindings,
         nerOnlyFindings: finalResult.nerOnlyFindings ?? [],
