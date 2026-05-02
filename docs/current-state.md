@@ -198,6 +198,10 @@ Improvement should not default to:
 - encoding style theory into long system prompts
 - multiplying post-hoc quality passes
 
+## Finished Novel Acceptance
+
+`docs/finished-novel-acceptance.md` is the canonical operator checklist for declaring a novel run "good enough finished." It enumerates eight gates that each map to an existing command, evidence artifact, pass/fail interpretation, and failure action. Gates 1–7 are locally checkable; gate 8 is a human read-through (subjective by design). The smoke-stop classifier (`scripts/agent/smoke-stop-classifier.ts`) and operator summary (`scripts/operator-summary.ts`) carry the run-level automatic signal; `scripts/agent/lane-status.ts` and `scripts/phase-eval/list-runs.ts` carry hygiene and calibration signals.
+
 ## Canonical Verification Gates
 
 When the runtime, orchestration, or type surfaces change, these are the core checks:
