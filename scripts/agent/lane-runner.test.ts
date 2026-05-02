@@ -108,6 +108,7 @@ describe("lane-runner prompt and command", () => {
     expect(prompt).toContain("--actor captain-claude")
     expect(prompt).toContain("Do not touch deferred out-of-lane runtime changes")
     expect(prompt).toContain("Lane finalization before stop or queue handoff")
+    expect(prompt).toContain("scripts/agent/finalize-docs.ts")
     expect(prompt).toContain("Results: Outcome, Stop gate fired, Evidence link/row/path, Cost, and Commit(s)")
     expect(prompt).toContain("conclude-experiment.ts")
     expect(prompt).toContain("resolve-stale-gates.ts")

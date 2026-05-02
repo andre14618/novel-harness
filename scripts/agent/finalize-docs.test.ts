@@ -10,6 +10,7 @@ describe("finalize-docs args", () => {
       "--evidence", "chapter_exhaustions#84",
       "--cost", "$0.12",
       "--message", "[docs] finalize L50",
+      "--packet", "output/packet.md",
     ])
     expect(args.lanePath).toBe("docs/sessions/L50.md")
     expect(args.result).toBe("new blocker")
@@ -18,6 +19,7 @@ describe("finalize-docs args", () => {
     expect(args.model).toBe("deepseek/deepseek-v4-flash")
     expect(args.variant).toBe("high")
     expect(args.message).toBe("[docs] finalize L50")
+    expect(args.packetPath).toBe("output/packet.md")
   })
 
   test("derives docs commit message from lane path", () => {
@@ -48,9 +50,11 @@ describe("finalize-docs prompt and command", () => {
       "docs/sessions/L50.md",
       "--result", "pass",
       "--evidence", "experiment#400",
+      "--packet", "output/packet.md",
     ]))
     expect(prompt).toContain("authorized to update and commit docs-only changes")
     expect(prompt).toContain("Commit only allowed documentation files")
     expect(prompt).toContain("experiment#400")
+    expect(prompt).toContain("Read the deterministic handoff packet first: output/packet.md")
   })
 })

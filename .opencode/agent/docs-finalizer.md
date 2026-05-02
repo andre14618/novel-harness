@@ -25,6 +25,7 @@ The primary must provide:
 - lane/session doc path, usually `docs/sessions/<lane>.md`
 - current commit SHA or commit range to document
 - requested docs commit message, or permission to derive one
+- deterministic handoff packet path from `scripts/agent/finalizer-packet.ts` unless explicitly skipped
 - known result classification: pass, refuted, new blocker, regression, infra failure, or human-needed
 - evidence refs: experiment id, novel id, DB row id, eval row id, log path, or commit SHA
 
@@ -34,6 +35,7 @@ If any required input is missing, ask the primary to supply it. Do not infer fin
 
 Read these files before editing:
 
+- the deterministic handoff packet, if supplied
 - the supplied lane/session doc
 - `CLAUDE.md`
 - `docs/current-state.md`
@@ -43,6 +45,8 @@ Read these files before editing:
 - `docs/agent-lane-protocol.md`
 
 Use code/runtime files only to verify exact names or paths mentioned by the lane. Do not edit runtime code.
+
+The handoff packet is tiered as required / supporting / inventory. Treat `Required Evidence` as the commit/evidence spine for the docs update. Use `Supporting Context` to understand recent activity and lane messages. Use `Inventory` to avoid touching unrelated files and to notice dirty-file warnings.
 
 ## Allowed Edits
 
