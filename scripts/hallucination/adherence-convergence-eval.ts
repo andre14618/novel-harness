@@ -232,6 +232,23 @@ async function processWithConcurrency<T, R>(
 
 async function main() {
   const args = parseArgs()
+
+  // Cost-tracking: see convergence-eval.ts comment — callAgent only writes
+  // llm_calls when novelId or an experiment run is set. Without this,
+  // convergence runs are invisible in the cost ledger.
+  if (args.expId !== undefined) {
+    const { initExperimentRun } = await import("../../src/logger")
+    const runId = await initExperimentRun(
+      args.expId,
+      "adherence-events-convergence",
+      `T${args.temperature}-N${args.n}`,
+      args.variantLabel,
+    )
+    console.log(`[runs] initialized run id=${runId} for experiment_id=${args.expId} (llm_calls will persist)`)
+  } else {
+    console.warn(`[warn] --exp-id not passed; llm_calls will NOT persist (cost untracked)`)
+  }
+
   const lines = readFileSync(resolve(args.inPath), "utf8").trim().split("\n")
   const rows = lines.map(l => JSON.parse(l)).filter(r => r.checker === "adherence-events")
   console.log(

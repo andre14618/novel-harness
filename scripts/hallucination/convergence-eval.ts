@@ -262,6 +262,25 @@ async function processWithConcurrency<T, R>(
 
 async function main() {
   const args = parseArgs()
+
+  // Cost-tracking: callAgent only writes to llm_calls when novelId is set
+  // OR an experiment run is active (src/llm.ts ~line 350). We pass no
+  // novelId, so without initExperimentRun the convergence calls are
+  // invisible in the cost ledger. Closes the cost-attribution gap
+  // surfaced after L1 ($0.20 spent but unrecorded). Requires --exp-id.
+  if (args.expId !== undefined) {
+    const { initExperimentRun } = await import("../../src/logger")
+    const runId = await initExperimentRun(
+      args.expId,
+      "halluc-ungrounded-convergence",
+      `T${args.temperature}-N${args.n}`,
+      args.variantLabel,
+    )
+    console.log(`[runs] initialized run id=${runId} for experiment_id=${args.expId} (llm_calls will persist)`)
+  } else {
+    console.warn(`[warn] --exp-id not passed; llm_calls will NOT persist (cost untracked)`)
+  }
+
   const lines = readFileSync(resolve(args.inPath), "utf8").trim().split("\n")
   const rows = lines.map(l => JSON.parse(l)).filter(r => r.checker === "halluc-ungrounded")
   console.log(
