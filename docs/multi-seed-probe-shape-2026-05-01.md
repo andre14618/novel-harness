@@ -70,8 +70,9 @@ Where:
 
 ## Cost
 
-- Config B actual: ~$0.30-0.50 (15 mins wall, 9 planning runs + 3 concept setups; estimated from per-call telemetry — exact amount not separately captured).
+- Config B actual: ~$0.30-0.50 estimated (28 minutes wall-time; 9 planning runs + 3 concept setups; per-call cost telemetry was deleted with the novels by the post-probe `clearNovelState` cleanup, so exact number is reconstructed from per-cell call counts × per-call cost averages from comparable historical runs in the same llm_calls window).
 - Budget cap: $6. Actual / cap ratio: ~6%.
+- Future runs that want exact cost should pass `--keep-novels` to preserve the `llm_calls` rows for cost reconstruction (the novels themselves are still throwaway DB rows — only `llm_calls.cost` is the load-bearing artifact for cost auditing).
 
 ## Recommendation
 
