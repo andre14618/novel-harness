@@ -1705,3 +1705,24 @@ The shared Postgres connection in `src/db/connection.ts` is a singleton lazy `SQ
 - Don't try to integration-test reconnect via `db.end()` — Bun.SQL's `#onClose` fires an unswallowable rejection during the close sequence, so the test would assert Bun's close-handler shape, not your shim. Unit-test the `withReconnect` contract directly with synthetic errors instead.
 
 (2026-05-01 reconnect shim, `src/db/connection.ts` + `src/db/connection-reconnect.test.ts`.)
+
+## n=10 single-run probe verdicts flap on stochastic planner output
+
+The phase-eval probe runs each variant once at n=10 chapters, computes deterministic medians (`facts_median`, `know_median`), and produces a SCREEN-PASS / SCREEN-FAIL verdict via fixed thresholds (G1: corpus-v1 ≥ 1.5 × default, etc.). The 2026-05-01 noise-baseline reruns (exp #311 r1/r2/r3 against the same prompt + same seed) showed the variance:
+
+- corpus-v1 facts_median: 5.5, 7.0, 7.5 (range 2.0)
+- corpus-v1 know_median: 4.0, 5.0, 7.5 (range 3.5)
+- corpus-v1 closer-action share: 60%, 10%, 20% (range 50pp)
+- One run failed planning entirely on a stochastic chapter under-producing beats below the floor
+
+The G1 threshold (1.5×) is comparable to the observed inter-run swing, so single-run verdicts on the same prompt can be SCREEN-PASS one run and SCREEN-FAIL the next. Conclusions drawn from a single-probe verdict are not load-bearing.
+
+**The rule:** for any phase-eval probe verdict that's gating a prompt promotion or a "this prior works" decision, require either (a) two consecutive runs above the threshold, or (b) a probe with substantially larger n per run (e.g. multi-seed sampling so the median is computed over 30+ chapters). A single n=10 SCREEN-PASS is suggestive, not load-bearing.
+
+**How to apply:**
+- Treat single-run G1/G2 verdicts as directional signal, not as a promotion gate. Look at the diagnostic block (opener/closer kind distribution, total_beats relative to the floor) for stable signals — these are usually less noisy than median-of-N metrics.
+- When a prompt change targets a deterministic rule ("NEVER close with description"), the rule itself is verifiable in a single run — the closer-kind block held 0/10 in 3 consecutive runs because it's a deterministic rule, not a median.
+- When a prompt change targets a soft distribution ("~50% description openers"), the per-book distribution will swing across runs; require multiple runs OR move the rule to the prompt that *makes* the decision (planning-beats decides beat kind, not planning-plotter).
+- Stochastic planning failures (beat-floor under-production) are part of the noise baseline. Don't treat one failed run as a regression unless the failure rate moves materially across A/B.
+
+(2026-05-01 exp #311 r1/r2/r3 noise-baseline; 3 successful runs across 2 prompts gave median ranges of 2.0–3.5 facts/knowledge and 50pp closer-mix swings. See `docs/decisions.md` "Noise-baseline reruns".)
