@@ -30,9 +30,9 @@ role: primary-lane-context
 
 ## Baseline
 
-- Current behavior: Pending first-cycle inspection.
-- Baseline command(s): Inspect hallucination A/B scripts and current tests before editing.
-- Baseline result: Pending.
+- Current behavior: `scripts/hallucination/ab-halluc-prompt.ts` persisted only `candidate_entities: string[]` per row — entity strings only. Per-issue `excerpt`, NER candidate class, grounded-match status, and vote count were dropped on the floor. Inspecting an A/B failure required reopening the fixture and rerunning the checker.
+- Baseline command(s): `Read scripts/hallucination/ab-halluc-prompt.ts`; `Read src/agents/halluc-ungrounded/schema.ts`; `Read scripts/hallucination/ner-vs-llm-calibration.ts`.
+- Baseline result: Schema already produces `{entity, excerpt}` per issue; the agent's NER prepass produces `nerFindings` + `class`. The A/B reporter discarded all of this.
 
 ## Stop Gates
 
@@ -53,7 +53,7 @@ role: primary-lane-context
 
 ## Progress Log
 
-- Pending. Queued as lane 1 of 6 in the bounded post-L50 harness/eval loop.
+- 2026-05-02 cycle 1 (captain-claude): Added pure helper `scripts/hallucination/issue-metadata.ts` (`readGroundedComponents`, `buildGroundedSurface`, `isPhraseGrounded`, `classifyEntityViaNer`, `enrichIssues`, `buildNerCandidateSummary`). Wired into `scripts/hallucination/ab-halluc-prompt.ts`: each result row now carries `candidate_issues: [{entity, excerpt, candidate_class, ner_grounded, vote_count}]`, `ner_candidates: [{phrase, class, grounded}]`, and `n_calls: 1` alongside the legacy `candidate_entities`. Persisted `summary_json.per_row_results` therefore inherits the same structured metadata. Added 14 focused tests in `tests/halluc-issue-metadata.test.ts` (all pass). Per-class summary regression suite still passes (9/9). Helper mirrors the calibration-loop grounded-surface logic and the production five-tier `isNerGrounded` check so labels stay consistent across runtime, calibration, and the A/B reporter.
 
 ## Heartbeat Commands
 

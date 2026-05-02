@@ -25,6 +25,14 @@ import {
   type AbInputRow,
   type AbResultRow,
 } from "./per-class-summary"
+import {
+  readGroundedComponents,
+  buildGroundedSurface,
+  enrichIssues,
+  buildNerCandidateSummary,
+  type EnrichedIssue,
+  type NerFindingMeta,
+} from "./issue-metadata"
 
 interface Args {
   inPath: string
@@ -164,7 +172,17 @@ async function main() {
 
     const oracle = getOracleLabel(row)
     const candidatePass = invoked?.pass ?? null
-    const candidateEntities = (invoked?.issues ?? []).map((i: any) => i.entity)
+    const rawIssues = (invoked?.issues ?? []) as Array<{ entity: string; excerpt?: string }>
+    const candidateEntities = rawIssues.map(i => i.entity)
+
+    // L51: enrich each issue with structured metadata (excerpt, NER class,
+    // grounded-match status, vote count) so failures can be inspected without
+    // rerunning the checker call. Single-call A/B path → vote_count=1.
+    const components = readGroundedComponents(row)
+    const surface = buildGroundedSurface(components)
+    const prose: string = row?.task?.prose ?? ""
+    const enrichedIssues: EnrichedIssue[] = enrichIssues(rawIssues, prose, surface, { nCalls: 1 })
+    const nerCandidates: NerFindingMeta[] = buildNerCandidateSummary(prose, surface)
 
     let calibration_status = "ERROR"
     if (candidatePass !== null && oracle.pass !== null) {
@@ -184,6 +202,9 @@ async function main() {
       oracle_expected_entities: oracle.expected_entities,
       candidate_pass: candidatePass,
       candidate_entities: candidateEntities,
+      candidate_issues: enrichedIssues,
+      ner_candidates: nerCandidates,
+      n_calls: 1,
       calibration_status,
     }
     results.push(result)
