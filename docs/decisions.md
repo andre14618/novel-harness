@@ -3850,3 +3850,24 @@ Stage 2 is more authoritative than stage 1 because it provides per-event quote e
 **Cost:** ~$0.035 (probe re-run, same setup as L26). Total including L26: ~$0.07.
 
 **Ongoing implications:** `allowedNewEntities` dup-FP story closed. The §7 todo item (mapper exclusion rule) is resolved. No further mapper prompt work queued on this dimension.
+
+### L35 — Stale-gates audit in operator-summary (2026-05-02, exp #359)
+*2026-05-02 · exp #359 · commit `085b344`*
+
+**Decision:** Added a `--stale-gates` mode to `scripts/operator-summary.ts` that surveys all novels for `chapter_exhaustions WHERE decision IS NULL` with age + recommended action (ORPHAN / RESUME / INVESTIGATE). Closes `docs/todo.md` §12 line 187 ("Add stale pending gate audit to startup/operator summary"). Useful at the start of an overnight loop to surface orphaned gates from prior runs.
+
+**Recommendation classifier (`recommendForStaleGate`)** — pure function; precedence:
+1. Novel phase ∈ {complete, failed, aborted} → ORPHAN
+2. Fire age > 24h → ORPHAN (regardless of novel state)
+3. Novel row missing (LEFT JOIN null) → INVESTIGATE
+4. Novel idle > 12h → ORPHAN
+5. Novel updated < 6h ago → RESUME (still likely active)
+6. Default (6-12h idle, fire <24h) → INVESTIGATE
+
+**Coverage:** 24 unit tests in `scripts/operator-summary.test.ts` covering branching logic + `parseArgs` surface (no DB required). All pass; full typecheck clean.
+
+**Cost:** $0 (tooling change, no LLM calls).
+
+**Why classifier-only tests:** the SQL surface (`fetchStaleGates`) is a single LEFT JOIN with no branching logic — a runtime DB integration test would add brittleness without coverage value. The branching is in the classifier; that's where the tests live.
+
+**Ongoing implications:** Operator-summary now has 4 modes: per-novel detail, `--latest`, `--stale-gates`, and `--json`. Standing recommendation: at the start of each overnight loop, run `bun scripts/operator-summary.ts --stale-gates --min-age-hours 6` to surface stuck gates from prior loops before starting new work.
