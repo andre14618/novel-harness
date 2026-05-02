@@ -150,11 +150,23 @@ import { mock as bunMock } from "bun:test"
 // Pattern: spy on the module path Bun resolves, then reimport index.ts.
 // Bun's mock.module replaces the module resolution for the given specifier.
 
+// Captured calls to patchLLMCallNerPrepass — reset in beforeEach.
+// Mutable so individual tests can inspect what was persisted. (L16)
+let nerPatchCalls: Array<{ id: number | null; data: any }> = []
+
+bunMock.module("../../db/ops", () => ({
+  // Capture NER patch calls so persistence tests can assert the payload
+  // shape without needing a real DB connection.
+  patchLLMCallNerPrepass: async (id: number | null, data: any) => {
+    nerPatchCalls.push({ id, data })
+  },
+}))
+
 bunMock.module("../../llm", () => ({
   callAgent: async (opts: any) => {
-    // Default mock: LLM returns pass=true. Individual tests override this
-    // by setting `mockLLMResult` before calling checkHallucUngrounded.
-    return { output: mockLLMResult, rawText: "{}", latencyMs: 0 }
+    // Default mock: LLM returns pass=true, llmCallId=42. Individual tests
+    // override mockLLMResult and mockLLMCallId before calling checkHallucUngrounded.
+    return { output: mockLLMResult, rawText: "{}", latencyMs: 0, llmCallId: mockLLMCallId }
   },
 }))
 
@@ -164,9 +176,14 @@ let mockLLMResult: { pass: boolean; issues?: Array<{ entity: string; excerpt: st
   issues: [],
 }
 
+// Shared mutable llmCallId that individual tests can override.
+let mockLLMCallId: number | null = 42
+
 beforeEach(() => {
   // Reset to pass between tests.
   mockLLMResult = { pass: true, issues: [] }
+  mockLLMCallId = 42
+  nerPatchCalls = []
 })
 
 // Reimport the module after mock is registered so callAgent is the mock.
@@ -402,4 +419,89 @@ test("allowedNewEntities (L9-b2): NER prepass grounded-surface includes allowedN
   const fires = runNerPrepass(prose, surface)
   // "Marra the Innkeeper" is grounded → should NOT appear in NER fires
   expect(fires.map(c => c.phrase)).not.toContain("Marra the Innkeeper")
+})
+
+// ── L16: NER findings persistence tests ──────────────────────────────────────
+//
+// Verify that checkHallucUngrounded calls patchLLMCallNerPrepass with the
+// correct shape after each AND-gate path. The patch is fire-and-forget
+// (Promise not awaited in the main call path), so we flush pending microtasks
+// before asserting.
+
+test("L16 persistence: NER+LLM blocker persists nerFindings and andGateDecision=ner+llm-blocker", async () => {
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "Vesh Order", excerpt: "sworn to the Vesh Order" }],
+  }
+  const prose = "Kael walked toward the Vesh Order hall at midnight."
+  await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+  // The patch is fire-and-forget; flush microtask queue.
+  await Promise.resolve()
+  expect(nerPatchCalls.length).toBe(1)
+  const { id, data } = nerPatchCalls[0]
+  expect(id).toBe(42)
+  expect(data.nerEnabled).toBe(true)
+  expect(data.andGateDecision).toBe("ner+llm-blocker")
+  expect(Array.isArray(data.nerFindings)).toBe(true)
+  expect(data.nerFindings.length).toBeGreaterThan(0)
+  expect(data.nerFindings[0]).toHaveProperty("phrase")
+  expect(data.nerFindings[0]).toHaveProperty("class")
+  expect(Array.isArray(data.nerOnlyFindings)).toBe(true)
+  expect(data.nerOnlyFindings).toHaveLength(0)
+})
+
+test("L16 persistence: NER-only warning persists nerOnlyFindings populated and andGateDecision=ner-only-warning", async () => {
+  mockLLMResult = { pass: true, issues: [] }
+  const prose = "Kael walked toward the Vesh Order hall at midnight."
+  await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+  await Promise.resolve()
+  expect(nerPatchCalls.length).toBe(1)
+  const { id, data } = nerPatchCalls[0]
+  expect(id).toBe(42)
+  expect(data.nerEnabled).toBe(true)
+  expect(data.andGateDecision).toBe("ner-only-warning")
+  expect(data.nerFindings.length).toBeGreaterThan(0)
+  // nerOnlyFindings should equal nerFindings (every NER finding is NER-only)
+  expect(data.nerOnlyFindings.length).toBe(data.nerFindings.length)
+})
+
+test("L16 persistence: LLM-only blocker persists nerFindings=[] and andGateDecision=llm-only-blocker", async () => {
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "Yarrow", excerpt: "she called out to Yarrow" }],
+  }
+  // Clean prose: NER won't fire (no suffix-class or title-pair entities).
+  const prose = "She called out to Yarrow across the hall."
+  await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+  await Promise.resolve()
+  expect(nerPatchCalls.length).toBe(1)
+  const { data } = nerPatchCalls[0]
+  expect(data.nerEnabled).toBe(true)
+  expect(data.andGateDecision).toBe("llm-only-blocker")
+  expect(data.nerFindings).toHaveLength(0)
+  expect(data.nerOnlyFindings).toHaveLength(0)
+})
+
+test("L16 persistence: clean pass persists andGateDecision=pass and empty findings", async () => {
+  mockLLMResult = { pass: true, issues: [] }
+  // No NER-triggering entities in prose.
+  const prose = "She walked down the hall and greeted the captain."
+  await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+  await Promise.resolve()
+  expect(nerPatchCalls.length).toBe(1)
+  const { data } = nerPatchCalls[0]
+  expect(data.nerEnabled).toBe(true)
+  expect(data.andGateDecision).toBe("pass")
+  expect(data.nerFindings).toHaveLength(0)
+  expect(data.nerOnlyFindings).toHaveLength(0)
+})
+
+test("L16 persistence: llmCallId=null → patch is skipped (no nerPatchCalls)", async () => {
+  mockLLMCallId = null
+  mockLLMResult = { pass: true, issues: [] }
+  const prose = "She walked down the hall and greeted the captain."
+  await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+  await Promise.resolve()
+  // patchLLMCallNerPrepass should NOT be called when llmCallId is null.
+  expect(nerPatchCalls.length).toBe(0)
 })
