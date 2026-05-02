@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test"
-import { buildContext, extractProperNouns } from "./context"
+import { buildContext, buildCharacterRoster, buildOutlineEntityList, extractProperNouns } from "./context"
 
 const baseBeat = {
   description: "Kael finds the torn map behind the tavern hearth.",
@@ -220,4 +220,129 @@ test("buildContext: Allowed-new-entities dedupes against world bible / brief / b
   const allowedLine = out.split("\n").find(l => l.trim().startsWith("Allowed-new-entities:")) ?? ""
   expect(allowedLine).toContain("Master Orin")
   expect(allowedLine).not.toContain("The Broken Anchor")
+})
+
+// ── L20: buildCharacterRoster + buildOutlineEntityList + buildContext integration ──
+
+test("buildCharacterRoster: returns all character names from the profile array", () => {
+  const chars = [
+    { id: "kael", name: "Kael", role: "", speechPattern: "" },
+    { id: "brennan", name: "Lord Sorcerer Brennan", role: "antagonist", speechPattern: "" },
+    { id: "aldric", name: "Aldric Vey", role: "ally", speechPattern: "" },
+  ] as any
+  const roster = buildCharacterRoster(chars)
+  expect(roster).toContain("Kael")
+  expect(roster).toContain("Lord Sorcerer Brennan")
+  expect(roster).toContain("Aldric Vey")
+  expect(roster).toHaveLength(3)
+})
+
+test("buildCharacterRoster: empty array → empty list", () => {
+  expect(buildCharacterRoster([])).toHaveLength(0)
+})
+
+test("buildOutlineEntityList: extracts entity from outline.setting", () => {
+  const outline = {
+    ...baseOutline,
+    setting: "Eastern Reach, near the border garrison",
+    scenes: [],
+    establishedFacts: [],
+  } as any
+  const entities = buildOutlineEntityList(outline)
+  expect(entities).toContain("Eastern Reach")
+})
+
+test("buildOutlineEntityList: extracts entity from beat description", () => {
+  const outline = {
+    ...baseOutline,
+    scenes: [
+      {
+        description: "Kael follows the suspect down Silver Street toward the docks.",
+        characters: ["Kael"],
+        kind: "action",
+        requiredPayoffs: [],
+      },
+    ],
+    establishedFacts: [],
+  } as any
+  const entities = buildOutlineEntityList(outline)
+  expect(entities).toContain("Silver Street")
+})
+
+test("buildOutlineEntityList: extracts entity from establishedFact text", () => {
+  const outline = {
+    ...baseOutline,
+    scenes: [],
+    establishedFacts: [
+      { id: "f1", fact: "The Temple of Mercy serves as a neutral meeting ground for rival factions.", category: "knowledge" },
+    ],
+  } as any
+  const entities = buildOutlineEntityList(outline)
+  // extractProperNouns keeps leading "The" for place names (per its design —
+  // "The Temple of Mercy" is a real multi-word location name).
+  // The four-tier grounded-match also strips leading articles, so both
+  // "Temple of Mercy" and "The Temple of Mercy" normalize identically.
+  const hasTempleOfMercy = entities.some(e => e.includes("Temple of Mercy"))
+  expect(hasTempleOfMercy).toBe(true)
+})
+
+test("buildOutlineEntityList: empty outline → empty list", () => {
+  const outline = {
+    ...baseOutline,
+    setting: "",
+    scenes: [],
+    establishedFacts: [],
+  } as any
+  const entities = buildOutlineEntityList(outline)
+  // Should not crash; result is deterministic.
+  expect(Array.isArray(entities)).toBe(true)
+})
+
+test("buildContext: Character-roster line rendered when opts.characterRoster provided", () => {
+  const chars = [
+    { id: "kael", name: "Kael", role: "", speechPattern: "clipped, wry" },
+    { id: "brennan", name: "Lord Sorcerer Brennan", role: "antagonist", speechPattern: "" },
+  ] as any
+  const out = buildContext("prose", baseBeat as any, baseOutline, chars, baseWorldBible, {
+    characterRoster: ["Lord Sorcerer Brennan"],
+  })
+  expect(out).toContain("Character-roster:")
+  expect(out).toContain("Lord Sorcerer Brennan")
+})
+
+test("buildContext: Character-roster NOT rendered when opts.characterRoster is undefined (backward compat)", () => {
+  const out = buildContext("prose", baseBeat as any, baseOutline, baseChars, baseWorldBible)
+  expect(out).not.toContain("Character-roster:")
+})
+
+test("buildContext: Outline-entities line rendered when opts.outlineEntities provided", () => {
+  const out = buildContext("prose", baseBeat as any, baseOutline, baseChars, baseWorldBible, {
+    outlineEntities: ["Silver Street", "Eastern Reach"],
+  })
+  expect(out).toContain("Outline-entities:")
+  expect(out).toContain("Silver Street")
+  expect(out).toContain("Eastern Reach")
+})
+
+test("buildContext: Character-roster dedupes against bible / beat.characters", () => {
+  // "Kael" is already in beat.characters (hence bibleKnown); roster should not
+  // duplicate it into the Character-roster sub-line.
+  const beat = {
+    description: "Kael approaches the hall.",
+    kind: "action" as const,
+    characters: ["Kael"],
+    requiredPayoffs: [],
+  } as any
+  const chars = [
+    { id: "kael", name: "Kael", role: "", speechPattern: "" },
+    { id: "brennan", name: "Lord Sorcerer Brennan", role: "antagonist", speechPattern: "" },
+  ] as any
+  const out = buildContext("prose", beat, baseOutline, chars, baseWorldBible, {
+    characterRoster: ["Kael", "Lord Sorcerer Brennan"],
+  })
+  const rosterLine = out.split("\n").find(l => l.trim().startsWith("Character-roster:")) ?? ""
+  // "Kael" is in bibleKnown (via beat.characters) → deduped out
+  expect(rosterLine).not.toContain("Kael")
+  // "Lord Sorcerer Brennan" is genuinely new → kept
+  expect(rosterLine).toContain("Lord Sorcerer Brennan")
 })

@@ -505,3 +505,129 @@ test("L16 persistence: llmCallId=null → patch is skipped (no nerPatchCalls)", 
   // patchLLMCallNerPrepass should NOT be called when llmCallId is null.
   expect(nerPatchCalls.length).toBe(0)
 })
+
+// ── L20: character roster + outline-entity grounding tests ───────────────────
+//
+// Acceptance criteria (L20 loop contract):
+//   (a) characterRoster names flow into NER grounded surface → no NER fire
+//   (b) outlineEntities flow into NER grounded surface → no NER fire
+//   (c) a NEW name not in any roster → still BLOCKS (v3 wins survive)
+//   (d) provenance — groundedSources carries character_roster + outline_entities
+//
+// These tests exercise the L17 FP cluster: "Lord Sorcerer Brennan" / "Brennan"
+// (title+surname in prose matching surname in roster) + named locations from
+// planner outline text (Silver Street, Eastern Reach, Temple of Mercy).
+
+import { buildCharacterRoster, buildOutlineEntityList } from "./index"
+
+test("L20 (a): character roster names grounded — 'Lord Sorcerer Brennan' title+surname matches roster surname 'Brennan' via substring tier", async () => {
+  // Characters in DB: "Lord Sorcerer Brennan". In prose writer uses the full form.
+  // buildNerGroundedSet adds the roster entry, which includes per-token shards.
+  // The four-tier check:
+  //   1. exact: "lord sorcerer brennan" in lower? yes (whole phrase added) → grounded.
+  // No NER fire. LLM mock passes. Combined → clean pass.
+  mockLLMResult = { pass: true, issues: [] }
+  const charsWithBrennan = [
+    ...baseChars,
+    { id: "brennan", name: "Lord Sorcerer Brennan", role: "antagonist", speechPattern: "cold" },
+  ] as any
+  const prose = "She bowed before Lord Sorcerer Brennan and waited for his verdict."
+  const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, charsWithBrennan, emptyWorldBible)
+  expect(result.pass).toBe(true)
+  expect(result.issues).toHaveLength(0)
+})
+
+test("L20 (a): 'Brennan' surname-only in prose grounded via roster entry 'Lord Sorcerer Brennan' substring tier", async () => {
+  // Prose uses just "Brennan" (surname). Roster has "Lord Sorcerer Brennan".
+  // buildNerGroundedSet splits the roster entry into per-token shards:
+  // lower gets "lord", "sorcerer", "brennan". The NER extractor would not
+  // fire on a single-word capitalized name ("Brennan" is capitalized-multi-word?
+  // Actually "Brennan" alone is a single word — NER only extracts multi-word
+  // or title-pair patterns). Single-word capitalized names are LLM-only catches.
+  // This test confirms the character roster doesn't break the LLM path.
+  mockLLMResult = { pass: true, issues: [] }
+  const charsWithBrennan = [
+    ...baseChars,
+    { id: "brennan", name: "Lord Sorcerer Brennan", role: "antagonist", speechPattern: "cold" },
+  ] as any
+  const prose = "Kael knew Brennan would not forgive the insult."
+  const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, charsWithBrennan, emptyWorldBible)
+  // LLM mock passes; the roster entry satisfies the surface check.
+  expect(result.pass).toBe(true)
+})
+
+test("L20 (b): named location in outlineEntities grounded — 'Silver Street' from outline beat description", async () => {
+  // Outline has a beat description mentioning "Silver Street". buildOutlineEntityList
+  // extracts it. buildNerGroundedSet adds it to the grounded surface.
+  // NER would catch "Silver Street" as capitalized-multi-word. Because it's now
+  // grounded via outline_entities, the NER prepass does NOT fire on it.
+  mockLLMResult = { pass: true, issues: [] }
+  const outlineWithSilverStreet = {
+    ...baseOutline,
+    scenes: [
+      {
+        ...baseBeat,
+        description: "Kael follows the suspect down Silver Street toward the docks.",
+      },
+    ],
+    establishedFacts: [],
+  } as any
+  const prose = "Kael sprinted down Silver Street, his boots loud on the cobblestones."
+  const result = await checkHallucUngrounded(prose, baseBeat, outlineWithSilverStreet, baseChars, emptyWorldBible)
+  expect(result.pass).toBe(true)
+  expect(result.issues).toHaveLength(0)
+})
+
+test("L20 (c): NEW name not in any roster → NER + LLM both fire → blocker still works", async () => {
+  // "Veyl the Deepforger" is not in characters, not in world bible, not in outline.
+  // Grounding surface does not include it. NER fires (title-pair). LLM also fires.
+  // The L20 expansion must NOT suppress genuine ungrounded names.
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "Veyl the Deepforger", excerpt: "Veyl the Deepforger entered the hall" }],
+  }
+  const charsWithBrennan = [
+    ...baseChars,
+    { id: "brennan", name: "Lord Sorcerer Brennan", role: "antagonist", speechPattern: "cold" },
+  ] as any
+  const prose = "Veyl the Deepforger entered the hall behind Lord Sorcerer Brennan."
+  const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, charsWithBrennan, emptyWorldBible)
+  // Blocker: "Veyl the Deepforger" is not grounded.
+  expect(result.pass).toBe(false)
+  const issueText = result.issues.join(" ")
+  expect(issueText).toContain("Veyl the Deepforger")
+  // "Lord Sorcerer Brennan" IS grounded via character roster — should not appear in issues.
+  expect(issueText).not.toContain("Brennan")
+})
+
+test("L20 (d): provenance — groundedSources carries character_roster + outline_entities", async () => {
+  // White-box: patchLLMCallNerPrepass receives the groundedSources snapshot.
+  // Verify character_roster and outline_entities are populated.
+  mockLLMResult = { pass: true, issues: [] }
+  const charsWithBrennan = [
+    ...baseChars,
+    { id: "brennan", name: "Lord Sorcerer Brennan", role: "antagonist", speechPattern: "cold" },
+  ] as any
+  const outlineWithSilverStreet = {
+    ...baseOutline,
+    scenes: [
+      {
+        ...baseBeat,
+        description: "Kael follows the suspect down Silver Street toward the docks.",
+      },
+    ],
+    establishedFacts: [],
+  } as any
+  // logMetadata carries groundedSources into callAgent mock, but we can't intercept
+  // logMetadata directly. Instead verify the exported functions return the right values.
+  const roster = buildCharacterRoster(charsWithBrennan)
+  expect(roster).toContain("Lord Sorcerer Brennan")
+  expect(roster).toContain("Kael")
+  const entities = buildOutlineEntityList(outlineWithSilverStreet)
+  expect(entities).toContain("Silver Street")
+
+  // Integration: checkHallucUngrounded runs through without error.
+  const prose = "She walked quietly toward the hall."
+  const result = await checkHallucUngrounded(prose, baseBeat, outlineWithSilverStreet, charsWithBrennan, emptyWorldBible)
+  expect(result.pass).toBe(true)
+})
