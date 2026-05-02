@@ -53,6 +53,19 @@ describe("lane doc parsing", () => {
     expect(field(doc, "loop contract", "deepseek v4 flash concurrency plan")).toBe("fixed panel N=20")
   })
 
+  test("parses indented continuation lines for multi-line result fields", () => {
+    const doc = parseLaneDoc(`## Results
+
+- Outcome: done
+- Evidence link/row/path:
+  - chapter_exhaustions.id=84
+  - llm_calls.id=58325
+- Commit(s): abc123
+`, "docs/sessions/lane.md")
+    expect(field(doc, "results", "evidence link/row/path")).toBe("- chapter_exhaustions.id=84\n- llm_calls.id=58325")
+    expect(field(doc, "results", "commit(s)")).toBe("abc123")
+  })
+
   test("laneIdFromPath sanitizes spaces", () => {
     expect(laneIdFromPath("docs/sessions/My Lane.md")).toBe("My-Lane")
   })

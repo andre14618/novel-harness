@@ -116,18 +116,30 @@ export function laneEventLogPath(lanePath: string): string {
 export function parseLaneDoc(text: string, lanePath = "lane.md"): ParsedLaneDoc {
   const fields: Record<string, Record<string, string>> = {}
   let section = ""
+  let lastKey: string | null = null
   for (const rawLine of text.split(/\r?\n/)) {
     const sectionMatch = rawLine.match(/^##\s+(.+?)\s*$/)
     if (sectionMatch) {
       section = normalizeLabel(sectionMatch[1]!)
       fields[section] ??= {}
+      lastKey = null
       continue
     }
-    const fieldMatch = rawLine.match(/^\s*-\s+([^:]+):\s*(.*)$/)
-    if (!fieldMatch || !section) continue
+    const fieldMatch = rawLine.match(/^-\s+([^:]+):\s*(.*)$/)
+    if (!fieldMatch || !section) {
+      if (section && lastKey && /^\s{2,}\S/.test(rawLine)) {
+        const continuation = cleanValue(rawLine)
+        if (continuation) {
+          const current = fields[section]?.[lastKey] ?? ""
+          fields[section]![lastKey] = current ? `${current}\n${continuation}` : continuation
+        }
+      }
+      continue
+    }
     const key = normalizeLabel(fieldMatch[1]!)
     fields[section] ??= {}
     fields[section]![key] = cleanValue(fieldMatch[2] ?? "")
+    lastKey = key
   }
   return { path: lanePath, laneId: laneIdFromPath(lanePath), fields }
 }
