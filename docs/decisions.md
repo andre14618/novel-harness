@@ -3871,3 +3871,43 @@ Stage 2 is more authoritative than stage 1 because it provides per-event quote e
 **Why classifier-only tests:** the SQL surface (`fetchStaleGates`) is a single LEFT JOIN with no branching logic — a runtime DB integration test would add brittleness without coverage value. The branching is in the classifier; that's where the tests live.
 
 **Ongoing implications:** Operator-summary now has 4 modes: per-novel detail, `--latest`, `--stale-gates`, and `--json`. Standing recommendation: at the start of each overnight loop, run `bun scripts/operator-summary.ts --stale-gates --min-age-hours 6` to surface stuck gates from prior loops before starting new work.
+
+### L31d — Re-smoke validation (2026-05-02, exp #358)
+*2026-05-02 · exp #358 · novel `novel-1777707348615` · log `/tmp/smoke-l31d-fantasy-debt-1777707348.log`*
+
+**Decision:** L31a + L31b + L31c + L32 are PRODUCTION VALIDATED on `fantasy-debt` (3-chapter smoke). All L17/L22/L24-class clusters held; the stack is cleared for use as the production runtime gate.
+
+**Stop condition: (b) — NEW out-of-scope cluster found.** Chapter 1 drafted cleanly on attempt 1. Chapter 2 produced a complete 14-beat draft on attempt 1 but the `continuity-state` checker correctly flagged a chapter-level state mismatch on the ledger color (planner: glow-red-near-false-debts; prose: glowed amber, "quiet"). Continuity blockers route directly to the plan-assist gate without exhausting the chapter-attempt retry budget (existing design — `drafting.ts:1116-1133` / `buildCheckerBlockerDeviations`).
+
+**Cluster verification:**
+
+| Cluster | Verification | Pass |
+|---------|--------------|:---:|
+| L17 (Brennan/Aldric/Sorcerer's Tower/etc.) | 0 fires across 40 halluc-ungrounded calls | ✅ |
+| L22 (T.C./Guildmaster/derived titles) | 0 fires across 40 halluc-ungrounded calls | ✅ |
+| L24-(a) NER-only-warning exhaust | 9 NER-only events all returned `pass: true` (per L31a) | ✅ |
+| L24-(b) adherence stage-1 stochastic variance | 3 `adherence-stage2-override` events fired correctly (per L31c) | ✅ |
+| L26/L32 mapper allowedNewEntities dup-FPs | 0 dup-FPs across 3 mapper calls (per L32) | ✅ |
+| **L31d-(NEW)** continuity → plan-assist routing | Chapter 2 halted at attempt 1 on a single ledger-color blocker | ⚠ NEW |
+
+**Per-chapter outcome:**
+
+| Chapter | Title | Beats | Words | Attempts | Outcome |
+|---------|-------|-------|-------|----------|---------|
+| 1 | The Errant Ledger | 13 | 4821 | 1/3 | ✅ approved |
+| 2 | The Weight of Evidence | 14 | 4527 | 1/3 | ❌ plan-assist gate (continuity blocker) |
+| 3 | The Reckoning | (planned) | — | 0 | ⏸ blocked behind ch2 |
+
+**Cost:** $0.0526 / $4 budget. 152 LLM calls, 0 failed, 42 retried.
+
+**AND-gate matrix vs L24:** pass 44%→57% (+13 pts), ner-only-warning 44%→23% (LLM agreed more this run), llm-only-blocker 4%→10% (low absolute count, n=4), ner+llm-blocker 8%→10%. Critically, all 9 NER-only fires returned `pass: true`, so L24-(a)'s retry-burning failure mode is closed.
+
+**Two-stage adherence:** 40 stage-1 calls, 8 stage-2 calls (20% stage-1 fail rate; corrected post-L36 fix `43721cf` — operator-summary previously miscounted as "48/0" due to shared `agent='adherence-events'` between stages). Of the 8 stage-2 calls: 3 returned all-events-enacted → `adherence-stage2-override` (beat accepted, retry saved); 5 returned partial-enacted → final fail → writer retry. No false-positive overrides.
+
+**L31d-(NEW) detail:** Continuity blockers (and accepted beat blockers, and functional blockers) bypass the chapter-attempt retry loop because `buildCheckerBlockerDeviations` collects them into `pendingExhaustion` immediately. With L17/L22/L24 closed, this routing becomes the dominant remaining halt class for unattended runs. Recommend L37-class follow-up: either (i) include continuity blockers in chapter-attempt retry once (route via chapter-plan-reviser), or (ii) document the routing as expected in `docs/overnight-runbook.md`.
+
+**Commit chain reference:** L31a/L31b `6535e8d`, L31c `1458d3e`, L32 `e8f4045`. Deploy commit: `67b0d1b`.
+
+**Ongoing implications:** L31 stack is the new production baseline. The L31d-(NEW) finding is real but is existing design behavior, not a regression. Document or fix per L37 design call.
+
+---
