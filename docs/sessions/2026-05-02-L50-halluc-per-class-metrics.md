@@ -30,9 +30,9 @@ role: primary-lane-context
 
 ## Baseline
 
-- Current behavior: Pending first-cycle inspection.
-- Baseline command(s): Inspect hallucination A/B/reporting scripts and run the narrowest existing tests before editing.
-- Baseline result: Pending.
+- Current behavior: `scripts/hallucination/ab-halluc-prompt.ts` printed only an aggregate calibration matrix plus a coarse case_role split (`current_surface_natural` vs `synthetic_fixture`); the named hallucination subclasses (title+surname, institution, place/realm, artifact/lore, generic-document FP, allowed-new-entity) were not visible in the A/B summary. The L12 expanded-class panel runner (`run-expanded-class-panel.ts`) already produced a per-class matrix, but only on its own panel.
+- Baseline command(s): Read `scripts/hallucination/ab-halluc-prompt.ts`, inspect `/tmp/halluc-current-panel-exp299-labeled.jsonl` and `scripts/hallucination/expanded-fail-classes-panel.jsonl` metadata, list `tests/`.
+- Baseline result: Labeled current-surface panel carries `fixture_class` on synthetic rows (`synthetic_entity_insertion`, `synthetic_event_omission`) and `gold.calibration_status` on natural rows (TN/FN/TP/MIXED). Expanded-class panel carries fine-grained `fixture_class` (title-surname / named-institution / named-place-realm / named-artifact / generic-document-fp-control / etc.). Sufficient metadata exists for a per-class breakdown without any panel-schema change.
 
 ## Stop Gates
 
@@ -53,7 +53,7 @@ role: primary-lane-context
 
 ## Progress Log
 
-- Pending. Created after L49 closed and after the runner/docs-finalizer full-loop smoke passed.
+- 2026-05-02 cycle 1 — extracted a pure helper `scripts/hallucination/per-class-summary.ts` (`deriveClass`, `summarizeByClass`, `formatPerClassTable`). Wired `ab-halluc-prompt.ts` to (a) carry `fixture_class`, `entity_class`, and natural `gold.calibration_status` through to result rows, (b) print a per-class matrix after the existing aggregate summary, (c) include `per_class_breakdown` in the persisted `phase_eval_runs.summary_json`. Added 9 deterministic unit tests at `tests/halluc-per-class-summary.test.ts`. No runtime checker behavior change. No fixture/panel-schema change.
 
 ## Heartbeat Commands
 
@@ -63,11 +63,11 @@ role: primary-lane-context
 
 ## Results
 
-- Outcome:
-- Stop gate fired:
-- Evidence link/row/path:
-- Cost:
-- Commit(s):
+- Outcome: SHIPPED. Per-class metrics added to checker A/B output via a pure helper plus reporter wiring; aggregate metrics preserved.
+- Stop gate fired: (a) clean pass — per-class metrics implemented and tested.
+- Evidence link/row/path: `scripts/hallucination/per-class-summary.ts`, `scripts/hallucination/ab-halluc-prompt.ts`, `tests/halluc-per-class-summary.test.ts` (9 pass / 0 fail). Experiment #374.
+- Cost: $0 — no LLM panel runs; deterministic unit tests only.
+- Commit(s): pending finalization commit on this cycle.
 
 ## Finalization Checklist
 

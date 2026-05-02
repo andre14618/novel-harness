@@ -19,6 +19,12 @@ import { resolve } from "node:path"
 import { z } from "zod"
 import { callAgent } from "../../src/llm"
 import { hallucUngroundedSchema } from "../../src/agents/halluc-ungrounded"
+import {
+  formatPerClassTable,
+  summarizeByClass,
+  type AbInputRow,
+  type AbResultRow,
+} from "./per-class-summary"
 
 interface Args {
   inPath: string
@@ -171,6 +177,9 @@ async function main() {
     const result = {
       fixture_id: row.fixture_id,
       case_role: row.case_role,
+      fixture_class: row.fixture_class ?? null,
+      entity_class: row.entity_class ?? null,
+      natural_gold_status: row.gold?.calibration_status ?? null,
       oracle_pass: oracle.pass,
       oracle_expected_entities: oracle.expected_entities,
       candidate_pass: candidatePass,
@@ -206,6 +215,22 @@ async function main() {
     : "n/a"
   console.log(`  Recall: ${recall}%   Precision: ${precision}%   F1: ${f1}`)
 
+  // Per-class breakdown — surfaces title+surname / institution / artifact /
+  // generic-document / allowed-new-entity (L12 panel) and synthetic-insertion /
+  // synthetic-event-omission / natural_<gold-status> (current-surface panel).
+  const joined: Array<{ input: AbInputRow; result: AbResultRow }> = rows.map((r: any, i: number) => ({
+    input: {
+      case_role: r.case_role,
+      fixture_class: r.fixture_class,
+      entity_class: r.entity_class,
+      gold: r.gold,
+    },
+    result: results[i] as AbResultRow,
+  }))
+  const perClass = summarizeByClass(joined)
+  console.log("\n## Per-class breakdown")
+  console.log(formatPerClassTable(perClass))
+
   console.log(`\nWrote ${results.length} rows to ${args.outPath}`)
 
   if (args.persist) {
@@ -221,6 +246,7 @@ async function main() {
       recall_pct: recall === "n/a" ? null : Number(recall),
       precision_pct: precision === "n/a" ? null : Number(precision),
       f1: f1 === "n/a" ? null : Number(f1),
+      per_class_breakdown: perClass,
       per_row_results: results,
     }
     const verdict = (recall === "n/a" || precision === "n/a")
