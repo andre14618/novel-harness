@@ -44,16 +44,21 @@ loop: L13
 ## Progress Log
 
 - Started: 2026-05-01. Session doc written.
+- Implemented list-runs.ts with family-rollup default + --family drill-down + --rows/--full legacy.
+- Wrote list-runs.test.ts: 47 pure-logic unit tests, no DB required.
+- Verified: 47/47 tests pass locally and on LXC; tsc clean.
+- Created experiment #328 on LXC; concluded with PASS conclusion; linked to parent #320.
+- Smoke-run confirmed: `--probe=phase-variant-comparison` shows 4 families with correct N/PASS/FAIL/streak/ranges.
+- Updated decisions.md + todo.md; committed docs.
 
 ## Results
 
-- Outcome: pending
-- Evidence link/row/path: pending
+- Outcome: PASS
+- Evidence link/row/path: `phase_eval_runs` families visible via new CLI; tuning_experiments.id=328
 - Cost: $0.00 (no LLM calls)
-- Commit(s): pending
+- Commit(s): `7bd7081` (code+tests), `1326987` (docs)
 
 ## Pickup Instructions
 
-- Last safe command: wrote session context doc
-- If failed, failure fingerprint: n/a
-- Next action: implement list-runs.ts
+- Completed. No outstanding work.
+- Next: §9 sub-bullet "Define a probe-family key in docs/experiment-design-rules.md" remains open (formal doc entry).
