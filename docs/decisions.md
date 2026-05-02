@@ -3585,3 +3585,26 @@ The 4 unresolved blockers are LLM-only-blocker fires — NER doesn't see them, L
 **Files written:** `docs/l22-smoke-l20-validation-2026-05-01.md`, `docs/sessions/2026-05-01-L22-smoke-l20-validation.md` (status: shipped).
 
 **Next (L23):** Address 4 sub-classes in parallel: (a) NER initials extractor `[A-Z]\.[A-Z]\.+` + grounding against character initials; (b) character-profile derived title nouns (Guildmaster from "Guild Master"); (c) v5 prompt iteration for lowercase plural role exceptions; (d) NER capitalized-first-only extractor + world-bible domain-term derivation. Re-smoke after.
+
+---
+
+### L23a — NER initials + capitalized-first-only extractor classes (2026-05-02, exp #342)
+*2026-05-02 · exp #342 · code + unit tests only*
+
+**Decision:** Add two new extractor classes to `src/lint/entity-candidates.ts` to close the L22 FN targets (`T.C.` and `Aether waste`):
+
+1. **`initials`** class: regex `\b[A-Z]\.[A-Z]\.(?:[A-Z]\.)?(?=[\s,;:!?]|$)` — matches abbreviated initials like `T.C.`, `J.R.R.`, `K.J.`. FP suppression: `buildNerGroundedSet` now calls `deriveInitials(name)` for every character roster entry, adding all 2- and 3-initial derived forms to the lowercase grounded surface. When the character "Taryn Coombs" is in the roster, "t.c." is grounded and `runNerPrepass` suppresses the NER fire.
+
+2. **`capitalized-first-only`** class: regex `\b[A-Z][a-z]{3,}\s+[a-z]{4,}\b` — matches domain compounds like `"Aether waste"`, `"Crystal lattice"` where only the magic-system first word is capitalized. HIGH FP RISK from sentence-initial patterns. Three-layer suppression in `runNerPrepass` (NOT in extractor, which stays pure): (a) bible-first-word gate — only emit if first word is the leading token of a `worldBible.systems/locations/cultures` entry; (b) stop-word second-word gate — suppress if second word is a common function word (preposition, conjunction, auxiliary); (c) standard grounding check applies to all classes.
+
+**L22 FN closure confirmed:** Both `T.C.` and `Aether waste` fire correctly. `T.C.` is suppressed when roster contains "Taryn Coombs" (via derived initials). `Aether waste` fires when "Aether" is in `worldBible.systems`.
+
+**F1:** Small labeled panel F1=1.000 (0 FP regressions, pre-L23a baseline maintained). Expanded synthetic panel F1=1.000. Total: 191/191 tests pass (123 entity-candidates + 68 halluc-ungrounded).
+
+**Schema:** `NerFinding.class` in `schema.ts` extended with `"initials"` and `"capitalized-first-only"` — L23b must NOT also modify this enum.
+
+**Files changed:** `src/lint/entity-candidates.ts`, `src/lint/entity-candidates.test.ts`, `src/agents/halluc-ungrounded/schema.ts`, `src/agents/halluc-ungrounded/index.ts`, `scripts/hallucination/ner-vs-llm-calibration.ts`
+
+**Cost:** $0 (no LLM calls).
+
+**Next:** L23b handles Guildmaster + senior auditors (v5 prompt + derived title nouns). After L23a + L23b → re-smoke fantasy-debt.
