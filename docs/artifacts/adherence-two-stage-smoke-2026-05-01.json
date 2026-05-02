@@ -1,0 +1,47 @@
+{
+  "git_commit": "58cf8c74e001d5332a9763ebf895098c056666c5",
+  "experiment_id": 317,
+  "run_id": 614,
+  "timestamp": "2026-05-02T03:26:36.461Z",
+  "fixtures": [
+    {
+      "id": "pass-door-open",
+      "expected": "pass",
+      "expectedCallCount": 1,
+      "actualCallCount": 1,
+      "callCountOk": true,
+      "pass": true,
+      "issues": []
+    },
+    {
+      "id": "fail-door-open-and-call",
+      "expected": "fail",
+      "expectedCallCount": 2,
+      "actualCallCount": 2,
+      "callCountOk": true,
+      "pass": false,
+      "issues": [
+        "Beat event missing: Maren calls Tomas's name into the yard — closest prose: \"She stood in the doorway, listening to the wind, and said nothing.\""
+      ]
+    },
+    {
+      "id": "fail-wrong-attribution",
+      "expected": "fail",
+      "expectedCallCount": 2,
+      "actualCallCount": 2,
+      "callCountOk": true,
+      "pass": false,
+      "issues": [
+        "Beat event missing: Maren picks up the broken lantern from the bench — closest prose: \"Tomas crossed to the bench, picked up the broken lantern\"",
+        "Beat event missing: Maren carries it outside — closest prose: \"carried it out into the yard\""
+      ]
+    }
+  ],
+  "aggregate": {
+    "total": 3,
+    "call_count_ok": true,
+    "verdict_ok": true,
+    "pass_path_calls": 1,
+    "fail_path_calls": 4
+  }
+}

@@ -109,7 +109,7 @@ Primary objective: turn `halluc-ungrounded` from a medium warning checker into a
 
 Primary objective: make checker escalation more surgical without multiplying false blockers.
 
-- [ ] **Wire two-stage adherence only on binary failure.** Keep the current binary `adherence-events` as the first pass; invoke the per-event prototype only when binary says events are missing. Acceptance: no extra LLM call on pass cases, and failure cases return quote-backed missing-event detail.
+- [x] ~~Wire two-stage adherence only on binary failure.~~ **Shipped 2026-05-01 (exp #317).** Stage 1 binary `events_present` always runs; stage 2 (per-event enumeration with quote evidence) fires only when stage 1 returns `events_present=false`. Pass-path latency / cost unchanged. Smoke on LXC validated 1/1 call on PASS fixture and 2/2 on each FAIL fixture (3 fixtures total, including a wrong-character attribution drift). See `docs/adherence-two-stage-2026-05-01.md`.
 - [ ] **Run two-stage adherence against the existing labeled panel.** Compare current binary-only retry hints versus per-event hints. Acceptance: preserve binary 100/100 on panel while improving specificity on the b12 partial-enactment cluster.
 - [ ] **Add synthetic partial-enactment fixtures.** Seed beats where prose enacts two of three required actions, reverses event order, or substitutes a nearby actor. Acceptance: per-event checker should identify the missing/substituted element without failing acceptable embellishment.
 - [ ] **Build a fresh functional-state warning calibration panel.** Collect natural `functional-state-checker` warnings from completed or partial novels under the current stable-ID surface. Label against checker-visible evidence with quote-required oracle judgments.

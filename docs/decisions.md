@@ -146,6 +146,27 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### L5: Two-stage adherence wiring — binary first, per-event enumeration on FAIL
+*2026-05-01 · exp #317 (`docs/adherence-two-stage-2026-05-01.md`)*
+
+**Decision:** `checkBeatAdherence` now issues two LLM calls in sequence on the fail path. Stage 1 is the existing binary `events_present` check and always runs. Stage 2 (new `MISSING_EVENTS_SYSTEM` prompt → `obligated_events[].enacted` schema) only fires when stage 1 returns `events_present=false`. Stage 2 emits one issue per missing event with quote evidence (`"Beat event missing: <event> — closest prose: <quote>"`) instead of the prior single approximate sentence (`"Beat events not enacted on-page: <reasoning>"`).
+
+**Why:** Exp #305 calibration on the 17-row labeled adherence panel found that the binary checker's *disposition* is correct on every row (100% TN, 100% TP) but its *reasoning* field is "sometimes approximate" — e.g., on the b12 partial-enactment cluster it cited "Cassel never asks" as the sole missing event when other obligations were also unmet. The per-event prototype caught the missing "Cassel asks" event on all 3 b12 attempts and identified the porter→copyist drift on b12-a2. Two-stage wiring exposes that surgical detail to the writer's targeted-rewrite prompt without paying the per-event cost on pass-path beats.
+
+**Evidence (smoke, exp #317):** 3 hand-authored fixtures on LXC against DeepSeek V4 Flash. PASS-fixture: 1 LLM call, verdict pass=true. FAIL-fixture (two-event beat, second event missing): 2 LLM calls, issue text names the missing call-into-yard event with quote evidence. FAIL-fixture (wrong attribution — beat says Maren, prose has Tomas): 2 LLM calls, both events flagged with quote evidence naming the wrong actor. Total smoke cost: $0.0002. `call_count_ok=true`, `verdict_ok=true`. Persisted at `docs/artifacts/adherence-two-stage-smoke-2026-05-01.json`.
+
+**Alternatives rejected:**
+- *Replace binary with per-event entirely* — exp #305 showed per-event binary calibration is 88% match vs binary's 100% on the labeled panel. Per-event is more expensive AND drops disposition accuracy. Two-stage gates the cost behind the binary's verdict so we keep the 100% disposition floor.
+- *Enrich the binary `reasoning` field by tightening the prompt* — same call shape can't reliably enumerate every event with quotes; that's why the prototype was decomposed in the first place.
+
+**Failsafe paths:** Stage-2 transport error and stage-2/stage-1 disagreement (stage 2 reports all events enacted) both fall back to the prior generic single-line message so the stage-1 blocker is never silently dropped. Exp #305 saw stage-2 disagreement on ~12% of panel rows and stage 1's binary disposition was correct in every case there.
+
+**Retry-context heuristic widened:** `src/agents/writer/retry-context.ts` previously injected a "previous beat may already cover some actions" alignment note when issue strings included `"not enacted"`. The heuristic now also matches `"Beat event missing"` so the alignment-note semantics are preserved under the new issue-text shape.
+
+**Ongoing:** Re-run the labeled current-surface panel through two-stage and confirm binary 100/100 disposition holds while specificity improves on the b12 partial-enactment cluster (tracked in `docs/todo.md` §8). No promotion of stricter blocker policy until that holds.
+
+---
+
 ### Tonal pass V4 deployed — pref eval confirmed
 *2026-04-11 · exp #98 (quantitative) + pref eval*
 

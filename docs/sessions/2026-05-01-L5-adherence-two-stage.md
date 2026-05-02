@@ -1,8 +1,9 @@
 ---
-status: pending
+status: shipped
 updated: 2026-05-01
 role: overnight-loop-context
 loop: L5-adherence-two-stage
+experiment: 317
 ---
 
 # L5 — Two-stage Adherence Wiring (Binary First, Per-event on FAIL)
@@ -45,11 +46,16 @@ loop: L5-adherence-two-stage
 ## Progress Log
 
 - 2026-05-01 03:05Z — Context file created (placeholder until Wave 2 starts).
+- 2026-05-02 03:30Z — Loop closed. Two-stage wiring shipped. See `docs/adherence-two-stage-2026-05-01.md` and the L5 entry in `docs/decisions.md`.
 
 ## Results
 
-- TBD
+- **Recon:** NOT a no-op. The single-call binary `adherence-events` returns approximate one-sentence reasoning on FAIL, not per-event detail.
+- **Implementation:** Stage 2 (per-event with quote evidence) gated on stage 1 fail. Pass-path latency / cost unchanged.
+- **Tests:** 9/9 pass on `src/agents/writer/adherence-checker.test.ts` (4 prior + 5 new). 121/121 pass across the touched test surface (`src/agents/writer/`, `src/phases/`, `src/lint/`). `bunx tsc --noEmit` clean.
+- **LXC smoke:** 3 fixtures (1 PASS, 2 FAIL). `call_count_ok=true`, `verdict_ok=true`. PASS=1/1 call, FAIL=2/2 calls each. Per-event detail caught two-event miss and wrong-character attribution drift. Total cost $0.0002.
+- **Experiment 317:** concluded SHIPPED.
 
 ## Pickup Instructions
 
-- Loop is queued. To begin: read this file, then run recon to find the live adherence-events checker location.
+- Loop is closed. Follow-up work tracked in `docs/todo.md` §8: re-run the labeled current-surface panel through two-stage and confirm binary 100/100 disposition holds while specificity improves on the b12 partial-enactment cluster.
