@@ -6,11 +6,20 @@ export type ExhaustionKind = "plan-check-exhausted" | "reviser-rejected"
 export type ExhaustionResolverMode = "auto" | "cli" | "web"
 export type ExhaustionDecision = "edit-plan" | "override" | "abort" | "orphaned"
 
-// ─── Orphan detection ────────────────────────────────────────────────────────
-// MVP: orphan DETECTION only. Full automatic recovery (restore the
-// gate, re-fire to a watching UI, re-await in the drafting loop)
-// requires the drafting.ts attempt loop to re-enter the exhaustion
-// check on resume. Deferred to the next session. See docs/todo.md.
+// ─── Orphan handling ─────────────────────────────────────────────────────────
+// Detection: `listOrphanedExhaustions` is run once at orchestrator startup
+//   (server.ts) to surface stale rows from the prior process for operator
+//   visibility.
+// Resume cleanup: `cleanOrphanedExhaustionsForNovel` is called on the resume
+//   endpoint to mark a single novel's pending rows as orphaned before the
+//   resumed run starts. Fresh gates fire as new rows on the resumed attempts.
+// Manual cleanup: `markExhaustionOrphaned(id, reason)` is the per-row API for
+//   the orchestrator's mark-orphaned endpoint.
+// Full re-await (restore the in-memory promise, re-deliver to a watching UI,
+//   block the drafting loop on the existing row instead of creating a fresh
+//   one) is NOT implemented — the resume path tolerates one orphaned row per
+//   chapter+attempt by cleaning then re-creating, which is operationally
+//   cleaner than restoring promises across process boundaries.
 // ────────────────────────────────────────────────────────────────────────────
 
 export interface ExhaustionRow {
@@ -172,4 +181,32 @@ export async function markExhaustionOrphaned(id: number, reason: string): Promis
     RETURNING id
   `
   return rows.length > 0
+}
+
+/**
+ * Auto-clean orphaned plan-assist gates for a single novel, intended for the
+ * resume path. Any gate with `decided_at IS NULL` is marked orphaned with
+ * `decision='orphaned'` and a reason indicating the resume context.
+ *
+ * Why this exists: when the orchestrator restarts mid-drafting, the in-memory
+ * Promise awaiting the operator's decision dies. The DB row stays as
+ * `decided_at IS NULL` (pending). On resume, the drafting attempt loop will
+ * create a fresh gate row if the same exhaustion fires again — but the prior
+ * row is left as cruft. Auto-cleaning it on resume keeps the gate table tidy
+ * and avoids confusing operators who see two pending rows for the same
+ * chapter+attempt (one stale, one fresh).
+ *
+ * Safe to call on every resume: returns 0 if there are no orphans.
+ */
+export async function cleanOrphanedExhaustionsForNovel(novelId: string, reason: string): Promise<number> {
+  const rows = await db`
+    UPDATE chapter_exhaustions
+    SET decided_at = NOW(),
+        decision = 'orphaned',
+        decision_details = ${JSON.stringify({ reason })}::jsonb
+    WHERE novel_id = ${novelId}
+      AND decided_at IS NULL
+    RETURNING id
+  `
+  return rows.length
 }

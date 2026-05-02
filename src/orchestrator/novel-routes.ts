@@ -503,6 +503,23 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     // row — pipeline_events still populates via novelId, but llm_calls does not.
     await initNovelRun(novelId)
 
+    // Restart-recovery cleanup: any plan-assist gate row with decided_at IS
+    // NULL is from a previous process whose in-memory promise died at restart.
+    // Mark it orphaned so the resumed run can fire fresh gates without
+    // leaving stale "pending" rows that confuse operators looking at the
+    // novel's gate history. New gates will be created if the same exhaustion
+    // condition fires on the resumed attempts.
+    {
+      const { cleanOrphanedExhaustionsForNovel } = await import("../db/chapter-exhaustions")
+      const cleaned = await cleanOrphanedExhaustionsForNovel(
+        novelId,
+        `auto-cleaned at /api/novel/resume (mode=${mode})`,
+      )
+      if (cleaned > 0) {
+        console.log(`[novel-api] Resume: auto-cleaned ${cleaned} orphaned plan-assist gate row(s) for novel ${novelId}`)
+      }
+    }
+
     lastRunErrors.delete(novelId)
     activeRuns.set(novelId, { startedAt: new Date().toISOString() })
 
