@@ -6,7 +6,7 @@ import {
   type MonitorPanel,
 } from "./lane-core"
 
-interface Args {
+export interface Args {
   lanePath: string | null
   watch: boolean
   append: boolean
@@ -17,7 +17,7 @@ interface Args {
   panels: MonitorPanel[]
 }
 
-function parseArgs(argv: string[]): Args {
+export function parseArgs(argv: string[]): Args {
   const out: Args = {
     lanePath: null,
     watch: false,
@@ -58,7 +58,7 @@ function parseArgs(argv: string[]): Args {
       console.log(
         "Usage: bun scripts/agent/lane-dashboard.ts <docs/sessions/lane.md> [options]\n\n" +
           "Options:\n" +
-          "  --watch                Refresh until interrupted\n" +
+          "  --watch                Refresh until interrupted with stable in-place redraw\n" +
           "  --append               Append snapshots instead of redrawing in place\n" +
           "  --interval-sec <n>     Watch refresh interval (default: 5)\n" +
           "  --stale-minutes <n>    Mark heartbeat stale after n minutes (default: 10)\n" +
@@ -80,7 +80,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-function printOnce(args: Args): void {
+function renderSnapshot(args: Args): string {
   const report = buildLaneStatusReport({
     lanePath: args.lanePath!,
     staleMinutes: args.staleMinutes,
@@ -88,7 +88,26 @@ function printOnce(args: Args): void {
     novelId: args.novelId,
     panels: args.panels,
   })
-  console.log(renderLaneStatus(report))
+  return renderLaneStatus(report)
+}
+
+function printOnce(args: Args): void {
+  console.log(renderSnapshot(args))
+}
+
+export function renderWatchFrame(snapshot: string, args: Pick<Args, "append" | "intervalSeconds">, renderMs: number): string {
+  return [
+    snapshot,
+    "",
+    "Monitor:",
+    `  mode: ${args.append ? "append snapshots" : "stable in-place redraw"}`,
+    `  refresh: every ${args.intervalSeconds}s; stop: Ctrl-C; render_ms=${renderMs}`,
+    args.append ? null : "  note: snapshot is collected before redraw, so slow probes do not blank the screen",
+  ].filter((line): line is string => line !== null).join("\n")
+}
+
+export function renderInPlaceFrame(frame: string): string {
+  return `\x1b[H${frame}\x1b[J`
 }
 
 async function main(argv: string[]): Promise<number> {
@@ -107,12 +126,15 @@ async function main(argv: string[]): Promise<number> {
     process.on("SIGTERM", restoreCursor)
   }
   for (;;) {
+    const started = Date.now()
+    const snapshot = renderSnapshot(args)
+    const frame = renderWatchFrame(snapshot, args, Date.now() - started)
     if (args.append) {
       process.stdout.write(`\n--- refresh ${new Date().toISOString()} ---\n`)
+      console.log(frame)
     } else {
-      process.stdout.write("\x1b[H\x1b[J")
+      process.stdout.write(renderInPlaceFrame(frame))
     }
-    printOnce(args)
     await sleep(args.intervalSeconds * 1000)
   }
 }
