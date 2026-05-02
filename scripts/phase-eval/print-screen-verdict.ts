@@ -590,27 +590,58 @@ async function main(): Promise<void> {
   // ── Apply ordered predicate table (charter §G) ──────────────────────
   let verdict: string
   let exitCode: number
+  let baseVerdictKind: "fail-broken" | "fail-noncompliant" | "single-pass"
   if (!G4) {
     verdict = `SCREEN-FAIL (broken) — ${args.testId} variant did not produce ${expectedChapters} parseable chapter outlines${test.reason ? `: ${test.reason}` : ""}`
     exitCode = 1
+    baseVerdictKind = "fail-broken"
   } else if (!(G1 && G2 && G3 && G5)) {
     const failed = [!G1 && "G1", !G2 && "G2", !G3 && "G3", !G5 && "G5"].filter(Boolean).join(", ")
     verdict = `SCREEN-FAIL (non-compliant) — ${args.testId} ${metricSet} variant ran but failed: ${failed}`
     exitCode = 1
+    baseVerdictKind = "fail-noncompliant"
   } else {
-    verdict = `SCREEN-PASS — ${args.testId} ${metricSet} variant cleared ${metricSet === "state-mapper" ? "G1, G2, G3, G4, G5" : "G1, G2, G3, G4"}`
+    // Don't emit the bare "SCREEN-PASS" label yet — promotion eligibility
+    // gets checked below. Emit either SCREEN-PASS-SUGGESTIVE (one run) or
+    // PROMOTION-PASS (this + at least one prior consecutive pass for the
+    // same probe + commit + seed).
+    verdict = `SCREEN-PASS-SUGGESTIVE — ${args.testId} ${metricSet} variant cleared ${metricSet === "state-mapper" ? "G1, G2, G3, G4, G5" : "G1, G2, G3, G4"} (single-run; promotion requires 2+ consecutive passes — see promotion check below)`
     exitCode = 0
+    baseVerdictKind = "single-pass"
+  }
+
+  // ── Promotion eligibility check ──────────────────────────────────────
+  // For planning-beats, single-run G1/G2 SCREEN-PASS is not promotion-
+  // grade because medians swing 2-3 across reruns of the same prompt
+  // (exp #311 r1/r2/r3). Require at least one prior SCREEN-PASS-SUGGESTIVE
+  // / PROMOTION-PASS row for the same (probe, test_variant, commit, seed)
+  // combination. State-mapper noise profile is separate (no observed flap
+  // data yet); the promotion check still runs but the threshold may need
+  // recalibration when state-mapper noise data exists.
+  let promotionUpgrade = false
+  if (baseVerdictKind === "single-pass") {
+    try {
+      const { checkPromotionEligibility } = await import("./promotion-check")
+      const decision = await checkPromotionEligibility({
+        probeName: "phase-variant-comparison",
+        testVariant: args.testId,
+        gitCommit: (await import("./persist-run")).currentGitCommit(),
+        seed: summary.seed,
+      })
+      if (decision.eligible) {
+        verdict = `PROMOTION-PASS — ${args.testId} ${metricSet} variant cleared ${metricSet === "state-mapper" ? "G1-G5" : "G1-G4"} on this run AND ${decision.priorPassCount} prior consecutive pass(es) at the same (probe, variant, commit, seed). Eligible for promotion.`
+        promotionUpgrade = true
+      }
+    } catch (err) {
+      // Promotion check failure must not mask the base verdict. Log and
+      // proceed with SCREEN-PASS-SUGGESTIVE.
+      console.error(`[verdict] WARN: promotion eligibility check failed: ${(err as Error).message}`)
+    }
   }
 
   console.log(`Verdict: ${verdict}`)
-  // Noise caveat: G1/G2 medians have been observed to swing 2-3 across
-  // reruns of the same prompt at n=10 chapters (exp #311 r1/r2/r3, see
-  // docs/lessons-learned.md "n=10 single-run probe verdicts flap"). The
-  // single-run verdict above is suggestive, not promotion-grade. Use
-  // `bun scripts/phase-eval/list-runs.ts --probe=phase-variant-comparison
-  // --limit=10` to inspect prior runs of this probe shape.
-  if (metricSet === "planning-beats") {
-    console.log(`Noise caveat: G1/G2 single-run verdicts at n=10 are suggestive, not promotion-grade — facts/know medians swing 2-3 across reruns (exp #311). Require 2+ consecutive SCREEN-PASS for promotion, or check list-runs.ts for run history.`)
+  if (baseVerdictKind === "single-pass" && !promotionUpgrade && metricSet === "planning-beats") {
+    console.log(`Promotion gate: SCREEN-PASS-SUGGESTIVE — n=10 single-run G1/G2 medians swing 2-3 across reruns of the same prompt (exp #311). PROMOTION-PASS requires 2+ consecutive passes for the same (probe, variant, commit, seed). Re-run this probe to upgrade. See list-runs.ts for run history.`)
   }
   console.log(`Exit: ${exitCode}`)
 
