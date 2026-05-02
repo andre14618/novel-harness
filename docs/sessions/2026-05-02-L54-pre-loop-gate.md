@@ -1,5 +1,5 @@
 ---
-status: active
+status: concluded
 updated: 2026-05-02
 role: primary-lane-context
 ---
@@ -71,7 +71,7 @@ role: primary-lane-context
 - Stop gate fired: (a) Clean pass — gate script implemented and tested; no policy decisions required, no valid lane docs blocked.
 - Evidence link/row/path: `scripts/agent/preflight-loop.ts`, `scripts/agent/preflight-loop.test.ts` (14 tests, 38 expects, all green); smoke output captured in Progress Log.
 - Cost: $0 (local script + unit tests only).
-- Commit(s): pending finalization commit on `synthesis-bundle-v1`.
+- Commit(s): `00aed6e` on `synthesis-bundle-v1`.
 
 ## Finalization Checklist
 
