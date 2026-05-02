@@ -1,5 +1,5 @@
 ---
-status: active
+status: complete
 updated: 2026-05-02
 role: primary-lane-context
 ---
@@ -78,7 +78,7 @@ role: primary-lane-context
 - Stop gate fired: (a) — clean pass, persistence/reporting behaviour implemented and tested.
 - Evidence link/row/path: `bun test scripts/phase-eval/list-runs.test.ts` → 56 pass / 0 fail (47 baseline + 9 new); `scripts/phase-eval/list-runs.ts` (`isCheckerProbe`, `extractCheckerSummary`, `partitionFamiliesByShape`, `printHallucSyntheticRollup`, `printAdherencePerEventRollup`).
 - Cost: $0 (unit tests only, no live LLM / DB).
-- Commit(s): pending finalization commit.
+- Commit(s): `c55f162` ([infra] L52 checker-shape rollup in list-runs).
 
 ## Finalization Checklist
 
@@ -89,6 +89,6 @@ role: primary-lane-context
 
 ## Pickup Instructions
 
-- Last safe command: `bun scripts/agent/lane-status.ts docs/sessions/2026-05-02-L52-checker-calibration-persist-default.md --json`
-- If failed, failure fingerprint:
-- Next action: Inspect target checker calibration scripts and identify the smallest persistence/reporting seam.
+- Last safe command: `bun test scripts/phase-eval/list-runs.test.ts`
+- If failed, failure fingerprint: n/a (lane complete; commit `c55f162`).
+- Next action: Lane runner advances to next lane in `docs/sessions/lane-queue.md`. Stop gate (a) clean pass.
