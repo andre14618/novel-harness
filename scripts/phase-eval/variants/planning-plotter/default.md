@@ -32,3 +32,4 @@ Structural requirements across the whole arc:
 - WHIFF OF DEATH: before the final act, a significant irreversible loss — death of a relationship, destruction of a key resource, loss of a primary belief or ally.
 - TRY/FAIL CYCLES: the protagonist's main goal must involve at least 2-3 distinct attempts that each escalate stakes. Reflect these in chapter purposes.
 - End each non-final chapter's `purpose` with a forward hook — something unresolved that pulls the reader into the next chapter.
+- **NEVER close a chapter on pure description.** Chapter closes should land on action consequence or interiority decision — a beat the reader can feel as resolution or hook, not a static descriptive image of the setting. When `purpose` text leans into a chapter's close, frame it as either an action consequence or an interiority decision.
