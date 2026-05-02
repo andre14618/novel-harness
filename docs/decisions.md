@@ -3697,4 +3697,29 @@ Placed in Pass section (not Disambiguation block). Four prior phrasings attempte
 
 **Why this matters:** Removes one source of false-positive test failures on local checkout — relevant for new contributors and for `bun test` in CI environments without LXC tunnel. Closes §12 todo item "Fix DB-backed test reachability gating".
 
+---
+
+### L24 — LXC smoke validating L21 + L23a + L23b end-to-end (2026-05-02, exp #344)
+*2026-05-02 · exp #344 · smoke validation*
+
+**Decision:** L21+L23a+L23b synthesis bundle VALIDATED. Both prior entity clusters (L17 and L22) are fully suppressed in production on `fantasy-debt`. Stop condition (b) triggered: chapter 1 plan-assist gate fired on TWO NEW blockers of different root cause classes — neither is an entity vocabulary gap.
+
+**L17 class verdict (Brennan/Aldric/Sorcerer's Tower/Silver Street/Magistrate Dorn): ZERO fires.** L20 fix holds end-to-end in production.
+
+**L22 class verdict (T.C./Guildmaster/senior auditors/Aether waste): ZERO fires.** L23a NER initials/capitalized-first-only extractors and L23b v5 prompt+derived-title-nouns hold end-to-end in production.
+
+**AND-gate improvement confirmed:** LLM-only-blocker rate dropped from 29% (L22) → 4% (L24); pass rate rose from 29% → 44%. The LLM false-positive reduction is measurable.
+
+**New blocker 1 (beat 7, adherence):** Stage 1 `events_present: false` on beat attempts 2–3 despite stage 2 (per-event extraction) correctly identifying all 4 events as enacted. Root cause: temp=0.1 self-inconsistency on "filling out a complaint form = deciding to report". Same two-of-three recall gap (L18, exp #337). Fix candidate: promote stage 2 PASS verdict to override subsequent stage 1 FAIL.
+
+**New blocker 2 (beat 10, halluc NER-only warning):** "the Ministry of Accounts" extracted by `x-of-y-capitalized` NER class, not in grounded set, but LLM passes all 3 times. NER-only warnings return `pass: false` (line 508 of `index.ts`) and exhaust the beat retry budget even though the docstring says "don't burn retries indefinitely." Fix candidate: change NER-only-warning to `pass: true` (severity: warning), aligning code with stated design intent.
+
+**Additional finding:** Beat 6 attempt 1 produced a `ner+llm-blocker` where NER fired on `Title Nine`/`Section Two` (legal section numbers) and LLM independently flagged "Aldric" (main character — false positive). The AND-gate counted this as a compound blocker because both sources fired, but on entirely different entities. Fix candidate: require entity-level intersection for `ner+llm-blocker` classification.
+
+**Telemetry:** novel `novel-1777704637163`, 94 LLM calls, $0.036 total. AND-gate: pass=11/25, ner-only-warning=11/25, ner+llm-blocker=2/25, llm-only-blocker=1/25. Two-stage adherence: 30 stage 1 calls, 0 stage 2 calls at chapter-check level.
+
+**Files written:** `docs/l24-smoke-l21-l23-validation-2026-05-01.md`.
+
+**Next (L25):** Three-fix sprint — (a) NER-only warning `pass: true` fix; (b) AND-gate entity-intersection check; (c) stage 2 override for stage 1 on full-enacted verdict. Then re-smoke fantasy-debt for stop condition (a).
+
 **Cost:** $0 (no LLM calls). ~10 minutes wall time.

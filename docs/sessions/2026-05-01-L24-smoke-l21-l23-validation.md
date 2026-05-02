@@ -1,7 +1,8 @@
 ---
 loop: L24
-status: in-progress
+status: shipped
 started: 2026-05-01
+completed: 2026-05-02
 branch: synthesis-bundle-v1
 role: overnight-loop-context
 
@@ -68,8 +69,39 @@ preflight_false_positives: 0
 
 ## Progress Log
 
-(written by subagent)
+**2026-05-02 — L24 completed by subagent**
+
+1. Pre-deploy check: HEAD=`125e848`, working tree had only the untracked session doc. All three sentinels confirmed locally and on LXC after deploy.
+2. Deploy: `bash scripts/deploy-lxc.sh` — succeeded, orchestrator restarted, all LXC sentinels verified.
+3. Experiment created: ID #344 on LXC via `bun -e "import { createTuningExperiment } ..."`.
+4. Novel launched: `novel-1777704637163` on LXC, log `/tmp/smoke-l24-fantasy-debt-1777704636.log`. First attempt had `--seed` but no `--auto` — process waited for stdin, killed, relaunched with `--auto --experiment 344`.
+5. Run completed through Chapter 1 (12 beats, 5246 words). Plan-assist gate fired on attempt 1 with 2 unresolved deviations.
+6. Telemetry collected: 94 LLM calls, $0.0357 total, AND-gate matrix, per-agent breakdown, plan-assist gate row, adherence detail.
+7. Result doc written: `docs/l24-smoke-l21-l23-validation-2026-05-01.md`
+8. decisions.md updated: L24 entry appended.
+9. todo.md updated: §12 item closed, L25a/b/c/d items added.
+10. current-state.md updated: entity grounding section expanded with L23a/b classes and L24 known design issues.
+11. Session doc updated with progress log and pickup instructions.
+12. Experiment concluded in DB.
+13. Committed.
+
+**Stop condition:** (b) — New blocker cluster found (not in L11/L17/L22). L24 closed.
+
+**Key findings:**
+- L17 + L22 classes fully suppressed (0 regressions)
+- AND-gate pass rate improved 29% → 44%
+- LLM-only-blocker rate: 29% → 4% (L23b v5 prompt working)
+- NER-only-warning rate: 23% → 44% (NER catching more, LLM agreeing less = better overall)
+- 2 new design-class blockers: NER-only warning exhaust + adherence stochastic variance
 
 ## Pickup Instructions
 
-(written by subagent on stop)
+**Status:** SHIPPED. L24 complete. Session closed.
+
+**Next work:** L25 sprint (3 independent fixes):
+- L25a: `src/agents/halluc-ungrounded/index.ts` — change NER-only-warning branch from `pass: false` to `pass: true` (severity: warning). Update `aggregateIssues` in `src/phases/beat-checks.ts` to pass warnings through without blocking.
+- L25b: Same file — `ner+llm-blocker` should require entity-phrase intersection (`nerUngrounded ∩ llmFlagged ≠ ∅`). When they flag different entities, split into NER-only warning + LLM-only blocker.
+- L25c: `src/agents/writer/adherence-checker.ts` + `src/phases/drafting.ts` — when stage 2 `obligated_events` all `enacted: true`, accept beat (override stage 1 FAIL).
+- After all 3: re-smoke fantasy-debt with `--experiment <N> --auto --chapters 3` for stop condition (a).
+
+**Evidence path:** `docs/l24-smoke-l21-l23-validation-2026-05-01.md`, `docs/decisions.md` §L24, exp #344 in `tuning_experiments`, novel `novel-1777704637163` in `public.novels` on LXC.
