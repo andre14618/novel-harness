@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: complete
 updated: 2026-05-01
 duration: ~1h
 commits: 3
@@ -76,17 +76,17 @@ matrix to `phase_eval_runs`.
 
 ## Status
 
-[ ] Session doc written
-[ ] Fixture JSONL built
-[ ] Run script built
-[ ] Experiment created (DB)
-[ ] Panel run completed
-[ ] Per-shape matrix computed
-[ ] phase_eval_runs row persisted
-[ ] Result doc written
-[ ] decisions.md appended
-[ ] todo.md updated (§8 item closed)
-[ ] Committed (3 commits)
+[x] Session doc written
+[x] Fixture JSONL built
+[x] Run script built
+[x] Experiment created (DB) — exp #337
+[x] Panel run completed — phase_eval_runs.id=79
+[x] Per-shape matrix computed
+[x] phase_eval_runs row persisted
+[x] Result doc written — docs/partial-enactment-adherence-panel-2026-05-01.md
+[x] decisions.md appended — L18 entry
+[x] todo.md updated — §8 item closed + 2 follow-up prompt-iteration items added
+[x] Committed (3 commits: dc1ceda, 6279f84, 3489257)
 
 ## Pickup Instructions
 
