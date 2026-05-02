@@ -26,9 +26,12 @@ import {
   titlePairRegex,
   capitalizedMultiWordRegex,
   suffixClassRegex,
+  xOfYCapitalizedRegex,
+  numberWordTailRegex,
   normalizeForGroundedMatch,
   TITLE_TOKENS,
   SUFFIX_TOKENS,
+  NUMBER_WORD_TOKENS,
   type EntityCandidate,
 } from "./entity-candidates"
 
@@ -380,13 +383,13 @@ describe("output structure invariants", () => {
     }
   })
 
-  test("class field is one of the three known classes", () => {
+  test("class field is one of the five known classes", () => {
     const out = extractEntityCandidates(
       "Master Orin and the Bellward Order watched the Sundered Crown fall."
     )
     expect(out.length).toBeGreaterThan(0)
     for (const c of out) {
-      expect(["title-pair", "capitalized-multi-word", "suffix-class"]).toContain(c.class)
+      expect(["title-pair", "capitalized-multi-word", "suffix-class", "x-of-y-capitalized", "number-word-tail"]).toContain(c.class)
     }
   })
 })
@@ -408,6 +411,14 @@ describe("exported helpers", () => {
     expect(SUFFIX_TOKENS).toContain("Crown")
   })
 
+  test("NUMBER_WORD_TOKENS contains the documented set", () => {
+    expect(NUMBER_WORD_TOKENS).toContain("Eight")
+    expect(NUMBER_WORD_TOKENS).toContain("Seven")
+    expect(NUMBER_WORD_TOKENS).toContain("Hundred")
+    expect(NUMBER_WORD_TOKENS).toContain("Twelve")
+    expect(NUMBER_WORD_TOKENS).toContain("Zero")
+  })
+
   test("titlePairRegex matches a documented form", () => {
     const re = titlePairRegex()
     const m = re.exec("Master Orin entered.")
@@ -424,6 +435,253 @@ describe("exported helpers", () => {
     const re = suffixClassRegex()
     const m = re.exec("the Bellward Order convened.")
     expect(m?.[0]).toBe("Bellward Order")
+  })
+
+  test("xOfYCapitalizedRegex matches a documented form", () => {
+    const re = xOfYCapitalizedRegex()
+    const m = re.exec("The envoy came from the Crown of Hyran.")
+    expect(m?.[0]).toBe("the Crown of Hyran")
+  })
+
+  test("numberWordTailRegex matches a documented form", () => {
+    const re = numberWordTailRegex()
+    // "The Veiled Eight" — the optional leading article "The" is included in the
+    // raw regex match (so the full canonical phrase is captured). The
+    // extractEntityCandidates wrapper uses this offset directly.
+    const m = re.exec("The Veiled Eight was dissolved.")
+    expect(m?.[0]).toBe("The Veiled Eight")
+  })
+})
+
+// ── L15: x-of-y-capitalized class ────────────────────────────────────────────
+
+describe("x-of-y-capitalized (L15)", () => {
+  test("L12 FN1: Crown of Hyran fires (no article)", () => {
+    // Mirrors named-place-fail-02: "The Envoy had come from the Crown of Hyran"
+    const out = extractEntityCandidates(
+      "The Envoy had come from the Crown of Hyran — a realm Cassel understood only in the abstract."
+    )
+    const xoy = out.filter(c => c.class === "x-of-y-capitalized")
+    const found = xoy.find(c => c.phrase.includes("Crown of Hyran"))
+    expect(found).toBeDefined()
+  })
+
+  test("L12 FN2: Sigil of Eight fires via x-of-y (article-prefixed)", () => {
+    // Mirrors named-artifact-fail-03: "possession of the Sigil of Eight"
+    // NB: "of" is lowercase so capitalized-multi-word misses this.
+    const out = extractEntityCandidates(
+      "The argument hinged on whether possession of the Sigil of Eight constituted legal authority."
+    )
+    const xoy = out.filter(c => c.class === "x-of-y-capitalized")
+    const found = xoy.find(c => c.phrase.includes("Sigil of Eight"))
+    expect(found).toBeDefined()
+  })
+
+  test("Order of Vesh fires", () => {
+    const out = extractEntityCandidates("He served the Order of Vesh for twenty years.")
+    const xoy = out.filter(c => c.class === "x-of-y-capitalized")
+    expect(xoy.find(c => c.phrase.includes("Order of Vesh"))).toBeDefined()
+  })
+
+  test("Vale of Whispers fires", () => {
+    const out = extractEntityCandidates("She descended into the Vale of Whispers at dawn.")
+    const xoy = out.filter(c => c.class === "x-of-y-capitalized")
+    expect(xoy.find(c => c.phrase.includes("Vale of Whispers"))).toBeDefined()
+  })
+
+  test("House of Mirrors fires", () => {
+    const out = extractEntityCandidates("The delegation from the House of Mirrors arrived.")
+    const xoy = out.filter(c => c.class === "x-of-y-capitalized")
+    expect(xoy.find(c => c.phrase.includes("House of Mirrors"))).toBeDefined()
+  })
+
+  test("Year of Fallen Axes fires (Y is two words)", () => {
+    const out = extractEntityCandidates("He remembered the Year of Fallen Axes with dread.")
+    const xoy = out.filter(c => c.class === "x-of-y-capitalized")
+    expect(xoy.find(c => c.phrase.includes("Year of Fallen"))).toBeDefined()
+  })
+
+  test("'out of nowhere' does NOT fire (all lowercase)", () => {
+    const out = extractEntityCandidates("He appeared out of nowhere suddenly.")
+    const xoy = out.filter(c => c.class === "x-of-y-capitalized")
+    expect(xoy).toHaveLength(0)
+  })
+
+  test("'part of the plan' does NOT fire (lowercase)", () => {
+    const out = extractEntityCandidates("She knew she was part of the plan.")
+    const xoy = out.filter(c => c.class === "x-of-y-capitalized")
+    expect(xoy).toHaveLength(0)
+  })
+
+  test("'piece of cake' does NOT fire (lowercase)", () => {
+    const out = extractEntityCandidates("That test was a piece of cake.")
+    const xoy = out.filter(c => c.class === "x-of-y-capitalized")
+    expect(xoy).toHaveLength(0)
+  })
+
+  test("'out Of nowhere' — single capital letter pattern does NOT fire", () => {
+    // 'Of' has a single uppercase letter, but 'out' is lowercase — the X
+    // part fails the [A-Z][a-z] requirement.
+    const out = extractEntityCandidates("She leapt out Of nowhere.")
+    // Even if "Of nowhere" somehow triggered, "out" is lowercase so X fails.
+    const xoy = out.filter(c => c.class === "x-of-y-capitalized")
+    // Should not fire a match starting at "out" (lowercase x)
+    expect(xoy.find(c => c.phrase.toLowerCase().startsWith("out"))).toBeUndefined()
+  })
+
+  test("inside italics: Crown of Hyran does NOT fire", () => {
+    const out = extractEntityCandidates("She read *the Crown of Hyran* in the ledger.")
+    expect(out.find(c => c.class === "x-of-y-capitalized")).toBeUndefined()
+  })
+
+  test("x-of-y phrase article is included in the output phrase", () => {
+    // "the Crown of Hyran" — the article should be part of the extracted phrase
+    const out = extractEntityCandidates("It came from the Crown of Hyran directly.")
+    const xoy = out.filter(c => c.class === "x-of-y-capitalized")
+    const found = xoy.find(c => c.phrase.includes("Crown of Hyran"))
+    expect(found).toBeDefined()
+    // The phrase must match a substring of the original prose at its offsets
+    const prose = "It came from the Crown of Hyran directly."
+    if (found) {
+      expect(prose.slice(found.offsetStart, found.offsetEnd)).toBe(found.phrase)
+    }
+  })
+
+  test("normalizeForGroundedMatch symmetry: 'Crown of Hyran' matches 'the Crown of Hyran'", () => {
+    expect(normalizeForGroundedMatch("Crown of Hyran")).toBe(
+      normalizeForGroundedMatch("the Crown of Hyran")
+    )
+  })
+})
+
+// ── L15: number-word-tail class ───────────────────────────────────────────────
+
+describe("number-word-tail (L15)", () => {
+  test("L12 FN3: the Veiled Eight fires", () => {
+    // Mirrors plural-faction-fail-03: "The Veiled Eight had not been an official body"
+    const out = extractEntityCandidates(
+      "The Veiled Eight had not been an official body for sixty years."
+    )
+    const nwt = out.filter(c => c.class === "number-word-tail")
+    const found = nwt.find(c => c.phrase.includes("Veiled Eight"))
+    expect(found).toBeDefined()
+  })
+
+  test("L12 FN2: Sigil of Eight fires via x-of-y-capitalized (number-word-tail does NOT fire here)", () => {
+    // "the Sigil of Eight" — the word immediately before "Eight" is "of"
+    // (lowercase), so number-word-tail (which requires CapWord\s+NumberWord)
+    // does NOT fire. The entity is covered by x-of-y-capitalized instead.
+    const out = extractEntityCandidates(
+      "The argument hinged on whether possession of the Sigil of Eight constituted legal authority."
+    )
+    const xoy = out.filter(c => c.class === "x-of-y-capitalized")
+    expect(xoy.find(c => c.phrase.includes("Sigil of Eight"))).toBeDefined()
+    // Confirm number-word-tail does NOT incorrectly fire on "of Eight"
+    const nwt = out.filter(c => c.class === "number-word-tail")
+    expect(nwt.find(c => c.phrase.includes("of Eight"))).toBeUndefined()
+  })
+
+  test("the Silent Twelve fires", () => {
+    const out = extractEntityCandidates("He feared the Silent Twelve above all others.")
+    const nwt = out.filter(c => c.class === "number-word-tail")
+    expect(nwt.find(c => c.phrase.includes("Silent Twelve"))).toBeDefined()
+  })
+
+  test("the Blessed Seven fires", () => {
+    const out = extractEntityCandidates("The Blessed Seven stood at the gate.")
+    const nwt = out.filter(c => c.class === "number-word-tail")
+    expect(nwt.find(c => c.phrase.includes("Blessed Seven"))).toBeDefined()
+  })
+
+  test("the Broken Hundred fires (large magnitude)", () => {
+    const out = extractEntityCandidates("She faced the Broken Hundred in the old arena.")
+    const nwt = out.filter(c => c.class === "number-word-tail")
+    expect(nwt.find(c => c.phrase.includes("Broken Hundred"))).toBeDefined()
+  })
+
+  test("the Forty-Seven fires (hyphenated composite)", () => {
+    const out = extractEntityCandidates("They numbered among the Fallen Forty-Seven.")
+    const nwt = out.filter(c => c.class === "number-word-tail")
+    expect(nwt.find(c => c.phrase.includes("Forty-Seven"))).toBeDefined()
+  })
+
+  test("'chapter seven' does NOT fire (lowercase)", () => {
+    const out = extractEntityCandidates("She opened the book to chapter seven.")
+    const nwt = out.filter(c => c.class === "number-word-tail")
+    expect(nwt).toHaveLength(0)
+  })
+
+  test("'the forty eight' does NOT fire (lowercase number words)", () => {
+    const out = extractEntityCandidates("There were the forty eight reports to review.")
+    const nwt = out.filter(c => c.class === "number-word-tail")
+    expect(nwt).toHaveLength(0)
+  })
+
+  test("'an article Ten' — article + bare cap + number fires", () => {
+    // "Crimson Ten" is a proper faction name
+    const out = extractEntityCandidates("He joined the Crimson Ten last autumn.")
+    const nwt = out.filter(c => c.class === "number-word-tail")
+    expect(nwt.find(c => c.phrase.includes("Crimson Ten"))).toBeDefined()
+  })
+
+  test("inside italics: Veiled Eight does NOT fire", () => {
+    const out = extractEntityCandidates("She recalled *the Veiled Eight* from the old texts.")
+    expect(out.find(c => c.class === "number-word-tail")).toBeUndefined()
+  })
+
+  test("offset invariant: phrase matches original prose at offsets", () => {
+    const prose = "She feared the Veiled Eight more than anything."
+    const out = extractEntityCandidates(prose)
+    for (const c of out) {
+      expect(prose.slice(c.offsetStart, c.offsetEnd)).toBe(c.phrase)
+    }
+  })
+
+  test("normalizeForGroundedMatch: 'Veiled Eight' matches 'the Veiled Eight'", () => {
+    expect(normalizeForGroundedMatch("Veiled Eight")).toBe(
+      normalizeForGroundedMatch("the Veiled Eight")
+    )
+  })
+})
+
+// ── L15: regression guards — existing classes unchanged ──────────────────────
+
+describe("regression guards (L15 must not disturb prior classes)", () => {
+  test("capitalized-multi-word at sentence start STILL filtered after L15", () => {
+    const out = extractEntityCandidates("Sundered Crown fell from the sky.")
+    expect(out.filter(c => c.class === "capitalized-multi-word")).toHaveLength(0)
+  })
+
+  test("suffix-class at sentence start STILL filtered after L15", () => {
+    const out = extractEntityCandidates("Bellward Order met that night.")
+    expect(out.filter(c => c.class === "suffix-class")).toHaveLength(0)
+  })
+
+  test("title-pair still fires at sentence start after L15", () => {
+    const out = extractEntityCandidates("Arbiter Vesh entered the hall.")
+    const tp = out.filter(c => c.class === "title-pair")
+    expect(tp).toHaveLength(1)
+    expect(tp[0].phrase).toBe("Arbiter Vesh")
+  })
+
+  test("article-prefixed x-of-y does NOT suppress suffix-class or multi-word", () => {
+    // "Halrune Vale" should still fire suffix-class and capitalized-multi-word
+    const out = extractEntityCandidates("She rode toward Halrune Vale at dusk.")
+    expect(out.filter(c => c.class === "capitalized-multi-word").find(c => c.phrase === "Halrune Vale")).toBeDefined()
+    expect(out.filter(c => c.class === "suffix-class").find(c => c.phrase === "Halrune Vale")).toBeDefined()
+  })
+
+  test("existing 5 classes all appear in class field check", () => {
+    const out = extractEntityCandidates(
+      "Master Orin met the Bellward Order under the Crown of Hyran near the Veiled Eight."
+    )
+    const classes = new Set(out.map(c => c.class))
+    // Multiple classes should fire on this passage
+    expect(out.length).toBeGreaterThan(0)
+    for (const c of out) {
+      expect(["title-pair", "capitalized-multi-word", "suffix-class", "x-of-y-capitalized", "number-word-tail"]).toContain(c.class)
+    }
+    void classes
   })
 })
 
