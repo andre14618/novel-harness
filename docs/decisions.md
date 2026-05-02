@@ -2862,3 +2862,22 @@ corpus-v1's closer mix (70% interiority / 20% action / 10% dialogue / 0% descrip
 - Opener guidance: move to `planning-beats/corpus-v1.md` (where beat kind is decided) rather than continuing to iterate in plotter. Plotter prompt's opener block can be reduced to "Decide opener kind from chapter dramatic need; the beats expander has the corpus distribution rule."
 - The phase-eval probe's G1/G2 gates need a noise-aware revision before they're usable for promotion decisions. Cheapest path: require 2 successful runs above the threshold rather than 1.
 - Beat-floor failure mode is rare but real; downstream re-prompt-and-retry would help, but that's a planner-prompt question, not a gate question.
+
+### Closer-rule promotion to default plotter — clean PASS, no regression (2026-05-01, exp #312)
+
+**Decision:** Validated commit `14218bf` (live `src/agents/planning-plotter/chapter-outline-system.md` + variant `default.md` both gain the explicit "NEVER close a chapter on pure description" rule). Persisted as `phase_eval_runs.id=20`. Probe used `--variant-dir=planning-plotter --variants=default,corpus-v1`.
+
+**Closer-kind diagnostic (the one we cared about):**
+- default plotter post-promotion: action=5, dialogue=0, interiority=5, description=0 (0/10 description, action+interiority balanced)
+- corpus-v1 plotter (rule-now-redundant): action=7, dialogue=0, interiority=3, description=0 (0/10 description)
+
+**Why this matters:** the post-promotion default plotter produced exactly the same 0/10 description-close behavior as it did pre-promotion in exps #307/#311. The rule was implicit; the commit makes it explicit and stochastic-drift-resistant. No behavior change observed in the validation run, which is the result we wanted.
+
+**Other observations from this run:**
+- Both variants over-rotated to description openers (default 9/10, corpus-v1 8/10). Default's opener mix being even MORE description-heavy than corpus-v1 confirms the noise-baseline finding: plotter prompt has minimal influence on opener kind, which is decided downstream in planning-beats. The opener-relocation edit (commit `1b0cfdf`) is the response.
+- G1/G2 SCREEN-FAIL is the n=10 noise expected per exp #311 lesson; not a real regression.
+- `corpus-v1` had `overloaded=1` (one beat flagged as overloaded). Single-instance signal, not a trend yet.
+
+**Ongoing implications:**
+- Closer rule shipped to live; production novel runs after this deploy will have explicit guard against description-only closes.
+- Next probe (exp #313) tests the opener-relocation in planning-beats, comparing beats-variant default vs corpus-v1 (the new opener prior).
