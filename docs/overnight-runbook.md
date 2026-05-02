@@ -91,6 +91,7 @@ bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --worker-role captain --worker-id captain-claude --worker-io terminal
 nohup bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md > /tmp/lane-runner-<lane-id>.log 2>&1 &
 bun scripts/agent/lane-message.ts list docs/sessions/<lane>.md --open
+bun scripts/agent/finalize-docs.ts docs/sessions/<lane>.md --result "new blocker" --commit <sha> --evidence "experiment#<id>" --evidence "chapter_exhaustions#<id>"
 ```
 
 `monitor` selects the latest non-template session doc with a complete Loop Contract. If none exists, it stays open in a waiting state and polls until one appears; `monitor --once` still exits immediately. Legacy session docs are skipped by default so they do not permanently show missing-field noise; pass a path explicitly to inspect one. `lane-status.ts` returns exit code `0` only when the outside loop should continue. It stops or blocks on missing lane-contract fields, stale heartbeat, explicit stop events, result stop gates, human-needed events, infra-failure events, and stale outside-loop state. The default dashboard shows all panels: outside lane state, inside-harness novel summary, evidence rows, repo hygiene, and process health. Use `--panel outside|inside|evidence|hygiene|process` to narrow it. The `--latest-novel` / `--novel <id>` flags control the inside-harness novel summary delegated to `scripts/operator-summary.ts`.
@@ -114,6 +115,8 @@ For background launches, the `/tmp/lane-runner-<lane-id>.log` file is only the s
 Use `--queue docs/sessions/lane-queue.md` only with pre-created lane docs. The runner advances after a stopped lane only when `Outcome`, `Stop gate fired`, `Evidence link/row/path`, and `Commit(s)` are filled in that lane's Results section. It will not invent a new lane from a vague queue title while unattended.
 
 The worker prompt now carries the end-of-lane finalization contract. Before a lane writes its stop gate for queue handoff, it should update durable docs (`docs/current-state.md`, `docs/todo.md`, `docs/decisions.md`, `docs/lessons-learned.md`, and the lane doc as applicable), conclude the experiment row, dry-run/apply stale-gate orphaning for classified evidence rows, run docs-impact and whitespace checks, and commit the final docs/cleanup unit. This is the automated version of the manual sweep normally done by the supervising chat after a lane stops.
+
+For systematic documentation handoff, use `scripts/agent/finalize-docs.ts`. It invokes the repo-local OpenCode `docs-finalizer` subagent on `deepseek/deepseek-v4-flash` with the high reasoning variant, passes the lane/session context and evidence refs, and authorizes a docs-only commit after `bun scripts/preflight-docs-impact.ts --strict` and `git diff --check` pass. The finalizer must stage only allowed documentation files and must not push.
 
 Keep the inside-harness panel clean by resolving abandoned pending plan-assist gates as `orphaned` after dry-run review. This preserves evidence while removing rows from live monitoring:
 

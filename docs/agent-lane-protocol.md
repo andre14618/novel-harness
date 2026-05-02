@@ -62,6 +62,12 @@ bun scripts/agent/lane-message.ts resolve docs/sessions/<lane>.md <msg-id> --act
 bun scripts/agent/lane-message.ts list docs/sessions/<lane>.md --open
 ```
 
+Finalize lane docs with the OpenCode docs-finalizer subagent:
+
+```bash
+bun scripts/agent/finalize-docs.ts docs/sessions/<lane>.md --result "<pass|refuted|new blocker|regression|infra failure|human-needed>" --commit <sha> --evidence "experiment#<id>" --evidence "chapter_exhaustions#<id>"
+```
+
 Run bounded unattended OpenCode or Claude cycles:
 
 ```bash
@@ -94,6 +100,8 @@ Every runner should have an explicit durable identity. Use `--worker-role captai
 Agents coordinate through durable shared state rather than private chat. Use the terminal session for immediate discussion, but make cross-agent requests durable with `lane-message`, current progress durable with `lane-heartbeat`, conclusions durable in lane-doc progress/results, evidence durable in DB rows, and completed work durable in commits. A useful pattern is: lane captain owns runtime edits, evidence agent claims fixed-panel or LXC monitoring requests, support agent claims tests/docs-impact requests, and `monitor --panel coordination` renders open ownership.
 
 The lane message bus is intentionally small and operational. `send` creates an addressed message. `claim` records who owns it and for how long. `resolve` records the finding and evidence references. `cancel` closes obsolete requests. Messages are append-only JSONL under `output/agent-runs/<lane-id>/messages.jsonl`; the dashboard collapses updates by message id and flags expired claims. Use messages for short-lived operational coordination, not as a replacement for lane docs, experiments, or commits.
+
+`docs-finalizer` is a repo-local OpenCode subagent stored at `.opencode/agent/docs-finalizer.md`. Use `scripts/agent/finalize-docs.ts` to invoke it systematically on `deepseek/deepseek-v4-flash` with the high reasoning variant. Point it at a lane/session doc plus result classification, commits, and evidence refs when the lane has a durable result. It may update the lane Results, `docs/current-state.md`, `docs/todo.md`, `docs/decisions.md`, and `docs/lessons-learned.md`, then run docs-impact and whitespace checks. It commits only allowed documentation files with a `[docs] ...` message and must not edit runtime code or push.
 
 When running in the background, treat the `/tmp/lane-runner-<lane-id>.log` file as the supervisor process log and the per-cycle files under `output/agent-runs/<lane-id>/cycles/` as the worker transcript artifacts. Use `monitor --once --no-latest-novel` or `monitor --append --no-latest-novel` for snapshots without taking over the terminal.
 
