@@ -137,6 +137,9 @@ export function buildCyclePrompt(args: RunnerArgs, cycle: number, laneSummary: s
   const lanePath = args.lanePath!
   const extra = args.extraInstruction.trim()
   const actor = args.engine === "claude" ? "claude" : "opencode"
+  const queueNote = args.queuePath
+    ? `- Queue handoff is configured at ${args.queuePath}; complete finalization before writing a stop gate so the runner can advance deterministically.`
+    : "- No queue handoff is configured; still complete finalization before stopping so pickup is clean."
   return [
     `Run one bounded autonomous ${args.engine} work cycle for Novel Harness lane ${lanePath}.`,
     `Cycle ${cycle}/${args.maxCycles}. Stop after one coherent work unit; the repo-side runner will decide whether another cycle starts.`,
@@ -159,6 +162,17 @@ export function buildCyclePrompt(args: RunnerArgs, cycle: number, laneSummary: s
     "7. Commit a coherent completed unit only if repo instructions allow it and checks pass; never push.",
     "8. Update the lane doc progress/results if the cycle reaches a durable finding.",
     "9. End with a concise status: what changed, checks run, next safe command.",
+    "",
+    "Lane finalization before stop or queue handoff:",
+    "- Do not merely emit a stop event when the lane has a durable result.",
+    "- First update Results: Outcome, Stop gate fired, Evidence link/row/path, Cost, and Commit(s).",
+    "- Update persistent docs that should survive chat: docs/current-state.md, docs/todo.md, docs/decisions.md, docs/lessons-learned.md, and the lane doc as applicable.",
+    "- Conclude the Experiment ID with bun scripts/agent/conclude-experiment.ts --id <id> --conclusion \"<summary>\" when the lane result is known.",
+    "- Resolve classified pending plan-assist gates with scripts/agent/resolve-stale-gates.ts after a dry-run; preserve evidence as orphaned, never delete rows.",
+    "- Run bun scripts/preflight-docs-impact.ts --strict and git diff --check before the finalization commit.",
+    "- Commit the final docs/cleanup unit if checks pass; never push.",
+    "- Only after those steps should the lane doc contain a stop gate that allows the runner to stop or advance.",
+    queueNote,
     extra ? "" : null,
     extra ? "Extra instruction:" : null,
     extra || null,
@@ -315,6 +329,7 @@ export function missingConclusionFields(lanePath: string): string[] {
   if (!field(doc, "results", "outcome")) missing.push("Results: Outcome")
   if (!field(doc, "results", "stop gate fired")) missing.push("Results: Stop gate fired")
   if (!field(doc, "results", "evidence link/row/path")) missing.push("Results: Evidence link/row/path")
+  if (!field(doc, "results", "commit(s)")) missing.push("Results: Commit(s)")
   return missing
 }
 

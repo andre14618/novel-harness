@@ -28,7 +28,7 @@ Use this template for any unattended Claude loop. Copy it to `docs/sessions/YYYY
 - Evidence artifact:
 - Event log: output/agent-runs/<lane-id>/events.jsonl
 - Dashboard command: bun scripts/agent/lane-dashboard.ts docs/sessions/<lane>.md --watch --latest-novel
-- Runner command: bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8
+- Runner command: bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md
 
 ## Baseline
 
@@ -51,7 +51,7 @@ Use this template for any unattended Claude loop. Copy it to `docs/sessions/YYYY
 - Expected cost:
 - Command 1:
 - Command 2:
-- Runner dry-run: `bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --dry-run`
+- Runner dry-run: `bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --queue docs/sessions/lane-queue.md --dry-run`
 - Verification command(s):
 
 ## Progress Log
@@ -71,6 +71,14 @@ Use this template for any unattended Claude loop. Copy it to `docs/sessions/YYYY
 - Evidence link/row/path:
 - Cost:
 - Commit(s):
+
+## Finalization Checklist
+
+- Persistent docs updated: `docs/current-state.md`, `docs/todo.md`, `docs/decisions.md`, `docs/lessons-learned.md`, and this lane doc as applicable.
+- Experiment concluded: `bun scripts/agent/conclude-experiment.ts --id <id> --conclusion "<summary>"`.
+- Classified pending gates resolved as `orphaned` after dry-run, if any.
+- Final checks run: `bun scripts/preflight-docs-impact.ts --strict`; `git diff --check`.
+- Final docs/cleanup commit created before stop/queue handoff.
 
 ## Pickup Instructions
 

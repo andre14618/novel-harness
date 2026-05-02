@@ -80,13 +80,18 @@ describe("lane-runner args", () => {
 
 describe("lane-runner prompt and command", () => {
   test("builds bounded cycle prompt from lane status", () => {
-    const prompt = buildCyclePrompt(baseArgs({ engine: "claude", extraInstruction: "Use focused tests only." }), 2, "state: CONTINUE")
+    const prompt = buildCyclePrompt(baseArgs({ engine: "claude", queuePath: "docs/sessions/lane-queue.md", extraInstruction: "Use focused tests only." }), 2, "state: CONTINUE")
     expect(prompt).toContain("Cycle 2/4")
     expect(prompt).toContain("docs/sessions/lane.md")
     expect(prompt).toContain("claude work cycle")
     expect(prompt).toContain("Record a heartbeat")
     expect(prompt).toContain("--actor claude")
     expect(prompt).toContain("Do not touch deferred out-of-lane runtime changes")
+    expect(prompt).toContain("Lane finalization before stop or queue handoff")
+    expect(prompt).toContain("Results: Outcome, Stop gate fired, Evidence link/row/path, Cost, and Commit(s)")
+    expect(prompt).toContain("conclude-experiment.ts")
+    expect(prompt).toContain("resolve-stale-gates.ts")
+    expect(prompt).toContain("Queue handoff is configured at docs/sessions/lane-queue.md")
     expect(prompt).toContain("Use focused tests only.")
   })
 

@@ -58,7 +58,8 @@ Run bounded unattended OpenCode or Claude cycles:
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --dry-run
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --max-cycles 4 --max-hours 3 --model openai/gpt-5.5
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8
-nohup bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 > /tmp/lane-runner-<lane-id>.log 2>&1 &
+bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md
+nohup bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md > /tmp/lane-runner-<lane-id>.log 2>&1 &
 ```
 
 `monitor` is the shell shortcut for `bun run monitor` in this repo. It defaults to the latest non-template session doc with a complete `Loop Contract`, watches continuously, and includes all panels. If no active lane exists, bare `monitor` stays open in a waiting state and polls until a complete lane doc appears. Use `monitor --once` for a single render, `monitor --append` to append snapshots instead of redrawing in place, `monitor --no-latest-novel` to hide inside-harness novel data, or `monitor --panel <name>` to narrow the dashboard.
@@ -71,7 +72,7 @@ Older session docs created before the lane-contract template are intentionally s
 
 When running in the background, treat the `/tmp/lane-runner-<lane-id>.log` file as the supervisor process log and the per-cycle files under `output/agent-runs/<lane-id>/cycles/` as the worker transcript artifacts. Use `monitor --once --no-latest-novel` or `monitor --append --no-latest-novel` for snapshots without taking over the terminal.
 
-Queued advancement is deterministic. With `--queue docs/sessions/lane-queue.md`, the runner advances only after the stopped lane has `Results: Outcome`, `Results: Stop gate fired`, and `Results: Evidence link/row/path` filled. Queue entries must point to pre-created lane docs:
+Queued advancement is deterministic. With `--queue docs/sessions/lane-queue.md`, the runner advances only after the stopped lane has `Results: Outcome`, `Results: Stop gate fired`, `Results: Evidence link/row/path`, and `Results: Commit(s)` filled. Queue entries must point to pre-created lane docs:
 
 ```markdown
 # Lane Queue
@@ -82,6 +83,8 @@ Queued advancement is deterministic. With `--queue docs/sessions/lane-queue.md`,
 ## Next
 1. docs/sessions/next-lane.md
 ```
+
+The worker prompt includes a finalization contract before stop/queue handoff. A lane with a durable result should update persistent docs, conclude its experiment, resolve classified stale gates as `orphaned`, run docs-impact plus whitespace checks, and commit the docs/cleanup unit before filling the stop gate. This keeps the queue moving without depending on a supervising chat to do the end-of-lane sweep.
 
 Exit codes from `lane-status.ts`:
 
