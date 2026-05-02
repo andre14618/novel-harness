@@ -69,7 +69,7 @@ role: primary-lane-context
 - Stop gate fired: (a) deterministic grounded-union tests pass and the todo gap is closed.
 - Evidence link/row/path: `src/agents/halluc-ungrounded/index.ts` (isNerGrounded tier-5 + TITLE_TOKENS_LOWER), `src/agents/halluc-ungrounded/index.test.ts` (4 new/updated tests), `bun test src/agents/halluc-ungrounded/index.test.ts src/lint/entity-candidates.test.ts` → 174/174 pass.
 - Cost: $0 (deterministic test lane; no LLM calls).
-- Commit(s): pending finalization commit (this cycle).
+- Commit(s): `559e8c8` [checker] L49: title-strip tier-5 closes title+surname grounding gap.
 
 ## Finalization Checklist
 
