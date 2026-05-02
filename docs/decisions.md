@@ -3980,3 +3980,47 @@ The continuity-blocker exhaustion class identified in L37-data turned out to hav
 **Ongoing implications:** L31 stack accuracy improves materially. The L37-data L31d-(NEW) cluster is now split into two: chapter-level continuity blockers (real plan-vs-prose contradictions, addressed by future L38 writer-state-propagation work) vs. adherence truncation-FNs (closed by L39). Heretic-class failures should be substantially reduced.
 
 ---
+
+### L39-validation — Heretic re-smoke validates truncation fix (2026-05-02, exp #364)
+*2026-05-02 · exp #364 · novel `novel-1777712370271` · log `/tmp/smoke-l39val-heretic-1777712370.log` · deploy commit `ae158f9`*
+
+**Decision:** L39 fix VALIDATED. The adherence-checker prose truncation 2000 → 8000 fix (commit `0dc2b0c`) measurably closes the truncation-FN cluster on heretic-class long-action-beat scenarios. Cost-neutral as predicted (cached prefix dominates).
+
+**Direct A/B comparison (same seed, same scenario):**
+
+| Metric | Original heretic (pre-L39) | L39-val heretic (post-L39) | Delta |
+|---|---|---|---|
+| LLM calls | 200 | 175 | -12% |
+| Calls on retry | 52 | **25** | **-52%** |
+| Cost | $0.0619 | $0.0606 | -2% (essentially equal) |
+| AND-gate pass rate | 31% | **51%** | +20 pts |
+| Stage-2-override events | 2 | 6 | +4 |
+| Bail cluster | adherence FN (Beat 4 reshelves) | halluc "System" ungrounded (Beat 2) | DIFFERENT |
+
+**Stop condition: (b) — NEW out-of-scope cluster found.** L39-val heretic ch1 attempt 3 had no adherence blockers (vs. original heretic which bailed on adherence FN). Bailed instead on a NEW cluster: gamelit "the System" entity not in the grounded surface.
+
+**L39-(NEW) — Gamelit "System" entity grounding:**
+
+The fantasy-system-heretic seed centers on "the System" — a magical/mechanical hierarchy that classes, ranks, and surveils citizens. The world-bible likely contains specific subsystems but not the meta-token "the System" that the writer naturally uses. The halluc-ungrounded checker correctly flagged `"the seal of the System stitched over the chest"` as a new entity insertion.
+
+This is a world-builder coverage gap, not a checker bug. Three candidate fixes (in order of cost/scope):
+1. **Patch the heretic seed:** add "System" to `world_bible_json.systems[]` (fastest).
+2. **Patch `buildOutlineEntityList`:** extract repeated capitalized single-word terms from chapter outlines.
+3. **Add a litRPG-genre vocabulary extractor:** for litRPG/gamelit seeds, derive "System", "Class", "Status" etc. as known game-mechanic vocabulary.
+
+Belongs in **L40** sprint.
+
+**Cluster hold list (validated by L39-val):**
+
+| Cluster | Status |
+|---|---|
+| L17 character_roster + outline_entities | ✅ HOLDS — no fires |
+| L22 FN entity expansion (derived titles) | ✅ HOLDS — no fires |
+| L24-(a) NER-only-warning exhaust (L31a) | ✅ HOLDS — 18 NER-only-warnings, all `pass: true` |
+| L24-(b) adherence stage-1 stochastic (L31c) | ✅ HOLDS — 6 stage-2-overrides correct |
+| L26/L32 mapper allowedNewEntities dup-FPs (L32) | ✅ HOLDS — 0 dup-FPs |
+| L39 adherence prose truncation | ✅ **VALIDATED** — 0 adherence FNs on attempt 3 |
+
+**Ongoing implications:** L31 + L39 stack is now the production baseline. Heretic-class long-action-beat failures are substantially reduced (52% fewer retries). Next bottlenecks for unattended completion are seed/genre-specific gaps (gamelit vocabulary in L40, prose-integrity instability in L41). Continuity cluster (L38) remains queued but lower priority per L37-data fire-rate evidence.
+
+---
