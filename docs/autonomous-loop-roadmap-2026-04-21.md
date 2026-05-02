@@ -36,6 +36,8 @@ The core thesis:
 > new fine-tune methodology. Once planning is sharp enough, a
 > narrow plan-aware linter becomes buildable.
 
+**Current operating overlay (2026-05-02):** roadmap tiers are explored through one primary lane at a time. A lane declares its baseline, changed runtime lever, feedback signal, stop gate, and escalation rule before validation. DeepSeek V4 Flash concurrency should buy statistical power inside that lane through repeated same-family runs, fixed panels, paired replay, or multi-seed confirmation. Support tooling can proceed in parallel, but runtime changes from another tier are deferred to their own lane so promotion evidence stays attribution-clean.
+
 Primary evaluation substrate for every tier: **published-prose
 distance on the Salvatore held-out set** (per the 2026-04-21 pivot —
 see `docs/designs/autonomous-context-loop.md` and the shared fixture

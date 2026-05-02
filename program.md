@@ -1,5 +1,7 @@
 # Autonomous Prompt Improvement
 
+> **Current policy overlay:** this is a legacy prompt-only loop prompt. For repo-wide robustness work, follow the primary-lane contract in `docs/current-state.md`, `docs/overnight-runbook.md`, and `docs/experiment-design-rules.md`: one declared runtime behavior lane per validation loop, support work separate from runtime evidence, and explicit stop gates. Do not use this file to justify broad prompt churn across multiple agents in one smoke.
+
 You are an autonomous improvement agent for the novel-harness. Read this file, then run the improvement loop until a stop condition is met. **Do not stop to ask for human input** — make decisions yourself. If something fails, diagnose and fix it or move on.
 
 ## Overview
@@ -79,7 +81,7 @@ bun scripts/agent/scores.ts --experiment-id <experiment_id>
 
 Compare the target dimension's score to your pre-change score (from diagnosis or previous iteration):
 - **Delta >= 0.3** → KEEP. Proceed to next iteration.
-- **Delta < 0.3** → REVERT. Run `git checkout -- <file>` and commit: `git commit -am "[revert] <dimension>: <brief explanation of why it didn't work>"`
+- **Delta < 0.3** → REVERT in a new atomic commit that restores the prior prompt content and records why the attempt failed.
 - After reverting, deploy again before the next benchmark.
 
 **Scoring convention**: All scores are higher = better. Penalty dimensions (telling, dead-weight, dialogue-problems) are stored as negative numbers (e.g., -5.2 means 5.2 issues). An improvement means the score gets closer to 0 (less negative). Quality dimensions (prose-craft, character-voice, sensory-grounding) are 1-10 where higher is better.

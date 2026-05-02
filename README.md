@@ -105,7 +105,7 @@ React SPA served at `/app` on the orchestrator (port 3006):
 
 ## Autonomous Improvement Loop
 
-The original `Improvement Daemon` was deleted — its knob space only covered legacy retrieval/context-template surfaces that are now mostly inactive (`pipeline.embeddings=false`). Replacement is in progress on the `autonomous-harness-loop` branch borrowing the autoresearch pattern (Karpathy 2026). See `docs/designs/autonomous-context-loop.md` and `scripts/autonomous-loop/README.md`.
+The original `Improvement Daemon` was deleted because its knob space covered legacy retrieval/context-template surfaces that are now mostly inactive (`pipeline.embeddings=false`). Current robustness work uses one primary lane per loop: declare the baseline, changed runtime lever, feedback signal, stop gate, and escalation rule before validation; use DeepSeek V4 Flash concurrency for same-lane statistical power; keep support tooling separate from runtime evidence. See `docs/overnight-runbook.md`, `docs/experiment-design-rules.md`, and `docs/designs/autonomous-context-loop.md`.
 
 ## Seeds
 

@@ -22,10 +22,39 @@ Before kicking off an overnight session:
 The conventional invocation is `/loop` in dynamic mode (the assistant self-paces wakeups via `ScheduleWakeup`). Each loop cycle:
 
 1. Check the queue — read `docs/todo.md` for next-action items.
-2. Pick one orthogonal task; write a session-context file under `docs/sessions/<DATE>-<LOOP>-<topic>.md` BEFORE editing code (per §6 todo rules).
-3. Make the change, run tests, commit.
-4. Update `docs/decisions.md` (concluded items) + `docs/todo.md` (close the bullet).
-5. Loop back to step 1 OR sleep until next condition.
+2. Pick one **primary lane**; write a session-context file under `docs/sessions/<DATE>-<LOOP>-<topic>.md` BEFORE editing code (per §6 todo rules).
+3. Declare baseline, changed runtime lever, feedback signal, stop gate, and escalation rule.
+4. Make the lane change, run tests, commit.
+5. Update `docs/decisions.md` (concluded items) + `docs/todo.md` (close the bullet).
+6. Loop back to step 1 OR sleep until next condition.
+
+## Primary lane contract
+
+A primary lane is the one causal hypothesis being validated by the loop. It can touch multiple files when the hypothesis requires it, but it should change only one runtime behavior bundle before smoke validation.
+
+Allowed parallel support work:
+- tests and parity harnesses
+- docs-impact audits and commit-range audits
+- operator summaries and stop classifiers
+- replay/fixed-panel helpers
+- result docs and session pickup notes
+
+Not allowed in the same validation smoke unless explicitly part of the lane:
+- changing checker thresholds while also changing writer prompts
+- changing routing/model assignment while also changing prompt/schema shape
+- changing planner context while also changing continuity policy
+- changing retry policy while also changing the checker rubric that triggers it
+
+The reason is attribution. If a smoke passes after multiple unrelated runtime changes, the repo cannot tell which change mattered. If it regresses, the repo cannot tell which change caused the regression.
+
+DeepSeek V4 Flash concurrency is encouraged when it adds statistical power inside the active lane. Use it for repeated same-family runs, fixed-panel checker reruns, paired replay over saved `llm_calls`, or multi-seed confirmation after a single-seed signal. Before launching concurrent calls, declare:
+- sample shape and N
+- probe-family key / fixed panel identity
+- budget cap and expected cost
+- promotion gate or rejection gate
+- which evidence artifact will persist the results
+
+Do not use cheap concurrency to run several unrelated runtime lanes at once. That recreates the attribution problem at higher speed.
 
 For LXC smoke-style loops (longer-running, real novel runs), the loop is structured around:
 - Deploy: `bash scripts/deploy-lxc.sh`
@@ -173,12 +202,14 @@ Run this checklist when picking up a half-finished overnight session:
 - **Negative-prime prompt rules** ("never X or Y"): consistently make models emit the forbidden tokens MORE. Use positive framing. Per `feedback_priming_suppression_ab`.
 - **L25/L27 naming collisions**: when proposing a follow-up sprint, check existing experiment IDs and decisions.md headings before claiming the next L-number. Subagents have produced collisions when not enforcing this; rename with a `[docs] ... fixup` commit if discovered after the fact.
 - **Ignoring the docs-impact check**: runtime commits without `docs/current-state.md` co-stage or `docs-impact: none` footer accumulate as silent doc drift. Run `bun scripts/preflight-docs-impact.ts --commit HEAD` after every runtime commit (or wire into a pre-commit hook).
+- **Lane drift after a useful smoke**: closing the current blocker, then immediately editing another runtime layer before recording the stop class. Stop first, document the new cluster, then start the next primary lane.
 
 ## Cross-references
 
 - `docs/todo.md` §6 — overnight loop operating rules
 - `docs/experiment-design-rules.md` §12 — promotion thresholds
 - `docs/commit-conventions.md` — commit prefixes + docs-impact footer convention
+- `docs/sessions/overnight-loop-context-template.md` — required lane/session context skeleton
 - `CLAUDE.md` — always-loaded operating contract
 - `docs/lessons-learned.md` — methodology lessons from prior loops
 - Memory files at `/Users/andre/.claude/projects/-Users-andre-Desktop-personal-projects-novel-harness/memory/` — user preferences and persistent feedback
@@ -187,9 +218,10 @@ Run this checklist when picking up a half-finished overnight session:
 
 A loop ends when one of these conditions fires:
 
-- (a) Acceptance criterion met — promote the change, document, commit, conclude experiment, end loop
-- (b) NEW out-of-scope cluster found — document the cluster, propose follow-up sprint, end loop
-- (c) Prior cluster regresses — roll back the offending commit, document the regression, end loop
-- (d) Cost cap crossed — document partial findings + remaining budget, end loop
+- (a) Clean pass — acceptance criterion met; promote the change, document, commit, conclude experiment, end loop
+- (b) New dominant blocker — target cluster is gone and a new out-of-scope cluster has clear evidence; document the cluster, propose follow-up sprint, end loop
+- (c) Regression — prior cluster regresses; diagnose or revert before doing new work, document the regression, end loop
+- (d) Infrastructure failure — DB, deploy, provider, test harness, logging, or missing evidence prevents interpretation; stop and fix the harness first
+- (e) Cost cap crossed — document partial findings + remaining budget, end loop
 
-The label is mandatory in the result doc and decisions.md entry. Without one, future loops can't tell whether the work was a win, a planned-followup, a regression, or an exhausted budget. (Per `feedback_document_conclusions`.)
+The label is mandatory in the result doc and decisions.md entry. Without one, future loops can't tell whether the work was a win, a planned-followup, a regression, an infrastructure failure, or an exhausted budget. (Per `feedback_document_conclusions`.)

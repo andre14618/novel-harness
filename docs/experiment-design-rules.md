@@ -260,6 +260,10 @@ All models (K2, 32B, 235B) change 63-78% of characters when reproducing a full c
 
 ```
 [ ] Hypothesis written down in experiment description
+[ ] Primary lane named: baseline, changed runtime lever, feedback signal, stop gate, escalation rule
+[ ] Parallel support work declared separately from the runtime behavior bundle
+[ ] Out-of-lane runtime changes explicitly deferred to follow-up lanes
+[ ] If using concurrent DeepSeek V4 Flash calls: sample shape, N, family key, budget cap, and promotion/rejection gate declared before launch
 [ ] Code changes committed (git hash will be captured)
 [ ] Baseline ladder exists or is being created as part of this experiment
 [ ] Eval set covers PASS and FAIL variants (not just one direction)
@@ -408,12 +412,36 @@ L23 split into L23a (NER initials + capitalized-first-only extractors) and L23b 
 
 Every checker A/B / planner variant / synthetic-panel run should pass `--persist` to the script (or call `persistPhaseEvalRun()` directly). Stdout is volatile and lost; the DB row is queryable, comparable, and stays linked to the experiment. Persistence is also the prerequisite for the family-rollup (§12.2) and consecutive-PASS gate (§12.3). *(R6 v1, commit `31f26b4`.)*
 
-### 12.12 Stop-condition labels for any iteration loop
+### 12.12 Primary-lane loop rule
 
-Every loop should declare which of (a)/(b)/(c)/(d) fired:
-- (a) Acceptance criterion met — promote, doc, commit
-- (b) New cluster fires that is NOT in any prior known class — document the new cluster, propose follow-up sprint
-- (c) Prior cluster regresses — roll back the offending commit, doc the regression
-- (d) Cost cap crossed — doc partial findings + remaining budget
+Every iteration loop has exactly one primary lane: the causal hypothesis under validation. The lane may span multiple files when one behavior bundle requires it, but it should not combine unrelated runtime levers.
 
-Without a stop-condition label, future loops can't tell whether the work was a clean win, a planned-followup, a regression, or an exhausted budget. *(Standing practice across L17–L24.)*
+Support work can run in parallel if it improves attribution or operability without changing the behavior being validated. Examples: tests, replay harnesses, result summarizers, docs-impact audits, operator summaries, stop classifiers.
+
+Promotion evidence belongs only to the primary lane. A support script making the next run easier is not evidence that the runtime lever worked. A live smoke that includes unrelated prompt, schema, routing, threshold, planner-context, or retry-policy changes is not attribution-clean unless those changes were declared as one bundle before the run.
+
+### 12.13 DeepSeek V4 Flash statistical-power rule
+
+Use cheap concurrent DeepSeek V4 Flash calls to strengthen one lane's evidence, not to multiply unrelated lanes. Good uses:
+- fixed-panel checker reruns to measure disagreement, recall, precision, and FP/FN class movement
+- paired replay over saved `llm_calls` so control and treatment share upstream artifacts
+- repeated same-family phase-eval runs to avoid single n=10 cherry-picks
+- multi-seed confirmation after a single-seed-deep lane has a clear signal
+
+Every concurrent batch must predeclare sample shape, N, family key or panel identity, expected cost, budget cap, and promotion/rejection gate. Persist results to `phase_eval_runs`, checker JSONL/result docs, or experiment conclusion rows. Do not stop early on a favorable partial batch unless the stop rule said so before launch.
+
+Bad uses:
+- running L38 context wiring, continuity threshold calibration, and writer prompt edits concurrently
+- mixing probes with different commits or prompt hashes and treating them as a streak
+- spending repeated calls on a deterministic/systematic failure class that needs a code/context fix, not variance reduction
+
+### 12.14 Stop-condition labels for any iteration loop
+
+Every loop should declare which of (a)/(b)/(c)/(d)/(e) fired:
+- (a) Clean pass — acceptance criterion met; promote, doc, commit
+- (b) New dominant blocker — target cluster is gone and a new out-of-scope cluster has clear evidence; document the new cluster, propose follow-up sprint
+- (c) Regression — prior cluster regresses; diagnose or revert before new work, doc the regression
+- (d) Infrastructure failure — DB, deploy, provider, test harness, logging, or missing evidence prevents interpretation; fix the harness first
+- (e) Cost cap crossed — doc partial findings + remaining budget
+
+Without a stop-condition label, future loops can't tell whether the work was a clean win, a planned-followup, a regression, an infrastructure failure, or an exhausted budget. *(Standing practice across L17–L24.)*

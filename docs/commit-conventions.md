@@ -56,6 +56,17 @@ Rules:
 
 If the commit only edits a prompt or context file *outside* a chartered experiment (e.g. a typo fix), the three extra lines are unnecessary — but the `[agent:name]` prefix still applies so `git log src/agents/<name>/` remains a clean timeline.
 
+## Primary Lane Commits
+
+Loop commits should preserve attribution. A runtime behavior commit belongs to one primary lane and should name the experiment or ticket that owns that lane.
+
+Rules:
+
+1. **One runtime behavior bundle per commit.** Do not mix unrelated prompt, routing, schema, threshold, planner/context, and retry-policy changes just because they were discovered in the same smoke.
+2. **Support work can be separate.** Tests, replay harnesses, docs-impact scripts, operator summaries, stop classifiers, and result docs may land beside the lane, but do not treat them as evidence that the runtime lever worked.
+3. **A validation smoke must map to the lane.** If the smoke includes multiple unrelated runtime changes, the result is not attribution-clean and should not be used as promotion evidence.
+4. **New blocker means next lane.** When stop condition (b) fires, document the new blocker and start a new lane instead of patching another runtime layer in the same result.
+
 ## Docs Impact Rule
 
 To keep the repo's live documentation from drifting:

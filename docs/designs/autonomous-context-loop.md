@@ -73,6 +73,8 @@ one broad loop.
 
 > **Stale surface note:** Sections below predate exp #289 and exp #272 in places. `planning-beats` is now beat-shape only; state/fact/knowledge/obligation placement belongs to `planning-state-mapper`. There is no live voice-LoRA compact route or Salvatore leak checker in runtime. Use this design as loop architecture, not as a current surface inventory; current surfaces live in `docs/harness-optimization-inventory.md` and `docs/current-state.md`.
 
+**Current operating overlay (2026-05-02):** each sub-loop below maps to one primary lane at a time. Parallel support work is allowed for replay harnesses, tests, audits, operator summaries, and result docs, but unrelated runtime behavior changes must become separate lanes. Use DeepSeek V4 Flash concurrency for same-lane statistical power: repeated same-family runs, fixed panels, paired replay, or multi-seed confirmation with predeclared sample shape, family key, budget cap, and promotion gate. A tier winner cannot be promoted from a smoke that also changed a different tier's prompt, routing, schema, checker threshold, planner/context surface, or retry policy unless that bundle was declared as the lane before validation.
+
 Four tiers, ordered upstream → downstream. Each tier's winner gates
 on downstream replay before ship. Phase 0 starts at Sub-loop 1
 (`planning-beats`); Sub-loop 0 (concept/world-building) is on the

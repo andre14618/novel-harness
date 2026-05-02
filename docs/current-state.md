@@ -48,6 +48,24 @@ Reference:
 Tracked work taxonomy: all work items (tickets, training runs, evals, infra) are recorded as `tuning_experiments`.
 The canonical types are defined in `src/db/ops.ts` as `TrackedWorkType`; use `'ticket'` as the default for standard engineering commits.
 
+### Loop architecture
+
+Robustness work uses a **one-primary-lane** loop by default. A lane is the runtime behavior hypothesis being validated, not a file boundary. The lane must name its baseline, changed runtime lever, feedback signal, stop gate, and escalation rule before live validation starts.
+
+Parallel work is allowed when it supports attribution or operability without changing the runtime behavior under test. Good support work: tests, replay harnesses, docs-impact audits, operator summaries, stop classifiers, result docs. Keep support commits and runtime behavior commits separate when practical.
+
+DeepSeek V4 Flash concurrency should be used to increase statistical power inside the active lane when cheap additional evidence is available. Acceptable shapes include repeated same-family phase-eval runs, fixed-panel checker reruns, paired replay over saved `llm_calls`, and multi-seed confirmation after a single-seed-deep signal. The loop context must declare sample shape, probe-family key, budget cap, and promotion gate before calls start. Do not spend concurrency budget on multiple unrelated runtime lanes in parallel.
+
+Do not mix unrelated runtime levers in one validation smoke. Prompt edits, routing changes, schema changes, checker threshold changes, planner/context changes, and retry-policy changes can be bundled only when the declared lane requires the bundle. Otherwise, validate them as separate lanes so a pass, regression, or new blocker has a readable cause.
+
+Default stop gates:
+
+- **Clean pass:** acceptance criteria met; promote, document, commit, conclude the experiment.
+- **New dominant blocker:** target cluster is gone and a new out-of-scope cluster has clear evidence; stop and queue the next lane.
+- **Regression:** a previously closed cluster returns; stop and diagnose or revert before new work.
+- **Infrastructure failure:** DB, deploy, provider, test harness, logging, or missing evidence prevents interpretation; stop and fix the harness first.
+- **Budget cap:** cost cap reached; persist partial findings and remaining budget before stopping.
+
 ## Active Pipeline
 
 ### Planning and generation
@@ -221,7 +239,7 @@ Use these categories consistently:
 
 - **Current truth**: `docs/current-state.md`
 - **Onboarding**: `README.md`
-- **Method/rules**: `docs/experiment-design-rules.md`
+- **Method/rules**: `docs/experiment-design-rules.md`, `docs/overnight-runbook.md`
 - **Historical notebook**: `docs/decisions.md`, `docs/lessons-learned.md`, experiment reports
 - **Backlog/drafts**: `docs/todo.md`, charters, in-flight planning docs
 

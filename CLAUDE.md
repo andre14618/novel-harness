@@ -33,6 +33,10 @@ If this file and code disagree, trust code for runtime behavior. If this file an
 
 - Build context from code before editing. Avoid assuming schema, routing, or model details from memory.
 - Make the smallest correct change. Prefer one coherent concern per commit.
+- Default improvement-loop shape: one primary lane owns the causal hypothesis under validation. Parallel support work is allowed only when it improves attribution or operability without changing unrelated runtime behavior.
+- A primary lane must declare its baseline, changed runtime lever, feedback signal, stop gate, and escalation rule before live validation. Do not combine prompt edits, routing changes, schema changes, checker threshold changes, and planner/context changes unless the lane explicitly requires that bundle.
+- Use DeepSeek V4 Flash concurrency to increase statistical power inside the active lane: fixed panels, paired replay, repeated same-family runs, and multi-seed confirmation are encouraged when the sample shape, family key, budget cap, and promotion gate are declared first. Do not use concurrency to validate multiple unrelated runtime lanes at once.
+- Support work such as tests, replay harnesses, docs-impact audits, operator summaries, and stop classifiers should be separate from the runtime behavior bundle and should not be credited as evidence for the primary lane.
 - Use `src/harness/` service-layer APIs for application data access. Do not add inline SQL to daemon, benchmark, or UI code.
 - Before removing a subsystem, audit reverse dependencies in `src/` and `scripts/`.
 - Keep generated/runtime artifacts out of git. Existing generated paths are gitignored; do not add new generated roots.
@@ -118,6 +122,8 @@ Use `nohup ... > /tmp/name.log 2>&1 &` for long-running LXC scripts. Do not pipe
 - `docs/current-state.md` — live architecture and runtime status
 - `docs/todo.md` — pending action items only
 - `docs/decisions.md` — append-only decisions and rationale
+- `docs/overnight-runbook.md` — unattended loop contract, stop gates, and audit checklist
+- `docs/experiment-design-rules.md` — experiment design, promotion thresholds, and lane discipline
 - `docs/lessons-learned.md` — reusable methodology/process lessons
 - `docs/harness-tuning-roadmap.md` — corpus pattern and variant-eval matrix
 - `docs/invariants.md` — structural-property checks and preflight gates

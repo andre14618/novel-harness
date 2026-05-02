@@ -1908,3 +1908,20 @@ The gap was: `enriched-context.ts` had a comment "DELIBERATELY not imported from
 - When shipping a parity-harness/preflight-only context module, leave a TODO breadcrumb pointing to the production wiring decision (what would need to be true to import it). Otherwise the module silently drifts into "unused code we forgot about."
 
 (2026-05-02 L38 investigation, exp pending. Source: `src/agents/writer/enriched-context.ts` header comment + `src/agents/writer/beat-context.ts` slot list. Companion: `docs/l38-investigation-2026-05-02.md`.)
+
+## Primary-lane loops preserve attribution without blocking support work
+
+When an unattended loop fixes one blocker and immediately patches the next runtime layer, the session can still make progress, but the evidence becomes harder to use. A smoke that passes after checker policy, writer prompt, planner context, and retry behavior all changed cannot tell future maintainers which lever mattered. A smoke that regresses after that bundle cannot tell them which lever caused the regression.
+
+The useful compromise is not "one task only." It is "one primary runtime lane, plus parallel support work." The primary lane owns the causal hypothesis and validation evidence. Support work can happen in parallel when it improves attribution or operability without changing the behavior under test.
+
+**The rule:** before live validation, declare the lane's baseline, changed runtime lever, feedback signal, stop gate, and escalation rule. Tests, replay harnesses, docs-impact audits, operator summaries, stop classifiers, and result docs can run alongside it. Unrelated prompt edits, routing changes, schema changes, checker threshold changes, planner/context changes, and retry-policy changes become the next lane unless they are explicitly one behavior bundle.
+
+**How to apply:**
+- In `docs/sessions/...`, name `Primary lane`, `Allowed parallel support work`, and `Deferred out-of-lane runtime changes` before editing.
+- Use DeepSeek V4 Flash concurrency for repeated evidence inside the lane: fixed panels, paired replay, repeated same-family runs, or multi-seed confirmation. Predeclare sample shape, N, family key, budget cap, and promotion gate.
+- When stop gate (b) fires, document the new dominant blocker and stop. Do not patch the new layer inside the old lane's validation result.
+- Credit validation evidence only to the runtime behavior bundle that was declared before the smoke.
+- Commit support tooling separately from runtime behavior when practical, and do not treat support-tool completion as proof that the runtime lane worked.
+
+(2026-05-02 loop-architecture documentation pass. Companion docs: `CLAUDE.md`, `docs/current-state.md`, `docs/overnight-runbook.md`, `docs/experiment-design-rules.md`, `docs/sessions/overnight-loop-context-template.md`.)
