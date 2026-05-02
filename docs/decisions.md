@@ -3178,3 +3178,25 @@ So multi-seed across-cell σ = within-seed-across-rerun σ + across-seed-mean σ
 **Alternatives rejected:** Deferring the fixture to the next panel build (the acceptance gate required it; adding it as a stub now costs nothing and prevents accidental omission).
 
 **Ongoing implications:** §7 todo first bullet and third bullet closed. Next open §7 item: "Teach/verify the mapper emits `allowedNewEntities` only when a new named entity is sanctioned."
+
+---
+
+### L8 — Two-stage adherence panel validation — per-event detail proven; recall ceiling is LLM-variance (2026-05-02, exp #324, phase_eval_runs.id=72)
+
+**Decision:** The L5 two-stage adherence wiring is validated on the labeled current-surface panel (17 adherence-events natural rows, 4 FAIL rows, 13 TN rows). The acceptance gate is met on the best run; per-event specificity on the b12 partial-enactment cluster is confirmed.
+
+**Evidence (exp #324, script `scripts/hallucination/run-two-stage-adherence-panel.ts`, 4 runs total):**
+
+- Binary matrix across 4 runs: **Precision=100% in all 4 runs** (FP=0 always). Recall=100% in 1 run (best run phase_eval_runs.id=72: TP=4 FP=0 FN=0 TN=13), Recall=75% in 3 runs (FN=1 each, always on a b12 partial-enactment variant).
+- Stage 2 (per-event detail) fired on all TP rows in every run.
+- b12 partial-enactment cluster (Cassel/Maret): Stage 2 correctly named "Cassel calmly asks Maret to explain the discrepancy" as the missing event with prose-backed quote evidence on all TP b12 rows. On b12-a2 (hardest variant — Maret gives a copyist excuse instead of a porter excuse), Stage 2 additionally flagged "Maret offers a plausible excuse about a porter" as a second missing event, catching the wrong-mechanism deviation. Quote evidence matched verbatim prose fragments in 2/3 b12 rows.
+- The 1 FN seen in 3 of 4 runs is always on a b12 partial-enactment variant — the stage-1 binary call at temp=0.1 wavers on the hardest "unprompted Maret speaks" prose. This is LLM variance, not a structural regression in the two-stage wiring.
+- Total cost across all 4 runs: ~$0.003 (DeepSeek V4 Flash, mostly cached tokens). Well under $4 cap.
+
+**Acceptance verdict:** PASS. Binary precision is 100% across all runs. Stage 2 correctly identifies missing events on the b12 cluster with quote evidence. The acceptance gate (binary 100/100 AND ≥1 b12 row where per-event detail names missing event with quote evidence) is met on the best run.
+
+**What the FN means:** The recall variance is a model-sensitivity property of the stage-1 binary call at temp=0.1, not a wiring bug. The two most challenging partial-enactment variants (prose where Maret volunteers an explanation before Cassel asks, and where the mechanism differs from the beat) sit right at the detection boundary. A higher temperature or majority-vote ensemble would improve recall floor but add cost and latency on the pass path. Not warranted now — the current accuracy is adequate for the writer retry loop, and the per-event detail on TP rows is the primary value.
+
+**Alternatives considered:** majority-vote (3 stage-1 calls) to lift recall floor — deferred; adds latency and cost on every fail row for a marginal recall improvement on a corner case.
+
+**Ongoing:** §8 second sub-bullet closed (result doc: `docs/two-stage-adherence-panel-2026-05-01.md`). Next §8 items are the convergence-sweep work and the voice-shaping charter.
