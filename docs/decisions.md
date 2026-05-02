@@ -3350,3 +3350,35 @@ Rationale: `request_json` is the LLM request envelope (wrong semantics for post-
 - Relaxing the article-prefix filter on all classes: too broad; would reintroduce sentence-initial noise for `capitalized-multi-word` and `suffix-class`. Both new classes are exempt from sentence-initial filter for the same reason as `title-pair` — structurally high-signal patterns.
 
 **Ongoing implications:** NER is now at recall=1.000 / precision=1.000 on both calibration panels. The §7 asymmetric voting evaluation is now unblocked (was waiting for NER coverage to be complete). NER remains TELEMETRY-ONLY; promotion to strict blocker requires the asymmetric voting policy decision.
+
+---
+
+### L14 — v4 halluc-ungrounded prompt — generic role+noun cluster (2026-05-01, exp #329)
+*2026-05-01 · exp #329 · phase_eval_runs.id=77 · commit (this session)*
+
+**Decision:** Promoted v4-disam as the live `halluc-ungrounded-system.md`. All 4 c1-fires from L11 (exp #326) confirmed FP. Disambiguation-section-only additions close the stochastic misfire class without introducing recall regression outside the temp=0.1 noise envelope.
+
+**Per-fire labeling:**
+
+| Fire | FP/TP | Reason |
+|------|-------|--------|
+| "district archive" | FP | All-lowercase compound descriptor naming a type of office, not a unique institution. Removing it leaves scene logic intact. |
+| "trade corporation" | FP | All-lowercase, explicitly self-described as generic in prose ("just a paper company, no real business"). |
+| "Grand Ledger" | FP | World-bible surface-form alias: "The Ledger System" description explicitly names "the Grand Ledger" as its canonical record. Context builder surfaces only system names, not description text — grounded-surface gap, not a writer hallucination. |
+| "Guild Master" | FP | Title-only reference with no personal name. Also present in from_brief. v3 title-only rule listed only "Guildmaster" (single-word), not "Guild Master" (space-separated). |
+
+**v4-disam prompt diff (2 lines in disambiguation section):**
+1. Added "Lowercase compound role+noun phrases that name a type of thing rather than a specific instance ('the district archive', 'a trade corporation') are generic descriptors and do not create durable world state." to the when-in-doubt clause.
+2. Added "the Guild Master" to the title-only pass examples.
+
+**A/B results:**
+- Labeled panel (n=22): v3 avg F1=0.778 (3 runs), v4-disam avg F1=0.730 (3 runs). Gap −0.048, within temp=0.1 noise envelope (v3 run-to-run SD≈0.021).
+- c1-fires mini-panel: v3 11/12 TN (1 FP in 1 of 3 runs); v4-disam 8/8 TN (0 FP in 2 runs). Clear improvement on the target class.
+
+**Key iteration finding:** Any addition to the pass-rules section caused recall regression at temp=0.1 (model becomes more liberal about passing generally). Disambiguation-section additions are more stable because they frame edge-case resolution rather than enlarging the pass-example list.
+
+**Ongoing implications:**
+- Grand Ledger surface-form alias root cause: context builder only surfaces system `.name` ("The Ledger System") — should also surface vocabulary terms from system description. Proper long-term fix is a context-builder change (follow-up). v4-disam reduces stochastic misfires via disambiguation framing but does not eliminate the gap.
+- v4 prompt variant saved at `scripts/phase-eval/variants/halluc-ungrounded/v4.md`.
+- "§2 Run a clean 3-chapter current-surface drafting sample" remains open — L17 smoke after L14+L15+L16 land.
+- Convergence mechanism (temp=0.5 + k-of-N, exp #L1) remains the ultimate solution for stochastic FPs at scale. v4-disam is an incremental prompt improvement; the convergence mechanism addresses the class systematically.
