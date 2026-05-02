@@ -55,6 +55,10 @@ role: primary-lane-context
 ## Progress Log
 
 - Pending. Queued from L38-F stop gate (b): prior-state conflation was removed, but a same-chapter physical-state contradiction became the next readable blocker.
+- 2026-05-02 (cycle 2): Identified the failure mode from `chapter_exhaustions.id=84` and `llm_calls.id` 58378+58381. Beat 0 of ch2 wrote Maret entering with "the ink smudges scrubbed raw an hour ago" (clean hands). Beat 1's writer received only the last 3 sentences of beat 0 (chanting/footsteps — no hand-state) plus the planner brief "his gaze lingering on her hands" plus READER-INFO ch1 fact "Cassel noticed ink smudges on Maret's hands". The beat-1 writer then dramatized "the ink smudges" anew, contradicting beat 0. Per the lane escalation rule, shipped the smallest writer-side discipline first: a same-chapter physical-state continuity rule added to the beat-writer system prompt (and mirrored into the dormant Salvatore primer). The rule binds visible physical states (washed hands, bandages, drawn weapons, removed cloaks, food/drink, lit torches) across beats once a prior beat establishes them, and instructs the writer to prefer ambiguity over inventing a specific detail that earlier beats may already have changed.
+  - Files: `src/agents/writer/beat-writer-system.md`, `src/agents/writer/beat-writer-system-salvatore.md`, `scripts/evals/writer-prompts.test.ts`.
+  - Tests: `bun test scripts/evals/writer-prompts.test.ts src/agents/writer/ tests/beat-context-parity.test.ts` → 89 pass / 0 fail. `bunx tsc --noEmit` clean.
+  - Pending: deploy + paired replay on `novel-1777721066908` chapter 2 to evaluate stop gates (a)/(b)/(c). Per escalation rule, if the rule alone fails to remove the contradiction (writer cannot comply because the prior beat's prose isn't visible to it), stop and queue a deterministic local-state extraction/checker lane.
 
 ## Heartbeat Commands
 
