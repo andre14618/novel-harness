@@ -1,13 +1,14 @@
 # Lane Queue
 
 ## Active
-- docs/sessions/2026-05-02-L59-replay-first-harness.md
+- (empty — pick next via `docs/harness-next-work-process.md`)
 
 ## Next
-- docs/sessions/2026-05-02-L60-finished-product-acceptance.md
+- (empty)
 
 ## Completed
 
+- docs/sessions/2026-05-02-L62-litrpg-integrity-guard.md — clean pass for LitRPG System-path identifier exemption in `detectFusedBoundaries` (commit `31e16a8`, exp #385). L63 candidate (chapter-attempt retry fall-through after second integrity failure) queued in `docs/todo.md`.
 - docs/sessions/2026-05-02-L61-e2e-smoke-after-hardening.md — stop gate (b) new dominant blocker: prose-integrity false-positive on LitRPG System path identifiers + chapter-attempt retry escalates duplicate fragments. L62 candidate queued in `docs/todo.md`.
 - docs/sessions/2026-05-02-L57-runner-review-gate.md — clean pass for review evidence before queued lane advance.
 - docs/sessions/2026-05-02-L38-A-prior-context.md — refuted original missing-prior-context hypothesis.

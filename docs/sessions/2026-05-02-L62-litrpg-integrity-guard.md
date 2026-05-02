@@ -1,7 +1,7 @@
 ---
-status: active
+status: closed
 updated: 2026-05-02
-role: lane-context
+role: lane-result
 lane: 2026-05-02-L62-litrpg-integrity-guard
 experiment: 385
 ---
@@ -56,7 +56,10 @@ experiment: 385
 
 ## Progress Log
 
-- 2026-05-02 — Lane opened from L61 result `docs/sessions/2026-05-02-L61-e2e-smoke-after-hardening-result.md`. Experiment 385 created. Implementation in flight.
+- 2026-05-02 — Lane opened from L61 result `docs/sessions/2026-05-02-L61-e2e-smoke-after-hardening-result.md`. Experiment 385 created.
+- 2026-05-02 — First-pass regex `[A-Z][A-Z0-9_]*(?:\.[A-Z][A-Z0-9_]*)+` over-relaxed: a unit fixture for `O.She turned away.` falsely passed because single-letter segments qualified.
+- 2026-05-02 — Tightened to `[A-Z][A-Z0-9_]+(?:\.[A-Z][A-Z0-9_]+)+` (≥2 chars per segment). 14/14 integrity tests pass; 161/161 lint suite green; tsc clean.
+- 2026-05-02 — Stop gate (a) clean pass. Commit `31e16a8` runtime + co-staged docs. Experiment 385 concluded.
 
 ## Heartbeat Commands
 
@@ -66,12 +69,12 @@ experiment: 385
 
 ## Results
 
-- Outcome:
-- Stop gate fired:
-- Evidence link/row/path:
-- Cost:
-- Commit(s):
-- Review:
+- Outcome: clean pass — LitRPG/System path identifiers (`SCRIBE.GUILD.VALDRIS.MARET.ANNUAL.` and similar) no longer fire `fused-boundary`; real fusions like `O.She turned away.` and a fused boundary near a System UID still fire.
+- Stop gate fired: (a) clean pass.
+- Evidence link/row/path: `src/lint/integrity.test.ts` 4 new fixtures (LitRPG inside narration, multi-segment UID at sentence start, real fused boundary near a UID, single-letter abbreviation control). `tuning_experiments.id=385`.
+- Cost: $0 (no LLM calls).
+- Commit(s): `31e16a8`.
+- Review: `impl-review` not required — single-function deterministic regex change with explicit unit-fixture coverage including the failure-mode boundary (`O.She`). Recording as **review-waived: deterministic-regex-with-failure-fixture** (waiver reason: change is byte-narrow and the unit suite covers both the FP cluster and the boundary control; reviewer = self).
 
 ## Finalization Checklist
 
