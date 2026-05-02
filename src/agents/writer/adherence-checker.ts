@@ -1,6 +1,15 @@
 /**
- * Beat adherence checker — deterministic checks + single LLM call
- * (events+attribution) on the configured adherence-checker model.
+ * Beat adherence checker — deterministic checks + bounded LLM calls
+ * on the configured adherence-checker model.
+ *
+ * Two-stage LLM design (2026-05-01, exp #317):
+ *   Stage 1 — binary `events_present` call (existing). Always runs.
+ *   Stage 2 — per-event enumeration (new). Fires ONLY when stage 1
+ *             returns `events_present=false`. Produces quote-backed
+ *             missing-event detail so the writer's targeted-rewrite
+ *             prompt names each absent action instead of a single
+ *             approximate sentence.
+ * Pass-path latency / cost is unchanged — stage 2 is gated.
  *
  * Character call merged into events after ground-truth eval (2026-04-12)
  * showed 6/8 catches redundant. Setting and tangent removed after production
@@ -25,6 +34,15 @@ const eventsSchema = z.object({
   reasoning: z.string().optional().default(""),
 })
 
+const missingEventsSchema = z.object({
+  obligated_events: z.array(z.object({
+    event: z.string(),
+    enacted: z.boolean(),
+    evidence_quote: z.string().optional().default(""),
+  })),
+  reasoning: z.string().optional().default(""),
+})
+
 const EVENTS_SYSTEM = `You verify whether the prose ENACTS the scene beat on-page.
 
 Read the beat description carefully. Identify every distinct action or event it specifies — there may be one or several. Then check whether EACH is dramatized in the prose.
@@ -42,6 +60,26 @@ Respond with ONLY valid JSON in this exact shape:
   "events_present": true | false,
   "evidence": "<short quoted passage from the prose, ~1-3 sentences>",
   "reasoning": "<one sentence>"
+}`
+
+const MISSING_EVENTS_SYSTEM = `You enumerate which obligated events from a beat description are missing from the prose.
+
+Step 1: Read the beat description and identify EVERY discrete event it specifies — there are usually 1 to 4 distinct events per beat. An event is a single action, decision, discovery, or state-change-on-page. Compound clauses joined by "and" / ";" / commas usually contain multiple events.
+
+Step 2: For EACH identified event, scan the prose for an on-page enactment.
+- "Enacted" means the action happens IN SCENE during this prose — characters performing the action, dialogue, or narration of the action as it occurs.
+- A reference to the action as having happened earlier (off-page, past-tense, summarized as backstory) does NOT count as enacted.
+- The action must be performed by the character the beat assigns it to. If the beat says A asks B but the prose has B volunteer without A asking, the "ask" event is NOT enacted.
+- Paraphrase, dialogue rewording, and atmospheric expansion are fine — judge by the underlying action, not the wording.
+
+Step 3: For each event, return enacted: true | false and a short prose quote as evidence. If enacted is false, evidence_quote should still cite the closest passage so the reviewer can see what the prose did instead (or an empty string if nothing relevant exists in the prose).
+
+Respond with ONLY valid JSON in this exact shape:
+{
+  "obligated_events": [
+    { "event": "<short paraphrase of the event>", "enacted": true | false, "evidence_quote": "<short prose quote, ~10-30 words, or empty>" }
+  ],
+  "reasoning": "<one sentence summarizing the verdict>"
 }`
 
 export async function checkBeatAdherence(
@@ -87,30 +125,42 @@ export async function checkBeatAdherence(
     return { pass: false, issues }
   }
 
-  // ── LLM adherence check — single events+attribution call ──
+  // ── LLM adherence check — two-stage (binary first, per-event on FAIL) ──
 
   const proseTrimmed = prose.slice(0, 2000)
   const charsLine = beat.characters.join(", ")
+  const userPrompt = `BEAT: ${beat.description}
+CHARACTERS EXPECTED: ${charsLine}
+
+PROSE:
+---
+${proseTrimmed}
+---`
 
   try {
-    const result = await callAgent({
+    // Stage 1: cheap binary check. Always runs.
+    const stage1 = await callAgent({
       novelId: tags?.novelId,
       chapter: tags?.chapter,
       beatIndex: tags?.beatIndex,
       attempt: tags?.attempt,
       agentName: "adherence-events" as const,
       systemPrompt: EVENTS_SYSTEM,
-      userPrompt: `BEAT: ${beat.description}
-CHARACTERS EXPECTED: ${charsLine}
-
-PROSE:
----
-${proseTrimmed}
----`,
+      userPrompt,
       schema: eventsSchema,
     })
-    if (!result.output.events_present) {
-      issues.push(`Beat events not enacted on-page: ${result.output.reasoning || "no evidence found"}`)
+    if (!stage1.output.events_present) {
+      // Stage 2: per-event enumeration. Fires ONLY on stage-1 fail so
+      // pass-path latency / cost is unchanged. Output is rendered as
+      // multi-line per-event detail so the writer's targeted-rewrite
+      // prompt names each missing action with quote evidence instead
+      // of a single approximate sentence (exp #305 demonstrated this on
+      // the b12 partial-enactment cluster).
+      issues.push(...(await enumerateMissingEvents({
+        userPrompt,
+        fallbackReasoning: stage1.output.reasoning,
+        tags,
+      })))
     }
   } catch (err) {
     issues.push(`Adherence events check failed: ${err instanceof Error ? err.message : String(err)}`)
@@ -119,6 +169,56 @@ ${proseTrimmed}
   return {
     pass: issues.length === 0,
     issues,
+  }
+}
+
+/**
+ * Stage 2 of the two-stage adherence design — per-event enumeration.
+ *
+ * Returns an array of issue strings (one per missing event) suitable for
+ * the writer's targeted-rewrite prompt. On any failure (transport / schema
+ * error, or all events report enacted=true even though stage 1 said fail),
+ * falls back to the original generic single-line message so the retry
+ * loop never silently loses the stage-1 verdict.
+ */
+async function enumerateMissingEvents(input: {
+  userPrompt: string
+  // `reasoning` is z.string().optional().default("") — runtime is always a
+  // string, but Zod's inferred type stays `string | undefined` (a known
+  // quirk of optional+default), so widen the param type to match.
+  fallbackReasoning: string | undefined
+  tags?: { novelId?: string; chapter?: number; beatIndex?: number; attempt?: number }
+}): Promise<string[]> {
+  const { userPrompt, fallbackReasoning, tags } = input
+  const fallback = `Beat events not enacted on-page: ${fallbackReasoning || "no evidence found"}`
+  try {
+    const stage2 = await callAgent({
+      novelId: tags?.novelId,
+      chapter: tags?.chapter,
+      beatIndex: tags?.beatIndex,
+      attempt: tags?.attempt,
+      agentName: "adherence-events" as const,
+      systemPrompt: MISSING_EVENTS_SYSTEM,
+      userPrompt,
+      schema: missingEventsSchema,
+    })
+    const missing = stage2.output.obligated_events.filter(e => !e.enacted)
+    if (missing.length === 0) {
+      // Stage 2 disagreed with stage 1. Preserve the stage-1 blocker so
+      // the writer still retries — exp #305 saw this happen on ~12% of
+      // panel rows and stage 1's binary disposition was correct in every
+      // case there. Falling through to the generic message is safer than
+      // dropping the issue entirely.
+      return [fallback]
+    }
+    return missing.map(e => {
+      const quote = e.evidence_quote?.trim() ?? ""
+      return quote
+        ? `Beat event missing: ${e.event} — closest prose: "${quote}"`
+        : `Beat event missing: ${e.event}`
+    })
+  } catch {
+    return [fallback]
   }
 }
 
