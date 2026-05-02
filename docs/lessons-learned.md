@@ -1872,3 +1872,22 @@ Closed in this order during a single autonomous-loop session:
 - After 4-5 closes, look at the layer-distribution of fixes shipped. If you've been hitting writer-discipline rules consistently, the next cluster is likely outside that layer (retry-context, planner-state, lint infrastructure). Plan the next 2-3 sprints from layer signal, not just from cluster signal.
 
 (2026-05-02 L40 + L42 + L43 + L41-queued, exps #365 / #366 / #367 / pending. Result docs: `docs/l40-validation-2026-05-02.md`, `docs/l42-validation-2026-05-02.md`, `docs/l43-validation-2026-05-02.md`. Companion: `docs/decisions.md` §L40 → §L43-validation.)
+
+## Stochastic retries can regress, not just converge — quantify before assuming "more attempts = closer to pass"
+
+When a checker fails attempt N and the harness retries, the natural mental model is "the writer makes progress; eventually they pass." The L41 retroactive analysis (2026-05-02) broke that model. Across 17 pre-L41 prose-integrity events covering 6 multi-attempt or single-fail chapters:
+
+- **2 chapters converged** across attempts (4→2; 3→2→1). This was the assumed-default pattern.
+- **3 chapters regressed** (1→2; 1→2; **1→8**). The retry produced *more* integrity issues than the prior attempt.
+
+The 1→8 case is the salient one: with no negative anchor pulling the writer away from the failure shape, a stochastic redraft can drift into *more* failure modes. The original L41 framing was "accelerate convergence" (the 3→2→1 trend looked slow); the retroactive data showed the dominant problem was actually **regression prevention**.
+
+**The rule:** before designing a retry-context intervention, query the actual issue-count trajectory across attempts on past data. The shape of the prior trajectory tells you whether the intervention should target convergence rate, regression prevention, or both — and the right framing changes how you measure success.
+
+**How to apply:**
+- Whenever a multi-attempt retry pattern exists (chapter retries, beat retries, mapper retries), query the per-attempt issue counts before designing the next intervention.
+- If you see regression cases (issue count INCREASES across attempts), the intervention's primary value is anchoring, not acceleration. Frame the success metric as "attempt N+1 ≤ attempt N" rather than "attempt N+1 → 0."
+- When writing the validation doc, distinguish "converged" / "regressed" / "single-attempt" cases explicitly. A single aggregate "convergence rate" hides the regression class.
+- Worst case to design for is "writer drifts into novel failures on retry" — not "writer makes slow but monotonic progress."
+
+(2026-05-02 L41 retroactive validation, exp #368. Source: 17 `prose-integrity-check` events in `pipeline_events`, query in `docs/l41-validation-2026-05-02.md`. Companion: `docs/decisions.md` §L41-validation.)

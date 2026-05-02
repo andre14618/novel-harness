@@ -4237,3 +4237,50 @@ The writer continues to invent some walk-on names (`Master Halden`, `Guildmistre
 **Ongoing implications:** L31 + L39 + L40 + L42 + L43 stack closes 5 distinct heretic-class clusters: truncation FNs (L39), grounded-but-disagreed entities (L40), writer-invented walk-on entities (L42 + L31a), verbal-action adherence (L43). The cluster ladder is producing systematic gains. The next sprint (L41) shifts to retry-context infrastructure rather than writer-discipline prompt rules — the writer-side discipline ladder may be approaching saturation; the next opportunities are in the lint-fixer / retry-context / multi-attempt-state layers.
 
 ---
+
+### L41 — Chapter-attempt prose-integrity issue carry-over (2026-05-02, exp #368, commit `78dc138`)
+
+**Decision:** When a chapter-attempt fails the prose-integrity check (`detectProseIntegrityIssues` in `src/lint/integrity.ts` — fused-boundary, camel-fusion, duplicate-sentence, duplicate-fragment, quote-integrity), capture the issue list and append a chapter-wide avoidance block to every beat-writer userPrompt in the next chapter-attempt. Issues clear on integrity pass.
+
+**Why:** Pre-L41, every chapter retry was a clean-slate redraft. The writer never saw the specific structural patterns that failed last time. L43-val observed convergence patterns like 3 → 2 → 1 across attempts that suggested the writer was making stochastic progress without guidance — and *retroactive* analysis of 17 pre-L41 integrity events (commit `275e031` introduced the trace 2026-04-30) showed that **3 of 6 multi-attempt chapters actually got *worse* on retry** (1→2, 1→2, 1→8), not just slower-than-ideal convergence. The writer can stochastically introduce *more* integrity failures when given another shot without context.
+
+**Implementation:**
+- `formatChapterIntegrityRetryContext(issues)` in `src/agents/writer/retry-context.ts`: emits a `--- AVOID THESE INTEGRITY ISSUES FROM YOUR PRIOR DRAFT ---` block listing each `{kind, excerpt}` (cap 12, excerpt slice 200 chars) plus 3 positive-framed instruction lines (clean boundaries, no verbatim repetition, paired-and-attributed quotes).
+- `src/phases/drafting.ts` (3 sites): chapter-scoped `let priorIntegrityIssues = []` declared at line 227; appended to `baseUserPrompt` at line 331; populated at integrity-fail (line 1281) before `continue`; cleared at integrity-pass (line 1291).
+- 6 unit tests in `src/agents/writer/retry-context.test.ts` cover empty / single / multi (kind+order) / long-excerpt-200-char-cap / 12-issue-cap / whitespace-trim. All pass.
+
+**Alternatives rejected:**
+- (b) Lint-fixer improvement — orthogonal; fixer already runs but its output is sometimes rejected by integrity guard (chapter 1 of L41-val showed exactly this). Cluster is upstream (writer-side first-draft quality), not downstream.
+- (c) Targeted-rewrite path (per-beat retry with integrity feedback) — heavier surgery; L41 attacks the chapter-attempt level which is where the cluster surfaces in telemetry.
+- (d) Bump retry budget — adds cost without addressing the regression cases (1→8 wouldn't converge in any reasonable budget).
+
+**Ongoing:** Strict superset of pre-L41 behavior — no-op when chapter passes integrity on attempt 1 (the dominant case). Maximum prompt growth is ~500 chars, applied to attempt 2+ beats only. Positive-framed prompt rules avoid priming-suppression risk per `feedback_priming_suppression_ab`.
+
+---
+
+### L41-validation — Mechanistic + retroactive validation of chapter-attempt integrity carry-over (2026-05-02, exp #368)
+
+**Decision:** L41 ships as deployed. Mechanistic validation is complete (helper unit-tested, wiring traced); retroactive validation against 17 pre-L41 integrity events is strong enough to keep the change in production. **Live trigger validation is queued** for a future smoke on a seed prone to integrity failures — the heretic re-smoke (`novel-1777721066908`) didn't activate L41 because chapter 1 passed integrity on attempt 1 and chapter 2 bailed on continuity at the plan-assist gate before reaching the integrity check.
+
+**Retroactive evidence (17 pre-L41 events, 6 multi-attempt or single-fail chapters):**
+
+| novel:chapter | sequence | direction |
+|---------------|----------|-----------|
+| novel-1777591510985:1 | 1 → 2 | regressed |
+| novel-1777698707087:1 | 1 → 2 | regressed |
+| novel-1777709036403:1 | 1 → 8 | **regressed sharply** |
+| novel-1777712370271:1 | 4 → 2 | converged |
+| novel-1777719198533:1 | 3 → 2 → 1 | converged |
+| (4 chapters) | 0 (single attempt, passed) | n/a |
+
+**Surprise finding that augments L41's motivation:** original framing was "accelerate convergence" (3→2→1 looked slow). Retroactive data shows the dominant failure mode was actually **regression** — the writer can introduce *more* integrity issues on retry than they had before, with no negative anchor pulling them away from the failed shape. L41 addresses both convergence and regression.
+
+**Live exercise:** novel-1777721066908 — Chapter 1 integrity pass attempt 1 (L41 no-op), Chapter 2 bailed at plan-assist on 5 continuity blockers (L41 unreachable). The heretic seed didn't hit the trigger condition this run.
+
+**What's still pending:** A future seed-targeted smoke needs to hit the L41 path and demonstrate that attempt 2's issue count is non-increasing relative to attempt 1. Not blocking deployment because L41 is purely additive — its worst case is identical to pre-L41 behavior on chapters that pass on attempt 1.
+
+**Cluster surfaced for next sprint:** novel-1777721066908 ch2 bailed on 5 continuity blockers all of the form "Maret's internal monologue treats X as new discovery, contradicting prior chapter state." This is a planned-state-vs-prose-execution mismatch — likely L38 territory (writer prior-chapter state propagation) or a planning-layer state-update bug. Queued.
+
+**Ongoing implications:** The L41 design decision carries forward; no production-behavior change beyond what's documented. Cluster ladder pivots from writer-discipline prompt rules (saturated for now) to multi-attempt-state infrastructure.
+
+---
