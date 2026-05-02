@@ -588,7 +588,9 @@ async function main(): Promise<void> {
   printFamilyRollup(Array.from(families.values()), args.limit)
 }
 
-main().catch(err => {
-  console.error("[list-runs] fatal:", err)
-  process.exit(1)
-})
+if (import.meta.main) {
+  main().catch(err => {
+    console.error("[list-runs] fatal:", err)
+    process.exit(1)
+  })
+}
