@@ -603,6 +603,15 @@ async function main(): Promise<void> {
   }
 
   console.log(`Verdict: ${verdict}`)
+  // Noise caveat: G1/G2 medians have been observed to swing 2-3 across
+  // reruns of the same prompt at n=10 chapters (exp #311 r1/r2/r3, see
+  // docs/lessons-learned.md "n=10 single-run probe verdicts flap"). The
+  // single-run verdict above is suggestive, not promotion-grade. Use
+  // `bun scripts/phase-eval/list-runs.ts --probe=phase-variant-comparison
+  // --limit=10` to inspect prior runs of this probe shape.
+  if (metricSet === "planning-beats") {
+    console.log(`Noise caveat: G1/G2 single-run verdicts at n=10 are suggestive, not promotion-grade — facts/know medians swing 2-3 across reruns (exp #311). Require 2+ consecutive SCREEN-PASS for promotion, or check list-runs.ts for run history.`)
+  }
   console.log(`Exit: ${exitCode}`)
 
   // R6 persistence (optional, OFF by default). After verdict + metrics
