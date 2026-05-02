@@ -1,5 +1,5 @@
 ---
-status: queued
+status: closed
 updated: 2026-05-02
 role: primary-lane-context
 ---
@@ -55,6 +55,7 @@ role: primary-lane-context
 ## Progress Log
 
 - Pending. Queued after L38-F because L38-A showed raw READER-INFO fact presence is not enough; summaries remain independently useful but should not be treated as the immediate fix for writer-side prompt adherence.
+- 2026-05-02 cycle 4 (claude): code + decisions audit. The `chapter_summaries` table is empty by design. The summary-extractor agent was permanently retired on 2026-04-13 (`docs/decisions.md` §"Plan-only extractionMode validated — LLM extractors removed", lines 1494–1518): `src/state-extraction.ts`, `src/agents/summary-extractor/`, and 4 sibling extractors were archived; `extractionMode` was collapsed to a direct `savePlannedState()` call. There is no remaining writer-side path that calls `saveChapterSummary` (`src/db/summaries.ts:4`); a repo-wide grep returns only the `db/index.ts` re-export. The replacement bridge is `savePlannedState()` writing planner-declared `establishedFacts` / `characterStateChanges` / `knowledgeChanges` (`src/planned-state.ts:18`, invoked from `src/phases/drafting.ts:1331` after each chapter approval). Those rows are surfaced cross-chapter to the writer via `getFactsUpToChapter(novelId, ch - 1)` and the READER-INFO STATE block wired by L38-A (`src/agents/writer/enriched-context.ts`, `src/phases/drafting.ts`). The two surviving `getRecentSummaries` calls in `src/agents/writer/context.ts:143,263` are vestigial reads against an empty table that no-op; cleanup is a separate ticket and out of this lane's runtime scope. Conclusion: L38-C closes on stop gate (b) — `chapter_summaries` is intentionally obsolete and the replacement bridge is documented and live.
 
 ## Heartbeat Commands
 
@@ -64,11 +65,15 @@ role: primary-lane-context
 
 ## Results
 
-- Outcome:
-- Stop gate fired:
+- Outcome: `chapter_summaries` is intentionally obsolete. The summary-extractor was permanently removed on 2026-04-13; the production replacement bridge is `savePlannedState()` (planner-declared facts / character_states / character_knowledge) surfaced cross-chapter via L38-A's READER-INFO STATE block. No new persistence path is required.
+- Stop gate fired: (b) — obsolete surface; replacement bridge identified and already live.
 - Evidence link/row/path:
-- Cost:
-- Commit(s):
+  - `docs/decisions.md` lines 1494–1518 (summary-extractor retirement, 2026-04-13).
+  - `src/state-extraction.ts` and `src/agents/summary-extractor/` archived to `archive/src/`; only `src/db/summaries.ts` (helpers) and `src/db/index.ts` re-export remain. Repo grep for `saveChapterSummary` returns zero non-export call sites.
+  - `src/planned-state.ts:18` and `src/phases/drafting.ts:1331` — `savePlannedState(novelId, ch, outline)` runs after each chapter approval and writes the replacement state.
+  - `src/agents/writer/enriched-context.ts` (`selectReaderInfoStateForBeat`) + L38-A wiring in `src/phases/drafting.ts` — replacement bridge that surfaces prior-chapter facts to the writer.
+- Cost: $0 — local code/decisions audit only; no LLM calls.
+- Commit(s): docs-only finalization commit (this cycle).
 
 ## Finalization Checklist
 
