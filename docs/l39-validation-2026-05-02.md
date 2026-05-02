@@ -72,12 +72,21 @@ The fantasy-system-heretic seed centers on "the System" — a magical/mechanical
 
 The halluc-ungrounded checker correctly flagged "the System" as ungrounded (no entry in world-bible names, character roster, outline entities, or derived titles). The writer wrote `"the seal of the System stitched over the chest"` and the prepass + LLM both flagged it as a new entity insertion.
 
-**This is a world-builder coverage gap, not a checker bug.** Possible fixes:
-1. **Patch the seed:** add "System" to world_bible_json `systems[]` for the heretic seed.
-2. **Patch buildOutlineEntityList:** extract single-word capitalized terms from chapter outlines that appear repeatedly (would catch "System" as it appears in multiple beat descriptions).
-3. **Add a gamelit-class extractor:** for litRPG/gamelit seeds, derive "System", "Class", "Status", etc. as known game-mechanic vocabulary regardless of world-bible content.
+**Diagnosis update (post-investigation):** The world-bible actually DOES contain "The System" in `systems[]`. Verified the NER normalizer:
+```
+normalizeForGroundedMatch("System")     → "system"
+normalizeForGroundedMatch("The System") → "system"
+```
+Both collapse to "system" — so NER correctly grounds the entity. **The blocker is therefore an `llm-only-blocker` (NER grounded; LLM disagreed)** — and per L31b's entity-intersection design, this correctly preserves the blocker class as a separate issue.
 
-Option 1 is fastest; option 3 is most principled (litRPG genre-specific vocabulary). This belongs in a future L40 sprint.
+So the gap is in the LLM checker's view of grounded surface — the LLM prompt may not be receiving the world-bible `systems[]` list (or receives it without the same normalization). NER and LLM see different surfaces.
+
+**Refined L40 scope:**
+1. **Audit the LLM grounded-surface assembly in `halluc-ungrounded` agent.** Verify `worldBible.systems[]` flows into the LLM prompt the same way it flows into NER.
+2. **If gap confirmed, unify the surfaces.** Send the same `bibleKnown` list to the LLM that NER uses, with the same normalization rules.
+3. **(Fallback)** If LLM prompt change is risky, post-process the LLM output to filter entities that NER already grounded.
+
+The litRPG genre-specific vocabulary extractor (originally option 3) is no longer needed — the world-bible already has the entries; the LLM just isn't seeing them.
 
 ## Telemetry summary
 
