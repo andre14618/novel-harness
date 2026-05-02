@@ -1691,3 +1691,17 @@ When code can resolve "did the planner cover X?" by token overlap against a beat
 - Use structural guard tests for this invariant. `src/harness/stable-id-trace.test.ts` fails if text-overlap/fuzzy linking helpers reappear in the stable-ID harness path.
 
 (2026-05-01 stable-ID rewrite, `src/harness/ids.ts` + `src/harness/beat-obligations.ts`.)
+
+## Lazy SQL Proxy must reconnect on closed-connection errors
+
+The shared Postgres connection in `src/db/connection.ts` is a singleton lazy `SQL` instance held inside a Proxy. When a long-running process (orchestrator, recorder, batch eval) holds the connection past Postgres' idle timeout — or the server-side closes for any reason — every subsequent query throws `ERR_POSTGRES_CONNECTION_CLOSED` because the singleton still points at the dead connection. The 2026-05-01 phase-parity flake was the same failure mode: `tests/phase-parity/phase-parity.test.ts` would fail intermittently in local runs after long idle gaps even though Postgres was healthy and the server-side connection had simply been recycled.
+
+**The rule:** any lazy/singleton connection wrapper must transparently reconnect on connection-loss errors, not bubble them as user-visible failures. Caller-side retry policies don't help here because every callsite would need its own try/catch around every query — the failure is below the application's level of concern.
+
+**How to apply:**
+- Detect `ERR_POSTGRES_CONNECTION_CLOSED` (and message variants like `connection terminated`/`reset`/`ended`) in a single helper.
+- On match, null out the singleton and retry once. One retry is enough for the transient-disconnect case; if the server is truly down, a second failure surfaces the real error.
+- Cover the apply trap (tagged-template `db\`...\`` calls) AND the bound-method paths used in your codebase (`db.unsafe`, `db.begin`/`transaction`). Sync property accesses (escape helpers, etc.) should pass through unwrapped.
+- Don't try to integration-test reconnect via `db.end()` — Bun.SQL's `#onClose` fires an unswallowable rejection during the close sequence, so the test would assert Bun's close-handler shape, not your shim. Unit-test the `withReconnect` contract directly with synthetic errors instead.
+
+(2026-05-01 reconnect shim, `src/db/connection.ts` + `src/db/connection-reconnect.test.ts`.)

@@ -31,16 +31,61 @@ function getDB(): SQL {
   return _db
 }
 
-// Proxy that forwards tagged template calls and property access to the lazy connection.
-// Must wrap a function so the `apply` trap fires for db`...` syntax.
+// Detect Postgres connection-loss errors so we can transparently reconnect.
+// Bun.SQL surfaces these as `code === "ERR_POSTGRES_CONNECTION_CLOSED"`; we
+// also match common message variants in case future Bun versions reshape the
+// error class (defensive, since this is the recovery path).
+export function isConnectionClosed(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false
+  const code = (err as { code?: unknown }).code
+  if (code === "ERR_POSTGRES_CONNECTION_CLOSED") return true
+  const message = (err as { message?: unknown }).message
+  return typeof message === "string" && /connection (closed|terminated|reset|ended)/i.test(message)
+}
+
+// Run `call` once; if it throws a connection-closed error, drop the singleton
+// and retry once. Subsequent failures bubble up unchanged. We retry exactly
+// once because (a) repeated immediate retries usually mean the server is
+// unreachable, not just stale, and (b) callers above can implement their own
+// outer retry policy if they need more.
+//
+// The `onReset` hook lets the test seam observe the singleton reset without
+// exposing `_db`. Production callers don't need it.
+export async function withReconnect<T>(
+  call: () => T | Promise<T>,
+  onReset?: () => void,
+): Promise<T> {
+  try {
+    return await call()
+  } catch (err) {
+    if (!isConnectionClosed(err)) throw err
+    _db = null
+    onReset?.()
+    return await call()
+  }
+}
+
+const RETRY_METHODS = new Set(["unsafe", "begin", "transaction"])
+
+// Proxy that forwards tagged template calls and property access to the lazy
+// connection. Must wrap a function so the `apply` trap fires for db`...`
+// syntax. The `apply` trap and `unsafe`/`begin` methods retry once on a
+// closed-connection error so long-lived processes survive idle disconnects.
 const db = new Proxy(function () {} as unknown as SQL, {
   apply(_target, _thisArg, args) {
-    return (getDB() as any)(...args)
+    return withReconnect(() => (getDB() as any)(...args))
   },
   get(_target, prop) {
     const real = getDB()
     const val = (real as any)[prop]
-    return typeof val === "function" ? val.bind(real) : val
+    if (typeof val !== "function") return val
+    if (typeof prop === "string" && RETRY_METHODS.has(prop)) {
+      return (...args: unknown[]) => withReconnect(() => {
+        const fresh = getDB()
+        return (fresh as any)[prop](...args)
+      })
+    }
+    return val.bind(real)
   },
 })
 
