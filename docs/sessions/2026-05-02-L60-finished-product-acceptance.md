@@ -1,5 +1,5 @@
 ---
-status: queued
+status: complete
 updated: 2026-05-02
 role: primary-lane-context
 ---
@@ -26,7 +26,7 @@ role: primary-lane-context
 - Evidence artifact: Experiment #383; acceptance doc; focused tests if a classifier is added.
 - Event log: output/agent-runs/2026-05-02-L60-finished-product-acceptance/events.jsonl
 - Dashboard command: monitor
-- Runner command: bun scripts/agent/lane-runner.ts docs/sessions/2026-05-02-L60-finished-product-acceptance.md --engine claude --model opus --permission-mode auto --worker-role captain --worker-id captain-claude --max-cycles 6 --max-hours 3 --max-no-change-cycles 1 --queue docs/sessions/lane-queue.md
+- Runner command: bun scripts/agent/lane-runner.ts docs/sessions/2026-05-02-L60-finished-product-acceptance.md --engine claude --model opus --permission-mode auto --worker-role captain --worker-id captain-claude --max-cycles 6 --max-hours 3 --max-no-change-cycles 1 --queue docs/sessions/lane-queue.md --pickup-terminal-on-stop
 
 ## Baseline
 
@@ -54,7 +54,7 @@ role: primary-lane-context
 
 ## Progress Log
 
-- Pending.
+- 2026-05-02 (cycle 2/8, captain-claude): Drafted `docs/finished-novel-acceptance.md` — eight acceptance gates each mapped to an existing command, evidence artifact, pass/fail interpretation, and failure action. Gates 1–7 are locally checkable; gate 8 is a human read-through (subjective by design). Pointed `docs/current-state.md` and `docs/todo.md` §12 at the new doc. Committed as `fef49b7` ([docs] L60 finished-novel acceptance gates). `bun scripts/preflight-docs-impact.ts --strict` and `git diff --check` PASS. Stop gate (a) clean pass.
 
 ## Heartbeat Commands
 
@@ -64,12 +64,12 @@ role: primary-lane-context
 
 ## Results
 
-- Outcome:
-- Stop gate fired:
-- Evidence link/row/path:
-- Cost:
-- Commit(s):
-- Review:
+- Outcome: Acceptance gates defined and locally checkable. `docs/finished-novel-acceptance.md` ties existing harness commands (preflight, preflight-docs-impact, lane-status, operator-summary, smoke-stop-classifier, resolve-stale-gates, list-runs, replay-first-plan) into one product checklist; subjective prose quality is recorded as a human read-through requirement per the lane escalation rule. No code change shipped — Command 2 (deterministic classifier) deliberately not added because the existing `smoke-stop-classifier.ts` already covers the run-level automatic signal and adding a second classifier would overlap without new evidence shape.
+- Stop gate fired: (a) Clean pass — acceptance gates are defined and locally checkable; current-state and todo point to the doc; no implementation regressed.
+- Evidence link/row/path: `docs/finished-novel-acceptance.md`; cross-refs in `docs/current-state.md` § Finished Novel Acceptance and `docs/todo.md` §12.
+- Cost: $0 (no LLM or LXC calls; local docs only).
+- Commit(s): `fef49b7` [docs] L60 finished-novel acceptance gates.
+- Review: impl-review `fef49b7` WAIVED — docs-only commit with no runtime, schema, or model-routing change; no code paths altered; preflight-docs-impact --strict and git diff --check both PASS. Reviewer: captain-claude. Per the L57 review-gate spec, docs-only finalization commits with `docs-impact: none` and no runtime delta are eligible for waiver with documented reason and reviewer.
 
 ## Finalization Checklist
 
@@ -84,4 +84,4 @@ role: primary-lane-context
 
 - Last safe command: `bun scripts/agent/preflight-loop.ts docs/sessions/2026-05-02-L60-finished-product-acceptance.md --allow-dirty`
 - If failed, failure fingerprint:
-- Next action: Start only after L59 closes or is explicitly skipped.
+- Next action: Lane complete (stop gate (a) clean pass). Next queued lane is L61 end-to-end smoke novel after phase-eval hardening (experiment #384).
