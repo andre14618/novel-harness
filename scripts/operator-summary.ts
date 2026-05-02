@@ -16,11 +16,19 @@
  *   6. Failed LLM calls       — count + last error
  *   7. Retries / attempts     — distribution per agent
  *
+ * STALE-GATE AUDIT MODE (cross-novel)
+ *
+ *   --stale-gates surveys all novels for chapter_exhaustions WHERE decision
+ *   IS NULL with age + recommended action. Useful at the start of an
+ *   overnight loop to surface orphaned gates from prior runs.
+ *
  * USAGE
  *
  *   bun scripts/operator-summary.ts <novel-id>
  *   bun scripts/operator-summary.ts --latest          # newest novel
  *   bun scripts/operator-summary.ts --json <novel-id> # machine-readable
+ *   bun scripts/operator-summary.ts --stale-gates     # cross-novel audit
+ *   bun scripts/operator-summary.ts --stale-gates --min-age-hours 6
  *
  * Designed per `docs/todo.md` §12 "Build an operator summary script for a
  * novel run." Closes that bullet.
@@ -71,6 +79,18 @@ interface FailedCallRow {
   agent: string
   error_text: string | null
   count: number
+}
+
+interface StaleGateRow {
+  exhaustion_id: number
+  novel_id: string
+  chapter: number
+  attempt: number
+  kind: string
+  fired_at: Date
+  novel_phase: string | null
+  novel_seed: string | null
+  novel_updated_at: Date | null
 }
 
 // ── Queries ───────────────────────────────────────────────────────────────
@@ -156,6 +176,28 @@ async function fetchFailedCalls(novelId: string): Promise<FailedCallRow[]> {
   return rows
 }
 
+async function fetchStaleGates(minAgeMs: number): Promise<StaleGateRow[]> {
+  const cutoff = new Date(Date.now() - minAgeMs).toISOString()
+  const rows = await db<StaleGateRow[]>`
+    SELECT
+      e.id AS exhaustion_id,
+      e.novel_id,
+      e.chapter,
+      e.attempt,
+      e.kind,
+      e.fired_at,
+      n.phase AS novel_phase,
+      n.seed_json->>'seed' AS novel_seed,
+      n.updated_at AS novel_updated_at
+    FROM chapter_exhaustions e
+    LEFT JOIN novels n ON n.id = e.novel_id
+    WHERE e.decided_at IS NULL
+      AND e.fired_at < ${cutoff}::timestamptz
+    ORDER BY e.fired_at ASC
+  `
+  return rows
+}
+
 // ── Formatting helpers ────────────────────────────────────────────────────
 
 function formatMoney(n: number): string {
@@ -175,6 +217,34 @@ function formatAge(then: Date): string {
 function formatPct(n: number, total: number): string {
   if (total === 0) return "—"
   return `${Math.round((n / total) * 100)}%`
+}
+
+export type StaleGateAction = "orphan" | "resume" | "investigate"
+
+export function recommendForStaleGate(
+  firedAt: Date,
+  novelPhase: string | null,
+  novelUpdatedAt: Date | null,
+  now: Date = new Date(),
+): { action: StaleGateAction; reason: string } {
+  const ageHours = (now.getTime() - firedAt.getTime()) / 3_600_000
+  if (novelPhase === "complete" || novelPhase === "failed" || novelPhase === "aborted") {
+    return { action: "orphan", reason: `novel ${novelPhase}` }
+  }
+  if (ageHours > 24) {
+    return { action: "orphan", reason: `>24h pending` }
+  }
+  if (novelUpdatedAt === null) {
+    return { action: "investigate", reason: `novel row missing` }
+  }
+  const idleHours = (now.getTime() - novelUpdatedAt.getTime()) / 3_600_000
+  if (idleHours > 12) {
+    return { action: "orphan", reason: `novel idle ${Math.floor(idleHours)}h` }
+  }
+  if (idleHours < 6) {
+    return { action: "resume", reason: `novel active ${Math.floor(idleHours * 60)}m ago` }
+  }
+  return { action: "investigate", reason: `${Math.floor(ageHours)}h pending, novel idle ${Math.floor(idleHours)}h` }
 }
 
 // ── Sections ──────────────────────────────────────────────────────────────
@@ -257,6 +327,35 @@ function printExhaustions(rows: ExhaustionRow[]): void {
   }
 }
 
+function printStaleGatesAudit(rows: StaleGateRow[], minAgeHours: number): void {
+  if (rows.length === 0) {
+    console.log(`\nStale plan-assist gates: 0 (older than ${minAgeHours}h)`)
+    return
+  }
+  console.log(`\nStale plan-assist gates: ${rows.length} pending (older than ${minAgeHours}h)`)
+  console.log(`  id     novel_id              seed                          ch:att  kind                    age      phase         action        reason`)
+  for (const r of rows) {
+    const id = String(r.exhaustion_id).padEnd(6)
+    const novelShort = r.novel_id.slice(0, 20).padEnd(20)
+    const seed = (r.novel_seed ?? "(none)").slice(0, 28).padEnd(28)
+    const cha = `c${r.chapter}:a${r.attempt}`.padEnd(7)
+    const kind = (r.kind ?? "").padEnd(22)
+    const age = formatAge(new Date(r.fired_at)).padEnd(8)
+    const phase = (r.novel_phase ?? "(?)").padEnd(13)
+    const rec = recommendForStaleGate(
+      new Date(r.fired_at),
+      r.novel_phase,
+      r.novel_updated_at ? new Date(r.novel_updated_at) : null,
+    )
+    const action = rec.action.toUpperCase().padEnd(13)
+    console.log(`  ${id} ${novelShort}  ${seed}  ${cha}  ${kind}  ${age}  ${phase}  ${action} ${rec.reason}`)
+  }
+  console.log()
+  console.log(`  ORPHAN: mark with markExhaustionOrphaned(<id>, '<reason>') or via the orchestrator UI.`)
+  console.log(`  RESUME: drive the resolver via /api/novel/resume on the active novel.`)
+  console.log(`  INVESTIGATE: check novel logs / planner state before deciding.`)
+}
+
 function printFailedCalls(rows: FailedCallRow[]): void {
   if (rows.length === 0) return
   const total = rows.reduce((s, r) => s + r.count, 0)
@@ -278,17 +377,34 @@ interface Args {
   novelId: string | null
   latest: boolean
   json: boolean
+  staleGates: boolean
+  minAgeHours: number
 }
 
-function parseArgs(argv: string[]): Args {
-  const out: Args = { novelId: null, latest: false, json: false }
-  for (const a of argv) {
+export function parseArgs(argv: string[]): Args {
+  const out: Args = { novelId: null, latest: false, json: false, staleGates: false, minAgeHours: 1 }
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]!
     if (a === "--latest") out.latest = true
     else if (a === "--json") out.json = true
+    else if (a === "--stale-gates") out.staleGates = true
+    else if (a === "--min-age-hours") {
+      const next = argv[i + 1]
+      if (next === undefined || next.startsWith("--")) {
+        throw new Error("--min-age-hours requires a numeric value")
+      }
+      const n = Number(next)
+      if (!Number.isFinite(n) || n < 0) {
+        throw new Error(`--min-age-hours must be a non-negative number, got: ${next}`)
+      }
+      out.minAgeHours = n
+      i++
+    }
     else if (a === "--help" || a === "-h") {
       console.log(
         "Usage: bun scripts/operator-summary.ts <novel-id> [--json]\n" +
-          "       bun scripts/operator-summary.ts --latest [--json]\n",
+          "       bun scripts/operator-summary.ts --latest [--json]\n" +
+          "       bun scripts/operator-summary.ts --stale-gates [--min-age-hours <n>] [--json]\n",
       )
       process.exit(0)
     } else if (!a.startsWith("--")) {
@@ -300,14 +416,25 @@ function parseArgs(argv: string[]): Args {
 
 async function main(argv: string[]): Promise<number> {
   const args = parseArgs(argv)
-  if (!args.latest && !args.novelId) {
-    console.error("[operator-summary] error: pass <novel-id> or --latest")
+  if (!args.staleGates && !args.latest && !args.novelId) {
+    console.error("[operator-summary] error: pass <novel-id>, --latest, or --stale-gates")
     return 2
   }
   if (!(await dbReachable())) {
     console.error("[operator-summary] error: Postgres not reachable. Set DATABASE_URL or ORCHESTRATOR_DB_URL to a live DB.")
     return 2
   }
+
+  if (args.staleGates) {
+    const staleRows = await fetchStaleGates(args.minAgeHours * 3_600_000)
+    if (args.json) {
+      console.log(JSON.stringify({ staleGates: staleRows, minAgeHours: args.minAgeHours }, null, 2))
+      return 0
+    }
+    printStaleGatesAudit(staleRows, args.minAgeHours)
+    return 0
+  }
+
   const novel = args.latest ? await fetchLatestNovel() : await fetchNovel(args.novelId!)
   if (!novel) {
     console.error(`[operator-summary] error: novel '${args.novelId}' not found`)
