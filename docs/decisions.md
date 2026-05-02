@@ -3819,3 +3819,34 @@ Stage 2 is more authoritative than stage 1 because it provides per-event quote e
 - Fallback to generic message when stage 2 is unanimous (prior behavior): loses the signal that stage 2 is authoritative. The old exp #305 calibration that justified the fallback used a labeled panel where stage-2 disagreement on ~12% of rows always had stage-1 correct — but L24 showed a real production case where stage-2 was right and stage-1 was wrong.
 
 **Ongoing implications:** The `adherence-stage2-override` trace event is queryable from `pipeline_events` for audit. Override fires only on unanimous stage-2 enactment — conservative by design.
+
+---
+
+### L32 — Mapper allowedNewEntities exclusion rule (2026-05-02, exp #353)
+*2026-05-02 · exp #353 · phase_eval_runs.id=121 · commit `e8f4045`*
+
+**Decision:** Added a positive-framed exclusion rule to the Placement Guidance section of `state-mapper-system.md`: characters already in `beat.characters` or `chapter.charactersPresent` are established (already grounded) and should be omitted from `allowedNewEntities`. L32 probe confirmed BeatDupFPs=0, ChDupFPs=0.
+
+**Baseline (L26, exp #348):** 148 beats, 4.1% non-empty, 7 entities, 2 BeatDupFPs, 1 ChDupFP.
+
+| Metric | L26 (before) | L32 (after) |
+|---|---|---|
+| Total beats | 148 | 124 |
+| Non-empty rate | 4.1% | 4.8% |
+| Total entities | 7 | 7 |
+| Beat dup FPs | **2** | **0** |
+| Chapter dup FPs | **1** | **0** |
+
+**FPs eliminated:**
+- `Sera` (fantasy-inscription ch3 beat 1): new character added to `beat.characters` by beat expander; mapper re-sanctioned her (phase-coordination gap). Resolved: exclusion rule covers `beat.characters`.
+- `Master Inquisitor Orvath` (fantasy-inscription ch3 beat 10): story character in `charactersPresent`; mapper emitted him as new entity despite being listed in context (instruction-following failure). Resolved: exclusion rule covers `charactersPresent`.
+
+**fantasy-inscription ch3 in L32:** 0 entities emitted (was 3 including both FPs) — the exclusion rule correctly suppressed the re-sanctioning while leaving ch1/ch2 walk-ons untouched.
+
+**Prompt diff:** single bullet added to Placement Guidance in both `src/agents/planning-state-mapper/state-mapper-system.md` and `scripts/phase-eval/variants/planning-state-mapper/default.md`. No structural/schema changes. Phrasing: "`allowedNewEntities` is for entities genuinely NEW to the chapter — absent from both the current beat's character list and the chapter's `charactersPresent` list. Treat any character already in `beat.characters` or `chapter.charactersPresent` as established (already grounded); their inclusion in `allowedNewEntities` is redundant and should be omitted."
+
+**Non-empty rate:** 4.8% — within the 4-6% expected range. No regression; the mapper continues to emit the field on legitimate walk-ons, props, and minor locations.
+
+**Cost:** ~$0.035 (probe re-run, same setup as L26). Total including L26: ~$0.07.
+
+**Ongoing implications:** `allowedNewEntities` dup-FP story closed. The §7 todo item (mapper exclusion rule) is resolved. No further mapper prompt work queued on this dimension.
