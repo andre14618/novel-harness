@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: final
 updated: 2026-05-02
 role: overnight-loop-context
 
@@ -84,6 +84,25 @@ Risk: Explicit examples could create anchoring that hurts labeled panel rows who
 9. [ ] Conclude experiment #345
 10. [ ] Commit docs + (if promoted) code changes
 
+## Results
+
+- Outcome: v3-causal-ordering PROMOTED — prompt updated in src/agents/writer/adherence-checker.ts
+- Evidence: `/tmp/ab-causal-ordering-20260502T025455.summary.json` (phase_eval_runs.id=83)
+- Cost: ~$0.005 (1 A/B panel run, 42 LLM calls across 31 rows × 3 versions - partial cache)
+- Commits: scaffolding d007277; promotion TBD
+
+## Key Findings
+
+1. **reversed-order-fail-02 (mage drain/binding) was the sole remaining FN.** The causal-ordering bullet resolved it cleanly: v3 reasoning on fail-02: "the binding is cast after draining, not before as the beat specifies."
+
+2. **Bonus lift on substituted-actor-fail-03.** The broader tightening from the causal-ordering instruction also lifted the passive-witness substituted-actor case from FN→TP. Not guaranteed to be stable across temperature draws but reproducible in this run.
+
+3. **Float comparison bug in acceptance script.** The `candidateVerdict` function used `67/100 - 0.001 = 0.669` as the non-regression threshold, but 2/3 = 0.6666 which falls below 0.669. The script incorrectly reported "two-of-three regressed" when it was actually stable at 67%. Manual verification confirms no regression. The bug is in the A/B script only — not in production code.
+
+4. **v4 (with concrete examples) was equivalent to v3.** No benefit to adding fixture-specific binding/Sara examples. Simpler v3 wins.
+
+5. **Labeled panel and embellishment controls fully preserved.** Zero FPs on 13 TN rows. The ordering rule correctly ignores parallel concurrent beats (Kael draws+shouts) that have no causal sequencing.
+
 ## Progress Log
 
 - [x] Context read: L21 session doc, partial-enactment panel doc, v2 promotion doc, adherence-checker.ts, A/B harness, all 14 fixtures
@@ -91,11 +110,16 @@ Risk: Explicit examples could create anchoring that hurts labeled panel rows who
 - [x] Experiment #345 created in DB
 - [x] A/B script written: `scripts/hallucination/run-ab-causal-ordering.ts`
 - [x] Session doc written
-- [ ] Commit scaffolding
-- [ ] A/B run
-- [ ] Verdict + result doc + conclusion
+- [x] Scaffolding commit d007277
+- [x] A/B run complete (phase_eval_runs.id=83)
+- [x] Verdict: v3-causal-ordering PROMOTED
+- [x] EVENTS_SYSTEM updated in src/agents/writer/adherence-checker.ts
+- [x] Lint (0 errors), tsc (clean), bun test 47/47 pass
+- [x] Docs: result doc, decisions.md L25, todo.md §8 closed, session doc updated
+- [x] Experiment #345 concluded
+- [ ] Commit promotion + docs
 
 ## Pickup Instructions
 
-- Last safe state: experiment created, script written, session doc written. Scaffolding commit pending.
-- Next action: commit scaffolding, then run A/B with `--persist --exp-id 345`
+- Last safe state: EVENTS_SYSTEM v3 written, docs updated, experiment #345 concluded. Promotion commit pending.
+- Next action: commit adherence-checker.ts change + all doc updates as separate commits per feedback_atomic_commits.

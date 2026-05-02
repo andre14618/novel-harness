@@ -3532,6 +3532,38 @@ not flagged as missing an event. The checker is safe for production prose.
 
 ---
 
+### L25 — EVENTS_SYSTEM v3: causal-ordering rule for reversed-order shape (2026-05-02, exp #345)
+*2026-05-02 · exp #345 · phase_eval_runs.id=83*
+
+**Decision:** Promote EVENTS_SYSTEM v3 in `src/agents/writer/adherence-checker.ts`. Change: adds one bullet after the "equally obligated" rule: "When the beat sequences events with 'then', 'after', 'before', 'next', or implicit causal logic (where X is a prerequisite for Y to occur), verify that the prose enacts them in the same order. If a prerequisite action occurs after its consequence in the prose, return events_present=false even when all events are present." All positive framing; no neg-prime patterns.
+
+**Why:** L21 (exp #338) left reversed-order-fail-02 as a persistent FN — the mage drain/binding causal reversal. The v2 EVENTS_SYSTEM checks event presence only; it has no language about event ordering. When all beat events are present in prose but in causal-prerequisite-violating order, the model reads them as "all in sequence" and passes. A single causal-ordering bullet makes the sequence check explicit without adding reasoning-first complexity (which caused 3 FPs in L21 v4-v7).
+
+**A/B evidence (exp #345):**
+- L18 partial-enact panel (14 rows):
+  - reversed-order: v2 recall=67% (2/3) → v3 recall=100% (3/3). fail-02 (mage drain/binding) caught: TP.
+  - two-of-three: v2=67% → v3=67% — no regression (candle FN is a model self-consistency issue, not addressed here).
+  - substituted-actor: v2=67% → v3=100% — bonus lift (fail-03 passive-witness case now caught).
+  - embellishment: TN=2/2 preserved.
+  - reversed-order-pass-01 (Kael draws+shouts, parallel actions): TN preserved — no FP from causal-ordering rule on parallel beats.
+- Labeled panel (17 rows, exp #299): v3 TP=4 FP=0 FN=0 TN=13 — exact match of v2 baseline (100%/100%).
+- Lint: 0 errors (no neg-prime in new instruction).
+- tsc: clean.
+- Tests: 47/47.
+
+**Alternatives tested (same run):**
+- v4 (same causal-ordering bullet with concrete binding/Sara examples): identical results to v3. v3 preferred for simplicity — no hard-coded fixture patterns that could anchor the model.
+
+**Remaining FN (two-of-three-fail-02, candle case):** Unchanged. Requires per-event structured extraction redesign — deferred.
+
+**Files changed:** `src/agents/writer/adherence-checker.ts`
+
+**Cost:** ~$0.005 for 1 A/B panel run.
+
+**Full analysis:** `docs/adherence-events-v3-causal-ordering-2026-05-01.md`.
+
+---
+
 ### L20 — Expanded halluc groundedSources with character roster + named-location rosters (2026-05-01, exp #339)
 *2026-05-01 · exp #339 · no LXC run needed — code + unit tests only*
 
