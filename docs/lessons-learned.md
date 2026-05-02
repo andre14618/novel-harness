@@ -2017,3 +2017,10 @@ L38-G generalised L38-F's writer-side binding lesson to a same-draft scope. Afte
 - Reserve a deterministic local-state extractor / per-beat physical-state surface for the case where the prompt rule fails on a different novel/seed — do not stack a heavier surface preemptively.
 
 (2026-05-02 L38-G paired replay, exp #372, commit `a27a8a1`. Companion: `docs/sessions/2026-05-02-L38-G-intra-chapter-state.md`, `docs/decisions.md` §L38-G.)
+
+### Closed-lexicon-gated fallback tiers are safer than unbounded per-token matching (2026-05-02)
+L49 (exp #373) closed the last title+surname grounding gap in the halluc-ungrounded NER prepass by adding a bounded tier-5 fallback gated on a closed `TITLE_TOKENS` lexicon (~22 tokens). The design choice: strip the title token and retry existing tiers 1–4, rather than adding an unbounded per-token check that would check every candidate token independently against the grounded surface. An unbounded per-token tier would over-ground generic capitalized-multi-word phrases like "Aldric Venn" when the surname "Venn" happens to appear in the grounded surface independently — a problem the L4-followup-3 analysis had explicitly deferred.
+
+Rule: when closing a deterministic matching gap where the candidate phrase may carry extraneous prefix tokens, prefer a bounded fallback tier gated on a closed lexicon that retries existing matching logic, over adding new independent matching paths. The closed lexicon bounds over-generalization; retry reuses validated paths and avoids code duplication. The L49 TITLE_TOKENS approach is the reference pattern: import the lexicon from a shared source, build a normalized lookup set, gate the strip on token count + lexicon membership, and retry the existing tiers on the remainder. If a future prefix class needs analogous treatment, extend the bounding lexicon rather than adding a new independent matching tier.
+
+(L49, exp #373, commit `559e8c8`. Companion: `docs/sessions/2026-05-02-L49-grounded-union-allowlist.md`, `docs/decisions.md` §L49.)

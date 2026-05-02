@@ -69,7 +69,7 @@ role: primary-lane-context
 - Stop gate fired: (a) deterministic grounded-union tests pass and the todo gap is closed.
 - Evidence link/row/path: `src/agents/halluc-ungrounded/index.ts` (isNerGrounded tier-5 + TITLE_TOKENS_LOWER), `src/agents/halluc-ungrounded/index.test.ts` (4 new/updated tests), `bun test src/agents/halluc-ungrounded/index.test.ts src/lint/entity-candidates.test.ts` → 174/174 pass.
 - Cost: $0 (deterministic test lane; no LLM calls).
-- Commit(s): `559e8c8` [checker] L49: title-strip tier-5 closes title+surname grounding gap.
+- Commit(s): `559e8c8` [checker] L49: title-strip tier-5 closes title+surname grounding gap; `16add53` [docs] L49: backfill finalization commit SHA in lane Results; `b55d8e2` [docs] L49 docs-finalizer verification.
 
 ## Finalization Checklist
 
@@ -81,7 +81,7 @@ role: primary-lane-context
 
 ## Pickup Instructions
 
-- **Status: COMPLETED** — lane closed on stop gate (a) after CLEAN PASS. Commits: `559e8c8`, `16add53`.
+- **Status: COMPLETED** — lane closed on stop gate (a) after CLEAN PASS. Commits: `559e8c8`, `16add53`, `b55d8e2`.
 - Last safe command: `bun scripts/agent/lane-status.ts docs/sessions/2026-05-02-L49-grounded-union-allowlist.md --json`
 - If failed, failure fingerprint: N/A (passed).
 - Next action: §7 todo item closed. Next checker-hardening priority is per-class hallucination metrics (todo §7 line 109) and fresh functional-state warning calibration panel (todo §8 line 123).
