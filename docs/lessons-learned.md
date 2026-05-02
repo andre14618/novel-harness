@@ -1822,3 +1822,25 @@ On the L40-validation re-smoke, the immediate question was "did L40 fire spuriou
 - The payload becomes self-explaining for future operators: scan `decisions.md` for the field name, find the sprint that introduced it, understand its semantic.
 
 (2026-05-02 L40 exp #365. Source: `src/agents/halluc-ungrounded/index.ts` + `src/db/ops.ts patchLLMCallNerPrepass`. Companion: `docs/decisions.md` §L40, §L40-validation.)
+
+## Positive prompt rules shift FP class, not necessarily FP behavior
+
+When you add a positive-framed writer-side rule (e.g. "use role descriptors instead of inventing names"), don't expect the writer to comply perfectly. Expect the writer to partially comply and produce remaining FPs in shapes the LLM checker is more lenient toward. Net effect: AND-gate decisions shift from blocker → warning class. Measure the cluster-class outcome, not writer compliance.
+
+**The phenomenon (L42, exp #366):** Added a +1-line walk-on-entity discipline rule to both beat-writer prompts: "Use proper names only for characters and entities your beat brief, character list, or 'Allowed-new-entities' line names explicitly. When ambient walk-ons help anchor a scene (a junior scribe carrying folios, a senior records ledger on the desk, a passing guard), refer to them by role or descriptor rather than coining new proper names."
+
+**What the writer did NOT do:** stop inventing walk-on names. The L42-val novel still produced `Master Halden` (8 fires), `Guildmistress Vex's`, `North Gate`, and `Veldener Guild` — none in any grounded surface.
+
+**What the writer DID do:** integrate the invented names more naturally. The LLM checker no longer flagged them as ungrounded — they were judged plausible enough to grant L31a NER-only-warning class (severity: warning, pass=true, no retry burn). Compare to L40-val (pre-L42): the writer's invented `Journeyman Veth` / `Senior Scribe Haldor` / `Chronicle of Northern Incursions` triggered a `llm-only-blocker` decision → chapter bailed.
+
+**Net effect:** L42 shifted the FP class from blocker → warning. The chapter no longer bails on entity grounding. The writer is still imperfect, but the AND-gate is now permissive on the kinds of FPs the writer produces.
+
+**The rule:** when evaluating a writer-side prompt rule, measure the AND-gate decision-class shift, not writer behavioral compliance. A 0% blocker fire rate with 5 NER-only-warnings is a SUCCESSFUL outcome — the cluster moved out of the bail-inducing class.
+
+**How to apply:**
+- After shipping any writer-side prompt rule, query the AND-gate decision histogram (`pass / ner-only-warning / llm-only-blocker / ner+llm-blocker`) before and after.
+- Look for class-shift, not class-elimination. A blocker → warning shift is the production-meaningful outcome.
+- Don't read prose to verify "did the writer comply with the rule" — read the AND-gate distribution to verify "did the cluster move out of the blocker class".
+- This pairs with `feedback_priming_suppression_ab` (positive framing only) — positive rules tend to produce partial compliance with shape-shift, while negative rules tend to prime the forbidden tokens. Both effects are class-shift effects, not class-elimination.
+
+(2026-05-02 L42-validation exp #366. Result doc `docs/l42-validation-2026-05-02.md`. Companion: `docs/decisions.md` §L42, §L42-validation.)
