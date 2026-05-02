@@ -55,10 +55,35 @@ await migrate()
   try {
     const { listOrphanedExhaustions } = await import("../db/chapter-exhaustions")
     const orphans = await listOrphanedExhaustions(60_000)
+    if (orphans.length === 0) return
+
+    // Aggregate by novel rather than emitting one log line per gate. With
+    // many novels accumulating gates over weeks, the per-row form becomes
+    // a wall of text on every restart; a per-novel summary with counts +
+    // oldest age is more operator-actionable.
+    const byNovel = new Map<string, { count: number; oldestMs: number; chapters: Set<number> }>()
+    const nowMs = Date.now()
     for (const row of orphans) {
-      console.warn(
-        `[startup] Orphaned plan-assist gate: novel_id=${row.novelId} chapter=${row.chapter} kind=${row.kind} fired_at=${row.firedAt} — gate is lost after restart; user must resume the novel to retry`
-      )
+      const ageMs = nowMs - new Date(row.firedAt).getTime()
+      const cur = byNovel.get(row.novelId)
+      if (cur) {
+        cur.count++
+        cur.chapters.add(row.chapter)
+        if (ageMs > cur.oldestMs) cur.oldestMs = ageMs
+      } else {
+        byNovel.set(row.novelId, { count: 1, oldestMs: ageMs, chapters: new Set([row.chapter]) })
+      }
+    }
+
+    const novels = Array.from(byNovel.entries()).sort((a, b) => b[1].oldestMs - a[1].oldestMs)
+    const oldestDays = Math.round(novels[0]![1].oldestMs / (1000 * 60 * 60 * 24))
+    console.warn(
+      `[startup] Orphan plan-assist gates: ${orphans.length} across ${novels.length} novel(s) (oldest ${oldestDays}d). Resume any novel below to clean its gates.`
+    )
+    for (const [novelId, stats] of novels) {
+      const days = Math.round(stats.oldestMs / (1000 * 60 * 60 * 24))
+      const chs = Array.from(stats.chapters).sort((a, b) => a - b).join(",")
+      console.warn(`[startup]   ${novelId}: ${stats.count} gate(s) ch=${chs} oldest=${days}d`)
     }
   } catch (err) {
     // Non-fatal: orphan detection is best-effort at startup
