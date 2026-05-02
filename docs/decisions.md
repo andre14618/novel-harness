@@ -3911,3 +3911,43 @@ Stage 2 is more authoritative than stage 1 because it provides per-event quote e
 **Ongoing implications:** L31 stack is the new production baseline. The L31d-(NEW) finding is real but is existing design behavior, not a regression. Document or fix per L37 design call.
 
 ---
+
+### L37-data — Multi-seed evidence for L37 design call (2026-05-02, exp #361)
+*2026-05-02 · exp #361 · novels `novel-1777709036403` (fantasy-system-heretic) + `novel-1777710252345` (fantasy-inscription) · logs `/tmp/smoke-l37-heretic-1777709036.log` + `/tmp/smoke-l37-inscription-1777710251.log`*
+
+**Decision:** L37 should ship as **Option (ii) — document current routing as expected**. The chapter-level continuity blocker that L31d surfaced on `fantasy-debt` does not generalize as the dominant halt class. The actual dominant remaining halt class is **adherence-beat-blocker chapter-attempt exhaustion**, which is a different problem class than continuity-once retry would address.
+
+**Stop condition: (c) — Mixed.** `fantasy-system-heretic` bailed on chapter 1 attempt 3 with an adherence beat blocker (Beat 4 missing event), exhausting all 3 chapter-attempt retries; ZERO chapter-level continuity blockers fired across all 3 attempts. `fantasy-inscription` approved chapter 1 cleanly but bailed on chapter 2 attempt 2 with 3 deviations: 2 beat-9 adherence blockers + 1 chapter-level continuity blocker (Calla had-already-cut state divergence) — co-occurring, not sole.
+
+**Continuity-blocker fire rate: 1 / 6 chapters** at chapter level (16%). Cross-seed including L31d (`fantasy-debt`): 2 / 9 chapters across 3 seeds; only 1 of those 2 was a SOLE continuity blocker (the L31d `fantasy-debt` ch2 ledger-color case). A continuity-once retry path would not have closed `fantasy-inscription` ch2 because the adherence blockers would have remained.
+
+**Cluster verification (per seed):**
+
+| Cluster | fantasy-system-heretic | fantasy-inscription |
+|---------|:---------------------:|:-------------------:|
+| L17 (Brennan/Aldric/etc.) | ✅ 0 / 51 halluc calls | ✅ 0 / 50 halluc calls |
+| L22 (T.C./Guildmaster/derived titles) | ✅ 0 / 51 halluc calls | ✅ 0 / 50 halluc calls |
+| L24-(a) NER-only-warning exhaust | ✅ 33 fires all `pass: true` (per L31a) | ✅ 24 fires all `pass: true` (per L31a) |
+| L24-(b) adherence stage-1 stochastic | ✅ 2 stage-2-override events correct (per L31c) | ✅ 4 stage-2-override events correct (per L31c) |
+| L26/L32 mapper allowedNewEntities | ✅ 0 dup-FPs / 3 mapper calls (per L32) | ✅ 0 dup-FPs / 3 mapper calls (per L32) |
+| L31d-(NEW) continuity blocker | ✅ 0 fires across 3 attempts | ⚠ 1 fire (ch2 attempt 2, co-occurring with adherence) |
+
+**Per-seed outcome:**
+
+| Seed | Chapters complete | Halt reason | Cost | LLM calls |
+|------|-------------------|-------------|------|-----------|
+| fantasy-system-heretic | 0 / 3 | ch1 attempt 3 — `plan-check-exhausted` (1 deviation: beat 3 adherence — Beat 4 event missing) | $0.0619 | 200 (0 failed, 52 retried) |
+| fantasy-inscription | 1 / 3 | ch2 attempt 2 — `plan-check-exhausted` (3 deviations: 2 beat-9 adherence + 1 chapter-level continuity) | $0.0648 | 186 (0 failed, 38 retried) |
+| **Combined** | **1 / 6** | — | **$0.1267 / $8 budget** | **386 (0 failed, 90 retried)** |
+
+**Stage-2-override events: 6 total (2 + 4).** All matched L31c design intent (stage-2 found all `obligated_events` enacted; stage-1's binary verdict overridden). No false-positive overrides.
+
+**AND-gate matrix:** `fantasy-system-heretic` had highest NER-only-warning rate to date (33/51 = 65%); all returned `pass: true` per L31a, zero retry burn. `fantasy-inscription` closer to baseline (24/50 = 48%).
+
+**Implementation for Option (ii):** add a "Continuity-blocker plan-assist halts" section to `docs/overnight-runbook.md` covering: the exhaustion path (`drafting.ts:1116-1133` / `buildCheckerBlockerDeviations`), the routing behavior (chapter-level continuity blockers go straight to plan-assist on first attempt), recommended operator response (edit outline / override / abort), and heuristics for distinguishing planner→prose state divergence vs. transient writer hallucination.
+
+**Commit chain reference:** L37-data evidence-gathering only — no code changes. L37 implementation (Option ii) remains pending in `docs/todo.md`.
+
+**Ongoing implications:** L31 stack continues as production baseline across 3 fantasy seeds (debt, system-heretic, inscription). Adherence-beat-blocker chapter-attempt exhaustion is the dominant remaining halt class — open a separate sprint to investigate why a single beat-level adherence blocker survives 3 writer retries on the same beat. (Specifically: `fantasy-system-heretic` ch1 Beat 4 obligated event "Maret considers destroying the file but reshelves it untouched because the System logs all accesses" survived all three retries.)
+
+---
