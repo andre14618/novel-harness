@@ -67,7 +67,7 @@ role: primary-lane-context
 - Stop gate fired: (a) clean pass — classifier helper + tests landed.
 - Evidence link/row/path: `scripts/agent/smoke-stop-classifier.ts`, `scripts/agent/smoke-stop-classifier.test.ts` (15/15 pass), tuning_experiments.id=380.
 - Cost: $0 (no LLM calls; local-only tests).
-- Commit(s): TBD (this finalization commit).
+- Commit(s): 2b49e75 `[infra] L56 smoke-stop classifier over operator-summary JSON`.
 
 ## Finalization Checklist
 
