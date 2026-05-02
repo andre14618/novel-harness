@@ -73,6 +73,24 @@ Recommended body footer for non-doc-changing runtime commits:
 docs-impact: none
 ```
 
+### Preflight check
+
+`scripts/preflight-docs-impact.ts` inspects staged changes (or `--commit <ref>`) and warns when runtime files are staged without either `docs/current-state.md` co-staged or a `docs-impact: none` footer. Default is warn-only; pass `--strict` to exit non-zero.
+
+```
+bun scripts/preflight-docs-impact.ts            # check staged
+bun scripts/preflight-docs-impact.ts --commit HEAD  # check committed
+```
+
+Opt-in pre-commit hook:
+
+```
+echo 'bun scripts/preflight-docs-impact.ts --strict || exit 1' >> .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+Runtime surface = the patterns in the script's `RUNTIME_SURFACE_PATTERNS` constant, mirrored from CLAUDE.md "Required deploy surfaces". `.test.ts` files are excluded.
+
 ## Superseded Documents
 
 When a charter, plan, runbook, or living doc is replaced by a successor that earned a **new family name** (different causal question, different baseline, different metric, different scope) — most often after a RED adversary verdict — retire the predecessor by **deleting it from the working tree** and recording the supersession in `docs/decisions.md`. The active directory stays current; git preserves the history.
