@@ -15,6 +15,7 @@ import {
   readLaneEvents,
   readLaneMessages,
   reduceLaneMessages,
+  summarizeAgentActivity,
   summarizeLaneMessages,
   summarizeOperatorJson,
 } from "./lane-core"
@@ -217,6 +218,51 @@ describe("lane message bus helpers", () => {
     ], "messages.jsonl", new Date("2026-05-02T12:11:00Z"))
     expect(lines[1]).toContain("expired_leases=1")
     expect(lines[2]).toContain("EXPIRED msg-1")
+  })
+
+  test("summarizeAgentActivity shows active worker, heartbeat, claimed work, and latest result", () => {
+    const lines = summarizeAgentActivity([
+      {
+        ts: "2026-05-02T12:00:00Z",
+        type: "cycle_start",
+        actor: "lane-runner",
+        status: "continue",
+        step: "cycle 1/4",
+        workerId: "captain-claude",
+        workerRole: "captain",
+        workerEngine: "claude",
+      },
+      { ts: "2026-05-02T12:01:00Z", type: "heartbeat", actor: "captain-claude", status: "continue", step: "checking replay" },
+    ], [
+      {
+        id: "msg-1",
+        ts: "2026-05-02T12:00:30Z",
+        lane: "L50",
+        from: "captain-claude",
+        to: "evidence",
+        kind: "request",
+        status: "claimed",
+        subject: "Monitor replay",
+        claimBy: "evidence-dsv4",
+        leaseUntil: "2026-05-02T12:31:00Z",
+      },
+      {
+        id: "msg-2",
+        ts: "2026-05-02T12:00:40Z",
+        lane: "L50",
+        from: "evidence-dsv4",
+        to: "captain",
+        kind: "result",
+        status: "resolved",
+        subject: "Replay result",
+        resolvedBy: "evidence-dsv4",
+        result: "row #84 found",
+      },
+    ], new Date("2026-05-02T12:02:00Z"))
+    expect(lines[0]).toContain("active runner worker: captain-claude")
+    expect(lines[1]).toContain("latest heartbeat: captain-claude")
+    expect(lines[2]).toContain("evidence-dsv4=1")
+    expect(lines[3]).toContain("row #84 found")
   })
 })
 

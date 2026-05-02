@@ -343,6 +343,62 @@ export function summarizeLaneMessages(messages: LaneMessage[], messageLogPath: s
   return lines
 }
 
+function eventTime(event: { ts?: string }): number {
+  const value = Date.parse(event.ts ?? "")
+  return Number.isFinite(value) ? value : 0
+}
+
+function eventString(event: LaneEvent, key: string): string | null {
+  const value = event[key]
+  return typeof value === "string" && value.trim() ? value : null
+}
+
+export function summarizeAgentActivity(events: LaneEvent[], messages: LaneMessage[], now = new Date()): string[] {
+  const reducedMessages = reduceLaneMessages(messages)
+  const reversedEvents = [...events].reverse()
+  const latestWorkerStart = reversedEvents.find(event => event.type === "cycle_start" && eventString(event, "workerId")) ?? null
+  const latestWorkerTerminal = reversedEvents.find(event => ["cycle_complete", "cycle_failed", "cycle_dry_run", "runner_stop", "runner_limit", "runner_no_change_limit"].includes(event.type) && eventString(event, "workerId")) ?? null
+  const latestWorkerEvent = reversedEvents.find(event => eventString(event, "workerId")) ?? null
+  const latestHeartbeat = reversedEvents.find(event => event.type === "heartbeat") ?? null
+  const lines: string[] = []
+
+  if (latestWorkerStart && (!latestWorkerTerminal || eventTime(latestWorkerStart) > eventTime(latestWorkerTerminal))) {
+    lines.push(`active runner worker: ${eventString(latestWorkerStart, "workerId")} role=${eventString(latestWorkerStart, "workerRole") ?? "?"} engine=${eventString(latestWorkerStart, "workerEngine") ?? "?"} ${latestWorkerStart.step ?? ""}`.trim())
+  } else if (latestWorkerEvent) {
+    lines.push(`active runner worker: none; last worker=${eventString(latestWorkerEvent, "workerId")} event=${latestWorkerEvent.type} at=${latestWorkerEvent.ts}`)
+  } else {
+    lines.push("active runner worker: unknown (no worker identity events yet)")
+  }
+
+  if (latestHeartbeat) {
+    const ageSeconds = Math.max(0, Math.floor((now.getTime() - eventTime(latestHeartbeat)) / 1000))
+    const detail = latestHeartbeat.step ?? latestHeartbeat.message ?? latestHeartbeat.type
+    lines.push(`latest heartbeat: ${latestHeartbeat.actor ?? "unknown"} age=${Math.floor(ageSeconds / 60)}m${ageSeconds % 60}s :: ${compact(detail, 90)}`)
+  } else {
+    lines.push("latest heartbeat: none")
+  }
+
+  const claimedCounts = new Map<string, number>()
+  for (const message of reducedMessages) {
+    if (message.status !== "claimed") continue
+    claimedCounts.set(message.claimBy ?? "unknown", (claimedCounts.get(message.claimBy ?? "unknown") ?? 0) + 1)
+  }
+  if (claimedCounts.size > 0) {
+    lines.push(`claimed work by actor: ${[...claimedCounts.entries()].map(([actor, count]) => `${actor}=${count}`).join(" ")}`)
+  } else {
+    lines.push("claimed work by actor: none")
+  }
+
+  const latestResolved = [...reducedMessages]
+    .filter(message => message.status === "resolved")
+    .sort((a, b) => eventTime(b) - eventTime(a))[0]
+  if (latestResolved) {
+    lines.push(`latest resolved: ${latestResolved.id} by=${latestResolved.resolvedBy ?? latestResolved.updatedBy ?? "?"} :: ${compact(latestResolved.result ?? latestResolved.subject, 90)}`)
+  }
+
+  return lines
+}
+
 export function assessLane(doc: ParsedLaneDoc, events: LaneEvent[], opts: {
   now?: Date
   staleMinutes?: number
@@ -503,14 +559,17 @@ export function summarizeOperatorJson(raw: unknown): string[] {
   return lines
 }
 
-export function collectCoordinationSnapshot(doc: ParsedLaneDoc, now = new Date()): CoordinationSnapshot {
+export function collectCoordinationSnapshot(doc: ParsedLaneDoc, events: LaneEvent[], now = new Date()): CoordinationSnapshot {
   const messageLogPath = laneMessageLogPath(doc.path)
   const messages = readLaneMessages(messageLogPath)
   const reduced = reduceLaneMessages(messages)
   return {
     ok: true,
     messageLogPath,
-    summaryLines: summarizeLaneMessages(messages, messageLogPath, now),
+    summaryLines: [
+      ...summarizeAgentActivity(events, messages, now),
+      ...summarizeLaneMessages(messages, messageLogPath, now),
+    ],
     openCount: reduced.filter(message => message.status === "open").length,
     claimedCount: reduced.filter(message => message.status === "claimed").length,
     expiredLeaseCount: reduced.filter(message => isLeaseExpired(message, now)).length,
@@ -737,7 +796,7 @@ export function buildLaneStatusReport(args: {
       eventLogPath,
     }),
     git,
-    coordination: panelEnabled(panels, "coordination") ? collectCoordinationSnapshot(lane, now) : null,
+    coordination: panelEnabled(panels, "coordination") ? collectCoordinationSnapshot(lane, events, now) : null,
     harness,
     evidence: panelEnabled(panels, "evidence") ? collectEvidenceSnapshot(lane) : null,
     hygiene: panelEnabled(panels, "hygiene") ? collectHygieneSnapshot(git) : null,

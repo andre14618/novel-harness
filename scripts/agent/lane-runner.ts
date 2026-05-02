@@ -29,6 +29,8 @@ export interface RunnerArgs {
   model: string | null
   permissionMode: string | null
   workerIo: WorkerIo
+  workerRole: string
+  workerId: string | null
   queuePath: string | null
   title: string | null
   extraInstruction: string
@@ -75,6 +77,8 @@ export function parseArgs(argv: string[]): RunnerArgs {
     model: null,
     permissionMode: null,
     workerIo: "capture",
+    workerRole: "captain",
+    workerId: null,
     queuePath: null,
     title: null,
     extraInstruction: "",
@@ -102,6 +106,8 @@ export function parseArgs(argv: string[]): RunnerArgs {
       out.workerIo = value
     }
     else if (a === "--interactive") out.workerIo = "terminal"
+    else if (a === "--worker-role") out.workerRole = argv[++i] ?? out.workerRole
+    else if (a === "--worker-id") out.workerId = argv[++i] ?? null
     else if (a === "--queue") out.queuePath = argv[++i] ?? null
     else if (a === "--title") out.title = argv[++i] ?? null
     else if (a === "--instruction") out.extraInstruction = argv[++i] ?? ""
@@ -123,6 +129,8 @@ export function parseArgs(argv: string[]): RunnerArgs {
           "  --permission-mode <mode>     Claude only: pass --permission-mode\n" +
           "  --worker-io <mode>           Worker I/O: capture|terminal (default: capture)\n" +
           "  --interactive                Alias for --worker-io terminal\n" +
+          "  --worker-role <role>         Durable role label: captain|evidence|support|review (default: captain)\n" +
+          "  --worker-id <id>             Durable actor id for heartbeats/messages (default: <role>-<engine>)\n" +
           "  --queue <path>               Markdown queue of pre-created lane docs\n" +
           "  --title <text>               Pass --title/--name to the worker\n" +
           "  --instruction <text>         Extra instruction appended to each cycle prompt\n" +
@@ -140,6 +148,8 @@ export function parseArgs(argv: string[]): RunnerArgs {
   if (out.agent === "") throw new Error("--agent requires a value")
   if (out.model === "") throw new Error("--model requires a value")
   if (out.permissionMode === "") throw new Error("--permission-mode requires a value")
+  if (out.workerRole === "") throw new Error("--worker-role requires a value")
+  if (out.workerId === "") throw new Error("--worker-id requires a value")
   if (out.engine === "opencode" && out.workerIo === "terminal" && out.dangerouslySkipPermissions) {
     throw new Error("--dangerously-skip-permissions is not supported for opencode terminal mode")
   }
@@ -147,10 +157,23 @@ export function parseArgs(argv: string[]): RunnerArgs {
   return out
 }
 
+export function workerIdentity(args: RunnerArgs): string {
+  return args.workerId ?? `${args.workerRole}-${args.engine}`
+}
+
+function workerEventFields(args: RunnerArgs): Record<string, string> {
+  return {
+    workerId: workerIdentity(args),
+    workerRole: args.workerRole,
+    workerEngine: args.engine,
+    workerIo: args.workerIo,
+  }
+}
+
 export function buildCyclePrompt(args: RunnerArgs, cycle: number, laneSummary: string): string {
   const lanePath = args.lanePath!
   const extra = args.extraInstruction.trim()
-  const actor = args.engine === "claude" ? "claude" : "opencode"
+  const actor = workerIdentity(args)
   const terminalNote = args.workerIo === "terminal"
     ? [
       "",
@@ -173,6 +196,11 @@ export function buildCyclePrompt(args: RunnerArgs, cycle: number, laneSummary: s
     "",
     "Current lane status:",
     laneSummary,
+    "",
+    "Agent identity:",
+    `- Your durable actor id is ${actor}. Use exactly this value in lane-heartbeat and lane-message --actor fields.`,
+    `- Your role is ${args.workerRole}; engine=${args.engine}; worker_io=${args.workerIo}.`,
+    "- If you delegate work, send it to a role such as evidence, support, review, or human, then continue only after the message is claimed/resolved or you have an explicit reason to proceed.",
     "",
     "Required workflow:",
     `1. Read ${lanePath} before editing.` ,
@@ -220,7 +248,7 @@ export function buildOpencodeArgs(args: RunnerArgs, prompt: string, cycle: numbe
   if (args.model) out.push("--model", args.model)
   if (args.agent) out.push("--agent", args.agent)
   if (args.title) out.push("--title", args.title)
-  else out.push("--title", `${laneIdFromPath(args.lanePath!)} cycle ${cycle}`)
+  else out.push("--title", `${laneIdFromPath(args.lanePath!)} ${args.workerRole} cycle ${cycle}`)
   if (args.dangerouslySkipPermissions) out.push("--dangerously-skip-permissions")
   out.push(prompt)
   return out
@@ -232,7 +260,7 @@ export function buildClaudeArgs(args: RunnerArgs, prompt: string, cycle: number)
   if (args.agent) out.push("--agent", args.agent)
   if (args.permissionMode) out.push("--permission-mode", args.permissionMode)
   if (args.title) out.push("--name", args.title)
-  else out.push("--name", `${laneIdFromPath(args.lanePath!)} cycle ${cycle}`)
+  else out.push("--name", `${laneIdFromPath(args.lanePath!)} ${args.workerRole} cycle ${cycle}`)
   if (args.dangerouslySkipPermissions) out.push("--dangerously-skip-permissions")
   out.push(prompt)
   return out
@@ -405,12 +433,14 @@ function main(argv: string[]): number {
   let noChangeCycles = 0
 
   appendRunnerEvent(lanePath, {
+    ...workerEventFields(args),
     type: "runner_start",
-    step: `maxCycles=${args.maxCycles} maxHours=${args.maxHours} cycleTimeoutMinutes=${args.cycleTimeoutMinutes} workerIo=${args.workerIo}`,
+    step: `worker=${workerIdentity(args)} role=${args.workerRole} maxCycles=${args.maxCycles} maxHours=${args.maxHours} cycleTimeoutMinutes=${args.cycleTimeoutMinutes} workerIo=${args.workerIo}`,
   })
 
   if (args.workerIo === "terminal" && !args.dryRun && (!process.stdin.isTTY || !process.stdout.isTTY)) {
     appendRunnerEvent(lanePath, {
+      ...workerEventFields(args),
       type: "runner_terminal_unavailable",
       status: "human-needed",
       message: "--worker-io terminal requires an attached TTY; use capture mode for background/nohup runs",
@@ -420,7 +450,7 @@ function main(argv: string[]): number {
 
   for (let cycle = 1; cycle <= args.maxCycles; cycle++) {
     if (elapsedHours(startMs) >= args.maxHours) {
-      appendRunnerEvent(lanePath, { type: "runner_limit", status: "human-needed", message: `max hours reached before cycle ${cycle}` })
+      appendRunnerEvent(lanePath, { ...workerEventFields(args), type: "runner_limit", status: "human-needed", message: `max hours reached before cycle ${cycle}` })
       return 21
     }
 
@@ -429,16 +459,16 @@ function main(argv: string[]): number {
     if (summary.state !== "continue") {
       if (summary.state === "stop") {
         const advance = tryAdvanceLane(lanePath, args.queuePath)
-        appendRunnerEvent(lanePath, { type: advance.lanePath ? "runner_advance" : "runner_stop", status: advance.lanePath ? "continue" : (advance.exitCode === 21 ? "human-needed" : "stop"), message: advance.message })
+        appendRunnerEvent(lanePath, { ...workerEventFields(args), type: advance.lanePath ? "runner_advance" : "runner_stop", status: advance.lanePath ? "continue" : (advance.exitCode === 21 ? "human-needed" : "stop"), message: advance.message })
         if (advance.lanePath) {
           lanePath = advance.lanePath
           noChangeCycles = 0
-          appendRunnerEvent(lanePath, { type: "runner_advance_start", step: `continued from queue ${args.queuePath}`, message: advance.message })
+          appendRunnerEvent(lanePath, { ...workerEventFields(args), type: "runner_advance_start", step: `continued from queue ${args.queuePath}`, message: advance.message })
           continue
         }
         return advance.exitCode ?? 10
       }
-      appendRunnerEvent(lanePath, { type: "runner_stop", status: summary.state, message: `lane-status is ${summary.state}` })
+      appendRunnerEvent(lanePath, { ...workerEventFields(args), type: "runner_stop", status: summary.state, message: `lane-status is ${summary.state}` })
       return summary.exitCode
     }
 
@@ -447,7 +477,7 @@ function main(argv: string[]): number {
     const command = commandForEngine(args.engine)
     const commandArgs = buildWorkerArgs(cycleArgs, prompt, cycle)
     const commandText = buildDisplayCommand(cycleArgs, cycle)
-    appendRunnerEvent(lanePath, { type: "cycle_start", step: `cycle ${cycle}/${args.maxCycles}`, command: commandText })
+    appendRunnerEvent(lanePath, { ...workerEventFields(cycleArgs), type: "cycle_start", step: `cycle ${cycle}/${args.maxCycles}`, command: commandText })
 
     if (args.dryRun) {
       const result = { ok: true, status: 0, stdout: "", stderr: "", error: null, timedOut: false }
@@ -455,7 +485,7 @@ function main(argv: string[]): number {
       console.log(commandText)
       console.log("\n--- prompt ---\n")
       console.log(prompt)
-      appendRunnerEvent(lanePath, { type: "cycle_dry_run", step: `wrote ${artifactBase}.*`, command: commandText })
+      appendRunnerEvent(lanePath, { ...workerEventFields(cycleArgs), type: "cycle_dry_run", step: `wrote ${artifactBase}.*`, command: commandText })
       return 0
     }
 
@@ -469,7 +499,7 @@ function main(argv: string[]): number {
       const reason = result.timedOut
         ? `cycle ${cycle} timed out after ${args.cycleTimeoutMinutes}m`
         : `cycle ${cycle} exited ${result.status ?? "unknown"}${result.error ? `: ${result.error}` : ""}`
-      appendRunnerEvent(lanePath, { type: "cycle_failed", status: "infra-failure", message: `${reason}; artifacts=${artifactBase}.*`, command: commandText })
+      appendRunnerEvent(lanePath, { ...workerEventFields(cycleArgs), type: "cycle_failed", status: "infra-failure", message: `${reason}; artifacts=${artifactBase}.*`, command: commandText })
       return 22
     }
 
@@ -477,6 +507,7 @@ function main(argv: string[]): number {
     postSummary = refreshStaleHeartbeatIfNeeded(lanePath, postSummary, `lane-runner cycle ${cycle} completed`, args.staleMinutes)
 
     appendRunnerEvent(lanePath, {
+      ...workerEventFields(cycleArgs),
       type: "cycle_complete",
       status: postSummary.state,
       step: `cycle ${cycle}/${args.maxCycles}`,
@@ -488,11 +519,11 @@ function main(argv: string[]): number {
     if (postSummary.state !== "continue") {
       if (postSummary.state === "stop") {
         const advance = tryAdvanceLane(lanePath, args.queuePath)
-        appendRunnerEvent(lanePath, { type: advance.lanePath ? "runner_advance" : "runner_stop", status: advance.lanePath ? "continue" : (advance.exitCode === 21 ? "human-needed" : "stop"), message: advance.message })
+        appendRunnerEvent(lanePath, { ...workerEventFields(args), type: advance.lanePath ? "runner_advance" : "runner_stop", status: advance.lanePath ? "continue" : (advance.exitCode === 21 ? "human-needed" : "stop"), message: advance.message })
         if (advance.lanePath) {
           lanePath = advance.lanePath
           noChangeCycles = 0
-          appendRunnerEvent(lanePath, { type: "runner_advance_start", step: `continued from queue ${args.queuePath}`, message: advance.message })
+          appendRunnerEvent(lanePath, { ...workerEventFields(args), type: "runner_advance_start", step: `continued from queue ${args.queuePath}`, message: advance.message })
           continue
         }
         return advance.exitCode ?? postSummary.exitCode
@@ -503,6 +534,7 @@ function main(argv: string[]): number {
     noChangeCycles = changed ? 0 : noChangeCycles + 1
     if (noChangeCycles >= args.maxNoChangeCycles) {
       appendRunnerEvent(lanePath, {
+        ...workerEventFields(args),
         type: "runner_no_change_limit",
         status: "human-needed",
         message: `${noChangeCycles} consecutive cycle(s) made no tracked workspace change; inspect artifacts before continuing`,
@@ -511,7 +543,7 @@ function main(argv: string[]): number {
     }
   }
 
-  appendRunnerEvent(lanePath, { type: "runner_limit", status: "human-needed", message: `max cycles reached (${args.maxCycles})` })
+  appendRunnerEvent(lanePath, { ...workerEventFields(args), type: "runner_limit", status: "human-needed", message: `max cycles reached (${args.maxCycles})` })
   return 21
 }
 

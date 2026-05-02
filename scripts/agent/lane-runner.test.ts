@@ -7,6 +7,7 @@ import {
   nextLaneFromQueueText,
   parseLaneQueue,
   parseArgs,
+  workerIdentity,
   type RunnerArgs,
 } from "./lane-runner"
 
@@ -23,6 +24,8 @@ function baseArgs(overrides: Partial<RunnerArgs> = {}): RunnerArgs {
     model: null,
     permissionMode: null,
     workerIo: "capture",
+    workerRole: "captain",
+    workerId: null,
     queuePath: null,
     title: null,
     extraInstruction: "",
@@ -42,6 +45,8 @@ describe("lane-runner args", () => {
     expect(args.cycleTimeoutMinutes).toBe(45)
     expect(args.maxNoChangeCycles).toBe(1)
     expect(args.workerIo).toBe("capture")
+    expect(args.workerRole).toBe("captain")
+    expect(workerIdentity(args)).toBe("captain-opencode")
     expect(args.dryRun).toBe(false)
   })
 
@@ -56,6 +61,8 @@ describe("lane-runner args", () => {
       "--model", "openai/gpt-5.5",
       "--permission-mode", "auto",
       "--worker-io", "terminal",
+      "--worker-role", "evidence",
+      "--worker-id", "evidence-dsv4",
       "--queue", "docs/sessions/lane-queue.md",
       "--title", "L38-A",
       "--instruction", "stay narrow",
@@ -70,6 +77,9 @@ describe("lane-runner args", () => {
     expect(args.model).toBe("openai/gpt-5.5")
     expect(args.permissionMode).toBe("auto")
     expect(args.workerIo).toBe("terminal")
+    expect(args.workerRole).toBe("evidence")
+    expect(args.workerId).toBe("evidence-dsv4")
+    expect(workerIdentity(args)).toBe("evidence-dsv4")
     expect(args.queuePath).toBe("docs/sessions/lane-queue.md")
     expect(args.title).toBe("L38-A")
     expect(args.extraInstruction).toBe("stay narrow")
@@ -94,7 +104,8 @@ describe("lane-runner prompt and command", () => {
     expect(prompt).toContain("docs/sessions/lane.md")
     expect(prompt).toContain("claude work cycle")
     expect(prompt).toContain("Record a heartbeat")
-    expect(prompt).toContain("--actor claude")
+    expect(prompt).toContain("Your durable actor id is captain-claude")
+    expect(prompt).toContain("--actor captain-claude")
     expect(prompt).toContain("Do not touch deferred out-of-lane runtime changes")
     expect(prompt).toContain("Lane finalization before stop or queue handoff")
     expect(prompt).toContain("Results: Outcome, Stop gate fired, Evidence link/row/path, Cost, and Commit(s)")

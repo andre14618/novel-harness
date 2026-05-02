@@ -88,7 +88,7 @@ bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --dry-run
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --max-cycles 4 --max-hours 3 --model openai/gpt-5.5
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8
 bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md
-bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --worker-io terminal
+bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --worker-role captain --worker-id captain-claude --worker-io terminal
 nohup bun scripts/agent/lane-runner.ts docs/sessions/<lane>.md --engine claude --model opus --permission-mode auto --max-cycles 30 --max-hours 8 --queue docs/sessions/lane-queue.md > /tmp/lane-runner-<lane-id>.log 2>&1 &
 bun scripts/agent/lane-message.ts list docs/sessions/<lane>.md --open
 ```
@@ -98,6 +98,8 @@ bun scripts/agent/lane-message.ts list docs/sessions/<lane>.md --open
 For unattended work, use `lane-runner.ts` rather than trusting chat continuation. The runner launches bounded worker cycles only while lane-status remains `continue`, writes cycle artifacts under `output/agent-runs/<lane-id>/cycles/`, and stops on worker failure/timeout, max cycles, max hours, or no tracked workspace change. Default engine is OpenCode (`opencode run`); use `--engine claude` to make Claude Code the lane worker through `claude -p`. Always run `--dry-run` first to inspect the generated prompt and command. Avoid `--dangerously-skip-permissions` unless you explicitly accept the risk for that session.
 
 For supervised work, add `--worker-io terminal`. This starts visible Claude Code without `-p`, or OpenCode TUI with `--prompt`, and the runner waits until the terminal worker exits before checking lane status again. Terminal mode requires an attached TTY and is not appropriate for `nohup`. Use it when you want to question the active worker, let it use native Claude/OpenCode interactive affordances, or keep it alive while background LXC validation runs. The worker should still record durable progress with `lane-heartbeat`; terminal chat is only live operator communication, not persistent lane state.
+
+Give every runner an explicit identity with `--worker-role` and `--worker-id`. The coordination panel displays the active runner worker, latest heartbeat actor, claimed work by actor, and expired leases, so a walk-away session should make ownership obvious without reading full transcripts.
 
 For cross-agent operational coordination, use `lane-message.ts`. The lane captain sends requests, evidence/support agents claim them with leases, and the assignee resolves them with evidence refs. `monitor --panel coordination` shows open messages, claimed work, and expired leases. This prevents the common failure mode where one agent launches a background replay and no visible owner remains responsible for monitoring it.
 
