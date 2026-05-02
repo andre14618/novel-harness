@@ -3644,3 +3644,25 @@ Placed in Pass section (not Disambiguation block). Four prior phrasings attempte
 **Cost:** ~$0.005 (DeepSeek V3.2 Flash, ~50 calls for A/B iterations).
 
 **Next:** L23c (todo) and re-smoke fantasy-debt after L23a + L23b deploy to LXC.
+
+### L27 — DB-test reachability gating sweep (2026-05-01, exp #347)
+*2026-05-01 · exp #347 · infra*
+
+**Decision:** Make `bun test` clean on a local checkout where Postgres is not reachable. Two independent fixes:
+
+**Fix (a): `tests/phase-parity/phase-parity.test.ts`.** When phase-parity fixtures are committed (current state) the test would attempt `clearNovelState`/`createNovel` against the DB and fail with `ERR_POSTGRES_CONNECTION_CLOSED` if the local checkout has no live Postgres. Added `await dbReachable()` at file scope and a `test.skip()` early-return inside `describe` when `!reachable` — mirrors the pattern from `chapter-exhaustions.test.ts` and `promotion-check.test.ts`.
+
+**Fix (b): `scripts/phase-eval/list-runs.ts`.** Module-level `main().catch()` fired during `bun test` import via `list-runs.test.ts` (which imports pure helper functions). Wrapped in `if (import.meta.main)` so the CLI driver only fires when the file is the entry point.
+
+**Verification:**
+- `unset DATABASE_URL ORCHESTRATOR_DB_URL && bun test src/ tests/ scripts/phase-eval/` → **530 pass / 12 skip / 0 fail** (was 1 fail pre-fix)
+- `DATABASE_URL=postgres://invalid:5432/nope bun test ...` → **530 pass / 12 skip / 0 fail** (the harder case — DATABASE_URL set but listener absent)
+- `bunx tsc --noEmit` → clean
+
+**Audit baseline:** Other 3 DB-touching test files (`chapter-exhaustions.test.ts`, `persist-phase-eval-run.test.ts`, `promotion-check.test.ts`) already used `dbReachable()` correctly — no regression introduced. The shared `src/db/test-helpers.ts` `dbReachable()` helper handles both env-var-absent AND env-var-stale cases via `Promise.race` + 2s timeout (per Codex review of `d055f60`).
+
+**Files changed:** `tests/phase-parity/phase-parity.test.ts`, `scripts/phase-eval/list-runs.ts`.
+
+**Why this matters:** Removes one source of false-positive test failures on local checkout — relevant for new contributors and for `bun test` in CI environments without LXC tunnel. Closes §12 todo item "Fix DB-backed test reachability gating".
+
+**Cost:** $0 (no LLM calls). ~10 minutes wall time.
