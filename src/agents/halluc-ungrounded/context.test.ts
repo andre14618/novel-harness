@@ -346,3 +346,89 @@ test("buildContext: Character-roster dedupes against bible / beat.characters", (
   // "Lord Sorcerer Brennan" is genuinely new → kept
   expect(rosterLine).toContain("Lord Sorcerer Brennan")
 })
+
+// ── L23b: deriveTitleNouns tests ──────────────────────────────────────────────
+
+import { deriveTitleNouns } from "./context"
+
+test("deriveTitleNouns: 'Guild Master' role → emits 'GuildMaster' and 'guildmaster'", () => {
+  const chars = [
+    { id: "x", name: "Vareth", role: "Guild Master", speechPattern: "" },
+  ] as any
+  const titles = deriveTitleNouns(chars)
+  expect(titles).toContain("GuildMaster")
+  expect(titles).toContain("guildmaster")
+})
+
+test("deriveTitleNouns: 'Lord Sorcerer' role → emits 'LordSorcerer' and leading 'Lord'", () => {
+  const chars = [
+    { id: "x", name: "Brennan", role: "Lord Sorcerer", speechPattern: "" },
+  ] as any
+  const titles = deriveTitleNouns(chars)
+  expect(titles).toContain("LordSorcerer")
+  expect(titles).toContain("Lord")
+})
+
+test("deriveTitleNouns: single-token title role 'Guildmaster' → emits 'Guildmaster' directly", () => {
+  const chars = [
+    { id: "x", name: "Vareth", role: "Guildmaster", speechPattern: "" },
+  ] as any
+  const titles = deriveTitleNouns(chars)
+  expect(titles).toContain("Guildmaster")
+})
+
+test("deriveTitleNouns: role with no title root → not emitted", () => {
+  const chars = [
+    { id: "x", name: "Bob", role: "protagonist", speechPattern: "" },
+  ] as any
+  const titles = deriveTitleNouns(chars)
+  // "protagonist" has no title root → empty
+  expect(titles).toHaveLength(0)
+})
+
+test("deriveTitleNouns: empty role → not emitted", () => {
+  const chars = [
+    { id: "x", name: "Kael", role: "", speechPattern: "" },
+  ] as any
+  expect(deriveTitleNouns(chars)).toHaveLength(0)
+})
+
+test("deriveTitleNouns: multiple characters → all roles processed", () => {
+  const chars = [
+    { id: "a", name: "Vareth", role: "Guild Master", speechPattern: "" },
+    { id: "b", name: "Lira", role: "High Priest", speechPattern: "" },
+    { id: "c", name: "Kael", role: "protagonist", speechPattern: "" },
+  ] as any
+  const titles = deriveTitleNouns(chars)
+  expect(titles).toContain("GuildMaster")
+  expect(titles).toContain("HighPriest")
+  // "protagonist" has no title root — must not emit a joined form
+  expect(titles).not.toContain("protagonist")
+})
+
+test("buildContext: Derived-titles line rendered when opts.derivedTitles provided", () => {
+  const chars = [
+    { id: "vareth", name: "Vareth", role: "Guild Master", speechPattern: "" },
+  ] as any
+  const out = buildContext("prose", baseBeat as any, baseOutline, chars, baseWorldBible, {
+    derivedTitles: ["GuildMaster", "guildmaster"],
+  })
+  expect(out).toContain("Derived-titles:")
+  expect(out).toContain("GuildMaster")
+})
+
+test("buildContext: Derived-titles NOT rendered when opts.derivedTitles is undefined (backward compat)", () => {
+  const out = buildContext("prose", baseBeat as any, baseOutline, baseChars, baseWorldBible)
+  expect(out).not.toContain("Derived-titles:")
+})
+
+test("buildContext: Derived-titles dedupes against bible entries", () => {
+  // If world-bible already has "Guild" or derivedTitles duplicate the roster,
+  // dedup should remove it from the sub-line.
+  const out = buildContext("prose", baseBeat as any, baseOutline, baseChars, baseWorldBible, {
+    derivedTitles: ["Coast-born"],  // "Coast-born" is in cultures — already known
+  })
+  const derivedLine = out.split("\n").find(l => l.trim().startsWith("Derived-titles:")) ?? ""
+  // "Coast-born" is already in bible.cultures → deduped out
+  expect(derivedLine).not.toContain("Coast-born")
+})

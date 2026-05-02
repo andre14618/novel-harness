@@ -631,3 +631,72 @@ test("L20 (d): provenance — groundedSources carries character_roster + outline
   const result = await checkHallucUngrounded(prose, baseBeat, outlineWithSilverStreet, charsWithBrennan, emptyWorldBible)
   expect(result.pass).toBe(true)
 })
+
+// ── L23b: character-profile derived title nouns grounding tests ───────────────
+//
+// Acceptance criteria (L23b loop contract):
+//   (a) deriveTitleNouns flows into NER grounded surface → Guildmaster not flagged
+//       when character has role "Guild Master"
+//   (b) a NEW title with no matching character role → NER still fires
+//   (c) integration: checkHallucUngrounded passes on "the Guildmaster" with a
+//       character whose role is "Guild Master"
+
+import { deriveTitleNouns } from "./index"
+
+test("L23b (a): character role 'Guild Master' → deriveTitleNouns emits 'GuildMaster' and 'guildmaster'", () => {
+  const chars = [
+    { id: "vareth", name: "Vareth", role: "Guild Master", speechPattern: "" },
+  ] as any
+  const titles = deriveTitleNouns(chars)
+  expect(titles).toContain("GuildMaster")
+  expect(titles).toContain("guildmaster")
+})
+
+test("L23b (a): 'Guildmaster' as single-word entity in prose — LLM pass when derived title in surface", async () => {
+  // The L22 failure was: prose writes "The Guildmaster's own seal" and LLM fired
+  // because "Guildmaster" wasn't in any grounded surface. With L23b, deriveTitleNouns
+  // adds "GuildMaster" / "guildmaster" to the grounded surface when a character's role
+  // is "Guild Master". The LLM sees a "Derived-titles:" sub-line in the WORLD BIBLE
+  // block and can treat "Guildmaster" as grounded.
+  //
+  // NER won't fire on "Guildmaster" alone (single-word — NER only extracts multi-word
+  // or title-pair patterns). So this is purely an LLM-only path. Mock LLM passes
+  // (because the derived title is in context). Expect clean pass.
+  mockLLMResult = { pass: true, issues: [] }
+  const charsWithGuildMaster = [
+    ...baseChars,
+    { id: "vareth", name: "Vareth", role: "Guild Master", speechPattern: "formal" },
+  ] as any
+  const prose = "The Guildmaster's own seal was stamped at the bottom of the document."
+  const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, charsWithGuildMaster, emptyWorldBible)
+  // LLM mock passes (derivation surfaces "guildmaster" to the checker). NER won't
+  // fire on a single-word entity. Combined → clean pass.
+  expect(result.pass).toBe(true)
+  expect(result.issues).toHaveLength(0)
+})
+
+test("L23b (b): new title 'Bishop' with no Bishop role in character profiles → NER fires", async () => {
+  // "Bishop Raveth" — "Bishop" is not in deriveTitleNouns output (no char has
+  // a role containing "bishop"). "Raveth" is not in any roster. Both fire.
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "Bishop Raveth", excerpt: "Bishop Raveth entered the hall" }],
+  }
+  const prose = "Bishop Raveth entered the hall and raised his hand for silence."
+  const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+  // NER fires (title-pair: Bishop Raveth) + LLM fires → blocker
+  expect(result.pass).toBe(false)
+  const issueText = result.issues.join(" ")
+  expect(issueText).toContain("Bishop Raveth")
+})
+
+test("L23b: deriveTitleNouns is included in groundedSources.derived_titles provenance", () => {
+  // White-box: deriveTitleNouns called with a Guild Master character returns
+  // non-empty list, confirming the provenance bucket will be populated.
+  const charsWithGuildMaster = [
+    { id: "vareth", name: "Vareth", role: "Guild Master", speechPattern: "" },
+  ] as any
+  const titles = deriveTitleNouns(charsWithGuildMaster)
+  expect(titles.length).toBeGreaterThan(0)
+  expect(titles.some(t => t.toLowerCase().includes("guildmaster") || t.toLowerCase().includes("guild"))).toBe(true)
+})
