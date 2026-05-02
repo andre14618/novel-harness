@@ -40,7 +40,9 @@ export interface RetryPromptInput {
   /**
    * The last beat's prose, if this is not the first beat in the chapter.
    * Used to inject an alignment note when the issues mention "not enacted"
-   * (the adherence-events checker fires this phrase on missing required actions).
+   * (legacy single-line) or "Beat event missing" (per-event two-stage,
+   * 2026-05-01) — both phrases indicate the adherence-events checker
+   * found at least one required action missing on-page.
    * Pass undefined or null to suppress the note regardless of issue content.
    */
   priorBeatProse?: string | null
@@ -75,7 +77,7 @@ export function buildRetryPrompt(input: RetryPromptInput): RetryPromptOutput {
     }
   }
 
-  const hasEventIssue = issues.some(i => i.includes("not enacted"))
+  const hasEventIssue = issues.some(i => i.includes("not enacted") || i.includes("Beat event missing"))
   const alignmentNote =
     hasEventIssue && priorBeatProse
       ? `\nNote: The previous beat's prose (below) may already cover some of this beat's actions — this is natural prose flow. Focus on actions NOT yet dramatized. Do not duplicate what the prior beat already covered.\n\nPrevious beat's prose (last 500 chars):\n---\n${priorBeatProse.slice(-500)}\n---\n`
