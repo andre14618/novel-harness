@@ -3200,3 +3200,27 @@ So multi-seed across-cell σ = within-seed-across-rerun σ + across-seed-mean σ
 **Alternatives considered:** majority-vote (3 stage-1 calls) to lift recall floor — deferred; adds latency and cost on every fail row for a marginal recall improvement on a corner case.
 
 **Ongoing:** §8 second sub-bullet closed (result doc: `docs/two-stage-adherence-panel-2026-05-01.md`). Next §8 items are the convergence-sweep work and the voice-shaping charter.
+
+---
+
+### L13 — list-runs verdict-history rollup + family drill-down (2026-05-01, exp #328)
+
+**Decision:** `scripts/phase-eval/list-runs.ts` now defaults to a per-probe-family aggregate view (N / PASS / FAIL / streak / facts_med range / know_med range / beats range / parse_fails). `--family <key>` drills into a single tuple's full run history with per-run metrics and prompt hashes. `--rows`/`--full` preserve the original per-row table for legacy callers.
+
+**Smoke-run output (live LXC DB, `--probe=phase-variant-comparison`):**
+```
+phase-variant-comparison:corpus-v1:59229cea:fantasy-debt              5   0   5   5-FAIL   5-7.5   4-7.5   144-235   0
+phase-variant-comparison:corpus-v1:59229cea:fantasy-system-heretic    1   0   1   1-FAIL   5       5       80        0
+phase-variant-comparison:coverage-balanced:59229cea:fantasy-inscript  1   1   0   1-PASS   3       5       46        0
+phase-variant-comparison:coverage-balanced:59229cea:fantasy-system-h  6   3   3   2-PASS   4-10    4-8     39-46     0
+```
+
+The L10 variance finding is now visually confirmed at a glance: `coverage-balanced` had 3/6 runs fail on the same commit+seed (flapping); `corpus-v1` has consistent 0/5 FAIL (noise-tolerant kill). A cherry-picked PASS is visible as one point in a noisy N=6 family.
+
+**Why:** Single-run cherry-picked runs have been the primary risk in the §9 promotion process. Before this change, `list-runs.ts` only showed flat per-row output — operators had to manually correlate rows to assess streak. The aggregate view surfaces promotion-readiness (streak), noise (range spread), and structural health (parse_fails) in a single table.
+
+**47/47 unit tests** cover: isPassVerdict, shortVerdict, extractMetric, countParseFails, familyKeyFor, familyKeyStr, parseFamilyKey, consecutiveStreak (9 cases), computeRange, groupIntoFamilies (9 cases including --family filter correctness). All pure logic, no DB required.
+
+**Commit:** `7bd7081` | **Experiment:** #328 (parent #320)
+
+**Ongoing:** §9 sub-bullet "Update list-runs.ts to show aggregate verdict history" closed. The "Define a probe-family key" sub-bullet is implicitly addressed by the (probe_name, test_variant, git_commit, seed) tuple used here, but a formal doc entry in `docs/experiment-design-rules.md` remains pending.
