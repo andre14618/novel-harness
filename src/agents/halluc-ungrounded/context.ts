@@ -2,6 +2,83 @@ import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
 import { extractProperNouns } from "../../phases/beat-entity-list"
 
 /**
+ * Derive title-noun surface forms from character role fields.
+ *
+ * When a character has a multi-word role like "Guild Master", "Lord Sorcerer",
+ * or "High Priest", the writer may reference that character as "Guildmaster" or
+ * "Lord" — single-word capitalised title forms that aren't in the world-bible
+ * or roster name surface.
+ *
+ * Rules:
+ *   - Role must contain 2+ words where at least one token is a known title root
+ *     (Master, Lord, High, Grand, Chief, Arch, Senior, Elder, Warden, Keeper,
+ *     Commander, Captain, Overseer, Guildmaster).
+ *   - For 2-token roles like "Guild Master": emit the joined CamelCase form
+ *     ("GuildMaster") AND the lowercased joined form ("guildmaster") so the
+ *     grounded-surface normalizer catches both.
+ *   - For longer roles like "Lord High Sorcerer": emit the leading-token title
+ *     ("Lord") and the full compound join ("LordHighSorcerer").
+ *   - SAFETY: never emit a single common word ("Master", "Lord") in isolation —
+ *     that would over-ground any capitalized use. Only emit single-word titles
+ *     when the role is exactly 1 token (e.g. role = "Guildmaster").
+ *
+ * L23b: closes the "Guildmaster" FP cluster from L22/exp#340 where the writer
+ * emitted "The Guildmaster's own seal" but no surface form matched.
+ */
+export function deriveTitleNouns(characters: CharacterProfile[]): string[] {
+  // Title root tokens that indicate a formal role when part of a multi-word phrase.
+  const TITLE_ROOTS = new Set([
+    "master", "lord", "high", "grand", "chief", "arch", "senior",
+    "elder", "warden", "keeper", "commander", "captain", "overseer",
+    "guildmaster", "guild", "sorcerer", "steward", "herald", "regent",
+    "marshal", "arbiter", "inspector", "director", "rector", "prior",
+    "prelate", "abbot", "abbess", "priest", "bishop", "deacon",
+  ])
+
+  const results = new Set<string>()
+
+  for (const c of characters) {
+    const role = c.role?.trim()
+    if (!role) continue
+
+    const tokens = role.split(/\s+/).filter(t => t.length > 0)
+    if (tokens.length < 2) {
+      // Single-token role: if it looks like a proper title (starts with cap),
+      // add it directly. This handles role = "Guildmaster".
+      const tok = tokens[0]
+      if (tok && /^[A-Z]/.test(tok)) {
+        results.add(tok)
+      }
+      continue
+    }
+
+    // Check if any token is a known title root.
+    const lowerTokens = tokens.map(t => t.toLowerCase())
+    const hasTitleRoot = lowerTokens.some(t => TITLE_ROOTS.has(t))
+    if (!hasTitleRoot) continue
+
+    // Emit joined CamelCase form (e.g. "Guild Master" → "GuildMaster").
+    const joined = tokens.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join("")
+    results.add(joined)
+
+    // Emit concatenated lowercase form (e.g. "guildmaster") so normalization
+    // picks up both "Guildmaster" and "guildmaster" in prose.
+    results.add(joined.toLowerCase())
+
+    // For 2-token roles, also emit the leading token alone if it starts with cap
+    // AND is not a trivially-common English word (avoid "The", "A", etc.).
+    if (tokens.length === 2) {
+      const leading = tokens[0]!
+      if (/^[A-Z]/.test(leading) && !["The", "A", "An", "Of", "In"].includes(leading)) {
+        results.add(leading)
+      }
+    }
+  }
+
+  return Array.from(results).filter(Boolean)
+}
+
+/**
  * Build the novel-spanning character roster from the full character-agent output.
  *
  * All character names (not just those present in the current beat) are included
@@ -98,6 +175,8 @@ export function buildContext(
     characterRoster?: string[]
     /** Planner-emitted named entities from chapter outline text (L20). */
     outlineEntities?: string[]
+    /** Character-profile derived title nouns (L23b). */
+    derivedTitles?: string[]
   },
 ): string {
   const beatChars = new Set(beat.characters.map(n => n.toLowerCase()))
@@ -177,6 +256,20 @@ export function buildContext(
       return !bibleKnown.has(k) && !briefKnown.has(k) && !beatEntitiesKnown.has(k) && !allowedNewKnown.has(k) && !rosterKnown.has(k)
     })
 
+  // Derived-titles (L23b): title noun forms derived from character role fields.
+  // E.g. character with role "Guild Master" → adds "GuildMaster"/"Guildmaster" to
+  // the grounded surface. Deduped against all prior buckets.
+  const outlineKnown = new Set(outlineEntitiesFiltered.map(e => e.toLowerCase()))
+  const derivedTitlesRaw = (opts?.derivedTitles ?? [])
+  const derivedTitlesFiltered = derivedTitlesRaw
+    .map(n => (typeof n === "string" ? n.trim() : ""))
+    .filter(Boolean)
+    .filter(n => {
+      const k = n.toLowerCase()
+      return !bibleKnown.has(k) && !briefKnown.has(k) && !beatEntitiesKnown.has(k) &&
+             !allowedNewKnown.has(k) && !rosterKnown.has(k) && !outlineKnown.has(k)
+    })
+
   const briefLines = [
     `Summary: ${beat.description}`,
     `Kind: ${beat.kind ?? "action"}`,
@@ -203,6 +296,10 @@ export function buildContext(
   }
   if (opts?.outlineEntities !== undefined) {
     worldBibleBlock.push(`  Outline-entities: ${outlineEntitiesFiltered.join(", ") || "(none)"}`)
+  }
+  // L23b: derived title nouns — only added when caller provides them.
+  if (opts?.derivedTitles !== undefined) {
+    worldBibleBlock.push(`  Derived-titles: ${derivedTitlesFiltered.join(", ") || "(none)"}`)
   }
 
   return [
