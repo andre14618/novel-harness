@@ -3723,3 +3723,42 @@ Placed in Pass section (not Disambiguation block). Four prior phrasings attempte
 **Next (L31, renamed from L25 to avoid collision with shipped L25 EVENTS_SYSTEM v3 — exp #345):** Three-fix sprint — (a) NER-only warning `pass: true` fix; (b) AND-gate entity-intersection check; (c) stage 2 override for stage 1 on full-enacted verdict. Then re-smoke fantasy-debt for stop condition (a).
 
 **Cost:** $0 (no LLM calls). ~10 minutes wall time.
+
+---
+
+### L26 — Mapper allowedNewEntities verification (2026-05-02, exp #348)
+*2026-05-02 · exp #348 · phase_eval_runs.id=120 · 3-seed planner-isolated probe*
+
+**Decision:** `allowedNewEntities` is **partially functioning** but has 2 duplication FPs that need a prompt fix. Verdict: FAIL-DUP-FPS. Open L32 to fix mapper prompt (renamed from L27 to avoid collision with shipped L27 DB-test reachability sweep — exp #347).
+
+**Evidence:** 3 seeds × 3 chapters each (fantasy-debt, fantasy-system-heretic, fantasy-inscription), local probe. 148 total beats. 6 beats (4.1%) had non-empty `allowedNewEntities`. 7 total entities emitted across all seeds.
+
+| Seed | Beats | Non-empty | Rate | Entities | BeatDupFPs |
+|---|---|---|---|---|---|
+| fantasy-debt | 45 | 1 | 2% | 1 | 0 |
+| fantasy-system-heretic | 58 | 3 | 5% | 3 | 0 |
+| fantasy-inscription | 45 | 2 | 4% | 3 | **2** |
+
+**Non-FP entities (5/7 correct):** `collective crown debt` (prop/abstract), `record hall warding` (location), `Arbiter's Spire holding cell` (location), `Free Scribe` (walk-on), `inquisitors` (generic walk-on). All qualitatively appropriate — the mapper correctly sanctioned entities genuinely new to that beat.
+
+**FP entities (2/7 wrong) — root causes:**
+
+1. `Sera` (fantasy-inscription ch3 beat 1): Sera is a new character introduced in that beat. The planning-beats expander added her to `beat.characters`. The mapper then also listed her in `allowedNewEntities` because she appears new to the chapter. Phase-coordination gap — mapper re-sanctions a character the beat expander already placed in `beat.characters`.
+
+2. `Master Inquisitor Orvath` (fantasy-inscription ch3 beat 10): Orvath is a main story character in `charactersPresent`. The mapper context explicitly lists "Characters present: Calla Vren, Davan, Master Inquisitor Orvath" yet the mapper still emitted him as a new entity. LLM instruction-following failure.
+
+**Impact on halluc-ungrounded:** The dup FPs are benign for hallucination detection — the character is already grounded via `character_roster`. But they create semantic confusion and could mislead future tooling. The fix is low-risk.
+
+**Proposed fix (L32):** Add two exclusion bullets to the Placement Guidance section in `state-mapper-system.md`:
+- "Do not include any character already listed in the current beat's character list in `allowedNewEntities`."
+- "Do not include any character already in the chapter's `charactersPresent` list in `allowedNewEntities`."
+
+**Non-empty rate:** 4.1% is sparse but expected. Most beats use established entities; `allowedNewEntities` is deliberately a narrow field for genuine introductions only.
+
+**Scripts created:**
+- `scripts/phase-eval/probe-mapper-allowed-entities.ts` — full probe (concept + planning + analysis)
+- `scripts/phase-eval/analyze-mapper-allowed-entities.ts` — analysis-only (reads existing outlines)
+
+**Full analysis:** `docs/mapper-allowed-new-entities-verification-2026-05-02.md`.
+
+**Cost:** $0.035 ($0.024 mapper + $0.008 beats + $0.003 plotter). Well under $1.50 cap.
