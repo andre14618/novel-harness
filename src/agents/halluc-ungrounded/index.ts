@@ -465,48 +465,106 @@ export async function checkHallucUngrounded(
       andGateDecision = "pass"
       finalResult = { pass: true, issues: [], nerFindings: [] }
     } else {
-      // AND-gate assembly:
+      // AND-gate assembly (L31a + L31b redesign):
       //
-      //   • NER fires ∩ LLM fires → **blocker**: both agree, high confidence.
-      //   • NER fires ∩ LLM passes → **warning**: NER-only, surface but flag.
+      //   • NER fires ∩ LLM fires on the SAME entity → **ner+llm-blocker**
+      //     (intersection ≠ ∅, high confidence). pass=false.
+      //   • NER fires ∩ LLM fires on DIFFERENT entities → split:
+      //       - NER-only-warning issues for the NER-only entities (pass=true)
+      //       - LLM-only-blocker issues for the LLM-only entities (pass=false)
+      //     Combined: pass=false because there is at least one LLM-only blocker.
+      //   • NER fires ∩ LLM passes → **NER-only warning**: LLM did not confirm.
+      //     pass=true (L31a: don't burn retries on plausible world-building nouns
+      //     the LLM already approved). Issues carry severity: "warning".
       //   • NER passes ∩ LLM fires → **LLM-only blocker**: existing behavior.
+      //     pass=false.
       //
-      // In all non-pass cases we return pass=false so the retry loop acts. The
-      // distinction between high-confidence blockers vs NER-only warnings is
-      // carried in the issue message prefix and the nerOnlyFindings field so
-      // callers that want to treat them differently can.
+      // The distinction is carried in:
+      //   - issue message prefixes ([NER-only warning — LLM passed] / [NER prepass])
+      //   - nerOnlyFindings field (populated only for NER-only warnings)
+      //   - issuesSeverity[] parallel array consumed by aggregateIssues in beat-checks.ts
 
       const nerFires = nerUngrounded.length > 0
       const llmFires = !llmPass
 
       if (nerFires && llmFires) {
-        // Blocker: NER ∩ LLM — merge both issue sets.
-        // LLM issues are the canonical description (they carry excerpt context).
-        // NER phrases that have NO corresponding LLM issue get appended so no
-        // NER-caught entity is silently dropped.
-        const llmEntitiesLower = new Set(
-          (output.issues ?? []).map(i => i.entity.toLowerCase().trim()),
-        )
-        const nerExtraIssues = nerUngrounded
-          .filter(c => !llmEntitiesLower.has(c.phrase.toLowerCase().trim()))
-          .map(c => `Ungrounded entity "${c.phrase}" [NER prepass]`)
-        andGateDecision = "ner+llm-blocker"
-        finalResult = {
-          pass: false,
-          issues: [...llmIssues, ...nerExtraIssues],
-          nerFindings: allNerFindings,
-          nerOnlyFindings: [],
+        // L31b: compute entity-level intersection between NER and LLM findings.
+        // "Same entity" = case-insensitive phrase overlap using the same
+        // normalizeForGroundedMatch logic the grounding check uses.
+        const nerPhrasesLower = new Set(nerUngrounded.map(c => c.phrase.toLowerCase().trim()))
+        const llmPhrasesLower = new Set((output.issues ?? []).map(i => i.entity.toLowerCase().trim()))
+
+        // Build intersection: NER phrase matches LLM phrase when either contains the other
+        // (handles title-pair "Vesh Order" matching LLM "Vesh Order" exactly, or partial
+        // phrases where NER catches "Aldric" but LLM says "Aldric Vey" — directional match
+        // guards against false compound signals).
+        const nerInLlm = new Set<string>() // NER phrases confirmed by LLM
+        const llmInNer = new Set<string>() // LLM phrases confirmed by NER
+        for (const np of nerPhrasesLower) {
+          for (const lp of llmPhrasesLower) {
+            if (np === lp || lp.includes(np) || np.includes(lp)) {
+              nerInLlm.add(np)
+              llmInNer.add(lp)
+            }
+          }
+        }
+
+        const hasIntersection = nerInLlm.size > 0
+
+        if (hasIntersection) {
+          // True compound blocker: at least one entity flagged by both NER AND LLM.
+          // Merge all LLM issues + NER-extra phrases not mentioned by LLM.
+          const llmEntitiesLower = new Set(
+            (output.issues ?? []).map(i => i.entity.toLowerCase().trim()),
+          )
+          const nerExtraIssues = nerUngrounded
+            .filter(c => !llmEntitiesLower.has(c.phrase.toLowerCase().trim()))
+            .map(c => `Ungrounded entity "${c.phrase}" [NER prepass]`)
+          andGateDecision = "ner+llm-blocker"
+          finalResult = {
+            pass: false,
+            issues: [...llmIssues, ...nerExtraIssues],
+            issuesSeverity: [
+              ...llmIssues.map(() => "blocker" as const),
+              ...nerExtraIssues.map(() => "blocker" as const),
+            ],
+            nerFindings: allNerFindings,
+            nerOnlyFindings: [],
+          }
+        } else {
+          // L31b disjoint case: NER and LLM flagged completely different entities.
+          // Emit NER-only warnings (severity: "warning") + LLM-only blockers (severity: "blocker").
+          // Combined pass=false because there are LLM blockers.
+          const nerOnlyIssues = nerUngrounded.map(
+            c => `Ungrounded entity "${c.phrase}" [NER-only warning — LLM passed]`,
+          )
+          const nerOnlyFindings = allNerFindings
+          andGateDecision = "ner-only-warning" // dominant decision for per-entity NER side
+          finalResult = {
+            pass: false,
+            issues: [...nerOnlyIssues, ...llmIssues],
+            issuesSeverity: [
+              ...nerOnlyIssues.map(() => "warning" as const),
+              ...llmIssues.map(() => "blocker" as const),
+            ],
+            nerFindings: allNerFindings,
+            nerOnlyFindings,
+          }
         }
       } else if (nerFires && !llmFires) {
-        // Warning: NER-only — LLM did not confirm. Still fail so the retry
-        // loop sees it, but label the issues clearly so operators can triage.
+        // L31a: NER-only warning — LLM did not confirm.
+        // Return pass=true: the LLM (primary semantic judge) already approved
+        // these entities. NER-only signals are surfaced as warnings so operators
+        // can triage but beat retry budget is NOT consumed. Docstring at line 295
+        // says "NER-only = ambiguous, surface but don't burn retries indefinitely".
         const nerOnlyIssues = nerUngrounded.map(
           c => `Ungrounded entity "${c.phrase}" [NER-only warning — LLM passed]`,
         )
         andGateDecision = "ner-only-warning"
         finalResult = {
-          pass: false,
+          pass: true,
           issues: nerOnlyIssues,
+          issuesSeverity: nerOnlyIssues.map(() => "warning" as const),
           nerFindings: allNerFindings,
           nerOnlyFindings: allNerFindings,
         }
@@ -516,6 +574,7 @@ export async function checkHallucUngrounded(
         finalResult = {
           pass: false,
           issues: llmIssues,
+          issuesSeverity: llmIssues.map(() => "blocker" as const),
           nerFindings: [],
           nerOnlyFindings: [],
         }

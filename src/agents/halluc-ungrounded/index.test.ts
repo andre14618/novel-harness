@@ -246,16 +246,21 @@ test("AND-gate: NER fires + LLM fires → blocker (pass=false, nerOnlyFindings e
 
 test("AND-gate: NER fires, LLM passes → warning (nerOnlyFindings non-empty, issue has [NER-only warning])", async () => {
   // "Vesh Order" not grounded; LLM passes (FN from LLM).
+  // L31a: NER-only-warning returns pass=true so beat retry budget is NOT consumed.
+  // The issue is still surfaced with [NER-only warning] marker + severity: "warning".
   mockLLMResult = { pass: true, issues: [] }
   const prose = "Kael walked toward the Vesh Order hall at midnight."
   const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
-  expect(result.pass).toBe(false)
+  // L31a: pass=true — NER-only warnings do not block the beat.
+  expect(result.pass).toBe(true)
   // nerOnlyFindings should be populated
   expect(result.nerOnlyFindings?.length).toBeGreaterThan(0)
   expect(result.nerOnlyFindings?.map(f => f.phrase)).toContain("Vesh Order")
   // Issue text should carry the [NER-only warning] marker
   const issueText = result.issues.join(" ")
   expect(issueText).toContain("[NER-only warning")
+  // issuesSeverity should all be "warning"
+  expect(result.issuesSeverity?.every(s => s === "warning")).toBe(true)
 })
 
 test("AND-gate: entity grounded in bible → NER passes, LLM passes → clean pass", async () => {
@@ -699,4 +704,141 @@ test("L23b: deriveTitleNouns is included in groundedSources.derived_titles prove
   const titles = deriveTitleNouns(charsWithGuildMaster)
   expect(titles.length).toBeGreaterThan(0)
   expect(titles.some(t => t.toLowerCase().includes("guildmaster") || t.toLowerCase().includes("guild"))).toBe(true)
+})
+
+// ── L31a: NER-only warning pass=true tests ─────────────────────────────────────
+//
+// L31a fix: when the AND-gate decision is `ner-only-warning`, return `pass: true`
+// (not `pass: false`). The issue is still surfaced with severity "warning" and the
+// [NER-only warning — LLM passed] marker so the operator can triage via
+// `nerOnlyFindings` / `ner_prepass_json`, but beat retry budget is NOT consumed.
+//
+// Docstring at index.ts ~line 295: "NER-only = ambiguous, surface but don't burn
+// retries indefinitely." This was always the stated design intent; L31a aligns code
+// to contract.
+
+test("L31a: NER-only-warning → pass=true, issue severity 'warning', [NER-only warning] marker", async () => {
+  // "Vesh Order" not grounded; LLM passes.
+  // Expected: pass=true, issue with [NER-only warning] marker, issuesSeverity all "warning".
+  mockLLMResult = { pass: true, issues: [] }
+  const prose = "Kael walked toward the Vesh Order hall at midnight."
+  const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+  // L31a: NER-only warnings do NOT consume beat retry budget.
+  expect(result.pass).toBe(true)
+  // Issue is still surfaced for operator visibility.
+  expect(result.issues.length).toBeGreaterThan(0)
+  // All issues carry the NER-only warning marker.
+  expect(result.issues.every(s => s.includes("[NER-only warning"))).toBe(true)
+  // issuesSeverity is present and all "warning".
+  expect(result.issuesSeverity).toBeDefined()
+  expect(result.issuesSeverity!.every(s => s === "warning")).toBe(true)
+  // nerOnlyFindings is populated (operator visibility).
+  expect(result.nerOnlyFindings?.length).toBeGreaterThan(0)
+  expect(result.nerOnlyFindings?.map(f => f.phrase)).toContain("Vesh Order")
+})
+
+test("L31a: NER-only-warning records andGateDecision=ner-only-warning in telemetry (pass=true path)", async () => {
+  mockLLMResult = { pass: true, issues: [] }
+  const prose = "Kael walked toward the Vesh Order hall at midnight."
+  await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+  await Promise.resolve()
+  expect(nerPatchCalls.length).toBe(1)
+  const { data } = nerPatchCalls[0]
+  // Telemetry still records ner-only-warning even though pass=true.
+  expect(data.andGateDecision).toBe("ner-only-warning")
+  expect(data.nerOnlyFindings.length).toBeGreaterThan(0)
+})
+
+// ── L31b: AND-gate entity intersection tests ────────────────────────────────────
+//
+// L31b fix: `ner+llm-blocker` only fires when nerUngrounded ∩ llmFlagged ≠ ∅ on
+// the SAME entity phrase. When NER and LLM flag completely different entities:
+//   - NER-only entities → NER-only-warning (severity: "warning")
+//   - LLM-only entities → LLM-only-blocker (severity: "blocker")
+//   - Combined pass=false because there is at least one blocker.
+//
+// L24 beat 6 attempt 1 example: NER fired on "Title Nine"/"Section Two"
+// (number-word-tail legal sections), LLM fired on "Aldric" (false positive —
+// Aldric is a grounded supporting character). Previously this produced a compound
+// `ner+llm-blocker`. With L31b it produces:
+//   - NER-only-warning for "Title Nine"/"Section Two"
+//   - LLM-only-blocker for "Aldric" (which downstream grounding would suppress
+//     because Aldric is actually in the character roster)
+
+test("L31b: disjoint NER+LLM entities → separate NER-only warning + LLM-only blocker, NOT compound ner+llm-blocker", async () => {
+  // NER fires on "Vesh Order" (suffix-class, not grounded).
+  // LLM fires on "Yarrow" (a different entity NER cannot catch as a single word).
+  // They flag DIFFERENT phrases → disjoint case.
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "Yarrow", excerpt: "she handed the papers to Yarrow" }],
+  }
+  const prose = "Kael walked toward the Vesh Order hall. She handed the papers to Yarrow."
+  const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+  // pass=false because there is an LLM blocker.
+  expect(result.pass).toBe(false)
+  // issuesSeverity must contain both "warning" (NER-only) and "blocker" (LLM-only).
+  expect(result.issuesSeverity).toBeDefined()
+  expect(result.issuesSeverity!).toContain("warning")
+  expect(result.issuesSeverity!).toContain("blocker")
+  // Issues should include the NER-only warning marker AND the LLM entity.
+  const issueText = result.issues.join(" ")
+  expect(issueText).toContain("[NER-only warning")
+  expect(issueText).toContain("Yarrow")
+  // nerOnlyFindings is populated with the NER-only entities.
+  expect(result.nerOnlyFindings?.length).toBeGreaterThan(0)
+  expect(result.nerOnlyFindings?.map(f => f.phrase)).toContain("Vesh Order")
+})
+
+test("L31b: disjoint NER+LLM → andGateDecision=ner-only-warning in telemetry (dominant NER decision)", async () => {
+  // When NER and LLM flag different entities, the decision label for telemetry
+  // is "ner-only-warning" (dominant for the NER side; per-entity telemetry is
+  // visible via the issues + issuesSeverity arrays).
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "Yarrow", excerpt: "she handed the papers to Yarrow" }],
+  }
+  const prose = "Kael walked toward the Vesh Order hall. She handed the papers to Yarrow."
+  await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+  await Promise.resolve()
+  expect(nerPatchCalls.length).toBe(1)
+  const { data } = nerPatchCalls[0]
+  expect(data.andGateDecision).toBe("ner-only-warning")
+  expect(data.nerOnlyFindings.length).toBeGreaterThan(0)
+})
+
+test("L31b: overlapping NER+LLM entities (intersection ≠ ∅) → compound ner+llm-blocker as before", async () => {
+  // Both NER and LLM fire on "Vesh Order" — same entity. This IS a true compound
+  // blocker and should remain ner+llm-blocker.
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "Vesh Order", excerpt: "sworn to the Vesh Order" }],
+  }
+  const prose = "Kael walked toward the Vesh Order hall at midnight."
+  const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+  expect(result.pass).toBe(false)
+  // All issues should be blocker-class.
+  expect(result.issuesSeverity).toBeDefined()
+  expect(result.issuesSeverity!.every(s => s === "blocker")).toBe(true)
+  // nerOnlyFindings should be empty (LLM confirmed the NER finding).
+  expect(result.nerOnlyFindings).toEqual([])
+  // Issues reference "Vesh Order".
+  const issueText = result.issues.join(" ")
+  expect(issueText).toContain("Vesh Order")
+  // No [NER-only warning] marker — this is a true compound blocker.
+  expect(issueText).not.toContain("[NER-only warning")
+})
+
+test("L31b: overlapping NER+LLM → andGateDecision=ner+llm-blocker in telemetry", async () => {
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "Vesh Order", excerpt: "sworn to the Vesh Order" }],
+  }
+  const prose = "Kael walked toward the Vesh Order hall at midnight."
+  await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+  await Promise.resolve()
+  expect(nerPatchCalls.length).toBe(1)
+  const { data } = nerPatchCalls[0]
+  expect(data.andGateDecision).toBe("ner+llm-blocker")
+  expect(data.nerOnlyFindings).toHaveLength(0)
 })

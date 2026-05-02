@@ -3761,4 +3761,61 @@ Placed in Pass section (not Disambiguation block). Four prior phrasings attempte
 
 **Full analysis:** `docs/mapper-allowed-new-entities-verification-2026-05-02.md`.
 
+---
+
+### L31ab — AND-gate redesign: NER-only-warning pass=true + entity intersection gate (2026-05-02, exp #355)
+*2026-05-02 · exp #355 · no LXC · fixes motivated by L24 smoke (exp #344)*
+
+**Decision (L31a):** The `ner-only-warning` AND-gate branch now returns `pass: true` instead of `pass: false`. NER-only warning issues are still surfaced in `issues[]` with `severity: "warning"` and in `nerOnlyFindings` for operator triage, but do NOT consume beat retry budget.
+
+**Why (L31a):** L24 beat 10 — "the Ministry of Accounts" (x-of-y-capitalized class) caused all 3 beat retries to be consumed because NER-only warnings returned `pass: false`. The LLM correctly approved the entity on all 3 attempts. The docstring at `index.ts` ~line 295 explicitly states "NER-only = ambiguous, surface but don't burn retries indefinitely" — the implementation contradicted its own design contract. Code is now aligned to the stated intent.
+
+**Decision (L31b):** `ner+llm-blocker` now fires ONLY when `nerUngrounded ∩ llmFlagged ≠ ∅` — i.e., both checkers flag at least one entity phrase in common. When NER and LLM flag entirely different entities (disjoint case), each entity is emitted as a separate issue with its own correct severity: NER-only entities become `severity: "warning"` issues; LLM-only entities become `severity: "blocker"` issues.
+
+**Why (L31b):** L24 beat 6 attempt 1 — NER fired on "Title Nine" / "Section Two" (number-word-tail legal section numbers); LLM fired on "Aldric" (a false positive — Aldric is a main supporting character grounded by L20). These are different entities. The prior AND-gate treated "NER fires on ANYTHING AND LLM fires on ANYTHING" as a compound blocker, which was a false compound signal. The fix requires the two checkers to agree on the same phrase for a true `ner+llm-blocker`.
+
+**Implementation:**
+- `src/agents/halluc-ungrounded/schema.ts`: added `issuesSeverity?: Array<"blocker" | "warning">` to `HallucUngroundedResult` (parallel to `issues[]`).
+- `src/agents/halluc-ungrounded/index.ts`: redesigned AND-gate with entity-level intersection for L31b; `ner-only-warning` branch returns `pass: true` with all issues severity "warning" for L31a. Disjoint NER+LLM case emits mixed `["warning", ..., "blocker", ...]` severity array.
+- `src/phases/beat-checks.ts`: `aggregateIssues` updated to accept `ungroundedSeverity` parallel array; warnings included in `retryLines` (writer awareness) but excluded from the `pass: false` condition. `runBeatChecks` passes `ung.issuesSeverity` through.
+- `src/phases/beat-checks.mock-shape.ts`: mock mirrored to handle `ungroundedSeverity` (prevents test isolation failures in full suite runs).
+
+**Test coverage:** 12 new unit tests (10 in `index.test.ts`, 4 in `beat-checks.test.ts`). All 50 tests in the two touched test files pass; full `src/` suite: 442 pass / 4 pre-existing DB-requiring failures unrelated to this change.
+
+**Alternatives rejected:**
+- Per-NER-entity retry cap (e.g., accept after 1 retry): more complex state to track; the root cause is the LLM-override semantics, not retry count.
+- Suppress NER-only warnings entirely: removes operator visibility. The `nerOnlyFindings` field preserves the signal for telemetry without burning retries.
+- Per-entity telemetry label for the disjoint case: `andGateDecision: "ner-only-warning"` is used as the dominant label (representing the NER side); the `issuesSeverity` array carries full per-entity signal for downstream analysis.
+
+**Ongoing implications:** `ner_prepass_json.andGateDecision` values in the DB are unchanged (same 4-value enum: pass / ner-only-warning / ner+llm-blocker / llm-only-blocker). The disjoint case emits `"ner-only-warning"` as the dominant decision (consistent with prior semantics). The `issuesSeverity` field is the new per-entity signal.
+
 **Cost:** $0.035 ($0.024 mapper + $0.008 beats + $0.003 plotter). Well under $1.50 cap.
+
+---
+
+### L31c — Adherence stage-2 override: unanimous enacted verdict overrides stage-1 fail (2026-05-02, exp #346)
+*2026-05-02 · exp #346 · commit `1458d3e`*
+
+**Decision:** When stage 2 of the two-stage adherence checker reports ALL `obligated_events` as `enacted: true`, override the stage-1 `events_present: false` verdict and accept the beat. The override is logged as an `adherence-stage2-override` trace event in `pipeline_events` for audit.
+
+**Why:** L24 beat 7 — stage 1 returned `events_present: false` on attempts 2 and 3 despite stage 2 correctly identifying all 4 events as enacted ("locking door", "confronting ledger", "reciting regulations", "deciding to report via complaint form"). Stage 1's stochastic self-inconsistency at temp=0.1 on implicit-action edge cases ("filling out a complaint form = deciding to report") exhausted the beat retry budget even though the prose was correct.
+
+Stage 2 is more authoritative than stage 1 because it provides per-event quote evidence. The two-stage design's original intent (L5) was that stage 2 surfaces surgical per-event detail — when it unanimously confirms enactment, the binary stage-1 false negative should not block the beat.
+
+**Partial-enactment panel (14 rows, `synthetic-partial-enactment-fixtures`):**
+- Before and after: TP=7 FP=0 FN=2 TN=5 — Precision=100%, Recall=77.8%, F1=87.5%.
+- Zero new FPs: on partial-enactment shapes (two-of-three, reversed-order, substituted-actor) stage 2 correctly reports `enacted: false` for the missing event, so the override does not fire.
+- Embellishment TN=100%: preserved (embellishment rows pass at stage 1, stage 2 never fires).
+- 2 persistent FNs: candle-lighting (two-of-three-fail-02) and mage drain/binding (reversed-order-fail-02) — pre-existing, not caused by L31c.
+
+**Implementation:**
+- `src/trace.ts`: added `"adherence-stage2-override"` to `TraceEventType`.
+- `src/agents/writer/adherence-checker.ts`: `enumerateMissingEvents` return type changed from `string[]` to `{ issues: string[]; stage2Override: boolean }`. When all `obligated_events` are `enacted: true`, returns `{ issues: [], stage2Override: true }` instead of the old generic fallback. `checkBeatAdherence` checks `stage2Override` and, when true, emits `adherence-stage2-override` trace and logs the decision; issues are not pushed to the issues list (beat passes).
+- `src/agents/writer/adherence-checker.test.ts`: 3 new L31c test cases (all-enacted override → pass; partial-enacted no override → fail; stage-1-true no stage-2 → pass). Updated the existing "stage 2 disagrees" test to reflect the new override semantics. 11 total tests, all pass.
+
+**Alternatives rejected:**
+- Lower beat retry count: doesn't fix the root cause; still burns retries on a structurally correct beat.
+- Majority-vote ensemble on stage 1: adds pass-path cost and latency; the override is a conservative one-call fix.
+- Fallback to generic message when stage 2 is unanimous (prior behavior): loses the signal that stage 2 is authoritative. The old exp #305 calibration that justified the fallback used a labeled panel where stage-2 disagreement on ~12% of rows always had stage-1 correct — but L24 showed a real production case where stage-2 was right and stage-1 was wrong.
+
+**Ongoing implications:** The `adherence-stage2-override` trace event is queryable from `pipeline_events` for audit. Override fires only on unanimous stage-2 enactment — conservative by design.

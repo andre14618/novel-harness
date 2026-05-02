@@ -64,12 +64,29 @@ export async function runBeatChecks(input: RunBeatChecksInput): Promise<BeatChec
     checkHallucUngrounded(prose, beat, outline, characters, worldBible, tags, { prevBeat }),
   ])
 
-  return aggregateIssues({ adherence: adh.issues, ungrounded: ung.issues })
+  return aggregateIssues({
+    adherence: adh.issues,
+    ungrounded: ung.issues,
+    // L31a: pass per-issue severity from the halluc checker so NER-only warnings
+    // (severity: "warning") do not consume beat retry budget. When issuesSeverity
+    // is absent (v0/v2 variant), aggregateIssues defaults all issues to "blocker".
+    ungroundedSeverity: ung.issuesSeverity,
+  })
 }
 
 export interface RawCheckerOutputs {
   adherence: string[]
+  /**
+   * Ungrounded issues from the halluc-ungrounded checker.
+   * When `ungroundedSeverity` is provided, it is a parallel array giving the
+   * severity of each entry in `ungrounded`. When absent (legacy callers or
+   * v0/v2 variant), all ungrounded issues are treated as "blocker".
+   *
+   * L31a: NER-only-warning issues carry severity "warning" — they are surfaced
+   * in retryLines (writer awareness) but do NOT contribute to `pass: false`.
+   */
   ungrounded: string[]
+  ungroundedSeverity?: Array<"blocker" | "warning">
 }
 
 /**
@@ -77,11 +94,19 @@ export interface RawCheckerOutputs {
  * string-lists. Exported separately from `runBeatChecks` so unit
  * tests can exercise OR-aggregation, severity tagging, and retry-
  * line formatting without an LLM call.
+ *
+ * L31a: warnings do NOT set `pass: false`. Only `severity: "blocker"` issues
+ * block the beat. Warnings are included in `retryLines` so the writer has
+ * awareness of NER-flagged entities, but the beat is not retried on their behalf.
  */
 export function aggregateIssues(outputs: RawCheckerOutputs): BeatCheckResult {
   const issues: BeatIssue[] = []
   for (const s of outputs.adherence) issues.push({ source: "adherence", severity: "blocker", description: s })
-  for (const s of outputs.ungrounded) issues.push({ source: "halluc-ungrounded", severity: "blocker", description: s })
+  for (let idx = 0; idx < outputs.ungrounded.length; idx++) {
+    const s = outputs.ungrounded[idx]!
+    const severity = outputs.ungroundedSeverity?.[idx] ?? "blocker"
+    issues.push({ source: "halluc-ungrounded", severity, description: s })
+  }
 
   return {
     pass: issues.every(i => i.severity !== "blocker"),

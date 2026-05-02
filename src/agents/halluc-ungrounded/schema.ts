@@ -35,13 +35,23 @@ export interface NerFinding {
  * Extended result returned by `checkHallucUngrounded`.
  *
  * Back-compat: `pass` and `issues` carry the same semantics as before.
- * New optional fields (`nerFindings`, `nerOnlyFindings`) are omitted when the
- * NER prepass is disabled (variant v0 or v2). Consumers that only read
- * `pass`/`issues` are unaffected.
+ * New optional fields (`nerFindings`, `nerOnlyFindings`, `issuesSeverity`)
+ * are omitted when the NER prepass is disabled (variant v0 or v2). Consumers
+ * that only read `pass`/`issues` are unaffected.
  */
 export interface HallucUngroundedResult {
   pass: boolean
   issues: string[]
+  /**
+   * Parallel severity array for `issues`. When present, `issuesSeverity[i]`
+   * gives the severity of `issues[i]`. Absent on v0/v2 (all issues are
+   * implicitly blocker-class when the prepass is disabled).
+   *
+   * L31a: NER-only-warning issues carry `"warning"`; all other issue paths
+   * carry `"blocker"`. Consumers (`runBeatChecks`) use this to avoid spending
+   * beat retry budget on warning-class entities the LLM already approved.
+   */
+  issuesSeverity?: Array<"blocker" | "warning">
   /**
    * All NER candidates that were NOT grounded against the evidence surface.
    * Present when NER prepass ran (variants v1/v3/v4). Not present on v0/v2.

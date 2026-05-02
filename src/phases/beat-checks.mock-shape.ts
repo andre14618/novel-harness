@@ -43,7 +43,12 @@ export function buildBeatChecksMock() {
     aggregateIssues: (outputs: RawCheckerOutputs) => {
       const issues: BeatIssue[] = []
       for (const s of outputs.adherence) issues.push({ source: "adherence", severity: "blocker", description: s })
-      for (const s of outputs.ungrounded) issues.push({ source: "halluc-ungrounded", severity: "blocker", description: s })
+      // L31a: mirror the real aggregateIssues — respect ungroundedSeverity when provided.
+      for (let idx = 0; idx < outputs.ungrounded.length; idx++) {
+        const s = outputs.ungrounded[idx]!
+        const severity = outputs.ungroundedSeverity?.[idx] ?? "blocker"
+        issues.push({ source: "halluc-ungrounded", severity, description: s })
+      }
       return {
         pass: issues.every(i => i.severity !== "blocker"),
         issues,
