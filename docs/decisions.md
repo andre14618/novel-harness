@@ -3720,6 +3720,6 @@ Placed in Pass section (not Disambiguation block). Four prior phrasings attempte
 
 **Files written:** `docs/l24-smoke-l21-l23-validation-2026-05-01.md`.
 
-**Next (L25):** Three-fix sprint — (a) NER-only warning `pass: true` fix; (b) AND-gate entity-intersection check; (c) stage 2 override for stage 1 on full-enacted verdict. Then re-smoke fantasy-debt for stop condition (a).
+**Next (L31, renamed from L25 to avoid collision with shipped L25 EVENTS_SYSTEM v3 — exp #345):** Three-fix sprint — (a) NER-only warning `pass: true` fix; (b) AND-gate entity-intersection check; (c) stage 2 override for stage 1 on full-enacted verdict. Then re-smoke fantasy-debt for stop condition (a).
 
 **Cost:** $0 (no LLM calls). ~10 minutes wall time.

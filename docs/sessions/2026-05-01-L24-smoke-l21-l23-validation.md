@@ -98,10 +98,10 @@ preflight_false_positives: 0
 
 **Status:** SHIPPED. L24 complete. Session closed.
 
-**Next work:** L25 sprint (3 independent fixes):
-- L25a: `src/agents/halluc-ungrounded/index.ts` — change NER-only-warning branch from `pass: false` to `pass: true` (severity: warning). Update `aggregateIssues` in `src/phases/beat-checks.ts` to pass warnings through without blocking.
-- L25b: Same file — `ner+llm-blocker` should require entity-phrase intersection (`nerUngrounded ∩ llmFlagged ≠ ∅`). When they flag different entities, split into NER-only warning + LLM-only blocker.
-- L25c: `src/agents/writer/adherence-checker.ts` + `src/phases/drafting.ts` — when stage 2 `obligated_events` all `enacted: true`, accept beat (override stage 1 FAIL).
+**Next work:** L31 sprint (3 independent fixes; renamed from L25 to avoid collision with already-shipped L25 EVENTS_SYSTEM v3 — exp #345):
+- L31a: `src/agents/halluc-ungrounded/index.ts` — change NER-only-warning branch from `pass: false` to `pass: true` (severity: warning). Update `aggregateIssues` in `src/phases/beat-checks.ts` to pass warnings through without blocking.
+- L31b: Same file — `ner+llm-blocker` should require entity-phrase intersection (`nerUngrounded ∩ llmFlagged ≠ ∅`). When they flag different entities, split into NER-only warning + LLM-only blocker.
+- L31c: `src/agents/writer/adherence-checker.ts` + `src/phases/drafting.ts` — when stage 2 `obligated_events` all `enacted: true`, accept beat (override stage 1 FAIL).
 - After all 3: re-smoke fantasy-debt with `--experiment <N> --auto --chapters 3` for stop condition (a).
 
 **Evidence path:** `docs/l24-smoke-l21-l23-validation-2026-05-01.md`, `docs/decisions.md` §L24, exp #344 in `tuning_experiments`, novel `novel-1777704637163` in `public.novels` on LXC.
