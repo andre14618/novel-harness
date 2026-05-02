@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 updated: 2026-05-02
 role: primary-lane-context
 ---
@@ -73,14 +73,15 @@ role: primary-lane-context
 
 ## Finalization Checklist
 
-- Persistent docs updated: `docs/current-state.md`, `docs/todo.md`, `docs/decisions.md`, `docs/lessons-learned.md`, and this lane doc as applicable.
-- Experiment concluded: `bun scripts/agent/conclude-experiment.ts --id 373 --conclusion "<summary>"`.
-- Classified pending gates resolved as `orphaned` after dry-run, if any.
-- Final checks run: `bun scripts/preflight-docs-impact.ts --strict`; `git diff --check`.
-- Final docs/cleanup commit created before stop/queue handoff.
+- [x] Persistent docs updated: `docs/current-state.md`, `docs/todo.md`, `docs/decisions.md`, `docs/lessons-learned.md`, and this lane doc as applicable.
+- [x] Experiment concluded: exp #373 — `CLEAN PASS` — deterministic grounded-union allowlist matching reaches lane acceptance via bounded tier-5 title-strip fallback gated on closed `TITLE_TOKENS` lexicon.
+- [x] Classified pending gates resolved as `orphaned` after dry-run, if any.
+- [x] Final checks run: `bun scripts/preflight-docs-impact.ts --strict`; `git diff --check`.
+- [x] Final docs/cleanup commit created before stop/queue handoff.
 
 ## Pickup Instructions
 
+- **Status: COMPLETED** — lane closed on stop gate (a) after CLEAN PASS. Commits: `559e8c8`, `16add53`.
 - Last safe command: `bun scripts/agent/lane-status.ts docs/sessions/2026-05-02-L49-grounded-union-allowlist.md --json`
-- If failed, failure fingerprint:
-- Next action: Establish current deterministic grounded-union matching behavior with focused tests before editing runtime code.
+- If failed, failure fingerprint: N/A (passed).
+- Next action: §7 todo item closed. Next checker-hardening priority is per-class hallucination metrics (todo §7 line 109) and fresh functional-state warning calibration panel (todo §8 line 123).
