@@ -114,6 +114,8 @@ bun scripts/agent/lane-message.ts resolve docs/sessions/<lane>.md <msg-id> --act
 
 For background launches, the `/tmp/lane-runner-<lane-id>.log` file is only the supervisor process log. The durable worker prompt, command, stdout, stderr, and result files live under `output/agent-runs/<lane-id>/cycles/`. Check `monitor --once` between cycles instead of relying on chat continuation.
 
+When the queue stops with no next lane, use `docs/harness-next-work-process.md` to pick the next harness lane. It turns the backlog into one primary lane plus at most two queued follow-ups, with a specificity gate, ranking rubric, and review requirement.
+
 Use `--queue docs/sessions/lane-queue.md` only with pre-created lane docs. The runner advances after a stopped lane only when `Outcome`, `Stop gate fired`, `Evidence link/row/path`, `Commit(s)`, and `Review` are filled in that lane's Results section. `Review` should cite independent commit-pinned review evidence such as `impl-review <sha> PASS`, or an explicit waiver reason and reviewer. It will not invent a new lane from a vague queue title while unattended.
 
 The worker prompt now carries the end-of-lane finalization contract. Before a lane writes its stop gate for queue handoff, it should update durable docs (`docs/current-state.md`, `docs/todo.md`, `docs/decisions.md`, `docs/lessons-learned.md`, and the lane doc as applicable), conclude the experiment row, dry-run/apply stale-gate orphaning for classified evidence rows, run docs-impact and whitespace checks, record `Results: Review`, and commit the final docs/cleanup unit. This is the automated version of the manual sweep normally done by the supervising chat after a lane stops.

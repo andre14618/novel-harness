@@ -27,6 +27,8 @@ Every lane uses:
 
 Chat history is not a source of truth.
 
+When a queue ends or a user asks what harness work should happen next, use `docs/harness-next-work-process.md` to choose one primary lane. Do not restart the runner from a broad backlog item without passing that process's specificity gate.
+
 ## Commands
 
 Record a heartbeat or event:

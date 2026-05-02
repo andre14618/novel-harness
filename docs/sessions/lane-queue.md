@@ -1,12 +1,15 @@
 # Lane Queue
 
 ## Active
-- docs/sessions/2026-05-02-L57-runner-review-gate.md
+- docs/sessions/2026-05-02-L59-replay-first-harness.md
 
 ## Next
+- docs/sessions/2026-05-02-L60-finished-product-acceptance.md
+- docs/sessions/2026-05-02-L61-e2e-smoke-after-hardening.md
 
 ## Completed
 
+- docs/sessions/2026-05-02-L57-runner-review-gate.md — clean pass for review evidence before queued lane advance.
 - docs/sessions/2026-05-02-L38-A-prior-context.md — refuted original missing-prior-context hypothesis.
 - docs/sessions/2026-05-02-L38-F-reader-info-adherence.md — confirmed writer-side READER-INFO binding rule.
 - docs/sessions/2026-05-02-L38-C-chapter-summary-wiring.md — closed chapter_summaries as obsolete.

@@ -22,6 +22,7 @@ Use the rest of the doc set like this:
 - `README.md`: onboarding and quick-start
 - `docs/context-engineering.md`: detailed current context/planner strategy
 - `docs/experiment-design-rules.md`: experiment methodology and evaluation rules
+- `docs/harness-next-work-process.md`: how to choose the next harness lane after a queue stops
 - `docs/decisions.md`: historical decision log and rationale
 - `docs/lessons-learned.md`: accumulated empirical findings
 - `docs/todo.md`: backlog, not source of truth
