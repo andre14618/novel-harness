@@ -2929,3 +2929,32 @@ Both prompt-level interventions failed. The opener-kind distribution appears to 
 - Future phase-eval probes will get one of three verdicts (SCREEN-FAIL, SCREEN-PASS-SUGGESTIVE, PROMOTION-PASS) rather than the binary SCREEN-PASS/FAIL — pipelines and dashboards that string-match on verdict text need to handle the new label.
 - `bun scripts/phase-eval/lint-prompts.ts` should run before any prompt change is committed; CI integration is a separate task (not in scope for this commit).
 - The 10 surviving `prose-writer-system.md` neg-prime warnings are NOT auto-stripped — per `feedback_priming_suppression_ab` (2026-04-20 Salvatore A/B: removing the blocklist DOUBLED absolute fire rate, +10.5pt worse), they're load-bearing until a paired panel says otherwise.
+
+### L1: halluc-ungrounded N-call convergence panel — signal confirmed, not yet promotion-grade (2026-05-01, exp #316)
+
+**Decision:** Five parallel DeepSeek V4 Flash calls per beat at temperature 0.5 with k-of-5 voting lifts F1 by 5-13% relative (recall up to +20% relative) over the production single-call temp=0.1 baseline on both the small (n=22, mixed natural+synthetic) and big (n=45, synthetic-only) labeled hallucination panels. Per-row evidence persisted to `phase_eval_runs.id={56,57,58,59}`. Result doc `docs/halluc-convergence-results-2026-05-01.md`. Cost: ~$0.20 across 670 calls (5x per-beat cost vs current ≈ $0.0015 per beat) — trivially affordable.
+
+**Why higher temperature wins:** at temp=0.1 the model is too deterministic — 73% of small-panel rows had unanimous votes, 80% on the big-panel — leaving little for vote aggregation to add. At temp=0.5 the divergence rate doubles (40-60% of rows show minority dissent), giving the threshold filter signal to work with.
+
+**The optimal threshold differs by panel composition:**
+- Small panel (12 natural pass + 5 natural fail + 5 synthetic fail): best is **k=3 of 5** (F1=0.762, recall=0.800, precision=0.727).
+- Big panel (14 synthetic fail + 14 synthetic pass-controls; natural rows unlabeled): best is **k=1 of 5** (F1=0.686, recall=0.857, precision=0.571).
+
+The natural-mixed regime (small panel) is closer to production distribution, so the k=3 finding is the better guide for runtime — but n=22 is too small to ship.
+
+**Why this is NOT yet promotion-grade:**
+1. Both panels still leave 1-3 systematic FNs that survive every threshold. These are deterministic blind spots — convergence cannot fix them. They need either deterministic NER (L4 — extractor shipped, calibration loop pending) or expanded grounded surface (L2 — `allowedNewEntities` shipped).
+2. Per the now-mechanized phase-eval gate (decision above, commit `6a42adc`), promotion requires 2+ consecutive SCREEN-PASS-class runs at the same (probe, variant, commit, seed). We have one suggestive run.
+3. Small-panel n=22 vs big-panel n=28 ground-truth still gives wide CI on F1 (~±0.10).
+
+**Alternatives tested:**
+- *temp=0.1 N=5 (production temp + parallelism)* — basically no benefit; the model converges to the same answer 80% of the time.
+- *k=5-of-5 (require unanimous fail)* — drops recall to 0.50-0.60 with only modest precision gain; bad trade.
+- *k=1-of-5 (any vote = fail)* at temp=0.1 — worst F1 of all configs; just inflates the FP rate without recall lift.
+
+**Ongoing implications:**
+- L1 is **closed** as a methodology probe. The lift signal is real but the production tuning decision is parked until the L1-followup loop runs on a natural-adjudicated bigger panel.
+- L4 (deterministic NER candidate extractor, commit `0eeabf9`) shipped in parallel — its calibration loop will measure where deterministic catches what LLM convergence misses, addressing the systematic FN class.
+- L2 (`allowedNewEntities` threading, commit `5054fd4`) shipped in parallel — once the mapper consistently emits the field on legitimate walk-ons, the checker should stop firing on sanctioned new names.
+- Cost-per-beat ramp from $0.0003 to $0.0015 (5x) is trivial — never the blocker.
+- The convergence-eval.ts script is reusable for any other semantic checker (adherence-events, functional-state-checker, etc.) — same N-parallel-calls pattern. Future loops in §8 (adherence) and §10 (corpus probes) can adopt it directly.

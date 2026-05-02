@@ -1,5 +1,5 @@
 ---
-status: in_progress
+status: completed
 updated: 2026-05-01
 role: overnight-loop-context
 loop: L1-halluc-convergence-panel
@@ -52,13 +52,13 @@ loop: L1-halluc-convergence-panel
 
 ## Results
 
-- **Outcome:** TBD
-- **Evidence link/row/path:** TBD
-- **Cost:** TBD
-- **Commit(s):** TBD
+- **Outcome:** SIGNAL-CONFIRMED-NOT-YET-PROMOTION-GRADE. Convergence at T=0.5 N=5 lifts F1 by 5-13% relative across both panels. Best operating point depends on class composition (k=3 on natural-mixed, k=1 on synthetic-only). Promotion blocked on (a) natural-adjudicated bigger panel rerun, (b) L4 NER calibration to crack systematic errors.
+- **Evidence link/row/path:** `tuning_experiments.id=316` (concluded). `phase_eval_runs.id=56,57,58,59`. Per-row JSONL: `/tmp/halluc-convergence-N5-T0{1,5}-...jsonl` and `/tmp/halluc-convergence-big-N5-T0{1,5}-...jsonl`. Result doc: `docs/halluc-convergence-results-2026-05-01.md`.
+- **Cost:** ~$0.20 across 670 DeepSeek V4 Flash calls (4 panel runs × ~167 calls each). Well under the $8 cap.
+- **Commit(s):** TBD — L1 results + decisions entry + this context update get committed together.
 
 ## Pickup Instructions
 
-- **Last safe command:** Pre-LXC. Local convergence-eval.ts not yet written. No partial state to roll back.
-- **If failed, failure fingerprint:** N/A yet.
-- **Next action:** Read `scripts/hallucination/ab-halluc-prompt.ts` to confirm the call shape; write `scripts/hallucination/convergence-eval.ts` adapted to do N independent calls per row instead of A/B between two prompts; deploy; build panel; run.
+- **Last safe command:** All four convergence runs persisted; experiment concluded; result doc written. Loop is closed.
+- **If failed, failure fingerprint:** N/A.
+- **Next action:** Move to L1-followup (adjudicate natural rows in big panel) AND L5 (adherence two-stage) in parallel. L1 itself is done.
