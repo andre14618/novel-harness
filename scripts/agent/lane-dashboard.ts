@@ -107,7 +107,7 @@ export function renderWatchFrame(snapshot: string, args: Pick<Args, "append" | "
 }
 
 export function renderInPlaceFrame(frame: string): string {
-  return `\x1b[H${frame}\x1b[J`
+  return `\x1b[H\x1b[2J${frame}\x1b[J`
 }
 
 export function shouldRenderSingleSnapshotInsteadOfWatch(append: boolean, stdoutIsTty = Boolean(process.stdout.isTTY)): boolean {

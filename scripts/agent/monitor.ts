@@ -8,10 +8,10 @@
  *   - outside/coordination/process panels only
  */
 
-import { readFileSync, readdirSync, statSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { spawnSync } from "node:child_process"
-import { isLaneContractComplete, normalizePanels, parseLaneDoc, type MonitorPanel } from "./lane-core"
+import { isLaneContractComplete, laneEventLogPath, normalizePanels, parseLaneDoc, readLaneEvents, type MonitorPanel } from "./lane-core"
 
 interface Args {
   lanePath: string | null
@@ -25,6 +25,53 @@ interface Args {
 }
 
 const DEFAULT_MONITOR_PANELS: MonitorPanel[] = ["outside", "coordination", "process"]
+
+export function extractAdvanceTarget(message: string | undefined): string | null {
+  return message?.match(/\bto\s+([^\s)]+\.md)\b/)?.[1] ?? null
+}
+
+function laneDocIsComplete(lanePath: string, requireComplete: boolean): boolean {
+  if (!existsSync(lanePath)) return false
+  if (!requireComplete) return true
+  try {
+    return isLaneContractComplete(parseLaneDoc(readFileSync(lanePath, "utf8"), lanePath))
+  } catch {
+    return false
+  }
+}
+
+function followRunnerAdvanceEvents(lanePath: string, requireComplete: boolean): string {
+  let current = lanePath
+  const seen = new Set<string>()
+  for (;;) {
+    if (seen.has(current)) return current
+    seen.add(current)
+    const advance = [...readLaneEvents(laneEventLogPath(current))].reverse()
+      .find(event => event.type === "runner_advance")
+    const next = extractAdvanceTarget(typeof advance?.message === "string" ? advance.message : undefined)
+    if (!next || !laneDocIsComplete(next, requireComplete)) return current
+    current = next
+  }
+}
+
+export function findQueuedActiveLaneDoc(queuePath = "docs/sessions/lane-queue.md", requireComplete = true): string | null {
+  if (!existsSync(queuePath)) return null
+  const text = readFileSync(queuePath, "utf8")
+  let inActive = false
+  for (const line of text.split(/\r?\n/)) {
+    if (/^##\s+/.test(line)) inActive = /^##\s+Active\s*$/i.test(line)
+    if (!inActive) continue
+    const matches = line.match(/[^\s)`]+\.md/g) ?? []
+    for (const lanePath of matches) {
+      if (laneDocIsComplete(lanePath, requireComplete)) return followRunnerAdvanceEvents(lanePath, requireComplete)
+    }
+  }
+  return null
+}
+
+export function findDefaultLaneDoc(sessionsDir = "docs/sessions", queuePath = "docs/sessions/lane-queue.md"): string | null {
+  return findQueuedActiveLaneDoc(queuePath) ?? findLatestLaneDoc(sessionsDir)
+}
 
 export function findLatestLaneDoc(sessionsDir = "docs/sessions", requireComplete = true): string | null {
   const entries = readdirSync(sessionsDir, { withFileTypes: true })
@@ -128,16 +175,45 @@ async function main(argv: string[]): Promise<number> {
   return await runMonitor(args)
 }
 
-function dashboardArgsFor(args: Args, lanePath: string): string[] {
+function dashboardArgsFor(args: Args, lanePath: string, watch = args.watch): string[] {
   const dashboardArgs = ["scripts/agent/lane-dashboard.ts", lanePath]
-  if (args.watch) dashboardArgs.push("--watch")
-  if (args.append) dashboardArgs.push("--append")
+  if (watch) dashboardArgs.push("--watch")
+  if (watch && args.append) dashboardArgs.push("--append")
   if (args.latestNovel) dashboardArgs.push("--latest-novel")
   if (args.novelId) dashboardArgs.push("--novel", args.novelId)
   if (args.intervalSec) dashboardArgs.push("--interval-sec", args.intervalSec)
   if (args.staleMinutes) dashboardArgs.push("--stale-minutes", args.staleMinutes)
   if (!(args.panels.length === 1 && args.panels[0] === "all")) dashboardArgs.push("--panel", args.panels.join(","))
   return dashboardArgs
+}
+
+function resolveMonitorLane(args: Args): string | null {
+  return args.lanePath ? followRunnerAdvanceEvents(args.lanePath, true) : findDefaultLaneDoc()
+}
+
+function renderDashboardSnapshot(args: Args, lanePath: string): string {
+  const result = spawnSync("bun", dashboardArgsFor(args, lanePath, false), {
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024 * 10,
+  })
+  const text = [result.stdout, result.stderr].filter(Boolean).join("").trimEnd()
+  return text || `[monitor] dashboard snapshot failed with status ${result.status ?? "unknown"}`
+}
+
+function renderMonitorFrame(snapshot: string, args: Args, lanePath: string | null, renderMs: number): string {
+  return [
+    snapshot,
+    "",
+    "Monitor:",
+    `  lane: ${lanePath ?? "(waiting for active lane)"}`,
+    `  mode: ${args.append ? "append snapshots" : "stable in-place redraw"}`,
+    `  refresh: every ${args.intervalSec ?? "5"}s; stop: Ctrl-C; render_ms=${renderMs}`,
+    "  follows: lane-queue Active plus runner_advance events",
+  ].join("\n")
+}
+
+function renderInPlace(frame: string): string {
+  return `\x1b[H\x1b[2J${frame}\x1b[J`
 }
 
 function renderWaiting(args: Args): string {
@@ -177,7 +253,7 @@ async function waitForLane(args: Args): Promise<number> {
   }
 
   for (;;) {
-    const lanePath = findLatestLaneDoc()
+    const lanePath = findDefaultLaneDoc()
     if (lanePath) {
       if (!append) process.stdout.write("\x1b[?25h\x1b[?1049l\n")
       const result = spawnSync("bun", dashboardArgsFor(args, lanePath), { stdio: "inherit" })
@@ -190,18 +266,46 @@ async function waitForLane(args: Args): Promise<number> {
   }
 }
 
-async function runMonitor(args: Args): Promise<number> {
-  const lanePath = args.lanePath ?? findLatestLaneDoc()
-  if (!lanePath) {
-    if (args.watch) {
-      return await waitForLane(args)
+async function watchMonitor(args: Args): Promise<number> {
+  const intervalMs = Number(args.intervalSec ?? "5") * 1000
+  if (!args.append && !process.stdout.isTTY) {
+    const started = Date.now()
+    const lanePath = resolveMonitorLane(args)
+    const snapshot = lanePath ? renderDashboardSnapshot(args, lanePath) : renderWaiting(args)
+    console.log(renderMonitorFrame(snapshot, args, lanePath, Date.now() - started))
+    console.error("[monitor] stdout is not a TTY; rendered one snapshot instead of repeating watch frames. Use --append to force repeated snapshots.")
+    return lanePath ? 0 : 2
+  }
+  if (!args.append) {
+    process.stdout.write("\x1b[?1049h\x1b[?25l")
+    const restore = () => {
+      process.stdout.write("\x1b[?25h\x1b[?1049l\n")
+      process.exit(0)
     }
+    process.on("SIGINT", restore)
+    process.on("SIGTERM", restore)
+  }
+  for (;;) {
+    const started = Date.now()
+    const lanePath = resolveMonitorLane(args)
+    const snapshot = lanePath ? renderDashboardSnapshot(args, lanePath) : renderWaiting(args)
+    const frame = renderMonitorFrame(snapshot, args, lanePath, Date.now() - started)
+    if (args.append) process.stdout.write(`\n--- monitor refresh ${new Date().toISOString()} ---\n${frame}\n`)
+    else process.stdout.write(renderInPlace(frame))
+    await sleep(intervalMs)
+  }
+}
+
+async function runMonitor(args: Args): Promise<number> {
+  if (args.watch) return await watchMonitor(args)
+  const lanePath = resolveMonitorLane(args)
+  if (!lanePath) {
     console.error("[monitor] error: no active lane doc with a complete Loop Contract found.")
     console.error("Create one from docs/sessions/overnight-loop-context-template.md, or pass an explicit legacy doc path.")
     return 2
   }
 
-  const result = spawnSync("bun", dashboardArgsFor(args, lanePath), { stdio: "inherit" })
+  const result = spawnSync("bun", dashboardArgsFor(args, lanePath, false), { stdio: "inherit" })
   return result.status ?? 1
 }
 

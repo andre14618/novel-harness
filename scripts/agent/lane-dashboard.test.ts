@@ -18,11 +18,10 @@ describe("lane-dashboard watch rendering", () => {
     expect(frame).toContain("snapshot is collected before redraw")
   })
 
-  test("renders in-place frames without clearing before snapshot content", () => {
+  test("clears screen and renders a complete in-place frame", () => {
     const frame = renderInPlaceFrame("Lane Dashboard\nstate: CONTINUE")
-    expect(frame.startsWith("\x1b[HLane Dashboard")).toBe(true)
+    expect(frame.startsWith("\x1b[H\x1b[2JLane Dashboard")).toBe(true)
     expect(frame.endsWith("\x1b[J")).toBe(true)
-    expect(frame).not.toContain("\x1b[H\x1b[JLane Dashboard")
   })
 
   test("does not repeat watch frames when stdout is not a TTY", () => {

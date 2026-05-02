@@ -16,6 +16,7 @@ import {
   readLaneMessages,
   reduceLaneMessages,
   summarizeAgentActivity,
+  summarizeLaneProgress,
   summarizeLaneMessages,
   summarizeOperatorJson,
 } from "./lane-core"
@@ -70,6 +71,33 @@ describe("lane doc parsing", () => {
 `, "docs/sessions/lane.md")
     expect(field(doc, "results", "evidence link/row/path")).toBe("- chapter_exhaustions.id=84\n- llm_calls.id=58325")
     expect(field(doc, "results", "commit(s)")).toBe("abc123")
+  })
+
+  test("summarizes latest progress log entries and populated results", () => {
+    const doc = parseLaneDoc(`## Progress Log
+
+- 2026-05-02: first step
+- 2026-05-02: second step
+  with detail
+- 2026-05-02: third step
+
+## Results
+
+- Outcome: shipped the gate
+- Stop gate fired: (a) clean pass
+- Evidence link/row/path: scripts/agent/preflight-loop.test.ts
+- Cost:
+- Commit(s): abc123
+`, "docs/sessions/lane.md")
+
+    const lines = summarizeLaneProgress(doc, 2)
+    expect(lines).toContain("latest progress:")
+    expect(lines).not.toContain("- 2026-05-02: first step")
+    expect(lines).toContain("- 2026-05-02: second step with detail")
+    expect(lines).toContain("- 2026-05-02: third step")
+    expect(lines).toContain("results:")
+    expect(lines).toContain("outcome: shipped the gate")
+    expect(lines).toContain("commits: abc123")
   })
 
   test("laneIdFromPath sanitizes spaces", () => {

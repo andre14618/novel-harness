@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { mkdirSync, mkdtempSync, utimesSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { findLatestLaneDoc, parseArgs } from "./monitor"
+import { extractAdvanceTarget, findDefaultLaneDoc, findLatestLaneDoc, findQueuedActiveLaneDoc, parseArgs } from "./monitor"
 
 const COMPLETE_DOC = `# Complete
 
@@ -61,6 +61,16 @@ describe("monitor args", () => {
   })
 })
 
+describe("extractAdvanceTarget", () => {
+  test("extracts runner advance destination", () => {
+    expect(extractAdvanceTarget("advancing from docs/sessions/a.md to docs/sessions/b.md")).toBe("docs/sessions/b.md")
+  })
+
+  test("returns null when no destination exists", () => {
+    expect(extractAdvanceTarget("lane stopped and queue has no next lane")).toBeNull()
+  })
+})
+
 describe("findLatestLaneDoc", () => {
   test("skips legacy incomplete docs when requireComplete=true", () => {
     const dir = mkdtempSync(join(tmpdir(), "monitor-"))
@@ -80,5 +90,35 @@ describe("findLatestLaneDoc", () => {
     const dir = mkdtempSync(join(tmpdir(), "monitor-"))
     writeFileSync(join(dir, "legacy.md"), LEGACY_DOC)
     expect(findLatestLaneDoc(dir)).toBeNull()
+  })
+})
+
+describe("findQueuedActiveLaneDoc", () => {
+  test("prefers active queue lane over latest modified lane", () => {
+    const dir = mkdtempSync(join(tmpdir(), "monitor-"))
+    mkdirSync(dir, { recursive: true })
+    const active = join(dir, "active.md")
+    const latest = join(dir, "latest.md")
+    const queue = join(dir, "lane-queue.md")
+    writeFileSync(active, COMPLETE_DOC)
+    writeFileSync(latest, COMPLETE_DOC)
+    writeFileSync(queue, `# Lane Queue\n\n## Active\n- ${active}\n\n## Completed\n- ${latest}\n`)
+    utimesSync(active, new Date("2026-05-02T00:00:00Z"), new Date("2026-05-02T00:00:00Z"))
+    utimesSync(latest, new Date("2026-05-03T00:00:00Z"), new Date("2026-05-03T00:00:00Z"))
+
+    expect(findQueuedActiveLaneDoc(queue)).toBe(active)
+    expect(findDefaultLaneDoc(dir, queue)).toBe(active)
+  })
+
+  test("falls back to latest complete doc when active queue lane is missing", () => {
+    const dir = mkdtempSync(join(tmpdir(), "monitor-"))
+    mkdirSync(dir, { recursive: true })
+    const latest = join(dir, "latest.md")
+    const queue = join(dir, "lane-queue.md")
+    writeFileSync(latest, COMPLETE_DOC)
+    writeFileSync(queue, `# Lane Queue\n\n## Active\n- ${join(dir, "missing.md")}\n`)
+
+    expect(findQueuedActiveLaneDoc(queue)).toBeNull()
+    expect(findDefaultLaneDoc(dir, queue)).toBe(latest)
   })
 })

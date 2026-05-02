@@ -44,6 +44,7 @@ export interface ParsedLaneDoc {
   path: string
   laneId: string
   fields: Record<string, Record<string, string>>
+  bullets: Record<string, string[]>
 }
 
 export interface GitSnapshot {
@@ -153,15 +154,28 @@ export function laneMessageLogPath(lanePath: string): string {
 
 export function parseLaneDoc(text: string, lanePath = "lane.md"): ParsedLaneDoc {
   const fields: Record<string, Record<string, string>> = {}
+  const bullets: Record<string, string[]> = {}
   let section = ""
   let lastKey: string | null = null
+  let lastBulletSection: string | null = null
+  let lastBulletIndex: number | null = null
   for (const rawLine of text.split(/\r?\n/)) {
     const sectionMatch = rawLine.match(/^##\s+(.+?)\s*$/)
     if (sectionMatch) {
       section = normalizeLabel(sectionMatch[1]!)
       fields[section] ??= {}
+      bullets[section] ??= []
       lastKey = null
+      lastBulletSection = null
+      lastBulletIndex = null
       continue
+    }
+    const bulletMatch = rawLine.match(/^-\s+(.*)$/)
+    if (bulletMatch && section) {
+      bullets[section] ??= []
+      bullets[section]!.push(cleanValue(bulletMatch[1] ?? ""))
+      lastBulletSection = section
+      lastBulletIndex = bullets[section]!.length - 1
     }
     const fieldMatch = rawLine.match(/^-\s+([^:]+):\s*(.*)$/)
     if (!fieldMatch || !section) {
@@ -170,6 +184,10 @@ export function parseLaneDoc(text: string, lanePath = "lane.md"): ParsedLaneDoc 
         if (continuation) {
           const current = fields[section]?.[lastKey] ?? ""
           fields[section]![lastKey] = current ? `${current}\n${continuation}` : continuation
+          if (lastBulletSection === section && lastBulletIndex !== null) {
+            const currentBullet = bullets[section]?.[lastBulletIndex] ?? ""
+            bullets[section]![lastBulletIndex] = currentBullet ? `${currentBullet} ${continuation}` : continuation
+          }
         }
       }
       continue
@@ -179,7 +197,7 @@ export function parseLaneDoc(text: string, lanePath = "lane.md"): ParsedLaneDoc 
     fields[section]![key] = cleanValue(fieldMatch[2] ?? "")
     lastKey = key
   }
-  return { path: lanePath, laneId: laneIdFromPath(lanePath), fields }
+  return { path: lanePath, laneId: laneIdFromPath(lanePath), fields, bullets }
 }
 
 export function readLaneDoc(lanePath: string): ParsedLaneDoc {
@@ -194,6 +212,41 @@ export function missingRequiredLaneFields(doc: ParsedLaneDoc): string[] {
   return REQUIRED_LOOP_FIELDS
     .filter(k => field(doc, "loop contract", k).length === 0)
     .map(k => `Loop Contract: ${k}`)
+}
+
+export function sectionBullets(doc: ParsedLaneDoc, section: string): string[] {
+  return doc.bullets[normalizeLabel(section)] ?? []
+}
+
+function oneLine(value: string): string {
+  return value.replace(/\s+/g, " ").trim()
+}
+
+export function summarizeLaneProgress(doc: ParsedLaneDoc, progressLimit = 4): string[] {
+  const lines: string[] = []
+  const progress = sectionBullets(doc, "progress log")
+    .map(oneLine)
+    .filter(Boolean)
+    .filter(item => !/^pending\.?$/i.test(item))
+  if (progress.length === 0) {
+    lines.push("latest progress: (none recorded)")
+  } else {
+    lines.push("latest progress:")
+    for (const item of progress.slice(-progressLimit)) lines.push(`- ${compact(item, 160)}`)
+  }
+
+  const resultFields = ([
+    ["outcome", field(doc, "results", "outcome")],
+    ["stop gate", field(doc, "results", "stop gate fired")],
+    ["evidence", field(doc, "results", "evidence link/row/path")],
+    ["cost", field(doc, "results", "cost")],
+    ["commits", field(doc, "results", "commit(s)")],
+  ] as Array<[string, string]>).filter(([, value]) => oneLine(value).length > 0)
+  if (resultFields.length > 0) {
+    lines.push("results:")
+    for (const [label, value] of resultFields) lines.push(`${label}: ${compact(oneLine(value), 160)}`)
+  }
+  return lines
 }
 
 export function isLaneContractComplete(doc: ParsedLaneDoc): boolean {
@@ -833,6 +886,11 @@ export function renderLaneStatus(report: LaneStatusReport): string {
     lines.push("")
     lines.push("Warnings:")
     for (const item of assessment.warnings) lines.push(`  - ${item}`)
+  }
+  if (panelEnabled(report.panels, "outside")) {
+    lines.push("")
+    lines.push("Lane progress:")
+    for (const line of summarizeLaneProgress(lane)) lines.push(`  ${line}`)
   }
   if (panelEnabled(report.panels, "outside") || panelEnabled(report.panels, "hygiene")) {
     lines.push("")
