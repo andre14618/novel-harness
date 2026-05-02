@@ -380,10 +380,17 @@ export async function checkHallucUngrounded(
   // deterministic extractor, and record which candidates escape grounding.
   // The LLM call below is only gated on its own output — the NER signal
   // is combined at the result-assembly stage (AND-gate).
+  //
+  // L40: `groundedSurface` is lifted to outer scope so it can also serve as
+  // a deterministic post-filter on LLM-flagged entities after the LLM call
+  // (see post-LLM block below). This addresses cases where the LLM checker
+  // under-attends to a world-bible entry that NER's normalizer would catch
+  // (e.g. heretic "the System" vs worldBible.systems "The System").
   const nerEnabled = variant === "v1" || variant === "v3" || variant === "v4"
   let nerUngrounded: EntityCandidate[] = []
+  let groundedSurface: { lower: Set<string>; normalized: Set<string> } | null = null
   if (nerEnabled) {
-    const groundedSurface = buildNerGroundedSet({
+    groundedSurface = buildNerGroundedSet({
       bibleNames,
       beatCharacters: beat.characters,
       fromBrief,
@@ -439,10 +446,43 @@ export async function checkHallucUngrounded(
       class: c.class,
     }))
 
+    // L40: Apply NER's deterministic grounded-surface as a post-filter on
+    // LLM-flagged entities. The LLM checker has the same evidence surface
+    // in its prompt context but can occasionally miss matches due to
+    // surface-form variation (e.g. "the System" vs "The System" / single-
+    // word capitalisations of a world-bible entry). isNerGrounded uses the
+    // same four-tier check (exact / substring / normalized / normalized-
+    // substring) the NER prepass uses on its own candidates — applying it
+    // here as a final arbiter drops LLM issues whose entity is in the
+    // grounded set. Closes the L40 cluster (heretic gamelit "System"
+    // entity in worldBible.systems[] but flagged by LLM).
+    //
+    // Filter only runs when nerEnabled (v1/v3/v4) — v0/v2 lack a built
+    // groundedSurface and preserve prior behavior exactly.
+    const rawLlmIssues = output.issues ?? []
+    const llmRescuedByNer: typeof rawLlmIssues = []
+    const llmKeptRawIssues: typeof rawLlmIssues = []
+    if (nerEnabled && groundedSurface) {
+      for (const issue of rawLlmIssues) {
+        if (isNerGrounded(issue.entity, groundedSurface)) {
+          llmRescuedByNer.push(issue)
+        } else {
+          llmKeptRawIssues.push(issue)
+        }
+      }
+    } else {
+      llmKeptRawIssues.push(...rawLlmIssues)
+    }
+    // L40: when LLM said pass=false but every flagged entity was rescued
+    // by the grounded surface, treat the LLM signal as effectively pass.
+    // Used by the AND-gate below to compute the final decision.
+    const llmEffectivelyFires = !llmPass && llmKeptRawIssues.length > 0
+
     // Zod's `.default([])` resolves to an array at parse time, but the
     // inferred input type keeps the field optional — fall back to [] so
-    // downstream consumers never see undefined.
-    const llmIssues = (output.issues ?? []).map(i =>
+    // downstream consumers never see undefined. Built from the L40-filtered
+    // kept issues; rescued-by-NER entries do not surface as issues.
+    const llmIssues = llmKeptRawIssues.map(i =>
       `Ungrounded entity "${i.entity}"${i.excerpt ? ` — context: "${i.excerpt}"` : ""}`,
     )
 
@@ -460,8 +500,10 @@ export async function checkHallucUngrounded(
       } else {
         finalResult = { pass: false, issues: llmIssues }
       }
-    } else if (llmPass && nerUngrounded.length === 0) {
-      // Both pass → clean beat.
+    } else if (!llmEffectivelyFires && nerUngrounded.length === 0) {
+      // Both pass → clean beat. (L40: `!llmEffectivelyFires` covers the
+      // case where the LLM raised issues but every flagged entity was
+      // rescued by NER's grounded surface.)
       andGateDecision = "pass"
       finalResult = { pass: true, issues: [], nerFindings: [] }
     } else {
@@ -485,14 +527,16 @@ export async function checkHallucUngrounded(
       //   - issuesSeverity[] parallel array consumed by aggregateIssues in beat-checks.ts
 
       const nerFires = nerUngrounded.length > 0
-      const llmFires = !llmPass
+      const llmFires = llmEffectivelyFires // L40: post-rescue signal
 
       if (nerFires && llmFires) {
         // L31b: compute entity-level intersection between NER and LLM findings.
         // "Same entity" = case-insensitive phrase overlap using the same
         // normalizeForGroundedMatch logic the grounding check uses.
+        // L40: only the kept (un-rescued) LLM issues participate in the
+        // intersection — rescued entries already collapsed via NER grounding.
         const nerPhrasesLower = new Set(nerUngrounded.map(c => c.phrase.toLowerCase().trim()))
-        const llmPhrasesLower = new Set((output.issues ?? []).map(i => i.entity.toLowerCase().trim()))
+        const llmPhrasesLower = new Set(llmKeptRawIssues.map(i => i.entity.toLowerCase().trim()))
 
         // Build intersection: NER phrase matches LLM phrase when either contains the other
         // (handles title-pair "Vesh Order" matching LLM "Vesh Order" exactly, or partial
@@ -514,8 +558,10 @@ export async function checkHallucUngrounded(
         if (hasIntersection) {
           // True compound blocker: at least one entity flagged by both NER AND LLM.
           // Merge all LLM issues + NER-extra phrases not mentioned by LLM.
+          // L40: kept-only issues feed this set so rescued entries don't
+          // resurrect as "extra" NER phrases.
           const llmEntitiesLower = new Set(
-            (output.issues ?? []).map(i => i.entity.toLowerCase().trim()),
+            llmKeptRawIssues.map(i => i.entity.toLowerCase().trim()),
           )
           const nerExtraIssues = nerUngrounded
             .filter(c => !llmEntitiesLower.has(c.phrase.toLowerCase().trim()))
@@ -590,6 +636,10 @@ export async function checkHallucUngrounded(
         nerFindings: allNerFindings,
         nerOnlyFindings: finalResult.nerOnlyFindings ?? [],
         andGateDecision,
+        // L40: count of LLM issues filtered out by NER's grounded-surface
+        // post-pass. >0 means NER overrode an LLM-only blocker (or partial
+        // blocker) on entities the deterministic surface already grounds.
+        llmRescuedByNer: llmRescuedByNer.length,
       }).catch(err => {
         console.error(`[halluc-ungrounded] NER prepass patch failed for llm_call ${result.llmCallId}:`, err)
       })

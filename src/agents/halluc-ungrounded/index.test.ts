@@ -842,3 +842,198 @@ test("L31b: overlapping NER+LLM → andGateDecision=ner+llm-blocker in telemetry
   expect(data.andGateDecision).toBe("ner+llm-blocker")
   expect(data.nerOnlyFindings).toHaveLength(0)
 })
+
+// ── L40: NER post-filter on LLM-flagged entities ─────────────────────────────
+//
+// L40 fix: after the LLM call, apply NER's deterministic grounded-surface
+// (`isNerGrounded` four-tier check) to LLM-raised issues. Any LLM-flagged
+// entity that NER would consider grounded is rescued (dropped from issues).
+// Closes the heretic gamelit cluster where worldBible.systems[] contains
+// "The System" but the LLM checker still flagged "the System" / "System"
+// as ungrounded → llm-only-blocker → bail.
+//
+// Acceptance contract:
+//   (a) LLM flags an entity that exists in worldBible.systems → rescued,
+//       result.pass=true, andGateDecision=pass
+//   (b) LLM flags multiple entities, some grounded / some not → kept ones
+//       become llm-only-blocker; rescued ones drop from issues
+//   (c) NER fires on a different entity + LLM only flags grounded ones →
+//       falls back to NER-only-warning (pass=true, severity=warning)
+//   (d) telemetry: llmRescuedByNer count is recorded in patch payload
+//   (e) when the LLM flags an entity NOT in the grounded surface, no rescue
+//       (pre-L40 llm-only-blocker behavior preserved)
+
+test("L40 (a): LLM flags 'the System' grounded via worldBible.systems → rescued, pass=true, decision=pass", async () => {
+  // The L40 root case from heretic ch1 attempt 3. worldBible has "The System"
+  // in systems[]; prose mentions "the System"; LLM still flagged it as
+  // ungrounded. NER's grounded surface contains "the system" (whole-phrase
+  // lower) and "system" (per-token shard), so isNerGrounded("the System")
+  // returns true → rescue → drop from issues.
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "the System", excerpt: "The seal of the System stitched over the chest." }],
+  }
+  const worldBible = {
+    locations: [],
+    cultures: [],
+    systems: [{ name: "The System" }],
+  }
+  // Single-cap "the System" in the prose; no other NER candidates.
+  const prose = "She felt the seal of the System pressed against her sternum."
+  const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, worldBible)
+  // L40: rescued → effective pass.
+  expect(result.pass).toBe(true)
+  expect(result.issues).toHaveLength(0)
+})
+
+test("L40 (a-tel): rescued LLM issue records llmRescuedByNer count in telemetry", async () => {
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "the System", excerpt: "The seal of the System." }],
+  }
+  const worldBible = {
+    locations: [],
+    cultures: [],
+    systems: [{ name: "The System" }],
+  }
+  const prose = "She felt the seal of the System pressed against her sternum."
+  await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, worldBible)
+  await Promise.resolve()
+  expect(nerPatchCalls.length).toBe(1)
+  const { data } = nerPatchCalls[0]
+  expect(data.andGateDecision).toBe("pass")
+  expect(data.llmRescuedByNer).toBe(1)
+})
+
+test("L40 (b): mixed — one LLM entity grounded, one ungrounded → rescued one drops, kept one is blocker", async () => {
+  // worldBible has "The System". LLM raises two issues: "the System" (rescued)
+  // and "Heartstone" (not grounded; should remain a blocker).
+  mockLLMResult = {
+    pass: false,
+    issues: [
+      { entity: "the System", excerpt: "the System pressed against her" },
+      { entity: "Heartstone", excerpt: "she clutched the Heartstone tightly" },
+    ],
+  }
+  const worldBible = {
+    locations: [],
+    cultures: [],
+    systems: [{ name: "The System" }],
+  }
+  const prose = "She felt the System pressed against her chest. She clutched the Heartstone tightly."
+  const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, worldBible)
+  // pass=false because Heartstone remains.
+  expect(result.pass).toBe(false)
+  const issueText = result.issues.join(" ")
+  // Rescued entity should NOT appear in issue text.
+  expect(issueText).not.toContain("the System")
+  // Kept entity should appear.
+  expect(issueText).toContain("Heartstone")
+  // All remaining issues are blockers (LLM-only path).
+  expect(result.issuesSeverity?.every(s => s === "blocker")).toBe(true)
+})
+
+test("L40 (b-tel): partial rescue records correct llmRescuedByNer count and andGateDecision=llm-only-blocker", async () => {
+  mockLLMResult = {
+    pass: false,
+    issues: [
+      { entity: "the System", excerpt: "the System pressed against her" },
+      { entity: "Heartstone", excerpt: "she clutched the Heartstone" },
+    ],
+  }
+  const worldBible = {
+    locations: [],
+    cultures: [],
+    systems: [{ name: "The System" }],
+  }
+  const prose = "She felt the System pressed against her chest. She clutched the Heartstone tightly."
+  await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, worldBible)
+  await Promise.resolve()
+  expect(nerPatchCalls.length).toBe(1)
+  const { data } = nerPatchCalls[0]
+  // 1 rescued ("the System"), 1 kept ("Heartstone") → llm-only-blocker.
+  expect(data.andGateDecision).toBe("llm-only-blocker")
+  expect(data.llmRescuedByNer).toBe(1)
+})
+
+test("L40 (c): NER fires on different entity + all LLM entities rescued → falls back to NER-only-warning (pass=true)", async () => {
+  // worldBible has "The System" (rescues LLM "the System").
+  // Prose also contains "Vesh Order" (suffix-class) — NER fires on that.
+  // After L40 rescue: llmEffectivelyFires=false, nerFires=true → NER-only warning.
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "the System", excerpt: "the System pressed against her" }],
+  }
+  const worldBible = {
+    locations: [],
+    cultures: [],
+    systems: [{ name: "The System" }],
+  }
+  const prose = "She felt the System pressed against her chest. She walked toward the Vesh Order hall."
+  const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, worldBible)
+  // NER-only-warning path → pass=true (L31a).
+  expect(result.pass).toBe(true)
+  // Issues should carry the NER warning marker for "Vesh Order" (NER fired).
+  const issueText = result.issues.join(" ")
+  expect(issueText).toContain("[NER-only warning")
+  expect(issueText).toContain("Vesh Order")
+  // Rescued LLM entity should NOT appear.
+  expect(issueText).not.toContain("the System")
+  expect(result.issuesSeverity?.every(s => s === "warning")).toBe(true)
+})
+
+test("L40 (c-tel): NER fires + all LLM rescued records andGateDecision=ner-only-warning", async () => {
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "the System", excerpt: "the System pressed against her" }],
+  }
+  const worldBible = {
+    locations: [],
+    cultures: [],
+    systems: [{ name: "The System" }],
+  }
+  const prose = "She felt the System pressed against her chest. She walked toward the Vesh Order hall."
+  await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, worldBible)
+  await Promise.resolve()
+  expect(nerPatchCalls.length).toBe(1)
+  const { data } = nerPatchCalls[0]
+  expect(data.andGateDecision).toBe("ner-only-warning")
+  expect(data.llmRescuedByNer).toBe(1)
+  expect(data.nerOnlyFindings.map((f: any) => f.phrase)).toContain("Vesh Order")
+})
+
+test("L40 (e): LLM flags entity NOT in grounded surface → no rescue, llm-only-blocker preserved", async () => {
+  // Pre-L40 baseline: the LLM-only-blocker path must still fire when the
+  // entity is genuinely ungrounded. Empty world-bible; LLM flags "Yarrow".
+  // NER won't fire on a single-word entity. No rescue possible.
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "Yarrow", excerpt: "she handed the papers to Yarrow" }],
+  }
+  const prose = "She handed the papers to Yarrow across the hall."
+  const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+  expect(result.pass).toBe(false)
+  const issueText = result.issues.join(" ")
+  expect(issueText).toContain("Yarrow")
+  await Promise.resolve()
+  const { data } = nerPatchCalls[0]
+  expect(data.andGateDecision).toBe("llm-only-blocker")
+  expect(data.llmRescuedByNer).toBe(0)
+})
+
+test("L40 (e-2): LLM passes with no issues → no rescue activity, llmRescuedByNer=0", async () => {
+  // No-op behavior: LLM passes cleanly, nothing to filter.
+  mockLLMResult = { pass: true, issues: [] }
+  const worldBible = {
+    locations: [],
+    cultures: [],
+    systems: [{ name: "The System" }],
+  }
+  const prose = "She walked quietly down the hall."
+  const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, worldBible)
+  expect(result.pass).toBe(true)
+  await Promise.resolve()
+  const { data } = nerPatchCalls[0]
+  expect(data.andGateDecision).toBe("pass")
+  expect(data.llmRescuedByNer).toBe(0)
+})

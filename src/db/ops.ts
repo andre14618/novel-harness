@@ -564,9 +564,11 @@ export async function logLLMCall(runId: number, data: LLMCallData): Promise<numb
  * `callAgent` didn't persist a row (e.g. no active run or novel context).
  *
  * Shape persisted:
- *   { nerEnabled, nerFindings, nerOnlyFindings, andGateDecision }
+ *   { nerEnabled, nerFindings, nerOnlyFindings, andGateDecision, llmRescuedByNer? }
  *
- * Added in migration 034_llm_call_ner_prepass.sql.
+ * Added in migration 034_llm_call_ner_prepass.sql. `llmRescuedByNer` (L40)
+ * is forward-compatible — older runs persist without it; new runs include
+ * the post-filter rescue count for AND-gate auditing.
  */
 export async function patchLLMCallNerPrepass(
   id: number | null,
@@ -575,6 +577,8 @@ export async function patchLLMCallNerPrepass(
     nerFindings: Array<{ phrase: string; class: string }>
     nerOnlyFindings: Array<{ phrase: string; class: string }>
     andGateDecision: "ner+llm-blocker" | "ner-only-warning" | "llm-only-blocker" | "pass" | "disabled"
+    /** L40: count of LLM-flagged entities dropped by the NER grounded-surface post-filter. */
+    llmRescuedByNer?: number
   },
 ): Promise<void> {
   if (id === null) return
