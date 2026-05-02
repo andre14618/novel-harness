@@ -1976,3 +1976,16 @@ Launching Claude Code or OpenCode as a background subprocess solves the chat-wak
 - Queue advancement should reference pre-created lane docs and require completed Results fields before moving to the next lane.
 
 (2026-05-02 L52 lane runner Claude-worker sweep. Companion: `docs/agent-lane-protocol.md`, `docs/overnight-runbook.md`.)
+
+## Prompt presence is evidence, not proof of writer use
+
+L38-A showed the prior-chapter facts were absent from production beat-writer prompts, so wiring the existing READER-INFO STATE surface was the smallest plausible fix. The paired replay then showed the opposite failure: the facts were present in the prompt, but the writer still dramatized them as new discoveries.
+
+**The rule:** when a writer-side continuity bug survives after prompt-surface wiring, verify prompt presence before adding more context. If the relevant facts are already present, the next hypothesis should be adherence to the prompt surface, salience/placement, or model behavior, not deeper context plumbing.
+
+**How to apply:**
+- Compare failing baseline and live-run `llm_calls.prompt` rows before designing another context source.
+- Treat "fact appears in prompt" and "fact changes prose behavior" as separate gates.
+- Use paired replay on the same novel/chapter when possible so stochastic seed differences do not hide whether the changed surface mattered.
+
+(2026-05-02 L38-A paired replay, exp #369. Companion: `docs/sessions/2026-05-02-L38-A-prior-context.md`, `docs/decisions.md` §L38-A.)

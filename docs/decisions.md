@@ -4284,3 +4284,21 @@ The writer continues to invent some walk-on names (`Master Halden`, `Guildmistre
 **Ongoing implications:** The L41 design decision carries forward; no production-behavior change beyond what's documented. Cluster ladder pivots from writer-discipline prompt rules (saturated for now) to multi-attempt-state infrastructure.
 
 ---
+
+### L38-A — Prior-chapter READER-INFO STATE wiring refuted as dominant fix (2026-05-02, exp #369, commits `0f92be3`, `6c12451`)
+
+**Decision:** Keep the production READER-INFO STATE wiring, but close L38-A as a refuted causal hypothesis. Missing prior-chapter facts in the beat-writer prompt was not the dominant cause of the chapter-2 prior-state conflation cluster.
+
+**Implementation shipped:**
+- `src/agents/writer/enriched-context.ts` exports `renderReaderInfoStateBlock` plus `selectReaderInfoStateForBeat`; the selector gates rendering to `chapterNumber > 1`.
+- `src/agents/writer/beat-context.ts` accepts `priorChapterFacts?: Fact[]`, stores `readerInfoState: string | null`, and calls the selector while building beat context.
+- `src/agents/writer/beat-context-render.ts` renders the section between resolved references and SETTING, matching the existing enriched-context anchor.
+- `src/phases/drafting.ts` calls `getFactsUpToChapter(novelId, ch - 1)` and threads `priorChapterFacts` through initial draft, chapter-plan-check rewrite, and validation rewrite paths.
+
+**Validation:** Focused writer/phases/parity tests passed before commit: `bun test src/agents/writer/ src/phases/ tests/beat-context-parity.test.ts` -> 136 pass, TypeScript clean, docs-impact clean. Deployed to LXC, then validated with a paired replay on `novel-1777721066908` chapter 2. Baseline `chapter_exhaustions.id=81` had 5 blockers without READER-INFO STATE. L38-A live replay `chapter_exhaustions.id=83` had 4 blockers; 3 match the baseline "only-now-discovers" prior-state conflation pattern. Prompt inspection verified the facts were present: `llm_calls.id` 58325 and 58371 contained all 8 chapter-1 facts, including Maret's anomaly file, the copied sealed report, the floorboard hiding place, and the false Strength 3 display.
+
+**Result:** The writer sees the prior-state facts and still drafts as if Maret discovers them for the first time. L38-A is useful context plumbing but not a sufficient fix for the cluster.
+
+**Ongoing implications:** Do not queue deeper context plumbing as the immediate follow-up. L38-B planner prior-fact context is parked until writer-side prior-state adherence improves. L38-C chapter-summary wiring remains independently useful, but not as an L38-A continuation. The next targeted lane should be writer prompt-discipline / beat-level adherence to READER-INFO STATE, or a writer model-routing probe, tested first on the same paired chapter-2 replay.
+
+---
