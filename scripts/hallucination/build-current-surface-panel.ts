@@ -214,34 +214,203 @@ function baseFixture(attempt: BeatAttempt, checker: "halluc-ungrounded" | "adher
   }
 }
 
-const SYNTHETIC_ENTITIES = [
-  "Veyr Dominion",
-  "Ivory Cartographers",
-  "Saint Ormica's Index",
-  "The Glass Principality",
+/**
+ * Synthetic hallucination entity classes — one per failure shape the
+ * halluc-ungrounded checker is required to detect per
+ * `src/agents/halluc-ungrounded/halluc-ungrounded-system.md`. Each class
+ * contributes one or more (entity, insertion_sentence) pairs that should
+ * fire as ungrounded named entities when introduced cold. Sentences are
+ * hand-written novel-style prose; do NOT generate via LLM.
+ */
+interface FailExample {
+  entity: string
+  insertion: string
+}
+
+interface SyntheticEntityClass {
+  class_name: string
+  fail_examples: FailExample[]
+}
+
+export const SYNTHETIC_ENTITY_CLASSES: SyntheticEntityClass[] = [
+  {
+    class_name: "named_place_or_realm",
+    fail_examples: [
+      {
+        entity: "Veyr Dominion",
+        insertion: "A courier pressed the black seal of the Veyr Dominion into the damp table wax before anyone could stop him.",
+      },
+      {
+        entity: "Halrune Vale",
+        insertion: "Two riders wearing the muddy colors of Halrune Vale dismounted at the gate and asked, very politely, after the wounded.",
+      },
+      {
+        entity: "the Splinter Coast",
+        insertion: "Tide-glass from the Splinter Coast made a soft tick on the sill, the way it always did when the wind turned offshore.",
+      },
+    ],
+  },
+  {
+    class_name: "title_plus_ungrounded_surname",
+    fail_examples: [
+      {
+        entity: "Master Orin",
+        insertion: "Master Orin had not spoken since the bell, and the silence at his end of the table was beginning to dictate the meeting.",
+      },
+      {
+        entity: "Lord Caelin",
+        insertion: "A page came in red-faced with running and said only that Lord Caelin was waiting in the lower gallery.",
+      },
+      {
+        entity: "Arbiter Vesh",
+        insertion: "Arbiter Vesh signed the warrant without rereading it, which was, in itself, a kind of verdict.",
+      },
+    ],
+  },
+  {
+    class_name: "named_institution",
+    fail_examples: [
+      {
+        entity: "Office of Structural Integrity",
+        insertion: "The seal at the bottom of the page belonged to the Office of Structural Integrity, and that alone made the clerk read it twice.",
+      },
+      {
+        entity: "Vault of Mirrored Names",
+        insertion: "He had been told, once, that the Vault of Mirrored Names kept a duplicate ledger for exactly this kind of dispute.",
+      },
+    ],
+  },
+  {
+    class_name: "named_artifact",
+    fail_examples: [
+      {
+        entity: "the Sundered Crown",
+        insertion: "She glanced, almost without meaning to, at the Sundered Crown on its iron pedestal, then made herself look at the wall instead.",
+      },
+      {
+        entity: "Vellis Quill",
+        insertion: "The Vellis Quill lay in its lacquered case between them, point dry, untouched since the last contract had failed.",
+      },
+    ],
+  },
+  {
+    class_name: "named_historical_event",
+    fail_examples: [
+      {
+        entity: "the Siege of Briar Pass",
+        insertion: "Old men in the kitchen still measured every cold spring against the one before the Siege of Briar Pass, as if weather had taken sides.",
+      },
+      {
+        entity: "the Withering of '47",
+        insertion: "Half the orchards along the lower river had never quite recovered from the Withering of '47, and everyone in the room knew it.",
+      },
+    ],
+  },
+  {
+    class_name: "plural_ungrounded_faction",
+    fail_examples: [
+      {
+        entity: "the Bellward Order",
+        insertion: "Three of the riders carried the gray sash of the Bellward Order, though they had taken care to hide the embroidery beneath their cloaks.",
+      },
+      {
+        entity: "the Quiet Concord",
+        insertion: "It was the kind of arrangement only the Quiet Concord ever brokered, and no one at the table wanted to be the first to name them.",
+      },
+    ],
+  },
 ]
 
-function chooseAbsentEntity(attempt: BeatAttempt): string | null {
+/**
+ * PASS controls — generic phrases the halluc-ungrounded prompt explicitly
+ * lists as non-firing (see system.md "Pass" rules). These should NOT be
+ * flagged as ungrounded entities. Each insertion is hand-written prose.
+ */
+interface PassExample {
+  control_kind: string
+  insertion: string
+}
+
+export const SYNTHETIC_PASS_CONTROLS: PassExample[] = [
+  {
+    control_kind: "generic_role_label",
+    insertion: "The captain looked up from the map, then back down, and tapped the rim of his cup against the table to call the meeting to order.",
+  },
+  {
+    control_kind: "generic_role_label",
+    insertion: "A courier in the wrong colors was loitering near the gate, pretending to fix a strap that was already fastened.",
+  },
+  {
+    control_kind: "generic_role_label",
+    insertion: "The priest had not slept, and it showed in the way he held the lantern lower than usual on the stairs.",
+  },
+  {
+    control_kind: "generic_location",
+    insertion: "She passed through the storeroom on the way out and made a small note, in the back of her mind, of where the lamp oil had been moved.",
+  },
+  {
+    control_kind: "generic_location",
+    insertion: "The hall was colder than it had been an hour ago, and the draft was coming from a direction that had been bricked up for years.",
+  },
+  {
+    control_kind: "generic_location",
+    insertion: "By the time they reached the road again, the rain had set in for the night and there was no point pretending otherwise.",
+  },
+  {
+    control_kind: "generic_document",
+    insertion: "The document had been folded and refolded so many times the seam where the wax had once held it together was beginning to give.",
+  },
+  {
+    control_kind: "generic_document",
+    insertion: "A letter, unaddressed, sat at the bottom of the stack, and she did not need to open it to know whose hand had written it.",
+  },
+  {
+    control_kind: "generic_document",
+    insertion: "He read the message once, then a second time, and on the second reading he set down the cup he had been holding without drinking from.",
+  },
+]
+
+function flatFailExamples(): Array<{ class_name: string; entity: string; insertion: string }> {
+  // Round-robin across classes so that small --synthetic-per-kind values
+  // (e.g. 6) still cover all six entity classes once before doubling up.
+  const out: Array<{ class_name: string; entity: string; insertion: string }> = []
+  const maxLen = Math.max(...SYNTHETIC_ENTITY_CLASSES.map(c => c.fail_examples.length))
+  for (let i = 0; i < maxLen; i++) {
+    for (const cls of SYNTHETIC_ENTITY_CLASSES) {
+      const ex = cls.fail_examples[i]
+      if (ex) out.push({ class_name: cls.class_name, entity: ex.entity, insertion: ex.insertion })
+    }
+  }
+  return out
+}
+
+function entityIsAbsent(attempt: BeatAttempt, entity: string): boolean {
   const haystack = [
     attempt.writer?.response_content ?? "",
     JSON.stringify(attempt.writer?.request_json ?? {}),
     JSON.stringify(attempt.halluc?.request_json ?? {}),
   ].join("\n").toLowerCase()
-  return SYNTHETIC_ENTITIES.find(e => !haystack.includes(e.toLowerCase())) ?? null
+  return !haystack.includes(entity.toLowerCase())
 }
 
-function syntheticHallucinationFixture(attempt: BeatAttempt, surface: any) {
-  const entity = chooseAbsentEntity(attempt)
-  if (!entity || !attempt.writer?.response_content) return null
-  const prose = `${attempt.writer.response_content.trim()}\n\nA courier pressed the black seal of the ${entity} into the damp table wax before anyone could stop him.`
+function syntheticHallucinationFixture(
+  attempt: BeatAttempt,
+  surface: any,
+  entry: { class_name: string; entity: string; insertion: string },
+) {
+  if (!attempt.writer?.response_content) return null
+  if (!entityIsAbsent(attempt, entry.entity)) return null
+  const prose = `${attempt.writer.response_content.trim()}\n\n${entry.insertion}`
+  const slug = entry.entity.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
   return {
     ...baseFixture(attempt, "halluc-ungrounded", surface),
-    fixture_id: `cs-${attempt.runId ?? "run"}-${attempt.novelId}-c${attempt.chapter}-b${attempt.beatIndex}-a${attempt.attempt}-synthetic-entity-insertion`,
+    fixture_id: `cs-${attempt.runId ?? "run"}-${attempt.novelId}-c${attempt.chapter}-b${attempt.beatIndex}-a${attempt.attempt}-synthetic-entity-insertion-${slug}`,
     checker: "halluc-ungrounded",
     case_role: "synthetic_fixture",
     split: "candidate_score",
     source_kind: "synthetic_from_current_surface",
     fixture_class: "synthetic_entity_insertion",
+    entity_class: entry.class_name,
     task: {
       prose,
       writer_request_meta: attempt.writer.request_json?.meta ?? null,
@@ -249,15 +418,53 @@ function syntheticHallucinationFixture(attempt: BeatAttempt, surface: any) {
     },
     mutation: {
       type: "entity_insertion",
-      entity,
-      inserted_text: `A courier pressed the black seal of the ${entity} into the damp table wax before anyone could stop him.`,
+      entity: entry.entity,
+      entity_class: entry.class_name,
+      inserted_text: entry.insertion,
     },
     actual: null,
     gold: {
       adjudication_status: "synthetic_unreviewed",
       expected_pass: false,
       expected_severity: "blocker",
-      issues: [{ type: "ungrounded_entity", entity }],
+      issues: [{ type: "ungrounded_entity", entity: entry.entity, entity_class: entry.class_name }],
+    },
+  }
+}
+
+function syntheticHallucPassControlFixture(
+  attempt: BeatAttempt,
+  surface: any,
+  control: PassExample,
+  index: number,
+) {
+  if (!attempt.writer?.response_content) return null
+  const prose = `${attempt.writer.response_content.trim()}\n\n${control.insertion}`
+  return {
+    ...baseFixture(attempt, "halluc-ungrounded", surface),
+    fixture_id: `cs-${attempt.runId ?? "run"}-${attempt.novelId}-c${attempt.chapter}-b${attempt.beatIndex}-a${attempt.attempt}-synthetic-pass-control-${control.control_kind}-${index}`,
+    checker: "halluc-ungrounded",
+    case_role: "synthetic_fixture",
+    split: "candidate_score",
+    source_kind: "synthetic_from_current_surface",
+    fixture_class: "synthetic_pass_control",
+    entity_class: control.control_kind,
+    task: {
+      prose,
+      writer_request_meta: attempt.writer.request_json?.meta ?? null,
+      checker_request_meta: attempt.halluc?.request_json ?? null,
+    },
+    mutation: {
+      type: "pass_control_insertion",
+      control_kind: control.control_kind,
+      inserted_text: control.insertion,
+    },
+    actual: null,
+    gold: {
+      adjudication_status: "synthetic_unreviewed",
+      expected_pass: true,
+      expected_severity: "none",
+      issues: [],
     },
   }
 }
@@ -309,18 +516,49 @@ async function main() {
   }
 
   if (args.syntheticPerKind > 0) {
+    // Halluc fail fixtures — round-robin across the 6 entity classes so any
+    // --synthetic-per-kind value covers as many distinct shapes as possible.
+    const failPool = flatFailExamples()
     let hallucCount = 0
+    let poolIdx = 0
+    for (const attempt of attempts) {
+      if (hallucCount >= args.syntheticPerKind) break
+      // Try entity-class entries until we find one absent from this attempt
+      let placed = false
+      for (let tried = 0; tried < failPool.length && !placed; tried++) {
+        const entry = failPool[(poolIdx + tried) % failPool.length]
+        const row = syntheticHallucinationFixture(attempt, surface, entry)
+        if (row) {
+          outRows.push(row)
+          hallucCount++
+          poolIdx = (poolIdx + tried + 1) % failPool.length
+          placed = true
+        }
+      }
+    }
+
+    // Halluc PASS controls — generic role / location / document phrases that
+    // the prompt's pass-rules say should NOT fire. Cycle through the pool the
+    // same way and tag each attempt with a different control kind.
+    let passCount = 0
+    let passIdx = 0
+    for (const attempt of attempts) {
+      if (passCount >= args.syntheticPerKind) break
+      const control = SYNTHETIC_PASS_CONTROLS[passIdx % SYNTHETIC_PASS_CONTROLS.length]
+      const row = syntheticHallucPassControlFixture(attempt, surface, control, passIdx)
+      if (row) {
+        outRows.push(row)
+        passCount++
+      }
+      passIdx++
+    }
+
+    // Adherence omission fixtures — unchanged shape; one per attempt.
     let adherenceCount = 0
     for (const attempt of attempts) {
-      if (hallucCount < args.syntheticPerKind) {
-        const row = syntheticHallucinationFixture(attempt, surface)
-        if (row) { outRows.push(row); hallucCount++ }
-      }
-      if (adherenceCount < args.syntheticPerKind) {
-        outRows.push(syntheticAdherenceOmissionFixture(attempt, surface))
-        adherenceCount++
-      }
-      if (hallucCount >= args.syntheticPerKind && adherenceCount >= args.syntheticPerKind) break
+      if (adherenceCount >= args.syntheticPerKind) break
+      outRows.push(syntheticAdherenceOmissionFixture(attempt, surface))
+      adherenceCount++
     }
   }
 
@@ -330,7 +568,11 @@ async function main() {
   console.log(`Wrote ${outRows.length} rows from ${attempts.length} beat attempts to ${outPath}`)
 }
 
-main().catch(err => {
-  console.error(err)
-  process.exit(1)
-})
+// Only run when invoked directly (allows test/import use of the exported
+// fixture constants without triggering DB I/O).
+if (import.meta.path === Bun.main) {
+  main().catch(err => {
+    console.error(err)
+    process.exit(1)
+  })
+}
