@@ -1,5 +1,5 @@
 ---
-status: pending
+status: shipped
 updated: 2026-05-01
 role: overnight-loop-context
 loop: L4-followup-3-ner-prepass-wiring
@@ -72,15 +72,26 @@ Recommendation: design **A as v1** (simpler), then iterate to C only if the prec
 ## Progress Log
 
 - 2026-05-01 (now) — Context file created. Pending L4-followup-2 docs commit before dispatch.
+- 2026-05-01 — Loop dispatched and shipped. See Results below.
 
 ## Results
 
-- **Outcome:** TBD
-- **Evidence link/row/path:** TBD
-- **Cost:** TBD
-- **Commit(s):** TBD
+- **Outcome:** SHIPPED. Design A AND-gate wired. 78/78 tests pass. tsc clean.
+- **Experiment:** #322 (linked to #321 as continuation)
+- **Commits:**
+  - `f019c60` — `[infra] halluc-ungrounded: NER prepass + AND-gate runtime wiring`
+  - `74e8da4` — `[infra] halluc-ungrounded: unit tests for NER prepass AND-gate behavior`
+  - `ccc8b45` — `[docs] halluc-ungrounded NER prepass — current-state, decisions, todo close`
+- **Files changed:**
+  - `src/agents/halluc-ungrounded/index.ts` — buildNerGroundedSet + isNerGrounded + runNerPrepass + AND-gate in checkHallucUngrounded; NER active for v1/v3/v4
+  - `src/agents/halluc-ungrounded/schema.ts` — HallucUngroundedResult and NerFinding types added (backward-compatible optional fields)
+  - `src/agents/halluc-ungrounded/halluc-ungrounded-system.md` — NER prepass note paragraph
+  - `src/agents/halluc-ungrounded/index.test.ts` — 20 new tests (new file)
+  - `docs/current-state.md`, `docs/decisions.md`, `docs/todo.md` — updated
+- **Cost:** ~$0 (code + unit tests only, no LLM calls)
+- **Gate deviations:** None. Design A implemented as specified. NER-only path returns pass=false (conservative; beat-checks.ts treats all ungrounded issues as blockers). True warning severity would need beat-checks.ts severity routing — deferred as noted in decisions.md.
 
 ## Pickup Instructions
 
-- **Last safe command:** Pre-dispatch.
-- **Next action:** After L4-followup-2 docs commits, dispatch this loop to a Sonnet subagent.
+- **Last safe command:** `bun test src/agents/halluc-ungrounded/ src/lint/entity-candidates.test.ts`
+- **Next action:** Smoke validation — 3-chapter novel run after LXC L6 probe frees the host. If NER-only warning rate is too high in production, add per-token fallback (tier 5) to buildNerGroundedSet.
