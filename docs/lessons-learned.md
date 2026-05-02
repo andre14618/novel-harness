@@ -1726,3 +1726,23 @@ The G1 threshold (1.5×) is comparable to the observed inter-run swing, so singl
 - Stochastic planning failures (beat-floor under-production) are part of the noise baseline. Don't treat one failed run as a regression unless the failure rate moves materially across A/B.
 
 (2026-05-01 exp #311 r1/r2/r3 noise-baseline; 3 successful runs across 2 prompts gave median ranges of 2.0–3.5 facts/knowledge and 50pp closer-mix swings. See `docs/decisions.md` "Noise-baseline reruns".)
+
+## Explicit "X OR Y" prompt rules collapse to one side under strong default bias
+
+The 2026-05-01 opener-kind intervention (exp #313) added a planning-beats prior: "the FIRST beat of each chapter is either action OR description — never interiority, dialogue, or quiet recap. Across the chapter set, aim for roughly half action openers and half description openers... Do NOT default every chapter to description openers". On the same chapter skeletons, the default beats prompt produced 60% description openers (with 10% action / 10% dialogue / 10% interiority spread); the corpus-v1 beats prompt with the explicit rule produced 100% description openers (zero of any other kind). The intervention made the bias WORSE.
+
+The mechanism: the "FIRST beat is action OR description" framing successfully removed dialogue and interiority as options, but did not break the model's default preference for description over action. Within the narrowed option set, the model picked the more-frequent member every time. The "Do NOT default every chapter to description openers" warning had zero observable effect — likely because negative primes on a token (description) reinforce the token's salience, and the implicit default pulls harder than the explicit warning.
+
+**The rule:** prompt-level "X OR Y" enumerations are a knife — they cut off other options, and which one survives depends on the model's prior for X vs Y. If the model has a strong prior for X, an "X OR Y" rule with a "do not default to X" warning will reliably produce more X than the unguided baseline produced. The right intervention shape depends on which side of the option space you want to land:
+
+- **If you want X to dominate:** "always X" is fine and works.
+- **If you want a mixed distribution:** "X OR Y" with negative prime is wrong. Either (a) leave the prompt unguided (the baseline distribution may already be what you want, as exp #313 showed for default beats at 60% description / 10/10/10/10 spread); (b) reframe to enumerate the choice criterion ("if A, then X; if B, then Y") so the decision has structural anchors not numeric targets; or (c) move to a non-prompt mechanism (post-hoc rewriter, structural sampler).
+- **Always test the unguided baseline first.** The exp #313 default-beats result showed the planner already produces a reasonable distribution without any opener-kind guidance. Adding guidance was a regression. Sometimes "no rule" outperforms "soft rule" outperforms "explicit rule" — measure all three before committing.
+
+**How to apply:**
+- When considering an "X OR Y" prompt rule with a negative-prime warning ("do not default to X"), first run the unguided baseline. If it's already balanced, don't add the rule.
+- If the unguided baseline is biased and you want to rebalance, enumerate the structural anchors (when X applies vs when Y applies) rather than the distribution target ("half X half Y").
+- Negative primes on the very token you're trying to suppress reinforce its salience. Phrase the rule positively ("when the chapter starts mid-action, beat 1 is action") rather than negatively ("don't default to description").
+- Track this anti-pattern when reviewing prompt edits: any new "X OR Y" enumeration with a negative warning gets a baseline check.
+
+(2026-05-01 exp #313 beats-variant probe; corpus-v1 with "FIRST beat is action OR description... do NOT default to description" produced 10/10 description openers on shared chapter skeletons where default beats produced 6/10 with 1/1/1 spread for action/dialogue/interiority.)

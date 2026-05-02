@@ -2881,3 +2881,32 @@ corpus-v1's closer mix (70% interiority / 20% action / 10% dialogue / 0% descrip
 **Ongoing implications:**
 - Closer rule shipped to live; production novel runs after this deploy will have explicit guard against description-only closes.
 - Next probe (exp #313) tests the opener-relocation in planning-beats, comparing beats-variant default vs corpus-v1 (the new opener prior).
+
+### Opener-kind prompt intervention failed in BOTH prompts — bias is structural, not addressable by prompt-level enumeration (2026-05-01, exp #313)
+
+**Decision:** Reverted the planning-beats/corpus-v1.md opener-kind prior added in commit `1b0cfdf`. Persisted as `phase_eval_runs.id=21`.
+
+**The intervention:** added a `Pattern 3 corpus-validated` prior to planning-beats/corpus-v1.md that said "the FIRST beat of each chapter is either action OR description — never interiority, dialogue, or quiet recap. Across the chapter set, aim for roughly half action openers and half description openers... Do NOT default every chapter to description openers".
+
+**The result:**
+- default beats opener kinds: action=2/dialogue=1/interiority=1/description=6 (60% description, balanced enough)
+- corpus-v1 beats opener kinds: action=0/dialogue=0/interiority=0/description=10 (100% description — WORSE than unguided default)
+
+**Why this matters:** the probe used `--prompt-env=PLANNING_BEATS_PROMPT_OVERRIDE`, so default and corpus-v1 share the same chapter skeletons (concept + plotter run once each). The only difference between the two beats sets is the prompt. The corpus-v1 prompt actively REMOVED dialogue and interiority openers (default had 1 of each) AND increased description openers from 6 to 10. The "do NOT default to description" warning had zero effect; if anything, the strong negative prime + the X-OR-Y framing locked the model into the "safer" (more frequent) option in the narrowed set.
+
+**The pattern across both probes:**
+- exp #311 (plotter intervention): no measurable shift in opener mix (90% → 80% across noisy reruns).
+- exp #313 (beats intervention): bias worsened (100% description, removed dialogue/interiority).
+
+Both prompt-level interventions failed. The opener-kind distribution appears to be a structural property of how the planner reads the seed (a fantasy-debt seed primes the planner toward setting-establishment chapters, which open in description). No amount of prompt-level guidance broke the prior.
+
+**Alternatives rejected:**
+- *Try a third prompt framing.* Both interventions failed for the same reason (the underlying bias is strong); a third wording variation is unlikely to help. Burning more cost on prompt iterations without a structural change is unlikely to land.
+- *Lower the explicit-rule strength to a soft hint.* That's what the original "lean description/action setup" wording in P4 already was — and it produced ~70-90% description openers. Soft hints are the no-intervention baseline.
+- *Try on a different seed (not fantasy-debt).* fantasy-debt is the seed used through this whole sequence so opener bias may be seed-specific. But the inference of "intervention failed → underlying bias is strong" doesn't change; switching seeds tests SEED bias, not the intervention.
+
+**Ongoing implications:**
+- §4 todo "Move opener-kind guidance from plotter to beats" is concluded as REGRESSION; the move was correct in principle (kind decision lives in beats), but neither location's prompt framing broke the bias. Reverted.
+- The closer-kind rule continues to land cleanly in BOTH probes (5/0/5/0 default, 5/0/5/0 corpus-v1 in #313). Closer-kind discipline is solved.
+- Opener-kind work moves to "parked / non-prompt mechanism needed" until either (a) a sufficiently different prompt framing is found, or (b) a non-prompt mechanism (e.g., post-hoc beat-kind rewriter that re-tags beat 1 by chapter dramatic role) is built.
+- Lesson appended to `docs/lessons-learned.md`: explicit "X OR Y" rules with strong negative primes can collapse to one side; the option-narrowing effect dominates the negative prime. To be filed under prompt-engineering anti-patterns.
