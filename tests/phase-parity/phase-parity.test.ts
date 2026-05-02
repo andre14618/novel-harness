@@ -26,6 +26,7 @@ import { setTransport } from "../../src/transport"
 import { ReplayTransport } from "./replay-transport"
 import { captureSnapshot, clearNovelState } from "./db-snapshot"
 import { normalize, serialize } from "./normalize"
+import { dbReachable } from "../../src/db/test-helpers"
 
 const FIXTURE_DIR = join(import.meta.dir, "fixtures", "reference-run")
 const TRANSPORT_PATH = join(FIXTURE_DIR, "transport-fixture.json")
@@ -33,17 +34,19 @@ const EXPECTED_PATH = join(FIXTURE_DIR, "expected-snapshot.json")
 const SEED_PATH = join(FIXTURE_DIR, "seed.json")
 
 const fixturesPresent = existsSync(TRANSPORT_PATH) && existsSync(EXPECTED_PATH) && existsSync(SEED_PATH)
+const reachable = await dbReachable()
 
 describe("phase parity", () => {
   if (!fixturesPresent) {
     test.skip("fixture recording required — see README.md", () => {})
     return
   }
+  if (!reachable) {
+    test.skip("Postgres unreachable — fixture replay needs a live DB", () => {})
+    return
+  }
 
   test("replay produces byte-equal normalized snapshot", async () => {
-    // We import lazily so the test can be loaded even when DATABASE_URL is
-    // unset (the lazy DB Proxy in src/db/connection.ts only errors on first
-    // query). The skip-path above keeps `bun test` green in such cases.
     const { runNovel } = await import("../../src/state-machine")
     const { createNovel } = await import("../../src/db/novels")
 
