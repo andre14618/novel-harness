@@ -55,6 +55,7 @@ role: primary-lane-context
 ## Progress Log
 
 - Pending. Created after L38-G clean pass so the queued runner can return to concrete novel-harness checker hardening work instead of stopping on an exhausted lane queue.
+- 2026-05-02 (cycle 1): Established baseline — `bun test src/agents/halluc-ungrounded/index.test.ts` 48/48 pass; `buildNerGroundedSet` already unions all checker-visible evidence components and adds per-token shards; the remaining gap was `isNerGrounded`'s four-tier whole-phrase check failing on title+surname patterns when only the surname was grounded. Pre-existing test at `index.test.ts:103` documented the FN. Implemented bounded tier-5 title-strip in `isNerGrounded` gated on `TITLE_TOKENS` lexicon (~22 tokens) so "Master Orin" with grounded "Orin" is grounded but generic "Aldric Venn" with grounded "Venn" still fires. Updated the FN test to assert grounding, added 3 new tests (tier-3 normalized-form path via `Arbiter Cassel` + `Cassels`; negative bound for non-title prefixes; case-insensitivity on the title token). 174/174 pass on focused suites.
 
 ## Heartbeat Commands
 
@@ -64,11 +65,11 @@ role: primary-lane-context
 
 ## Results
 
-- Outcome:
-- Stop gate fired:
-- Evidence link/row/path:
-- Cost:
-- Commit(s):
+- Outcome: CLEAN PASS — deterministic grounded-union allowlist matching reaches lane acceptance ("exact/name-component matching catches title+surname cases without flagging grounded surnames"). `isNerGrounded` now applies a bounded tier-5 title-strip fallback gated on the closed `TITLE_TOKENS` lexicon. Generic multi-word phrases without a title prefix still fire when their non-grounded tokens warrant it (negative test asserts).
+- Stop gate fired: (a) deterministic grounded-union tests pass and the todo gap is closed.
+- Evidence link/row/path: `src/agents/halluc-ungrounded/index.ts` (isNerGrounded tier-5 + TITLE_TOKENS_LOWER), `src/agents/halluc-ungrounded/index.test.ts` (4 new/updated tests), `bun test src/agents/halluc-ungrounded/index.test.ts src/lint/entity-candidates.test.ts` → 174/174 pass.
+- Cost: $0 (deterministic test lane; no LLM calls).
+- Commit(s): pending finalization commit (this cycle).
 
 ## Finalization Checklist
 

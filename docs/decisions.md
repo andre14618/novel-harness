@@ -4347,3 +4347,26 @@ The writer continues to invent some walk-on names (`Master Halden`, `Guildmistre
 **Ongoing implications:** The writer system prompt now carries two binding rules (cross-chapter READER-INFO STATE from L38-F, intra-chapter physical-state from L38-G); both depend on the L38-A READER-INFO STATE block being rendered. Do not weaken or remove either without first re-running the `novel-1777721066908` chapter 2 paired replay. If a same-chapter physical-state contradiction recurs on a different novel/seed despite the rule, queue a deterministic local-state extraction/checker lane per the L38-G escalation rule rather than expanding the prompt further. L38-B planner prior-fact context, L38-C summary revival, and writer model-routing probes for this class of failure remain parked.
 
 ---
+### L49 — Title-strip tier-5 closes title+surname grounding gap in halluc-ungrounded NER prepass (2026-05-02, exp #373)
+
+**Decision:** Add a bounded tier-5 fallback to `isNerGrounded` in `src/agents/halluc-ungrounded/index.ts`: when a NER candidate phrase begins with a `TITLE_TOKENS` lexicon entry (Master, Lord, Lady, Sir, Captain, Arbiter, Castellan, Guildmaster, Magister, Father, Brother, Sister, Doctor, Professor, King, Queen, Prince, Princess, Duke, Duchess, General), strip that token and retry tiers 1–4 on the remainder. Closes title+surname grounding cases like "Master Orin" + grounded "Orin", or "Arbiter Cassel" + plural-collapsed bible entry "Cassels".
+
+**Why:** `buildNerGroundedSet` already unioned the full checker-visible grounded surface (bibleNames, beatCharacters, fromBrief, derivedOutlineFact, derivedPriorBeat, allowedNewEntities, povCharacter, characterRoster, outlineEntities, derivedTitles) and added per-token shards. The remaining gap was that the four-tier check (exact / substring / normalized exact / normalized substring) compared the WHOLE candidate phrase against surface entries — so "Master Orin" never matched a surface containing only the surname "Orin". The pre-existing test at `src/agents/halluc-ungrounded/index.test.ts:103` documented this FN explicitly. The L4-followup-3 promotion comment in `docs/decisions.md` §L4-followup-3 had deferred per-token tier 5 because the *unbounded* version (every token in the candidate must be in the surface) over-grounds title-pair phrases when both halves leak into the surface separately. The L49 design avoids that risk by gating the strip on the closed `TITLE_TOKENS` lexicon (~22 tokens) — a generic capitalized-multi-word like "Aldric Venn" with only "Venn" grounded still fires correctly because "Aldric" is not a title token.
+
+**Implementation (src/agents/halluc-ungrounded/index.ts):**
+- Imported `TITLE_TOKENS` from `src/lint/entity-candidates.ts` and built a module-level `TITLE_TOKENS_LOWER` Set for case-insensitive lookup.
+- Added the title-strip tier 5 to `isNerGrounded` after the existing four tiers. Tokenizes the candidate, checks if `tokens.length >= 2` and `tokens[0]` is in `TITLE_TOKENS_LOWER`, joins the remainder, and retries tiers 1–4 (lowercase exact / lowercase substring / normalized exact / normalized substring) on the remainder string.
+- Updated the docstring to describe a five-tier check and document the L49 bound.
+
+**Tests (src/agents/halluc-ungrounded/index.test.ts):**
+- Replaced the prior FN-documenting test at line 103 (which asserted "Master Orin" still fires when only "Orin" is in the surface) with a positive-grounding test that asserts the title-strip closes that case.
+- Added a tier-3 path test: `Arbiter Cassel` + bible entry `Cassels` (plural) → title-strip "Cassel" → normalize → "cassel" → matches normalized "cassel" from "Cassels".
+- Added a negative bound test: `Aldric Venn` + grounded "Venn" still fires because "Aldric" is not in `TITLE_TOKENS`.
+- Added a case-insensitivity test: `Captain Vesh` + grounded "Vesh" → grounded.
+- All 174 tests pass (`bun test src/agents/halluc-ungrounded/index.test.ts src/lint/entity-candidates.test.ts`).
+
+**Result:** L49 closes on stop gate (a) — deterministic grounded-union allowlist matching reaches the lane acceptance criterion ("exact/name-component matching catches title+surname cases without flagging grounded surnames"). The closed TITLE_TOKENS lexicon is the bound that prevents the calibration-script-style unbounded tier 5 from over-grounding generic multi-word phrases. No checker severity change, no schema change, no new LLM call shape.
+
+**Ongoing implications:** The system prompt comment in `src/agents/halluc-ungrounded/halluc-ungrounded-system.md` already references title+name pairs (§13). If a future surface-form reveals a non-title prefix class that should benefit from analogous bounded stripping (e.g., role nouns derived from `deriveTitleNouns`), extend the bounding lexicon rather than introducing the unbounded per-token tier. Do not promote NER to a hard blocker on the strength of L49 alone — promotion still requires a fresh expanded-panel calibration run, per `docs/todo.md` §7.
+
+---

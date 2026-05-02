@@ -100,30 +100,73 @@ test("runNerPrepass: title-pair entity grounded in bibleNames → does not fire"
   expect(fires.find(c => c.phrase === "Master Orin")).toBeUndefined()
 })
 
-test("runNerPrepass: title-pair grounded via token substring → does not fire", () => {
-  // "Master Orin" — if "Orin" is in the grounded surface (e.g. from beat.characters)
-  // the four-tier check: exact "master orin" misses, but substring checks:
-  // surface entry "orin" is a substring; wait — substring check is "surface entry
-  // CONTAINS candidate", not "candidate contains surface entry". So "orin" does
-  // NOT contain "master orin". We need the full phrase or a per-token match.
-  //
-  // The isNerGrounded implementation does NOT include the per-token fallback
-  // (that's the calibration script's tier 5; the runtime prepass omits it to
-  // avoid over-grounding). So "Master Orin" would still fire if only "Orin" is
-  // in the surface. This test documents that behavior.
+test("runNerPrepass: title-pair grounded via title-strip fallback (L49) → does not fire", () => {
+  // L49: tier-5 title-strip closes the title+surname gap. When the candidate
+  // begins with a known TITLE_TOKEN (Master, Lord, Captain, Arbiter, ...) and
+  // the remainder is grounded, the candidate is treated as grounded. "Master
+  // Orin" + surface containing "Orin" → grounded (tier 1 match on the remainder).
   const surface = {
     lower: new Set(["orin"]),
     normalized: new Set(["orin"]),
   }
   const prose = "Master Orin entered the hall."
   const fires = runNerPrepass(prose, surface)
-  // "Orin" is in surface but the prepass only matches whole-phrase and
-  // normalized-phrase; the "Orin" shard does not match "master orin".
-  // NER fires because neither exact nor substring-contains passes for
-  // the full phrase "master orin" against "orin" (the surface entry
-  // is shorter, not longer — the substring check is surface-includes-candidate).
-  expect(fires.find(c => c.phrase === "Master Orin")).toBeDefined()
+  expect(fires.find(c => c.phrase === "Master Orin")).toBeUndefined()
 })
+
+test("runNerPrepass: title-pair grounded via title-strip + normalized form (L49) → does not fire", () => {
+  // L49: title-strip uses tier-3 (normalized exact) too. Bible has "Cassels"
+  // (plural surname); prose has "Arbiter Cassel". Strip "Arbiter" → "Cassel"
+  // → normalize → "cassel" → matches normalized "cassel" (from "Cassels"
+  // collapsed by trailing-s plural strip).
+  const surface = {
+    lower: new Set(["cassels"]),
+    normalized: new Set([normalizeForGroundedMatchSync("Cassels")]),
+  }
+  const prose = "Arbiter Cassel surveyed the hall."
+  const fires = runNerPrepass(prose, surface)
+  expect(fires.find(c => c.phrase === "Arbiter Cassel")).toBeUndefined()
+})
+
+test("runNerPrepass: title-strip is bounded — non-title prefix does NOT trigger fallback", () => {
+  // L49: the title-strip fallback is GATED on TITLE_TOKENS. A generic
+  // capitalized-multi-word like "Aldric Venn" with only "Venn" in the surface
+  // must still fire — "Aldric" is not a title token, so no strip.
+  const surface = {
+    lower: new Set(["venn"]),
+    normalized: new Set(["venn"]),
+  }
+  const prose = "Kael nodded as Aldric Venn left the hall."
+  const fires = runNerPrepass(prose, surface)
+  expect(fires.find(c => c.phrase === "Aldric Venn")).toBeDefined()
+})
+
+test("runNerPrepass: title-strip lowercase-insensitive on the title token", () => {
+  // L49: the TITLE_TOKENS_LOWER lookup is case-insensitive. The title-pair
+  // regex matches "Master" / "Captain" with leading capital, but the
+  // grounding check itself accepts any case-equivalent.
+  const surface = {
+    lower: new Set(["vesh"]),
+    normalized: new Set(["vesh"]),
+  }
+  const prose = "Captain Vesh stepped forward."
+  const fires = runNerPrepass(prose, surface)
+  expect(fires.find(c => c.phrase === "Captain Vesh")).toBeUndefined()
+})
+
+// Helper: run normalizeForGroundedMatch synchronously inside the test by
+// importing it via the module-level path (already imported in index.ts).
+// Inline shim so the test reads cleanly.
+function normalizeForGroundedMatchSync(s: string): string {
+  // Mirror the entity-candidates implementation steps for the small set of
+  // inputs used here. Falls back to a require to avoid duplicating logic for
+  // any larger inputs the test family adds later.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const m = require("../../lint/entity-candidates") as {
+    normalizeForGroundedMatch: (s: string) => string
+  }
+  return m.normalizeForGroundedMatch(s)
+}
 
 test("runNerPrepass: clean prose with no capitalized multi-word entities → empty result", () => {
   const surface = EMPTY_SURFACE

@@ -16,8 +16,15 @@ import {
   extractEntityCandidates,
   normalizeForGroundedMatch,
   deriveInitials,
+  TITLE_TOKENS,
   type EntityCandidate,
 } from "../../lint/entity-candidates"
+
+// Lowercase TITLE_TOKENS set for the title-strip tier-5 fallback in
+// isNerGrounded. Computed once at module load.
+const TITLE_TOKENS_LOWER: ReadonlySet<string> = new Set(
+  TITLE_TOKENS.map(t => t.toLowerCase()),
+)
 
 export { buildContext, buildCharacterRoster, buildOutlineEntityList, deriveTitleNouns, hallucUngroundedSchema }
 export type { HallucUngroundedOutput, HallucUngroundedResult, NerFinding }
@@ -134,13 +141,19 @@ function buildNerGroundedSet(components: {
 }
 
 /**
- * Four-tier grounding check for a NER candidate phrase.
+ * Five-tier grounding check for a NER candidate phrase.
  *
  * Tiers (in order):
  *   1. Exact lowercase match against `surface.lower`.
  *   2. Substring: any surface.lower entry contains the candidate.
  *   3. Normalized exact: normalizeForGroundedMatch(candidate) ∈ surface.normalized.
  *   4. Normalized substring: any surface.normalized entry contains the normalized candidate.
+ *   5. Title-strip (L49): if the candidate begins with a known TITLE_TOKEN
+ *      (Master, Lord, Captain, Arbiter, ...), strip it and retry tiers 1–4
+ *      on the remainder. Grounds title+surname phrases like "Master Orin"
+ *      when only the surname "Orin" is in the surface (e.g. as a character
+ *      roster entry). Bounded by the closed TITLE_TOKENS lexicon to avoid
+ *      over-grounding generic capitalized-multi-word phrases.
  *
  * Returns `true` (grounded) when any tier matches.
  */
@@ -163,6 +176,27 @@ function isNerGrounded(
   if (normC.length > 0) {
     for (const s of surface.normalized) {
       if (s.length >= normC.length && s.includes(normC)) return true
+    }
+  }
+  // 5. title-strip (L49): if the candidate starts with a known title token,
+  //    strip it and retry tiers 1–4 on the remainder. Closes title+surname
+  //    grounding gaps (e.g. "Master Orin" with grounded "Orin").
+  const tokens = candidatePhrase.trim().split(/\s+/).filter(t => t.length > 0)
+  if (tokens.length >= 2 && TITLE_TOKENS_LOWER.has(tokens[0]!.toLowerCase())) {
+    const remainder = tokens.slice(1).join(" ")
+    const remLower = remainder.toLowerCase()
+    if (remLower.length > 0) {
+      if (surface.lower.has(remLower)) return true
+      for (const s of surface.lower) {
+        if (s.length >= remLower.length && s.includes(remLower)) return true
+      }
+      const remNorm = normalizeForGroundedMatch(remainder)
+      if (remNorm.length > 0) {
+        if (surface.normalized.has(remNorm)) return true
+        for (const s of surface.normalized) {
+          if (s.length >= remNorm.length && s.includes(remNorm)) return true
+        }
+      }
     }
   }
   return false
