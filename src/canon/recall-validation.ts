@@ -4,15 +4,25 @@
  * Charter: docs/charters/world-bible-architecture.md §0a
  * Lane:    docs/sessions/2026-05-03-world-bible-architecture-step-0a-session-3.md
  *
+ * Architectural rule the harness enforces:
+ *   ONE deterministic L1 packet per chapter, byte-identical, reused by writer
+ *   and every downstream judge. Validation queries are different LENSES on
+ *   the SAME packet — they don't each get their own packet, because nothing
+ *   in production does either.
+ *
  * Pure-function harness:
  *   1. Validates canon fixture JSON conforms to the §0d schema.
- *   2. Validates labeled query JSON conforms to the query schema.
- *   3. Runs each query through assembleL1 with appropriate scoping hints
- *      and grades the resulting L1 packet against the labeled relevant set.
- *   4. Reports per-query metrics + aggregates (recall, precision, token cap).
+ *   2. Validates labeled query JSON conforms to the query schema. Queries
+ *      have no scoping hints of their own; hints come from the per-chapter
+ *      manifest carried by the QueryFixture.
+ *   3. Builds one L1 packet per referenced chapter (cached) using the
+ *      manifest's hints. Each query is evaluated against its chapter's
+ *      packet — same packet for every query about the same chapter.
+ *   4. Reports per-query metrics + aggregates (recall, precision, token cap)
+ *      with a recall stop gate that requires sufficient sample size and
+ *      category coverage to be meaningful.
  *
- * No LLM calls. No DB access. Fixtures are JSON files on disk; the harness
- * loads them, runs queries deterministically, and emits a metrics report.
+ * No LLM calls. No DB access. Fixtures are JSON files on disk.
  */
 
 import type {
@@ -21,27 +31,52 @@ import type {
   Entity,
   StoryPromise,
 } from "./api"
-import { assembleL1, L1_TOKEN_CAP, type CanonSource } from "./bundle"
+import {
+  assembleL1,
+  L1_TOKEN_CAP,
+  type CanonSource,
+  type L1Packet,
+} from "./bundle"
 import type { ScopingHints } from "./scope"
 
 // ── Canon fixture format ─────────────────────────────────────────────────────
 
-/**
- * On-disk canon fixture. JSON with the four sections, plus a `snapshotVersion`
- * string and a `novelId`. The harness reads this file and presents it to the
- * bundle assembler via a CanonSource adapter that returns the fixture's
- * contents wholesale (the assembler's scoping rules then filter to the
- * chapter-N relevant subset).
- */
 export interface CanonFixture {
   novelId: string
   snapshotVersion: string
-  /** Brief metadata describing what this fixture covers. */
   description?: string
   facts: CanonFact[]
   entities: Entity[]
   characterStates: CharacterState[]
   promises: StoryPromise[]
+}
+
+// ── Namespaced relevant IDs ──────────────────────────────────────────────────
+
+/**
+ * Kind prefixes that namespace canon IDs in queries' `relevantIds`. Without
+ * this prefix, an entity called "aldric" and a character state keyed by
+ * characterId="aldric" collide on a flat ID set, so the harness can't tell
+ * which thing a labeler meant. Namespacing forces the labeler to be precise:
+ * `entity:aldric` is the Entity row, `state:aldric` is the CharacterState
+ * snapshot. Same disambiguation for facts vs promises that happen to share IDs.
+ */
+export type RelevantIdKind = "fact" | "entity" | "state" | "promise"
+export type RelevantId = `${RelevantIdKind}:${string}`
+
+const RELEVANT_ID_PREFIXES: readonly string[] = [
+  "fact:",
+  "entity:",
+  "state:",
+  "promise:",
+]
+
+function isValidRelevantId(id: unknown): id is RelevantId {
+  if (typeof id !== "string") return false
+  for (const prefix of RELEVANT_ID_PREFIXES) {
+    if (id.startsWith(prefix) && id.length > prefix.length) return true
+  }
+  return false
 }
 
 // ── Labeled query format ─────────────────────────────────────────────────────
@@ -51,34 +86,50 @@ export type QueryCategory =
   | "character-state-at-time"
   | "active-promises-and-payoffs"
 
+const QUERY_CATEGORIES: readonly QueryCategory[] = [
+  "entity-grounding",
+  "character-state-at-time",
+  "active-promises-and-payoffs",
+]
+
 /**
- * One labeled query. Says: "for chapter N with these scoping hints, the
- * relevant canon is exactly this set of fact/entity/state/promise IDs."
- * The harness measures recall (how many of these IDs the assembler emitted)
- * and precision (how many emitted IDs were in this set).
+ * One labeled query. Says: "for chapter N, the relevant canon for this
+ * question is exactly this set of namespaced IDs." The harness measures
+ * recall (how many of these IDs the chapter's packet emitted) and
+ * precision (how many emitted IDs were in this set).
+ *
+ * Queries do NOT carry scoping hints — those come from the per-chapter
+ * manifest in the QueryFixture. Multiple queries about the same chapter
+ * are different lenses on the SAME packet, matching the production rule
+ * that the writer and all judges share one packet per chapter.
  */
 export interface LabeledQuery {
-  /** Human-readable query identifier (kebab-case). */
   id: string
-  /** What kind of question this query represents. */
   category: QueryCategory
-  /** Free-form natural-language description of the query. */
   question: string
-  /** Chapter the query is asked about. */
   chapterN: number
-  /** Scoping hints the harness will pass to assembleL1 for this query. */
+  /** Namespaced canon IDs the labeler considers relevant. Each entry must
+   *  start with `fact:`, `entity:`, `state:`, or `promise:`. */
+  relevantIds: RelevantId[]
+}
+
+/**
+ * Per-chapter scoping configuration. The harness assembles one L1 packet
+ * per chapter using these hints; every query about that chapter is graded
+ * against that single packet.
+ */
+export interface ChapterManifest {
+  chapterN: number
   hints: ScopingHints
-  /** IDs of canon entries the labeler considers relevant to this query.
-   *  Heterogeneous: facts, entities, character states (by characterId),
-   *  promises — all concatenated into one set since the harness measures
-   *  membership across the whole L1 packet. */
-  relevantIds: string[]
 }
 
 export interface QueryFixture {
   novelId: string
   snapshotVersion: string
   description?: string
+  /** One manifest per chapter the queries reference. assembleL1 is called
+   *  ONCE per chapter using these hints. */
+  chapters: ChapterManifest[]
   queries: LabeledQuery[]
 }
 
@@ -91,7 +142,6 @@ export class FixtureValidationError extends Error {
   }
 }
 
-/** Type guard + structured validation. Throws on first error. */
 export function validateCanonFixture(value: unknown, path = "<canon>"): asserts value is CanonFixture {
   if (!value || typeof value !== "object") {
     throw new FixtureValidationError("expected object", path)
@@ -108,10 +158,6 @@ export function validateCanonFixture(value: unknown, path = "<canon>"): asserts 
       throw new FixtureValidationError(`section ${section} must be an array`, path)
     }
   }
-  // Spot-check shape on first entry of each section (cheap; full schema
-  // validation would mirror the TypeScript types — overkill for fixtures
-  // we control. The bundle assembler's downstream usage will fail loud
-  // on truly malformed entries.)
   for (const f of v.facts as unknown[]) {
     const fact = f as Record<string, unknown>
     if (typeof fact.id !== "string" || typeof fact.text !== "string") {
@@ -155,14 +201,22 @@ export function validateQueryFixture(value: unknown, path = "<queries>"): assert
   if (typeof v.novelId !== "string" || !v.novelId) {
     throw new FixtureValidationError("missing or invalid novelId", path)
   }
+  if (!Array.isArray(v.chapters)) {
+    throw new FixtureValidationError("chapters manifest must be an array", path)
+  }
+  for (const c of v.chapters as unknown[]) {
+    const chap = c as Record<string, unknown>
+    if (typeof chap.chapterN !== "number") {
+      throw new FixtureValidationError(`chapter manifest entry missing chapterN: ${JSON.stringify(c)}`, path)
+    }
+    if (!chap.hints || typeof chap.hints !== "object") {
+      throw new FixtureValidationError(`chapter ${chap.chapterN} manifest missing hints`, path)
+    }
+  }
   if (!Array.isArray(v.queries)) {
     throw new FixtureValidationError("queries must be an array", path)
   }
-  const validCategories: ReadonlySet<QueryCategory> = new Set([
-    "entity-grounding",
-    "character-state-at-time",
-    "active-promises-and-payoffs",
-  ])
+  const validCategories: ReadonlySet<QueryCategory> = new Set(QUERY_CATEGORIES)
   for (const q of v.queries as unknown[]) {
     const query = q as Record<string, unknown>
     if (typeof query.id !== "string") {
@@ -180,20 +234,19 @@ export function validateQueryFixture(value: unknown, path = "<queries>"): assert
     if (!Array.isArray(query.relevantIds)) {
       throw new FixtureValidationError(`query ${query.id}: relevantIds must be array`, path)
     }
-    if (!query.hints || typeof query.hints !== "object") {
-      throw new FixtureValidationError(`query ${query.id}: hints must be object`, path)
+    for (const id of query.relevantIds as unknown[]) {
+      if (!isValidRelevantId(id)) {
+        throw new FixtureValidationError(
+          `query ${query.id}: relevantId must be namespaced (fact:, entity:, state:, or promise:); got ${JSON.stringify(id)}`,
+          path,
+        )
+      }
     }
   }
 }
 
 // ── CanonSource adapter for fixtures ─────────────────────────────────────────
 
-/**
- * Wraps a CanonFixture as a CanonSource. The fixture data is point-in-time
- * already (entries with provenance.chapter > N are filtered by the bundle
- * assembler's downstream rules); this adapter just exposes the raw fixture
- * contents through the CanonSource interface.
- */
 export function fixtureToCanonSource(fixture: CanonFixture): CanonSource {
   return {
     factsAsOfChapter: () => fixture.facts,
@@ -210,21 +263,16 @@ export interface QueryMetrics {
   queryId: string
   category: QueryCategory
   chapterN: number
-  /** IDs the assembler emitted for this query (across all four sections). */
-  emittedIds: string[]
-  /** Subset of relevantIds that were emitted. */
-  recalledIds: string[]
-  /** Subset of relevantIds that were NOT emitted (recall failures). */
-  missedIds: string[]
-  /** Subset of emittedIds that the labeler did NOT mark relevant. */
-  spuriousIds: string[]
+  /** Namespaced IDs the chapter's packet emitted (across all four sections). */
+  emittedIds: RelevantId[]
+  recalledIds: RelevantId[]
+  missedIds: RelevantId[]
+  spuriousIds: RelevantId[]
   /** recalledIds.length / max(relevantIds.length, 1). */
   recall: number
   /** recalledIds.length / max(emittedIds.length, 1). */
   precision: number
-  /** approxTokens of the assembled L1 packet. */
   approxTokens: number
-  /** Whether approxTokens exceeded L1_TOKEN_CAP. */
   tokenCapExceeded: boolean
 }
 
@@ -232,50 +280,47 @@ export interface ValidationReport {
   queries: QueryMetrics[]
   aggregate: {
     queryCount: number
-    /** Mean recall across all queries. PRIMARY quality metric. */
+    /** Mean recall. PRIMARY quality metric. */
     meanRecall: number
-    /** Mean precision across all queries. OBSERVABILITY only — extra canon
-     *  is fine at modest sizes; cache economics make it cheap. Reported so
-     *  pathological dilution stays visible, not as a stop gate. */
+    /** Mean precision. OBSERVABILITY only — extra canon is fine at modest
+     *  sizes; reported so pathological dilution stays visible. */
     meanPrecision: number
-    /** Number of queries hitting recall ≥ RECALL_FLOOR. */
     recallPassCount: number
-    /** Number of queries hitting precision ≥ PRECISION_OBSERVABILITY (not
-     *  a stop gate; reported for visibility). */
     precisionPassCount: number
-    /** Number of queries triggering the sanity-ceiling token flag.
-     *  Normal operation: 0. Non-zero indicates pathological scope rules. */
+    /** Number of chapter packets exceeding the sanity ceiling. Normal: 0. */
     tokenCapExceededCount: number
-    /** Per-category breakdown. */
     byCategory: Record<QueryCategory, { count: number; meanRecall: number; meanPrecision: number }>
   }
   thresholds: {
     /** Stop-gate threshold (PRIMARY). */
     recallFloor: number
+    /** Minimum query count for the recall gate to be meaningful. */
+    recallMinQueryCount: number
+    /** Minimum number of distinct categories for the recall gate. */
+    recallMinCategoryCount: number
     /** Observability threshold (NOT a stop gate). */
     precisionObservability: number
-    /** Sanity ceiling (NOT a stop gate). Normal bundles stay well below this. */
+    /** Sanity ceiling (NOT a stop gate). */
     tokenCapSanityCeiling: number
-    /** True iff aggregate recall clears the floor AND no query trips the
-     *  sanity ceiling. Stop-gate evaluation is recall-driven; precision and
-     *  bundle-size are observability metrics, not gates. */
+    /** True iff sample size, category coverage, AND recall floor all clear.
+     *  This IS the stop gate. Precision and bundle-size are observability,
+     *  not gates. */
     recallGateClear: boolean
+    /** Whether any chapter packet tripped the sanity ceiling — observability
+     *  signal for "investigate the rules", not a gate. */
     sanityCeilingClear: boolean
-    /** Convenience: both stop-gate-relevant conditions clear. */
-    allCleared: boolean
   }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Collect all canonical IDs from an L1 packet's sections (facts +
- *  entities + characterStates by characterId + promises). */
-function collectEmittedIds(packet: ReturnType<typeof assembleL1>): string[] {
-  const ids: string[] = []
-  for (const f of packet.sections.facts) ids.push(f.id)
-  for (const e of packet.sections.entities) ids.push(e.id)
-  for (const s of packet.sections.characterStates) ids.push(s.characterId)
-  for (const p of packet.sections.activePromises) ids.push(p.id)
+/** Collect all namespaced IDs from an L1 packet's sections. */
+function collectEmittedIds(packet: L1Packet): RelevantId[] {
+  const ids: RelevantId[] = []
+  for (const f of packet.sections.facts) ids.push(`fact:${f.id}`)
+  for (const e of packet.sections.entities) ids.push(`entity:${e.id}`)
+  for (const s of packet.sections.characterStates) ids.push(`state:${s.characterId}`)
+  for (const p of packet.sections.activePromises) ids.push(`promise:${p.id}`)
   return ids
 }
 
@@ -283,10 +328,15 @@ function collectEmittedIds(packet: ReturnType<typeof assembleL1>): string[] {
 
 /** Stop-gate threshold: aggregate mean recall must clear this. PRIMARY. */
 export const RECALL_FLOOR = 0.8
-/** Observability threshold for precision. NOT a stop gate. Extra canon is
- *  fine at modest sizes (cache economics + LLMs handle generous context).
- *  This number exists only to flag queries with notably low precision in
- *  the report, not to gate clearance. */
+/** Minimum query count for the recall gate. Smaller samples do not produce
+ *  statistically meaningful means; the gate refuses to clear. */
+export const RECALL_MIN_QUERY_COUNT = 40
+/** Minimum number of distinct categories represented. The fixture must
+ *  cover all three QueryCategory values; a sample that ignores one category
+ *  can pass recall while leaving that category broken. */
+export const RECALL_MIN_CATEGORY_COUNT = QUERY_CATEGORIES.length
+/** Observability threshold for precision. NOT a stop gate. Reported so
+ *  pathological dilution stays visible. */
 export const PRECISION_OBSERVABILITY = 0.5
 
 export function runValidation(
@@ -298,14 +348,37 @@ export function runValidation(
       `runValidation: novelId mismatch (canon=${canon.novelId} queries=${queries.novelId})`,
     )
   }
-  const source = fixtureToCanonSource(canon)
-  const queryMetrics: QueryMetrics[] = []
 
+  // Build per-chapter packet cache: ONE assembleL1 call per chapter, shared
+  // across every query that asks about that chapter. Mirrors the production
+  // rule that one chapter has one bundle reused by writer + all judges.
+  const source = fixtureToCanonSource(canon)
+  const packetByChapter = new Map<number, L1Packet>()
+  const manifestByChapter = new Map<number, ChapterManifest>()
+  for (const m of queries.chapters) {
+    if (manifestByChapter.has(m.chapterN)) {
+      throw new Error(
+        `runValidation: duplicate chapter manifest for chapterN=${m.chapterN}`,
+      )
+    }
+    manifestByChapter.set(m.chapterN, m)
+    packetByChapter.set(
+      m.chapterN,
+      assembleL1(source, canon.novelId, m.chapterN, m.hints),
+    )
+  }
+
+  const queryMetrics: QueryMetrics[] = []
   for (const q of queries.queries) {
-    const packet = assembleL1(source, canon.novelId, q.chapterN, q.hints)
+    const packet = packetByChapter.get(q.chapterN)
+    if (!packet) {
+      throw new Error(
+        `runValidation: query ${q.id} references chapterN=${q.chapterN} which has no entry in chapter manifest`,
+      )
+    }
     const emittedIds = collectEmittedIds(packet)
-    const emittedSet = new Set(emittedIds)
-    const relevantSet = new Set(q.relevantIds)
+    const emittedSet = new Set<string>(emittedIds)
+    const relevantSet = new Set<string>(q.relevantIds)
 
     const recalledIds = q.relevantIds.filter((id) => emittedSet.has(id))
     const missedIds = q.relevantIds.filter((id) => !emittedSet.has(id))
@@ -338,14 +411,18 @@ export function runValidation(
     : 0
   const recallPassCount = queryMetrics.filter((m) => m.recall >= RECALL_FLOOR).length
   const precisionPassCount = queryMetrics.filter((m) => m.precision >= PRECISION_OBSERVABILITY).length
-  const tokenCapExceededCount = queryMetrics.filter((m) => m.tokenCapExceeded).length
+  // tokenCapExceeded is a property of the chapter packet, not the query.
+  // Count distinct chapter packets that tripped the ceiling.
+  const tokenCapExceededCount = [...packetByChapter.values()].filter(
+    (p) => p.tokenCapExceeded,
+  ).length
 
   const byCategory: Record<QueryCategory, { count: number; meanRecall: number; meanPrecision: number }> = {
     "entity-grounding": { count: 0, meanRecall: 0, meanPrecision: 0 },
     "character-state-at-time": { count: 0, meanRecall: 0, meanPrecision: 0 },
     "active-promises-and-payoffs": { count: 0, meanRecall: 0, meanPrecision: 0 },
   }
-  for (const cat of Object.keys(byCategory) as QueryCategory[]) {
+  for (const cat of QUERY_CATEGORIES) {
     const inCat = queryMetrics.filter((m) => m.category === cat)
     byCategory[cat].count = inCat.length
     byCategory[cat].meanRecall = inCat.length
@@ -355,6 +432,17 @@ export function runValidation(
       ? inCat.reduce((a, m) => a + m.precision, 0) / inCat.length
       : 0
   }
+
+  const categoriesRepresented = QUERY_CATEGORIES.filter(
+    (cat) => byCategory[cat].count > 0,
+  ).length
+  const sufficientSampleSize = queryCount >= RECALL_MIN_QUERY_COUNT
+  const sufficientCategoryCoverage =
+    categoriesRepresented >= RECALL_MIN_CATEGORY_COUNT
+  const recallGateClear =
+    sufficientSampleSize &&
+    sufficientCategoryCoverage &&
+    meanRecall >= RECALL_FLOOR
 
   return {
     queries: queryMetrics,
@@ -369,14 +457,12 @@ export function runValidation(
     },
     thresholds: {
       recallFloor: RECALL_FLOOR,
+      recallMinQueryCount: RECALL_MIN_QUERY_COUNT,
+      recallMinCategoryCount: RECALL_MIN_CATEGORY_COUNT,
       precisionObservability: PRECISION_OBSERVABILITY,
       tokenCapSanityCeiling: L1_TOKEN_CAP,
-      recallGateClear: queryCount > 0 && meanRecall >= RECALL_FLOOR,
+      recallGateClear,
       sanityCeilingClear: tokenCapExceededCount === 0,
-      allCleared:
-        queryCount > 0 &&
-        meanRecall >= RECALL_FLOOR &&
-        tokenCapExceededCount === 0,
     },
   }
 }

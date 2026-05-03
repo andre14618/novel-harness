@@ -136,7 +136,7 @@ A single per-chapter packet, byte-identical for the same `(canon-state-version, 
 - Entities planned to appear in chapter N (from the chapter contract)
 - Constraints attached to locations / systems / relationships referenced by the chapter contract
 
-**Priority order:** quality (recall) > cache stability (determinism + reuse) > sanity (don't unbound). Token budget is NOT a primary optimization target — §0e showed cost is essentially free under cache stability (~$0.0008/chapter at K=5 V4 Flash warm), and squeezing the bundle creates incentives for adaptive trimming that would break the cache-stability guarantee. Generous, consistent canon for the right reasons; cap exists only as a sanity ceiling against pathological scope rules.
+**Two real priorities, in tension:** quality (recall against the human-curated relevant set) and cache stability (determinism + byte-identity for reuse across writer + K judges). The token cap is NOT a third priority — it's a defensive guard against pathological scope rules, set well above any reasonable production bundle. §0e showed cost is essentially free under cache stability (~$0.0008/chapter at K=5 V4 Flash warm), so trimming for size has no payoff and would actively destroy the determinism guarantee that makes the economics work. Generous, consistent canon for the right reasons; cap exists only as a "scope rules are broken" alarm.
 
 **Stop gates (must clear):**
 

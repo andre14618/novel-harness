@@ -10,6 +10,8 @@ import {
   FixtureValidationError,
   PRECISION_OBSERVABILITY,
   RECALL_FLOOR,
+  RECALL_MIN_QUERY_COUNT,
+  RECALL_MIN_CATEGORY_COUNT,
 } from "./recall-validation"
 
 // ── Synthetic fixture ────────────────────────────────────────────────────────
@@ -92,13 +94,24 @@ const SYNTHETIC_QUERY: LabeledQuery = {
   category: "character-state-at-time",
   question: "What does Aldric know as of chapter 5?",
   chapterN: 5,
-  hints: { povCharacterId: "aldric", charactersPresentIds: [] },
-  relevantIds: ["aldric", "fact-event-ch3", "fact-world-magic", "promise-prophecy"],
+  relevantIds: [
+    "entity:aldric",
+    "state:aldric",
+    "fact:fact-event-ch3",
+    "fact:fact-world-magic",
+    "promise:promise-prophecy",
+  ],
 }
 
 const SYNTHETIC_QUERIES: QueryFixture = {
   novelId: "test-novel",
   snapshotVersion: "test-v1",
+  chapters: [
+    {
+      chapterN: 5,
+      hints: { povCharacterId: "aldric", charactersPresentIds: [] },
+    },
+  ],
   queries: [SYNTHETIC_QUERY],
 }
 
@@ -159,11 +172,55 @@ describe("validateQueryFixture", () => {
           id: "q",
           category: "entity-grounding",
           relevantIds: [],
-          hints: { povCharacterId: "x", charactersPresentIds: [] },
         },
       ],
     } as unknown as QueryFixture
     expect(() => validateQueryFixture(bad)).toThrow(/chapterN must be number/)
+  })
+
+  test("rejects un-namespaced relevantId", () => {
+    const bad: QueryFixture = {
+      ...SYNTHETIC_QUERIES,
+      queries: [
+        // Cast to unknown to bypass the typed RelevantId compile-time check —
+        // we're testing the runtime validator's behavior on bad JSON input.
+        { ...SYNTHETIC_QUERY, relevantIds: ["aldric"] as unknown as never },
+      ],
+    }
+    expect(() => validateQueryFixture(bad)).toThrow(
+      /relevantId must be namespaced/,
+    )
+  })
+
+  test("rejects relevantId with prefix-only string (empty body)", () => {
+    const bad: QueryFixture = {
+      ...SYNTHETIC_QUERIES,
+      queries: [
+        { ...SYNTHETIC_QUERY, relevantIds: ["fact:"] as unknown as never },
+      ],
+    }
+    expect(() => validateQueryFixture(bad)).toThrow(
+      /relevantId must be namespaced/,
+    )
+  })
+
+  test("rejects fixture missing chapters manifest", () => {
+    const bad = {
+      novelId: "test-novel",
+      snapshotVersion: "test-v1",
+      queries: [SYNTHETIC_QUERY],
+    } as unknown as QueryFixture
+    expect(() => validateQueryFixture(bad)).toThrow(
+      /chapters manifest must be an array/,
+    )
+  })
+
+  test("rejects chapter manifest entry missing chapterN", () => {
+    const bad = {
+      ...SYNTHETIC_QUERIES,
+      chapters: [{ hints: { povCharacterId: "aldric", charactersPresentIds: [] } }],
+    } as unknown as QueryFixture
+    expect(() => validateQueryFixture(bad)).toThrow(/missing chapterN/)
   })
 })
 
@@ -182,7 +239,7 @@ describe("fixtureToCanonSource", () => {
 
 // ── End-to-end validation ────────────────────────────────────────────────────
 
-describe("runValidation", () => {
+describe("runValidation — per-query metrics", () => {
   test("computes recall and precision against synthetic fixture", () => {
     const report = runValidation(SYNTHETIC_CANON, SYNTHETIC_QUERIES)
     expect(report.queries).toHaveLength(1)
@@ -203,34 +260,13 @@ describe("runValidation", () => {
     expect(report.aggregate.byCategory["active-promises-and-payoffs"].count).toBe(0)
   })
 
-  test("thresholds expose recall floor + observability + sanity ceiling", () => {
-    const report = runValidation(SYNTHETIC_CANON, SYNTHETIC_QUERIES)
-    expect(report.thresholds.recallFloor).toBe(RECALL_FLOOR)
-    expect(report.thresholds.precisionObservability).toBe(PRECISION_OBSERVABILITY)
-    // recallGateClear, sanityCeilingClear, allCleared are all booleans.
-    expect(typeof report.thresholds.recallGateClear).toBe("boolean")
-    expect(typeof report.thresholds.sanityCeilingClear).toBe("boolean")
-    expect(typeof report.thresholds.allCleared).toBe("boolean")
-  })
-
-  test("throws on novelId mismatch between canon and queries", () => {
-    const queryFixtureWrong: QueryFixture = { ...SYNTHETIC_QUERIES, novelId: "other-novel" }
-    expect(() => runValidation(SYNTHETIC_CANON, queryFixtureWrong)).toThrow(/novelId mismatch/)
-  })
-
   test("perfect recall when relevant facts are subset of emitted set", () => {
-    // Recall = (relevant ∩ emitted) / relevant.
-    // If we ask for fact-world-magic (always emitted by rule 5), recall = 1.
-    // Precision will be < 1 because scoping also emits the active promise
-    // and the recent event — that's the rules working as designed, not
-    // a precision failure for THIS query.
     const queryWorldOnly: LabeledQuery = {
       id: "q-world-only",
       category: "entity-grounding",
       question: "What world rules apply?",
       chapterN: 5,
-      hints: { povCharacterId: "", charactersPresentIds: [] },
-      relevantIds: ["fact-world-magic"],
+      relevantIds: ["fact:fact-world-magic"],
     }
     const report = runValidation(SYNTHETIC_CANON, {
       ...SYNTHETIC_QUERIES,
@@ -238,25 +274,23 @@ describe("runValidation", () => {
     })
     const m = report.queries[0]
     expect(m.recall).toBe(1)
-    expect(m.recalledIds).toEqual(["fact-world-magic"])
+    expect(m.recalledIds).toEqual(["fact:fact-world-magic"])
     expect(m.missedIds).toEqual([])
     expect(m.precision).toBeLessThan(1)
-    // Spurious set is the gap: this is what tells us rule 5 is "padding"
-    // for entity-grounding queries that don't care about events/promises.
+    // Spurious set is non-empty: scoping correctly emits world rule + active
+    // promise + recent event for this chapter, even though the labeler only
+    // marked the world rule as relevant for THIS query. That's rules working
+    // as designed, not a precision failure.
     expect(m.spuriousIds.length).toBeGreaterThan(0)
   })
 
-  test("zero recall when no scoping hints select anything relevant", () => {
-    // Query asks about an entity that's not POV/present and has no rule
-    // catching it — recall should be 0 with no spurious matches happening
-    // to align.
+  test("zero recall when relevant ID isn't anywhere in canon", () => {
     const queryUnreachable: LabeledQuery = {
       id: "q-unreachable",
       category: "entity-grounding",
       question: "What about a non-existent entity?",
       chapterN: 5,
-      hints: { povCharacterId: "", charactersPresentIds: [] },
-      relevantIds: ["entity-that-doesnt-exist"],
+      relevantIds: ["entity:entity-that-doesnt-exist"],
     }
     const report = runValidation(SYNTHETIC_CANON, {
       ...SYNTHETIC_QUERIES,
@@ -264,6 +298,176 @@ describe("runValidation", () => {
     })
     const m = report.queries[0]
     expect(m.recall).toBe(0)
-    expect(m.missedIds).toEqual(["entity-that-doesnt-exist"])
+    expect(m.missedIds).toEqual(["entity:entity-that-doesnt-exist"])
+  })
+
+  test("emitted IDs are namespaced (entity vs state disambiguation)", () => {
+    // Aldric is BOTH an entity and a character state. Without namespacing,
+    // the harness can't tell these apart in relevantIds. With namespacing,
+    // they're distinct strings in the emitted set.
+    const queryAldricBoth: LabeledQuery = {
+      id: "q-aldric-both",
+      category: "character-state-at-time",
+      question: "Get both the entity and the state for Aldric.",
+      chapterN: 5,
+      relevantIds: ["entity:aldric", "state:aldric"],
+    }
+    const report = runValidation(SYNTHETIC_CANON, {
+      ...SYNTHETIC_QUERIES,
+      queries: [queryAldricBoth],
+    })
+    const m = report.queries[0]
+    expect(m.emittedIds).toContain("entity:aldric")
+    expect(m.emittedIds).toContain("state:aldric")
+    expect(m.recall).toBe(1)
+  })
+})
+
+// ── Per-chapter packet caching ───────────────────────────────────────────────
+
+describe("runValidation — one packet per chapter (cache shared across queries)", () => {
+  test("multiple queries about the same chapter see identical emittedIds", () => {
+    // The architecture says: one packet per chapter, reused by every role.
+    // The harness mirrors this: every query about chapter 5 gets graded
+    // against the same packet, so emittedIds must be byte-identical across
+    // queries that share a chapter.
+    const queries: QueryFixture = {
+      ...SYNTHETIC_QUERIES,
+      queries: [
+        { ...SYNTHETIC_QUERY, id: "q-a", relevantIds: ["entity:aldric"] },
+        { ...SYNTHETIC_QUERY, id: "q-b", relevantIds: ["fact:fact-world-magic"] },
+        { ...SYNTHETIC_QUERY, id: "q-c", relevantIds: ["promise:promise-prophecy"] },
+      ],
+    }
+    const report = runValidation(SYNTHETIC_CANON, queries)
+    expect(report.queries).toHaveLength(3)
+    const emittedSetA = JSON.stringify([...report.queries[0].emittedIds].sort())
+    const emittedSetB = JSON.stringify([...report.queries[1].emittedIds].sort())
+    const emittedSetC = JSON.stringify([...report.queries[2].emittedIds].sort())
+    expect(emittedSetA).toBe(emittedSetB)
+    expect(emittedSetB).toBe(emittedSetC)
+  })
+
+  test("throws if query references chapter not in manifest", () => {
+    const queryOrphan: LabeledQuery = {
+      ...SYNTHETIC_QUERY,
+      id: "q-orphan",
+      chapterN: 99, // not in SYNTHETIC_QUERIES.chapters
+    }
+    expect(() =>
+      runValidation(SYNTHETIC_CANON, {
+        ...SYNTHETIC_QUERIES,
+        queries: [queryOrphan],
+      }),
+    ).toThrow(/no entry in chapter manifest/)
+  })
+
+  test("throws on duplicate chapter manifest entries", () => {
+    const dupedManifest: QueryFixture = {
+      ...SYNTHETIC_QUERIES,
+      chapters: [
+        { chapterN: 5, hints: { povCharacterId: "aldric", charactersPresentIds: [] } },
+        { chapterN: 5, hints: { povCharacterId: "bren", charactersPresentIds: [] } },
+      ],
+    }
+    expect(() => runValidation(SYNTHETIC_CANON, dupedManifest)).toThrow(
+      /duplicate chapter manifest/,
+    )
+  })
+
+  test("throws on novelId mismatch between canon and queries", () => {
+    const queryFixtureWrong: QueryFixture = { ...SYNTHETIC_QUERIES, novelId: "other-novel" }
+    expect(() => runValidation(SYNTHETIC_CANON, queryFixtureWrong)).toThrow(/novelId mismatch/)
+  })
+})
+
+// ── Stop-gate semantics ──────────────────────────────────────────────────────
+
+describe("runValidation — recall stop gate", () => {
+  test("thresholds expose recall floor + observability + sample-size + category requirements", () => {
+    const report = runValidation(SYNTHETIC_CANON, SYNTHETIC_QUERIES)
+    expect(report.thresholds.recallFloor).toBe(RECALL_FLOOR)
+    expect(report.thresholds.recallMinQueryCount).toBe(RECALL_MIN_QUERY_COUNT)
+    expect(report.thresholds.recallMinCategoryCount).toBe(RECALL_MIN_CATEGORY_COUNT)
+    expect(report.thresholds.precisionObservability).toBe(PRECISION_OBSERVABILITY)
+    expect(typeof report.thresholds.recallGateClear).toBe("boolean")
+    expect(typeof report.thresholds.sanityCeilingClear).toBe("boolean")
+  })
+
+  test("recallGateClear is FALSE with too few queries even at perfect recall", () => {
+    // One query, perfect recall — not enough sample to clear the gate.
+    const report = runValidation(SYNTHETIC_CANON, {
+      ...SYNTHETIC_QUERIES,
+      queries: [
+        {
+          id: "q-perfect",
+          category: "entity-grounding",
+          question: "Just the world rule.",
+          chapterN: 5,
+          relevantIds: ["fact:fact-world-magic"],
+        },
+      ],
+    })
+    expect(report.queries[0].recall).toBe(1)
+    expect(report.aggregate.queryCount).toBeLessThan(RECALL_MIN_QUERY_COUNT)
+    expect(report.thresholds.recallGateClear).toBe(false)
+  })
+
+  test("recallGateClear is FALSE when only one category is represented", () => {
+    // Synthesize ≥ 40 queries all in one category — sample size satisfied,
+    // but category coverage isn't, so the gate stays closed.
+    const queries: LabeledQuery[] = []
+    for (let i = 0; i < RECALL_MIN_QUERY_COUNT + 5; i++) {
+      queries.push({
+        id: `q-${i}`,
+        category: "entity-grounding",
+        question: `Query ${i}`,
+        chapterN: 5,
+        relevantIds: ["fact:fact-world-magic"], // perfect-recall query
+      })
+    }
+    const report = runValidation(SYNTHETIC_CANON, {
+      ...SYNTHETIC_QUERIES,
+      queries,
+    })
+    expect(report.aggregate.queryCount).toBeGreaterThanOrEqual(
+      RECALL_MIN_QUERY_COUNT,
+    )
+    expect(report.aggregate.meanRecall).toBe(1)
+    // Only one category represented → gate refuses to clear.
+    expect(report.thresholds.recallGateClear).toBe(false)
+  })
+
+  test("recallGateClear is TRUE when sample size, categories, and recall all clear", () => {
+    const queries: LabeledQuery[] = []
+    const cats: ReadonlyArray<LabeledQuery["category"]> = [
+      "entity-grounding",
+      "character-state-at-time",
+      "active-promises-and-payoffs",
+    ]
+    // 14 queries per category × 3 cats = 42 ≥ RECALL_MIN_QUERY_COUNT.
+    for (let i = 0; i < 14; i++) {
+      for (const cat of cats) {
+        queries.push({
+          id: `q-${cat}-${i}`,
+          category: cat,
+          question: `Query ${cat} ${i}`,
+          chapterN: 5,
+          relevantIds: ["fact:fact-world-magic"], // always emitted by rule 5 → recall=1
+        })
+      }
+    }
+    const report = runValidation(SYNTHETIC_CANON, {
+      ...SYNTHETIC_QUERIES,
+      queries,
+    })
+    expect(report.aggregate.queryCount).toBeGreaterThanOrEqual(
+      RECALL_MIN_QUERY_COUNT,
+    )
+    for (const cat of cats) {
+      expect(report.aggregate.byCategory[cat].count).toBeGreaterThan(0)
+    }
+    expect(report.aggregate.meanRecall).toBeGreaterThanOrEqual(RECALL_FLOOR)
+    expect(report.thresholds.recallGateClear).toBe(true)
   })
 })
