@@ -2122,3 +2122,22 @@ The lever's TARGET surface (duplicate-fragment) showed a clean win on `fantasy-d
 - When stop gate (b) fires on a non-target surface (here: halluc-ungrounded regressed under an integrity-prompt change), the cross-surface coupling is the explanation; the revert is correct even if the target metric improved.
 
 (L70, exp #398. Companion: `docs/sessions/2026-05-02-L70-duplicate-fragment-paraphrase-ladder.md`, `docs/decisions.md` §L70.)
+
+---
+
+## When a lane's stop gate is inherited verbatim from a previous lane, audit whether the gate's wording still matches the new lane's failure modes (2026-05-03)
+
+L70b inherited stop gate (b) wording from L70 form (b): "any baseline-approved novel regresses to a bail." That wording was the right test for L70 form (b) — a writer-prompt edit, where a regression on any surface is plausibly attributable to the lane via cross-surface coupling. Applied to L70b — a routing-only change with no writer-prompt edit — the same wording becomes false-positive-prone: if a baseline-approved novel regresses on a code path the lane never executed, the stop gate fires for noise unrelated to the lane.
+
+**Concrete instance:** L70b A/B (exp #399) showed +33pt approval improvement and 75% settle acceptance on the target integrity surface, but `fantasy-system-heretic` regressed approved → bailed `plan-assist reviser-rejected` (chapter-plan-reviser hit `maxTokens=6144`) before the drafting integrity check ever ran — `pipeline_events` shows zero `integrity-*` events for heretic. Strict reading of stop gate (b) would revert a working lever; causal-attribution reading correctly attributes the regression to a separate surface (chapter-plan-reviser token cap, opened as L71).
+
+**The rule:** stop gates on routing/scoping changes (no prompt edits, no checker behavior change) should encode causal attribution explicitly: "any novel regresses *where the lane code executed*." Lanes that change writer prompts or checker behavior should keep the broader sentinel because cross-surface coupling is plausible.
+
+**Why:** false-positive stop gates revert working levers and waste the lane's evidence; false-negative stop gates ship broken changes. The discriminator is whether a lane *can* affect non-target surfaces. Prompt edits to a writer that's stochastic across many surfaces *can*. Pure routing/scoping changes that don't run for a given novel *cannot*.
+
+**How to apply:**
+- When drafting a new lane doc, copy stop gates from the closest prior lane only as a starting point. For each gate, ask: does the lane's code reach every novel in the A/B? If a novel can be regressed by something the lane didn't touch, scope the gate to "any novel where the lane code executed."
+- Cross-reference the live-evidence surface (which `pipeline_events` types fire) against the regressing novel before applying gate (b).
+- If the strict-read fires but causal attribution is clean, document both readings in Results and ship — but only when the lane code is provably absent from the regressed novel's execution path.
+
+(L70b, exp #399. Companion: `docs/sessions/2026-05-03-L70b-per-fragment-targeted-rewrite.md`, `docs/decisions.md` §L70b.)

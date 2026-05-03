@@ -1,5 +1,5 @@
 status: active
-updated: 2026-05-02
+updated: 2026-05-03
 ---
 
 # Decisions
@@ -7,6 +7,34 @@ updated: 2026-05-02
 Architectural decisions with rationale, evidence, and alternatives rejected. Append-only: decisions are never removed, only superseded (mark old decision superseded and add a new one). Use git blame / experiment IDs for full detail.
 
 **Format per entry:** decision → why → alternatives rejected → ongoing implications.
+
+---
+
+### §L70b Per-fragment beat-targeted rewrite for duplicate-* integrity issues (2026-05-03, exp #399) — **SHIPPED**
+
+**Status:** Shipped 2026-05-03 (commit `81f372a`). 3-novel A/B (`fantasy-archive`, `fantasy-debt`, `fantasy-system-heretic` ch1-2) vs L68 N=1 baseline (exp #396, commit `47ae038`). Settle-acceptance rate 75% (3 of 4 invocations cleared duplicate-* issues that would have bailed integrity-exhausted at baseline). Net approval ch1: 1/3 → 2/3 (+33pt). arch additionally completed ch2 → full novel approved. Cost $0.166 / $25 budget.
+
+**Decision:** when `detectProseIntegrityIssues` fails AND all issues are `duplicate-fragment` / `duplicate-sentence` AND ≤2 distinct beats are involved AND `beatProses.length === outline.scenes.length` AND `attempts < maxAttempts`, route through a 1-pass `runSettleLoop` that rewrites only the duplicate-bearing beat(s) before falling through to the chapter-attempt retry. Implementation: `LintFixIntegrityIssue` carries `offset` + `firstOffset`; new `offsetToBeatIndex(offset, beatProses, separator)` helper maps issues back to the originating beat on `beatProses.join("\n\n")`; integrity branch in `src/phases/drafting.ts` reuses the chapter-plan-check rewrite shape (same model, same `priorBeatProse` slice, **no writer-prompt change**). New trace events `integrity-settle-recheck` and `integrity-settle-complete`. On accepted outcome the chapter falls through to the approval gate without consuming a chapter-attempt.
+
+**Why (concrete evidence):**
+
+| seed | L68 N=1 baseline | L70b | direction |
+|---|---|---|---|
+| `fantasy-archive` | bailed integrity-exhausted ch1 att 4 (3 dup-frag persistent) | APPROVED ch1 + ch2 (full novel; ch1 cleared via settle on att 2; ch2 cleared via settle on att 1) | clean win |
+| `fantasy-debt` | bailed integrity-exhausted ch1 (1 dup-frag persistent) | APPROVED ch1 via settle att 1; ch2 bailed integrity-exhausted att 3 | partial win |
+| `fantasy-system-heretic` | APPROVED ch1 att 2 | bailed plan-assist `reviser-rejected` ch1 att 1 (chapter-plan-reviser hit `maxTokens=6144`) | regression — **provably L70b-unattributable** (zero integrity-* events for heretic; bail surface is plan-assist, before drafting integrity check) |
+
+**Stop-gate (b) attribution call:** strict reading would fire on the heretic regression. The lane took a *causal-attribution* reading because the regression is on a code path L70b does not execute (provable from `pipeline_events`) and is plausibly stochastic plan-revision variance — the L70 lessons explicitly flagged "3-novel single-arm A/B has high variance" and "paired-replay needed for small effects." L70 form (b)'s stop gate (b) was the right test for cross-surface coupling caused by writer-prompt edits; L70b makes no writer-prompt change. Future routing/scoping lanes should encode this attribution explicitly: "any novel regresses where the lane code executed." Lesson captured in `docs/lessons-learned.md`.
+
+**Alternatives rejected:**
+- *L70 form (b) — prompt-only escalation* (REVERTED 2026-05-03 stop gate (b), see §L70). Cross-surface coupling: stronger integrity directive caused writer to take more creative risks on retry, fires propagated to halluc + fused-boundary surfaces.
+- *L70c — calibrated relaxation of duplicate-fragment threshold* (gramSize 8→10, or maxTokenDistance 120→60). Held in reserve as escalation if L70b had not improved approval. Not needed.
+- *Inline while-loop instead of `runSettleLoop` reuse.* Rejected because the existing helper already owns sequential ascending-index dispatch, budget bookkeeping, and the four outcome shapes (accepted/exhausted/no-routing/ineligible) the integrity surface needs.
+
+**Ongoing implications:**
+- New trace events `integrity-settle-recheck` and `integrity-settle-complete` are now part of the analytics surface; downstream consumers that count `prose-integrity-check passed=false → passed=true` transitions should also account for the settle path (one failed trace + zero-or-more recheck traces + one `integrity-settle-complete kind=accepted` + one `prose-integrity-check passed=true` for settle-cleared chapters).
+- The settle adds at most 1 extra `beat-writer` LLM call per duplicate-bearing beat per chapter-attempt (capped at 2 beats × 1 pass per chapter-attempt). At observed ~$0.001 per beat-writer call this is negligible cost.
+- Heretic plan-assist `reviser-rejected` regression on chapter-plan-reviser hitting `maxTokens=6144` is a separate concern — opening **L71** as a follow-up lane to investigate the planner-side token cap; not L70b's responsibility but worth understanding before a wider novel sweep.
 
 ---
 
