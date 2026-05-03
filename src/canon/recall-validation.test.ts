@@ -76,6 +76,15 @@ const SYNTHETIC_CANON: CanonFixture = {
       knownFacts: ["fact-event-ch3"],
       state: { location: "village" },
       asOfChapter: 4,
+      provenance: {
+        source: "post-draft-extraction",
+        chapter: 4,
+        extractorVersion: "test-v1",
+        approvalStatus: "human-approved",
+        origin: "observed",
+        createdAt: "2026-05-03T00:00:00Z",
+        updatedAt: "2026-05-03T00:00:00Z",
+      },
     },
   ],
   promises: [
@@ -85,6 +94,15 @@ const SYNTHETIC_CANON: CanonFixture = {
       expectedPayoffChapter: 12,
       status: "open",
       promiseFactId: "fact-event-ch3",
+      provenance: {
+        source: "planner-output",
+        chapter: 3,
+        extractorVersion: "test-v1",
+        approvalStatus: "human-approved",
+        origin: "planned",
+        createdAt: "2026-05-03T00:00:00Z",
+        updatedAt: "2026-05-03T00:00:00Z",
+      },
     },
   ],
 }

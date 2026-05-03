@@ -2427,7 +2427,16 @@
         "occupation": "demon-lord seeking Crenshinibon",
         "mentalState": "enraged after killing Telshazz; aware the shard is hurled across the planes"
       },
-      "asOfChapter": 0
+      "asOfChapter": 0,
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "characterId": "akar-kessell",
@@ -2446,7 +2455,16 @@
           "dagger used to murder Morkai"
         ]
       },
-      "asOfChapter": 1
+      "asOfChapter": 1,
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "characterId": "eldeluc",
@@ -2461,7 +2479,16 @@
         "occupation": "Luskan wizard / co-conspirator",
         "mentalState": "satisfied that the conspiracy succeeded; departing for Luskan that night"
       },
-      "asOfChapter": 1
+      "asOfChapter": 1,
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "characterId": "dendybar",
@@ -2476,7 +2503,16 @@
         "occupation": "Luskan wizard / lead conspirator",
         "mentalState": "cold-bloodedly amused; satisfied with Kessell's usefulness"
       },
-      "asOfChapter": 1
+      "asOfChapter": 1,
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "characterId": "regis",
@@ -2498,7 +2534,16 @@
           "ivory block"
         ]
       },
-      "asOfChapter": 2
+      "asOfChapter": 2,
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "characterId": "drizzt",
@@ -2523,7 +2568,16 @@
           "brown cloak"
         ]
       },
-      "asOfChapter": 2
+      "asOfChapter": 2,
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "characterId": "bruenor",
@@ -2540,7 +2594,16 @@
           "heavy axe"
         ]
       },
-      "asOfChapter": 2
+      "asOfChapter": 2,
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "characterId": "beorg",
@@ -2561,7 +2624,16 @@
           "axe (bloodied to seal pact)"
         ]
       },
-      "asOfChapter": 3
+      "asOfChapter": 3,
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "characterId": "heafstaag",
@@ -2581,7 +2653,16 @@
           "axe (bloodied to seal pact)"
         ]
       },
-      "asOfChapter": 3
+      "asOfChapter": 3,
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "characterId": "debernezan",
@@ -2596,7 +2677,16 @@
         "occupation": "informant for the barbarian invasion; promised southern-marketplace broker after conquest",
         "mentalState": "terrified after Heafstaag's axe-feint; wet himself but spared by the standard bearer's silence"
       },
-      "asOfChapter": 3
+      "asOfChapter": 3,
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "characterId": "akar-kessell",
@@ -2619,7 +2709,16 @@
         "mentalState": "exalted, dreaming of becoming Tyrant of Icewind Dale; secretly being shaped by Crenshinibon's nighttime suggestions"
       },
       "asOfChapter": 5,
-      "asOfBeat": null
+      "asOfBeat": null,
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "characterId": "drizzt",
@@ -2636,7 +2735,16 @@
         "social": "friend to Bruenor and Regis; otherwise distrusted in Ten-Towns"
       },
       "asOfChapter": 5,
-      "asOfBeat": null
+      "asOfBeat": null,
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "characterId": "bruenor",
@@ -2653,7 +2761,16 @@
         "stance": "refuses to send dwarves to warn Ten-Towns; will fight beside them only if they unite first"
       },
       "asOfChapter": 5,
-      "asOfBeat": null
+      "asOfBeat": null,
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "characterId": "catti-brie",
@@ -2665,7 +2782,16 @@
         "background": "orphaned in a raid on Termalaine, raised by Bruenor as his own"
       },
       "asOfChapter": 5,
-      "asOfBeat": null
+      "asOfBeat": null,
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     }
   ],
   "promises": [
@@ -2675,7 +2801,16 @@
       "expectedPayoffChapter": null,
       "resolvedAtChapter": null,
       "status": "open",
-      "promiseFactId": "fact-promise-crenshinibon-reclaimed"
+      "promiseFactId": "fact-promise-crenshinibon-reclaimed",
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "promise-luskan-wizards-agenda",
@@ -2683,7 +2818,16 @@
       "expectedPayoffChapter": null,
       "resolvedAtChapter": null,
       "status": "open",
-      "promiseFactId": "fact-promise-luskan-wizards-hidden-agenda"
+      "promiseFactId": "fact-promise-luskan-wizards-hidden-agenda",
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "promise-kessell-rise",
@@ -2691,7 +2835,16 @@
       "expectedPayoffChapter": null,
       "resolvedAtChapter": null,
       "status": "open",
-      "promiseFactId": "fact-promise-akar-kessell-rise"
+      "promiseFactId": "fact-promise-akar-kessell-rise",
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "promise-pasha-pook-pursuit",
@@ -2699,7 +2852,16 @@
       "expectedPayoffChapter": null,
       "resolvedAtChapter": null,
       "status": "open",
-      "promiseFactId": "fact-promise-pasha-pook-pursuit"
+      "promiseFactId": "fact-promise-pasha-pook-pursuit",
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "promise-barbarian-invasion",
@@ -2707,7 +2869,16 @@
       "expectedPayoffChapter": null,
       "resolvedAtChapter": null,
       "status": "open",
-      "promiseFactId": "fact-promise-barbarian-invasion-of-ten-towns"
+      "promiseFactId": "fact-promise-barbarian-invasion-of-ten-towns",
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "promise-akar-kessell-rise",
@@ -2717,7 +2888,16 @@
       "resolvedAtChapter": null,
       "resolvedAtBeat": null,
       "status": "open",
-      "promiseFactId": "fact-promise-akar-kessell-rise-payoff-begins"
+      "promiseFactId": "fact-promise-akar-kessell-rise-payoff-begins",
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "promise-cryshal-tirith-conquest",
@@ -2727,7 +2907,16 @@
       "resolvedAtChapter": null,
       "resolvedAtBeat": null,
       "status": "open",
-      "promiseFactId": "fact-promise-cryshal-tirith-as-base-of-power"
+      "promiseFactId": "fact-promise-cryshal-tirith-as-base-of-power",
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "promise-mithril-hall-quest",
@@ -2737,7 +2926,16 @@
       "resolvedAtChapter": null,
       "resolvedAtBeat": null,
       "status": "open",
-      "promiseFactId": "fact-promise-mithril-hall-quest"
+      "promiseFactId": "fact-promise-mithril-hall-quest",
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     },
     {
       "id": "promise-warn-ten-towns-council",
@@ -2747,7 +2945,16 @@
       "resolvedAtChapter": null,
       "resolvedAtBeat": null,
       "status": "open",
-      "promiseFactId": "fact-promise-warn-ten-towns-council"
+      "promiseFactId": "fact-promise-warn-ten-towns-council",
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
     }
   ]
 }

@@ -15,8 +15,15 @@
 
 // ── Provenance & versioning ──────────────────────────────────────────────────
 
-/** What kind of artifact wrote this canon fact. */
-export type CanonSource =
+/**
+ * What kind of artifact wrote this canon fact.
+ *
+ * Renamed from `CanonSource` 2026-05-03 to disambiguate from the
+ * `CanonSource` interface in `bundle.ts` (the read-side adapter implemented
+ * by the substrate). The substrate file imports both — this is the
+ * Provenance origin string, that one is the read interface.
+ */
+export type ProvenanceSource =
   | "planner-output"
   | "planning-state-mapper"
   | "planning-state-repair"
@@ -39,7 +46,7 @@ export type FactOrigin =
 
 /** Provenance metadata attached to every canon fact. */
 export interface Provenance {
-  source: CanonSource
+  source: ProvenanceSource
   /** Chapter this fact entered canon. 0 = bootstrap (pre-chapter-1). */
   chapter: number
   /** Beat index within the chapter, if attributable. */
@@ -78,15 +85,6 @@ export interface CanonFact {
   provenance: Provenance
 }
 
-/**
- * No-ghost-canon residual: unlike CanonFact and Entity, CharacterState and
- * StoryPromise carry no provenance/approvalStatus. The §0a scoping rules
- * therefore can't filter pending vs. approved snapshots at scope time.
- * Step 1 substrate must either (a) guarantee at the DB/API layer that only
- * operator-approved states/promises are returned by `characterStatesAsOfChapter`
- * / `promisesAsOfChapter`, or (b) extend these types with provenance and
- * filter at scope time the same way facts/entities are filtered today.
- */
 export interface CharacterState {
   characterId: string
   characterName: string
@@ -97,6 +95,7 @@ export interface CharacterState {
   /** Chapter/beat this snapshot is anchored to. */
   asOfChapter: number
   asOfBeat?: number
+  provenance: Provenance
 }
 
 export type PromiseStatus = "open" | "resolved" | "abandoned"
@@ -115,6 +114,7 @@ export interface StoryPromise {
   status: PromiseStatus
   /** Reference to the CanonFact that asserts the promise. */
   promiseFactId: CanonId
+  provenance: Provenance
 }
 
 export type EntityKind =
@@ -149,7 +149,7 @@ export type ProposalStatus =
 
 export interface CanonUpdateProposal {
   id: string
-  source: CanonSource
+  source: ProvenanceSource
   /** Either a new fact or an edit to an existing one (CanonFact.id). */
   targetFactId?: CanonId
   proposedFact: Omit<CanonFact, "provenance"> & { provenance: Omit<Provenance, "approvalStatus" | "createdAt" | "updatedAt"> }

@@ -72,6 +72,16 @@ function entity(
   }
 }
 
+const TEST_PROVENANCE = {
+  source: "planner-output" as const,
+  chapter: 1,
+  extractorVersion: "test-v1",
+  approvalStatus: "human-approved" as const,
+  origin: "planned" as const,
+  createdAt: "2026-05-03T00:00:00Z",
+  updatedAt: "2026-05-03T00:00:00Z",
+}
+
 function characterState(characterId: string, name: string, asOfChapter = 1): CharacterState {
   return {
     characterId,
@@ -79,6 +89,7 @@ function characterState(characterId: string, name: string, asOfChapter = 1): Cha
     knownFacts: [],
     state: {},
     asOfChapter,
+    provenance: TEST_PROVENANCE,
   }
 }
 
@@ -94,6 +105,7 @@ function promise(
     expectedPayoffChapter,
     status,
     promiseFactId: `${id}-fact`,
+    provenance: TEST_PROVENANCE,
   }
 }
 
