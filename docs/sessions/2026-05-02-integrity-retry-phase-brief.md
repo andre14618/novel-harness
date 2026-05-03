@@ -133,3 +133,16 @@ L62-validate smoke (exp #386, `fantasy-system-heretic`, deployed commit `31e16a8
 - **(a) Clean pass** → close L62 lane; advance L63 (Lever A) immediately.
 - **(b) New blocker on the L61 secondary finding** → reinforces L63 priority; the smoke chapter-1 attempt-by-attempt issue counts populate the empirical baseline for the retry-replay panel.
 - **(c) Different blocker** → re-evaluate phase priorities before L63.
+
+## Carry-Over Path Distribution (added 2026-05-02 post-L64)
+
+Beat-writer calls in past 14 days containing `duplicate-fragment` in `user_prompt`:
+
+| path | calls | beats | novels |
+|---|---:|---:|---:|
+| forward-carryover (attempt=1, hint from prior beat in chapter) | 15 | 15 | 1 |
+| retry-within-beat (attempt≥2) | 1 | 1 | 1 |
+
+**Implication:** 94% of duplicate-fragment hints flow as forward carry-over to the *next beat* via `priorIntegrityIssues`, not as within-beat retries. L63's matched-pair payload upgrade therefore improves the **dominant** carry-over path. The single retry case (`novel-1777721066908` ch2 beat 7 attempt 2) successfully avoided both literal-string fragments hinted in the carry-over — consistent with the L41-trace conclusion that the writer obeys literal-string prohibitions but can land collisions in fresh prose elsewhere; the matched-pair upgrade gives it the *type* of duplication, not just the warned phrase.
+
+Sample skew: only 1 novel hit duplicate-fragment in 14 days, so the volume table at the top of this brief reflects that novel's structural pathology more than a population baseline. L63 still targets the right surface, but the population-level evidence is one-novel-thin and a multi-seed L63+L64 smoke is the next falsification step.
