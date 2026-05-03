@@ -39,18 +39,32 @@ function fact(
   }
 }
 
-function entity(id: string, name: string, firstAppearedChapter?: number): Entity {
+function entity(
+  id: string,
+  name: string,
+  optsOrFirstChapter?:
+    | number
+    | {
+        firstAppearedChapter?: number
+        kind?: Entity["kind"]
+        approvalStatus?: "auto-extracted" | "human-approved" | "human-edited" | "contested" | "rejected"
+      },
+): Entity {
+  const opts =
+    typeof optsOrFirstChapter === "number"
+      ? { firstAppearedChapter: optsOrFirstChapter }
+      : optsOrFirstChapter ?? {}
   return {
     id,
     name,
     aliases: [],
-    kind: "character",
-    firstAppearedChapter,
+    kind: opts.kind ?? "character",
+    firstAppearedChapter: opts.firstAppearedChapter,
     provenance: {
       source: "planner-output",
-      chapter: firstAppearedChapter ?? 1,
+      chapter: opts.firstAppearedChapter ?? 1,
       extractorVersion: "test-v1",
-      approvalStatus: "human-approved",
+      approvalStatus: opts.approvalStatus ?? "human-approved",
       origin: "planned",
       createdAt: "2026-05-03T00:00:00Z",
       updatedAt: "2026-05-03T00:00:00Z",
@@ -156,6 +170,39 @@ describe("scope rule 1: POV + characters-present states", () => {
     const out = scopeCanonForChapter(FIXTURE(), HINTS, 7)
     expect(out.characterStates.find((s) => s.characterId === "aldric-future")).toBeUndefined()
   })
+
+  test("when multiple snapshots exist, only the latest at-or-before N is emitted", () => {
+    // Three snapshots for the same character; chapter 7 should pick chapter-7
+    // and drop the older two. Emitting all three would (a) waste tokens and
+    // (b) confuse the writer about which is authoritative.
+    const customRaw = {
+      ...FIXTURE(),
+      characterStates: [
+        characterState("aldric", "Aldric", 1),
+        characterState("aldric", "Aldric", 4),
+        characterState("aldric", "Aldric", 7),
+      ],
+    }
+    const out = scopeCanonForChapter(customRaw, HINTS, 7)
+    const aldricStates = out.characterStates.filter((s) => s.characterId === "aldric")
+    expect(aldricStates).toHaveLength(1)
+    expect(aldricStates[0].asOfChapter).toBe(7)
+  })
+
+  test("at chapter 5, picks the latest snapshot ≤ 5 (skips future ones)", () => {
+    const customRaw = {
+      ...FIXTURE(),
+      characterStates: [
+        characterState("aldric", "Aldric", 1),
+        characterState("aldric", "Aldric", 4),
+        characterState("aldric", "Aldric", 7), // future, excluded by asOfChapter > N
+      ],
+    }
+    const out = scopeCanonForChapter(customRaw, HINTS, 5)
+    const aldricStates = out.characterStates.filter((s) => s.characterId === "aldric")
+    expect(aldricStates).toHaveLength(1)
+    expect(aldricStates[0].asOfChapter).toBe(4)
+  })
 })
 
 describe("scope rule 2: active promises overlapping chapter N", () => {
@@ -228,6 +275,69 @@ describe("scope rule 3: chapter-contract entities", () => {
     // future-char.firstAppearedChapter === 12, chapter 7 → excluded even with force
     expect(out.entities.find((e) => e.id === "future-char")).toBeUndefined()
   })
+
+  test("chapterEntityIds includes non-character entities (places, items, organizations)", () => {
+    // The chapter outline names a kingdom and an artifact. Without
+    // chapterEntityIds, these would never appear in the bundle even though
+    // the writer is supposed to reference them by name.
+    const fixtureWithNonChars = {
+      ...FIXTURE(),
+      entities: [
+        ...FIXTURE().entities,
+        entity("eldoria", "Eldoria the Kingdom", {
+          kind: "location",
+          firstAppearedChapter: 1,
+        }),
+        entity("crystal-shard", "Crystal Shard", {
+          kind: "item",
+          firstAppearedChapter: 1,
+        }),
+      ],
+    }
+    const out = scopeCanonForChapter(
+      fixtureWithNonChars,
+      { ...HINTS, chapterEntityIds: ["eldoria", "crystal-shard"] },
+      7,
+    )
+    expect(out.entities.find((e) => e.id === "eldoria")).toBeDefined()
+    expect(out.entities.find((e) => e.id === "crystal-shard")).toBeDefined()
+  })
+
+  test("non-character entity excluded when not in chapterEntityIds", () => {
+    const fixtureWithNonChars = {
+      ...FIXTURE(),
+      entities: [
+        ...FIXTURE().entities,
+        entity("eldoria", "Eldoria the Kingdom", {
+          kind: "location",
+          firstAppearedChapter: 1,
+        }),
+      ],
+    }
+    // No chapterEntityIds — eldoria not named in this chapter, so excluded.
+    const out = scopeCanonForChapter(fixtureWithNonChars, HINTS, 7)
+    expect(out.entities.find((e) => e.id === "eldoria")).toBeUndefined()
+  })
+
+  test("chapterEntityIds still respects firstAppearedChapter > N", () => {
+    const fixtureWithFuture = {
+      ...FIXTURE(),
+      entities: [
+        ...FIXTURE().entities,
+        entity("future-castle", "Castle Doom", {
+          kind: "location",
+          firstAppearedChapter: 12,
+        }),
+      ],
+    }
+    const out = scopeCanonForChapter(
+      fixtureWithFuture,
+      { ...HINTS, chapterEntityIds: ["future-castle"] },
+      7,
+    )
+    // Even though chapterEntityIds names it, future entity stays excluded.
+    expect(out.entities.find((e) => e.id === "future-castle")).toBeUndefined()
+  })
 })
 
 describe("scope rule 4: recent canon-events", () => {
@@ -296,7 +406,7 @@ describe("scope rule 4: recent canon-events", () => {
   })
 })
 
-describe("scope rule 5: established world facts (planned)", () => {
+describe("scope rule 5: established world facts (any origin)", () => {
   test("always includes planned established_facts regardless of chapter", () => {
     const out = scopeCanonForChapter(FIXTURE(), HINTS, 1)
     expect(out.facts.find((f) => f.id === "world-rule-1")).toBeDefined()
@@ -306,6 +416,26 @@ describe("scope rule 5: established world facts (planned)", () => {
   test("includes them at chapter 100 too (no recency limit on world rules)", () => {
     const out = scopeCanonForChapter(FIXTURE(), HINTS, 100)
     expect(out.facts.find((f) => f.id === "world-rule-1")).toBeDefined()
+  })
+
+  test("includes observed established_facts (post-draft world rules)", () => {
+    // A world-rule that wasn't pre-planned but was extracted from approved
+    // prose mid-novel and operator-approved. The origin is "observed", not
+    // "planned" — old rule 5 dropped these; broadened rule 5 keeps them.
+    const customRaw = {
+      ...FIXTURE(),
+      facts: [
+        fact("observed-world-rule", "Magic burns the user.", {
+          kind: "established_fact",
+          origin: "observed",
+          chapter: 4,
+        }),
+      ],
+    }
+    const out = scopeCanonForChapter(customRaw, HINTS, 100)
+    // chapter 100, far beyond recency window; not a knowledge_change for
+    // any in-scope character. Only rule 5 can admit it.
+    expect(out.facts.find((f) => f.id === "observed-world-rule")).toBeDefined()
   })
 })
 
@@ -338,10 +468,73 @@ describe("exclusion: future facts (provenance.chapter > N)", () => {
   })
 })
 
-describe("exclusion: rejected facts", () => {
+describe("exclusion: no ghost canon (only operator-approved enters context)", () => {
   test("rejected facts excluded even when otherwise in scope", () => {
     const out = scopeCanonForChapter(FIXTURE(), HINTS, 7)
     expect(out.facts.find((f) => f.id === "rejected-fact")).toBeUndefined()
+  })
+
+  test("auto-extracted facts excluded (pending operator review)", () => {
+    const customRaw = {
+      ...FIXTURE(),
+      facts: [
+        fact("auto-extracted-fact", "Pending review.", {
+          kind: "established_fact",
+          chapter: 1,
+          approvalStatus: "auto-extracted",
+        }),
+      ],
+    }
+    const out = scopeCanonForChapter(customRaw, HINTS, 7)
+    expect(out.facts.find((f) => f.id === "auto-extracted-fact")).toBeUndefined()
+  })
+
+  test("contested facts excluded (resolution pending)", () => {
+    const customRaw = {
+      ...FIXTURE(),
+      facts: [
+        fact("contested-fact", "Two sources disagree.", {
+          kind: "established_fact",
+          chapter: 1,
+          approvalStatus: "contested",
+        }),
+      ],
+    }
+    const out = scopeCanonForChapter(customRaw, HINTS, 7)
+    expect(out.facts.find((f) => f.id === "contested-fact")).toBeUndefined()
+  })
+
+  test("human-edited facts admitted (operator approved with edits)", () => {
+    const customRaw = {
+      ...FIXTURE(),
+      facts: [
+        fact("edited-fact", "Operator-edited canon.", {
+          kind: "established_fact",
+          chapter: 1,
+          approvalStatus: "human-edited",
+        }),
+      ],
+    }
+    const out = scopeCanonForChapter(customRaw, HINTS, 7)
+    expect(out.facts.find((f) => f.id === "edited-fact")).toBeDefined()
+  })
+
+  test("auto-extracted entities excluded even when named in chapter", () => {
+    const customRaw = {
+      ...FIXTURE(),
+      entities: [
+        entity("pending-entity", "Pending Character", {
+          firstAppearedChapter: 1,
+          approvalStatus: "auto-extracted",
+        }),
+      ],
+    }
+    const out = scopeCanonForChapter(
+      customRaw,
+      { ...HINTS, charactersPresentIds: ["pending-entity"] },
+      7,
+    )
+    expect(out.entities.find((e) => e.id === "pending-entity")).toBeUndefined()
   })
 })
 

@@ -17,6 +17,7 @@
  */
 
 import type {
+  ApprovalStatus,
   CanonFact,
   CharacterState,
   Entity,
@@ -31,6 +32,12 @@ export interface ScopingHints {
   povCharacterId: string
   /** All characters listed as present in the chapter outline. */
   charactersPresentIds: readonly string[]
+  /** All entity IDs the chapter contract names — characters, places, items,
+   *  organizations. Drives rule 3 (entity scoping). If omitted, only
+   *  in-scope characters get their Entity row included; non-character
+   *  entities like artifacts and locations would be invisible to the writer
+   *  unless force-included. */
+  chapterEntityIds?: readonly string[]
   /** How many chapters back to include canon-events from. Default 5. */
   recencyWindow?: number
   /** Slack chapters past `expectedPayoffChapter` to still consider a promise
@@ -47,6 +54,22 @@ export interface ScopingHints {
 
 const DEFAULT_RECENCY_WINDOW = 5
 const DEFAULT_WINDOW_SLACK = 2
+
+/**
+ * "No ghost canon" rule: only operator-blessed canon enters the writer
+ * context. Auto-extracted, contested, and rejected canon are pending until
+ * a human signs off — they MUST NOT bleed into prompts because the writer
+ * can't tell un-approved canon from approved canon, and we'd be teaching
+ * the model to hallucinate from its own un-vetted output.
+ */
+const APPROVED_STATUSES: ReadonlySet<ApprovalStatus> = new Set<ApprovalStatus>([
+  "human-approved",
+  "human-edited",
+])
+
+function isApproved(approvalStatus: ApprovalStatus): boolean {
+  return APPROVED_STATUSES.has(approvalStatus)
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -108,16 +131,33 @@ function knowledgeFactReferencesCharacter(
 
 /**
  * Rule 1 (state): POV character's CharacterState + every characters-present
- * CharacterState. Filters out states with asOfChapter > N (future state).
+ * CharacterState, reduced to the LATEST snapshot per character at or before
+ * chapter N. The writer needs the most current view of each character, not
+ * a stack of historical snapshots — emitting all of them would (a) waste
+ * tokens, (b) confuse the model about which snapshot is authoritative.
  */
 function scopeCharacterStates(
   raw: readonly CharacterState[],
   inScopeIds: ReadonlySet<string>,
   chapterN: number,
 ): CharacterState[] {
-  return raw.filter(
+  const eligible = raw.filter(
     (s) => inScopeIds.has(s.characterId) && s.asOfChapter <= chapterN,
   )
+  // Group by characterId, keep the snapshot with strictly-greater asOfChapter.
+  // Two states with identical (characterId, asOfChapter) is a data anomaly —
+  // the upstream extractor should not produce duplicate snapshots — but if
+  // it happens, the first entry in the input array wins so behavior is
+  // predictable. Output ordering is then stabilized by cmpCharacterState
+  // at the call site.
+  const latestByChar = new Map<string, CharacterState>()
+  for (const s of eligible) {
+    const existing = latestByChar.get(s.characterId)
+    if (!existing || s.asOfChapter > existing.asOfChapter) {
+      latestByChar.set(s.characterId, s)
+    }
+  }
+  return [...latestByChar.values()]
 }
 
 /**
@@ -138,17 +178,20 @@ function scopeActivePromises(
 }
 
 /**
- * Rule 3 (entity): Entities the chapter contract references (POV char +
- * characters present + force-include list). Filters out entities with
- * firstAppearedChapter > N (rule: not-yet-appeared entities excluded).
+ * Rule 3 (entity): Entities the chapter contract references — POV char,
+ * characters present, ANY entity named in the chapter outline (locations,
+ * artifacts, organizations), plus the force-include list. Filters out
+ * entities with firstAppearedChapter > N (not-yet-appeared) and entities
+ * whose canon is not yet operator-approved (no ghost canon).
  */
 function scopeEntities(
   raw: readonly Entity[],
-  inScopeCharacterIdsSet: ReadonlySet<string>,
+  chapterEntityIdsSet: ReadonlySet<string>,
   forceInclude: ReadonlySet<string>,
   chapterN: number,
 ): Entity[] {
   return raw.filter((e) => {
+    if (!isApproved(e.provenance.approvalStatus)) return false
     if (forceInclude.has(e.id)) {
       // Force-include still respects "not yet appeared" — operator can't
       // teleport future canon to the writer.
@@ -157,7 +200,7 @@ function scopeEntities(
       }
       return true
     }
-    if (inScopeCharacterIdsSet.has(e.id)) {
+    if (chapterEntityIdsSet.has(e.id)) {
       if (e.firstAppearedChapter != null && e.firstAppearedChapter > chapterN) {
         return false
       }
@@ -169,12 +212,16 @@ function scopeEntities(
 
 /**
  * Rule 4 (recent events): facts whose provenance.chapter ∈ [N-recency, N-1].
- * Rule 5 (established world): facts where kind === "established_fact" AND
- *   provenance.origin === "planned" (foundational, always included).
+ * Rule 5 (established world): facts where kind === "established_fact" — the
+ *   set of "world rules that are always true" once they enter canon. Includes
+ *   both planner-asserted and post-draft-observed facts; the distinction is
+ *   provenance, not relevance, and observed established facts (e.g., a
+ *   law-of-magic that the prose surfaced and the operator approved) are just
+ *   as load-bearing as planned ones.
  * Rule 6 (POV knowledge): knowledge_change facts referencing in-scope chars.
  *
  * Combined into one filter pass; each rule contributes inclusion. Exclusion
- * rules (point-in-time, rejected, force-exclude) override.
+ * rules (point-in-time, not-yet-approved, force-exclude) override.
  */
 function scopeFacts(
   raw: readonly CanonFact[],
@@ -189,18 +236,13 @@ function scopeFacts(
 
   return raw.filter((f) => {
     if (forceExclude.has(f.id)) return false
-    if (f.provenance.approvalStatus === "rejected") return false
+    if (!isApproved(f.provenance.approvalStatus)) return false
     if (f.provenance.chapter > chapterN) return false
 
     if (forceInclude.has(f.id)) return true
 
-    // Rule 5: established world rules (planned, established_fact)
-    if (
-      f.kind === "established_fact" &&
-      f.provenance.origin === "planned"
-    ) {
-      return true
-    }
+    // Rule 5: established world rules (any origin — planned or observed).
+    if (f.kind === "established_fact") return true
 
     // Rule 4: recent canon-events
     if (
@@ -233,6 +275,13 @@ export function scopeCanonForChapter(
   const windowSlack = hints.windowSlackChapters ?? DEFAULT_WINDOW_SLACK
   const inScopeIds = inScopeCharacterIds(hints)
   const forceIncludeEntityIds = new Set(hints.includeEntityIds ?? [])
+  // Entity scope = characters in scope ∪ entities the chapter contract names.
+  // This catches non-character entities (kingdoms, artifacts, organizations)
+  // without forcing every chapter outline to enumerate them as force-includes.
+  const chapterEntityIdsSet = new Set<string>([
+    ...inScopeIds,
+    ...(hints.chapterEntityIds ?? []),
+  ])
 
   const characterStates = scopeCharacterStates(
     raw.characterStates,
@@ -248,7 +297,7 @@ export function scopeCanonForChapter(
 
   const entities = scopeEntities(
     raw.entities,
-    inScopeIds,
+    chapterEntityIdsSet,
     forceIncludeEntityIds,
     chapterN,
   ).sort(cmpEntity)
