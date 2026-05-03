@@ -41,33 +41,66 @@ Three layers, distinct methodologies:
 
 ## First-Class Principle: Deterministic Per-Chapter Context Bundle
 
-**One deterministic per-chapter context bundle, byte-identical by packet hash, reused by the writer and all downstream judges. Retrieval, if any, may help assemble the bundle but must not vary per judge or per beat.**
+**One deterministic per-chapter context bundle, byte-identical by packet hash, placed at the front of every writer and judge call so it is the shared prefix across all callers. Retrieval, if any, may help assemble the bundle but must not vary per judge or per beat.**
 
-This principle is load-bearing across Steps 0a, 3, and 4. Concretely:
+This principle is load-bearing across Steps 0a, 3, and 4.
 
-**Stable prefix (byte-identical across all writer beats + all K judges in chapter N):**
+### Three-layer cascade (context → instructions → volatile tail)
 
-- system prompt
-- style/genre guidance (e.g., Salvatore voice primer)
+Prefix caching matches contiguous bytes from the start of the prompt. To let the writer and all K downstream judges share a single cached canon entry per chapter, the bundle (L1) goes **before** role-specific instructions (L2). If instructions came first, each role would have its own cache lane and no cross-role reuse — defeating the principle.
+
+**L1 — canon packet (byte-identical across writer beats + all K judges in chapter N):**
+
 - canon bundle for chapter N
 - chapter contract / outline
 - entity registry slice (entities active in chapter N)
 - character state as-of chapter N
 - active promises / payoffs
 
-**Volatile suffix (varies per call):**
+**L2 — role/concern instructions (byte-identical per role; stable across calls of that role):**
 
-- beat contract (writer) or judge concern (judge)
-- prior accepted prose needed for continuity (writer; grows beat-by-beat within the chapter)
-- immediate retry notes (writer)
-- local instruction (writer/judge)
+- Writer: writer system prompt + style/genre primer (e.g., Salvatore voice)
+- Judge X: judge X system prompt + concern framing
 
-**Constraints:**
+**L3 — volatile tail (varies per call by design):**
 
-1. **Cache stability must not starve the writer of required local context.** Prior-beat prose grows within a chapter and lives in the volatile suffix. Do not force it into the stable prefix to chase cache hits — the writer's continuity correctness is non-negotiable. DeepSeek prefix caching still pays off because the long bundle prefix is byte-identical and only the tail varies.
-2. **Bundle composition is deterministic.** Given the same canon-state-at-chapter-N, the bundle assembler produces byte-identical output. Same packet hash → same cache key → cache hits.
+- Writer: beat contract + prior accepted prose (grows beat-by-beat) + retry notes + local instruction
+- Judge: chapter prose + concern-specific detail
+
+### What hits warm where
+
+| Call | L1 | L2 | L3 |
+|---|---|---|---|
+| First call of chapter N (any role, any beat) | cold | cold | cold |
+| Within-chapter writer beats 2..K | **warm** | **warm** | cold |
+| Within-chapter judge calls | **warm** | warm if same judge re-run; cold on first call to that judge | cold |
+| Editorial re-run after operator edit (writer or judge) | **warm** | **warm** | cold |
+
+L1 is the big shared prefix: 1 cold load per chapter, ~21+ warm hits across the writer's 17 beats + K=5 judges. L3 is always cold delta — that's intentional.
+
+### Constraints
+
+1. **Cache stability must not starve the writer of required local context.** Prior-beat prose grows within a chapter and lives in L3. Do NOT force it into L1 or L2 to chase cache hits — the writer's continuity correctness is non-negotiable. DeepSeek prefix caching still pays off because the long L1+L2 prefix is byte-identical and only L3 varies.
+2. **Bundle composition is deterministic.** Given the same `(canon-state-version, chapter-N)`, the bundle assembler produces byte-identical L1. Same packet hash → same cache key → cache hits.
 3. **Vector retrieval is optional/offline support, not a runtime canon-quality mechanism.** For a single book, the structured canon (entity registry, fact table, character-state snapshots, promise table) is the index. Useful runtime queries are deterministic lookups: "what does X know at chapter N," "which promises are open," "what facts changed after chapter 4," "which entities are active in this chapter." Vector retrieval earns space only where the key is unknown or fuzzy: motif recurrence, prose repetition, "similar prior scene," forgotten reference. That belongs in offline editorial discovery (Step 4 polish modules, Step 5 macro pass), not the writer's load-bearing canon packet.
-4. **Same bundle for writer and judges.** The chapter packet that goes into the writer is the same packet that goes into the K downstream judges. One cache pool serves both layers; editorial re-runs after operator edits hit warm cache too. This also means writer and judges are evaluating against the same canonical view — divergence between "what the writer was told" and "what the judge checks against" is structurally impossible.
+4. **Same L1 for writer and judges.** The L1 packet that goes into the writer is the same packet that goes into the K downstream judges, byte-identical, same packet hash. One cache pool serves both layers; editorial re-runs hit warm too. Writer and judges are evaluating against the same canonical view — divergence between "what the writer was told" and "what the judge checks against" is structurally impossible.
+
+### Engineering protection (deterministic, but not overburdened)
+
+Protect at layer boundaries, not per byte. The whole protection surface is three points; no more.
+
+| Surface | Protection | Where | Cost |
+|---|---|---|---|
+| **L1 byte-identity** | SHA-256 packet hash recorded in provenance per call; rerun test asserts byte-identical L1 from same input | Bundle assembler emit-time + automated rerun test in CI | one hash per call (already required by §0a) |
+| **L1/L2 boundary** | Fixed separator marker between L1 and L2; assembler asserts L1's last byte offset equals `len(L1_bytes)` at packet construction | One assertion at packet assembly | trivial |
+| **L2 template stability per role** | Snapshot test per role: render role instruction template, compare to committed snapshot | CI snapshot test (one per role) | ~one snapshot per role, runs once per CI |
+
+**What we explicitly do NOT do** (the "don't overburden" line):
+
+- No per-call runtime hash check on L2 — templates are pure-function over role identity; CI snapshot is enough.
+- No L3 protection — it's volatile by design.
+- No cross-chapter L1 reuse mechanism — `(canon-state-version, chapter-N)` keying handles it naturally.
+- No per-byte content-stability assertions inside L1 — the SHA-256 covers it.
 
 ## Sequencing
 
@@ -105,15 +138,16 @@ A single per-chapter packet, byte-identical for the same `(canon-state-version, 
 
 **Stop gate.** The bundle builder ships only when all of the following clear:
 
-1. **Deterministic bundle builder.** Same `(canon-state-version, chapter-N)` input → byte-identical output, every time. Builder is pure-function over its inputs; no clocks, no randomness, no order-by-insertion.
-2. **Stable ordering.** Bundle entries are sorted by stable keys (entity ID, fact ID, chapter, beat) — not by floating-point scores or insertion order. RRF score ties and document-order shuffles must be impossible because the architecture has no RRF.
-3. **Packet hash.** Each emitted bundle has a deterministic SHA-256 packet hash recorded in provenance. The same hash means the same bytes — auditable, comparable across runs, and a precondition for verifying writer/judge cache reuse.
-4. **Recall floor against labeled canon queries.** ≥40 labeled queries across ≥3 categories (entity-grounding, character-state-at-time, active-promises-and-payoffs). For each chapter the bundle builder is exercised on, the bundle covers ≥80% of the human-curated relevant-canon-set across those categories.
-5. **Precision floor + token cap.** ≥50% of bundle entries are judged relevant to some chapter-N query category (blocks "concatenate everything" once the bible grows). Bundle ≤6,000 tokens after templating.
-6. **Byte-identical reruns.** Running the builder twice on the same input produces byte-identical bundles AND identical packet hashes. Verified by automated test in the spike — not just measured manually.
-7. **Writer/judge bundle reuse.** The same bundle (same packet hash) is consumed by the writer and by all K downstream judges in chapter N. Provenance records this reuse; auditable evidence that the cache pool is shared, not bifurcated.
+1. **Deterministic bundle builder.** Same `(canon-state-version, chapter-N)` input → byte-identical L1 output, every time. Builder is pure-function over its inputs; no clocks, no randomness, no order-by-insertion.
+2. **Stable ordering.** Bundle entries are sorted by stable keys (entity ID, fact ID, chapter, beat) — not by floating-point scores or insertion order.
+3. **Packet hash.** Each emitted L1 bundle has a deterministic SHA-256 packet hash recorded in provenance. The same hash means the same bytes — auditable, comparable across runs, and a precondition for verifying writer/judge cache reuse.
+4. **Recall floor against labeled canon queries.** ≥40 labeled queries across ≥3 categories (entity-grounding, character-state-at-time, active-promises-and-payoffs). For each chapter the bundle builder is exercised on, L1 covers ≥80% of the human-curated relevant-canon-set across those categories.
+5. **Precision floor + token cap.** ≥50% of L1 entries are judged relevant to some chapter-N query category (blocks "concatenate everything" once the bible grows). L1 ≤6,000 tokens after templating.
+6. **Byte-identical reruns.** Running the builder twice on the same input produces byte-identical L1 bundles AND identical packet hashes. Verified by automated test in the spike — not just measured manually.
+7. **L1 → L2 → L3 cascade integrity.** Per the first-class principle, the assembled prompt places L1 first, role-specific instructions (L2) second, volatile tail (L3) third. The assembler asserts L1's last byte offset equals `len(L1_bytes)` at packet construction (no leakage of variable bytes into L1). A snapshot test per role asserts L2 template renders byte-identical to its committed snapshot.
+8. **Writer/judge bundle reuse.** The same L1 (same packet hash) is consumed by the writer and by all K downstream judges in chapter N. Provenance records this reuse; auditable evidence that the cache pool is shared, not bifurcated.
 
-If any of recall, precision, token-cap, determinism, packet-hash, byte-identity, or writer/judge-reuse checks fail, the bundle builder is not ready — the architecture cannot ship. These are the explicit prompt-blob, cache-collapse, and writer-judge-divergence guards.
+If any of recall, precision, token-cap, determinism, packet-hash, byte-identity, cascade-integrity, or writer/judge-reuse checks fail, the bundle builder is not ready — the architecture cannot ship. These are the explicit prompt-blob, cache-collapse, layer-leakage, and writer-judge-divergence guards.
 
 **What §0a does NOT include.** Reactivating embeddings. Wiring RRF. Per-query semantic retrieval. These are out of scope for this charter; if they return, it'll be as offline editorial discovery (Step 4 polish modules / Step 5 macro pass) over prose, not over canon.
 
@@ -216,7 +250,7 @@ Below any of these, the source either gets fixed, gets a human-in-the-loop appro
 - prose integrity (the L40–L72 ladder surface — already exists, preserved)
 - payoff-link structural checks (deterministic — already exists, preserved)
 - retry plumbing
-- cache-shaped context packets per the first-class principle (stable prefix = system + style + canon bundle + chapter contract + entity registry slice + character state + active promises; volatile suffix = beat contract + prior-beat prose + retry notes + local instruction)
+- cache-shaped context packets per the first-class principle (L1 = canon bundle + chapter contract + entity slice + character state + active promises; L2 = role/concern instructions; L3 = volatile tail incl. prior-beat prose). Context-first ordering is load-bearing for cross-role cache sharing and is enforced by the assembler.
 
 **Targeted for retirement at Step 4 cutover** (NOT during Step 3):
 
@@ -343,7 +377,7 @@ Total: ~6–8 weeks of focused engineering. Parallelizable across some steps onc
 
 Charter-level stop gates that can pause or kill the architecture:
 
-- **(a) Deterministic bundle builder doesn't validate** at Step 0a (any of recall, precision, token cap, determinism, packet-hash byte-identity, or writer/judge bundle reuse fails) → architecture cannot ship; either redesign canon scoping rules or kill charter.
+- **(a) Deterministic bundle builder doesn't validate** at Step 0a (any of recall, precision, token cap, determinism, packet-hash byte-identity, cascade integrity, or writer/judge bundle reuse fails) → architecture cannot ship; either redesign canon scoping rules or kill charter.
 - **(b) Bible-input integrity below threshold** at Step 2 → no canon writes from sub-threshold sources; if no source clears, charter is unworkable.
 - **(c) Shadow-mode validation fails** at Step 4 → editorial layer is not ready; current drafting gates remain; iterate Step 4 or kill charter.
 - **(d) Cost model exceeds envelope.** Primary measurement at §0e pre-Step-4 cost probe (early kill-gate before Step 1 starts); confirmed against real production payloads at Step 4. If §0e projects per-chapter cost above $0.50 at K=5 with V4 Flash, reduce judge count, redesign prefix, or kill charter. If Step 4 measurement diverges materially from §0e projection, re-evaluate.
