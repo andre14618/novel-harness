@@ -33,8 +33,18 @@ export const pipeline = {
   // grounded-surface filter and AND-gate assembly. Addresses checker
   // stochasticity surfaced by exp #389+#395 trace (same byte-identical prose
   // produced disjoint flagged-entity sets across 3 calls).
-  // Default 1 = current behavior. Production deploy flips via env.
-  hallucVoteN: 1,
+  // Resolves at module load time from `HALLUC_UNGROUNDED_VOTE_N` env, falling
+  // back to 1 (= legacy single-call behavior). Read at module-load (not
+  // call-time) so a process that boots with N=2 keeps that setting consistent
+  // throughout its run, and so unit tests can pin a value via the opts param
+  // without competing with env state.
+  hallucVoteN: (() => {
+    const raw = process.env.HALLUC_UNGROUNDED_VOTE_N
+    if (raw == null) return 1
+    const parsed = Number.parseInt(raw, 10)
+    if (!Number.isFinite(parsed) || parsed < 1) return 1
+    return parsed
+  })(),
 
   // Word targets (used as defaults if plotter doesn't specify)
   defaultTargetWords: 1000,
