@@ -40,6 +40,22 @@ _Avoid_: outline (informal — say `ChapterOutline` for the type, Chapter Plan f
 The global world-building artifact produced in Concept — magic systems, cultures, geography, relationships.
 _Avoid_: world doc, lore.
 
+**Canon**:
+The structured, versioned operational source of truth used by the world-bible architecture — World Bible material plus entity registry, Established Facts, Knowledge Changes, Character Snapshots, story promises, and timeline data.
+_Avoid_: giant bible doc, prompt context.
+
+**Canon Snapshot**:
+The committed Canon view available at a specific chapter/version. Pending Canon Proposals are excluded.
+_Avoid_: current bible, latest lore.
+
+**Chapter Bundle**:
+The deterministic per-chapter L1 packet assembled from a Canon Snapshot and Chapter Plan/manifest, reused byte-identically by writer and post-draft reviewers for that chapter.
+_Avoid_: context dump, retrieval result, prompt prefix.
+
+**Canon Proposal**:
+A candidate Canon change from post-draft extraction, human edit, or Editorial Review. It is not visible to the writer until committed.
+_Avoid_: canon write, bible update (until approved).
+
 **Story Spine**:
 The high-level plot arc produced in Concept — acts, turning points, thematic throughline.
 _Avoid_: outline, plot skeleton.
@@ -116,6 +132,10 @@ _Avoid_: linter (lint is its own thing), check.
 The Validation phase only — diagnostic-only deterministic pass after Drafting completes. Logs issues; does not rewrite.
 _Avoid_: checker.
 
+**Editorial Review**:
+The target-state downstream chapter-level review over completed prose plus the same Chapter Bundle the writer consumed. It produces flags and Canon Proposals; it does not directly gate drafting or mutate Canon.
+_Avoid_: checker, validator, automatic editor.
+
 **Reviser**:
 The escalation agent (`chapter-plan-reviser`) that edits a Chapter Plan when the Settle Loop exhausts on Plan Adherence failures.
 _Avoid_: editor, plan-fixer.
@@ -177,6 +197,8 @@ _Avoid_: example, sample.
 - **Concept** produces a **World Bible**, characters, and a **Story Spine**.
 - **Planning** produces a **Chapter Skeleton** per chapter (Phase 1), then expands each into a **Chapter Plan** (Phase 2).
 - A **Chapter Plan** contains many **Beats** plus **Established Facts**, character state changes, and **Knowledge Changes**.
+- In the world-bible architecture, committed planning/prose facts roll into **Canon**; each chapter drafts from a **Chapter Bundle** built from the relevant **Canon Snapshot**.
+- Post-draft extraction and **Editorial Review** create **Canon Proposals**; only committed proposals appear in later Canon Snapshots.
 - **Drafting** writes prose **Beat** by **Beat**, assembling a **Beat Context** for each.
 - After every **Beat**, **Beat Adherence** runs; on failure, a **Targeted Rewrite** fires inside the **Settle Loop** carrying a **Retry Context**.
 - A **Detector** firing triggers a **Quality Redraft** instead of a Targeted Rewrite.

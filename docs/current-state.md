@@ -22,6 +22,7 @@ Read this file first when you need to understand the system as it exists today.
 Use the rest of the doc set like this:
 
 - `README.md`: onboarding and quick-start
+- `docs/world-bible-operating-model.md`: active world-bible/canon operating model and chapter lifecycle
 - `docs/context-engineering.md`: detailed current context/planner strategy
 - `docs/interactive-claude-captain-loop.md`: engineering orchestration boundary; Claude Code/OpenCode are the primary coding harnesses
 - `docs/experiment-design-rules.md`: experiment methodology and evaluation rules
@@ -48,6 +49,7 @@ This means:
 
 Reference:
 
+- `docs/world-bible-operating-model.md` — active world-bible/canon operating model
 - `docs/decisions.md` — "Context-engineering-forward architecture"
 
 ### Tracked work taxonomy
