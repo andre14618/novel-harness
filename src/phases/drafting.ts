@@ -54,7 +54,7 @@ import {
 import { runSettleLoop } from "./settle-loop"
 import { lintProse } from "../lint"
 import { fixLintIssues } from "../lint/fix"
-import { detectProseIntegrityIssues, validateLintFixIntegrity } from "../lint/integrity"
+import { detectProseIntegrityIssues, offsetToBeatIndex, validateLintFixIntegrity } from "../lint/integrity"
 import { buildCheckerBlockerDeviations, type AcceptedBeatCheckIssues } from "./checker-blockers"
 import { runFunctionalStoryChecks, type FunctionalIssue } from "./functional-checks"
 import { checkFunctionalStateGrounding } from "../agents/functional-state-checker"
@@ -1302,12 +1302,162 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
         console.log(`  Lint failed (non-blocking): ${err instanceof Error ? err.message : err}`)
       }
 
-      const proseIntegrityIssues = detectProseIntegrityIssues(prose)
+      let proseIntegrityIssues = detectProseIntegrityIssues(prose)
       if (proseIntegrityIssues.length > 0) {
         await trace(novelId, {
           eventType: "prose-integrity-check", chapter: ch,
           payload: { passed: false, issues: proseIntegrityIssues },
         })
+
+        // L70b / Lever I-D form (a): if all issues are duplicate-* and they
+        // map to ≤2 distinct beats with aligned beatProses, attempt a per-
+        // beat targeted rewrite (1 settle pass) before falling through to
+        // the chapter-attempt retry. No writer-prompt change — just narrower
+        // rewrite scope so unaffected beats stay canonical and cannot drift
+        // into new failure modes elsewhere (the L70 form (b) regression
+        // class). On accepted outcome, the residual issue list goes empty
+        // and execution falls through to the success branch below.
+        const allDuplicate = proseIntegrityIssues.every(
+          i => i.kind === "duplicate-fragment" || i.kind === "duplicate-sentence",
+        )
+        const beatsAligned = beatProses.length === outline.scenes.length
+        const offsetsPresent = proseIntegrityIssues.every(i => typeof i.offset === "number")
+        const eligibleForSettle =
+          allDuplicate && beatsAligned && offsetsPresent && attempts < maxAttempts
+
+        if (eligibleForSettle) {
+          const initialBeatRouting = new Map<number, string[]>()
+          for (const issue of proseIntegrityIssues) {
+            const beatIdx = offsetToBeatIndex(issue.offset!, beatProses)
+            if (beatIdx < 0) continue
+            const desc = `Duplicate ${issue.kind === "duplicate-sentence" ? "sentence" : "fragment"} repeats earlier text — first occurrence: "${(issue.firstExcerpt ?? "").slice(0, 200)}"; this beat's repeat: "${issue.excerpt.slice(0, 200)}". Rewrite this beat with different phrasing while preserving the events, emotional beats, and POV.`
+            const list = initialBeatRouting.get(beatIdx) ?? []
+            list.push(desc)
+            initialBeatRouting.set(beatIdx, list)
+          }
+
+          if (initialBeatRouting.size > 0 && initialBeatRouting.size <= 2) {
+            let integritySettlePass = 0
+            const settleOutcome = await runSettleLoop<typeof proseIntegrityIssues>({
+              initialResult: proseIntegrityIssues,
+              check: async () => {
+                prose = beatProses.join("\n\n")
+                wordCount = prose.split(/\s+/).filter(Boolean).length
+                return detectProseIntegrityIssues(prose)
+              },
+              isPass: r => r.length === 0,
+              route: r => {
+                const m = new Map<number, string[]>()
+                for (const issue of r) {
+                  if (issue.kind !== "duplicate-fragment" && issue.kind !== "duplicate-sentence") continue
+                  if (typeof issue.offset !== "number") continue
+                  const beatIdx = offsetToBeatIndex(issue.offset, beatProses)
+                  if (beatIdx < 0) continue
+                  const desc = `Duplicate ${issue.kind === "duplicate-sentence" ? "sentence" : "fragment"} repeats earlier text — first occurrence: "${(issue.firstExcerpt ?? "").slice(0, 200)}"; this beat's repeat: "${issue.excerpt.slice(0, 200)}". Rewrite this beat with different phrasing while preserving the events, emotional beats, and POV.`
+                  const list = m.get(beatIdx) ?? []
+                  list.push(desc)
+                  m.set(beatIdx, list)
+                }
+                // Cap at 2 beats — if more are involved, the settle path is
+                // not the right tool; fall through to chapter-attempt retry.
+                return m.size <= 2 ? m : new Map<number, string[]>()
+              },
+              rewriteBeat: async (bi, issueDescriptions) => {
+                const beatWriterModel = getModelForAgent("beat-writer")
+                const beatSystemPrompt = BEAT_WRITER_PROMPT
+                const characters = await getCharacters(novelId)
+                const charStates = await getCharacterStatesAtChapter(novelId, ch)
+                const worldBible = await getWorldBible(novelId)
+                const priorChapterFacts = ch > 1 ? await getFactsUpToChapter(novelId, ch - 1) : []
+                const beatSpec = outline.scenes[bi]
+                const preResolved = await resolveReferences(beatSpec, outline, novelId, ch, characters)
+                  .catch(() => ({ context: "", lookupCount: 0, llmUsed: false }))
+                const beatCtx = await buildBeatContext({
+                  novelId, chapterNumber: ch, beatIndex: bi,
+                  previousBeatProse: beatProses[bi - 1],
+                  outline, characters, characterStates: charStates, worldBible,
+                  preResolvedRefs: preResolved,
+                  genre: novel.seed?.genre,
+                  priorChapterFacts,
+                })
+                const priorProse = beatProses[bi]
+                const retryContext = `\n\n--- TARGETED REWRITE (chapter integrity check) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nIntegrity issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
+                try {
+                  const response = await executeAndLog(
+                    {
+                      systemPrompt: beatSystemPrompt,
+                      userPrompt: beatCtx.userPrompt + retryContext + formatChapterUngroundedRetryContext(priorUngroundedEntities),
+                      model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
+                      provider: beatWriterModel?.provider ?? "cerebras",
+                      temperature: beatWriterModel?.temperature ?? 0.8,
+                      maxTokens: beatWriterModel?.maxTokens ?? 4000,
+                      responseFormat: { type: "text" },
+                    },
+                    novelId,
+                    "beat-writer",
+                    { chapter: ch, beatIndex: bi, attempt: attempts + 100 + integritySettlePass * 10 },
+                    {
+                      stream: true,
+                      meta: {
+                        ...beatStableIdTraceMeta(outline, beatSpec),
+                        rewriteSource: "integrity-check",
+                      },
+                    },
+                  )
+                  const rewritten = response.content?.trim()
+                  if (rewritten && rewritten.length >= 50) {
+                    beatProses[bi] = rewritten
+                    return rewritten
+                  }
+                  return null
+                } catch (err) {
+                  log(novelId, "warn", `Beat ${bi + 1} integrity rewrite failed: ${err instanceof Error ? err.message : err}`)
+                  return null
+                }
+              },
+              budget: 1,
+              canSettle: () => beatsAligned,
+              onPassStart: async (passNumber, perBeat) => {
+                integritySettlePass = passNumber
+                console.log(`  Integrity settle pass ${passNumber}: rewriting ${perBeat.size} beats (${[...perBeat.keys()].sort((a, b) => a - b).join(",")})`)
+                log(novelId, "info", `Integrity settle pass ${passNumber}: targeted rewrite of beats [${[...perBeat.keys()].sort((a, b) => a - b).join(",")}]`)
+              },
+              onIteration: async (passNumber, result) => {
+                await trace(novelId, {
+                  eventType: "integrity-settle-recheck", chapter: ch,
+                  payload: { passNumber, issueCount: result.length, issues: result },
+                })
+              },
+              onSettleComplete: async (outcome) => {
+                await trace(novelId, {
+                  eventType: "integrity-settle-complete", chapter: ch,
+                  payload: {
+                    kind: outcome.kind,
+                    passes: "passes" in outcome ? outcome.passes : 0,
+                    initialBeatCount: initialBeatRouting.size,
+                  },
+                })
+              },
+            })
+
+            if (settleOutcome.kind === "accepted") {
+              prose = beatProses.join("\n\n")
+              wordCount = prose.split(/\s+/).filter(Boolean).length
+              await saveChapterDraft(novelId, ch, prose, wordCount)
+              proseIntegrityIssues = []
+              // Canonical `prose-integrity-check passed=true` trace fires
+              // below at the success branch (line ~1516). The
+              // `integrity-settle-complete` trace already records that the
+              // pass came via the settle path; emitting two pass-traces
+              // would double-count in analytics.
+              log(novelId, "info", `Chapter ${ch} integrity cleared via per-beat targeted rewrite (${settleOutcome.passes} pass)`)
+              console.log(`  Prose integrity CLEARED via L70b per-beat targeted rewrite`)
+            }
+          }
+        }
+      }
+
+      if (proseIntegrityIssues.length > 0) {
         const summary = proseIntegrityIssues.map(i => `${i.kind}: ${i.excerpt}`).join("; ")
         log(novelId, "warn", `Prose integrity failed for chapter ${ch}: ${summary}`)
         console.log(`  Prose integrity FAILED (${proseIntegrityIssues.length} issues); retrying chapter`)

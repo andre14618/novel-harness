@@ -40,6 +40,8 @@ export type TraceEventType =
   | "plan-assist-wait"
   | "plan-assist-resolve"
   | "plan-check-outcome"
+  | "integrity-settle-recheck"
+  | "integrity-settle-complete"
   | "debug-inject"
   | "llm-in-flight"
   | "error"

@@ -19,6 +19,21 @@ export interface LintFixIntegrityIssue {
    * prose that may collide elsewhere.
    */
   firstExcerpt?: string
+  /**
+   * Char offset on the SECOND occurrence (or only occurrence for non-duplicate kinds)
+   * within the text passed to the detector. L70b / Lever I-D form (a): the drafting
+   * integrity branch maps this back to the originating beat index via
+   * `offsetToBeatIndex`, which lets `runSettleLoop` route the duplicate-bearing
+   * beat(s) to a per-beat targeted rewrite instead of a chapter-wide regenerate.
+   * Optional for back-compat with callers that don't need routing.
+   */
+  offset?: number
+  /**
+   * Char offset of the FIRST occurrence for duplicate-* kinds. Mirrors `firstExcerpt`.
+   * When the second occurrence sits at the chapter end (e.g. last beat, no later prose),
+   * the routing layer falls back to `firstOffset` as the rewrite target.
+   */
+  firstOffset?: number
 }
 
 export interface LintFixIntegrityResult {
@@ -62,7 +77,7 @@ function detectFusedBoundaries(text: string): LintFixIntegrityIssue[] {
     if (!/[A-Za-z]/.test(next)) continue
     if (ch === "." && text[i - 1] === ".") continue
     if (ch === "." && spanContains(allCapsDottedSpans, i)) continue
-    issues.push({ kind: "fused-boundary", excerpt: contextExcerpt(text, i) })
+    issues.push({ kind: "fused-boundary", excerpt: contextExcerpt(text, i), offset: i })
   }
   return dedupeIssues(issues)
 }
@@ -93,7 +108,7 @@ function detectCamelFusions(text: string): LintFixIntegrityIssue[] {
   const issues: LintFixIntegrityIssue[] = []
   const re = /\b[a-z]{4,}[A-Z][a-z]{2,}\b/g
   for (const match of text.matchAll(re)) {
-    issues.push({ kind: "camel-fusion", excerpt: match[0] })
+    issues.push({ kind: "camel-fusion", excerpt: match[0], offset: match.index ?? 0 })
   }
   return dedupeIssues(issues)
 }
@@ -116,6 +131,8 @@ function detectAdjacentDuplicateSentences(text: string): Array<LintFixIntegrityI
       kind: "duplicate-sentence",
       excerpt: sentences[i].text.trim().slice(0, 120),
       firstExcerpt: sentences[i - 1].text.trim().slice(0, 120),
+      offset: sentences[i].offset,
+      firstOffset: sentences[i - 1].offset,
       pairNorm,
     })
   }
@@ -124,8 +141,19 @@ function detectAdjacentDuplicateSentences(text: string): Array<LintFixIntegrityI
 
 function detectQuoteIntegrity(text: string): LintFixIntegrityIssue[] {
   const issues: LintFixIntegrityIssue[] = []
-  const paragraphs = text.split(/\n{2,}/)
-  for (const paragraph of paragraphs) {
+  const splitRe = /\n{2,}/g
+  let cursor = 0
+  let lastEnd = 0
+  const matches: Array<{ start: number; len: number; sepLen: number }> = []
+  for (const m of text.matchAll(splitRe)) {
+    matches.push({ start: lastEnd, len: (m.index ?? 0) - lastEnd, sepLen: m[0].length })
+    lastEnd = (m.index ?? 0) + m[0].length
+  }
+  matches.push({ start: lastEnd, len: text.length - lastEnd, sepLen: 0 })
+
+  for (const span of matches) {
+    cursor = span.start
+    const paragraph = text.slice(span.start, span.start + span.len)
     const p = paragraph.replace(/\s+/g, " ").trim()
     if (!p) continue
 
@@ -135,21 +163,21 @@ function detectQuoteIntegrity(text: string): LintFixIntegrityIssue[] {
     const firstQuote = p.indexOf('"')
 
     if (quoteCount % 2 !== 0) {
-      issues.push({ kind: "quote-integrity", excerpt: p.slice(0, 160) })
+      issues.push({ kind: "quote-integrity", excerpt: p.slice(0, 160), offset: cursor })
       continue
     }
     if (curlyOpen !== curlyClose) {
-      issues.push({ kind: "quote-integrity", excerpt: p.slice(0, 160) })
+      issues.push({ kind: "quote-integrity", excerpt: p.slice(0, 160), offset: cursor })
       continue
     }
     if (p.includes('""') || p.includes("””")) {
-      issues.push({ kind: "quote-integrity", excerpt: p.slice(0, 160) })
+      issues.push({ kind: "quote-integrity", excerpt: p.slice(0, 160), offset: cursor })
       continue
     }
     // Missing opening quote: paragraph begins with apparent dialogue and the
     // first quote closes a sentence rather than opening quoted speech.
     if (firstQuote > 0 && /[.!?]$/.test(p.slice(0, firstQuote))) {
-      issues.push({ kind: "quote-integrity", excerpt: p.slice(0, 160) })
+      issues.push({ kind: "quote-integrity", excerpt: p.slice(0, 160), offset: cursor })
     }
   }
   return dedupeIssues(issues)
@@ -170,6 +198,8 @@ function detectNearbyDuplicateFragments(text: string): LintFixIntegrityIssue[] {
         kind: "duplicate-fragment",
         excerpt: contextExcerpt(text, tokens[i].index),
         firstExcerpt: contextExcerpt(text, prev.charIndex),
+        offset: tokens[i].index,
+        firstOffset: prev.charIndex,
       })
       // One report per nearby duplicated span is enough to block approval;
       // suppress overlapping n-grams from the same repeated passage.
@@ -221,4 +251,35 @@ function dedupeIssues(issues: LintFixIntegrityIssue[]): LintFixIntegrityIssue[] 
     result.push(issue)
   }
   return result
+}
+
+/**
+ * Map a char offset on `beatProses.join(separator)` back to the originating
+ * beat index. L70b / Lever I-D form (a): the drafting integrity branch uses
+ * this to route duplicate-bearing beats to per-beat targeted rewrite via
+ * `runSettleLoop` instead of regenerating the whole chapter.
+ *
+ * - Offsets inside a beat's prose return that beat's index.
+ * - Offsets inside the separator (e.g. "\n\n") are attributed to the LATER
+ *   beat — the duplicate "manifests" once the second occurrence appears.
+ * - Offsets past the end of the joined text clamp to the last beat.
+ * - Negative offsets clamp to beat 0.
+ */
+export function offsetToBeatIndex(
+  offset: number,
+  beatProses: string[],
+  separator: string = "\n\n",
+): number {
+  if (beatProses.length === 0) return -1
+  if (offset <= 0) return 0
+  let cursor = 0
+  for (let i = 0; i < beatProses.length; i++) {
+    const beatEnd = cursor + beatProses[i].length
+    if (offset < beatEnd) return i
+    // In the separator that follows beat i: attribute to the next beat.
+    const sepEnd = beatEnd + separator.length
+    if (offset < sepEnd) return Math.min(i + 1, beatProses.length - 1)
+    cursor = sepEnd
+  }
+  return beatProses.length - 1
 }

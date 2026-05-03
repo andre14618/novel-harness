@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { detectProseIntegrityIssues, validateLintFixIntegrity } from "./integrity"
+import { detectProseIntegrityIssues, offsetToBeatIndex, validateLintFixIntegrity } from "./integrity"
 
 describe("validateLintFixIntegrity", () => {
   test("passes unchanged prose", () => {
@@ -156,5 +156,138 @@ He set his daughter down on the cot with a tenderness that made Istra's chest ti
     const issues = detectProseIntegrityIssues(prose)
 
     expect(issues.some(i => i.kind === "fused-boundary" && i.excerpt.includes("O.She"))).toBe(true)
+  })
+})
+
+// L70b / Lever I-D form (a): offset metadata + beat-index mapping
+// for per-fragment beat-targeted rewrite.
+
+describe("LintFixIntegrityIssue offsets (L70b)", () => {
+  test("fused-boundary issue carries char offset of the punctuation", () => {
+    const prose = "alpha beta. gamma.She delta."
+    const issues = detectProseIntegrityIssues(prose)
+    const fused = issues.find(i => i.kind === "fused-boundary" && i.excerpt.includes("gamma.She"))
+
+    expect(fused).toBeDefined()
+    expect(fused!.offset).toBeDefined()
+    expect(prose[fused!.offset!]).toBe(".")
+    // The matched '.' sits immediately before 'S' in "gamma.She".
+    expect(prose[fused!.offset! + 1]).toBe("S")
+  })
+
+  test("camel-fusion issue carries char offset of the fused token", () => {
+    const prose = "She paused thenShe turned."
+    const issues = detectProseIntegrityIssues(prose)
+    const camel = issues.find(i => i.kind === "camel-fusion" && i.excerpt === "thenShe")
+
+    expect(camel).toBeDefined()
+    expect(camel!.offset).toBeDefined()
+    expect(prose.slice(camel!.offset!, camel!.offset! + 7)).toBe("thenShe")
+  })
+
+  test("duplicate-sentence issue carries offset + firstOffset for both occurrences", () => {
+    const prose = "Open. The hall narrowed. The hall narrowed. Close."
+    const issues = detectProseIntegrityIssues(prose)
+    const dup = issues.find(i => i.kind === "duplicate-sentence")
+
+    expect(dup).toBeDefined()
+    expect(dup!.firstOffset).toBeDefined()
+    expect(dup!.offset).toBeDefined()
+    // The first occurrence appears earlier in the text than the second.
+    expect(dup!.firstOffset!).toBeLessThan(dup!.offset!)
+    // Both offsets land at sentence-start whitespace (extractSentences captures
+    // the leading space) or the actual char.
+    expect(prose.slice(dup!.firstOffset!, dup!.firstOffset! + 20)).toContain("hall narrowed")
+    expect(prose.slice(dup!.offset!, dup!.offset! + 20)).toContain("hall narrowed")
+  })
+
+  test("duplicate-fragment issue carries offset + firstOffset for the matched n-gram", () => {
+    // 8-gram (gramSize=8) repeated twice within 120-token window.
+    const fragment = "she set her hand on the silver railing"
+    const prose = `She walked the corridor. ${fragment}. He paused. ${fragment}. She moved on.`
+    const issues = detectProseIntegrityIssues(prose)
+    const dup = issues.find(i => i.kind === "duplicate-fragment")
+
+    expect(dup).toBeDefined()
+    expect(dup!.firstOffset).toBeDefined()
+    expect(dup!.offset).toBeDefined()
+    expect(dup!.firstOffset!).toBeLessThan(dup!.offset!)
+    // Both offsets sit at the start of the matched n-gram text.
+    expect(prose.slice(dup!.firstOffset!).startsWith("she") || prose.slice(dup!.firstOffset!).startsWith("She")).toBe(true)
+    expect(prose.slice(dup!.offset!).startsWith("she") || prose.slice(dup!.offset!).startsWith("She")).toBe(true)
+  })
+
+  test("non-duplicate kinds do not set firstOffset", () => {
+    const prose = "alpha.Beta gamma."
+    const issues = detectProseIntegrityIssues(prose)
+    const fused = issues.find(i => i.kind === "fused-boundary")
+
+    expect(fused).toBeDefined()
+    expect(fused!.firstOffset).toBeUndefined()
+  })
+})
+
+describe("offsetToBeatIndex (L70b)", () => {
+  test("returns -1 when beatProses is empty", () => {
+    expect(offsetToBeatIndex(0, [])).toBe(-1)
+    expect(offsetToBeatIndex(100, [])).toBe(-1)
+  })
+
+  test("clamps negative offsets to beat 0", () => {
+    expect(offsetToBeatIndex(-5, ["alpha", "beta", "gamma"])).toBe(0)
+  })
+
+  test("offset inside the first beat returns 0", () => {
+    const beats = ["alpha beat", "beta beat", "gamma beat"]
+    // beats[0].length === 10; "alpha beat\n\nbeta beat\n\ngamma beat"
+    expect(offsetToBeatIndex(0, beats)).toBe(0)
+    expect(offsetToBeatIndex(5, beats)).toBe(0)
+    expect(offsetToBeatIndex(9, beats)).toBe(0) // last char of beat 0
+  })
+
+  test("offset inside the separator after beat 0 attributes to beat 1", () => {
+    const beats = ["alpha beat", "beta beat", "gamma beat"]
+    // beat 0 ends at char index 10; separator "\n\n" occupies 10..11.
+    expect(offsetToBeatIndex(10, beats)).toBe(1) // first char of separator
+    expect(offsetToBeatIndex(11, beats)).toBe(1) // second char of separator
+  })
+
+  test("offset inside beat 1 returns 1", () => {
+    const beats = ["alpha beat", "beta beat", "gamma beat"]
+    // beat 1 starts at char 12 (after "\n\n").
+    expect(offsetToBeatIndex(12, beats)).toBe(1)
+    expect(offsetToBeatIndex(20, beats)).toBe(1) // last char of beat 1 (12+8=20, "beta beat" len=9)
+  })
+
+  test("offset past last beat clamps to last index", () => {
+    const beats = ["alpha", "beta", "gamma"]
+    const joined = beats.join("\n\n")
+    expect(offsetToBeatIndex(joined.length + 100, beats)).toBe(2)
+  })
+
+  test("matches the actual joined-string layout", () => {
+    const beats = ["First beat ends here.", "Second beat starts now.", "Third beat closes."]
+    const joined = beats.join("\n\n")
+    // For every char in `joined`, find which beat it belongs to via slicing
+    // each beat's substring on the joined text and check the helper agrees.
+    for (let i = 0; i < beats[0].length; i++) {
+      expect(offsetToBeatIndex(i, beats)).toBe(0)
+    }
+    const beat1Start = beats[0].length + 2
+    for (let i = beat1Start; i < beat1Start + beats[1].length; i++) {
+      expect(offsetToBeatIndex(i, beats)).toBe(1)
+    }
+    const beat2Start = beat1Start + beats[1].length + 2
+    for (let i = beat2Start; i < beat2Start + beats[2].length; i++) {
+      expect(offsetToBeatIndex(i, beats)).toBe(2)
+    }
+  })
+
+  test("custom separator works", () => {
+    const beats = ["alpha", "beta"]
+    // With a 4-char separator, beat 1 starts at offset 5+4=9.
+    expect(offsetToBeatIndex(9, beats, "----")).toBe(1)
+    expect(offsetToBeatIndex(8, beats, "----")).toBe(1) // in separator
+    expect(offsetToBeatIndex(4, beats, "----")).toBe(0) // last char of beat 0
   })
 })
