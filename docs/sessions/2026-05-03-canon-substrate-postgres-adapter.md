@@ -109,4 +109,4 @@ The Postgres branch of the equivalence spec runs all 32 behavioral tests against
 
 ## Commits
 
-(to be filled)
+- `ba72e09` `[infra]` canon substrate Postgres adapter + equivalence suite — charter §1 cleared. 11 files changed, +2295/-2. Migration `sql/035_canon_substrate.sql`, raw queries `src/db/canon-substrate.ts`, harness `src/harness/canon-substrate.ts`, equivalence test `src/canon/substrate-equivalence.test.ts`, lane doc, plus charter/design/decisions/lessons/current-state/lane-queue updates. Experiment #404 logged + concluded.
