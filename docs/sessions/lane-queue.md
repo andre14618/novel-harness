@@ -1,13 +1,18 @@
 # Lane Queue
 
 ## Active
-- (empty — grounding phase G-A lever closed and validated live (non-regressive on exp #392); G-B priority elevated based on new drift-invention failure-mode evidence)
+- (empty — integrity ladder L40-L72 at diminishing returns on the 3-novel validation panel; dominant blocker shifted to ch2 plan-check-exhausted on continuity + halluc-ungrounded)
 
 ## Next
-- (empty — G-B candidate, writer-side BIBLE-binding constraint, motivated by exp #392 trace)
+- (empty — L73 / Continuity candidate provisional; opens with explicit charter when user picks the next direction. Architecture question on the table re: dynamic-state vs tagged-context — see 2026-05-03 retro)
 
 ## Completed
 
+- exp #402 (L70b+L71+L72 stack validation A/B on `fantasy-archive`/`fantasy-debt`/`fantasy-system-heretic` ch1-2) — VALIDATED. Approval ch1: 1/3 → 3/3 across baseline → L70b → stack. debt FULL NOVEL APPROVED ($0.074). 3 settle invocations, 100% acceptance. Dominant blocker shifted to ch2 plan-check-exhausted on continuity + halluc-ungrounded (arch + heretic). $0.190 total. See `docs/decisions.md` §L70b+L71+L72 stack validation.
+- docs/sessions/2026-05-03-L72-duplicate-sentence-punctuation-fp.md — SHIPPED unit-only (exp #401, Lever I-A). `normalizeSentence` was stripping all punctuation, so `"No."` and `"No?"` matched as duplicate-sentence; surfaced in debt ch2 att 1 of L70b A/B and triggered chapter regenerate cascade. Fix preserves `.?!`. 5 new tests, recall-preserving by construction.
+- docs/sessions/2026-05-03-L71-chapter-plan-reviser-maxtokens.md — SHIPPED defensive (exp #400). chapter-plan-reviser maxTokens 6144 → 12288. Surfaced as 1/25 historical bail (exp #399 heretic ch1 finish_reason=length). Heretic retry ran clean but reviser never fired — defensive coverage for documented failure mode, escalation if 12288 also caps.
+- docs/sessions/2026-05-03-L70b-per-fragment-targeted-rewrite.md — SHIPPED (exp #399, Lever I-D form (a)). Per-beat targeted rewrite via offset→beat mapping + `runSettleLoop` reuse, no writer-prompt change. 75% settle acceptance, +33pt approval (1/3 → 2/3 ch1), arch full novel approved. heretic regressed on plan-assist `reviser-rejected` (different surface where L70b code never ran; provably L70b-unattributable). Lesson: routing-only lanes need causal-attribution stop gates.
+- docs/sessions/2026-05-02-L70-duplicate-fragment-paraphrase-ladder.md — REVERTED stop gate (b) (exp #398, Lever I-D form (b)). Prompt-only escalation; cross-surface coupling — heretic regressed approved → bailed plan-check (halluc `silver interlocking ring`); arch shifted to fused-boundary (`6 A.M.*`). Pivoted to L70b form (a). Three lessons captured in `docs/lessons-learned.md`.
 - exp #392 (L65 live smoke on `fantasy-archive`) — chapter 1 approved att2 (L41/L63 verified live: 13/13 prompts carry AVOID INTEGRITY + paraphrase-one-side directives). Chapter 2 bailed at plan-check-exhausted on halluc-ungrounded "Senior Cataloguer". Critical phase finding: writer drift-invents fresh ungrounded entities each chapter-attempt ("Third Lamentation" → "Codex" → "Senior Cataloguer") rather than persisting — L65's carry-over architecture is correct but addresses persistence-mode, not drift-invention-mode. G-B priority elevated.
 - docs/sessions/2026-05-02-L65-grounding-carryover.md — clean pass for chapter-attempt carry-over of LLM-confirmed ungrounded entities (exp #391, Lever G-A). Mirrors L41/L63 pattern; closes byte-identical-prose case from exp #389 (retroactive replay PASSES on `chapter_exhaustions` row for novel-1777768466618 ch1).
 - docs/sessions/2026-05-02-grounding-phase-brief.md (phase brief) — 25% of plan-check-exhausted in 14 days cite halluc-ungrounded; identified Levers G-A / G-A2 / G-B / G-C with empirical sequencing.
