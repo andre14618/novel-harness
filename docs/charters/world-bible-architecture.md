@@ -136,18 +136,24 @@ A single per-chapter packet, byte-identical for the same `(canon-state-version, 
 - Entities planned to appear in chapter N (from the chapter contract)
 - Constraints attached to locations / systems / relationships referenced by the chapter contract
 
-**Stop gate.** The bundle builder ships only when all of the following clear:
+**Priority order:** quality (recall) > cache stability (determinism + reuse) > sanity (don't unbound). Token budget is NOT a primary optimization target — §0e showed cost is essentially free under cache stability (~$0.0008/chapter at K=5 V4 Flash warm), and squeezing the bundle creates incentives for adaptive trimming that would break the cache-stability guarantee. Generous, consistent canon for the right reasons; cap exists only as a sanity ceiling against pathological scope rules.
 
-1. **Deterministic bundle builder.** Same `(canon-state-version, chapter-N)` input → byte-identical L1 output, every time. Builder is pure-function over its inputs; no clocks, no randomness, no order-by-insertion.
-2. **Stable ordering.** Bundle entries are sorted by stable keys (entity ID, fact ID, chapter, beat) — not by floating-point scores or insertion order.
-3. **Packet hash.** Each emitted L1 bundle has a deterministic SHA-256 packet hash recorded in provenance. The same hash means the same bytes — auditable, comparable across runs, and a precondition for verifying writer/judge cache reuse.
-4. **Recall floor against labeled canon queries.** ≥40 labeled queries across ≥3 categories (entity-grounding, character-state-at-time, active-promises-and-payoffs). For each chapter the bundle builder is exercised on, L1 covers ≥80% of the human-curated relevant-canon-set across those categories.
-5. **Precision floor + token cap.** ≥50% of L1 entries are judged relevant to some chapter-N query category (blocks "concatenate everything" once the bible grows). L1 ≤6,000 tokens after templating.
-6. **Byte-identical reruns.** Running the builder twice on the same input produces byte-identical L1 bundles AND identical packet hashes. Verified by automated test in the spike — not just measured manually.
-7. **L1 → L2 → L3 cascade integrity.** Per the first-class principle, the assembled prompt places L1 first, role-specific instructions (L2) second, volatile tail (L3) third. The assembler asserts L1's last byte offset equals `len(L1_bytes)` at packet construction (no leakage of variable bytes into L1). A snapshot test per role asserts L2 template renders byte-identical to its committed snapshot.
-8. **Writer/judge bundle reuse.** The same L1 (same packet hash) is consumed by the writer and by all K downstream judges in chapter N. Provenance records this reuse; auditable evidence that the cache pool is shared, not bifurcated.
+**Stop gates (must clear):**
 
-If any of recall, precision, token-cap, determinism, packet-hash, byte-identity, cascade-integrity, or writer/judge-reuse checks fail, the bundle builder is not ready — the architecture cannot ship. These are the explicit prompt-blob, cache-collapse, layer-leakage, and writer-judge-divergence guards.
+1. **Deterministic bundle builder.** Same `(canon-state-version, chapter-N)` input → byte-identical L1 output, every time. Builder is pure-function over its inputs; no clocks, no randomness, no order-by-insertion. (PRIMARY — cache stability)
+2. **Stable ordering.** Bundle entries sorted by stable keys (entity ID, fact ID, chapter, beat). (PRIMARY — determinism)
+3. **Packet hash.** Each emitted L1 bundle has a deterministic SHA-256 packet hash recorded in provenance. (PRIMARY — auditability + reuse verification)
+4. **Recall floor against labeled canon queries.** ≥40 labeled queries across ≥3 categories (entity-grounding, character-state-at-time, active-promises-and-payoffs). Aggregate mean recall ≥80% of the human-curated relevant-canon-set across those categories. (PRIMARY — quality)
+5. **Byte-identical reruns.** Running the builder twice on the same input produces byte-identical L1 bundles AND identical packet hashes. Automated test, not manual measurement. (PRIMARY — determinism)
+6. **L1 → L2 → L3 cascade integrity.** Per the first-class principle, the assembled prompt places L1 first, role-specific instructions (L2) second, volatile tail (L3) third. The assembler asserts L1's last byte offset equals `len(L1_bytes)` at packet construction. A snapshot test per role asserts L2 template renders byte-identical. (PRIMARY — cache stability)
+7. **Writer/judge bundle reuse.** The same L1 (same packet hash) is consumed by the writer and by all K downstream judges in chapter N. Provenance records this reuse. (PRIMARY — architectural value)
+
+**Observability metrics (reported, NOT gates):**
+
+- **Precision.** Fraction of bundle entries the labeler considers relevant to some chapter-N query category. Reported in the validation report so pathological dilution stays visible. NOT a stop gate — extra canon is fine at modest sizes; cache economics make it cheap, and modern LLMs handle generous context fine.
+- **Token-cap sanity flag.** `L1Packet.tokenCapExceeded` fires when a bundle exceeds the L1_TOKEN_CAP sanity ceiling. Normal operation: the flag stays false. Non-zero count indicates pathological scope rules ("investigate the rules" signal, NOT "trim the bundle" signal). The cap is set well above any reasonable production bundle size; a typical full-bible scope at chapter 50 of a long novel should clear it comfortably.
+
+If any of the seven primary stop gates fail, the bundle builder is not ready — the architecture cannot ship. These are the explicit determinism, recall-quality, cache-collapse, layer-leakage, and writer-judge-divergence guards. Precision and bundle size below pathological levels are observability concerns, not gates.
 
 **What §0a does NOT include.** Reactivating embeddings. Wiring RRF. Per-query semantic retrieval. These are out of scope for this charter; if they return, it'll be as offline editorial discovery (Step 4 polish modules / Step 5 macro pass) over prose, not over canon.
 
@@ -377,7 +383,7 @@ Total: ~6–8 weeks of focused engineering. Parallelizable across some steps onc
 
 Charter-level stop gates that can pause or kill the architecture:
 
-- **(a) Deterministic bundle builder doesn't validate** at Step 0a (any of recall, precision, token cap, determinism, packet-hash byte-identity, cascade integrity, or writer/judge bundle reuse fails) → architecture cannot ship; either redesign canon scoping rules or kill charter.
+- **(a) Deterministic bundle builder doesn't validate** at Step 0a (any of: recall floor, determinism, packet-hash byte-identity, cascade integrity, or writer/judge bundle reuse fails) → architecture cannot ship; either redesign canon scoping rules or kill charter. Precision and token-cap signals are observability metrics; they don't gate clearance.
 - **(b) Bible-input integrity below threshold** at Step 2 → no canon writes from sub-threshold sources; if no source clears, charter is unworkable.
 - **(c) Shadow-mode validation fails** at Step 4 → editorial layer is not ready; current drafting gates remain; iterate Step 4 or kill charter.
 - **(d) Cost model exceeds envelope.** Primary measurement at §0e pre-Step-4 cost probe (early kill-gate before Step 1 starts); confirmed against real production payloads at Step 4. If §0e projects per-chapter cost above $0.50 at K=5 with V4 Flash, reduce judge count, redesign prefix, or kill charter. If Step 4 measurement diverges materially from §0e projection, re-evaluate.

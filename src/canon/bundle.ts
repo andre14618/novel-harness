@@ -106,7 +106,22 @@ export interface L1Packet {
   sections: L1Sections
 }
 
-export const L1_TOKEN_CAP = 6_000
+/**
+ * Sanity ceiling on bundle size. NOT a tight optimization target. The charter's
+ * §0e cost probe showed tokens are essentially free under cache stability
+ * (~$0.0008/chapter at K=5 V4 Flash warm, ~17× headroom at 50K-token bibles).
+ * Squeezing the bundle to fit a tight cap creates an incentive for adaptive
+ * trimming, which would break the cache-stability guarantee that makes the
+ * §0e economics work in the first place.
+ *
+ * The cap exists as a sanity check: if the scoping rules produce a 200K-token
+ * bundle, something is pathologically wrong. At the chosen ceiling, the
+ * tokenCapExceeded flag should normally be false — when it fires, it's an
+ * "investigate the rules" signal, not a "trim the bundle" signal.
+ *
+ * Quality (recall) > cache stability (determinism) > sanity (don't unbound).
+ */
+export const L1_TOKEN_CAP = 60_000
 
 // ── Stable comparators ───────────────────────────────────────────────────────
 
@@ -193,12 +208,14 @@ function serializePromises(promises: readonly StoryPromise[]): string {
  * When omitted, the assembler emits the whole asOfChapter snapshot — the
  * "trivial" path used in early-chapter bibles and in session-1 tests.
  *
- * Token-cap policy: assembleL1 NEVER throws on token-cap exceeded. It surfaces
- * `tokenCapExceeded: boolean` on the returned packet. Callers decide what to
- * do — the validation harness counts violations across all queries, production
- * code can throw / log / fall back / alert as appropriate. Throwing here would
- * break the harness's ability to measure cap-clearance across the full query
- * set.
+ * Token-cap policy: the cap is a sanity ceiling, not an optimization target.
+ * §0e cost-probe economics make tokens cheap under cache stability; squeezing
+ * the bundle would create incentives for adaptive trimming that would break
+ * the cache-stability guarantee. assembleL1 NEVER throws on cap exceeded —
+ * it surfaces `tokenCapExceeded: boolean` so callers can investigate
+ * pathological scope-rule output. Normal operation keeps the flag false at
+ * the L1_TOKEN_CAP ceiling. The validation harness reports the flag for
+ * observability; it is NOT a recall-floor-style stop gate.
  */
 export function assembleL1(
   source: CanonSource,

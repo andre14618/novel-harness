@@ -234,19 +234,19 @@ describe("assertL1Boundary", () => {
   })
 })
 
-describe("assembleL1 — token cap", () => {
+describe("assembleL1 — token cap (sanity ceiling, not optimization target)", () => {
   test("does NOT throw when bundle exceeds L1_TOKEN_CAP; surfaces flag instead", () => {
-    // ~30K characters → ~7500 tokens, over the 6000 cap.
-    const largeText = "x".repeat(2_000)
-    const facts = Array.from({ length: 16 }, (_, i) => fact(`fact-${i}`, largeText))
+    // Need ~240K characters to exceed the 60K-token sanity ceiling.
+    const largeText = "x".repeat(8_000)
+    const facts = Array.from({ length: 32 }, (_, i) => fact(`fact-${i}`, largeText))
     const packet = assembleL1(new MockCanonSource({ facts }), "novel-1", 1)
     expect(packet.tokenCapExceeded).toBe(true)
     expect(packet.approxTokens).toBeGreaterThan(L1_TOKEN_CAP)
-    // Caller decides: validation harness counts violations; production
-    // callers can throw / log / fall back. assembleL1 just reports.
+    // Hitting this in production means scope rules are pathological,
+    // not that the bundle is too big — investigate, don't trim.
   })
 
-  test("tiny bundle reports approxTokens well under cap and flag false", () => {
+  test("typical bundle stays well under the sanity ceiling and flag false", () => {
     const packet = assembleL1(
       new MockCanonSource({ facts: [fact("fact-a", "A")] }),
       "novel-1",

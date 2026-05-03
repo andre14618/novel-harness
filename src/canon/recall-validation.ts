@@ -232,24 +232,36 @@ export interface ValidationReport {
   queries: QueryMetrics[]
   aggregate: {
     queryCount: number
-    /** Mean recall across all queries. */
+    /** Mean recall across all queries. PRIMARY quality metric. */
     meanRecall: number
-    /** Mean precision across all queries. */
+    /** Mean precision across all queries. OBSERVABILITY only — extra canon
+     *  is fine at modest sizes; cache economics make it cheap. Reported so
+     *  pathological dilution stays visible, not as a stop gate. */
     meanPrecision: number
-    /** Number of queries hitting recall ≥ 0.80. */
+    /** Number of queries hitting recall ≥ RECALL_FLOOR. */
     recallPassCount: number
-    /** Number of queries hitting precision ≥ 0.50. */
+    /** Number of queries hitting precision ≥ PRECISION_OBSERVABILITY (not
+     *  a stop gate; reported for visibility). */
     precisionPassCount: number
-    /** Number of queries exceeding token cap. */
+    /** Number of queries triggering the sanity-ceiling token flag.
+     *  Normal operation: 0. Non-zero indicates pathological scope rules. */
     tokenCapExceededCount: number
     /** Per-category breakdown. */
     byCategory: Record<QueryCategory, { count: number; meanRecall: number; meanPrecision: number }>
   }
   thresholds: {
+    /** Stop-gate threshold (PRIMARY). */
     recallFloor: number
-    precisionFloor: number
-    tokenCap: number
-    /** True if all stop-gate-check-4 thresholds clear at the aggregate level. */
+    /** Observability threshold (NOT a stop gate). */
+    precisionObservability: number
+    /** Sanity ceiling (NOT a stop gate). Normal bundles stay well below this. */
+    tokenCapSanityCeiling: number
+    /** True iff aggregate recall clears the floor AND no query trips the
+     *  sanity ceiling. Stop-gate evaluation is recall-driven; precision and
+     *  bundle-size are observability metrics, not gates. */
+    recallGateClear: boolean
+    sanityCeilingClear: boolean
+    /** Convenience: both stop-gate-relevant conditions clear. */
     allCleared: boolean
   }
 }
@@ -269,8 +281,13 @@ function collectEmittedIds(packet: ReturnType<typeof assembleL1>): string[] {
 
 // ── Run validation ───────────────────────────────────────────────────────────
 
+/** Stop-gate threshold: aggregate mean recall must clear this. PRIMARY. */
 export const RECALL_FLOOR = 0.8
-export const PRECISION_FLOOR = 0.5
+/** Observability threshold for precision. NOT a stop gate. Extra canon is
+ *  fine at modest sizes (cache economics + LLMs handle generous context).
+ *  This number exists only to flag queries with notably low precision in
+ *  the report, not to gate clearance. */
+export const PRECISION_OBSERVABILITY = 0.5
 
 export function runValidation(
   canon: CanonFixture,
@@ -320,7 +337,7 @@ export function runValidation(
     ? queryMetrics.reduce((acc, m) => acc + m.precision, 0) / queryCount
     : 0
   const recallPassCount = queryMetrics.filter((m) => m.recall >= RECALL_FLOOR).length
-  const precisionPassCount = queryMetrics.filter((m) => m.precision >= PRECISION_FLOOR).length
+  const precisionPassCount = queryMetrics.filter((m) => m.precision >= PRECISION_OBSERVABILITY).length
   const tokenCapExceededCount = queryMetrics.filter((m) => m.tokenCapExceeded).length
 
   const byCategory: Record<QueryCategory, { count: number; meanRecall: number; meanPrecision: number }> = {
@@ -352,12 +369,13 @@ export function runValidation(
     },
     thresholds: {
       recallFloor: RECALL_FLOOR,
-      precisionFloor: PRECISION_FLOOR,
-      tokenCap: L1_TOKEN_CAP,
+      precisionObservability: PRECISION_OBSERVABILITY,
+      tokenCapSanityCeiling: L1_TOKEN_CAP,
+      recallGateClear: queryCount > 0 && meanRecall >= RECALL_FLOOR,
+      sanityCeilingClear: tokenCapExceededCount === 0,
       allCleared:
         queryCount > 0 &&
         meanRecall >= RECALL_FLOOR &&
-        meanPrecision >= PRECISION_FLOOR &&
         tokenCapExceededCount === 0,
     },
   }

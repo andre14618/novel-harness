@@ -8,7 +8,7 @@ import {
   type LabeledQuery,
   type QueryFixture,
   FixtureValidationError,
-  PRECISION_FLOOR,
+  PRECISION_OBSERVABILITY,
   RECALL_FLOOR,
 } from "./recall-validation"
 
@@ -203,11 +203,13 @@ describe("runValidation", () => {
     expect(report.aggregate.byCategory["active-promises-and-payoffs"].count).toBe(0)
   })
 
-  test("thresholds.allCleared reflects floors", () => {
+  test("thresholds expose recall floor + observability + sanity ceiling", () => {
     const report = runValidation(SYNTHETIC_CANON, SYNTHETIC_QUERIES)
     expect(report.thresholds.recallFloor).toBe(RECALL_FLOOR)
-    expect(report.thresholds.precisionFloor).toBe(PRECISION_FLOOR)
-    // allCleared depends on actual metrics; just check it's a boolean.
+    expect(report.thresholds.precisionObservability).toBe(PRECISION_OBSERVABILITY)
+    // recallGateClear, sanityCeilingClear, allCleared are all booleans.
+    expect(typeof report.thresholds.recallGateClear).toBe("boolean")
+    expect(typeof report.thresholds.sanityCeilingClear).toBe("boolean")
     expect(typeof report.thresholds.allCleared).toBe("boolean")
   })
 
