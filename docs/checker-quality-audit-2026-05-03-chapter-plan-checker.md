@@ -47,7 +47,7 @@ The rubric is designed to catch structural betrayals, not creative interpretatio
 
 The 72-hour and 7-day windows both yielded only 7 fires, so the sample was widened to all-time most-recent-25. The 515 total fires span 2026-04-16 to 2026-05-03, all within the current pipeline stack. No further time-windowing was needed.
 
-Pull script: `scripts/_q-cpc.ts` (on LXC at `~/apps/novel-harness/scripts/_q-cpc.ts`).
+Pull script: `scripts/audits/q-cpc.ts` (on LXC at `~/apps/novel-harness/scripts/audits/q-cpc.ts`).
 
 ---
 
@@ -136,7 +136,7 @@ After the single-grader audit (n=25, 44% TP) completed, the user pushed back on 
 
 Recall-preserving by construction: only ADDS items to DO-NOT-FLAG; never removes any TP-eligible criteria.
 
-**Replay script:** `scripts/_cpc-rubric-replay.ts` (local). Total cost: ~$0.20–$0.40 (150 V4-Flash calls with cache hits across the K=3 same-prefix pattern). Output: `/tmp/cpc-replay-k3.json`.
+**Replay script:** `scripts/audits/cpc-rubric-replay.ts` (local). Total cost: ~$0.20–$0.40 (150 V4-Flash calls with cache hits across the K=3 same-prefix pattern). Output: `/tmp/cpc-replay-k3.json`.
 
 ### Four-arm results (n=25)
 
@@ -200,7 +200,7 @@ The catches that ARE real — gender errors, explicit numeric contradictions, em
 
 ### Pull Script
 
-`scripts/_q-cpc.ts` on the LXC at `~/apps/novel-harness/scripts/_q-cpc.ts`. Uses tagged-template-literal syntax:
+`scripts/audits/q-cpc.ts` on the LXC at `~/apps/novel-harness/scripts/audits/q-cpc.ts`. Uses tagged-template-literal syntax:
 
 ```ts
 import db from "../src/db/connection"
@@ -217,7 +217,7 @@ const rows = await db`
 process.stdout.write(JSON.stringify(rows, null, 2))
 ```
 
-Run: `bun scripts/_q-cpc.ts > /tmp/chapter-plan-checker-fp-sample.json`
+Run: `bun scripts/audits/q-cpc.ts > /tmp/chapter-plan-checker-fp-sample.json`
 
 Sample artifact: `chapter-plan-checker-fp-sample.json` in repo root (not committed).
 

@@ -89,7 +89,7 @@ Domain types: `CanonFact`, `CharacterState`, `StoryPromise`, `Entity`, `CanonUpd
 
 **Verdict: PASS (under stable-bundle assumption). Charter stop gate (d) does not fire.**
 
-- Probe script: `scripts/_step0e-cost-probe.ts`. 10 sequential V4 Flash calls on a synthetic ~4K-token (canon-prefix + chapter) payload. Total spend $0.0012.
+- Probe script: `scripts/audits/step0e-cost-probe.ts`. 10 sequential V4 Flash calls on a synthetic ~4K-token (canon-prefix + chapter) payload. Total spend $0.0012.
 - Cache hit ratio on warm calls: **99.2%**.
 - Per-chapter projection at K=5 V4 Flash warm: **$0.0008/chapter** vs the $0.50 threshold (~600× under).
 - Headroom analysis at 50K-token full-novel bible + V4 Pro promo + K=10 judges: ~$0.03/chapter (~17× under threshold).
@@ -114,7 +114,7 @@ Full results: `docs/sessions/2026-05-03-step-0e-cost-probe-results.md`.
 
 - §0c: file:line citations in this doc (planner schema + writer derivation paths)
 - §0d: `src/canon/api.ts` (220 lines, tsc-clean)
-- §0e: `docs/sessions/2026-05-03-step-0e-cost-probe-results.md`, `/tmp/step0e-results.json`, `scripts/_step0e-cost-probe.ts`
+- §0e: `docs/sessions/2026-05-03-step-0e-cost-probe-results.md`, `/tmp/step0e-results.json`, `scripts/audits/step0e-cost-probe.ts`
 
 ## Cost
 

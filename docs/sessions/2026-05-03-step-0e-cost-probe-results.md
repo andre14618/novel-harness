@@ -15,7 +15,7 @@ verdict: PASS
 
 ## Probe Setup
 
-- **Script:** `scripts/_step0e-cost-probe.ts`
+- **Script:** `scripts/audits/step0e-cost-probe.ts`
 - **Model:** DeepSeek V4 Flash, thinking disabled, temperature 0.3, maxTokens 1024
 - **Payload:** synthetic structured canon prefix (~1.7K tokens) + chapter prose (~2.5K tokens) + judge prompt (~250 tokens). Total prompt ~4000 tokens per call.
 - **K:** 10 sequential calls (to measure cold-vs-warm cache behavior on the same prefix).
