@@ -99,8 +99,8 @@ export type RevisionOutcome =
   | "skip_duplicate_sig"
   | "skip_no_beat_state"
 
-/** chapter_exhaustions.kind enum — verbatim from sql/030:29. */
-export type ExhaustionKind = "plan-check-exhausted" | "reviser-rejected"
+/** chapter_exhaustions.kind enum — verbatim from sql/030:29; integrity-exhausted added L64. */
+export type ExhaustionKind = "plan-check-exhausted" | "reviser-rejected" | "integrity-exhausted"
 
 export type DraftingOutput = {
   /** chapter numbers with at least one chapter_drafts row of status='approved' */

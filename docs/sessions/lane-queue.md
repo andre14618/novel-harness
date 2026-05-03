@@ -8,6 +8,7 @@
 
 ## Completed
 
+- docs/sessions/2026-05-02-L64-integrity-exhaustion-gate.md — clean pass for routing final-attempt integrity exhaustion through `presentForExhaustion` with `kind: "integrity-exhausted"` (exp #388, Lever B). Mirrors existing plan-check-exhausted dispatch; no SQL migration needed.
 - docs/sessions/2026-05-02-L63-matched-pair-carryover.md — clean pass for matched-pair carry-over for duplicate-sentence + duplicate-fragment (exp #387, Lever A). Targets 72.9% of integrity-fail volume per phase brief. Empirical retry-replay validation deferred until a retry-bearing seed exercises the path.
 - docs/sessions/2026-05-02-runner-archive-and-litrpg-validate.md (session) — runner archival + L62-validate clean pass (exp #386). Chapter 1 of fantasy-system-heretic approved with 0 fused-boundary issues from System UIDs. New blocker surfaced in continuity (out-of-phase; parked).
 - docs/sessions/2026-05-02-integrity-retry-phase-brief.md (phase brief) — DB scan + code audit + L41 trace evidence; identified Levers A/B/C with empirical sequencing.

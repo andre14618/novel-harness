@@ -2,7 +2,7 @@ import db from "./connection"
 
 // Types duplicated here rather than imported from ../gates to avoid a
 // back-reference cycle — gates.ts imports these DB helpers as values.
-export type ExhaustionKind = "plan-check-exhausted" | "reviser-rejected"
+export type ExhaustionKind = "plan-check-exhausted" | "reviser-rejected" | "integrity-exhausted"
 export type ExhaustionResolverMode = "auto" | "cli" | "web"
 export type ExhaustionDecision = "edit-plan" | "override" | "abort" | "orphaned"
 

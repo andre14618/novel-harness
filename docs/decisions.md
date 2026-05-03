@@ -10,6 +10,21 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §L64 Route chapter-attempt integrity exhaustion to plan-assist gate (2026-05-02)
+
+**Decision:** When `detectProseIntegrityIssues` returns issues on the final chapter attempt (`attempts >= maxAttempts`), drafting fires `presentForExhaustion` with a new `kind: "integrity-exhausted"` payload before the existing `continue`. The dispatch mirrors the `plan-check-exhausted` site: `edit-plan` persists a replacement outline via `saveChapterOutline`, `override` calls `setPlanCheckOverridden`, `abort` sets `chapterAborted`. `PlanAssistGatePayload.kind` and `ExhaustionKind` accept the new value; no SQL CHECK constraint exists on `chapter_exhaustions.kind`, so no migration was needed.
+
+**Why:** Phase brief (`docs/sessions/2026-05-02-integrity-retry-phase-brief.md`) showed integrity exhaustion is operator-invisible today — the chapter silently pauses with `chapter-attempts-exhausted:ch${ch}` instead of routing to a plan-assist gate the way adherence/continuity blockers do. L61 (exp #384) hit this exact path and the smoke-stop classifier reported `human_needed` only because `gates_total=0`, not because a real gate fired. Operators need the same edit-plan/override/abort decision they get for plan-check exhaustion.
+
+**Alternatives rejected:**
+- Add a separate "integrity gate" UI surface. Rejected: duplicating the dispatch shape splits operator workflow across two gate types when one decision flow already works for plan-check / reviser-rejected exhaustions.
+- Beat-attribute integrity issues + targeted beat-rewrite (Lever C). Rejected for L64 specifically: that's a larger architectural change and addresses a different problem (blast radius on retry); only worth the cost if Lever A + B don't close the duplicate-family escalation pattern.
+- Route ALL integrity failures (not just final-attempt) to the gate. Rejected: would interrupt the operator on every retry-able failure rather than only on actual exhaustion. Earlier attempts should keep the existing retry behavior.
+
+**Ongoing implications:** integrity exhaustion is now an `integrity-exhausted` row in `chapter_exhaustions` with the operator's decision recorded. `operator-summary` already surfaces it via the L33 plan-assist-gate listing. `edit-plan` and `override` decisions on the FINAL attempt persist their state for the next resume rather than retrying within the current run (matching the existing dispatcher's behavior on attempt 3). If empirical data shows operators want a within-run retry budget extension, that's a separate ticket. The mock prose used by `drafting-reviser-escalation.test.ts` was updated to use unique letter-only token-bearing words per call so it stops tripping the duplicate-fragment detector and surfacing an integrity-exhausted gate unrelated to those tests' assertions.
+
+---
+
 ### §L63 Matched-pair carry-over for duplicate-sentence and duplicate-fragment integrity issues (2026-05-02)
 
 **Decision:** Extend `LintFixIntegrityIssue` with an optional `firstExcerpt` field, populated by `detectAdjacentDuplicateSentences` (with the prior sentence's text) and `detectNearbyDuplicateFragments` (with the first occurrence's context window via `prev.charIndex`). `formatChapterIntegrityRetryContext` renders duplicate-* kinds as a labeled pair — `first: "..."` and `second: "..."` — so the writer sees both halves of the collision. Other kinds keep the existing single-excerpt rendering. Issues without `firstExcerpt` (back-compat) fall back to the legacy single-line format.

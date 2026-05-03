@@ -176,7 +176,31 @@ mock.module("../llm", () => ({
     }
     throw new Error(`Unexpected callAgent: ${config.agentName}`)
   },
-  executeAndLog: async () => ({ content: "Beat prose content. ".repeat(20) }),
+  // Mock prose must avoid detectProseIntegrityIssues triggers (duplicate-
+  // sentence + duplicate-fragment 8-gram of letter tokens within 120 tokens)
+  // so the L64 integrity-exhaustion gate does not fire on attempt 3
+  // unrelated to these tests' assertions. Generate every sentence with a
+  // unique token-bearing word so no 8-gram repeats anywhere in the chapter.
+  executeAndLog: (() => {
+    let n = 0
+    // detectNearbyDuplicateFragments tokenizes via /[A-Za-z']+/, so digits
+    // are stripped — encode the counter as letters so each generated word
+    // is genuinely distinct in the token stream.
+    const word = (i: number) => {
+      let out = ""
+      let v = i
+      do {
+        out = String.fromCharCode(97 + (v % 26)) + out
+        v = Math.floor(v / 26)
+      } while (v > 0)
+      return "wd" + out.padStart(4, "a")
+    }
+    return async () => ({
+      content: Array.from({ length: 8 }, () =>
+        `The ${word(n++)} drifted past ${word(n++)} into ${word(n++)} below ${word(n++)}.`
+      ).join(" "),
+    })
+  })(),
 }))
 
 mock.module("../transport", () => ({ getTransport: () => ({}) }))

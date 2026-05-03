@@ -47,7 +47,12 @@ function gateKey(novelId: string, gateId: string): string {
  * reviser ran and was rejected by post-revision sanity checks.
  */
 export interface PlanAssistGatePayload {
-  kind: "plan-check-exhausted" | "reviser-rejected"
+  /**
+   * - `plan-check-exhausted`: chapter-plan-checker / continuity / functional / validation blocker remained after retries.
+   * - `reviser-rejected`: chapter-plan-reviser produced an outline rejected by post-revision sanity checks.
+   * - `integrity-exhausted` (L64): chapter prose failed `detectProseIntegrityIssues` on the final attempt; mirrors the operator-visible dispatch shape so the operator can edit the outline, override, or abort instead of the chapter silently pausing.
+   */
+  kind: "plan-check-exhausted" | "reviser-rejected" | "integrity-exhausted"
   novelId: string
   chapter: number
   /** Outer drafting attempt that fired this gate. Used for telemetry; payload

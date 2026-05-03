@@ -1289,6 +1289,47 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
         // L41: stash the issue list so the next chapter-attempt's beat-writer
         // calls include the avoidance reminder. Cleared on integrity pass below.
         priorIntegrityIssues = proseIntegrityIssues.map(i => ({ kind: i.kind, excerpt: i.excerpt }))
+
+        // L64: on the FINAL attempt, integrity failure routes to the plan-
+        // assist gate (`integrity-exhausted` kind) instead of silently
+        // continuing to a paused chapter. Mirrors the existing
+        // `plan-check-exhausted` dispatch shape so the operator can
+        // edit-plan / override / abort instead of being invisible to the
+        // chapter exhaustion. Earlier attempts keep the existing retry
+        // behavior.
+        if (attempts >= maxAttempts) {
+          const integrityExhaustionPayload = {
+            kind: "integrity-exhausted" as const,
+            novelId,
+            chapter: ch,
+            attempt: attempts,
+            outline,
+            prose,
+            unresolvedDeviations: proseIntegrityIssues.map(i => ({
+              description: `Prose integrity ${i.kind}: ${i.excerpt}`,
+              beat_index: null as number | null,
+            })),
+          }
+          const decision = await presentForExhaustion(integrityExhaustionPayload)
+          if (decision.action === "edit-plan") {
+            outline = {
+              ...outline,
+              ...decision.outline,
+              chapterNumber: outline.chapterNumber,  // defensive: preserve chapter identity
+            } as ChapterOutline
+            await saveChapterOutline(novelId, outline)
+            log(novelId, "info", `Chapter ${ch} outline edited via integrity-exhaustion gate: ${outline.scenes.length} beats`)
+            console.log(`  [PLAN-ASSIST] outline edited at integrity exhaustion; chapter will retry from new plan on resume`)
+          } else if (decision.action === "override") {
+            await setPlanCheckOverridden(novelId, ch, true)
+            log(novelId, "info", `Chapter ${ch} plan-check overridden via integrity-exhaustion gate`)
+            console.log(`  [PLAN-ASSIST] plan-check override persisted; resume will skip strict checks`)
+          } else {
+            log(novelId, "warn", `Chapter ${ch} aborted by user at integrity-exhaustion gate`)
+            console.log(`  [PLAN-ASSIST] chapter aborted by user at integrity-exhaustion gate.`)
+            chapterAborted = true
+          }
+        }
         continue
       }
       await trace(novelId, {
