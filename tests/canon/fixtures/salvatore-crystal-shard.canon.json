@@ -1,0 +1,2753 @@
+{
+  "novelId": "salvatore-crystal-shard",
+  "snapshotVersion": "salvatore-poc-v1",
+  "description": "Manual canon for R.A. Salvatore's The Crystal Shard, prelude + chapters 1-5. Merged from subagent A (prelude + ch1-3) and subagent B (ch4-5).",
+  "facts": [
+    {
+      "id": "fact-crenshinibon-evil-artifact",
+      "kind": "established_fact",
+      "text": "Crenshinibon is a sentient evil artifact (the crystal shard), the most vile artifact ever made.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-crenshinibon-forged-by-seven-liches",
+      "kind": "established_fact",
+      "text": "Crenshinibon was forged by seven liches (undead spirits of powerful wizards) who combined their evil magics to create it.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-crenshinibon-feeds-on-sunlight",
+      "kind": "established_fact",
+      "text": "Crenshinibon is an evil that feeds and flourishes off of the light of the sun, that which the purveyors of good consider most precious.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-crenshinibon-consumed-its-makers",
+      "kind": "established_fact",
+      "text": "The forging of Crenshinibon consumed the seven liches; the artifact stole the magical strength preserving their undead state to fuel its own first flickers of life.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-errtu-served-the-seven-liches",
+      "kind": "established_fact",
+      "text": "Errtu the demon served the seven liches at the time they forged Crenshinibon.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-errtu-blasted-back-to-abyss-at-forging",
+      "kind": "established_fact",
+      "text": "The bursts of power from Crenshinibon's forging hurled Errtu back to the Abyss; Errtu had presumed the shard destroyed.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-cryshal-tirith-houses-shard-image",
+      "kind": "established_fact",
+      "text": "Cryshal-Tirith is a crystal tower whose pulsating heart bears the exact image of Crenshinibon; its existence let Errtu rediscover the shard's trail centuries after the forging.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-al-dimeneira-banished-errtu",
+      "kind": "established_fact",
+      "text": "Al Dimeneira, an angelic being of tremendous power, banished Errtu back to the Abyss with a single word when Errtu was close to seizing Crenshinibon.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-al-dimeneira-could-not-destroy-shard",
+      "kind": "established_fact",
+      "text": "Al Dimeneira could not destroy Crenshinibon; the shard burned his hands when he tried.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-al-dimeneira-hurled-shard-across-planes",
+      "kind": "knowledge_change",
+      "text": "Errtu learns from Telshazz that Al Dimeneira hurled Crenshinibon across the planes of existence with all of his strength.",
+      "data": {
+        "characterId": "errtu",
+        "learnedAboutEntity": "crenshinibon"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-errtu-kills-telshazz",
+      "kind": "established_fact",
+      "text": "Errtu killed his subordinate Telshazz by tearing out his throat after hearing the news that Crenshinibon had been hurled across the planes.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-crenshinibon-rests-in-northern-mountains",
+      "kind": "established_fact",
+      "text": "Crenshinibon came to rest in a bowl-shaped dell in the snow of the northern mountains of the Forgotten Realms, far from the Abyss, and waits there.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-ten-towns-frontier-settlement",
+      "kind": "established_fact",
+      "text": "Ten-Towns is a remote frontier settlement of ten small towns clustered around three lakes in Icewind Dale, beneath Kelvin's Cairn.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-icewind-dale-geography",
+      "kind": "established_fact",
+      "text": "Icewind Dale is a thousand square miles of barren, broken tundra bordered by the Spine of the World mountains to the south, an expanding glacier to the east, and the Sea of Moving Ice to the north and east; reachable only through the pass between the Spine of the World and the coast.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kelvins-cairn-only-mountain",
+      "kind": "established_fact",
+      "text": "Kelvin's Cairn is the only mountain in Icewind Dale, a snow-capped peak rising from the flat horizon and marking the entrance to the rocky dwarven valley between Maer Dualdon and Lac Dinneshere.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-ten-towns-economy-knucklehead-trout",
+      "kind": "established_fact",
+      "text": "Ten-Towns' economy is built on knucklehead trout, fish with oversized fist-shaped heads whose bones have the consistency of fine ivory and are carved into scrimshaw; the three lakes of Icewind Dale are the only place these fish are known to swim.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-luskan-nearest-city",
+      "kind": "established_fact",
+      "text": "Luskan is the nearest city to Ten-Towns, roughly four hundred miles south, and is home to the Hosttower of the Arcane.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-hosttower-of-the-arcane-wizard-guild",
+      "kind": "established_fact",
+      "text": "The Hosttower of the Arcane in Luskan is the home of the Wizard's Guild and the Arcane Brotherhood; an archmage rules it.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-wizards-caravan-arrives-from-luskan",
+      "kind": "established_fact",
+      "text": "A caravan of wizards from the Hosttower of the Arcane in Luskan, including Eldeluc, Dendybar the Mottled, Morkai the Red, and Akar Kessell, traveled three weeks to reach Ten-Towns; some had devious gains in mind beyond scrimshaw.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kessell-was-morkais-apprentice",
+      "kind": "established_fact",
+      "text": "Akar Kessell was Morkai the Red's apprentice for a quarter of a century; Morkai had raised him as his own son and was the only man who had ever shown him more than basic, polite consideration.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kessell-murders-morkai",
+      "kind": "established_fact",
+      "text": "Akar Kessell murdered his master Morkai the Red by stabbing him in the back with a slender dagger inside the visitor's cabin in Easthaven.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kessell-incompetent-wizard",
+      "kind": "character_state",
+      "text": "Akar Kessell is a bumbling, incompetent apprentice whose stuttering lips can barely call out the simplest of cantrips; he is plagued by self-doubt and has been passed over by younger apprentices in the guild.",
+      "data": {
+        "characterId": "akar-kessell"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-conspiracy-promised-kessell-guild-seat",
+      "kind": "established_fact",
+      "text": "Eldeluc, Dendybar the Mottled, and the other Luskan wizards manipulated Akar Kessell with a false promise of Morkai's vacated seat in the Wizard's Guild of Luskan to use him as a tool to murder Morkai.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-dendybar-is-cold-and-cowled",
+      "kind": "character_state",
+      "text": "Dendybar the Mottled is a frail-looking wizard who keeps to the shadows beneath a low-pulled cowl, speaks rarely and in a flat monotone, and is feared more than the larger wizards despite his small stature.",
+      "data": {
+        "characterId": "dendybar"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-easthaven-host-city-of-conspiracy",
+      "kind": "established_fact",
+      "text": "Easthaven is the Ten-Towns host city where the Luskan wizards were given a temporary cabin and where Morkai's murder takes place; another murder is unlikely to draw investigation.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-regis-is-only-halfling-in-region",
+      "kind": "character_state",
+      "text": "Regis the halfling is the only one of his kind for hundreds of miles, short even by halfling standards with curly brown hair and a thickened belly, and lives in Lonelywood.",
+      "data": {
+        "characterId": "regis"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-regis-fled-pasha-pook",
+      "kind": "established_fact",
+      "text": "Regis is exiled from Calimport in the southern land of Calimshan, where he was an Associate Guildmaster in Pasha Pook's thieves' guild; he stole one of Pook's enchanting rubies and Pook's men have pursued him from town to town until he reached Ten-Towns.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-regis-ruby-pendant-hypnotic",
+      "kind": "established_fact",
+      "text": "Regis carries a ruby pendant stolen from Pasha Pook; the gem's facets are so ingeniously cut they cast an almost hypnotic spell on anyone who views them.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-regis-spokesman-of-lonelywood",
+      "kind": "character_state",
+      "text": "Regis is the elected council spokesman of Lonelywood, the smallest and northernmost of the ten towns, and serves as Lonelywood's primary scrimshander and courier to Bryn Shander, taking a tenth-piece commission on goods.",
+      "data": {
+        "characterId": "regis"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-bryn-shander-market-hub",
+      "kind": "established_fact",
+      "text": "Bryn Shander is the principal settlement of Ten-Towns and its market hub, a walled bustling settlement of several thousand people; council meetings of the ten spokesmen take place there.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-targos-largest-fishing-town",
+      "kind": "established_fact",
+      "text": "Targos is the largest of the fishing towns of Ten-Towns and can put over a hundred vessels onto Maer Dualdon, including two-masted schooners.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-redwaters-renamed-after-massacre",
+      "kind": "established_fact",
+      "text": "The southernmost of the three lakes, originally called Dellon-lune, was renamed Redwaters after a single fishing-rights skirmish involving seventeen boats killed three full crews and half of a fourth.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-drizzt-is-drow-on-surface",
+      "kind": "character_state",
+      "text": "Drizzt Do'Urden is a dark elf (drow) ranger with stark white hair and violet almond-shaped eyes; he is, as far as he knows, the only one of his kind living on the surface, having lived above ground for five years after two hundred years in the underworld.",
+      "data": {
+        "characterId": "drizzt"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-drizzt-suffers-sunlight",
+      "kind": "established_fact",
+      "text": "Drizzt suffers a hereditary weakness to sunlight, which drains and dizzies him; he wears a low-cowled brown cloak and prefers traveling at night.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-drow-elves-driven-underground",
+      "kind": "established_fact",
+      "text": "The drow are dark elves who once walked the surface but were driven into the bowels of the ground in the war of the elven nations because they were malicious passionless killers beyond the tolerance of even their kin; they live in Menzoberranzan, a lightless underworld city, and as a race no longer desire the sun.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-drizzt-wields-twin-scimitars",
+      "kind": "established_fact",
+      "text": "Drizzt wields two scimitars sheathed on his hips as his primary weapons.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-drizzt-owns-guenhwyvar-figurine",
+      "kind": "established_fact",
+      "text": "Drizzt owns a small onyx figurine of a panther, Guenhwyvar, a magical animal companion he can summon; the cat needs rest between summonings.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-bruenor-dwarf-friend-of-drizzt",
+      "kind": "character_state",
+      "text": "Bruenor Battlehammer is a dwarf with a long pointed often-broken nose and a gray-streaked, fiery red beard who lives in the dwarven valley near Kelvin's Cairn and wields a heavy axe; he is Drizzt's close friend.",
+      "data": {
+        "characterId": "bruenor"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-drizzt-detects-barbarian-anomaly",
+      "kind": "knowledge_change",
+      "text": "Drizzt observes that the reindeer have begun their autumn migration but no human tracks follow the herd, the caves north of Ten-Towns have not been stocked, and barbarian battle drums are sounding across the empty plain — signs that the barbarian tribes are abandoning their traditional ways and preparing for war.",
+      "data": {
+        "characterId": "drizzt"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-drizzt-bruenor-kill-tundra-yetis",
+      "kind": "established_fact",
+      "text": "Drizzt is ambushed by two tundra yetis on the open plain near Kelvin's Cairn; he impales one on his scimitar and Bruenor arrives in time to split the second's skull with his axe.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-barbarian-tribes-gather-north-of-ten-towns",
+      "kind": "established_fact",
+      "text": "Many miles north of Ten-Towns, the largest gathering of barbarian tribes in more than a century has assembled at a Hengorot (Mead Hall), with deerskin tents arranged in a circle around a great central hall to discuss war.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-tempos-god-of-battle",
+      "kind": "established_fact",
+      "text": "Tempos is the God of Battle revered by the northern barbarian tribes; the Hengorot is a place of reverence where food and drink are shared in toasts to him, and the Song of Tempos is sung at crescendo pitch by competing tribes to determine whose call he hears most clearly.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-beorg-king-of-tribe-of-wolf",
+      "kind": "character_state",
+      "text": "Beorg is the King of the Tribe of the Wolf, a robust man with tousled blond locks, a beard fading to white, and a tanned face etched with experience; he is the host king of the Hengorot.",
+      "data": {
+        "characterId": "beorg"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-heafstaag-king-of-tribe-of-elk",
+      "kind": "character_state",
+      "text": "Heafstaag is the King of the Tribe of the Elk, a giant red-bearded one-eyed man nearly seven feet tall with a barrel-shaped girth and a crumpled left hand; he is Beorg's primary rival and is interested only in personal glory and triumphant plunder.",
+      "data": {
+        "characterId": "heafstaag"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-beorg-plans-conquest-of-ten-towns",
+      "kind": "established_fact",
+      "text": "Beorg's plan calls for the total conquest of Ten-Towns and enslaving the surviving fishermen, abandoning the precarious nomadic existence of the tribes for a measure of luxury they had never known.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-debernezan-betrayer-of-ten-towns",
+      "kind": "established_fact",
+      "text": "deBernezan is a dark-haired southerner who has lived in Ten-Towns for two winters and more and has provided Beorg with intelligence on Ten-Towns; he expects a comfortable living and respected position after the conquest.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-heafstaag-tests-debernezan",
+      "kind": "established_fact",
+      "text": "Heafstaag tested deBernezan by feinting an axe stroke at his throat; deBernezan, rehearsed by Beorg, did not flinch, and Heafstaag spared him.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-beorg-and-heafstaag-pact-co-leadership",
+      "kind": "established_fact",
+      "text": "Beorg and Heafstaag agree to share leadership of the combined tribes for the conquest of Ten-Towns; they bloody their axes on their shield arms and hurl them together into a keg of mead to seal the pact in the eyes of Tempos.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-haalfdane-king-of-tribe-of-bear",
+      "kind": "established_fact",
+      "text": "Haalfdane is the King of the Tribe of the Bear and the son of Raag Doning, whom Heafstaag killed in single combat in a single stroke.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-heafstaag-twice-conquered-termalaine",
+      "kind": "established_fact",
+      "text": "Heafstaag has twice conquered the Ten-Towns settlement of Termalaine to the south.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-promise-crenshinibon-reclaimed",
+      "kind": "promise",
+      "text": "Crenshinibon, sentient and waiting in the snow of the northern mountains, will be discovered and wielded — Errtu's quest to reclaim it and the demon's awareness of its trail set up an inevitable struggle for the artifact.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-promise-luskan-wizards-hidden-agenda",
+      "kind": "promise",
+      "text": "The Luskan wizards Eldeluc and Dendybar have purposes in Ten-Towns beyond scrimshaw and have already moved to remove Morkai the Red; their devious gains will affect the region.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-promise-akar-kessell-rise",
+      "kind": "promise",
+      "text": "Akar Kessell — a self-doubting, incompetent apprentice now used as a pawn — has been promised power and status he was not earning honestly; the gap between his ambitions and his ability sets up a future reversal of his fortunes.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-promise-pasha-pook-pursuit",
+      "kind": "promise",
+      "text": "Pasha Pook's arms are long and Regis stole one of the guildmaster's hypnotic rubies; the halfling's exile in Ten-Towns is precarious, foreshadowing future pursuit.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-promise-barbarian-invasion-of-ten-towns",
+      "kind": "promise",
+      "text": "Beorg and Heafstaag have sealed a co-leadership pact to invade and conquer Ten-Towns; battle is imminent and Drizzt has read the signs but has not yet warned the towns.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kessell-abandoned-in-spine-of-the-world",
+      "kind": "established_fact",
+      "text": "Eldulac, Dendybar the Mottled, and the other Hosttower wizards abandoned Akar Kessell in a snow-filled bowl in the Spine of the World, intending him to die after he served his purpose by murdering Morkai the Red.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kessell-realizes-betrayal",
+      "kind": "knowledge_change",
+      "text": "Akar Kessell realizes the Hosttower wizards never intended to grant him the title of wizard and used him only as a pawn to rid themselves of Morkai the Red.",
+      "data": {
+        "characterId": "akar-kessell"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-crenshinibon-is-ancient-sentient-relic",
+      "kind": "established_fact",
+      "text": "Crenshinibon, the Crystal Shard, is an ancient sentient relic enchanted at the dawn of the world; a force of darkest evil that draws strength from the light of day, and a perversion lost for centuries that evil lords have long sought.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-crenshinibon-powers",
+      "kind": "established_fact",
+      "text": "Crenshinibon serves as an instrument of destruction, a tool for scrying, and a shelter and home for its wielder; foremost it imparts great magical strength to its possessor.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kessell-finds-crenshinibon",
+      "kind": "knowledge_change",
+      "text": "Dying in the snow, Akar Kessell digs up a warm crystal shard buried beneath the bowl's center; it revives him and he claims it without understanding what it is.",
+      "data": {
+        "characterId": "akar-kessell"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-crenshinibon-manipulates-kessell-via-dreams",
+      "kind": "established_fact",
+      "text": "Crenshinibon imposes dreams on its sleeping host and uses nighttime suggestions to slowly mold a weak-willed wielder toward conquest; it intends to nurture Kessell into a proper representative of its destructive power.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kessell-gains-magical-power",
+      "kind": "knowledge_change",
+      "text": "Possessing Crenshinibon, Kessell gains spellcasting power far beyond what Morkai ever taught him, including a lightning-bolt kill on a deer and telekinesis to retrieve it.",
+      "data": {
+        "characterId": "akar-kessell"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-cryshal-tirith-creation",
+      "kind": "established_fact",
+      "text": "By placing a duplicate of Crenshinibon in the snow and speaking the arcane words 'Ibssum dal abdur,' Kessell raises a mammoth crystalline tower named Cryshal-Tirith — an exact magnified image of the shard — that draws the light of the surrounding day into itself.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-cryshal-tirith-entrance-invisible",
+      "kind": "established_fact",
+      "text": "The entrance to Cryshal-Tirith is invisible to all except denizens of foreign planes and those whom Crenshinibon (or its wielder) allows to enter.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kessell-enslaves-goblin-tribe",
+      "kind": "established_fact",
+      "text": "Using a scrying mirror in Cryshal-Tirith, Kessell projects his will onto a nearby nomadic goblin tribe and compels their chieftain to enter the tower and kneel, naming Kessell 'Master' — the first followers of his nascent kingdom.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-spine-of-the-world-is-impassable",
+      "kind": "established_fact",
+      "text": "The Spine of the World is a foreboding range of impassable mountains; its caves are contested fiercely by orcs, goblins, ogres, and stronger monsters, and weaker goblin tribes are often driven above ground, enslaved, or slaughtered.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-bruenor-from-mithril-hall",
+      "kind": "established_fact",
+      "text": "Bruenor Battlehammer is the eldest surviving member of his small dwarven clan and the only one among them who personally witnessed Mithril Hall — his ancestral home — before his people were driven out by dark things from the deep.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-mithril-hall-lost-homeland",
+      "kind": "established_fact",
+      "text": "Mithril Hall is the lost ancestral home of Bruenor's clan, a place where rivers of mithril ran rich and dwarven smiths' hammers rang out in praise to Moradin and Dumathoin; its location is unknown and Bruenor remembers only disjointed images.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-dwarven-valley-trade",
+      "kind": "established_fact",
+      "text": "The dwarves' rocky valley sits between the two northernmost lakes just north of Bryn Shander; trade in dwarven armor and weapons with the warring humans of Ten-Towns has reversed the dwarves' decline, though Bruenor regards the arrangement as temporary.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-drizzt-distrusted-in-ten-towns",
+      "kind": "established_fact",
+      "text": "Drizzt Do'Urden is not trusted or openly welcomed in any town of Ten-Towns except Lonelywood, where Regis is spokesman; only Regis and the dwarves consider the drow a friend.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-catti-brie-orphaned-and-adopted",
+      "kind": "established_fact",
+      "text": "Catti-brie is a human girl orphaned years earlier in a raid on Termalaine; Bruenor took her in and raised her as his own child, and she still lives with him.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-regis-ruby-pendant-magical",
+      "kind": "established_fact",
+      "text": "Regis carries a finely-cut ruby pendant whose subtle magic can sway listeners; Drizzt recognizes it from legend, and Regis claims it as one of twelve similar stones his former master possessed — implying Regis stole it.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-barbarian-invasion-coming",
+      "kind": "knowledge_change",
+      "text": "Drizzt has confirmed that a barbarian horde is preparing to charge Ten-Towns and tells Bruenor that without unified defense the people are doomed.",
+      "data": {
+        "characterId": "drizzt"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-ten-towns-council-in-bryn-shander",
+      "kind": "established_fact",
+      "text": "A council of Ten-Towns spokesmen meets in Bryn Shander in two days; Drizzt plans to instruct Regis to carry word of the invasion there and use the ruby's influence to forge a defensive alliance.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kemp-of-targos-political-key",
+      "kind": "established_fact",
+      "text": "Kemp of Targos believes his walled city can stand alone, refuses to join any pact that includes rival Termalaine, and his cooperation is the political key without which Caer-Konig and Caer-Dineval will not commit; Easthaven and Lonelywood are reliably for unity.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-knucklehead-trout-deeper",
+      "kind": "established_fact",
+      "text": "Knucklehead trout have moved into the deeper waters of the lakes in recent years, making them harder to catch and driving cooperation among Ten-Towns to a low point as each town tries to gain economic advantage over rival towns on its lake.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-promise-akar-kessell-rise-payoff-begins",
+      "kind": "payoff",
+      "text": "The earlier setup of Kessell as the wizards' pawn pays off in his transformation: armed with Crenshinibon and Cryshal-Tirith and his first goblin servant, Akar Kessell begins his rise as the Tyrant of Icewind Dale.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-promise-cryshal-tirith-as-base-of-power",
+      "kind": "promise",
+      "text": "Cryshal-Tirith stands in a remote bowl of the Spine of the World as Kessell's growing seat of power; Crenshinibon intends to mold him slowly into an instrument of conquest, foreshadowing future campaigns against Ten-Towns and beyond.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-promise-mithril-hall-quest",
+      "kind": "promise",
+      "text": "Bruenor's deepest desire is to recover and restore Mithril Hall, and he has badgered Drizzt for years to accompany him on the quest; Drizzt humors him with 'someday' but neither knows the way.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-promise-warn-ten-towns-council",
+      "kind": "promise",
+      "text": "Drizzt commits to instructing Regis on how to carry the warning of the barbarian invasion to the Ten-Towns council in Bryn Shander, using the ruby pendant to win the spokesmen — Targos and Kemp being the political key.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "errtu",
+      "name": "Errtu",
+      "aliases": [
+        "the demon"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 0,
+      "data": {
+        "species": "demon",
+        "description": "Horned, apelike head; clawed fingers; canine maw; evil red eyes. A demon of the Abyss who once served seven liches and seeks Crenshinibon."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "telshazz",
+      "name": "Telshazz",
+      "aliases": [
+        "the smaller demon",
+        "the little demon"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 0,
+      "data": {
+        "species": "demon",
+        "description": "Smaller demon subordinate to Errtu; killed by Errtu after delivering bad news about Crenshinibon."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "al-dimeneira",
+      "name": "Al Dimeneira",
+      "aliases": [],
+      "kind": "character",
+      "firstAppearedChapter": 0,
+      "data": {
+        "species": "angelic being",
+        "description": "An angelic being of tremendous power; banished Errtu with a single word and hurled Crenshinibon across the planes when he could not destroy it."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "crenshinibon",
+      "name": "Crenshinibon",
+      "aliases": [
+        "the crystal shard",
+        "the relic",
+        "the shard"
+      ],
+      "kind": "item",
+      "firstAppearedChapter": 0,
+      "data": {
+        "description": "Sentient evil artifact forged by seven liches; feeds on sunlight; resists destruction; currently rests in a snowy bowl-shaped dell in the northern mountains of the Forgotten Realms."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "cryshal-tirith",
+      "name": "Cryshal-Tirith",
+      "aliases": [
+        "the second crystal tower"
+      ],
+      "kind": "location",
+      "firstAppearedChapter": 0,
+      "data": {
+        "description": "A crystal tower whose pulsating heart is the exact image of Crenshinibon; gave Errtu the trail to rediscover the shard."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "the-abyss",
+      "name": "The Abyss",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 0,
+      "data": {
+        "description": "Multi-layered demonic plane of swirling smoke, sludge, and gloom; Errtu's home plane."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 0,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "icewind-dale",
+      "name": "Icewind Dale",
+      "aliases": [
+        "the dale"
+      ],
+      "kind": "location",
+      "firstAppearedChapter": 1,
+      "data": {
+        "description": "A thousand square miles of barren tundra in the far north of the Forgotten Realms; bordered by Spine of the World, Reghed Glacier, and Sea of Moving Ice."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "ten-towns",
+      "name": "Ten-Towns",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 1,
+      "data": {
+        "description": "Frontier cluster of ten small towns around three lakes (Maer Dualdon, Lac Dinneshere, Redwaters) in Icewind Dale; economy built on knucklehead-trout scrimshaw."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "kelvins-cairn",
+      "name": "Kelvin's Cairn",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 1,
+      "data": {
+        "description": "The only mountain in Icewind Dale; marks the entrance to the dwarven valley where Bruenor's clan lives."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "spine-of-the-world",
+      "name": "Spine of the World",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 1,
+      "data": {
+        "description": "Mountain range many consider the northern boundary of civilization; forms the southern border of Icewind Dale."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "luskan",
+      "name": "Luskan",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 1,
+      "data": {
+        "description": "Northern Sword Coast city ~400 miles south of Ten-Towns; home of the Hosttower of the Arcane."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "hosttower-of-the-arcane",
+      "name": "Hosttower of the Arcane",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 1,
+      "data": {
+        "description": "Wizards' tower in Luskan housing the Wizard's Guild and ruled by an archmage."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "arcane-brotherhood",
+      "name": "Arcane Brotherhood",
+      "aliases": [
+        "Wizard's Guild of Luskan"
+      ],
+      "kind": "organization",
+      "firstAppearedChapter": 1,
+      "data": {
+        "description": "Wizards' guild based in the Hosttower of the Arcane in Luskan."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "easthaven",
+      "name": "Easthaven",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 1,
+      "data": {
+        "description": "Ten-Towns town that hosted the Luskan wizards' caravan; site of Morkai the Red's murder."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "morkai",
+      "name": "Morkai the Red",
+      "aliases": [
+        "Morkai",
+        "the red-robed wizard of Luskan",
+        "the old mage"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 1,
+      "data": {
+        "description": "Old red-robed Luskan wizard; raised Akar Kessell as his apprentice for 25 years; murdered by Kessell in Easthaven at the conspiracy of Eldeluc and Dendybar."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "akar-kessell",
+      "name": "Akar Kessell",
+      "aliases": [
+        "Kessell",
+        "Kessell the Red"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 1,
+      "data": {
+        "description": "Bumbling apprentice wizard of Morkai the Red; murders his master at the manipulation of Eldeluc and Dendybar in exchange for a promised seat in the Wizard's Guild."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "eldeluc",
+      "name": "Eldeluc",
+      "aliases": [
+        "the burly man"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 1,
+      "data": {
+        "description": "Burly Luskan wizard of the Hosttower; co-conspirator with Dendybar in manipulating Akar Kessell to murder Morkai."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "dendybar",
+      "name": "Dendybar the Mottled",
+      "aliases": [
+        "Dendybar"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 1,
+      "data": {
+        "description": "Frail-looking, cold-blooded Luskan wizard who hides under a low-pulled cowl; speaks rarely and in a flat monotone; the most-feared of the wizard caravan."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "regis",
+      "name": "Regis",
+      "aliases": [
+        "the halfling"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "The only halfling in Icewind Dale; council spokesman of Lonelywood; scrimshander; former Associate Guildmaster in Pasha Pook's thieves' guild in Calimport, exiled after stealing a hypnotic ruby."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "pasha-pook",
+      "name": "Pasha Pook",
+      "aliases": [
+        "Pook"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "Guildmaster of a prominent thieves' guild in Calimport; former master of Regis; pursuing the halfling for the theft of one of his rubies."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "regis-ruby-pendant",
+      "name": "Regis's Ruby Pendant",
+      "aliases": [
+        "the ruby pendant",
+        "the wondrous gem"
+      ],
+      "kind": "item",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "Ruby with hypnotically cut facets stolen by Regis from Pasha Pook in Calimport; casts an almost hypnotic spell on viewers."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "lonelywood",
+      "name": "Lonelywood",
+      "aliases": [
+        "the town in the wood"
+      ],
+      "kind": "location",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "Smallest and northernmost of the Ten Towns; wooded; a haven for rogues; Regis's home and constituency."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "bryn-shander",
+      "name": "Bryn Shander",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "Walled principal settlement of Ten-Towns; market hub; site of council meetings of the ten spokesmen."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "targos",
+      "name": "Targos",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "Largest of the Ten-Towns fishing towns; over a hundred vessels on Maer Dualdon."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "termalaine",
+      "name": "Termalaine",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 3,
+      "data": {
+        "description": "Ten-Towns settlement to the south; twice conquered by Heafstaag in barbarian raids."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "maer-dualdon",
+      "name": "Maer Dualdon",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "Northwestern of the three lakes of Ten-Towns; home to Lonelywood and Targos's fishing fleets."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "lac-dinneshere",
+      "name": "Lac Dinneshere",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "One of the three lakes of Ten-Towns; bounds the dwarven valley with Maer Dualdon."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "redwaters",
+      "name": "Redwaters",
+      "aliases": [
+        "Dellon-lune"
+      ],
+      "kind": "location",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "Southernmost of the three lakes of Ten-Towns; renamed from Dellon-lune after a multi-boat fishing-rights massacre."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "reghed-glacier",
+      "name": "Reghed Glacier",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "Expanding glacier on the eastern border of Icewind Dale; source of the chilled eastern wind that gives the dale its name."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "sea-of-moving-ice",
+      "name": "Sea of Moving Ice",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "Unnavigable sea of countless icebergs along the north and east of Icewind Dale."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "drizzt",
+      "name": "Drizzt Do'Urden",
+      "aliases": [
+        "Drizzt",
+        "the dark elf",
+        "the drow",
+        "the elf"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 2,
+      "data": {
+        "species": "drow (dark elf)",
+        "description": "Dark-elf ranger with stark white hair and violet almond eyes; wields twin scimitars; commands the magical panther Guenhwyvar; living on the surface for five years; close friend of Bruenor."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "bruenor",
+      "name": "Bruenor Battlehammer",
+      "aliases": [
+        "Bruenor",
+        "the dwarf"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 2,
+      "data": {
+        "species": "dwarf",
+        "description": "Dwarf with often-broken pointed nose and gray-streaked fiery red beard; wields a heavy axe; lives in the dwarven valley near Kelvin's Cairn; close friend of Drizzt."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "guenhwyvar",
+      "name": "Guenhwyvar",
+      "aliases": [
+        "the kitten",
+        "the panther"
+      ],
+      "kind": "item",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "Onyx panther figurine; magical companion summoned by Drizzt; the cat needs rest between summonings."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "menzoberranzan",
+      "name": "Menzoberranzan",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "Lightless underworld city of the drow; Drizzt's birthplace and ancestral home."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "calimport",
+      "name": "Calimport",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "Port city in the southern land of Calimshan; Regis's prior home and Pasha Pook's thieves' guild seat."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "calimshan",
+      "name": "Calimshan",
+      "aliases": [],
+      "kind": "location",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "Southern land of the Realms; Regis's birthplace; contains Calimport."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "tundra-yetis",
+      "name": "Tundra Yetis",
+      "aliases": [
+        "bearlike tundra yetis"
+      ],
+      "kind": "concept",
+      "firstAppearedChapter": 2,
+      "data": {
+        "description": "Bearlike yetis with shaggy fur (summer brown coloration) that hunt on the open plains of Icewind Dale; cannot be eaten."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 2,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "knucklehead-trout",
+      "name": "Knucklehead Trout",
+      "aliases": [],
+      "kind": "concept",
+      "firstAppearedChapter": 1,
+      "data": {
+        "description": "Silvery trout with oversized fist-shaped heads and bones the consistency of fine ivory; only swim in the three lakes of Icewind Dale; basis of Ten-Towns' scrimshaw economy."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 1,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "tempos",
+      "name": "Tempos",
+      "aliases": [
+        "the God of Battle"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 3,
+      "data": {
+        "species": "deity",
+        "description": "God of Battle revered by the northern barbarian tribes; the Hengorot and Song of Tempos are dedicated to him."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "hengorot",
+      "name": "Hengorot",
+      "aliases": [
+        "The Mead Hall"
+      ],
+      "kind": "location",
+      "firstAppearedChapter": 3,
+      "data": {
+        "description": "Great deerskin mead hall raised by the gathering barbarian tribes north of Ten-Towns; place of reverence to Tempos for shared drink and war council."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "beorg",
+      "name": "Beorg",
+      "aliases": [
+        "King Beorg",
+        "the blond king"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 3,
+      "data": {
+        "description": "King of the Tribe of the Wolf; robust, blond-haired, white-bearded; host of the Hengorot; planner of the conquest of Ten-Towns."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "heafstaag",
+      "name": "Heafstaag",
+      "aliases": [
+        "King Heafstaag",
+        "the one-eyed king",
+        "the red-bearded king",
+        "the giant king"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 3,
+      "data": {
+        "description": "King of the Tribe of the Elk; nearly seven feet tall, red-bearded, one-eyed, with a crumpled left hand; brutal and glory-seeking; Beorg's primary rival on the tundra and now co-leader of the conquest."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "debernezan",
+      "name": "deBernezan",
+      "aliases": [
+        "the southerner",
+        "the dark-haired southerner"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 3,
+      "data": {
+        "description": "Mousey dark-haired southerner who lived in Ten-Towns for two winters; betrayed his people to Beorg; expected to broker the conquered towns' wealth in southern markets."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "haalfdane",
+      "name": "Haalfdane",
+      "aliases": [],
+      "kind": "character",
+      "firstAppearedChapter": 3,
+      "data": {
+        "description": "King of the Tribe of the Bear; son of Raag Doning, who was killed by Heafstaag in single combat."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "raag-doning",
+      "name": "Raag Doning",
+      "aliases": [],
+      "kind": "character",
+      "firstAppearedChapter": 3,
+      "data": {
+        "description": "Former King of the Tribe of the Bear; slain by Heafstaag in single combat in a single stroke; father of Haalfdane."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "tribe-of-the-wolf",
+      "name": "Tribe of the Wolf",
+      "aliases": [],
+      "kind": "organization",
+      "firstAppearedChapter": 3,
+      "data": {
+        "description": "Northern barbarian tribe of Icewind Dale led by King Beorg; co-leading the planned conquest of Ten-Towns."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "tribe-of-the-elk",
+      "name": "Tribe of the Elk",
+      "aliases": [],
+      "kind": "organization",
+      "firstAppearedChapter": 3,
+      "data": {
+        "description": "Northern barbarian tribe of Icewind Dale led by King Heafstaag; last to arrive at the Hengorot; co-leading the planned conquest of Ten-Towns."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "tribe-of-the-bear",
+      "name": "Tribe of the Bear",
+      "aliases": [],
+      "kind": "organization",
+      "firstAppearedChapter": 3,
+      "data": {
+        "description": "Northern barbarian tribe of Icewind Dale led by King Haalfdane; lesser tribe at the Hengorot."
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 3,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "catti-brie",
+      "name": "Catti-brie",
+      "aliases": [
+        "the human girl",
+        "Bruenor's adopted daughter"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 5,
+      "data": {
+        "race": "human",
+        "guardian": "bruenor",
+        "origin": "orphaned in a barbarian raid on Termalaine",
+        "currentResidence": "dwarven valley with Bruenor"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "kemp",
+      "name": "Kemp of Targos",
+      "aliases": [
+        "Kemp",
+        "Spokesman of Targos"
+      ],
+      "kind": "character",
+      "firstAppearedChapter": 5,
+      "data": {
+        "role": "spokesman of Targos on the Ten-Towns council",
+        "stance": "believes Targos can stand alone; refuses any pact including Termalaine"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "mithril-hall",
+      "name": "Mithril Hall",
+      "aliases": [
+        "the silvery halls",
+        "Bruenor's ancient home"
+      ],
+      "kind": "location",
+      "firstAppearedChapter": 5,
+      "data": {
+        "type": "lost dwarven city",
+        "status": "abandoned; location unknown",
+        "claimant": "Bruenor's clan",
+        "deities": [
+          "Moradin",
+          "Dumathoin"
+        ]
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "bruenors-climb",
+      "name": "Bruenor's Climb",
+      "aliases": [
+        "the high perch"
+      ],
+      "kind": "location",
+      "firstAppearedChapter": 5,
+      "data": {
+        "type": "high column of stones",
+        "location": "southern end of the dwarven valley overlooking Termalaine and Maer Dualdon",
+        "namedBy": "the people of Ten-Towns"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "dwarven-valley",
+      "name": "Dwarven Valley",
+      "aliases": [
+        "the rocky valley",
+        "the dwarves' valley"
+      ],
+      "kind": "location",
+      "firstAppearedChapter": 5,
+      "data": {
+        "type": "rocky valley between the two northernmost of the three lakes",
+        "location": "just north of Bryn Shander",
+        "inhabitants": "Bruenor's dwarven clan"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "moradin",
+      "name": "Moradin",
+      "aliases": [],
+      "kind": "character",
+      "firstAppearedChapter": 5,
+      "data": {
+        "type": "dwarven deity",
+        "context": "praised in the smithies of Mithril Hall"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "dumathoin",
+      "name": "Dumathoin",
+      "aliases": [],
+      "kind": "character",
+      "firstAppearedChapter": 5,
+      "data": {
+        "type": "dwarven deity",
+        "context": "praised in the smithies of Mithril Hall"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "kessell-goblin-tribe",
+      "name": "Kessell's Goblin Tribe",
+      "aliases": [
+        "the goblin tribe",
+        "the nomadic goblins"
+      ],
+      "kind": "organization",
+      "firstAppearedChapter": 4,
+      "data": {
+        "type": "nomadic goblin tribe with families",
+        "location": "valley near Cryshal-Tirith in the Spine of the World",
+        "status": "enslaved by Akar Kessell",
+        "leader": "the goblin chieftain (compelled to call Kessell 'Master')"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    }
+  ],
+  "characterStates": [
+    {
+      "characterId": "errtu",
+      "characterName": "Errtu",
+      "knownFacts": [
+        "fact-crenshinibon-evil-artifact",
+        "fact-crenshinibon-forged-by-seven-liches",
+        "fact-crenshinibon-feeds-on-sunlight",
+        "fact-errtu-served-the-seven-liches",
+        "fact-errtu-blasted-back-to-abyss-at-forging",
+        "fact-cryshal-tirith-houses-shard-image",
+        "fact-al-dimeneira-banished-errtu",
+        "fact-al-dimeneira-could-not-destroy-shard",
+        "fact-al-dimeneira-hurled-shard-across-planes"
+      ],
+      "state": {
+        "location": "the-abyss",
+        "alignment": "evil",
+        "occupation": "demon-lord seeking Crenshinibon",
+        "mentalState": "enraged after killing Telshazz; aware the shard is hurled across the planes"
+      },
+      "asOfChapter": 0
+    },
+    {
+      "characterId": "akar-kessell",
+      "characterName": "Akar Kessell",
+      "knownFacts": [
+        "fact-kessell-was-morkais-apprentice",
+        "fact-kessell-murders-morkai",
+        "fact-conspiracy-promised-kessell-guild-seat"
+      ],
+      "state": {
+        "location": "easthaven",
+        "alignment": "weak/manipulable",
+        "occupation": "apprentice wizard (now murderer of his master)",
+        "mentalState": "elated and self-deluding; believes he has earned a seat in the Wizard's Guild; still incompetent at magic",
+        "possessions": [
+          "dagger used to murder Morkai"
+        ]
+      },
+      "asOfChapter": 1
+    },
+    {
+      "characterId": "eldeluc",
+      "characterName": "Eldeluc",
+      "knownFacts": [
+        "fact-conspiracy-promised-kessell-guild-seat",
+        "fact-kessell-murders-morkai"
+      ],
+      "state": {
+        "location": "easthaven",
+        "alignment": "evil",
+        "occupation": "Luskan wizard / co-conspirator",
+        "mentalState": "satisfied that the conspiracy succeeded; departing for Luskan that night"
+      },
+      "asOfChapter": 1
+    },
+    {
+      "characterId": "dendybar",
+      "characterName": "Dendybar the Mottled",
+      "knownFacts": [
+        "fact-conspiracy-promised-kessell-guild-seat",
+        "fact-kessell-murders-morkai"
+      ],
+      "state": {
+        "location": "easthaven",
+        "alignment": "evil",
+        "occupation": "Luskan wizard / lead conspirator",
+        "mentalState": "cold-bloodedly amused; satisfied with Kessell's usefulness"
+      },
+      "asOfChapter": 1
+    },
+    {
+      "characterId": "regis",
+      "characterName": "Regis",
+      "knownFacts": [
+        "fact-regis-is-only-halfling-in-region",
+        "fact-regis-fled-pasha-pook",
+        "fact-regis-ruby-pendant-hypnotic",
+        "fact-regis-spokesman-of-lonelywood"
+      ],
+      "state": {
+        "location": "lonelywood / shore of Maer Dualdon",
+        "alignment": "good (rogue)",
+        "occupation": "scrimshander; council spokesman of Lonelywood",
+        "mentalState": "content in his northern sanctuary; lazy; nostalgic about Calimport",
+        "possessions": [
+          "ruby pendant",
+          "carving instruments",
+          "ivory block"
+        ]
+      },
+      "asOfChapter": 2
+    },
+    {
+      "characterId": "drizzt",
+      "characterName": "Drizzt Do'Urden",
+      "knownFacts": [
+        "fact-drizzt-is-drow-on-surface",
+        "fact-drizzt-suffers-sunlight",
+        "fact-drow-elves-driven-underground",
+        "fact-drizzt-wields-twin-scimitars",
+        "fact-drizzt-owns-guenhwyvar-figurine",
+        "fact-drizzt-detects-barbarian-anomaly",
+        "fact-drizzt-bruenor-kill-tundra-yetis"
+      ],
+      "state": {
+        "location": "kelvins-cairn area / dwarven valley road",
+        "alignment": "good",
+        "occupation": "ranger",
+        "mentalState": "alarmed by the signs of an impending barbarian war; overdue for meeting with Bruenor",
+        "possessions": [
+          "two scimitars",
+          "Guenhwyvar onyx figurine",
+          "brown cloak"
+        ]
+      },
+      "asOfChapter": 2
+    },
+    {
+      "characterId": "bruenor",
+      "characterName": "Bruenor Battlehammer",
+      "knownFacts": [
+        "fact-drizzt-bruenor-kill-tundra-yetis"
+      ],
+      "state": {
+        "location": "open plain near Kelvin's Cairn / heading to dwarven valley",
+        "alignment": "good",
+        "occupation": "dwarf chieftain (clan leader)",
+        "mentalState": "irritable but glad of his friend's company",
+        "possessions": [
+          "heavy axe"
+        ]
+      },
+      "asOfChapter": 2
+    },
+    {
+      "characterId": "beorg",
+      "characterName": "Beorg",
+      "knownFacts": [
+        "fact-barbarian-tribes-gather-north-of-ten-towns",
+        "fact-beorg-king-of-tribe-of-wolf",
+        "fact-beorg-plans-conquest-of-ten-towns",
+        "fact-debernezan-betrayer-of-ten-towns",
+        "fact-beorg-and-heafstaag-pact-co-leadership"
+      ],
+      "state": {
+        "location": "hengorot",
+        "alignment": "lawful (by tribal code)",
+        "occupation": "King of the Tribe of the Wolf; host king of the Hengorot",
+        "mentalState": "relieved that Heafstaag accepted co-leadership; wary of his rival's eventual betrayal",
+        "possessions": [
+          "axe (bloodied to seal pact)"
+        ]
+      },
+      "asOfChapter": 3
+    },
+    {
+      "characterId": "heafstaag",
+      "characterName": "Heafstaag",
+      "knownFacts": [
+        "fact-heafstaag-king-of-tribe-of-elk",
+        "fact-beorg-and-heafstaag-pact-co-leadership",
+        "fact-heafstaag-twice-conquered-termalaine",
+        "fact-heafstaag-tests-debernezan"
+      ],
+      "state": {
+        "location": "hengorot",
+        "alignment": "evil/glory-seeking",
+        "occupation": "King of the Tribe of the Elk; co-leader of the conquest",
+        "mentalState": "boisterous; anticipating battle and plunder; secretly intending to redistribute the booty later",
+        "possessions": [
+          "axe (bloodied to seal pact)"
+        ]
+      },
+      "asOfChapter": 3
+    },
+    {
+      "characterId": "debernezan",
+      "characterName": "deBernezan",
+      "knownFacts": [
+        "fact-debernezan-betrayer-of-ten-towns",
+        "fact-heafstaag-tests-debernezan"
+      ],
+      "state": {
+        "location": "hengorot",
+        "alignment": "venal/traitorous",
+        "occupation": "informant for the barbarian invasion; promised southern-marketplace broker after conquest",
+        "mentalState": "terrified after Heafstaag's axe-feint; wet himself but spared by the standard bearer's silence"
+      },
+      "asOfChapter": 3
+    },
+    {
+      "characterId": "akar-kessell",
+      "characterName": "Akar Kessell",
+      "knownFacts": [
+        "fact-kessell-realizes-betrayal",
+        "fact-kessell-finds-crenshinibon",
+        "fact-kessell-gains-magical-power",
+        "fact-crenshinibon-powers"
+      ],
+      "state": {
+        "location": "Cryshal-Tirith, Spine of the World",
+        "possessions": [
+          "crenshinibon"
+        ],
+        "magicalState": "wielder of Crenshinibon, gaining powers beyond Morkai's teaching",
+        "followers": [
+          "kessell-goblin-tribe"
+        ],
+        "mentalState": "exalted, dreaming of becoming Tyrant of Icewind Dale; secretly being shaped by Crenshinibon's nighttime suggestions"
+      },
+      "asOfChapter": 5,
+      "asOfBeat": null
+    },
+    {
+      "characterId": "drizzt",
+      "characterName": "Drizzt Do'Urden",
+      "knownFacts": [
+        "fact-barbarian-invasion-coming",
+        "fact-drizzt-distrusted-in-ten-towns",
+        "fact-regis-ruby-pendant-magical"
+      ],
+      "state": {
+        "location": "Bruenor's Climb, dwarven valley",
+        "knows": "the barbarian charge is imminent",
+        "plan": "warn Ten-Towns by instructing Regis to carry the news to the Bryn Shander council in two days",
+        "social": "friend to Bruenor and Regis; otherwise distrusted in Ten-Towns"
+      },
+      "asOfChapter": 5,
+      "asOfBeat": null
+    },
+    {
+      "characterId": "bruenor",
+      "characterName": "Bruenor Battlehammer",
+      "knownFacts": [
+        "fact-barbarian-invasion-coming",
+        "fact-bruenor-from-mithril-hall",
+        "fact-mithril-hall-lost-homeland"
+      ],
+      "state": {
+        "location": "Bruenor's Climb, dwarven valley",
+        "role": "eldest of his small dwarven clan; only living member to remember Mithril Hall",
+        "household": "raises Catti-brie as his own",
+        "stance": "refuses to send dwarves to warn Ten-Towns; will fight beside them only if they unite first"
+      },
+      "asOfChapter": 5,
+      "asOfBeat": null
+    },
+    {
+      "characterId": "catti-brie",
+      "characterName": "Catti-brie",
+      "knownFacts": [],
+      "state": {
+        "location": "Bruenor's home, dwarven valley",
+        "guardian": "bruenor",
+        "background": "orphaned in a raid on Termalaine, raised by Bruenor as his own"
+      },
+      "asOfChapter": 5,
+      "asOfBeat": null
+    }
+  ],
+  "promises": [
+    {
+      "id": "promise-crenshinibon-reclaim",
+      "setupChapter": 0,
+      "expectedPayoffChapter": null,
+      "resolvedAtChapter": null,
+      "status": "open",
+      "promiseFactId": "fact-promise-crenshinibon-reclaimed"
+    },
+    {
+      "id": "promise-luskan-wizards-agenda",
+      "setupChapter": 1,
+      "expectedPayoffChapter": null,
+      "resolvedAtChapter": null,
+      "status": "open",
+      "promiseFactId": "fact-promise-luskan-wizards-hidden-agenda"
+    },
+    {
+      "id": "promise-kessell-rise",
+      "setupChapter": 1,
+      "expectedPayoffChapter": null,
+      "resolvedAtChapter": null,
+      "status": "open",
+      "promiseFactId": "fact-promise-akar-kessell-rise"
+    },
+    {
+      "id": "promise-pasha-pook-pursuit",
+      "setupChapter": 2,
+      "expectedPayoffChapter": null,
+      "resolvedAtChapter": null,
+      "status": "open",
+      "promiseFactId": "fact-promise-pasha-pook-pursuit"
+    },
+    {
+      "id": "promise-barbarian-invasion",
+      "setupChapter": 3,
+      "expectedPayoffChapter": null,
+      "resolvedAtChapter": null,
+      "status": "open",
+      "promiseFactId": "fact-promise-barbarian-invasion-of-ten-towns"
+    },
+    {
+      "id": "promise-akar-kessell-rise",
+      "setupChapter": 3,
+      "setupBeat": null,
+      "expectedPayoffChapter": null,
+      "resolvedAtChapter": null,
+      "resolvedAtBeat": null,
+      "status": "open",
+      "promiseFactId": "fact-promise-akar-kessell-rise-payoff-begins"
+    },
+    {
+      "id": "promise-cryshal-tirith-conquest",
+      "setupChapter": 4,
+      "setupBeat": null,
+      "expectedPayoffChapter": null,
+      "resolvedAtChapter": null,
+      "resolvedAtBeat": null,
+      "status": "open",
+      "promiseFactId": "fact-promise-cryshal-tirith-as-base-of-power"
+    },
+    {
+      "id": "promise-mithril-hall-quest",
+      "setupChapter": 5,
+      "setupBeat": null,
+      "expectedPayoffChapter": null,
+      "resolvedAtChapter": null,
+      "resolvedAtBeat": null,
+      "status": "open",
+      "promiseFactId": "fact-promise-mithril-hall-quest"
+    },
+    {
+      "id": "promise-warn-ten-towns-council",
+      "setupChapter": 5,
+      "setupBeat": null,
+      "expectedPayoffChapter": null,
+      "resolvedAtChapter": null,
+      "resolvedAtBeat": null,
+      "status": "open",
+      "promiseFactId": "fact-promise-warn-ten-towns-council"
+    }
+  ]
+}

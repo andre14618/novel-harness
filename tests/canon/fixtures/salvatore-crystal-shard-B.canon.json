@@ -1,0 +1,721 @@
+{
+  "novelId": "salvatore-crystal-shard",
+  "snapshotVersion": "salvatore-poc-v1-subagent-B",
+  "description": "Manual canon for R.A. Salvatore's The Crystal Shard, chapters 4-5 (subagent B; merges with subagent A's prelude+ch1-3 output)",
+  "facts": [
+    {
+      "id": "fact-kessell-abandoned-in-spine-of-the-world",
+      "kind": "established_fact",
+      "text": "Eldulac, Dendybar the Mottled, and the other Hosttower wizards abandoned Akar Kessell in a snow-filled bowl in the Spine of the World, intending him to die after he served his purpose by murdering Morkai the Red.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kessell-realizes-betrayal",
+      "kind": "knowledge_change",
+      "text": "Akar Kessell realizes the Hosttower wizards never intended to grant him the title of wizard and used him only as a pawn to rid themselves of Morkai the Red.",
+      "data": { "characterId": "akar-kessell" },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-crenshinibon-is-ancient-sentient-relic",
+      "kind": "established_fact",
+      "text": "Crenshinibon, the Crystal Shard, is an ancient sentient relic enchanted at the dawn of the world; a force of darkest evil that draws strength from the light of day, and a perversion lost for centuries that evil lords have long sought.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-crenshinibon-powers",
+      "kind": "established_fact",
+      "text": "Crenshinibon serves as an instrument of destruction, a tool for scrying, and a shelter and home for its wielder; foremost it imparts great magical strength to its possessor.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kessell-finds-crenshinibon",
+      "kind": "knowledge_change",
+      "text": "Dying in the snow, Akar Kessell digs up a warm crystal shard buried beneath the bowl's center; it revives him and he claims it without understanding what it is.",
+      "data": { "characterId": "akar-kessell" },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-crenshinibon-manipulates-kessell-via-dreams",
+      "kind": "established_fact",
+      "text": "Crenshinibon imposes dreams on its sleeping host and uses nighttime suggestions to slowly mold a weak-willed wielder toward conquest; it intends to nurture Kessell into a proper representative of its destructive power.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kessell-gains-magical-power",
+      "kind": "knowledge_change",
+      "text": "Possessing Crenshinibon, Kessell gains spellcasting power far beyond what Morkai ever taught him, including a lightning-bolt kill on a deer and telekinesis to retrieve it.",
+      "data": { "characterId": "akar-kessell" },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-cryshal-tirith-creation",
+      "kind": "established_fact",
+      "text": "By placing a duplicate of Crenshinibon in the snow and speaking the arcane words 'Ibssum dal abdur,' Kessell raises a mammoth crystalline tower named Cryshal-Tirith — an exact magnified image of the shard — that draws the light of the surrounding day into itself.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-cryshal-tirith-entrance-invisible",
+      "kind": "established_fact",
+      "text": "The entrance to Cryshal-Tirith is invisible to all except denizens of foreign planes and those whom Crenshinibon (or its wielder) allows to enter.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kessell-enslaves-goblin-tribe",
+      "kind": "established_fact",
+      "text": "Using a scrying mirror in Cryshal-Tirith, Kessell projects his will onto a nearby nomadic goblin tribe and compels their chieftain to enter the tower and kneel, naming Kessell 'Master' — the first followers of his nascent kingdom.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-spine-of-the-world-is-impassable",
+      "kind": "established_fact",
+      "text": "The Spine of the World is a foreboding range of impassable mountains; its caves are contested fiercely by orcs, goblins, ogres, and stronger monsters, and weaker goblin tribes are often driven above ground, enslaved, or slaughtered.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-bruenor-from-mithril-hall",
+      "kind": "established_fact",
+      "text": "Bruenor Battlehammer is the eldest surviving member of his small dwarven clan and the only one among them who personally witnessed Mithril Hall — his ancestral home — before his people were driven out by dark things from the deep.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-mithril-hall-lost-homeland",
+      "kind": "established_fact",
+      "text": "Mithril Hall is the lost ancestral home of Bruenor's clan, a place where rivers of mithril ran rich and dwarven smiths' hammers rang out in praise to Moradin and Dumathoin; its location is unknown and Bruenor remembers only disjointed images.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-dwarven-valley-trade",
+      "kind": "established_fact",
+      "text": "The dwarves' rocky valley sits between the two northernmost lakes just north of Bryn Shander; trade in dwarven armor and weapons with the warring humans of Ten-Towns has reversed the dwarves' decline, though Bruenor regards the arrangement as temporary.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kelvins-cairn-only-mountain",
+      "kind": "established_fact",
+      "text": "Kelvin's Cairn — named for resembling a piled grave-mound from barbarian legend — and the dwarves' rocky valley are the only features in all of Icewind Dale with mentionable quantities of rock; the surrounding tundra is otherwise flat and earthen.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-drizzt-distrusted-in-ten-towns",
+      "kind": "established_fact",
+      "text": "Drizzt Do'Urden is not trusted or openly welcomed in any town of Ten-Towns except Lonelywood, where Regis is spokesman; only Regis and the dwarves consider the drow a friend.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-catti-brie-orphaned-and-adopted",
+      "kind": "established_fact",
+      "text": "Catti-brie is a human girl orphaned years earlier in a raid on Termalaine; Bruenor took her in and raised her as his own child, and she still lives with him.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-regis-ruby-pendant-magical",
+      "kind": "established_fact",
+      "text": "Regis carries a finely-cut ruby pendant whose subtle magic can sway listeners; Drizzt recognizes it from legend, and Regis claims it as one of twelve similar stones his former master possessed — implying Regis stole it.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-barbarian-invasion-coming",
+      "kind": "knowledge_change",
+      "text": "Drizzt has confirmed that a barbarian horde is preparing to charge Ten-Towns and tells Bruenor that without unified defense the people are doomed.",
+      "data": { "characterId": "drizzt" },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "observed",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-ten-towns-council-in-bryn-shander",
+      "kind": "established_fact",
+      "text": "A council of Ten-Towns spokesmen meets in Bryn Shander in two days; Drizzt plans to instruct Regis to carry word of the invasion there and use the ruby's influence to forge a defensive alliance.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-kemp-of-targos-political-key",
+      "kind": "established_fact",
+      "text": "Kemp of Targos believes his walled city can stand alone, refuses to join any pact that includes rival Termalaine, and his cooperation is the political key without which Caer-Konig and Caer-Dineval will not commit; Easthaven and Lonelywood are reliably for unity.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-knucklehead-trout-deeper",
+      "kind": "established_fact",
+      "text": "Knucklehead trout have moved into the deeper waters of the lakes in recent years, making them harder to catch and driving cooperation among Ten-Towns to a low point as each town tries to gain economic advantage over rival towns on its lake.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-promise-akar-kessell-rise-payoff-begins",
+      "kind": "payoff",
+      "text": "The earlier setup of Kessell as the wizards' pawn pays off in his transformation: armed with Crenshinibon and Cryshal-Tirith and his first goblin servant, Akar Kessell begins his rise as the Tyrant of Icewind Dale.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-promise-cryshal-tirith-as-base-of-power",
+      "kind": "promise",
+      "text": "Cryshal-Tirith stands in a remote bowl of the Spine of the World as Kessell's growing seat of power; Crenshinibon intends to mold him slowly into an instrument of conquest, foreshadowing future campaigns against Ten-Towns and beyond.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-promise-mithril-hall-quest",
+      "kind": "promise",
+      "text": "Bruenor's deepest desire is to recover and restore Mithril Hall, and he has badgered Drizzt for years to accompany him on the quest; Drizzt humors him with 'someday' but neither knows the way.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "fact-promise-warn-ten-towns-council",
+      "kind": "promise",
+      "text": "Drizzt commits to instructing Regis on how to carry the warning of the barbarian invasion to the Ten-Towns council in Bryn Shander, using the ruby pendant to win the spokesmen — Targos and Kemp being the political key.",
+      "data": {},
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "id": "crenshinibon",
+      "name": "Crenshinibon",
+      "aliases": ["the Crystal Shard", "Crystal Shard", "the shard"],
+      "kind": "item",
+      "firstAppearedChapter": 4,
+      "data": {
+        "nature": "ancient sentient relic",
+        "alignment": "evil",
+        "powerSource": "light of day",
+        "wielder": "akar-kessell"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "cryshal-tirith",
+      "name": "Cryshal-Tirith",
+      "aliases": ["the crystalline tower", "the tower"],
+      "kind": "location",
+      "firstAppearedChapter": 4,
+      "data": {
+        "type": "magical crystalline tower",
+        "createdBy": "akar-kessell",
+        "via": "duplicate of Crenshinibon",
+        "location": "snow-filled bowl in the Spine of the World",
+        "entrance": "invisible to mortals not allowed by Crenshinibon"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "catti-brie",
+      "name": "Catti-brie",
+      "aliases": ["the human girl", "Bruenor's adopted daughter"],
+      "kind": "character",
+      "firstAppearedChapter": 5,
+      "data": {
+        "race": "human",
+        "guardian": "bruenor",
+        "origin": "orphaned in a barbarian raid on Termalaine",
+        "currentResidence": "dwarven valley with Bruenor"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "kemp",
+      "name": "Kemp of Targos",
+      "aliases": ["Kemp", "Spokesman of Targos"],
+      "kind": "character",
+      "firstAppearedChapter": 5,
+      "data": {
+        "role": "spokesman of Targos on the Ten-Towns council",
+        "stance": "believes Targos can stand alone; refuses any pact including Termalaine"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "mithril-hall",
+      "name": "Mithril Hall",
+      "aliases": ["the silvery halls", "Bruenor's ancient home"],
+      "kind": "location",
+      "firstAppearedChapter": 5,
+      "data": {
+        "type": "lost dwarven city",
+        "status": "abandoned; location unknown",
+        "claimant": "Bruenor's clan",
+        "deities": ["Moradin", "Dumathoin"]
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "bruenors-climb",
+      "name": "Bruenor's Climb",
+      "aliases": ["the high perch"],
+      "kind": "location",
+      "firstAppearedChapter": 5,
+      "data": {
+        "type": "high column of stones",
+        "location": "southern end of the dwarven valley overlooking Termalaine and Maer Dualdon",
+        "namedBy": "the people of Ten-Towns"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "dwarven-valley",
+      "name": "Dwarven Valley",
+      "aliases": ["the rocky valley", "the dwarves' valley"],
+      "kind": "location",
+      "firstAppearedChapter": 5,
+      "data": {
+        "type": "rocky valley between the two northernmost of the three lakes",
+        "location": "just north of Bryn Shander",
+        "inhabitants": "Bruenor's dwarven clan"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "moradin",
+      "name": "Moradin",
+      "aliases": [],
+      "kind": "character",
+      "firstAppearedChapter": 5,
+      "data": {
+        "type": "dwarven deity",
+        "context": "praised in the smithies of Mithril Hall"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "dumathoin",
+      "name": "Dumathoin",
+      "aliases": [],
+      "kind": "character",
+      "firstAppearedChapter": 5,
+      "data": {
+        "type": "dwarven deity",
+        "context": "praised in the smithies of Mithril Hall"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 5,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    },
+    {
+      "id": "kessell-goblin-tribe",
+      "name": "Kessell's Goblin Tribe",
+      "aliases": ["the goblin tribe", "the nomadic goblins"],
+      "kind": "organization",
+      "firstAppearedChapter": 4,
+      "data": {
+        "type": "nomadic goblin tribe with families",
+        "location": "valley near Cryshal-Tirith in the Spine of the World",
+        "status": "enslaved by Akar Kessell",
+        "leader": "the goblin chieftain (compelled to call Kessell 'Master')"
+      },
+      "provenance": {
+        "source": "post-draft-extraction",
+        "chapter": 4,
+        "extractorVersion": "salvatore-poc-v1",
+        "approvalStatus": "human-approved",
+        "origin": "planned",
+        "createdAt": "2026-05-03T00:00:00Z",
+        "updatedAt": "2026-05-03T00:00:00Z"
+      }
+    }
+  ],
+  "characterStates": [
+    {
+      "characterId": "akar-kessell",
+      "characterName": "Akar Kessell",
+      "knownFacts": [
+        "fact-kessell-realizes-betrayal",
+        "fact-kessell-finds-crenshinibon",
+        "fact-kessell-gains-magical-power",
+        "fact-crenshinibon-powers"
+      ],
+      "state": {
+        "location": "Cryshal-Tirith, Spine of the World",
+        "possessions": ["crenshinibon"],
+        "magicalState": "wielder of Crenshinibon, gaining powers beyond Morkai's teaching",
+        "followers": ["kessell-goblin-tribe"],
+        "mentalState": "exalted, dreaming of becoming Tyrant of Icewind Dale; secretly being shaped by Crenshinibon's nighttime suggestions"
+      },
+      "asOfChapter": 5,
+      "asOfBeat": null
+    },
+    {
+      "characterId": "drizzt",
+      "characterName": "Drizzt Do'Urden",
+      "knownFacts": [
+        "fact-barbarian-invasion-coming",
+        "fact-drizzt-distrusted-in-ten-towns",
+        "fact-regis-ruby-pendant-magical"
+      ],
+      "state": {
+        "location": "Bruenor's Climb, dwarven valley",
+        "knows": "the barbarian charge is imminent",
+        "plan": "warn Ten-Towns by instructing Regis to carry the news to the Bryn Shander council in two days",
+        "social": "friend to Bruenor and Regis; otherwise distrusted in Ten-Towns"
+      },
+      "asOfChapter": 5,
+      "asOfBeat": null
+    },
+    {
+      "characterId": "bruenor",
+      "characterName": "Bruenor Battlehammer",
+      "knownFacts": [
+        "fact-barbarian-invasion-coming",
+        "fact-bruenor-from-mithril-hall",
+        "fact-mithril-hall-lost-homeland"
+      ],
+      "state": {
+        "location": "Bruenor's Climb, dwarven valley",
+        "role": "eldest of his small dwarven clan; only living member to remember Mithril Hall",
+        "household": "raises Catti-brie as his own",
+        "stance": "refuses to send dwarves to warn Ten-Towns; will fight beside them only if they unite first"
+      },
+      "asOfChapter": 5,
+      "asOfBeat": null
+    },
+    {
+      "characterId": "catti-brie",
+      "characterName": "Catti-brie",
+      "knownFacts": [],
+      "state": {
+        "location": "Bruenor's home, dwarven valley",
+        "guardian": "bruenor",
+        "background": "orphaned in a raid on Termalaine, raised by Bruenor as his own"
+      },
+      "asOfChapter": 5,
+      "asOfBeat": null
+    }
+  ],
+  "promises": [
+    {
+      "id": "promise-akar-kessell-rise",
+      "setupChapter": 3,
+      "setupBeat": null,
+      "expectedPayoffChapter": null,
+      "resolvedAtChapter": null,
+      "resolvedAtBeat": null,
+      "status": "open",
+      "promiseFactId": "fact-promise-akar-kessell-rise-payoff-begins"
+    },
+    {
+      "id": "promise-cryshal-tirith-conquest",
+      "setupChapter": 4,
+      "setupBeat": null,
+      "expectedPayoffChapter": null,
+      "resolvedAtChapter": null,
+      "resolvedAtBeat": null,
+      "status": "open",
+      "promiseFactId": "fact-promise-cryshal-tirith-as-base-of-power"
+    },
+    {
+      "id": "promise-mithril-hall-quest",
+      "setupChapter": 5,
+      "setupBeat": null,
+      "expectedPayoffChapter": null,
+      "resolvedAtChapter": null,
+      "resolvedAtBeat": null,
+      "status": "open",
+      "promiseFactId": "fact-promise-mithril-hall-quest"
+    },
+    {
+      "id": "promise-warn-ten-towns-council",
+      "setupChapter": 5,
+      "setupBeat": null,
+      "expectedPayoffChapter": null,
+      "resolvedAtChapter": null,
+      "resolvedAtBeat": null,
+      "status": "open",
+      "promiseFactId": "fact-promise-warn-ten-towns-council"
+    }
+  ]
+}
