@@ -1,10 +1,12 @@
 ---
 status: active
-updated: 2026-05-02
+updated: 2026-05-03
 role: canonical-current-truth
 ---
 
-<!-- Latest 2026-05-02: L38-G shipped writer-side same-chapter physical-state continuity rule (a27a8a1, exp #372). Paired replay on novel-1777721066908 ch2 cleared the L38-F-residual hand-washing/smudges contradiction: 15/15 beats wrote attempt 1, plan check passed, no new chapter_exhaustions row, prior-state cluster did not return. Stop gate (a) clean pass. -->
+<!-- Latest 2026-05-03: Five-checker quality audit complete and open for independent review (`docs/checker-quality-audit-2026-05-03.md`). All five LLM checkers in the drafting layer (halluc-ungrounded, continuity-*, adherence-events, functional-state-checker, chapter-plan-checker) graded TP/FP/GRAY against production fires; chapter-plan-checker further validated by K=3 four-arm stochasticity sweep showing ~36% effective TP at gate-decision level converging across all four practical arms. Direction: demote all five to warning-class; reborn in post-draft flagging layer with full bible + chapter context. No code changes shipped from this audit; charter prerequisites listed for the world-bible architecture pivot. See `docs/decisions.md` §"Checker quality audit (2026-05-03)". -->
+
+<!-- 2026-05-02: L38-G shipped writer-side same-chapter physical-state continuity rule (a27a8a1, exp #372). Paired replay on novel-1777721066908 ch2 cleared the L38-F-residual hand-washing/smudges contradiction: 15/15 beats wrote attempt 1, plan check passed, no new chapter_exhaustions row, prior-state cluster did not return. Stop gate (a) clean pass. -->
 
 
 # Current State

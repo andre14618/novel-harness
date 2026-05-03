@@ -10,6 +10,33 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Checker quality audit (2026-05-03) — **DIRECTIONAL DECISION; OPEN FOR INDEPENDENT REVIEW**
+
+**Status:** All five LLM checkers in the drafting layer (`halluc-ungrounded`, `continuity-*`, `adherence-events`, `functional-state-checker`, `chapter-plan-checker`) graded TP/FP/GRAY by sampling production fires + Sonnet subagent grading; chapter-plan-checker further validated by a four-arm K=3 stochasticity sweep. Direction: demote all five to warning-class; reborn in a post-draft flagging layer with full bible + chapter context. No code changes shipped; charter-class scope deferred to a charter draft. Open for independent reviewer audit.
+
+**Headline numbers:**
+
+| Checker | Single-grader TP | n | Notes |
+|---|---|---|---|
+| `chapter-plan-checker` | **44%** (audit) / **36%** (K=3-adjusted) | 25 (×K=3) | Highest-performing LLM checker; K=3 sweep showed prompt/voting tweaks cannot lift past break-even |
+| `continuity-*` | **39%** | 23 | Same implicit-vs-explicit FP class; subsumed by post-draft layer over bible |
+| `adherence-events` | **24%** | 25 | Mid-action-start blindness; demote or narrow to `obligations_count ≥ 1` |
+| `halluc-ungrounded` | **11%** | 28 | Genre vocabulary + role nouns dominate FPs; reborn as deterministic NER-vs-bible + LLM triage |
+| `functional-state-checker` | **0%** | 25 | Self-refuting logic bug accounts for ⅓ of FPs; fix bug, then subsume into bible-extraction |
+
+**Why this matters:** Per memory `project_world_bible_architecture_priority.md` (2026-05-03 user direction), the lift on the grounding/continuity/adherence surface is in giving checkers richer story-state context — exactly what a world-bible / character-bible architecture provides. The K=3 sweep on chapter-plan-checker is the empirical anchor: only 16% of original-fire cases get unanimous K=3 re-fires, meaning the production gate fires almost entirely on borderline cases the model can't reproduce. Operating-point tuning (prompt or voting) is not the lever.
+
+**Alternatives rejected:**
+- *Tighten chapter-plan-checker rubric to demote "fact not stated as exposition" to warning.* K=3 sweep refuted; v2 rubric + K=3-AND vs K=1 control changes are within noise on n=25.
+- *K=3 multi-call voting on the existing checkers.* TP retention identical at K=1 and K=3-AND across both prompt arms; FP gains modest at 3× LLM cost.
+- *Hold continuity-* as the most defensible blocker.* Same dominant FP class as adherence/chapter-plan-checker; combined FP+GRAY (61%) is too costly at gating layer.
+
+**Charter prerequisites** (per adversarial review, 2026-05-03): prose-to-bible extraction calibration plan; retrieval reactivation sub-project (`embeddings: false` currently); shadow-mode validation before retiring drafting-layer gates; concrete cost model (V4 Flash vs Pro, cache-hit vs cache-miss); bible-input integrity audit covering planner + state-mapper + state-repair + chapter-plan-checker + approval gate; this decision record.
+
+**Companion artifacts:** `docs/checker-quality-audit-2026-05-03.md` (main audit + post-draft architecture direction), `docs/checker-quality-audit-2026-05-03-chapter-plan-checker.md` (chapter-plan-checker companion + K=3 results).
+
+---
+
 ### §L70b+L71+L72 stack validation A/B (2026-05-03, exp #402) — **VALIDATED**
 
 **Status:** Validated 2026-05-03 (commit `11facbd`). 3-novel A/B at the stacked-fix commit confirms the three lanes compose correctly on the integrity surface and shifts the dominant blocker to ch2 plan-check-exhausted (continuity + halluc on different content). Total cost $0.190 / $5 budget.

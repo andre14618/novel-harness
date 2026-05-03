@@ -1,11 +1,28 @@
 ---
 status: active
-updated: 2026-05-02
+updated: 2026-05-03
 ---
 
 # Lessons Learned
 
 Hard-won principles from experiments, failures, and debugging. Each entry has evidence — experiment IDs, commit hashes, or specific observations. Read this before designing new agents, rubrics, benchmarks, or pipeline integrations.
+
+## Checker Audit Methodology
+
+### Always run a control re-run before claiming a prompt-change win on stochastic checkers (2026-05-03)
+
+When auditing an LLM checker by sampling production fires and proposing a prompt fix, **measure the checker's stochasticity on the same sample first**. The chapter-plan-checker K=3 four-arm sweep (`/tmp/cpc-replay-k3.json`) showed that 16% of originally-firing cases get unanimous K=3 re-fires under the *same* production prompt; the other 84% are either split (44%) or unanimous-passes-on-re-run (40%). Without that control arm, any v2-prompt result on the same sample looks like a "fix" but is largely indistinguishable from sampling noise. Specifically: v2-prompt + K=3-AND vs control K=1 changed total fires from 10/25 to 7/25 on n=25 — but control K=3-AND was already at 9/25 by *itself*, and v2 K=3-AND vs control K=3-AND was −1 TP / +1 FP elimination, well within the noise envelope. The right shape is:
+
+1. K=3 with the production prompt (control). Baseline stochasticity.
+2. K=3 with the proposed prompt (v2). Same arm shape.
+3. Compare AND-gate / OR-gate / K=1 across both. The interaction between voting and prompt is where signal lives, not the K=1 prompt comparison alone.
+4. Treat any single-arm prompt-change "improvement" as suspect until the control re-run proves the change exceeds the noise floor.
+
+Cost is small: 25 cases × 2 arms × 3 calls = 150 LLM calls, cache-warm after first prefix in each (case, arm) tuple. Order of magnitude: $0.20–$0.40 with DeepSeek V4 Flash.
+
+### Effective TP at the gate-decision level can be much lower than single-grader TP (2026-05-03)
+
+The chapter-plan-checker single-grader audit measured 44% TP on n=25 production fires. The K=3 four-arm sweep showed effective TP at the gate-decision level is ~36% — converging across all four practical arms (K=1 control, K=3-AND control, K=1 v2, K=3-AND v2). The single-grader audit measures *precision conditional on the gate firing*; the K=3 sweep measures whether the firing decision itself is reliable. They're different metrics and the gap matters. For any LLM checker whose audit informs a charter / architecture decision, report both: the conditional-on-firing TP rate and the gate-decision-level effective TP after stochasticity adjustment.
 
 ## Regex
 
