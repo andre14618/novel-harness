@@ -28,6 +28,7 @@ import type {
   Entity,
   StoryPromise,
 } from "./api"
+import { scopeCanonForChapter, type ScopingHints } from "./scope"
 
 // ── Cascade boundary ─────────────────────────────────────────────────────────
 
@@ -180,7 +181,12 @@ function serializePromises(promises: readonly StoryPromise[]): string {
 
 /**
  * Build the L1 packet for chapter N. Pure function: same (source snapshot,
- * novelId, chapterN) → byte-identical output.
+ * novelId, chapterN, hints) → byte-identical output.
+ *
+ * When `scopingHints` is provided, the raw canon snapshot is filtered through
+ * `scopeCanonForChapter` (see `src/canon/scope.ts`) before serialization.
+ * When omitted, the assembler emits the whole asOfChapter snapshot — the
+ * "trivial" path used in early-chapter bibles and in session-1 tests.
  *
  * Throws if the assembled bundle exceeds L1_TOKEN_CAP — bundle padding /
  * scope-rule failures should fail loudly, not silently truncate.
@@ -189,17 +195,38 @@ export function assembleL1(
   source: CanonSource,
   novelId: string,
   chapterN: number,
+  scopingHints?: ScopingHints,
 ): L1Packet {
-  const facts = [...source.factsAsOfChapter(novelId, chapterN)].sort(cmpFact)
-  const entities = [...source.entitiesAsOfChapter(novelId, chapterN)].sort(cmpEntity)
-  const characterStates = [
+  const rawFacts = [...source.factsAsOfChapter(novelId, chapterN)].sort(cmpFact)
+  const rawEntities = [...source.entitiesAsOfChapter(novelId, chapterN)].sort(cmpEntity)
+  const rawCharacterStates = [
     ...source.characterStatesAsOfChapter(novelId, chapterN),
   ].sort(cmpCharacterState)
-  const activePromises = [
+  const rawActivePromises = [
     ...source.promisesAsOfChapter(novelId, chapterN),
   ]
     .filter((p) => p.status === "open")
     .sort(cmpPromise)
+
+  const scoped = scopingHints
+    ? scopeCanonForChapter(
+        {
+          facts: rawFacts,
+          entities: rawEntities,
+          characterStates: rawCharacterStates,
+          activePromises: rawActivePromises,
+        },
+        scopingHints,
+        chapterN,
+      )
+    : {
+        facts: rawFacts,
+        entities: rawEntities,
+        characterStates: rawCharacterStates,
+        activePromises: rawActivePromises,
+      }
+
+  const { facts, entities, characterStates, activePromises } = scoped
 
   const factsBlock = SECTION_HEADERS.facts + serializeFacts(facts)
   const entitiesBlock = SECTION_HEADERS.entities + serializeEntities(entities)
