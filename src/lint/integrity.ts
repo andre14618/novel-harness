@@ -226,9 +226,16 @@ function normalizeSentenceStream(text: string): string {
 }
 
 function normalizeSentence(sentence: string): string {
+  // L72 / Lever I-A (2026-05-03, exp #401): preserve terminal punctuation
+  // (`.`, `?`, `!`) so single-word dialogue lines like `"No."` and `"No?"`
+  // are NOT treated as duplicate sentences. Surfaced in debt ch2 att 1
+  // (novel-1777782556256) where the false positive triggered a chapter
+  // regeneration that introduced 4 real duplicate-fragments on att 2,
+  // cascading to integrity-exhausted bail. Keeping `?!.` distinct also
+  // preserves the `.` vs `...` distinction (`"narrowed."` ≠ `"narrowed..."`).
   return sentence
     .toLowerCase()
-    .replace(/[^a-z0-9' ]+/g, " ")
+    .replace(/[^a-z0-9' ?!.]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
 }

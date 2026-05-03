@@ -10,6 +10,27 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §L72 duplicate-sentence false-positive on punctuation-only differences (2026-05-03, exp #401) — **SHIPPED unit-only**
+
+**Status:** Shipped 2026-05-03. `detectAdjacentDuplicateSentences` was firing on adjacent dialogue lines that share content but differ only by terminal punctuation (`"No."` vs `"No?"`). Cause: `normalizeSentence` stripped ALL punctuation. Fix: preserve `.?!` in the normalization regex.
+
+**Decision:** change `normalizeSentence` regex from `replace(/[^a-z0-9' ]+/g, " ")` to `replace(/[^a-z0-9' ?!.]+/g, " ")`. Sentences that share the same word content AND same terminal punctuation still match (regression-guarded by tests); sentences that differ only in terminator type (declarative vs interrogative vs exclamatory) no longer match. The change is recall-preserving by construction — the new regex is a strict superset of the old one's preserved chars, which means the normalized form gains discriminating power without losing any.
+
+**Why (concrete evidence):**
+- L70b A/B (exp #399) `fantasy-debt` ch2 att 1 fired duplicate-sentence on `"No."` / `"No?"` adjacent dialogue. The `pairNorm` field in `pipeline_events` payload was `"no no"` — both sentences normalized to bare `"no"`. False positive.
+- The att-1 false positive triggered a chapter regeneration; att 2 produced 4 *real* duplicate-fragments (different prose patterns surfaced under the regenerate); att 3 still had 2 reals; chapter bailed integrity-exhausted.
+- Without the att-1 false positive, the cascade likely doesn't start. Detectors that gate retries should aggressively avoid false positives because a false-positive gate triggers a chapter regeneration which is itself a stochastic source of new failures.
+
+**Alternatives rejected:**
+- *Min-word-count gate (≥3 words) for duplicate-sentence.* Would also cover the `"No."` / `"No?"` case but is heavier-handed — would suppress short genuine duplicates (`"Yes."` / `"Yes."`) which the regression test now catches. Held in reserve as a future tightening if the punctuation-discrimination fix proves insufficient.
+- *Require matched sentences to share more than just normalized form.* More plumbing for marginal benefit; no documented failure cases that the simpler regex change misses.
+
+**Ongoing implications:**
+- Detector is now strictly stricter on duplicate-sentence; specificity up, recall identical (by construction).
+- Unit-only change with regression-guard tests — no A/B run needed. Future detector tightenings on similarly recall-preserving lines can ship via the same path.
+
+---
+
 ### §L71 chapter-plan-reviser maxTokens 6144 → 12288 (2026-05-03, exp #400) — **SHIPPED defensive**
 
 **Status:** Shipped 2026-05-03 (commit `f6b4aa4`). Heretic retry at exp #400 (`novel-1777784619991`) completed both chapters cleanly at $0.051 — chapter-plan-reviser never fired (different stochastic plan-deviation path from exp #399), so direct cap validation did not occur. Shipped as defensive coverage for the documented failure mode.

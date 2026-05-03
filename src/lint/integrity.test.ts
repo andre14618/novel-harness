@@ -227,6 +227,53 @@ describe("LintFixIntegrityIssue offsets (L70b)", () => {
   })
 })
 
+// L72 / Lever I-A: duplicate-sentence false-positive on punctuation-only
+// differences. Single-word dialogue like "No." vs "No?" must NOT be treated
+// as duplicate sentences (different intent: declarative vs interrogative).
+
+describe("detectAdjacentDuplicateSentences punctuation discrimination (L72)", () => {
+  test("does NOT flag single-word dialogue with different terminal punctuation", () => {
+    // Real case from debt ch2 att 1 (novel-1777782556256, exp #399).
+    const prose = `She paused.
+
+"No."
+
+"No?"
+
+He stepped back.`
+    const issues = detectProseIntegrityIssues(prose)
+    expect(issues.filter(i => i.kind === "duplicate-sentence")).toEqual([])
+  })
+
+  test("does NOT flag short interjections with different terminators", () => {
+    const prose = `"Wait!"
+
+"Wait?"`
+    const issues = detectProseIntegrityIssues(prose)
+    expect(issues.filter(i => i.kind === "duplicate-sentence")).toEqual([])
+  })
+
+  test("STILL catches genuine adjacent duplicate sentences (regression guard)", () => {
+    const prose = "She crossed the threshold. The hall narrowed. The hall narrowed."
+    const issues = detectProseIntegrityIssues(prose)
+    expect(issues.some(i => i.kind === "duplicate-sentence")).toBe(true)
+  })
+
+  test("STILL catches duplicates of single-word dialogue when terminator matches", () => {
+    const prose = `"No."
+
+"No."`
+    const issues = detectProseIntegrityIssues(prose)
+    expect(issues.some(i => i.kind === "duplicate-sentence")).toBe(true)
+  })
+
+  test("preserves distinction between `.` and `...` (ellipsis vs full stop)", () => {
+    const prose = "The hall narrowed... The hall narrowed."
+    const issues = detectProseIntegrityIssues(prose)
+    expect(issues.filter(i => i.kind === "duplicate-sentence")).toEqual([])
+  })
+})
+
 describe("offsetToBeatIndex (L70b)", () => {
   test("returns -1 when beatProses is empty", () => {
     expect(offsetToBeatIndex(0, [])).toBe(-1)
