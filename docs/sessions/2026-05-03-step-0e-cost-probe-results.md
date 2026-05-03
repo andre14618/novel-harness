@@ -88,9 +88,9 @@ These are not blockers for the verdict — the headroom is large enough that eve
 - ✗ **Score-fused retrieval with non-deterministic tie-breaking** — even logically-equivalent queries can return shuffled top-K when scores are close.
 - ✗ **Bundle composition that varies per call** — any per-judge filtering, ordering, or slicing rebreaks the prefix.
 
-**Implication for charter §0a path selection.** This probe does not validate semantic-retrieval-per-judge economics; it validates stable-bundle economics. §0a's path-selection question is therefore reframed from "reactivate semantic retrieval vs. deterministic fallback" to **"what bundle assembly produces a stable per-chapter prefix that preserves cache stability while keeping retrieval recall acceptable?"** Semantic retrieval, if used, becomes a *bundle-assembly tool* (run once per chapter, output cached and reused across all K judges) — not a per-query layer.
+**Implication for charter §0a (resolved 2026-05-03).** This probe validates stable-bundle economics, not per-judge retrieval. The charter's §0a path is now a **deterministic per-chapter bundle builder** (no embeddings, no RRF, no per-query semantic retrieval at runtime). See charter §"First-Class Principle: Deterministic Per-Chapter Context Bundle" and §0a for the concrete contract. The $0.0008/chapter projection is achievable iff the bundle builder is pure-function-deterministic over `(canon-state-version, chapter-N)` and the same packet (byte-identical, same SHA-256 packet hash) is consumed by both the writer and all K downstream judges.
 
-**Recommended hybrid for Step 4 design.** Prefix = stable per-chapter bible bundle (cache-friendly). User-prompt suffix = judge-specific concern injection (small, varies, doesn't break prefix cache). This is what the §0e numbers actually project; any other architecture needs its own probe.
+**Important constraint: prior-beat prose lives in the volatile suffix.** Within a chapter, accepted prose grows beat-by-beat. The writer needs that prose for continuity; do NOT force it into the stable prefix to chase additional cache hits. The §0e economics still pay off because the long bundle-prefix is byte-identical across all beats and only the prose tail varies. Cache stability must not starve the writer of required local context.
 
 ## Stop-Gate Verdict (Charter §0e)
 

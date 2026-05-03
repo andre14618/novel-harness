@@ -98,9 +98,9 @@ Domain types: `CanonFact`, `CharacterState`, `StoryPromise`, `Entity`, `CanonUpd
 
 Full results: `docs/sessions/2026-05-03-step-0e-cost-probe-results.md`.
 
-### §0a — Per-chapter bundle assembly
+### §0a — Deterministic per-chapter bundle builder
 
-**Deferred to follow-on lane.** Multi-day work; warrants its own session-start contract. §0a was reframed during this lane in light of §0e's cache-assumption caveat: the question is now "what bundle assembly produces a stable per-chapter prefix all K judges share?" — see charter §0a for the three candidate paths (whole-bible, deterministic-scoped, bundle-assembly-by-retrieval). Not blocking for the work landed in this lane (§0c, §0d, §0e are independent of bundle assembly).
+**Deferred to follow-on lane.** Multi-day work; warrants its own session-start contract. Path resolved during this lane (2026-05-03 user direction): **deterministic-scoped bundle builder, no runtime vector retrieval.** Vector retrieval is optional/offline support for editorial discovery (motif recurrence, prose repetition, similar prior scene), never a load-bearing canon mechanism for the writer. See charter §"First-Class Principle: Deterministic Per-Chapter Context Bundle" + charter §0a for the bundle contract (byte-identical packet, SHA-256 hash, stable ordering, writer/judge reuse). Not blocking for the work landed in this lane (§0c, §0d, §0e are independent of bundle assembly).
 
 ### §0b — Initial bible bootstrap path
 
@@ -137,8 +137,8 @@ Lane is single-component (charter Step 0 prereq landing) and atomic. Self-review
 
 Charter Step 0 follow-ons in priority order:
 
-1. **§0a — Per-chapter bundle assembly.** Multi-day. Three paths to evaluate (whole-bible, deterministic-scoped, bundle-assembly-by-retrieval) — all share the constraint that the per-chapter bundle must be byte-stable across all K judges to preserve the §0e cache economics. User input on path preference appropriate before opening.
-2. **§0b — Bootstrap path.** Design work, depends on §0a's choice. Smaller lane.
+1. **§0a — Deterministic per-chapter bundle builder.** Multi-day. Path is resolved (deterministic-scoped, no runtime vector retrieval). Lane builds the pure-function bundle assembler over the structured canon schema, validates against ≥40 labeled queries for recall + precision + token cap, asserts byte-identical reruns + packet hash, and proves writer/judge bundle reuse. Can open without further user input on path selection.
+2. **§0b — Bootstrap path.** Design work; cleaner now that §0a is deterministic-only. Smaller lane.
 3. **Charter Step 1 — Canon Substrate.** Larger lane. Schema implementation + DB tables + API bodies. Gated on §0a.
 
-Recommend pausing here for user check-in on §0a bundle-assembly path preference before opening the next lane. The choice has multi-week implications and a one-way-door quality.
+Recommend opening §0a next; the architectural fork that needed user input has been resolved (deterministic-scoped, vector retrieval optional/offline-only).
