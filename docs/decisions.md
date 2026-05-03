@@ -10,6 +10,21 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §L66 Writer-side BIBLE-binding constraint covers all named-entity classes (2026-05-02)
+
+**Decision:** Rewrite line 18 of `src/agents/writer/beat-writer-system.md` so the writer's named-entity constraint is class-categorical (characters, places, institutions, organizations, titles/ranks, lore concepts, artifacts, named events) and bound to the same grounded-source list the halluc-ungrounded checker uses ({beat brief, CHARACTERS, WORLD-BIBLE settings/locations/cultures/rules, prior beat, "Allowed-new-entities"}). Add a concrete example covering the exp #392 drift-invention pattern: "a senior cataloguer" rather than "Senior Cataloguer," "the regional records hall" rather than "the Hall of Records," "a junior scribe carrying folios" rather than "Acolyte Theron." Positive framing throughout — no "do not" / "never" / "avoid" — per `feedback_priming_suppression_ab` evidence that negative-prime variants WORSEN compliance.
+
+**Why:** exp #392 (fantasy-archive smoke, post-L65) revealed the *drift-invention* failure mode — the writer invents fresh ungrounded entities each chapter-attempt rather than persisting one ("Third Lamentation" att1 → "Codex" att3-retry2 → "Senior Cataloguer" att3-retry3). L65's chapter-attempt carry-over architecturally cannot close this: by the time the writer invents one ungrounded entity, the next attempt may invent a different one. Only writer-side primary-prevention can address it. The pre-L66 line-18 wording was class-incomplete ("characters and entities" + ambient-walk-on exception); the writer plausibly read "entities" as ambiguous and treated lore concepts and titles as outside the constraint's literal scope.
+
+**Alternatives rejected:**
+- G-A2 (faithful per-beat critique surface). Rejected for L66 specifically — exp #392's per-beat critique correctly named "Senior Cataloguer" at retry 3, so there's no critique-faithfulness gap on this case. G-A2 is parked as a follow-up if a future smoke shows persistence-mode failure where the chapter-blocking entity diverges from the per-beat critique.
+- G-C (planner sanctioned-new-entities schema). Rejected for L66 specifically — the largest schema lift in the grounding phase; only worth the cost if writer-side prevention (G-B) doesn't move the fire rate. Queued.
+- Add the constraint as a negative directive ("Do not invent entities"). Rejected per `feedback_priming_suppression_ab.md` — the 2026-04-20 Salvatore A/B doubled the absolute fire rate when a negative-prime prohibition was added. Positive enumeration of allowed sources + concrete description-equivalent examples is the proven shape (mirrors the L29 reframing in `halluc-ungrounded` retry guidance from "Do not invent" → "use only [...]").
+
+**Ongoing implications:** the prompt change is the only runtime delta; no code, no schema, no checker behavior change. Validation is the post-deploy A/B smoke on `fantasy-archive` (same seed that bailed in exp #392). If the A/B shows ≥30% reduction in chapter-1-attempt-1 halluc-ungrounded blocker fires without prose flatness regression, the lever ships; if not, G-A2 is promoted ahead of G-C.
+
+---
+
 ### §L65 Chapter-attempt carry-over of LLM-confirmed ungrounded entities (2026-05-02)
 
 **Decision:** Add `formatChapterUngroundedRetryContext` and `extractUngroundedEntitiesFromDescriptions` to `src/agents/writer/retry-context.ts`. In `src/phases/drafting.ts`, declare a chapter-scoped `priorUngroundedEntities` alongside `priorIntegrityIssues`; populate it from `acceptedBeatCheckIssues` (filter `source=halluc-ungrounded, severity=blocker`) right after the per-attempt beat-write completes; append the rendered AVOID block to every beat's userPrompt at all three sites the integrity context is appended (line 354, 673, 934). NER-only-warning entries (`severity=warning`) do not contribute. Each subsequent iteration overwrites the list with its own findings; the variable resets per chapter naturally because it's declared inside the for-each-chapter loop.
