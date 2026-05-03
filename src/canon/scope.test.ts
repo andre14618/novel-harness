@@ -548,6 +548,59 @@ describe("exclusion: no ghost canon (only operator-approved enters context)", ()
     )
     expect(out.entities.find((e) => e.id === "pending-entity")).toBeUndefined()
   })
+
+  test("auto-extracted CharacterState excluded by defense-in-depth at scope time", () => {
+    // Codex M2 follow-up: even if a non-substrate CanonSource (test fixture,
+    // future cache, third-party adapter) leaked an unapproved CharacterState
+    // through, the scope layer must drop it.
+    const ghostState: CharacterState = {
+      characterId: "aldric",
+      characterName: "Aldric",
+      knownFacts: [],
+      state: {},
+      asOfChapter: 7,
+      provenance: {
+        source: "post-draft-extraction",
+        chapter: 7,
+        extractorVersion: "test-v1",
+        approvalStatus: "auto-extracted",
+        origin: "observed",
+        createdAt: "2026-05-03T00:00:00Z",
+        updatedAt: "2026-05-03T00:00:00Z",
+      },
+    }
+    const customRaw = {
+      ...FIXTURE(),
+      characterStates: [ghostState],
+    }
+    const out = scopeCanonForChapter(customRaw, HINTS, 7)
+    expect(out.characterStates.find((s) => s.characterId === "aldric")).toBeUndefined()
+  })
+
+  test("contested StoryPromise excluded by defense-in-depth at scope time", () => {
+    const ghostPromise: StoryPromise = {
+      id: "ghost-promise",
+      setupChapter: 2,
+      expectedPayoffChapter: 12,
+      status: "open",
+      promiseFactId: "ghost-fact",
+      provenance: {
+        source: "post-draft-extraction",
+        chapter: 2,
+        extractorVersion: "test-v1",
+        approvalStatus: "contested",
+        origin: "observed",
+        createdAt: "2026-05-03T00:00:00Z",
+        updatedAt: "2026-05-03T00:00:00Z",
+      },
+    }
+    const customRaw = {
+      ...FIXTURE(),
+      activePromises: [ghostPromise],
+    }
+    const out = scopeCanonForChapter(customRaw, HINTS, 7)
+    expect(out.activePromises.find((p) => p.id === "ghost-promise")).toBeUndefined()
+  })
 })
 
 describe("exclusion: force-exclude list overrides", () => {

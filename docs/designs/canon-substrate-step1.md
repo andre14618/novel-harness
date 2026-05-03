@@ -110,6 +110,48 @@ The CLAUDE.md rule "no ad-hoc SQL outside service/db modules" is honored: all qu
 
 This session does not land the adapter — only the interface and an in-memory test implementation. The seam stabilizes first; runtime wiring follows once Step 2 input integrity grading is also designed.
 
+### Sync reads + async writes: the layering rule for the Postgres adapter
+
+`CanonSource` (read side) is **sync**: `factsAsOfChapter(novelId, N)` returns `readonly CanonFact[]` directly, not `Promise<readonly CanonFact[]>`. `CanonSubstrate` (write side) is **async**: `proposeCanonUpdate` and `resolveProposal` return Promises. This asymmetry is intentional and load-bearing for the assembler.
+
+`assembleL1` is sync because the deterministic-bundle property is easier to reason about as pure-function-over-snapshot. Going async on reads would propagate `await` through every assembly path (`assembleL1`, `scopeCanonForChapter`, the recall harness, the orchestrator) and burn a lot of churn for a property the design doesn't need: chapter bundles are built once per chapter, then reused warm — the snapshot does not change inside a chapter.
+
+The Postgres adapter MUST therefore implement the **async-loader + sync-snapshot-wrapper** pattern:
+
+```ts
+// src/harness/canon-substrate.ts (sketch — to land in a follow-on session)
+
+export class PostgresCanonSubstrate implements CanonSubstrate {
+  // Per-(novelId, chapterN) snapshot cache. Loaded async, served sync.
+  private snapshotCache = new Map<string, ChapterSnapshot>()
+
+  /** Load (or refresh) the chapter-N snapshot for a novel. Call this once
+   *  before chapter-N's writer + judge calls; sync reads work afterwards. */
+  async loadSnapshot(novelId: string, chapterN: number): Promise<void> {
+    const rows = await this.db.queryChapterSnapshot(novelId, chapterN)
+    this.snapshotCache.set(this.cacheKey(novelId, chapterN), buildSnapshot(rows))
+  }
+
+  // Sync reads — the snapshot must already be loaded.
+  factsAsOfChapter(novelId: string, chapterN: number): readonly CanonFact[] {
+    const snap = this.snapshotCache.get(this.cacheKey(novelId, chapterN))
+    if (!snap) throw new Error(`PostgresCanonSubstrate: snapshot not loaded for ${novelId}@${chapterN}`)
+    return snap.facts
+  }
+  // ... entitiesAsOfChapter, characterStatesAsOfChapter, etc.
+
+  // Async writes — DB round-trip per call.
+  async proposeCanonUpdate(...): Promise<CanonUpdateProposal> { ... }
+  async resolveProposal(...): Promise<{ committedFact?: CanonFact }> { ... }
+}
+```
+
+The orchestrator's per-chapter loop is responsible for calling `loadSnapshot` before any sync read. This is the same pattern Rails uses for ActiveRecord eager loading (`includes`) and what most snapshot-based systems do — it's well-established, and it's the cheapest answer to the sync/async tension.
+
+**Adapter-equivalence test contract**: when the Postgres adapter lands, the equivalence suite must include a test that explicitly exercises the loader pattern: load a snapshot, do sync reads, attempt a sync read for an unloaded snapshot and assert the load-required error. The in-memory adapter's "always-loaded" model is a degenerate case of the loader pattern (load is a no-op).
+
+If a future requirement breaks this layering — e.g., a writer that mutates canon mid-chapter — that's a substantive design change and gets its own decision, not a quiet plumbing edit.
+
 ## Postgres schema sketch (informative, not landing this session)
 
 ```sql

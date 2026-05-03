@@ -41,6 +41,16 @@ import type { CanonSource } from "./bundle"
  *
  * Production: src/db/canon-substrate.ts + src/harness/canon-substrate.ts.
  * Tests: InMemoryCanonSubstrate below.
+ *
+ * **Sync-reads + async-writes contract**: the read methods inherited from
+ * `CanonSource` are sync because `assembleL1` is sync (the deterministic-
+ * bundle property is reasoned about as pure-function-over-snapshot). The
+ * Postgres adapter satisfies this with the async-loader + sync-snapshot-
+ * wrapper pattern: `loadSnapshot(novelId, chapterN)` is async and populates
+ * an in-process cache; the four sync read methods serve from the cache and
+ * throw if the snapshot has not been loaded. See
+ * `docs/designs/canon-substrate-step1.md` §"Sync reads + async writes" for
+ * the full contract and the test it implies.
  */
 export interface CanonSubstrate extends CanonSource {
   /**
@@ -150,6 +160,14 @@ export class InMemoryCanonSubstrate implements CanonSubstrate {
     status: Exclude<ProposalStatus, "pending">,
     opts?: { modifiedFact?: CanonFact; operatorNote?: string },
   ): Promise<{ committedFact?: CanonFact }> {
+    // Validate inputs BEFORE mutating proposal state — a half-applied
+    // resolveProposal that throws after mutating the proposal but before
+    // committing canon would leave the proposal in an inconsistent state.
+    if (status === "modified" && !opts?.modifiedFact) {
+      throw new Error(
+        `resolveProposal: status="modified" requires opts.modifiedFact`,
+      )
+    }
     const found = this.findProposal(proposalId)
     if (!found) throw new Error(`resolveProposal: unknown proposalId ${proposalId}`)
     const { novelId, proposal } = found
@@ -158,6 +176,7 @@ export class InMemoryCanonSubstrate implements CanonSubstrate {
         `resolveProposal: proposal ${proposalId} already ${proposal.status}`,
       )
     }
+
     proposal.status = status
     proposal.resolvedAt = new Date().toISOString()
     proposal.operatorNote = opts?.operatorNote ?? proposal.operatorNote
@@ -169,10 +188,18 @@ export class InMemoryCanonSubstrate implements CanonSubstrate {
       return {}
     }
 
-    // Approved or modified: commit the canon record.
-    const factToCommit: CanonFact = status === "modified" && opts?.modifiedFact
-      ? opts.modifiedFact
-      : this.materializeFromProposal(proposal, status)
+    // Approved or modified: route both through the same normalization
+    // helper. The helper enforces committed provenance (approvalStatus,
+    // createdAt, updatedAt) and normalizes supersedes from the proposal's
+    // targetFactId, so the modified path can't ship raw operator-supplied
+    // provenance into canon.
+    const factToCommit = this.normalizeForCommit(proposal, status, opts)
+    if (status === "modified" && opts?.modifiedFact) {
+      // Persist on the proposal record for audit. This is what the operator
+      // submitted; the canon record is what ended up committed (same shape,
+      // but provenance was normalized).
+      proposal.modifiedFact = opts.modifiedFact
+    }
 
     const committed = this.commitFact(novelId, factToCommit, proposal.targetFactId)
     this.bumpGeneration(novelId)
@@ -236,24 +263,44 @@ export class InMemoryCanonSubstrate implements CanonSubstrate {
     this.snapshotGen.set(novelId, (this.snapshotGen.get(novelId) ?? 0) + 1)
   }
 
-  private materializeFromProposal(
+  /**
+   * Normalize proposal payload into a committable CanonFact. Both the
+   * `approved` and `modified` paths route through here so neither can ship
+   * raw operator-supplied provenance into canon.
+   *
+   * - approved: uses `proposal.proposedFact` body
+   * - modified: uses `opts.modifiedFact` body (must be present — caller
+   *   already validated)
+   * - both: forces approvalStatus, createdAt, updatedAt; normalizes
+   *   `supersedes` from `proposal.targetFactId` (falls back to whatever the
+   *   source provenance already had if no targetFactId is set, which lets
+   *   "fresh fact, no supersession" cases stay null).
+   */
+  private normalizeForCommit(
     proposal: CanonUpdateProposal,
-    status: Exclude<ProposalStatus, "pending">,
+    status: Exclude<ProposalStatus, "pending" | "rejected">,
+    opts?: { modifiedFact?: CanonFact },
   ): CanonFact {
+    const sourceFact: CanonFact | CanonUpdateProposal["proposedFact"] =
+      status === "modified" && opts?.modifiedFact
+        ? opts.modifiedFact
+        : proposal.proposedFact
     const approvalStatus: ApprovalStatus =
       status === "modified" ? "human-edited" : "human-approved"
     const now = new Date().toISOString()
     const provenance: Provenance = {
-      ...proposal.proposedFact.provenance,
+      ...sourceFact.provenance,
       approvalStatus,
       createdAt: now,
       updatedAt: now,
+      supersedes:
+        proposal.targetFactId ?? sourceFact.provenance.supersedes,
     }
     return {
-      id: proposal.proposedFact.id,
-      kind: proposal.proposedFact.kind,
-      text: proposal.proposedFact.text,
-      data: proposal.proposedFact.data,
+      id: sourceFact.id,
+      kind: sourceFact.kind,
+      text: sourceFact.text,
+      data: sourceFact.data,
       provenance,
     }
   }
@@ -265,16 +312,23 @@ export class InMemoryCanonSubstrate implements CanonSubstrate {
   ): CanonFact {
     const map = this.factsByNovel.get(novelId) ?? new Map<CanonId, CommittedFact[]>()
     const existing = map.get(fact.id) ?? []
-    const previous = existing.length ? existing[existing.length - 1] : undefined
+    const previousSameId = existing.length
+      ? existing[existing.length - 1]
+      : undefined
 
+    // Invariant: at most one currently-active version per logical id. Always
+    // supersede the prior active version of the new logical id (if any).
+    if (previousSameId && previousSameId.supersededAtChapter == null) {
+      previousSameId.supersededAtChapter = fact.provenance.chapter
+    }
+
+    // Cross-id supersession is ADDITIVE — when a new fact replaces a fact
+    // with a different canonical id, both chains need their active version
+    // closed. Previously this was an else-branch, so a cross-id commit
+    // against a new id that already had an active version left two active
+    // versions — invariant violation flagged by Codex H2.
     if (supersedesLogicalId && supersedesLogicalId !== fact.id) {
-      // Cross-id supersession: mark the prior logical id's current version
-      // as superseded at this chapter. (Unusual; same-id versioning is the
-      // common path. Kept for the case where a fact is replaced by a fact
-      // with a different canonical id.)
       this.markSuperseded(map, supersedesLogicalId, fact.provenance.chapter)
-    } else if (previous && previous.supersededAtChapter == null) {
-      previous.supersededAtChapter = fact.provenance.chapter
     }
 
     const committed: CommittedFact = {
@@ -385,14 +439,26 @@ function capitalize(s: string): string {
   return s.length > 0 ? s[0].toUpperCase() + s.slice(1) : s
 }
 
+/**
+ * Walk per-logical-id version chains, pick the version that was current at
+ * chapter N, and STRIP the internal CommittedRecord fields on the way out.
+ *
+ * The strip is deliberate: a Postgres-backed adapter would produce plain
+ * domain objects (CanonFact, Entity, CharacterState, StoryPromise) without
+ * `committedAtChapter` / `supersededAtChapter` properties. The in-memory
+ * adapter must return the same shape so the two are drop-in equivalent for
+ * downstream consumers (assembleL1, scope.ts, scoping tests). Codex M1
+ * flagged that the original implementation leaked these internal fields
+ * through the CanonSource interface.
+ */
 function collectCurrentVersions<
   T extends CommittedRecord & { provenance: { approvalStatus: ApprovalStatus } },
 >(
   map: Map<string, T[]> | undefined,
   chapterN: number,
-): readonly T[] {
+): readonly Omit<T, keyof CommittedRecord>[] {
   if (!map) return []
-  const out: T[] = []
+  const out: Omit<T, keyof CommittedRecord>[] = []
   for (const versions of map.values()) {
     // Walk backwards: the latest version at-or-before chapterN that has not
     // been superseded by chapterN wins. There is at most one such version
@@ -408,7 +474,8 @@ function collectCurrentVersions<
       // Defense in depth: the substrate only commits records with approved
       // statuses, but re-check at read time.
       if (!COMMITTED_STATUSES.has(v.provenance.approvalStatus)) continue
-      out.push(v)
+      const { committedAtChapter: _c, supersededAtChapter: _s, ...domain } = v
+      out.push(domain as Omit<T, keyof CommittedRecord>)
       break
     }
   }

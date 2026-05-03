@@ -142,7 +142,10 @@ function scopeCharacterStates(
   chapterN: number,
 ): CharacterState[] {
   const eligible = raw.filter(
-    (s) => inScopeIds.has(s.characterId) && s.asOfChapter <= chapterN,
+    (s) =>
+      isApproved(s.provenance.approvalStatus) &&
+      inScopeIds.has(s.characterId) &&
+      s.asOfChapter <= chapterN,
   )
   // Group by characterId, keep the snapshot with strictly-greater asOfChapter.
   // Two states with identical (characterId, asOfChapter) is a data anomaly —
@@ -170,6 +173,7 @@ function scopeActivePromises(
   windowSlack: number,
 ): StoryPromise[] {
   return raw.filter((p) => {
+    if (!isApproved(p.provenance.approvalStatus)) return false
     if (p.status !== "open") return false
     if (p.setupChapter > chapterN) return false
     if (p.expectedPayoffChapter == null) return true

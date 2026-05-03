@@ -90,10 +90,20 @@ Charter §1 stop gate language: **seam cleared, production substrate pending.** 
 
 ## Evidence
 
-- `bun test src/canon/` — 107 pass / 0 fail / 211 expects.
+- `bun test src/canon/` — 119 pass / 0 fail / 237 expects (post-Codex-review fixes added 12 tests).
 - `bunx tsc --noEmit` — clean.
 - `bun scripts/audits/run-salvatore-recall.ts` — recallGateClear=true, meanRecall=0.927, tokenCapExceeded=0/5; §0a remains closed under the new type contract.
-- Commit-pinned implementation review of `28071ea` requested before Postgres work; review gate-keeps the next session's DB-adapter implementation.
+
+**Codex commit-pinned implementation review of `28071ea`** — verdict YELLOW; all findings addressed in a follow-up commit before any DB-adapter work begins:
+
+- HIGH 1 (`resolveProposal` modified path bypassed normalization): fixed via single `normalizeForCommit` helper that both approved/modified routes go through. Throws if `status="modified"` lacks `opts.modifiedFact`. Persists `modifiedFact` on the proposal record for audit. Tests added: 4 in the "modified-resolution normalization" cluster.
+- HIGH 2 (`commitFact` cross-id supersession was if/else, leaking two active versions when the new logical id already had one): fixed by always closing the same-id prior active version, with cross-id supersession ADDITIVE on top. Test added: cross-id-with-already-versioned-target.
+- MEDIUM 1 (read methods leaked `committedAtChapter`/`supersededAtChapter` through `CanonSource`): `collectCurrentVersions` strips internal fields on read; return type is now `Omit<T, keyof CommittedRecord>`. Tests added: 4 read-shape cleanliness tests across all four canon-typed objects.
+- MEDIUM 2 (`scopeCharacterStates` and `scopeActivePromises` skipped the `isApproved` defense-in-depth check): both filters now check `provenance.approvalStatus`. Tests added in `scope.test.ts`: ghost CharacterState and contested StoryPromise excluded at scope time even when the upstream `CanonSource` leaks them.
+- MEDIUM 3 (sync-reads + async-writes asymmetry without explicit Postgres-adapter contract): documented the async-loader + sync-snapshot-wrapper pattern in `docs/designs/canon-substrate-step1.md` §"Sync reads + async writes" and added a header note on `CanonSubstrate` itself. The pattern is the same one ActiveRecord/etc. use; the equivalence suite when Postgres lands must include a "snapshot not loaded" test.
+- LOW 1 (test coverage gaps): same-chapter replacement test added; modified normalization, cross-id supersession, and read-shape cleanliness tests added (covers the H1/H2/M1 follow-ups).
+
+Substrate seam is review-cleared. Next session begins Postgres migration + `src/db/canon-substrate.ts` + `src/harness/canon-substrate.ts` + adapter-equivalence test suite. Charter §1 stop gate remains "seam cleared, production substrate pending" until that suite lands.
 
 ## Cost
 
