@@ -77,6 +77,20 @@ interface ExhaustionRow {
   unresolved_deviations: unknown
 }
 
+// L63 follow-up: per-chapter integrity issue rollup for measuring whether
+// matched-pair carry-over reduces duplicate-* counts on retry.
+interface IntegrityAttemptRow {
+  chapter: number
+  attempt_index: number
+  total_issues: number
+  duplicate_sentence: number
+  duplicate_fragment: number
+  fused_boundary: number
+  camel_fusion: number
+  quote_integrity: number
+  pair_bearing_dup_issues: number
+}
+
 interface FailedCallRow {
   agent: string
   error_text: string | null
@@ -172,6 +186,66 @@ async function fetchExhaustions(novelId: string): Promise<ExhaustionRow[]> {
     ORDER BY chapter, attempt
   `
   return rows
+}
+
+// L63 follow-up: query prose-integrity-check events for a novel and bucket
+// each attempt's issue list by kind. `pair_bearing_dup_issues` counts the
+// duplicate-* issues that carry the L63 `firstExcerpt` field — useful for
+// confirming new-shape payloads are reaching the writer once L63 deploys.
+async function fetchIntegrityHistory(novelId: string): Promise<IntegrityAttemptRow[]> {
+  // pipeline_events stores one event per chapter-attempt's integrity check;
+  // payload.issues is an array of {kind, excerpt, firstExcerpt?} entries.
+  // Each event corresponds to one attempt — use timestamp order to reconstruct
+  // attempt_index within a chapter (events table doesn't carry attempt directly).
+  const rows = await db<Array<{
+    chapter: number | null
+    payload: { issues?: Array<{ kind: string; firstExcerpt?: string | null }>; passed?: boolean }
+    timestamp: Date
+  }>>`
+    SELECT chapter, payload, timestamp
+    FROM pipeline_events
+    WHERE novel_id = ${novelId}
+      AND event_type = 'prose-integrity-check'
+      AND chapter IS NOT NULL
+    ORDER BY chapter, timestamp
+  `
+
+  const grouped = new Map<number, IntegrityAttemptRow[]>()
+  for (const r of rows) {
+    if (r.chapter == null) continue
+    const issues = r.payload?.issues ?? []
+    const counts = {
+      duplicate_sentence: 0,
+      duplicate_fragment: 0,
+      fused_boundary: 0,
+      camel_fusion: 0,
+      quote_integrity: 0,
+      pair_bearing_dup_issues: 0,
+    }
+    for (const i of issues) {
+      switch (i.kind) {
+        case "duplicate-sentence": counts.duplicate_sentence++; break
+        case "duplicate-fragment": counts.duplicate_fragment++; break
+        case "fused-boundary": counts.fused_boundary++; break
+        case "camel-fusion": counts.camel_fusion++; break
+        case "quote-integrity": counts.quote_integrity++; break
+      }
+      if ((i.kind === "duplicate-sentence" || i.kind === "duplicate-fragment") && i.firstExcerpt) {
+        counts.pair_bearing_dup_issues++
+      }
+    }
+    const existing = grouped.get(r.chapter) ?? []
+    existing.push({
+      chapter: r.chapter,
+      attempt_index: existing.length + 1, // 1-based, ordered by timestamp
+      total_issues: issues.length,
+      ...counts,
+    })
+    grouped.set(r.chapter, existing)
+  }
+  return Array.from(grouped.values()).flat().sort((a, b) =>
+    a.chapter - b.chapter || a.attempt_index - b.attempt_index,
+  )
 }
 
 async function fetchFailedCalls(novelId: string): Promise<FailedCallRow[]> {
@@ -336,6 +410,54 @@ function printExhaustions(rows: ExhaustionRow[]): void {
   }
 }
 
+// L63 follow-up: render integrity history per chapter so an operator can see
+// whether duplicate-* counts trend down on retry (Lever A's intended effect)
+// or escalate (the L61 secondary finding). pair-bearing column hits 0 on
+// chapters drafted before L63 deployed; non-zero confirms new-shape payloads.
+function printIntegrityHistory(rows: IntegrityAttemptRow[]): void {
+  if (rows.length === 0) {
+    console.log("\nIntegrity issues: no prose-integrity-check events yet.")
+    return
+  }
+  const totalIssues = rows.reduce((acc, r) => acc + r.total_issues, 0)
+  if (totalIssues === 0) {
+    console.log("\nIntegrity issues: 0 across all attempts (clean).")
+    return
+  }
+  console.log(`\nIntegrity issues by chapter / attempt (rows: ${rows.length})`)
+  console.log("  ch:att  total  dup-sent  dup-frag  fused-b  camel-f  quote-i  pair-bearing")
+  for (const r of rows) {
+    const ch = String(r.chapter).padStart(2)
+    const at = String(r.attempt_index).padStart(2)
+    const tot = String(r.total_issues).padStart(5)
+    const ds = String(r.duplicate_sentence).padStart(8)
+    const df = String(r.duplicate_fragment).padStart(8)
+    const fb = String(r.fused_boundary).padStart(7)
+    const cf = String(r.camel_fusion).padStart(7)
+    const qi = String(r.quote_integrity).padStart(7)
+    const pb = String(r.pair_bearing_dup_issues).padStart(12)
+    console.log(`  ${ch}:${at}    ${tot}    ${ds}  ${df}  ${fb}  ${cf}  ${qi}  ${pb}`)
+  }
+  // Brief escalation hint per chapter.
+  const byCh = new Map<number, IntegrityAttemptRow[]>()
+  for (const r of rows) {
+    const list = byCh.get(r.chapter) ?? []
+    list.push(r)
+    byCh.set(r.chapter, list)
+  }
+  for (const [ch, attempts] of byCh) {
+    if (attempts.length < 2) continue
+    const counts = attempts.map(a => a.total_issues)
+    const escalating = counts.every((v, i) => i === 0 || v >= counts[i - 1])
+    const decaying = counts.every((v, i) => i === 0 || v <= counts[i - 1])
+    if (escalating && counts[counts.length - 1] > counts[0]) {
+      console.log(`  ⚠️  ch${ch} escalating: ${counts.join("→")}`)
+    } else if (decaying && counts[counts.length - 1] < counts[0]) {
+      console.log(`  ✓ ch${ch} decaying: ${counts.join("→")}`)
+    }
+  }
+}
+
 function printStaleGatesAudit(rows: StaleGateRow[], minAgeHours: number): void {
   if (rows.length === 0) {
     console.log(`\nStale plan-assist gates: 0 (older than ${minAgeHours}h)`)
@@ -450,11 +572,12 @@ async function main(argv: string[]): Promise<number> {
     return 2
   }
 
-  const [agentCosts, andGate, twoStage, exhaustions, failedCalls] = await Promise.all([
+  const [agentCosts, andGate, twoStage, exhaustions, integrityHistory, failedCalls] = await Promise.all([
     fetchAgentCosts(novel.id),
     fetchAndGate(novel.id),
     fetchTwoStageAdherence(novel.id),
     fetchExhaustions(novel.id),
+    fetchIntegrityHistory(novel.id),
     fetchFailedCalls(novel.id),
   ])
 
@@ -465,6 +588,7 @@ async function main(argv: string[]): Promise<number> {
       andGate,
       twoStage,
       exhaustions,
+      integrityHistory,
       failedCalls,
     }, null, 2))
     return 0
@@ -475,6 +599,7 @@ async function main(argv: string[]): Promise<number> {
   printAndGate(andGate)
   printAdherence(twoStage.stage1, twoStage.stage2)
   printExhaustions(exhaustions)
+  printIntegrityHistory(integrityHistory)
   printFailedCalls(failedCalls)
   return 0
 }
