@@ -114,12 +114,14 @@ export interface L1Packet {
  * trimming, which would break the cache-stability guarantee that makes the
  * §0e economics work in the first place.
  *
- * The cap exists as a sanity check: if the scoping rules produce a 200K-token
- * bundle, something is pathologically wrong. At the chosen ceiling, the
- * tokenCapExceeded flag should normally be false — when it fires, it's an
- * "investigate the rules" signal, not a "trim the bundle" signal.
+ * The cap exists as a defensive guard: if the scoping rules produce a 200K-
+ * token bundle, something is pathologically wrong with the rule code. At the
+ * chosen ceiling, the tokenCapExceeded flag should normally be false — when
+ * it fires, it's an "investigate the rules" signal, not a "trim the bundle"
+ * signal.
  *
- * Quality (recall) > cache stability (determinism) > sanity (don't unbound).
+ * Two real priorities: quality (recall) and cache stability (determinism +
+ * reuse). The cap is a defensive bug alarm, not a third priority.
  */
 export const L1_TOKEN_CAP = 60_000
 
@@ -272,17 +274,25 @@ export function assembleL1(
     factsBlock + entitiesBlock + characterStatesBlock + activePromisesBlock
   const bytes = contentBytes + L1_BOUNDARY_MARKER
 
-  const approxTokens = Math.ceil(bytes.length / 4)
+  // byteLength is JS string code-unit length: used as the indexing unit for
+  // sectionOffsets and assertL1Boundary slice math, so it must match the
+  // unit those callers slice in. approxTokens uses the true UTF-8 byte count
+  // for a more accurate cap check (non-ASCII chars like curly quotes occupy
+  // multiple UTF-8 bytes but one JS code unit).
+  const byteLength = bytes.length
+  const approxTokens = Math.ceil(Buffer.byteLength(bytes, "utf8") / 4)
   const tokenCapExceeded = approxTokens > L1_TOKEN_CAP
 
-  // Hash the canon content (excluding boundary marker) so future boundary
-  // versioning doesn't invalidate every prior packet hash.
-  const packetHash = createHash("sha256").update(contentBytes).digest("hex")
+  // Hash the FULL byte stream including the boundary marker. The boundary
+  // marker is a versioned protocol element — if it changes, the cache
+  // contract changes, and prior packet hashes should not collide with the
+  // new format. Including the marker bytes in the hash makes that automatic.
+  const packetHash = createHash("sha256").update(bytes, "utf8").digest("hex")
 
   return {
     bytes,
     packetHash,
-    byteLength: bytes.length,
+    byteLength,
     approxTokens,
     tokenCapExceeded,
     snapshotVersion: source.snapshotVersion(novelId),
