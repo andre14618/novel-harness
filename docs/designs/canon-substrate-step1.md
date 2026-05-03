@@ -1,10 +1,13 @@
 ---
-status: proposed
+status: cleared
 updated: 2026-05-03
 role: design
 charter: docs/charters/world-bible-architecture.md
 lane: docs/sessions/2026-05-03-canon-substrate-step-1-design.md
+followup-lane: docs/sessions/2026-05-03-canon-substrate-postgres-adapter.md
 ---
+
+> **2026-05-03 update — Step 1 cleared.** Production substrate now exists at `sql/035_canon_substrate.sql` + `src/db/canon-substrate.ts` + `src/harness/canon-substrate.ts`. The adapter-equivalence suite (`src/canon/substrate-equivalence.test.ts`) runs the same behavioral spec against both `InMemoryCanonSubstrate` and `PostgresCanonSubstrate` and passes (178 canon tests, including point-in-time reads, no-ghost-canon for all four object types, supersession invariants, modified-resolution normalization, read-shape cleanliness, and the snapshot-not-loaded contract). The "production adapter shape (deferred wiring)" section below is preserved for historical reference; the wiring it describes has shipped.
 
 # Canon Substrate — Step 1 Design
 
@@ -287,6 +290,8 @@ In `src/canon/substrate.test.ts` against `InMemoryCanonSubstrate`:
 5. Charter §1 status flipped to *cleared* in `docs/charters/world-bible-architecture.md` and the Step 1 lane doc, with the equivalence-suite commit cited as evidence.
 
 Until step 5 lands, the operating-model and charter language remains "seam cleared, production substrate pending."
+
+**2026-05-03: All five points landed.** The Postgres adapter is in `src/harness/canon-substrate.ts`, the equivalence suite is in `src/canon/substrate-equivalence.test.ts`, and charter §1 is flipped to *cleared* in `docs/charters/world-bible-architecture.md`. Operator UI for proposal review and orchestrator wiring remain explicitly out of scope and queue under future work.
 
 ## Out of scope this session
 

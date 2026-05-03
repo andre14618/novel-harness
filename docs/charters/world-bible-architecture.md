@@ -216,6 +216,8 @@ The substrate is **versioned**, not just timestamped. Retroactive correction (hu
 
 **Stop gate.** Schema must support `getCanonForChapter(N)` returning what was canonical *at the time chapter N was written*, regardless of subsequent edits. If the schema can't do that, redesign before populating.
 
+**Status: cleared (2026-05-03).** Production substrate landed: `sql/035_canon_substrate.sql` (six tables, versioning + supersession columns), `src/db/canon-substrate.ts` (raw queries), `src/harness/canon-substrate.ts` (`PostgresCanonSubstrate` with the async-loader + sync-snapshot-wrapper pattern). Adapter-equivalence test suite at `src/canon/substrate-equivalence.test.ts` runs the same behavioral spec against `InMemoryCanonSubstrate` and `PostgresCanonSubstrate` — point-in-time reads, no-ghost-canon for all four canon-typed objects, proposal approve/modify/reject lifecycle, modified-proposal audit, same-id supersession, cross-id additive supersession, read-shape cleanliness, and snapshot-not-loaded throw. 178 tests pass across the canon suite. See `docs/sessions/2026-05-03-canon-substrate-postgres-adapter.md` and `docs/designs/canon-substrate-step1.md`.
+
 ### Step 2 — Bible-Input Integrity
 
 This step is load-bearing. **Bad canon makes downstream "full-context" review worse than current checkers**, because reviewers will trust a corrupt bible and miss real issues.

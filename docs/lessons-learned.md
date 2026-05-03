@@ -7,6 +7,16 @@ updated: 2026-05-03
 
 Hard-won principles from experiments, failures, and debugging. Each entry has evidence — experiment IDs, commit hashes, or specific observations. Read this before designing new agents, rubrics, benchmarks, or pipeline integrations.
 
+## Substrate Adapter Design
+
+### Adapter-equivalence test suite is non-optional when an interface has multiple implementations (2026-05-03)
+
+When the same interface has both an in-memory test adapter and a production-backed adapter (e.g., `InMemoryCanonSubstrate` + `PostgresCanonSubstrate`), the only way to prove behavioral equivalence is a **single shared behavioral spec that runs against both factories**. Per-adapter unit tests prove each adapter is internally consistent, but they don't catch the case where the two adapters diverge on the same input — and that's the failure mode that breaks consumers, who pick an adapter via dependency injection and don't expect the answer to depend on which one is wired in. Implementation: export the spec as `runSpec(label, makeHarness)`, instantiate both factories, run both. For the Postgres branch, wrap in `if (reachable)` so the suite still runs sensibly without a DB. Cost is small: the spec is the same code that would have been duplicated in two test files anyway. Caught at design time when planning charter §1 substrate; the spec is the evidence that flipped §1 from "seam cleared" to "cleared." (`src/canon/substrate-equivalence.test.ts`, charter §1 cleared 2026-05-03.)
+
+### Sync-reads + async-writes layering: load once per snapshot, throw on unloaded sync reads (2026-05-03)
+
+For interfaces where the read API is sync (because the consumer — e.g., `assembleL1` — is sync and going async would propagate `await` through every assembly path) but the underlying storage is async (Postgres), use the **async-loader + sync-snapshot-wrapper** pattern: `loadSnapshot(novelId, chapterN)` is async and populates an in-process cache; the sync reads serve from the cache. **Sync reads on an unloaded snapshot must throw an explicit error**, not silently return empty — empty would propagate as "canon was empty at chapter N" through downstream consumers and silently corrupt outputs. This is the same pattern Rails ActiveRecord uses for eager loading (`includes`); it's well-established. The contract MUST be tested: any equivalence suite includes a "snapshot not loaded" test that exercises the throw. Caught by Codex round-2 review of the seam (MEDIUM 3) before the production adapter shipped — the contract was documented in the design doc + interface JSDoc, and the snapshot-not-loaded test is permanent regression coverage. (`src/harness/canon-substrate.ts` `requireSnapshot`, `docs/designs/canon-substrate-step1.md` §"Sync reads + async writes".)
+
 ## Checker Audit Methodology
 
 ### Always run a control re-run before claiming a prompt-change win on stochastic checkers (2026-05-03)

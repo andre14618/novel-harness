@@ -10,6 +10,34 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon Substrate (charter §1) cleared — production Postgres adapter + equivalence suite (2026-05-03)
+
+**Decision:** Charter §1 stop gate flipped from "seam cleared, production substrate pending" → **cleared**. The production canon substrate now exists end-to-end:
+
+- Schema: `sql/035_canon_substrate.sql` — six tables (`canon_facts`, `canon_entities`, `canon_character_states`, `canon_promises`, `canon_proposals`, `canon_snapshot_meta`) with the bitemporal-style versioning shape designed in `docs/designs/canon-substrate-step1.md`. Per-canon-table active-version index (`WHERE superseded_by_version IS NULL`) + snapshot-shaped index per table.
+- Raw queries: `src/db/canon-substrate.ts` — point-in-time `loadXxxSnapshot` (DISTINCT ON + chapter-≤-N + not-superseded-by-N WHERE clause), per-type insert + supersession-bookkeeping (`maxXxxVersion` + `markXxxSuperseded`), proposal lifecycle, generation counter, test cleanup. No business rules.
+- Service-layer adapter: `src/harness/canon-substrate.ts` — `PostgresCanonSubstrate` implements `CanonSubstrate` via the **async-loader + sync-snapshot-wrapper** pattern. `loadSnapshot(novelId, chapterN)` is async and populates an in-process cache; the four sync read methods serve from the cache and throw an explicit error when the snapshot is unloaded. Mirrors `InMemoryCanonSubstrate.normalizeForCommit` and the `commitFact` H2 invariant (always-supersede same-id; cross-id supersession ADDITIVE on top).
+- **Adapter-equivalence test suite**: `src/canon/substrate-equivalence.test.ts` exports `runCanonSubstrateSpec(label, makeHarness)`. The same 32-test behavioral spec runs against both `InMemoryCanonSubstrate` and `PostgresCanonSubstrate` (the second branch under `if (reachable)` to support local dev without a DB). Plus 3 Postgres-only tests (table presence, snapshot-not-loaded throw, sync-read-after-load). Coverage matches the charter §1 contract and the Codex round-2 follow-ups: point-in-time reads, no-ghost-canon for all four canon-typed objects, proposal approve/modify/reject lifecycle, modified-proposal audit trail, same-id supersession, cross-id additive supersession (Codex H2), read-shape cleanliness (Codex M1), snapshot-not-loaded contract (Codex M3).
+
+**Why:** the prior session (`2026-05-03-canon-substrate-step-1-design`) cleared the seam — types, interface, in-memory adapter, 31 seam tests — but explicitly held charter §1 at "seam cleared, production substrate pending" because demonstrating the property against an in-memory adapter is not the same as demonstrating it against Postgres rows. Without the production adapter, no Step 2/3/4 work could land — every read path eventually goes through `CanonSource`. The equivalence suite is what makes flipping §1 to *cleared* defensible: the same behavioral spec passes against both adapters, so any consumer that depends on the read interface gets the same answer regardless of which adapter is wired in.
+
+**Alternatives rejected:**
+- *Defer the Postgres adapter and wire `InMemoryCanonSubstrate` into the orchestrator first.* Rejected — the in-memory adapter has no persistence, and the operating-model says canon must survive across runs. Wiring an in-memory adapter would have created a load-bearing ephemeral substrate that callers come to depend on; future swap to Postgres becomes risky.
+- *Skip the equivalence suite; trust unit coverage of each adapter separately.* Rejected — the entire point of the seam is that consumers should not care which adapter is plugged in, and the only way to prove that is a single behavioral spec running against both. Otherwise behavioral drift between adapters is invisible until a downstream consumer trips over it. Cost of the spec is small (one shared spec function, two factory invocations).
+- *Make `CanonSource` async (return Promise<…> from read methods).* Rejected per the design doc's "Sync reads + async writes" section. Going async would propagate `await` through `assembleL1`, `scopeCanonForChapter`, the recall harness, and every orchestrator caller; the snapshot does not change inside a chapter so the load-once-then-read-sync pattern is the cheapest answer. The MEDIUM 3 follow-up codified the loader contract; the snapshot-not-loaded test enforces it.
+
+**Evidence:**
+- `bun test src/canon/` — 178 pass / 0 fail / 375 expects.
+- `bunx tsc --noEmit` — clean.
+- `bun scripts/audits/run-salvatore-recall.ts` — `recallGateClear=YES, meanRecall=0.927, queryCount=42, recallPassCount=36/42` (§0a remains closed).
+- Migration applied locally via `bun -e "import('./src/db/connection').then(m => m.migrate())"`.
+
+**Ongoing implications:** the seam is locked. New canon-typed objects (events, organizations, etc.) follow the same shape — versioning + supersession columns, snapshot-shaped index, `markXxxSuperseded` + `insertXxx` + `loadXxxSnapshot` triple in `src/db/canon-substrate.ts`, mirrored in the harness adapter. Orchestrator wiring (which `assembleL1` caller uses which adapter) and operator-facing proposal review UI are explicit follow-ons; this entry only clears §1's stop gate.
+
+**Lane:** `docs/sessions/2026-05-03-canon-substrate-postgres-adapter.md`. **Design:** `docs/designs/canon-substrate-step1.md` (status flipped to `cleared`). **Charter:** `docs/charters/world-bible-architecture.md` §1 (status note added).
+
+---
+
 ### §Checker quality audit (2026-05-03) — **DIRECTIONAL DECISION; OPEN FOR INDEPENDENT REVIEW**
 
 **Status:** All five LLM checkers in the drafting layer (`halluc-ungrounded`, `continuity-*`, `adherence-events`, `functional-state-checker`, `chapter-plan-checker`) graded TP/FP/GRAY by sampling production fires + Sonnet subagent grading; chapter-plan-checker further validated by a four-arm K=3 stochasticity sweep. Direction: demote all five to warning-class; reborn in a post-draft flagging layer with full bible + chapter context. No code changes shipped; charter-class scope deferred to a charter draft. Open for independent reviewer audit.
