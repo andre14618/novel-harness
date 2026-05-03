@@ -2101,3 +2101,24 @@ This is the second time this pattern has surfaced in the grounding phase. L66 v1
 - The arch arm in L68 is the cleanest demonstration that lever-recall improvements can be real and approval-orthogonal at the same time.
 
 (L68, exp #396. Companion: `docs/sessions/2026-05-02-L68-multicall-halluc-vote.md`, `docs/decisions.md` §L68.)
+
+## Prompt-only escalations can leak across surfaces — narrow scope ≠ narrow blast radius (2026-05-03)
+
+L70 (exp #398) escalated the duplicate-fragment carry-over directive only — "paraphrase one side" → "rewrite at least one side using distinct concrete language; rewrite both sides if needed; different sentence shape." Targeted change, single function, single prompt block. **The A/B regressed across two non-target surfaces**: `fantasy-archive` produced `"6 A.M.*"` (asterisk-after-period) and bailed fused-boundary; `fantasy-system-heretic` bailed plan-check-exhausted on a halluc-ungrounded entity (`"silver interlocking ring"`).
+
+The causal chain inferred:
+1. Stronger integrity directive on att 1 → att 1 produces more issues (heretic L70: 4 vs baseline 1)
+2. Stronger directive carries over to att 2 → writer takes more creative risks (different verbs, different shapes)
+3. Creative risks on att 2 → new entities introduced (heretic), new punctuation experiments (arch)
+4. New entities → halluc-ungrounded fires on att 3; new punctuation → fused-boundary fires on att 5
+
+The lever's TARGET surface (duplicate-fragment) showed a clean win on `fantasy-debt` (approved ch1 vs bailed in baseline). But the gating outcome rolled-up to 1/3 → 1/3 because the cross-surface coupling cost the gain on heretic.
+
+**The rule:** even prompt-only changes scoped to one surface can shift writer behavior on retries, and that behavior shift can fire detectors on other surfaces. When designing a prompt escalation, predict which axes the writer might experiment on (verbs, imagery, sentence shape, punctuation) and constrain the ones that map to other detector surfaces. "Different sentence shape" is too broad — it can drive punctuation or formatting changes that trigger fused-boundary or quote-integrity. Explicit constraints like "different verbs and clauses, but keep the same punctuation conventions" prevent the leakage.
+
+**How to apply:**
+- Before shipping a prompt escalation, list the axes the writer COULD experiment on under the new directive. For each axis, ask: does any deterministic detector or LLM checker fire on that axis? If yes, constrain the directive to exclude that axis.
+- A/Bs on prompt-only changes should run paired-replay (≥3 runs per arm per seed) when the expected effect size is small. Single-run A/B has too much stochastic prose variance to distinguish lever effect from cross-surface coupling.
+- When stop gate (b) fires on a non-target surface (here: halluc-ungrounded regressed under an integrity-prompt change), the cross-surface coupling is the explanation; the revert is correct even if the target metric improved.
+
+(L70, exp #398. Companion: `docs/sessions/2026-05-02-L70-duplicate-fragment-paraphrase-ladder.md`, `docs/decisions.md` §L70.)

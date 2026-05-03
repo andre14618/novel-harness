@@ -133,9 +133,7 @@ export function formatChapterIntegrityRetryContext(
     lines +
     "\n\nKeep sentence boundaries clean (period + space + capital). " +
     "Do not repeat the same phrase verbatim across paragraphs. " +
-    "For duplicate-sentence / duplicate-fragment, the two excerpts shown are the colliding pair. " +
-    "Rewrite at least one side using distinct concrete language — different verbs, different sensory anchors, different sentence shape. " +
-    "If a single paraphrase still leaves the 8-word phrase shared, rewrite both sides. Keep the beats themselves intact. " +
+    "For duplicate-sentence / duplicate-fragment, the two excerpts shown are the colliding pair — paraphrase one side; do not delete a beat. " +
     "Pair and attribute every quote mark."
   )
 }
@@ -148,7 +146,7 @@ function formatIssueLine(i: { kind: string; excerpt: string; firstExcerpt?: stri
   const second = i.excerpt.trim().slice(0, 200)
   if ((i.kind === "duplicate-sentence" || i.kind === "duplicate-fragment") && i.firstExcerpt) {
     const first = i.firstExcerpt.trim().slice(0, 200)
-    return `- ${i.kind} (rewrite at least one side with different verbs/imagery):\n    first:  "${first}"\n    second: "${second}"`
+    return `- ${i.kind} (paraphrase one side):\n    first:  "${first}"\n    second: "${second}"`
   }
   return `- ${i.kind}: "${second}"`
 }

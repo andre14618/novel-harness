@@ -10,9 +10,9 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
-### §L70 Duplicate-fragment carry-over directive escalated to rewrite-both-sides (2026-05-02, exp #398)
+### §L70 Duplicate-fragment carry-over directive escalated to rewrite-both-sides (2026-05-02, exp #398) — **REVERTED, stop gate (b)**
 
-**Status:** Shipped as prompt-only change in `formatChapterIntegrityRetryContext`. A/B re-run on the same 3 fantasy seeds (`fantasy-archive`, `fantasy-debt`, `fantasy-system-heretic`) pending.
+**Status:** Tried 2026-05-03 (prompt edit `4362fc0`), A/B 3-novel sweep complete, **REVERTED same-day** because heretic regressed from approved → bailed plan-check-exhausted (halluc-ungrounded surface, plausibly L70-induced creative-risk chain). Net approval rate 1/3 → 1/3 with winner-swap (heretic → debt).
 
 **Decision:** Escalate the duplicate-sentence / duplicate-fragment carry-over directive from `"paraphrase one side; do not delete a beat"` to `"Rewrite at least one side using distinct concrete language — different verbs, different sensory anchors, different sentence shape. If a single paraphrase still leaves the 8-word phrase shared, rewrite both sides. Keep the beats themselves intact."` Issue-line label changes from `(paraphrase one side)` to `(rewrite at least one side with different verbs/imagery)`. No detector / schema / checker change.
 
@@ -24,7 +24,14 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 - Increase `maxDraftAttempts` from 3 to 4. Rejected because it adds 33% retry compute cost on chapters that bail and only delays — not addresses — the convergence-attractor problem.
 - Negative-prime prohibition (e.g. "do not repeat short phrases"). Rejected per `feedback_priming_suppression_ab.md` (2026-04-20 Salvatore A/B doubled fire rate when negative-prime was added). Positive framing throughout — "rewrite at least one side using distinct concrete language" describes the action rather than forbidding the failure mode.
 
-**Ongoing implications:** prompt-only change; no runtime cost differential when the carry-over fires (already firing path), zero cost when integrity passes on attempt 1 (existing path returns empty string). If the A/B shows ≥10pt approval improvement OR ≥30% reduction in integrity-exhausted bails on ≥2/3 novels, the lever ships and the pattern (escalate-the-directive-but-stay-positive-framed) becomes a template for future carry-over surfaces. If not, escalate to L70b form (a) per-fragment beat-targeted rewrite.
+**A/B outcome (exp #398, 3-novel single-arm vs exp #396 N=1 baseline, $0.16):**
+- arch: bailed integrity-exhausted both arms (sub-kind shifted from dup-frag to fused-boundary `"6 A.M.*"`).
+- debt: **APPROVED ch1 att 3** at L70 (vs bailed at baseline). Clean win.
+- heretic: bailed plan-check-exhausted at L70 on halluc-ungrounded `"silver interlocking ring"` (vs approved at baseline att 2). Regression.
+
+**Per stop gate (b), reverted.** The lever direction (escalate the carry-over directive) might still be correct — debt's improvement is genuine signal — but the form induced cross-surface coupling: integrity-prompt change → writer takes more creative risks on retry → halluc-ungrounded fires on new entities (heretic) and creative punctuation triggers fused-boundary (arch). Three-step causal chain dominated by stochastic prose noise; can't fully attribute, but consistent with stop gate (b).
+
+**Ongoing implications:** the duplicate-fragment dominant-blocker pattern from L68 still stands. Pivot to **L70b / Lever I-D form (a)**: per-fragment beat-targeted rewrite (L41 ladder analog, scoped to the duplicate-bearing beat only via char-offset → beat mapping). Form (a) does NOT change the writer's prompt at all — only scopes which beat retries on duplicate-fragment fail — so it cannot induce the creative-risk pattern that broke L70. Larger code change (~mid-scope) but lower runtime risk per A/B. Three lessons from L70 captured in `docs/lessons-learned.md`: (1) prompt-only escalations can leak across surfaces, (2) 3-novel single-arm A/B has high variance — use paired replay when small effect sizes are expected, (3) "different sentence shape" wording induces punctuation experimentation; future directives should constrain the axis explicitly.
 
 ---
 
