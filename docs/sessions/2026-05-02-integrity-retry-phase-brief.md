@@ -60,6 +60,35 @@ L41's `priorIntegrityIssues` carry-over (`retry-context.ts:123-138`) passes a ch
 
 3. **No integrity exhaustion plan-assist gate.** Adherence/continuity blockers route to `pendingExhaustion → presentForExhaustion` (operator gate). Integrity exhaustion sets neither — it `continue`s silently and pauses on attempt 3 with `chapter-attempts-exhausted:ch${ch}`. No human gets the edit-plan/override/abort decision.
 
+## Trace Evidence — Writer Response To L41 Carry-Over
+
+Pulled all `beat-writer` `llm_calls` rows where `request_json.messages[].content` contained `AVOID THESE INTEGRITY ISSUES`. Only 2 chapters in the DB carried the block (the feature is recent). Verbatim carry-over example from `llm_calls.id=58676` (novel-1777761636607 ch1 t3):
+
+```
+--- AVOID THESE INTEGRITY ISSUES FROM YOUR PRIOR DRAFT ---
+- fused-boundary: "tters faded: *SCRIBE.GUILD.VALDRIS.MARET.ANN"
+- fused-boundary: "faded: *SCRIBE.GUILD.VALDRIS.MARET.ANNUAL.*"
+- fused-boundary: "SCRIBE.GUILD.VALDRIS.MARET.ANNUAL.* She cou"
+- fused-boundary: ".GUILD.VALDRIS.MARET.ANNUAL.* She could sti"
+- quote-integrity: "The cross-reference on folio 47-B indicated a varianc..."
+
+Keep sentence boundaries clean (period + space + capital). Do not repeat the same phrase verbatim across paragraphs. Pair and attribute every quote mark.
+```
+
+Compared attempt-1 issues to attempt-2 issues across the 2 retry-equipped chapters:
+
+| novel | ch | t1 issue | t2 outcome | verdict |
+|---|---|---|---|---|
+| 1777761636607 | 1 | duplicate-sentence / `Don't look at me.` | `Don't look at me.` GONE; new fused-boundary pathology emerged | **different-kind** |
+| 1777761636607 | 1 (t2→t3) | fused-boundary / `…SCRIBE.GUILD.VALDRIS.MARET.ANN` | fused-boundary at *different offsets* in same SCRIBE.GUILD construct | **different-duplicate** (sliding-window survival of generator) |
+| 1777761636607 | 1 (t2→t3) | quote-integrity / `The cross-reference on folio 47-B…` | duplicate-sentence / paraphrased "folio twelve-B…" appeared twice | **different-kind** (writer paraphrased the warned quote, then duplicated the paraphrase) |
+| 1777721066908 | 2 | duplicate-fragment ×2 + quote-integrity | t2 PASSED | **resolved** |
+
+**Conclusions:**
+- Writer **obeys the literal-string prohibition** — every named excerpt in the carry-over disappeared in the next attempt.
+- For `fused-boundary`, the **underlying generator survives**: the writer kept emitting the SCRIBE.GUILD.VALDRIS.MARET.ANNUAL token-stream construct with shifted surrounding text, so the detector matched a different window. Generator-level pathology, not literal-pair. *L62's regex carve-out closes this at the detector layer; no writer-side fix needed for this kind.*
+- For `duplicate-sentence`/`-fragment`, the **fresh-prose-elsewhere pattern is real**: the writer evaded the warned text and duplicated *paraphrased* content elsewhere. Lever A (showing `pairNorm` so the writer sees both halves of the collision) addresses this cleanly because it surfaces the *type of duplication* — not just the offending phrase. Lever A's volume target (72.9% of integrity-fail mass) and its causal fit are now both supported by evidence.
+
 ## Phase Question Implications
 
 Three orthogonal levers, sequenced by leverage × cost:
