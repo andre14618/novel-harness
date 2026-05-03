@@ -2086,3 +2086,18 @@ L62 (exp #385) shipped a regex carve-out for LitRPG System path identifiers in `
 - If you can't construct a near-miss that distinguishes the exemption from the original rule, the exemption is probably too broad — revisit the spec before writing more positive fixtures.
 
 (L62, exp #385, commit `31e16a8`. Companion: `docs/sessions/2026-05-02-L62-litrpg-integrity-guard.md`, `docs/decisions.md` §L62.)
+
+## Lever-target metric improvement is necessary but not sufficient — verify the bottleneck location first (2026-05-02)
+
+L68 (exp #396) shipped multi-call halluc-ungrounded vote/union and demonstrated the lever target metric (entity recall via union) is working as designed: `fantasy-archive` produced 0 halluc fail-calls @ N=1 vs 9 fail-calls @ N=2 on the same commit. The vote/union widened the entity surface as predicted. **And approval did not improve.** 5 of 6 A/B novels and the L60 dryrun bailed `integrity-duplicate-fragment` regardless of arm; halluc-ungrounded was simply not the dominant blocker on these seeds.
+
+This is the second time this pattern has surfaced in the grounding phase. L66 v1 (exp #393+#394) reduced halluc-ungrounded fires by 79% but regressed approval because the prompt change pushed the writer into duplicate-fragment integrity escalations. Different mechanism, same shape: the lever moved its target metric but the gating outcome was set by an upstream blocker.
+
+**The rule:** before launching an A/B on a runtime lever, identify the dominant chapter-blocking failure mode on your seed set in the *current commit*. If the lever's target metric is downstream of the dominant blocker, the A/B will be uninformative — the lever can move its metric and the gating outcome stays pinned by the upstream issue. The strongest signal an A/B can give is when the lever's target metric IS the dominant blocker.
+
+**How to apply:**
+- Before opening an A/B lane, query `chapter_exhaustions` across the last 7-14 days to identify the dominant `kind` distribution. Match the lever's target surface to that distribution.
+- If the target surface is <30% of the dominant blockers, the lever is option-value at best; ship-as-code-default-off rather than trying to prove approval improvement.
+- The arch arm in L68 is the cleanest demonstration that lever-recall improvements can be real and approval-orthogonal at the same time.
+
+(L68, exp #396. Companion: `docs/sessions/2026-05-02-L68-multicall-halluc-vote.md`, `docs/decisions.md` §L68.)

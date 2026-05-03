@@ -10,6 +10,35 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §L68 Multi-call halluc-ungrounded vote/union — ship as code, default-off (2026-05-02, exp #396)
+
+**Status:** Shipped as code (`47ae038` + env-fix `7001981`); production default `HALLUC_UNGROUNDED_VOTE_N` unset → `pipeline.hallucVoteN=1`. **Lever works as designed but is upstream of the dominant blocker on the A/B seeds.**
+
+**Decision:** Add a `voteN` opts param + `pipeline.hallucVoteN` flag (env-resolved at module load) to `checkHallucUngrounded`. When N>1, run the deterministic NER prepass once and the LLM call N times in parallel via `Promise.all`, then union the LLM-confirmed flagged-entity sets (dedup case-insensitive trimmed entity, first non-empty excerpt wins). Each of the N `llm_calls` rows is patched with `voteIndex`/`voteN` only when N>1, so the single-call audit shape stays bit-for-bit identical to pre-L68. Pipeline default keeps the current behavior; production deploy can flip the env when warranted.
+
+**Empirical (3-novel A/B at N=1 vs N=2, $0.38 total, exp #396):**
+- Approval: n1 = 1/3 chapters approved (heretic-n1 ch1 ✓), n2 = 0/3.
+- 5 of 6 A/B novels bailed `integrity-duplicate-fragment` regardless of arm; only heretic-n1 approved ch1, only heretic-n1 had halluc fire least (4 calls). 0 plan-check-exhausted halluc-cited bails on either arm — halluc-ungrounded is **NOT the dominant blocker on these seeds**.
+- Lever-target metric (entity recall via vote/union) **demonstrated working** on `fantasy-archive`: n1 produced 0 halluc fail-calls / 39 invocations; n2 produced 9 fail-calls / 90 invocations on the same commit and seed. Vote/union widened the entity surface as predicted; the chapter still bailed integrity because integrity is upstream.
+- Cost premium: ~1.18× average per pair. Within the predicted ~20% halluc inference overhead.
+
+**Why ship-as-code-default-off rather than KILL:**
+- The implementation is small, well-tested (16 new unit tests + per-call mock plumbing), and adds zero runtime cost when off.
+- The mechanism is **option-value** — it can be promoted via env when a future seed/lane is bottlenecked on halluc-ungrounded recall. The arch result confirms it widens recall when active.
+- Reverting it would re-execute the same code review + retest cycle later if the bottleneck shifts.
+
+**Alternatives rejected:**
+- Hard KILL + revert. Rejected because the lever target metric IS moving and the cost is gated to off by default.
+- Promote N=2 as default. Rejected because integrity-duplicate-fragment dominates the seeds; flipping the env adds ~18% cost with no demonstrated approval improvement on the current bottleneck.
+- Try N=3 before deciding. Rejected because the headline issue is the bottleneck location (integrity, upstream) not lever sensitivity.
+- Ship and silent-default-on. Rejected per the cost-threshold autonomy rule — flipping production behavior should follow demonstrated benefit, not capacity for option-value.
+
+**Ongoing implications:**
+- The dominant chapter-1 blocker on these 3 fantasy seeds is `integrity-duplicate-fragment`, surviving 3-4 chapter-attempts despite the L41/L63 matched-pair carry-over. **Next lever should be L70 / Integrity Lever I-D** — duplicate-fragment paraphrase guidance, OR per-fragment beat-targeted rewrite (L41 ladder analog for the duplicate surface), OR a calibrated relaxation of the duplicate-fragment threshold to test if it over-fires on legitimate parallelism.
+- Grounding phase sequence updates: G-A shipped, G-B v1 reverted, G-A2 closed, **G-D shipped-as-code-default-off (this entry)**, G-C still queued. The grounding phase has produced one shipped lever (G-A) and one option-value lever (G-D); further grounding work should wait until a future smoke shows halluc dominance again.
+
+---
+
 ### §L67 Grounding Lever G-A2 closed as not-a-real-lever (2026-05-02, exp #395)
 
 **Status:** Investigated and closed without a code change. The phase brief had identified G-A2 ("faithful per-beat critique surface for halluc-ungrounded") as a candidate after the L66 v1 KILL, on the hypothesis that the writer's per-beat retry critique was *not* faithfully reflecting the chapter-level halluc-ungrounded blocker set.
