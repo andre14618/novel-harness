@@ -144,8 +144,13 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // satisfiable. Validation-failure paths (word count, pov-missing) do NOT
   // invoke the reviser — those are routed to targeted beat rewrites only.
   // Same DeepSeek model as the checker; higher maxTokens since output is a
-  // full beats+state JSON (matches planning-beats shape).
-  "chapter-plan-reviser":      { ...deepseekV4Flash, thinking: true, temperature: 0.3, maxTokens: 6144 },
+  // full beats+state JSON (matches planning-beats shape). L71 (2026-05-03,
+  // exp #400) raised the cap 6144 → 12288 after exp #399 surfaced a 1/25
+  // long-tail novel (fantasy-system-heretic ch1) hitting finish_reason=length
+  // and bailing the whole novel at the plan-assist gate. Thinking-mode
+  // reasoning tokens consume budget alongside structured output, so the old
+  // cap was tight on chapters needing substantial re-plans.
+  "chapter-plan-reviser":      { ...deepseekV4Flash, thinking: true, temperature: 0.3, maxTokens: 12288 },
 
   // ── Lint research (offline scripts only — NOT in the pipeline) ─────
   // Used by scripts/lint/lint-discover.ts + scripts/lint/lint-discover-lib.ts
