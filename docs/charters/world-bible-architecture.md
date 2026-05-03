@@ -1,11 +1,12 @@
 ---
-status: proposed
+status: active
 date: 2026-05-03
 owner: andre
 companion-audit: docs/checker-quality-audit-2026-05-03.md
 companion-audit-cpc: docs/checker-quality-audit-2026-05-03-chapter-plan-checker.md
 adversarial-review: round-1-complete-2026-05-03
-experiment: TBD-charter-row-required-before-step-0
+experiment: 403
+lane-doc: docs/sessions/2026-05-03-world-bible-architecture-step-0.md
 ---
 
 # World-Bible / Character-Bible Architecture
