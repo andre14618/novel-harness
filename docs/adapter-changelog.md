@@ -44,7 +44,7 @@ First voice-imprinting LoRA. Targets the 1988 Salvatore action-pulp rhythm (shor
 | Training file | `finetune-data/salvatore-1988-sft-train.jsonl` |
 | Experiment | #192 (`lora_voice_sft`, target=writer, dimension=voice_imprint) |
 | Pre-train baseline | DeepSeek V3.2 + Howard primer, Δ-sum 1.81 vs Salvatore aggregate (Phase B) |
-| Submission script | `bun scripts/finetune/submit-salvatore-training.ts` |
+| Submission script | `bun scripts/archive/finetune/submit-salvatore-training.ts` |
 | Run host | LXC 307 (W&B Serverless SFT, ART framework, free preview tier) |
 
 **Phase C A/B verdict (2026-04-16):** Δ-sum 0.45 vs DeepSeek baseline 2.45 on 4 stratified briefs at 120w. Both Phase-B-identified gaps closed: avg sentence length 10.8w → 16.4w (target 18.3w), sensory density 4.75 → 1.66 hits/100w (target 1.56). Adapter live on W&B Inference. Next gate: 3-chapter production run on litrpg/romance-drama seed before promoting to default writer or opt-in style alternative. See `docs/decisions.md` "Phase C verdict."

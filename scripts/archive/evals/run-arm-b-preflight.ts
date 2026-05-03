@@ -31,23 +31,23 @@
 
 import { readFile } from "node:fs/promises"
 import path from "node:path"
-import db from "../../src/db/connection"
-import { getChapterOutline } from "../../src/db/outlines"
-import { getCharacters, getWorldBible } from "../../src/db/world"
-import { getCharacterStatesAtChapter } from "../../src/db/character-states"
-import { getFactsUpToChapter } from "../../src/db/facts"
-import { createTuningExperiment, concludeExperiment } from "../../src/db/ops"
-import { initExperimentRun } from "../../src/logger"
-import { executeAndLog } from "../../src/llm"
-import { checkHallucUngrounded } from "../../src/agents/halluc-ungrounded"
+import db from "../../../src/db/connection"
+import { getChapterOutline } from "../../../src/db/outlines"
+import { getCharacters, getWorldBible } from "../../../src/db/world"
+import { getCharacterStatesAtChapter } from "../../../src/db/character-states"
+import { getFactsUpToChapter } from "../../../src/db/facts"
+import { createTuningExperiment, concludeExperiment } from "../../../src/db/ops"
+import { initExperimentRun } from "../../../src/logger"
+import { executeAndLog } from "../../../src/llm"
+import { checkHallucUngrounded } from "../../../src/agents/halluc-ungrounded"
 import {
   buildEnrichedContext,
   insertEnrichedSection,
-} from "../../src/agents/writer/enriched-context"
+} from "../../../src/agents/writer/enriched-context"
 import { recoverSections } from "./beat-prompt-sections"
-import { getTokenCost } from "../../src/models/registry"
-import type { LLMRequest } from "../../src/transport"
-import type { ProviderName } from "../../src/models/registry"
+import { getTokenCost } from "../../../src/models/registry"
+import type { LLMRequest } from "../../../src/transport"
+import type { ProviderName } from "../../../src/models/registry"
 
 // ── Types ──────────────────────────────────────────────────────────────
 

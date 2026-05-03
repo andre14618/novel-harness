@@ -14,9 +14,9 @@
  * Usage:
  *   bun scripts/three-model-beat-compare.ts <novelId> <sampleSize>
  */
-import { getNovel, getWorldBible, getCharacters, getStorySpine, getChapterOutline } from "../src/db"
-import { buildBeatContext } from "../src/agents/writer/beat-context"
-import type { ChapterOutline } from "../src/types"
+import { getNovel, getWorldBible, getCharacters, getStorySpine, getChapterOutline } from "../../src/db"
+import { buildBeatContext } from "../../src/agents/writer/beat-context"
+import type { ChapterOutline } from "../../src/types"
 
 const V4    = "wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v4"
 const LLAMA = "llama-3.3-70b-versatile"

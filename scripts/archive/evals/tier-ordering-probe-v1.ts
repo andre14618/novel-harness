@@ -39,20 +39,20 @@
  *   holds the adherence-events result; `correct` mirrors adherence.pass.
  */
 
-import db from "../../src/db/connection"
-import { createTuningExperiment, concludeExperiment } from "../../src/db/ops"
-import { initExperimentRun } from "../../src/logger"
-import { executeAndLog } from "../../src/llm"
-import { getTokenCost } from "../../src/models/registry"
-import type { ProviderName } from "../../src/models/registry"
+import db from "../../../src/db/connection"
+import { createTuningExperiment, concludeExperiment } from "../../../src/db/ops"
+import { initExperimentRun } from "../../../src/logger"
+import { executeAndLog } from "../../../src/llm"
+import { getTokenCost } from "../../../src/models/registry"
+import type { ProviderName } from "../../../src/models/registry"
 import {
   getNovel, getChapterOutline, getCharacters,
   getCharacterStatesAtChapter, getWorldBible,
-} from "../../src/db"
-import { buildBeatContext } from "../../src/agents/writer/beat-context"
-import { checkBeatAdherence } from "../../src/agents/writer/adherence-checker"
-import { BEAT_WRITER_PROMPT } from "../../src/prompts"
-import type { ChapterOutline, SceneBeat } from "../../src/types"
+} from "../../../src/db"
+import { buildBeatContext } from "../../../src/agents/writer/beat-context"
+import { checkBeatAdherence } from "../../../src/agents/writer/adherence-checker"
+import { BEAT_WRITER_PROMPT } from "../../../src/prompts"
+import type { ChapterOutline, SceneBeat } from "../../../src/types"
 
 const DEEPSEEK_MODEL = "deepseek-v4-flash"
 const DEEPSEEK_PROVIDER: ProviderName = "deepseek"

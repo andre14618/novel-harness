@@ -23,7 +23,7 @@
  *     --novel novel-1776690960321 --n 10
  */
 
-import db from "../../src/db/connection"
+import db from "../../../src/db/connection"
 
 // Header prefixes that mark the start of a fresh section. The beat-spec
 // section at index 0 has no header; everything before the first matched

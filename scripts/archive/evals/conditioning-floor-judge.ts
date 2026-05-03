@@ -22,7 +22,7 @@ import { createHash } from "node:crypto"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { spawn } from "node:child_process"
 import path from "node:path"
-import db from "../../src/db/connection"
+import db from "../../../src/db/connection"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

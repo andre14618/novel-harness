@@ -7,7 +7,7 @@
  *   bun scripts/finetune/submit-salvatore-training.ts [--conclude <experiment_id> "<conclusion text>"]
  */
 
-import { createTuningExperiment, concludeExperiment } from "../../src/db/ops"
+import { createTuningExperiment, concludeExperiment } from "../../../src/db/ops"
 
 async function main() {
   const args = process.argv.slice(2)

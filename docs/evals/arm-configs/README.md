@@ -1,6 +1,6 @@
 # `salvatore-distinctness-v1` arm configs
 
-Schema for `scripts/evals/run-salvatore-distinctness-v1.ts` arm files:
+Schema for `scripts/archive/evals/run-salvatore-distinctness-v1.ts` arm files:
 
 ```json
 {

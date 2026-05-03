@@ -5,14 +5,14 @@
  * in chapters 1-3 is generated TWICE with byte-identical system + user
  * context. Only the writer model varies.
  */
-import { initDB, createNovel, getNovel, getWorldBible, getCharacters, getChapterOutline } from "../src/db"
-import { setAutoMode, setResolverMode } from "../src/cli"
-import { getMode } from "../src/gates"
-import { runConceptPhase } from "../src/phases/concept"
-import { runPlanningPhase } from "../src/phases/planning"
-import { buildBeatContext } from "../src/agents/writer/beat-context"
-import { initNovelRun } from "../src/logger"
-import type { SeedInput, ChapterOutline } from "../src/types"
+import { initDB, createNovel, getNovel, getWorldBible, getCharacters, getChapterOutline } from "../../src/db"
+import { setAutoMode, setResolverMode } from "../../src/cli"
+import { getMode } from "../../src/gates"
+import { runConceptPhase } from "../../src/phases/concept"
+import { runPlanningPhase } from "../../src/phases/planning"
+import { buildBeatContext } from "../../src/agents/writer/beat-context"
+import { initNovelRun } from "../../src/logger"
+import type { SeedInput, ChapterOutline } from "../../src/types"
 
 const V4_MODEL = "wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v4"
 const LLAMA_MODEL = "llama-3.3-70b-versatile"

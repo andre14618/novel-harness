@@ -6,15 +6,15 @@
  * Pipeline up to drafting is shared (same world, same characters, same
  * chapter plan). Only the beat-writer LoRA varies.
  */
-import { initDB, createNovel, getNovel, getWorldBible, getCharacters, getStorySpine, getChapterOutline } from "../src/db"
-import { setAutoMode, setResolverMode } from "../src/cli"
-import { getMode } from "../src/gates"
-import { runConceptPhase } from "../src/phases/concept"
-import { runPlanningPhase } from "../src/phases/planning"
-import { buildBeatContext } from "../src/agents/writer/beat-context"
-import { initNovelRun } from "../src/logger"
-import type { SeedInput, ChapterOutline } from "../src/types"
-import db from "../src/db/connection"
+import { initDB, createNovel, getNovel, getWorldBible, getCharacters, getStorySpine, getChapterOutline } from "../../src/db"
+import { setAutoMode, setResolverMode } from "../../src/cli"
+import { getMode } from "../../src/gates"
+import { runConceptPhase } from "../../src/phases/concept"
+import { runPlanningPhase } from "../../src/phases/planning"
+import { buildBeatContext } from "../../src/agents/writer/beat-context"
+import { initNovelRun } from "../../src/logger"
+import type { SeedInput, ChapterOutline } from "../../src/types"
+import db from "../../src/db/connection"
 
 const V3 = "wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v3"
 const V4 = "wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v4"

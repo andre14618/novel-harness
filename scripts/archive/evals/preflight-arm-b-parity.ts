@@ -35,15 +35,15 @@
 
 import { readFile, writeFile, mkdir } from "node:fs/promises"
 import path from "node:path"
-import db from "../../src/db/connection"
-import { getChapterOutline } from "../../src/db/outlines"
-import { getCharacters, getWorldBible } from "../../src/db/world"
-import { getCharacterStatesAtChapter } from "../../src/db/character-states"
-import { getFactsUpToChapter } from "../../src/db/facts"
+import db from "../../../src/db/connection"
+import { getChapterOutline } from "../../../src/db/outlines"
+import { getCharacters, getWorldBible } from "../../../src/db/world"
+import { getCharacterStatesAtChapter } from "../../../src/db/character-states"
+import { getFactsUpToChapter } from "../../../src/db/facts"
 import {
   buildEnrichedContext,
   insertEnrichedSection,
-} from "../../src/agents/writer/enriched-context"
+} from "../../../src/agents/writer/enriched-context"
 import {
   recoverSections,
   sectionHeader,

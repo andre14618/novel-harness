@@ -29,7 +29,7 @@ const PLANNING_OBLIGATION_COVERAGE_RETRY_BASE_ATTEMPT = 3
 
 /** Planning phase implementation. Kept exported for scripts that compose
  *  phases outside the runNovel driver (3 callers:
- *  scripts/fork-writer-test.ts, fork-writer-v4-llama.ts,
+ *  scripts/archive/fork-writer-test.ts, scripts/archive/fork-writer-v4-llama.ts,
  *  test-planner-isolated.ts). Driver consumers should use `planningPhase`
  *  (the Phase<I,O> wrapper) instead. */
 export async function runPlanningPhase(novelId: string): Promise<PhaseResult<PlanningOutput>> {

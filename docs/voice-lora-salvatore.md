@@ -243,7 +243,7 @@ Training cost at current W&B pricing is the same as v2 (~$0.30). Expected improv
 
 v3 was built to address the prompt-shape mismatch v2 hit in production (exp #195). Three things changed:
 
-1. **Harness-shaped user prompts.** Every training pair's user prompt now matches `src/agents/writer/beat-context.ts::buildBeatContext` output — BEAT header + POV + Setting + beat description + Characters present + TRANSITION BRIDGE + LANDING TARGET + CHARACTERS section with per-character snapshots + SETTING on scene_start beats. See `scripts/finetune/format-salvatore-v3-sft.py`.
+1. **Harness-shaped user prompts.** Every training pair's user prompt now matches `src/agents/writer/beat-context.ts::buildBeatContext` output — BEAT header + POV + Setting + beat description + Characters present + TRANSITION BRIDGE + LANDING TARGET + CHARACTERS section with per-character snapshots + SETTING on scene_start beats. See `scripts/archive/finetune/format-salvatore-v3-sft.py`.
 2. **3-variant rename augmentation per chapter.** 1 original + 2 renamed copies with fresh per-chapter rename tables drawn from `scripts/finetune/salvatore-rename-pool.json`. Sentence-level prose is byte-identical across variants aside from proper-noun tokens. Teaches "name slot is parametric."
 3. **~17% retry variants.** Production-calibrated failure distribution (event_not_enacted 40%, over_elaboration 25%, character_missing 20%, sequence_reversed 8%, tone_mismatch 7%). Deterministic degradation; assistant output is the real Salvatore prose. Teaches "given voice-correct but plot-broken prose + issue list, preserve what works, fix only what's flagged."
 

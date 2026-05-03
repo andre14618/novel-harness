@@ -20,7 +20,7 @@
  * No training. No inference. Pure regex over already-logged prose.
  */
 
-import db from "../../src/db/connection"
+import db from "../../../src/db/connection"
 import { writeFileSync, mkdirSync } from "node:fs"
 
 // ── Token list ─────────────────────────────────────────────────────────

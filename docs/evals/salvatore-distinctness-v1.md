@@ -102,9 +102,9 @@ Why `gpt-5.4`:
 - The judge must be named up front because `docs/decisions.md` records model-dependent distinctness outcomes in the archetype-pass POC: `Sonnet+profile 55%`, `LoRA 33%`, `DeepSeek 8%`. Judge identity is therefore load-bearing, not a runtime convenience.
 - `deepseek-chat` is disqualified for this eval because the v4 training path pulls its `exampleLines` from `novels/salvatore-icewind-dale/analysis/dialogue-extract.jsonl`, and that file was produced by `deepseek-chat`.
 - The Salvatore v3/v4 formatter path does not use `gpt-5.4` as a label source. The audited local sources for v4 point to:
-  - `scripts/finetune/format-salvatore-v4-sft.py`
+  - `scripts/archive/finetune/format-salvatore-v4-sft.py`
   - `novels/salvatore-icewind-dale/analysis/dialogue-extract.jsonl`
-  - `scripts/finetune/archetype-poc/*`
+  - `scripts/archive/finetune/archetype-poc/*`
 - The clean circularity check is therefore: `gpt-5.4` is named here, and it does not appear in the v3/v4 Salvatore training-data build path that seeded the frozen `exampleLines` surface.
 
 ## Pairwise Protocol

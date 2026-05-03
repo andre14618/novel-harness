@@ -16,7 +16,7 @@
  * Write to scripts/hallucination/solo-ungrounded-samples.jsonl.
  */
 
-import db from "../../src/db/connection.ts"
+import db from "../../../src/db/connection.ts"
 import { writeFileSync } from "node:fs"
 
 const CLEAN_NOVELS = [

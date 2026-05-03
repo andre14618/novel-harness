@@ -515,7 +515,7 @@ The original P7 plan was to delete `runConceptPhase`/`runPlanningPhase`/
 false: discovered during P7 implementation that they have 17 external
 usages — `src/phases/drafting-revision-used-persistence.test.ts` (5
 calls), `src/phases/drafting-reviser-escalation.test.ts` (6 calls), and
-3 scripts (`scripts/fork-writer-test.ts`, `scripts/fork-writer-v4-llama.ts`,
+3 scripts (`scripts/archive/fork-writer-test.ts`, `scripts/archive/fork-writer-v4-llama.ts`,
 `scripts/test-planner-isolated.ts`) that each invoke `runConceptPhase`
 + `runPlanningPhase` (6 calls total). No external caller exists for
 `runValidationPhase`. The tests exercise the phase body directly with

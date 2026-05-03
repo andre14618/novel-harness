@@ -213,7 +213,7 @@ be extended to generate hard-negative examples.
 | Script | Action |
 |---|---|
 | `scripts/hallucination/measure-regex-ceiling.ts` | NEW — runs regex match against natural-val and production panel; reports precision/recall vs v1 adapter; must be run before any training decision |
-| `scripts/hallucination/expand-leak-vocab.ts` | MODIFY — add Waterdeep, Baldur's Gate, Drossen Ironbelly, Chionthar, Harpells, Neverwinter (if user confirms scope); remove from LEAK_TOKENS any tokens user decides are out-of-scope |
+| `scripts/archive/hallucination/expand-leak-vocab.ts` | MODIFY — add Waterdeep, Baldur's Gate, Drossen Ironbelly, Chionthar, Harpells, Neverwinter (if user confirms scope); remove from LEAK_TOKENS any tokens user decides are out-of-scope |
 | `scripts/hallucination/build-natural-leak-val.ts` | MODIFY — sync LEAK_TERMS with expanded LEAK_TOKENS list; current lists are out of sync (val has ~57, train has 49) |
 | `scripts/hallucination/harvest-production-leaks.ts` | NEW (if rung 2b selected) — queries `llm_calls` WHERE ungrounded fired on a known corpus token AND leak adapter did NOT fire; outputs labeled FAIL pairs in leak-adapter schema |
 | `scripts/hallucination/build-leak-v3-train.ts` | NEW (if rung 2 confirmed) — correct-ratio construction (1:10 FAIL:PASS), no oversample, production-cadence positive examples |

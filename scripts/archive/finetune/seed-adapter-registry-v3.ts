@@ -1,7 +1,7 @@
 /**
  * Seed adapter_registry with v3 hallucination adapters + retire v2.
  */
-import db from "../../src/db/connection"
+import db from "../../../src/db/connection"
 
 const WB = "wandb-artifact:///andre14618-/novel-harness"
 const QWEN14B = "OpenPipe/Qwen3-14B-Instruct"

@@ -7,7 +7,7 @@
  * provenance.
  */
 
-import * as harness from "../../../src/harness"
+import * as harness from "../../../../src/harness"
 
 const EXPERIMENT_ID = 220
 

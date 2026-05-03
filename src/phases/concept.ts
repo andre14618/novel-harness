@@ -112,7 +112,7 @@ async function runConceptAgent<T>(
 
 /** Concept phase implementation. Kept exported for scripts that compose
  *  phases outside the runNovel driver (3 callers:
- *  scripts/fork-writer-test.ts, fork-writer-v4-llama.ts,
+ *  scripts/archive/fork-writer-test.ts, scripts/archive/fork-writer-v4-llama.ts,
  *  test-planner-isolated.ts). Driver consumers should use `conceptPhase`
  *  (the Phase<I,O> wrapper) instead. */
 export async function runConceptPhase(novelId: string, seed: SeedInput): Promise<PhaseResult<ConceptOutput>> {

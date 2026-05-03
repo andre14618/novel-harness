@@ -8,7 +8,7 @@
  * re-exports the function so the public surface is unchanged.
  *
  * Preset definitions are frozen and shared with the distinctness eval
- * scorer at scripts/evals/run-salvatore-distinctness-v1.ts.
+ * scorer at scripts/archive/evals/run-salvatore-distinctness-v1.ts.
  *
  * Two preset families to match what production actually ships:
  *

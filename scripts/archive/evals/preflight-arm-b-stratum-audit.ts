@@ -36,8 +36,8 @@
 
 import { mkdir, writeFile } from "node:fs/promises"
 import path from "node:path"
-import db from "../../src/db/connection"
-import { getWorldBible } from "../../src/db/world"
+import db from "../../../src/db/connection"
+import { getWorldBible } from "../../../src/db/world"
 
 // ── Constants per charter §3, §6 ──────────────────────────────────────
 

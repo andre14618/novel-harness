@@ -3,9 +3,9 @@
 import { createHash } from "node:crypto"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import path from "node:path"
-import { createTuningExperiment } from "../../src/db/ops"
-import { initExperimentRun } from "../../src/logger"
-import { executeAndLog, extractJSON, type ProviderName } from "../../src/llm"
+import { createTuningExperiment } from "../../../src/db/ops"
+import { initExperimentRun } from "../../../src/logger"
+import { executeAndLog, extractJSON, type ProviderName } from "../../../src/llm"
 
 type CharacterName =
   | "Drizzt"

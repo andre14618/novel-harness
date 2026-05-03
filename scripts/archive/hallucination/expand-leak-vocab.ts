@@ -12,8 +12,8 @@
  */
 
 import { appendFileSync, writeFileSync, existsSync } from "fs"
-import { createTuningExperiment, concludeExperiment } from "../../src/db/ops"
-import { getTransport } from "../../src/transport"
+import { createTuningExperiment, concludeExperiment } from "../../../src/db/ops"
+import { getTransport } from "../../../src/transport"
 
 const OUT = "finetune-data/halluc-leak-vocab-expansion.jsonl"
 const EXAMPLES_PER_TOKEN = 5

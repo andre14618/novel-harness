@@ -1082,7 +1082,7 @@ Clinical register held across chapters. Dialogue is tight (`"Secret trials," Ist
 
 **Decision:** A `STYLE_PRIMER=<name>` env var in `src/agents/writer/index.ts` prepends a ~10K-token exemplar file (`style-primer-<name>.md`) to the writer/beat-writer system prompts. On DeepSeek, the primer caches as a prefix and bills at ~10% of the input rate after beat 0 — effectively free in-context voice conditioning, no training needed.
 
-**Probe setup:** Exp #189 baseline (unprimed DeepSeek, 3-chapter dark-fantasy) repeated with `STYLE_PRIMER=howard` and the same seed. Primer built by `scripts/finetune/extract-howard-primer.ts` — picks longest passages from `scripts/lora-data/howard-training.jsonl`, filters Project Gutenberg boilerplate, wraps with a "match voice NOT content" instruction header. Output: 13 passages, 39.6 KB, ~9,895 tokens.
+**Probe setup:** Exp #189 baseline (unprimed DeepSeek, 3-chapter dark-fantasy) repeated with `STYLE_PRIMER=howard` and the same seed. Primer built by `scripts/archive/finetune/extract-howard-primer.ts` — picks longest passages from `scripts/lora-data/howard-training.jsonl`, filters Project Gutenberg boilerplate, wraps with a "match voice NOT content" instruction header. Output: 13 passages, 39.6 KB, ~9,895 tokens.
 
 **Cache behavior (confirmed working):**
 
@@ -1989,7 +1989,7 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 - Train file: `finetune-data/salvatore-1988-sft-train.jsonl`
 - W&B run launched on LXC 307 (recovered from power outage 2026-04-16)
 
-**Tracking:** `tuning_experiment` id=192 (`lora_voice_sft`, target=writer, dimension=voice_imprint). Conclude via `bun scripts/finetune/submit-salvatore-training.ts --conclude 192 "<summary>"` once trained adapter is validated against DeepSeek baseline.
+**Tracking:** `tuning_experiment` id=192 (`lora_voice_sft`, target=writer, dimension=voice_imprint). Conclude via `bun scripts/archive/finetune/submit-salvatore-training.ts --conclude 192 "<summary>"` once trained adapter is validated against DeepSeek baseline.
 
 **Validation plan post-training:**
 1. Pull adapter URI from W&B (`wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v1:vN`)
@@ -2618,7 +2618,7 @@ Current convention is the delete-and-log rule above. The archive dir + README we
 ### halluc-leak-salvatore: regex OR-combine shipped at inference (Rung 0)
 *2026-04-20 · exp-derived (charter `docs/scoping/halluc-leak-salvatore-v2.md` §5) · commit `cc57752`*
 
-**Decision:** `checkHallucLeakSalvatore` now runs a 59-token case-insensitive regex against beat prose in parallel with the W&B adapter call, unions the results, and fires on either side. Regex token list lives at `src/agents/halluc-leak-salvatore/regex-leak.ts` — union of `scripts/hallucination/expand-leak-vocab.ts` LEAK_TOKENS + scoping doc §B additions (Waterdeep, Baldur's Gate, Harpells, Chionthar, Neverwinter, Menzoberranzan, Gauntlgrym, Helm's Hold, Sea of Swords, Sea Sprite, Drossen Ironbelly, Nine-Towns).
+**Decision:** `checkHallucLeakSalvatore` now runs a 59-token case-insensitive regex against beat prose in parallel with the W&B adapter call, unions the results, and fires on either side. Regex token list lives at `src/agents/halluc-leak-salvatore/regex-leak.ts` — union of `scripts/archive/hallucination/expand-leak-vocab.ts` LEAK_TOKENS + scoping doc §B additions (Waterdeep, Baldur's Gate, Harpells, Chionthar, Neverwinter, Menzoberranzan, Gauntlgrym, Helm's Hold, Sea of Swords, Sea Sprite, Drossen Ironbelly, Nine-Towns).
 
 **Evidence (production-wide, 3,081 halluc-leak-salvatore calls across 32 Salvatore-routed novels since 2026-04-18 wire-in):**
 - Adapter-alone beats flagged: 158.

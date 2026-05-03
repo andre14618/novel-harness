@@ -20,7 +20,7 @@
 
 import { mkdir, writeFile } from "node:fs/promises"
 import path from "node:path"
-import db from "../../src/db/connection"
+import db from "../../../src/db/connection"
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

@@ -5,7 +5,7 @@
  * prompt (D1/D2) or user prompt CHARACTERS section (D3).
  *
  * NOT imported from any production code path. Used only by
- * `scripts/evals/run-voice-shaping-ablation.ts`.
+ * `scripts/archive/evals/run-voice-shaping-ablation.ts`.
  */
 
 import { readFileSync } from "node:fs"
@@ -61,7 +61,7 @@ Write as if the reader is smart and the page is expensive.`
  * committed artifact.
  */
 export function buildReferencePassagesBlock(
-  passagesPath = "scripts/evals/voice-reference-passages.json",
+  passagesPath = "scripts/archive/evals/voice-reference-passages.json",
 ): string {
   const raw = readFileSync(path.resolve(passagesPath), "utf8")
   const data = JSON.parse(raw) as {

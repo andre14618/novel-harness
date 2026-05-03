@@ -23,7 +23,7 @@
  *     null and the verdict is dropped. Also rare; check the "no-verdict" bucket if suspicious.
  */
 
-import db from "../../src/db/connection.ts"
+import db from "../../../src/db/connection.ts"
 
 const WIRE_IN_TIMESTAMP = "2026-04-19 14:00"
 

@@ -17,7 +17,7 @@
  */
 
 import { parseArgs } from "util"
-import db from "../../src/db/connection"
+import db from "../../../src/db/connection"
 
 // ── CLI args ────────────────────────────────────────────────────────────────
 

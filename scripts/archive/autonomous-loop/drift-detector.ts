@@ -50,7 +50,7 @@
  *   ran_at > now() - interval '24h' at the start of each iteration.
  */
 
-import db from "../../src/db/connection"
+import db from "../../../src/db/connection"
 import { assertNotKilled } from "./kill-switch"
 import { randomUUID } from "node:crypto"
 
