@@ -101,3 +101,27 @@ Extend the chapter-outline schema with a per-beat `sanctionedNewEntities` field:
 ## Pending Validation
 
 The phase brief is investigation-only; no code changes. Next concrete step is to open lane L65-G-A, mirroring L63's lane shape: implement `formatChapterUngroundedRetryContext`, unit tests, retroactive replay against the byte-identical-prose case (no new smoke required for unit acceptance).
+
+## Live-Smoke Update (exp #392, fantasy-archive, post-L65)
+
+3-chapter live smoke on `fantasy-archive` after L65 shipped. Outcome:
+
+- **Chapter 1**: integrity-fail attempt 1 → approved attempt 2. L41/L63 carry-over verified live (13/13 attempt-2 beat-writer prompts carry both the AVOID INTEGRITY block and the L63 paraphrase-one-side directive).
+- **Chapter 2**: integrity-fail att1 (1 issue) → integrity-fail att2 (2 issues, escalation) → bailed at **plan-check-exhausted** on `halluc-ungrounded: "Senior Cataloguer"`.
+- **Smoke-stop-classifier**: `new_blocker`.
+
+**Critical new evidence — different failure mode than exp #389:**
+
+| chapter-attempt | beat 0 contains "Senior Cataloguer" | halluc-ungrounded fired on |
+|---|---|---|
+| 1 | no | "Third Lamentation" / "Seventh Lamentation" (resolved in per-beat retries) |
+| 2 | no | (passed cleanly) |
+| 3 | **yes (newly invented)** | "Codex" (retry 2) → "Senior Cataloguer" (retry 3, cap hit) |
+
+The exp #389 case ("central spire" byte-identical across all 3 attempts) was a *persistence* failure — same entity reused. exp #392 is a *drift-invention* failure — writer invents **fresh ungrounded entities each chapter-attempt**, never repeating the same one. L65's carry-over architecture is correct: at chapter-attempt 3's final per-beat retry, `priorUngroundedEntities` captures "Senior Cataloguer" — but there's no chapter-attempt 4 to consume it.
+
+**Implication for lever sequencing:**
+
+- L65 (G-A) closes the *persistence* failure mode and is non-regressive. Confirmed.
+- The *drift-invention* failure mode is not addressable by chapter-attempt carry-over alone — by the time the writer invents a new ungrounded entity, the next chapter-attempt may invent a different one. This points to **Lever G-B (writer-side BIBLE constraint)** as the higher-value next lever — primary prevention vs secondary correction. **G-B priority elevated** ahead of G-A2.
+- G-A2 (faithful per-beat critique surface) remains relevant if a future smoke shows persistence-mode failure where the chapter-blocking entity is a different one than what's in the per-beat critique. But the exp #392 trace shows the per-beat critique correctly named the entity at retry 3 — no critique-faithfulness gap on this case.

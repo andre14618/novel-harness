@@ -1,13 +1,14 @@
 # Lane Queue
 
 ## Active
-- (empty — grounding phase G-A lever closed; G-A2 / G-B / G-C queued in `docs/todo.md` if a future smoke shows the writer keeps ungrounded entities despite the L65 carry-over)
+- (empty — grounding phase G-A lever closed and validated live (non-regressive on exp #392); G-B priority elevated based on new drift-invention failure-mode evidence)
 
 ## Next
-- (empty)
+- (empty — G-B candidate, writer-side BIBLE-binding constraint, motivated by exp #392 trace)
 
 ## Completed
 
+- exp #392 (L65 live smoke on `fantasy-archive`) — chapter 1 approved att2 (L41/L63 verified live: 13/13 prompts carry AVOID INTEGRITY + paraphrase-one-side directives). Chapter 2 bailed at plan-check-exhausted on halluc-ungrounded "Senior Cataloguer". Critical phase finding: writer drift-invents fresh ungrounded entities each chapter-attempt ("Third Lamentation" → "Codex" → "Senior Cataloguer") rather than persisting — L65's carry-over architecture is correct but addresses persistence-mode, not drift-invention-mode. G-B priority elevated.
 - docs/sessions/2026-05-02-L65-grounding-carryover.md — clean pass for chapter-attempt carry-over of LLM-confirmed ungrounded entities (exp #391, Lever G-A). Mirrors L41/L63 pattern; closes byte-identical-prose case from exp #389 (retroactive replay PASSES on `chapter_exhaustions` row for novel-1777768466618 ch1).
 - docs/sessions/2026-05-02-grounding-phase-brief.md (phase brief) — 25% of plan-check-exhausted in 14 days cite halluc-ungrounded; identified Levers G-A / G-A2 / G-B / G-C with empirical sequencing.
 - exp #389 (L63+L64 e2e on `fantasy-debt`) — L62/L63/L64 wires non-regressive. Chapter 1 reached integrity check with 0 fused-boundary/duplicate hits; integrity gate never had to fire. Smoke bailed at out-of-phase plan-check-exhausted (halluc-ungrounded "central spire"). Classifier: `new_blocker`. See L64 lane Results addendum.
