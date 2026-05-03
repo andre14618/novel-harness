@@ -10,6 +10,44 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §L70b+L71+L72 stack validation A/B (2026-05-03, exp #402) — **VALIDATED**
+
+**Status:** Validated 2026-05-03 (commit `11facbd`). 3-novel A/B at the stacked-fix commit confirms the three lanes compose correctly on the integrity surface and shifts the dominant blocker to ch2 plan-check-exhausted (continuity + halluc on different content). Total cost $0.190 / $5 budget.
+
+**Approval rate progression on the 3-novel panel (`fantasy-archive`, `fantasy-debt`, `fantasy-system-heretic`):**
+
+| metric | L68 N=1 baseline (exp #396) | L70b only (exp #399) | L70b+L71+L72 stack (exp #402) |
+|---|---|---|---|
+| ch1 approved | 1/3 (heretic) | 2/3 (arch + debt) | **3/3** (all three) |
+| full novel approved | 0/3 | 1/3 (arch) | 1/3 (debt) |
+| settle invocations | n/a | 4 (75% acceptance) | **3 (100% acceptance)** |
+| total cost | ~$0.16 | $0.166 | $0.190 |
+
+**Stack validation per novel (exp #402):**
+
+- **arch (`novel-1777786463477`):** ch1 APPROVED via settle (3 issues att 1 → 2 issues att 2 → settle accepted, mirroring exp #399 path). ch2 BAILED `plan-check-exhausted` on halluc-ungrounded (`"marginalia"`, `"treatise on civic collapse"`) + continuity (Compiler-communicates-telepathically vs marginalia-rule). **Regression vs exp #399's full-novel approval**, but on a NEW surface (ch2 plan-check, not integrity) — L70b/L71/L72 code paths still functioned correctly on ch1; the ch2 bail is plausibly stochastic content drift exposing different blockers.
+- **debt (`novel-1777786463674`):** **FULL NOVEL APPROVED** ($0.074, 17m 44s, validation pass 1). ch1 cleared via settle; ch2 had a 4-issue duplicate-fragment failure on att 1 (>2 beats, settle ineligible) then chapter retry produced clean prose (passed=true, 0 issues). **L72's false-positive fix appears to have prevented the ch1 cascade that bailed debt at exp #399** — debt ch1 first integrity check showed only 1 issue (vs exp #399's pattern that started with the false-positive `"No."` / `"No?"`).
+- **heretic (`novel-1777786463873`):** ch1 APPROVED via settle (2 issues, settle accepted). ch2 BAILED `plan-check-exhausted` on continuity deviations (Cassel/inkwell, Arbiter/witness). **Improvement vs exp #399's ch1 bail** — heretic now reaches ch2; the L71 reviser-cap defensive bump may have helped the ch1 plan-check pass cleanly. The ch2 continuity-bail is a NEW surface.
+
+**What the stack validates:**
+
+1. **L70b per-beat targeted rewrite is reliable.** 3 invocations across the validation A/B, all accepted (vs 75% in exp #399's 4 invocations). The lever target surface continues to produce clean settle outcomes.
+2. **L72 false-positive fix appears to break the cascade pattern that bailed debt at exp #399.** debt ch1 now produces only 1 integrity issue at first check (matching the cleaner pattern of arch/heretic ch1) instead of the punctuation-only false positive that previously triggered chapter regeneration.
+3. **ch1 approval is now reliable across the panel.** 3/3 novels cleared ch1 — the integrity surface is no longer a dominant blocker for first-chapter completion.
+4. **The dominant blocker shifted to ch2 plan-check-exhausted.** Both arch and heretic bailed on ch2 with continuity + halluc-ungrounded deviations. This is a separate surface from the integrity-detection ladder L70-L72 has been working on.
+
+**Decision:** L70b, L71, and L72 are validated as composing correctly. The stack improves ch1 approval from 1/3 → 3/3 and shifts the dominant failure mode off the integrity surface. The next attainable target is the ch2 continuity surface — a new lane (provisionally **L73 / Continuity** when opened) would investigate why ch2 produces continuity deviations on long-tail seeds.
+
+**Alternatives considered:**
+- *Pivot directly to L73 within this session.* Deferred — three lanes shipped today is a healthy session, the user should pick the next direction. Continuity is a different agent surface (chapter-plan-checker's continuity-state subcheck) and the lane should be opened with an explicit charter.
+- *Re-run with N=3 paired-replay per arm to distinguish stochastic from systematic effects.* L70 lessons #2 already flagged this; held in reserve as the right validation when next lane lands.
+
+**Ongoing implications:**
+- **Roadmap shift:** integrity surface (L40-L72) has reached diminishing returns on the 3-novel panel. Future integrity work should probably be triggered by specific evidence (a new failure mode), not generic exploration.
+- ch2 plan-check-exhausted on continuity is now the dominant ceiling on this panel. Both arch and heretic hit it independently, suggesting it's a real systematic issue rather than seed-specific noise.
+
+---
+
 ### §L72 duplicate-sentence false-positive on punctuation-only differences (2026-05-03, exp #401) — **SHIPPED unit-only**
 
 **Status:** Shipped 2026-05-03. `detectAdjacentDuplicateSentences` was firing on adjacent dialogue lines that share content but differ only by terminal punctuation (`"No."` vs `"No?"`). Cause: `normalizeSentence` stripped ALL punctuation. Fix: preserve `.?!` in the normalization regex.
