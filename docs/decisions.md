@@ -10,6 +10,23 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §L67 Grounding Lever G-A2 closed as not-a-real-lever (2026-05-02, exp #395)
+
+**Status:** Investigated and closed without a code change. The phase brief had identified G-A2 ("faithful per-beat critique surface for halluc-ungrounded") as a candidate after the L66 v1 KILL, on the hypothesis that the writer's per-beat retry critique was *not* faithfully reflecting the chapter-level halluc-ungrounded blocker set.
+
+**Finding:** Tracing exp #389 beat 13's three halluc-ungrounded LLM calls (ids 58908 / 58911 / 58914) on byte-identical prose showed the per-beat critique surface IS faithful — each attempt-N+1 beat-writer userPrompt correctly carries that attempt-N's findings. The apparent gap (chapter bails on entity X but per-beat critique lists A, B, C) is **stochastic LLM checker behavior on byte-identical prose**: same prose, different flagged entities each call (att1: "Kepten Maret N." → att2: "Intelligence" / "Endurance" → att3: "central spire"). No data-path bug; no code fix would change the writer's input.
+
+**Decision:** Close G-A2 without implementation. Promote **G-D (multi-call halluc-ungrounded with vote/union)** as the next lever — addresses the stochastic-checker root cause directly by running the LLM checker N≥2 times in parallel per beat and taking the union of LLM-confirmed blockers.
+
+**Alternatives rejected:**
+- Implement G-A2 as originally framed (data-path fix). Rejected because the trace confirms there is no data-path divergence to fix.
+- Skip directly to G-C (planner sanctioned-new-entities schema). Rejected for now because G-D is a localized change to `runBeatChecks` (no schema lift, no planner change) and addresses checker stochasticity directly; G-C remains queued behind G-D.
+- Re-attempt L66 v2 immediately. Rejected because the L66 v1 regression came from form (class-categorical constraint over-corrected) not direction; G-D first either closes fire rate enough that L66 isn't needed, or leaves a smaller residual gap for an L66 v2 with narrower scope.
+
+**Ongoing implications:** the phase brief's lever sequence updates to: G-A (shipped) → G-B v1 (REVERTED) → G-A2 (closed) → **G-D (NEXT)** → G-C (queued) → L66 v2 (deferred). Cost expectation for G-D: 2-3× halluc-ungrounded inference (~20% of total cost) → ~20% total cost increase; validation is an A/B smoke on `fantasy-archive` or `fantasy-debt` comparing N=1 vs N=2.
+
+---
+
 ### §L66 Writer-side BIBLE-binding constraint covers all named-entity classes (2026-05-02) — **REVERTED, stop gate (b)**
 
 **Status:** Tried 2026-05-02 (exp #393 prompt edit + #394 A/B smoke); **REVERTED same-day** because L66 v1 traded grounding-channel failures for integrity-channel + NER-class failures, with a worse approval outcome (v0=1/2 → v1=0/1 chapters approved on ch1 of `fantasy-archive`). Hashes: `e734fd7` (apply), revert pending.

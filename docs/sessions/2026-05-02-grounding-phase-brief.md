@@ -125,3 +125,21 @@ The exp #389 case ("central spire" byte-identical across all 3 attempts) was a *
 - L65 (G-A) closes the *persistence* failure mode and is non-regressive. Confirmed.
 - The *drift-invention* failure mode is not addressable by chapter-attempt carry-over alone — by the time the writer invents a new ungrounded entity, the next chapter-attempt may invent a different one. This points to **Lever G-B (writer-side BIBLE constraint)** as the higher-value next lever — primary prevention vs secondary correction. **G-B priority elevated** ahead of G-A2.
 - G-A2 (faithful per-beat critique surface) remains relevant if a future smoke shows persistence-mode failure where the chapter-blocking entity is a different one than what's in the per-beat critique. But the exp #392 trace shows the per-beat critique correctly named the entity at retry 3 — no critique-faithfulness gap on this case.
+
+## Lever Sequence Update (post-L66 KILL + G-A2 closure, 2026-05-02)
+
+**G-B v1 KILL (exp #393 + #394).** L66 v1 prompt edit reduced halluc-ungrounded fires by 79% but regressed chapter-1 approval (v0=1/2 → v1=0/1) on `fantasy-archive`. The class-categorical constraint pushed prose toward duplicate-fragment integrity escalations and NER number-word-tail false positives. Lever direction validated; form over-corrected. Reverted per stop gate (b). See `docs/sessions/2026-05-02-L66-writer-bible-binding.md`.
+
+**G-A2 closed as not-a-real-lever (exp #395 investigation).** Tracing exp #389 beat 13 halluc-ungrounded calls (ids 58908 / 58911 / 58914) showed the per-beat critique IS faithful — it correctly carries attempt-N findings to attempt N+1's beat-writer prompt. The apparent gap (chapter bails on entity X but writer's critique lists A, B, C) is **stochastic LLM checker behavior** on byte-identical prose: same prose, different flagged entities each call. No data-path fix needed; closing G-A2 without a code change.
+
+**New analysis — what exp #389's true failure mode actually is.** Earlier framing called it "byte-identical persistence" and contrasted with exp #392's "drift-invention." Tracing the per-beat halluc calls shows exp #389 was *partially* a persistence failure (writer prose unchanged) and *partially* a checker-stochasticity failure (each chapter-attempt's LLM checker flagged a different subset of the entities present). L65's chapter-attempt carry-over captures the *union* across attempts, which is still the right secondary-correction lever. Without L65, attempt 4 would have started with no record of the prior attempts' entity flags.
+
+**Real next lever — G-D (NEW): multi-call halluc-ungrounded with vote/union.** Run the LLM checker N≥2 times per beat (parallel via Promise.all, no extra latency), take the union of LLM-confirmed blockers. Addresses checker stochasticity directly — same prose, more entities surfaced per call. Cost: 2-3× halluc-ungrounded inference, which is ~20% of total cost → ~20% total cost increase. Localized change to `runBeatChecks` in `src/phases/beat-checks.ts`. Validation: A/B smoke comparing single-call vs N=2 (or N=3) on `fantasy-archive` or `fantasy-debt`; metric is approval rate and total chapter-blocking entities surfaced.
+
+**Updated lever sequence:**
+1. L65 G-A — shipped, non-regressive (closes persistence-mode where prose IS unchanged across attempts).
+2. ~~L66 G-B v1~~ — REVERTED stop gate (b). Direction right, form over-corrects. Future v2 needs narrower scope (e.g. invented uppercase names only; or paired with planner sanctioning).
+3. ~~L67 G-A2~~ — closed as not-a-real-lever after investigation.
+4. **L68 G-D — multi-call halluc-ungrounded vote/union (NEXT).**
+5. L69 G-C — planner sanctioned-new-entities schema migration. Largest schema lift; only worth opening if G-D doesn't move the approval rate.
+6. (deferred) L66 v2 — narrower writer-side constraint. Re-evaluate after G-D ships.
