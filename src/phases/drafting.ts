@@ -17,7 +17,12 @@ import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CHAPTER_PLAN_CHECKER_PROMPT } 
 import { buildContext as buildWriterContext } from "../agents/writer/context"
 import { buildBeatContext } from "../agents/writer/beat-context"
 import { resolveReferences } from "../agents/writer/reference-resolver"
-import { buildRetryPrompt, formatChapterIntegrityRetryContext } from "../agents/writer/retry-context"
+import {
+  buildRetryPrompt,
+  formatChapterIntegrityRetryContext,
+  formatChapterUngroundedRetryContext,
+  extractUngroundedEntitiesFromDescriptions,
+} from "../agents/writer/retry-context"
 import { detectSyncDefects } from "../lint/quality-detectors"
 import { runBeatChecks, summarizeIssues } from "./beat-checks"
 import { checkContinuity } from "../agents/continuity/check"
@@ -225,6 +230,13 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
     // inside the for-each-chapter loop). Each entry is a {kind, excerpt}
     // pair from `detectProseIntegrityIssues` in src/lint/integrity.ts.
     let priorIntegrityIssues: Array<{ kind: string; excerpt: string }> = []
+    // L65 (exp #391): same lever, halluc-ungrounded surface. Carry the prior
+    // chapter-attempt's LLM-confirmed ungrounded entities forward so the next
+    // attempt's beat-writer prompts include an entity-avoidance reminder.
+    // Sourced from `acceptedBeatCheckIssues` (entries that survived per-beat
+    // retry budget and got accepted-with-warnings into the chapter prose).
+    // Reset per chapter alongside `priorIntegrityIssues`.
+    let priorUngroundedEntities: Array<{ entity: string; excerpt?: string }> = []
 
     while (!approved && attempts < maxAttempts && !chapterAborted) {
       attempts++
@@ -334,7 +346,13 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               // when the prior chapter attempt failed prose integrity. Empty
               // string when no prior failure (attempt 1 of fresh chapter, or
               // attempt N+1 where attempt N's integrity passed).
-              const resolvedUserPrompt = baseUserPrompt + formatChapterIntegrityRetryContext(priorIntegrityIssues)
+              // L65: append chapter-level ungrounded-entity avoidance context
+              // when the prior chapter-attempt's accepted-with-warnings beat
+              // prose carried LLM-confirmed halluc-ungrounded entities.
+              const resolvedUserPrompt =
+                baseUserPrompt
+                + formatChapterIntegrityRetryContext(priorIntegrityIssues)
+                + formatChapterUngroundedRetryContext(priorUngroundedEntities)
               try {
                 const response = await executeAndLog(
                   {
@@ -433,6 +451,20 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             console.log(`  Draft (${outline.scenes.length} beats): ${wordCount} words`)
             log(novelId, "info", `Beat-level draft: ${wordCount} words from ${outline.scenes.length} beats`)
             emit(novelId, { type: "progress", data: { step: "beat-writer", chapter: ch, status: "complete", wordCount } })
+
+            // L65: capture LLM-confirmed ungrounded entities accepted-with-warnings
+            // into this attempt's prose, so the next chapter-attempt's beat-writer
+            // prompts include the avoidance reminder. Empty when the prior attempt
+            // had clean grounding. Each subsequent iteration overwrites this list
+            // with its own findings, so stale entries don't bleed across attempts.
+            // NER-only-warning entries are filtered out by severity before the
+            // descriptions reach the parser.
+            const ungroundedDescriptions = acceptedBeatCheckIssues.flatMap(b =>
+              b.issues
+                .filter(i => i.source === "halluc-ungrounded" && i.severity === "blocker")
+                .map(i => i.description),
+            )
+            priorUngroundedEntities = extractUngroundedEntitiesFromDescriptions(ungroundedDescriptions)
           } else {
             // Fallback to chapter-level
             console.log("  Beat generation incomplete, falling back to chapter-level...")
@@ -652,7 +684,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 const response = await executeAndLog(
                   {
                     systemPrompt: beatSystemPrompt,
-                    userPrompt: beatCtx.userPrompt + retryContext + formatChapterIntegrityRetryContext(priorIntegrityIssues),
+                    userPrompt: beatCtx.userPrompt + retryContext + formatChapterIntegrityRetryContext(priorIntegrityIssues) + formatChapterUngroundedRetryContext(priorUngroundedEntities),
                     model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
                     provider: beatWriterModel?.provider ?? "cerebras",
                     temperature: beatWriterModel?.temperature ?? 0.8,

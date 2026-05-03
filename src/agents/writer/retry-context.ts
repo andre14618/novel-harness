@@ -150,3 +150,74 @@ function formatIssueLine(i: { kind: string; excerpt: string; firstExcerpt?: stri
   }
   return `- ${i.kind}: "${second}"`
 }
+
+/**
+ * Extract structured `{entity, excerpt}` payloads from raw halluc-ungrounded
+ * issue description strings, deduplicating by lowercase entity. Inverse of the
+ * agent's printf at `src/agents/halluc-ungrounded/index.ts:520` and `:602`:
+ *
+ *   `Ungrounded entity "<entity>"[ — context: "<excerpt>"][ \[NER prepass\]]`
+ *
+ * NER-only-warning lines carry the `[NER-only warning — LLM passed]` suffix
+ * and severity `"warning"`; callers should pre-filter to severity `"blocker"`
+ * before passing strings here. The parser is permissive: lines that don't
+ * match the format are dropped (defensive — surface drift gets caught by the
+ * test suite, never by silently emitting garbage to the writer).
+ *
+ * Used by the L65 chapter-attempt carry-over path in `src/phases/drafting.ts`.
+ */
+export function extractUngroundedEntitiesFromDescriptions(
+  descriptions: string[],
+): Array<{ entity: string; excerpt?: string }> {
+  const seen = new Map<string, { entity: string; excerpt?: string }>()
+  const re = /^Ungrounded entity "([^"]+)"(?:\s*—\s*context:\s*"([^"]*)")?(?:\s*\[NER prepass\])?\s*$/
+  for (const desc of descriptions) {
+    const m = re.exec(desc)
+    if (!m) continue
+    const entity = m[1]!
+    const key = entity.toLowerCase()
+    if (seen.has(key)) continue
+    const excerpt = m[2] && m[2].length > 0 ? m[2] : undefined
+    seen.set(key, excerpt ? { entity, excerpt } : { entity })
+  }
+  return [...seen.values()]
+}
+
+/**
+ * Format chapter-level halluc-ungrounded issues from a prior chapter-attempt
+ * into a context block to append to every beat's userPrompt in the next
+ * chapter-attempt.
+ *
+ * L65 / Lever G-A (exp #391): mirrors `formatChapterIntegrityRetryContext`.
+ * Closes the architectural gap surfaced by exp #389 — chapter-attempt retries
+ * for halluc-ungrounded had no writer-side carry-over surface, so all 3
+ * attempts on a grounding-blocked chapter produced byte-identical prose
+ * including the same ungrounded entity references. With this block in place,
+ * the writer sees the chapter-wide list of LLM-confirmed ungrounded entities
+ * the prior attempt emitted and can rephrase to avoid them.
+ *
+ * Bounds: 12 entities cap (typical attempts have 1–5; cap protects extreme
+ * cases) and excerpt slicing to 200 chars to limit prompt growth on long
+ * surrounding-sentence quotes.
+ */
+export function formatChapterUngroundedRetryContext(
+  entities: Array<{ entity: string; excerpt?: string }>,
+): string {
+  if (entities.length === 0) return ""
+  const lines = entities
+    .slice(0, 12)
+    .map(e => {
+      const ex = e.excerpt?.trim().slice(0, 200) ?? ""
+      return ex
+        ? `- "${e.entity}" — appeared in: "${ex}"`
+        : `- "${e.entity}"`
+    })
+    .join("\n")
+  return (
+    "\n\n--- AVOID THESE UNGROUNDED ENTITIES FROM YOUR PRIOR DRAFT ---\n" +
+    lines +
+    "\n\nThese names were not in the world bible, character roster, beat brief, " +
+    "or planner-sanctioned new entities, and the prior draft used them anyway. " +
+    "Use only entities from those sources; otherwise rephrase to avoid the named reference."
+  )
+}
