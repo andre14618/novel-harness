@@ -121,18 +121,32 @@ export function buildRetryPrompt(input: RetryPromptInput): RetryPromptOutput {
  * excerpts to 200 chars to limit prompt growth on long-quoted issues.
  */
 export function formatChapterIntegrityRetryContext(
-  issues: Array<{ kind: string; excerpt: string }>,
+  issues: Array<{ kind: string; excerpt: string; firstExcerpt?: string }>,
 ): string {
   if (issues.length === 0) return ""
   const lines = issues
     .slice(0, 12) // bound — typical attempt has 1-5 issues; cap protects extreme cases
-    .map(i => `- ${i.kind}: "${i.excerpt.trim().slice(0, 200)}"`)
+    .map(formatIssueLine)
     .join("\n")
   return (
     "\n\n--- AVOID THESE INTEGRITY ISSUES FROM YOUR PRIOR DRAFT ---\n" +
     lines +
     "\n\nKeep sentence boundaries clean (period + space + capital). " +
     "Do not repeat the same phrase verbatim across paragraphs. " +
+    "For duplicate-sentence / duplicate-fragment, the two excerpts shown are the colliding pair — paraphrase one side; do not delete a beat. " +
     "Pair and attribute every quote mark."
   )
+}
+
+// L63 / Lever A: render duplicate-sentence and duplicate-fragment as a matched
+// pair so the writer sees both halves of the collision. Other kinds keep the
+// single-excerpt rendering since their carry-over guidance is generator-level
+// (boundaries / quote-pair), not literal-pair.
+function formatIssueLine(i: { kind: string; excerpt: string; firstExcerpt?: string }): string {
+  const second = i.excerpt.trim().slice(0, 200)
+  if ((i.kind === "duplicate-sentence" || i.kind === "duplicate-fragment") && i.firstExcerpt) {
+    const first = i.firstExcerpt.trim().slice(0, 200)
+    return `- ${i.kind} (paraphrase one side):\n    first:  "${first}"\n    second: "${second}"`
+  }
+  return `- ${i.kind}: "${second}"`
 }

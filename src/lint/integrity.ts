@@ -10,6 +10,15 @@
 export interface LintFixIntegrityIssue {
   kind: "fused-boundary" | "camel-fusion" | "duplicate-sentence" | "duplicate-fragment" | "quote-integrity"
   excerpt: string
+  /**
+   * For `duplicate-sentence` and `duplicate-fragment`, the text of the FIRST occurrence
+   * of the collision; `excerpt` carries the SECOND occurrence's context window. Set
+   * for duplicate-* kinds (L63 / Lever A); undefined for fused-boundary, camel-fusion,
+   * and quote-integrity. Used by writer retry-context to render both halves of the
+   * collision so the writer can paraphrase one side instead of regenerating fresh
+   * prose that may collide elsewhere.
+   */
+  firstExcerpt?: string
 }
 
 export interface LintFixIntegrityResult {
@@ -103,7 +112,12 @@ function detectAdjacentDuplicateSentences(text: string): Array<LintFixIntegrityI
     const cur = normalizeSentence(sentences[i].text)
     if (!prev || prev !== cur) continue
     const pairNorm = `${prev} ${cur}`
-    issues.push({ kind: "duplicate-sentence", excerpt: sentences[i].text.trim().slice(0, 120), pairNorm })
+    issues.push({
+      kind: "duplicate-sentence",
+      excerpt: sentences[i].text.trim().slice(0, 120),
+      firstExcerpt: sentences[i - 1].text.trim().slice(0, 120),
+      pairNorm,
+    })
   }
   return dedupeIssues(issues) as Array<LintFixIntegrityIssue & { pairNorm?: string }>
 }
@@ -152,7 +166,11 @@ function detectNearbyDuplicateFragments(text: string): LintFixIntegrityIssue[] {
     const gram = tokens.slice(i, i + gramSize).map(t => t.token).join(" ")
     const prev = seen.get(gram)
     if (prev && i - prev.tokenIndex <= maxTokenDistance) {
-      issues.push({ kind: "duplicate-fragment", excerpt: contextExcerpt(text, tokens[i].index) })
+      issues.push({
+        kind: "duplicate-fragment",
+        excerpt: contextExcerpt(text, tokens[i].index),
+        firstExcerpt: contextExcerpt(text, prev.charIndex),
+      })
       // One report per nearby duplicated span is enough to block approval;
       // suppress overlapping n-grams from the same repeated passage.
       i += maxTokenDistance

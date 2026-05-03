@@ -10,6 +10,21 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §L63 Matched-pair carry-over for duplicate-sentence and duplicate-fragment integrity issues (2026-05-02)
+
+**Decision:** Extend `LintFixIntegrityIssue` with an optional `firstExcerpt` field, populated by `detectAdjacentDuplicateSentences` (with the prior sentence's text) and `detectNearbyDuplicateFragments` (with the first occurrence's context window via `prev.charIndex`). `formatChapterIntegrityRetryContext` renders duplicate-* kinds as a labeled pair — `first: "..."` and `second: "..."` — so the writer sees both halves of the collision. Other kinds keep the existing single-excerpt rendering. Issues without `firstExcerpt` (back-compat) fall back to the legacy single-line format.
+
+**Why:** Phase brief (`docs/sessions/2026-05-02-integrity-retry-phase-brief.md`) showed duplicate-sentence + duplicate-fragment account for 72.9% of integrity-fail volume in the 14-day window (35/48 occurrences across 12 distinct novels). Trace evidence on the existing L41 carry-over (n=2 chapters with `AVOID THESE INTEGRITY ISSUES` blocks) confirmed the writer **obeys the literal-string prohibition** — every named excerpt is absent in the next attempt — but for duplicate-* it paraphrases the warned text and lands a fresh duplication elsewhere. Showing both halves of the collision (rather than just one side's context window) gives the writer the *type* of duplication, so it can paraphrase one side without the elsewhere-collision pattern.
+
+**Alternatives rejected:**
+- Stop at the existing L41 carry-over and call this a writer-quality issue. Rejected: the trace shows the carry-over is being *obeyed* — the gap is informational, not motivational. Adding more pressure to a carry-over the writer already obeys would not change behavior.
+- Beat-attribute integrity issues + targeted beat-rewrite (Lever C). Rejected for L63: larger architectural change (touches the chapter-attempt retry loop dispatch); only worth the cost if the cheaper Lever A doesn't close the duplicate-family escalation pattern.
+- Route integrity-exhaustion to plan-assist (Lever B). Rejected for *L63 specifically* — that's a separate operator-visibility lever, not a writer-payload lever; queued as L64 candidate.
+
+**Ongoing implications:** the `firstExcerpt` field is optional, so callers that don't repopulate it (e.g. legacy rows in `pipeline_events.payload`) keep rendering the single-line format. If the duplicate-family escalation pattern persists after L63, the next move is L64 (plan-assist gate for integrity exhaustion), then L65 (beat-attributed targeted rewrite). Validation on a retry-bearing seed is queued; L62-validate's smoke happened to draft cleanly across 28 beats and didn't exercise the new path.
+
+---
+
 ### §L62 LitRPG System path identifiers exempt from fused-boundary detection (2026-05-02)
 
 **Decision:** `detectFusedBoundaries` in `src/lint/integrity.ts` skips internal dots inside all-caps dotted identifier runs that match `/[A-Z][A-Z0-9_]+(?:\.[A-Z][A-Z0-9_]+)+/` — at least two segments and at least two characters per segment. Single-letter abbreviation pairs like `O.She` continue to fuse so genuine sentence-boundary corruption is still caught.

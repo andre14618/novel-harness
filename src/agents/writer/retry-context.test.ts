@@ -88,3 +88,54 @@ test("formatChapterIntegrityRetryContext: trims whitespace around excerpts", () 
   expect(out).toContain('- fused-boundary: "spaced excerpt"')
   expect(out).not.toContain('"   spaced')
 })
+
+// L63 / Lever A: matched-pair rendering for duplicate-* kinds.
+test("formatChapterIntegrityRetryContext: duplicate-sentence renders both halves of the collision (L63)", () => {
+  const out = formatChapterIntegrityRetryContext([
+    {
+      kind: "duplicate-sentence",
+      excerpt: "The hall narrowed.",
+      firstExcerpt: "The hall narrowed.",
+    },
+  ])
+  expect(out).toContain("- duplicate-sentence (paraphrase one side):")
+  expect(out).toContain('first:  "The hall narrowed."')
+  expect(out).toContain('second: "The hall narrowed."')
+  // The new prompt directive about paraphrasing should be present.
+  expect(out).toContain("paraphrase one side; do not delete a beat")
+})
+
+test("formatChapterIntegrityRetryContext: duplicate-fragment with both excerpts renders the pair (L63)", () => {
+  const out = formatChapterIntegrityRetryContext([
+    {
+      kind: "duplicate-fragment",
+      excerpt: "set down on cot turned hands outstretched.",
+      firstExcerpt: "set down on cot turned hands outstretched.",
+    },
+  ])
+  expect(out).toContain("- duplicate-fragment (paraphrase one side):")
+  expect(out).toContain('first:  "set down on cot')
+  expect(out).toContain('second: "set down on cot')
+})
+
+test("formatChapterIntegrityRetryContext: non-duplicate kinds keep single-excerpt rendering (L63 boundary)", () => {
+  const out = formatChapterIntegrityRetryContext([
+    { kind: "fused-boundary", excerpt: "alpha.Beta" },
+    { kind: "quote-integrity", excerpt: 'she said,"He left.' },
+    { kind: "camel-fusion", excerpt: "againShe" },
+  ])
+  expect(out).toContain('- fused-boundary: "alpha.Beta"')
+  expect(out).toContain('- quote-integrity: "she said,"He left."')
+  expect(out).toContain('- camel-fusion: "againShe"')
+  // No matched-pair "(paraphrase one side)" directive on these kinds.
+  expect(out).not.toContain("(paraphrase one side)")
+})
+
+test("formatChapterIntegrityRetryContext: duplicate-* without firstExcerpt falls back to single-excerpt (L63 back-compat)", () => {
+  // Older issue payloads that haven't been re-built since L63 still need to render.
+  const out = formatChapterIntegrityRetryContext([
+    { kind: "duplicate-sentence", excerpt: "She paused." },
+  ])
+  expect(out).toContain('- duplicate-sentence: "She paused."')
+  expect(out).not.toContain("(paraphrase one side)")
+})

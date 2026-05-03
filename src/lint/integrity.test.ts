@@ -86,6 +86,46 @@ He set his daughter down on the cot with a tenderness that made Istra's chest ti
     expect(issues.filter(i => i.kind === "quote-integrity")).toEqual([])
   })
 
+  // L63 / Lever A: duplicate-sentence and duplicate-fragment carry a `firstExcerpt`
+  // so the writer can see both halves of the collision and paraphrase one side.
+  test("duplicate-sentence carries firstExcerpt of the prior sentence (L63)", () => {
+    const prose = "She crossed the threshold. The hall narrowed. The hall narrowed."
+    const issues = detectProseIntegrityIssues(prose)
+    const dup = issues.find(i => i.kind === "duplicate-sentence")
+
+    expect(dup).toBeDefined()
+    expect(dup!.firstExcerpt).toBeDefined()
+    // Both halves carry "The hall narrowed" — for an exact duplicate, the
+    // surface text matches by definition. Lever A's value is that the writer
+    // sees the pair labeled (first/second) so the collision is explicit.
+    expect(dup!.excerpt).toContain("The hall narrowed")
+    expect(dup!.firstExcerpt).toContain("The hall narrowed")
+  })
+
+  test("duplicate-fragment carries firstExcerpt from the first occurrence's char offset (L63)", () => {
+    const prose = `He set his daughter down on the cot with a tenderness that made Istra's chest tighten, then turned, his hands outstretched. Please he said. She is all I have left.
+
+He set his daughter down on the cot with a tenderness that made Istra's chest tighten, then turned, his hands outstretched. Please he said. She is all I have left.`
+    const issues = detectProseIntegrityIssues(prose)
+    const frag = issues.find(i => i.kind === "duplicate-fragment")
+
+    expect(frag).toBeDefined()
+    expect(frag!.firstExcerpt).toBeDefined()
+    expect(frag!.excerpt).toBeDefined()
+    // Both excerpts come from contextExcerpt: 20 before + 24 after the position;
+    // they may overlap in surface text but must be distinct payloads.
+    expect(frag!.firstExcerpt).not.toBe(frag!.excerpt)
+  })
+
+  test("non-duplicate kinds do NOT carry firstExcerpt (L63 boundary check)", () => {
+    const prose = `She lifted the blade.She waited again.`
+    const issues = detectProseIntegrityIssues(prose)
+    const fused = issues.find(i => i.kind === "fused-boundary")
+
+    expect(fused).toBeDefined()
+    expect(fused!.firstExcerpt).toBeUndefined()
+  })
+
   // L62: LitRPG / System-style identifiers like SCRIBE.GUILD.VALDRIS.MARET.ANNUAL
   // are a legitimate genre construct (see exp #384, novel-1777761636607 ch1 a3).
   // Internal dots inside an all-caps dotted run are part of the token, not

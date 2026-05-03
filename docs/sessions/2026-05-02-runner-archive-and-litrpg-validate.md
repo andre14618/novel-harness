@@ -32,8 +32,10 @@ session: 2026-05-02-runner-archive-and-litrpg-validate
 ## Lanes In Sequence
 
 1. **Lane R (closed):** runner archival demotion. Commits `744baf5` + `3473428`. Outcome: clean pass — primary recipe blocks now point at the captain loop; runner appears only in clearly-labeled legacy sections; `package.json` alias renamed.
-2. **Lane L62-validate (active):** end-to-end deploy + smoke against the L61 baseline. Pre-create `tuning_experiments.id=386` linked to runtime commit `31e16a8`. Run, classify, finalize.
-3. **Lane L63-candidate (queued):** chapter-attempt retry fall-through after second integrity failure (L61 secondary finding). Open only if L62-validate fires gate (b) on this exact cluster, otherwise leave queued.
+2. **Lane L62-validate (closed, clean pass for hypothesis):** smoke approved chapter 1 with 0 fused-boundary issues from System UIDs; closed the L61 cluster. New dominant blocker surfaced in continuity (out-of-phase) — parked as observation, not a sub-lane.
+3. **Lane L63 / Lever A (active, code complete):** matched-pair carry-over for duplicate-sentence + duplicate-fragment. Phase brief drove this; trace evidence confirmed the fresh-prose-elsewhere causal model. 175/175 unit tests pass; awaiting deploy + retry-bearing-seed validation.
+4. **Lane L64 / Lever B (queued):** route integrity exhaustion to plan-assist gate. Open only if L63 doesn't close the duplicate-family escalation pattern, or if a future smoke surfaces the integrity-exhaustion path silently.
+5. **Continuity blocker observation (out-of-phase):** L62-validate ch2 surfaced a continuity blocker about a planner/writer mismatch on Maret's hidden strength. Logged as a *future* phase candidate, not a sub-lane in this session — stay disciplined to the integrity+retry phase.
 
 ## Cost-Threshold Autonomy Note
 
@@ -51,3 +53,6 @@ Per `docs/session-start-contract.md` and updated `CLAUDE.md`: deploy + smoke at 
 ## Progress Log
 
 - 2026-05-02 — Session opened. Runner archival landed in commits `744baf5`+`3473428`. L62 fix shipped in `31e16a8`. Session contract written. Cost-threshold autonomy adopted.
+- 2026-05-02 — Phase brief written (`docs/sessions/2026-05-02-integrity-retry-phase-brief.md`, commit `dcb72ae`). Trace evidence for L41 carry-over confirms the duplicate-* fresh-prose-elsewhere pattern (commit `5d93613`).
+- 2026-05-02 — L62-validate smoke (exp #386, novel `novel-1777766296959`) deployed to LXC, drafted ch1 + ch2 cleanly with 0 integrity issues across 28 beats. Verdict from smoke-stop-classifier: `new_blocker` — but the blocker is in CONTINUITY (Theo witnessing Maret's strength), not integrity. L62's hypothesis is clean pass for our phase.
+- 2026-05-02 — L63 (Lever A) implemented: matched-pair `firstExcerpt` plumbing in `integrity.ts` + pair rendering in `retry-context.ts`. 175/175 lint+retry tests green; tsc clean. Pending deploy + retry-bearing seed for empirical validation.

@@ -1,13 +1,16 @@
 # Lane Queue
 
 ## Active
-- (empty — pick next via `docs/harness-next-work-process.md`)
+- (empty — pick next via `docs/harness-next-work-process.md`; L64 / Lever B is the next queued lane in the integrity+retry phase if motivated)
 
 ## Next
 - (empty)
 
 ## Completed
 
+- docs/sessions/2026-05-02-L63-matched-pair-carryover.md — clean pass for matched-pair carry-over for duplicate-sentence + duplicate-fragment (exp #387, Lever A). Targets 72.9% of integrity-fail volume per phase brief. Empirical retry-replay validation deferred until a retry-bearing seed exercises the path.
+- docs/sessions/2026-05-02-runner-archive-and-litrpg-validate.md (session) — runner archival + L62-validate clean pass (exp #386). Chapter 1 of fantasy-system-heretic approved with 0 fused-boundary issues from System UIDs. New blocker surfaced in continuity (out-of-phase; parked).
+- docs/sessions/2026-05-02-integrity-retry-phase-brief.md (phase brief) — DB scan + code audit + L41 trace evidence; identified Levers A/B/C with empirical sequencing.
 - docs/sessions/2026-05-02-L62-litrpg-integrity-guard.md — clean pass for LitRPG System-path identifier exemption in `detectFusedBoundaries` (commit `31e16a8`, exp #385). L63 candidate (chapter-attempt retry fall-through after second integrity failure) queued in `docs/todo.md`.
 - docs/sessions/2026-05-02-L61-e2e-smoke-after-hardening.md — stop gate (b) new dominant blocker: prose-integrity false-positive on LitRPG System path identifiers + chapter-attempt retry escalates duplicate fragments. L62 candidate queued in `docs/todo.md`.
 - docs/sessions/2026-05-02-L57-runner-review-gate.md — clean pass for review evidence before queued lane advance.
