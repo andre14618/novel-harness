@@ -74,6 +74,24 @@ Even at the worst-case configuration tested (V4 Pro promo + 50K-token bible + K=
 
 These are not blockers for the verdict — the headroom is large enough that even ~3× pessimism in real-production costs leaves the architecture economic. They are caveats for Step 4's actual cost model when it lands.
 
+## Cache Assumptions (Load-Bearing)
+
+**The 99.2% cache-hit ratio above is contingent on every K judges seeing the SAME prefix bytes per chapter.** All 10 calls in this probe used the identical canon-prefix payload — that's why warm hits dominate. The per-chapter $0.0008 number is valid only under a **stable-bundle architecture**:
+
+- ✓ One canon bundle assembled per chapter, fed verbatim to every judge in the K-judge set.
+- ✓ Judge-specific concerns differentiate via short user-prompt suffixes (not by re-querying canon per judge).
+- ✓ Bundle byte-stability across judges is preserved (same document order, same templating).
+
+**Architectures that break the assumption:**
+
+- ✗ **Per-judge semantic retrieval** — each judge issues its own RRF query → top-K returns differ in content and order → different prefix bytes per judge. Intra-chapter cache collapses; cost goes ~K× (≥5× at K=5). Cross-chapter cache also degrades because retrieval results shift as canon evolves.
+- ✗ **Score-fused retrieval with non-deterministic tie-breaking** — even logically-equivalent queries can return shuffled top-K when scores are close.
+- ✗ **Bundle composition that varies per call** — any per-judge filtering, ordering, or slicing rebreaks the prefix.
+
+**Implication for charter §0a path selection.** This probe does not validate semantic-retrieval-per-judge economics; it validates stable-bundle economics. §0a's path-selection question is therefore reframed from "reactivate semantic retrieval vs. deterministic fallback" to **"what bundle assembly produces a stable per-chapter prefix that preserves cache stability while keeping retrieval recall acceptable?"** Semantic retrieval, if used, becomes a *bundle-assembly tool* (run once per chapter, output cached and reused across all K judges) — not a per-query layer.
+
+**Recommended hybrid for Step 4 design.** Prefix = stable per-chapter bible bundle (cache-friendly). User-prompt suffix = judge-specific concern injection (small, varies, doesn't break prefix cache). This is what the §0e numbers actually project; any other architecture needs its own probe.
+
 ## Stop-Gate Verdict (Charter §0e)
 
 > **Stop gate.** If projected per-chapter editorial cost at K=5 with V4 Flash exceeds $0.50/chapter, the architecture is uneconomic at production scale.

@@ -87,18 +87,20 @@ Domain types: `CanonFact`, `CharacterState`, `StoryPromise`, `Entity`, `CanonUpd
 
 ### §0e — Pre-Step-4 cost probe
 
-**Verdict: PASS. Charter stop gate (d) does not fire.**
+**Verdict: PASS (under stable-bundle assumption). Charter stop gate (d) does not fire.**
 
 - Probe script: `scripts/_step0e-cost-probe.ts`. 10 sequential V4 Flash calls on a synthetic ~4K-token (canon-prefix + chapter) payload. Total spend $0.0012.
 - Cache hit ratio on warm calls: **99.2%**.
 - Per-chapter projection at K=5 V4 Flash warm: **$0.0008/chapter** vs the $0.50 threshold (~600× under).
 - Headroom analysis at 50K-token full-novel bible + V4 Pro promo + K=10 judges: ~$0.03/chapter (~17× under threshold).
 
+**Cache-assumption caveat (load-bearing for §0a path selection).** The 99.2% hit ratio is contingent on every K judges seeing the SAME prefix bytes per chapter. Per-judge semantic retrieval (different top-K per judge → different prefix) collapses the cache; cost goes ~K× higher. The §0e numbers validate **stable-bundle** economics, not per-judge retrieval economics. This reframes §0a's path-selection question — see updated charter §0a + cost-probe results doc §"Cache Assumptions" for the bundle-assembly framing.
+
 Full results: `docs/sessions/2026-05-03-step-0e-cost-probe-results.md`.
 
-### §0a — Retrieval reactivation
+### §0a — Per-chapter bundle assembly
 
-**Deferred to follow-on lane.** Multi-day work; warrants its own session-start contract and possibly user input on the deterministic-fallback decision (charter §0a offers two viable paths). Not blocking for the work landed in this lane (§0c, §0d, §0e are independent of retrieval).
+**Deferred to follow-on lane.** Multi-day work; warrants its own session-start contract. §0a was reframed during this lane in light of §0e's cache-assumption caveat: the question is now "what bundle assembly produces a stable per-chapter prefix all K judges share?" — see charter §0a for the three candidate paths (whole-bible, deterministic-scoped, bundle-assembly-by-retrieval). Not blocking for the work landed in this lane (§0c, §0d, §0e are independent of bundle assembly).
 
 ### §0b — Initial bible bootstrap path
 
@@ -135,8 +137,8 @@ Lane is single-component (charter Step 0 prereq landing) and atomic. Self-review
 
 Charter Step 0 follow-ons in priority order:
 
-1. **§0a — Retrieval reactivation.** Multi-day. Two paths to evaluate (semantic vs. deterministic). User input on path selection appropriate before opening.
+1. **§0a — Per-chapter bundle assembly.** Multi-day. Three paths to evaluate (whole-bible, deterministic-scoped, bundle-assembly-by-retrieval) — all share the constraint that the per-chapter bundle must be byte-stable across all K judges to preserve the §0e cache economics. User input on path preference appropriate before opening.
 2. **§0b — Bootstrap path.** Design work, depends on §0a's choice. Smaller lane.
 3. **Charter Step 1 — Canon Substrate.** Larger lane. Schema implementation + DB tables + API bodies. Gated on §0a.
 
-Recommend pausing here for user check-in on §0a path selection (semantic retrieval reactivation vs. deterministic-lookup fallback) before opening the next lane. The choice has multi-week implications and a one-way-door quality.
+Recommend pausing here for user check-in on §0a bundle-assembly path preference before opening the next lane. The choice has multi-week implications and a one-way-door quality.

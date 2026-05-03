@@ -47,22 +47,32 @@ The plan is gated. Each step has explicit prerequisites and stop conditions; no 
 
 Before any new drafting architecture lands, four prerequisites must clear:
 
-#### 0a. Retrieval reactivation (or deterministic fallback)
+#### 0a. Per-chapter bundle assembly (cache-stable retrieval)
 
-`embeddings: false` in `src/config/pipeline.ts:28`. Semantic retrieval was retired per `docs/context-engineering.md`. The pgvector + RRF code at `src/db/retrieval.ts` is idle. Two viable paths:
+`embeddings: false` in `src/config/pipeline.ts:28`. Semantic retrieval was retired per `docs/context-engineering.md`. The pgvector + RRF code at `src/db/retrieval.ts` is idle.
 
-- **Reactivate semantic retrieval.** Re-enable embedding generation for canon facts/entities; validate hybrid RRF returns useful scoped subsets on novel content; calibrate retrieval against manual ground-truth queries.
-- **Deterministic scoped lookup alternative.** If semantic retrieval doesn't validate, fall back to deterministic indexing on entity IDs, chapter ranges, and structured fact types — no embeddings, no similarity search. Worse retrieval quality but bounded behavior.
+**Reframed by §0e cost probe results (2026-05-03).** §0e validated $0.0008/chapter at K=5 V4 Flash warm — but only because every judge call used the identical prefix. The cache-hit economics are contingent on **stable bundle bytes across all K judges per chapter.** Per-judge semantic retrieval (each judge issues its own RRF query, gets a different top-K, different prefix bytes) collapses the cache and pushes cost ~K× higher. See `docs/sessions/2026-05-03-step-0e-cost-probe-results.md` §"Cache Assumptions."
 
-**Stop gate (precision + recall + token cap, not recall-only).** Retrieval cannot ship by returning the whole bible. The validation requires:
+The §0a question is therefore not "semantic retrieval vs. deterministic fallback" but **"what bundle assembly produces a stable per-chapter prefix that all K judges share, while keeping retrieval recall acceptable?"** Semantic retrieval, if used, becomes a *bundle-assembly tool* — run once per chapter, output cached and reused across all K judges and across the chapter's writer calls. It is not a per-query layer.
 
-- **Labeled query set size:** ≥40 queries across at least three categories (entity-grounding, character-state-at-time, active-promises-and-payoffs). Each query has a human-curated relevant-canon-set.
-- **Recall@K floor:** at K=20 retrieved facts, ≥80% of the relevant set is in the top-K.
-- **Precision floor:** ≥50% of retrieved facts at K=20 are judged relevant by the same grader (i.e., precision@20 ≥ 0.50). This is what blocks the prompt-blob escape hatch.
-- **Context-token cap:** retrieved-bible-per-writer-call must fit in ≤4,000 tokens after templating, and ≤6,000 tokens for editorial-pass calls. Hard cap; if precision can't fit relevant facts inside the cap, retrieval is failing.
-- **Deterministic fallback scoring:** if the deterministic-lookup path is taken instead of semantic retrieval, the same metrics apply — recall@K is computed against the entity-ID/chapter-range index's hits, precision against the same labeled query set, token cap unchanged.
+Three bundle-assembly paths to evaluate in this spike:
 
-If any of recall@K, precision@K, or token-cap thresholds fail, retrieval is not ready — the architecture cannot ship. Returning the whole bible trivially fails the precision floor and the token cap. This is the explicit prompt-blob guard.
+- **Whole-bible bundle.** Concatenate the entire current canon. Trivially stable; cache-friendly. Breaks at scale (50K-token bibles × every writer + judge call wastes input budget). Acceptable for the first ~10 chapters of a novel; fails the prompt-blob guard once the bible grows.
+- **Deterministic scoped bundle.** Pick a bundle for chapter N via deterministic rules (e.g., POV character + everyone they know + active promises + recent canon-events). Run once per chapter, cache the output, reuse for all K judges + writer calls in that chapter. No embeddings, no similarity search. Bounded, reproducible, byte-stable.
+- **Bundle-assembly-by-retrieval.** Use semantic retrieval (or hybrid RRF) to *assemble* the per-chapter bundle, then freeze it for the chapter. The retrieval layer runs once; subsequent calls hit the frozen bundle in cache. Combines retrieval recall benefits with cache stability — but requires the bundle composition to be deterministically reproducible from the same canon-state-at-chapter-N.
+
+The hybrid-prefix/suffix shape (stable bundle in the prefix, judge-specific concern in a short user-prompt suffix) is the projected Step 4 architecture; §0a's job is to validate that one of the three bundle paths above produces an acceptable bundle, not to wire the prefix/suffix split itself.
+
+**Stop gate (recall + precision + token cap + cache-stability, not recall-only).** The validation requires:
+
+- **Labeled query set size:** ≥40 queries across at least three categories (entity-grounding, character-state-at-time, active-promises-and-payoffs). Each query has a human-curated relevant-canon-set. The "query" here represents what the bundle assembler must satisfy for a given chapter, not a per-judge runtime query.
+- **Recall floor:** the assembled per-chapter bundle covers ≥80% of the relevant canon for every query category that the chapter's K judges will collectively evaluate (continuity, character-state, promise/payoff, etc.). Recall is measured against the *bundle*, not against per-judge subsets — every judge sees the same bundle.
+- **Precision floor:** ≥50% of bundle entries are judged relevant to *some* query category for the chapter (i.e., the bundle is not padded with unrelated canon). This is what blocks the "concatenate everything" escape hatch on small bibles.
+- **Token cap:** assembled bundle ≤6,000 tokens after templating (writer-call uses the same bundle scoped to ≤4,000 tokens via deterministic sub-selection; editorial pass uses the full 6,000-token bundle).
+- **Cache-stability check:** running the same chapter through bundle assembly twice produces byte-identical output. Non-deterministic tie-breaking (RRF score ties, document-order shuffles) must be eliminated or the bundle invalidates the §0e cache assumptions.
+- **Deterministic-bundle fallback:** if the bundle-assembly-by-retrieval path doesn't validate, fall back to the deterministic scoped bundle path. Same metrics apply.
+
+If any of recall, precision, token-cap, or cache-stability thresholds fail, retrieval is not ready — the architecture cannot ship. Returning the whole bible passes recall trivially but fails precision and token cap once the bible exceeds ~6K tokens. Per-judge semantic retrieval fails cache-stability outright. These are the explicit prompt-blob and cache-collapse guards.
 
 #### 0b. Initial bible bootstrap path
 
@@ -290,7 +300,7 @@ Total: ~6–8 weeks of focused engineering. Parallelizable across some steps onc
 
 Charter-level stop gates that can pause or kill the architecture:
 
-- **(a) Retrieval doesn't validate** at Step 0a → architecture cannot ship; revisit deterministic-only fallback or kill charter.
+- **(a) Bundle assembly doesn't validate** at Step 0a (recall, precision, token cap, or cache-stability fails on all three candidate paths) → architecture cannot ship; either redesign canon scoping or kill charter.
 - **(b) Bible-input integrity below threshold** at Step 2 → no canon writes from sub-threshold sources; if no source clears, charter is unworkable.
 - **(c) Shadow-mode validation fails** at Step 4 → editorial layer is not ready; current drafting gates remain; iterate Step 4 or kill charter.
 - **(d) Cost model exceeds envelope.** Primary measurement at §0e pre-Step-4 cost probe (early kill-gate before Step 1 starts); confirmed against real production payloads at Step 4. If §0e projects per-chapter cost above $0.50 at K=5 with V4 Flash, reduce judge count, redesign prefix, or kill charter. If Step 4 measurement diverges materially from §0e projection, re-evaluate.
