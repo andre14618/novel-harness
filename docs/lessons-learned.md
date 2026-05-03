@@ -12,6 +12,24 @@ Hard-won principles from experiments, failures, and debugging. Each entry has ev
 ### Alternation ordering is load-bearing in JS regex
 JavaScript regex engines use leftmost-match semantics: in an alternation `(a|ab)`, the engine prefers the FIRST matching alternative, not the longest. So to match "dark elves" correctly when "dark" is also a valid token, the longer form MUST appear first in the alternation list. This bit the 2026-04-23 halluc-leak-salvatore widen — adding "dark elf" and "drow elf" required placing them before bare "drow"/"dark" in `LEAK_TOKENS`. The same constraint applies to any regex alternation derived from a token list: sort longest-first at build time, or be explicit about ordering in the source list. (W4 widen, commit TBD)
 
+## Retry / Carry-Over Surface Design
+
+### Drift-invention vs persistence are distinct failure modes; chapter-attempt carry-over only addresses one (2026-05-02)
+
+When a checker keeps firing across chapter-attempts, the failure can be one of two structurally different shapes — and the right lever depends on which one you're seeing.
+
+- **Persistence-mode failure:** the writer keeps emitting *the same* problematic content across attempts (often byte-identical prose because the LLM is deterministic on a near-identical prompt). The exp #389 "central spire" case: 3 chapter-attempts produced literally identical beat-13 prose because the writer never learned the entity was flagged. Chapter-attempt carry-over (L41 / L63 / L65) **closes** this — surfacing the prior attempt's flagged content in the next attempt's prompt forces a different output.
+
+- **Drift-invention-mode failure:** the writer invents *fresh* problematic content each attempt. The exp #392 "Senior Cataloguer" case: chapter 2 attempts 1, 2, and 3 produced different ungrounded entities (`Third Lamentation` → `Codex` → `Senior Cataloguer`). Chapter-attempt carry-over **cannot close this** — by the time the writer invents one, the next attempt may invent a different one. Only writer-side **primary prevention** (a tighter system-prompt constraint) addresses it.
+
+**How to apply:** before opening a "carry the prior attempt's findings forward" lane, check whether the failures across attempts are byte-identical (or near-identical) on the relevant content vs each attempt producing fresh content of the same failure class. The fix shape differs:
+- byte-identical → secondary correction (carry-over) — write the renderer + capture site, ship in days, costs $0 to validate retroactively against historical chapter_drafts.
+- fresh-each-attempt → primary prevention (system-prompt constraint, planner schema, routing change) — must A/B against a real seed because the change is qualitative and may degrade prose tone or introduce a different failure mode.
+
+The L41/L63/L65 ladder mirrors a useful diagnostic: if a carry-over lane ships and the next live smoke still hits the same failure class with *different surface content*, the problem is drift-invention and the next move is the upstream lever, not a more elaborate carry-over.
+
+Evidence: exp #389 (persistence, closed by L65 retroactive replay), exp #392 (drift-invention, motivated L66 / G-B writer prompt edit). Phase brief: `docs/sessions/2026-05-02-grounding-phase-brief.md`.
+
 ## LLM Evaluation
 
 ### Deterministic validators should not own judgment-heavy placement (2026-05-01)
