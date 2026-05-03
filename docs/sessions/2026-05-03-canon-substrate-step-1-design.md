@@ -78,17 +78,22 @@ Step 1 substrate seam landed. The schema/API surface that future production-adap
 
 - **Verification**: `bun test src/canon/` → 107 pass / 0 fail / 211 expects (88 → 107, +19). `bunx tsc --noEmit` clean. `bun scripts/audits/run-salvatore-recall.ts` → recallGateClear=true, meanRecall=0.927, tokenCapExceeded=0/5 (§0a remains closed under the new type shape).
 
-Stop gate fired: **(a) Clean pass**. Charter §1 stop gate ("schema must support `getCanonForChapter(N)` returning what was canonical at the time chapter N was written") demonstrated by the supersession test cluster.
+Stop gate status — **seam cleared, production substrate pending**: this session lands the schema/API design and an in-memory adapter that demonstrates the charter §1 property ("`getCanonForChapter(N)` returns what was canonical at the time chapter N was written, regardless of subsequent edits") on the supersession test cluster. The §1 stop gate is NOT formally cleared yet — that requires the production-backed adapter (`src/db/canon-substrate.ts` + `src/harness/canon-substrate.ts`) to pass the same point-in-time, no-ghost-canon, and supersession tests against a Postgres backend. Marking §1 cleared now would conflate the design seam with the production substrate; the user has explicitly asked to keep these distinct until both pieces exist.
 
-Out of scope and explicitly deferred: Postgres schema migrations, real `src/db/canon-substrate.ts` and `src/harness/canon-substrate.ts` modules, orchestrator wiring, bootstrap-chapter-1 path (charter §0b), and operator-facing proposal review UI. The seam is stable; runtime wiring is the next session's concern.
+Out of scope and explicitly deferred: Postgres schema migrations, real `src/db/canon-substrate.ts` and `src/harness/canon-substrate.ts` modules, an adapter-equivalence test suite (in-memory vs Postgres against the same fixture), orchestrator wiring, bootstrap-chapter-1 path (charter §0b), and operator-facing proposal review UI. The seam is stable; runtime wiring is the next session's concern, gated on commit-pinned implementation review of this commit (`28071ea`) before any DB work begins.
 
 ## Stop gate fired
 
-**(a) Clean pass.** Design doc + types update + interface + in-memory adapter + 19 seam-proving tests; tsc clean; 107/107 canon tests pass; Salvatore recall harness re-runs at 0.927 (§0a remains closed under new types).
+**(a) Clean pass for the seam (NOT for charter §1).** Design doc + types update + interface + in-memory adapter + 19 seam-proving tests; tsc clean; 107/107 canon tests pass; Salvatore recall harness re-runs at 0.927 (§0a remains closed under new types).
+
+Charter §1 stop gate language: **seam cleared, production substrate pending.** The supersession test cluster demonstrates the point-in-time property against `InMemoryCanonSubstrate`, but charter §1 is about the production substrate, not the seam. §1 will be marked cleared only after the Postgres adapter (`src/db/canon-substrate.ts` + `src/harness/canon-substrate.ts`) passes an adapter-equivalence test suite against the same fixture as the in-memory adapter.
 
 ## Evidence
 
-(TBD)
+- `bun test src/canon/` — 107 pass / 0 fail / 211 expects.
+- `bunx tsc --noEmit` — clean.
+- `bun scripts/audits/run-salvatore-recall.ts` — recallGateClear=true, meanRecall=0.927, tokenCapExceeded=0/5; §0a remains closed under the new type contract.
+- Commit-pinned implementation review of `28071ea` requested before Postgres work; review gate-keeps the next session's DB-adapter implementation.
 
 ## Cost
 

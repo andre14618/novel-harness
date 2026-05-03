@@ -22,7 +22,7 @@ From `docs/charters/world-bible-architecture.md` §1:
 6. **planned-vs-observed** — `Provenance.origin: "planned" | "observed"`. Already present.
 7. **conflict handling** — when two sources propose the same logical fact, what wins? Substrate-level rule defined below (§Conflict resolution).
 
-The §1 stop gate is the binding constraint: *"Schema must support `getCanonForChapter(N)` returning what was canonical at the time chapter N was written, regardless of subsequent edits."* The design is built around this read query.
+The §1 stop gate is the binding constraint: *"Schema must support `getCanonForChapter(N)` returning what was canonical at the time chapter N was written, regardless of subsequent edits."* The design is built around this read query. **Note on gate semantics:** demonstrating the property against `InMemoryCanonSubstrate` clears the *seam*, not the *production substrate*. §1 will be formally cleared only after the Postgres adapter passes the same point-in-time / no-ghost / supersession tests against a real DB backend (see "Tests proving the seam" below — those become the seed for the adapter-equivalence suite).
 
 ## Snapshot identity model
 
@@ -44,7 +44,7 @@ A snapshot at chapter N is the set, for each logical id, of the version V such t
 
 That is: pick the most recent version at-or-before N that has not itself been superseded by chapter N.
 
-This is the bitemporal pattern with story time = chapter index. It satisfies the §1 stop gate by construction: a chapter-12 edit that supersedes a chapter-3 fact does not appear in the chapter-3 snapshot, only in chapter-12 and later snapshots.
+This is the bitemporal pattern with story time = chapter index. The schema design satisfies the §1 stop gate by construction: a chapter-12 edit that supersedes a chapter-3 fact does not appear in the chapter-3 snapshot, only in chapter-12 and later snapshots. The seam is demonstrated against the in-memory adapter; the gate formally clears only when the Postgres adapter passes the same property end-to-end.
 
 ## Read-side contract: committed-only by construction
 
@@ -233,6 +233,18 @@ In `src/canon/substrate.test.ts` against `InMemoryCanonSubstrate`:
 4. **Supersession** — same as above but verifying supersession metadata; the chapter-7 record's provenance lists `supersedes` pointing at the chapter-3 record's logical id.
 5. **CharacterState + StoryPromise carry provenance** — propose a `CharacterState` with `auto-extracted`, commit with `human-approved`. Assert pre-commit invisible, post-commit visible.
 6. **Adapter satisfies bundle.ts CanonSource** — call `assembleL1(adapter, novelId, chapterN, hints)` against an adapter populated with committed canon. Assert the resulting `L1Packet` is valid (has bytes, packet hash, expected sections). This proves the seam holds end-to-end without DB.
+
+## Bar for charter §1 to formally clear
+
+§1 says *"Schema must support `getCanonForChapter(N)` returning what was canonical at the time chapter N was written."* This session lands the schema and proves the property against `InMemoryCanonSubstrate`. The gate is not formally cleared until the production-backed adapter passes equivalent tests. Required to flip §1 to "cleared":
+
+1. Postgres migration creates the tables sketched above; sample data round-trips via the schema unchanged.
+2. `src/db/canon-substrate.ts` queries return committed-only by construction (the SQL in §"Postgres schema sketch" above is the read template).
+3. `src/harness/canon-substrate.ts` wraps the DB module and exposes `CanonSubstrate` to consumers.
+4. **Adapter-equivalence test suite**: the same fixture (drawn from or modeled on `tests/canon/fixtures/salvatore-crystal-shard.canon.json`) runs through both `InMemoryCanonSubstrate` and the Postgres-backed adapter; assertions in `src/canon/substrate.test.ts` pass identically against both. Any divergence is a substrate bug, not a test issue.
+5. Charter §1 status flipped to *cleared* in `docs/charters/world-bible-architecture.md` and the Step 1 lane doc, with the equivalence-suite commit cited as evidence.
+
+Until step 5 lands, the operating-model and charter language remains "seam cleared, production substrate pending."
 
 ## Out of scope this session
 
