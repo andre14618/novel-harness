@@ -110,3 +110,23 @@ The Postgres branch of the equivalence spec runs all 32 behavioral tests against
 ## Commits
 
 - `ba72e09` `[infra]` canon substrate Postgres adapter + equivalence suite — charter §1 cleared. 11 files changed, +2295/-2. Migration `sql/035_canon_substrate.sql`, raw queries `src/db/canon-substrate.ts`, harness `src/harness/canon-substrate.ts`, equivalence test `src/canon/substrate-equivalence.test.ts`, lane doc, plus charter/design/decisions/lessons/current-state/lane-queue updates. Experiment #404 logged + concluded.
+
+## Hardening Pass (Codex round-2)
+
+Codex round-2 review of `ba72e09` returned six findings (1 HIGH + 4 MEDIUM + 1 LOW):
+
+- **HIGH (transactional atomicity).** `resolveProposal` and `seed*` previously did proposal-update / supersession / insert / generation-bump as separate DB round-trips. A crash between any two left the substrate inconsistent. **Fix**: `src/db/canon-substrate.ts` helpers grew an optional `executor: SQL = db` parameter; `src/harness/canon-substrate.ts` wraps `resolveProposal` and every `seed*` in `db.begin(async (tx) => { … })`. Cache invalidation + generation-cache refresh happen AFTER the transaction commits, so the in-process cache never reflects uncommitted DB state.
+
+- **MEDIUM (active-version unique indexes).** `sql/035` had non-unique partial indexes; the "at most one active version per logical id" invariant was only enforced in app code. **Fix**: `sql/036_canon_substrate_invariants.sql` adds `CREATE UNIQUE INDEX … WHERE superseded_by_version IS NULL` for all four canon tables.
+
+- **MEDIUM (proposal re-resolve guard).** `updateProposalResolution` updated by id only. **Fix**: UPDATE now gates on `WHERE id = ? AND status = 'pending'`; throws if 0 rows are touched. Defense in depth — the harness's pending check still fires first, but the DB-level guard is what holds against a TOCTOU window or a future operator-UI race.
+
+- **MEDIUM (proposal coverage scope).** Docs claimed proposals cover entities/states/promises. The implementation ships fact-only. **Fix**: narrow the docs (`docs/world-bible-operating-model.md` §5 + `src/canon/api.ts` JSDoc on `CanonUpdateProposal` and `Provenance.supersedes`) to "proposals cover `CanonFact` only in §1; non-fact canon enters via direct seed; cross-id supersession is fact-only by design." Drop the cross-id branches from `commitEntity` and `commitPromise` in the Postgres adapter so behavior matches the in-memory adapter.
+
+- **MEDIUM (cross-id supersession test coverage).** With the previous narrowing, cross-id is fact-only by design; the existing fact-only test coverage is now correct.
+
+- **LOW (confidence range).** `NUMERIC(4,3)` permits 9.999 but `Provenance.confidence` is `[0, 1]`. **Fix**: `sql/036` adds `CHECK (confidence IS NULL OR (confidence >= 0 AND confidence <= 1))` on all four canon tables.
+
+**Equivalence suite** grew four Postgres-only tests (active-version unique trip, confidence range CHECK trip, `updateProposalResolution` guard trip, atomicity probe). 178 → 182 canon tests pass; tsc clean; recall still 0.927.
+
+**Charter §1 status:** stays *cleared* — the hardening pass closes the round-2 findings; the substrate now satisfies the stop gate both functionally (read logic + behavioral spec) and structurally (write atomicity + schema-level invariants).

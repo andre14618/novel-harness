@@ -10,6 +10,41 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon Substrate (charter §1) hardening pass — transactional commits + schema invariants (2026-05-03)
+
+**Decision:** Following the Codex round-2 review of `ba72e09`, four hardening changes land before charter §1 stays *cleared*: transactional atomicity for proposal/canon writes, partial-unique active-version indexes, a DB-level guard against re-resolving a non-pending proposal, and a CHECK constraint pinning `confidence` to `[0, 1]`. Plus a docs/scope narrowing: proposals cover `CanonFact` only in §1; entity/state/promise canon enters via direct seed.
+
+**Why each:**
+
+- *HIGH (transactional atomicity).* `resolveProposal` and `seed*` previously did `updateProposalResolution → markFactSuperseded → insertFact → bumpGeneration` as separate DB round-trips. A crash or DB error between any two would leave the substrate inconsistent: a proposal marked `approved` with no canon row, or an old fact superseded with no replacement. The Step 1 stop gate is "schema must support `getCanonForChapter(N)` returning what was canonical at the time chapter N was written" — torn writes break that guarantee. Fix: every write that touches more than one row runs inside `db.begin(async (tx) => { … })` with the transaction handle threaded through every helper. The DB-helper signatures grew an optional `executor: SQL = db` parameter; reads inside a transaction join the same isolation snapshot as the writes (matters for the `maxFactVersion → markFactSuperseded → insertFact` sequence inside commitFact). Cache invalidation + generation refresh happen AFTER the transaction commits — the in-process snapshot cache never reflects uncommitted DB state.
+
+- *MEDIUM (active-version unique indexes).* `sql/035` had non-unique partial indexes for read performance; the logical "at most one active version per logical id" invariant was enforced only in application code (the always-supersede-same-id rule in `commitFact` / `commitEntity` / `commitState` / `commitPromise`). Codex was right: Step 1 is a substrate/schema gate, the invariant should be schema-enforced. `sql/036_canon_substrate_invariants.sql` adds `CREATE UNIQUE INDEX … WHERE superseded_by_version IS NULL` for all four canon tables. The existing read-side indexes stay in place — they're non-unique on purpose for the snapshot read query.
+
+- *MEDIUM (proposal re-resolve guard).* `updateProposalResolution` used to UPDATE by `id` only. The harness checked `proposal.status === "pending"` first, but a TOCTOU window (or a future operator UI race) could resolve a proposal twice. Fix: the UPDATE now gates on `WHERE id = ? AND status = 'pending'` and throws if 0 rows are touched. Defense in depth — the harness check still fires first, but the DB-level guard is the load-bearing one.
+
+- *MEDIUM (proposal coverage scope).* The operating-model doc said proposals cover entities, character states, promises, and corrections. The actual `CanonUpdateProposal` type and `proposeCanonUpdate` / `resolveProposal` lifecycle ship `CanonFact` only. Two paths: extend the proposal type to cover all four canon-typed objects, or narrow the docs to fact-only. Chose narrow — extending the proposal type is real charter scope (per-type proposal payloads, normalize-on-commit semantics for non-fact types, additional adversary-review). The docs in `docs/world-bible-operating-model.md` §5 + the JSDoc on `CanonUpdateProposal` now say "proposals cover CanonFact only in §1; non-fact canon enters via direct seed." Cross-id supersession in `commitEntity` and `commitPromise` (which the in-memory adapter never had) was dropped from the Postgres adapter to match — `provenance.supersedes` on Entity/State/Promise is currently ignored at commit time. Same-id close still fires on every commit, which is what the active-version unique index protects.
+
+- *MEDIUM (cross-id supersession test coverage).* The cross-id additive test was facts-only. With the previous bullet's narrowing, cross-id is fact-only by design now, so the existing test coverage is correct as-is.
+
+- *LOW (confidence range CHECK).* `Provenance.confidence` is documented as `[0, 1]` but the column was `NUMERIC(4,3)` which permits up to 9.999. `sql/036` adds `CHECK (confidence IS NULL OR (confidence >= 0 AND confidence <= 1))` on all four canon tables. Catches extractor bugs at the substrate boundary instead of letting garbage propagate into reads.
+
+**Evidence:**
+- `bun test src/canon/` — 182 pass / 0 fail (was 178; added 4 hardening tests under the Postgres-only branch: unique-active-version trip, confidence-range trip, updateProposalResolution guard, atomicity probe).
+- `bunx tsc --noEmit` clean.
+- `bun scripts/audits/run-salvatore-recall.ts` — `recallGateClear=YES, meanRecall=0.927`.
+- Migration `sql/036_canon_substrate_invariants.sql` applied locally; both unique indexes and CHECK constraints active.
+
+**Charter §1 status:** stays *cleared*. The hardening pass closes the round-2 findings; the substrate now satisfies the stop gate both functionally (read logic, behavioral spec passes against both adapters) and structurally (write atomicity, schema-level invariants).
+
+**Alternatives rejected:**
+- *Keep app-level uniqueness, skip the partial unique index.* Rejected — Codex's framing was correct: §1 is a substrate gate. App-level enforcement is brittle to future callers (operator UI, CLI tools, batch importers) that bypass the harness. Schema-level enforcement is the right floor.
+- *Extend `CanonUpdateProposal` to cover all four types now.* Rejected — too much scope for a hardening pass. Extending the type properly requires a per-type normalize-on-commit (different fields for Entity/State/Promise), and the proposal lifecycle for non-fact types has open questions (does an Entity proposal target an alias? a kind change? a data-payload change?) that need a charter-class decision, not a quiet plumbing edit. Direct seed remains the path for non-fact canon in §1.
+- *Use SAVEPOINTs inside the harness rather than `db.begin`.* Rejected — `db.begin` matches the existing repo pattern for atomic multi-statement work and is what Bun.SQL's connection.ts proxy is configured to retry on connection-loss. Adding SAVEPOINTs would be premature complexity until a concrete need (e.g., partial rollback inside a multi-fact batch commit) shows up.
+
+**Lane:** `docs/sessions/2026-05-03-canon-substrate-postgres-adapter.md` (Hardening Pass section). **Migration:** `sql/036_canon_substrate_invariants.sql`. **Code:** `src/db/canon-substrate.ts` (executor parameter), `src/harness/canon-substrate.ts` (`db.begin` wraps; cross-id branches dropped from `commitEntity`/`commitPromise`).
+
+---
+
 ### §Canon Substrate (charter §1) cleared — production Postgres adapter + equivalence suite (2026-05-03)
 
 **Decision:** Charter §1 stop gate flipped from "seam cleared, production substrate pending" → **cleared**. The production canon substrate now exists end-to-end:

@@ -56,9 +56,11 @@ Reviewers flag issues; they do not automatically rewrite Canon and they do not b
 
 ### 5. Propose Canon Updates
 
-Post-draft extraction and editorial review may produce Canon Proposals: new entities, new established facts, changed character states, knowledge changes, promise setup/payoff changes, or corrections.
+Post-draft extraction and editorial review may produce Canon Proposals: new established facts, knowledge changes, character-state changes, promise setup/payoff changes, or corrections to existing canon facts.
 
 Canon Proposals are pending until adjudicated. Pending proposals never enter writer context.
+
+> **Step 1 substrate scope (2026-05-03):** the live `proposeCanonUpdate` / `resolveProposal` lifecycle in `src/canon/api.ts` covers `CanonFact` proposals only (every kind of `FactKind`: `established_fact`, `knowledge_change`, `character_state` (as a fact), `promise`, `payoff`). New `Entity`, `CharacterState`, and `StoryPromise` records enter canon via direct seed (planner output, post-draft extraction with operator approval) — not through the proposal queue. Extending the proposal type to cover those object kinds is a follow-on; until that lands, "Canon Proposals" in the operating model means CanonFact proposals specifically.
 
 ### 6. Commit Or Reject Proposals
 

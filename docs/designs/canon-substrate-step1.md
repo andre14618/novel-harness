@@ -293,6 +293,8 @@ Until step 5 lands, the operating-model and charter language remains "seam clear
 
 **2026-05-03: All five points landed.** The Postgres adapter is in `src/harness/canon-substrate.ts`, the equivalence suite is in `src/canon/substrate-equivalence.test.ts`, and charter §1 is flipped to *cleared* in `docs/charters/world-bible-architecture.md`. Operator UI for proposal review and orchestrator wiring remain explicitly out of scope and queue under future work.
 
+**2026-05-03 hardening pass (Codex round-2).** Six findings on `ba72e09` closed in a follow-on commit: transactional atomicity for proposal/canon writes (`db.begin` wraps `resolveProposal` + `seed*`; helpers take optional `executor: SQL = db`), partial-unique active-version indexes per canon table (`sql/036_canon_substrate_invariants.sql`), DB-level guard against re-resolving non-pending proposals (`updateProposalResolution` gates on `WHERE id = ? AND status = 'pending'`), narrowed scope of `CanonUpdateProposal` to `CanonFact` only in §1 (entity/state/promise canon enters via direct seed; cross-id supersession is fact-only by design and the cross-id branch was dropped from `commitEntity`/`commitPromise` in the Postgres adapter to match the in-memory model), and a CHECK constraint pinning `confidence` to `[0, 1]` on all four canon tables. 182 canon tests pass post-hardening (was 178; +4 Postgres-only tests for the new safety nets). See `docs/decisions.md` §"Canon Substrate (charter §1) hardening pass".
+
 ## Out of scope this session
 
 - Postgres tables / migration SQL (sketched above; lands in a follow-on after the seam settles).

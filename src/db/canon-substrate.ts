@@ -1,5 +1,6 @@
 /**
- * Raw queries for the canon substrate (sql/035_canon_substrate.sql).
+ * Raw queries for the canon substrate (sql/035_canon_substrate.sql,
+ * hardened by sql/036_canon_substrate_invariants.sql).
  *
  * Charter: docs/charters/world-bible-architecture.md §1
  * Design:  docs/designs/canon-substrate-step1.md
@@ -19,9 +20,25 @@
  * No business rules live here — supersession bookkeeping, normalize-on-commit,
  * and the no-ghost-canon filter are enforced in the harness module. This
  * module exposes thin helpers the harness composes.
+ *
+ * **Transaction support.** Every mutation helper accepts an optional
+ * `executor: SQL` parameter so the harness can call them inside a
+ * `db.begin(async (tx) => { ... })` block. When `executor` is omitted, the
+ * helper uses the global `db`. Read helpers also accept `executor` so a
+ * snapshot read can join a write transaction (for repeatable-read
+ * semantics inside a commit operation).
+ *
+ * The transactional contract was added per the Codex round-2 review of
+ * `ba72e09` (HIGH finding: proposal resolution + canon commit must be
+ * atomic). A crash between updateProposalResolution → markFactSuperseded →
+ * insertFact → bumpGeneration would otherwise leave the substrate in an
+ * inconsistent state — this is the load-bearing guarantee Step 1 promises.
  */
 
+import { type SQL } from "bun"
 import db from "./connection"
+
+type Executor = SQL
 import type {
   ApprovalStatus,
   CanonFact,
@@ -208,8 +225,9 @@ function jsonValue(value: unknown): unknown {
 export async function loadFactsSnapshot(
   novelId: string,
   chapterN: number,
+  executor: Executor = db,
 ): Promise<FactRow[]> {
-  const rows = (await db`
+  const rows = (await executor`
     SELECT DISTINCT ON (logical_id)
            novel_id, logical_id, version, kind, text, data,
            source, committed_at_chapter, committed_at_beat,
@@ -229,8 +247,9 @@ export async function loadFactsSnapshot(
 export async function loadEntitiesSnapshot(
   novelId: string,
   chapterN: number,
+  executor: Executor = db,
 ): Promise<EntityRow[]> {
-  const rows = (await db`
+  const rows = (await executor`
     SELECT DISTINCT ON (logical_id)
            novel_id, logical_id, version, name, aliases, kind,
            first_appeared_chapter, data,
@@ -251,8 +270,9 @@ export async function loadEntitiesSnapshot(
 export async function loadCharacterStatesSnapshot(
   novelId: string,
   chapterN: number,
+  executor: Executor = db,
 ): Promise<CharacterStateRow[]> {
-  const rows = (await db`
+  const rows = (await executor`
     SELECT DISTINCT ON (character_id)
            novel_id, character_id, version, character_name, known_facts, state,
            as_of_chapter, as_of_beat,
@@ -273,8 +293,9 @@ export async function loadCharacterStatesSnapshot(
 export async function loadPromisesSnapshot(
   novelId: string,
   chapterN: number,
+  executor: Executor = db,
 ): Promise<PromiseRow[]> {
-  const rows = (await db`
+  const rows = (await executor`
     SELECT DISTINCT ON (logical_id)
            novel_id, logical_id, version, setup_chapter, setup_beat,
            expected_payoff_chapter, resolved_at_chapter, resolved_at_beat,
@@ -399,8 +420,9 @@ export function proposalFromRow(row: ProposalRow): CanonUpdateProposal {
 export async function activeFactVersion(
   novelId: string,
   logicalId: string,
+  executor: Executor = db,
 ): Promise<{ version: number } | null> {
-  const rows = (await db`
+  const rows = (await executor`
     SELECT version FROM canon_facts
     WHERE novel_id = ${novelId}
       AND logical_id = ${logicalId}
@@ -413,8 +435,9 @@ export async function activeFactVersion(
 export async function activeEntityVersion(
   novelId: string,
   logicalId: string,
+  executor: Executor = db,
 ): Promise<{ version: number } | null> {
-  const rows = (await db`
+  const rows = (await executor`
     SELECT version FROM canon_entities
     WHERE novel_id = ${novelId}
       AND logical_id = ${logicalId}
@@ -427,8 +450,9 @@ export async function activeEntityVersion(
 export async function activeCharacterStateVersion(
   novelId: string,
   characterId: string,
+  executor: Executor = db,
 ): Promise<{ version: number } | null> {
-  const rows = (await db`
+  const rows = (await executor`
     SELECT version FROM canon_character_states
     WHERE novel_id = ${novelId}
       AND character_id = ${characterId}
@@ -441,8 +465,9 @@ export async function activeCharacterStateVersion(
 export async function activePromiseVersion(
   novelId: string,
   logicalId: string,
+  executor: Executor = db,
 ): Promise<{ version: number } | null> {
-  const rows = (await db`
+  const rows = (await executor`
     SELECT version FROM canon_promises
     WHERE novel_id = ${novelId}
       AND logical_id = ${logicalId}
@@ -455,8 +480,9 @@ export async function activePromiseVersion(
 export async function maxFactVersion(
   novelId: string,
   logicalId: string,
+  executor: Executor = db,
 ): Promise<number> {
-  const rows = (await db`
+  const rows = (await executor`
     SELECT COALESCE(MAX(version), 0) AS max_version FROM canon_facts
     WHERE novel_id = ${novelId} AND logical_id = ${logicalId}
   `) as Array<{ max_version: number | string }>
@@ -467,8 +493,9 @@ export async function maxFactVersion(
 export async function maxEntityVersion(
   novelId: string,
   logicalId: string,
+  executor: Executor = db,
 ): Promise<number> {
-  const rows = (await db`
+  const rows = (await executor`
     SELECT COALESCE(MAX(version), 0) AS max_version FROM canon_entities
     WHERE novel_id = ${novelId} AND logical_id = ${logicalId}
   `) as Array<{ max_version: number | string }>
@@ -479,8 +506,9 @@ export async function maxEntityVersion(
 export async function maxCharacterStateVersion(
   novelId: string,
   characterId: string,
+  executor: Executor = db,
 ): Promise<number> {
-  const rows = (await db`
+  const rows = (await executor`
     SELECT COALESCE(MAX(version), 0) AS max_version FROM canon_character_states
     WHERE novel_id = ${novelId} AND character_id = ${characterId}
   `) as Array<{ max_version: number | string }>
@@ -491,8 +519,9 @@ export async function maxCharacterStateVersion(
 export async function maxPromiseVersion(
   novelId: string,
   logicalId: string,
+  executor: Executor = db,
 ): Promise<number> {
-  const rows = (await db`
+  const rows = (await executor`
     SELECT COALESCE(MAX(version), 0) AS max_version FROM canon_promises
     WHERE novel_id = ${novelId} AND logical_id = ${logicalId}
   `) as Array<{ max_version: number | string }>
@@ -507,8 +536,9 @@ export async function markFactSuperseded(
   logicalId: string,
   newVersion: number,
   atChapter: number,
+  executor: Executor = db,
 ): Promise<void> {
-  await db`
+  await executor`
     UPDATE canon_facts
     SET superseded_by_version = ${newVersion},
         superseded_at_chapter = ${atChapter},
@@ -524,8 +554,9 @@ export async function markEntitySuperseded(
   logicalId: string,
   newVersion: number,
   atChapter: number,
+  executor: Executor = db,
 ): Promise<void> {
-  await db`
+  await executor`
     UPDATE canon_entities
     SET superseded_by_version = ${newVersion},
         superseded_at_chapter = ${atChapter},
@@ -541,8 +572,9 @@ export async function markCharacterStateSuperseded(
   characterId: string,
   newVersion: number,
   atChapter: number,
+  executor: Executor = db,
 ): Promise<void> {
-  await db`
+  await executor`
     UPDATE canon_character_states
     SET superseded_by_version = ${newVersion},
         superseded_at_chapter = ${atChapter},
@@ -558,8 +590,9 @@ export async function markPromiseSuperseded(
   logicalId: string,
   newVersion: number,
   atChapter: number,
+  executor: Executor = db,
 ): Promise<void> {
-  await db`
+  await executor`
     UPDATE canon_promises
     SET superseded_by_version = ${newVersion},
         superseded_at_chapter = ${atChapter},
@@ -583,10 +616,10 @@ export async function insertFact(params: {
   novelId: string
   fact: CanonFact
   version: number
-}): Promise<void> {
+}, executor: Executor = db): Promise<void> {
   const { fact, novelId, version } = params
   const p = fact.provenance
-  await db`
+  await executor`
     INSERT INTO canon_facts (
       novel_id, logical_id, version, kind, text, data,
       source, committed_at_chapter, committed_at_beat,
@@ -607,10 +640,10 @@ export async function insertEntity(params: {
   novelId: string
   entity: Entity
   version: number
-}): Promise<void> {
+}, executor: Executor = db): Promise<void> {
   const { entity, novelId, version } = params
   const p = entity.provenance
-  await db`
+  await executor`
     INSERT INTO canon_entities (
       novel_id, logical_id, version, name, aliases, kind,
       first_appeared_chapter, data,
@@ -634,10 +667,10 @@ export async function insertCharacterState(params: {
   novelId: string
   state: CharacterState
   version: number
-}): Promise<void> {
+}, executor: Executor = db): Promise<void> {
   const { state, novelId, version } = params
   const p = state.provenance
-  await db`
+  await executor`
     INSERT INTO canon_character_states (
       novel_id, character_id, version, character_name, known_facts, state,
       as_of_chapter, as_of_beat,
@@ -661,10 +694,10 @@ export async function insertPromise(params: {
   novelId: string
   promise: StoryPromise
   version: number
-}): Promise<void> {
+}, executor: Executor = db): Promise<void> {
   const { promise, novelId, version } = params
   const p = promise.provenance
-  await db`
+  await executor`
     INSERT INTO canon_promises (
       novel_id, logical_id, version, setup_chapter, setup_beat,
       expected_payoff_chapter, resolved_at_chapter, resolved_at_beat,
@@ -695,8 +728,8 @@ export async function insertProposal(params: {
   status: ProposalStatus
   operatorNote: string | null
   createdAt: string
-}): Promise<void> {
-  await db`
+}, executor: Executor = db): Promise<void> {
+  await executor`
     INSERT INTO canon_proposals (
       id, novel_id, source, target_logical_id, proposed_payload,
       status, operator_note, created_at
@@ -712,8 +745,9 @@ export async function insertProposal(params: {
 
 export async function findProposal(
   proposalId: string,
+  executor: Executor = db,
 ): Promise<ProposalRow | null> {
-  const rows = (await db`
+  const rows = (await executor`
     SELECT id, novel_id, source, target_logical_id, proposed_payload,
            modified_payload, status, operator_note, created_at, resolved_at
     FROM canon_proposals
@@ -723,27 +757,47 @@ export async function findProposal(
   return rows.length > 0 ? rows[0] : null
 }
 
+/**
+ * Resolve a proposal with a guard against re-resolving an already-closed
+ * record. The harness checks `proposal.status` first, but the DB helper
+ * defends against a TOCTOU window or future operator UI race by gating
+ * the UPDATE on `WHERE status = 'pending'`. If 0 rows are updated, the
+ * caller gets a thrown error rather than silently committing canon for a
+ * proposal that another caller already handled.
+ *
+ * Codex round-2 finding: "the DB helper should defensively prevent
+ * re-resolving an already closed proposal, especially once multiple
+ * callers or future operator UI exist."
+ */
 export async function updateProposalResolution(params: {
   id: string
   status: ProposalStatus
   resolvedAt: string
   operatorNote: string | null
   modifiedPayload: CanonFact | null
-}): Promise<void> {
-  await db`
+}, executor: Executor = db): Promise<void> {
+  const rows = (await executor`
     UPDATE canon_proposals
     SET status = ${params.status},
         resolved_at = ${params.resolvedAt}::timestamptz,
         operator_note = COALESCE(${params.operatorNote}, operator_note),
         modified_payload = ${params.modifiedPayload ? JSON.stringify(params.modifiedPayload) : null}::jsonb
     WHERE id = ${params.id}
-  `
+      AND status = 'pending'
+    RETURNING id
+  `) as Array<{ id: string }>
+  if (rows.length === 0) {
+    throw new Error(
+      `updateProposalResolution: proposal ${params.id} is not pending (already resolved, or unknown id)`,
+    )
+  }
 }
 
 export async function listPendingProposals(
   novelId: string,
+  executor: Executor = db,
 ): Promise<ProposalRow[]> {
-  const rows = (await db`
+  const rows = (await executor`
     SELECT id, novel_id, source, target_logical_id, proposed_payload,
            modified_payload, status, operator_note, created_at, resolved_at
     FROM canon_proposals
@@ -756,8 +810,11 @@ export async function listPendingProposals(
 
 // ── Snapshot generation counter ──────────────────────────────────────────────
 
-export async function bumpGeneration(novelId: string): Promise<number> {
-  const rows = (await db`
+export async function bumpGeneration(
+  novelId: string,
+  executor: Executor = db,
+): Promise<number> {
+  const rows = (await executor`
     INSERT INTO canon_snapshot_meta (novel_id, generation_counter, updated_at)
     VALUES (${novelId}, 1, NOW())
     ON CONFLICT (novel_id) DO UPDATE
@@ -769,8 +826,11 @@ export async function bumpGeneration(novelId: string): Promise<number> {
   return typeof v === "string" ? Number(v) : v
 }
 
-export async function readGeneration(novelId: string): Promise<number> {
-  const rows = (await db`
+export async function readGeneration(
+  novelId: string,
+  executor: Executor = db,
+): Promise<number> {
+  const rows = (await executor`
     SELECT generation_counter FROM canon_snapshot_meta WHERE novel_id = ${novelId}
   `) as Array<{ generation_counter: number | string }>
   if (rows.length === 0) return 0
@@ -780,11 +840,14 @@ export async function readGeneration(novelId: string): Promise<number> {
 
 // ── Test helpers — full deletion for a novel (DB tests cleanup) ──────────────
 
-export async function deleteAllForNovel(novelId: string): Promise<void> {
-  await db`DELETE FROM canon_facts WHERE novel_id = ${novelId}`
-  await db`DELETE FROM canon_entities WHERE novel_id = ${novelId}`
-  await db`DELETE FROM canon_character_states WHERE novel_id = ${novelId}`
-  await db`DELETE FROM canon_promises WHERE novel_id = ${novelId}`
-  await db`DELETE FROM canon_proposals WHERE novel_id = ${novelId}`
-  await db`DELETE FROM canon_snapshot_meta WHERE novel_id = ${novelId}`
+export async function deleteAllForNovel(
+  novelId: string,
+  executor: Executor = db,
+): Promise<void> {
+  await executor`DELETE FROM canon_facts WHERE novel_id = ${novelId}`
+  await executor`DELETE FROM canon_entities WHERE novel_id = ${novelId}`
+  await executor`DELETE FROM canon_character_states WHERE novel_id = ${novelId}`
+  await executor`DELETE FROM canon_promises WHERE novel_id = ${novelId}`
+  await executor`DELETE FROM canon_proposals WHERE novel_id = ${novelId}`
+  await executor`DELETE FROM canon_snapshot_meta WHERE novel_id = ${novelId}`
 }

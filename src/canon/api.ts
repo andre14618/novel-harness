@@ -57,7 +57,17 @@ export interface Provenance {
   confidence?: number
   approvalStatus: ApprovalStatus
   origin: FactOrigin
-  /** If this fact superseded a prior version, link to it. */
+  /**
+   * If this fact superseded a prior version, link to it.
+   *
+   * Step 1 scope: load-bearing for `CanonFact` only — the substrate's
+   * commit path uses this field (plus `proposal.targetFactId`) to close
+   * cross-id supersession chains. For `Entity` / `CharacterState` /
+   * `StoryPromise`, the substrate enforces same-id supersession only;
+   * setting `supersedes` on those types is currently ignored at commit
+   * time. Cross-id supersession for non-fact types ships when the
+   * proposal lifecycle expands to cover them.
+   */
   supersedes?: string  // CanonFact.id of the prior version
   createdAt: string  // ISO-8601
   updatedAt: string  // ISO-8601
@@ -147,6 +157,19 @@ export type ProposalStatus =
   | "rejected"
   | "modified"
 
+/**
+ * Canon update proposal — the no-ghost-canon write surface.
+ *
+ * **Step 1 scope (2026-05-03):** proposals cover `CanonFact` only. New
+ * `Entity` / `CharacterState` / `StoryPromise` records enter canon via
+ * direct seed (planner output + operator approval, post-draft extraction
+ * with operator approval). The proposal type was originally drafted with
+ * "covers any kind of canon write" in mind but the live lifecycle ships
+ * fact-only; expanding to non-fact types is a follow-on charter.
+ *
+ * See `docs/world-bible-operating-model.md` §5 + the substrate design doc
+ * for the full lifecycle.
+ */
 export interface CanonUpdateProposal {
   id: string
   source: ProvenanceSource

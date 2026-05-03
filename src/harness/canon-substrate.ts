@@ -20,9 +20,20 @@
  *     `loadSnapshot(novelId, N)` again to pick up the new version. This is
  *     intentionally explicit — silent re-load would hide the cache cost.
  *
+ * **Atomicity contract (Codex round-2 hardening of `ba72e09`):** every write
+ * that touches more than one DB row — proposal resolution + canon commit +
+ * generation bump, or seed* commit + generation bump — runs inside a single
+ * `db.begin(async (tx) => { ... })` block. A crash or DB error at any step
+ * rolls back the whole sequence rather than leaving a proposal marked
+ * `approved` with no canon row, or an old fact superseded with no
+ * replacement. The `db/canon-substrate.ts` helpers all accept an optional
+ * `executor` parameter so the harness can pass the transaction handle
+ * through.
+ *
  * No SQL lives in this file. Raw queries are in `src/db/canon-substrate.ts`.
  */
 
+import db from "../db/connection"
 import * as canonDb from "../db/canon-substrate"
 import type { CanonSource } from "../canon/bundle"
 import type {
@@ -182,11 +193,17 @@ export class PostgresCanonSubstrate implements CanonSubstrate {
     status: Exclude<ProposalStatus, "pending">,
     opts?: { modifiedFact?: CanonFact; operatorNote?: string },
   ): Promise<{ committedFact?: CanonFact }> {
+    // Validate inputs BEFORE the transaction so we don't churn the DB on a
+    // call that was malformed at the API boundary.
     if (status === "modified" && !opts?.modifiedFact) {
       throw new Error(
         `resolveProposal: status="modified" requires opts.modifiedFact`,
       )
     }
+    // Snapshot the proposal row outside the transaction to validate the
+    // status check and decide the path. The transaction below re-validates
+    // by calling updateProposalResolution with the `WHERE status = 'pending'`
+    // guard — that's the binding check.
     const row = await canonDb.findProposal(proposalId)
     if (!row) throw new Error(`resolveProposal: unknown proposalId ${proposalId}`)
     if (row.status !== "pending") {
@@ -198,35 +215,47 @@ export class PostgresCanonSubstrate implements CanonSubstrate {
     const novelId = row.novel_id
     const resolvedAt = new Date().toISOString()
 
-    if (status === "rejected") {
+    let committedFact: CanonFact | undefined
+
+    // Atomic commit/resolution: proposal status update + canon write +
+    // generation bump must all succeed or all roll back. Codex round-2 HIGH:
+    // a crash between any pair of these would leave the substrate
+    // inconsistent (proposal approved with no canon row, or old fact
+    // superseded with no replacement).
+    await db.begin(async (tx: typeof db) => {
+      if (status === "rejected") {
+        await canonDb.updateProposalResolution({
+          id: proposalId,
+          status: "rejected",
+          resolvedAt,
+          operatorNote: opts?.operatorNote ?? null,
+          modifiedPayload: null,
+        }, tx)
+        await canonDb.bumpGeneration(novelId, tx)
+        return
+      }
+
+      const factToCommit = normalizeForCommit(proposal, status, opts)
       await canonDb.updateProposalResolution({
         id: proposalId,
-        status: "rejected",
+        status,
         resolvedAt,
         operatorNote: opts?.operatorNote ?? null,
-        modifiedPayload: null,
-      })
-      await canonDb.bumpGeneration(novelId)
-      this.invalidateSnapshot(novelId)
-      this.generationCache.set(novelId, await canonDb.readGeneration(novelId))
-      return {}
-    }
-
-    const factToCommit = normalizeForCommit(proposal, status, opts)
-    await canonDb.updateProposalResolution({
-      id: proposalId,
-      status,
-      resolvedAt,
-      operatorNote: opts?.operatorNote ?? null,
-      modifiedPayload: status === "modified" && opts?.modifiedFact
-        ? opts.modifiedFact
-        : null,
+        modifiedPayload: status === "modified" && opts?.modifiedFact
+          ? opts.modifiedFact
+          : null,
+      }, tx)
+      await this.commitFact(novelId, factToCommit, proposal.targetFactId, tx)
+      await canonDb.bumpGeneration(novelId, tx)
+      committedFact = factToCommit
     })
-    await this.commitFact(novelId, factToCommit, proposal.targetFactId)
-    await canonDb.bumpGeneration(novelId)
+
+    // Cache invalidation + generation refresh happen AFTER the transaction
+    // commits so we never reflect uncommitted DB state in the in-process
+    // cache. If the transaction throws, the cache stays at its prior value.
     this.invalidateSnapshot(novelId)
     this.generationCache.set(novelId, await canonDb.readGeneration(novelId))
-    return { committedFact: factToCommit }
+    return committedFact ? { committedFact } : {}
   }
 
   async listPendingProposals(
@@ -237,19 +266,29 @@ export class PostgresCanonSubstrate implements CanonSubstrate {
   }
 
   // ── Test helpers — direct seeding (mirrors InMemoryCanonSubstrate) ─────────
+  //
+  // Each seed method is one transaction: commitXxx (which may issue a
+  // markSuperseded UPDATE plus an INSERT) + bumpGeneration. A crash between
+  // them would leave the prior version closed with no replacement, or a new
+  // row in canon_* with no generation bump (the snapshot version cache would
+  // miss the change). All-or-nothing.
 
   async seedFact(novelId: string, fact: CanonFact): Promise<void> {
     assertCommittedApproval(fact.provenance.approvalStatus, "seedFact")
-    await this.commitFact(novelId, fact, fact.provenance.supersedes)
-    await canonDb.bumpGeneration(novelId)
+    await db.begin(async (tx: typeof db) => {
+      await this.commitFact(novelId, fact, fact.provenance.supersedes, tx)
+      await canonDb.bumpGeneration(novelId, tx)
+    })
     this.invalidateSnapshot(novelId)
     this.generationCache.set(novelId, await canonDb.readGeneration(novelId))
   }
 
   async seedEntity(novelId: string, entity: Entity): Promise<void> {
     assertCommittedApproval(entity.provenance.approvalStatus, "seedEntity")
-    await this.commitEntity(novelId, entity)
-    await canonDb.bumpGeneration(novelId)
+    await db.begin(async (tx: typeof db) => {
+      await this.commitEntity(novelId, entity, tx)
+      await canonDb.bumpGeneration(novelId, tx)
+    })
     this.invalidateSnapshot(novelId)
     this.generationCache.set(novelId, await canonDb.readGeneration(novelId))
   }
@@ -259,8 +298,10 @@ export class PostgresCanonSubstrate implements CanonSubstrate {
     state: CharacterState,
   ): Promise<void> {
     assertCommittedApproval(state.provenance.approvalStatus, "seedCharacterState")
-    await this.commitState(novelId, state)
-    await canonDb.bumpGeneration(novelId)
+    await db.begin(async (tx: typeof db) => {
+      await this.commitState(novelId, state, tx)
+      await canonDb.bumpGeneration(novelId, tx)
+    })
     this.invalidateSnapshot(novelId)
     this.generationCache.set(novelId, await canonDb.readGeneration(novelId))
   }
@@ -270,8 +311,10 @@ export class PostgresCanonSubstrate implements CanonSubstrate {
     promise: StoryPromise,
   ): Promise<void> {
     assertCommittedApproval(promise.provenance.approvalStatus, "seedStoryPromise")
-    await this.commitPromise(novelId, promise)
-    await canonDb.bumpGeneration(novelId)
+    await db.begin(async (tx: typeof db) => {
+      await this.commitPromise(novelId, promise, tx)
+      await canonDb.bumpGeneration(novelId, tx)
+    })
     this.invalidateSnapshot(novelId)
     this.generationCache.set(novelId, await canonDb.readGeneration(novelId))
   }
@@ -303,16 +346,21 @@ export class PostgresCanonSubstrate implements CanonSubstrate {
    *      cross-id chain's active version (cross-id supersession is ADDITIVE,
    *      not else-branched).
    *   3. Insert the new version at version = max(version) + 1 for fact.id.
+   *
+   * `executor` is the transaction handle from the caller's `db.begin` block.
+   * The maxFactVersion read joins the same transaction so the version we
+   * compute is consistent with the supersession + insert.
    */
   private async commitFact(
     novelId: string,
     fact: CanonFact,
     supersedesLogicalId: CanonId | undefined,
+    executor: typeof db,
   ): Promise<void> {
-    const nextVersion = (await canonDb.maxFactVersion(novelId, fact.id)) + 1
+    const nextVersion = (await canonDb.maxFactVersion(novelId, fact.id, executor)) + 1
     const atChapter = fact.provenance.chapter
     // Always close same-id active version, if any.
-    await canonDb.markFactSuperseded(novelId, fact.id, nextVersion, atChapter)
+    await canonDb.markFactSuperseded(novelId, fact.id, nextVersion, atChapter, executor)
     // Additive cross-id close.
     if (supersedesLogicalId && supersedesLogicalId !== fact.id) {
       await canonDb.markFactSuperseded(
@@ -320,70 +368,77 @@ export class PostgresCanonSubstrate implements CanonSubstrate {
         supersedesLogicalId,
         nextVersion,
         atChapter,
+        executor,
       )
     }
-    await canonDb.insertFact({ novelId, fact, version: nextVersion })
+    await canonDb.insertFact({ novelId, fact, version: nextVersion }, executor)
   }
 
-  private async commitEntity(novelId: string, entity: Entity): Promise<void> {
-    const nextVersion = (await canonDb.maxEntityVersion(novelId, entity.id)) + 1
+  /**
+   * Mirror of `InMemoryCanonSubstrate.commitEntity` — same-id close only.
+   *
+   * The in-memory adapter does NOT close cross-id chains for entities; the
+   * `provenance.supersedes` field on Entity/CharacterState/StoryPromise is
+   * documented in api.ts as load-bearing for CanonFact only. The earlier
+   * Postgres adapter had a cross-id branch here (and on commitPromise) that
+   * the in-memory adapter lacked, which would cause behavior to diverge
+   * once an entity carrying a non-empty `provenance.supersedes` was seeded.
+   * Codex round-2 caught the divergence; we drop the cross-id branch here
+   * to match the in-memory model. If a future requirement needs cross-id
+   * supersession for non-fact types, the proposal lifecycle for those types
+   * lands first (it currently only handles facts).
+   */
+  private async commitEntity(
+    novelId: string,
+    entity: Entity,
+    executor: typeof db,
+  ): Promise<void> {
+    const nextVersion = (await canonDb.maxEntityVersion(novelId, entity.id, executor)) + 1
     const atChapter = entity.provenance.chapter
-    await canonDb.markEntitySuperseded(novelId, entity.id, nextVersion, atChapter)
-    if (
-      entity.provenance.supersedes &&
-      entity.provenance.supersedes !== entity.id
-    ) {
-      await canonDb.markEntitySuperseded(
-        novelId,
-        entity.provenance.supersedes,
-        nextVersion,
-        atChapter,
-      )
-    }
-    await canonDb.insertEntity({ novelId, entity, version: nextVersion })
+    await canonDb.markEntitySuperseded(novelId, entity.id, nextVersion, atChapter, executor)
+    await canonDb.insertEntity({ novelId, entity, version: nextVersion }, executor)
   }
 
+  /** Same-id close only — CharacterState has no cross-id supersession concept. */
   private async commitState(
     novelId: string,
     state: CharacterState,
+    executor: typeof db,
   ): Promise<void> {
     const nextVersion =
-      (await canonDb.maxCharacterStateVersion(novelId, state.characterId)) + 1
+      (await canonDb.maxCharacterStateVersion(novelId, state.characterId, executor)) + 1
     const atChapter = state.provenance.chapter
     await canonDb.markCharacterStateSuperseded(
       novelId,
       state.characterId,
       nextVersion,
       atChapter,
+      executor,
     )
-    await canonDb.insertCharacterState({ novelId, state, version: nextVersion })
+    await canonDb.insertCharacterState({ novelId, state, version: nextVersion }, executor)
   }
 
+  /**
+   * Mirror of `InMemoryCanonSubstrate.commitPromise` — same-id close only.
+   * See `commitEntity` for the rationale; cross-id supersession is fact-only
+   * in §1.
+   */
   private async commitPromise(
     novelId: string,
     promise: StoryPromise,
+    executor: typeof db,
   ): Promise<void> {
     const nextVersion =
-      (await canonDb.maxPromiseVersion(novelId, promise.id)) + 1
+      (await canonDb.maxPromiseVersion(novelId, promise.id, executor)) + 1
     const atChapter = promise.provenance.chapter
     await canonDb.markPromiseSuperseded(
       novelId,
       promise.id,
       nextVersion,
       atChapter,
+      executor,
     )
-    if (
-      promise.provenance.supersedes &&
-      promise.provenance.supersedes !== promise.id
-    ) {
-      await canonDb.markPromiseSuperseded(
-        novelId,
-        promise.provenance.supersedes,
-        nextVersion,
-        atChapter,
-      )
-    }
-    await canonDb.insertPromise({ novelId, promise, version: nextVersion })
+    await canonDb.insertPromise({ novelId, promise, version: nextVersion }, executor)
   }
 }
 
