@@ -30,6 +30,24 @@ The L41/L63/L65 ladder mirrors a useful diagnostic: if a carry-over lane ships a
 
 Evidence: exp #389 (persistence, closed by L65 retroactive replay), exp #392 (drift-invention, motivated L66 / G-B writer prompt edit). Phase brief: `docs/sessions/2026-05-02-grounding-phase-brief.md`.
 
+### A writer-side constraint can succeed on its target metric and still regress overall (2026-05-02)
+
+When suppressing one failure mode via a writer-prompt constraint, watch the **orthogonal channels** — duplicate-fragment integrity, NER false-positive classes, beat-completion rate. If the constraint is class-categorical it can squeeze prose toward a substitute pattern that triggers a different checker.
+
+Exp #394 (L66 v1) reduced halluc-ungrounded fires by **79%** (14 → 3 on ch1 a1, 18 → 4 across all retries) but **regressed chapter approval rate** (1/2 → 0/1). The writer obeyed the BIBLE-binding constraint by:
+- Replacing proper nouns with description-equivalents — which triggered duplicate-fragment integrity detection because the same descriptive phrases ("the regional records hall", "a senior cataloguer") were reused across beats.
+- Pivoting to temporal phrases ("Twenty-three years from now") that the NER number-word-tail class flagged as ungrounded entities and the LLM checker didn't rescue.
+
+Net effect: the constraint succeeded on the lever target but the prose still failed approval, just through different channels. Per stop gate (b), reverted same day.
+
+**How to apply:**
+- Before shipping a writer-side constraint, identify the *substitute patterns* the writer can fall back to and check whether any of them light up other checkers.
+- A/B should compare *approval rate*, not just the lever target. A 79% reduction in the target metric means nothing if it ships with a worse outcome through a different gate.
+- When the lever direction is right (target metric improves) but the form over-corrects, scope the next attempt narrower — e.g. constrain only the failure-class of named entity rather than all classes. Or pair the constraint with the planner-side counterpart (sanctioned-new-entities schema) so the writer has a controlled outlet for legitimate naming.
+- "The lever target metric improves" is necessary but not sufficient evidence to ship.
+
+Evidence: exp #394 (L66 v1 KILL after one A/B smoke). Lane retro: `docs/sessions/2026-05-02-L66-writer-bible-binding.md`. Decision record: `docs/decisions.md` §L66 (REVERTED).
+
 ## LLM Evaluation
 
 ### Deterministic validators should not own judgment-heavy placement (2026-05-01)

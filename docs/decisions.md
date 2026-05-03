@@ -10,9 +10,20 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
-### §L66 Writer-side BIBLE-binding constraint covers all named-entity classes (2026-05-02)
+### §L66 Writer-side BIBLE-binding constraint covers all named-entity classes (2026-05-02) — **REVERTED, stop gate (b)**
 
-**Decision:** Rewrite line 18 of `src/agents/writer/beat-writer-system.md` so the writer's named-entity constraint is class-categorical (characters, places, institutions, organizations, titles/ranks, lore concepts, artifacts, named events) and bound to the same grounded-source list the halluc-ungrounded checker uses ({beat brief, CHARACTERS, WORLD-BIBLE settings/locations/cultures/rules, prior beat, "Allowed-new-entities"}). Add a concrete example covering the exp #392 drift-invention pattern: "a senior cataloguer" rather than "Senior Cataloguer," "the regional records hall" rather than "the Hall of Records," "a junior scribe carrying folios" rather than "Acolyte Theron." Positive framing throughout — no "do not" / "never" / "avoid" — per `feedback_priming_suppression_ab` evidence that negative-prime variants WORSEN compliance.
+**Status:** Tried 2026-05-02 (exp #393 prompt edit + #394 A/B smoke); **REVERTED same-day** because L66 v1 traded grounding-channel failures for integrity-channel + NER-class failures, with a worse approval outcome (v0=1/2 → v1=0/1 chapters approved on ch1 of `fantasy-archive`). Hashes: `e734fd7` (apply), revert pending.
+
+**Decision (now reverted):** Rewrite line 18 of `src/agents/writer/beat-writer-system.md` so the writer's named-entity constraint is class-categorical (characters, places, institutions, organizations, titles/ranks, lore concepts, artifacts, named events) and bound to the same grounded-source list the halluc-ungrounded checker uses ({beat brief, CHARACTERS, WORLD-BIBLE settings/locations/cultures/rules, prior beat, "Allowed-new-entities"}). Add a concrete example covering the exp #392 drift-invention pattern: "a senior cataloguer" rather than "Senior Cataloguer," "the regional records hall" rather than "the Hall of Records," "a junior scribe carrying folios" rather than "Acolyte Theron." Positive framing throughout — no "do not" / "never" / "avoid" — per `feedback_priming_suppression_ab` evidence that negative-prime variants WORSEN compliance.
+
+**Empirical outcome (exp #394 A/B vs exp #392 baseline on `fantasy-archive`):**
+- Halluc-ungrounded fires attempt 1: 14 → 3 (**−79%**, lever working).
+- Halluc-ungrounded fires all retries: 18 → 4 (**−78%**, lever working).
+- Chapters approved: 1/2 → 0/1 (**regression**).
+- Chapter 1 ran 3 attempts and bailed at plan-check-exhausted on `"Twenty-three years from now"` (NER number-word-tail false positive that LLM didn't rescue). Integrity issues escalated 1 → 6 across attempts.
+- Hypothesis: by suppressing the writer's named-entity emission, the constraint pushed the writer toward (a) more repetitive descriptive phrases that triggered duplicate-fragment integrity detection, and (b) temporal expressions that the NER tagger flags as ungrounded entities.
+
+**Implication:** the lever direction is correct (halluc-ungrounded volume fell 79%) but the form over-corrects. Net regression on the gating outcome. Per stop gate (b), reverted. The 79% reduction signal is preserved in the lane Results doc as evidence that *some* writer-side constraint is achievable — future attempts should preserve more atmospheric specificity (e.g. allow common-noun atmospheric detail without uppercase-promotion; constrain only invented uppercase names; or pair with planner schema changes that pre-sanction needed entities).
 
 **Why:** exp #392 (fantasy-archive smoke, post-L65) revealed the *drift-invention* failure mode — the writer invents fresh ungrounded entities each chapter-attempt rather than persisting one ("Third Lamentation" att1 → "Codex" att3-retry2 → "Senior Cataloguer" att3-retry3). L65's chapter-attempt carry-over architecturally cannot close this: by the time the writer invents one ungrounded entity, the next attempt may invent a different one. Only writer-side primary-prevention can address it. The pre-L66 line-18 wording was class-incomplete ("characters and entities" + ambient-walk-on exception); the writer plausibly read "entities" as ambiguous and treated lore concepts and titles as outside the constraint's literal scope.
 
