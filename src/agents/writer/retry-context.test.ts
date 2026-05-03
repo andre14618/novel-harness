@@ -103,11 +103,16 @@ test("formatChapterIntegrityRetryContext: duplicate-sentence renders both halves
       firstExcerpt: "The hall narrowed.",
     },
   ])
-  expect(out).toContain("- duplicate-sentence (paraphrase one side):")
+  expect(out).toContain("- duplicate-sentence (rewrite at least one side with different verbs/imagery):")
   expect(out).toContain('first:  "The hall narrowed."')
   expect(out).toContain('second: "The hall narrowed."')
-  // The new prompt directive about paraphrasing should be present.
-  expect(out).toContain("paraphrase one side; do not delete a beat")
+  // L70 / Lever I-D: prompt directive escalates "paraphrase one side" to
+  // "rewrite at least one side using distinct concrete language" plus
+  // permission to rewrite both. Surfaced after exp #396 A/B showed 5 of 7
+  // novels surviving 3 attempts with ≥1 duplicate-fragment unresolved.
+  expect(out).toContain("Rewrite at least one side using distinct concrete language")
+  expect(out).toContain("If a single paraphrase still leaves the 8-word phrase shared, rewrite both sides")
+  expect(out).toContain("Keep the beats themselves intact")
 })
 
 test("formatChapterIntegrityRetryContext: duplicate-fragment with both excerpts renders the pair (L63)", () => {
@@ -118,7 +123,7 @@ test("formatChapterIntegrityRetryContext: duplicate-fragment with both excerpts 
       firstExcerpt: "set down on cot turned hands outstretched.",
     },
   ])
-  expect(out).toContain("- duplicate-fragment (paraphrase one side):")
+  expect(out).toContain("- duplicate-fragment (rewrite at least one side with different verbs/imagery):")
   expect(out).toContain('first:  "set down on cot')
   expect(out).toContain('second: "set down on cot')
 })
@@ -132,8 +137,8 @@ test("formatChapterIntegrityRetryContext: non-duplicate kinds keep single-excerp
   expect(out).toContain('- fused-boundary: "alpha.Beta"')
   expect(out).toContain('- quote-integrity: "she said,"He left."')
   expect(out).toContain('- camel-fusion: "againShe"')
-  // No matched-pair "(paraphrase one side)" directive on these kinds.
-  expect(out).not.toContain("(paraphrase one side)")
+  // No matched-pair "(rewrite at least one side ...)" directive on these kinds.
+  expect(out).not.toContain("(rewrite at least one side")
 })
 
 test("formatChapterIntegrityRetryContext: duplicate-* without firstExcerpt falls back to single-excerpt (L63 back-compat)", () => {
@@ -142,7 +147,7 @@ test("formatChapterIntegrityRetryContext: duplicate-* without firstExcerpt falls
     { kind: "duplicate-sentence", excerpt: "She paused." },
   ])
   expect(out).toContain('- duplicate-sentence: "She paused."')
-  expect(out).not.toContain("(paraphrase one side)")
+  expect(out).not.toContain("(rewrite at least one side")
 })
 
 // L65 / Lever G-A: chapter-attempt carry-over of LLM-confirmed ungrounded

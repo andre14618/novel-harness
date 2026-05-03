@@ -10,6 +10,24 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §L70 Duplicate-fragment carry-over directive escalated to rewrite-both-sides (2026-05-02, exp #398)
+
+**Status:** Shipped as prompt-only change in `formatChapterIntegrityRetryContext`. A/B re-run on the same 3 fantasy seeds (`fantasy-archive`, `fantasy-debt`, `fantasy-system-heretic`) pending.
+
+**Decision:** Escalate the duplicate-sentence / duplicate-fragment carry-over directive from `"paraphrase one side; do not delete a beat"` to `"Rewrite at least one side using distinct concrete language — different verbs, different sensory anchors, different sentence shape. If a single paraphrase still leaves the 8-word phrase shared, rewrite both sides. Keep the beats themselves intact."` Issue-line label changes from `(paraphrase one side)` to `(rewrite at least one side with different verbs/imagery)`. No detector / schema / checker change.
+
+**Why:** The L68 A/B sweep (exp #396) had 5 of 7 novels bail `integrity-duplicate-fragment` in chapter 1 after 3 attempts. Inspection of `pipeline_events.event_type='prose-integrity-check'` per-attempt issue progressions showed the writer DOES paraphrase across attempts (e.g. debt-n2: 2 → 5 → 1 issues; arch-n2: 3 → 4 → 1) but consistently converges with ≥1 stylistic short repeat surviving. Surviving fragments inspected: `"he was not wrong. That w..."` (debt-n2 att 3), `"Per the verification, it"` (arch-n1 att 1) — phrases the writer naturally reuses within a paragraph and the "paraphrase one side" directive doesn't force enough behavioral change to break.
+
+**Alternatives rejected:**
+- Form (a): per-fragment beat-targeted rewrite (L41 ladder analog scoped via char-offset → beat mapping). Rejected for first attempt as larger scope; queued as L70b if (b) doesn't move the needle.
+- Form (c): calibrated relaxation of the duplicate-fragment threshold (gramSize 8→10, or maxTokenDistance 120→60). Rejected for first attempt because it would change the detector's fire definition; queued as L70c with a recall test against historical fixtures if needed.
+- Increase `maxDraftAttempts` from 3 to 4. Rejected because it adds 33% retry compute cost on chapters that bail and only delays — not addresses — the convergence-attractor problem.
+- Negative-prime prohibition (e.g. "do not repeat short phrases"). Rejected per `feedback_priming_suppression_ab.md` (2026-04-20 Salvatore A/B doubled fire rate when negative-prime was added). Positive framing throughout — "rewrite at least one side using distinct concrete language" describes the action rather than forbidding the failure mode.
+
+**Ongoing implications:** prompt-only change; no runtime cost differential when the carry-over fires (already firing path), zero cost when integrity passes on attempt 1 (existing path returns empty string). If the A/B shows ≥10pt approval improvement OR ≥30% reduction in integrity-exhausted bails on ≥2/3 novels, the lever ships and the pattern (escalate-the-directive-but-stay-positive-framed) becomes a template for future carry-over surfaces. If not, escalate to L70b form (a) per-fragment beat-targeted rewrite.
+
+---
+
 ### §L68 Multi-call halluc-ungrounded vote/union — ship as code, default-off (2026-05-02, exp #396)
 
 **Status:** Shipped as code (`47ae038` + env-fix `7001981`); production default `HALLUC_UNGROUNDED_VOTE_N` unset → `pipeline.hallucVoteN=1`. **Lever works as designed but is upstream of the dominant blocker on the A/B seeds.**
