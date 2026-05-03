@@ -68,7 +68,13 @@ phase: lint-integrity-guard + chapter-attempt-retry
 
 ## Progress Log
 
-- 2026-05-02 — Lane opened from phase brief `docs/sessions/2026-05-02-integrity-retry-phase-brief.md`. Experiment 387 created. Implementation: 4 files patched (`integrity.ts`, `integrity.test.ts`, `retry-context.ts`, `retry-context.test.ts`). 175/175 lint + retry-context tests green; tsc clean. Awaiting L62-validate smoke completion before committing.
+- 2026-05-02 — Lane opened from phase brief `docs/sessions/2026-05-02-integrity-retry-phase-brief.md`. Experiment 387 created. Implementation: 4 files patched (`integrity.ts`, `integrity.test.ts`, `retry-context.ts`, `retry-context.test.ts`). 175/175 lint + retry-context tests green; tsc clean.
+- 2026-05-02 — L62-validate smoke completed clean for the L62 hypothesis; new blocker is in continuity (out of phase). Committed L63 + L62-validate finalization as `2542d0c`. Deployed to LXC.
+- 2026-05-02 — **Replay evidence on the 6 multi-fail novels from the phase brief**: ran `detectProseIntegrityIssues` against each novel's chapter-1 prose, then `formatChapterIntegrityRetryContext`, observing what the writer would now see. 17 of 18 historical integrity issues are duplicate-* and now carry `firstExcerpt`. Sample pairs:
+  - novel-1777698707087 ch1 — `first: "His silence was the answer." / second: "His silence was the answer."` (true sentence dup)
+  - novel-1777591510985 ch1 — `first: "o few. Too shallow. The Ashrot had settled d" / second: "e's no time left." The Ashrot had settled d"` (fragment dup with distinct context windows showing the colliding text)
+  - novel-1777761636607 ch1 (L61 case) — `first: "The cross-reference on folio twelve-B," she began… / second: "The cross-reference on folio twelve-B," she began…` (true sentence dup, both halves now explicitly labeled in the prompt)
+  Verifies pair plumbing end-to-end on real prose without an LLM call.
 
 ## Heartbeat Commands
 
