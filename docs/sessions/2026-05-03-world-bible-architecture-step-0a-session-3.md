@@ -84,11 +84,26 @@ Session 3b (next):
 
 ## Results
 
-(to fill at session-3a completion)
+**Session 3a (lane doc + format specs + harness scaffold + Salvatore canon fixture)**: clean pass. 80 facts / 56 entities / 14 character states / 9 promises across prelude + chapters 1–5. Subagent A covered prelude + ch1–3, subagent B covered ch4–5; merged via `scripts/audits/merge-salvatore-canon.ts`.
+
+**Session 3b (≥40 labeled queries + recall validation)**: §0a stop gate 4 CLOSED.
+
+- Queries fixture: `tests/canon/fixtures/salvatore-crystal-shard.queries.json` — 42 queries (14 entity-grounding, 14 character-state-at-time, 14 active-promises-and-payoffs); chapter manifest 1–5; namespaced relevant IDs only; ~6.6 relevantIds/query average. Authored discipline: questions framed from reader's natural surface BEFORE assigning IDs from the canon, to avoid self-fulfilling labels.
+- Runner: `scripts/audits/run-salvatore-recall.ts` (prints `missedIds` first per the inspect-misses-first methodology).
+- Outcome: `recallGateClear: YES`. queryCount=42 (≥40 ✓), all 3 categories represented (≥3 ✓), meanRecall=0.927 (≥0.8 ✓). 36/42 queries cleared the per-query 0.8 floor. tokenCapExceeded=0 (sanity ceiling clear). Per-category recall uniform: entity-grounding 0.926, character-state-at-time 0.932, active-promises-and-payoffs 0.923.
+- Precision aggregate: 0.090. Far below the 0.5 observability threshold but structurally expected — each chapter packet serves all queries + writer + K judges, so per-query precision is low by design. The relevant precision-side signal is the sanity-ceiling flag, which stayed clear.
+
+**Miss clusters worth recording for a future v2 scoping iteration (recall already clears the gate; these are candidates, not blockers):**
+
+1. **`character_state`-kind facts have no inclusion rule.** ~8 misses across entity-grounding and character-state-at-time queries: facts like `fact-drizzt-is-drow-on-surface` (kind=character_state) describe stable character attributes but get caught only by rule 4 (recency window), so they're missed when queried more than 5 chapters after their introduction. Candidate v2 rule: extend rule 6 (or add rule 7) to admit `kind: character_state` facts whose `data.characterId` is in scope, regardless of recency — symmetric with how rule 6 handles knowledge_change.
+2. **Entity transitive references.** ~5 misses: `entity:pasha-pook`, `entity:errtu`, `entity:regis`, `entity:calimport`. These entities are named in scoped facts but missing from the chapter manifest, so the entity row never gets emitted. Candidate v2: when a fact in scope mentions an entity ID, transitively include that entity's row. Trade-off: increases bundle size — measure against the sanity ceiling first.
+3. **General world-knowledge queries.** 1 miss cluster on q-eg-14 ("What are the Ten-Towns?") at ch5 — wants all 10 town entities; chapter manifest only mentions 2. This is partly a labeling-vs-manifest mismatch (the chapter doesn't actually need all towns) and partly a real concern for "encyclopedic" queries. Likely best handled by widening that specific chapter's manifest rather than a scoping-rule change.
+
+**Decision per user direction (recall clears → close gate 4 and move on):** §0a stop gate 4 closed. v2 scoping iteration deferred unless a future session-3c or a real chapter contract surfaces a higher recall demand. Next: §0b bootstrap or §0d/Step 1 substrate.
 
 ## Stop gate fired
 
-(TBD)
+**(a) Clean pass** — both 3a (canon fixture + harness scaffold) and 3b (queries fixture + recall validation). §0a stop gate 4 (recall floor against ≥40 labeled queries across ≥3 categories) cleared at meanRecall=0.927 with `recallGateClear: true`.
 
 ## Evidence
 

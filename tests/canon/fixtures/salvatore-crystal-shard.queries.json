@@ -1,0 +1,718 @@
+{
+  "novelId": "salvatore-crystal-shard",
+  "snapshotVersion": "salvatore-poc-v1",
+  "description": "§0a session-3b labeled queries against the Salvatore Crystal Shard canon (chapters 1-5). 42 queries, 14 per category. Authored discipline: questions framed from the reader's natural surface (chapter outlines + plot threads) BEFORE looking at scoping output; relevantIds assigned by reading the canon to find what a human curator considers necessary to answer the question. The mismatch between this set and what scoping emits is the recall measurement.",
+  "chapters": [
+    {
+      "chapterN": 1,
+      "hints": {
+        "povCharacterId": "dendybar",
+        "charactersPresentIds": ["dendybar", "eldeluc", "akar-kessell", "morkai"],
+        "chapterEntityIds": [
+          "easthaven",
+          "hosttower-of-the-arcane",
+          "icewind-dale",
+          "ten-towns",
+          "luskan",
+          "kelvins-cairn",
+          "arcane-brotherhood"
+        ]
+      }
+    },
+    {
+      "chapterN": 2,
+      "hints": {
+        "povCharacterId": "drizzt",
+        "charactersPresentIds": ["drizzt", "bruenor", "regis"],
+        "chapterEntityIds": [
+          "bryn-shander",
+          "lonelywood",
+          "maer-dualdon",
+          "ten-towns",
+          "kelvins-cairn",
+          "icewind-dale",
+          "calimport",
+          "calimshan",
+          "menzoberranzan",
+          "redwaters",
+          "lac-dinneshere",
+          "sea-of-moving-ice",
+          "reghed-glacier",
+          "targos",
+          "guenhwyvar",
+          "regis-ruby-pendant",
+          "tundra-yetis"
+        ]
+      }
+    },
+    {
+      "chapterN": 3,
+      "hints": {
+        "povCharacterId": "heafstaag",
+        "charactersPresentIds": [
+          "heafstaag",
+          "beorg",
+          "haalfdane",
+          "debernezan",
+          "raag-doning"
+        ],
+        "chapterEntityIds": [
+          "reghed-glacier",
+          "hengorot",
+          "termalaine",
+          "ten-towns",
+          "tribe-of-the-bear",
+          "tribe-of-the-elk",
+          "tribe-of-the-wolf",
+          "tempos"
+        ]
+      }
+    },
+    {
+      "chapterN": 4,
+      "hints": {
+        "povCharacterId": "akar-kessell",
+        "charactersPresentIds": ["akar-kessell", "eldeluc"],
+        "chapterEntityIds": [
+          "spine-of-the-world",
+          "icewind-dale",
+          "crenshinibon",
+          "cryshal-tirith",
+          "kessell-goblin-tribe"
+        ]
+      }
+    },
+    {
+      "chapterN": 5,
+      "hints": {
+        "povCharacterId": "drizzt",
+        "charactersPresentIds": ["drizzt", "bruenor", "catti-brie"],
+        "chapterEntityIds": [
+          "dwarven-valley",
+          "bruenors-climb",
+          "mithril-hall",
+          "ten-towns",
+          "bryn-shander",
+          "regis-ruby-pendant"
+        ]
+      }
+    }
+  ],
+  "queries": [
+    {
+      "id": "q-eg-01-hosttower",
+      "category": "entity-grounding",
+      "question": "What is the Hosttower of the Arcane?",
+      "chapterN": 1,
+      "relevantIds": [
+        "entity:hosttower-of-the-arcane",
+        "fact:fact-hosttower-of-the-arcane-wizard-guild",
+        "entity:luskan",
+        "entity:arcane-brotherhood",
+        "fact:fact-luskan-nearest-city"
+      ]
+    },
+    {
+      "id": "q-eg-02-easthaven",
+      "category": "entity-grounding",
+      "question": "Where is Easthaven and what kind of place is it?",
+      "chapterN": 1,
+      "relevantIds": [
+        "entity:easthaven",
+        "entity:icewind-dale",
+        "entity:ten-towns",
+        "fact:fact-easthaven-host-city-of-conspiracy",
+        "fact:fact-icewind-dale-geography",
+        "fact:fact-ten-towns-frontier-settlement"
+      ]
+    },
+    {
+      "id": "q-eg-03-drizzt",
+      "category": "entity-grounding",
+      "question": "Who is Drizzt Do'Urden?",
+      "chapterN": 2,
+      "relevantIds": [
+        "entity:drizzt",
+        "entity:menzoberranzan",
+        "fact:fact-drizzt-is-drow-on-surface",
+        "fact:fact-drizzt-suffers-sunlight",
+        "fact:fact-drizzt-wields-twin-scimitars",
+        "fact:fact-drizzt-owns-guenhwyvar-figurine",
+        "fact:fact-drow-elves-driven-underground",
+        "fact:fact-bruenor-dwarf-friend-of-drizzt"
+      ]
+    },
+    {
+      "id": "q-eg-04-guenhwyvar",
+      "category": "entity-grounding",
+      "question": "What is Guenhwyvar?",
+      "chapterN": 2,
+      "relevantIds": [
+        "entity:guenhwyvar",
+        "fact:fact-drizzt-owns-guenhwyvar-figurine"
+      ]
+    },
+    {
+      "id": "q-eg-05-maer-dualdon",
+      "category": "entity-grounding",
+      "question": "What is Maer Dualdon and which towns sit on it?",
+      "chapterN": 2,
+      "relevantIds": [
+        "entity:maer-dualdon",
+        "entity:lonelywood",
+        "entity:targos",
+        "fact:fact-targos-largest-fishing-town",
+        "fact:fact-ten-towns-economy-knucklehead-trout"
+      ]
+    },
+    {
+      "id": "q-eg-06-regis-political-role",
+      "category": "entity-grounding",
+      "question": "What is Regis's political role in Ten-Towns?",
+      "chapterN": 2,
+      "relevantIds": [
+        "entity:regis",
+        "entity:lonelywood",
+        "fact:fact-regis-spokesman-of-lonelywood",
+        "fact:fact-regis-is-only-halfling-in-region",
+        "fact:fact-regis-fled-pasha-pook",
+        "fact:fact-regis-ruby-pendant-hypnotic"
+      ]
+    },
+    {
+      "id": "q-eg-07-tempos",
+      "category": "entity-grounding",
+      "question": "What god do the Reghed barbarians worship?",
+      "chapterN": 3,
+      "relevantIds": [
+        "entity:tempos",
+        "fact:fact-tempos-god-of-battle"
+      ]
+    },
+    {
+      "id": "q-eg-08-barbarian-grounds",
+      "category": "entity-grounding",
+      "question": "Where are the Reghed barbarian tribes' hunting grounds and gathering sites?",
+      "chapterN": 3,
+      "relevantIds": [
+        "entity:reghed-glacier",
+        "entity:hengorot",
+        "entity:tribe-of-the-bear",
+        "entity:tribe-of-the-elk",
+        "entity:tribe-of-the-wolf",
+        "fact:fact-barbarian-tribes-gather-north-of-ten-towns",
+        "fact:fact-heafstaag-twice-conquered-termalaine"
+      ]
+    },
+    {
+      "id": "q-eg-09-crenshinibon",
+      "category": "entity-grounding",
+      "question": "What is Crenshinibon?",
+      "chapterN": 4,
+      "relevantIds": [
+        "entity:crenshinibon",
+        "fact:fact-crenshinibon-evil-artifact",
+        "fact:fact-crenshinibon-forged-by-seven-liches",
+        "fact:fact-crenshinibon-feeds-on-sunlight",
+        "fact:fact-crenshinibon-consumed-its-makers",
+        "fact:fact-crenshinibon-rests-in-northern-mountains",
+        "fact:fact-crenshinibon-is-ancient-sentient-relic",
+        "fact:fact-crenshinibon-manipulates-kessell-via-dreams",
+        "fact:fact-crenshinibon-powers",
+        "fact:fact-cryshal-tirith-houses-shard-image",
+        "entity:cryshal-tirith",
+        "promise:promise-crenshinibon-reclaim"
+      ]
+    },
+    {
+      "id": "q-eg-10-cryshal-tirith",
+      "category": "entity-grounding",
+      "question": "What is Cryshal-Tirith?",
+      "chapterN": 4,
+      "relevantIds": [
+        "entity:cryshal-tirith",
+        "fact:fact-cryshal-tirith-houses-shard-image",
+        "fact:fact-cryshal-tirith-creation",
+        "fact:fact-cryshal-tirith-entrance-invisible",
+        "entity:crenshinibon",
+        "promise:promise-cryshal-tirith-conquest"
+      ]
+    },
+    {
+      "id": "q-eg-11-spine-of-world",
+      "category": "entity-grounding",
+      "question": "Where is the Spine of the World and what is it like?",
+      "chapterN": 4,
+      "relevantIds": [
+        "entity:spine-of-the-world",
+        "fact:fact-spine-of-the-world-is-impassable",
+        "fact:fact-kessell-abandoned-in-spine-of-the-world",
+        "entity:icewind-dale"
+      ]
+    },
+    {
+      "id": "q-eg-12-mithril-hall",
+      "category": "entity-grounding",
+      "question": "What is Mithril Hall?",
+      "chapterN": 5,
+      "relevantIds": [
+        "entity:mithril-hall",
+        "fact:fact-mithril-hall-lost-homeland",
+        "fact:fact-bruenor-from-mithril-hall",
+        "promise:promise-mithril-hall-quest"
+      ]
+    },
+    {
+      "id": "q-eg-13-catti-brie",
+      "category": "entity-grounding",
+      "question": "Who is Catti-brie?",
+      "chapterN": 5,
+      "relevantIds": [
+        "entity:catti-brie",
+        "fact:fact-catti-brie-orphaned-and-adopted",
+        "entity:bruenor",
+        "entity:dwarven-valley"
+      ]
+    },
+    {
+      "id": "q-eg-14-ten-towns",
+      "category": "entity-grounding",
+      "question": "What are the Ten-Towns?",
+      "chapterN": 5,
+      "relevantIds": [
+        "entity:ten-towns",
+        "entity:bryn-shander",
+        "entity:targos",
+        "entity:lonelywood",
+        "entity:easthaven",
+        "entity:termalaine",
+        "fact:fact-ten-towns-frontier-settlement",
+        "fact:fact-ten-towns-economy-knucklehead-trout",
+        "fact:fact-icewind-dale-geography",
+        "fact:fact-ten-towns-council-in-bryn-shander",
+        "entity:icewind-dale"
+      ]
+    },
+    {
+      "id": "q-cs-01-kessell-knows-of-plan",
+      "category": "character-state-at-time",
+      "question": "What does Akar Kessell know about his masters' plans for him as of chapter 1?",
+      "chapterN": 1,
+      "relevantIds": [
+        "state:akar-kessell",
+        "entity:akar-kessell",
+        "fact:fact-conspiracy-promised-kessell-guild-seat",
+        "fact:fact-kessell-incompetent-wizard",
+        "fact:fact-kessell-was-morkais-apprentice",
+        "fact:fact-kessell-murders-morkai",
+        "promise:promise-luskan-wizards-agenda",
+        "entity:dendybar"
+      ]
+    },
+    {
+      "id": "q-cs-02-dendybar-role",
+      "category": "character-state-at-time",
+      "question": "What is Dendybar the Mottled's role at the Hosttower as of chapter 1?",
+      "chapterN": 1,
+      "relevantIds": [
+        "entity:dendybar",
+        "state:dendybar",
+        "fact:fact-dendybar-is-cold-and-cowled",
+        "entity:hosttower-of-the-arcane",
+        "entity:arcane-brotherhood",
+        "fact:fact-hosttower-of-the-arcane-wizard-guild",
+        "promise:promise-luskan-wizards-agenda"
+      ]
+    },
+    {
+      "id": "q-cs-03-morkai-fate",
+      "category": "character-state-at-time",
+      "question": "What happens to Morkai the Red in chapter 1?",
+      "chapterN": 1,
+      "relevantIds": [
+        "entity:morkai",
+        "fact:fact-kessell-was-morkais-apprentice",
+        "fact:fact-kessell-murders-morkai"
+      ]
+    },
+    {
+      "id": "q-cs-04-drizzt-location-and-perception",
+      "category": "character-state-at-time",
+      "question": "Where is Drizzt as of chapter 2 and what threat does he sense?",
+      "chapterN": 2,
+      "relevantIds": [
+        "state:drizzt",
+        "entity:drizzt",
+        "entity:bruenor",
+        "fact:fact-drizzt-detects-barbarian-anomaly",
+        "fact:fact-drizzt-bruenor-kill-tundra-yetis",
+        "entity:kelvins-cairn",
+        "fact:fact-kelvins-cairn-only-mountain"
+      ]
+    },
+    {
+      "id": "q-cs-05-regis-hiding",
+      "category": "character-state-at-time",
+      "question": "Why is Regis hiding in Icewind Dale as of chapter 2?",
+      "chapterN": 2,
+      "relevantIds": [
+        "entity:regis",
+        "state:regis",
+        "fact:fact-regis-fled-pasha-pook",
+        "fact:fact-regis-is-only-halfling-in-region",
+        "fact:fact-regis-ruby-pendant-hypnotic",
+        "entity:pasha-pook",
+        "entity:calimport",
+        "promise:promise-pasha-pook-pursuit"
+      ]
+    },
+    {
+      "id": "q-cs-06-bruenor-drizzt-bond",
+      "category": "character-state-at-time",
+      "question": "What is Bruenor's relationship with Drizzt as of chapter 2?",
+      "chapterN": 2,
+      "relevantIds": [
+        "state:bruenor",
+        "state:drizzt",
+        "entity:bruenor",
+        "entity:drizzt",
+        "fact:fact-bruenor-dwarf-friend-of-drizzt",
+        "fact:fact-drizzt-bruenor-kill-tundra-yetis"
+      ]
+    },
+    {
+      "id": "q-cs-07-heafstaag-plan",
+      "category": "character-state-at-time",
+      "question": "What is Heafstaag's plan as of chapter 3?",
+      "chapterN": 3,
+      "relevantIds": [
+        "state:heafstaag",
+        "entity:heafstaag",
+        "fact:fact-heafstaag-king-of-tribe-of-elk",
+        "fact:fact-beorg-and-heafstaag-pact-co-leadership",
+        "fact:fact-beorg-plans-conquest-of-ten-towns",
+        "fact:fact-heafstaag-twice-conquered-termalaine",
+        "fact:fact-heafstaag-tests-debernezan",
+        "promise:promise-barbarian-invasion"
+      ]
+    },
+    {
+      "id": "q-cs-08-beorg-role",
+      "category": "character-state-at-time",
+      "question": "What is Beorg's role in the gathered tribes as of chapter 3?",
+      "chapterN": 3,
+      "relevantIds": [
+        "state:beorg",
+        "entity:beorg",
+        "fact:fact-beorg-king-of-tribe-of-wolf",
+        "fact:fact-beorg-and-heafstaag-pact-co-leadership",
+        "fact:fact-beorg-plans-conquest-of-ten-towns",
+        "fact:fact-barbarian-tribes-gather-north-of-ten-towns",
+        "entity:tribe-of-the-wolf"
+      ]
+    },
+    {
+      "id": "q-cs-09-debernezan-offer",
+      "category": "character-state-at-time",
+      "question": "What does deBernezan offer the barbarians as of chapter 3?",
+      "chapterN": 3,
+      "relevantIds": [
+        "state:debernezan",
+        "entity:debernezan",
+        "fact:fact-debernezan-betrayer-of-ten-towns",
+        "fact:fact-heafstaag-tests-debernezan",
+        "entity:ten-towns"
+      ]
+    },
+    {
+      "id": "q-cs-10-kessell-survival",
+      "category": "character-state-at-time",
+      "question": "How did Kessell survive after being abandoned in the Spine of the World as of chapter 4?",
+      "chapterN": 4,
+      "relevantIds": [
+        "state:akar-kessell",
+        "entity:akar-kessell",
+        "entity:spine-of-the-world",
+        "fact:fact-kessell-abandoned-in-spine-of-the-world",
+        "fact:fact-spine-of-the-world-is-impassable",
+        "fact:fact-kessell-finds-crenshinibon",
+        "fact:fact-kessell-gains-magical-power",
+        "entity:crenshinibon",
+        "fact:fact-crenshinibon-rests-in-northern-mountains"
+      ]
+    },
+    {
+      "id": "q-cs-11-kessell-mental-state",
+      "category": "character-state-at-time",
+      "question": "What is Kessell's mental state after finding Crenshinibon as of chapter 4?",
+      "chapterN": 4,
+      "relevantIds": [
+        "state:akar-kessell",
+        "entity:akar-kessell",
+        "fact:fact-kessell-realizes-betrayal",
+        "fact:fact-kessell-incompetent-wizard",
+        "fact:fact-crenshinibon-manipulates-kessell-via-dreams",
+        "entity:crenshinibon"
+      ]
+    },
+    {
+      "id": "q-cs-12-drizzt-knows-barbarian-threat",
+      "category": "character-state-at-time",
+      "question": "What does Drizzt know about the imminent barbarian threat as of chapter 5?",
+      "chapterN": 5,
+      "relevantIds": [
+        "state:drizzt",
+        "entity:drizzt",
+        "fact:fact-drizzt-detects-barbarian-anomaly",
+        "fact:fact-barbarian-invasion-coming",
+        "promise:promise-barbarian-invasion",
+        "promise:promise-warn-ten-towns-council",
+        "entity:ten-towns"
+      ]
+    },
+    {
+      "id": "q-cs-13-catti-brie-bruenor",
+      "category": "character-state-at-time",
+      "question": "What is Catti-brie's relationship to Bruenor as of chapter 5?",
+      "chapterN": 5,
+      "relevantIds": [
+        "state:catti-brie",
+        "state:bruenor",
+        "entity:catti-brie",
+        "entity:bruenor",
+        "fact:fact-catti-brie-orphaned-and-adopted",
+        "fact:fact-bruenor-dwarf-friend-of-drizzt",
+        "entity:dwarven-valley"
+      ]
+    },
+    {
+      "id": "q-cs-14-bruenor-longing",
+      "category": "character-state-at-time",
+      "question": "What is Bruenor's longing or unresolved past as of chapter 5?",
+      "chapterN": 5,
+      "relevantIds": [
+        "state:bruenor",
+        "entity:bruenor",
+        "entity:mithril-hall",
+        "fact:fact-mithril-hall-lost-homeland",
+        "fact:fact-bruenor-from-mithril-hall",
+        "promise:promise-mithril-hall-quest"
+      ]
+    },
+    {
+      "id": "q-pp-01-luskan-conspiracy",
+      "category": "active-promises-and-payoffs",
+      "question": "What conspiracy are the Luskan wizards advancing in chapter 1?",
+      "chapterN": 1,
+      "relevantIds": [
+        "promise:promise-luskan-wizards-agenda",
+        "entity:dendybar",
+        "entity:eldeluc",
+        "entity:akar-kessell",
+        "entity:easthaven",
+        "entity:luskan",
+        "entity:hosttower-of-the-arcane",
+        "fact:fact-conspiracy-promised-kessell-guild-seat",
+        "fact:fact-easthaven-host-city-of-conspiracy",
+        "fact:fact-wizards-caravan-arrives-from-luskan"
+      ]
+    },
+    {
+      "id": "q-pp-02-kessell-fate",
+      "category": "active-promises-and-payoffs",
+      "question": "What hidden fate is set up for Akar Kessell in chapter 1?",
+      "chapterN": 1,
+      "relevantIds": [
+        "promise:promise-kessell-rise",
+        "entity:akar-kessell",
+        "fact:fact-kessell-incompetent-wizard",
+        "state:akar-kessell"
+      ]
+    },
+    {
+      "id": "q-pp-03-arcane-goal",
+      "category": "active-promises-and-payoffs",
+      "question": "What goal does the Arcane Brotherhood have for Kessell?",
+      "chapterN": 1,
+      "relevantIds": [
+        "promise:promise-luskan-wizards-agenda",
+        "promise:promise-kessell-rise",
+        "entity:arcane-brotherhood",
+        "entity:akar-kessell",
+        "entity:dendybar",
+        "entity:eldeluc",
+        "entity:hosttower-of-the-arcane",
+        "fact:fact-conspiracy-promised-kessell-guild-seat",
+        "fact:fact-kessell-incompetent-wizard"
+      ]
+    },
+    {
+      "id": "q-pp-04-pasha-pook-hunt",
+      "category": "active-promises-and-payoffs",
+      "question": "Who is hunting Regis as of chapter 2?",
+      "chapterN": 2,
+      "relevantIds": [
+        "promise:promise-pasha-pook-pursuit",
+        "entity:pasha-pook",
+        "entity:regis",
+        "entity:calimport",
+        "fact:fact-regis-fled-pasha-pook",
+        "fact:fact-regis-ruby-pendant-hypnotic"
+      ]
+    },
+    {
+      "id": "q-pp-05-drizzt-senses-threat",
+      "category": "active-promises-and-payoffs",
+      "question": "What threat does Drizzt sense to the north in chapter 2?",
+      "chapterN": 2,
+      "relevantIds": [
+        "entity:drizzt",
+        "fact:fact-drizzt-detects-barbarian-anomaly",
+        "state:drizzt"
+      ]
+    },
+    {
+      "id": "q-pp-06-reghed-glacier-threat",
+      "category": "active-promises-and-payoffs",
+      "question": "What military threat is forming on the Reghed Glacier in chapter 3?",
+      "chapterN": 3,
+      "relevantIds": [
+        "promise:promise-barbarian-invasion",
+        "entity:reghed-glacier",
+        "entity:beorg",
+        "entity:heafstaag",
+        "entity:haalfdane",
+        "entity:tribe-of-the-bear",
+        "entity:tribe-of-the-elk",
+        "entity:tribe-of-the-wolf",
+        "fact:fact-barbarian-tribes-gather-north-of-ten-towns",
+        "fact:fact-beorg-plans-conquest-of-ten-towns",
+        "fact:fact-beorg-and-heafstaag-pact-co-leadership"
+      ]
+    },
+    {
+      "id": "q-pp-07-debernezan-betrayal",
+      "category": "active-promises-and-payoffs",
+      "question": "What betrayal undermines Ten-Towns' defense in chapter 3?",
+      "chapterN": 3,
+      "relevantIds": [
+        "entity:debernezan",
+        "fact:fact-debernezan-betrayer-of-ten-towns",
+        "fact:fact-heafstaag-tests-debernezan",
+        "promise:promise-barbarian-invasion",
+        "state:debernezan",
+        "entity:ten-towns"
+      ]
+    },
+    {
+      "id": "q-pp-08-kessell-power",
+      "category": "active-promises-and-payoffs",
+      "question": "What new power does Kessell wield in chapter 4, and what does the artifact want?",
+      "chapterN": 4,
+      "relevantIds": [
+        "entity:akar-kessell",
+        "entity:crenshinibon",
+        "fact:fact-kessell-finds-crenshinibon",
+        "fact:fact-kessell-gains-magical-power",
+        "fact:fact-crenshinibon-manipulates-kessell-via-dreams",
+        "fact:fact-crenshinibon-powers",
+        "promise:promise-crenshinibon-reclaim",
+        "promise:promise-akar-kessell-rise",
+        "promise:promise-cryshal-tirith-conquest",
+        "state:akar-kessell"
+      ]
+    },
+    {
+      "id": "q-pp-09-ch1-payoff-begins",
+      "category": "active-promises-and-payoffs",
+      "question": "What chapter-1 setup begins paying off in chapter 4?",
+      "chapterN": 4,
+      "relevantIds": [
+        "promise:promise-kessell-rise",
+        "fact:fact-kessell-finds-crenshinibon",
+        "fact:fact-kessell-gains-magical-power",
+        "entity:akar-kessell",
+        "entity:crenshinibon",
+        "promise:promise-akar-kessell-rise"
+      ]
+    },
+    {
+      "id": "q-pp-10-artifact-reclaim",
+      "category": "active-promises-and-payoffs",
+      "question": "What artifact is foretold to be reclaimed by the kin of its makers?",
+      "chapterN": 4,
+      "relevantIds": [
+        "promise:promise-crenshinibon-reclaim",
+        "entity:crenshinibon",
+        "fact:fact-crenshinibon-forged-by-seven-liches",
+        "fact:fact-crenshinibon-evil-artifact",
+        "entity:errtu",
+        "fact:fact-errtu-served-the-seven-liches",
+        "fact:fact-errtu-blasted-back-to-abyss-at-forging",
+        "fact:fact-al-dimeneira-hurled-shard-across-planes"
+      ]
+    },
+    {
+      "id": "q-pp-11-bruenor-homeland",
+      "category": "active-promises-and-payoffs",
+      "question": "What lost homeland might Bruenor seek as of chapter 5?",
+      "chapterN": 5,
+      "relevantIds": [
+        "promise:promise-mithril-hall-quest",
+        "entity:mithril-hall",
+        "entity:bruenor",
+        "fact:fact-mithril-hall-lost-homeland",
+        "fact:fact-bruenor-from-mithril-hall",
+        "state:bruenor"
+      ]
+    },
+    {
+      "id": "q-pp-12-warn-council",
+      "category": "active-promises-and-payoffs",
+      "question": "What council action is set up for Drizzt in chapter 5?",
+      "chapterN": 5,
+      "relevantIds": [
+        "promise:promise-warn-ten-towns-council",
+        "entity:drizzt",
+        "fact:fact-barbarian-invasion-coming",
+        "fact:fact-ten-towns-council-in-bryn-shander",
+        "entity:ten-towns",
+        "entity:bryn-shander",
+        "state:drizzt",
+        "promise:promise-barbarian-invasion"
+      ]
+    },
+    {
+      "id": "q-pp-13-all-active-threats",
+      "category": "active-promises-and-payoffs",
+      "question": "What are all the unresolved threats Ten-Towns faces by the end of chapter 5?",
+      "chapterN": 5,
+      "relevantIds": [
+        "promise:promise-barbarian-invasion",
+        "promise:promise-akar-kessell-rise",
+        "promise:promise-cryshal-tirith-conquest",
+        "promise:promise-luskan-wizards-agenda",
+        "promise:promise-warn-ten-towns-council",
+        "promise:promise-pasha-pook-pursuit",
+        "promise:promise-mithril-hall-quest",
+        "promise:promise-crenshinibon-reclaim",
+        "promise:promise-kessell-rise"
+      ]
+    },
+    {
+      "id": "q-pp-14-pasha-pook-still",
+      "category": "active-promises-and-payoffs",
+      "question": "Who is Pasha Pook still pursuing as of chapter 5?",
+      "chapterN": 5,
+      "relevantIds": [
+        "promise:promise-pasha-pook-pursuit",
+        "entity:pasha-pook",
+        "entity:regis",
+        "fact:fact-regis-fled-pasha-pook",
+        "fact:fact-regis-ruby-pendant-hypnotic",
+        "fact:fact-regis-ruby-pendant-magical",
+        "entity:calimport"
+      ]
+    }
+  ]
+}
