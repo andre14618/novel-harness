@@ -235,16 +235,18 @@ describe("assertL1Boundary", () => {
 })
 
 describe("assembleL1 — token cap", () => {
-  test("throws when bundle exceeds L1_TOKEN_CAP", () => {
+  test("does NOT throw when bundle exceeds L1_TOKEN_CAP; surfaces flag instead", () => {
     // ~30K characters → ~7500 tokens, over the 6000 cap.
     const largeText = "x".repeat(2_000)
     const facts = Array.from({ length: 16 }, (_, i) => fact(`fact-${i}`, largeText))
-    expect(() =>
-      assembleL1(new MockCanonSource({ facts }), "novel-1", 1),
-    ).toThrow(/exceeds token cap/)
+    const packet = assembleL1(new MockCanonSource({ facts }), "novel-1", 1)
+    expect(packet.tokenCapExceeded).toBe(true)
+    expect(packet.approxTokens).toBeGreaterThan(L1_TOKEN_CAP)
+    // Caller decides: validation harness counts violations; production
+    // callers can throw / log / fall back. assembleL1 just reports.
   })
 
-  test("tiny bundle reports approxTokens well under cap", () => {
+  test("tiny bundle reports approxTokens well under cap and flag false", () => {
     const packet = assembleL1(
       new MockCanonSource({ facts: [fact("fact-a", "A")] }),
       "novel-1",
@@ -252,6 +254,7 @@ describe("assembleL1 — token cap", () => {
     )
     expect(packet.approxTokens).toBeLessThan(L1_TOKEN_CAP)
     expect(packet.approxTokens).toBeGreaterThan(0)
+    expect(packet.tokenCapExceeded).toBe(false)
   })
 })
 

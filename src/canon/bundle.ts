@@ -84,6 +84,11 @@ export interface L1Packet {
   byteLength: number
   /** Approximate token count (4 chars/token heuristic). For token-cap checks. */
   approxTokens: number
+  /** Whether `approxTokens` exceeds `L1_TOKEN_CAP`. Surfaced as a flag rather
+   *  than a thrown error so callers (validation harness, production code,
+   *  operators) can decide independently: log, fall back, alert, or hard-fail.
+   *  Production callers should check this before sending the packet. */
+  tokenCapExceeded: boolean
   /** The canon-source snapshot version this packet was assembled from. */
   snapshotVersion: string
   /** Inputs the packet was built from, for downstream provenance. */
@@ -188,8 +193,12 @@ function serializePromises(promises: readonly StoryPromise[]): string {
  * When omitted, the assembler emits the whole asOfChapter snapshot — the
  * "trivial" path used in early-chapter bibles and in session-1 tests.
  *
- * Throws if the assembled bundle exceeds L1_TOKEN_CAP — bundle padding /
- * scope-rule failures should fail loudly, not silently truncate.
+ * Token-cap policy: assembleL1 NEVER throws on token-cap exceeded. It surfaces
+ * `tokenCapExceeded: boolean` on the returned packet. Callers decide what to
+ * do — the validation harness counts violations across all queries, production
+ * code can throw / log / fall back / alert as appropriate. Throwing here would
+ * break the harness's ability to measure cap-clearance across the full query
+ * set.
  */
 export function assembleL1(
   source: CanonSource,
@@ -247,12 +256,7 @@ export function assembleL1(
   const bytes = contentBytes + L1_BOUNDARY_MARKER
 
   const approxTokens = Math.ceil(bytes.length / 4)
-  if (approxTokens > L1_TOKEN_CAP) {
-    throw new Error(
-      `assembleL1: bundle exceeds token cap (~${approxTokens} > ${L1_TOKEN_CAP}). ` +
-        `novelId=${novelId} chapterN=${chapterN}. Bundle scope rules need tightening.`,
-    )
-  }
+  const tokenCapExceeded = approxTokens > L1_TOKEN_CAP
 
   // Hash the canon content (excluding boundary marker) so future boundary
   // versioning doesn't invalidate every prior packet hash.
@@ -263,6 +267,7 @@ export function assembleL1(
     packetHash,
     byteLength: bytes.length,
     approxTokens,
+    tokenCapExceeded,
     snapshotVersion: source.snapshotVersion(novelId),
     novelId,
     chapterN,

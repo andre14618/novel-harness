@@ -308,7 +308,7 @@ export function runValidation(
       recall,
       precision,
       approxTokens: packet.approxTokens,
-      tokenCapExceeded: packet.approxTokens > L1_TOKEN_CAP,
+      tokenCapExceeded: packet.tokenCapExceeded,
     })
   }
 
