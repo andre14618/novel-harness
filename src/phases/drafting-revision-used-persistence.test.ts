@@ -1,6 +1,6 @@
 /**
  * Regression test for `revisionUsed` persistence across process restarts
- * (docs/next-session-plan.md §Tier 1a, Codex review a252aecbb785a0eb3).
+ * (docs/archive/2026-04/next-session-plan.md §Tier 1a, Codex review a252aecbb785a0eb3).
  *
  * Before sql/031 + the DB-backed init, `let revisionUsed = false` reset on
  * every process startup, allowing a second reviser invocation after restart.

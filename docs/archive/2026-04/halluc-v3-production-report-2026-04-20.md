@@ -3,7 +3,7 @@ status: closed
 date: 2026-04-20
 kind: production-measurement-report
 for: docs/todo.md §1 "Measure production fire rate per adapter over next 5-10 novels"
-runbook: docs/hallucination-v3-wire-in-plan.md §8
+runbook: ./hallucination-v3-wire-in-plan.md §8
 panel: 7 natural Salvatore-routed novels post-wire-in (commit df2c5f0, 2026-04-18)
 ---
 

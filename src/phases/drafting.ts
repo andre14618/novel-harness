@@ -295,7 +295,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           // Pre-resolve all beat references in parallel before the serial writing loop.
           // Kept for all writer routes; world-fact requirements travel through
           // the resolved-references section and the writer can't establish them
-          // without it. See docs/beat-writer-architecture.md §6.
+          // without it. See docs/archive/2026-04/beat-writer-architecture.md §6.
           const refStart = Date.now()
           const preResolvedRefs = await Promise.all(
             outline.scenes.map(beat =>

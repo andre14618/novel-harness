@@ -416,7 +416,7 @@ Full setup in `docs/writer-imitation-benchmark.md` "Phase 0-POC." Outcome determ
 - `docs/writer-imitation-benchmark.md` — measurement layer (Phase 0–2). Required input for any recipe above.
 - `docs/decisions.md` "Writer Model" — exp #189/#190 history; baseline data for Recipe A
 - `docs/lessons-learned.md` — V4 voice-SFT failure post-mortem (informs Recipe D risk profile)
-- `docs/lora-style-transfer-report.md` — prior LoRA training details
+- `docs/archive/2026-04/lora-style-transfer-report.md` — prior LoRA training details
 - `src/agents/writer/style-primer-howard.md` — current static primer (Recipe A's L2)
 - `scripts/lora-data/howard-training.jsonl` — current corpus (Recipe A's L1)
 

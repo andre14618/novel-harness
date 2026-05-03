@@ -27,7 +27,7 @@ import { callAgent } from "../../src/llm.ts"
 // Human adjudication from the 2026-04-20 subagent pass, keyed by
 // (novel_id, chapter, beat_index, attempt). TP = correct fire, FP = false
 // positive, B = borderline (lean FP). Drawn from the 4 Sonnet subagent
-// reports; see docs/halluc-v3-production-report-2026-04-20.md.
+// reports; see docs/archive/2026-04/halluc-v3-production-report-2026-04-20.md.
 const ADJUDICATION: Record<string, "TP" | "FP" | "B"> = {
   // chunk aa
   "novel-1776608639218|2|14|1": "TP",   // Bremen's Run (Salvatore leak)

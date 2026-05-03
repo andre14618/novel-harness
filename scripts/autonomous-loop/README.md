@@ -3,7 +3,7 @@
 **Branch:** `autonomous-harness-loop`
 **Status:** scaffolding only — NO iterations have run on this branch.
 **Design:** `docs/designs/autonomous-context-loop.md` (revision 2)
-**Inventory:** `docs/harness-optimization-inventory.md` (revision 2,
+**Inventory:** `docs/archive/2026-04/harness-optimization-inventory.md` (revision 2,
 Codex-amended)
 **Program direction:** `docs/program-direction-2026-04-21.md`
 
@@ -22,7 +22,7 @@ Phase 0. See `docs/designs/autonomous-context-loop.md` §Phase-0.
 
 ## Prerequisites before first iteration
 
-Tracked in `docs/harness-optimization-inventory.md` "Remaining Phase 0
+Tracked in `docs/archive/2026-04/harness-optimization-inventory.md` "Remaining Phase 0
 gating work":
 
 1. **Migrate env-vars to per-novel DB config.**

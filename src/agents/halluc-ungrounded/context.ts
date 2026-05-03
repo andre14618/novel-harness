@@ -145,7 +145,7 @@ export function buildOutlineEntityList(outline: ChapterOutline): string[] {
  *                   Summary saying "a cursed artifact called the Heartstone").
  *                   Duplicating those entities into the names-only list
  *                   gives the checker a second, shape-preferred signal.
- *                   See docs/halluc-v3-production-report-2026-04-20.md.
+ *                   See docs/archive/2026-04/halluc-v3-production-report-2026-04-20.md.
  *                 + Beat-entities (V1+ only): derived proper nouns from
  *                   outline.establishedFacts + prior-beat description,
  *                   per docs/charters/beat-entity-list-v1.md. Off by

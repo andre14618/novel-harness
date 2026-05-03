@@ -1,7 +1,7 @@
 ---
 status: COMPLETED (2026-04-17); superseded by docs/context-engineering.md + next-phase plan below
 updated: 2026-04-18
-depends-on: docs/salvatore-structural-analysis.md, docs/beat-writer-architecture.md
+depends-on: docs/salvatore-structural-analysis.md, docs/archive/2026-04/beat-writer-architecture.md
 ---
 
 # Context Engineering Plan — Fantasy Planner Structural Priors
@@ -218,7 +218,7 @@ Reduces writer translation burden. Planner has full-chapter context so it can au
 ~45 min. Schema change + prompt addition + beat-context.ts update to surface drives.
 
 ### Gate
-Only implement if P1-P6 don't bring retry rate below 20%. Currently deferred per `docs/beat-writer-architecture.md`.
+Only implement if P1-P6 don't bring retry rate below 20%. Currently deferred per `docs/archive/2026-04/beat-writer-architecture.md`.
 
 ---
 
@@ -269,7 +269,7 @@ After P1-P6 are implemented:
 ## Pointers
 
 - Structural data: `docs/salvatore-structural-analysis.md`
-- Beat-writer constraint analysis: `docs/beat-writer-architecture.md`
+- Beat-writer constraint analysis: `docs/archive/2026-04/beat-writer-architecture.md`
 - Current planner prompt: `src/agents/planning-plotter/chapter-outline-system.md`
 - Current planner schema: `src/agents/planning-plotter/schema.ts`
 - Current planner context builder: `src/agents/planning-plotter/context.ts`

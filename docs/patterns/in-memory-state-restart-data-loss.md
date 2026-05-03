@@ -27,7 +27,7 @@ Symptoms:
 
 **Persist the state to the DB with a pre-read at the top of each operation.** Not "persist on every change" (too much write traffic) but "on each dependent read, check the DB as source of truth."
 
-Example shape (from next-session-plan.md Tier 1a):
+Example shape (from archive/2026-04/next-session-plan.md Tier 1a):
 ```ts
 // Before: local let
 let revisionUsed = false

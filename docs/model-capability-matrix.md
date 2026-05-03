@@ -8,7 +8,7 @@ derived-from: tuning_experiments #10, #86-94, #107-123, #135, #138, #140, #178, 
 
 Statistical reference for which models perform best on which pipeline tasks. All numbers are from controlled experiments on deterministic eval sets — not anecdotal. Use this to pick teachers, select production models, and prioritize fine-tuning.
 
-For the **slot-by-slot consolidation strategy** (can the whole pipeline move to 14B?), see `docs/pipeline-14b-consolidation.md`.
+For the **slot-by-slot consolidation strategy** (can the whole pipeline move to 14B?), see `docs/archive/2026-04/pipeline-14b-consolidation.md`.
 
 ---
 

@@ -43,7 +43,7 @@ export async function setPlanCheckOverridden(novelId: string, chapterNum: number
  * duplicate invocation on resume. The hard cap is "one reviser call per chapter
  * across the novel's lifetime."
  *
- * See docs/next-session-plan.md §Tier 1a and
+ * See docs/archive/2026-04/next-session-plan.md §Tier 1a and
  * docs/patterns/in-memory-state-restart-data-loss.md.
  */
 export async function isRevisionUsed(novelId: string, chapterNum: number): Promise<boolean> {

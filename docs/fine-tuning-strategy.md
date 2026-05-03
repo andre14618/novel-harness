@@ -199,7 +199,7 @@ Output: `{pass: bool, issues: [{entity, excerpt}]}` — no `kind` taxonomy, rewr
 - Mixed 50/50 v4/DeepSeek training so checker generalizes across writer models (v4 leaks Salvatore corpus; DeepSeek fabricates internally — different patterns).
 - No deterministic pre-filter — negative-set checks on prose have 0/3 track record in this codebase; LLM does all detection.
 
-**Findings from the labeling round (see `docs/hallucination-checker-findings.md`):**
+**Findings from the labeling round (see `docs/archive/2026-04/hallucination-checker-findings.md`):**
 - Fresh pipeline fail rate ~25% — roughly 2× cleaner than stale v3-era (42-63%), driven mostly by planner fix.
 - v4 corpus leakage is **seed-concentrated, not uniform** — specific novels hit 34-52% fail rate (Cassius novel, Veridia-bridge with IWD geography imports) while other novels on different seeds have zero leakage.
 - Inter-labeler disagreement concentrates on legitimate edge cases (`brief.summary` grounding, named sub-classes within grounded systems, characters grounded only in summary).

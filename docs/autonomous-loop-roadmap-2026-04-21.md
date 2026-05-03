@@ -6,7 +6,7 @@ date: 2026-04-21
 branch: autonomous-harness-loop
 related:
   - docs/designs/autonomous-context-loop.md (revision 2, Codex-reviewed)
-  - docs/harness-optimization-inventory.md (revision 2, Codex-amended)
+  - docs/archive/2026-04/harness-optimization-inventory.md (revision 2, Codex-amended)
   - docs/writer-imitation-benchmark.md (quality oracle — Salvatore corpus)
   - docs/corpus-pipeline.md (ground-truth infrastructure)
   - docs/program-direction-2026-04-21.md (the "what"; this is the "how")

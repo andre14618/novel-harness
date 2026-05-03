@@ -36,7 +36,7 @@ KEEP_SERVING = {
     ("continuity-v2-sft-resume", None),
     # tonal-pass agent (roles.ts, on-demand only)
     ("howard-tonal-v4-sft-resume", "v8"),
-    # halluc-ungrounded agent (wired 2026-04-18, docs/hallucination-v3-wire-in-plan.md)
+    # halluc-ungrounded agent (wired 2026-04-18, docs/archive/2026-04/hallucination-v3-wire-in-plan.md)
     ("halluc-ungrounded-v2", None),
     ("halluc-ungrounded-v2-sft-resume", None),
     # halluc-leak-salvatore agent (wired 2026-04-18, same plan)

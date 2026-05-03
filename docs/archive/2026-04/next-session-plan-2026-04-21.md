@@ -11,7 +11,7 @@ last_updated: 2026-04-20
 > **Superseded 2026-05-01:** This was the live queue at 2026-04-20 session close. Items here that are still active have been migrated into `docs/todo.md`; items that were one-shot (halluc V1, conditioning-floor) have concluded experiments and decisions logged in `docs/decisions.md`. Do not pick work from this file — read `docs/todo.md` instead.
 
 Prioritized queue at 2026-04-20 session close. Start from the top.
-Supersedes stale queue in `docs/next-session-plan.md` (which is from
+Supersedes stale queue in `./next-session-plan.md` (which is from
 the 2026-04-19 exhaustion-handler session and unrelated).
 
 ## 1. Conditioning-floor scorer landed (2026-04-20) — DONE
@@ -111,7 +111,7 @@ corpus expansion).
 
 ## 5. Complete V1a pilot — the two missing arms (not the full 6-seed expansion)
 
-**Context.** Exp #256 ran 2 of 4 charter arms. See `docs/pp2-floor-pilot-results.md` for the partial data and the scoping-error rationale.
+**Context.** Exp #256 ran 2 of 4 charter arms. See `./pp2-floor-pilot-results.md` for the partial data and the scoping-error rationale.
 
 **What to do:** run the two missing arms on the **same 3 seeds** before expanding seed count.
 

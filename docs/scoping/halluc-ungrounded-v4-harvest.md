@@ -3,7 +3,7 @@ status: draft
 date: 2026-04-20
 kind: training-data-harvest-plan
 for: halluc-ungrounded-v4 (active-learning shard)
-depends-on: exp #254 (beat-entity-list V1), halluc-v3-production-report-2026-04-20.md
+depends-on: exp #254 (beat-entity-list V1), docs/archive/2026-04/halluc-v3-production-report-2026-04-20.md
 ---
 
 # halluc-ungrounded-v4 Active-Learning Harvest Plan

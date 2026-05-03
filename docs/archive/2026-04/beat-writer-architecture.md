@@ -10,7 +10,7 @@ updated: 2026-04-16
 
 Living design doc capturing the thread from the 2026-04-16 session. Thesis: the beat writer is being asked to juggle too many constraints for a 14B LoRA, and the fix is to strip, consolidate, and push complexity upstream (to the planner) rather than downstream (to the writer).
 
-Ties together several conclusions from `docs/voice-lora-salvatore.md`, `docs/pipeline-14b-consolidation.md`, and the v3 probe (exp #199) + 18-brief Phase C.3 comparison.
+Ties together several conclusions from `docs/voice-lora-salvatore.md`, `./pipeline-14b-consolidation.md`, and the v3 probe (exp #199) + 18-brief Phase C.3 comparison.
 
 ---
 
@@ -257,6 +257,6 @@ Each new probe + result gets a line here.
 - System prompt (v3-current): `src/agents/writer/beat-writer-system-salvatore.md`
 - Planning-plotter (would author per-beat drives): `src/agents/planning-plotter/`
 - Voice LoRA post-mortem: `docs/voice-lora-salvatore.md` §8 (v2 probe) + §9 (v3 + eval infra)
-- 14B consolidation tier reframe: `docs/pipeline-14b-consolidation.md` Tier 4
+- 14B consolidation tier reframe: `./pipeline-14b-consolidation.md` Tier 4
 - Eval infrastructure: `docs/eval-infrastructure.md`
 - Lessons: `docs/lessons-learned.md` — "Voice LoRAs must train on the prompt shape they'll see in production" (2026-04-16)

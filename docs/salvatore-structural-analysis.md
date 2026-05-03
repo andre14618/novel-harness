@@ -8,7 +8,7 @@ derived-from: scripts/lora-data/salvatore-1988-training-pairs-fixed.jsonl (777 b
 
 Beat-type sequencing, transition probabilities, chapter-opening/closing patterns, pacing statistics. Extracted from the decomposed Icewind Dale Trilogy training corpus (777 beats across 54 chapters, 140 scenes).
 
-**Purpose:** this is the ground-truth structural signature of Salvatore-style action-pulp fantasy. The planner should target these distributions when generating chapter outlines for fantasy seeds. See `docs/beat-writer-architecture.md` §5.3 for the "real fiction uses ≤3 active characters per beat" constraint that complements this data.
+**Purpose:** this is the ground-truth structural signature of Salvatore-style action-pulp fantasy. The planner should target these distributions when generating chapter outlines for fantasy seeds. See `docs/archive/2026-04/beat-writer-architecture.md` §5.3 for the "real fiction uses ≤3 active characters per beat" constraint that complements this data.
 
 **Script:** `scripts/analysis/beat-sequence-analysis.py`
 

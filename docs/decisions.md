@@ -2110,7 +2110,7 @@ Chapter 1 approved on attempt 2. Chapter 2 failed 12 consecutive attempts over 4
 2. Expand blocklist to world elements (drow, Underdark, Mithril Hall, Crenshinibon, Ten-Towns, etc.), not just named characters.
 3. Add explicit system-prompt rule: "NEVER repeat or echo the TRANSITION BRIDGE — continue past it."
 
-**Ongoing:** Phase 1.4 (beat-scope rewriter collapse) stays deferred until v3 probe lands. Tier 2+ migration plans in `docs/pipeline-14b-consolidation.md` stay gated on v3 passing the 3-chapter probe.
+**Ongoing:** Phase 1.4 (beat-scope rewriter collapse) stays deferred until v3 probe lands. Tier 2+ migration plans in `docs/archive/2026-04/pipeline-14b-consolidation.md` stay gated on v3 passing the 3-chapter probe.
 
 ### 14B consolidation is for high-volume slots only — planner/concept/conversationalist stay on smart models
 *2026-04-16*
@@ -2128,7 +2128,7 @@ Upgrade math in the other direction is also favorable: Claude Sonnet for planner
 - **All-14B pipeline.** Our earlier consolidation doc implied this endpoint. Correcting: consolidation is "14B on high-volume narrow tasks, smart models on low-volume high-stakes creative tasks."
 - **Moving planner down to 14B and accepting plan-quality regression.** The downstream amplification cost doesn't support it.
 
-**Ongoing:** `docs/pipeline-14b-consolidation.md` updated with "Tier 4 — Deliberately kept on smart models" reframe. Planning-plotter / concept / planning-conversationalist explicitly marked "stay on DeepSeek" instead of "gated on beat-writer probe."
+**Ongoing:** `docs/archive/2026-04/pipeline-14b-consolidation.md` updated with "Tier 4 — Deliberately kept on smart models" reframe. Planning-plotter / concept / planning-conversationalist explicitly marked "stay on DeepSeek" instead of "gated on beat-writer probe."
 
 ### Lint-fixer is a conditional-deprecation candidate; voice-LoRA may obsolete it
 *2026-04-16*
@@ -2143,7 +2143,7 @@ Upgrade math in the other direction is also favorable: Claude Sonnet for planner
 - **SFT a 14B lint-fixer today.** Risk wasting training effort on a slot we may retire.
 - **Keep Cerebras lint-fixer indefinitely.** Voice-LoRA prose may still pass every pattern and the per-sentence rewrite becomes redundant work.
 
-**Ongoing:** `docs/pipeline-14b-consolidation.md` Tier 1 entry for lint-fixer updated with the conditional-deprecation gate. Action: run lint detector against v3 (or whichever voice LoRA passes the probe) 3-chapter output; decide retire-vs-migrate on measured fire rate.
+**Ongoing:** `docs/archive/2026-04/pipeline-14b-consolidation.md` Tier 1 entry for lint-fixer updated with the conditional-deprecation gate. Action: run lint detector against v3 (or whichever voice LoRA passes the probe) 3-chapter output; decide retire-vs-migrate on measured fire rate.
 
 ### Howard primer/tonal-pass methodology retired
 *2026-04-16*
@@ -2155,7 +2155,7 @@ Upgrade math in the other direction is also favorable: Claude Sonnet for planner
 **What retired specifically:**
 - Default primer in `src/agents/writer/index.ts` — changed from `howard` to `none`.
 - `src/agents/writer/style-primer-howard.md` — deleted.
-- CLAUDE.md + pipeline-14b-consolidation.md + voice-lora-salvatore.md Howard references removed or retagged.
+- CLAUDE.md + archive/2026-04/pipeline-14b-consolidation.md + voice-lora-salvatore.md Howard references removed or retagged.
 - Howard tonal-pass adapter (`howard-tonal-v4-sft-resume:v8`) — **adapter retained** on W&B Inference for the on-demand `POST /api/novel/:id/tonal-pass` endpoint on existing novels, but not auto-invoked. No further Howard adapter versions planned.
 
 **Alternatives rejected:**
@@ -2184,7 +2184,7 @@ Upgrade math in the other direction is also favorable: Claude Sonnet for planner
 
 **Alternatives rejected:**
 - **Decomposition (DeepSeek adherence + voice polish).** Would have been the path if narrow-strip also failed. Kept in reserve as a backup architectural move.
-- **Planner-authored per-beat drives (§3 of beat-writer-architecture.md).** Still potentially useful as a cleaner information architecture but no longer needed to unblock v3 production viability.
+- **Planner-authored per-beat drives (§3 of archive/2026-04/beat-writer-architecture.md).** Still potentially useful as a cleaner information architecture but no longer needed to unblock v3 production viability.
 - **Tier 2 escape-valve (larger model rental).** Not needed at current seed difficulty.
 
 **Ongoing:** `src/agents/writer/beat-context.ts` `compactMode` is now the routing-gated default for genre-pack writers. Monitor chapter-approval rates across more seeds. If other seeds fail similarly to v3-pre-fix, revisit; if they pass, the adapter is production-ready for fantasy seeds.
@@ -2505,7 +2505,7 @@ DeepSeek ~3× cleaner on instruction-constrained prose. Cerebras wins on raw spe
 
 **Ongoing:**
 - Experiment #238 (organic-run-verify) pending execution on LXC. Will self-conclude via `EXPERIMENT_ID=238` env var in `scripts/test/organic-run-verify.ts`. Pass gate: zero `chapter_exhaustions` rows + no `PipelineBailError` + zero active V2 rules in `GET /api/debug/active`.
-- Invariants work queued as next-session #1. Plan lives in `docs/next-session-plan.md` once regenerated.
+- Invariants work queued as next-session #1. Plan lives in `docs/archive/2026-04/next-session-plan.md` once regenerated.
 - Commit-pinned reviews formalized in the skill doc (every Codex prompt cites `git show <sha>`).
 - Deferred: autonomous loop as runtime; standing thread experiment; `src/invariants/debug.ts` blocking gate; cached generic-reasoning doc for Codex review preambles.
 
@@ -2592,7 +2592,7 @@ Current convention is the delete-and-log rule above. The archive dir + README we
 - Precision floor: 87.5% (14 TP / 2 FP) via 10-fire Sonnet adjudication of solo-ungrounded fires 49213/49221/49225/49257/49293/49314/49342/49429/49488/49586. Both FPs flagged "Aldric" despite it being in Beat-entities — known adapter overfire on already-grounded entities, ~17% of fires, below the 50% Class-B kill threshold.
 - Adherence regression: 0 fires → 0 fires (±2 pts required). Degenerate-list: 0% (15% ceiling). All five charter gates cleared.
 
-**Why:** the 2026-04-20 production audit on 7 novels (`docs/halluc-v3-production-report-2026-04-20.md`) identified the root cause of the 46.7% baseline fire rate as a context-surface mismatch — the writer sees the full chapter outline + transition bridge + character snapshots; the checker sees only beat.description + world-bible names. Legitimate continuity references (entities mentioned in earlier beats or in `establishedFacts`) fired as ungrounded. V1 closes that gap cheaply via shared derivation.
+**Why:** the 2026-04-20 production audit on 7 novels (`docs/archive/2026-04/halluc-v3-production-report-2026-04-20.md`) identified the root cause of the 46.7% baseline fire rate as a context-surface mismatch — the writer sees the full chapter outline + transition bridge + character snapshots; the checker sees only beat.description + world-bible names. Legitimate continuity references (entities mentioned in earlier beats or in `establishedFacts`) fired as ungrounded. V1 closes that gap cheaply via shared derivation.
 
 **Alternatives rejected per charter §7 ladder:**
 - **V2 (writer-only allowlist)** — skipped. V1 drops ≥15 pts means running V2 cannot improve the SHIP decision and only adds noise if V2 silently regresses something.
@@ -2638,14 +2638,14 @@ Current convention is the delete-and-log rule above. The archive dir + README we
 - Three regex FNs (verbeeg — in list but missed, Aegis-fang — in list but missed, possessive forms of list tokens) need a followup regex-widen pass. Logged to `docs/todo.md`.
 - Retraining pathway (v5-stripped ablation at `docs/ablation/salvatore-v5-stripped.md`) is independent of Rung 0 and still available — it addresses **weight-level** leakage (writer LoRA leaking corpus tokens before any detector runs), not detection. Gated on: (1) conditioning-floor charter verdict and (2) user decisions on 4 design gates (brief-side stripping scope, placeholder strategy, sequencing, rename-augmentation interaction).
 
-**Full report:** `docs/rung-0-regex-ceiling-results.md`.
+**Full report:** `docs/archive/2026-04/rung-0-regex-ceiling-results.md`.
 
 ### V1a payoff-floor pilot — ITERATE (2 of 4 arms run)
 *2026-04-20 · exp #256 · charter `docs/charters/planner-phase2-payoff-floor.md`*
 
 **Decision:** ITERATE per charter §7. The aggressive prompt-only setup/payoff floor on `pre-planner-phase2-v1a` did not recover the V1a lift — mean paired Δ retry_ratio = **−0.0309** across 15 (seed, chapter) slots on 3 fantasy seeds. Slot wins: prompt 6, baseline 8, ties 1. Stddev 0.1256. Directional signal is consistent with "V1a schema is the causal lever," but only 2 of 4 charter arms were run (scoping error at launch; missing `extractor` measurement-only arm + `mainv1a` observational reference row). V1b (`speaker_directives`) and V1c (`subplot_id` + `thematic_focus`) remain gated on a completed 4-arm pilot.
 
-**Evidence:** see `docs/pp2-floor-pilot-results.md` for the 15-row table and the full §7 decision walkthrough. 6 novel IDs enumerated there.
+**Evidence:** see `docs/archive/2026-04/pp2-floor-pilot-results.md` for the 15-row table and the full §7 decision walkthrough. 6 novel IDs enumerated there.
 
 **Why this is still useful despite the scoping error:** the prompt-only arm was the weakest of the four arms — if it had won, we could have declared V1a schema unnecessary with just 2 arms. It did not win. The directional signal survives the scope gap.
 
