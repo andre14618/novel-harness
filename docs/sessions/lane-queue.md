@@ -1,14 +1,15 @@
 # Lane Queue
 
 ## Active
-- (empty — pick next via `docs/harness-next-work-process.md`; L64 / Lever B is the next queued lane in the integrity+retry phase if motivated)
+- (empty — lint-integrity-guard + chapter-attempt-retry phase at high polish; new dominant blocker is `plan-check-exhausted: halluc-ungrounded` from exp #389, which lives in the planner/grounding phase, not this one)
 
 ## Next
 - (empty)
 
 ## Completed
 
-- docs/sessions/2026-05-02-L64-integrity-exhaustion-gate.md — clean pass for routing final-attempt integrity exhaustion through `presentForExhaustion` with `kind: "integrity-exhausted"` (exp #388, Lever B). Mirrors existing plan-check-exhausted dispatch; no SQL migration needed.
+- exp #389 (L63+L64 e2e on `fantasy-debt`) — L62/L63/L64 wires non-regressive. Chapter 1 reached integrity check with 0 fused-boundary/duplicate hits; integrity gate never had to fire. Smoke bailed at out-of-phase plan-check-exhausted (halluc-ungrounded "central spire"). Classifier: `new_blocker`. See L64 lane Results addendum.
+- docs/sessions/2026-05-02-L64-integrity-exhaustion-gate.md — clean pass for routing final-attempt integrity exhaustion through `presentForExhaustion` with `kind: "integrity-exhausted"` (exp #388, Lever B; UI consumers in 826a6c1). Mirrors existing plan-check-exhausted dispatch; no SQL migration needed.
 - docs/sessions/2026-05-02-L63-matched-pair-carryover.md — clean pass for matched-pair carry-over for duplicate-sentence + duplicate-fragment (exp #387, Lever A). Targets 72.9% of integrity-fail volume per phase brief. Empirical retry-replay validation deferred until a retry-bearing seed exercises the path.
 - docs/sessions/2026-05-02-runner-archive-and-litrpg-validate.md (session) — runner archival + L62-validate clean pass (exp #386). Chapter 1 of fantasy-system-heretic approved with 0 fused-boundary issues from System UIDs. New blocker surfaced in continuity (out-of-phase; parked).
 - docs/sessions/2026-05-02-integrity-retry-phase-brief.md (phase brief) — DB scan + code audit + L41 trace evidence; identified Levers A/B/C with empirical sequencing.

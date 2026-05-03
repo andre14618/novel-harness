@@ -74,8 +74,9 @@ phase: lint-integrity-guard + chapter-attempt-retry
 - Stop gate fired: (a) clean pass.
 - Evidence link/row/path: 1018 tests, 1014 pass; tsc clean; `tuning_experiments.id=388`. Pre-existing failures unaffected (stash-confirmed).
 - Cost: $0.
-- Commit(s): pending — same commit as docs sweep.
+- Commit(s): `291fcf8` (drafting wire), `826a6c1` (UI consumers).
 - Review: `impl-review` not required — change mirrors the existing `plan-check-exhausted` dispatch pattern with no novel control-flow shape; the only behavioral risk was the mock-prose collision, which was caught by the existing test and resolved with a dedicated unique-token generator. Recording as **review-waived: mirrors-existing-dispatch-pattern** (waiver reason: dispatch shape is byte-equivalent to the line 1161 pattern, payload kind + enum widening is type-checked, mock-prose interaction is captured by an existing assertion; reviewer = self).
+- Live e2e (exp #389, `fantasy-debt` seed): chapter 1 reached the integrity check with **0** fused-boundary / duplicate-fragment / duplicate-sentence hits — L62 LitRPG carve-out held; L63 matched-pair format and L64 integrity-exhausted gate not exercised because integrity didn't fire. Smoke bailed at **plan-check-exhausted** on a halluc-ungrounded "central spire" entity — out-of-phase (planner/hallucination grounding, not lint-integrity guard). Smoke-stop-classifier: `new_blocker`. Confirms L62/L63/L64 wires don't regress in production drafting.
 
 ## Finalization Checklist
 
