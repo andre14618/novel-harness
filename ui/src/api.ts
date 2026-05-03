@@ -607,7 +607,7 @@ export interface NovelListItem {
 // ── Plan-assist gate types (step 2 of exhaustion-handler-design) ──────
 
 export interface PlanAssistPayload {
-  kind: "plan-check-exhausted" | "reviser-rejected"
+  kind: "plan-check-exhausted" | "reviser-rejected" | "integrity-exhausted"
   novelId: string
   chapter: number
   outline: any  // ChapterOutline — runtime shape varies; treat as JSON blob for UI display
@@ -817,7 +817,7 @@ export interface ExhaustionRow {
   chapter: number
   attempt: number
   firedAt: string
-  kind: "plan-check-exhausted" | "reviser-rejected"
+  kind: "plan-check-exhausted" | "reviser-rejected" | "integrity-exhausted"
   resolverMode: "auto" | "cli" | "web"
   unresolvedDeviations: Array<{ description: string; beat_index: number | null }>
   reviserHistory: { attemptedScenes: unknown[]; rejectionReason: string } | null

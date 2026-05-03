@@ -24,7 +24,10 @@ function DecisionPill({ decision }: { decision: string | null }) {
 }
 
 function KindPill({ kind }: { kind: ExhaustionRow["kind"] }) {
-  const background = kind === "plan-check-exhausted" ? "#5c7" : "#e9a74a"
+  const background =
+    kind === "plan-check-exhausted" ? "#5c7"
+    : kind === "integrity-exhausted" ? "#7ad"
+    : "#e9a74a"
   return (
     <span style={{
       padding: "1px 6px",
