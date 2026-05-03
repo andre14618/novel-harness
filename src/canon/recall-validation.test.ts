@@ -222,6 +222,48 @@ describe("validateQueryFixture", () => {
     } as unknown as QueryFixture
     expect(() => validateQueryFixture(bad)).toThrow(/missing chapterN/)
   })
+
+  test("rejects chapter manifest with empty hints object (would crash assembler later)", () => {
+    const bad = {
+      ...SYNTHETIC_QUERIES,
+      chapters: [{ chapterN: 5, hints: {} }],
+    } as unknown as QueryFixture
+    expect(() => validateQueryFixture(bad)).toThrow(/povCharacterId must be a string/)
+  })
+
+  test("rejects chapter manifest hints missing charactersPresentIds", () => {
+    const bad = {
+      ...SYNTHETIC_QUERIES,
+      chapters: [{ chapterN: 5, hints: { povCharacterId: "aldric" } }],
+    } as unknown as QueryFixture
+    expect(() => validateQueryFixture(bad)).toThrow(
+      /charactersPresentIds must be an array/,
+    )
+  })
+
+  test("rejects chapter manifest charactersPresentIds with non-string entries", () => {
+    const bad = {
+      ...SYNTHETIC_QUERIES,
+      chapters: [
+        {
+          chapterN: 5,
+          hints: { povCharacterId: "aldric", charactersPresentIds: [42, "bren"] },
+        },
+      ],
+    } as unknown as QueryFixture
+    expect(() => validateQueryFixture(bad)).toThrow(
+      /charactersPresentIds entries must all be strings/,
+    )
+  })
+
+  test("rejects fixture missing snapshotVersion", () => {
+    const bad = {
+      novelId: "test-novel",
+      chapters: SYNTHETIC_QUERIES.chapters,
+      queries: [SYNTHETIC_QUERY],
+    } as unknown as QueryFixture
+    expect(() => validateQueryFixture(bad)).toThrow(/missing or invalid snapshotVersion/)
+  })
 })
 
 // ── CanonSource adapter ──────────────────────────────────────────────────────
@@ -378,6 +420,19 @@ describe("runValidation — one packet per chapter (cache shared across queries)
   test("throws on novelId mismatch between canon and queries", () => {
     const queryFixtureWrong: QueryFixture = { ...SYNTHETIC_QUERIES, novelId: "other-novel" }
     expect(() => runValidation(SYNTHETIC_CANON, queryFixtureWrong)).toThrow(/novelId mismatch/)
+  })
+
+  test("throws on snapshotVersion mismatch between canon and queries", () => {
+    // A query fixture authored against an older canon snapshot must not be
+    // run against a newer canon — the IDs may still exist but the labels
+    // were against a different state.
+    const queryFixtureStale: QueryFixture = {
+      ...SYNTHETIC_QUERIES,
+      snapshotVersion: "test-v0-old",
+    }
+    expect(() => runValidation(SYNTHETIC_CANON, queryFixtureStale)).toThrow(
+      /snapshotVersion mismatch/,
+    )
   })
 })
 

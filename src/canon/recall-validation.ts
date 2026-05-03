@@ -201,6 +201,9 @@ export function validateQueryFixture(value: unknown, path = "<queries>"): assert
   if (typeof v.novelId !== "string" || !v.novelId) {
     throw new FixtureValidationError("missing or invalid novelId", path)
   }
+  if (typeof v.snapshotVersion !== "string" || !v.snapshotVersion) {
+    throw new FixtureValidationError("missing or invalid snapshotVersion", path)
+  }
   if (!Array.isArray(v.chapters)) {
     throw new FixtureValidationError("chapters manifest must be an array", path)
   }
@@ -211,6 +214,31 @@ export function validateQueryFixture(value: unknown, path = "<queries>"): assert
     }
     if (!chap.hints || typeof chap.hints !== "object") {
       throw new FixtureValidationError(`chapter ${chap.chapterN} manifest missing hints`, path)
+    }
+    // The hints object MUST carry the two required ScopingHints fields. An
+    // empty `{}` would pass the type check but blow up later inside the
+    // assembler when it dereferences charactersPresentIds. Catch at fixture-
+    // load time instead.
+    const hints = chap.hints as Record<string, unknown>
+    if (typeof hints.povCharacterId !== "string") {
+      throw new FixtureValidationError(
+        `chapter ${chap.chapterN} hints.povCharacterId must be a string (use "" for non-POV chapters)`,
+        path,
+      )
+    }
+    if (!Array.isArray(hints.charactersPresentIds)) {
+      throw new FixtureValidationError(
+        `chapter ${chap.chapterN} hints.charactersPresentIds must be an array`,
+        path,
+      )
+    }
+    for (const id of hints.charactersPresentIds) {
+      if (typeof id !== "string") {
+        throw new FixtureValidationError(
+          `chapter ${chap.chapterN} hints.charactersPresentIds entries must all be strings`,
+          path,
+        )
+      }
     }
   }
   if (!Array.isArray(v.queries)) {
@@ -346,6 +374,15 @@ export function runValidation(
   if (canon.novelId !== queries.novelId) {
     throw new Error(
       `runValidation: novelId mismatch (canon=${canon.novelId} queries=${queries.novelId})`,
+    )
+  }
+  // Both fixtures must agree on snapshotVersion. A query fixture authored
+  // against canon v3 produces meaningless recall numbers when run against
+  // canon v4 — the IDs may exist but the underlying canon has shifted.
+  // Refuse the run rather than silently produce noise.
+  if (canon.snapshotVersion !== queries.snapshotVersion) {
+    throw new Error(
+      `runValidation: snapshotVersion mismatch (canon=${canon.snapshotVersion} queries=${queries.snapshotVersion}); the query fixture was authored against a different canon snapshot`,
     )
   }
 

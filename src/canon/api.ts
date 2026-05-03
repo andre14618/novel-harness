@@ -78,6 +78,15 @@ export interface CanonFact {
   provenance: Provenance
 }
 
+/**
+ * No-ghost-canon residual: unlike CanonFact and Entity, CharacterState and
+ * StoryPromise carry no provenance/approvalStatus. The §0a scoping rules
+ * therefore can't filter pending vs. approved snapshots at scope time.
+ * Step 1 substrate must either (a) guarantee at the DB/API layer that only
+ * operator-approved states/promises are returned by `characterStatesAsOfChapter`
+ * / `promisesAsOfChapter`, or (b) extend these types with provenance and
+ * filter at scope time the same way facts/entities are filtered today.
+ */
 export interface CharacterState {
   characterId: string
   characterName: string

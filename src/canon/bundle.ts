@@ -77,8 +77,10 @@ export interface L1Sections {
 export interface L1Packet {
   /** The serialized L1 byte stream including the boundary marker at the end. */
   bytes: string
-  /** SHA-256 hex of the bytes (without trailing boundary, to make boundary
-   *  changes orthogonal to canon-content changes). */
+  /** SHA-256 hex of the FULL bytes including the boundary marker. The
+   *  marker is a versioned protocol element; including it in the hash
+   *  ensures a future marker bump cannot collide with prior packet hashes
+   *  for identical canon content. */
   packetHash: string
   /** Byte length of bytes (including boundary marker). */
   byteLength: number
