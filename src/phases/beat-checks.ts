@@ -15,6 +15,7 @@
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../types"
 import { checkBeatAdherence } from "../agents/writer/adherence-checker"
 import { checkHallucUngrounded } from "../agents/halluc-ungrounded"
+import { pipeline } from "../config/pipeline"
 
 export type BeatIssueSource =
   | "adherence"
@@ -61,7 +62,13 @@ export async function runBeatChecks(input: RunBeatChecksInput): Promise<BeatChec
   // checker violates that invariant, switch this site to allSettled.
   const [adh, ung] = await Promise.all([
     checkBeatAdherence(prose, beat, outline, characters, tags),
-    checkHallucUngrounded(prose, beat, outline, characters, worldBible, tags, { prevBeat }),
+    // L68: thread pipeline.hallucVoteN so production deploy can flip the
+    // multi-call vote/union via env (`HALLUC_UNGROUNDED_VOTE_N`) without a
+    // new release. Default 1 = pre-L68 single-call behavior.
+    checkHallucUngrounded(prose, beat, outline, characters, worldBible, tags, {
+      prevBeat,
+      voteN: pipeline.hallucVoteN,
+    }),
   ])
 
   return aggregateIssues({

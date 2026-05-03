@@ -27,6 +27,15 @@ export const pipeline = {
   // State management
   embeddings: false,          // skip embedding step (beat path uses deterministic DB lookups)
 
+  // Halluc-ungrounded multi-call vote/union (L68 / Grounding Lever G-D).
+  // When >1, runBeatChecks issues N parallel halluc-ungrounded LLM calls per
+  // beat and unions their LLM-confirmed flagged entities before the L40
+  // grounded-surface filter and AND-gate assembly. Addresses checker
+  // stochasticity surfaced by exp #389+#395 trace (same byte-identical prose
+  // produced disjoint flagged-entity sets across 3 calls).
+  // Default 1 = current behavior. Production deploy flips via env.
+  hallucVoteN: 1,
+
   // Word targets (used as defaults if plotter doesn't specify)
   defaultTargetWords: 1000,
   minWords: 500,

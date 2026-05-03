@@ -215,6 +215,21 @@ bunMock.module("../../llm", () => ({
   callAgent: async (opts: any) => {
     // Default mock: LLM returns pass=true, llmCallId=42. Individual tests
     // override mockLLMResult and mockLLMCallId before calling checkHallucUngrounded.
+    //
+    // L68 multi-call vote support: when `mockLLMResultsByCall` is non-empty,
+    // each call drains the next entry (and `mockLLMCallIdsByCall` for ids)
+    // so a single test can stage N distinct per-call outputs for the parallel
+    // fan-out. Falls back to the singletons for back-compat with all
+    // pre-L68 tests.
+    if (mockLLMResultsByCall.length > 0) {
+      const idx = mockCallCounter
+      mockCallCounter += 1
+      const result = mockLLMResultsByCall[idx % mockLLMResultsByCall.length]!
+      const id = mockLLMCallIdsByCall.length > 0
+        ? mockLLMCallIdsByCall[idx % mockLLMCallIdsByCall.length]!
+        : 42 + idx
+      return { output: result, rawText: "{}", latencyMs: 0, llmCallId: id }
+    }
     return { output: mockLLMResult, rawText: "{}", latencyMs: 0, llmCallId: mockLLMCallId }
   },
 }))
@@ -228,6 +243,11 @@ let mockLLMResult: { pass: boolean; issues?: Array<{ entity: string; excerpt: st
 // Shared mutable llmCallId that individual tests can override.
 let mockLLMCallId: number | null = 42
 
+// L68 multi-call mock plumbing. Empty arrays → singleton-mock fallback.
+let mockLLMResultsByCall: Array<{ pass: boolean; issues?: Array<{ entity: string; excerpt: string }> }> = []
+let mockLLMCallIdsByCall: Array<number | null> = []
+let mockCallCounter = 0
+
 beforeEach(() => {
   // Reset to pass between tests.
   mockLLMResult = { pass: true, issues: [] }
@@ -235,6 +255,14 @@ beforeEach(() => {
   nerPatchCalls = []
   nerPatchStarted = 0
   nerPatchDelay = null
+  // L68: clear the per-call mock plumbing so prior tests' staged sequences
+  // don't leak into subsequent tests.
+  mockLLMResultsByCall = []
+  mockLLMCallIdsByCall = []
+  mockCallCounter = 0
+  // L68: clear env override so the resolveVoteN env-side path doesn't leak
+  // into tests that pin voteN explicitly.
+  delete process.env.HALLUC_UNGROUNDED_VOTE_N
 })
 
 // Reimport the module after mock is registered so callAgent is the mock.
@@ -570,7 +598,14 @@ test("L16 persistence: awaits NER patch before returning", async () => {
       return result
     })
 
-  await Promise.resolve()
+  // Spin until the patch mock has started or we hit a timeout. The exact
+  // microtask depth between LLM-call resolution and the patch invocation
+  // is an implementation detail (L68 added one extra microtask via the
+  // Promise.all fan-out); the assertion is just that the patch was started
+  // before the wrapped function resolved.
+  for (let i = 0; i < 10 && nerPatchStarted === 0; i++) {
+    await Promise.resolve()
+  }
   expect(nerPatchStarted).toBe(1)
   expect(nerPatchCalls.length).toBe(0)
   expect(returned).toBe(false)
@@ -597,7 +632,9 @@ test("L16 persistence: patch failure remains fail-open", async () => {
     const prose = "Kael walked toward the Vesh Order hall at midnight."
     const pending = checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
 
-    await Promise.resolve()
+    for (let i = 0; i < 10 && nerPatchStarted === 0; i++) {
+      await Promise.resolve()
+    }
     expect(nerPatchStarted).toBe(1)
 
     rejectPatch(new Error("patch failed"))
@@ -1136,4 +1173,233 @@ test("L40 (e-2): LLM passes with no issues → no rescue activity, llmRescuedByN
   const { data } = nerPatchCalls[0]
   expect(data.andGateDecision).toBe("pass")
   expect(data.llmRescuedByNer).toBe(0)
+})
+
+// ── L68 (Lever G-D): multi-call halluc-ungrounded vote/union ──────────────────
+//
+// Tests cover both the pure `unionLlmOutputs` helper (semantics in isolation)
+// and the end-to-end fan-out path (Promise.all of N callAgent calls + per-row
+// NER patch). The mock module above drains `mockLLMResultsByCall` /
+// `mockLLMCallIdsByCall` in order so a single test can stage N distinct
+// per-call outputs.
+
+import { unionLlmOutputs } from "./index"
+
+test("L68 union: empty input → pass=true, empty issues", () => {
+  const u = unionLlmOutputs([])
+  expect(u.pass).toBe(true)
+  expect(u.issues).toEqual([])
+})
+
+test("L68 union: N=1 single output passes through unchanged (clean)", () => {
+  const u = unionLlmOutputs([{ pass: true, issues: [] }])
+  expect(u.pass).toBe(true)
+  expect(u.issues).toEqual([])
+})
+
+test("L68 union: N=1 single output with issues passes through unchanged", () => {
+  const u = unionLlmOutputs([
+    { pass: false, issues: [{ entity: "Vesh Order", excerpt: "near the Vesh Order" }] },
+  ])
+  expect(u.pass).toBe(false)
+  expect(u.issues).toHaveLength(1)
+  expect(u.issues[0]).toEqual({ entity: "Vesh Order", excerpt: "near the Vesh Order" })
+})
+
+test("L68 union: N=2 disjoint flagged entities → union surfaces both", () => {
+  const u = unionLlmOutputs([
+    { pass: false, issues: [{ entity: "central spire", excerpt: "above the central spire" }] },
+    { pass: false, issues: [{ entity: "Senior Cataloguer", excerpt: "Senior Cataloguer arrived" }] },
+  ])
+  expect(u.pass).toBe(false)
+  expect(u.issues).toHaveLength(2)
+  const entities = u.issues.map(i => i.entity).sort()
+  expect(entities).toEqual(["Senior Cataloguer", "central spire"])
+})
+
+test("L68 union: N=2 same entity twice → dedup to one entry", () => {
+  const u = unionLlmOutputs([
+    { pass: false, issues: [{ entity: "central spire", excerpt: "above the central spire" }] },
+    { pass: false, issues: [{ entity: "central spire", excerpt: "near the central spire" }] },
+  ])
+  expect(u.pass).toBe(false)
+  expect(u.issues).toHaveLength(1)
+  expect(u.issues[0]!.entity).toBe("central spire")
+})
+
+test("L68 union: case-insensitive dedup (Central Spire ≡ central spire)", () => {
+  const u = unionLlmOutputs([
+    { pass: false, issues: [{ entity: "Central Spire", excerpt: "first call" }] },
+    { pass: false, issues: [{ entity: "central spire", excerpt: "second call" }] },
+  ])
+  expect(u.issues).toHaveLength(1)
+  // First-seen entity casing wins for the surviving entry.
+  expect(u.issues[0]!.entity).toBe("Central Spire")
+})
+
+test("L68 union: first non-empty excerpt wins when prior was empty", () => {
+  const u = unionLlmOutputs([
+    { pass: false, issues: [{ entity: "Aldric", excerpt: "" }] },
+    { pass: false, issues: [{ entity: "Aldric", excerpt: "Aldric stepped forward" }] },
+  ])
+  expect(u.issues).toHaveLength(1)
+  expect(u.issues[0]!.excerpt).toBe("Aldric stepped forward")
+})
+
+test("L68 union: first non-empty excerpt is kept (later non-empty does not overwrite)", () => {
+  const u = unionLlmOutputs([
+    { pass: false, issues: [{ entity: "Aldric", excerpt: "first non-empty" }] },
+    { pass: false, issues: [{ entity: "Aldric", excerpt: "second non-empty (ignored)" }] },
+  ])
+  expect(u.issues).toHaveLength(1)
+  expect(u.issues[0]!.excerpt).toBe("first non-empty")
+})
+
+test("L68 union: pass=true IFF every output's pass is true", () => {
+  expect(unionLlmOutputs([{ pass: true, issues: [] }, { pass: true, issues: [] }]).pass).toBe(true)
+  expect(unionLlmOutputs([{ pass: true, issues: [] }, { pass: false, issues: [] }]).pass).toBe(false)
+  expect(unionLlmOutputs([{ pass: false, issues: [] }, { pass: false, issues: [] }]).pass).toBe(false)
+})
+
+test("L68 union: empty-entity issues are dropped (defensive)", () => {
+  const u = unionLlmOutputs([
+    { pass: false, issues: [{ entity: "  ", excerpt: "blank" }, { entity: "Real", excerpt: "" }] },
+  ])
+  expect(u.issues).toHaveLength(1)
+  expect(u.issues[0]!.entity).toBe("Real")
+})
+
+test("L68 fan-out: voteN=2 with disjoint flag-sets → both entities surface", async () => {
+  // Stage two distinct per-call outputs so the parallel mock returns each
+  // in turn. Both calls flag a single ungrounded entity each, but on
+  // disjoint sets — exactly the exp #389 stochasticity pattern.
+  mockLLMResultsByCall = [
+    { pass: false, issues: [{ entity: "central spire", excerpt: "central spire's heartbeat records" }] },
+    { pass: false, issues: [{ entity: "Senior Cataloguer", excerpt: "the Senior Cataloguer signed" }] },
+  ]
+  mockLLMCallIdsByCall = [101, 102]
+
+  const prose = "Below the central spire the Senior Cataloguer signed the ledger."
+  const result = await checkHallucUngrounded(
+    prose,
+    baseBeat,
+    baseOutline,
+    baseChars,
+    emptyWorldBible,
+    undefined,
+    { voteN: 2 },
+  )
+
+  expect(result.pass).toBe(false)
+  // Both entities should be surfaced as issues (LLM-only-blocker path: NER
+  // doesn't fire here because the prose doesn't have suffix-class shapes).
+  const issueText = result.issues.join(" | ")
+  expect(issueText).toContain("central spire")
+  expect(issueText).toContain("Senior Cataloguer")
+})
+
+test("L68 fan-out: voteN=2 with both calls passing → clean pass", async () => {
+  mockLLMResultsByCall = [
+    { pass: true, issues: [] },
+    { pass: true, issues: [] },
+  ]
+  mockLLMCallIdsByCall = [201, 202]
+  const prose = "She walked quietly down the hall."
+  const result = await checkHallucUngrounded(
+    prose,
+    baseBeat,
+    baseOutline,
+    baseChars,
+    emptyWorldBible,
+    undefined,
+    { voteN: 2 },
+  )
+  expect(result.pass).toBe(true)
+  expect(result.issues).toEqual([])
+})
+
+test("L68 fan-out: voteN=2 persists 2 NER patches with voteIndex 0/1 and voteN=2", async () => {
+  mockLLMResultsByCall = [
+    { pass: true, issues: [] },
+    { pass: true, issues: [] },
+  ]
+  mockLLMCallIdsByCall = [301, 302]
+  const prose = "She walked quietly down the hall."
+  await checkHallucUngrounded(
+    prose, baseBeat, baseOutline, baseChars, emptyWorldBible,
+    undefined, { voteN: 2 },
+  )
+  await Promise.resolve()
+
+  expect(nerPatchCalls).toHaveLength(2)
+  // Order is not guaranteed (Promise.all races), so sort by id for stable assert.
+  const sorted = [...nerPatchCalls].sort((a, b) => Number(a.id) - Number(b.id))
+  expect(sorted[0]!.id).toBe(301)
+  expect(sorted[0]!.data.voteIndex).toBe(0)
+  expect(sorted[0]!.data.voteN).toBe(2)
+  expect(sorted[1]!.id).toBe(302)
+  expect(sorted[1]!.data.voteIndex).toBe(1)
+  expect(sorted[1]!.data.voteN).toBe(2)
+})
+
+test("L68 fan-out: voteN=1 (default) does NOT set voteIndex/voteN on the NER patch — back-compat", async () => {
+  // Default behavior: no per-call mock, no voteN opt — the patch row should
+  // be byte-identical to pre-L68 (no voteIndex/voteN keys).
+  mockLLMResult = { pass: true, issues: [] }
+  const prose = "She walked quietly down the hall."
+  await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+  await Promise.resolve()
+  expect(nerPatchCalls).toHaveLength(1)
+  expect(nerPatchCalls[0]!.data.voteIndex).toBeUndefined()
+  expect(nerPatchCalls[0]!.data.voteN).toBeUndefined()
+})
+
+test("L68 fan-out: voteN=2 with one fail + one pass → union pass=false", async () => {
+  // Stochastic pattern: one call confirms an ungrounded entity, the other
+  // approves the same prose. Union must take the failing signal.
+  mockLLMResultsByCall = [
+    { pass: false, issues: [{ entity: "Aldric", excerpt: "Aldric stepped forward" }] },
+    { pass: true, issues: [] },
+  ]
+  mockLLMCallIdsByCall = [401, 402]
+  const prose = "Aldric stepped forward and bowed."
+  const result = await checkHallucUngrounded(
+    prose, baseBeat, baseOutline, baseChars, emptyWorldBible,
+    undefined, { voteN: 2 },
+  )
+  expect(result.pass).toBe(false)
+  expect(result.issues.join(" | ")).toContain("Aldric")
+})
+
+test("L68 fan-out: HALLUC_UNGROUNDED_VOTE_N env override is honored when no opt is passed", async () => {
+  process.env.HALLUC_UNGROUNDED_VOTE_N = "2"
+  mockLLMResultsByCall = [
+    { pass: false, issues: [{ entity: "Sigil", excerpt: "the Sigil" }] },
+    { pass: false, issues: [{ entity: "Vault", excerpt: "the Vault" }] },
+  ]
+  mockLLMCallIdsByCall = [501, 502]
+  const prose = "The Sigil glowed and the Vault opened."
+  const result = await checkHallucUngrounded(
+    prose, baseBeat, baseOutline, baseChars, emptyWorldBible,
+    // no opts — env should drive voteN=2
+  )
+  expect(result.pass).toBe(false)
+  const issueText = result.issues.join(" | ")
+  expect(issueText).toContain("Sigil")
+  expect(issueText).toContain("Vault")
+})
+
+test("L68 fan-out: explicit opts.voteN overrides env", async () => {
+  process.env.HALLUC_UNGROUNDED_VOTE_N = "5"
+  mockLLMResultsByCall = [
+    { pass: false, issues: [{ entity: "OnlyOne", excerpt: "only one call should fire" }] },
+  ]
+  mockLLMCallIdsByCall = [601]
+  const prose = "OnlyOne walked quietly."
+  await checkHallucUngrounded(
+    prose, baseBeat, baseOutline, baseChars, emptyWorldBible,
+    undefined, { voteN: 1 },
+  )
+  // Counter increments once per call — only one drained from the array.
+  expect(mockCallCounter).toBe(1)
 })

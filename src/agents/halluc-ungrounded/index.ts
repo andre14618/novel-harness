@@ -328,6 +328,67 @@ export function runNerPrepass(
  * selectively: NER+LLM agreement = high-confidence fail worth retrying;
  * NER-only = ambiguous, surface but don't burn retries indefinitely.
  */
+/**
+ * Resolve the multi-call vote N from env, falling back to the explicit opt
+ * value, then to 1. The env override (`HALLUC_UNGROUNDED_VOTE_N`) lets LXC
+ * production toggle without a redeploy; the opt value lets unit tests pin a
+ * specific N regardless of env.
+ *
+ * L68 (Lever G-D): runs the LLM checker N parallel times per beat and unions
+ * the LLM-confirmed flagged entities. Addresses checker stochasticity on
+ * byte-identical prose surfaced by exp #389 + #395 trace.
+ */
+function resolveVoteN(optValue?: number): number {
+  if (typeof optValue === "number" && Number.isFinite(optValue) && optValue >= 1) {
+    return Math.floor(optValue)
+  }
+  const raw = process.env.HALLUC_UNGROUNDED_VOTE_N
+  if (raw != null) {
+    const parsed = Number.parseInt(raw, 10)
+    if (Number.isFinite(parsed) && parsed >= 1) return parsed
+  }
+  return 1
+}
+
+/**
+ * Union the N parallel LLM outputs into a single logical output. Used by the
+ * L68 multi-call vote path. Pure helper so unit tests can exercise the union
+ * semantics without LLM calls.
+ *
+ * Semantics:
+ *   - `pass = true` IFF every output's `pass` is true (any blocker fails the
+ *     union, mirroring "any caller flagged something" → don't approve).
+ *   - `issues` is the dedup'd union across all outputs by case-insensitive
+ *     trimmed entity name. First non-empty excerpt for each entity wins.
+ *   - At N=1 the union is byte-equivalent to the single output for any
+ *     well-formed (no duplicate-entity) issues array.
+ */
+export function unionLlmOutputs(
+  outputs: Array<{ pass: boolean; issues?: Array<{ entity: string; excerpt?: string }> }>,
+): { pass: boolean; issues: Array<{ entity: string; excerpt: string }> } {
+  if (outputs.length === 0) return { pass: true, issues: [] }
+  const seen = new Map<string, { entity: string; excerpt: string }>()
+  for (const out of outputs) {
+    for (const issue of out.issues ?? []) {
+      const key = issue.entity.toLowerCase().trim()
+      if (key.length === 0) continue
+      const prior = seen.get(key)
+      const excerpt = issue.excerpt ?? ""
+      if (prior == null) {
+        seen.set(key, { entity: issue.entity, excerpt })
+      } else if (prior.excerpt.length === 0 && excerpt.length > 0) {
+        // Prefer first non-empty excerpt for this entity. Keeps the original
+        // entity casing from whichever call surfaced it first.
+        seen.set(key, { entity: prior.entity, excerpt })
+      }
+    }
+  }
+  return {
+    pass: outputs.every(o => o.pass === true),
+    issues: Array.from(seen.values()),
+  }
+}
+
 export async function checkHallucUngrounded(
   prose: string,
   beat: SceneBeat,
@@ -335,7 +396,7 @@ export async function checkHallucUngrounded(
   characters: CharacterProfile[],
   worldBible: any,
   tags?: { novelId?: string; chapter?: number; beatIndex?: number; attempt?: number },
-  opts?: { prevBeat?: SceneBeat },
+  opts?: { prevBeat?: SceneBeat; voteN?: number },
 ): Promise<HallucUngroundedResult> {
   const variant = resolveVariant()
   const derive = variant === "v1" || variant === "v3"
@@ -459,19 +520,32 @@ export async function checkHallucUngrounded(
     nerUngrounded = runNerPrepass(prose, groundedSurface, bibleTokens)
   }
 
+  // L68 (Lever G-D): multi-call vote/union. When voteN > 1 we issue N parallel
+  // halluc-ungrounded LLM calls and union their flagged-entity sets. The NER
+  // prepass above runs once (deterministic on the same prose+grounded surface);
+  // only the LLM call repeats. At voteN=1 the behavior is byte-equivalent to
+  // the pre-L68 single-call path for any well-formed checker output.
+  const voteN = resolveVoteN(opts?.voteN)
+
   try {
-    const result = await callAgent({
-      novelId: tags?.novelId,
-      chapter: tags?.chapter,
-      beatIndex: tags?.beatIndex,
-      attempt: tags?.attempt,
-      agentName: "halluc-ungrounded" as const,
-      systemPrompt: HALLUC_UNGROUNDED_SYSTEM,
-      userPrompt,
-      schema: hallucUngroundedSchema,
-      logMetadata: { groundedSources: groundedSourcesObj },
-    })
-    const output = result.output
+    const callResults = await Promise.all(
+      Array.from({ length: voteN }, () =>
+        callAgent({
+          novelId: tags?.novelId,
+          chapter: tags?.chapter,
+          beatIndex: tags?.beatIndex,
+          attempt: tags?.attempt,
+          agentName: "halluc-ungrounded" as const,
+          systemPrompt: HALLUC_UNGROUNDED_SYSTEM,
+          userPrompt,
+          schema: hallucUngroundedSchema,
+          logMetadata: { groundedSources: groundedSourcesObj },
+        }),
+      ),
+    )
+    // Union the N LLM outputs into a single logical output for the L40 filter
+    // and AND-gate assembly downstream. At voteN=1 this is a no-op pass-through.
+    const output = unionLlmOutputs(callResults.map(r => r.output))
     const llmPass = output.pass
 
     // Build NER finding list for result provenance.
@@ -665,20 +739,35 @@ export async function checkHallucUngrounded(
     // returning so future LXC runs can audit AND-gate firing rates without
     // re-running. Fail-open: a patch failure never blocks the beat pipeline.
     // (L16)
-    if (result.llmCallId != null) {
-      await patchLLMCallNerPrepass(result.llmCallId, {
-        nerEnabled,
-        nerFindings: allNerFindings,
-        nerOnlyFindings: finalResult.nerOnlyFindings ?? [],
-        andGateDecision,
-        // L40: count of LLM issues filtered out by NER's grounded-surface
-        // post-pass. >0 means NER overrode an LLM-only blocker (or partial
-        // blocker) on entities the deterministic surface already grounds.
-        llmRescuedByNer: llmRescuedByNer.length,
-      }).catch(err => {
-        console.error(`[halluc-ungrounded] NER prepass patch failed for llm_call ${result.llmCallId}:`, err)
-      })
-    }
+    //
+    // L68: when voteN > 1 we patch all N call rows so the audit trail can
+    // reconstruct the union per-beat. Each row is tagged with its `voteIndex`
+    // and the `voteN` of the fan-out. The shared union-derived fields
+    // (nerFindings, nerOnlyFindings, andGateDecision, llmRescuedByNer) are
+    // identical across all N rows because they describe the unioned outcome.
+    await Promise.all(
+      callResults.map((r, i) => {
+        if (r.llmCallId == null) return Promise.resolve()
+        return patchLLMCallNerPrepass(r.llmCallId, {
+          nerEnabled,
+          nerFindings: allNerFindings,
+          nerOnlyFindings: finalResult.nerOnlyFindings ?? [],
+          andGateDecision,
+          // L40: count of LLM issues filtered out by NER's grounded-surface
+          // post-pass. >0 means NER overrode an LLM-only blocker (or partial
+          // blocker) on entities the deterministic surface already grounds.
+          llmRescuedByNer: llmRescuedByNer.length,
+          // L68: only set when this is part of a multi-call fan-out so the
+          // single-call path stays bit-for-bit identical to pre-L68 patches.
+          ...(voteN > 1 ? { voteIndex: i, voteN } : {}),
+        }).catch(err => {
+          console.error(
+            `[halluc-ungrounded] NER prepass patch failed for llm_call ${r.llmCallId} (voteIndex=${i}, voteN=${voteN}):`,
+            err,
+          )
+        })
+      }),
+    )
 
     return finalResult
   } catch (err) {
