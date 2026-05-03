@@ -110,6 +110,7 @@ The Postgres branch of the equivalence spec runs all 32 behavioral tests against
 ## Commits
 
 - `ba72e09` `[infra]` canon substrate Postgres adapter + equivalence suite — charter §1 cleared. 11 files changed, +2295/-2. Migration `sql/035_canon_substrate.sql`, raw queries `src/db/canon-substrate.ts`, harness `src/harness/canon-substrate.ts`, equivalence test `src/canon/substrate-equivalence.test.ts`, lane doc, plus charter/design/decisions/lessons/current-state/lane-queue updates. Experiment #404 logged + concluded.
+- `4ae4f1a` `[fix]` canon substrate Codex round-2 hardening — transactional atomicity + uniqueness + scope narrowing. 11 files changed, +508/-109. Migration `sql/036_canon_substrate_invariants.sql`, executor-parameter refactor in `src/db/canon-substrate.ts`, `db.begin` wrappers + cross-id branch removal in `src/harness/canon-substrate.ts`, scope JSDoc in `src/canon/api.ts`, four new Postgres-only safety-net tests, plus operating-model + design + decisions + lessons + current-state updates. Experiment #405 logged + concluded; linked to #404 as continuation.
 
 ## Hardening Pass (Codex round-2)
 
