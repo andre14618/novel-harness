@@ -10,6 +10,28 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §L71 chapter-plan-reviser maxTokens 6144 → 12288 (2026-05-03, exp #400) — **SHIPPED defensive**
+
+**Status:** Shipped 2026-05-03 (commit `f6b4aa4`). Heretic retry at exp #400 (`novel-1777784619991`) completed both chapters cleanly at $0.051 — chapter-plan-reviser never fired (different stochastic plan-deviation path from exp #399), so direct cap validation did not occur. Shipped as defensive coverage for the documented failure mode.
+
+**Decision:** raise `chapter-plan-reviser` `maxTokens` from 6144 to 12288 in `src/models/roles.ts:148`. The reviser uses DeepSeek V4 Flash with `thinking: true`, so reasoning tokens consume budget alongside the structured beats+state output. On long-tail chapters needing substantial re-plans the combined consumption exceeds 6144 → `finish_reason=length` truncates the JSON → reviser-rejected → whole-novel bail at the plan-assist gate.
+
+**Why (concrete evidence):**
+- Surfaced 2026-05-03 in L70b A/B exp #399: `fantasy-system-heretic` ch1 att 1 hit `chapter-plan-reviser` `completion_tokens=6144` with `finish_reason=length`. Whole-novel bail.
+- DB diagnosis on `llm_calls` over 14 days: 1 of 25 reviser calls hit the cap (4% incidence). Average completion 1624 tokens (24/25 calls unaffected by the bump). Max completion at the cap.
+- Bumping to 12288 doubles the headroom; the average call is unaffected (providers bill on tokens produced, not requested). Bounded cost increase only on actual long-tail invocations.
+
+**Alternatives rejected:**
+- *Disable thinking on the reviser.* Would free up the 4-5k reasoning budget but probably degrade plan-revision quality (the reviser's job is to identify the smallest beats+state edit that satisfies persistent issues — reasoning is load-bearing).
+- *Split plan-revision into two passes (diff identification + apply).* Larger surgery; defer until 12288 also caps out.
+- *Make `reviser-rejected` non-fatal (continue with original outline).* Would mask plan-revision failures and could ship novels with persistent unresolved issues. Wrong direction.
+
+**Ongoing implications:**
+- Defensive bump — the new 12288 cap is unvalidated against an actual cap-hit case. If a future reviser invocation hits 12288 with `finish_reason=length`, escalate per the lane's escalation rule.
+- Cost impact: bounded by the actual `completion_tokens` consumed; the 24/25 calls produce ≤2k tokens and are unaffected.
+
+---
+
 ### §L70b Per-fragment beat-targeted rewrite for duplicate-* integrity issues (2026-05-03, exp #399) — **SHIPPED**
 
 **Status:** Shipped 2026-05-03 (commit `81f372a`). 3-novel A/B (`fantasy-archive`, `fantasy-debt`, `fantasy-system-heretic` ch1-2) vs L68 N=1 baseline (exp #396, commit `47ae038`). Settle-acceptance rate 75% (3 of 4 invocations cleared duplicate-* issues that would have bailed integrity-exhausted at baseline). Net approval ch1: 1/3 → 2/3 (+33pt). arch additionally completed ch2 → full novel approved. Cost $0.166 / $25 budget.

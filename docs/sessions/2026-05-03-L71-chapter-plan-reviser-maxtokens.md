@@ -63,4 +63,33 @@ phase: planning (chapter-plan-reviser token-cap fix)
 
 ## Results
 
-(to be filled after retry completes)
+**Outcome: SHIP as defensive config bump.** Heretic retry at exp #400 (`novel-1777784619991`) completed both chapters cleanly in 13m 20s at $0.051 cost — no reviser invocation, no bails. Direct cap validation did not occur (chapter-plan-checker passed without escalation, so the reviser was never invoked); the previous bail at exp #399 was stochastic plan-deviation drift. The 12288 cap is shipped as defensive coverage for the documented 4% long-tail failure mode.
+
+**Heretic retry summary (commit `f6b4aa4`, exp #400, novel-1777784619991):**
+
+| metric | value |
+|---|---|
+| chapter 1 | APPROVED att 1 |
+| chapter 2 | APPROVED att 1 |
+| validation | passed pass 1 |
+| chapter-plan-reviser invocations | 0 |
+| chapter_exhaustions | 0 |
+| total LLM calls | 119 (0 failed) |
+| total cost | $0.051 |
+| wall clock | 13m 20s |
+
+**Stop-gate analysis:**
+
+- **(a) Clean pass:** heretic retry produced no `finish_reason=length` AND drafting advanced past plan-assist. Strict reading requires the reviser to fire and succeed; retry-stochasticity meant the reviser never fired. **Indirectly met:** the novel completed without any plan-assist bail, which was the failure mode we were trying to prevent.
+- **(b) New dominant blocker:** none — full novel approved cleanly.
+- **(c) Regression:** tsc clean; no test changes (config-only).
+- **(d) Infra failure:** none.
+- **(e) Cost cap:** $0.051 / $1 budget.
+
+**Caveat:** the 12288 cap is unvalidated against an actual cap-hit case in this lane. The historical evidence (exp #399 heretic ch1 att 1 hit 6144 with `finish_reason=length`) establishes the failure mode is real. The 12288 cap is a defensive bump, not a tested fix. Future evidence: the next reviser invocation that hits a long-tail chapter will reveal whether 12288 is sufficient. If a future cap-hit re-occurs at 12288, escalate per the lane's escalation rule (disable thinking on reviser, or split plan-revision into two passes).
+
+**Lessons from this attempt:**
+
+1. **Stochastic retry can mask the case you're trying to fix.** Heretic's previous bail (exp #399 ch1 att 1) was a chapter-plan-deviation that escalated to the reviser. The retry took a different path (chapter-plan-checker passed att 1) and the reviser was never invoked. Defensive config bumps for low-frequency failure modes will often not be directly validated by a single retry; the bump's value is bounded by the historical evidence, not the retry's outcome.
+2. **Rate-of-failure data on the agent's `llm_calls` row is the right validation surface for a token-cap fix.** A retry showing the agent never fired is consistent with both "the fix worked" and "the fix wasn't needed this time." A retry where the agent fires AND `completion_tokens < new_cap` AND `finish_reason ≠ length` is the direct validation. For low-frequency failure modes, accept indirect validation (no bail) and rely on the historical 1/25 incidence as the prior.
+
