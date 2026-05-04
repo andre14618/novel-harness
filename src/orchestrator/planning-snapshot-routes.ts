@@ -27,16 +27,20 @@
  *       2. Locks via WHERE locked_at IS NULL — re-lock attempts on a
  *          locked row return 409 + actualLock metadata.
  *       3. Returns the locked row on success.
- *     The hash is supplied by the caller (typically the UI, which got
- *     it from GET /current) — explicit consent to lock THIS observed
- *     state, not whatever happens to be live at lock time. If planning
- *     state has drifted since GET, the lock still succeeds against the
- *     hash the operator saw; drift detection at draft time (Phase 4
- *     commit 5) catches the mismatch later.
- *     The route does NOT enforce that `hash` matches the live hash — by
- *     design (see "explicit consent" above). What it DOES enforce: the
- *     hash must be a 64-hex sha256 string (cheap structural check;
- *     prevents accidental wrong-shape inputs).
+ *     The route recomputes `computePlanningSnapshotHash(novelId)` and
+ *     rejects with 409 + `{ expectedHash, providedHash }` when the
+ *     body's hash doesn't match. Without this, the route would happily
+ *     record + lock any 64-hex string the caller fabricated — a poison
+ *     vector against drift detection (an attacker or buggy script
+ *     could lock an arbitrary hash so future drift checks miss).
+ *     Explicit consent now means: "lock the live planning state, after
+ *     I've inspected its hash via GET /current and verified it matches
+ *     what I want to commit to." If state drifted between the
+ *     operator's GET and POST, they re-fetch and re-confirm — the
+ *     mismatch is surfaced explicitly, not silently locked away.
+ *     A TOCTOU race between GET and POST is acceptable because the
+ *     POST recomputes server-side: only the live state at POST time
+ *     can be locked, never a stale or fabricated hash.
  */
 
 import { z } from "zod"
@@ -121,14 +125,34 @@ export async function handlePlanningSnapshotRoute(
     }
 
     try {
-      // 1. Idempotent record (no-op if already there).
+      // 1. Recompute the live hash and reject mismatches. Without this
+      //    guard, the route would record + lock any 64-hex string the
+      //    caller fabricated, poisoning drift detection (a future GET
+      //    /current would see drift = false against an arbitrary
+      //    hash). The recompute is cheap (canonical-JSON over the
+      //    planning slice already loaded by other paths). Returns 409
+      //    so the caller can re-fetch and retry rather than giving up.
+      const computedHash = await computePlanningSnapshotHash(novelId, SNAPSHOT_VERSION)
+      if (body.hash !== computedHash) {
+        return Response.json(
+          {
+            ok: false,
+            error: "lock hash does not match live planning snapshot",
+            expectedHash: computedHash,
+            providedHash: body.hash,
+          },
+          { status: 409 },
+        )
+      }
+
+      // 2. Idempotent record (no-op if already there).
       await recordPlanningSnapshot({
         hash: body.hash,
         novelId,
         version: SNAPSHOT_VERSION,
       })
 
-      // 2. Attempt to lock.
+      // 3. Attempt to lock.
       const locked = await lockPlanningSnapshot({
         hash: body.hash,
         lockedByKind: body.lockedBy.kind,
@@ -167,7 +191,7 @@ export async function handlePlanningSnapshotRoute(
         )
       }
 
-      // 3. Return the freshly-locked row.
+      // 4. Return the freshly-locked row.
       const row = await findPlanningSnapshot(body.hash)
       return Response.json({ ok: true, snapshot: row })
     } catch (err) {

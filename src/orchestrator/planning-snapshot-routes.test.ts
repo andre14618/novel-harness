@@ -190,21 +190,39 @@ describe.skipIf(!reachable)("handlePlanningSnapshotRoute (DB-backed)", () => {
     expect(row!.locked_at).not.toBeNull()
   })
 
-  test("POST /lock idempotently records: an unrecorded hash gets recorded then locked", async () => {
-    // Use a known-shape hash that's NOT the live one — caller is locking
-    // a snapshot of state they observed earlier (or a fabricated test
-    // hash). The route doesn't enforce hash matches the live state by
-    // design (explicit-consent locking).
+  test("POST /lock with a hash that doesn't match live → 409 + expectedHash/providedHash", async () => {
+    // The route now recomputes the live hash and rejects mismatches.
+    // Without this guard, an arbitrary 64-hex string would record +
+    // lock, poisoning drift detection against a hash that was never
+    // a real planning state.
     const fakeHash = "f".repeat(64)
     expect(await findPlanningSnapshot(fakeHash)).toBeNull()
-    const { status } = await expectJson(
+    const { status, body } = await expectJson(
       await invoke("POST", `/api/novel/${novelId}/planning-snapshot/lock`, {
         hash: fakeHash,
         lockedBy: { kind: "test" },
       }),
     )
+    expect(status).toBe(409)
+    expect(body.error).toBe("lock hash does not match live planning snapshot")
+    expect(body.providedHash).toBe(fakeHash)
+    expect(body.expectedHash).toMatch(/^[0-9a-f]{64}$/)
+    expect(body.expectedHash).not.toBe(fakeHash)
+    // No row was recorded — the route bailed before persistence.
+    expect(await findPlanningSnapshot(fakeHash)).toBeNull()
+  })
+
+  test("POST /lock idempotently records: live hash gets recorded then locked on first call", async () => {
+    const liveHash = await computePlanningSnapshotHash(novelId, "v1")
+    expect(await findPlanningSnapshot(liveHash)).toBeNull()
+    const { status } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/planning-snapshot/lock`, {
+        hash: liveHash,
+        lockedBy: { kind: "test" },
+      }),
+    )
     expect(status).toBe(200)
-    expect(await findPlanningSnapshot(fakeHash)).not.toBeNull()
+    expect(await findPlanningSnapshot(liveHash)).not.toBeNull()
   })
 
   test("POST /lock on already-locked → 409 + actualLock metadata", async () => {

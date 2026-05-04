@@ -386,6 +386,9 @@ export interface LockPlanningSnapshotResponse {
     lockedByRef: string | null
     lockedNote: string | null
   }
+  /** Surfaced on 409 when the body's hash != live computed hash. */
+  expectedHash?: string
+  providedHash?: string
 }
 
 export function getCurrentPlanningSnapshot(novelId: string) {

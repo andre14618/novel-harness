@@ -275,6 +275,15 @@ export default function PlanningSnapshotPage() {
                     )}
                   </div>
                 )}
+                {lockResult.expectedHash && lockResult.providedHash && (
+                  <div style={{ color: "#cba", marginTop: 4, fontFamily: "monospace", fontSize: "0.8em" }}>
+                    Live now: {lockResult.expectedHash.slice(0, 16)}…
+                    <br />
+                    You sent: {lockResult.providedHash.slice(0, 16)}…
+                    <br />
+                    Click Refresh to see the live hash, then re-lock.
+                  </div>
+                )}
               </div>
             )}
           </Section>
