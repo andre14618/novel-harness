@@ -162,6 +162,75 @@ describe.skipIf(!reachable)("planning-snapshots persistence", () => {
     expect(locked!.locked_by_kind).toBe("policy")
   })
 
+  // OpenCode review LOW 1 (2026-05-04) — DB-level guard for the one-way
+  // lock. The 039 migration installs a BEFORE UPDATE trigger that blocks
+  // any mutation of lock fields on an already-locked row. These tests
+  // pin the trigger's positive (first lock allowed) and negative
+  // (post-lock mutation blocked) sides.
+  test("DB trigger: lock fields are immutable once locked_at is non-NULL", async () => {
+    const hash = fakeHash("trglock1")
+    await recordPlanningSnapshot({ hash, novelId, version: "v1" })
+    await lockPlanningSnapshot({
+      hash,
+      lockedByKind: "human",
+      lockedByRef: null,
+      lockedNote: "first lock",
+    })
+    // Direct SQL bypasses the application's WHERE locked_at IS NULL
+    // guard. The trigger MUST refuse anyway.
+    let raised: Error | null = null
+    try {
+      await db`UPDATE planning_snapshots
+               SET locked_at = NOW(),
+                   locked_by_kind = 'policy',
+                   locked_note = 'overwrite attempt'
+               WHERE id = ${hash}`
+    } catch (err) {
+      raised = err as Error
+    }
+    expect(raised).not.toBeNull()
+    expect(raised!.message).toContain("already locked")
+    // Row state is preserved.
+    const row = await findPlanningSnapshot(hash)
+    expect(row!.locked_by_kind).toBe("human")
+    expect(row!.locked_note).toBe("first lock")
+  })
+
+  test("DB trigger: clearing locked_at is also blocked", async () => {
+    const hash = fakeHash("trglock2")
+    await recordPlanningSnapshot({ hash, novelId, version: "v1" })
+    await lockPlanningSnapshot({
+      hash,
+      lockedByKind: "human",
+      lockedByRef: null,
+      lockedNote: null,
+    })
+    let raised: Error | null = null
+    try {
+      await db`UPDATE planning_snapshots SET locked_at = NULL WHERE id = ${hash}`
+    } catch (err) {
+      raised = err as Error
+    }
+    expect(raised).not.toBeNull()
+    const row = await findPlanningSnapshot(hash)
+    expect(row!.locked_at).not.toBeNull()
+  })
+
+  test("DB trigger: first lock transition (NULL → non-NULL) is allowed", async () => {
+    const hash = fakeHash("trglock3")
+    await recordPlanningSnapshot({ hash, novelId, version: "v1" })
+    // The application path; the trigger should let this succeed.
+    const ok = await lockPlanningSnapshot({
+      hash,
+      lockedByKind: "human",
+      lockedByRef: null,
+      lockedNote: null,
+    })
+    expect(ok).toBe(true)
+    const row = await findPlanningSnapshot(hash)
+    expect(row!.locked_at).not.toBeNull()
+  })
+
   test("deletePlanningSnapshotsForNovel removes only that novel's rows", async () => {
     const otherNovelId = `${novelId}-other`
     await seedNovel(otherNovelId)
