@@ -865,8 +865,23 @@ export async function listProposalsByStatus(
   executor: Executor = db,
 ): Promise<ProposalRow[]> {
   if (statuses.length === 0) return []
+  // Defensive validation per Codex round-1 review of Package C (LOW 1).
+  // The literal-construction below would mis-parse if a status contained
+  // `,`, `{`, `}`, or backslash. Today every legal status comes from the
+  // closed `ALL_PROPOSAL_STATUSES` enum (no special chars), but a future
+  // schema change could break the assumption silently. Reject anything
+  // outside the canonical set with a typed error so the bug is loud.
+  const validSet = new Set<string>(ALL_PROPOSAL_STATUSES)
+  for (const s of statuses) {
+    if (!validSet.has(s)) {
+      throw new Error(
+        `listProposalsByStatus: status ${JSON.stringify(s)} is not in ALL_PROPOSAL_STATUSES (${ALL_PROPOSAL_STATUSES.join(",")})`,
+      )
+    }
+  }
   // Bun's SQL driver sends JS arrays as a comma-separated string, which
   // Postgres rejects when bound as text[]. Build an explicit literal.
+  // Validation above guarantees no element needs escaping.
   const arrayLiteral = `{${statuses.join(",")}}`
   const rows = (await executor`
     SELECT id, novel_id, source, target_logical_id, proposed_payload,

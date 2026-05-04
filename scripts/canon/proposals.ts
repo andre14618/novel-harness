@@ -179,6 +179,13 @@ async function cmdReject(novelId: string, proposalId: string, argv: string[]): P
   return 0
 }
 
+// Mirror the HTTP bulk-resolve soft cap (`src/orchestrator/canon-proposal-routes.ts`).
+// CLI bulk operations bypass the HTTP route's auth + cap, so we re-impose
+// the same guard here per Codex round-1 review of Package C (MEDIUM 2).
+// Operators can override with `--force` for cases where they truly want
+// to clear a large queue and have already triaged it.
+const CLI_BULK_SOFT_CAP = 200
+
 async function cmdBulkResolve(
   novelId: string,
   status: "approved" | "rejected",
@@ -186,12 +193,20 @@ async function cmdBulkResolve(
 ): Promise<number> {
   const filters = parseCommonFilters(argv)
   const dryRun = argv.includes("--dry-run")
+  const force = argv.includes("--force")
   const note = getNoteArg(argv)
   const rows = await listPendingProposals(novelId)
   const targets = applyClientFilters(rows.map(proposalFromRow), novelId, filters)
   if (targets.length === 0) {
     console.log("(no pending proposals match the filter)")
     return 0
+  }
+  if (!force && targets.length > CLI_BULK_SOFT_CAP) {
+    console.error(
+      `bulk ${status}-all would touch ${targets.length} proposals (> ${CLI_BULK_SOFT_CAP} cap). ` +
+        `Re-run with --force to override, or narrow the filter (--source / --chapter / --planner-only).`,
+    )
+    return 2
   }
   console.log(`${dryRun ? "would " : ""}${status} ${targets.length} proposal(s):`)
   let okCount = 0
@@ -235,8 +250,9 @@ function usage(): never {
       "  bun scripts/canon/proposals.ts list     <novelId> [--status=...] [--source=...] [--chapter=N] [--planner-only]",
       "  bun scripts/canon/proposals.ts approve  <novelId> <proposalId> [--note=...] [--dry-run]",
       "  bun scripts/canon/proposals.ts reject   <novelId> <proposalId> [--note=...] [--dry-run]",
-      "  bun scripts/canon/proposals.ts approve-all <novelId> [--source=...] [--chapter=N] [--planner-only] [--dry-run]",
-      "  bun scripts/canon/proposals.ts reject-all  <novelId> [--source=...] [--chapter=N] [--planner-only] [--dry-run]",
+      "  bun scripts/canon/proposals.ts approve-all <novelId> [--source=...] [--chapter=N] [--planner-only] [--dry-run] [--force]",
+      "  bun scripts/canon/proposals.ts reject-all  <novelId> [--source=...] [--chapter=N] [--planner-only] [--dry-run] [--force]",
+      "      (--force overrides the 200-row soft cap)",
       "  bun scripts/canon/proposals.ts generate <novelId>",
     ].join("\n"),
   )

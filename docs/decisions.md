@@ -10,6 +10,33 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon proposal Codex review round-1 fixes — CLI mass-write guard + status enum hardening (2026-05-03)
+
+**Decision:** Address Codex round-1 Package C MEDIUM 2 + LOW 1 in one commit.
+
+1. **MEDIUM 2 — CLI guard.** `bun scripts/canon/proposals.ts approve-all|reject-all` now refuses to proceed when the matched-target count exceeds the same 200-row soft cap as the HTTP `bulk-resolve` endpoint. Operators can override with `--force` (recorded in usage). The cap mirrors the server-side guard so a CLI invocation can't bypass the only mass-write safeguard added in `032d8c0`.
+
+2. **LOW 1 — status-enum hardening.** `listProposalsByStatus` now validates every input element against `ALL_PROPOSAL_STATUSES` and throws a typed error on mismatch. Today every legal status is from the closed enum (no special chars), but a future schema change could silently break the manual `{...}::text[]` literal construction with values containing `,`, `{`, `}`, or backslash. The defensive validation makes that failure loud at the helper boundary instead of silent at the SQL boundary.
+
+**Why:** Two narrow but real-world failure modes — a CLI operator typing `approve-all` against an unfiltered queue, and a future schema-evolution defect leaking unsafe values through a string-concatenated SQL literal. Both are best caught with bounded defensive checks at the call site rather than relying on layer-1 protection alone.
+
+**Evidence:**
+
+- Manual smoke at terminal: usage output now lists `--force` for bulk subcommands; tsc clean.
+- Full sweep — 292/292 pass / 1,579 expects (no regression).
+- `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927`.
+
+**Counterfactuals considered but rejected:**
+
+- *Use `pg` parameterized arrays via the SQL driver.* Bun's driver doesn't support text-array parameterized binding (the original LOW 1 was discovered via empirical failure with `ANY(${arr})`). The literal-construction is required; defensive validation is the right grain for a closed enum.
+- *Cap at a different number for CLI vs HTTP.* Rejected. Different caps would surprise operators using both surfaces. One cap, one override flag.
+
+**Charter §1 status:** unchanged.
+
+**Lane:** continuation of `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2b.md`. **Codex thread:** `019df0ed-917e-7541-acbc-4c129f0b737f`.
+
+---
+
 ### §Canon proposal Codex review round-1 fix — generate-from-outline validates persisted outlines (2026-05-03)
 
 **Decision:** `POST /api/novel/:id/canon-proposals/generate-from-outline` now validates the persisted outline shape via `z.array(chapterOutlineSchema).safeParse(outlines)` before handing them to the audit. On failure, returns 422 + structured `validationErrors` (top 20 issues with path + message; truncation count when >20).
