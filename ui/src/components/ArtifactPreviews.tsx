@@ -299,11 +299,42 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
   const [input, setInput] = useState("")
   const [sending, setSending] = useState(false)
   const [applying, setApplying] = useState(false)
+  // Phase 3 commit 4 follow-up D — audit-history view. Collapsed by default;
+  // fetches on first expand and refreshes when novelId changes (if visible).
+  // Skip pagination — the MVP renders all rows reverse-chronological.
+  const [showHistory, setShowHistory] = useState(false)
+  const [historyEnvelopes, setHistoryEnvelopes] = useState<ArtifactPatchEnvelope[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState<string | null>(null)
   const logRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight })
   }, [turns])
+
+  // Phase 3 commit 4 follow-up D — fetch audit history when revealed.
+  // Re-fetches on every novelId change so the history reflects the active
+  // novel even when the panel is already expanded. The fetch returns ALL
+  // statuses; the renderer filters to non-pending (pending rows are
+  // already shown in the active batch above so duplicating them here
+  // would be noisy).
+  const fetchHistory = async () => {
+    setHistoryLoading(true)
+    setHistoryError(null)
+    try {
+      const res = await listProposalEnvelopes(novelId, { status: "all", limit: 200 })
+      setHistoryEnvelopes(res.envelopes ?? [])
+    } catch (err) {
+      setHistoryError((err as Error).message ?? String(err))
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (showHistory) void fetchHistory()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showHistory, novelId])
 
   // Phase 3 commit 4 follow-up C — seed pending envelopes on session open.
   // Without this, prior-session pending proposals are invisible until the
@@ -615,6 +646,71 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
         </div>
       )}
 
+      {/* Phase 3 commit 4 follow-up D — audit-history view. Collapsed by
+          default; opening fetches `?status=all` and renders non-pending
+          rows with status badge + resolved-at + operatorNote (if any) +
+          parentEnvelopeId reference (if any). Read-only — no Approve/
+          Reject buttons. Pending rows are filtered out because they're
+          already rendered in the active batch above. */}
+      <div style={{ marginBottom: 8, fontSize: "0.78rem" }}>
+        <button
+          onClick={() => setShowHistory(s => !s)}
+          style={{
+            background: "transparent",
+            color: "#9ab",
+            border: "1px solid #345",
+            padding: "2px 8px",
+            borderRadius: 3,
+            fontSize: "0.78rem",
+            cursor: "pointer",
+          }}
+          title={showHistory ? "Hide resolved-envelope audit history" : "Show resolved envelopes from this novel's history"}
+        >
+          {showHistory ? "▾ Hide audit history" : "▸ Show audit history"}
+        </button>
+      </div>
+
+      {showHistory && (
+        <div style={{ border: "1px solid #234", borderRadius: 4, padding: 8, marginBottom: 8, background: "#0c1218" }}>
+          <div style={{ fontSize: "0.8em", marginBottom: 6, fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>Audit history (resolved envelopes)</span>
+            <button
+              onClick={() => fetchHistory()}
+              disabled={historyLoading}
+              style={{
+                background: "#1a2530",
+                border: "1px solid #2c3e4f",
+                color: "#bcd",
+                padding: "1px 6px",
+                borderRadius: 2,
+                fontSize: "0.72rem",
+                cursor: historyLoading ? "not-allowed" : "pointer",
+              }}
+            >
+              {historyLoading ? "Loading…" : "Refresh"}
+            </button>
+          </div>
+          {historyError && (
+            <div style={{ color: "#f88", fontSize: "0.78rem", marginBottom: 6 }}>
+              Failed to load history: {historyError}
+            </div>
+          )}
+          {(() => {
+            const resolved = historyEnvelopes.filter(e => e.status !== "pending")
+            if (resolved.length === 0 && !historyLoading && !historyError) {
+              return <div style={{ color: "#789", fontSize: "0.78rem" }}>No resolved envelopes yet for this novel.</div>
+            }
+            return (
+              <ul style={{ margin: 0, paddingLeft: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 4 }}>
+                {resolved.map(env => (
+                  <HistoryRow key={env.id} envelope={env} charName={charName} />
+                ))}
+              </ul>
+            )
+          })()}
+        </div>
+      )}
+
       {/* Legacy apply-all fallback for older servers that don't return
           envelopes. Phase 3 commit 1 made envelopes additive so this path
           stays in for back-compat. The per-envelope path is preferred when
@@ -650,6 +746,83 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
       </div>
     </div>
   )
+}
+
+/**
+ * Phase 3 commit 4 follow-up D — audit-history row. Read-only.
+ *
+ * Status badge color matches semantics: approved=green, rejected=red,
+ * modified=blue, shadowed/expired=gray. parentEnvelopeId is rendered as
+ * a short-prefix text reference; clicking is not wired (no modal, no
+ * scroll-to) — just enough provenance to recognize a regen chain.
+ */
+function HistoryRow({
+  envelope,
+  charName,
+}: {
+  envelope: ArtifactPatchEnvelope
+  charName: (id: string) => string
+}) {
+  const statusStyle = historyStatusBadgeStyle(envelope.status)
+  return (
+    <li
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        padding: "4px 6px",
+        background: "#101820",
+        border: "1px solid #1f2c38",
+        borderRadius: 3,
+        fontSize: "0.78rem",
+      }}
+    >
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+        <span
+          style={{
+            ...statusStyle,
+            padding: "1px 6px",
+            borderRadius: 2,
+            fontSize: "0.7rem",
+            fontWeight: "bold",
+            textTransform: "uppercase",
+          }}
+        >
+          {envelope.status}
+        </span>
+        <span style={{ color: "#bcd" }}>{summarizePatch(envelope.payload, charName)}</span>
+        {envelope.resolvedAt && (
+          <span style={{ color: "#678", fontSize: "0.72rem", marginLeft: "auto" }}>
+            {new Date(envelope.resolvedAt).toLocaleString()}
+          </span>
+        )}
+      </div>
+      {envelope.source.parentEnvelopeId && (
+        <div style={{ color: "#789", fontSize: "0.7rem" }}>
+          regen of{" "}
+          <code style={{ background: "#1a2530", padding: "0 4px", borderRadius: 2 }}>
+            {envelope.source.parentEnvelopeId.slice(-16)}
+          </code>
+        </div>
+      )}
+    </li>
+  )
+}
+
+function historyStatusBadgeStyle(status: string): React.CSSProperties {
+  switch (status) {
+    case "approved":
+      return { background: "#1f3a26", color: "#cfe", border: "1px solid #2c5a36" }
+    case "rejected":
+      return { background: "#3a1f1f", color: "#fce", border: "1px solid #5a2c2c" }
+    case "modified":
+      return { background: "#1f2e3a", color: "#cef", border: "1px solid #2c4a5a" }
+    case "shadowed":
+    case "expired":
+      return { background: "#2a2a2a", color: "#aaa", border: "1px solid #444" }
+    default:
+      return { background: "#222", color: "#999", border: "1px solid #333" }
+  }
 }
 
 function summarizePatch(p: AdjusterPatch, charName: (id: string) => string): string {
