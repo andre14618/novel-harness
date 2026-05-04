@@ -245,11 +245,29 @@ export default function PlanningSnapshotPage() {
               disabled={locking}
             />
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <button onClick={handleLock} disabled={locking}>
+              <button
+                onClick={handleLock}
+                // OpenCode review LOW (2026-05-04): when the live state
+                // is already locked at the same hash, the "Re-lock"
+                // button always returned 409 ("snapshot already
+                // locked") because `WHERE locked_at IS NULL` rejects
+                // re-lock attempts. Disable in that case to make the
+                // no-op nature obvious; the operator's only meaningful
+                // next action is Refresh (or planning edits → drift).
+                disabled={
+                  locking ||
+                  (snapshot.lockedSnapshot !== null && !snapshot.drift)
+                }
+                title={
+                  snapshot.lockedSnapshot !== null && !snapshot.drift
+                    ? "Already locked at this hash. Edit planning or wait for drift, then re-lock."
+                    : undefined
+                }
+              >
                 {locking
                   ? "Locking…"
                   : snapshot.lockedSnapshot && !snapshot.drift
-                    ? "Re-lock current state"
+                    ? "Locked (no action)"
                     : snapshot.drift
                       ? "Lock drifted state"
                       : "Lock for drafting"}
