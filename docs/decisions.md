@@ -10,6 +10,41 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 4 commit 2 — planning_snapshots persistence (2026-05-04)
+
+**Decision:** Add a `planning_snapshots` table (sql/038) and typed helpers for record/find/list/lock/getLocked. The id IS the snapshot hash from commit 1; the lock pointer is a one-way nullable `locked_at` field. No route + no UI in this commit — those are commits 3-4.
+
+**Why id = hash (composite of novel + state):** The hash from commit 1 is already a deterministic fingerprint over (world, characters, spine, outlines). Using it as the PK means: (a) `recordPlanningSnapshot` is naturally idempotent — if the planning state hasn't changed, the row exists from a prior call and `ON CONFLICT (id) DO NOTHING` is a no-op; (b) lookup-by-hash is the natural query for drift detection (commit 5: "is the live hash still the locked hash?"); (c) cross-novel hash collisions are astronomically unlikely (sha256 over canonical JSON), and even if one occurred, it would mean two novels reached identical (world, characters, spine, outlines) states — which is fine semantically because the snapshot's meaning is "this exact planning state."
+
+**Why one-way lock (no unlock):** Audit-trail integrity. A locked snapshot represents a moment when the operator (or a policy decision) said "drafting may proceed against this state." Allowing unlock would let post-hoc edits invalidate that record, defeating the snapshot's purpose. Operators who want to revise can record + lock a new snapshot; the old locked snapshot stays in the audit trail. Multiple locked snapshots per novel is intended (chapter 1 locked → planning revised → chapter 2 locked under a different snapshot).
+
+**Why getLockedPlanningSnapshot returns the most recent:** Drafting drift detection needs to know "what's the active locked target right now." That's the most-recently-locked, not the chronologically-first. Older locked snapshots stay queryable via `listPlanningSnapshots` for the audit view (commit 4); only the active target gates the drafting decision (commit 5).
+
+**Why no FK to novels:** Matches the canon_* / chapter_revisions / proposal_envelopes convention. Orphan cleanup is its own concern; the indexes scope-by-novel-id make orphan rows harmless to query performance. `deletePlanningSnapshotsForNovel` is the test-helper / explicit cleanup path.
+
+**Concrete shape:**
+- `sql/038_planning_snapshots.sql`: table + 2 indexes. No CHECK constraints (the helpers control access; raw inserts are unusual).
+- `src/db/planning-snapshots.ts`: 6 helpers + the row interface. Executor-threadable (every helper accepts `executor: Executor = db`).
+- `src/db/planning-snapshots.test.ts`: 9 tests covering each helper plus the round-trip + idempotency invariants.
+
+**Evidence:**
+- `bun test src/db/planning-snapshots.test.ts` — 9/9 pass / 27 expects.
+- `bunx tsc --noEmit` — clean.
+- Migration applied locally: `Applied: 038_planning_snapshots.sql`.
+- Diff scope: 3 files (+380/-0). Pure additive.
+
+**Counterfactuals considered but rejected:**
+
+- *Allow `unlock` (set locked_at = NULL on a locked row).* Rejected — see "Why one-way lock." Audit integrity matters more than ergonomics; the workaround (record + lock a new snapshot) is the same number of operator actions.
+- *Store the snapshot artifacts in `planning_snapshots.artifacts_json`.* Rejected. (a) Bytes per row would explode for novels with lots of outlines; (b) the artifacts are queryable from the live tables (world_bibles, characters, story_spines, chapter_outlines) at any point, so storing them again would violate single-source-of-truth for planning state. If a future drift-detection layer needs the EXACT artifact bytes that were locked (to render a diff), it can recompute by walking back to the last canon-proposal-resolve event before lock_at — but YAGNI for v1.
+- *Use a single sentinel "locked snapshot per novel" (UNIQUE constraint on (novel_id) WHERE locked_at IS NOT NULL).* Rejected. Would require unlock-or-replace semantics; the multiple-locked-rows model lets the audit trail show the lock history.
+- *FK to `novels(id)`.* Rejected — see "Why no FK to novels." Convention across the canon_* / chapter_revisions / proposal_envelopes family.
+- *Track a separate `recorded_by` field alongside `locked_by`.* Rejected. Recording is mostly automatic (the planning phase emits a snapshot on completion; the lock route emits one if needed). Only the lock action carries operator intent worth auditing per-actor.
+
+**Ongoing:** Phase 4 progress: commits 1-2 done (compute + persistence). Remaining: commit 3 (lock-snapshot route + `GET /:id/planning-snapshot/current` returning live hash + mechanical-health audit), commit 4 (UI panel — collapsible groups for the 4 artifact slices + mechanical-health badges + Lock button), commit 5 (replay-on-stale enforcement at draft start: read locked hash → recompute → refuse-to-draft on drift unless operator explicitly re-locks). Phase 3 commit 5b (LLM-firing quick actions) still parked behind transport-stub infra.
+
+---
+
 ### §Phase 4 commit 1 — computePlanningSnapshotHash tracer-bullet (2026-05-04)
 
 **Decision:** Ship the smallest tracer-bullet for Phase 4 (Planning Snapshot Review): a pure compute helper that hashes (world, characters, spine, outlines) deterministically via `stableHash`. No persistence, no route, no UI, no replay-on-stale enforcement — those are subsequent commits.
