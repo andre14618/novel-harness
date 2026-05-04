@@ -743,6 +743,45 @@ export async function insertProposal(params: {
   `
 }
 
+/**
+ * Idempotent proposal insert. Returns `true` if a new row was inserted, `false`
+ * if a row with the given `id` already existed. Backed by `ON CONFLICT (id)
+ * DO NOTHING` so re-running a proposal-generation service against the same
+ * source artifact is a no-op write, regardless of the existing proposal's
+ * status (pending / approved / rejected / modified).
+ *
+ * Designed for caller-supplied deterministic ids — e.g., the
+ * `planner:${novelId}:${sourceItemId}:${schemaVersion}` template used by the
+ * planner-canon-proposals harness service. The deterministic id IS the
+ * idempotency key; primary-key collision is the natural guard.
+ */
+export async function insertProposalIfAbsent(params: {
+  id: string
+  novelId: string
+  source: ProvenanceSource
+  targetLogicalId: string | null
+  proposedPayload: CanonUpdateProposal["proposedFact"]
+  status: ProposalStatus
+  operatorNote: string | null
+  createdAt: string
+}, executor: Executor = db): Promise<boolean> {
+  const rows = (await executor`
+    INSERT INTO canon_proposals (
+      id, novel_id, source, target_logical_id, proposed_payload,
+      status, operator_note, created_at
+    ) VALUES (
+      ${params.id}, ${params.novelId}, ${params.source},
+      ${params.targetLogicalId},
+      ${JSON.stringify(params.proposedPayload)}::jsonb,
+      ${params.status}, ${params.operatorNote},
+      ${params.createdAt}::timestamptz
+    )
+    ON CONFLICT (id) DO NOTHING
+    RETURNING id
+  `) as Array<{ id: string }>
+  return rows.length > 0
+}
+
 export async function findProposal(
   proposalId: string,
   executor: Executor = db,

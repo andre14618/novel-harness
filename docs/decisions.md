@@ -10,6 +10,33 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Collaborative proposal workflow Phase 1 cleared — planner source items become pending Canon proposals (2026-05-03)
+
+**Decision:** Phase 1 of `docs/designs/collaborative-proposal-workflow.md` ships. New harness service `src/harness/planner-canon-proposals.ts` converts mechanically-valid planner source items (`fact`/`knowledge`/`state` rows on `ChapterOutline`) into pending `CanonUpdateProposal` rows backed by `PostgresCanonSubstrate`. The deterministic id template `planner:<novelId>:<sourceItemId>:<schemaVersion>` plus a new `insertProposalIfAbsent` (`ON CONFLICT (id) DO NOTHING`) make the service idempotent: a second run on the same outlines is a 0-row write regardless of operator-resolution status. Mechanical-gate fail-closed (via `runPlannerCanonDeltaAudit`) prevents proposal generation on duplicate / invalid IDs. The fact-only proposal lifecycle cleanly carries knowledge/state because `CanonFact.kind` already enumerates `knowledge_change` and `character_state` — no proposal-table refactor needed.
+
+**Why:** the recommended-next-lane block in the design doc (and the lane queue's stop gate) named this exact slice as the smallest useful tracer-bullet for the proposal-flow architecture. It exercises the substrate cleared by §"Canon Substrate (charter §1) cleared" + hardening pass without expanding scope into review API / UI / autonomous policy. Phase 2 (review API + minimal Studio panel) is now the next narrow lane.
+
+**Evidence:**
+
+- Tests — `bun test src/harness/planner-canon-proposals.test.ts` 18/18 pass / 440 expect() calls. Coverage:
+  - Pure mapping tier: 30-source-item fixture maps to 30 proposals with deterministic ids; per-kind FactKind + ProvenanceSource + provenance round-trip; gate fail-closed on duplicate ids, orphan obligations, empty outlines.
+  - DB-backed tier (skipIf-unreachable): first run inserts 30 / second run inserts 0 / row count stays 30; pending proposals invisible in `factsAsOfChapter` / `entitiesAsOfChapter` / `characterStatesAsOfChapter` / `promisesAsOfChapter`; approve → `committedFact.approvalStatus="human-approved"` and visible in canon reads; reject → still absent; rejected/approved status survives reruns; per-novel id namespacing keeps two novels with overlapping source-item ids disjoint in `canon_proposals`.
+- Canon equivalence suite stays green: `bun test src/canon/` 196/196 pass / 446 expect() calls.
+- `bunx tsc --noEmit` clean.
+- `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927, recallGateClear=YES` (no §0a regression).
+
+**Counterfactuals considered but rejected:**
+
+- *Add a generic proposal-table-per-type refactor before Phase 1.* Rejected by the design doc's Phase-1 narrowing: `FactKind` already covers all three planner source-item kinds, so the existing fact-only proposal lifecycle handles the tracer bullet without a schema migration. Typed `Entity` / `CharacterState` / `StoryPromise` proposal payloads are deferred to a follow-on charter.
+- *Auto-commit planner source items directly to canon (skip the proposal step).* Rejected per user direction after Step 2C — the auto-commit path is too likely to become a blocking rabbit hole on calibration; collaborative ideation/editing with reliable mechanics is the more useful product direction.
+- *Use random / sequential proposal ids.* Rejected — it would block idempotency. Deterministic `(novelId, sourceItemId, schemaVersion)`-keyed ids let `INSERT … ON CONFLICT DO NOTHING` handle reruns without a separate "has this source item been proposed?" lookup, and they let an operator's reject/approve resolution survive a planner replay.
+
+**Charter §1 status:** stays *cleared*. The hardening pass already covered atomicity / invariants; this lane is the first non-test consumer of the substrate's write-side and exercises it cleanly.
+
+**Lane:** `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-1.md`. **Design:** `docs/designs/collaborative-proposal-workflow.md` (Phase 1 marked *CLEARED 2026-05-03*; Recommended Next Lane updated to Phase 2).
+
+---
+
 ### §Canon Substrate (charter §1) hardening pass — transactional commits + schema invariants (2026-05-03)
 
 **Decision:** Following the Codex round-2 review of `ba72e09`, four hardening changes land before charter §1 stays *cleared*: transactional atomicity for proposal/canon writes, partial-unique active-version indexes, a DB-level guard against re-resolving a non-pending proposal, and a CHECK constraint pinning `confidence` to `[0, 1]`. Plus a docs/scope narrowing: proposals cover `CanonFact` only in §1; entity/state/promise canon enters via direct seed.
