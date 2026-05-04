@@ -47,9 +47,10 @@
  */
 
 import { stableHash } from "./proposal-envelope"
-import { getWorldBible, getCharacters, getStorySpine } from "../db/world"
-import { getChapterOutlines } from "../db/outlines"
+import db from "../db/connection"
 import type { WorldBible, CharacterProfile, StorySpine, ChapterOutline } from "../types"
+
+type Executor = typeof db
 
 export interface PlanningSnapshotInputs {
   world: WorldBible | null
@@ -84,24 +85,90 @@ export function computePlanningSnapshotHashFromInputs(
 }
 
 /**
- * DB-bound entrypoint: reads the four artifact slices and computes the
- * snapshot hash. Missing world / spine / outlines surface as null /
- * empty (not an error) — a fresh novel pre-planning still has a valid
- * (mostly-null) snapshot, which keeps the lock-snapshot-anyway path
- * straightforward.
+ * DB-bound entrypoint: reads the four artifact slices under a single
+ * read-only transaction and computes the snapshot hash. Missing world /
+ * spine / outlines surface as null / empty (not an error) — a fresh
+ * novel pre-planning still has a valid (mostly-null) snapshot, which
+ * keeps the lock-snapshot path straightforward.
+ *
+ * **Atomicity.** Reads run inside `db.begin(tx => …)` so the four
+ * slices see a consistent state — a concurrent planning write between
+ * reads cannot produce a "mixed" hash that nobody actually intended.
+ *
+ * **Error handling.** Earlier versions wrapped each accessor in
+ * `.catch(() => null|[])`, which silently masked transient DB errors
+ * as "fresh novel" (a real bug surface — a connection drop on one
+ * read would yield a hash that doesn't reflect actual planning
+ * state). The reads are now done inline via the executor; only the
+ * "row not present" case (rows.length === 0) coerces to null /
+ * empty. Real DB errors propagate to the caller, which surfaces them
+ * as 500 in the route layer instead of locking a phantom hash.
  */
 export async function computePlanningSnapshotHash(
   novelId: string,
   version: PlanningSnapshotVersion = "v1",
 ): Promise<string> {
-  const [world, characters, spine, outlines] = await Promise.all([
-    getWorldBible(novelId).catch(() => null),
-    getCharacters(novelId).catch(() => [] as CharacterProfile[]),
-    getStorySpine(novelId).catch(() => null),
-    getChapterOutlines(novelId).catch(() => [] as ChapterOutline[]),
-  ])
-  return computePlanningSnapshotHashFromInputs(
-    { world, characters, spine, outlines },
-    version,
-  )
+  return await db.begin(async (tx: Executor) => {
+    const [world, characters, spine, outlines] = await Promise.all([
+      readWorldBibleOrNull(tx, novelId),
+      readCharactersOrdered(tx, novelId),
+      readStorySpineOrNull(tx, novelId),
+      readChapterOutlinesOrdered(tx, novelId),
+    ])
+    return computePlanningSnapshotHashFromInputs(
+      { world, characters, spine, outlines },
+      version,
+    )
+  })
+}
+
+// ── Internal accessor helpers ───────────────────────────────────────────
+//
+// These read the four planning slices through the supplied executor so
+// `computePlanningSnapshotHash` can run them under one tx. The "or null"
+// shape distinguishes "no row exists for this novel" (legit fresh-novel
+// state — return null/empty) from real DB errors (which propagate to the
+// caller; we never silently coerce them to "fresh novel").
+
+async function readWorldBibleOrNull(
+  executor: Executor,
+  novelId: string,
+): Promise<WorldBible | null> {
+  const rows = (await executor`
+    SELECT content_json FROM world_bibles WHERE novel_id = ${novelId}
+  `) as { content_json: WorldBible }[]
+  return rows.length > 0 ? rows[0].content_json : null
+}
+
+async function readCharactersOrdered(
+  executor: Executor,
+  novelId: string,
+): Promise<CharacterProfile[]> {
+  // ORDER BY id mirrors `db/world.ts:getCharacters` (Codex
+  // conditioning-floor leak #3 keeps prompt rendering stable across
+  // A/B arms; the snapshot hash inherits the same constraint).
+  const rows = (await executor`
+    SELECT profile_json FROM characters WHERE novel_id = ${novelId} ORDER BY id
+  `) as { profile_json: CharacterProfile }[]
+  return rows.map(r => r.profile_json)
+}
+
+async function readStorySpineOrNull(
+  executor: Executor,
+  novelId: string,
+): Promise<StorySpine | null> {
+  const rows = (await executor`
+    SELECT content_json FROM story_spines WHERE novel_id = ${novelId}
+  `) as { content_json: StorySpine }[]
+  return rows.length > 0 ? rows[0].content_json : null
+}
+
+async function readChapterOutlinesOrdered(
+  executor: Executor,
+  novelId: string,
+): Promise<ChapterOutline[]> {
+  const rows = (await executor`
+    SELECT outline_json FROM chapter_outlines WHERE novel_id = ${novelId} ORDER BY chapter_number
+  `) as { outline_json: ChapterOutline }[]
+  return rows.map(r => r.outline_json)
 }
