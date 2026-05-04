@@ -6235,3 +6235,59 @@ Reject flow persists envelope status only. Missing draft → 404; beat-target �
 - Phase 6 (Approval Policy Engine) can now treat the prose-edit apply path as production-shape — the policy evaluator calls `POST /prose-edits/resolve` (or its analog in proposal-envelope-routes.ts for artifact_patch) with policy-decided status, and the same atomic precondition + persist contract holds.
 
 ---
+
+### L59 — Phase 5 commit 5: lint-fix → prose_edit converter (Phase 5 close) (2026-05-04, exp #467)
+
+**Decision:** Convert deterministic lint fixes into `ProseEditEnvelope`s as a pure helper module under `src/canon/`. Phase 5 commit 4 shipped the apply route; this commit is the producer side. Closes Phase 5 of the collaborative-proposal-workflow design.
+
+**Why:** Phase 5's design lists "convert existing deterministic lint fixes into proposal cards where useful" as a work item. Without this, the only producer of `ProseEditEnvelope`s would be a future LLM editorial module — the deterministic fixes that already run inline in the drafting pipeline would never surface as review-able cards. With the converter, the operator can pick "apply with review" instead of "auto-apply" for any deterministic fix; the resolve route from commit 4 is the apply path.
+
+**Design — span computation contract:**
+
+1. `prose.indexOf(issue.sentence)` — first sentence occurrence wins. The lint subsystem doesn't track which occurrence of a duplicated sentence the issue refers to; the deterministic fixer also takes the first one, so this matches.
+2. Within the sentence, locate the FIRST case-insensitive occurrence of `issue.match`. The `.match` field carries the canonical-case form from the lint pattern; the prose surface may differ in case. Lint patterns use the `i` flag, so case-insensitive locate keeps the converter consistent with detection.
+3. Sanity-check: `prose.slice(start, end).toLowerCase() === issue.match.toLowerCase()`. This guards against the rare drift case where the sentence appeared earlier in the prose with a different surface. Mismatch → drop the fix (mirrors the deterministic fixer's conservative `result.indexOf(issue.sentence) === -1` bail).
+
+**Categories handled:**
+
+- **DETERMINISTIC_FIXES rule list** (FILLER_PHRASE, REDUNDANT_ADVERB_VERB, REDUNDANT_BODY, FILTER_WORD, HEDGE_QUALIFIER, EMPTY_TRANSITION, SAID_BOOKISM verbs in the closed list) → rule's fix function determines replacement; converter emits a span proposal at the located offsets.
+- **SAID_BOOKISM fallback** (verb NOT in the deterministic rule list, e.g., "yelled") → emits "said" as replacement IFF the sentence has dialogue quote characters (`"` or `“”`). Mirrors `applyDeterministicFixes`'s `if (!didFix)` branch.
+
+**Categories filtered (return null):**
+
+- RHYTHM_MONOTONY / PARAGRAPH_HOMOGENEITY — structural rewrites that need LLM context, not deterministic span replacement.
+- Unknown categories.
+- Sentence not present in prose (drift since detection).
+- Said-bookism without dialogue quotes when the verb isn't in the deterministic rule list.
+
+**Why not run `applyDeterministicFixes` and diff?** That function mutates a copy and returns a count, not per-issue spans. Diffing after the fact loses the issue→span correspondence when multiple fixes touch the same sentence and doesn't compose if the operator approves only some. Computing spans before any fix lands keeps every proposal addressable independently.
+
+**Why all envelopes share one precondition.hash?** The producer captures one snapshot of the prose at the time it ran. Once the first envelope applies, the chapter draft moves to version+1 with a different hash; subsequent envelopes against the old hash 409 (stale) on the resolve route. The producer is expected to re-run on the new draft to re-propose. This is the correct behavior — partial state from one batch shouldn't auto-roll-forward to the next.
+
+**Alternatives rejected:**
+
+- *Compose the converter into `applyDeterministicFixes` (one function, two modes: apply vs. propose).* Rejected — the inline-fix path is a separate workflow that writes through immediately; the propose path is review-before-apply and routes through the resolve API. Coupling them would muddy the responsibility boundary.
+- *Emit envelopes for RHYTHM_MONOTONY by capturing the relevant span and asking the LLM to fill in the replacement at proposal time.* Rejected — the existing rhythm fixer iterates over windows with feedback, not a single pass; turning that into one envelope-with-LLM-replacement proposal misrepresents the shape. Better to produce a separate LLM-editorial module that emits envelopes for these structural cases (its own follow-up).
+- *Emit beat-target envelopes (e.g., for paragraph-level rewrites).* Rejected — no deterministic rule produces them today, and beat-target apply is itself deferred from commit 4.
+
+**Tests** (`src/canon/lint-to-prose-edit.test.ts`, 21 pass / 71 expects):
+
+- 4 deterministic-rule round-trips (FILLER_PHRASE, REDUNDANT_BODY, FILTER_WORD, EMPTY_TRANSITION) — each confirms the located span on prose matches `issue.match` and the replacement is what the rule emits.
+- 3 said-bookism cases — `exclaimed` in dialogue → `said`, `yelled` (non-rule-list) without quotes → null, `said softly` adverb form → `said`.
+- 4 non-fixable filters — RHYTHM_MONOTONY, PARAGRAPH_HOMOGENEITY, unknown category, sentence not in prose.
+- 2 multi-sentence span correctness tests — first sentence occurrence used; later match in a sentence located correctly.
+- 2 single-issue proposal builder tests — chapterRef + replacement + rationale + draftVersion.
+- 6 batch tests — multi-issue parallel envelopes; non-fixable filtered silently; empty input → empty output; parentEnvelopeId surfaces; distinct spans for distinct issues at same category; one shared sha256 hash across envelopes.
+
+`bun test src/canon` 302/302 pass / 749 expects. Server `tsc --noEmit` clean. exp #467.
+
+**Documentation:** `docs/current-state.md` Current Session 2026-05-04 gains a Phase 5 commit 5 bullet. `docs/sessions/lane-queue.md` Phase 5 §Next entry updated to "fully done"; §Completed gains an entry. Commit's `docs-impact: pending` marker closed.
+
+**Ongoing implications:**
+
+- **Phase 5 is fully done.** Schemas (1) + tracer-bullet LLM producer (2) + persistence helpers (3) + apply route (4) + lint converter (5) all land. Production wiring (when this converter fires vs. the existing inline `applyDeterministicFixes`, which lint-categories the operator wants in proposal mode vs. auto-apply mode) is deferred — it's a configuration question that depends on the UI surface and Phase 6 policy.
+- **Phase 6 (Approval Policy Engine)** can now operate over four envelope kinds (artifact_patch, canon_update, prose_edit, editorial_flag) with a uniform compare-and-apply contract. The policy evaluator's input is the envelope; its output is a status decision; the corresponding resolve route applies it. No more per-kind policy paths.
+- **The LLM-fix producers (RHYTHM_MONOTONY / PARAGRAPH_HOMOGENEITY → prose_edit envelopes) are the natural next editorial expansion** — they'd parallel commit 5's shape but emit LLM-rewritten replacements for structural categories. Out of scope for this lane.
+- **Beat-target apply (commit 4 deferred follow-up)** remains the most-cited gap. A beat-aware lint fix would compute the beat's [start, end) span on the rendered prose at proposal time — not currently possible without a beat-offset map on the draft, which the runtime doesn't persist.
+
+---
