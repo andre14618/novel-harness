@@ -183,17 +183,46 @@ function ProposalRow({
             </div>
           </div>
         ) : (
-          <>
-            <div style={{ color: "#dce" }}>{fact.text}</div>
-            <div style={{ color: "#888", fontSize: "0.78rem", marginTop: 2 }}>
-              {formatProvenance(fact.provenance)}
-            </div>
-            {proposal.operatorNote && (
-              <div style={{ color: "#9ac", fontSize: "0.74rem", marginTop: 4, fontStyle: "italic" }}>
-                note: {proposal.operatorNote}
-              </div>
-            )}
-          </>
+          (() => {
+            // Codex round-3 MEDIUM: for `modified` rows, show the
+            // modifiedFact as the primary payload (that is what entered
+            // canon) and demote proposedFact to a ghost-italic "original"
+            // line so the audit history reflects what was actually
+            // committed. Without this the audit tab silently misstates
+            // history and can drive follow-up decisions from stale text.
+            const showModified =
+              proposal.status === "modified" && proposal.modifiedFact !== undefined
+            const primary = showModified ? proposal.modifiedFact! : fact
+            return (
+              <>
+                <div style={{ color: "#dce" }}>{primary.text}</div>
+                <div style={{ color: "#888", fontSize: "0.78rem", marginTop: 2 }}>
+                  {formatProvenance(primary.provenance)}
+                </div>
+                {showModified && (
+                  <div
+                    style={{
+                      color: "#666",
+                      fontSize: "0.74rem",
+                      marginTop: 4,
+                      padding: "3px 6px",
+                      borderLeft: "2px solid #3d4356",
+                      background: "#11141c",
+                      fontStyle: "italic",
+                    }}
+                    title="Original proposed text before the operator modified the row."
+                  >
+                    original: {fact.text}
+                  </div>
+                )}
+                {proposal.operatorNote && (
+                  <div style={{ color: "#9ac", fontSize: "0.74rem", marginTop: 4, fontStyle: "italic" }}>
+                    note: {proposal.operatorNote}
+                  </div>
+                )}
+              </>
+            )
+          })()
         )}
       </td>
       <td style={{ whiteSpace: "nowrap", verticalAlign: "top" }}>
