@@ -25,6 +25,7 @@ import db from "../db/connection"
 import { dbReachable } from "../db/test-helpers"
 import * as canonDb from "../db/canon-substrate"
 import {
+  autogenPlannerProposalsAfterPlanning,
   buildPlannerCanonProposals,
   generatePlannerCanonProposals,
   listPendingPlannerProposals,
@@ -455,5 +456,43 @@ describe.skipIf(!reachable)("generatePlannerCanonProposals (DB-backed)", () => {
     await sub.loadSnapshot(novelId, 1)
     const ids = sub.factsAsOfChapter(novelId, 1).map((f) => f.id)
     expect(ids).toContain("fact-c1-f2")
+  })
+
+  // ── autogenPlannerProposalsAfterPlanning (Phase 1.5 pipeline auto-wire) ──
+
+  test("autogenPlannerProposalsAfterPlanning returns counts and never throws on clean gate", async () => {
+    const outlines = makeOutlines()
+    const result = await autogenPlannerProposalsAfterPlanning(novelId, outlines)
+    expect(result.error).toBeNull()
+    expect(result.gateClear).toBe(true)
+    expect(result.created).toBe(30)
+    expect(result.skipped).toBe(0)
+
+    // Idempotent: rerun produces 0 created.
+    const second = await autogenPlannerProposalsAfterPlanning(novelId, outlines)
+    expect(second.error).toBeNull()
+    expect(second.gateClear).toBe(true)
+    expect(second.created).toBe(0)
+    expect(second.skipped).toBe(30)
+  })
+
+  test("autogenPlannerProposalsAfterPlanning returns gateClear=false on broken graph (does not throw)", async () => {
+    const ch1 = makeChapter(1)
+    const ch2 = makeChapter(2)
+    ch2.establishedFacts[0].id = ch1.establishedFacts[0].id
+    ch2.scenes[0].obligations.mustEstablish[0].sourceId =
+      ch1.establishedFacts[0].id
+
+    const result = await autogenPlannerProposalsAfterPlanning(novelId, [ch1, ch2])
+    expect(result.error).toBeNull()
+    expect(result.gateClear).toBe(false)
+    expect(result.created).toBe(0)
+  })
+
+  test("autogenPlannerProposalsAfterPlanning short-circuits empty outlines", async () => {
+    const result = await autogenPlannerProposalsAfterPlanning(novelId, [])
+    expect(result.error).toBe("no outlines")
+    expect(result.gateClear).toBe(false)
+    expect(result.created).toBe(0)
   })
 })

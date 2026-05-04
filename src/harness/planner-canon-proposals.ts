@@ -266,6 +266,47 @@ export async function generatePlannerCanonProposals(
 }
 
 /**
+ * Pipeline-boundary auto-wire: run `generatePlannerCanonProposals` against
+ * the novel's persisted outlines and swallow errors so a transient DB blip
+ * cannot block the planning phase from advancing to drafting. Used by
+ * `runPlanningPhase` immediately after `saveChapterOutline` + `updateTotalChapters`.
+ *
+ * Idempotent by construction (Phase 1's deterministic id + ON CONFLICT
+ * DO NOTHING). A re-run of planning produces 0 new rows even though the
+ * helper fires on every planning-phase exit.
+ *
+ * Returns counts for the caller to log; never throws. The internal
+ * `generatePlannerCanonProposals` already emits a `canon-proposal-generate-summary`
+ * trace event on both gate paths, so observability is automatic — the
+ * caller's log is just for stdout.
+ */
+export async function autogenPlannerProposalsAfterPlanning(
+  novelId: string,
+  outlines: readonly ChapterOutline[],
+): Promise<{
+  created: number
+  skipped: number
+  gateClear: boolean
+  error: string | null
+}> {
+  if (outlines.length === 0) {
+    return { created: 0, skipped: 0, gateClear: false, error: "no outlines" }
+  }
+  try {
+    const result = await generatePlannerCanonProposals(novelId, outlines)
+    return {
+      created: result.created.length,
+      skipped: result.skipped.length,
+      gateClear: result.gateClear,
+      error: null,
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return { created: 0, skipped: 0, gateClear: false, error: msg }
+  }
+}
+
+/**
  * Convenience for consumers (review UI, smoke scripts) that just want the
  * pending planner-origin proposals for a novel without re-generating. Filters
  * `listPendingProposals` to rows whose id matches the planner deterministic

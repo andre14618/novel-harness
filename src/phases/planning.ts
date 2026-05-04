@@ -20,6 +20,7 @@ import { displayPhaseHeader, presentForApproval, formatChapterOutlines } from ".
 import { emit } from "../events"
 import { log } from "../logger"
 import * as harness from "../harness"
+import { autogenPlannerProposalsAfterPlanning } from "../harness/planner-canon-proposals"
 import type { BeatObligationsContract, SceneBeat } from "../types"
 import type { BeatObligationCoverageValidation } from "../harness/beat-obligations"
 
@@ -238,6 +239,30 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   for (const outline of chapters) await saveChapterOutline(novelId, outline)
   await updateTotalChapters(novelId, chapters.length)
   log(novelId, "checkpoint", `${chapters.length} chapter outlines saved`)
+
+  // Auto-generate planner-origin Canon proposals after outlines are saved.
+  // Pending proposals are invisible to canon reads (no-ghost-canon), so this
+  // doesn't change drafting behavior; it just makes the operator-review queue
+  // exist by default. Idempotent on re-run (deterministic id + ON CONFLICT
+  // DO NOTHING). Failures are swallowed so a transient DB blip cannot block
+  // the planning → drafting transition. See
+  // docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-1-5-autowire.md.
+  const autogen = await autogenPlannerProposalsAfterPlanning(novelId, chapters)
+  if (autogen.error) {
+    log(novelId, "warn", `auto-canon-proposals failed: ${autogen.error}`)
+  } else if (autogen.gateClear) {
+    log(
+      novelId,
+      "checkpoint",
+      `auto-canon-proposals: ${autogen.created} created / ${autogen.skipped} already existed`,
+    )
+  } else {
+    log(
+      novelId,
+      "warn",
+      `auto-canon-proposals: mechanical gate refused (planner ID graph not clean); 0 proposals written. Inspect via run-live-planner-canon-delta.ts.`,
+    )
+  }
 
   // P6b1: phase transition is driver-owned.
   log(novelId, "checkpoint", "Planning phase complete → drafting")

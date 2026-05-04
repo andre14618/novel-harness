@@ -80,6 +80,31 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Collaborative proposal workflow Phase 1.5 cleared — auto-wire planner→proposals at planning phase boundary (2026-05-03)
+
+**Decision:** The planning phase now auto-fires `generatePlannerCanonProposals` after `saveChapterOutline` + `updateTotalChapters` complete. Wraps via a new `autogenPlannerProposalsAfterPlanning` helper that swallows errors and returns counts so the planning-phase code can log the outcome without try/catch boilerplate. Idempotent on replanning (Phase 1's deterministic id + ON CONFLICT DO NOTHING). Pending proposals are invisible to canon reads (no-ghost-canon), so this is a queue-population change, not a drafting-behavior change.
+
+**Why:** Phase 2A shipped the `/generate-from-outline` endpoint that operators could call manually; auto-wiring closes the last operator-burden gap so the review queue exists by default after planning. The Studio review UI (Phase 2B, queued) will surface pending proposals automatically rather than relying on the operator remembering to trigger generation.
+
+**Evidence:**
+
+- 3 new helper tests in `src/harness/planner-canon-proposals.test.ts` — clean, broken-graph, empty-outlines paths. Total 21/21 pass / 454 expects (was 18).
+- Full sweep `bun test src/canon/ src/harness/ src/orchestrator/canon-proposal-routes.test.ts` — 275/275 pass / 1,462 expects.
+- `bunx tsc --noEmit` — clean.
+- `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927, recallGateClear=YES`.
+
+**Counterfactuals considered but rejected:**
+
+- *Gate the auto-wire behind an env flag (off by default).* Rejected. Pending proposals are invisible to canon reads — they don't change drafting behavior. Auto-wiring is a queue-population convenience that's safe to enable for all novels by construction.
+- *Surface auto-wire failure as a hard error that blocks the phase transition.* Rejected. The transition is from planning to drafting. Drafting still works correctly without the proposal queue (no-ghost-canon). Blocking on a transient DB blip in the proposal-write path would gratuitously break operator workflows; logging the failure is the right level.
+- *Hook into `saveChapterOutline` (per-chapter) instead of after the loop.* Rejected. The mechanical gate (`runPlannerCanonDeltaAudit`) does cross-chapter ID-graph checks (e.g., duplicate IDs across chapters). Per-chapter calls would not catch cross-chapter dupes; the post-loop call sees the full novel.
+
+**Charter §1 status:** unchanged (cleared). This lane is a pipeline integration over an already-cleared substrate; no canon-read-write semantics changed.
+
+**Lane:** `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-1-5-autowire.md`. **Parent:** `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-1.md`.
+
+---
+
 ### §Collaborative proposal workflow Phase 2A telemetry cleared — proposal lifecycle events (2026-05-03)
 
 **Decision:** Wire `trace()` events for the proposal lifecycle so the proposal-flow architecture is observable in `pipeline_events` (and the existing SSE stream). Three new event types — `canon-proposal-create` (per inserted proposal), `canon-proposal-resolve` (per approve/reject/modified, fired after the transaction commits), and `canon-proposal-generate-summary` (single per `generatePlannerCanonProposals` invocation, both gate-clear and gate-fail-closed paths). Agent label distinguishes the two creation paths: `planner-canon-proposals` for planner-origin, `canon-substrate` for substrate-direct (`proposeCanonUpdate`). The summary event is what makes idempotent reruns observable (`createdCount=0`).
