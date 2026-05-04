@@ -10,6 +10,29 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon proposal operator CLI — terminal-friendly path over the substrate (2026-05-03)
+
+**Decision:** Add `scripts/canon/proposals.ts`, a Bun CLI with subcommands `list` / `approve` / `reject` / `approve-all` / `reject-all` / `generate`. It calls the DB helpers (`listPendingProposals` / `listProposalsByStatus` / `findProposal`) and the substrate (`PostgresCanonSubstrate.resolveProposal`) directly — NOT the HTTP routes. This makes it usable without an orchestrator process running, which is the realistic shape during local debugging or when an operator wants to clear a queue from a shell session that's already attached to the DB. The same `--source` / `--chapter` / `--planner-only` filters as the HTTP API; the same `--status=...|all|<csv>` shape; `--note=` for the operator note; `--dry-run` short-circuits before any DB write.
+
+**Why:** Phase 2B (`adafe30`) ships the UI; bulk-resolve (`032d8c0`) ships the batch HTTP endpoint. A non-trivial fraction of operator interactions are still terminal-bound (debug sessions on LXC, scripting batch decisions across novels, smoke-testing a fresh planner-canon-proposal queue). Curl-ing the API works but is verbose and requires the orchestrator running; a thin CLI is the smallest correct surface.
+
+**Evidence:**
+
+- `bunx tsc --noEmit` — clean.
+- Usage output printed when no args; `--status=bogus` rejected with valid-set hint; `list does-not-exist-novel-id` returns `(no proposals match)` cleanly. Verified at the terminal in this session; no automated tests yet (the script is thin glue over already-tested DB + substrate code, and the substrate equivalence + handler suites already cover the underlying behavior).
+- `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927, recallGateClear=YES` (no canon-write semantics changed; recall-gate is a sanity check on the broader system).
+
+**Counterfactuals considered but rejected:**
+
+- *Have the CLI shell out to curl against the orchestrator.* Rejected. Adds a runtime dependency on the orchestrator process, breaks the "works on a fresh checkout against a local DB" property, and makes the CLI ergonomics worse (auth headers, base URL config). Direct substrate calls are the right shape — same atomic guarantees as the HTTP path because both go through `substrate.resolveProposal`.
+- *Add an automated CLI integration test.* Deferred. The CLI is thin orchestration over already-tested helpers; the marginal coverage is small. If the CLI gets meaningful logic (e.g. a new subcommand that does something the API doesn't), a test should land with it. For now, the manual smoke-tests + tsc + the underlying substrate/handler suites are sufficient.
+
+**Charter §1 status:** unchanged (cleared). Read+write operator surface over the already-cleared substrate.
+
+**Lane:** ad-hoc continuation of `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2b.md`. **Experiment:** 413 (ticket).
+
+---
+
 ### §Canon proposal bulk-resolve endpoint — best-effort per-row resolution (2026-05-03)
 
 **Decision:** Add `POST /api/novel/:id/canon-proposals/bulk-resolve` that accepts `{ resolutions: Array<{ proposalId, status, modifiedFact?, operatorNote?, expectedStatus? }> }` and returns `{ results: BulkResolutionResult[], counts: { ok, error } }`. Per-resolution success/failure: each row runs through the same authoritative-find + substrate-resolve path as single-resolve, in its own transaction. A failure on one row does NOT abort the batch. Soft cap of 200 resolutions per request. UI client function `bulkResolveCanonProposals` lands in `ui/src/api.ts`; a UI bulk-action affordance is intentionally deferred to a follow-on lane (the v1 review page handles single-resolve only).
