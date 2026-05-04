@@ -263,6 +263,10 @@ Why this is narrow:
 - It does not require typed proposal tables for entities/states/promises yet.
 - It does not require semantic auto-commit.
 
+### Phase 2A — Canon Proposal Review API — CLEARED 2026-05-03
+
+Status: CLEARED 2026-05-03 by `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2a.md`. Routes: `src/orchestrator/canon-proposal-routes.ts` exposes `GET /api/novel/:id/canon-proposals` (filterable by source/chapter/plannerOnly), `POST /api/novel/:id/canon-proposals/:proposalId/resolve` (approve/reject/modified with optional `expectedStatus` stale-precondition → 409 + `actualStatus`), and `POST /api/novel/:id/canon-proposals/generate-from-outline` (operator-triggered Phase-1 generation). 18-test handler suite green; 265 canon+harness+orchestrator tests still green; tsc clean; recall 0.927. Phase 2B (Studio UI) remains open.
+
 ### Phase 2 — Canon Proposal Review API And Minimal UI
 
 Goal: make pending Canon proposals reviewable.
@@ -457,6 +461,6 @@ Any LLM-generated proposal surface must follow the cache/context discipline alre
 
 ## Recommended Next Lane
 
-Phase 1 cleared 2026-05-03 (see lane note `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-1.md`). Phase 2 — Canon Proposal Review API + minimal UI — is the next narrow lane: list/approve/reject/modify endpoints over `PostgresCanonSubstrate.resolveProposal`, plus a Studio review panel that surfaces pending planner-origin proposals for an authored outline.
+Phase 1 cleared 2026-05-03 (`docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-1.md`). Phase 2A cleared 2026-05-03 (`docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2a.md`) — the review API ships. The next narrow lane is **Phase 2B — minimal Studio review panel**: a UI page that calls the Phase 2A routes (list pending → per-card approve/reject/modify with `expectedStatus`-guarded resolve → trigger generate-from-outline), surfaces target id / kind / text / source-item-id / chapter / current status, and supports edit-before-approve. UI hand-testing in browser is required for clearance.
 
-Working hypothesis (re-evaluate at Phase 2 lane open): the fact-only proposal lifecycle cleanly carries knowledge/state for Phase 1 because `CanonFact.kind` already enumerates `knowledge_change` and `character_state`. Typed `Entity` / `CharacterState` / `StoryPromise` proposal payloads are deferred to a follow-on charter and not load-bearing for Phase 2.
+Working hypothesis carried over from Phase 1 (still holds): the fact-only proposal lifecycle cleanly carries knowledge/state because `CanonFact.kind` already enumerates `knowledge_change` and `character_state`. Typed `Entity` / `CharacterState` / `StoryPromise` proposal payloads are deferred to a follow-on charter and not load-bearing for Phase 2B.

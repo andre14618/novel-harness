@@ -80,6 +80,36 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Collaborative proposal workflow Phase 2A cleared — Canon Proposal Review API ships (2026-05-03)
+
+**Decision:** Phase 2A of `docs/designs/collaborative-proposal-workflow.md` ships — the API surface only. New `src/orchestrator/canon-proposal-routes.ts` exposes three endpoints over the existing `PostgresCanonSubstrate`: list pending proposals (filterable by source / chapter / plannerOnly), resolve a proposal with approve/reject/modified semantics and an optional `expectedStatus` stale-precondition, and trigger Phase-1 generation from authored outlines. Phase 2B (minimal Studio review UI) remains open.
+
+**Why:** Phase 1 (commit `acf67c2`, lane `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-1.md`) shipped the harness service that turns planner source items into pending Canon proposals, but the only way to act on a proposal was `PostgresCanonSubstrate.resolveProposal` from a script — invisible to operators. The API closes that gap. Splitting Phase 2 into 2A (API) + 2B (UI) lets the API ship testably without browser hand-testing; UI hand-testing is the gate for 2B.
+
+**Evidence:**
+
+- Tests — `bun test src/orchestrator/canon-proposal-routes.test.ts` 18/18 pass / 139 expect() calls. Coverage:
+  - Path/method dispatch: null on mismatch, null on wrong method.
+  - List: 30 pending after generate; `source` filter (12 fact / 18 knowledge+state); `chapter=2` filter (10 rows); `plannerOnly=true` excludes a non-planner proposal seeded via the substrate.
+  - Resolve: approve → committedFact returned + visible in `factsAsOfChapter`; reject → canon stays clean; modified → `human-edited` + operator-edited text; unknown id → 404; invalid status → 400; modified without modifiedFact → 400; invalid JSON body → 400.
+  - Stale precondition: `expectedStatus="pending"` after resolution → 409 + `actualStatus`. Already-resolved without `expectedStatus` → 409 with `actualStatus`.
+  - Generate-from-outline: 30 created on first run, 0 created / 30 skipped on rerun (idempotent), no outlines → 404, broken gate → 200 with `gateClear=false` + 0 proposals written.
+- Full sweep: `bun test src/canon/ src/harness/ src/orchestrator/canon-proposal-routes.test.ts` — 265/265 pass.
+- `bunx tsc --noEmit` — clean.
+- `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927, recallGateClear=YES`.
+
+**Counterfactuals considered but rejected:**
+
+- *Single Phase 2 commit covering API + UI.* Rejected. UI clearance requires browser hand-testing (CLAUDE.md §"For UI or frontend changes…") which would block the API from landing testably. Splitting lets the API ship now and the UI ship as a separate clean-pass lane.
+- *Surface stale-precondition by extending substrate.resolveProposal with an `expectedStatus` parameter.* Rejected for §1 scope. The substrate already exposes `findProposal` as the authoritative read, and the route handler can sequence findProposal → status check → resolveProposal cleanly. Extending the substrate API would require more careful design (race with the transaction's WHERE-clause guard) and isn't load-bearing for Phase 2A. The route-layer check + the substrate's "already resolved" 409 path catch the same races; if a future operator-tooling lane needs richer semantics, the substrate can be extended then.
+- *Skip 409 stale-precondition for now.* Rejected. The design doc's Phase 2 work item explicitly names "stale-precondition handling if the proposal target has changed." Without it, the UI / scripted operator can race itself and silently overwrite a freshly-resolved status; the failure mode is hard to debug after the fact. A header-shaped `expectedStatus` is the cheapest and most legible way to surface it.
+
+**Charter §1 status:** stays *cleared*. Phase 2A is the second non-test consumer of the substrate's write side (after Phase 1) and exercises both `findProposal` and `resolveProposal` through the production route boundary.
+
+**Lane:** `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2a.md`. **Design:** `docs/designs/collaborative-proposal-workflow.md` (Phase 2A marked *CLEARED 2026-05-03*; Recommended Next Lane updated to Phase 2B).
+
+---
+
 ### §Collaborative proposal workflow Phase 1 cleared — planner source items become pending Canon proposals (2026-05-03)
 
 **Decision:** Phase 1 of `docs/designs/collaborative-proposal-workflow.md` ships. New harness service `src/harness/planner-canon-proposals.ts` converts mechanically-valid planner source items (`fact`/`knowledge`/`state` rows on `ChapterOutline`) into pending `CanonUpdateProposal` rows backed by `PostgresCanonSubstrate`. The deterministic id template `planner:<novelId>:<sourceItemId>:<schemaVersion>` plus a new `insertProposalIfAbsent` (`ON CONFLICT (id) DO NOTHING`) make the service idempotent: a second run on the same outlines is a 0-row write regardless of operator-resolution status. Mechanical-gate fail-closed (via `runPlannerCanonDeltaAudit`) prevents proposal generation on duplicate / invalid IDs. The fact-only proposal lifecycle cleanly carries knowledge/state because `CanonFact.kind` already enumerates `knowledge_change` and `character_state` — no proposal-table refactor needed.
