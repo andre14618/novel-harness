@@ -16,6 +16,7 @@ import { handleNovelRoute } from "./novel-routes"
 import { handleFinetuneRoute } from "./finetune-routes"
 import { handlePrefEvalRoute } from "./pref-eval-routes"
 import { handleCanonProposalRoute } from "./canon-proposal-routes"
+import { handleProposalEnvelopeRoute } from "./proposal-envelope-routes"
 import { overviewPageHtml } from "./overview-page"
 
 await migrate()
@@ -939,6 +940,10 @@ const server = Bun.serve({
     // ── Canon Proposal Review API (Phase 2A — collaborative proposal workflow) ──
     const canonProposalResponse = await handleCanonProposalRoute(req, url)
     if (canonProposalResponse) return canonProposalResponse
+
+    // ── Proposal Envelope Resolve API (Phase 3 commit 2 — collaborative proposal workflow) ──
+    const proposalEnvelopeResponse = await handleProposalEnvelopeRoute(req, url)
+    if (proposalEnvelopeResponse) return proposalEnvelopeResponse
 
     // ── Preference evaluation API ──────────────────────────────────
     const prefEvalResponse = await handlePrefEvalRoute(req, url)
