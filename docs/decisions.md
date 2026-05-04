@@ -10,6 +10,35 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Codex round-1 LOW backlog cleared (2026-05-04)
+
+**Decision:** Ship the three remaining round-1 LOW defense-in-depth items as two test-only commits + one verification, rather than continuing to defer. Round-2 review found the underlying transactional core sound (0 HIGH / 3 MEDIUM / 0 LOW), so the LOWs are pure regression-pinning value with no semantic risk to the production substrate.
+
+- **`6249ea7`** — `[test] Codex round-1 LOW: race-window deterministic test for concurrent resolves`. New test in `src/orchestrator/canon-proposal-routes.test.ts`: fires two POST resolves concurrently against the same pending canon-proposal id (one `approved`, one `rejected`) via `Promise.all`, asserts sorted statuses are exactly `[200, 409]`, loser's `actualStatus` matches winner's resolution, single proposal row in DB with the winner's status, and canon_facts row exists iff winner approved. Pins the round-1 Package B HIGH 1 fix (`isResolveConcurrencyConflict` predicate) so a future regression cannot silently revert it. 30s per-test timeout (LXC roundtrip latency exceeds the 5s default under concurrency). Exp #427.
+- **`1993e17`** — `[test] Codex round-1 LOW: schema-version drift guard for v1+v2 coexistence`. New test in `src/harness/planner-canon-proposals.test.ts`: generates 30 v1 proposals (override) then 30 v2 (default) on the same outlines, asserts disjoint id sets + 60 distinct DB rows, all 60 pending with no-ghost-canon (factsAsOfChapter empty across chapters), then approves both `fact-c1-f1` versions and verifies the canon-fact same-id supersession produces a 2-version chain (`v1.superseded_by_version = v2.version`), both proposal rows persist with `status="approved"` (audit trail), and re-running default-version generate is a 0-create no-op (58 still pending). Locks the contract that schema bumps do NOT auto-resolve or hide prior-version rows. 30s per-test timeout. Exp #428.
+- **Verification (no new commit)** — Programmer-bug failure-path test (Codex MEDIUM 1) is already covered by `src/harness/planner-canon-proposals.test.ts:537` ("buildPlannerCanonProposals throw (programmer bug) propagates from autogen helper"). Read confirms the test passes a malformed `{ not_a_chapter: true }` outline to `autogenPlannerProposalsAfterPlanning` and asserts the resulting promise rejects (`expect(thrown).toBeDefined()`). No new test needed.
+
+**Why:** Both new tests pin contracts that round-1 fix commits introduced (race-window predicate, schema-v2 coexistence). Without them a regression that re-broke either contract would be caught only by indirect symptoms (silent 500s on concurrent UI clicks, silent auto-resolution of prior-version rows on schema bump). Defense-in-depth ROI is highest while the round-1 fix code is fresh.
+
+**Why now:** Round-2 cleared the substrate's transactional core (0 HIGH / 3 MEDIUM / 0 LOW), so there is no higher-priority blocker on the Phase 3-6 lanes. Bounded test commits while waiting on Codex round-3 review of the morning's bundle (commits ee19011…5d449c3) is the right next step per the autonomous-loop default rule (continue-on-non-blocker).
+
+**Evidence:**
+
+- `bun test src/orchestrator/canon-proposal-routes.test.ts -t "race-window deterministic"` — 1/1 pass / 12 expects in ~5.6s.
+- `bun test src/harness/planner-canon-proposals.test.ts -t "schema-version drift"` — 1/1 pass / 53 expects in ~10.4s.
+- `bun test src/harness/planner-canon-proposals.test.ts:537` (existing programmer-bug test) — passes per prior round-1 verification.
+- Both new tests: tsc-clean (test-only files), no UI surface, no runtime behavior change.
+
+**Counterfactuals considered but rejected:**
+
+- *Continue deferring all three LOWs.* Round-2 already cleared, Phase 3 commit 1 already shipped — there is no semantic blocker on Phase 3 commits 2-5. The only cost of doing the LOWs now is ~3 hours of test work; the benefit is permanent regression coverage. Defer-cost compounds with each subsequent commit on the substrate.
+- *One bundled commit for both new tests.* Per CLAUDE.md "one finding per commit if it is a Codex re-review item" — round-1 LOWs are Codex re-review items, so each gets its own commit.
+- *Skip the timeout bump.* Default 5s timeout is too tight for tests doing 30+ DB roundtrips under LXC latency; both tests timed out on first run. Bumping to 30s is a per-test annotation that doesn't affect other suites.
+
+**Ongoing:** Round-1 LOW backlog is now empty. Round-1 follow-ups are fully closed: 3 HIGH + 4 MEDIUM + 4 LOW total, all shipped. Proceed to Codex round-3 review of morning's 8 commits (ee19011…5d449c3) before opening Phase 3 commit 2 (per-patch resolve routes).
+
+---
+
 ### §Phase 3 commit 1 — ReviewProposalEnvelope shape + adjuster wrap (2026-05-04)
 
 **Decision:** Define `ReviewProposalEnvelope<TPayload>` as a shared TypeScript projection in `src/canon/proposal-envelope.ts` per design doc §Proposal Envelope. Specialize `ArtifactPatchEnvelope = ReviewProposalEnvelope<AdjusterPatch>` for the artifact-adjuster path. Wire `buildArtifactPatchEnvelope` into the `POST /api/novel/:id/adjust` route so each adjuster patch produces a corresponding envelope; the legacy `proposedPatches` field stays in the response (additive, non-breaking).
