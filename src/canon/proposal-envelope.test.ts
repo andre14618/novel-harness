@@ -223,4 +223,92 @@ describe("ReviewProposalEnvelope — Phase 3 commit 1", () => {
     expect(env.risk).toBe("medium")
     expect(env.policyRecommendation.reasons[0]).toMatch(/risk=medium/)
   })
+
+  // Codex round-3 MEDIUM: stableHash must be restart-stable (canonical
+  // JSON, not insertion-order JSON.stringify). Equivalent values that
+  // differ only in key insertion order — e.g. across server restarts or
+  // JSON parse round-trips that re-shuffle keys — must hash identically.
+  test("stableHash is order-independent across object key insertion order", () => {
+    const a = { name: "Aria", id: "char-hero", goals: "Find the key" }
+    const b = { goals: "Find the key", id: "char-hero", name: "Aria" }
+    const c = { id: "char-hero", goals: "Find the key", name: "Aria" }
+    expect(stableHash(a)).toBe(stableHash(b))
+    expect(stableHash(a)).toBe(stableHash(c))
+  })
+
+  test("stableHash is order-independent for nested objects", () => {
+    const a = {
+      world: { setting: "Tower", era: "modern" },
+      meta: { kind: "world", version: 1 },
+    }
+    const b = {
+      meta: { version: 1, kind: "world" },
+      world: { era: "modern", setting: "Tower" },
+    }
+    expect(stableHash(a)).toBe(stableHash(b))
+  })
+
+  test("stableHash preserves array order (semantically meaningful)", () => {
+    expect(stableHash([1, 2, 3])).not.toBe(stableHash([3, 2, 1]))
+    expect(stableHash(["a", "b"])).not.toBe(stableHash(["b", "a"]))
+  })
+
+  test("stableHash distinguishes structurally different values", () => {
+    expect(stableHash({ a: 1 })).not.toBe(stableHash({ a: 2 }))
+    expect(stableHash({ a: 1, b: 2 })).not.toBe(stableHash({ a: 1 }))
+    expect(stableHash("a")).not.toBe(stableHash(1))
+    expect(stableHash(0)).not.toBe(stableHash(false))
+    // Note: `undefined` is not JSON-representable, so `stableHash(undefined)`
+    // and `stableHash(null)` collide by design — root-level undefined never
+    // appears in artifact-content hashing in practice.
+  })
+
+  test("stableHash survives a JSON parse round-trip on the same value", () => {
+    const original = { id: "x", nested: { k: 1, j: 2 }, arr: [{ b: 1, a: 2 }] }
+    // Reorder keys via stringify+parse with a replacer that emits keys in
+    // a different order — mimics what an external tool / cache layer might
+    // do after a server restart.
+    const reordered = JSON.parse(
+      JSON.stringify(original, ["arr", "nested", "id", "j", "k", "a", "b"]),
+    )
+    expect(stableHash(original)).toBe(stableHash(reordered))
+  })
+
+  test("envelope id and target.currentVersion are restart-stable", () => {
+    // Build the same envelope from key-shuffled artifact snapshots; the
+    // envelope id and the precondition hash MUST collide. This is the
+    // contract Phase 3 commits 2-5 will rely on (per-patch resolve routes
+    // verify `precondition.hash === target.currentVersion`).
+    const patch: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "Find the second key" },
+    }
+    const reorderedCharacters = baseArtifacts.characters.map((c) => {
+      // Same fields, different insertion order.
+      const entries = Object.entries(c).reverse()
+      return Object.fromEntries(entries) as typeof c
+    })
+    const a = buildArtifactPatchEnvelope({
+      novelId,
+      patch,
+      patchIndex: 0,
+      userMessage: "u",
+      rationale: "r",
+      artifacts: baseArtifacts,
+      now: fixedNow,
+    })
+    const b = buildArtifactPatchEnvelope({
+      novelId,
+      patch,
+      patchIndex: 0,
+      userMessage: "u",
+      rationale: "r",
+      artifacts: { ...baseArtifacts, characters: reorderedCharacters },
+      now: fixedNow,
+    })
+    expect(a.id).toBe(b.id)
+    expect(a.target.currentVersion).toBe(b.target.currentVersion)
+    expect(a.precondition.hash).toBe(b.precondition.hash)
+  })
 })

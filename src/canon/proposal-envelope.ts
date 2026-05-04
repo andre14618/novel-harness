@@ -118,13 +118,45 @@ interface BuildArtifactPatchEnvelopeArgs {
 
 const ENVELOPE_ID_VERSION = "v1"
 
-/** Stable SHA-256 hex of the JSON-stringified value. Used for both deterministic
- * envelope ids and artifact preconditions. JSON.stringify is order-sensitive,
- * so callers should normalize key order if they need cross-runtime stability;
- * for our case (single-process within a request) this is fine. */
+/**
+ * Recursive canonical serializer used by `stableHash`. Object keys are
+ * sorted ascending; arrays preserve order (semantically meaningful);
+ * primitives delegate to `JSON.stringify`. Output is restart-stable:
+ * two equivalent values produce the same byte stream regardless of
+ * key insertion order, runtime, or JSON parse round-trip path.
+ *
+ * Codex round-3 MEDIUM: the prior implementation used raw
+ * `JSON.stringify`, whose key order follows insertion order. After a
+ * server restart or any JSON round-trip that re-orders keys (e.g. a
+ * different tool building the snapshot), unchanged artifacts would
+ * hash differently — making proposal envelope ids and
+ * `target.currentVersion` preconditions look stale or brand new even
+ * though nothing changed. The canonical serializer fixes that.
+ */
+function canonicalize(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value) ?? "null"
+  }
+  if (Array.isArray(value)) {
+    return "[" + value.map(canonicalize).join(",") + "]"
+  }
+  const obj = value as Record<string, unknown>
+  const keys = Object.keys(obj).sort()
+  const parts: string[] = []
+  for (const k of keys) {
+    const v = obj[k]
+    if (v === undefined) continue
+    parts.push(JSON.stringify(k) + ":" + canonicalize(v))
+  }
+  return "{" + parts.join(",") + "}"
+}
+
+/** Restart-stable SHA-256 hex of the value's canonical-JSON form. Used for
+ * both deterministic envelope ids and artifact preconditions. The
+ * canonicalizer sorts object keys recursively so two equivalent values
+ * always hash identically across runtimes / processes / restarts. */
 export function stableHash(value: unknown): string {
-  const json = JSON.stringify(value)
-  return createHash("sha256").update(json).digest("hex")
+  return createHash("sha256").update(canonicalize(value)).digest("hex")
 }
 
 export function classifyPatchRisk(patch: AdjusterPatch): ProposalEnvelopeRisk {
