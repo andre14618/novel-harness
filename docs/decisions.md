@@ -6291,3 +6291,38 @@ Reject flow persists envelope status only. Missing draft → 404; beat-target �
 - **Beat-target apply (commit 4 deferred follow-up)** remains the most-cited gap. A beat-aware lint fix would compute the beat's [start, end) span on the rendered prose at proposal time — not currently possible without a beat-offset map on the draft, which the runtime doesn't persist.
 
 ---
+
+### L60 — Phase 4 follow-up: mechanical-health surface (route + UI consumer) (2026-05-04, exp #468-469)
+
+**Decision:** Close the deferred mechanical-health summary from Phase 4 commit 4 by shipping (1) `GET /api/novel/:novelId/planning-snapshot/mechanical-health` exposing `runPlannerCanonDeltaAudit` over HTTP, and (2) the `PlanningSnapshotPage.tsx` UI consumer that fetches and renders the audit. Two commits, ordered: route first (pure additive over an existing pure helper), then UI consumer.
+
+**Why:** Phase 4 commit 4 (Planning Snapshot UI panel) deferred the mechanical-health summary because `runPlannerCanonDeltaAudit` was not exposed over HTTP — the audit ran inline in the planner and in `harness/planner-canon-proposals.ts`, but no route surfaced it for UI consumption. Without the summary, the UI showed snapshot identity + artifact slices + lock affordance, but the operator had no surface to inspect ID-graph health, obligation coverage, or duplicate IDs before locking. With the summary, the operator can see at a glance whether the planning state is mechanically sound and, if not, which gates are failing and what the audit recommends.
+
+**Route shape (`a19f404`, exp #468):** `GET` only — POST returns null. Reads chapter outlines via `getChapterOutlines(novelId)`, runs `runPlannerCanonDeltaAudit("novel:" + novelId, outlines)`, returns `{ ok, novelId, report }`. The audit is pure (no DB writes), so the route has no atomicity concerns. Empty-outline novels return a well-formed report with gates failing — `artifactGateClear` requires `chapters.length > 0 && sourceItems.length > 0` by design, and `idGraphGateClear` chains off it. The UI surfaces "no outlines yet" rather than silently treating empty as healthy.
+
+**UI consumer (`2ffa35c`, exp #469):** New "Mechanical health" `<Section>` between "Artifact slices" and "Lock for drafting":
+
+- Two color-coded `<Gate>` badges side-by-side: "Artifacts present" (`artifactGateClear`) and "ID graph valid" (`idGraphGateClear`). Pass = green box, fail = pink box, with `✓` / `✗` glyph.
+- Counts ul: chapters / beats / source items always shown. Non-zero error counts (invalid source IDs, duplicate source IDs, unknown obligation source-ID refs, invalid payoff links, overloaded beats, validation errors) highlighted in pink and only rendered when > 0 — a clean novel doesn't surface stale-zero clutter.
+- Recommendation line below the ul when the audit emits one (e.g., "promote-to-draft" or "patch-obligations-first").
+- Loading + error states match the artifact-slices pattern: best-effort fetch, page's core lock surface stays usable if the audit fetch errors.
+- New `Gate` helper component at the bottom of the file alongside `Section` and `Field`.
+
+**Alternatives rejected:**
+
+- *Inline the audit in the orchestrator's `/current` route.* Rejected — the audit is a different concern (mechanical health, not snapshot identity) and shouldn't be conflated. Two routes keep responsibilities separate; UI fetches them in parallel.
+- *Embed audit caches in `planning_snapshots` table.* Rejected — the audit is cheap to compute on demand (pure function over outlines); caching it adds a stale-data window without measurable performance benefit.
+- *Surface raw report JSON in the UI as a debug pane.* Rejected — operators benefit from semantic interpretation (gate badges, error highlighting). The raw report is available in the network tab if anyone needs it.
+- *Block lock when gates fail.* Rejected — this is operator-facing diagnostic, not a hard block. Phase 6 will introduce policy-driven gating; until then, the human operator decides whether failing gates should prevent locking.
+
+**Tests:** 3 new route tests (POST returns null, empty-outline 200 + zero counts + gates failing). Audit function itself has its own thorough test suite in `planner-canon-delta.test.ts`. UI tsc + vite build clean. Browser-untested per CLAUDE.md UI rule. Pre-existing flake on "drift=true after the planning state changes" timed out at 5000ms in full-suite run but passed in 3.3s when filtered to just that test name; confirmed unrelated.
+
+**Documentation:** `docs/current-state.md` Current Session 2026-05-04 gains a Phase 4 follow-up bullet covering both commits. `docs/sessions/lane-queue.md` Phase 4 §Next entry marked "fully done"; §Completed gains entries. Both commits' `docs-impact: pending` markers closed.
+
+**Ongoing implications:**
+
+- **Phase 4 of the design is fully done.** Snapshot compute (1) + persistence (2) + lock route (3) + UI panel (4) + replay-on-stale at draft start (5) + mechanical-health surface (this follow-up) all shipped. The autonomous-mode auto-lock acceptance criterion ("policy may auto-lock when mechanical gates pass") is a Phase 6 concern — the ApprovalPolicy evaluator decides when to fire `lockPlanningSnapshot` automatically.
+- **Phase 6 inputs:** the policy evaluator now has a uniform shape across kinds. For `planning_snapshot` decisions it can read the mechanical-health audit; for `prose_edit`/`editorial_flag`/`artifact_patch`/`canon_update` it works over the corresponding envelope's `risk` + `policyRecommendation`. No new producer surface is needed for Phase 6.
+- **Browser hand-test backlog grows by one item.** The mechanical-health UI Section joins the existing browser-untested queue (canon-proposals modify-with-edits, audit-history view, AdjustPanel envelope cards, planning snapshot lock UI, etc.). When the operator runs the next batch of hand-tests, this can be exercised by hitting the planning-snapshot URL on a real novel and confirming the badges + counts render against the live audit.
+
+---
