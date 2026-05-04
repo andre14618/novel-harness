@@ -10,6 +10,38 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Codex round-3 fix bundle (2026-05-04)
+
+**Decision:** Ship the three round-3 findings (1 HIGH + 2 MEDIUM) as three separate commits — one per finding — before opening Phase 3 commit 2 (per-patch resolve routes). Round-3 verdict was RED on the morning's 11-commit bundle (ee19011..1e550ad); the fix bundle flips it to GREEN with no remaining blockers.
+
+- **`ca9a6a8` HIGH (canon-integrity)** — `[ui] Codex round-3 HIGH: gate Modify on structured proposal kinds`. The v1 Modify… form rewrote only `text` and `provenance.confidence` while preserving `proposal.proposedFact.data` verbatim. For `knowledge_change` (data: characterId / characterName / source) and especially `character_state` (data: location, emotionalState, knows, doesNotKnow), an operator could change "Mara is calm in the Tower" to "Mara is angry in the Harbor" while machine-readable state stayed old — committing a `human-approved` canon row whose text and data contradict. Fix: new `isModifySafeKind` helper restricts Modify to `established_fact`; other kinds render the button disabled with an explanatory tooltip + defense-in-depth `onSaveModify` guard for the same kinds. Future kind-aware editor lifts the restriction. Exp #429.
+- **`7ba4569` MEDIUM (audit-history)** — `[ui] Codex round-3 MEDIUM: audit-history shows modifiedFact for modified rows`. The non-pending row renderer always read `proposal.proposedFact`, even when `status === "modified"` and `modifiedFact` was the payload that actually entered canon — silently misstating history in the new audit-history `modified` tab. Fix: when `status === "modified"` and `modifiedFact` exists, render `modifiedFact` as primary (text + provenance) and demote `proposedFact.text` to a ghost-italic "original:" line. Pending / approved / rejected rows unchanged. Exp #430.
+- **`c307ddd` MEDIUM (canonical hash)** — `[fix] Codex round-3 MEDIUM: canonical JSON for stableHash (restart-stable ids)`. The prior `stableHash` used raw `JSON.stringify`, whose key order follows insertion order. Equivalent artifact JSON reconstructed with different key insertion order — across server restarts, JSON parse round-trips, or external tools — would hash differently, making unchanged proposals look stale. Fix: new recursive `canonicalize` serializer sorts object keys ascending, preserves array order, delegates primitives to JSON.stringify. `stableHash` hashes the canonical byte stream; envelope ids and `target.currentVersion` preconditions are now restart-stable. 5 new tests added (16/16 pass / 55 expects). Exp #431.
+
+**Why:** Round-3 was the third Codex pass on this lane (round-1: 3H/4M/4L all closed; round-2: 0H/3M/0L all closed; round-3: 1H/2M/0L now all closed). The HIGH was a real canon-integrity hole — silent contradictions in `human-approved` canon rows would cascade into every downstream reader that consumes structured data. The two MEDIUMs are foundational: the audit-history fix is what makes the `modified` tab actually trustworthy, and the canonical hash fix is the contract Phase 3 commits 2-5 will rely on (per-patch resolve routes verify `precondition.hash === target.currentVersion`).
+
+**Why now:** Per the autonomous-loop default, RED verdicts on a Codex re-review block forward motion on dependent lanes (Phase 3 commits 2-5 build on the envelope foundation). Closing all three before opening commit 2 prevents stacking new code on a known-broken hash primitive. Also: per "one finding per commit if it is a Codex re-review item" — three commits, not one, despite the temptation to bundle.
+
+**Evidence:**
+
+- `bunx tsc --noEmit` — clean (server + UI both, all three commits).
+- `bunx vite build` (UI commits) — clean. ca9a6a8: 514.18 kB / 153.93 kB gzip (+0.51 kB / +0.23 kB vs prior). 7ba4569: 514.53 kB / 153.98 kB gzip (+0.35 kB / +0.05 kB).
+- `bun test src/canon` — 212/212 pass / 501 expects (post-c307ddd, includes the 5 new stableHash tests).
+- `bun test src/canon/proposal-envelope.test.ts` — 16/16 pass / 55 expects.
+- `git diff --check` — clean.
+- Diff scope: 3 files (`ui/src/components/CanonProposalsPage.tsx` +71 / -27 across two UI commits; `src/canon/proposal-envelope.ts` +33 / -6; `src/canon/proposal-envelope.test.ts` +93 / -0).
+
+**Counterfactuals considered but rejected:**
+
+- *Bundle all 3 fixes into one commit.* Per CLAUDE.md "one finding per commit if it is a Codex re-review item" — round-3 findings are Codex re-review items. Each gets its own commit so future blame / revert operations can target a single finding without collateral churn.
+- *Extend the v1 Modify form to handle structured kinds (HIGH).* Codex's recommendation was either disable-OR-extend; extend is the long-term win but requires per-kind structured form fields (location dropdown for character_state, character picker for knowledge_change, etc.) and validation that `data.state` matches the edited text. That's a separate lane. Disable now closes the integrity hole at minimal scope.
+- *Use a 3rd-party canonical-JSON library (MEDIUM 2).* `fast-json-stable-stringify` etc. are battle-tested but introduce a dependency for ~30 lines of code. The recursive canonicalizer is small enough to own; it's also test-covered against the actual contract (envelope-level invariant in `envelope id and target.currentVersion are restart-stable`).
+- *Defer the canonical-hash fix to Phase 3 commit 2.* Phase 3 commits 2-5 build on these ids and preconditions; landing the fix before commit 2 means commit 2 doesn't have to relitigate the contract or carry a "TODO: canonical-hash later" comment. Round-3 already flagged it; deferring would just create a third Codex round on the same surface.
+
+**Ongoing:** Round-3 backlog is now empty; verdict moves from RED → GREEN. Phase 3 commits 2-5 (per-patch resolve routes, hash-precondition enforcement, persistence, quick actions) unblocked on a sound foundation. Browser hand-test for both UI fixes (the kind-gated Modify button + the modifiedFact audit-history display) deferred per CLAUDE.md UI rule (flag-and-disclose; logic-clean by inspection).
+
+---
+
 ### §Codex round-1 LOW backlog cleared (2026-05-04)
 
 **Decision:** Ship the three remaining round-1 LOW defense-in-depth items as two test-only commits + one verification, rather than continuing to defer. Round-2 review found the underlying transactional core sound (0 HIGH / 3 MEDIUM / 0 LOW), so the LOWs are pure regression-pinning value with no semantic risk to the production substrate.
