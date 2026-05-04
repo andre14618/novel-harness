@@ -40,6 +40,7 @@ import { log } from "../logger"
 import { trace } from "../trace"
 import { savePlannedState } from "../planned-state"
 import { diffPlanAgainstState, type PriorCharacterState } from "../state-diff"
+import { assertDraftableSnapshot } from "../canon/planning-snapshot"
 import { pipeline } from "../config/pipeline"
 import type { SeedInput } from "../types"
 import { loadInjection, hasAnyInjection, injectionSummary } from "../config/debug-injection"
@@ -146,6 +147,26 @@ function routeValidationBlockers(
 export async function runDraftingPhase(novelId: string): Promise<PhaseResult<DraftingOutput>> {
   displayPhaseHeader("Drafting — Writing chapters")
   emit(novelId, { type: "phase:changed", data: { phase: "drafting" } })
+
+  // Phase 4 commit 5 — replay-on-stale enforcement at draft start.
+  // If the operator has locked a planning snapshot for this novel, the
+  // live planning state must hash to the same value. If it has drifted,
+  // refuse to draft until they roll back planning or re-lock. Novels
+  // without a lock pass through (backward compat for pre-Phase-4 work).
+  const gate = await assertDraftableSnapshot(novelId)
+  if (!gate.ok) {
+    log(novelId, "error", gate.reason)
+    emit(novelId, {
+      type: "error",
+      data: {
+        step: "drafting",
+        error: "planning-snapshot-drift",
+        lockedHash: gate.lockedHash,
+        liveHash: gate.liveHash,
+      },
+    })
+    return { kind: "paused", reason: gate.reason }
+  }
 
   const novel = await getNovel(novelId)
   const totalChapters = novel.totalChapters

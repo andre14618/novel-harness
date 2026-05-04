@@ -295,6 +295,17 @@ mock.module("../prompts", () => ({
   WRITER_AGENT_PROMPT: "w", BEAT_WRITER_PROMPT: "bw", CHAPTER_PLAN_CHECKER_PROMPT: "pc",
 }))
 mock.module("../types", () => ({ chapterDraftSchema: {} }))
+// Phase 4 commit 5 — short-circuit the snapshot gate. See sibling
+// drafting-revision-used-persistence.test.ts for rationale.
+mock.module("../canon/planning-snapshot", () => ({
+  assertDraftableSnapshot: async () => ({
+    ok: true,
+    locked: false,
+    drift: false,
+    liveHash: "0".repeat(64),
+    reason: "",
+  }),
+}))
 
 const { runDraftingPhase } = await import("./drafting")
 

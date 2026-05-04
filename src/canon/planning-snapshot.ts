@@ -54,6 +54,8 @@
 
 import { stableHash } from "./proposal-envelope"
 import db from "../db/connection"
+import { getLockedPlanningSnapshot } from "../db/planning-snapshots"
+import type { PlanningSnapshotRow } from "../db/planning-snapshots"
 import type { WorldBible, CharacterProfile, StorySpine, ChapterOutline } from "../types"
 import type { WorldSystem, Culture } from "../db/world-systems"
 
@@ -321,4 +323,84 @@ async function readCharacterSystemAwarenessOrdered(
     perspective: r.perspective,
     chapterEstablished: r.chapter_established,
   }))
+}
+
+// ── Phase 4 commit 5: replay-on-stale enforcement at draft start ─────────
+//
+// `assertDraftableSnapshot(novelId)` is the gate the drafting phase calls
+// before generating any chapter. Contract:
+//
+//   - No locked snapshot → `{ ok: true, locked: false }`. Backward-compat
+//     for novels that predate Phase 4 or operators who never opted into
+//     the lock workflow. Drafting proceeds unchanged.
+//   - Locked snapshot AND live hash matches the lock → `{ ok: true,
+//     locked: true, lockedHash, liveHash, drift: false }`. Drafting
+//     proceeds against the agreed-upon planning state.
+//   - Locked snapshot AND live hash differs → `{ ok: false, drift: true,
+//     lockedHash, liveHash }`. Drafting must NOT proceed; the operator
+//     either rolls planning back to the locked state or re-locks the
+//     current state via `POST /lock`. Phase 4's design is explicit:
+//     "Require redraft/replan if locked planning artifacts change."
+//
+// The live hash is computed at the default version (v2). A v1 locked
+// snapshot will register as drift even if the v1 inputs haven't changed
+// — that's the right behavior, since the lock predated the v2 input
+// expansion (HIGH 2) and cannot be trusted to evidence today's drafting
+// surface.
+//
+// Production wiring: called from `runDraftingPhase` (`src/phases/drafting.ts`)
+// before the chapter loop begins. The drafting phase converts a `false`
+// result into a `paused` PhaseResult and emits a structured event so the
+// orchestrator UI can surface the drift to the operator.
+
+export interface DraftSnapshotGateResult {
+  ok: boolean
+  /** Whether a locked snapshot exists for this novel at all. */
+  locked: boolean
+  /** True iff `locked && lockedHash !== liveHash`. */
+  drift: boolean
+  /** Always present. */
+  liveHash: string
+  /** Present iff `locked`. */
+  lockedHash?: string
+  /** Present iff `locked`. */
+  lockedSnapshot?: PlanningSnapshotRow
+  /** Human-readable reason when `ok=false`. Empty otherwise. */
+  reason: string
+}
+
+export async function assertDraftableSnapshot(
+  novelId: string,
+): Promise<DraftSnapshotGateResult> {
+  const [locked, liveHash] = await Promise.all([
+    getLockedPlanningSnapshot(novelId),
+    computePlanningSnapshotHash(novelId),
+  ])
+  if (!locked) {
+    return { ok: true, locked: false, drift: false, liveHash, reason: "" }
+  }
+  const lockedHash = locked.id
+  if (lockedHash === liveHash) {
+    return {
+      ok: true,
+      locked: true,
+      drift: false,
+      liveHash,
+      lockedHash,
+      lockedSnapshot: locked,
+      reason: "",
+    }
+  }
+  return {
+    ok: false,
+    locked: true,
+    drift: true,
+    liveHash,
+    lockedHash,
+    lockedSnapshot: locked,
+    reason:
+      `planning-snapshot-drift: locked=${lockedHash.slice(0, 16)}… ` +
+      `live=${liveHash.slice(0, 16)}…. Drafting refuses; operator must ` +
+      `roll back planning or re-lock via POST /planning-snapshot/lock.`,
+  }
 }

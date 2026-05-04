@@ -226,6 +226,19 @@ mock.module("../prompts", () => ({
   WRITER_AGENT_PROMPT: "w", BEAT_WRITER_PROMPT: "bw", CHAPTER_PLAN_CHECKER_PROMPT: "pc",
 }))
 mock.module("../types", () => ({ chapterDraftSchema: {} }))
+// Phase 4 commit 5 — short-circuit the snapshot gate. Test fixtures don't
+// seed a planning_snapshots row, and the real `assertDraftableSnapshot`
+// would hit the DB to recompute the live hash. The mock returns a clean
+// "no lock" pass-through, matching the contract for novels without a lock.
+mock.module("../canon/planning-snapshot", () => ({
+  assertDraftableSnapshot: async () => ({
+    ok: true,
+    locked: false,
+    drift: false,
+    liveHash: "0".repeat(64),
+    reason: "",
+  }),
+}))
 
 const { runDraftingPhase } = await import("./drafting")
 

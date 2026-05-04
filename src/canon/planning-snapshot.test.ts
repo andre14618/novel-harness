@@ -10,9 +10,22 @@
  * here: determinism and the right input set.
  */
 
-import { describe, expect, test } from "bun:test"
-import { computePlanningSnapshotHashFromInputs } from "./planning-snapshot"
+import { describe, expect, test, beforeEach, afterEach } from "bun:test"
+import {
+  computePlanningSnapshotHashFromInputs,
+  computePlanningSnapshotHash,
+  assertDraftableSnapshot,
+} from "./planning-snapshot"
 import type { PlanningSnapshotInputs } from "./planning-snapshot"
+import db from "../db/connection"
+import { dbReachable } from "../db/test-helpers"
+import {
+  recordPlanningSnapshot,
+  lockPlanningSnapshot,
+  deletePlanningSnapshotsForNovel,
+} from "../db/planning-snapshots"
+
+const reachable = await dbReachable()
 
 const baseInputs: PlanningSnapshotInputs = {
   world: { setting: "Tower" } as any,
@@ -250,5 +263,99 @@ describe("v2 input sensitivity (OpenCode HIGH 2)", () => {
       "v2",
     )
     expect(a).toBe(b)
+  })
+})
+
+// ── Phase 4 commit 5 — replay-on-stale enforcement ──────────────────────
+
+describe.skipIf(!reachable)("assertDraftableSnapshot — Phase 4 commit 5", () => {
+  let novelId: string
+
+  beforeEach(async () => {
+    novelId = `test-ds-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    await db`INSERT INTO novels (id, seed_json) VALUES (${novelId}, ${{ premise: "test" }})
+             ON CONFLICT (id) DO NOTHING`
+  })
+
+  afterEach(async () => {
+    await deletePlanningSnapshotsForNovel(novelId)
+    await db`DELETE FROM novels WHERE id = ${novelId}`
+  })
+
+  test("no locked snapshot → ok=true, locked=false (backward compat)", async () => {
+    const result = await assertDraftableSnapshot(novelId)
+    expect(result.ok).toBe(true)
+    expect(result.locked).toBe(false)
+    expect(result.drift).toBe(false)
+    expect(result.liveHash).toMatch(/^[0-9a-f]{64}$/)
+    expect(result.lockedHash).toBeUndefined()
+    expect(result.reason).toBe("")
+  })
+
+  test("locked at live hash → ok=true, drift=false", async () => {
+    // Lock the live hash itself — drafting should proceed cleanly.
+    const liveHash = await computePlanningSnapshotHash(novelId)
+    await recordPlanningSnapshot({ hash: liveHash, novelId, version: "v2" })
+    await lockPlanningSnapshot({
+      hash: liveHash,
+      lockedByKind: "human",
+      lockedByRef: null,
+      lockedNote: null,
+    })
+
+    const result = await assertDraftableSnapshot(novelId)
+    expect(result.ok).toBe(true)
+    expect(result.locked).toBe(true)
+    expect(result.drift).toBe(false)
+    expect(result.lockedHash).toBe(liveHash)
+    expect(result.liveHash).toBe(liveHash)
+    expect(result.lockedSnapshot?.id).toBe(liveHash)
+    expect(result.reason).toBe("")
+  })
+
+  test("locked at a different hash → ok=false, drift=true, reason populated", async () => {
+    // Lock a hash that does NOT correspond to the current planning state.
+    const fakeLockedHash = "f".repeat(64)
+    await recordPlanningSnapshot({ hash: fakeLockedHash, novelId, version: "v2" })
+    await lockPlanningSnapshot({
+      hash: fakeLockedHash,
+      lockedByKind: "human",
+      lockedByRef: null,
+      lockedNote: null,
+    })
+
+    const result = await assertDraftableSnapshot(novelId)
+    expect(result.ok).toBe(false)
+    expect(result.locked).toBe(true)
+    expect(result.drift).toBe(true)
+    expect(result.lockedHash).toBe(fakeLockedHash)
+    expect(result.liveHash).toMatch(/^[0-9a-f]{64}$/)
+    expect(result.liveHash).not.toBe(fakeLockedHash)
+    expect(result.reason).toContain("planning-snapshot-drift")
+    expect(result.reason).toContain(fakeLockedHash.slice(0, 16))
+    expect(result.reason).toContain(result.liveHash.slice(0, 16))
+    expect(result.reason).toContain("re-lock")
+  })
+
+  test("v1 lock against current default (v2) live hash registers as drift", async () => {
+    // Operator locked at v1 in the past; now the default has bumped to
+    // v2. The old lock cannot evidence today's writer surface (HIGH 2),
+    // so the gate must refuse to draft until they re-lock.
+    const liveV1 = await computePlanningSnapshotHash(novelId, "v1")
+    const liveV2 = await computePlanningSnapshotHash(novelId, "v2")
+    expect(liveV1).not.toBe(liveV2)
+    await recordPlanningSnapshot({ hash: liveV1, novelId, version: "v1" })
+    await lockPlanningSnapshot({
+      hash: liveV1,
+      lockedByKind: "human",
+      lockedByRef: null,
+      lockedNote: null,
+    })
+
+    const result = await assertDraftableSnapshot(novelId)
+    expect(result.ok).toBe(false)
+    expect(result.drift).toBe(true)
+    expect(result.lockedHash).toBe(liveV1)
+    expect(result.liveHash).toBe(liveV2)
   })
 })
