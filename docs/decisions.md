@@ -10,6 +10,35 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 5 commit 2 — editorial beat-coverage tracer-bullet producer (2026-05-04)
+
+**Decision.** The first LLM editorial module under Phase 5 ships as a beat-coverage producer in `src/canon/editorial-beat-coverage.ts`. The module reads a chapter draft + the chapter outline (the planner's beat contract), asks the LLM beat-by-beat whether the draft prose covers each planned beat, and emits one `EditorialFlagProposal` (`issueType=missing-beat-coverage`) per uncovered beat — wrapped into Phase 5 commit 1's `EditorialFlagEnvelope`. The orchestrator entry point `runEditorialBeatCoverageCheck` accepts the `callLLM` function via dependency injection so the tracer-bullet is pure-testable.
+
+**Why.** Phase 5's design names two candidates for the tracer-bullet — chapter-contract coverage and continuity-against-Canon. Beat-coverage is the cleaner first surface:
+- Reference data (the structured beat list) is already typed and addressable by index.
+- The LLM job is per-beat boolean + evidence quote — minimal schema complexity.
+- Uncovered beats map 1:1 to flag proposals with no entity-resolution / cross-fact-graph reasoning.
+- The chapter outline is already a first-class artifact in the canon substrate; no new loader.
+
+The DI'd `callLLM` parameter (rather than a hard-wired `callAgent` import) keeps the tracer-bullet pure-testable and lets the production wiring (a future commit) thread `callAgent` from `src/agents/index.ts` without coupling editorial schema work to runtime transport details. Tests inject a fixed-output mock; production passes the real transport. This is the same DI shape used elsewhere in `src/canon/` for substrate-agnostic checkers.
+
+**Alternatives rejected.**
+
+- *Continuity-against-Canon as the first tracer-bullet.* Rejected as too much surface for v1 — needs a canon facts loader plus cross-fact ranking plus entity resolution. Beat-coverage validates the editorial-envelope plumbing with the smallest possible producer; continuity ships in a later Phase 5 commit on top of the same envelope shape.
+- *Hard-wiring `callAgent` directly into the producer.* Rejected — the tracer-bullet must be pure-testable without transport infrastructure. DI keeps the unit tests deterministic and the runtime call site swappable.
+- *Returning raw verdicts instead of envelopes.* Rejected — the entire Phase-5 design hinges on every editorial output flowing through the same envelope shape so Phase 6's policy engine has one code path.
+- *Re-using `chapter-plan-checker` from `src/agents/`.* Rejected — `chapter-plan-checker` is a runtime gate that returns `{ pass, deviations[] }` for the settle loop; its shape is wrong for editorial flags (no severity, no canon refs, no evidence quotes). Beat-coverage is a separate module with a separate prompt + schema, not a reskin.
+- *Including `obligations` and `requiredPayoffs` per beat in the user prompt.* Rejected for v1 — coverage is "did the events happen?", not "did every obligation land?". An obligation-level checker is a Phase 5 commit 2 follow-on with its own prompt.
+- *Persisting envelopes inside the producer.* Rejected — Phase 5 commit 3 is the typed-persistence-helper commit; the producer returns envelopes for the caller to persist (consistent with Phase 1's `buildPlannerCanonProposals` / `generatePlannerCanonProposals` separation).
+
+**Evidence.** 20/20 tests pass / 62 expects. Canon suite full sweep 259/259 / 625 expects. Server tsc clean. Tests pin: LLM-output schema accept/reject (negative index, non-integer index, missing `reason`, non-array `beatVerdicts`); prompt-builder shape (0-based indices, conservative-bias rule); proposal mapping (covered=true skipped, out-of-range index dropped, duplicate beatIndex first-wins fold, severity propagation, chapterId-vs-chapterNumber fallback); envelope shape (id determinism + `parentEnvelopeId` provenance-not-identity); end-to-end orchestrator (LLM-DI integration, schema-fail throw, transport-fail propagation, agent/rationale overrides reach envelope source).
+
+**Documentation:** `docs/sessions/lane-queue.md` Phase 5 line updated. `docs/current-state.md` Latest footer prepended.
+
+**Ongoing implications:** Future Phase-5 commits (3-5) build on this shape: typed `insertEditorialFlagEnvelope` persistence helper writes to the polymorphic `proposal_envelopes` table from Phase 3 commit 4; `prose_edit` patch application reuses the draft-hash precondition contract; the lint-fix-to-proposal converter uses the same `buildEditorialFlagEnvelope` + `buildProseEditEnvelope` builders. Production runtime wiring (where in the drafting pipeline beat-coverage runs, what severity it emits, how envelopes are persisted) is deferred until the persistence + UI consumer surfaces land; the tracer-bullet stays purely a library for now. If a future LLM editorial module needs reference data outside the chapter outline (e.g., continuity-against-Canon), it lives in its own module per the same DI'd-`callLLM` pattern, not by extending this one.
+
+---
+
 ### §Phase 5 commit 1 — editorial proposal payload schemas (2026-05-04)
 
 **Decision:** Define `EditorialFlagProposal` + `ProseEditProposal` as zod schemas + TypeScript types, plus specialized envelope aliases (`EditorialFlagEnvelope` / `ProseEditEnvelope`) that ride on Phase 3 commit 1's `ReviewProposalEnvelope<TPayload>`. Two builders produce ready-to-persist envelopes with `draft_hash` preconditions. No LLM module, no persistence helpers, no patch application — those are Phase 5 commits 2+.
