@@ -34,11 +34,11 @@
  * around it.
  */
 
-import { createHash } from "node:crypto"
 import { z } from "zod"
-import type {
-  ProposalEnvelopeRisk,
-  ReviewProposalEnvelope,
+import {
+  stableHash,
+  type ProposalEnvelopeRisk,
+  type ReviewProposalEnvelope,
 } from "./proposal-envelope"
 
 // ── EditorialFlagProposal ───────────────────────────────────────────────
@@ -240,29 +240,12 @@ interface BuildProseEditEnvelopeArgs {
   parentEnvelopeId?: string
 }
 
-function stableHashHex(value: unknown): string {
-  // Local copy of canonicalize-then-sha256 to avoid circular imports.
-  // Behavior matches `stableHash` in proposal-envelope.ts.
-  return createHash("sha256").update(canonicalize(value)).digest("hex")
-}
-
-function canonicalize(value: unknown): string {
-  if (value === null || typeof value !== "object") {
-    return JSON.stringify(value) ?? "null"
-  }
-  if (Array.isArray(value)) {
-    return "[" + value.map(canonicalize).join(",") + "]"
-  }
-  const obj = value as Record<string, unknown>
-  const keys = Object.keys(obj).sort()
-  const parts: string[] = []
-  for (const k of keys) {
-    const v = obj[k]
-    if (v === undefined) continue
-    parts.push(JSON.stringify(k) + ":" + canonicalize(v))
-  }
-  return "{" + parts.join(",") + "}"
-}
+// `stableHash` (canonical-JSON sha256) imported from proposal-envelope.ts.
+// OpenCode review MEDIUM F (2026-05-04): the original local copy was
+// motivated by a circular-import concern that turned out not to exist —
+// proposal-envelope.ts has never imported editorial-proposal.ts, so a
+// direct import is fine and removes the drift risk between two byte-
+// identical canonicalizers.
 
 /**
  * Editorial flags are review-class by default — a flag is "the producer
@@ -293,7 +276,7 @@ export function classifyEditRisk(_proposal: ProseEditProposal): ProposalEnvelope
 export function buildEditorialFlagEnvelope(
   args: BuildEditorialFlagEnvelopeArgs,
 ): EditorialFlagEnvelope {
-  const idSeed = stableHashHex({
+  const idSeed = stableHash({
     version: ENVELOPE_ID_VERSION,
     kind: "editorial_flag",
     novelId: args.novelId,
@@ -345,7 +328,7 @@ export function buildEditorialFlagEnvelope(
 export function buildProseEditEnvelope(
   args: BuildProseEditEnvelopeArgs,
 ): ProseEditEnvelope {
-  const idSeed = stableHashHex({
+  const idSeed = stableHash({
     version: ENVELOPE_ID_VERSION,
     kind: "prose_edit",
     novelId: args.novelId,
