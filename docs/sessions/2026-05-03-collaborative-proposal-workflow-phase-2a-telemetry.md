@@ -146,7 +146,8 @@ green; tsc clean; recall holds.
 - `bun test src/canon/ src/harness/ src/orchestrator/canon-proposal-routes.test.ts` — **272/272 pass / 1,448 expects / 33.30s**
 - `bunx tsc --noEmit` — clean
 - `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927, recallGateClear=YES`
-- Commit SHA: filled by commit step.
+- Commit SHA: `1bec94e` ([feat] collaborative proposal workflow Phase 2A telemetry — proposal lifecycle events)
+- Experiment: `408` (ticket, target=world-bible-architecture, status=shipped)
 
 ## Cost
 
@@ -157,4 +158,4 @@ green; tsc clean; recall holds.
 
 ## Commits
 
-(to be filled)
+- `1bec94e` — `[feat] collaborative proposal workflow Phase 2A telemetry — proposal lifecycle events`. Includes 3 new TraceEventTypes, instrumentation in `generatePlannerCanonProposals` + `proposeCanonUpdate` + `resolveProposal`, the 7-test telemetry suite, and the docs sweep (lane doc + decisions + current-state + lane-queue).
