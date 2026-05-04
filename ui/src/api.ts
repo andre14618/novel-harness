@@ -184,8 +184,94 @@ export type AdjusterPatch =
 
 export interface AdjustTurn { role: "user" | "assistant"; content: string }
 
+// Phase 3 commit 1 (collaborative-proposal-workflow): the /adjust endpoint
+// now returns a ReviewProposalEnvelope per patch alongside the legacy
+// `proposedPatches` array. UI surfaces can opt into the envelope (one
+// proposal id per patch, target ref, precondition hash, risk class) for
+// per-patch approve/reject/modify in subsequent Phase 3 commits. Server
+// shape: src/canon/proposal-envelope.ts.
+export type ProposalEnvelopeKind =
+  | "artifact_patch"
+  | "canon_update"
+  | "prose_edit"
+  | "editorial_flag"
+
+export type ProposalEnvelopeStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "modified"
+  | "shadowed"
+  | "expired"
+
+export type ProposalEnvelopeRisk = "mechanical" | "low" | "medium" | "high"
+
+export interface ProposalTargetRef {
+  kind:
+    | "planning_directive"
+    | "world_bible"
+    | "character"
+    | "story_spine"
+    | "chapter_outline"
+    | "canon_fact"
+    | "prose_span"
+  ref: string
+  fieldPath?: string
+  currentVersion: string
+}
+
+export interface ProposalSourceRef {
+  agent: string
+  userMessage?: string
+  parentEnvelopeId?: string
+}
+
+export interface ProposalPrecondition {
+  kind: "artifact_hash" | "snapshot_hash" | "draft_hash" | "canon_generation"
+  hash: string
+}
+
+export interface ProposalPolicyRecommendation {
+  decision: "queue" | "approve" | "reject" | "shadow"
+  policyVersion?: string
+  reasons: string[]
+}
+
+export interface ReviewProposalEnvelope<TPayload = unknown> {
+  id: string
+  kind: ProposalEnvelopeKind
+  novelId: string
+  target: ProposalTargetRef
+  source: ProposalSourceRef
+  status: ProposalEnvelopeStatus
+  risk: ProposalEnvelopeRisk
+  summary: string
+  rationale: string
+  evidence: readonly { kind: "quote" | "structured" | "link"; text: string; ref?: string }[]
+  payload: TPayload
+  precondition: ProposalPrecondition
+  policyRecommendation: ProposalPolicyRecommendation
+  createdAt: string
+  resolvedAt?: string
+  resolvedBy?: "human" | "policy" | "script" | "test"
+}
+
+export type ArtifactPatchEnvelope = ReviewProposalEnvelope<AdjusterPatch> & {
+  kind: "artifact_patch"
+}
+
+export interface AdjustResponse {
+  ok: boolean
+  assistantMessage: string
+  proposedPatches: AdjusterPatch[]
+  /** Phase 3 commit 1 — per-patch envelope; optional for back-compat with older servers. */
+  proposalEnvelopes?: ArtifactPatchEnvelope[]
+  error?: string
+  raw?: string
+}
+
 export function adjustNovel(novelId: string, message: string, history: AdjustTurn[] = []) {
-  return fetchJSON<{ ok: boolean; assistantMessage: string; proposedPatches: AdjusterPatch[]; error?: string; raw?: string }>(
+  return fetchJSON<AdjustResponse>(
     `/api/novel/${novelId}/adjust`,
     { method: "POST", body: JSON.stringify({ message, history }) },
   )

@@ -10,6 +10,39 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 3 commit 1 — ReviewProposalEnvelope shape + adjuster wrap (2026-05-04)
+
+**Decision:** Define `ReviewProposalEnvelope<TPayload>` as a shared TypeScript projection in `src/canon/proposal-envelope.ts` per design doc §Proposal Envelope. Specialize `ArtifactPatchEnvelope = ReviewProposalEnvelope<AdjusterPatch>` for the artifact-adjuster path. Wire `buildArtifactPatchEnvelope` into the `POST /api/novel/:id/adjust` route so each adjuster patch produces a corresponding envelope; the legacy `proposedPatches` field stays in the response (additive, non-breaking).
+
+The envelope shape carries: `id` (deterministic sha256 over patch + target version + index), `kind` (`artifact_patch` for this commit; future: `canon_update` / `prose_edit` / `editorial_flag`), `target` (machine-checkable ref + `currentVersion` artifact hash), `source` (agent + userMessage), `status` (`pending` for fresh proposals; future: `approved` / `rejected` / `modified` / `shadowed` / `expired`), `risk` (`characterRename` → `medium`; others → `low`), `summary`, `rationale` (the assistantMessage), `payload`, `precondition` (artifact_hash matching `target.currentVersion`), `policyRecommendation` (default `queue`), and timestamps.
+
+**Why:** Phase 3 of the collaborative-proposal-workflow design opens with envelope wrapping. The design doc explicitly says: "The first implementation should not start with a universal table migration. Start with a shared TypeScript projection used by UI and services, then persist each proposal kind in the smallest appropriate backing store." This commit ships exactly that — the projection is in place, no schema migration, no DB changes. Future Phase 3 commits build the per-patch resolve routes, hash-precondition enforcement, persistence, and quick actions on top.
+
+**Why now:** Top non-blocked, non-optional `§Next` item per the autonomous-loop default rule. The Codex round-2 fix bundle (which gated Phase 3-6 lanes) is shipped and the substrate's transactional core is verified sound (round-2 returned 0 HIGH / 3 MEDIUM / 0 LOW; all closed). Phase 2B v1 panel feature surface is also complete (single + bulk + audit-history + modify), so a new lane is the right next step.
+
+**Evidence:**
+
+- `bunx tsc --noEmit` — clean (server + UI both).
+- `bun test src/canon/proposal-envelope.test.ts` — 10/10 pass / 42 expects. Covers risk classification per patch type, target-ref kind/ref/version per patch type, missing-character handling (target hashes null as audit signal), summary text generation, full envelope shape on `characterUpdate`, deterministic ids (same inputs → same id; different patchIndex → different id), precondition coupling (artifact change → id and hash both change), `characterRename` risk=medium with policy reason citing it.
+- `bun test src/canon` — 206/206 pass / 488 expects (existing canon suite + new envelope tests).
+- `bunx vite build` — clean. 513.67 kB / 153.70 kB gzip — no size change (envelope types are erased TypeScript interfaces; the new `AdjustResponse.proposalEnvelopes?` field is optional with no UI consumer yet).
+- `git diff --check` — clean.
+- Diff scope: 4 files (`src/canon/proposal-envelope.ts` new +197, `src/canon/proposal-envelope.test.ts` new +199, `src/orchestrator/novel-routes.ts` +24, `ui/src/api.ts` +75).
+
+**Counterfactuals considered but rejected:**
+
+- *Define the envelope as a base class with `kind`-specific subclasses.* Rejected — TypeScript discriminated unions over a parameterized payload give us the type safety with less ceremony. `ReviewProposalEnvelope<TPayload>` + `ArtifactPatchEnvelope = ReviewProposalEnvelope<AdjusterPatch> & { kind: "artifact_patch" }` is enough.
+- *Persist envelopes to a `proposal_envelopes` table now.* Rejected — the design doc explicitly calls for shared TypeScript projection FIRST, persistence LATER once multiple kinds prove they need durable queues. Phase 3 commit 4 (or wherever resume support lands) is the right place for persistence.
+- *Replace `proposedPatches` with `proposalEnvelopes` (breaking change).* Rejected — `AdjustPanel` UI still consumes `proposedPatches`. Backward-compat additive ship is cheaper and the future per-patch UI uses the envelope.
+- *Make envelope ids fully content-addressable (no patchIndex).* Rejected — two consecutive same-content patches in one /adjust response would collapse to one id, losing per-patch resolution. `patchIndex` disambiguates while keeping the rest content-addressable.
+- *Compute `currentVersion` over the entire artifact (world + characters + spine combined).* Rejected — per-target hashing is essential so a `characterUpdate` to char-A doesn't get its precondition invalidated by an unrelated `worldUpdate`.
+
+**Charter §1 status:** unchanged.
+
+**Lane:** Phase 3 of `docs/designs/collaborative-proposal-workflow.md`. This is commit 1 of an expected 5. Subsequent commits: per-patch resolve routes (commit 2), stale-precondition regeneration (commit 3), persistence + resume (commit 4), quick actions (commit 5). Exp #426.
+
+---
+
 ### §Canon proposal Codex round-2 fix — strict persisted-outline schema (2026-05-04)
 
 **Decision:** Add `persistedChapterOutlineSchema` to `src/agents/planning-plotter/schema.ts` as a strict-variant sibling of `chapterOutlineSchema`. The `POST /api/novel/:id/canon-proposals/generate-from-outline` route in `canon-proposal-routes.ts` now validates persisted outlines against the strict variant before handing them to the audit. The strict variant:

@@ -736,12 +736,33 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
           ok: false,
           assistantMessage: "(The adjuster returned malformed output. Try rephrasing.)",
           proposedPatches: [],
+          proposalEnvelopes: [],
           error: String(err),
           raw: response.content,
         })
       }
 
-      return Response.json({ ok: true, ...parsed })
+      // Phase 3 commit 1: wrap each adjuster patch in a ReviewProposalEnvelope.
+      // Additive: legacy `proposedPatches` stays in the response for the
+      // existing UI; `proposalEnvelopes` is a new field per-patch UI surfaces
+      // can opt into. Persistence + per-patch resolve routes are subsequent
+      // Phase 3 commits. See docs/designs/collaborative-proposal-workflow.md
+      // §Phase 3 and `src/canon/proposal-envelope.ts`.
+      const { buildArtifactPatchEnvelope } = await import("../canon/proposal-envelope")
+      const artifacts = { world, characters, spine }
+      const proposalEnvelopes = parsed.proposedPatches.map((patch, idx) =>
+        buildArtifactPatchEnvelope({
+          novelId,
+          patch,
+          patchIndex: idx,
+          userMessage: body.message,
+          rationale: parsed.assistantMessage,
+          artifacts,
+          now: new Date(),
+        }),
+      )
+
+      return Response.json({ ok: true, ...parsed, proposalEnvelopes })
     } catch (err) {
       return Response.json({ error: String(err) }, { status: 500 })
     }
