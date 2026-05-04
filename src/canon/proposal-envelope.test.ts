@@ -382,4 +382,25 @@ describe("ReviewProposalEnvelope — Phase 3 commit 1", () => {
     expect(parentA.source.parentEnvelopeId).toBe("parent-A")
     expect(parentB.source.parentEnvelopeId).toBe("parent-B")
   })
+
+  test("(MEDIUM B) buildArtifactPatchEnvelope rejects self-parent (1-cycle)", () => {
+    const patch: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "X" },
+    }
+    const args = {
+      novelId,
+      patch,
+      patchIndex: 0,
+      userMessage: "u",
+      rationale: "r",
+      artifacts: baseArtifacts,
+      now: fixedNow,
+    } as const
+    const a = buildArtifactPatchEnvelope(args)
+    expect(() =>
+      buildArtifactPatchEnvelope({ ...args, parentEnvelopeId: a.id }),
+    ).toThrow(/parentEnvelopeId equals computed envelope id/)
+  })
 })

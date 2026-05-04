@@ -133,6 +133,30 @@ describe("EditorialFlagProposal — schema + builder", () => {
     expect(c.source.parentEnvelopeId).toBe("parent-2")
     expect(a.source.parentEnvelopeId).toBeUndefined()
   })
+
+  test("(MEDIUM B) buildEditorialFlagEnvelope rejects self-parent (1-cycle)", () => {
+    const flag: EditorialFlagProposal = {
+      issueType: "tone-drift",
+      severity: "warning",
+      canonRefs: [],
+      evidenceQuotes: [],
+      suggestedAction: "x",
+    }
+    const args = {
+      novelId,
+      chapterRef: "chapter:1",
+      proposal: flag,
+      proposalIndex: 0,
+      agent: "test",
+      draftHash,
+      rationale: "r",
+      now: fixedNow,
+    } as const
+    const a = buildEditorialFlagEnvelope(args)
+    expect(() =>
+      buildEditorialFlagEnvelope({ ...args, parentEnvelopeId: a.id }),
+    ).toThrow(/parentEnvelopeId equals computed envelope id/)
+  })
 })
 
 describe("ProseEditProposal — schema + builder", () => {
@@ -252,5 +276,27 @@ describe("ProseEditProposal — schema + builder", () => {
     const b = buildProseEditEnvelope({ ...args, parentEnvelopeId: "p1" })
     expect(b.id).toBe(a.id)
     expect(b.source.parentEnvelopeId).toBe("p1")
+  })
+
+  test("(MEDIUM B) buildProseEditEnvelope rejects self-parent (1-cycle)", () => {
+    const edit: ProseEditProposal = {
+      draftVersion: "v1",
+      target: { kind: "span", chapterRef: "c1", start: 0, end: 10 },
+      replacement: "x",
+      rationale: "y",
+    }
+    const args = {
+      novelId,
+      proposal: edit,
+      proposalIndex: 0,
+      agent: "test",
+      draftHash,
+      rationale: "y",
+      now: fixedNow,
+    } as const
+    const a = buildProseEditEnvelope(args)
+    expect(() =>
+      buildProseEditEnvelope({ ...args, parentEnvelopeId: a.id }),
+    ).toThrow(/parentEnvelopeId equals computed envelope id/)
   })
 })

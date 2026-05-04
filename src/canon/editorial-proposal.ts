@@ -288,8 +288,15 @@ export function buildEditorialFlagEnvelope(
   const summary =
     `${args.proposal.severity}: ${args.proposal.issueType}` +
     (args.proposal.chapterRef ? ` @ ${args.proposal.chapterRef}` : "")
+  const id = `editorial-flag:${args.novelId}:${idSeed.slice(0, 16)}`
+  // OpenCode review MEDIUM B (2026-05-04): reject self-parent (1-cycle).
+  if (args.parentEnvelopeId !== undefined && args.parentEnvelopeId === id) {
+    throw new Error(
+      `buildEditorialFlagEnvelope: parentEnvelopeId equals computed envelope id (${id})`,
+    )
+  }
   return {
-    id: `editorial-flag:${args.novelId}:${idSeed.slice(0, 16)}`,
+    id,
     kind: "editorial_flag",
     novelId: args.novelId,
     target: {
@@ -339,8 +346,15 @@ export function buildProseEditEnvelope(
   const targetSummary = args.proposal.target.kind === "span"
     ? `span:${args.proposal.target.chapterRef}@${args.proposal.target.start}-${args.proposal.target.end}`
     : `beat:${args.proposal.target.chapterRef}#${args.proposal.target.beatRef}`
+  const id = `prose-edit:${args.novelId}:${idSeed.slice(0, 16)}`
+  // OpenCode review MEDIUM B (2026-05-04): reject self-parent (1-cycle).
+  if (args.parentEnvelopeId !== undefined && args.parentEnvelopeId === id) {
+    throw new Error(
+      `buildProseEditEnvelope: parentEnvelopeId equals computed envelope id (${id})`,
+    )
+  }
   return {
-    id: `prose-edit:${args.novelId}:${idSeed.slice(0, 16)}`,
+    id,
     kind: "prose_edit",
     novelId: args.novelId,
     target: {

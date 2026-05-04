@@ -244,8 +244,22 @@ export function buildArtifactPatchEnvelope(
     targetVersion: target.currentVersion,
     patchIndex: args.patchIndex,
   })
+  const id = `artifact-patch:${args.novelId}:${idSeed.slice(0, 16)}`
+  // OpenCode review MEDIUM B (2026-05-04): reject self-parent — a regen
+  // path that produces an identical patch on identical artifact state
+  // would otherwise yield envelope.id === source.parentEnvelopeId,
+  // creating a 1-cycle in the lineage graph. Per the reviewer's
+  // recommendation, full cycle detection is deferred (the lineage UI
+  // doesn't yet traverse parents); rejecting the self-parent at builder
+  // boundary is the cheap defense that catches the common case.
+  if (args.parentEnvelopeId !== undefined && args.parentEnvelopeId === id) {
+    throw new Error(
+      `buildArtifactPatchEnvelope: parentEnvelopeId equals computed envelope id (${id}); ` +
+      `regen lineage would self-loop. Skip the parent ref or build with a different patch/index.`,
+    )
+  }
   return {
-    id: `artifact-patch:${args.novelId}:${idSeed.slice(0, 16)}`,
+    id,
     kind: "artifact_patch",
     novelId: args.novelId,
     target,
