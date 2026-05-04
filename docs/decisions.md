@@ -1,5 +1,5 @@
 status: active
-updated: 2026-05-03
+updated: 2026-05-04
 ---
 
 # Decisions
@@ -7,6 +7,34 @@ updated: 2026-05-03
 Architectural decisions with rationale, evidence, and alternatives rejected. Append-only: decisions are never removed, only superseded (mark old decision superseded and add a new one). Use git blame / experiment IDs for full detail.
 
 **Format per entry:** decision → why → alternatives rejected → ongoing implications.
+
+---
+
+### §Canon proposal bulk-action UI affordance (2026-05-04)
+
+**Decision:** Add `Approve all (N)` / `Reject all (N)` buttons to `ui/src/components/CanonProposalsPage.tsx`. The buttons appear in a status row above the table whenever proposals are listed. Clicking either runs `bulkResolveCanonProposals` (commit `032d8c0`) over the visible (post-filter) set, capped at 200 per call to mirror the server soft-cap. A `window.confirm()` gates the call; the summary banner reports `ok/error` counts; optimistic-remove on full success and reload-to-authoritative on partial errors.
+
+**Why:** The Phase 2B v1 page only exposed single-resolve. With Phase 1.5 auto-firing planner-canon proposal generation per outline, an operator landing on the page can be staring at 30+ pending proposals after a single planning run. Working through them one button-click at a time defeats the workflow's purpose. The bulk endpoint already shipped (commit `032d8c0`) — the UI was the missing surface.
+
+**Why now:** Highest-priority, non-blocked, non-optional `§Next` lane-queue item per the autonomous-loop default rule. Browser-untested UI work counts as in-bounds (flag-and-disclose), not skipped.
+
+**Evidence:**
+
+- `bunx tsc --noEmit` — clean.
+- `bunx vite build` — clean. 72 modules transformed, 507.55 kB / 152.23 kB gzip (Phase 2B baseline 505.41 kB / 151.71 kB; +2.14 kB / +0.52 kB gzip, accounted for by the bulk handler + status row + confirmation dialog).
+- Server regression sweep `bun test src/orchestrator src/harness src/canon` — 293/295 pass. The 2 failures (`POST bulk-resolve — approves multiple in one request, per-row results` in `canon-proposal-routes.test.ts` and the equivalent in `planner-canon-proposals.test.ts`) reproduce on **clean main** and are the race-window non-determinism already queued as the LOW from Codex round-1 (per `docs/sessions/lane-queue.md` §Next line 7). Not introduced by this UI change. Diff scope: only `ui/src/components/CanonProposalsPage.tsx` modified (+107 / -3).
+- `git diff --check` — clean.
+
+**Counterfactuals considered but rejected:**
+
+- *Per-row checkbox + bulk-action toolbar.* Rejected for v1 — the existing filter row IS the selection mechanism (operators filter to a subset, then bulk-act on what they see). Per-row checkboxes would add a second selection model that conflicts with the filter and demands more screen real estate.
+- *No soft-cap warning, just send the full set and let the server reject 200+.* Rejected — the user-facing count would silently disagree with what gets resolved, and the operator would have to read the summary banner to discover the truncation. The button label `Approve all (N)` already capped at 200 sets honest expectations and the confirmation dialog discloses the overflow.
+- *Implicit `expectedStatus: "pending"` on every bulk row.* Adopted — same race-guard semantics as single-resolve. A stale page racing another operator surfaces as `error` rows in the summary, not silent over-write.
+- *Run a third Codex review pass on this UI change before shipping.* Rejected — the change is pure UI orchestration over an already-reviewed bulk endpoint; the Codex round-2 in §Next line 8 covers the substrate / atomic-batch / regex / schema-v2 surfaces that are the real risk areas.
+
+**Charter §1 status:** unchanged (Studio surface, not substrate).
+
+**Lane:** continuation of `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2b.md`. Browser hand-test required for full clearance per the CLAUDE.md UI rule; the lane-queue entry tracks that.
 
 ---
 

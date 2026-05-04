@@ -4,8 +4,12 @@ import {
   listCanonProposals,
   resolveCanonProposal,
   generateProposalsFromOutline,
+  bulkResolveCanonProposals,
   type CanonProposal,
+  type BulkResolutionRequest,
 } from "../api"
+
+const BULK_SOFT_CAP = 200
 
 type Filter = {
   source: string
@@ -99,6 +103,8 @@ export function CanonProposalsPage() {
   const [appliedFilter, setAppliedFilter] = useState<Filter>(EMPTY_FILTER)
   const [genResult, setGenResult] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const [bulkSummary, setBulkSummary] = useState<string | null>(null)
 
   const load = useCallback(() => {
     setError(null)
@@ -131,6 +137,44 @@ export function CanonProposalsPage() {
       load()
     } finally {
       setBusyId(null)
+    }
+  }
+
+  const onBulkResolve = async (status: "approved" | "rejected") => {
+    if (!proposals || proposals.length === 0) return
+    const targets = proposals.slice(0, BULK_SOFT_CAP)
+    const verb = status === "approved" ? "Approve" : "Reject"
+    const overflowNote =
+      proposals.length > BULK_SOFT_CAP
+        ? ` (capped at ${BULK_SOFT_CAP} of ${proposals.length}; re-run after this batch for the rest)`
+        : ""
+    const ok = window.confirm(
+      `${verb} all ${targets.length} pending proposal(s) matching the current filter${overflowNote}?` +
+        (status === "approved" ? "\n\nApproving commits each fact to canon." : ""),
+    )
+    if (!ok) return
+    setBulkBusy(true)
+    setBulkSummary(null)
+    setError(null)
+    try {
+      const resolutions: BulkResolutionRequest[] = targets.map(p => ({
+        proposalId: p.id,
+        status,
+        expectedStatus: "pending",
+      }))
+      const r = await bulkResolveCanonProposals(novelId, resolutions)
+      setBulkSummary(`bulk ${status}: ok=${r.counts.ok} error=${r.counts.error}`)
+      if (r.counts.error === 0) {
+        const okIds = new Set(r.results.filter(x => x.status === "ok").map(x => x.proposalId))
+        setProposals(prev => (prev ?? []).filter(p => !okIds.has(p.id)))
+      } else {
+        load()
+      }
+    } catch (e) {
+      setError(String(e))
+      load()
+    } finally {
+      setBulkBusy(false)
     }
   }
 
@@ -282,6 +326,65 @@ export function CanonProposalsPage() {
           {genResult}
         </p>
       )}
+      {bulkSummary && (
+        <p style={{ color: "#aaa", fontSize: "0.84rem", margin: "4px 2px 14px" }}>
+          {bulkSummary}
+        </p>
+      )}
+      {proposals && proposals.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+            marginBottom: 10,
+            padding: "6px 12px",
+            border: "1px solid #2a2e3c",
+            borderRadius: 6,
+            background: "#161922",
+          }}
+        >
+          <span style={{ color: "#aaa", fontSize: "0.82rem" }}>
+            {proposals.length} pending shown
+            {proposals.length > BULK_SOFT_CAP
+              ? ` · bulk capped at ${BULK_SOFT_CAP}/call`
+              : ""}
+          </span>
+          <span style={{ flex: 1 }} />
+          <button
+            disabled={bulkBusy}
+            onClick={() => onBulkResolve("approved")}
+            style={{
+              background: "#2c4a32",
+              border: "1px solid #4c7",
+              color: "#cfe",
+              padding: "4px 12px",
+              borderRadius: 4,
+              fontSize: "0.82rem",
+              cursor: bulkBusy ? "wait" : "pointer",
+            }}
+            title="Approve every pending proposal currently visible (matching the active filter)."
+          >
+            {bulkBusy ? "…" : `Approve all (${Math.min(proposals.length, BULK_SOFT_CAP)})`}
+          </button>
+          <button
+            disabled={bulkBusy}
+            onClick={() => onBulkResolve("rejected")}
+            style={{
+              background: "#4a2c2c",
+              border: "1px solid #d65",
+              color: "#fce",
+              padding: "4px 12px",
+              borderRadius: 4,
+              fontSize: "0.82rem",
+              cursor: bulkBusy ? "wait" : "pointer",
+            }}
+            title="Reject every pending proposal currently visible (matching the active filter)."
+          >
+            {bulkBusy ? "…" : `Reject all (${Math.min(proposals.length, BULK_SOFT_CAP)})`}
+          </button>
+        </div>
+      )}
       {error && (
         <p style={{ color: "var(--red, #d65)", padding: "8px 12px", border: "1px solid #d65", borderRadius: 4, marginBottom: 14 }}>
           {error}
@@ -323,9 +426,10 @@ export function CanonProposalsPage() {
 
       <p style={{ color: "#666", fontSize: "0.74rem", marginTop: 18 }}>
         Phase 2B (UI) — browser-untested. The underlying API (Phase 2A,
-        commit <code>9cf6238</code>) and telemetry (Phase 2A.5,{" "}
-        <code>1bec94e</code>) ship with handler tests; this page is the first
-        UI surface and is awaiting hand-test verification.
+        commit <code>9cf6238</code>), telemetry (Phase 2A.5,{" "}
+        <code>1bec94e</code>), and bulk-resolve endpoint (commit{" "}
+        <code>032d8c0</code>) ship with handler tests; this page (single +
+        bulk affordances) is awaiting hand-test verification.
       </p>
     </div>
   )
