@@ -7,17 +7,40 @@ import {
   bulkResolveCanonProposals,
   type CanonProposal,
   type BulkResolutionRequest,
+  type ProposalStatus,
 } from "../api"
 
 const BULK_SOFT_CAP = 200
+
+type StatusTab = ProposalStatus | "all"
+const STATUS_TABS: StatusTab[] = ["pending", "approved", "rejected", "modified", "all"]
 
 type Filter = {
   source: string
   chapter: string
   plannerOnly: boolean
+  status: StatusTab
 }
 
-const EMPTY_FILTER: Filter = { source: "", chapter: "", plannerOnly: false }
+const EMPTY_FILTER: Filter = {
+  source: "",
+  chapter: "",
+  plannerOnly: false,
+  status: "pending",
+}
+
+function statusBadgeStyle(status: ProposalStatus): React.CSSProperties {
+  switch (status) {
+    case "pending":
+      return { background: "#2a2e3c", color: "#dce", border: "1px solid #3d4356" }
+    case "approved":
+      return { background: "#1f3a26", color: "#cfe", border: "1px solid #2c5a36" }
+    case "rejected":
+      return { background: "#3a1f1f", color: "#fce", border: "1px solid #5a2c2c" }
+    case "modified":
+      return { background: "#322a48", color: "#dce", border: "1px solid #4a3d62" }
+  }
+}
 
 function formatProvenance(p: CanonProposal["proposedFact"]["provenance"]): string {
   const parts: string[] = [`ch${p.chapter}`]
@@ -37,6 +60,7 @@ function ProposalRow({
   onResolve: (status: "approved" | "rejected") => void
 }) {
   const fact = proposal.proposedFact
+  const isPending = proposal.status === "pending"
   return (
     <tr>
       <td style={{ fontFamily: "monospace", fontSize: "0.78rem", color: "#9ac" }}>
@@ -55,39 +79,68 @@ function ProposalRow({
         <div style={{ color: "#888", fontSize: "0.78rem", marginTop: 2 }}>
           {formatProvenance(fact.provenance)}
         </div>
+        {proposal.operatorNote && (
+          <div style={{ color: "#9ac", fontSize: "0.74rem", marginTop: 4, fontStyle: "italic" }}>
+            note: {proposal.operatorNote}
+          </div>
+        )}
       </td>
       <td style={{ whiteSpace: "nowrap" }}>
-        <button
-          disabled={busy}
-          onClick={() => onResolve("approved")}
-          style={{
-            background: "#2c4a32",
-            border: "1px solid #4c7",
-            color: "#cfe",
-            padding: "4px 10px",
-            borderRadius: 4,
-            fontSize: "0.78rem",
-            cursor: busy ? "wait" : "pointer",
-            marginRight: 6,
-          }}
-        >
-          Approve
-        </button>
-        <button
-          disabled={busy}
-          onClick={() => onResolve("rejected")}
-          style={{
-            background: "#4a2c2c",
-            border: "1px solid #d65",
-            color: "#fce",
-            padding: "4px 10px",
-            borderRadius: 4,
-            fontSize: "0.78rem",
-            cursor: busy ? "wait" : "pointer",
-          }}
-        >
-          Reject
-        </button>
+        {isPending ? (
+          <>
+            <button
+              disabled={busy}
+              onClick={() => onResolve("approved")}
+              style={{
+                background: "#2c4a32",
+                border: "1px solid #4c7",
+                color: "#cfe",
+                padding: "4px 10px",
+                borderRadius: 4,
+                fontSize: "0.78rem",
+                cursor: busy ? "wait" : "pointer",
+                marginRight: 6,
+              }}
+            >
+              Approve
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => onResolve("rejected")}
+              style={{
+                background: "#4a2c2c",
+                border: "1px solid #d65",
+                color: "#fce",
+                padding: "4px 10px",
+                borderRadius: 4,
+                fontSize: "0.78rem",
+                cursor: busy ? "wait" : "pointer",
+              }}
+            >
+              Reject
+            </button>
+          </>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <span
+              style={{
+                padding: "2px 8px",
+                borderRadius: 3,
+                fontSize: "0.74rem",
+                fontWeight: 500,
+                width: "fit-content",
+                ...statusBadgeStyle(proposal.status),
+              }}
+            >
+              {proposal.status}
+            </span>
+            {proposal.resolvedAt && (
+              <span style={{ color: "#666", fontSize: "0.7rem" }}>
+                {new Date(proposal.resolvedAt).toISOString().slice(0, 19).replace("T", " ")}
+              </span>
+            )}
+          </div>
+        )}
       </td>
     </tr>
   )
@@ -109,10 +162,16 @@ export function CanonProposalsPage() {
   const load = useCallback(() => {
     setError(null)
     const chapterNum = appliedFilter.chapter ? Number(appliedFilter.chapter) : undefined
-    const opts: { source?: string; chapter?: number; plannerOnly?: boolean } = {}
+    const opts: {
+      source?: string
+      chapter?: number
+      plannerOnly?: boolean
+      status?: ProposalStatus | "all"
+    } = {}
     if (appliedFilter.source) opts.source = appliedFilter.source
     if (chapterNum !== undefined && Number.isFinite(chapterNum)) opts.chapter = chapterNum
     if (appliedFilter.plannerOnly) opts.plannerOnly = true
+    if (appliedFilter.status !== "pending") opts.status = appliedFilter.status
     listCanonProposals(novelId, opts)
       .then(r => setProposals(r.proposals))
       .catch(e => setError(String(e)))
@@ -210,17 +269,57 @@ export function CanonProposalsPage() {
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ marginTop: 0, marginBottom: 4 }}>Canon proposal review</h2>
         <p style={{ color: "#888", margin: 0, fontSize: "0.88rem" }}>
-          Pending proposals for novel{" "}
-          <code style={{ color: "#9ac" }}>{novelId}</code>. Approving commits the
-          fact to canon (no-ghost-canon: pending rows are invisible to canon
-          reads). Rejecting marks it not-canon. Modify-with-edits is not
-          surfaced in this v1 panel — use the API directly for that path.
+          Proposals for novel <code style={{ color: "#9ac" }}>{novelId}</code>.
+          Approving commits the fact to canon (no-ghost-canon: pending rows
+          are invisible to canon reads). Rejecting marks it not-canon.
+          Modify-with-edits is not surfaced in this v1 panel — use the API
+          directly for that path. Switch tabs to inspect resolved history.
         </p>
         <p style={{ color: "#666", margin: "4px 0 0", fontSize: "0.78rem" }}>
           <Link to={`/${encodeURIComponent(novelId)}`} style={{ color: "#9ac" }}>
             ← back to pipeline
           </Link>
         </p>
+      </div>
+
+      <div
+        role="tablist"
+        style={{
+          display: "flex",
+          gap: 2,
+          marginBottom: 12,
+          borderBottom: "1px solid #2a2e3c",
+        }}
+      >
+        {STATUS_TABS.map(tab => {
+          const active = appliedFilter.status === tab
+          return (
+            <button
+              key={tab}
+              role="tab"
+              aria-selected={active}
+              onClick={() => {
+                setFilter(f => ({ ...f, status: tab }))
+                setAppliedFilter(f => ({ ...f, status: tab }))
+              }}
+              style={{
+                background: active ? "#1a1d28" : "transparent",
+                border: "1px solid",
+                borderColor: active ? "#2a2e3c" : "transparent",
+                borderBottomColor: active ? "#1a1d28" : "transparent",
+                color: active ? "#dce" : "#888",
+                padding: "6px 14px",
+                borderRadius: "4px 4px 0 0",
+                fontSize: "0.82rem",
+                cursor: "pointer",
+                marginBottom: -1,
+                fontWeight: active ? 500 : 400,
+              }}
+            >
+              {tab}
+            </button>
+          )
+        })}
       </div>
 
       <div
@@ -287,8 +386,8 @@ export function CanonProposalsPage() {
         </button>
         <button
           onClick={() => {
-            setFilter(EMPTY_FILTER)
-            setAppliedFilter(EMPTY_FILTER)
+            setFilter(f => ({ ...EMPTY_FILTER, status: f.status }))
+            setAppliedFilter(f => ({ ...EMPTY_FILTER, status: f.status }))
           }}
           style={{
             background: "transparent",
@@ -331,7 +430,7 @@ export function CanonProposalsPage() {
           {bulkSummary}
         </p>
       )}
-      {proposals && proposals.length > 0 && (
+      {proposals && proposals.length > 0 && appliedFilter.status === "pending" && (
         <div
           style={{
             display: "flex",
@@ -385,6 +484,21 @@ export function CanonProposalsPage() {
           </button>
         </div>
       )}
+      {proposals && proposals.length > 0 && appliedFilter.status !== "pending" && (
+        <div
+          style={{
+            marginBottom: 10,
+            padding: "6px 12px",
+            border: "1px solid #2a2e3c",
+            borderRadius: 6,
+            background: "#161922",
+            color: "#888",
+            fontSize: "0.78rem",
+          }}
+        >
+          {proposals.length} {appliedFilter.status === "all" ? "" : appliedFilter.status} proposal(s) shown · audit-history view (read-only)
+        </div>
+      )}
       {error && (
         <p style={{ color: "var(--red, #d65)", padding: "8px 12px", border: "1px solid #d65", borderRadius: 4, marginBottom: 14 }}>
           {error}
@@ -395,10 +509,17 @@ export function CanonProposalsPage() {
         <p style={{ color: "var(--text-tertiary)" }}>Loading…</p>
       ) : proposals.length === 0 ? (
         <p style={{ color: "#888" }}>
-          No pending proposals match the current filter. Try{" "}
-          <strong>Generate from outline</strong> if planning has run but
-          proposals haven't been created yet (rare — Phase 1.5 auto-wires this
-          at the planning-phase boundary).
+          No{" "}
+          {appliedFilter.status === "all" ? "" : `${appliedFilter.status} `}
+          proposals match the current filter.
+          {appliedFilter.status === "pending" && (
+            <>
+              {" "}
+              Try <strong>Generate from outline</strong> if planning has run
+              but proposals haven't been created yet (rare — Phase 1.5
+              auto-wires this at the planning-phase boundary).
+            </>
+          )}
         </p>
       ) : (
         <table className="guide-table">
@@ -427,9 +548,10 @@ export function CanonProposalsPage() {
       <p style={{ color: "#666", fontSize: "0.74rem", marginTop: 18 }}>
         Phase 2B (UI) — browser-untested. The underlying API (Phase 2A,
         commit <code>9cf6238</code>), telemetry (Phase 2A.5,{" "}
-        <code>1bec94e</code>), and bulk-resolve endpoint (commit{" "}
-        <code>032d8c0</code>) ship with handler tests; this page (single +
-        bulk affordances) is awaiting hand-test verification.
+        <code>1bec94e</code>), bulk-resolve endpoint (commit{" "}
+        <code>032d8c0</code>), and status filter (commit <code>e83d1f5</code>)
+        ship with handler tests; this page (single + bulk affordances +
+        audit-history tabs) is awaiting hand-test verification.
       </p>
     </div>
   )

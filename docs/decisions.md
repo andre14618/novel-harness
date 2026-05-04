@@ -10,6 +10,36 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon proposal audit-history status tab UI (2026-05-04)
+
+**Decision:** Add a status tab strip (`pending | approved | rejected | modified | all`) above the existing filter row in `ui/src/components/CanonProposalsPage.tsx`. Click applies immediately (no Apply button needed for the tab itself) and re-fetches via the existing `?status=` query param (server endpoint shipped at commit `e83d1f5`). Non-pending tabs hide the bulk-action row and the per-row Approve/Reject buttons (read-only audit view); rows show a colored status badge, ISO-formatted resolvedAt, and operatorNote in the Decision column. The Clear button now preserves the active status tab so an operator inspecting "approved" history doesn't lose their tab when clearing source/chapter/plannerOnly filters. The `listCanonProposals` UI client gains an optional `status: ProposalStatus | ProposalStatus[] | "all"` arg; `"pending"` (default) intentionally omits the param to keep URLs clean for back-compat.
+
+**Why:** With Phase 1.5 auto-firing planner-canon proposal generation per outline and a bulk-resolve affordance now in place, an operator needs visibility into resolved history (what was approved, what was rejected, by whom and when) — both to audit Canon evolution and to undo / re-fire if a state-mapper rerun produces a corrected v2 proposal that supersedes a previously-rejected v1. The server already supports filtered status queries; the UI was the missing surface.
+
+**Why now:** Highest-priority, non-blocked, non-optional `§Next` lane-queue item per the autonomous-loop default rule. Browser-untested UI work counts as in-bounds (flag-and-disclose), not skipped.
+
+**Evidence:**
+
+- `bunx tsc --noEmit` — clean.
+- `bunx vite build` — clean. 509.87 kB / 152.84 kB gzip (bulk-action baseline 507.55 kB / 152.23 kB; +2.32 kB / +0.61 kB gzip — accounted for by the tab strip + status-aware resolved-row rendering).
+- Server tests unchanged: this is a UI-only diff (`ui/src/api.ts` + `ui/src/components/CanonProposalsPage.tsx`); pre-existing race-window flakes in the bulk-resolve test family persist on clean main as documented in `lane-queue.md` §Next line 7 — unrelated.
+- `git diff --check` — clean.
+- Diff scope: 2 files, +180 / -49.
+
+**Counterfactuals considered but rejected:**
+
+- *Status as another row in the existing filter form (with Apply button).* Rejected — the audit-history view is a fundamentally different mode (read-only vs operating). A tab strip signals that switching modes is a one-click affordance, and the Decision column changes shape based on which tab is active.
+- *Status dropdown instead of tab strip.* Rejected — only 5 enum values; tabs read better and surface the active mode at a glance instead of being one click away.
+- *Show all-tabs with mode-aware counts (e.g., `pending (12) approved (8)`).* Rejected for v1 — that requires either 5x the API calls per page load or a server-side counts endpoint we don't have. Adding either is scope creep.
+- *Hide the Decision column entirely on non-pending tabs.* Rejected — the resolved-at timestamp and operatorNote are most usefully co-located with the proposed fact for audit purposes.
+- *Allow re-resolving from the audit view (e.g., un-reject button).* Rejected — would require new server endpoints + supersession lifecycle. Operators who need this can use the API (or a future modify-with-edits surface). The current substrate's no-ghost-canon rule already supports the path: a corrected v2 proposal supersedes a rejected v1 if the state-mapper produces it.
+
+**Charter §1 status:** unchanged (Studio surface, not substrate).
+
+**Lane:** continuation of `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2b.md`. Browser hand-test required for full clearance per the CLAUDE.md UI rule; the lane-queue entry tracks that.
+
+---
+
 ### §Canon proposal bulk-action UI affordance (2026-05-04)
 
 **Decision:** Add `Approve all (N)` / `Reject all (N)` buttons to `ui/src/components/CanonProposalsPage.tsx`. The buttons appear in a status row above the table whenever proposals are listed. Clicking either runs `bulkResolveCanonProposals` (commit `032d8c0`) over the visible (post-filter) set, capped at 200 per call to mirror the server soft-cap. A `window.confirm()` gates the call; the summary banner reports `ok/error` counts; optimistic-remove on full success and reload-to-authoritative on partial errors.

@@ -886,12 +886,21 @@ export interface CanonProposal {
 
 export function listCanonProposals(
   novelId: string,
-  opts?: { source?: string; chapter?: number; plannerOnly?: boolean },
+  opts?: {
+    source?: string
+    chapter?: number
+    plannerOnly?: boolean
+    status?: ProposalStatus | ProposalStatus[] | "all"
+  },
 ) {
   const params = new URLSearchParams()
   if (opts?.source) params.set("source", opts.source)
   if (opts?.chapter !== undefined) params.set("chapter", String(opts.chapter))
   if (opts?.plannerOnly) params.set("plannerOnly", "true")
+  if (opts?.status !== undefined) {
+    const value = Array.isArray(opts.status) ? opts.status.join(",") : opts.status
+    if (value && value !== "pending") params.set("status", value)
+  }
   const qs = params.toString()
   const suffix = qs ? `?${qs}` : ""
   return fetchJSON<{ proposals: CanonProposal[] }>(
