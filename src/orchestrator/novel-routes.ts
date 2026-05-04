@@ -745,10 +745,17 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       // Phase 3 commit 1: wrap each adjuster patch in a ReviewProposalEnvelope.
       // Additive: legacy `proposedPatches` stays in the response for the
       // existing UI; `proposalEnvelopes` is a new field per-patch UI surfaces
-      // can opt into. Persistence + per-patch resolve routes are subsequent
-      // Phase 3 commits. See docs/designs/collaborative-proposal-workflow.md
+      // can opt into. See docs/designs/collaborative-proposal-workflow.md
       // §Phase 3 and `src/canon/proposal-envelope.ts`.
+      // Phase 3 commit 4: also persist each envelope. Persistence is
+      // best-effort — if the DB write fails (transient pool error, schema
+      // missing in dev environments), we still return the envelopes in
+      // the response so the UI can resolve them via body-carry. The
+      // failure is logged for observability. The deterministic envelope
+      // id makes this safe: a retry that sees the same envelope will
+      // skip the insert via ON CONFLICT (id) DO NOTHING.
       const { buildArtifactPatchEnvelope } = await import("../canon/proposal-envelope")
+      const { insertArtifactPatchEnvelope } = await import("../db/proposal-envelopes")
       const artifacts = { world, characters, spine }
       const proposalEnvelopes = parsed.proposedPatches.map((patch, idx) =>
         buildArtifactPatchEnvelope({
@@ -761,8 +768,32 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
           now: new Date(),
         }),
       )
+      for (const env of proposalEnvelopes) {
+        try {
+          await insertArtifactPatchEnvelope(env)
+        } catch (err) {
+          // Log + continue. UI still gets the envelope in the response.
+          console.error(`[adjust] envelope persistence failed for ${env.id}:`, err)
+        }
+      }
 
       return Response.json({ ok: true, ...parsed, proposalEnvelopes })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
+  // ── List persisted artifact-patch envelopes (Phase 3 commit 4) ─────
+  const listEnvelopesMatch = path.match(/^\/api\/novel\/([^/]+)\/proposal-envelopes$/)
+  if (listEnvelopesMatch && req.method === "GET") {
+    const novelId = decodeURIComponent(listEnvelopesMatch[1])
+    try {
+      const status = url.searchParams.get("status") ?? "pending"
+      const limitRaw = url.searchParams.get("limit")
+      const limit = limitRaw != null && /^\d+$/.test(limitRaw) ? Math.min(parseInt(limitRaw, 10), 500) : 200
+      const { listArtifactPatchEnvelopes } = await import("../db/proposal-envelopes")
+      const envelopes = await listArtifactPatchEnvelopes(novelId, { status, limit })
+      return Response.json({ ok: true, envelopes })
     } catch (err) {
       return Response.json({ error: String(err) }, { status: 500 })
     }
