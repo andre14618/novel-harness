@@ -412,6 +412,43 @@ describe.skipIf(!reachable)("handleProposalEnvelopeRoute (DB-backed)", () => {
     expect(body.error).toBe("target artifact missing")
   })
 
+  // Codex round-4 MEDIUM 1: worldUpdate / spineUpdate missing-target paths
+  // must surface as 404 the same way characterUpdate does. Pre-fix the
+  // `readLiveTargetVersion` helper swallowed the missing-row error into
+  // null and HASHED that null — passing the precondition check, then
+  // dying inside `applyPatch` as a 500 "apply failed". Operators got the
+  // wrong diagnosis. Post-fix `readLockedTarget` returns null only on a
+  // genuine "rows.length === 0" outcome, which the route translates to
+  // 404. Real DB errors propagate as exceptions and surface as 500, not
+  // 404.
+  test("missing world bible → 404 (round-4 MEDIUM 1: not 500 apply-error)", async () => {
+    // Novel seeded but no world_bibles row.
+    const patch: AdjusterPatch = { type: "worldUpdate", patch: { setting: "Tower" } }
+    const envelope = await buildEnvelopeFromLive(novelId, patch)
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope,
+        status: "approved",
+      }),
+    )
+    expect(status).toBe(404)
+    expect(body.error).toBe("target artifact missing")
+  })
+
+  test("missing story spine → 404 (round-4 MEDIUM 1: not 500 apply-error)", async () => {
+    // Novel seeded but no story_spines row.
+    const patch: AdjusterPatch = { type: "spineUpdate", patch: { theme: "redemption" } }
+    const envelope = await buildEnvelopeFromLive(novelId, patch)
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope,
+        status: "approved",
+      }),
+    )
+    expect(status).toBe(404)
+    expect(body.error).toBe("target artifact missing")
+  })
+
   // ── envelope.novelId vs URL mismatch ───────────────────────────────────
 
   test("envelope.novelId mismatched against URL → 400", async () => {
