@@ -10,6 +10,48 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 3 commit 5a — bulk quick actions (2026-05-04)
+
+**Decision:** Ship the two bounded quick actions from design doc §"Add quick actions: accept all low-risk, reject all, ask for alternatives, explain patch" — `Approve all low-risk` and `Reject all` — as commit 5a. The LLM-firing pair (ask-alternatives, explain-patch) defers to commit 5b because both require transport-stub infrastructure for tests, which is out of scope here.
+
+**Why:** Once an operator has reviewed a batch of envelopes, the common patterns are (a) "all of these look fine, let me clear them" and (b) "this batch missed the mark, let me try a different prompt". Single-row Approve / Reject (commit 2.5) handles per-card decisions; bulk handles "I scanned and I'm done with this batch."
+
+**Why low-risk vs all-approve:** A blanket "Approve all" button would let an operator one-click commit a `characterRename` patch — which carries `risk = medium` because renames cascade across `relationship_states` rows and any external references. Forcing renames through individual review is the cheapest defense against accidental mass-rename. Operators who really want to approve everything can click Approve on the rename card individually.
+
+**Concrete shape:**
+
+- New `bulkResolve(filter)` handler on `AdjustPanel`:
+  - Filters envelopes to those whose current state is `pending` (busy / done / stale / error rows are skipped — operator decisions on this batch stand).
+  - For `filter === "low-risk"`, further filters to `risk === "low"`. For `filter === "all"`, no risk filter.
+  - `window.confirm()` with the resolved count before firing.
+  - Sequential dispatch (no `Promise.all`). Each `resolveProposalEnvelope` call is its own atomic compare-and-apply transaction (round-4 HIGH), so concurrency safety holds either way; sequential gives observable progress + predictable apply ordering.
+  - A row that turns stale mid-bulk surfaces the stale state on its card; the bulk loop continues with the remaining pending rows. (No special-case "stop on first stale" — operators can always re-fire the bulk once they've decided what to do with the stale card.)
+- Two new buttons render above the EnvelopeCard list whenever `envelopes.length > 0`:
+  - `Approve all low-risk (N)` — color-matches the per-card Approve button (green palette).
+  - `Reject all (N)` — color-matches the per-card Reject button (red palette).
+  - Counts reflect PENDING-only envelope count after the per-row state filter, so the labels reflect what would actually fire.
+  - Both disabled when target count is zero or when the panel is `sending` (i.e., a regen / new turn is in flight).
+
+**Why no LLM-firing actions yet:** "Ask for alternatives" and "Explain patch" each fire a fresh LLM call. The conservative path is: build them when we have transport-stub plumbing for tests so we can verify input shaping (request body, system prompt, expected response shape) without LLM cost. Without that, we'd ship untested code paths that quietly drift from the contract. Defer to commit 5b.
+
+**Evidence:**
+
+- `bunx tsc --noEmit` (server + UI) — clean.
+- `bunx vite build` — clean. 520.36 kB / 155.56 kB gzip (was 518.98 kB / 155.25 kB; +1.38 kB / +0.31 kB gzip for the two buttons + filter helper + comment block).
+- Diff scope: 1 file (`ui/src/components/ArtifactPreviews.tsx` +85 / 0). No server, no API client changes.
+- Browser hand-test deferred per CLAUDE.md UI rule.
+
+**Counterfactuals considered but rejected:**
+
+- *Bundle 5a + 5b in one commit.* The LLM-firing actions need test infrastructure (transport stub or dependency injection) that doesn't exist on the lane today. Bundling means shipping untested code paths or building stub infrastructure mid-commit. Splitting keeps the bounded UI work clean and lets 5b's stub design be its own discussion.
+- *Add a generic "Approve all" button without the risk filter.* See "Why low-risk vs all-approve" above — operator-protective default.
+- *Parallel bulk dispatch via Promise.all.* Would be ~N× faster for large N but defeats the observable-progress UX (operator sees rows transition one by one) and risks back-pressure on the LXC orchestrator if N is large. Sequential is simpler + sufficient for the realistic batch sizes (typically 1-5 envelopes per /adjust turn).
+- *Stop the bulk on first stale.* Operators may want to bulk through 8 envelopes where 1 is stale; "stop on first" would force them to re-trigger after handling the stale one. Continue-and-skip lets them clear the rest cleanly.
+
+**Ongoing:** Phase 3 progress: commits 1, 2, 2.5, 3, 5a done. Remaining: commit 4 (persistence), commit 5b (LLM-firing quick actions). Operator browser hand-test for the bulk buttons + EnvelopeCard surface still deferred.
+
+---
+
 ### §Phase 3 commit 3 — regenerate-on-stale UI affordance (2026-05-04)
 
 **Decision:** Wire a `Regenerate` action on the EnvelopeCard's stale state. UI-only implementation: re-fire `adjustNovel(novelId, envelope.source.userMessage, turns)` so the conversational `/adjust` route re-derives patches against the latest artifact context. The fresh response replaces the prior envelope batch.
