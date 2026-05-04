@@ -10,6 +10,40 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 3 commit 4 follow-up B — parentEnvelopeId provenance on regen (2026-05-04)
+
+**Decision:** Plumb `parentEnvelopeId` from the UI's regenerate-from-stale-envelope action all the way through to `proposal_envelopes.parent_envelope_id`. The schema column was reserved in commit 4 (7f41833) anticipating this wiring; this commit makes it load-bearing.
+
+**Why threaded through /adjust body and not just at the persistence layer:** The persistence layer reads `envelope.source.parentEnvelopeId` into the column. So the lineage HAS to be on the envelope object itself — the alternative ("derive parent at insert time from the request URL or some side channel") would couple persistence to HTTP concerns. The natural seam is: UI knows the parent → /adjust body carries it → builder writes it onto the envelope.source → persistence reads it. Each layer's contract stays narrow.
+
+**Why parentEnvelopeId is NOT in the deterministic id seed:** The id is sha256 over (novelId, patch, target.currentVersion, patchIndex, version-tag). Identity is "this exact patch on this exact target." A regen that lands on the same patch+target produces the same id by design — and `ON CONFLICT (id) DO NOTHING` then keeps the ORIGINAL row, lineage and all. If parentEnvelopeId were in the seed, every regen would create a new row even when the LLM happened to derive an identical patch — unhelpful audit churn, plus the new row's parent link would point to itself's predecessor leaving the original row in pending forever. The chosen design treats lineage as provenance metadata, not identity. Pinned by the `parentEnvelopeId does NOT affect envelope id` test.
+
+**Why all envelopes in a regen batch share the same parentEnvelopeId:** A regen request is a single user action — "I'm not happy with this proposal, redo it" — even when the resulting batch has multiple patches. Threading the same parent across the whole batch is the simplest model and it's correct: the OPERATOR's intent has one parent (the stale envelope they hit Regenerate on), regardless of how many patches the LLM emits in response.
+
+**Concrete shape:**
+- `BuildArtifactPatchEnvelopeArgs.parentEnvelopeId?: string` — optional. When provided, spread into `source.parentEnvelopeId` (object spread with the conditional makes the key absent rather than `undefined` when not provided, matching the cleanliness of the rest of the source object).
+- `/api/novel/:id/adjust` body: new optional `parentEnvelopeId?: string` field. Forwarded into the builder for every patch in the resulting batch.
+- UI `adjustNovel(novelId, message, history, opts: { parentEnvelopeId? })` — opts is the new parameter. `regenerateFromEnvelope` passes `{ parentEnvelopeId: envelope.id }`.
+- No DB schema change — the column already existed (commit 4).
+
+**Evidence:**
+- `bun test src/canon/proposal-envelope.test.ts` — 19/19 pass / 65 expects (3 new tests covering parentEnvelopeId surface, omitted-default, and id-stability).
+- `bun test src/db/proposal-envelopes.test.ts` — 8/8 pass / 36 expects (1 new round-trip test: insert parent + child, assert `parent_envelope_id` column populated and surfaces on read as `source.parentEnvelopeId`).
+- `bun test src/orchestrator/proposal-envelope-routes.test.ts` — 27/27 / 121 expects (no regression — the resolve route doesn't touch the parent field).
+- `bunx tsc --noEmit` (server) — clean. UI tsc + `bun x vite build` — clean (520.48 kB / 155.60 kB gzip; +0.12 kB raw / +0.04 kB gzip vs prior).
+- Diff scope: 6 files (+163/-9). Touch points: builder, /adjust route, UI client, UI regen path, both unit + persistence tests.
+
+**Counterfactuals considered but rejected:**
+
+- *Include parentEnvelopeId in the deterministic id seed.* Would mean every regen creates a new row even when the LLM emits an identical patch — useless audit churn; also breaks the "ON CONFLICT (id) DO NOTHING preserves the original" property that the persistence layer's idempotency relies on. The chosen design produces identical ids on identical patches and lets the conflict path keep the original row — including its (possibly null) parent link.
+- *Compute parentEnvelopeId server-side from session state.* Tempting because then the UI doesn't have to thread it through. Rejected: the orchestrator is stateless across HTTP requests, and there's no reliable way to know "which stale envelope was the user looking at when they hit Regenerate" without the UI saying so. Body-carry is the simplest contract.
+- *Add a separate `/regenerate-from-envelope` endpoint instead of overloading /adjust.* Rejected: would duplicate /adjust's full logic (LLM call + envelope build + persistence) just to add one body field. Optional body fields are the standard incremental-extension pattern.
+- *Wire the UI's audit-history view to render the lineage tree (visual chain of parent → child envelopes).* Out of scope — the persistence layer now correctly captures the lineage; rendering it is part of the UI consumer of persisted envelopes (the remaining commit-4 follow-up).
+
+**Ongoing:** Closes 2 of 3 commit-4 follow-ups. Remaining: UI consumer of persisted envelopes (load pending on session open + audit-history view, where parentEnvelopeId would actually become user-observable). Phase 3 commit 5b (LLM-firing quick actions) still parked behind transport-stub infrastructure.
+
+---
+
 ### §Phase 3 commit 4 follow-up A — resolve-route persistence wiring (2026-05-04)
 
 **Decision:** The `/proposal-envelopes/resolve` route now writes the envelope's resolution status back to the `proposal_envelopes` table *inside the same `db.begin(...)` transaction that performs the artifact apply*. New 409 outcome `alreadyResolved` + `actualStatus` for duplicate-resolve races. When the envelope row is missing entirely, the route degrades gracefully — the artifact apply still happens and an audit-gap warning is logged.
