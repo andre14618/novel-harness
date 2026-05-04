@@ -385,12 +385,47 @@ export async function handleProposalEnvelopeRoute(
               actualStatus: row.status,
             })
           }
-          // Row genuinely missing — /adjust persistence didn't fire (older
-          // envelope, or transient DB error during build). Audit gap
-          // accepted; the artifact apply still happened.
-          console.warn(
-            `[resolve] envelope ${body.envelope.id} not in proposal_envelopes; audit gap`,
-          )
+          if (row !== null && row.status === "pending") {
+            // OpenCode review MEDIUM A (2026-05-04): a concurrent insert
+            // appeared between updateEnvelopeResolution (saw 0 rows) and
+            // findEnvelopeById (sees pending row). Without this retry the
+            // tx commits with the artifact applied but the envelope row
+            // still pending in DB — wrong audit-trail state. Retry the
+            // update inside the same tx so the resolution either lands
+            // or surfaces alreadyResolved (if a third actor raced us in
+            // turn).
+            const retried = await updateEnvelopeResolution(
+              {
+                id: body.envelope.id,
+                status: body.status,
+                resolvedAt: new Date().toISOString(),
+                resolvedByKind: "human",
+                resolvedByRef: null,
+                resolvedNote: body.operatorNote ?? null,
+                modifiedPayload: body.status === "modified" ? body.modifiedPayload ?? null : null,
+              },
+              tx,
+            )
+            if (!retried) {
+              // Lost a second race — another resolver landed between the
+              // two updates. Surface as alreadyResolved so the caller
+              // re-fetches the latest state instead of committing with a
+              // stale audit row.
+              const reread = await findEnvelopeById(body.envelope.id, tx)
+              throw wrapOutcome({
+                kind: "alreadyResolved",
+                envelopeId: body.envelope.id,
+                actualStatus: reread?.status ?? "unknown",
+              })
+            }
+          } else {
+            // Row genuinely missing — /adjust persistence didn't fire
+            // (older envelope, or transient DB error during build).
+            // Audit gap accepted; the artifact apply still happened.
+            console.warn(
+              `[resolve] envelope ${body.envelope.id} not in proposal_envelopes; audit gap`,
+            )
+          }
         }
 
         return runtime
