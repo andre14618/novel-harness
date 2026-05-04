@@ -10,6 +10,43 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 4 commit 4 — Planning Snapshot UI panel (2026-05-04)
+
+**Decision:** New page at `/app/planning-snapshot/:novelId` that renders the three operator states (drift / locked-clean / not-locked) and exposes a Lock button. Mechanical-health summary deferred — `runPlannerCanonDeltaAudit` isn't exposed via HTTP yet. MVP focuses on the explicit-consent locking surface that commit 3 enabled.
+
+**Why three banners (drift / locked-clean / not-locked):** The three states have qualitatively different operator implications. Drift = "you should re-lock or revert before drafting"; locked-clean = "drafting is safe"; not-locked = "you haven't committed yet." Encoding them as distinct banners (yellow / green / blue) gives an at-a-glance signal without requiring the operator to decode hash equality themselves. Pinned by the `Lock` button label adapting to each state ("Lock for drafting" / "Re-lock current state" / "Lock drifted state").
+
+**Why best-effort artifact-slice summary (cosmetic, not load-bearing):** The slice section gives the operator context — "is this a fresh novel with 1 character, or one with 12?" — without needing to navigate elsewhere. But the lock decision doesn't depend on it; if the artifact-slice fetch fails (transient DB blip, novel mid-deletion), the lock surface still works. Empty state shows "Loading artifact summary…" so the operator knows the slice fetch is in flight.
+
+**Why Lock requires a confirm() dialog:** Locking is a one-way audit-trail commitment (commit 2 invariant). A misclick has no undo. Browser confirm() is the simplest defense — it's enough friction to catch slips without becoming annoying. Different confirm message for drift state ("Lock the CURRENT state for drafting?") vs clean state ("Lock is one-way; new edits would create drift") so the operator sees the relevant trade-off.
+
+**Why surface the 409 actualLock metadata in the UI:** When the lock fails because someone else (or a prior session) locked the same hash first, the operator needs to see who/when/why before deciding whether to navigate to that state or re-lock the current one. The route already returns this metadata; the UI just renders it.
+
+**Why NOT auto-redirect to PipelineView after lock:** The operator may want to confirm the lock landed before moving on. Refresh-and-stay matches the pattern from CanonProposalsPage (no auto-nav). If a future workflow needs a "Lock and Draft" combined action, that's a separate button.
+
+**Concrete shape:**
+- `ui/src/components/PlanningSnapshotPage.tsx`: new component (default export). Sections: header (novel id + optional `?from=` breadcrumb), banner (one of three), Snapshot identity, Artifact slices, Lock for drafting. Uses `useParams` for `:novelId`, `useSearchParams` for the breadcrumb hint.
+- `ui/src/api.ts`: 2 new client functions + 3 new types.
+- `ui/src/main.tsx`: 1 new import + 1 new route (no Nav update — the page is reached from the StudioPage workflow eventually, plus direct URL).
+
+**Evidence:**
+- `bunx tsc --noEmit` (UI) — clean.
+- `bun x vite build` (UI) — clean. Bundle 530.49 kB / 158.19 kB gzip; +6.37 kB raw / +1.67 kB gzip vs prior.
+- Diff scope: 3 files (+360/-0). UI-only.
+- Browser-untested per CLAUDE.md UI rule (flag-and-disclose). The component is straightforward state-driven render; the load-bearing logic (atomic compare-and-apply, drift detection) lives server-side in routes that have 13/13 tests.
+
+**Counterfactuals considered but rejected:**
+
+- *Embed the panel in PipelineView (no new page).* Rejected. PipelineView is already busy; a dedicated page makes the lock surface unmissable. Cross-linking from PipelineView is a small follow-up.
+- *Skip the cosmetic artifact-slice summary entirely.* Rejected. The hash itself is opaque; without artifact context the operator can't judge whether the snapshot looks reasonable. Best-effort with silent fallback is the right balance.
+- *Inline the mechanical-health summary by computing client-side from the artifact slices.* Rejected. The mechanical-health invariants (ID graph valid, obligation coverage, duplicate IDs, unknown references) are non-trivial — they require the planner-canon-delta logic that lives server-side. Re-implementing client-side risks divergence. Better to expose the audit via HTTP in a follow-up.
+- *Toast notification on lock success instead of inline message.* Rejected. The operator's eye is already on the Lock button area; inline message keeps focus there. No notification infra exists in this app yet.
+- *Allow editing the lock note after lock (PATCH /lock).* Rejected — see commit-2 audit-integrity discussion. Lock metadata is immutable.
+
+**Ongoing:** Phase 4 progress: commits 1-4 done (compute primitive + persistence + HTTP routes + UI panel). Remaining: commit 5 (replay-on-stale enforcement at draft start: drafting reads getLockedPlanningSnapshot, recomputes, refuses-to-draft on drift unless operator explicitly re-locks). Browser hand-test for the planning-snapshot panel + the AdjustPanel surfaces (cumulative across Phase 3 commits 2.5/3/5a/4-A/4-B/4-C/4-D + Phase 4 commit 4) is the remaining clearance work for the bundle. Phase 3 commit 5b (LLM-firing quick actions) still parked behind transport-stub infra.
+
+---
+
 ### §Phase 4 commit 3 — lock-snapshot route + GET /current (2026-05-04)
 
 **Decision:** Two HTTP routes wire the persistence layer (commit 2) into the orchestrator. `GET /current` returns the live computed hash + the active locked snapshot + a drift boolean. `POST /lock` records (idempotent) then locks (one-way) a snapshot identified by its hash.
