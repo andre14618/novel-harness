@@ -10,6 +10,38 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 3 commit 4 follow-up C — UI consumer of persisted envelopes (2026-05-04)
+
+**Decision:** On `AdjustPanel` mount (and on `novelId` change), fetch `GET /api/novel/:id/proposal-envelopes?status=pending` and seed the panel's `envelopes` + `envelopeStates`. Closes the cross-session-resumability gap: prior-session pending proposals are now visible immediately instead of being invisible until the operator types a new /adjust turn (which would have discarded them anyway).
+
+**Why this scope (load-pending-on-mount only):** The cross-session-resumability gap is the high-value piece — without it, the entire commit-4 persistence layer is unused on the read path. Audit-history view (`status: "all"`), parent-envelope chain rendering, and "load resolved alongside pending" mode toggle are all separate UI surfaces with their own design choices (how to display a status filter, how to render a tree, how to toggle modes). Bundling them would inflate the commit and risk tunneling on UX details before the MVP is even browser-tested. MVP first; the audit-history surface ships as a follow-up commit (D) once this baseline is hand-tested.
+
+**Why best-effort fetch:** The orchestrator route can return 404 (novel not found) / 500 (DB blip) / network error (operator on flaky link). None of these should block the panel from rendering — the operator can still drive a fresh /adjust turn against the live artifact state. Logging + leaving the panel empty is consistent with the rest of the persistence layer's degrade-gracefully posture (`/adjust` best-effort persistence; `/resolve` audit-gap warning).
+
+**Why the prev.length > 0 guard:** Two race scenarios. (1) GET fires on mount → user types fast → /adjust returns first → GET returns and tries to overwrite. The guard preserves the conversational batch. (2) GET returns first → seeds 3 envelopes → user hits Send → /adjust populates 1 new envelope → batch model replaces. Both paths preserve the more recent state. The guard is defense-in-depth; the user-experience-level invariant is "your active turn always wins."
+
+**Concrete shape:**
+- `ui/src/api.ts`: new `listProposalEnvelopes(novelId, { status?, limit? })` wraps the existing GET route. Defaults: `status: "pending"`. The `"all"` value is documented for the audit-history follow-up.
+- `ui/src/components/ArtifactPreviews.tsx`: import the client; add a `useEffect` on `novelId` that fires the fetch and seeds state when the panel is empty.
+- No new server route. The route shipped with commit 4 already supports `?status=` and `?limit=`.
+
+**Evidence:**
+- `bunx tsc --noEmit` (server + UI) — clean.
+- `bun x vite build` (UI) — clean. Bundle 521.10 kB / 155.78 kB gzip; +0.62 kB raw / +0.18 kB gzip vs prior.
+- Diff scope: 2 files (+50/-1). Touched only the UI surface; no server changes.
+- Browser-untested per CLAUDE.md UI rule (flag-and-disclose). The behavior is straightforward (mount → fetch → seed) and unit-testing a React `useEffect` adds more harness than insight at this scope.
+
+**Counterfactuals considered but rejected:**
+
+- *Bundle the audit-history view (`status: "all"` filter + status badges + resolved-at column) into this commit.* Rejected. Audit-history is a separate UX surface — needs a status-filter UI, decisions about the resolved-row layout, decisions about how `parentEnvelopeId` chains render. Mixing scope would delay shipping the cross-session-resumability fix and risk tunneling on audit-view UX before this MVP is browser-tested.
+- *Seed `envelopes` AND merge into an active conversation if one is in progress.* Rejected. The current state model is "one batch at a time"; merging would create awkward UX (envelopes from two different /adjust turns interleaved with no provenance separator) and break the existing "fresh send replaces batch" invariant in subtle ways. Cleaner to defer cross-batch UX to the audit-history surface.
+- *Auto-refresh on a timer (e.g., poll every 30s for fresh pending envelopes from another tab).* Rejected. Multi-tab editing is exotic; the operator works in one window at a time in practice. Adding a polling loop would also clutter the network panel and add jitter risk for ongoing /adjust turns. If multi-tab support becomes a real ask, switch to SSE event-driven update — not polling.
+- *Block the AdjustPanel render until the fetch completes (loading spinner).* Rejected. The fetch is fast (DB-side index hit) but a flaky network shouldn't gate the panel. Empty-then-populate is the simpler UX; the operator can start typing immediately.
+
+**Ongoing:** Closes 3 of 3 commit-4 follow-ups (A: resolve-route persistence; B: parentEnvelopeId on regen; C: UI loads pending on session open). Phase 3 commit 5b (LLM-firing quick actions) still parked behind transport-stub infrastructure. Audit-history view (status filter + resolved-row layout + parentEnvelopeId chain rendering) is its own follow-up commit if/when the lane prioritizes it. Browser hand-test required across follow-ups A/B/C + commits 2.5/3/5a once the UI surface stabilizes — at that point a single hand-test pass clears all browser-untested marks.
+
+---
+
 ### §Phase 3 commit 4 follow-up B — parentEnvelopeId provenance on regen (2026-05-04)
 
 **Decision:** Plumb `parentEnvelopeId` from the UI's regenerate-from-stale-envelope action all the way through to `proposal_envelopes.parent_envelope_id`. The schema column was reserved in commit 4 (7f41833) anticipating this wiring; this commit makes it load-bearing.
