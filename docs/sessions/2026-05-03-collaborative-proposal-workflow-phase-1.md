@@ -142,7 +142,8 @@ substrate, and idempotent rerun. tsc clean, recall audit clean.
 - `bun test src/canon/` — **196 pass / 0 fail / 446 expect() calls / 3.85s**
 - `bunx tsc --noEmit` — clean (no output)
 - `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927, recallGateClear=YES` (no §0a regression)
-- Commit SHA: filled by commit step.
+- Commit SHA: `acf67c2` ([feat] collaborative proposal workflow Phase 1 — planner source items become pending Canon proposals)
+- Experiment: `406` (charter world-bible-architecture, status=shipped)
 
 ## Cost
 
@@ -153,4 +154,4 @@ substrate, and idempotent rerun. tsc clean, recall audit clean.
 
 ## Commits
 
-(to be filled)
+- `acf67c2` — `[feat] collaborative proposal workflow Phase 1 — planner source items become pending Canon proposals`. Includes the new harness service + 18 tests, the `insertProposalIfAbsent` DB helper, the `runPlannerCanonDeltaAudit` strict dep (`src/canon/planner-canon-delta.ts` + tests), this lane doc, the design doc + parent lane doc, plus targeted docs sweep entries (decisions §"Collaborative proposal workflow Phase 1 cleared", lessons-learned ×2 in Substrate Adapter Design, current-state latest comment, todo Phase 2 line + Step 2C downgrade, lane-queue advance).
