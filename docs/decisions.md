@@ -6190,3 +6190,48 @@ The writer continues to invent some walk-on names (`Master Halden`, `Guildmistre
 **Ongoing implications:** Phase 6 (Approval Policy Engine) can lean on the now-load-bearing lock contract (recompute + v2 inputs + DB-level immutability) without re-litigating it. The OpenCode review process — review at a coherent boundary, fix one-finding-per-commit, paired docs sweep at bundle close — proved fast enough for a 12-commit verdict and is the model for future review cycles. The pre-existing `bulk-resolve` flake remains queued (Codex round-1 LOW backlog).
 
 ---
+
+### L58 — Phase 4 commit 5 + Phase 5 commit 4: lock contract has consequence; prose-edit apply path lands (2026-05-04, exp #465-466)
+
+**Decision:** Close out the load-bearing acceptance criteria for Phase 4 (replay-on-stale enforcement at draft start) and stand up the prose-edit apply route that Phase 5 commit 5 (lint-fix converter) consumes. Two commits, ordered: Phase 4 commit 5 first (it can't reuse anything from Phase 5), Phase 5 commit 4 second.
+
+**Why:** Phase 4 commits 1-4 shipped the planning-snapshot lock contract — compute, persist, route, UI panel — but the lock had no consequence at draft start. Phase 4's design is explicit: "Require redraft/replan if locked planning artifacts change." Without the gate at drafting entry, the lock was advisory-only, and Phase 6 (Approval Policy Engine) would have inherited an unenforced invariant. Similarly, Phase 5 commits 1-3 shipped the editorial-proposal schemas + tracer-bullet producer + persistence helpers, but `ProseEditEnvelope` had no apply path: producers (commit 5 lint-fix converter) would have had nowhere to route their output. Both gaps were load-bearing for downstream phases.
+
+**Phase 4 commit 5 — replay-on-stale enforcement at draft start** (`d760daf`, exp #465, files: `src/canon/planning-snapshot.ts` + `src/phases/drafting.ts` + tests). New `assertDraftableSnapshot(novelId): Promise<DraftSnapshotGateResult>` reads the locked snapshot + recomputes the live hash (default version v2) under one `Promise.all`. Result has three branches:
+- **No lock** → `{ ok: true, locked: false, drift: false, liveHash, reason: "" }`. Backward compat for novels created before Phase 4.
+- **Locked + match** → `{ ok: true, locked: true, drift: false, lockedHash, liveHash, lockedSnapshot, reason: "" }`. Drafting proceeds.
+- **Locked + drift** → `{ ok: false, locked: true, drift: true, lockedHash, liveHash, lockedSnapshot, reason: "planning-snapshot-drift: locked=… live=…. Drafting refuses; operator must roll back planning or re-lock via POST /planning-snapshot/lock." }`. The reason is a single line that names both hashes (truncated to 16 chars) and points the operator at the next action.
+
+Wired into `runDraftingPhase` at the top, before the chapter loop. On drift the phase emits `{ type: "error", data: { error: "planning-snapshot-drift", lockedHash, liveHash } }` and returns `{ kind: "paused", reason }`. Existing chapters never start generating; the orchestrator surfaces the drift to the operator. Tests pin all three branches plus the v1-lock-vs-v2-default-live edge case (HIGH 2 implication — a v1 lock predates the v2 input expansion and cannot evidence today's writer surface, so it must register as drift by construction). Two pre-existing phases tests (`drafting-revision-used-persistence`, `drafting-reviser-escalation`) gained `mock.module("../canon/planning-snapshot", ...)` shims since their fixtures don't seed planning_snapshots and the real gate would hit DB and hang.
+
+**Phase 5 commit 4 — prose-edit envelope apply route (span only)** (`ee75d88`, exp #466, files: `src/orchestrator/prose-edit-routes.ts` + tests + `src/orchestrator/server.ts` + `src/db/drafts.ts` + `src/db/index.ts`). New `POST /api/novel/:novelId/prose-edits/resolve` with body `{ envelope, status, operatorNote? }`. Approve flow atomic in one `db.begin(tx => …)`:
+1. `getLatestChapterDraft(novelId, chapterNum, { executor: tx, forUpdate: true })` selects + locks the latest chapter_drafts row.
+2. `computeProseHash(prose)` (sha256 of UTF-8 bytes) compared to `envelope.precondition.hash`. Mismatch → throw OutcomeError → 409 + actualHash; tx rolls back, no draft writes.
+3. Span apply: `prose.slice(0, start) + replacement + prose.slice(end)`. Out-of-range or inverted offsets throw → 422; envelope stays pending.
+4. `saveChapterDraft(novelId, chapterNum, newProse, newWordCount, tx)` writes version+1.
+5. `updateEnvelopeResolution(... 'approved' ..., tx)` flips the envelope. Concurrent-resolve race surfaces as `alreadyResolved` (mirrors MEDIUM A's retry pattern from artifact-patch resolve — re-check pending status, retry once, throw on second 0-row).
+
+Reject flow persists envelope status only. Missing draft → 404; beat-target → 422 ("Beat-target apply is not yet supported (Phase 5 commit 4 ships span-only)"); novelId mismatch + missing envelope + invalid JSON → 400. `src/db/drafts.ts` extended: `saveChapterDraft` accepts an optional executor and returns the new version number (was `Promise<void>`, kept return value compat for ignore-the-result callers); new `getLatestChapterDraft(novelId, ch, { executor, forUpdate })`. `src/db/index.ts` re-exports.
+
+**Acceptance closed:**
+- Phase 4 design's "Require redraft/replan if locked planning artifacts change" — yes, drafting refuses on drift.
+- Phase 5 design's "Accepted edits produce a new draft version or patch record" — yes, approved span edits write a new version.
+- Phase 5 design's "Editorial proposals do not silently commit Canon" — true by construction; prose-edit only writes to `chapter_drafts`, not canon.
+
+**Alternatives rejected:**
+- *Defer beat-target to a later commit, but ship a sentinel that "fails open" (allows the apply with a warning).* Rejected — failing open on a precondition-mismatch is exactly what HIGH 1 closed for the lock route. Beat-target is genuinely deferred (returns 422); the route never silently applies an unverified patch.
+- *Inline the gate in `runDraftingPhase` rather than extracting a helper.* Rejected — the helper is independently testable and lives next to the snapshot module that already owns compute + lock semantics.
+- *Compute the live hash at the locked snapshot's version (v1 if v1, v2 if v2) so a v1 lock could match an unchanged v1 live.* Rejected — the version byte exists precisely to invalidate cross-version equality. A v1 lock predated HIGH 2's expansion of the input set; trusting it on a v2 surface defeats the lock-as-evidence guarantee.
+- *Bundle Phase 4 commit 5 + Phase 5 commit 4 into one commit.* Rejected — they touch different surfaces (drafting phase vs orchestrator route + draft-persistence) and each lands a discrete acceptance criterion.
+
+**Tests:** 21/21 on `planning-snapshot.test.ts` (4 new DB-bound), 49/49 on `src/phases`, 13/13 on `prose-edit-routes.test.ts`. Server `tsc --noEmit` clean. Pre-existing `bulk-resolve` flake (Codex round-1 LOW backlog) remains; counterfactual `git stash` confirmed unchanged failure count.
+
+**Documentation:** `docs/current-state.md` Current Session 2026-05-04 gains two bullets summarizing each commit. `docs/sessions/lane-queue.md` §Completed gains entries. Both commits' `docs-impact: pending` markers closed.
+
+**Ongoing implications:**
+- Phase 4 is fully done except for the deferred mechanical-health summary (gated on `runPlannerCanonDeltaAudit` HTTP exposure — its own follow-up).
+- Phase 5 commit 5 (lint-fix → prose_edit converter) is the natural next step. The deterministic lint subsystem already produces structured fix records; commit 5 wraps each fix into a `ProseEditEnvelope` (with the precomputed draft hash and span offsets) and ships it through commit 4's resolve route.
+- Beat-target apply is the most-cited deferred follow-up (needs beat-offset persistence on prose). Commit 5 will likely route around it by emitting span-only envelopes — a beat-aware lint fix would compute the beat's [start, end) span on the rendered prose at proposal time.
+- Phase 6 (Approval Policy Engine) can now treat the prose-edit apply path as production-shape — the policy evaluator calls `POST /prose-edits/resolve` (or its analog in proposal-envelope-routes.ts for artifact_patch) with policy-decided status, and the same atomic precondition + persist contract holds.
+
+---
