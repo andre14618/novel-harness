@@ -302,36 +302,43 @@ export async function handleCanonProposalRoute(
         })
         continue
       }
-      // Authoritative read for stale-precondition + 404 detection.
-      const row = await findProposal(proposalId)
-      if (!row || row.novel_id !== novelId) {
-        results.push({
-          proposalId,
-          status: "error",
-          error: `unknown proposalId ${proposalId} for novel ${novelId}`,
-          httpStatus: 404,
-        })
-        continue
-      }
-      if (r.expectedStatus && row.status !== r.expectedStatus) {
-        results.push({
-          proposalId,
-          status: "error",
-          error: `stale precondition (expected=${r.expectedStatus}, actual=${row.status})`,
-          httpStatus: 409,
-        })
-        continue
-      }
-      if (row.status !== "pending") {
-        results.push({
-          proposalId,
-          status: "error",
-          error: `proposal ${proposalId} already ${row.status}`,
-          httpStatus: 409,
-        })
-        continue
-      }
+      // Codex round-1 review of Package C (MEDIUM 1): wrap the entire
+      // per-row body — including the authoritative `findProposal` read and
+      // the stale-status checks — in try/catch. Previously, a transient
+      // DB error during `findProposal` would throw out of the loop and
+      // discard the accumulated `results` array, breaking the documented
+      // best-effort contract for partial-failure batches.
       try {
+        const row = await findProposal(proposalId)
+        if (!row || row.novel_id !== novelId) {
+          results.push({
+            proposalId,
+            status: "error",
+            error: `unknown proposalId ${proposalId} for novel ${novelId}`,
+            httpStatus: 404,
+          })
+          continue
+        }
+        if (r.expectedStatus && row.status !== r.expectedStatus) {
+          results.push({
+            proposalId,
+            status: "error",
+            error: `stale precondition (expected=${r.expectedStatus}, actual=${row.status})`,
+            actualStatus: row.status,
+            httpStatus: 409,
+          })
+          continue
+        }
+        if (row.status !== "pending") {
+          results.push({
+            proposalId,
+            status: "error",
+            error: `proposal ${proposalId} already ${row.status}`,
+            actualStatus: row.status,
+            httpStatus: 409,
+          })
+          continue
+        }
         const result = await sub.resolveProposal(
           proposalId,
           r.status as ResolveStatus,
@@ -348,14 +355,10 @@ export async function handleCanonProposalRoute(
         })
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
-        // Race detection — the substrate surfaces conflicts through two
-        // distinct error messages (the harness pre-write check and the
-        // DB-level guard). Per Codex round-1 review of Package B (HIGH 1),
-        // both must surface as 409, not 500.
-        const isRace =
-          /already (approved|rejected|modified|pending)/i.test(msg) ||
-          /is not pending/i.test(msg)
-        if (isRace) {
+        // Race detection — same predicate the single-resolve handler uses
+        // (Codex Package B HIGH 1 fix) so the bulk path's per-row
+        // diagnostics are consistent with single-resolve.
+        if (isResolveConcurrencyConflict(msg)) {
           const actualStatus = await readActualStatus(proposalId)
           results.push({
             proposalId,
@@ -365,6 +368,8 @@ export async function handleCanonProposalRoute(
             httpStatus: 409,
           })
         } else {
+          // findProposal throw, substrate-level transient, or unknown
+          // failure. Best-effort contract: record per-row, keep going.
           results.push({
             proposalId,
             status: "error",

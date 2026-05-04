@@ -10,6 +10,34 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon proposal Codex review round-1 fixes — bulk-resolve per-row resilience + all-error batch test (2026-05-03)
+
+**Decision:** Address Codex round-1 Package C MEDIUM 1 + LOW 2 in one commit.
+
+1. **MEDIUM 1.** Wrap the entire per-row body — including the authoritative `findProposal` read and the stale-status checks — inside the per-row `try/catch`. Previously, a transient DB error during `findProposal` (or a programmer bug in the early checks) would throw out of the bulk loop entirely, discarding the accumulated `results` array and breaking the documented best-effort partial-failure contract. Stale-precondition + already-resolved 409 entries now also include `actualStatus` to match the single-resolve race-detection shape.
+
+2. **LOW 2.** Add an all-error bulk test: missing proposalId + invalid status + unknown id, verifying `counts.ok=0`, three error entries, distinct error messages.
+
+**Why:** Bulk-resolve's contractual shape is "operators see exactly which rows committed and which need attention." The pre-fix code violated that contract whenever the early-fail path threw — the operator would get an opaque 500 with no per-row visibility, even if rows 1 through N-1 had already committed canon. The fix preserves the contract under all error paths.
+
+**Evidence:**
+
+- 1 new bulk-resolve test (all-error batch).
+- Full sweep — 291/291 pass / 1,574 expects (was 290; +1).
+- `bunx tsc --noEmit` — clean.
+- `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927`.
+
+**Counterfactuals considered but rejected:**
+
+- *Add a separate retry-with-backoff layer for transient DB errors.* Rejected for v1. Bulk-resolve is best-effort; the operator already retries on per-row failure. Adding retry inside the loop hides intermittent DB pressure that operators should be aware of.
+- *Return 207 Multi-Status when partial-failure occurs.* Rejected. The current 200 + structured `counts` payload is simpler and lets one client code path handle full-success / partial / full-failure uniformly. 207 would add a status-class distinction without changing payload shape.
+
+**Charter §1 status:** unchanged.
+
+**Lane:** continuation of `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2b.md`. **Codex thread:** `019df0ed-917e-7541-acbc-4c129f0b737f`.
+
+---
+
 ### §Canon proposal Codex review round-1 fix — concurrent-resolve race surfaces 409 + actualStatus (2026-05-03)
 
 **Decision:** The resolve route's catch block previously matched only `/already (approved|rejected|modified|pending)/i` against the substrate's error message and treated everything else as 500. Codex round-1 review of Package B (HIGH 1) caught the omission: the DB-level guard in `updateProposalResolution` throws `… is not pending (already resolved, or unknown id)` when a concurrent caller commits between the substrate's pre-read and its atomic update — that message did NOT match the regex and slipped through to 500. Now extracted as a pure predicate `isResolveConcurrencyConflict(msg)` covering both message patterns; on match, the handler re-reads the proposal row via `findProposal` to surface `actualStatus` in the 409 response. Bulk-resolve uses the same predicate + `actualStatus` enrichment per row.

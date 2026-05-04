@@ -550,6 +550,26 @@ describe.skipIf(!reachable)("handleCanonProposalRoute", () => {
     expect(bResult.resolution).toBe("rejected")
   })
 
+  test("POST bulk-resolve — all-error batch returns counts.ok=0 + per-row errors (Codex Package C LOW 2)", async () => {
+    // Three rows, all bad in different ways: missing proposalId, invalid
+    // status, and unknown id. Verify the response is shaped correctly.
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/canon-proposals/bulk-resolve`, {
+        resolutions: [
+          { status: "approved" }, // missing proposalId
+          { proposalId: "x", status: "bogus" }, // invalid status
+          { proposalId: "planner:no-such-novel:0:v1", status: "approved" }, // unknown
+        ],
+      }),
+    )
+    expect(status).toBe(200)
+    expect(body.counts).toEqual({ ok: 0, error: 3 })
+    expect(body.results).toHaveLength(3)
+    expect(body.results[0].error).toMatch(/missing proposalId/)
+    expect(body.results[1].error).toMatch(/invalid status/)
+    expect(body.results[2].error).toMatch(/unknown proposalId/)
+  })
+
   test("POST bulk-resolve — empty resolutions returns counts {0,0}", async () => {
     const { status, body } = await expectJson(
       await invoke("POST", `/api/novel/${novelId}/canon-proposals/bulk-resolve`, {
