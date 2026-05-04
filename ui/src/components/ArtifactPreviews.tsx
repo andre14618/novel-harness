@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
   adjustNovel, getBeats, getCharacters, getChapterDraft, getOutlines, getStorySpine, getWorldBible,
-  redraftChapter, updateCharacter, updateStorySpine, updateWorldBible,
-  type AdjustTurn, type AdjusterPatch, type BeatData,
+  redraftChapter, resolveProposalEnvelope, updateCharacter, updateStorySpine, updateWorldBible,
+  type AdjustTurn, type AdjusterPatch, type ArtifactPatchEnvelope, type BeatData,
 } from "../api"
 
 type ArtifactKey = "world" | "characters" | "spine" | "outlines" | "adjust"
@@ -280,9 +280,22 @@ function SpinePreview({ novelId, spine, onSaved }: { novelId: string; spine: any
 
 // ── Adjust chat ───────────────────────────────────────────────────────
 
+type EnvelopeRowState =
+  | { kind: "pending" }
+  | { kind: "busy" }
+  | { kind: "done"; status: "approved" | "rejected" | "modified"; newVersion?: string }
+  | { kind: "stale"; expectedVersion: string; actualVersion: string }
+  | { kind: "error"; message: string }
+
 function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; characters: any[]; onApplied: () => void }) {
   const [turns, setTurns] = useState<AdjustTurn[]>([])
   const [pendingPatches, setPendingPatches] = useState<AdjusterPatch[]>([])
+  // Phase 3 commit 2.5: per-envelope state. The envelopes are the authoritative
+  // proposal projection (Phase 3 commit 1) — we keep `pendingPatches` only as
+  // the apply-all back-compat fallback when the server doesn't return
+  // envelopes.
+  const [envelopes, setEnvelopes] = useState<ArtifactPatchEnvelope[]>([])
+  const [envelopeStates, setEnvelopeStates] = useState<Record<string, EnvelopeRowState>>({})
   const [input, setInput] = useState("")
   const [sending, setSending] = useState(false)
   const [applying, setApplying] = useState(false)
@@ -300,10 +313,17 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
     setTurns(next)
     setInput("")
     setPendingPatches([])
+    setEnvelopes([])
+    setEnvelopeStates({})
     try {
       const res = await adjustNovel(novelId, msg, turns)
       setTurns([...next, { role: "assistant", content: res.assistantMessage }])
       setPendingPatches(res.proposedPatches ?? [])
+      const fresh = res.proposalEnvelopes ?? []
+      setEnvelopes(fresh)
+      const initial: Record<string, EnvelopeRowState> = {}
+      for (const e of fresh) initial[e.id] = { kind: "pending" }
+      setEnvelopeStates(initial)
     } catch (err) {
       setTurns([...next, { role: "assistant", content: `(Error: ${(err as Error).message})` }])
     } finally {
@@ -323,11 +343,57 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
       }
       setTurns(prev => [...prev, { role: "assistant", content: `Applied ${pendingPatches.length} change${pendingPatches.length === 1 ? "" : "s"}.` }])
       setPendingPatches([])
+      setEnvelopes([])
+      setEnvelopeStates({})
       onApplied()
     } catch (err) {
       alert(`Apply failed: ${(err as Error).message}`)
     } finally {
       setApplying(false)
+    }
+  }
+
+  const resolveEnvelope = async (
+    envelope: ArtifactPatchEnvelope,
+    status: "approved" | "rejected",
+  ) => {
+    setEnvelopeStates(prev => ({ ...prev, [envelope.id]: { kind: "busy" } }))
+    try {
+      const res = await resolveProposalEnvelope(novelId, { envelope, status })
+      if (!res.ok) {
+        // Treat 409 as a non-fatal "stale" outcome; everything else as
+        // an error surface the operator can read.
+        if (res.error === "stale-precondition" && res.expectedVersion && res.actualVersion) {
+          setEnvelopeStates(prev => ({
+            ...prev,
+            [envelope.id]: {
+              kind: "stale",
+              expectedVersion: res.expectedVersion!,
+              actualVersion: res.actualVersion!,
+            },
+          }))
+          return
+        }
+        setEnvelopeStates(prev => ({
+          ...prev,
+          [envelope.id]: { kind: "error", message: res.error ?? "unknown error" },
+        }))
+        return
+      }
+      setEnvelopeStates(prev => ({
+        ...prev,
+        [envelope.id]: {
+          kind: "done",
+          status: res.status ?? status,
+          newVersion: res.newVersion,
+        },
+      }))
+      if (res.applied) onApplied()
+    } catch (err) {
+      setEnvelopeStates(prev => ({
+        ...prev,
+        [envelope.id]: { kind: "error", message: (err as Error).message },
+      }))
     }
   }
 
@@ -355,7 +421,41 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
         {sending && <div style={{ opacity: 0.6 }}>Thinking…</div>}
       </div>
 
-      {pendingPatches.length > 0 && (
+      {envelopes.length > 0 && (
+        <div style={{ border: "1px dashed #4a7", borderRadius: 4, padding: 8, marginBottom: 8, background: "#0e1a12" }}>
+          <div style={{ fontSize: "0.8em", marginBottom: 6, fontWeight: "bold" }}>
+            Proposed changes ({envelopes.length})
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {envelopes.map(env => (
+              <EnvelopeCard
+                key={env.id}
+                envelope={env}
+                state={envelopeStates[env.id] ?? { kind: "pending" }}
+                charName={charName}
+                onResolve={s => resolveEnvelope(env, s)}
+              />
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+            <button
+              onClick={() => {
+                setEnvelopes([])
+                setEnvelopeStates({})
+                setPendingPatches([])
+              }}
+            >
+              Discard remaining
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Legacy apply-all fallback for older servers that don't return
+          envelopes. Phase 3 commit 1 made envelopes additive so this path
+          stays in for back-compat. The per-envelope path is preferred when
+          envelopes are returned (see above). */}
+      {envelopes.length === 0 && pendingPatches.length > 0 && (
         <div style={{ border: "1px dashed #4a7", borderRadius: 4, padding: 8, marginBottom: 8, background: "#0e1a12" }}>
           <div style={{ fontSize: "0.8em", marginBottom: 6, fontWeight: "bold" }}>Proposed changes ({pendingPatches.length})</div>
           <ul style={{ margin: 0, paddingLeft: 18, fontSize: "0.85em" }}>
@@ -397,6 +497,113 @@ function summarizePatch(p: AdjusterPatch, charName: (id: string) => string): str
   if (p.type === "worldUpdate") return `World: ${Object.keys(p.patch).join(", ")}`
   if (p.type === "spineUpdate") return `Plot: ${Object.keys(p.patch).join(", ")}`
   return JSON.stringify(p)
+}
+
+function riskBadgeStyle(risk: ArtifactPatchEnvelope["risk"]): React.CSSProperties {
+  // Codex round-3 MEDIUM 2 made envelope ids restart-stable; the risk
+  // classification is the operator's at-a-glance signal for which patches
+  // are safe to fast-approve vs. need attention. characterRename = medium
+  // (cascades across references); the rest = low (additive field updates).
+  switch (risk) {
+    case "low":
+      return { background: "#1f3a26", color: "#cfe", border: "1px solid #2c5a36" }
+    case "medium":
+      return { background: "#3a3a1f", color: "#fec", border: "1px solid #5a5a2c" }
+    case "high":
+      return { background: "#3a1f1f", color: "#fce", border: "1px solid #5a2c2c" }
+    case "mechanical":
+      return { background: "#1f2e3a", color: "#cfe", border: "1px solid #2c485a" }
+  }
+}
+
+function EnvelopeCard({
+  envelope,
+  state,
+  charName,
+  onResolve,
+}: {
+  envelope: ArtifactPatchEnvelope
+  state: EnvelopeRowState
+  charName: (id: string) => string
+  onResolve: (status: "approved" | "rejected") => void
+}) {
+  const busy = state.kind === "busy"
+  const resolved = state.kind === "done"
+  const stale = state.kind === "stale"
+  const errored = state.kind === "error"
+  const summary = summarizePatch(envelope.payload, charName)
+
+  return (
+    <div
+      style={{
+        border: "1px solid #2a3d2e",
+        borderRadius: 3,
+        padding: "6px 8px",
+        background: resolved ? "#0a1810" : stale || errored ? "#1a1010" : "#0e1a12",
+        opacity: resolved ? 0.75 : 1,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+        <span style={{ ...riskBadgeStyle(envelope.risk), padding: "1px 6px", borderRadius: 3, fontSize: "0.72rem" }}>
+          {envelope.risk}
+        </span>
+        <span style={{ fontSize: "0.85em", fontWeight: 500 }}>{summary}</span>
+      </div>
+      <div style={{ fontSize: "0.74em", color: "#789", marginBottom: 6 }}>{envelope.summary}</div>
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+        {state.kind === "pending" && (
+          <>
+            <button
+              onClick={() => onResolve("approved")}
+              disabled={busy}
+              style={{
+                background: "#1f3a26",
+                border: "1px solid #2c5a36",
+                color: "#cfe",
+                padding: "3px 8px",
+                borderRadius: 3,
+                fontSize: "0.78rem",
+                cursor: "pointer",
+              }}
+            >
+              Approve
+            </button>
+            <button
+              onClick={() => onResolve("rejected")}
+              disabled={busy}
+              style={{
+                background: "#3a1f1f",
+                border: "1px solid #5a2c2c",
+                color: "#fce",
+                padding: "3px 8px",
+                borderRadius: 3,
+                fontSize: "0.78rem",
+                cursor: "pointer",
+              }}
+            >
+              Reject
+            </button>
+          </>
+        )}
+        {busy && <span style={{ fontSize: "0.78em", color: "#9ac" }}>working…</span>}
+        {state.kind === "done" && (
+          <span style={{ fontSize: "0.78em", color: "#cfe" }}>
+            ✓ {state.status}
+            {state.newVersion ? ` · v ${state.newVersion.slice(0, 8)}` : ""}
+          </span>
+        )}
+        {state.kind === "stale" && (
+          <span style={{ fontSize: "0.78em", color: "#fec" }}>
+            stale — artifact moved (expected v {state.expectedVersion.slice(0, 8)}, now v {state.actualVersion.slice(0, 8)}).
+            Regenerate (commit 3) coming soon.
+          </span>
+        )}
+        {state.kind === "error" && (
+          <span style={{ fontSize: "0.78em", color: "#fce" }}>error: {state.message}</span>
+        )}
+      </div>
+    </div>
+  )
 }
 
 // ── Outlines / chapter view (unchanged from prior commit) ──────────────

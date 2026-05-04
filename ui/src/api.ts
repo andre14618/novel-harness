@@ -277,6 +277,43 @@ export function adjustNovel(novelId: string, message: string, history: AdjustTur
   )
 }
 
+export interface ResolveProposalEnvelopeResponse {
+  ok: boolean
+  envelopeId: string
+  applied: boolean
+  status?: "approved" | "rejected" | "modified"
+  newVersion?: string
+  /** Set on 409 stale-precondition. */
+  expectedVersion?: string
+  actualVersion?: string
+  error?: string
+}
+
+/**
+ * Phase 3 commit 2 — per-patch resolve. The body shape is asymmetric on
+ * purpose: callers MUST always provide `envelope` and `status`; the
+ * `modifiedPayload` is required ONLY when status === "modified". The
+ * server enforces this with a 400 if the constraint is violated.
+ *
+ * On 409 stale-precondition the response carries `expectedVersion` +
+ * `actualVersion` so the UI can choose: regenerate the patch (Phase 3
+ * commit 3) or surface the diff for the operator.
+ */
+export function resolveProposalEnvelope(
+  novelId: string,
+  body: {
+    envelope: ArtifactPatchEnvelope
+    status: "approved" | "rejected" | "modified"
+    modifiedPayload?: AdjusterPatch
+    operatorNote?: string
+  },
+) {
+  return fetchJSON<ResolveProposalEnvelopeResponse>(
+    `/api/novel/${novelId}/proposal-envelopes/resolve`,
+    { method: "POST", body: JSON.stringify(body) },
+  )
+}
+
 export function getNovelState(novelId: string) {
   return fetchJSON<NovelState>(`/api/novel/${novelId}/state`)
 }
