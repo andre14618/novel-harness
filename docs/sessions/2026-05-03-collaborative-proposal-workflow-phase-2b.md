@@ -151,7 +151,8 @@ verification).
   — **275/275 pass / 1,462 expects** (server unchanged).
 - `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927,
   recallGateClear=YES`.
-- Commit SHA: filled by commit step.
+- Commit SHA: `adafe30`.
+- Experiment: 410 (ticket, target=world-bible-architecture, conclusion=shipped).
 
 ## Cost
 
@@ -162,4 +163,4 @@ verification).
 
 ## Commits
 
-(to be filled)
+- `adafe30` — feat: Phase 2B Studio review panel UI (this lane).
