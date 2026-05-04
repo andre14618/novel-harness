@@ -10,6 +10,29 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 5 commit 3 — editorial envelope persistence helpers (2026-05-04)
+
+**Decision.** A new module `src/db/editorial-envelopes.ts` ships typed persistence helpers for the two Phase-5 envelope kinds (`editorial_flag`, `prose_edit`): `insertEditorialFlagEnvelope`, `insertProseEditEnvelope`, `listEditorialFlagEnvelopes`, `listProseEditEnvelopes`, plus internal row→envelope coercion functions and re-exports of the kind-agnostic lifecycle helpers (`findEnvelopeById`, `updateEnvelopeResolution`, `deleteEnvelopesForNovel`) from `proposal-envelopes.ts`. Both kinds ride on the same `proposal_envelopes` table from Phase 3 commit 4 — no new SQL migration.
+
+**Why.** Phase 5 commit 2 produces envelopes; nothing else can persist them yet. A typed insert + list layer (instead of bare polymorphic JSONB casts at every call site) keeps the producer call sites readable, gives the row→envelope coercion a single home with kind-checking guards (defensive against future cross-kind row leakage), and matches the existing `insertArtifactPatchEnvelope` shape from Phase 3 commit 4 — operators reading either module find the same idiom.
+
+The `kind` defensive check on insert (refuse to write a row whose envelope is the wrong kind for the helper) catches a class of programmer-bug regressions where a future caller mis-imports the helper. The same check on the row-coercion side catches polluted reads.
+
+**Alternatives rejected.**
+
+- *Adding the editorial helpers to `proposal-envelopes.ts` directly.* Rejected. The existing module's header explicitly says "future canon_update / prose_edit / editorial_flag kinds add their own coercion helpers in their own modules but share this storage." That convention was set in Phase 3 commit 4 precisely so each kind family can grow without one large multi-kind file.
+- *A single generic `insertProposalEnvelope<TKind>(envelope)`* using TypeScript discriminated-union narrowing. Rejected — the row-coercion side has to write the right cast for the typed payload anyway, and a generic helper hides the kind-specific casts behind a confusing facade. Two flat helpers keep the call sites obvious.
+- *Sharing a `_canonical-row.ts` for the row shape and the parse helpers across the two modules.* Considered. Deferred. The duplication is real (the row-shape interface and the `parseEvidenceArray` / `parsePolicyReasons` helpers are byte-identical between this module and `proposal-envelopes.ts`). But extracting it now means rewriting both call sites in the same commit; the cleaner sequencing is to ship Phase 5 commit 3 with duplication and extract `_canonical-row.ts` as a separate refactor commit once a third envelope-kind module joins (canon_update is the natural third). The duplication is flagged in the module header as a future follow-on so reviewers can see the intent.
+- *Persisting envelopes inside `runEditorialBeatCoverageCheck`.* Rejected — the producer should return envelopes for the caller to persist (consistent with Phase 1's `buildPlannerCanonProposals` / `generatePlannerCanonProposals` separation). The producer is pure-testable; the persistence is a side effect the runtime caller controls.
+
+**Evidence.** 13/13 DB tests pass / 67 expects (skipped when Postgres not reachable). Pin: insert idempotency for both kinds, list-by-status filtering (`pending` / `approved` / `all`), kind isolation (`editorial_flag` list rejects `prose_edit` and vice versa), `parentEnvelopeId` round-trip — same proposal+idx produces same envelope id so a re-insert preserves the original row's lineage rather than overwriting (Phase 5 commit 1 invariant), different proposal yields a new id with the parent column populated, kind-agnostic resolve via `updateEnvelopeResolution` works uniformly for both kinds, `deleteEnvelopesForNovel` removes both kinds atomically. Server tsc clean.
+
+**Documentation:** `docs/sessions/lane-queue.md` Phase 5 line updated to reflect commit 3 done. `docs/current-state.md` Latest footer prepended.
+
+**Ongoing implications:** Phase 5 commit 4 (patch application for `prose_edit` with draft-hash precondition) consumes these helpers via `findEnvelopeById` + the kind-specific row-coercion. Phase 5 commit 5 (lint-fix-to-proposal converter) emits envelopes that flow through the same insert helpers. The runtime producer hook (where `runEditorialBeatCoverageCheck` is called from the drafting pipeline and how its returned envelopes are persisted) is still deferred — the producer + persistence layers are now both ready, but wiring requires choosing the lifecycle moment (post-draft, pre-settle, etc.) and the severity policy. If a third envelope-kind module joins (canon_update is the natural next), the row-shape interface + `parse*` helpers should extract into a shared `src/db/_canonical-row.ts` to avoid drift across three copies.
+
+---
+
 ### §Phase 5 commit 2 — editorial beat-coverage tracer-bullet producer (2026-05-04)
 
 **Decision.** The first LLM editorial module under Phase 5 ships as a beat-coverage producer in `src/canon/editorial-beat-coverage.ts`. The module reads a chapter draft + the chapter outline (the planner's beat contract), asks the LLM beat-by-beat whether the draft prose covers each planned beat, and emits one `EditorialFlagProposal` (`issueType=missing-beat-coverage`) per uncovered beat — wrapped into Phase 5 commit 1's `EditorialFlagEnvelope`. The orchestrator entry point `runEditorialBeatCoverageCheck` accepts the `callLLM` function via dependency injection so the tracer-bullet is pure-testable.
