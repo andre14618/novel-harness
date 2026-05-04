@@ -200,6 +200,169 @@ export async function handleCanonProposalRoute(
     }
   }
 
+  // ── Bulk resolve ───────────────────────────────────────────────────────
+  //
+  // Operator surface for clearing a queue of planner-generated proposals
+  // efficiently. Each resolution runs in its own transaction (the substrate
+  // already wraps `resolveProposal` in `db.begin`); failures of individual
+  // resolutions do NOT abort the batch — per-resolution status comes back
+  // in the `results` array so the operator sees exactly which rows committed
+  // and which raced / errored. This is intentionally not all-or-nothing:
+  // the alternative (one big transaction) couples unrelated row outcomes
+  // and would make a single stale row poison an entire approve-all batch.
+  const bulkMatch = path.match(
+    /^\/api\/novel\/([^/]+)\/canon-proposals\/bulk-resolve$/,
+  )
+  if (bulkMatch && req.method === "POST") {
+    const novelId = decodeURIComponent(bulkMatch[1])
+    let body: {
+      resolutions?: Array<{
+        proposalId?: string
+        status?: string
+        modifiedFact?: CanonFact
+        operatorNote?: string
+        expectedStatus?: string
+      }>
+    }
+    try {
+      body = (await req.json()) as typeof body
+    } catch {
+      return Response.json({ error: "invalid JSON body" }, { status: 400 })
+    }
+    if (!Array.isArray(body.resolutions)) {
+      return Response.json(
+        { error: "body must contain { resolutions: Array<…> }" },
+        { status: 400 },
+      )
+    }
+    if (body.resolutions.length === 0) {
+      return Response.json({ results: [], counts: { ok: 0, error: 0 } })
+    }
+    if (body.resolutions.length > 200) {
+      // Soft cap. Operator-driven bulk requests should be batched if
+      // larger; the cap exists so a runaway client can't inflate one
+      // request into a mass-write.
+      return Response.json(
+        {
+          error: `bulk-resolve cap exceeded: ${body.resolutions.length} > 200`,
+        },
+        { status: 400 },
+      )
+    }
+
+    type BulkResult = {
+      proposalId: string
+      status: "ok" | "error"
+      resolution?: ResolveStatus
+      committedFact?: unknown
+      error?: string
+      httpStatus?: number
+    }
+    const results: BulkResult[] = []
+    const sub = new PostgresCanonSubstrate()
+    for (const r of body.resolutions) {
+      const proposalId = r.proposalId ?? ""
+      if (!proposalId) {
+        results.push({
+          proposalId: "",
+          status: "error",
+          error: "missing proposalId",
+          httpStatus: 400,
+        })
+        continue
+      }
+      if (!r.status || !VALID_RESOLVE_STATUSES.has(r.status)) {
+        results.push({
+          proposalId,
+          status: "error",
+          error: `invalid status ${JSON.stringify(r.status)}`,
+          httpStatus: 400,
+        })
+        continue
+      }
+      if (r.status === "modified" && !r.modifiedFact) {
+        results.push({
+          proposalId,
+          status: "error",
+          error: "status=modified requires modifiedFact",
+          httpStatus: 400,
+        })
+        continue
+      }
+      // Authoritative read for stale-precondition + 404 detection.
+      const row = await findProposal(proposalId)
+      if (!row || row.novel_id !== novelId) {
+        results.push({
+          proposalId,
+          status: "error",
+          error: `unknown proposalId ${proposalId} for novel ${novelId}`,
+          httpStatus: 404,
+        })
+        continue
+      }
+      if (r.expectedStatus && row.status !== r.expectedStatus) {
+        results.push({
+          proposalId,
+          status: "error",
+          error: `stale precondition (expected=${r.expectedStatus}, actual=${row.status})`,
+          httpStatus: 409,
+        })
+        continue
+      }
+      if (row.status !== "pending") {
+        results.push({
+          proposalId,
+          status: "error",
+          error: `proposal ${proposalId} already ${row.status}`,
+          httpStatus: 409,
+        })
+        continue
+      }
+      try {
+        const result = await sub.resolveProposal(
+          proposalId,
+          r.status as ResolveStatus,
+          {
+            modifiedFact: r.modifiedFact,
+            operatorNote: r.operatorNote,
+          },
+        )
+        results.push({
+          proposalId,
+          status: "ok",
+          resolution: r.status as ResolveStatus,
+          committedFact: result.committedFact ?? null,
+        })
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        // Race: substrate's DB-level guard surfaces "already resolved"
+        // when a concurrent caller resolved between our findProposal and
+        // the resolveProposal transaction.
+        if (/already (approved|rejected|modified|pending)/i.test(msg)) {
+          results.push({
+            proposalId,
+            status: "error",
+            error: msg,
+            httpStatus: 409,
+          })
+        } else {
+          results.push({
+            proposalId,
+            status: "error",
+            error: msg,
+            httpStatus: 500,
+          })
+        }
+      }
+    }
+    const okCount = results.filter((x) => x.status === "ok").length
+    const errCount = results.length - okCount
+    return Response.json({
+      results,
+      counts: { ok: okCount, error: errCount },
+    })
+  }
+
   // ── Generate proposals from authored outlines ──────────────────────────
   const generateMatch = path.match(
     /^\/api\/novel\/([^/]+)\/canon-proposals\/generate-from-outline$/,

@@ -418,6 +418,132 @@ describe.skipIf(!reachable)("handleCanonProposalRoute", () => {
     expect(empty.proposals).toHaveLength(0)
   })
 
+  // ── Bulk resolve ───────────────────────────────────────────────────────
+
+  test("POST bulk-resolve — approves multiple in one request, per-row results", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+    const ids = ["fact-c1-f1", "fact-c1-f2", "fact-c2-f1"].map((s) =>
+      plannerProposalId(novelId, s),
+    )
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/canon-proposals/bulk-resolve`, {
+        resolutions: ids.map((id) => ({ proposalId: id, status: "approved" })),
+      }),
+    )
+    expect(status).toBe(200)
+    expect(body.counts).toEqual({ ok: 3, error: 0 })
+    expect(body.results).toHaveLength(3)
+    for (const r of body.results) {
+      expect(r.status).toBe("ok")
+      expect(r.resolution).toBe("approved")
+      expect(r.committedFact).not.toBeNull()
+    }
+    const sub = new PostgresCanonSubstrate()
+    await sub.loadSnapshot(novelId, 2)
+    const visibleIds = sub.factsAsOfChapter(novelId, 2).map((f) => f.id)
+    expect(visibleIds).toContain("fact-c1-f1")
+    expect(visibleIds).toContain("fact-c1-f2")
+    expect(visibleIds).toContain("fact-c2-f1")
+  })
+
+  test("POST bulk-resolve — partial failure does not abort the batch", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+    const okId = plannerProposalId(novelId, "fact-c1-f1")
+    const unknownId = "planner:does-not-exist:0"
+    const modifiedNoFactId = plannerProposalId(novelId, "fact-c1-f2")
+
+    const { body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/canon-proposals/bulk-resolve`, {
+        resolutions: [
+          { proposalId: okId, status: "approved" },
+          { proposalId: unknownId, status: "approved" }, // 404 path
+          { proposalId: modifiedNoFactId, status: "modified" }, // missing modifiedFact → 400 path
+        ],
+      }),
+    )
+    expect(body.counts).toEqual({ ok: 1, error: 2 })
+    expect(body.results[0].status).toBe("ok")
+    expect(body.results[1].status).toBe("error")
+    expect(body.results[1].error).toMatch(/unknown proposalId/)
+    expect(body.results[2].status).toBe("error")
+    expect(body.results[2].error).toMatch(/modified requires modifiedFact/)
+
+    // The OK row committed; the failed rows did NOT mutate canon.
+    const sub = new PostgresCanonSubstrate()
+    await sub.loadSnapshot(novelId, 1)
+    const visibleIds = sub.factsAsOfChapter(novelId, 1).map((f) => f.id)
+    expect(visibleIds).toContain("fact-c1-f1")
+    expect(visibleIds).not.toContain("fact-c1-f2")
+  })
+
+  test("POST bulk-resolve — already-resolved row → 409 entry, others succeed", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+    const a = plannerProposalId(novelId, "fact-c1-f1")
+    const b = plannerProposalId(novelId, "fact-c1-f2")
+
+    // Pre-approve `a` so the bulk call hits the "already resolved" path on it.
+    await invoke(
+      "POST",
+      `/api/novel/${novelId}/canon-proposals/${encodeURIComponent(a)}/resolve`,
+      { status: "approved" },
+    )
+
+    const { body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/canon-proposals/bulk-resolve`, {
+        resolutions: [
+          { proposalId: a, status: "approved" },
+          { proposalId: b, status: "rejected" },
+        ],
+      }),
+    )
+    expect(body.counts).toEqual({ ok: 1, error: 1 })
+    const aResult = body.results.find((r: any) => r.proposalId === a)
+    const bResult = body.results.find((r: any) => r.proposalId === b)
+    expect(aResult.status).toBe("error")
+    expect(aResult.error).toMatch(/already approved/)
+    expect(aResult.httpStatus).toBe(409)
+    expect(bResult.status).toBe("ok")
+    expect(bResult.resolution).toBe("rejected")
+  })
+
+  test("POST bulk-resolve — empty resolutions returns counts {0,0}", async () => {
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/canon-proposals/bulk-resolve`, {
+        resolutions: [],
+      }),
+    )
+    expect(status).toBe(200)
+    expect(body.counts).toEqual({ ok: 0, error: 0 })
+    expect(body.results).toEqual([])
+  })
+
+  test("POST bulk-resolve — over-cap → 400", async () => {
+    const tooMany = Array.from({ length: 201 }, (_, i) => ({
+      proposalId: `planner:n:${i}`,
+      status: "approved",
+    }))
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/canon-proposals/bulk-resolve`, {
+        resolutions: tooMany,
+      }),
+    )
+    expect(status).toBe(400)
+    expect(body.error).toMatch(/cap exceeded/)
+  })
+
+  test("POST bulk-resolve — missing resolutions array → 400", async () => {
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/canon-proposals/bulk-resolve`, {
+        notResolutions: [],
+      }),
+    )
+    expect(status).toBe(400)
+    expect(body.error).toMatch(/resolutions/)
+  })
+
   // ── Resolve ────────────────────────────────────────────────────────────
 
   test("POST resolve approve → committedFact returned + visible in canon", async () => {

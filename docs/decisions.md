@@ -10,6 +10,32 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon proposal bulk-resolve endpoint — best-effort per-row resolution (2026-05-03)
+
+**Decision:** Add `POST /api/novel/:id/canon-proposals/bulk-resolve` that accepts `{ resolutions: Array<{ proposalId, status, modifiedFact?, operatorNote?, expectedStatus? }> }` and returns `{ results: BulkResolutionResult[], counts: { ok, error } }`. Per-resolution success/failure: each row runs through the same authoritative-find + substrate-resolve path as single-resolve, in its own transaction. A failure on one row does NOT abort the batch. Soft cap of 200 resolutions per request. UI client function `bulkResolveCanonProposals` lands in `ui/src/api.ts`; a UI bulk-action affordance is intentionally deferred to a follow-on lane (the v1 review page handles single-resolve only).
+
+**Why:** Phase 1.5 auto-wire produces 30+ proposals per novel by default (planner panel size). Resolving each via individual `/resolve` requests is a 30-round-trip operator chore. The natural shape is a batch with the same per-row semantics as single-resolve. Best-effort (not transactional) is the right grain because a single stale row in a 30-row approve-all batch should not block 29 fresh rows from committing — and the substrate already wraps each `resolveProposal` in its own atomic transaction so partial-batch state is always consistent.
+
+**Evidence:**
+
+- 6 new handler tests in `src/orchestrator/canon-proposal-routes.test.ts`: bulk-approve happy path (3 rows committed + visible in canon read), partial-failure (ok + 404 + 400 in same batch — only the ok row mutates canon), already-resolved row → 409 entry while peer row succeeds, empty resolutions returns counts {0,0}, 201-row request → 400 cap-exceeded, missing `resolutions` array → 400.
+- Full sweep `bun test src/canon/ src/harness/ src/orchestrator/canon-proposal-routes.test.ts` — 286/286 pass / 1,558 expects (was 280; +6).
+- `bunx tsc --noEmit` — clean.
+- `cd ui && bunx vite build` — clean.
+- `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927, recallGateClear=YES`.
+
+**Counterfactuals considered but rejected:**
+
+- *Run the entire batch in one DB transaction (all-or-nothing).* Rejected. A single stale-precondition row would force the entire approve-all batch to abort, requiring the operator to identify the stale row, refresh, and re-submit the rest. The per-row pattern matches operator intent: "approve everything you can, tell me what couldn't go through."
+- *Cap at 1000 instead of 200.* Rejected for v1. 200 is the conservative-but-not-cramped ceiling that handles a typical planner panel (≤30) plus headroom; raising to 1000 would let a misbehaving client mass-write inadvertently. If a real workflow needs >200 in a single request, raising the cap is a reversible config change, not an architectural decision.
+- *Ship the UI bulk-action button in this commit.* Deferred. The v1 review page is the operator-facing primary surface and warrants its own browser-test cycle; folding a bulk-action UI affordance into this server-side commit would mix concerns and force an immediate UI re-test. The API client function lands now so the follow-on UI lane is a pure-frontend addition.
+
+**Charter §1 status:** unchanged (cleared). Write-side endpoint over the already-cleared substrate; per-row atomicity unchanged.
+
+**Lane:** ad-hoc continuation of `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2b.md`. **Experiment:** 412 (ticket).
+
+---
+
 ### §Canon proposal list endpoint — status filter for audit-history view (2026-05-03)
 
 **Decision:** Extend `GET /api/novel/:id/canon-proposals` with an optional `?status=` query param. Accepts a single status (`pending` | `approved` | `rejected` | `modified`), a CSV list (`?status=pending,approved`), or `all` (every status). Omitting the param keeps the existing pending-only behavior — back-compat by construction. Pending-only retains creation-order; the audit-view path orders newest-first (the operator-relevant ordering on a history surface). New helper `listProposalsByStatus(novelId, statuses, executor?)` + the `ALL_PROPOSAL_STATUSES` constant land in `src/db/canon-substrate.ts`; the orchestrator route dispatches between the existing pending-only query and the new audit-view query based on the parsed param.

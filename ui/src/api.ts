@@ -938,3 +938,35 @@ export function generateProposalsFromOutline(novelId: string) {
     { method: "POST", body: "{}" },
   )
 }
+
+export interface BulkResolutionRequest {
+  proposalId: string
+  status: "approved" | "rejected" | "modified"
+  modifiedFact?: ProposedFact
+  operatorNote?: string
+  expectedStatus?: "pending"
+}
+
+export interface BulkResolutionResult {
+  proposalId: string
+  status: "ok" | "error"
+  resolution?: "approved" | "rejected" | "modified"
+  committedFact?: unknown
+  error?: string
+  httpStatus?: number
+}
+
+export interface BulkResolveResponse {
+  results: BulkResolutionResult[]
+  counts: { ok: number; error: number }
+}
+
+export function bulkResolveCanonProposals(
+  novelId: string,
+  resolutions: BulkResolutionRequest[],
+) {
+  return fetchJSON<BulkResolveResponse>(
+    `/api/novel/${encodeURIComponent(novelId)}/canon-proposals/bulk-resolve`,
+    { method: "POST", body: JSON.stringify({ resolutions }) },
+  )
+}
