@@ -100,6 +100,11 @@ describe("handlePlanningSnapshotRoute — non-matching paths", () => {
     const res = await invoke("GET", "/api/novel/x/something-else")
     expect(res).toBeNull()
   })
+
+  test("POST on /mechanical-health returns null (GET only)", async () => {
+    const res = await invoke("POST", "/api/novel/x/planning-snapshot/mechanical-health")
+    expect(res).toBeNull()
+  })
 })
 
 describe.skipIf(!reachable)("handlePlanningSnapshotRoute (DB-backed)", () => {
@@ -148,6 +153,27 @@ describe.skipIf(!reachable)("handlePlanningSnapshotRoute (DB-backed)", () => {
     expect(body.lockedSnapshot.id).toBe(hash)
     expect(body.lockedSnapshot.locked_by_kind).toBe("human")
     expect(body.drift).toBe(false)
+  })
+
+  // ── GET /mechanical-health (Phase 4 commit 4 follow-up) ─────────────
+
+  test("GET /mechanical-health: empty-outline novel returns a well-formed report with gates failing", async () => {
+    const { status, body } = await expectJson(
+      await invoke("GET", `/api/novel/${novelId}/planning-snapshot/mechanical-health`),
+    )
+    expect(status).toBe(200)
+    expect(body.ok).toBe(true)
+    expect(body.novelId).toBe(novelId)
+    expect(body.report).toBeDefined()
+    // No outlines exist → no chapters / no sourceItems. The artifact gate
+    // requires both; idGraphGateClear chains off it. Both should be false.
+    // (gates live under report.summary per planner-canon-delta.ts:228.)
+    expect(body.report.chapters).toEqual([])
+    expect(body.report.sourceItems).toEqual([])
+    expect(body.report.summary.artifactGateClear).toBe(false)
+    expect(body.report.summary.idGraphGateClear).toBe(false)
+    expect(body.report.summary.chapterCount).toBe(0)
+    expect(body.report.summary.sourceItemCount).toBe(0)
   })
 
   test("GET /current after lock: drift=true after the planning state changes", async () => {

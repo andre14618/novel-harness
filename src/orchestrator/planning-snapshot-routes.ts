@@ -45,6 +45,8 @@
 
 import { z } from "zod"
 import { computePlanningSnapshotHash } from "../canon/planning-snapshot"
+import { runPlannerCanonDeltaAudit } from "../canon/planner-canon-delta"
+import { getChapterOutlines } from "../db/outlines"
 import {
   recordPlanningSnapshot,
   findPlanningSnapshot,
@@ -97,6 +99,32 @@ export async function handlePlanningSnapshotRoute(
     } catch (err) {
       return Response.json(
         { ok: false, error: `planning-snapshot/current failed: ${String(err)}` },
+        { status: 500 },
+      )
+    }
+  }
+
+  // GET /api/novel/:novelId/planning-snapshot/mechanical-health
+  //
+  // Phase 4 commit 4 deferred — exposes `runPlannerCanonDeltaAudit` (a pure
+  // helper over chapter outlines) so the Planning Snapshot UI panel can
+  // surface the design's "mechanical health" summary without each consumer
+  // re-implementing the audit. Empty outline list → empty report (gates
+  // FAIL by design — `idGraphGateClear` requires `chapters.length > 0 &&
+  // sourceItems.length > 0`); the operator sees the same report shape and
+  // can act on it.
+  const auditMatch = path.match(
+    /^\/api\/novel\/([^/]+)\/planning-snapshot\/mechanical-health$/,
+  )
+  if (auditMatch && req.method === "GET") {
+    const novelId = decodeURIComponent(auditMatch[1])
+    try {
+      const outlines = await getChapterOutlines(novelId)
+      const report = runPlannerCanonDeltaAudit(`novel:${novelId}`, outlines)
+      return Response.json({ ok: true, novelId, report })
+    } catch (err) {
+      return Response.json(
+        { ok: false, error: `planning-snapshot/mechanical-health failed: ${String(err)}` },
         { status: 500 },
       )
     }
