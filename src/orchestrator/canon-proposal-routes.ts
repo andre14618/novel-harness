@@ -36,6 +36,8 @@ import {
   findProposal,
   proposalFromRow,
   listPendingProposals as dbListPendingProposals,
+  listProposalsByStatus as dbListProposalsByStatus,
+  ALL_PROPOSAL_STATUSES,
 } from "../db/canon-substrate"
 import { PostgresCanonSubstrate } from "../harness/canon-substrate"
 import {
@@ -59,7 +61,7 @@ export async function handleCanonProposalRoute(
 ): Promise<Response | null> {
   const path = url.pathname
 
-  // ── List pending proposals ─────────────────────────────────────────────
+  // ── List proposals (default pending; ?status= for audit / all view) ────
   const listMatch = path.match(/^\/api\/novel\/([^/]+)\/canon-proposals$/)
   if (listMatch && req.method === "GET") {
     try {
@@ -67,8 +69,19 @@ export async function handleCanonProposalRoute(
       const sourceFilter = url.searchParams.get("source") ?? undefined
       const chapterFilter = parseChapterParam(url.searchParams.get("chapter"))
       const plannerOnly = url.searchParams.get("plannerOnly") === "true"
+      const statusFilter = parseStatusParam(url.searchParams.get("status"))
+      if (statusFilter.error) {
+        return Response.json({ error: statusFilter.error }, { status: 400 })
+      }
 
-      const rows = await dbListPendingProposals(novelId)
+      // Choose the right query path. The pending-only path keeps its
+      // creation-order semantics for consumers (UI v1) that haven't opted
+      // in to status filtering. Audit-view callers (status= present) get
+      // newest-first ordering, which matches operator expectations on a
+      // history surface.
+      const rows = statusFilter.statuses
+        ? await dbListProposalsByStatus(novelId, statusFilter.statuses)
+        : await dbListPendingProposals(novelId)
       let proposals = rows.map(proposalFromRow)
       if (sourceFilter) {
         proposals = proposals.filter((p) => p.source === sourceFilter)
@@ -231,6 +244,37 @@ function parseChapterParam(raw: string | null): number | undefined {
   const n = Number(raw)
   if (!Number.isFinite(n) || !Number.isInteger(n)) return undefined
   return n
+}
+
+/**
+ * Parse the `status` query param.
+ *
+ * - omitted          → undefined statuses (caller takes the pending-only path).
+ * - `all`            → every status (the audit-history view).
+ * - `pending,approved` → CSV list, validated against the canonical set.
+ * - any unknown value → returns `error` so the caller can 400 the request.
+ *
+ * Returning `{ statuses }` rather than an array distinguishes "no filter
+ * supplied" (use the existing pending-only query) from "filter says zero
+ * statuses match" (which would short-circuit to `[]`).
+ */
+function parseStatusParam(
+  raw: string | null,
+): { statuses?: readonly string[]; error?: string } {
+  if (raw == null || raw === "") return {}
+  if (raw === "all") return { statuses: ALL_PROPOSAL_STATUSES }
+  const parts = raw.split(",").map((s) => s.trim()).filter(Boolean)
+  if (parts.length === 0) {
+    return { error: `status param empty after split; got ${JSON.stringify(raw)}` }
+  }
+  const validSet = new Set(ALL_PROPOSAL_STATUSES)
+  const invalid = parts.filter((p) => !validSet.has(p))
+  if (invalid.length > 0) {
+    return {
+      error: `unknown status values: ${invalid.join(", ")}; valid: ${ALL_PROPOSAL_STATUSES.join(",")}|all`,
+    }
+  }
+  return { statuses: parts }
 }
 
 // Re-exported for tests so they don't have to import via the routes module's

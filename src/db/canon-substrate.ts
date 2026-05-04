@@ -847,6 +847,45 @@ export async function listPendingProposals(
   return rows
 }
 
+/**
+ * List proposals filtered by an explicit set of statuses, ordered newest
+ * first. Used by the audit-view extension of `GET /api/novel/:id/canon-proposals`
+ * (Phase 2B follow-on); pending-only callers should keep using
+ * `listPendingProposals` for the existing creation-order semantics.
+ *
+ * The status set is required and non-empty by contract — pass
+ * `["pending","approved","rejected","modified"]` for the all-status view
+ * (or use the pre-built `ALL_PROPOSAL_STATUSES` constant). An empty array
+ * is treated as "no rows match" (`= ANY('{}'::text[])` matches nothing,
+ * but short-circuiting also avoids issuing a pointless query).
+ */
+export async function listProposalsByStatus(
+  novelId: string,
+  statuses: readonly string[],
+  executor: Executor = db,
+): Promise<ProposalRow[]> {
+  if (statuses.length === 0) return []
+  // Bun's SQL driver sends JS arrays as a comma-separated string, which
+  // Postgres rejects when bound as text[]. Build an explicit literal.
+  const arrayLiteral = `{${statuses.join(",")}}`
+  const rows = (await executor`
+    SELECT id, novel_id, source, target_logical_id, proposed_payload,
+           modified_payload, status, operator_note, created_at, resolved_at
+    FROM canon_proposals
+    WHERE novel_id = ${novelId}
+      AND status = ANY(${arrayLiteral}::text[])
+    ORDER BY created_at DESC
+  `) as ProposalRow[]
+  return rows
+}
+
+export const ALL_PROPOSAL_STATUSES: readonly string[] = [
+  "pending",
+  "approved",
+  "rejected",
+  "modified",
+]
+
 // ── Snapshot generation counter ──────────────────────────────────────────────
 
 export async function bumpGeneration(

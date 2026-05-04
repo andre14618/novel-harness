@@ -10,6 +10,31 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon proposal list endpoint — status filter for audit-history view (2026-05-03)
+
+**Decision:** Extend `GET /api/novel/:id/canon-proposals` with an optional `?status=` query param. Accepts a single status (`pending` | `approved` | `rejected` | `modified`), a CSV list (`?status=pending,approved`), or `all` (every status). Omitting the param keeps the existing pending-only behavior — back-compat by construction. Pending-only retains creation-order; the audit-view path orders newest-first (the operator-relevant ordering on a history surface). New helper `listProposalsByStatus(novelId, statuses, executor?)` + the `ALL_PROPOSAL_STATUSES` constant land in `src/db/canon-substrate.ts`; the orchestrator route dispatches between the existing pending-only query and the new audit-view query based on the parsed param.
+
+**Why:** Phase 2B (`adafe30`) ships the v1 review UI which renders pending only. The audit view (resolved-history surface, who-approved-what telemetry) needs a list endpoint that returns resolved rows. Building it now as a server-side extension keeps the UI v1 surface minimal while unblocking the audit-view follow-on (and the operator CLI script that's also queued — both want the same status-filter shape).
+
+**Evidence:**
+
+- 5 new handler tests in `src/orchestrator/canon-proposal-routes.test.ts` — single-status (`?status=approved`), all (`?status=all`), CSV (`?status=pending,approved`), bogus → 400 with valid-set hint, and status×chapter compose. 23/23 route tests / 193 expects.
+- Full sweep `bun test src/canon/ src/harness/ src/orchestrator/canon-proposal-routes.test.ts` — 280/280 pass / 1,516 expects (was 275; +5 new tests).
+- `bunx tsc --noEmit` — clean.
+- `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927, recallGateClear=YES`.
+
+**Counterfactuals considered but rejected:**
+
+- *Use Bun SQL's array binding (`AND status = ANY(${statuses})`) directly.* Rejected after empirical failure. Bun's driver serializes JS arrays as comma-separated strings, which Postgres rejects with `ERR_POSTGRES_SERVER_ERROR: malformed array literal`. The fix is to build an explicit `{...}::text[]` literal — same shape as `pg`'s text-array binding. Documented inline so future readers don't repeat the mistake.
+- *Always return all statuses; let the UI filter.* Rejected. The pending-only path is the hot path (UI v1, Phase 1.5 auto-wire); large planner runs may produce 30+ proposals per novel and dragging resolved rows into every read just to filter them out client-side is wasteful. Server-side filter is the right shape.
+- *Add a separate `/canon-proposals/history` route for the audit view.* Rejected. The shape is identical (list of `CanonUpdateProposal`); two endpoints would duplicate the source/chapter/plannerOnly composition. One endpoint with a status filter is the smaller correct surface.
+
+**Charter §1 status:** unchanged (cleared). Read-side extension; no canon-write semantics changed.
+
+**Lane:** ad-hoc continuation of `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2b.md`. **Experiment:** 411 (ticket).
+
+---
+
 ### §Collaborative proposal workflow Phase 2B cleared — Studio review panel UI over the Phase 2A API (2026-05-03)
 
 **Decision:** Ship the first UI surface for the no-ghost-canon proposal flow at `/app/canon-proposals/:novelId`. Renders pending proposals as a table (proposal id, fact id, kind, proposed text + provenance, decision column with Approve / Reject buttons), exposes the Phase 2A query filters (source / chapter / plannerOnly), and adds a "Generate from outline" button that hits the operator-triggered generate endpoint. Resolve calls send `expectedStatus: "pending"` so a stale-page race surfaces as 409 + reload-to-authoritative-state. Modify-with-edits is deliberately not in v1 — operators who need to edit hit the API directly. Browser hand-test verification by the operator is the remaining clearance step (per CLAUDE.md UI rule).

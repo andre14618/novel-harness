@@ -279,6 +279,145 @@ describe.skipIf(!reachable)("handleCanonProposalRoute", () => {
     ).not.toContain(extra.id)
   })
 
+  // ── List with ?status= (audit-view extension) ──────────────────────────
+
+  test("GET list — ?status=approved returns only resolved-approved proposals", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+    // Approve one + reject one so we have a mixed-status fixture.
+    const approveTarget = plannerProposalId(novelId, "fact-c1-f1")
+    const rejectTarget = plannerProposalId(novelId, "fact-c1-f2")
+    await invoke(
+      "POST",
+      `/api/novel/${novelId}/canon-proposals/${encodeURIComponent(approveTarget)}/resolve`,
+      { status: "approved" },
+    )
+    await invoke(
+      "POST",
+      `/api/novel/${novelId}/canon-proposals/${encodeURIComponent(rejectTarget)}/resolve`,
+      { status: "rejected" },
+    )
+
+    // Default (no status param) still returns pending only — backward compat.
+    const { body: defaultBody } = await expectJson(
+      await invoke("GET", `/api/novel/${novelId}/canon-proposals`),
+    )
+    expect(defaultBody.proposals).toHaveLength(28)
+    for (const p of defaultBody.proposals as CanonUpdateProposal[]) {
+      expect(p.status).toBe("pending")
+    }
+
+    // ?status=approved → only the one approved row.
+    const { body: approvedBody } = await expectJson(
+      await invoke("GET", `/api/novel/${novelId}/canon-proposals?status=approved`),
+    )
+    expect(approvedBody.proposals).toHaveLength(1)
+    expect((approvedBody.proposals[0] as CanonUpdateProposal).id).toBe(approveTarget)
+    expect((approvedBody.proposals[0] as CanonUpdateProposal).status).toBe("approved")
+
+    // ?status=rejected → only the one rejected row.
+    const { body: rejectedBody } = await expectJson(
+      await invoke("GET", `/api/novel/${novelId}/canon-proposals?status=rejected`),
+    )
+    expect(rejectedBody.proposals).toHaveLength(1)
+    expect((rejectedBody.proposals[0] as CanonUpdateProposal).id).toBe(rejectTarget)
+  })
+
+  test("GET list — ?status=all returns every proposal regardless of status", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+    const approveTarget = plannerProposalId(novelId, "fact-c1-f1")
+    await invoke(
+      "POST",
+      `/api/novel/${novelId}/canon-proposals/${encodeURIComponent(approveTarget)}/resolve`,
+      { status: "approved" },
+    )
+
+    const { body } = await expectJson(
+      await invoke("GET", `/api/novel/${novelId}/canon-proposals?status=all`),
+    )
+    expect(body.proposals).toHaveLength(30)
+    const statuses = new Set(
+      (body.proposals as CanonUpdateProposal[]).map((p) => p.status),
+    )
+    expect(statuses.has("pending")).toBe(true)
+    expect(statuses.has("approved")).toBe(true)
+  })
+
+  test("GET list — ?status=pending,approved supports CSV", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+    const approveTarget = plannerProposalId(novelId, "fact-c1-f1")
+    const rejectTarget = plannerProposalId(novelId, "fact-c1-f2")
+    await invoke(
+      "POST",
+      `/api/novel/${novelId}/canon-proposals/${encodeURIComponent(approveTarget)}/resolve`,
+      { status: "approved" },
+    )
+    await invoke(
+      "POST",
+      `/api/novel/${novelId}/canon-proposals/${encodeURIComponent(rejectTarget)}/resolve`,
+      { status: "rejected" },
+    )
+
+    const { body } = await expectJson(
+      await invoke(
+        "GET",
+        `/api/novel/${novelId}/canon-proposals?status=pending,approved`,
+      ),
+    )
+    // 28 pending + 1 approved = 29; rejected one excluded.
+    expect(body.proposals).toHaveLength(29)
+    const statusSet = new Set(
+      (body.proposals as CanonUpdateProposal[]).map((p) => p.status),
+    )
+    expect(statusSet.has("rejected")).toBe(false)
+  })
+
+  test("GET list — ?status=bogus returns 400 with valid-set hint", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+
+    const { status, body } = await expectJson(
+      await invoke("GET", `/api/novel/${novelId}/canon-proposals?status=bogus`),
+    )
+    expect(status).toBe(400)
+    expect(body.error).toContain("unknown status values: bogus")
+    expect(body.error).toContain("pending")
+    expect(body.error).toContain("approved")
+  })
+
+  test("GET list — status filter composes with source/chapter/plannerOnly filters", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+    // Approve one chapter-1 fact; everything else stays pending.
+    const approveTarget = plannerProposalId(novelId, "fact-c1-f1")
+    await invoke(
+      "POST",
+      `/api/novel/${novelId}/canon-proposals/${encodeURIComponent(approveTarget)}/resolve`,
+      { status: "approved" },
+    )
+
+    // status=approved + chapter=1 should narrow to that single row.
+    const { body } = await expectJson(
+      await invoke(
+        "GET",
+        `/api/novel/${novelId}/canon-proposals?status=approved&chapter=1`,
+      ),
+    )
+    expect(body.proposals).toHaveLength(1)
+    expect((body.proposals[0] as CanonUpdateProposal).id).toBe(approveTarget)
+
+    // status=approved + chapter=2 should be empty (the approved row is ch1).
+    const { body: empty } = await expectJson(
+      await invoke(
+        "GET",
+        `/api/novel/${novelId}/canon-proposals?status=approved&chapter=2`,
+      ),
+    )
+    expect(empty.proposals).toHaveLength(0)
+  })
+
   // ── Resolve ────────────────────────────────────────────────────────────
 
   test("POST resolve approve → committedFact returned + visible in canon", async () => {
