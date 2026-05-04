@@ -103,7 +103,7 @@ describe.skipIf(!reachable)("editorial-envelopes persistence", () => {
     const env = buildFlagEnvelope(novelId, 0)
     const inserted = await insertEditorialFlagEnvelope(env)
     expect(inserted).toBe(true)
-    const rows = await listEditorialFlagEnvelopes(novelId)
+    const { envelopes: rows } = await listEditorialFlagEnvelopes(novelId)
     expect(rows).toHaveLength(1)
     expect(rows[0].id).toBe(env.id)
     expect(rows[0].kind).toBe("editorial_flag")
@@ -126,7 +126,7 @@ describe.skipIf(!reachable)("editorial-envelopes persistence", () => {
     const env = buildFlagEnvelope(novelId, 0)
     expect(await insertEditorialFlagEnvelope(env)).toBe(true)
     expect(await insertEditorialFlagEnvelope(env)).toBe(false)
-    const rows = await listEditorialFlagEnvelopes(novelId)
+    const { envelopes: rows } = await listEditorialFlagEnvelopes(novelId)
     expect(rows).toHaveLength(1)
   })
 
@@ -153,32 +153,37 @@ describe.skipIf(!reachable)("editorial-envelopes persistence", () => {
       modifiedPayload: null,
     })
     expect(updated).toBe(true)
-    const pending = await listEditorialFlagEnvelopes(novelId, { status: "pending" })
+    const { envelopes: pending } = await listEditorialFlagEnvelopes(novelId, { status: "pending" })
     expect(pending).toHaveLength(1)
     expect(pending[0].id).toBe(e2.id)
-    const approved = await listEditorialFlagEnvelopes(novelId, { status: "approved" })
+    const { envelopes: approved } = await listEditorialFlagEnvelopes(novelId, { status: "approved" })
     expect(approved).toHaveLength(1)
     expect(approved[0].id).toBe(e1.id)
     expect(approved[0].status).toBe("approved")
     expect(approved[0].resolvedAt).toBeDefined()
     expect(approved[0].resolvedBy).toBe("human")
-    const all = await listEditorialFlagEnvelopes(novelId, { status: "all" })
+    const { envelopes: all } = await listEditorialFlagEnvelopes(novelId, { status: "all" })
     expect(all).toHaveLength(2)
   })
 
-  test("editorial-flag parentEnvelopeId round-trips through the column", async () => {
+  test("editorial-flag conflicting insert preserves original parent metadata", async () => {
+    // Original is parentless. A second envelope with the SAME proposal+idx
+    // (→ same envelope id, Phase 5 commit 1 invariant) but a DIFFERENT
+    // parent must not overwrite the original lineage — the DB-level
+    // ON CONFLICT (id) DO NOTHING contract.
+    //
+    // Note: MEDIUM B (2026-05-04) blocks self-parent (parent == id) at
+    // the builder, so the second build uses an unrelated parent id —
+    // the conflict path is what's under test here, not self-parent.
     const e1 = buildFlagEnvelope(novelId, 0)
     await insertEditorialFlagEnvelope(e1)
-    const e2 = buildFlagEnvelope(novelId, 0, e1.id)
-    // Same proposal+idx → same envelope id (Phase 5 commit 1 invariant) →
-    // ON CONFLICT (id) DO NOTHING preserves the original row's lineage,
-    // so the second insert is a no-op even though it carries a parent.
+    const e2 = buildFlagEnvelope(novelId, 0, "some-unrelated-parent-id")
     expect(e2.id).toBe(e1.id)
+    expect(e2.source.parentEnvelopeId).toBe("some-unrelated-parent-id")
     const inserted = await insertEditorialFlagEnvelope(e2)
     expect(inserted).toBe(false)
-    const rows = await listEditorialFlagEnvelopes(novelId)
+    const { envelopes: rows } = await listEditorialFlagEnvelopes(novelId)
     expect(rows).toHaveLength(1)
-    // Original parent (none) is preserved.
     expect(rows[0].source.parentEnvelopeId).toBeUndefined()
   })
 
@@ -188,7 +193,7 @@ describe.skipIf(!reachable)("editorial-envelopes persistence", () => {
     const e2 = buildFlagEnvelope(novelId, 1, e1.id)
     expect(e2.id).not.toBe(e1.id)
     expect(await insertEditorialFlagEnvelope(e2)).toBe(true)
-    const rows = await listEditorialFlagEnvelopes(novelId, { status: "all" })
+    const { envelopes: rows } = await listEditorialFlagEnvelopes(novelId, { status: "all" })
     expect(rows).toHaveLength(2)
     const fetchedChild = rows.find(r => r.id === e2.id)!
     expect(fetchedChild.source.parentEnvelopeId).toBe(e1.id)
@@ -200,7 +205,7 @@ describe.skipIf(!reachable)("editorial-envelopes persistence", () => {
     const env = buildEditEnvelope(novelId, 0)
     const inserted = await insertProseEditEnvelope(env)
     expect(inserted).toBe(true)
-    const rows = await listProseEditEnvelopes(novelId)
+    const { envelopes: rows } = await listProseEditEnvelopes(novelId)
     expect(rows).toHaveLength(1)
     expect(rows[0].id).toBe(env.id)
     expect(rows[0].kind).toBe("prose_edit")
@@ -219,7 +224,7 @@ describe.skipIf(!reachable)("editorial-envelopes persistence", () => {
     const env = buildEditEnvelope(novelId, 0)
     expect(await insertProseEditEnvelope(env)).toBe(true)
     expect(await insertProseEditEnvelope(env)).toBe(false)
-    const rows = await listProseEditEnvelopes(novelId)
+    const { envelopes: rows } = await listProseEditEnvelopes(novelId)
     expect(rows).toHaveLength(1)
   })
 
@@ -239,11 +244,11 @@ describe.skipIf(!reachable)("editorial-envelopes persistence", () => {
     await insertEditorialFlagEnvelope(flag)
     await insertProseEditEnvelope(edit)
 
-    const flags = await listEditorialFlagEnvelopes(novelId, { status: "all" })
+    const { envelopes: flags } = await listEditorialFlagEnvelopes(novelId, { status: "all" })
     expect(flags).toHaveLength(1)
     expect(flags[0].id).toBe(flag.id)
 
-    const edits = await listProseEditEnvelopes(novelId, { status: "all" })
+    const { envelopes: edits } = await listProseEditEnvelopes(novelId, { status: "all" })
     expect(edits).toHaveLength(1)
     expect(edits[0].id).toBe(edit.id)
   })
@@ -292,11 +297,11 @@ describe.skipIf(!reachable)("editorial-envelopes persistence", () => {
     })
     expect(okEdit).toBe(true)
 
-    const allFlags = await listEditorialFlagEnvelopes(novelId, { status: "all" })
+    const { envelopes: allFlags } = await listEditorialFlagEnvelopes(novelId, { status: "all" })
     expect(allFlags[0].status).toBe("rejected")
     expect(allFlags[0].resolvedBy).toBe("human")
 
-    const allEdits = await listProseEditEnvelopes(novelId, { status: "all" })
+    const { envelopes: allEdits } = await listProseEditEnvelopes(novelId, { status: "all" })
     expect(allEdits[0].status).toBe("approved")
   })
 
@@ -304,10 +309,10 @@ describe.skipIf(!reachable)("editorial-envelopes persistence", () => {
     await insertEditorialFlagEnvelope(buildFlagEnvelope(novelId, 0))
     await insertEditorialFlagEnvelope(buildFlagEnvelope(novelId, 1))
     await insertProseEditEnvelope(buildEditEnvelope(novelId, 0))
-    expect((await listEditorialFlagEnvelopes(novelId, { status: "all" })).length).toBe(2)
-    expect((await listProseEditEnvelopes(novelId, { status: "all" })).length).toBe(1)
+    expect((await listEditorialFlagEnvelopes(novelId, { status: "all" })).envelopes).toHaveLength(2)
+    expect((await listProseEditEnvelopes(novelId, { status: "all" })).envelopes).toHaveLength(1)
     await deleteEnvelopesForNovel(novelId)
-    expect((await listEditorialFlagEnvelopes(novelId, { status: "all" })).length).toBe(0)
-    expect((await listProseEditEnvelopes(novelId, { status: "all" })).length).toBe(0)
+    expect((await listEditorialFlagEnvelopes(novelId, { status: "all" })).envelopes).toHaveLength(0)
+    expect((await listProseEditEnvelopes(novelId, { status: "all" })).envelopes).toHaveLength(0)
   })
 })

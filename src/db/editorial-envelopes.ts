@@ -180,27 +180,44 @@ export async function insertEditorialFlagEnvelope(
   return Array.isArray(result) ? result.length > 0 : false
 }
 
-/** List editorial-flag envelopes for a novel filtered by status (default = pending). */
+/**
+ * List editorial-flag envelopes for a novel filtered by status (default
+ * = pending).
+ *
+ * OpenCode review LOW (2026-05-04): returns `{ envelopes, hasMore }`
+ * so callers can detect truncation. We over-fetch by one row and set
+ * `hasMore = true` if the extra row exists; the caller never sees it.
+ * Routes / UI consumers that need pagination can re-query with a
+ * cursor (deferred until a UI surface for editorial lists ships).
+ */
+export interface ListEditorialFlagEnvelopesResult {
+  envelopes: EditorialFlagEnvelope[]
+  hasMore: boolean
+}
+
 export async function listEditorialFlagEnvelopes(
   novelId: string,
   opts: { status?: string | "all"; limit?: number } = {},
-): Promise<EditorialFlagEnvelope[]> {
+): Promise<ListEditorialFlagEnvelopesResult> {
   const status = opts.status ?? "pending"
   const limit = opts.limit ?? 200
+  const overFetch = limit + 1
   const rows = (status === "all"
     ? await db`
         SELECT * FROM proposal_envelopes
         WHERE novel_id = ${novelId} AND kind = 'editorial_flag'
         ORDER BY created_at DESC
-        LIMIT ${limit}
+        LIMIT ${overFetch}
       `
     : await db`
         SELECT * FROM proposal_envelopes
         WHERE novel_id = ${novelId} AND kind = 'editorial_flag' AND status = ${status}
         ORDER BY created_at DESC
-        LIMIT ${limit}
+        LIMIT ${overFetch}
       `) as ProposalEnvelopeRow[]
-  return rows.map(rowToEditorialFlagEnvelope)
+  const hasMore = rows.length > limit
+  const visible = hasMore ? rows.slice(0, limit) : rows
+  return { envelopes: visible.map(rowToEditorialFlagEnvelope), hasMore }
 }
 
 // ── prose_edit ─────────────────────────────────────────────────────────
@@ -292,27 +309,39 @@ export async function insertProseEditEnvelope(
   return Array.isArray(result) ? result.length > 0 : false
 }
 
-/** List prose-edit envelopes for a novel filtered by status (default = pending). */
+/**
+ * List prose-edit envelopes for a novel filtered by status (default =
+ * pending). Returns `{ envelopes, hasMore }` per the same truncation
+ * contract as `listEditorialFlagEnvelopes`.
+ */
+export interface ListProseEditEnvelopesResult {
+  envelopes: ProseEditEnvelope[]
+  hasMore: boolean
+}
+
 export async function listProseEditEnvelopes(
   novelId: string,
   opts: { status?: string | "all"; limit?: number } = {},
-): Promise<ProseEditEnvelope[]> {
+): Promise<ListProseEditEnvelopesResult> {
   const status = opts.status ?? "pending"
   const limit = opts.limit ?? 200
+  const overFetch = limit + 1
   const rows = (status === "all"
     ? await db`
         SELECT * FROM proposal_envelopes
         WHERE novel_id = ${novelId} AND kind = 'prose_edit'
         ORDER BY created_at DESC
-        LIMIT ${limit}
+        LIMIT ${overFetch}
       `
     : await db`
         SELECT * FROM proposal_envelopes
         WHERE novel_id = ${novelId} AND kind = 'prose_edit' AND status = ${status}
         ORDER BY created_at DESC
-        LIMIT ${limit}
+        LIMIT ${overFetch}
       `) as ProposalEnvelopeRow[]
-  return rows.map(rowToProseEditEnvelope)
+  const hasMore = rows.length > limit
+  const visible = hasMore ? rows.slice(0, limit) : rows
+  return { envelopes: visible.map(rowToProseEditEnvelope), hasMore }
 }
 
 // Lifecycle helpers (`findEnvelopeById`, `updateEnvelopeResolution`,
