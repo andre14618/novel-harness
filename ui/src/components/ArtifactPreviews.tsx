@@ -305,13 +305,11 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight })
   }, [turns])
 
-  const send = async () => {
-    const msg = input.trim()
+  const sendMessage = async (msg: string) => {
     if (!msg || sending) return
     setSending(true)
     const next = [...turns, { role: "user" as const, content: msg }]
     setTurns(next)
-    setInput("")
     setPendingPatches([])
     setEnvelopes([])
     setEnvelopeStates({})
@@ -329,6 +327,41 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
     } finally {
       setSending(false)
     }
+  }
+
+  const send = async () => {
+    const msg = input.trim()
+    if (!msg) return
+    setInput("")
+    await sendMessage(msg)
+  }
+
+  /**
+   * Phase 3 commit 3 — regenerate-on-stale. Re-fires the conversational
+   * /adjust route with the original userMessage from the stale envelope,
+   * so the LLM can re-derive the patch given the latest artifact state.
+   * The current envelope batch is replaced with the fresh response.
+   *
+   * Per design doc constraint "without changing its model task" — same
+   * route, same system prompt, just refreshed artifact context. No new
+   * server-side surface. Future commit 4 (persistence) will retain
+   * envelope history across regenerations; today's UX is "the regen
+   * supersedes the prior batch."
+   */
+  const regenerateFromEnvelope = async (envelope: ArtifactPatchEnvelope) => {
+    const original = envelope.source.userMessage
+    if (!original) {
+      setEnvelopeStates(prev => ({
+        ...prev,
+        [envelope.id]: {
+          kind: "error",
+          message:
+            "cannot regenerate — original userMessage missing from envelope source",
+        },
+      }))
+      return
+    }
+    await sendMessage(original)
   }
 
   const applyAll = async () => {
@@ -433,7 +466,9 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
                 envelope={env}
                 state={envelopeStates[env.id] ?? { kind: "pending" }}
                 charName={charName}
+                regenerating={sending}
                 onResolve={s => resolveEnvelope(env, s)}
+                onRegenerate={() => regenerateFromEnvelope(env)}
               />
             ))}
           </div>
@@ -520,12 +555,16 @@ function EnvelopeCard({
   envelope,
   state,
   charName,
+  regenerating,
   onResolve,
+  onRegenerate,
 }: {
   envelope: ArtifactPatchEnvelope
   state: EnvelopeRowState
   charName: (id: string) => string
+  regenerating: boolean
   onResolve: (status: "approved" | "rejected") => void
+  onRegenerate: () => void
 }) {
   const busy = state.kind === "busy"
   const resolved = state.kind === "done"
@@ -593,10 +632,33 @@ function EnvelopeCard({
           </span>
         )}
         {state.kind === "stale" && (
-          <span style={{ fontSize: "0.78em", color: "#fec" }}>
-            stale — artifact moved (expected v {state.expectedVersion.slice(0, 8)}, now v {state.actualVersion.slice(0, 8)}).
-            Regenerate (commit 3) coming soon.
-          </span>
+          <>
+            <span style={{ fontSize: "0.78em", color: "#fec" }}>
+              stale — artifact moved (expected v {state.expectedVersion.slice(0, 8)}, now v {state.actualVersion.slice(0, 8)}).
+            </span>
+            {envelope.source.userMessage ? (
+              <button
+                onClick={onRegenerate}
+                disabled={regenerating}
+                style={{
+                  background: "#3a2c4a",
+                  border: "1px solid #b6f",
+                  color: "#dcf",
+                  padding: "3px 8px",
+                  borderRadius: 3,
+                  fontSize: "0.78rem",
+                  cursor: regenerating ? "wait" : "pointer",
+                }}
+                title="Re-runs the conversational /adjust with the original message so the model can re-derive the patch against the latest artifact state. The current envelope batch is replaced with the fresh response."
+              >
+                {regenerating ? "Regenerating…" : "Regenerate"}
+              </button>
+            ) : (
+              <span style={{ fontSize: "0.74em", color: "#789", fontStyle: "italic" }}>
+                (no original message; cannot regenerate)
+              </span>
+            )}
+          </>
         )}
         {state.kind === "error" && (
           <span style={{ fontSize: "0.78em", color: "#fce" }}>error: {state.message}</span>
