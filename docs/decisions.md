@@ -10,6 +10,40 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 4 commit 3 — lock-snapshot route + GET /current (2026-05-04)
+
+**Decision:** Two HTTP routes wire the persistence layer (commit 2) into the orchestrator. `GET /current` returns the live computed hash + the active locked snapshot + a drift boolean. `POST /lock` records (idempotent) then locks (one-way) a snapshot identified by its hash.
+
+**Why explicit-consent locking (route doesn't enforce hash matches live state):** The lock represents the operator's audit-trail commitment to "I'm proceeding with drafting against THIS state I observed." If the route silently substituted the live hash, the operator could be locking something they never saw — a TOCTOU between GET /current and POST /lock could mean the artifacts changed mid-flow. Better: the operator (or UI) sends the exact hash they observed; if it matches the live state, great; if it doesn't, the lock still happens against the observed-but-stale snapshot, and drift detection at draft time (Phase 4 commit 5) catches the mismatch at the consequential moment.
+
+**Why GET /current returns drift as a derived field (not just the components):** Convenience for the UI. The drift signal is `computedHash !== lockedSnapshot.id`, which the UI could compute itself, but exposing it server-side keeps that derivation in one place — and lets future server-side policies (autonomous-mode auto-lock if drift was small or affecting non-load-bearing fields) plug in without UI changes.
+
+**Why 409 returns `actualLock` metadata (kind, ref, note, lockedAt):** Operators arriving at "this snapshot is already locked" need context. Who locked, when, and why. Without it the UI would have to follow up with a second GET to `findPlanningSnapshot(hash)` for the metadata. Surfacing it in the 409 body keeps the UI flow tight.
+
+**Why 64-hex regex validation on `hash`:** Cheap structural check; catches accidental wrong-shape inputs (truncated, decimal, mixed case) before they hit the DB. The DB would also reject those eventually (no row matches), but a 400 with a clear error is better UX than a 404 from the WHERE clause not matching.
+
+**Concrete shape:**
+- `src/orchestrator/planning-snapshot-routes.ts`: new module exporting `handlePlanningSnapshotRoute(req, url)`. Same shape as the other Phase 3+ route modules (returns `null` on no-match, `Response` otherwise).
+- Wired in `server.ts` after `handleProposalEnvelopeRoute`.
+- Helper imports: `computePlanningSnapshotHash` (commit 1), `recordPlanningSnapshot` / `findPlanningSnapshot` / `getLockedPlanningSnapshot` / `lockPlanningSnapshot` (commit 2). No new orchestration code beyond glue.
+
+**Evidence:**
+- `bun test src/orchestrator/planning-snapshot-routes.test.ts` — 13/13 pass / 51 expects.
+- `bunx tsc --noEmit` — clean.
+- Diff scope: 3 files (+460/-0). Pure additive; existing routes unaffected.
+
+**Counterfactuals considered but rejected:**
+
+- *Server-side compute the hash for the lock body (caller just sends `lockedBy`).* Rejected — see "Why explicit-consent locking." TOCTOU risk + audit-trail integrity.
+- *Combine record+lock into one POST `/api/novel/:id/planning-snapshot` that creates+locks atomically and returns the row.* Tempting from a single-route-per-action standpoint. Rejected because: (a) `record` without `lock` is a useful primitive (UI may want to capture "I observed this state at time T" without commiting to draft); (b) the current commit 2 helpers already split the two operations; the route is just glue. If a future commit needs an atomic-record-and-lock-or-fail variant, it can wrap both helpers in `db.begin(...)` — but YAGNI for v1.
+- *Allow PATCH /lock to update `lockedNote` after the fact.* Rejected — see commit-2 audit-integrity discussion. Lock metadata is immutable once set.
+- *Auto-record snapshots on every planning-state mutation (record on save).* Rejected. Most planning mutations don't need a snapshot — the snapshot is meaningful at lock time, when the operator commits to a drafting target. Auto-recording would bloat the table with snapshots no one ever locks. The explicit GET /current → POST /lock flow is the cleanest contract.
+- *Error code 422 vs 409 for already-locked.* 422 is "unprocessable entity"; 409 is "conflict." Already-locked is a state conflict (the row exists in a state that prevents the operation). 409 is the closer fit and matches the existing canon_proposals already-resolved 409 pattern.
+
+**Ongoing:** Phase 4 progress: commits 1-3 done (compute primitive + persistence + HTTP routes). Remaining: commit 4 (UI panel — collapsible groups for the 4 artifact slices + mechanical-health badges + Lock button + drift indicator), commit 5 (replay-on-stale-snapshot enforcement at draft start: read locked hash → recompute → refuse-to-draft on drift unless operator explicitly re-locks). Phase 3 commit 5b (LLM-firing quick actions) still parked behind transport-stub infra.
+
+---
+
 ### §Phase 4 commit 2 — planning_snapshots persistence (2026-05-04)
 
 **Decision:** Add a `planning_snapshots` table (sql/038) and typed helpers for record/find/list/lock/getLocked. The id IS the snapshot hash from commit 1; the lock pointer is a one-way nullable `locked_at` field. No route + no UI in this commit — those are commits 3-4.
