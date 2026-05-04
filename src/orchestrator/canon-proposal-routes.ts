@@ -47,7 +47,68 @@ import {
 import { getChapterOutlines } from "../db/outlines"
 import { persistedChapterOutlineSchema } from "../agents/planning-plotter/schema"
 import type { CanonFact, CanonUpdateProposal, ProposalStatus } from "../canon/api"
+import {
+  evaluatePolicy,
+  type ApprovalPolicy,
+  type PolicyEvaluation,
+} from "../canon/approval-policy"
+import type { ReviewProposalEnvelope } from "../canon/proposal-envelope"
 import { z } from "zod"
+
+/**
+ * Phase 6 commit 4: when no policy is provided, default to manual mode.
+ * Mirrors the artifact_patch + prose_edit routes' default. The version
+ * string is opaque; "manual-v1" lets audit consumers distinguish "no
+ * policy attached" (NULL) from "explicit manual default".
+ */
+const DEFAULT_MANUAL_POLICY: ApprovalPolicy = {
+  version: "manual-v1",
+  mode: "manual",
+}
+
+/**
+ * Phase 6 commit 4: synthetic envelope for evaluatePolicy. The substrate
+ * lifts canon proposals from a dedicated `canon_proposals` table that
+ * predates the unified envelope model. To run them through `evaluatePolicy`
+ * (which expects a `ReviewProposalEnvelope`), we synthesize the minimal
+ * shape the evaluator actually reads: kind, risk, and policyRecommendation.
+ *
+ * Risk classification: canon proposals are conservative-default `high`.
+ * The `manualKinds: ["canon_update"]` default in `evaluatePolicy` makes
+ * this irrelevant in practice — canon always queues unless an operator
+ * explicitly opts out via empty `manualKinds`. But the audit row should
+ * still record an honest risk classification for replay metrics.
+ */
+function buildCanonUpdateEnvelopeForPolicy(
+  novelId: string,
+  proposalId: string,
+): ReviewProposalEnvelope {
+  return {
+    id: proposalId,
+    kind: "canon_update",
+    novelId,
+    target: { kind: "canon_fact", ref: proposalId, currentVersion: "n/a" },
+    source: { agent: "canon-substrate" },
+    status: "pending",
+    risk: "high",
+    summary: `canon proposal ${proposalId}`,
+    rationale: "synthetic envelope for policy evaluation; canon_proposals table predates the unified model",
+    evidence: [],
+    payload: {},
+    precondition: { kind: "canon_generation", hash: "n/a" },
+    policyRecommendation: { decision: "queue", reasons: ["substrate-driven; no producer recommendation"] },
+    createdAt: new Date().toISOString(),
+  }
+}
+
+const approvalPolicySchema = z.object({
+  version: z.string(),
+  mode: z.enum(["manual", "assisted", "autonomous", "eval"]),
+  autoApproveRiskCeiling: z.enum(["mechanical", "low", "medium", "high"]).optional(),
+  manualKinds: z
+    .array(z.enum(["artifact_patch", "canon_update", "prose_edit", "editorial_flag"]))
+    .optional(),
+})
 
 type ResolveStatus = Exclude<ProposalStatus, "pending">
 
@@ -115,6 +176,10 @@ export async function handleCanonProposalRoute(
       modifiedFact?: CanonFact
       operatorNote?: string
       expectedStatus?: string
+      /** Phase 6 commit 4: optional policy for audit-trail recording. */
+      policy?: unknown
+      /** Phase 6 commit 4: who/what is driving this resolution. Default "human". */
+      resolvedBy?: "human" | "policy" | "script" | "test"
     }
     try {
       body = (await req.json()) as typeof body
@@ -136,6 +201,34 @@ export async function handleCanonProposalRoute(
         { status: 400 },
       )
     }
+
+    // Phase 6 commit 4: validate optional policy and evaluate against a
+    // synthetic canon_update envelope. The result is recorded for audit;
+    // operator's status drives what applies. The default manual-v1 policy
+    // is the conservative choice — every canon proposal queues unless
+    // the caller explicitly opts into autonomous/assisted/eval.
+    let activePolicy: ApprovalPolicy = DEFAULT_MANUAL_POLICY
+    if (body.policy !== undefined) {
+      const parsed = approvalPolicySchema.safeParse(body.policy)
+      if (!parsed.success) {
+        return Response.json(
+          {
+            error: "invalid policy in body",
+            issues: parsed.error.issues.map((i) => ({
+              path: i.path.join("."),
+              message: i.message,
+            })),
+          },
+          { status: 400 },
+        )
+      }
+      activePolicy = parsed.data
+    }
+    const policyEvaluation: PolicyEvaluation = evaluatePolicy(
+      buildCanonUpdateEnvelopeForPolicy(novelId, proposalId),
+      activePolicy,
+    )
+    const resolvedByKind = body.resolvedBy ?? "human"
 
     // Authoritative read + substrate write are wrapped in a single try/catch
     // so a transient DB error on the pre-read surfaces as a structured 500
@@ -186,12 +279,20 @@ export async function handleCanonProposalRoute(
         {
           modifiedFact: body.modifiedFact,
           operatorNote: body.operatorNote,
+          resolvedByKind,
+          policyDecision: policyEvaluation.decision,
+          policyVersion: policyEvaluation.policyVersion,
+          policyReasons: policyEvaluation.reasons,
         },
       )
       return Response.json({
         proposalId,
         status: body.status,
         committedFact: result.committedFact ?? null,
+        policy: {
+          decision: policyEvaluation.decision,
+          version: policyEvaluation.policyVersion,
+        },
       })
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)

@@ -814,13 +814,24 @@ export async function updateProposalResolution(params: {
   resolvedAt: string
   operatorNote: string | null
   modifiedPayload: CanonFact | null
+  /** Phase 6 commit 4: audit-trail fields (sql/041). NULL for compat with pre-Phase-6 rows. */
+  resolvedByKind?: string | null
+  policyDecision?: string | null
+  policyVersion?: string | null
+  policyReasons?: ReadonlyArray<string> | null
 }, executor: Executor = db): Promise<void> {
+  const policyReasonsJson =
+    params.policyReasons != null ? JSON.stringify([...params.policyReasons]) : null
   const rows = (await executor`
     UPDATE canon_proposals
     SET status = ${params.status},
         resolved_at = ${params.resolvedAt}::timestamptz,
         operator_note = COALESCE(${params.operatorNote}, operator_note),
-        modified_payload = ${params.modifiedPayload ? JSON.stringify(params.modifiedPayload) : null}::jsonb
+        modified_payload = ${params.modifiedPayload ? JSON.stringify(params.modifiedPayload) : null}::jsonb,
+        resolved_by_kind = ${params.resolvedByKind ?? null},
+        resolution_policy_decision = ${params.policyDecision ?? null},
+        resolution_policy_version = ${params.policyVersion ?? null},
+        resolution_policy_reasons = ${policyReasonsJson}::jsonb
     WHERE id = ${params.id}
       AND status = 'pending'
     RETURNING id

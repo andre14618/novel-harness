@@ -204,7 +204,14 @@ export class PostgresCanonSubstrate implements CanonSubstrate {
   async resolveProposal(
     proposalId: string,
     status: Exclude<ProposalStatus, "pending">,
-    opts?: { modifiedFact?: CanonFact; operatorNote?: string },
+    opts?: {
+      modifiedFact?: CanonFact
+      operatorNote?: string
+      resolvedByKind?: "human" | "policy" | "script" | "test"
+      policyDecision?: "queue" | "approve" | "reject" | "shadow"
+      policyVersion?: string
+      policyReasons?: ReadonlyArray<string>
+    },
   ): Promise<{ committedFact?: CanonFact }> {
     // Validate inputs BEFORE the transaction so we don't churn the DB on a
     // call that was malformed at the API boundary.
@@ -243,6 +250,10 @@ export class PostgresCanonSubstrate implements CanonSubstrate {
           resolvedAt,
           operatorNote: opts?.operatorNote ?? null,
           modifiedPayload: null,
+          resolvedByKind: opts?.resolvedByKind ?? null,
+          policyDecision: opts?.policyDecision ?? null,
+          policyVersion: opts?.policyVersion ?? null,
+          policyReasons: opts?.policyReasons ?? null,
         }, tx)
         await canonDb.bumpGeneration(novelId, tx)
         return
@@ -257,6 +268,10 @@ export class PostgresCanonSubstrate implements CanonSubstrate {
         modifiedPayload: status === "modified" && opts?.modifiedFact
           ? opts.modifiedFact
           : null,
+        resolvedByKind: opts?.resolvedByKind ?? null,
+        policyDecision: opts?.policyDecision ?? null,
+        policyVersion: opts?.policyVersion ?? null,
+        policyReasons: opts?.policyReasons ?? null,
       }, tx)
       await this.commitFact(novelId, factToCommit, proposal.targetFactId, tx)
       await canonDb.bumpGeneration(novelId, tx)

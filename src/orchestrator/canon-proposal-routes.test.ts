@@ -939,6 +939,136 @@ describe.skipIf(!reachable)("handleCanonProposalRoute", () => {
     `) as Array<{ c: number }>
     expect(rows[0].c).toBe(0)
   })
+
+  // ── Phase 6 commit 4: ApprovalPolicy persistence on canon_proposals resolve ──
+  // Mirrors the artifact_patch + prose_edit policy persistence (Phase 6
+  // commits 2-3) on the canon_proposals table. The default manual policy
+  // produces decision=queue (the operator is overriding when status='approved'
+  // is received). The substrate's manualKinds=["canon_update"] default makes
+  // canon proposals always queue regardless of mode — even autonomous mode
+  // queues them. The audit signal still matters: NULL means "no policy
+  // attached", non-NULL means "policy was evaluated and said X".
+
+  test("Phase 6: default manual policy persists decision=queue/manual-v1 on approve", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+    const targetId = plannerProposalId(novelId, "fact-c2-f1")
+
+    const { status, body } = await expectJson(
+      await invoke(
+        "POST",
+        `/api/novel/${novelId}/canon-proposals/${encodeURIComponent(targetId)}/resolve`,
+        { status: "approved" },
+      ),
+    )
+    expect(status).toBe(200)
+    expect(body.policy).toEqual({ decision: "queue", version: "manual-v1" })
+
+    const rows = (await db`SELECT resolved_by_kind, resolution_policy_decision, resolution_policy_version,
+                                  resolution_policy_reasons
+                           FROM canon_proposals WHERE id = ${targetId}`) as Array<{
+      resolved_by_kind: string
+      resolution_policy_decision: string
+      resolution_policy_version: string
+      resolution_policy_reasons: unknown
+    }>
+    expect(rows[0].resolved_by_kind).toBe("human")
+    expect(rows[0].resolution_policy_decision).toBe("queue")
+    expect(rows[0].resolution_policy_version).toBe("manual-v1")
+  })
+
+  test("Phase 6: autonomous policy still queues canon (manualKinds=[canon_update] default)", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+    const targetId = plannerProposalId(novelId, "fact-c1-f1")
+
+    const { status, body } = await expectJson(
+      await invoke(
+        "POST",
+        `/api/novel/${novelId}/canon-proposals/${encodeURIComponent(targetId)}/resolve`,
+        {
+          status: "approved",
+          policy: { version: "auto-v1", mode: "autonomous" },
+        },
+      ),
+    )
+    expect(status).toBe(200)
+    // manualKinds default = ["canon_update"] — autonomous policy still
+    // returns decision=queue for canon. The operator's status=approved
+    // still drives the apply, but the policy disagreed (audit signal).
+    expect(body.policy).toEqual({ decision: "queue", version: "auto-v1" })
+  })
+
+  test("Phase 6: opt out of manualKinds → autonomous policy approves canon", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+    const targetId = plannerProposalId(novelId, "fact-c1-f1")
+
+    // Empty manualKinds opts out of the canon-update default block.
+    // Risk classification = "high" (synthetic envelope), so a ceiling=high
+    // policy lets it auto-approve in evaluator terms. Operator status still
+    // drives the apply.
+    const { status, body } = await expectJson(
+      await invoke(
+        "POST",
+        `/api/novel/${novelId}/canon-proposals/${encodeURIComponent(targetId)}/resolve`,
+        {
+          status: "approved",
+          policy: {
+            version: "auto-yolo-v1",
+            mode: "autonomous",
+            autoApproveRiskCeiling: "high",
+            manualKinds: [],
+          },
+        },
+      ),
+    )
+    expect(status).toBe(200)
+    expect(body.policy).toEqual({ decision: "approve", version: "auto-yolo-v1" })
+  })
+
+  test("Phase 6: invalid policy.mode in body → 400", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+    const targetId = plannerProposalId(novelId, "fact-c1-f1")
+
+    const { status, body } = await expectJson(
+      await invoke(
+        "POST",
+        `/api/novel/${novelId}/canon-proposals/${encodeURIComponent(targetId)}/resolve`,
+        {
+          status: "approved",
+          policy: { version: "x", mode: "free-for-all" },
+        },
+      ),
+    )
+    expect(status).toBe(400)
+    expect(body.error).toBe("invalid policy in body")
+  })
+
+  test("Phase 6: resolvedBy=policy persists on the audit row", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+    const targetId = plannerProposalId(novelId, "fact-c1-f1")
+
+    const { status } = await expectJson(
+      await invoke(
+        "POST",
+        `/api/novel/${novelId}/canon-proposals/${encodeURIComponent(targetId)}/resolve`,
+        {
+          status: "rejected",
+          policy: { version: "auto-v1", mode: "autonomous" },
+          resolvedBy: "policy",
+        },
+      ),
+    )
+    expect(status).toBe(200)
+
+    const rows = (await db`SELECT resolved_by_kind FROM canon_proposals WHERE id = ${targetId}`) as Array<{
+      resolved_by_kind: string
+    }>
+    expect(rows[0].resolved_by_kind).toBe("policy")
+  })
 })
 
 // Tiny re-fetch helper — `seedOutlines` writes via `saveChapterOutline`, but

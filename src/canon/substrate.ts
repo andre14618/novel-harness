@@ -71,7 +71,21 @@ export interface CanonSubstrate extends CanonSource {
   resolveProposal(
     proposalId: string,
     status: Exclude<ProposalStatus, "pending">,
-    opts?: { modifiedFact?: CanonFact; operatorNote?: string },
+    opts?: {
+      modifiedFact?: CanonFact
+      operatorNote?: string
+      /**
+       * Phase 6 commit 4: audit-trail metadata. The harness substrate
+       * persists these alongside `status` so Phase 7's replay harness can
+       * compare what the policy decided vs. what the operator decided. The
+       * InMemory adapter stores them on the proposal record for parity but
+       * doesn't otherwise act on them.
+       */
+      resolvedByKind?: "human" | "policy" | "script" | "test"
+      policyDecision?: "queue" | "approve" | "reject" | "shadow"
+      policyVersion?: string
+      policyReasons?: ReadonlyArray<string>
+    },
   ): Promise<{ committedFact?: CanonFact }>
 
   /** Operator-facing — list pending proposals. NEVER feeds reads. */
@@ -158,7 +172,14 @@ export class InMemoryCanonSubstrate implements CanonSubstrate {
   async resolveProposal(
     proposalId: string,
     status: Exclude<ProposalStatus, "pending">,
-    opts?: { modifiedFact?: CanonFact; operatorNote?: string },
+    opts?: {
+      modifiedFact?: CanonFact
+      operatorNote?: string
+      resolvedByKind?: "human" | "policy" | "script" | "test"
+      policyDecision?: "queue" | "approve" | "reject" | "shadow"
+      policyVersion?: string
+      policyReasons?: ReadonlyArray<string>
+    },
   ): Promise<{ committedFact?: CanonFact }> {
     // Validate inputs BEFORE mutating proposal state — a half-applied
     // resolveProposal that throws after mutating the proposal but before
