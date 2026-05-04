@@ -1,11 +1,103 @@
 ---
 status: active
-updated: 2026-04-30
+updated: 2026-05-03
 ---
 
 # Feature Expansion Todo
 
 Forward-looking product ideas that are not in the active harness roadmap yet, but are plausible extensions of the current architecture.
+
+## External Idea Ingestion From Videos, Articles, And Podcasts
+
+### Goal
+
+Let the author drop in a YouTube/video/article/podcast URL and use it as **idea fuel** for planning, world-building, editing process design, or harness workflow improvement. The output is not a transcript archive. The output is a set of attributed, reviewable idea cards that can become Planning Director prompts, artifact-adjuster requests, proposal-workflow design notes, or parked feature tickets.
+
+This feature is directly relevant to the collaborative proposal workflow: external media becomes another source of proposals, not another opaque context blob.
+
+### Why This Has Merit
+
+- Authors often find useful process ideas in long-form videos, interviews, craft talks, and demos, but manually transcribing and distilling them is slow.
+- The harness already has natural homes for distilled ideas: Planning Director, `PlanningDirectives`, artifact-adjuster patches, Canon proposals, editorial proposals, and parked feature docs.
+- A URL-driven ingestion pass can turn “watch this and pull the useful concepts” into structured, reviewable cards.
+- The same workflow supports product research: collect ideas about AI-writing workflows, compare them to the current harness, and turn only relevant deltas into todo items.
+
+### Product Shape
+
+```text
+URL / uploaded transcript / pasted notes
+  -> source metadata + transcript/caption fetch where available
+  -> bounded summary + idea extraction
+  -> idea cards with source attribution and confidence
+  -> human selects useful cards
+  -> selected cards become one of:
+       - Planning Director context
+       - artifact-adjuster request
+       - proposal-workflow design note
+       - docs/todo.md parked feature
+       - eval/experiment hypothesis
+```
+
+### Proposed Idea Card Schema
+
+```json
+{
+  "sourceUrl": "https://...",
+  "sourceTitle": "...",
+  "sourceType": "youtube | article | podcast | pasted-notes",
+  "timestampRange": "12:30-14:05",
+  "ideaType": "workflow | planning | editing | evaluation | product-ui | model-use",
+  "summary": "Short non-verbatim description of the idea.",
+  "whyItMatters": "How this might improve Novel Harness.",
+  "candidateAction": "ignore | discuss | add-to-todo | create-design-note | create-proposal",
+  "relatedHarnessSurface": ["Planning Director", "Canon proposals", "editorial workbench"],
+  "evidenceSnippet": "Very short excerpt or paraphrase for traceability.",
+  "confidence": 0.82
+}
+```
+
+### Guardrails
+
+- Do not store or output full third-party transcripts unless the user provides rights/permission or the source license allows it.
+- Prefer non-verbatim summaries, timestamp references, and short quotes only when necessary for traceability.
+- Keep source content out of committed Canon and writer prompts by default. It is research context, not story truth.
+- Treat extracted ideas as proposals. Human selection is required before they affect planning artifacts or roadmap docs.
+- Preserve source URL, title, timestamp, retrieval time, and extraction prompt/schema version.
+- Distinguish craft ideas from product/process ideas. “How to outline a novel” should not automatically become story content.
+
+### Current Codebase Fit
+
+Useful existing surfaces:
+
+- `planning-conversationalist` already turns discussion into targeted planning exploration.
+- `planning-extractor` already compiles conversation into structured directives.
+- `artifact-adjuster` already turns human change requests into structured patches.
+- `docs/features-expansion-todo.md` already parks future product ideas.
+- `docs/designs/collaborative-proposal-workflow.md` defines proposal cards as the shared human/LLM interaction model.
+
+Missing infrastructure:
+
+- No URL ingestion service.
+- No caption/transcript fetcher wrapper.
+- No source cache or source metadata table.
+- No idea-card schema or review UI.
+- No policy for copyright-safe storage/excerpts.
+
+### Work Items
+
+- [ ] **V0 pasted-notes idea extractor** — accept pasted transcript/notes in a local script, emit idea cards as JSON/Markdown, and manually choose which cards become todo/design entries. Estimated difficulty: small, 0.5-1 day.
+- [ ] **V1 URL metadata + caption fetch spike** — support YouTube caption lookup when captions are available, store metadata and timestamps, and fail gracefully when captions are blocked. Estimated difficulty: small-medium, 1-2 days.
+- [ ] **V2 idea-card review UI** — add a lightweight Studio/research panel where cards can be accepted, rejected, grouped, or converted into Planning Director prompts / feature todos. Estimated difficulty: medium, 3-5 days.
+- [ ] **V3 proposal integration** — selected idea cards become `artifact_patch`, `editorial_flag`, or roadmap proposal envelopes under the collaborative proposal workflow. Estimated difficulty: medium-high, 1-2 weeks after proposal envelope exists.
+- [ ] **V4 source library** — searchable source inventory with summaries, accepted ideas, rejected ideas, and links to resulting docs/experiments. Estimated difficulty: medium-high, 1-2 weeks.
+
+### First Milestone
+
+Build the pasted-notes extractor first. Do not start with YouTube API/caption edge cases. A simple script that turns user-provided text into attributed idea cards proves the output shape and avoids dependency/copyright complexity.
+
+### Main Risk
+
+The failure mode is turning external media into generic “AI writing advice” sludge. The extractor must answer: “What concrete workflow/product/design change should Novel Harness consider?” If it cannot tie an idea to a harness surface, it should park or discard it.
 
 ## Audiobook Voice Tagging And Multi-Cast TTS
 
