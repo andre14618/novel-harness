@@ -510,4 +510,68 @@ describe.skipIf(!reachable)("handleProposalEnvelopeRoute (DB-backed)", () => {
     expect(second.status).toBe(409)
     expect(second.body.error).toBe("stale-precondition")
   })
+
+  // ── Codex round-4 HIGH: atomic compare-and-apply ──────────────────────
+  //
+  // Two concurrent resolves that race against the same pending envelope
+  // MUST produce exactly one applied + one stale, never two-applied. The
+  // pre-fix code was: read live hash, compare, apply (no transaction). A
+  // concurrent edit between the read and the apply could clobber stale
+  // data. Post-fix the route wraps SELECT FOR UPDATE + apply in a single
+  // `db.begin(...)`, so the second resolve blocks on the row lock until
+  // the first commits, then sees the new hash and 409s.
+  test("concurrent same-envelope resolves: exactly one 200 + one 409 (round-4 HIGH atomic compare-and-apply)", async () => {
+    await seedCharacter(novelId, makeCharacter("char-hero", "Aria", { goals: "Find the key" }))
+    // Both resolves use the SAME envelope, snapshotted before any apply.
+    // Build two distinct patches so we can verify which one won.
+    const patchA: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "Win A" },
+    }
+    const envelopeA = await buildEnvelopeFromLive(novelId, patchA)
+    const envelopeB = {
+      ...envelopeA,
+      // Different envelope id so the test can tell which won — same
+      // payload-target shape (same character) so they truly race.
+      id: envelopeA.id + "-B",
+      payload: {
+        type: "characterUpdate" as const,
+        characterId: "char-hero",
+        patch: { goals: "Win B" },
+      },
+    }
+
+    const [resA, resB] = await Promise.all([
+      invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope: envelopeA,
+        status: "approved",
+      }),
+      invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope: envelopeB,
+        status: "approved",
+      }),
+    ])
+    const a = await expectJson(resA)
+    const b = await expectJson(resB)
+
+    const statuses = [a.status, b.status].sort()
+    expect(statuses).toEqual([200, 409])
+
+    const winner = a.status === 200 ? a : b
+    const loser = a.status === 200 ? b : a
+    expect(winner.body.applied).toBe(true)
+    expect(loser.body.error).toBe("stale-precondition")
+
+    // DB-side post-condition: the character's `goals` field carries the
+    // WINNER's payload, not a hybrid or the loser's — proving exactly one
+    // apply happened.
+    const rows = (await db`SELECT profile_json FROM characters
+                           WHERE novel_id = ${novelId} AND id = 'char-hero'`) as {
+      profile_json: CharacterProfile
+    }[]
+    const expectedGoals =
+      winner === a ? "Win A" : "Win B"
+    expect(rows[0].profile_json.goals).toBe(expectedGoals)
+  }, 15_000)
 })

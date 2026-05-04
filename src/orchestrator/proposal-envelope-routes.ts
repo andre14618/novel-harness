@@ -42,6 +42,7 @@
  */
 
 import { z } from "zod"
+import db from "../db/connection"
 import { stableHash } from "../canon/proposal-envelope"
 import { adjusterPatchSchema } from "../agents/artifact-adjuster/schema"
 import type { AdjusterPatch } from "../agents/artifact-adjuster/schema"
@@ -140,7 +141,8 @@ interface ApplyResult {
   newVersion: string
 }
 
-async function applyPatch(
+async function applyPatchTx(
+  tx: typeof db,
   novelId: string,
   patch: AdjusterPatch,
 ): Promise<ApplyResult> {
@@ -148,53 +150,94 @@ async function applyPatch(
     updateCharacterFields,
     updateWorldBibleFields,
     updateStorySpineFields,
-    getCharacters,
-    getWorldBible,
-    getStorySpine,
   } = await import("../db")
 
   switch (patch.type) {
     case "characterUpdate": {
-      const updated = await updateCharacterFields(novelId, patch.characterId, patch.patch as Record<string, unknown>)
+      const updated = await updateCharacterFields(novelId, patch.characterId, patch.patch as Record<string, unknown>, tx)
       return { newVersion: stableHash(updated) }
     }
     case "characterRename": {
-      const updated = await updateCharacterFields(novelId, patch.characterId, { name: patch.newName })
+      const updated = await updateCharacterFields(novelId, patch.characterId, { name: patch.newName }, tx)
       return { newVersion: stableHash(updated) }
     }
     case "worldUpdate": {
-      const updated = await updateWorldBibleFields(novelId, patch.patch as Record<string, unknown>)
+      const updated = await updateWorldBibleFields(novelId, patch.patch as Record<string, unknown>, tx)
       return { newVersion: stableHash(updated) }
     }
     case "spineUpdate": {
-      const updated = await updateStorySpineFields(novelId, patch.patch as Record<string, unknown>)
+      const updated = await updateStorySpineFields(novelId, patch.patch as Record<string, unknown>, tx)
       return { newVersion: stableHash(updated) }
     }
   }
 }
 
-async function readLiveTargetVersion(
+/**
+ * Codex round-4 HIGH: the precondition check + apply must be ATOMIC. We
+ * read the target artifact under a row-level lock (`FOR UPDATE`) inside
+ * the same transaction that performs the apply. A concurrent edit blocks
+ * on the lock until our transaction commits or rolls back; on rollback
+ * (e.g., precondition mismatch) the concurrent writer proceeds against
+ * the unchanged row. Without this, two transactions could each
+ * compute-and-trust the same hash, both pass the check, and the second
+ * apply would silently overwrite the first.
+ *
+ * Returns `null` ONLY when the target row genuinely does not exist
+ * (no rows returned by the FOR UPDATE select). Real DB errors (connection
+ * loss, query timeout) propagate as exceptions — caller decides how to
+ * surface them.
+ */
+async function readLockedTarget(
+  tx: typeof db,
   novelId: string,
   patch: AdjusterPatch,
-): Promise<string | null> {
-  const { getCharacters, getWorldBible, getStorySpine } = await import("../db")
+): Promise<unknown | null> {
   switch (patch.type) {
     case "characterUpdate":
     case "characterRename": {
-      const characters = await getCharacters(novelId).catch(() => [] as unknown[])
-      const target = (characters as { id?: string }[]).find((c) => c.id === patch.characterId)
-      if (!target) return null
-      return stableHash(target)
+      const rows = await tx`SELECT profile_json FROM characters
+                            WHERE novel_id = ${novelId} AND id = ${patch.characterId}
+                            FOR UPDATE`
+      if (rows.length === 0) return null
+      return (rows[0] as { profile_json: unknown }).profile_json
     }
     case "worldUpdate": {
-      const world = await getWorldBible(novelId).catch(() => null)
-      return stableHash(world)
+      const rows = await tx`SELECT content_json FROM world_bibles
+                            WHERE novel_id = ${novelId}
+                            FOR UPDATE`
+      if (rows.length === 0) return null
+      return (rows[0] as { content_json: unknown }).content_json
     }
     case "spineUpdate": {
-      const spine = await getStorySpine(novelId).catch(() => null)
-      return stableHash(spine)
+      const rows = await tx`SELECT content_json FROM story_spines
+                            WHERE novel_id = ${novelId}
+                            FOR UPDATE`
+      if (rows.length === 0) return null
+      return (rows[0] as { content_json: unknown }).content_json
     }
   }
+}
+
+type ResolveOutcome =
+  | { kind: "rejected"; envelopeId: string }
+  | { kind: "applied"; envelopeId: string; status: "approved" | "modified"; newVersion: string }
+  | { kind: "stale"; envelopeId: string; expectedVersion: string; actualVersion: string }
+  | { kind: "missing"; envelopeId: string }
+
+interface OutcomeWrapper {
+  __resolveOutcome: ResolveOutcome
+}
+
+function wrapOutcome(outcome: ResolveOutcome): OutcomeWrapper {
+  return { __resolveOutcome: outcome }
+}
+
+function isOutcomeWrapper(err: unknown): err is OutcomeWrapper {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "__resolveOutcome" in err
+  )
 }
 
 export async function handleProposalEnvelopeRoute(
@@ -261,72 +304,90 @@ export async function handleProposalEnvelopeRoute(
       )
     }
 
-    // Stale-precondition check. We re-derive the live artifact hash and
-    // compare to the envelope's snapshot. The precondition.hash field on
-    // the envelope mirrors target.currentVersion — checking either is
-    // sufficient; we use target.currentVersion since that's the field
-    // documented in the design's §Proposal Envelope.
-    let actualVersion: string | null
+    // Atomic compare-and-apply (Codex round-4 HIGH).
+    // SELECT FOR UPDATE locks the target row inside the transaction; the
+    // hash recomputation and the subsequent apply both happen under that
+    // lock. A concurrent edit blocks until our tx commits or rolls back.
+    // Rollback paths: missing row → throw missing outcome; hash mismatch
+    // → throw stale outcome. Both unwind the transaction with no changes.
+    let outcome: ResolveOutcome
     try {
-      actualVersion = await readLiveTargetVersion(novelId, body.envelope.payload)
-    } catch (err) {
-      return Response.json(
-        { ok: false, error: `failed to read live artifact: ${String(err)}` },
-        { status: 500 },
-      )
-    }
+      outcome = await db.begin(async (tx: typeof db) => {
+        const live = await readLockedTarget(tx, novelId, body.envelope.payload)
+        if (live === null) {
+          throw wrapOutcome({ kind: "missing", envelopeId: body.envelope.id })
+        }
+        const actualVersion = stableHash(live)
+        if (actualVersion !== body.envelope.target.currentVersion) {
+          throw wrapOutcome({
+            kind: "stale",
+            envelopeId: body.envelope.id,
+            expectedVersion: body.envelope.target.currentVersion,
+            actualVersion,
+          })
+        }
 
-    if (actualVersion === null) {
-      return Response.json(
-        {
-          ok: false,
-          error: "target artifact missing",
+        if (body.status === "rejected") {
+          // Lock-and-release without writing. The transaction commits
+          // (no-op) so the lock releases. Returning the rejected outcome
+          // — no apply.
+          return { kind: "rejected", envelopeId: body.envelope.id } as const
+        }
+
+        // approved or modified — apply within the same tx so the apply
+        // either succeeds end-to-end or rolls back together with the lock.
+        const result = await applyPatchTx(tx, novelId, patchToApply)
+        return {
+          kind: "applied",
           envelopeId: body.envelope.id,
-        },
-        { status: 404 },
-      )
-    }
-
-    if (actualVersion !== body.envelope.target.currentVersion) {
-      return Response.json(
-        {
-          ok: false,
-          error: "stale-precondition",
-          envelopeId: body.envelope.id,
-          expectedVersion: body.envelope.target.currentVersion,
-          actualVersion,
-        },
-        { status: 409 },
-      )
-    }
-
-    if (body.status === "rejected") {
-      return Response.json({
-        ok: true,
-        envelopeId: body.envelope.id,
-        applied: false,
-        status: "rejected",
+          status: body.status,
+          newVersion: result.newVersion,
+        } as const
       })
-    }
-
-    // approved or modified — apply patchToApply.
-    let result: ApplyResult
-    try {
-      result = await applyPatch(novelId, patchToApply)
     } catch (err) {
-      return Response.json(
-        { ok: false, error: `apply failed: ${String(err)}`, envelopeId: body.envelope.id },
-        { status: 500 },
-      )
+      if (isOutcomeWrapper(err)) {
+        outcome = err.__resolveOutcome
+      } else {
+        return Response.json(
+          { ok: false, error: `apply failed: ${String(err)}`, envelopeId: body.envelope.id },
+          { status: 500 },
+        )
+      }
     }
 
-    return Response.json({
-      ok: true,
-      envelopeId: body.envelope.id,
-      applied: true,
-      status: body.status,
-      newVersion: result.newVersion,
-    })
+    switch (outcome.kind) {
+      case "missing":
+        return Response.json(
+          { ok: false, error: "target artifact missing", envelopeId: outcome.envelopeId },
+          { status: 404 },
+        )
+      case "stale":
+        return Response.json(
+          {
+            ok: false,
+            error: "stale-precondition",
+            envelopeId: outcome.envelopeId,
+            expectedVersion: outcome.expectedVersion,
+            actualVersion: outcome.actualVersion,
+          },
+          { status: 409 },
+        )
+      case "rejected":
+        return Response.json({
+          ok: true,
+          envelopeId: outcome.envelopeId,
+          applied: false,
+          status: "rejected",
+        })
+      case "applied":
+        return Response.json({
+          ok: true,
+          envelopeId: outcome.envelopeId,
+          applied: true,
+          status: outcome.status,
+          newVersion: outcome.newVersion,
+        })
+    }
   }
 
   return null
