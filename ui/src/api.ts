@@ -352,6 +352,61 @@ export function getNovelState(novelId: string) {
   return fetchJSON<NovelState>(`/api/novel/${novelId}/state`)
 }
 
+// ── Planning Snapshot (Phase 4) ─────────────────────────────────────
+
+export interface LockedPlanningSnapshot {
+  id: string
+  novel_id: string
+  version: string
+  created_at: string
+  locked_at: string | null
+  locked_by_kind: string | null
+  locked_by_ref: string | null
+  locked_note: string | null
+}
+
+export interface PlanningSnapshotCurrent {
+  ok: boolean
+  novelId: string
+  computedHash: string
+  version: string
+  lockedSnapshot: LockedPlanningSnapshot | null
+  drift: boolean
+  error?: string
+}
+
+export interface LockPlanningSnapshotResponse {
+  ok: boolean
+  snapshot?: LockedPlanningSnapshot
+  error?: string
+  hash?: string
+  actualLock?: {
+    lockedAt: string | null
+    lockedByKind: string | null
+    lockedByRef: string | null
+    lockedNote: string | null
+  }
+}
+
+export function getCurrentPlanningSnapshot(novelId: string) {
+  return fetchJSON<PlanningSnapshotCurrent>(
+    `/api/novel/${novelId}/planning-snapshot/current`,
+  )
+}
+
+export function lockPlanningSnapshot(
+  novelId: string,
+  body: {
+    hash: string
+    lockedBy: { kind: "human" | "policy" | "script" | "test"; ref?: string; note?: string }
+  },
+) {
+  return fetchJSON<LockPlanningSnapshotResponse>(
+    `/api/novel/${novelId}/planning-snapshot/lock`,
+    { method: "POST", body: JSON.stringify(body) },
+  )
+}
+
 export type ExportFormat = "markdown" | "txt" | "json"
 
 export function exportNovelURL(novelId: string, format: ExportFormat, approvedOnly = false): string {
