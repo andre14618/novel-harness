@@ -20,11 +20,16 @@ import { useParams, useSearchParams } from "react-router-dom"
 import {
   getCurrentPlanningSnapshot,
   lockPlanningSnapshot,
+  getPlanningSnapshotMechanicalHealth,
   getWorldBible,
   getCharacters,
   getStorySpine,
 } from "../api"
-import type { PlanningSnapshotCurrent, LockPlanningSnapshotResponse } from "../api"
+import type {
+  PlanningSnapshotCurrent,
+  LockPlanningSnapshotResponse,
+  PlanningSnapshotMechanicalHealth,
+} from "../api"
 
 interface ArtifactSummary {
   worldKeys: string[]
@@ -44,6 +49,8 @@ export default function PlanningSnapshotPage() {
   const [lockResult, setLockResult] = useState<LockPlanningSnapshotResponse | null>(null)
   const [note, setNote] = useState("")
   const [artifacts, setArtifacts] = useState<ArtifactSummary | null>(null)
+  const [health, setHealth] = useState<PlanningSnapshotMechanicalHealth | null>(null)
+  const [healthError, setHealthError] = useState<string | null>(null)
 
   const refresh = async () => {
     if (!novelId) return
@@ -78,6 +85,16 @@ export default function PlanningSnapshotPage() {
         })
       } catch {
         // Silent — artifact summary is best-effort cosmetic context.
+      }
+    })()
+    void (async () => {
+      try {
+        const result = await getPlanningSnapshotMechanicalHealth(novelId)
+        setHealth(result)
+        setHealthError(null)
+      } catch (err) {
+        setHealth(null)
+        setHealthError((err as Error).message ?? String(err))
       }
     })()
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -231,6 +248,78 @@ export default function PlanningSnapshotPage() {
             )}
           </Section>
 
+          <Section title="Mechanical health">
+            {healthError && (
+              <div style={{ color: "#f88", fontSize: "0.85em" }}>
+                Failed to load mechanical-health audit: {healthError}
+              </div>
+            )}
+            {!health && !healthError && (
+              <div style={{ color: "#789", fontSize: "0.85em" }}>
+                Loading mechanical-health audit…
+              </div>
+            )}
+            {health && (
+              <div style={{ fontSize: "0.85em" }}>
+                <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
+                  <Gate
+                    label="Artifacts present"
+                    pass={health.report.summary.artifactGateClear}
+                  />
+                  <Gate
+                    label="ID graph valid"
+                    pass={health.report.summary.idGraphGateClear}
+                  />
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                  <li>
+                    {health.report.summary.chapterCount} chapters,{" "}
+                    {health.report.summary.beatCount} beats,{" "}
+                    {health.report.summary.sourceItemCount} source items
+                  </li>
+                  {health.report.summary.invalidSourceIdCount > 0 && (
+                    <li style={{ color: "#fcb" }}>
+                      {health.report.summary.invalidSourceIdCount} invalid source IDs
+                    </li>
+                  )}
+                  {health.report.summary.duplicateSourceIdCount > 0 && (
+                    <li style={{ color: "#fcb" }}>
+                      {health.report.summary.duplicateSourceIdCount} duplicate source IDs
+                    </li>
+                  )}
+                  {health.report.summary.unknownObligationSourceIdCount > 0 && (
+                    <li style={{ color: "#fcb" }}>
+                      {health.report.summary.unknownObligationSourceIdCount} unknown obligation source IDs
+                    </li>
+                  )}
+                  {health.report.summary.invalidPayoffLinkCount > 0 && (
+                    <li style={{ color: "#fcb" }}>
+                      {health.report.summary.invalidPayoffLinkCount} invalid payoff links
+                    </li>
+                  )}
+                  {health.report.summary.overloadedBeatCount > 0 && (
+                    <li style={{ color: "#fcb" }}>
+                      {health.report.summary.overloadedBeatCount} overloaded beats
+                    </li>
+                  )}
+                  {health.report.summary.validationErrorCount > 0 && (
+                    <li style={{ color: "#fcb" }}>
+                      {health.report.summary.validationErrorCount} validation errors
+                    </li>
+                  )}
+                </ul>
+                {health.report.summary.recommendation && (
+                  <div style={{ color: "#9ab", marginTop: 6 }}>
+                    Recommendation:{" "}
+                    <span style={{ color: "#cde" }}>
+                      {health.report.summary.recommendation}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </Section>
+
           <Section title="Lock for drafting">
             <div style={{ fontSize: "0.85em", color: "#9ab", marginBottom: 6 }}>
               Locking is one-way. The hash you lock becomes the drafting target; new edits
@@ -325,6 +414,23 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div style={{ marginBottom: 4, fontSize: "0.85em" }}>
       <span style={{ color: "#789", display: "inline-block", width: 130 }}>{label}:</span>
       {children}
+    </div>
+  )
+}
+
+function Gate({ label, pass }: { label: string; pass: boolean }) {
+  return (
+    <div
+      style={{
+        padding: "4px 8px",
+        borderRadius: 3,
+        background: pass ? "#1f3a26" : "#3a1f1f",
+        color: pass ? "#cfe" : "#fce",
+        border: `1px solid ${pass ? "#2c5a36" : "#5a2c2c"}`,
+        fontSize: "0.85em",
+      }}
+    >
+      {pass ? "✓" : "✗"} {label}
     </div>
   )
 }

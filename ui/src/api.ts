@@ -410,6 +410,49 @@ export function lockPlanningSnapshot(
   )
 }
 
+// Phase 4 commit 4 follow-up: mechanical-health summary. The full
+// `report` shape (PlannerCanonDeltaReport) carries chapters, sourceItems,
+// payoffLinks, etc.; the UI uses report.summary primarily.
+export interface PlanningSnapshotMechanicalHealth {
+  ok: boolean
+  novelId: string
+  report: {
+    chapters: any[]
+    sourceItems: any[]
+    duplicateSourceIds: any[]
+    invalidSourceItems: any[]
+    summary: {
+      chapterCount: number
+      beatCount: number
+      factCount: number
+      knowledgeCount: number
+      stateCount: number
+      sourceItemCount: number
+      validSourceIdCount: number
+      invalidSourceIdCount: number
+      duplicateSourceIdCount: number
+      payoffLinkCount: number
+      invalidPayoffLinkCount: number
+      obligationCount: number
+      unknownObligationSourceIdCount: number
+      missingSourceIdCoverageCount: number
+      sourceKindMismatchCount: number
+      characterIdMismatchCount: number
+      overloadedBeatCount: number
+      validationErrorCount: number
+      artifactGateClear: boolean
+      idGraphGateClear: boolean
+      recommendation?: string
+    }
+  }
+}
+
+export function getPlanningSnapshotMechanicalHealth(novelId: string) {
+  return fetchJSON<PlanningSnapshotMechanicalHealth>(
+    `/api/novel/${novelId}/planning-snapshot/mechanical-health`,
+  )
+}
+
 export type ExportFormat = "markdown" | "txt" | "json"
 
 export function exportNovelURL(novelId: string, format: ExportFormat, approvedOnly = false): string {
