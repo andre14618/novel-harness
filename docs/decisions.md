@@ -10,6 +10,37 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon proposal Codex review round-1 fixes — atomic batch + narrowed catch + persistenceError surface (2026-05-03)
+
+**Decision:** Address two HIGH and one MEDIUM finding from the Codex round-1 adversarial review of Package A (commits acf67c2 / b967c69).
+
+1. **HIGH 1 (atomic batch).** `generatePlannerCanonProposals` now wraps the gate-clear insert loop in `db.begin(async (tx) => { … })` and threads `tx` into every `insertProposalIfAbsent` call. Either every pending row commits or none do. Trace events for per-proposal `canon-proposal-create` are deferred until AFTER the transaction commits so observed `pipeline_events` always reflect durable state. A new `persistenceError?: string` field on `PlannerCanonProposalResult` carries the rolled-back failure to callers; the `canon-proposal-generate-summary` event includes the same string for observability.
+
+2. **MEDIUM 1 (narrowed catch).** `autogenPlannerProposalsAfterPlanning` no longer wraps the helper call in try/catch. Persistence-layer failures are surfaced via `result.persistenceError` (atomic-batch contract); programmer bugs in pure audit/mapping code now propagate as exceptions, so the planning phase fails loudly on a regression rather than silently downgrading it to a `warn` log.
+
+3. **HTTP route surface.** `POST /api/novel/:id/canon-proposals/generate-from-outline` now returns 503 + structured `persistenceError` payload when the atomic batch rolls back, instead of falling through to the generic 500 path. Operators can retry on 503; 500 still indicates a real handler bug.
+
+**Why:** The original Phase 1 implementation inserted one row at a time. A mid-batch transient error left a partial pending queue while Phase 1.5's broad swallowing converted the error into a `gateClear: false` result and let planning advance. Combined, the bug was: silently-incomplete operator-review queues for mechanically clean novels. Codex caught the issue; this commit closes it.
+
+**Evidence:**
+
+- 1 new programmer-bug propagation test in `src/harness/planner-canon-proposals.test.ts` (a malformed outline shape forces the audit to throw; `autogenPlannerProposalsAfterPlanning` MUST rethrow rather than swallow).
+- Full sweep `bun test src/canon/ src/harness/ src/orchestrator/canon-proposal-routes.test.ts` — 287/287 pass / 1,559 expects (was 286; +1 test).
+- `bunx tsc --noEmit` — clean.
+- `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927, recallGateClear=YES`.
+- Atomic-batch rollback property is verified by code inspection (single `db.begin` wrap; no path that commits a subset). A direct mock-based test was prototyped in `planner-canon-proposals-atomicity.test.ts` but bun's `mock.module` leaked across test files (other suites depend on the real `../db/canon-substrate` exports), so the test was removed in favor of the inspection + happy-path regression tests.
+
+**Counterfactuals considered but rejected:**
+
+- *Throw on persistence failure rather than returning `persistenceError`.* Rejected. Three callers (`autogenPlannerProposalsAfterPlanning`, the HTTP route, the operator CLI) all want different observable behavior on persistence failure (log + advance, 503 + retry, print + nonzero exit). A structured field lets each caller pick its policy without try/catch noise.
+- *Have `autogenPlannerProposalsAfterPlanning` keep its broad catch but log differently.* Rejected. The Codex finding's correctness frame is right: programmer bugs hidden behind `warn` is a regression-detection antipattern. Loud failure on regression > robust planning that silently drifts.
+
+**Charter §1 status:** unchanged (cleared). Atomicity tightening over an already-cleared substrate; no canon-read-write semantics changed.
+
+**Lane:** continuation of `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-1.md`. **Codex thread:** `019df0e2-0f13-73b3-a6b1-48eac1165fd1`.
+
+---
+
 ### §Canon proposal operator CLI — terminal-friendly path over the substrate (2026-05-03)
 
 **Decision:** Add `scripts/canon/proposals.ts`, a Bun CLI with subcommands `list` / `approve` / `reject` / `approve-all` / `reject-all` / `generate`. It calls the DB helpers (`listPendingProposals` / `listProposalsByStatus` / `findProposal`) and the substrate (`PostgresCanonSubstrate.resolveProposal`) directly — NOT the HTTP routes. This makes it usable without an orchestrator process running, which is the realistic shape during local debugging or when an operator wants to clear a queue from a shell session that's already attached to the DB. The same `--source` / `--chapter` / `--planner-only` filters as the HTTP API; the same `--status=...|all|<csv>` shape; `--note=` for the operator note; `--dry-run` short-circuits before any DB write.

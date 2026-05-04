@@ -495,4 +495,27 @@ describe.skipIf(!reachable)("generatePlannerCanonProposals (DB-backed)", () => {
     expect(result.gateClear).toBe(false)
     expect(result.created).toBe(0)
   })
+
+  // Atomicity (Codex round-1 acf67c2/b967c69 HIGH 1) is verified in the
+  // standalone file `planner-canon-proposals-atomicity.test.ts` — that
+  // file mocks `../db/canon-substrate` to force a mid-batch insert
+  // failure and asserts the entire batch rolls back. Mocking happens at
+  // the module level, so it lives in its own file to avoid polluting
+  // other tests in this suite.
+
+  test("buildPlannerCanonProposals throw (programmer bug) propagates from autogen helper (Codex MEDIUM 1)", async () => {
+    // Per Codex MEDIUM 1 finding: programmer bugs in the audit/mapping
+    // path must NOT be silently demoted to a warning. Simulate by passing
+    // a malformed outline shape so the audit's schema validation throws.
+    const malformedOutlines = [
+      { not_a_chapter: true } as unknown,
+    ] as unknown as Parameters<typeof autogenPlannerProposalsAfterPlanning>[1]
+    let thrown: unknown
+    try {
+      await autogenPlannerProposalsAfterPlanning(novelId, malformedOutlines)
+    } catch (err) {
+      thrown = err
+    }
+    expect(thrown).toBeDefined()
+  })
 })

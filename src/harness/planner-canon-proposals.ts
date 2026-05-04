@@ -39,6 +39,7 @@
 
 import type { ChapterOutline } from "../types"
 import { trace } from "../trace"
+import db from "../db/connection"
 import {
   runPlannerCanonDeltaAudit,
   type PlannerCanonDeltaReport,
@@ -84,6 +85,20 @@ export interface PlannerCanonProposalResult {
   gateReport: PlannerCanonDeltaReport
   /** Whether the mechanical gate passed (= `gateReport.summary.idGraphGateClear`). */
   gateClear: boolean
+  /**
+   * Set to a string when the gate-clear DB batch failed atomically (e.g.,
+   * a transient pool/connection error). When present:
+   *   - `created` and `skipped` are empty (the entire batch rolled back).
+   *   - `gateClear` is still `true` (the gate-clear/gate-fail distinction is
+   *     orthogonal to whether the batch persisted).
+   *   - No per-proposal `canon-proposal-create` events fire; the
+   *     `canon-proposal-generate-summary` event includes the error string.
+   * Pure mechanical-gate / mapping bugs (e.g., outline schema drift) do
+   * NOT route through here — they propagate as exceptions so callers and
+   * test suites surface the regression rather than silently writing zero
+   * rows. Per Codex round-1 review of acf67c2/b967c69 (HIGH 1 + MEDIUM 1).
+   */
+  persistenceError?: string
 }
 
 /** Pure-helper output: built proposals + gate report, with NO DB writes. */
@@ -185,6 +200,10 @@ export async function generatePlannerCanonProposals(
   opts: GeneratePlannerCanonProposalsOpts = {},
 ): Promise<PlannerCanonProposalResult> {
   const schemaVersion = opts.schemaVersion ?? PLANNER_PROPOSAL_SCHEMA_VERSION
+  // Pure mechanical gate + mapping. May throw on programmer-side bugs
+  // (outline schema drift, audit assertion failure). Those propagate —
+  // the auto-wire helper deliberately does NOT swallow them per Codex
+  // adversary review of acf67c2/b967c69 (MEDIUM 1).
   const { proposals, gateReport, gateClear } = buildPlannerCanonProposals(
     novelId,
     outlines,
@@ -207,50 +226,106 @@ export async function generatePlannerCanonProposals(
     return { created: [], skipped: [], gateReport, gateClear: false }
   }
 
+  // Atomic batch: either every pending row commits or none do. Fixes Codex
+  // HIGH 1 from acf67c2 review — a mid-batch insert error was previously
+  // leaving a partial pending queue + a swallowed error in Phase 1.5.
+  // Trace events fire only AFTER the transaction commits so observed
+  // pipeline_events reflect durable state.
   const created: CanonUpdateProposal[] = []
   const skipped: PlannerCanonProposalSkip[] = []
-  for (const proposal of proposals) {
-    const inserted = await insertProposalIfAbsent({
-      id: proposal.id,
-      novelId,
-      source: proposal.source,
-      targetLogicalId: proposal.targetFactId ?? null,
-      proposedPayload: proposal.proposedFact,
-      status: "pending",
-      operatorNote: null,
-      createdAt: proposal.createdAt,
+  type PendingCreateEvent = {
+    proposalId: string
+    chapter: number
+    source: ProvenanceSource
+    factKind: CanonUpdateProposal["proposedFact"]["kind"]
+    sourceItemId: string
+  }
+  const pendingEvents: PendingCreateEvent[] = []
+
+  try {
+    await db.begin(async (tx) => {
+      // Reset accumulators so a retry attempt (e.g. after pool reconnect)
+      // doesn't double-count.
+      created.length = 0
+      skipped.length = 0
+      pendingEvents.length = 0
+      for (const proposal of proposals) {
+        const inserted = await insertProposalIfAbsent(
+          {
+            id: proposal.id,
+            novelId,
+            source: proposal.source,
+            targetLogicalId: proposal.targetFactId ?? null,
+            proposedPayload: proposal.proposedFact,
+            status: "pending",
+            operatorNote: null,
+            createdAt: proposal.createdAt,
+          },
+          tx,
+        )
+        const sourceItemId =
+          (proposal.proposedFact.data?.["sourceItemId"] as string | undefined) ??
+          proposal.proposedFact.id
+        if (inserted) {
+          created.push(proposal)
+          pendingEvents.push({
+            proposalId: proposal.id,
+            chapter: proposal.proposedFact.provenance.chapter,
+            source: proposal.source,
+            factKind: proposal.proposedFact.kind,
+            sourceItemId,
+          })
+        } else {
+          skipped.push({
+            proposalId: proposal.id,
+            sourceItemId,
+            reason: "already-exists",
+          })
+        }
+      }
     })
-    const sourceItemId =
-      (proposal.proposedFact.data?.["sourceItemId"] as string | undefined) ??
-      proposal.proposedFact.id
-    if (inserted) {
-      created.push(proposal)
-      // Telemetry — one event per newly-inserted proposal. Skipped (already-
-      // exists) inserts intentionally do NOT emit so a re-run is observably
-      // silent in pipeline_events. Awaited so the row is durable before the
-      // batch returns; trace() catches DB failures and never throws.
-      await trace(novelId, {
-        eventType: "canon-proposal-create",
-        chapter: proposal.proposedFact.provenance.chapter,
-        agent: "planner-canon-proposals",
-        payload: {
-          proposalId: proposal.id,
-          source: proposal.source,
-          factKind: proposal.proposedFact.kind,
-          sourceItemId,
-          schemaVersion,
-        },
-      })
-    } else {
-      skipped.push({
-        proposalId: proposal.id,
-        sourceItemId,
-        reason: "already-exists",
-      })
+  } catch (err) {
+    // Persistence-layer failure: the entire batch rolled back. Tell the
+    // caller via the structured `persistenceError` field rather than
+    // throwing — both `autogenPlannerProposalsAfterPlanning` and the HTTP
+    // route handler want to surface this without crashing their callers.
+    const msg = err instanceof Error ? err.message : String(err)
+    await trace(novelId, {
+      eventType: "canon-proposal-generate-summary",
+      agent: "planner-canon-proposals",
+      payload: {
+        outlinesCount: outlines.length,
+        gateClear: true,
+        createdCount: 0,
+        skippedCount: 0,
+        schemaVersion,
+        persistenceError: msg,
+      },
+    })
+    return {
+      created: [],
+      skipped: [],
+      gateReport,
+      gateClear: true,
+      persistenceError: msg,
     }
   }
-  // Single summary event per generate-from-outline invocation. Useful for
-  // observability without scanning every per-proposal row.
+
+  // Tx committed. Now fire per-proposal create events + the summary.
+  for (const ev of pendingEvents) {
+    await trace(novelId, {
+      eventType: "canon-proposal-create",
+      chapter: ev.chapter,
+      agent: "planner-canon-proposals",
+      payload: {
+        proposalId: ev.proposalId,
+        source: ev.source,
+        factKind: ev.factKind,
+        sourceItemId: ev.sourceItemId,
+        schemaVersion,
+      },
+    })
+  }
   await trace(novelId, {
     eventType: "canon-proposal-generate-summary",
     agent: "planner-canon-proposals",
@@ -292,17 +367,18 @@ export async function autogenPlannerProposalsAfterPlanning(
   if (outlines.length === 0) {
     return { created: 0, skipped: 0, gateClear: false, error: "no outlines" }
   }
-  try {
-    const result = await generatePlannerCanonProposals(novelId, outlines)
-    return {
-      created: result.created.length,
-      skipped: result.skipped.length,
-      gateClear: result.gateClear,
-      error: null,
-    }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    return { created: 0, skipped: 0, gateClear: false, error: msg }
+  // No try/catch around the full helper call — per Codex round-1 review of
+  // acf67c2/b967c69 (MEDIUM 1), pure audit/mapping exceptions are
+  // programmer bugs and must propagate rather than being silently
+  // demoted to a planning-phase warning. Persistence-layer failures are
+  // already surfaced via `result.persistenceError` (atomic batch contract);
+  // we translate that to the `error` field on the planning-phase log.
+  const result = await generatePlannerCanonProposals(novelId, outlines)
+  return {
+    created: result.created.length,
+    skipped: result.skipped.length,
+    gateClear: result.gateClear,
+    error: result.persistenceError ?? null,
   }
 }
 

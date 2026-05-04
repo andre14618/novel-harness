@@ -381,6 +381,22 @@ export async function handleCanonProposalRoute(
         )
       }
       const result = await generatePlannerCanonProposals(novelId, outlines)
+      // Atomic-batch persistence failure (Codex round-1 acf67c2 HIGH 1):
+      // surface as 503 + structured payload so the operator can retry,
+      // rather than treating a transient DB blip as a permanent 500.
+      if (result.persistenceError) {
+        return Response.json(
+          {
+            novelId,
+            outlinesCount: outlines.length,
+            gateClear: result.gateClear,
+            created: [],
+            skipped: [],
+            persistenceError: result.persistenceError,
+          },
+          { status: 503 },
+        )
+      }
       return Response.json({
         novelId,
         outlinesCount: outlines.length,
