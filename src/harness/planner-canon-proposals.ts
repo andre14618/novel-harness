@@ -38,6 +38,7 @@
  */
 
 import type { ChapterOutline } from "../types"
+import { trace } from "../trace"
 import {
   runPlannerCanonDeltaAudit,
   type PlannerCanonDeltaReport,
@@ -183,12 +184,26 @@ export async function generatePlannerCanonProposals(
   outlines: readonly ChapterOutline[],
   opts: GeneratePlannerCanonProposalsOpts = {},
 ): Promise<PlannerCanonProposalResult> {
+  const schemaVersion = opts.schemaVersion ?? PLANNER_PROPOSAL_SCHEMA_VERSION
   const { proposals, gateReport, gateClear } = buildPlannerCanonProposals(
     novelId,
     outlines,
     opts,
   )
   if (!gateClear) {
+    await trace(novelId, {
+      eventType: "canon-proposal-generate-summary",
+      agent: "planner-canon-proposals",
+      payload: {
+        outlinesCount: outlines.length,
+        gateClear: false,
+        createdCount: 0,
+        skippedCount: 0,
+        recommendation: gateReport.summary.recommendation,
+        validationErrorCount: gateReport.summary.validationErrorCount,
+        duplicateSourceIdCount: gateReport.summary.duplicateSourceIdCount,
+      },
+    })
     return { created: [], skipped: [], gateReport, gateClear: false }
   }
 
@@ -210,6 +225,22 @@ export async function generatePlannerCanonProposals(
       proposal.proposedFact.id
     if (inserted) {
       created.push(proposal)
+      // Telemetry — one event per newly-inserted proposal. Skipped (already-
+      // exists) inserts intentionally do NOT emit so a re-run is observably
+      // silent in pipeline_events. Awaited so the row is durable before the
+      // batch returns; trace() catches DB failures and never throws.
+      await trace(novelId, {
+        eventType: "canon-proposal-create",
+        chapter: proposal.proposedFact.provenance.chapter,
+        agent: "planner-canon-proposals",
+        payload: {
+          proposalId: proposal.id,
+          source: proposal.source,
+          factKind: proposal.proposedFact.kind,
+          sourceItemId,
+          schemaVersion,
+        },
+      })
     } else {
       skipped.push({
         proposalId: proposal.id,
@@ -218,6 +249,19 @@ export async function generatePlannerCanonProposals(
       })
     }
   }
+  // Single summary event per generate-from-outline invocation. Useful for
+  // observability without scanning every per-proposal row.
+  await trace(novelId, {
+    eventType: "canon-proposal-generate-summary",
+    agent: "planner-canon-proposals",
+    payload: {
+      outlinesCount: outlines.length,
+      gateClear: true,
+      createdCount: created.length,
+      skippedCount: skipped.length,
+      schemaVersion,
+    },
+  })
   return { created, skipped, gateReport, gateClear: true }
 }
 

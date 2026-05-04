@@ -44,6 +44,10 @@ export type TraceEventType =
   | "integrity-settle-complete"
   | "debug-inject"
   | "llm-in-flight"
+  // Collaborative proposal workflow (charter §1, design: collaborative-proposal-workflow.md)
+  | "canon-proposal-create"
+  | "canon-proposal-resolve"
+  | "canon-proposal-generate-summary"
   | "error"
 
 export interface TraceEvent {

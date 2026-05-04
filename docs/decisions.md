@@ -80,6 +80,36 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Collaborative proposal workflow Phase 2A telemetry cleared — proposal lifecycle events (2026-05-03)
+
+**Decision:** Wire `trace()` events for the proposal lifecycle so the proposal-flow architecture is observable in `pipeline_events` (and the existing SSE stream). Three new event types — `canon-proposal-create` (per inserted proposal), `canon-proposal-resolve` (per approve/reject/modified, fired after the transaction commits), and `canon-proposal-generate-summary` (single per `generatePlannerCanonProposals` invocation, both gate-clear and gate-fail-closed paths). Agent label distinguishes the two creation paths: `planner-canon-proposals` for planner-origin, `canon-substrate` for substrate-direct (`proposeCanonUpdate`). The summary event is what makes idempotent reruns observable (`createdCount=0`).
+
+**Why:** Phase 2A landed the API surface but proposal lifecycle was invisible in the pipeline-events stream. Operators reviewing a novel run had no audit trail for *when* a planner-canon-generate ran, *what* it produced, *which* proposals were resolved how, or *why* a generate refused. The Phase 2 design doc explicitly named this as a Phase 2 work item; deferring it from Phase 2A scope was a pure scope-management call (so the API could ship testably) rather than a design call. Closing it now is a small, well-scoped patch with no design-space exploration required.
+
+**Evidence:**
+
+- `bun test src/harness/canon-proposal-telemetry.test.ts` — 7/7 pass / 294 expect() calls. Coverage:
+  - 30-source-item generate fires 30 `canon-proposal-create` + 1 `canon-proposal-generate-summary`.
+  - Idempotent rerun: 0 new creates + 1 summary with `createdCount=0, skippedCount=N`.
+  - Gate fail-closed: 0 creates + 1 summary with `gateClear=false`, recommendation, and duplicate counts.
+  - Approve / reject / modified each fire one `canon-proposal-resolve` with the right `proposalId / status / factId / chapter` (`factId=null` on reject; committed-fact id on approve/modified).
+  - Substrate-direct `proposeCanonUpdate` fires `canon-proposal-create` with `agent="canon-substrate"` (vs `agent="planner-canon-proposals"` for the harness path).
+- Full sweep `bun test src/canon/ src/harness/ src/orchestrator/canon-proposal-routes.test.ts` — 272/272 pass / 1,448 expects.
+- `bunx tsc --noEmit` — clean.
+- `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927, recallGateClear=YES`.
+
+**Counterfactuals considered but rejected:**
+
+- *Emit a `canon-proposal-create` event for skipped (already-exists) inserts too.* Rejected. A skipped insert is a no-op for the canon graph; emitting an event would conflate "newly proposed" with "rerun saw it again" and bloat the per-event stream. The summary event already carries `skippedCount` for the rerun-observability story.
+- *Fire `canon-proposal-resolve` BEFORE the transaction commits.* Rejected. If the resolve transaction throws, an event would describe state that never landed. Firing after commit means the event reflects durable canon, which is the contract operators need.
+- *Batch the per-create events into one multi-row INSERT.* Deferred. 30 proposals = 30 INSERTs takes <50ms in practice; not load-bearing for the autonomous loop. Worth revisiting if larger-novel runs (100+ source items per outline) push generate latency into UI-visible territory.
+
+**Charter §1 status:** unchanged (cleared). This lane is observability over an already-cleared substrate; no canon-read-write semantics changed.
+
+**Lane:** `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2a-telemetry.md`. **Parent:** `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2a.md`.
+
+---
+
 ### §Collaborative proposal workflow Phase 2A cleared — Canon Proposal Review API ships (2026-05-03)
 
 **Decision:** Phase 2A of `docs/designs/collaborative-proposal-workflow.md` ships — the API surface only. New `src/orchestrator/canon-proposal-routes.ts` exposes three endpoints over the existing `PostgresCanonSubstrate`: list pending proposals (filterable by source / chapter / plannerOnly), resolve a proposal with approve/reject/modified semantics and an optional `expectedStatus` stale-precondition, and trigger Phase-1 generation from authored outlines. Phase 2B (minimal Studio review UI) remains open.

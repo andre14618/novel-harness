@@ -35,6 +35,7 @@
 
 import db from "../db/connection"
 import * as canonDb from "../db/canon-substrate"
+import { trace } from "../trace"
 import type { CanonSource } from "../canon/bundle"
 import type {
   ApprovalStatus,
@@ -180,6 +181,18 @@ export class PostgresCanonSubstrate implements CanonSubstrate {
       operatorNote: proposal.operatorNote ?? null,
       createdAt,
     })
+    await trace(novelId, {
+      eventType: "canon-proposal-create",
+      chapter: proposal.proposedFact.provenance.chapter,
+      agent: "canon-substrate",
+      payload: {
+        proposalId: id,
+        source: proposal.source,
+        factKind: proposal.proposedFact.kind,
+        factId: proposal.proposedFact.id,
+        targetFactId: proposal.targetFactId ?? null,
+      },
+    })
     return {
       ...proposal,
       id,
@@ -255,6 +268,22 @@ export class PostgresCanonSubstrate implements CanonSubstrate {
     // cache. If the transaction throws, the cache stays at its prior value.
     this.invalidateSnapshot(novelId)
     this.generationCache.set(novelId, await canonDb.readGeneration(novelId))
+
+    // Telemetry — fired AFTER the transaction commits so the event reflects
+    // durable state. Captures the resolution outcome for observability.
+    await trace(novelId, {
+      eventType: "canon-proposal-resolve",
+      chapter: committedFact?.provenance.chapter ?? proposal.proposedFact.provenance.chapter,
+      agent: "canon-substrate",
+      payload: {
+        proposalId,
+        status,
+        factId: committedFact?.id ?? null,
+        targetFactId: proposal.targetFactId ?? null,
+        operatorNote: opts?.operatorNote ?? null,
+      },
+    })
+
     return committedFact ? { committedFact } : {}
   }
 
