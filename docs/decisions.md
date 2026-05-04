@@ -10,6 +10,42 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 3 commit 4 follow-up D — audit-history view (2026-05-04)
+
+**Decision:** Add a collapsible "Show audit history" toggle below the active envelope batch in `AdjustPanel`. Opening fetches `GET /proposal-envelopes?status=all` and renders non-pending rows with status badge + patch summary + resolved-at timestamp + parentEnvelopeId reference. Read-only. Closes the last of 4 commit-4 follow-ups (A/B/C/D).
+
+**Why collapsible (not always visible):** The audit history is a power-user surface — most operators making a single /adjust pass don't need to see prior resolutions. Always-visible would push the input box below the fold for any novel with substantial history. Collapsible keeps the active workflow tight while preserving discoverability.
+
+**Why filter out pending in the history view:** Pending rows are already rendered in the active batch above. Showing them in both places creates two interactive surfaces for the same row (and only the active one has the resolve buttons), which is confusing. Audit-history is "what's already been decided"; active batch is "what's being decided now."
+
+**Why parentEnvelopeId as a 16-char text reference (not a link/scroll-to/modal):** Lineage rendering as a tree is its own UX problem (cycle-detection if any, depth limits, sibling expansion, etc.). At MVP the operator gets enough provenance to recognize "this is a regen of <prefix>" — when chains start to matter for real, we'll know exactly what to render based on observed usage patterns.
+
+**Why re-fetch on novelId change when open:** A novel-switcher case. If the operator switches novels with the panel open, the history must reflect the new novel — otherwise it becomes stale and confusing. Conditional fetch (only when `showHistory` is true) avoids paying the round-trip when the panel is closed.
+
+**Concrete shape:**
+- New state: `showHistory: boolean` + `historyEnvelopes: ArtifactPatchEnvelope[]` + `historyLoading: boolean` + `historyError: string | null`.
+- New helper: `fetchHistory()` — calls `listProposalEnvelopes(novelId, { status: "all", limit: 200 })`. Same client used by follow-up C, different status filter.
+- New components/helpers (private to file): `HistoryRow` (renders one resolved envelope), `historyStatusBadgeStyle(status)` (color-codes the badge by semantic).
+- Render block sits between the active envelope cards and the legacy apply-all fallback. Toggle button → expanded panel → list of rows reverse-chronological (server's ORDER BY created_at DESC — same query, no client sort).
+
+**Evidence:**
+- `bunx tsc --noEmit` (server + UI) — clean.
+- `bun x vite build` (UI) — clean. Bundle 524.12 kB / 156.52 kB gzip; +3.02 kB raw / +0.74 kB gzip vs prior. The new HistoryRow component + state machine accounts for the size delta.
+- Diff scope: 1 file (+173). UI-only; no server changes (the GET route was already in place from commit 4).
+- Browser-untested per CLAUDE.md UI rule (flag-and-disclose). The render logic is mostly static-output; the fetch wiring is the same shape as follow-up C.
+
+**Counterfactuals considered but rejected:**
+
+- *Auto-load history alongside pending on session open (no toggle).* Rejected. History can be long; for power users the panel would dominate the layout. Toggle keeps the active workflow tight while making the surface discoverable.
+- *Server-side filter at the query layer (`?status=resolved` shorthand for `approved,rejected,modified`).* Rejected. The existing `?status=all` returns everything; client-side `e.status !== "pending"` filter is cheap and avoids a server-side enum gymnastics. If the history grows beyond a few hundred rows, paginate at the server.
+- *Render parentEnvelopeId chain as a tree.* Rejected for MVP (see "Why parentEnvelopeId as a 16-char text reference"). Tree-rendering is its own design surface; the prefix reference is enough for the operator to recognize a regen relationship until usage tells us how chains actually look.
+- *Show pending rows in history alongside resolved.* Rejected — see "Why filter out pending in the history view." Two interactive surfaces for the same row would be confusing.
+- *Allow re-resolving from the history (e.g., undo button on rejected rows).* Strictly rejected. Audit-trail integrity assumes resolutions are terminal — undoing approves/rejects would defeat the purpose. If the operator wants to override a prior decision, they re-/adjust to generate a fresh envelope.
+
+**Ongoing:** All 4 commit-4 follow-ups (A/B/C/D) closed. Phase 3 remaining: commit 5b (LLM-firing quick actions — `Ask for alternatives` + `Explain patch`) is the only open item, parked behind transport-stub infrastructure (the LLM call from a button needs a way to be unit-tested without burning real-model calls; current ad-hoc transport doesn't have a stub mode). Browser hand-test required across follow-ups A/B/C/D + commits 2.5/3/5a once the UI surface is exercised end-to-end — at that point a single hand-test pass clears all browser-untested marks.
+
+---
+
 ### §Phase 3 commit 4 follow-up C — UI consumer of persisted envelopes (2026-05-04)
 
 **Decision:** On `AdjustPanel` mount (and on `novelId` change), fetch `GET /api/novel/:id/proposal-envelopes?status=pending` and seed the panel's `envelopes` + `envelopeStates`. Closes the cross-session-resumability gap: prior-session pending proposals are now visible immediately instead of being invisible until the operator types a new /adjust turn (which would have discarded them anyway).
