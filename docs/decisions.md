@@ -10,6 +10,36 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon proposal modify-with-edits UI surface (2026-05-04)
+
+**Decision:** Pending rows in `ui/src/components/CanonProposalsPage.tsx` gain a `Modify…` button alongside `Approve` / `Reject`. Clicking expands the row's Proposed-fact column into an inline form: original text as a ghost-italic quote above an editable textarea, plus a confidence input (number 0-1, optional override) and a free-form operator note input. Save submits `resolveCanonProposal({ status: "modified", modifiedFact, operatorNote, expectedStatus: "pending" })`. The `id`, `kind`, and `provenance.source` are deliberately preserved so the audit trail can reconstruct the original-vs-modified delta. Cancel collapses the form without a write. Only one row can be in modify mode at a time (state lifted to the page).
+
+**Why:** The Phase 2B v1 page intentionally omitted modify-with-edits and forced operators wanting to edit a proposal to hit the API directly. With Phase 1.5 auto-firing planner-canon proposals, operators routinely encounter mechanically-valid but slightly-wrong text where modify-then-commit is the right verb (typo, clarification, calibration adjustment) — not approve as-is and not reject. Forcing them out of the panel kills the workflow.
+
+**Why now:** Highest-priority, non-blocked, non-optional `§Next` lane-queue item per the autonomous-loop default rule. Browser-untested UI work counts as in-bounds (flag-and-disclose), not skipped. Completes the Phase 2B feature surface (single + bulk + audit-history + modify) before substantial Phase 3-6 lanes start.
+
+**Evidence:**
+
+- `bunx tsc --noEmit` — clean.
+- `bunx vite build` — clean. 513.67 kB / 153.70 kB gzip (status-tab baseline 509.87 kB / 152.84 kB; +3.80 kB / +0.86 kB gzip — accounted for by the form fields, validation, and lifted state).
+- Server modified-path regression `bun test ... -t modified` — 2/2 pass. The UI hits the existing modified path; server code unchanged.
+- `git diff --check` — clean.
+- Diff scope: 1 file (`ui/src/components/CanonProposalsPage.tsx`), +238 / -16.
+
+**Counterfactuals considered but rejected:**
+
+- *Modal dialog instead of inline form.* Rejected — modal hides the original fact + provenance + sibling rows. Inline expansion keeps the audit context visible while editing.
+- *Allow editing `id`, `kind`, or `provenance.source`.* Rejected — those are the audit-trail fingerprints; changing them would create a new identity, not a modification of an existing one. Operators who need a different identity should reject + manually create.
+- *Auto-suggest a diff highlighting word-level changes.* Deferred — would need a diff library (probably `diff-match-patch`) and significant UI work. The ghost-italic original is sufficient for v1; word-level diff is a refinement.
+- *Save without an explicit operatorNote.* Adopted — the note is optional. The system records `modified` status + the new text, which is itself the diff record; a note is good practice but not required.
+- *Always send `confidence` even if blank.* Rejected — blank intentionally means "preserve the original confidence", which preserves the planner's calibration when the operator is only fixing text.
+
+**Charter §1 status:** unchanged.
+
+**Lane:** completes the Phase 2B v1 panel feature surface. Browser hand-test required for full clearance per the CLAUDE.md UI rule; the lane-queue entry tracks that.
+
+---
+
 ### §Canon proposal audit-history status tab UI (2026-05-04)
 
 **Decision:** Add a status tab strip (`pending | approved | rejected | modified | all`) above the existing filter row in `ui/src/components/CanonProposalsPage.tsx`. Click applies immediately (no Apply button needed for the tab itself) and re-fetches via the existing `?status=` query param (server endpoint shipped at commit `e83d1f5`). Non-pending tabs hide the bulk-action row and the per-row Approve/Reject buttons (read-only audit view); rows show a colored status badge, ISO-formatted resolvedAt, and operatorNote in the Decision column. The Clear button now preserves the active status tab so an operator inspecting "approved" history doesn't lose their tab when clearing source/chapter/plannerOnly filters. The `listCanonProposals` UI client gains an optional `status: ProposalStatus | ProposalStatus[] | "all"` arg; `"pending"` (default) intentionally omits the param to keep URLs clean for back-compat.

@@ -8,7 +8,14 @@ import {
   type CanonProposal,
   type BulkResolutionRequest,
   type ProposalStatus,
+  type ProposedFact,
 } from "../api"
+
+type ModifyDraft = {
+  text: string
+  confidence: string
+  note: string
+}
 
 const BULK_SOFT_CAP = 200
 
@@ -53,11 +60,23 @@ function formatProvenance(p: CanonProposal["proposedFact"]["provenance"]): strin
 function ProposalRow({
   proposal,
   busy,
+  modifying,
+  modifyDraft,
   onResolve,
+  onStartModify,
+  onChangeModify,
+  onSaveModify,
+  onCancelModify,
 }: {
   proposal: CanonProposal
   busy: boolean
+  modifying: boolean
+  modifyDraft: ModifyDraft
   onResolve: (status: "approved" | "rejected") => void
+  onStartModify: () => void
+  onChangeModify: (patch: Partial<ModifyDraft>) => void
+  onSaveModify: () => void
+  onCancelModify: () => void
 }) {
   const fact = proposal.proposedFact
   const isPending = proposal.status === "pending"
@@ -75,19 +94,133 @@ function ProposalRow({
         </span>
       </td>
       <td style={{ maxWidth: 460 }}>
-        <div style={{ color: "#dce" }}>{fact.text}</div>
-        <div style={{ color: "#888", fontSize: "0.78rem", marginTop: 2 }}>
-          {formatProvenance(fact.provenance)}
-        </div>
-        {proposal.operatorNote && (
-          <div style={{ color: "#9ac", fontSize: "0.74rem", marginTop: 4, fontStyle: "italic" }}>
-            note: {proposal.operatorNote}
+        {modifying ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div
+              style={{
+                color: "#666",
+                fontSize: "0.74rem",
+                padding: "4px 6px",
+                borderLeft: "2px solid #3d4356",
+                background: "#11141c",
+                fontStyle: "italic",
+              }}
+              title="Original proposed text — preserved on the modified row's audit trail."
+            >
+              original: {fact.text}
+            </div>
+            <textarea
+              value={modifyDraft.text}
+              onChange={e => onChangeModify({ text: e.target.value })}
+              rows={Math.max(2, Math.min(6, modifyDraft.text.split("\n").length))}
+              style={{
+                background: "#10131c",
+                color: "#dce",
+                border: "1px solid #4a5468",
+                borderRadius: 3,
+                padding: "6px 8px",
+                fontSize: "0.84rem",
+                fontFamily: "inherit",
+                resize: "vertical",
+              }}
+            />
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <label style={{ fontSize: "0.78rem", color: "#aaa" }}>
+                confidence{" "}
+                <input
+                  type="number"
+                  step="0.05"
+                  min="0"
+                  max="1"
+                  value={modifyDraft.confidence}
+                  onChange={e => onChangeModify({ confidence: e.target.value })}
+                  style={{
+                    width: 70,
+                    background: "#10131c",
+                    color: "#dce",
+                    border: "1px solid #2a2e3c",
+                    padding: "2px 6px",
+                    borderRadius: 3,
+                    marginLeft: 4,
+                  }}
+                  placeholder="(unchanged)"
+                />
+              </label>
+              <label style={{ fontSize: "0.78rem", color: "#aaa", flex: 1, minWidth: 200 }}>
+                note{" "}
+                <input
+                  type="text"
+                  value={modifyDraft.note}
+                  onChange={e => onChangeModify({ note: e.target.value })}
+                  style={{
+                    width: "calc(100% - 50px)",
+                    background: "#10131c",
+                    color: "#dce",
+                    border: "1px solid #2a2e3c",
+                    padding: "2px 6px",
+                    borderRadius: 3,
+                    marginLeft: 4,
+                  }}
+                  placeholder="why are you modifying this?"
+                />
+              </label>
+            </div>
+            <div style={{ color: "#888", fontSize: "0.74rem" }}>
+              {formatProvenance(fact.provenance)} · id, kind, source remain
+              fixed (audit-trail).
+            </div>
           </div>
+        ) : (
+          <>
+            <div style={{ color: "#dce" }}>{fact.text}</div>
+            <div style={{ color: "#888", fontSize: "0.78rem", marginTop: 2 }}>
+              {formatProvenance(fact.provenance)}
+            </div>
+            {proposal.operatorNote && (
+              <div style={{ color: "#9ac", fontSize: "0.74rem", marginTop: 4, fontStyle: "italic" }}>
+                note: {proposal.operatorNote}
+              </div>
+            )}
+          </>
         )}
       </td>
-      <td style={{ whiteSpace: "nowrap" }}>
-        {isPending ? (
-          <>
+      <td style={{ whiteSpace: "nowrap", verticalAlign: "top" }}>
+        {modifying ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <button
+              disabled={busy || modifyDraft.text.trim().length === 0}
+              onClick={onSaveModify}
+              style={{
+                background: "#3a2c4a",
+                border: "1px solid #b6f",
+                color: "#dcf",
+                padding: "4px 10px",
+                borderRadius: 4,
+                fontSize: "0.78rem",
+                cursor: busy ? "wait" : "pointer",
+              }}
+              title="Submit as a modified resolution; commits the edited fact to canon."
+            >
+              Save modified
+            </button>
+            <button
+              disabled={busy}
+              onClick={onCancelModify}
+              style={{
+                background: "transparent",
+                border: "1px solid #2a2e3c",
+                color: "#888",
+                padding: "4px 10px",
+                borderRadius: 4,
+                fontSize: "0.78rem",
+                cursor: busy ? "wait" : "pointer",
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : isPending ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "stretch" }}>
             <button
               disabled={busy}
               onClick={() => onResolve("approved")}
@@ -99,7 +232,6 @@ function ProposalRow({
                 borderRadius: 4,
                 fontSize: "0.78rem",
                 cursor: busy ? "wait" : "pointer",
-                marginRight: 6,
               }}
             >
               Approve
@@ -119,7 +251,23 @@ function ProposalRow({
             >
               Reject
             </button>
-          </>
+            <button
+              disabled={busy}
+              onClick={onStartModify}
+              style={{
+                background: "#2c2e4a",
+                border: "1px solid #66e",
+                color: "#cdf",
+                padding: "4px 10px",
+                borderRadius: 4,
+                fontSize: "0.78rem",
+                cursor: busy ? "wait" : "pointer",
+              }}
+              title="Edit text/confidence/note before committing as a modified resolution."
+            >
+              Modify…
+            </button>
+          </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <span
@@ -158,6 +306,8 @@ export function CanonProposalsPage() {
   const [generating, setGenerating] = useState(false)
   const [bulkBusy, setBulkBusy] = useState(false)
   const [bulkSummary, setBulkSummary] = useState<string | null>(null)
+  const [modifyingId, setModifyingId] = useState<string | null>(null)
+  const [modifyDraft, setModifyDraft] = useState<ModifyDraft>({ text: "", confidence: "", note: "" })
 
   const load = useCallback(() => {
     setError(null)
@@ -193,6 +343,70 @@ export function CanonProposalsPage() {
     } catch (e) {
       setError(String(e))
       // Reload so the operator sees authoritative state if the resolve raced.
+      load()
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const onStartModify = (proposal: CanonProposal) => {
+    setModifyingId(proposal.id)
+    setModifyDraft({
+      text: proposal.proposedFact.text,
+      confidence: proposal.proposedFact.provenance.confidence?.toString() ?? "",
+      note: "",
+    })
+    setError(null)
+  }
+
+  const onCancelModify = () => {
+    setModifyingId(null)
+    setModifyDraft({ text: "", confidence: "", note: "" })
+  }
+
+  const onChangeModify = (patch: Partial<ModifyDraft>) => {
+    setModifyDraft(prev => ({ ...prev, ...patch }))
+  }
+
+  const onSaveModify = async (proposal: CanonProposal) => {
+    const text = modifyDraft.text.trim()
+    if (text.length === 0) {
+      setError("Modified text must not be empty.")
+      return
+    }
+    let confidence: number | undefined
+    if (modifyDraft.confidence.trim().length > 0) {
+      const parsed = Number(modifyDraft.confidence)
+      if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+        setError("Confidence must be between 0 and 1.")
+        return
+      }
+      confidence = parsed
+    } else if (proposal.proposedFact.provenance.confidence !== undefined) {
+      confidence = proposal.proposedFact.provenance.confidence
+    }
+    const modifiedFact: ProposedFact = {
+      ...proposal.proposedFact,
+      text,
+      provenance: {
+        ...proposal.proposedFact.provenance,
+        ...(confidence !== undefined ? { confidence } : {}),
+      },
+    }
+    setBusyId(proposal.id)
+    setError(null)
+    try {
+      await resolveCanonProposal(novelId, proposal.id, {
+        status: "modified",
+        modifiedFact,
+        operatorNote: modifyDraft.note.trim() || undefined,
+        expectedStatus: "pending",
+      })
+      setProposals(prev => (prev ?? []).filter(p => p.id !== proposal.id))
+      setModifyingId(null)
+      setModifyDraft({ text: "", confidence: "", note: "" })
+    } catch (e) {
+      setError(String(e))
       load()
     } finally {
       setBusyId(null)
@@ -272,8 +486,9 @@ export function CanonProposalsPage() {
           Proposals for novel <code style={{ color: "#9ac" }}>{novelId}</code>.
           Approving commits the fact to canon (no-ghost-canon: pending rows
           are invisible to canon reads). Rejecting marks it not-canon.
-          Modify-with-edits is not surfaced in this v1 panel — use the API
-          directly for that path. Switch tabs to inspect resolved history.
+          Modify edits the proposed text/confidence/note before commit; the
+          original text is preserved on the audit trail. Switch tabs to
+          inspect resolved history.
         </p>
         <p style={{ color: "#666", margin: "4px 0 0", fontSize: "0.78rem" }}>
           <Link to={`/${encodeURIComponent(novelId)}`} style={{ color: "#9ac" }}>
@@ -538,7 +753,13 @@ export function CanonProposalsPage() {
                 key={p.id}
                 proposal={p}
                 busy={busyId === p.id}
+                modifying={modifyingId === p.id}
+                modifyDraft={modifyDraft}
                 onResolve={status => onResolve(p.id, status)}
+                onStartModify={() => onStartModify(p)}
+                onChangeModify={onChangeModify}
+                onSaveModify={() => onSaveModify(p)}
+                onCancelModify={onCancelModify}
               />
             ))}
           </tbody>
@@ -550,8 +771,9 @@ export function CanonProposalsPage() {
         commit <code>9cf6238</code>), telemetry (Phase 2A.5,{" "}
         <code>1bec94e</code>), bulk-resolve endpoint (commit{" "}
         <code>032d8c0</code>), and status filter (commit <code>e83d1f5</code>)
-        ship with handler tests; this page (single + bulk affordances +
-        audit-history tabs) is awaiting hand-test verification.
+        ship with handler tests; this page (single + bulk + modify
+        affordances + audit-history tabs) is awaiting hand-test
+        verification.
       </p>
     </div>
   )
