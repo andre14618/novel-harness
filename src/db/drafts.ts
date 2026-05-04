@@ -1,9 +1,53 @@
 import db from "./connection"
 
-export async function saveChapterDraft(novelId: string, chapterNum: number, prose: string, wordCount: number): Promise<void> {
-  const rows = await db`SELECT MAX(version) as v FROM chapter_drafts WHERE novel_id = ${novelId} AND chapter_number = ${chapterNum}`
+type Executor = typeof db
+
+export async function saveChapterDraft(
+  novelId: string,
+  chapterNum: number,
+  prose: string,
+  wordCount: number,
+  executor: Executor = db,
+): Promise<number> {
+  const rows = await executor`SELECT MAX(version) as v FROM chapter_drafts WHERE novel_id = ${novelId} AND chapter_number = ${chapterNum}`
   const version = (rows[0]?.v ?? 0) + 1
-  await db`INSERT INTO chapter_drafts (novel_id, chapter_number, prose, word_count, version) VALUES (${novelId}, ${chapterNum}, ${prose}, ${wordCount}, ${version})`
+  await executor`INSERT INTO chapter_drafts (novel_id, chapter_number, prose, word_count, version) VALUES (${novelId}, ${chapterNum}, ${prose}, ${wordCount}, ${version})`
+  return version
+}
+
+/**
+ * Phase 5 commit 4 — read the latest draft (any status) for a chapter,
+ * optionally locking the row for the duration of the caller's tx.
+ *
+ * The prose-edit resolve route (`src/orchestrator/prose-edit-routes.ts`)
+ * uses this with `forUpdate=true` inside `db.begin(tx => …)` so a
+ * concurrent edit cannot land between the precondition check and the
+ * apply. Reading without the lock returns the same row but does not
+ * serialize contenders.
+ */
+export async function getLatestChapterDraft(
+  novelId: string,
+  chapterNum: number,
+  opts: { executor?: Executor; forUpdate?: boolean } = {},
+): Promise<{ prose: string; wordCount: number; version: number; status: string } | null> {
+  const exec = opts.executor ?? db
+  const rows = opts.forUpdate
+    ? await exec`SELECT prose, word_count, version, status FROM chapter_drafts
+                 WHERE novel_id = ${novelId} AND chapter_number = ${chapterNum}
+                 ORDER BY version DESC
+                 LIMIT 1
+                 FOR UPDATE`
+    : await exec`SELECT prose, word_count, version, status FROM chapter_drafts
+                 WHERE novel_id = ${novelId} AND chapter_number = ${chapterNum}
+                 ORDER BY version DESC
+                 LIMIT 1`
+  if (!rows.length) return null
+  return {
+    prose: rows[0].prose,
+    wordCount: rows[0].word_count,
+    version: rows[0].version,
+    status: rows[0].status,
+  }
 }
 
 export async function approveChapterDraft(novelId: string, chapterNum: number): Promise<void> {

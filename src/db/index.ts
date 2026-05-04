@@ -8,7 +8,7 @@ export { saveChapterOutline, getChapterOutline, getChapterOutlines, isPlanCheckO
 export { logRevision, listRevisionsForNovel, hashIssueSig, canonicalizeDeviations, type RevisionOutcome, type LogRevisionInput, type RevisionRow } from "./chapter-revisions"
 export { logExhaustionFired, logExhaustionResolved, listExhaustionsForNovel, listOrphanedExhaustions, markExhaustionOrphaned, type ExhaustionKind, type ExhaustionDecision, type ExhaustionRow } from "./chapter-exhaustions"
 export {
-  saveChapterDraft, approveChapterDraft, getApprovedDraft, unapproveChapterDraft, deleteChapterDrafts,
+  saveChapterDraft, approveChapterDraft, getApprovedDraft, getLatestChapterDraft, unapproveChapterDraft, deleteChapterDrafts,
 } from "./drafts"
 export { saveChapterSummary, getRecentSummaries } from "./summaries"
 export { saveFact, getFactsUpToChapter, getFactsForChapter, clearFactsForChapter } from "./facts"

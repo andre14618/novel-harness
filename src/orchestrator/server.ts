@@ -18,6 +18,7 @@ import { handlePrefEvalRoute } from "./pref-eval-routes"
 import { handleCanonProposalRoute } from "./canon-proposal-routes"
 import { handleProposalEnvelopeRoute } from "./proposal-envelope-routes"
 import { handlePlanningSnapshotRoute } from "./planning-snapshot-routes"
+import { handleProseEditRoute } from "./prose-edit-routes"
 import { overviewPageHtml } from "./overview-page"
 
 await migrate()
@@ -949,6 +950,10 @@ const server = Bun.serve({
     // ── Planning Snapshot API (Phase 4 commit 3 — collaborative proposal workflow) ──
     const planningSnapshotResponse = await handlePlanningSnapshotRoute(req, url)
     if (planningSnapshotResponse) return planningSnapshotResponse
+
+    // ── Prose-edit envelope apply (Phase 5 commit 4 — collaborative proposal workflow) ──
+    const proseEditResponse = await handleProseEditRoute(req, url)
+    if (proseEditResponse) return proseEditResponse
 
     // ── Preference evaluation API ──────────────────────────────────
     const prefEvalResponse = await handlePrefEvalRoute(req, url)
