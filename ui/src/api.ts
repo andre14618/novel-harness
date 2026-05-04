@@ -291,6 +291,24 @@ export function adjustNovel(
   )
 }
 
+/**
+ * Phase 3 commit 4 follow-up C — list persisted envelopes for a novel.
+ * Defaults to `pending` so the AdjustPanel can seed its initial state on
+ * session open. `status: "all"` is the audit-history view (every status).
+ */
+export function listProposalEnvelopes(
+  novelId: string,
+  opts: { status?: ProposalEnvelopeStatus | "all"; limit?: number } = {},
+) {
+  const params = new URLSearchParams()
+  if (opts.status !== undefined) params.set("status", opts.status)
+  if (opts.limit !== undefined) params.set("limit", String(opts.limit))
+  const qs = params.toString()
+  return fetchJSON<{ ok: boolean; envelopes: ArtifactPatchEnvelope[] }>(
+    `/api/novel/${novelId}/proposal-envelopes${qs ? `?${qs}` : ""}`,
+  )
+}
+
 export interface ResolveProposalEnvelopeResponse {
   ok: boolean
   envelopeId: string

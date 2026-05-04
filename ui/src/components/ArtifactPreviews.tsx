@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
-  adjustNovel, getBeats, getCharacters, getChapterDraft, getOutlines, getStorySpine, getWorldBible,
+  adjustNovel, getBeats, getCharacters, getChapterDraft, getOutlines, getStorySpine, getWorldBible, listProposalEnvelopes,
   redraftChapter, resolveProposalEnvelope, updateCharacter, updateStorySpine, updateWorldBible,
   type AdjustTurn, type AdjusterPatch, type ArtifactPatchEnvelope, type BeatData,
 } from "../api"
@@ -304,6 +304,40 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight })
   }, [turns])
+
+  // Phase 3 commit 4 follow-up C — seed pending envelopes on session open.
+  // Without this, prior-session pending proposals are invisible until the
+  // operator types a new /adjust message (which would also discard them).
+  // The fetch is best-effort: a 404 / 500 / network error logs and leaves
+  // the panel empty; the operator can still drive a fresh /adjust turn.
+  // Refetches when novelId changes (e.g., novel-switcher) so the panel
+  // tracks the active novel.
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const res = await listProposalEnvelopes(novelId, { status: "pending" })
+        if (cancelled) return
+        const envs = res.envelopes ?? []
+        if (envs.length === 0) return
+        // Don't clobber an in-flight conversation — only seed when the
+        // panel is in its initial empty state. After the first /adjust
+        // turn the conversation owns envelope state.
+        setEnvelopes(prev => (prev.length > 0 ? prev : envs))
+        setEnvelopeStates(prev => {
+          if (Object.keys(prev).length > 0) return prev
+          const initial: Record<string, EnvelopeRowState> = {}
+          for (const e of envs) initial[e.id] = { kind: "pending" }
+          return initial
+        })
+      } catch (err) {
+        console.warn("[AdjustPanel] failed to load persisted envelopes:", err)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [novelId])
 
   const sendMessage = async (
     msg: string,
