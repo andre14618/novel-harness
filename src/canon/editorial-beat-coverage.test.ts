@@ -19,6 +19,7 @@ import {
   buildBeatCoverageProposalsFromLlm,
   buildBeatCoverageEnvelopes,
   runEditorialBeatCoverageCheck,
+  validateBeatCoverageLlmOutput,
   type BeatCoverageLlmOutput,
 } from "./editorial-beat-coverage"
 import { chapterOutlineSchema } from "../agents/planning-plotter/schema"
@@ -81,6 +82,25 @@ describe("LLM output schema", () => {
     const out = { beatVerdicts: "nope" }
     expect(() => beatCoverageLlmOutputSchema.parse(out)).toThrow()
   })
+
+  test("(MEDIUM H1) rejects covered=true without evidenceQuote", () => {
+    const out = {
+      beatVerdicts: [{ beatIndex: 0, covered: true, reason: "ok" }],
+    }
+    expect(() => beatCoverageLlmOutputSchema.parse(out)).toThrow(/evidenceQuote/i)
+  })
+
+  test("(MEDIUM H1) rejects covered=true with empty evidenceQuote", () => {
+    const out = {
+      beatVerdicts: [{ beatIndex: 0, covered: true, evidenceQuote: "", reason: "ok" }],
+    }
+    expect(() => beatCoverageLlmOutputSchema.parse(out)).toThrow(/evidenceQuote/i)
+  })
+
+  test("(MEDIUM H1) accepts covered=false without evidenceQuote", () => {
+    const out = { beatVerdicts: [{ beatIndex: 0, covered: false, reason: "missing" }] }
+    expect(() => beatCoverageLlmOutputSchema.parse(out)).not.toThrow()
+  })
 })
 
 describe("buildBeatCoveragePrompt", () => {
@@ -102,6 +122,58 @@ describe("buildBeatCoveragePrompt", () => {
     expect(EDITORIAL_BEAT_COVERAGE_SYSTEM_PROMPT).toContain("beatIndex")
     expect(EDITORIAL_BEAT_COVERAGE_SYSTEM_PROMPT).toContain("evidenceQuote")
     expect(EDITORIAL_BEAT_COVERAGE_SYSTEM_PROMPT).toContain("Be conservative")
+  })
+})
+
+describe("validateBeatCoverageLlmOutput (MEDIUM H1)", () => {
+  test("returns null when verdicts cover every beat exactly once", () => {
+    const out: BeatCoverageLlmOutput = {
+      beatVerdicts: [
+        { beatIndex: 0, covered: false, reason: "x" },
+        { beatIndex: 1, covered: false, reason: "y" },
+        { beatIndex: 2, covered: false, reason: "z" },
+      ],
+    }
+    expect(validateBeatCoverageLlmOutput(out, fixtureOutline())).toBeNull()
+  })
+
+  test("flags out-of-range beatIndex", () => {
+    const out: BeatCoverageLlmOutput = {
+      beatVerdicts: [
+        { beatIndex: 0, covered: false, reason: "x" },
+        { beatIndex: 1, covered: false, reason: "y" },
+        { beatIndex: 99, covered: false, reason: "out" },
+      ],
+    }
+    const err = validateBeatCoverageLlmOutput(out, fixtureOutline())
+    expect(err).toContain("99")
+    expect(err).toContain("out of range")
+  })
+
+  test("flags duplicate beatIndex", () => {
+    const out: BeatCoverageLlmOutput = {
+      beatVerdicts: [
+        { beatIndex: 0, covered: false, reason: "x" },
+        { beatIndex: 0, covered: false, reason: "dup" },
+        { beatIndex: 1, covered: false, reason: "y" },
+        { beatIndex: 2, covered: false, reason: "z" },
+      ],
+    }
+    const err = validateBeatCoverageLlmOutput(out, fixtureOutline())
+    expect(err).toContain("duplicate")
+    expect(err).toContain("0")
+  })
+
+  test("flags missing beatIndex (model skipped a beat)", () => {
+    const out: BeatCoverageLlmOutput = {
+      beatVerdicts: [
+        { beatIndex: 0, covered: false, reason: "x" },
+        { beatIndex: 2, covered: false, reason: "z" },
+      ],
+    }
+    const err = validateBeatCoverageLlmOutput(out, fixtureOutline())
+    expect(err).toContain("missing")
+    expect(err).toContain("1")
   })
 })
 
@@ -371,6 +443,56 @@ describe("runEditorialBeatCoverageCheck (orchestrator)", () => {
     ).rejects.toThrow()
   })
 
+  test("(MEDIUM H1) throws when LLM emits missing/duplicate/out-of-range beatIndex", async () => {
+    // Missing beatIndex — fixture has 3 beats, model only returns 2.
+    const callLLMMissing = async () =>
+      ({
+        beatVerdicts: [
+          { beatIndex: 0, covered: false, reason: "x" },
+          { beatIndex: 1, covered: false, reason: "y" },
+        ],
+      })
+    await expect(
+      runEditorialBeatCoverageCheck({
+        novelId, chapterRef, prose: "...", outline: fixtureOutline(),
+        draftHash, now: fixedNow, callLLM: callLLMMissing,
+      }),
+    ).rejects.toThrow(/validation failed.*missing/)
+
+    // Duplicate beatIndex.
+    const callLLMDup = async () =>
+      ({
+        beatVerdicts: [
+          { beatIndex: 0, covered: false, reason: "x" },
+          { beatIndex: 0, covered: false, reason: "dup" },
+          { beatIndex: 1, covered: false, reason: "y" },
+          { beatIndex: 2, covered: false, reason: "z" },
+        ],
+      })
+    await expect(
+      runEditorialBeatCoverageCheck({
+        novelId, chapterRef, prose: "...", outline: fixtureOutline(),
+        draftHash, now: fixedNow, callLLM: callLLMDup,
+      }),
+    ).rejects.toThrow(/validation failed.*duplicate/)
+
+    // Out-of-range beatIndex.
+    const callLLMOOR = async () =>
+      ({
+        beatVerdicts: [
+          { beatIndex: 0, covered: false, reason: "x" },
+          { beatIndex: 1, covered: false, reason: "y" },
+          { beatIndex: 99, covered: false, reason: "out" },
+        ],
+      })
+    await expect(
+      runEditorialBeatCoverageCheck({
+        novelId, chapterRef, prose: "...", outline: fixtureOutline(),
+        draftHash, now: fixedNow, callLLM: callLLMOOR,
+      }),
+    ).rejects.toThrow(/validation failed.*out of range/)
+  })
+
   test("propagates LLM-call failure (caller decides retry/escalate)", async () => {
     const callLLM = async () => {
       throw new Error("transport timeout")
@@ -389,8 +511,17 @@ describe("runEditorialBeatCoverageCheck (orchestrator)", () => {
   })
 
   test("rationale + agent overrides are wired into envelope source", async () => {
+    // OpenCode MEDIUM H1: post-validation requires one verdict per
+    // outline beat. The fixture has 3 beats, so the LLM mock returns
+    // verdicts for all three (only beat 0 uncovered → 1 envelope).
     const callLLM = async () =>
-      ({ beatVerdicts: [{ beatIndex: 0, covered: false, reason: "missing" }] })
+      ({
+        beatVerdicts: [
+          { beatIndex: 0, covered: false, reason: "missing" },
+          { beatIndex: 1, covered: true, evidenceQuote: "the door", reason: "ok" },
+          { beatIndex: 2, covered: true, evidenceQuote: "the key", reason: "ok" },
+        ],
+      })
     const result = await runEditorialBeatCoverageCheck({
       novelId,
       chapterRef,

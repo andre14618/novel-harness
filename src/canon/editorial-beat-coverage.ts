@@ -54,12 +54,20 @@ import {
  * data and the index is the single canonical reference shared by every
  * shape of outline.
  */
-export const beatCoverageVerdictSchema = z.object({
-  beatIndex: z.number().int().nonnegative(),
-  covered: z.boolean(),
-  evidenceQuote: z.string().optional(),
-  reason: z.string(),
-})
+export const beatCoverageVerdictSchema = z
+  .object({
+    beatIndex: z.number().int().nonnegative(),
+    covered: z.boolean(),
+    evidenceQuote: z.string().optional(),
+    reason: z.string(),
+  })
+  .refine(
+    v => !v.covered || (typeof v.evidenceQuote === "string" && v.evidenceQuote.length > 0),
+    {
+      message: "evidenceQuote is required (and non-empty) when covered=true",
+      path: ["evidenceQuote"],
+    },
+  )
 
 export type BeatCoverageVerdict = z.infer<typeof beatCoverageVerdictSchema>
 
@@ -68,6 +76,47 @@ export const beatCoverageLlmOutputSchema = z.object({
 })
 
 export type BeatCoverageLlmOutput = z.infer<typeof beatCoverageLlmOutputSchema>
+
+/**
+ * OpenCode review MEDIUM H1: post-validate the LLM output against the
+ * outline so the producer can't silently swallow malformed responses.
+ * Returns null on success; returns an error message describing the
+ * first detected violation otherwise. Throwing is the caller's choice
+ * (the orchestrator throws; a tolerant caller can collect issues).
+ *
+ * Checks:
+ *   1. Exactly one verdict per outline beat (no missing).
+ *   2. No duplicate verdicts on the same beatIndex.
+ *   3. No out-of-range beatIndex (>= outline.scenes.length).
+ */
+export function validateBeatCoverageLlmOutput(
+  output: BeatCoverageLlmOutput,
+  outline: ChapterOutline,
+): string | null {
+  const expected = outline.scenes.length
+  const seen = new Set<number>()
+  const seenDup: number[] = []
+  for (const v of output.beatVerdicts) {
+    if (v.beatIndex >= expected) {
+      return `beatIndex ${v.beatIndex} out of range (outline has ${expected} beats; valid 0..${expected - 1})`
+    }
+    if (seen.has(v.beatIndex)) {
+      seenDup.push(v.beatIndex)
+    }
+    seen.add(v.beatIndex)
+  }
+  if (seenDup.length > 0) {
+    return `duplicate beatIndex verdicts: ${seenDup.join(", ")}`
+  }
+  if (seen.size !== expected) {
+    const missing: number[] = []
+    for (let i = 0; i < expected; i++) {
+      if (!seen.has(i)) missing.push(i)
+    }
+    return `missing verdicts for beatIndex ${missing.join(", ")} (outline has ${expected} beats; LLM emitted ${seen.size})`
+  }
+  return null
+}
 
 // ── System prompt ───────────────────────────────────────────────────────
 
@@ -274,8 +323,15 @@ export interface RunEditorialBeatCoverageResult {
 /**
  * End-to-end tracer-bullet: build the prompt, fire the LLM, parse the
  * output, build envelopes for uncovered beats. Returns the envelopes
- * plus the raw output for caller-side telemetry. Throws on schema
- * parse failure (caller decides whether to retry/escalate).
+ * plus the raw output for caller-side telemetry.
+ *
+ * Throws on:
+ *   - schema parse failure (covered=true without evidenceQuote, etc.)
+ *   - structural validation failure (missing/duplicate/out-of-range
+ *     beatIndex), per OpenCode MEDIUM H1.
+ *
+ * Caller decides whether to retry / escalate / log telemetry on either
+ * throw class.
  */
 export async function runEditorialBeatCoverageCheck(
   args: RunEditorialBeatCoverageArgs,
@@ -286,6 +342,10 @@ export async function runEditorialBeatCoverageCheck(
     userPrompt,
   })
   const parsed = beatCoverageLlmOutputSchema.parse(raw)
+  const validationError = validateBeatCoverageLlmOutput(parsed, args.outline)
+  if (validationError !== null) {
+    throw new Error(`editorial beat-coverage validation failed: ${validationError}`)
+  }
   const proposals = buildBeatCoverageProposalsFromLlm({
     llmOutput: parsed,
     outline: args.outline,
