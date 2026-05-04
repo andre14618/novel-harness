@@ -154,6 +154,8 @@ function getPhaseForAgent(agent: string): string {
     "planning-beats": "planning",
     "planning-state-mapper": "planning",
     "planning-state-repair": "planning",
+    "planner-semantic-label-flash": "planning",
+    "planner-semantic-label-pro": "planning",
     "writer": "drafting",
     "beat-writer": "drafting",
     "reference-resolver": "drafting",

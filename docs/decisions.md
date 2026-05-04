@@ -10,6 +10,76 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Step 2C live planner semantic labeling - panel clears execution, human confirmation remains (2026-05-03)
+
+**Decision:** The live planner Canon delta is ready for human-confirmation, not direct Canon writes. Added a cache-shaped semantic labeling runner that judges each emitted planner/state source ID with overlapping DeepSeek V4 Flash / V4 Pro calls and separately asks for missing planner-eligible Canon items.
+
+**Why:** Step 2B proved the generated ID graph is mechanically coherent, but bad Canon is worse than no Canon. The content attached to stable IDs still needs semantic evidence before any planner-origin source can write committed Canon. Emitted IDs have stable keys, so consensus can be ID-based. Missing items have no stable IDs, so deterministic aggregation must remain conservative and send paraphrases to human/explicit adjudication instead of silently merging them.
+
+**Evidence:**
+- `bun scripts/audits/run-live-planner-semantic-labeling.ts --latest --max-concurrency=3` on `novel-1777786463873` wrote `docs/artifacts/planner-semantic-labeling-novel-1777786463873-2026-05-03T221815312Z.json`.
+- `llm_calls.run_id=681`: 128 calls, 126 schema-valid, 2 captured schema-invalid rows, 30/30 emitted source IDs judged, safety agreement 0.967, verdict agreement 0.967.
+- Emitted source-item result: 28 review-free direct-write candidates, 2 item rows needing human review (`fact-maret-class-progression` route disagreement; `know-maret-physical-assessment` one failed Flash sample despite valid consensus among successful calls).
+- Missing-item result: 21 candidates, all needing human review because exact-key support did not cross Flash/Pro under conservative aggregation.
+- Cost/cache: `$0.2756`, 2,565,016 prompt tokens, 2,532,480 provider-reported cached tokens, cache ratio 0.987. The prior smoke run warmed the same stable prefix; full-run cache hits are actual provider `usage.cached_tokens` values persisted to `llm_calls`.
+- Verification: `bun test src/canon/` passed (196 pass), `bunx tsc --noEmit` clean, `git diff --check` clean before the full panel. A regression fixture now asserts semantic paraphrases in missing-item text do not merge deterministically.
+
+**Alternatives rejected:**
+- *Let token-overlap normalization merge missing-item paraphrases.* Rejected after review. That smuggles semantic judgment into deterministic aggregation and can inflate cross-route support counts. Exact-ish surface normalization is allowed; semantic paraphrase matching must be human-confirmed or handled by an explicit semantic matcher.
+- *Treat 28 review-free direct-write candidates as enough to wire planner Canon writes now.* Rejected. Recall still depends on the missing-item queue, and the source-write gate requires final precision/recall/F1 over the live generated IDs plus confirmed missing reference rows.
+- *Rerun failed schema rows until the panel is perfectly clean.* Deferred. The failed rows are captured, low-rate (2/128), and conservatively force human review. A retry/repair ladder can be added if repeated panels show schema failures are material.
+
+**Ongoing implications:** The next Step 2 action is human-confirming the 26-row queue and computing final metrics. Until then, planner-origin Canon remains human-review-only or excluded from committed Canon. The semantic runner also demonstrates the charter's cache economics: rich stable prefixes are cheap when byte-identical across calls.
+
+**Lane:** `docs/sessions/2026-05-03-step-2c-live-planner-semantic-labeling.md`. **Code:** `src/canon/planner-semantic-labeling.ts`, `scripts/audits/run-live-planner-semantic-labeling.ts`.
+
+---
+
+### §Step 2B live planner Canon delta audit - use generated ID flow as the target surface (2026-05-03)
+
+**Decision:** Step 2 planner-input integrity should target real generated `chapter_outlines.outline_json` artifacts, not corpus/proxy provenance. Added a deterministic live planner Canon-delta audit that extracts planner/state mapper source IDs, payoff links, and beat obligation `sourceId` refs from persisted generated outlines.
+
+**Why:** The architecture's load-bearing mechanism is stable ID/state flow across the novel: planner/state mapper declares facts, knowledge changes, and character state changes; obligations reference those exact IDs; later Canon wiring should preserve/version those IDs. Salvatore proxy rows can validate a grader shape, but they cannot prove this live ID graph. The live generated outline is the correct fixture spine.
+
+**Evidence:**
+- `bun scripts/audits/run-live-planner-canon-delta.ts --latest` on `novel-1777786463873`: 2 chapters, 23 beats, 30 source items, 30 obligations, facts/knowledge/states=18/8/4, duplicateSourceIds=0, invalidSourceIds=0, missingSourceCoverage=0, unknownObligationSources=0, sourceKindMismatches=0, characterIdMismatches=0, validationErrors=0, `idGraphGateClear=YES`, `recommendation=ready-for-semantic-labeling`.
+- `bun test src/canon/planner-canon-delta.test.ts` - 3 pass; `bun test src/canon/` - 193 pass; `bunx tsc --noEmit` clean.
+- The audit also surfaces the current persistence seam: legacy planned-state tables have rows for approved chapters (`facts=11`, `characterStates=2`, `characterKnowledge=5` on the latest run) but those tables do not retain planner source IDs. Stable IDs currently live in `chapter_outlines`.
+
+**Alternatives rejected:**
+- *Continue deepening the Salvatore planned-origin proxy.* Rejected for planner approval. It remains useful as an extraction/reference fixture, but it is not the generated ID/state flow.
+- *Generate new LLM artifacts immediately.* Rejected for this lane because persisted recent artifacts already contain real planner/state output. No LLM/API spend was needed to validate the target mechanics.
+- *Treat mechanical ID coherence as semantic approval.* Rejected. `idGraphGateClear=YES` means the artifact is ready for semantic labeling; it does not prove the declared facts are true, useful, or complete.
+
+**Ongoing implications:** The next Step 2 action is a semantic labeling fixture over actual generated source IDs: mark each emitted fact/knowledge/state item as correct/incorrect and add any missing planner-eligible Canon items as reference-only rows. Canon-substrate wiring must preserve planner source IDs from `chapter_outlines` rather than relying on legacy table-generated IDs.
+
+**Lane:** `docs/sessions/2026-05-03-step-2b-live-planner-canon-delta.md`. **Code:** `src/canon/planner-canon-delta.ts`, `scripts/audits/run-live-planner-canon-delta.ts`.
+
+---
+
+### §Step 2A planner Canon integrity harness - proxy evidence is diagnostic only (2026-05-03)
+
+**Decision:** Added a deterministic Bible-Input Integrity harness for planner-like Canon claims, but planner-output direct Canon writes remain blocked. The current Salvatore run uses manual Canon `origin="planned"` facts plus structured story promises as a planned-origin proxy, not a persisted live planner-output sample.
+
+**Why:** Charter Step 2 requires measured precision, recall, F1, and sample size before any source writes Canon. The planned-origin proxy is useful for coverage diagnostics, but it does not prove the production planner emitted those claims. The harness therefore has a separate `sourceEvidenceGateClear`; only `evidenceKind="live-planner-output"` can satisfy direct-write promotion. Proxy evidence reports metrics but returns `recommendation="insufficient-sample"` for production planner authorization.
+
+**Evidence:**
+- `bun scripts/audits/run-planner-integrity.ts` over `tests/canon/fixtures/salvatore-crystal-shard.canon.json`: TP=50, FP=0, FN=39, precision=1.000, recall=0.562, F1=0.719, gradedItemCount=89, distinctChapterCount=6, `sourceEvidenceGateClear=false`, `recallGateClear=false`, `recommendation=insufficient-sample`.
+- Category failures are concentrated in planner-missing semantic state: `knowledge_change` TP=0/FN=6 and `character_state` TP=0/FN=8 in the proxy view.
+- `bun test src/canon/planner-integrity.test.ts` - 8 pass; `bun test src/canon/` - 190 pass; `bunx tsc --noEmit` clean.
+- `bun scripts/audits/run-salvatore-recall.ts` still clears §0a: `meanRecall=0.927`, `recallGateClear=YES`, `tokenCapExceeded=0`.
+
+**Alternatives rejected:**
+- *Treat planned-origin proxy as direct planner evidence.* Rejected because provenance says the manual Canon author classified the fact as planned after the fact; it is not a captured production planner emission.
+- *Skip proxy grading until a live fixture exists.* Rejected because the proxy still surfaces useful category coverage gaps and validates the deterministic grading machinery without LLM/API calls.
+- *Let high precision override missing recall or missing live-source evidence.* Rejected by the Step 2 charter; corrupt or sparse Canon is worse than no Canon, and F1/source-evidence gates prevent precision-only promotion.
+
+**Ongoing implications:** Step 2A is open but blocked on live-source evidence. Before orchestrator Canon writes from the planner are allowed, capture a persisted live planner-output Canon-claim fixture with at least 30 graded items across at least 3 chapters/contexts and rerun the harness with `evidenceKind="live-planner-output"`. Until then, planner-origin Canon must go through human review or remain excluded from committed Canon.
+
+**Lane:** `docs/sessions/2026-05-03-step-2a-planner-canon-integrity.md`. **Code:** `src/canon/planner-integrity.ts`, `scripts/audits/run-planner-integrity.ts`.
+
+---
+
 ### §Collaborative proposal workflow Phase 1 cleared — planner source items become pending Canon proposals (2026-05-03)
 
 **Decision:** Phase 1 of `docs/designs/collaborative-proposal-workflow.md` ships. New harness service `src/harness/planner-canon-proposals.ts` converts mechanically-valid planner source items (`fact`/`knowledge`/`state` rows on `ChapterOutline`) into pending `CanonUpdateProposal` rows backed by `PostgresCanonSubstrate`. The deterministic id template `planner:<novelId>:<sourceItemId>:<schemaVersion>` plus a new `insertProposalIfAbsent` (`ON CONFLICT (id) DO NOTHING`) make the service idempotent: a second run on the same outlines is a 0-row write regardless of operator-resolution status. Mechanical-gate fail-closed (via `runPlannerCanonDeltaAudit`) prevents proposal generation on duplicate / invalid IDs. The fact-only proposal lifecycle cleanly carries knowledge/state because `CanonFact.kind` already enumerates `knowledge_change` and `character_state` — no proposal-table refactor needed.

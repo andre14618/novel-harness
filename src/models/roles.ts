@@ -253,6 +253,18 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
     thinking: true, temperature: 0.1, maxTokens: 16_384,
   },
 
+  // Planner Canon semantic audit (offline Step 2C only). Flash gives cheap
+  // repeated labels; Pro is the cross-tier adjudicator. Both use thinking mode
+  // because the task compares emitted planner IDs against outline/prose evidence.
+  "planner-semantic-label-flash": {
+    provider: "deepseek", model: "deepseek-v4-flash",
+    thinking: true, temperature: 0.1, maxTokens: 8192,
+  },
+  "planner-semantic-label-pro": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.1, maxTokens: 8192,
+  },
+
   // Promise pair-matcher — used by compute-calibration.ts to bridge
   // paraphrased predicted-vs-gold promise text. Replaces the old
   // Jaccard/Levenshtein gate which silently rejected semantically-equal

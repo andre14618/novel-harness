@@ -93,6 +93,22 @@ Evidence: exp #394 (L66 v1 KILL after one A/B smoke). Lane retro: `docs/sessions
 
 ## LLM Evaluation
 
+### Validate the live ID graph before semantic grading (2026-05-03)
+
+When a system relies on stable IDs as the spine for state/canon flow, first audit the live generated ID graph mechanically before asking humans or models to judge semantic truth. The mechanical audit answers: are IDs present, unique, covered by obligations, kind-matched, character-matched, and valid across chapters? Only after that passes does semantic labeling have a stable target. Step 2B showed this on `novel-1777786463873`: 30 live planner/state source items and 30 obligations, with zero duplicate IDs, missing coverage, unknown refs, source-kind mismatches, or character-ID mismatches. That made the artifact ready for semantic labeling. Without this first pass, semantic labels can silently attach to unstable or orphaned IDs and become useless for Canon wiring.
+
+### Legacy persistence can drop the very IDs the architecture depends on (2026-05-03)
+
+When adding a new stable-ID architecture beside older state tables, audit whether the old persistence layer preserves source identity. In the current planner flow, `chapter_outlines.outline_json` retains source IDs, but `savePlannedState()` writes derived rows into legacy `facts`, `character_states`, and `character_knowledge` tables without planner source IDs. That is acceptable while those tables remain legacy context surfaces, but Canon-substrate wiring must not use their generated row IDs as the Canon source identity. Rule: once IDs are the contract, every write path that claims to persist that contract must carry the original source ID or explicitly mark itself as derived/legacy.
+
+### Do not smuggle semantic matching into deterministic normalization (2026-05-03)
+
+When aggregating model-generated labels that lack stable IDs, deterministic normalization may collapse only exact-ish surface variants (case, punctuation, articles, possessive markers). It must not use broad stop-word removal, stemming, synonym handling, or token-overlap thresholds to decide that two free-text candidates are the same semantic item. Those heuristics silently turn a semantic judgment into code and can inflate cross-model support counts. If paraphrase clustering is needed, make it an explicit LLM/human adjudication step or report possible duplicates for review; do not let fuzzy normalization affect precision/recall evidence. Caught during Step 2C planner semantic labeling when a missing-item aggregator briefly merged variants such as “hand heals almost instantly” and “hand rapidly heals” by token overlap; the fixture now asserts those remain separate human-review candidates.
+
+### Proxy-origin evals need a separate source-evidence gate (2026-05-03)
+
+When a live source fixture is missing, proxy labels can validate the grader and expose category coverage gaps, but they must not satisfy a production promotion gate. Keep metric gates (sample size, precision, recall, F1) separate from source-evidence gates ("did this exact production source emit these claims?"). Otherwise an after-the-fact planned/observed annotation can look like live planner quality and authorize corrupt Canon writes. Step 2A caught this before wiring: the Salvatore planned-origin proxy had perfect precision (1.000) and acceptable F1 (0.719), but no live planner fixture and sub-floor recall (0.562), so `sourceEvidenceGateClear=false` and `recommendation=insufficient-sample`. General rule: proxy evals are diagnostic until tied to captured production artifacts.
+
 ### Deterministic validators should not own judgment-heavy placement (2026-05-01)
 Exp #288's obligation auto-repair correctly enforced the mechanical invariant that declared planner state must be writer-visible, but choosing the dramatically right beat for hidden knowledge/state requires story judgment. Rule: deterministic code detects coverage gaps, applies only mechanically valid stable-ID patches, and revalidates. The patch itself should come from a narrow LLM repair surface or mapper retry; code must not author fallback narrative obligations.
 
