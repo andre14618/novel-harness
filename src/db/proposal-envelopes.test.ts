@@ -43,7 +43,12 @@ async function dropNovel(novelId: string): Promise<void> {
   await db`DELETE FROM novels WHERE id = ${novelId}`
 }
 
-function buildEnvelope(novelId: string, idx = 0, patchOverride?: AdjusterPatch) {
+function buildEnvelope(
+  novelId: string,
+  idx = 0,
+  patchOverride?: AdjusterPatch,
+  parentEnvelopeId?: string,
+) {
   const patch: AdjusterPatch = patchOverride ?? {
     type: "characterUpdate",
     characterId: "char-hero",
@@ -57,6 +62,7 @@ function buildEnvelope(novelId: string, idx = 0, patchOverride?: AdjusterPatch) 
     rationale: `test rationale ${idx}`,
     artifacts: baseArtifacts,
     now: fixedNow,
+    ...(parentEnvelopeId !== undefined ? { parentEnvelopeId } : {}),
   })
 }
 
@@ -179,6 +185,37 @@ describe.skipIf(!reachable)("proposal-envelopes persistence", () => {
     const row = await findEnvelopeById(env.id)
     expect(row?.status).toBe("approved")
     expect(row?.resolved_note).toBe("looks fine")
+  })
+
+  test("parentEnvelopeId provenance: round-trips through DB and shows up in source.parentEnvelopeId on read", async () => {
+    // Phase 3 commit 4 follow-up B — regen lineage. The schema column
+    // `parent_envelope_id` was reserved in commit 4; this test confirms
+    // it's now actually populated via `envelope.source.parentEnvelopeId`
+    // and reads back through `listArtifactPatchEnvelopes`.
+    const parent = buildEnvelope(novelId, 0)
+    await insertArtifactPatchEnvelope(parent)
+    const child = buildEnvelope(
+      novelId,
+      1,
+      { type: "characterUpdate", characterId: "char-hero", patch: { goals: "Find the third key" } },
+      parent.id,
+    )
+    expect(child.source.parentEnvelopeId).toBe(parent.id)
+    await insertArtifactPatchEnvelope(child)
+
+    // Read directly: confirm the column.
+    const row = await findEnvelopeById(child.id)
+    expect(row).not.toBeNull()
+    expect(row!.parent_envelope_id).toBe(parent.id)
+
+    // Read through the typed lister: surfaces on source.parentEnvelopeId.
+    const list = await listArtifactPatchEnvelopes(novelId, { status: "all" })
+    const childRow = list.find((e) => e.id === child.id)
+    expect(childRow).toBeDefined()
+    expect(childRow!.source.parentEnvelopeId).toBe(parent.id)
+    // Parent's own row has no parent.
+    const parentRow = list.find((e) => e.id === parent.id)
+    expect(parentRow!.source.parentEnvelopeId).toBeUndefined()
   })
 
   test("deleteEnvelopesForNovel removes only that novel's rows", async () => {

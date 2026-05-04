@@ -270,10 +270,24 @@ export interface AdjustResponse {
   raw?: string
 }
 
-export function adjustNovel(novelId: string, message: string, history: AdjustTurn[] = []) {
+/**
+ * Phase 3 commit 4 follow-up B — `parentEnvelopeId` plumbing. When the UI
+ * regenerates from a stale envelope, it passes the stale id here so each
+ * envelope in the new batch records it as `source.parentEnvelopeId`. The
+ * persistence layer reads that into `proposal_envelopes.parent_envelope_id`,
+ * which gives operators a regen-lineage trail in the audit history view.
+ */
+export function adjustNovel(
+  novelId: string,
+  message: string,
+  history: AdjustTurn[] = [],
+  opts: { parentEnvelopeId?: string } = {},
+) {
+  const body: Record<string, unknown> = { message, history }
+  if (opts.parentEnvelopeId !== undefined) body.parentEnvelopeId = opts.parentEnvelopeId
   return fetchJSON<AdjustResponse>(
     `/api/novel/${novelId}/adjust`,
-    { method: "POST", body: JSON.stringify({ message, history }) },
+    { method: "POST", body: JSON.stringify(body) },
   )
 }
 

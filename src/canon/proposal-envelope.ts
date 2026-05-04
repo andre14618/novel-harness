@@ -114,6 +114,16 @@ interface BuildArtifactPatchEnvelopeArgs {
   rationale: string
   artifacts: ArtifactSnapshot
   now: Date
+  /**
+   * Phase 3 commit 4 follow-up B — regen lineage. When the operator
+   * regenerates from a stale envelope, the new envelope carries the
+   * stale envelope's id as `source.parentEnvelopeId` so the audit trail
+   * preserves the supersession chain. Intentionally NOT included in the
+   * deterministic id seed: identical patch + identical target version
+   * = identical envelope id regardless of how it was reached. Lineage
+   * is provenance metadata, not identity.
+   */
+  parentEnvelopeId?: string
 }
 
 const ENVELOPE_ID_VERSION = "v1"
@@ -242,6 +252,7 @@ export function buildArtifactPatchEnvelope(
     source: {
       agent: "artifact-adjuster",
       userMessage: args.userMessage,
+      ...(args.parentEnvelopeId !== undefined ? { parentEnvelopeId: args.parentEnvelopeId } : {}),
     },
     status: "pending",
     risk,

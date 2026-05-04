@@ -696,6 +696,14 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       const body = await req.json() as {
         message: string
         history?: { role: "user" | "assistant"; content: string }[]
+        /**
+         * Phase 3 commit 4 follow-up B — regen lineage. When the operator
+         * hits Regenerate on a stale envelope, the UI passes that envelope's
+         * id here. Each envelope in this batch records it as
+         * `source.parentEnvelopeId`, persisted to
+         * `proposal_envelopes.parent_envelope_id`.
+         */
+        parentEnvelopeId?: string
       }
       if (!body.message?.trim()) return Response.json({ error: "message required" }, { status: 400 })
 
@@ -766,6 +774,9 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
           rationale: parsed.assistantMessage,
           artifacts,
           now: new Date(),
+          ...(body.parentEnvelopeId !== undefined
+            ? { parentEnvelopeId: body.parentEnvelopeId }
+            : {}),
         }),
       )
       for (const env of proposalEnvelopes) {

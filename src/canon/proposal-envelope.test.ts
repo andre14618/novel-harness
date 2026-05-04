@@ -311,4 +311,75 @@ describe("ReviewProposalEnvelope — Phase 3 commit 1", () => {
     expect(a.target.currentVersion).toBe(b.target.currentVersion)
     expect(a.precondition.hash).toBe(b.precondition.hash)
   })
+
+  // ── Phase 3 commit 4 follow-up B: parentEnvelopeId provenance ────────
+  //
+  // Regenerate-from-stale should record the stale envelope's id as
+  // `source.parentEnvelopeId`. Crucially, parentEnvelopeId must NOT enter
+  // the deterministic id seed: identical patch + identical target version
+  // = identical envelope id regardless of how it was reached. Lineage is
+  // provenance metadata, not identity. (Justifies the
+  // `INSERT … ON CONFLICT (id) DO NOTHING` semantics in the persistence
+  // layer — a regen that lands on the same id keeps the original row.)
+
+  test("buildArtifactPatchEnvelope: parentEnvelopeId surfaces on source", () => {
+    const patch: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "X" },
+    }
+    const envelope = buildArtifactPatchEnvelope({
+      novelId,
+      patch,
+      patchIndex: 0,
+      userMessage: "u",
+      rationale: "r",
+      artifacts: baseArtifacts,
+      now: fixedNow,
+      parentEnvelopeId: "artifact-patch:novel-test-1:abc123def4567890",
+    })
+    expect(envelope.source.parentEnvelopeId).toBe(
+      "artifact-patch:novel-test-1:abc123def4567890",
+    )
+  })
+
+  test("buildArtifactPatchEnvelope: omitted parentEnvelopeId leaves source.parentEnvelopeId undefined", () => {
+    const envelope = buildArtifactPatchEnvelope({
+      novelId,
+      patch: { type: "characterUpdate", characterId: "char-hero", patch: { goals: "X" } },
+      patchIndex: 0,
+      userMessage: "u",
+      rationale: "r",
+      artifacts: baseArtifacts,
+      now: fixedNow,
+    })
+    expect(envelope.source.parentEnvelopeId).toBeUndefined()
+  })
+
+  test("buildArtifactPatchEnvelope: parentEnvelopeId does NOT affect envelope id (lineage is metadata, not identity)", () => {
+    const patch: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "X" },
+    }
+    const args = {
+      novelId,
+      patch,
+      patchIndex: 0,
+      userMessage: "u",
+      rationale: "r",
+      artifacts: baseArtifacts,
+      now: fixedNow,
+    } as const
+    const noParent = buildArtifactPatchEnvelope(args)
+    const parentA = buildArtifactPatchEnvelope({ ...args, parentEnvelopeId: "parent-A" })
+    const parentB = buildArtifactPatchEnvelope({ ...args, parentEnvelopeId: "parent-B" })
+    expect(parentA.id).toBe(noParent.id)
+    expect(parentB.id).toBe(noParent.id)
+    expect(parentA.target.currentVersion).toBe(noParent.target.currentVersion)
+    expect(parentA.precondition.hash).toBe(noParent.precondition.hash)
+    // The parent links themselves do differ.
+    expect(parentA.source.parentEnvelopeId).toBe("parent-A")
+    expect(parentB.source.parentEnvelopeId).toBe("parent-B")
+  })
 })

@@ -305,7 +305,10 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight })
   }, [turns])
 
-  const sendMessage = async (msg: string) => {
+  const sendMessage = async (
+    msg: string,
+    opts: { parentEnvelopeId?: string } = {},
+  ) => {
     if (!msg || sending) return
     setSending(true)
     const next = [...turns, { role: "user" as const, content: msg }]
@@ -314,7 +317,7 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
     setEnvelopes([])
     setEnvelopeStates({})
     try {
-      const res = await adjustNovel(novelId, msg, turns)
+      const res = await adjustNovel(novelId, msg, turns, opts)
       setTurns([...next, { role: "assistant", content: res.assistantMessage }])
       setPendingPatches(res.proposedPatches ?? [])
       const fresh = res.proposalEnvelopes ?? []
@@ -344,9 +347,16 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
    *
    * Per design doc constraint "without changing its model task" — same
    * route, same system prompt, just refreshed artifact context. No new
-   * server-side surface. Future commit 4 (persistence) will retain
-   * envelope history across regenerations; today's UX is "the regen
-   * supersedes the prior batch."
+   * server-side surface.
+   *
+   * Phase 3 commit 4 follow-up B — passes the stale envelope's id as
+   * `parentEnvelopeId`. Each new envelope's `source.parentEnvelopeId`
+   * carries the supersession link, persisted to
+   * `proposal_envelopes.parent_envelope_id`. The deterministic id seed
+   * is unchanged (lineage is provenance, not identity), so a regen that
+   * happens to derive the same patch on the same target version produces
+   * the same envelope id — `INSERT … ON CONFLICT (id) DO NOTHING` then
+   * preserves the original envelope's lineage rather than overwriting it.
    */
   const regenerateFromEnvelope = async (envelope: ArtifactPatchEnvelope) => {
     const original = envelope.source.userMessage
@@ -361,7 +371,7 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
       }))
       return
     }
-    await sendMessage(original)
+    await sendMessage(original, { parentEnvelopeId: envelope.id })
   }
 
   const applyAll = async () => {
