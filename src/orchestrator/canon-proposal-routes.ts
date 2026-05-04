@@ -45,7 +45,9 @@ import {
   plannerProposalPrefix,
 } from "../harness/planner-canon-proposals"
 import { getChapterOutlines } from "../db/outlines"
+import { chapterOutlineSchema } from "../agents/planning-plotter/schema"
 import type { CanonFact, CanonUpdateProposal, ProposalStatus } from "../canon/api"
+import { z } from "zod"
 
 type ResolveStatus = Exclude<ProposalStatus, "pending">
 
@@ -404,7 +406,33 @@ export async function handleCanonProposalRoute(
           { status: 404 },
         )
       }
-      const result = await generatePlannerCanonProposals(novelId, outlines)
+      // Codex round-1 review of Package B (MEDIUM 1): validate the persisted
+      // outline shape via zod before handing it to the audit. A malformed /
+      // legacy / corrupt row previously raised an uncaught exception inside
+      // `runPlannerCanonDeltaAudit` that fell through to the generic 500
+      // path, bypassing the operator-facing fail-closed contract. Now we
+      // surface 422 + structured validation details so the operator can
+      // identify the bad chapter and either fix it or trigger a replan.
+      const validated = z.array(chapterOutlineSchema).safeParse(outlines)
+      if (!validated.success) {
+        return Response.json(
+          {
+            error: "persisted outlines failed schema validation",
+            novelId,
+            outlinesCount: outlines.length,
+            validationErrors: validated.error.issues.slice(0, 20).map((i) => ({
+              path: i.path.join("."),
+              message: i.message,
+            })),
+            validationErrorsTruncated:
+              validated.error.issues.length > 20
+                ? validated.error.issues.length - 20
+                : 0,
+          },
+          { status: 422 },
+        )
+      }
+      const result = await generatePlannerCanonProposals(novelId, validated.data)
       // Atomic-batch persistence failure (Codex round-1 acf67c2 HIGH 1):
       // surface as 503 + structured payload so the operator can retry,
       // rather than treating a transient DB blip as a permanent 500.

@@ -10,6 +10,31 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon proposal Codex review round-1 fix — generate-from-outline validates persisted outlines (2026-05-03)
+
+**Decision:** `POST /api/novel/:id/canon-proposals/generate-from-outline` now validates the persisted outline shape via `z.array(chapterOutlineSchema).safeParse(outlines)` before handing them to the audit. On failure, returns 422 + structured `validationErrors` (top 20 issues with path + message; truncation count when >20).
+
+**Why:** Codex round-1 review of Package B (MEDIUM 1) caught that `getChapterOutlines` casts `outline_json` rows blindly to `ChapterOutline[]`. A malformed / legacy / corrupt row previously raised an uncaught exception inside `runPlannerCanonDeltaAudit`'s `auditChapter` (e.g., `validateBeatObligationCoverage` dereferences fields directly), falling through to a generic 500. The operator-facing fail-closed contract said "structured failure with diagnostics, not opaque 500" — that contract is now honored.
+
+**Evidence:**
+
+- 1 new handler test in `src/orchestrator/canon-proposal-routes.test.ts`: insert a malformed `outline_json` row, hit the endpoint, assert 422 + `validationErrors` array.
+- Full sweep — 292/292 pass / 1,579 expects (was 291; +1).
+- `bunx tsc --noEmit` — clean.
+- `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927`.
+
+**Counterfactuals considered but rejected:**
+
+- *Push validation into `getChapterOutlines` so EVERY caller validates.* Rejected for v1. Many callers tolerate looser shapes (e.g., legacy rows being read for display purposes). Tightening the read path globally is its own architectural decision; the proposal-generate path is the only caller that strictly requires schema-clean outlines, and that's where the validation belongs.
+- *Return the full `validationErrors` array unbounded.* Rejected. A deeply-broken outline can produce hundreds of zod issues. Cap at 20 with a `validationErrorsTruncated` count; operators rarely need more than the first few to identify the bad chapter.
+- *422 vs 400.* 422 is the right semantic — the request is well-formed but the persisted server-side resource (the outline row) doesn't satisfy the operation's preconditions. 400 would imply client-side request shape was wrong, which it wasn't.
+
+**Charter §1 status:** unchanged.
+
+**Lane:** continuation of `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2a.md`. **Codex thread:** `019df0e8-449e-7671-bd2c-418395f53ec8`.
+
+---
+
 ### §Canon proposal Codex review round-1 fixes — bulk-resolve per-row resilience + all-error batch test (2026-05-03)
 
 **Decision:** Address Codex round-1 Package C MEDIUM 1 + LOW 2 in one commit.

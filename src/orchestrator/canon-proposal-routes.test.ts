@@ -807,6 +807,28 @@ describe.skipIf(!reachable)("handleCanonProposalRoute", () => {
     expect(second.body.skipped).toHaveLength(30)
   })
 
+  test("POST generate-from-outline — malformed persisted outline → 422 with validation errors (Codex Package B MEDIUM 1)", async () => {
+    await seedNovel(novelId)
+    // Insert a deliberately malformed outline_json so the route's zod
+    // validation pre-check fails before reaching the audit. Pre-fix this
+    // raised an uncaught exception inside `runPlannerCanonDeltaAudit` and
+    // fell through to a generic 500.
+    await db`
+      INSERT INTO chapter_outlines (novel_id, chapter_number, outline_json)
+      VALUES (${novelId}, 1, ${JSON.stringify({ chapterNumber: "not-a-number" })}::jsonb)
+    `
+    const { status, body } = await expectJson(
+      await invoke(
+        "POST",
+        `/api/novel/${novelId}/canon-proposals/generate-from-outline`,
+      ),
+    )
+    expect(status).toBe(422)
+    expect(body.error).toMatch(/schema validation/i)
+    expect(Array.isArray(body.validationErrors)).toBe(true)
+    expect(body.validationErrors.length).toBeGreaterThan(0)
+  })
+
   test("POST generate-from-outline with no outlines → 404", async () => {
     const { status, body } = await expectJson(
       await invoke(
