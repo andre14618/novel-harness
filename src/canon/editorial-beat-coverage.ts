@@ -136,6 +136,17 @@ export interface BuildBeatCoverageProposalsArgs {
   llmOutput: BeatCoverageLlmOutput
   outline: ChapterOutline
   /**
+   * Canonical chapter reference for the proposal payload's `chapterRef`
+   * field. MUST equal the `chapterRef` the caller will pass to
+   * `buildBeatCoverageEnvelopes` so the proposal payload and the
+   * envelope target both point at the same chapter (OpenCode review
+   * MEDIUM H2: pre-fix, the proposal derived `chapterRef` from
+   * `outline.chapterId` while the envelope target used the caller's
+   * `chapterRef`; enriching `chapterId` later moved the proposal-level
+   * id seed, breaking determinism for the same beat across runs).
+   */
+  chapterRef: string
+  /**
    * Severity to assign to each "missing-beat-coverage" flag. Defaults to
    * "warning" — the operator can review and choose to escalate. A
    * stricter caller (e.g., a future blocker-class drafting gate) can
@@ -174,7 +185,7 @@ export function buildBeatCoverageProposalsFromLlm(
       issueType: "missing-beat-coverage",
       severity,
       beatRef: `b${beatNumber1Based}`,
-      chapterRef: `chapter:${outline_chapter_ref(args.outline)}`,
+      chapterRef: args.chapterRef,
       canonRefs: [],
       evidenceQuotes: v.reason ? [{ text: v.reason }] : [],
       suggestedAction:
@@ -182,15 +193,6 @@ export function buildBeatCoverageProposalsFromLlm(
     })
   }
   return proposals
-}
-
-function outline_chapter_ref(outline: ChapterOutline): string {
-  // The drafting layer keys chapters by `chapterNumber`; the canon layer
-  // also exposes a `chapterId` slug when populated. Prefer the slug when
-  // present so envelope refs round-trip past chapter-renumbering.
-  return outline.chapterId && outline.chapterId.length > 0
-    ? outline.chapterId
-    : `${outline.chapterNumber}`
 }
 
 // ── Pure: proposals → envelopes ─────────────────────────────────────────
@@ -287,6 +289,7 @@ export async function runEditorialBeatCoverageCheck(
   const proposals = buildBeatCoverageProposalsFromLlm({
     llmOutput: parsed,
     outline: args.outline,
+    chapterRef: args.chapterRef,
     uncoveredSeverity: args.uncoveredSeverity,
   })
   const envelopes = buildBeatCoverageEnvelopes({

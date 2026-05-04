@@ -117,6 +117,7 @@ describe("buildBeatCoverageProposalsFromLlm", () => {
     const proposals = buildBeatCoverageProposalsFromLlm({
       llmOutput: out,
       outline: fixtureOutline(),
+      chapterRef,
     })
     expect(proposals).toHaveLength(0)
   })
@@ -132,16 +133,21 @@ describe("buildBeatCoverageProposalsFromLlm", () => {
     const proposals = buildBeatCoverageProposalsFromLlm({
       llmOutput: out,
       outline: fixtureOutline(),
+      chapterRef,
     })
     expect(proposals).toHaveLength(2)
     expect(proposals[0].issueType).toBe("missing-beat-coverage")
     expect(proposals[0].severity).toBe("warning")
     expect(proposals[0].beatRef).toBe("b2")
-    expect(proposals[0].chapterRef).toBe("chapter:ch-012-locked-door")
+    // OpenCode MEDIUM H2: chapterRef now mirrors the caller-supplied
+    // value (matches the envelope target.ref), not a derived string
+    // from outline.chapterId.
+    expect(proposals[0].chapterRef).toBe(chapterRef)
     expect(proposals[0].evidenceQuotes).toHaveLength(1)
     expect(proposals[0].evidenceQuotes[0].text).toBe("no door attempt in draft")
     expect(proposals[0].suggestedAction).toContain("Add coverage for beat 2")
     expect(proposals[1].beatRef).toBe("b3")
+    expect(proposals[1].chapterRef).toBe(chapterRef)
     expect(proposals[1].suggestedAction).toContain("Add coverage for beat 3")
   })
 
@@ -152,6 +158,7 @@ describe("buildBeatCoverageProposalsFromLlm", () => {
     const proposals = buildBeatCoverageProposalsFromLlm({
       llmOutput: out,
       outline: fixtureOutline(),
+      chapterRef,
       uncoveredSeverity: "blocker",
     })
     expect(proposals).toHaveLength(1)
@@ -168,6 +175,7 @@ describe("buildBeatCoverageProposalsFromLlm", () => {
     const proposals = buildBeatCoverageProposalsFromLlm({
       llmOutput: out,
       outline: fixtureOutline(),
+      chapterRef,
     })
     expect(proposals).toHaveLength(1)
     expect(proposals[0].beatRef).toBe("b1")
@@ -183,23 +191,40 @@ describe("buildBeatCoverageProposalsFromLlm", () => {
     const proposals = buildBeatCoverageProposalsFromLlm({
       llmOutput: out,
       outline: fixtureOutline(),
+      chapterRef,
     })
     expect(proposals).toHaveLength(1)
     expect(proposals[0].evidenceQuotes[0].text).toBe("first reason")
   })
 
-  test("falls back to chapterNumber when chapterId is absent", () => {
-    const outline = fixtureOutline()
-    delete (outline as { chapterId?: string }).chapterId
+  test("chapterRef is determined by caller, not by outline.chapterId enrichment (MEDIUM H2)", () => {
+    // OpenCode MEDIUM H2: the proposal's chapterRef mirrors the
+    // caller-supplied value. Two outlines that differ only in
+    // chapterId enrichment must produce the same proposal-side
+    // chapterRef when the caller passes the same chapterRef. This
+    // pins the determinism contract that earlier broke when the
+    // proposal derived chapterRef from outline.chapterId while the
+    // envelope target used the caller's chapterRef.
+    const enriched = fixtureOutline()
+    const unenriched = fixtureOutline()
+    delete (unenriched as { chapterId?: string }).chapterId
     const out: BeatCoverageLlmOutput = {
       beatVerdicts: [{ beatIndex: 0, covered: false, reason: "missing" }],
     }
-    const proposals = buildBeatCoverageProposalsFromLlm({
-      llmOutput: out,
-      outline,
+    const a = buildBeatCoverageProposalsFromLlm({
+      llmOutput: out, outline: enriched, chapterRef,
     })
-    expect(proposals[0].chapterRef).toBe("chapter:12")
+    const b = buildBeatCoverageProposalsFromLlm({
+      llmOutput: out, outline: unenriched, chapterRef,
+    })
+    expect(a[0].chapterRef).toBe(b[0].chapterRef)
+    expect(a[0].chapterRef).toBe(chapterRef)
   })
+
+  // The "falls back to chapterNumber when chapterId is absent" test
+  // from the prior version is removed: OpenCode MEDIUM H2 lifted
+  // chapterRef to a caller-supplied value, so the outline-based
+  // fallback no longer exists.
 })
 
 describe("buildBeatCoverageEnvelopes", () => {
