@@ -10,6 +10,41 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 3 commit 4 follow-up A — resolve-route persistence wiring (2026-05-04)
+
+**Decision:** The `/proposal-envelopes/resolve` route now writes the envelope's resolution status back to the `proposal_envelopes` table *inside the same `db.begin(...)` transaction that performs the artifact apply*. New 409 outcome `alreadyResolved` + `actualStatus` for duplicate-resolve races. When the envelope row is missing entirely, the route degrades gracefully — the artifact apply still happens and an audit-gap warning is logged.
+
+**Why join the same tx:** The artifact change and the audit-trail row are now load-bearing-together. If apply succeeds, the envelope row reflects that. If apply rolls back (stale-precondition mid-tx), the envelope row stays 'pending' so the operator can retry. Without this, a stale-precondition rollback would leave the artifact unchanged but the envelope marked 'approved' — a real audit-trail divergence. Test `persistence: stale-precondition rollback leaves envelope row 'pending'` pins this.
+
+**Why a new 409 outcome (alreadyResolved) on top of the existing 409 stale-precondition:** They catch different race surfaces. The artifact-hash precondition catches concurrent edits to the artifact (approved+approved race: the first apply moves the hash, the second fails before reaching the envelope row). But a duplicate REJECT doesn't move the artifact hash — the hash check passes for both, and only the envelope-status guard catches it. Mirrors the `expectedStatus` defense in canon_proposals' resolve route. Test `persistence: re-resolving a non-pending DB row → 409 + actualStatus` pins this — the second reject fires the alreadyResolved path even though the artifact-hash precondition can't.
+
+**Why fall through gracefully on missing envelope row:** Body-carry has been the load-bearing semantic since Phase 3 commit 2. Persistence (commit 4) is additive — `/adjust` writes best-effort, so the row may be absent if the DB was momentarily unreachable during /adjust. Aborting /resolve in that case would punish the operator for a /adjust-side persistence hiccup. Logging the audit-gap and proceeding with the artifact apply is consistent with how /adjust treats its own persistence failure (log + continue + return envelope in response). The audit-trail gap is observable in operations (the operator's resolve doesn't show up in `listArtifactPatchEnvelopes(novelId, {status:"approved"})` — but the artifact change DID happen).
+
+**Concrete shape:**
+- New imports: `findEnvelopeById` + `updateEnvelopeResolution` from `src/db/proposal-envelopes`.
+- New outcome kind in the existing `ResolveOutcome` discriminated union: `{ kind: "alreadyResolved"; envelopeId: string; actualStatus: string }`.
+- Inside the existing `db.begin(...)`, after the apply (or rejected no-op), call `updateEnvelopeResolution({ id, status, resolvedAt: new Date().toISOString(), resolvedByKind: "human", resolvedByRef: null, resolvedNote: body.operatorNote ?? null, modifiedPayload: ... }, tx)`. If it returns false, look up the row via `findEnvelopeById(id, tx)`. If the row exists with non-pending status, throw the alreadyResolved outcome (rolls back the artifact apply); if the row is absent, log warning and let the tx commit without the audit row.
+- Response switch handles the new outcome with 409 + `{ envelopeId, actualStatus, error: "envelope already resolved" }`.
+- Forward-compatible UI type: `actualStatus?: string` on `ResolveProposalEnvelopeResponse` so the UI can surface it later if needed (current UI handler falls through on the unknown error string).
+
+**Evidence:**
+- `bun test src/orchestrator/proposal-envelope-routes.test.ts` — 27/27 pass / 121 expects (six new persistence tests + 21 pre-existing).
+- `bun test src/db/proposal-envelopes.test.ts src/canon/proposal-envelope.test.ts` — 23/23 pass / 87 expects.
+- `bunx tsc --noEmit` (server) — clean. `bunx tsc --noEmit` + `bun x vite build` (UI) — clean (520.36 kB / 155.56 kB gzip; no size change vs prior).
+- Pre-existing canon-proposal-routes.test.ts flakes confirmed unchanged via `git stash` counterfactual: 33/35 pass / 2 fail / 1 error before and after my changes.
+- Diff scope: 3 files (`src/orchestrator/proposal-envelope-routes.ts` +72/-18; `src/orchestrator/proposal-envelope-routes.test.ts` +196/-2; `ui/src/api.ts` +2). Total: +282/-17.
+
+**Counterfactuals considered but rejected:**
+
+- *SELECT FOR UPDATE the envelope row at the START of the tx (before the artifact lock).* Would let us 409 alreadyResolved before doing any artifact work. Rejected: the artifact-hash precondition is still the canonical guard for the approved+approved case (which is the more common race), and locking the envelope row first would serialize independent envelope resolves more than necessary. The end-of-tx UPDATE-WHERE-pending pattern is the simpler model that catches both races correctly via tx rollback semantics.
+- *Auto-recover the missing envelope row by inserting it on /resolve.* Tempting because it would close the audit-gap. Rejected: the body-carried envelope's id is deterministic over its payload + target.currentVersion, so an auto-insert at /resolve time would record the resolution under the same id without provenance. Also: if the envelope was missing because of a /adjust DB-write failure, we'd be papering over an operational signal. The audit-gap warning is the better UX for ops to spot persistence hiccups.
+- *Block /resolve when the envelope row is missing.* Rejected: would tightly couple /resolve correctness to /adjust persistence reliability. Body-carry has been the load-bearing semantic since Phase 3 commit 2; preserving that means the artifact apply continues to work even when the audit table is degraded.
+- *Wire the UI to surface the new 409 alreadyResolved with a dedicated handler.* Rejected for this commit (scope creep). The forward-compatible type field (`actualStatus?: string`) is in place; a follow-up UI commit can add explicit handling once the UI consumer-of-persisted-envelopes lane lands (which is when alreadyResolved becomes user-observable in practice — body-carry + single-tab use barely surfaces it).
+
+**Ongoing:** Closes 1 of 3 commit-4 follow-ups. Remaining: UI consumer of persisted envelopes (load pending on session open + audit-history view), parentEnvelopeId provenance on regen. Phase 3 commit 5b (LLM-firing quick actions) still parked behind transport-stub infrastructure.
+
+---
+
 ### §Phase 3 commit 4 — proposal_envelopes persistence (2026-05-04)
 
 **Decision:** Add a generic `proposal_envelopes` table (sql/037) and wire `/adjust` to persist each returned envelope. New `GET /api/novel/:id/proposal-envelopes` route lists pending envelopes for a novel. UI consumer of persisted envelopes + resolve-route wiring (load by id + write resolution) defer to follow-up sub-commits.
