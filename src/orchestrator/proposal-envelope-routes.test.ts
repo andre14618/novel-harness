@@ -20,6 +20,11 @@ import { handleProposalEnvelopeRoute } from "./proposal-envelope-routes"
 import { buildArtifactPatchEnvelope, stableHash } from "../canon/proposal-envelope"
 import type { AdjusterPatch } from "../agents/artifact-adjuster/schema"
 import type { CharacterProfile, WorldBible, StorySpine } from "../types"
+import {
+  insertArtifactPatchEnvelope,
+  findEnvelopeById,
+  deleteEnvelopesForNovel,
+} from "../db/proposal-envelopes"
 
 const reachable = await dbReachable()
 const fixedNow = new Date("2026-05-04T12:00:00.000Z")
@@ -49,6 +54,7 @@ async function seedSpine(novelId: string, s: StorySpine): Promise<void> {
 }
 
 async function dropNovel(novelId: string): Promise<void> {
+  await deleteEnvelopesForNovel(novelId)
   await db`DELETE FROM characters WHERE novel_id = ${novelId}`
   await db`DELETE FROM world_bibles WHERE novel_id = ${novelId}`
   await db`DELETE FROM story_spines WHERE novel_id = ${novelId}`
@@ -610,5 +616,201 @@ describe.skipIf(!reachable)("handleProposalEnvelopeRoute (DB-backed)", () => {
     const expectedGoals =
       winner === a ? "Win A" : "Win B"
     expect(rows[0].profile_json.goals).toBe(expectedGoals)
+  }, 15_000)
+
+  // ── Phase 3 commit 4 follow-up A — persistence wiring ─────────────────
+  //
+  // The /adjust route persists each envelope it returns; the resolve
+  // route now writes the resolution status back to that row inside the
+  // same transaction as the artifact apply. These tests pin:
+  //   1. Approved/rejected/modified resolutions write the right row state.
+  //   2. operatorNote and modifiedPayload survive into proposal_envelopes.
+  //   3. Resolving a non-pending DB row → 409 + actualStatus.
+  //   4. Body-carried envelopes without a DB row still apply (audit gap).
+  //   5. A stale-precondition rollback leaves the envelope row 'pending'.
+
+  test("persistence: approved resolve writes status='approved' + resolvedAt + operatorNote", async () => {
+    await seedCharacter(novelId, makeCharacter("char-hero", "Aria", { goals: "Find the key" }))
+    const patch: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "Find the second key" },
+    }
+    const envelope = await buildEnvelopeFromLive(novelId, patch)
+    expect(await insertArtifactPatchEnvelope(envelope)).toBe(true)
+
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope,
+        status: "approved",
+        operatorNote: "looks good — ship it",
+      }),
+    )
+    expect(status).toBe(200)
+    expect(body.applied).toBe(true)
+
+    const row = await findEnvelopeById(envelope.id)
+    expect(row).not.toBeNull()
+    expect(row!.status).toBe("approved")
+    expect(row!.resolved_by_kind).toBe("human")
+    expect(row!.resolved_note).toBe("looks good — ship it")
+    expect(row!.modified_payload).toBeNull()
+    expect(row!.resolved_at).not.toBeNull()
+  }, 15_000)
+
+  test("persistence: rejected resolve writes status='rejected' (artifact unchanged)", async () => {
+    await seedCharacter(novelId, makeCharacter("char-hero", "Aria", { goals: "Find the key" }))
+    const patch: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "Steal the key" },
+    }
+    const envelope = await buildEnvelopeFromLive(novelId, patch)
+    await insertArtifactPatchEnvelope(envelope)
+
+    const { status } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope,
+        status: "rejected",
+        operatorNote: "wrong direction",
+      }),
+    )
+    expect(status).toBe(200)
+
+    const row = await findEnvelopeById(envelope.id)
+    expect(row!.status).toBe("rejected")
+    expect(row!.resolved_note).toBe("wrong direction")
+    // Artifact untouched.
+    const charRows = (await db`SELECT profile_json FROM characters
+                               WHERE novel_id = ${novelId} AND id = 'char-hero'`) as {
+      profile_json: CharacterProfile
+    }[]
+    expect(charRows[0].profile_json.goals).toBe("Find the key")
+  }, 15_000)
+
+  test("persistence: modified resolve writes status='modified' + modified_payload", async () => {
+    await seedCharacter(novelId, makeCharacter("char-hero", "Aria", { goals: "Find the key" }))
+    const original: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "Steal the key" },
+    }
+    const modified: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "Negotiate for the key" },
+    }
+    const envelope = await buildEnvelopeFromLive(novelId, original)
+    await insertArtifactPatchEnvelope(envelope)
+
+    const { status } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope,
+        status: "modified",
+        modifiedPayload: modified,
+      }),
+    )
+    expect(status).toBe(200)
+
+    const row = await findEnvelopeById(envelope.id)
+    expect(row!.status).toBe("modified")
+    const stored = typeof row!.modified_payload === "string"
+      ? JSON.parse(row!.modified_payload)
+      : row!.modified_payload
+    expect(stored).toEqual(modified)
+  }, 15_000)
+
+  test("persistence: re-resolving a non-pending DB row → 409 + actualStatus", async () => {
+    await seedCharacter(novelId, makeCharacter("char-hero", "Aria", { goals: "Find the key" }))
+    const patch: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "X" },
+    }
+    const envelope = await buildEnvelopeFromLive(novelId, patch)
+    await insertArtifactPatchEnvelope(envelope)
+
+    // First reject succeeds (rejected leaves the artifact hash unchanged
+    // so a second reject can't be caught by the artifact-hash precondition
+    // — only the envelope-status guard can catch it).
+    const first = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope,
+        status: "rejected",
+      }),
+    )
+    expect(first.status).toBe(200)
+
+    // Second reject on the now-non-pending row → 409.
+    const second = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope,
+        status: "rejected",
+      }),
+    )
+    expect(second.status).toBe(409)
+    expect(second.body.error).toBe("envelope already resolved")
+    expect(second.body.actualStatus).toBe("rejected")
+  }, 15_000)
+
+  test("persistence: body-carried envelope without DB row still applies (audit gap)", async () => {
+    await seedCharacter(novelId, makeCharacter("char-hero", "Aria", { goals: "Find the key" }))
+    const patch: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "Find the second key" },
+    }
+    // Build envelope WITHOUT inserting it — simulates an /adjust call
+    // where DB persistence failed but the body still came through.
+    const envelope = await buildEnvelopeFromLive(novelId, patch)
+    expect(await findEnvelopeById(envelope.id)).toBeNull()
+
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope,
+        status: "approved",
+      }),
+    )
+    expect(status).toBe(200)
+    expect(body.applied).toBe(true)
+
+    // Artifact updated.
+    const rows = (await db`SELECT profile_json FROM characters
+                           WHERE novel_id = ${novelId} AND id = 'char-hero'`) as {
+      profile_json: CharacterProfile
+    }[]
+    expect(rows[0].profile_json.goals).toBe("Find the second key")
+    // Envelope row still doesn't exist (audit gap accepted, not auto-recovered).
+    expect(await findEnvelopeById(envelope.id)).toBeNull()
+  }, 15_000)
+
+  test("persistence: stale-precondition rollback leaves envelope row 'pending'", async () => {
+    await seedCharacter(novelId, makeCharacter("char-hero", "Aria", { goals: "Find the key" }))
+    const patch: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "Steal the key" },
+    }
+    const envelope = await buildEnvelopeFromLive(novelId, patch)
+    await insertArtifactPatchEnvelope(envelope)
+
+    // Race: someone edits the character between envelope build and resolve.
+    const { updateCharacterFields } = await import("../db")
+    await updateCharacterFields(novelId, "char-hero", { backstory: "moved on" })
+
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope,
+        status: "approved",
+      }),
+    )
+    expect(status).toBe(409)
+    expect(body.error).toBe("stale-precondition")
+
+    // Envelope row stayed pending — the tx rolled back before reaching the
+    // status-update statement.
+    const row = await findEnvelopeById(envelope.id)
+    expect(row!.status).toBe("pending")
+    expect(row!.resolved_at).toBeNull()
   }, 15_000)
 })

@@ -35,10 +35,18 @@
  *   - Returns the new artifact hash so the UI can refresh its
  *     `target.currentVersion` snapshot without re-fetching the artifact.
  *
- * Persistence is NOT in scope for this commit (Phase 3 commit 4). The
- * envelope is body-carried; the route is stateless from the substrate's
- * perspective. That keeps the contract narrow: this commit ships the
- * resolve mechanics + precondition guard and nothing else.
+ * Persistence (Phase 3 commit 4 follow-up A): If the envelope was persisted
+ * by the /adjust route, this route also writes the resolution status to
+ * `proposal_envelopes` *inside the same `db.begin(...)`* as the artifact
+ * apply — both either commit together or roll back together. A second
+ * resolve attempt on a non-pending envelope row surfaces as 409 +
+ * `actualStatus` (independent precondition from the artifact-hash check;
+ * catches duplicate rejects that don't move the artifact hash). If the
+ * envelope row is missing entirely (e.g., /adjust persistence failed, or
+ * the envelope predates this commit), the route degrades gracefully: the
+ * artifact apply proceeds and the resolution is logged but not persisted.
+ * Body-carry remains the load-bearing path; persistence is an additive
+ * audit trail.
  */
 
 import { z } from "zod"
@@ -46,6 +54,7 @@ import db from "../db/connection"
 import { stableHash } from "../canon/proposal-envelope"
 import { adjusterPatchSchema } from "../agents/artifact-adjuster/schema"
 import type { AdjusterPatch } from "../agents/artifact-adjuster/schema"
+import { findEnvelopeById, updateEnvelopeResolution } from "../db/proposal-envelopes"
 
 const targetRefSchema = z.object({
   kind: z.enum([
@@ -223,6 +232,7 @@ type ResolveOutcome =
   | { kind: "applied"; envelopeId: string; status: "approved" | "modified"; newVersion: string }
   | { kind: "stale"; envelopeId: string; expectedVersion: string; actualVersion: string }
   | { kind: "missing"; envelopeId: string }
+  | { kind: "alreadyResolved"; envelopeId: string; actualStatus: string }
 
 interface OutcomeWrapper {
   __resolveOutcome: ResolveOutcome
@@ -310,6 +320,12 @@ export async function handleProposalEnvelopeRoute(
     // lock. A concurrent edit blocks until our tx commits or rolls back.
     // Rollback paths: missing row → throw missing outcome; hash mismatch
     // → throw stale outcome. Both unwind the transaction with no changes.
+    //
+    // Phase 3 commit 4 follow-up A: the envelope-row resolution write
+    // joins the same tx. If the envelope row exists and is non-pending
+    // (concurrent resolve race), throw alreadyResolved → 409 + rollback.
+    // If the envelope row is missing (no /adjust persistence happened),
+    // skip the write — body-carry semantics still apply.
     let outcome: ResolveOutcome
     try {
       outcome = await db.begin(async (tx: typeof db) => {
@@ -327,22 +343,57 @@ export async function handleProposalEnvelopeRoute(
           })
         }
 
+        let runtime: ResolveOutcome
         if (body.status === "rejected") {
-          // Lock-and-release without writing. The transaction commits
-          // (no-op) so the lock releases. Returning the rejected outcome
-          // — no apply.
-          return { kind: "rejected", envelopeId: body.envelope.id } as const
+          runtime = { kind: "rejected", envelopeId: body.envelope.id }
+        } else {
+          // approved or modified — apply within the same tx so the apply
+          // either succeeds end-to-end or rolls back together with the lock.
+          const result = await applyPatchTx(tx, novelId, patchToApply)
+          runtime = {
+            kind: "applied",
+            envelopeId: body.envelope.id,
+            status: body.status,
+            newVersion: result.newVersion,
+          }
         }
 
-        // approved or modified — apply within the same tx so the apply
-        // either succeeds end-to-end or rolls back together with the lock.
-        const result = await applyPatchTx(tx, novelId, patchToApply)
-        return {
-          kind: "applied",
-          envelopeId: body.envelope.id,
-          status: body.status,
-          newVersion: result.newVersion,
-        } as const
+        // Persist resolution to proposal_envelopes (best-effort: missing
+        // row degrades gracefully; non-pending row is a hard 409). Joins
+        // this transaction so the envelope row and the artifact stay in
+        // sync — a rollback on either side rolls back both.
+        const updated = await updateEnvelopeResolution(
+          {
+            id: body.envelope.id,
+            status: body.status,
+            resolvedAt: new Date().toISOString(),
+            resolvedByKind: "human",
+            resolvedByRef: null,
+            resolvedNote: body.operatorNote ?? null,
+            modifiedPayload: body.status === "modified" ? body.modifiedPayload ?? null : null,
+          },
+          tx,
+        )
+        if (!updated) {
+          // 0 rows affected: either row doesn't exist, or it's already
+          // resolved (status guard fired). Look up the row to disambiguate.
+          const row = await findEnvelopeById(body.envelope.id, tx)
+          if (row !== null && row.status !== "pending") {
+            throw wrapOutcome({
+              kind: "alreadyResolved",
+              envelopeId: body.envelope.id,
+              actualStatus: row.status,
+            })
+          }
+          // Row genuinely missing — /adjust persistence didn't fire (older
+          // envelope, or transient DB error during build). Audit gap
+          // accepted; the artifact apply still happened.
+          console.warn(
+            `[resolve] envelope ${body.envelope.id} not in proposal_envelopes; audit gap`,
+          )
+        }
+
+        return runtime
       })
     } catch (err) {
       if (isOutcomeWrapper(err)) {
@@ -369,6 +420,16 @@ export async function handleProposalEnvelopeRoute(
             envelopeId: outcome.envelopeId,
             expectedVersion: outcome.expectedVersion,
             actualVersion: outcome.actualVersion,
+          },
+          { status: 409 },
+        )
+      case "alreadyResolved":
+        return Response.json(
+          {
+            ok: false,
+            error: "envelope already resolved",
+            envelopeId: outcome.envelopeId,
+            actualStatus: outcome.actualStatus,
           },
           { status: 409 },
         )

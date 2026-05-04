@@ -286,6 +286,8 @@ export interface ResolveProposalEnvelopeResponse {
   /** Set on 409 stale-precondition. */
   expectedVersion?: string
   actualVersion?: string
+  /** Set on 409 envelope-already-resolved (Phase 3 commit 4 follow-up A). */
+  actualStatus?: string
   error?: string
 }
 
