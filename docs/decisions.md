@@ -10,6 +10,45 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 5 commit 1 — editorial proposal payload schemas (2026-05-04)
+
+**Decision:** Define `EditorialFlagProposal` + `ProseEditProposal` as zod schemas + TypeScript types, plus specialized envelope aliases (`EditorialFlagEnvelope` / `ProseEditEnvelope`) that ride on Phase 3 commit 1's `ReviewProposalEnvelope<TPayload>`. Two builders produce ready-to-persist envelopes with `draft_hash` preconditions. No LLM module, no persistence helpers, no patch application — those are Phase 5 commits 2+.
+
+**Why ship schema + builders before any producer exists:** Phase 5's design lists 6 work items; the schemas are the interface contract every later piece (LLM module, persistence helpers, lint-fix-as-proposal converter, patch application) imports. Defining them first lets each subsequent commit ship narrowly with a known-good import. Same staging pattern as Phase 4 (commit 1 = pure compute helper, then table, then routes, then UI).
+
+**Why two distinct kinds (`editorial_flag` vs `prose_edit`) instead of one:** They answer different questions. A flag asks "does this need attention?" (issueType + severity + suggestedAction prose); an edit asks "apply THIS exact change" (target + replacement bytes). A producer can emit a flag without producing a corresponding edit (e.g., "off-canon, suggest rewriting the door scene" without specifying byte offsets). And an edit can exist without a flag (e.g., a deterministic typo fixer doesn't need to flag separately). Conflating them would force every flag to invent a fake target+replacement, or every edit to invent issueType+severity. Cleaner with two payloads sharing the envelope substrate.
+
+**Why `precondition.kind = "draft_hash"` (not `artifact_hash`):** Drafts version differently from artifacts. The world/character/spine artifacts are mutable rows; the draft is an immutable per-version snapshot (chapter:N:draft:vX). The hash precondition for an editorial proposal must pin the draft version it was produced against — applying a proposal against a newer draft (after the writer regenerated the chapter) would silently apply old advice to new prose. The `draft_hash` precondition kind already exists in Phase 3 commit 1's enum; this commit puts it to use.
+
+**Why severity→risk mapping (blocker→high, warning→medium, info→low):** The Phase 6 ApprovalPolicy will map risk → routing decision (auto-approve, queue, reject). Severity is the producer's recommended urgency; risk is the unified language the policy engine speaks. Mapping at envelope-build time is the cleanest seam — producers can set severity according to their domain semantics; the envelope carries the unified risk class through.
+
+**Why `classifyEditRisk` is `medium` by default:** Prose edits are concrete byte changes — they always merit human review under the default policy. A future producer that emits truly mechanical fixes (e.g., a deterministic typo corrector) would be free to override to `low` per-call; the helper's default isn't a ceiling. Keeping the default conservative means an unknown-quality producer can't auto-approve under default policy.
+
+**Why id seeds exclude parentEnvelopeId:** Mirrors Phase 3 commit 4 follow-up B. Lineage is provenance metadata, not identity — a regen that produces an identical patch on the same draft hash should land on the same envelope id; `ON CONFLICT (id) DO NOTHING` then preserves the original row's lineage. Pinned by the `parentEnvelopeId is metadata-only` test for both kinds.
+
+**Concrete shape:**
+- `src/canon/editorial-proposal.ts` (new): exports the two payload interfaces + zod schemas, the two envelope aliases, the two builders, the two `classify*Risk` helpers, and a few support types (`EditorialFlagIssueType`, `EditorialFlagSeverity`, `EditorialEvidenceQuote`, `EditorialCanonRef`, `ProseEditTarget`).
+- Local copy of `canonicalize` + `stableHashHex` to avoid a circular import with `proposal-envelope.ts`. Behavior matches `stableHash` exactly (same recursive key sort + sha256).
+- `src/canon/editorial-proposal.test.ts`: 14 tests across schema accept/reject, classify mappings, builder shape variants, id determinism + parentEnvelopeId provenance.
+
+**Evidence:**
+- `bun test src/canon/editorial-proposal.test.ts` — 14/14 pass / 43 expects.
+- `bunx tsc --noEmit` — clean.
+- Diff scope: 2 files (+646/-0). Pure additive — no existing surface touched.
+
+**Counterfactuals considered but rejected:**
+
+- *Inline these schemas into `proposal-envelope.ts` (single file for all envelope payload types).* Rejected. `proposal-envelope.ts` is already 250 lines and concerns itself with the artifact_patch kind plus the generic envelope shape. Adding two unrelated payload kinds would balloon it past readable. Per-kind file isolates the concern.
+- *Make `precondition.kind` always `artifact_hash`.* Rejected — drafts aren't artifacts. The `draft_hash` precondition catches "stale draft" mismatches that an `artifact_hash` precondition would miss (the draft moved while world/characters/spine stayed the same).
+- *Combine `EditorialFlagProposal.issueType` and `severity` into a single richer enum.* Rejected. They're orthogonal — an off-canon issue can be info/warning/blocker depending on the canon fact's confidence + the contradiction scope; the producer needs to set both independently.
+- *Make `classifyFlagRisk` map info → mechanical (auto-approve under default policy).* Rejected. `mechanical` is reserved for risk-class changes that don't carry editorial judgment — a deterministic typo fix, a renaming cascade. An info-level editorial flag is still a producer's opinion that the operator should be aware of, even if the policy might choose to auto-shadow.
+- *Add a `recommendation: { policy: ... }` field on the proposals (collapsing the policy engine into the producer).* Rejected. Phase 6's policy engine is the centralized place — embedding policy hints on each proposal would diffuse the policy logic across producers and make it harder to evaluate consistency.
+- *Make builders return promises (so they could fetch hashes server-side).* Rejected. Hashes are passed in by callers — keeping builders pure makes them trivially testable and lets producers compose draft-hash computation however they like.
+
+**Ongoing:** Phase 5 progress: commit 1 done (schemas + builders). Remaining: commit 2 (LLM editorial module — tracer-bullet producer for chapter-contract coverage or continuity-against-Canon; emits `EditorialFlagProposal` payloads), commit 3 (typed persistence helpers — `insertEditorialFlagEnvelope` etc., currently the polymorphic `proposal_envelopes` row supports these kinds via JSONB), commit 4 (patch application for prose_edit envelopes — apply with draft-hash precondition), commit 5 (convert deterministic lint fixes into prose_edit proposal cards). Phase 4 commit 5 (replay-on-stale enforcement at draft start) and Phase 3 commit 5b (LLM-firing quick actions) still in queue.
+
+---
+
 ### §Phase 4 commit 4 — Planning Snapshot UI panel (2026-05-04)
 
 **Decision:** New page at `/app/planning-snapshot/:novelId` that renders the three operator states (drift / locked-clean / not-locked) and exposes a Lock button. Mechanical-health summary deferred — `runPlannerCanonDeltaAudit` isn't exposed via HTTP yet. MVP focuses on the explicit-consent locking surface that commit 3 enabled.
