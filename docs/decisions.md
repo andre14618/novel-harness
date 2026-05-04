@@ -10,6 +10,41 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 3 commit 2.5 — UI consumer of /proposal-envelopes/resolve (2026-05-04)
+
+**Decision:** Add per-envelope Approve / Reject cards to the conversational `/adjust` panel (`ArtifactPreviews.tsx` `AdjustPanel`) so the operator can act on each `proposalEnvelopes[i]` independently. New `resolveProposalEnvelope` API client wraps the Phase 3 commit 2 server route; new `EnvelopeCard` component renders one card per envelope with a risk badge, summarized payload, and a per-row state machine.
+
+**Why:** Phase 3 commit 2's resolve route was server-only — operators couldn't reach it through the existing UI, which still shipped a single `Apply all` button. Without the per-envelope surface, the resolve route's contract (per-patch granularity + stale-precondition guard) couldn't be exercised in the wild. This commit completes the loop.
+
+**Why now:** Round-4 closed RED → GREEN; the resolve route's atomic compare-and-apply + stale-precondition response shape is now binding. UI consumer is the natural follow-up. Phase 3 commits 3-5 each build on either the per-envelope card (commit 3 regen, commit 5 quick actions) or the resolve route directly (commit 4 persistence) — landing the UI consumer first means commit 3 can wire `Regenerate` into an existing card surface instead of inventing one.
+
+**Card state machine:** pending → busy → (done | stale | error).
+
+- **done** carries the resolution status + a 8-char hash preview of `newVersion`.
+- **stale** surfaces the version diff inline (expected vs actual, both 8-char prefix) plus a "Regenerate (commit 3) coming soon" placeholder. The operator can see WHY it's stale without losing the envelope.
+- **error** carries the server-returned `error` message. No retry button in v1; the operator can re-send the conversation turn instead.
+
+**Why no Modify in this commit:** Per Codex round-3 HIGH (`ca9a6a8`), the v1 modify form is unsafe for kinds that carry structured `data`. Every artifact-patch envelope is structured by nature — the AdjusterPatch types (`characterUpdate` / `characterRename` / `worldUpdate` / `spineUpdate`) all have machine-readable patch fields. A kind-aware modify editor is the same gate that blocked structured-canon-proposal modify; lifting it is one piece of work. Out of scope here.
+
+**Legacy fallback preserved:** When the server doesn't return `proposalEnvelopes` (older deploys, offline mode), the existing `Apply all` button still renders. Phase 3 commit 1 made the envelope field optional for back-compat; this commit honors that.
+
+**Evidence:**
+
+- `bunx tsc --noEmit` (server + UI) — clean.
+- `bunx vite build` — clean. 518.09 kB / 154.95 kB gzip (was 514.53 kB / 153.98 kB; +3.56 kB / +0.97 kB gzip for the card layout + state handling + risk badge styles).
+- Diff scope: 2 files (`ui/src/api.ts` +37; `ui/src/components/ArtifactPreviews.tsx` +210 / -3). Server unchanged.
+- Browser hand-test deferred per CLAUDE.md UI rule (flag-and-disclose).
+
+**Counterfactuals considered but rejected:**
+
+- *Replace the `Apply all` button entirely.* Older servers that didn't ship Phase 3 commit 1 still return `proposedPatches` only, no envelopes. Removing the legacy path would silently break the conversational adjust flow on those deploys. The fallback path is conditional on `envelopes.length === 0`, which keeps it dormant on current deploys.
+- *Inline the regen action now (Phase 3 commit 3 in this commit).* Regen requires either a new server route or a re-run of `/adjust` with the original conversation — both are non-trivial. Commit 3 is its own concern with its own LLM-cost considerations.
+- *Add Modify cards now.* Same gate as the canon-proposals modify hole — structured kinds need a kind-aware editor. Commit 2.5 ships safe-by-default Approve/Reject; Modify is a future commit with its own review.
+
+**Ongoing:** Phase 3 progress: commits 1, 2, 2.5 done. Remaining: commit 3 (regenerate-on-stale; UI surface stubbed), commit 4 (persistence), commit 5 (quick actions). Operator browser hand-test for the new EnvelopeCard surface deferred.
+
+---
+
 ### §Codex round-4 fix bundle (2026-05-04)
 
 **Decision:** Ship the three round-4 findings (1 HIGH + 2 MEDIUM) as three separate commits — one per finding — before opening Phase 3 commit 3 (regenerate on stale precondition). Round-4 verdict was RED on the 6-commit bundle 1e550ad^..9fb7cd5 (round-3 fixes + Phase 3 commit 2); the fix bundle flips it to GREEN.
