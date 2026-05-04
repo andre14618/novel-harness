@@ -48,8 +48,23 @@ export async function updateCharacterFields(
   novelId: string,
   characterId: string,
   patch: Record<string, unknown>,
+  executor?: typeof db,
 ): Promise<CharacterProfile> {
-  const rows = await db`SELECT profile_json FROM characters WHERE novel_id = ${novelId} AND id = ${characterId}`
+  // Codex round-4 MEDIUM 2: the rename path is multi-statement (character
+  // row + two relationship_states rewrites). Without a transaction, a
+  // failure on either follow-up leaves `characters.name` and
+  // `relationship_states` inconsistent — and a retry then looks stale
+  // because the name has already moved. We always wrap the internal work
+  // in a transaction so the rename either fully applies or fully rolls
+  // back. The optional `executor` lets a caller (e.g., the
+  // proposal-envelope resolve route) thread its own transaction through
+  // for outer atomicity (same-tx hash precondition + apply).
+  if (executor === undefined) {
+    return await db.begin(async (tx: typeof db) =>
+      updateCharacterFields(novelId, characterId, patch, tx),
+    )
+  }
+  const rows = await executor`SELECT profile_json FROM characters WHERE novel_id = ${novelId} AND id = ${characterId}`
   if (!rows.length) throw new Error(`Character ${characterId} not found`)
   const current = rows[0].profile_json as CharacterProfile
   const next: any = { ...current }
@@ -58,13 +73,13 @@ export async function updateCharacterFields(
   }
   const oldName = current.name
   const newName = next.name
-  await db`UPDATE characters SET name = ${newName}, profile_json = ${next}
+  await executor`UPDATE characters SET name = ${newName}, profile_json = ${next}
            WHERE novel_id = ${novelId} AND id = ${characterId}`
 
   if (oldName !== newName) {
-    await db`UPDATE relationship_states SET character_a = ${newName}
+    await executor`UPDATE relationship_states SET character_a = ${newName}
              WHERE novel_id = ${novelId} AND character_a = ${oldName}`
-    await db`UPDATE relationship_states SET character_b = ${newName}
+    await executor`UPDATE relationship_states SET character_b = ${newName}
              WHERE novel_id = ${novelId} AND character_b = ${oldName}`
   }
 
@@ -80,15 +95,16 @@ const EDITABLE_WORLD_FIELDS = [
 export async function updateWorldBibleFields(
   novelId: string,
   patch: Record<string, unknown>,
+  executor: typeof db = db,
 ): Promise<WorldBible> {
-  const rows = await db`SELECT content_json FROM world_bibles WHERE novel_id = ${novelId}`
+  const rows = await executor`SELECT content_json FROM world_bibles WHERE novel_id = ${novelId}`
   if (!rows.length) throw new Error(`No world bible for novel ${novelId}`)
   const current = rows[0].content_json as WorldBible
   const next: any = { ...current }
   for (const k of EDITABLE_WORLD_FIELDS) {
     if (k in patch) next[k] = patch[k]
   }
-  await db`UPDATE world_bibles SET content_json = ${next} WHERE novel_id = ${novelId}`
+  await executor`UPDATE world_bibles SET content_json = ${next} WHERE novel_id = ${novelId}`
   return next
 }
 
@@ -97,14 +113,15 @@ const EDITABLE_SPINE_FIELDS = ["centralConflict", "theme", "endingDirection"] as
 export async function updateStorySpineFields(
   novelId: string,
   patch: Record<string, unknown>,
+  executor: typeof db = db,
 ): Promise<StorySpine> {
-  const rows = await db`SELECT content_json FROM story_spines WHERE novel_id = ${novelId}`
+  const rows = await executor`SELECT content_json FROM story_spines WHERE novel_id = ${novelId}`
   if (!rows.length) throw new Error(`No story spine for novel ${novelId}`)
   const current = rows[0].content_json as StorySpine
   const next: any = { ...current }
   for (const k of EDITABLE_SPINE_FIELDS) {
     if (k in patch) next[k] = patch[k]
   }
-  await db`UPDATE story_spines SET content_json = ${next} WHERE novel_id = ${novelId}`
+  await executor`UPDATE story_spines SET content_json = ${next} WHERE novel_id = ${novelId}`
   return next
 }
