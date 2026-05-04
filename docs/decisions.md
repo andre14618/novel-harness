@@ -10,6 +10,37 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Codex round-4 fix bundle (2026-05-04)
+
+**Decision:** Ship the three round-4 findings (1 HIGH + 2 MEDIUM) as three separate commits — one per finding — before opening Phase 3 commit 3 (regenerate on stale precondition). Round-4 verdict was RED on the 6-commit bundle 1e550ad^..9fb7cd5 (round-3 fixes + Phase 3 commit 2); the fix bundle flips it to GREEN.
+
+- **`03af3e2` MEDIUM 2 (rename atomicity)** — `[fix] Codex round-4 MEDIUM 2: characterRename atomicity`. The rename path on `updateCharacterFields` ran 3 statements (character row UPDATE + 2 `relationship_states` rewrites) on the bare `db` connection. A failure on either follow-up left `characters.name` and `relationship_states` inconsistent; a retry then looked stale because the name had already moved. Fix: wrap the function's internal multi-statement work in `db.begin(...)` when called bare, OR thread an outer caller's executor through. Optional `executor` parameter added to `updateWorldBibleFields` and `updateStorySpineFields` too — Phase 3 commit 2's resolve route (round-4 HIGH below) needed it. New `src/db/world.test.ts` (3 pass / 10 expects) pins both happy-path atomicity and the executor-threading contract. Exp #433.
+- **`b5aa3d4` HIGH (atomic compare-and-apply)** — `[fix] Codex round-4 HIGH: atomic compare-and-apply in resolve route`. Phase 3 commit 2's hash precondition was not binding. The route did read live hash → compare → apply across the bare `db` connection — a concurrent edit between the read and the apply still produced 200 + clobber. That violated the design's §"Stale patches cannot overwrite newer human edits". Fix: wrap precondition check + apply in a single `db.begin(...)`. SELECT FOR UPDATE locks the target row inside the transaction; the apply uses the executor-threaded update helpers. The thrown-outcome pattern (`wrapOutcome` / `isOutcomeWrapper`) carries response shape (missing → 404, stale → 409, rejected → 200/applied:false, applied → 200/applied:true) without polluting the happy path. New race-window test (`Promise.all` two concurrent same-target resolves) asserts sorted statuses `[200, 409]`, exactly one apply, winner's payload in DB. Exp #434.
+- **`1ab2e4d` MEDIUM 1 (error masquerade)** — `[test] Codex round-4 MEDIUM 1: pin worldUpdate/spineUpdate missing → 404`. Pre-fix `readLiveTargetVersion` swallowed `getCharacters / getWorldBible / getStorySpine` failures into `[]` / `null`, hashed the fallback, and either passed the precondition with bogus state (worldUpdate / spineUpdate → 500 apply-error) or returned a false 404 (transient character read errors). Closure: the HIGH commit replaced `readLiveTargetVersion` with `readLockedTarget` (no `.catch()`, returns null only on `rows.length === 0`). Real DB errors propagate and surface as 500 not 404. This commit added two regression-pinning tests so the contract can't silently break. Exp #435.
+
+**Why:** Round-4 was the fourth Codex pass on this lane (round-1: 3H/4M/4L all closed; round-2: 0H/3M/0L all closed; round-3: 1H/2M/0L all closed; round-4: 1H/2M/0L now all closed). The HIGH was the same-shape risk as round-1's canon-substrate concurrency: a precondition that compares but doesn't bind under a lock can be raced. The MEDIUMs were defense-in-depth gaps that round-3 didn't catch because they only surfaced on production-realistic failure modes (transient DB errors, missing rows).
+
+**Why now:** Per the autonomous-loop default, RED verdicts on a Codex re-review block forward motion. Phase 3 commit 3 (patch regeneration on stale precondition) only matters if commit 2's stale-precondition contract is actually binding — round-4 HIGH proved it wasn't. Closing all three before opening commit 3 is the right order.
+
+**Evidence:**
+
+- `bunx tsc --noEmit` — clean (server, all three commits).
+- `bun test src/db/world.test.ts` — 3/3 pass / 10 expects.
+- `bun test src/orchestrator/proposal-envelope-routes.test.ts` — 21/21 pass / 85 expects (was 18 → 21: race-window + 2 missing-target additions).
+- `bun test src/orchestrator/proposal-envelope-routes.test.ts -t "concurrent same-envelope"` — 1/1 pass / 6 expects in ~1.4s; deterministic across runs.
+- Diff scope: 4 files (`src/db/world.ts` +25 / -8; `src/db/world.test.ts` new +180; `src/orchestrator/proposal-envelope-routes.ts` +127 / -77; `src/orchestrator/proposal-envelope-routes.test.ts` +97 / 0).
+
+**Counterfactuals considered but rejected:**
+
+- *Encode the precondition as a `WHERE content_json::jsonb @> ...` guard on the UPDATE.* Would avoid the FOR UPDATE lock entirely. Rejected because (a) jsonb comparison is not byte-stable for our canonical-hash contract — two semantically equivalent jsonbs can have different binary representations, breaking the equality check; (b) the precondition needs to compare to a SHA-256 string we computed in Node, which Postgres can't easily replicate inside a `WHERE` clause without `pgcrypto` + a stable-stringify SQL function (out of scope).
+- *Use READ COMMITTED + retry on conflict instead of FOR UPDATE.* Would defer the race resolution to commit time, requiring callers to handle retry. The locking semantics are simpler to reason about and the worst-case latency under contention is bounded by the apply's runtime (~tens of ms).
+- *Bundle MEDIUM 2 + HIGH into one commit.* MEDIUM 2 is a self-contained fix to `world.ts` that other callers (existing PUT routes) benefit from immediately; bundling it would slow that fix's deploy. Per CLAUDE.md "one finding per commit if it is a Codex re-review item".
+- *Add MEDIUM 1 as code change rather than test-only.* The HIGH fix structurally closed MEDIUM 1 (replaced the helper with one that has no swallows). A test-only commit pins the contract going forward without re-touching the route code.
+
+**Ongoing:** Round-4 backlog is now empty; verdict moves from RED → GREEN. Four full Codex review rounds on this lane are now closed: round-1 (3H/4M/4L), round-2 (0H/3M/0L), round-3 (1H/2M/0L), round-4 (1H/2M/0L). Phase 3 commit 3 (patch regeneration on stale precondition) unblocked on a sound foundation. Phase 3 commit 4 (persistence) and commit 5 (quick actions) follow.
+
+---
+
 ### §Phase 3 commit 2 — per-patch resolve route (2026-05-04)
 
 **Decision:** Add `POST /api/novel/:novelId/proposal-envelopes/resolve` as a stateless per-patch resolve seam over the envelope projection introduced in Phase 3 commit 1. The route accepts a full envelope (body-carried; persistence is Phase 3 commit 4) plus a status + optional modified payload, validates the live-artifact hash precondition, and dispatches to the existing artifact-update helpers.
