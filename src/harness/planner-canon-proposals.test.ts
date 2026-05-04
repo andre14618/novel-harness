@@ -489,6 +489,96 @@ describe.skipIf(!reachable)("generatePlannerCanonProposals (DB-backed)", () => {
     expect(ids).toContain("fact-c1-f2")
   })
 
+  test("schema-version drift: v1 and v2 proposal rows coexist; approving each independently audit-trails both (round-1 LOW)", async () => {
+    // 60 inserts across two batches plus version-chain reads pushes runtime
+    // past the 5s default. Other DB-backed tests in this file run in ≤2s.
+    // Future schema bumps must not silently auto-resolve prior-version
+    // proposals or hide them from operators. v1 and v2 ids are different —
+    // the substrate treats them as independent rows. Both can sit pending,
+    // both can be approved, and the canon-fact same-id supersession chain
+    // handles the eventual collapse to a single active version.
+    const outlines = makeOutlines()
+    const v1 = await generatePlannerCanonProposals(novelId, outlines, {
+      schemaVersion: "v1",
+    })
+    expect(v1.gateClear).toBe(true)
+    expect(v1.created).toHaveLength(30)
+    expect(v1.created.every((p) => p.id.endsWith(":v1"))).toBe(true)
+
+    const v2 = await generatePlannerCanonProposals(novelId, outlines)
+    expect(v2.gateClear).toBe(true)
+    expect(v2.created).toHaveLength(30)
+    expect(
+      v2.created.every((p) => p.id.endsWith(`:${PLANNER_PROPOSAL_SCHEMA_VERSION}`)),
+    ).toBe(true)
+
+    // 60 distinct rows; v1 and v2 id sets are disjoint.
+    const v1Ids = new Set(v1.created.map((p) => p.id))
+    const v2Ids = new Set(v2.created.map((p) => p.id))
+    for (const id of v1Ids) expect(v2Ids.has(id)).toBe(false)
+    const totalRows = (await db`
+      SELECT COUNT(*)::int AS c FROM canon_proposals WHERE novel_id = ${novelId}
+    `) as Array<{ c: number }>
+    expect(totalRows[0].c).toBe(60)
+
+    // No-ghost-canon still holds: every row is pending; canon reads see none.
+    const sub = new PostgresCanonSubstrate()
+    for (const chapterN of [1, 2, 3]) {
+      await sub.loadSnapshot(novelId, chapterN)
+      expect(sub.factsAsOfChapter(novelId, chapterN)).toEqual([])
+    }
+    const initialPending = await listPendingPlannerProposals(novelId)
+    expect(initialPending).toHaveLength(60)
+
+    // Approve the v1 proposal first, then the v2. Both target source-item
+    // `fact-c1-f1` so their canon-fact logical id collides — commitFact's
+    // same-id supersession kicks in and produces a 2-version chain.
+    const v1TargetId = plannerProposalId(novelId, "fact-c1-f1", "v1")
+    const v2TargetId = plannerProposalId(novelId, "fact-c1-f1") // default v2
+    expect(v1TargetId).not.toBe(v2TargetId)
+
+    const r1 = await sub.resolveProposal(v1TargetId, "approved")
+    expect(r1.committedFact?.id).toBe("fact-c1-f1")
+    const r2 = await sub.resolveProposal(v2TargetId, "approved")
+    expect(r2.committedFact?.id).toBe("fact-c1-f1")
+
+    // Audit trail: both proposal rows persist as `approved` — the older
+    // version's resolution is not lost.
+    const v1Row = await canonDb.findProposal(v1TargetId)
+    const v2Row = await canonDb.findProposal(v2TargetId)
+    expect(v1Row?.status).toBe("approved")
+    expect(v2Row?.status).toBe("approved")
+
+    // canon_facts has 2 versions for the logical id; the v1 commit was
+    // superseded by the v2 commit (same-id close in commitFact).
+    const factVersions = (await db`
+      SELECT version, superseded_by_version
+      FROM canon_facts
+      WHERE novel_id = ${novelId} AND logical_id = 'fact-c1-f1'
+      ORDER BY version
+    `) as Array<{ version: number; superseded_by_version: number | null }>
+    expect(factVersions).toHaveLength(2)
+    expect(factVersions[0].superseded_by_version).toBe(factVersions[1].version)
+    expect(factVersions[1].superseded_by_version).toBeNull()
+
+    // factsAsOfChapter exposes exactly one active row for the logical id.
+    await sub.loadSnapshot(novelId, 1)
+    const visibleC1 = sub
+      .factsAsOfChapter(novelId, 1)
+      .filter((f) => f.id === "fact-c1-f1")
+    expect(visibleC1).toHaveLength(1)
+
+    // Re-running generate at the default version is idempotent — the 30
+    // v2 ids are already present, so they go to `skipped`. v1 rows are
+    // untouched (the schemaVersion bump did not auto-resolve them).
+    const third = await generatePlannerCanonProposals(novelId, outlines)
+    expect(third.created).toHaveLength(0)
+    expect(third.skipped).toHaveLength(30)
+    const stillPending = await listPendingPlannerProposals(novelId)
+    // 30 v1 + 30 v2 - 2 approved (one from each version) = 58.
+    expect(stillPending).toHaveLength(58)
+  }, 30_000)
+
   // ── autogenPlannerProposalsAfterPlanning (Phase 1.5 pipeline auto-wire) ──
 
   test("autogenPlannerProposalsAfterPlanning returns counts and never throws on clean gate", async () => {
