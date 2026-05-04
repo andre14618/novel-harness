@@ -341,19 +341,44 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
   // operator types a new /adjust message (which would also discard them).
   // The fetch is best-effort: a 404 / 500 / network error logs and leaves
   // the panel empty; the operator can still drive a fresh /adjust turn.
-  // Refetches when novelId changes (e.g., novel-switcher) so the panel
-  // tracks the active novel.
+  //
+  // OpenCode review MEDIUM G: when novelId changes, we must reset ALL
+  // panel state first so novel A's envelopes / chat / pending-patches
+  // don't leak into novel B. The previous `prev.length > 0 ? prev : envs`
+  // guard preserved A's envelopes if B's fetch returned empty — a real
+  // bug if the operator switches novels mid-conversation. Reset is now
+  // unconditional on novelId change; the seed runs against the cleared
+  // state.
+  const seededNovelIdRef = useRef<string | null>(null)
   useEffect(() => {
     let cancelled = false
+    // Reset all conversation + envelope state on novel change. The
+    // `seededNovelIdRef` tracks which novel is currently displayed so
+    // the seed below can detect cross-novel resumes (vs the very first
+    // mount, which has the same novelId throughout).
+    if (seededNovelIdRef.current !== null && seededNovelIdRef.current !== novelId) {
+      setTurns([])
+      setPendingPatches([])
+      setEnvelopes([])
+      setEnvelopeStates({})
+      setInput("")
+      setHistoryEnvelopes([])
+      setHistoryError(null)
+    }
+    seededNovelIdRef.current = novelId
+
     void (async () => {
       try {
         const res = await listProposalEnvelopes(novelId, { status: "pending" })
         if (cancelled) return
+        // Re-check that the active novel is still the one we fetched
+        // for — a fast novel-switch could leave us with a stale fetch.
+        if (seededNovelIdRef.current !== novelId) return
         const envs = res.envelopes ?? []
         if (envs.length === 0) return
-        // Don't clobber an in-flight conversation — only seed when the
-        // panel is in its initial empty state. After the first /adjust
-        // turn the conversation owns envelope state.
+        // Don't clobber an in-flight conversation on the SAME novel —
+        // only seed when the panel is in its initial empty state. After
+        // the first /adjust turn the conversation owns envelope state.
         setEnvelopes(prev => (prev.length > 0 ? prev : envs))
         setEnvelopeStates(prev => {
           if (Object.keys(prev).length > 0) return prev
