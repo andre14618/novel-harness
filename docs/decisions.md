@@ -10,6 +10,59 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 3 commit 2 — per-patch resolve route (2026-05-04)
+
+**Decision:** Add `POST /api/novel/:novelId/proposal-envelopes/resolve` as a stateless per-patch resolve seam over the envelope projection introduced in Phase 3 commit 1. The route accepts a full envelope (body-carried; persistence is Phase 3 commit 4) plus a status + optional modified payload, validates the live-artifact hash precondition, and dispatches to the existing artifact-update helpers.
+
+**Why:** Phase 3 acceptance §"User can collaboratively adjust world, characters, and spine one proposal at a time" needs a per-patch resolve seam. The current `/adjust` flow returns N envelopes but only a UI-side "apply all" — there is no operator path to approve some and reject others, and no precondition guard that prevents a stale patch from clobbering a newer human edit. This commit ships exactly that: per-patch granularity + the precondition guard, no persistence, no UI consumer yet.
+
+**Why now:** Round-3 verdict is GREEN; the morning's bundle (and the round-3 fix bundle that closed RED) are stable. Phase 3 commit 1's envelope shape + the canonical-hash fix from Round-3 MEDIUM 2 (`c307ddd`) together give us the foundation needed: restart-stable ids and `target.currentVersion`. Commit 2 builds directly on those primitives.
+
+**Route shape:**
+
+```
+POST /api/novel/:novelId/proposal-envelopes/resolve
+Body: {
+  envelope: ArtifactPatchEnvelope,
+  status: "approved" | "rejected" | "modified",
+  modifiedPayload?: AdjusterPatch,
+  operatorNote?: string,
+}
+```
+
+Responses:
+- 200 + `{ok:true, envelopeId, applied:boolean, status, newVersion?}` — applied=true on approved/modified; rejected returns `applied:false` with no newVersion.
+- 409 + `{ok:false, error:"stale-precondition", envelopeId, expectedVersion, actualVersion}` — the live artifact hash no longer matches `envelope.target.currentVersion`.
+- 404 + `{ok:false, error:"target artifact missing", envelopeId}` — referenced character / world / spine row absent.
+- 400 + `{ok:false, error:"invalid request body", issues:[…]}` — zod schema rejection (covers missing `modifiedPayload` when `status === "modified"`).
+- 400 + `{ok:false, error:"envelope.novelId does not match URL novelId"}` — defense against URL/body mismatch.
+- 400 + `{ok:false, error:"modifiedPayload must target the same artifact as the original envelope payload"}` — defense against cross-target / cross-type modifies.
+
+**Why these design choices:**
+
+- *Stateless / body-carried envelope:* The envelope is computed and returned by `/adjust`. The operator decides per-envelope. Persistence is a separate Phase 3 commit 4 concern; bundling it here would conflate the resolve mechanics with the storage concern. The contract is narrow.
+- *Live-hash recomputation, not envelope.precondition.hash trust:* The envelope's hash is the operator's snapshot. The route's job is to verify the live artifact still matches that snapshot. Trusting the envelope's hash without recomputation would allow a malicious or buggy client to bypass the precondition by stuffing a stale value.
+- *Same-artifact assertion on modified payloads:* A "modify" refines the same proposal. Allowing cross-target modify (e.g., approve a `worldUpdate` by submitting a `characterUpdate` as `modifiedPayload`) would let an operator silently edit a different artifact while pretending to approve an envelope. Defense in depth even though the UI shouldn't generate such payloads.
+- *Returns post-apply `newVersion`:* The UI can refresh `target.currentVersion` for any subsequent envelopes targeting the same artifact without a full re-fetch — important for the "approve A then approve B" flow where B's precondition would otherwise be stale.
+
+**Evidence:**
+
+- `bun test src/orchestrator/proposal-envelope-routes.test.ts` — 18/18 pass / 73 expects.
+- `bun test src/canon` — 212/212 pass / 501 expects.
+- `bunx tsc --noEmit` — clean.
+- Diff scope: 3 files (`src/orchestrator/proposal-envelope-routes.ts` new +312, `src/orchestrator/proposal-envelope-routes.test.ts` new +537, `src/orchestrator/server.ts` +5).
+
+**Counterfactuals considered but rejected:**
+
+- *Inline the route in `novel-routes.ts` next to `/adjust`.* `novel-routes.ts` is already 1,483 lines and growing. The canon-proposal routes were extracted into a sibling module for the same reason; this commit follows the same pattern.
+- *Persist envelopes in this commit.* Persistence is the Phase 3 commit 4 concern. Bundling would (a) conflate two concerns into one commit and (b) require schema design before the resolve mechanics are validated. The body-carried shape lets us prove out the precondition + apply seam first.
+- *Add a `regenerate` field that re-runs the adjuster when the precondition is stale.* That's Phase 3 commit 3. Mixing it in here would couple the resolve semantics to the agent surface; better to ship resolve first and let regen build on top.
+- *Skip the same-artifact assertion (rely on UI to never send cross-target modifies).* Defense in depth is cheap (one helper function) and closes a real attack/bug surface. UI bugs do happen — the round-3 HIGH was exactly such a case.
+
+**Ongoing:** Phase 3 commit 2 is in. Next remaining sub-items: commit 3 (patch regeneration on stale precondition), commit 4 (persist adjustment conversations + proposals), commit 5 (quick actions: accept-all-low-risk / reject-all / ask-alternatives / explain-patch). Plus a UI consumer of commit 2's resolve route. Phase 4-6 (planning snapshot review, editorial workbench, approval policy) remain queued.
+
+---
+
 ### §Codex round-3 fix bundle (2026-05-04)
 
 **Decision:** Ship the three round-3 findings (1 HIGH + 2 MEDIUM) as three separate commits — one per finding — before opening Phase 3 commit 2 (per-patch resolve routes). Round-3 verdict was RED on the morning's 11-commit bundle (ee19011..1e550ad); the fix bundle flips it to GREEN with no remaining blockers.
