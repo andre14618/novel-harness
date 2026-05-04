@@ -59,7 +59,7 @@ interface ProposalEnvelopeRow {
   created_at: string | Date
 }
 
-function rowToArtifactPatchEnvelope(row: ProposalEnvelopeRow): ArtifactPatchEnvelope {
+export function rowToArtifactPatchEnvelope(row: ProposalEnvelopeRow): ArtifactPatchEnvelope {
   if (row.kind !== "artifact_patch") {
     throw new Error(
       `rowToArtifactPatchEnvelope: row ${row.id} has kind=${row.kind}, expected artifact_patch`,

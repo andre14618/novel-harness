@@ -111,6 +111,7 @@ const resolveBodySchema = z.object({
   status: z.enum(["approved", "rejected"]),
   operatorNote: z.string().optional(),
   policy: approvalPolicySchema.optional(),
+  resolvedBy: z.enum(["human", "policy", "script", "test"]).optional(),
 })
 
 type ResolveBody = z.infer<typeof resolveBodySchema>
@@ -245,7 +246,7 @@ export async function handleProseEditRoute(
             id: envelope.id,
             status: "rejected",
             resolvedAt: new Date().toISOString(),
-            resolvedByKind: "human",
+            resolvedByKind: parsedBody.resolvedBy ?? "human",
             resolvedByRef: null,
             resolvedNote: operatorNote ?? null,
             modifiedPayload: null,
@@ -331,7 +332,7 @@ export async function handleProseEditRoute(
           id: envelope.id,
           status: "approved",
           resolvedAt: new Date().toISOString(),
-          resolvedByKind: "human",
+          resolvedByKind: parsedBody.resolvedBy ?? "human",
           resolvedByRef: null,
           resolvedNote: operatorNote ?? null,
           modifiedPayload: null,
@@ -354,7 +355,7 @@ export async function handleProseEditRoute(
               id: envelope.id,
               status: "approved",
               resolvedAt: new Date().toISOString(),
-              resolvedByKind: "human",
+              resolvedByKind: parsedBody.resolvedBy ?? "human",
               resolvedByRef: null,
               resolvedNote: operatorNote ?? null,
               modifiedPayload: null,

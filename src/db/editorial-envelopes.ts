@@ -225,7 +225,7 @@ export async function listEditorialFlagEnvelopes(
 
 // ── prose_edit ─────────────────────────────────────────────────────────
 
-function rowToProseEditEnvelope(row: ProposalEnvelopeRow): ProseEditEnvelope {
+export function rowToProseEditEnvelope(row: ProposalEnvelopeRow): ProseEditEnvelope {
   if (row.kind !== "prose_edit") {
     throw new Error(
       `rowToProseEditEnvelope: row ${row.id} has kind=${row.kind}, expected prose_edit`,

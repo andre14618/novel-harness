@@ -132,6 +132,7 @@ const resolveBodySchema = z
     modifiedPayload: adjusterPatchSchema.optional(),
     operatorNote: z.string().optional(),
     policy: approvalPolicySchema.optional(),
+    resolvedBy: z.enum(["human", "policy", "script", "test"]).optional(),
   })
   .superRefine((body, ctx) => {
     if (body.status === "modified" && body.modifiedPayload === undefined) {
@@ -404,7 +405,7 @@ export async function handleProposalEnvelopeRoute(
             id: body.envelope.id,
             status: body.status,
             resolvedAt: new Date().toISOString(),
-            resolvedByKind: "human",
+            resolvedByKind: body.resolvedBy ?? "human",
             resolvedByRef: null,
             resolvedNote: body.operatorNote ?? null,
             modifiedPayload: body.status === "modified" ? body.modifiedPayload ?? null : null,
@@ -439,7 +440,7 @@ export async function handleProposalEnvelopeRoute(
                 id: body.envelope.id,
                 status: body.status,
                 resolvedAt: new Date().toISOString(),
-                resolvedByKind: "human",
+                resolvedByKind: body.resolvedBy ?? "human",
                 resolvedByRef: null,
                 resolvedNote: body.operatorNote ?? null,
                 modifiedPayload: body.status === "modified" ? body.modifiedPayload ?? null : null,

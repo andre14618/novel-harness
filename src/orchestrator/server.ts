@@ -19,6 +19,7 @@ import { handleCanonProposalRoute } from "./canon-proposal-routes"
 import { handleProposalEnvelopeRoute } from "./proposal-envelope-routes"
 import { handlePlanningSnapshotRoute } from "./planning-snapshot-routes"
 import { handleProseEditRoute } from "./prose-edit-routes"
+import { handlePolicyDecideRoute } from "./policy-decide-routes"
 import { overviewPageHtml } from "./overview-page"
 
 await migrate()
@@ -954,6 +955,15 @@ const server = Bun.serve({
     // ── Prose-edit envelope apply (Phase 5 commit 4 — collaborative proposal workflow) ──
     const proseEditResponse = await handleProseEditRoute(req, url)
     if (proseEditResponse) return proseEditResponse
+
+    // ── Autonomous policy-decide (Phase 6 commit 5 — collaborative proposal workflow) ──
+    // Must be checked BEFORE the route falls through to a 404 fallback. The
+    // policy-decide handler itself reissues to proposal-envelope-routes /
+    // prose-edit-routes for approve/reject, so it must come after them in
+    // import order — but the route URL pattern is distinct enough that order
+    // of registration doesn't matter for dispatch.
+    const policyDecideResponse = await handlePolicyDecideRoute(req, url)
+    if (policyDecideResponse) return policyDecideResponse
 
     // ── Preference evaluation API ──────────────────────────────────
     const prefEvalResponse = await handlePrefEvalRoute(req, url)
