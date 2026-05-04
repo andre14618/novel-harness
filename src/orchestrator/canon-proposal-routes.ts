@@ -187,12 +187,24 @@ export async function handleCanonProposalRoute(
       })
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      // The substrate may still return "already resolved" if a concurrent
-      // caller resolved between our findProposal and the resolveProposal
-      // transaction — surface that as 409, not 500.
-      if (/already (approved|rejected|modified|pending)/i.test(msg)) {
+      // The substrate may surface a race in two distinct ways:
+      //   1. `resolveProposal: … already (approved|rejected|modified|pending)`
+      //      — caught by the harness layer's pre-write status check.
+      //   2. `updateProposalResolution: … is not pending` — caught by the
+      //      DB-level `WHERE status='pending'` guard when a concurrent
+      //      caller commits between our pre-read and the substrate's
+      //      atomic update.
+      // Both are concurrency-conflict signals (409 + actualStatus from a
+      // post-race re-read). Per Codex round-1 review of Package B (HIGH 1),
+      // the second case was previously slipping through to 500.
+      if (isResolveConcurrencyConflict(msg)) {
+        const actualStatus = await readActualStatus(proposalId)
         return Response.json(
-          { error: msg, proposalId },
+          {
+            error: msg,
+            proposalId,
+            actualStatus: actualStatus ?? "unknown",
+          },
           { status: 409 },
         )
       }
@@ -257,6 +269,7 @@ export async function handleCanonProposalRoute(
       committedFact?: unknown
       error?: string
       httpStatus?: number
+      actualStatus?: string
     }
     const results: BulkResult[] = []
     const sub = new PostgresCanonSubstrate()
@@ -335,14 +348,20 @@ export async function handleCanonProposalRoute(
         })
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
-        // Race: substrate's DB-level guard surfaces "already resolved"
-        // when a concurrent caller resolved between our findProposal and
-        // the resolveProposal transaction.
-        if (/already (approved|rejected|modified|pending)/i.test(msg)) {
+        // Race detection — the substrate surfaces conflicts through two
+        // distinct error messages (the harness pre-write check and the
+        // DB-level guard). Per Codex round-1 review of Package B (HIGH 1),
+        // both must surface as 409, not 500.
+        const isRace =
+          /already (approved|rejected|modified|pending)/i.test(msg) ||
+          /is not pending/i.test(msg)
+        if (isRace) {
+          const actualStatus = await readActualStatus(proposalId)
           results.push({
             proposalId,
             status: "error",
             error: msg,
+            actualStatus: actualStatus ?? "unknown",
             httpStatus: 409,
           })
         } else {
@@ -416,6 +435,43 @@ export async function handleCanonProposalRoute(
   }
 
   return null
+}
+
+/**
+ * Classify an error from `substrate.resolveProposal` as a concurrency
+ * conflict (409) or a real handler failure (500). The substrate surfaces
+ * conflicts through two distinct error messages:
+ *   - `resolveProposal: … already (approved|rejected|modified|pending)`
+ *     — caught by the harness layer's pre-write status check.
+ *   - `updateProposalResolution: … is not pending` — caught by the
+ *     DB-level `WHERE status='pending'` guard when a concurrent caller
+ *     commits between the harness's `findProposal` and the substrate's
+ *     atomic update.
+ * Both are conflict signals. Per Codex round-1 review of Package B
+ * (HIGH 1), only the first was being recognized; the second slipped
+ * through to 500. Exported for direct unit-testing of the predicate
+ * without setting up a full DB-backed race.
+ */
+export function isResolveConcurrencyConflict(msg: string): boolean {
+  return (
+    /already (approved|rejected|modified|pending)/i.test(msg) ||
+    /is not pending/i.test(msg)
+  )
+}
+
+/**
+ * Read the proposal row's current status. Used after a concurrency-conflict
+ * exception from the substrate to surface `actualStatus` in the 409
+ * response. Returns null if the row vanished entirely (rare but possible
+ * if a cleanup job ran).
+ */
+async function readActualStatus(proposalId: string): Promise<string | null> {
+  try {
+    const row = await findProposal(proposalId)
+    return row ? row.status : null
+  } catch {
+    return null
+  }
 }
 
 function parseChapterParam(raw: string | null): number | undefined {

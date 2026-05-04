@@ -10,6 +10,30 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon proposal Codex review round-1 fix — concurrent-resolve race surfaces 409 + actualStatus (2026-05-03)
+
+**Decision:** The resolve route's catch block previously matched only `/already (approved|rejected|modified|pending)/i` against the substrate's error message and treated everything else as 500. Codex round-1 review of Package B (HIGH 1) caught the omission: the DB-level guard in `updateProposalResolution` throws `… is not pending (already resolved, or unknown id)` when a concurrent caller commits between the substrate's pre-read and its atomic update — that message did NOT match the regex and slipped through to 500. Now extracted as a pure predicate `isResolveConcurrencyConflict(msg)` covering both message patterns; on match, the handler re-reads the proposal row via `findProposal` to surface `actualStatus` in the 409 response. Bulk-resolve uses the same predicate + `actualStatus` enrichment per row.
+
+**Why:** The handler's contractual response shape says concurrency conflicts are 409. A 500 makes operators believe the server crashed when in reality another operator just committed first; the right action is a refresh-and-retry, not a bug report.
+
+**Evidence:**
+
+- 3 new pure unit tests in `src/orchestrator/canon-proposal-routes.test.ts` for `isResolveConcurrencyConflict`: harness-layer pre-write match, DB-guard match (the previously-uncaught case), and negative cases (connection refused, invalid jsonb, unknown proposalId, empty string).
+- Full sweep — 290/290 pass / 1,567 expects (was 287; +3).
+- `bunx tsc --noEmit` — clean.
+- `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927, recallGateClear=YES`.
+
+**Counterfactuals considered but rejected:**
+
+- *Bind to a typed error class instead of regex matching.* Rejected for v1. The substrate's two error messages are stable strings on a narrow surface (the predicate's regex is exhaustive against the production error generators). Threading a typed class through the substrate→harness→handler boundary would touch four files for marginal benefit; the predicate's pure-function shape + unit tests give us auditability today and a clean swap path tomorrow.
+- *Test the actual race deterministically.* Attempted but bun's `mock.module` leaks across test files (other suites depend on the real `../db/canon-substrate` exports), so the substrate-mock approach was abandoned. The predicate is unit-tested directly; the race-window behavior is verified by code inspection (the handler's catch path now treats both error patterns as 409 + actualStatus).
+
+**Charter §1 status:** unchanged (cleared). Error-classification surface; no canon-read-write semantics changed.
+
+**Lane:** continuation of `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2a.md`. **Codex thread:** `019df0e8-449e-7671-bd2c-418395f53ec8`.
+
+---
+
 ### §Canon proposal Codex review round-1 fixes — atomic batch + narrowed catch + persistenceError surface (2026-05-03)
 
 **Decision:** Address two HIGH and one MEDIUM finding from the Codex round-1 adversarial review of Package A (commits acf67c2 / b967c69).

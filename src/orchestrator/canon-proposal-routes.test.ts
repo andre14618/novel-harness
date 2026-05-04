@@ -18,7 +18,10 @@ import db from "../db/connection"
 import { dbReachable } from "../db/test-helpers"
 import * as canonDb from "../db/canon-substrate"
 import { saveChapterOutline } from "../db/outlines"
-import { handleCanonProposalRoute } from "./canon-proposal-routes"
+import {
+  handleCanonProposalRoute,
+  isResolveConcurrencyConflict,
+} from "./canon-proposal-routes"
 import { PostgresCanonSubstrate } from "../harness/canon-substrate"
 import {
   generatePlannerCanonProposals,
@@ -153,6 +156,44 @@ async function expectJson(res: Response | null): Promise<{ status: number; body:
   const r = res as Response
   return { status: r.status, body: await r.json() }
 }
+
+// ── Pure unit tests (no DB) ─────────────────────────────────────────────────
+
+describe("isResolveConcurrencyConflict (Codex Package B HIGH 1)", () => {
+  test("matches harness pre-write status check error", () => {
+    expect(
+      isResolveConcurrencyConflict(
+        "resolveProposal: proposal X already approved",
+      ),
+    ).toBe(true)
+    expect(
+      isResolveConcurrencyConflict(
+        "resolveProposal: proposal X already rejected",
+      ),
+    ).toBe(true)
+    expect(
+      isResolveConcurrencyConflict(
+        "resolveProposal: proposal X already modified",
+      ),
+    ).toBe(true)
+  })
+
+  test("matches DB-guard error from updateProposalResolution", () => {
+    // This is the case that was previously slipping through to 500.
+    expect(
+      isResolveConcurrencyConflict(
+        "updateProposalResolution: proposal X is not pending (already resolved, or unknown id)",
+      ),
+    ).toBe(true)
+  })
+
+  test("does NOT match unrelated errors", () => {
+    expect(isResolveConcurrencyConflict("connection refused")).toBe(false)
+    expect(isResolveConcurrencyConflict("invalid jsonb")).toBe(false)
+    expect(isResolveConcurrencyConflict("unknown proposalId X")).toBe(false)
+    expect(isResolveConcurrencyConflict("")).toBe(false)
+  })
+})
 
 // ── DB-backed tests ─────────────────────────────────────────────────────────
 
