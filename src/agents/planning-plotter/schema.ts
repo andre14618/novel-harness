@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { sceneBeatSchema } from "../../schemas/shared"
+import { beatObligationItemSchema, sceneBeatSchema } from "../../schemas/shared"
 
 const factCategoryMap: Record<string, string> = {
   spatial: "physical", environmental: "physical", geographic: "physical", appearance: "physical", visual: "physical", object: "physical", location: "physical",
@@ -103,3 +103,73 @@ export const schema = z.object({
 })
 
 export const chapterOutlinesSchema = schema
+
+// === Strict variant for persisted-outline read paths (Codex round-2 MEDIUM 1) ===
+// `chapterOutlineSchema` above is permissive on purpose: LLM-ingest and DB
+// round-trip both touch the same shape and need to tolerate legacy rows /
+// occasional model omission. But the canon-proposal `generate-from-outline`
+// route reads persisted outlines as the AUDIT SOURCE OF TRUTH — a row
+// missing a planner-critical array should fail validation with a 422 (so
+// the operator can fix or replan), not silently audit as if the data were
+// empty. This strict variant:
+//   1. Removes outer `.default([])` from `scenes`, `establishedFacts`,
+//      `characterStateChanges`, `knowledgeChanges`. Missing field = fail.
+//   2. Replaces beat obligations with a non-catching variant. The permissive
+//      `beatObligationsSchema` uses `.default([]).catch([])` so a corrupt
+//      `mustEstablish` field silently becomes `[]`; the audit then sees no
+//      obligations to verify, which is exactly the failure mode this fix
+//      closes.
+// Inner element shapes are unchanged — the strict-vs-permissive distinction
+// lives at the container level (presence + well-formedness).
+const strictBeatObligationsSchema = z.object({
+  mustEstablish: z.array(beatObligationItemSchema),
+  mustPayOff: z.array(beatObligationItemSchema),
+  mustTransferKnowledge: z.array(beatObligationItemSchema),
+  mustShowStateChange: z.array(beatObligationItemSchema),
+  mustNotReveal: z.array(beatObligationItemSchema),
+  allowedNewEntities: z.array(z.coerce.string()),
+})
+
+const strictSceneBeatSchema = sceneBeatSchema.extend({
+  obligations: strictBeatObligationsSchema,
+})
+
+export const persistedChapterOutlineSchema = chapterOutlineSchema.extend({
+  scenes: z.array(strictSceneBeatSchema),
+  establishedFacts: z.array(z.object({
+    id: z.string().default(""),
+    fact: z.string(),
+    category: z.string().transform(v => factCategoryMap[v.toLowerCase()] ?? v.toLowerCase()),
+  })),
+  characterStateChanges: z.array(
+    z.preprocess(
+      (v) => {
+        if (!v || typeof v !== "object") return v
+        const o = v as Record<string, unknown>
+        if (!o.name && typeof o.characterName === "string") return { ...o, name: o.characterName }
+        if (!o.name && typeof o.character === "string") return { ...o, name: o.character }
+        return v
+      },
+      z.object({
+        id: z.coerce.string().optional(),
+        characterId: z.coerce.string().optional(),
+        name: z.string(),
+        location: z.string().default(""),
+        locationId: z.coerce.string().optional(),
+        emotionalState: z.string().default(""),
+        knows: z.array(z.string()).default([]),
+        doesNotKnow: z.array(z.string()).default([]),
+      }),
+    ),
+  ),
+  knowledgeChanges: z.array(z.object({
+    id: z.coerce.string().optional(),
+    characterId: z.coerce.string().optional(),
+    characterName: z.string(),
+    knowledge: z.string(),
+    source: z.string().default("witnessed").transform(v =>
+      knowledgeSourceValid.includes(v) ? v : "witnessed"
+    ),
+  })),
+})
+export type PersistedChapterOutline = z.infer<typeof persistedChapterOutlineSchema>

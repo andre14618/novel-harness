@@ -10,6 +10,40 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon proposal Codex round-2 fix — strict persisted-outline schema (2026-05-04)
+
+**Decision:** Add `persistedChapterOutlineSchema` to `src/agents/planning-plotter/schema.ts` as a strict-variant sibling of `chapterOutlineSchema`. The `POST /api/novel/:id/canon-proposals/generate-from-outline` route in `canon-proposal-routes.ts` now validates persisted outlines against the strict variant before handing them to the audit. The strict variant:
+
+1. Removes outer `.default([])` from `scenes`, `establishedFacts`, `characterStateChanges`, `knowledgeChanges`. A row missing any of those fields fails validation with a 422 instead of silently auditing as `[]`.
+2. Replaces beat obligations with `strictBeatObligationsSchema` — same shape as `beatObligationsSchema` but without the `.default([]).catch([])` masking. A corrupt `mustEstablish` field that the permissive variant would silently rescue to `[]` now produces a structured 422.
+
+The permissive `chapterOutlineSchema` is unchanged and still in use for the LLM-ingest / DB round-trip / legacy-row-tolerance paths.
+
+**Why:** Codex round-2 review flagged that the round-1 outline-validation fix wired `chapterOutlineSchema` into the route — the permissive variant. So a row with `outline_json` like `{ chapterNumber: 1, title: "...", purpose: "..." }` (missing all four planner-critical arrays) silently passed `safeParse` and proceeded to `runPlannerCanonDeltaAudit`, which then produced a partial proposal set as if the chapter had no source items. The audit was being asked the wrong question — "is this row well-formed in the LLM-ingest sense?" — instead of "is this row safe to feed to the audit?".
+
+**Why now:** Codex round-2 finding MEDIUM 1 of 3. Re-review items follow the established "one finding per commit" pattern.
+
+**Evidence:**
+
+- `bunx tsc --noEmit` — clean.
+- `bun test src/agents/planning-plotter/schema.test.ts` — new test file, 7/7 pass / 12 expects. Covers: full-valid acceptance, each missing-array rejection (scenes / establishedFacts / characterStateChanges / knowledgeChanges), corrupt beat obligations rejection where the permissive variant silently rescues (proves the .catch([]) gap), and non-object obligations rejection.
+- `bun test src/orchestrator/canon-proposal-routes.test.ts -t "generate-from-outline"` — 3/4 pass; the 1 failure (`creates 30 proposals; rerun is idempotent`) reproduces on clean main and is a pre-existing race-window flake unrelated to this fix.
+- `bun test src/harness/planner-canon-proposals.test.ts` — 20/23 pass on this branch vs 19/23 on clean main; 3 of 4 failures are the same pre-existing flake family. The harness still uses the permissive schema (it's the LLM-ingest path), so this fix doesn't touch its contract.
+- Diff scope: 3 files modified (schema.ts, canon-proposal-routes.ts) + 1 new test file (schema.test.ts), +119 / -2 net.
+
+**Counterfactuals considered but rejected:**
+
+- *Just remove `.default([])` and `.catch([])` from the existing `chapterOutlineSchema`.* Rejected — that's the LLM-ingest schema; the model occasionally omits fields and the round-trip path needs to be tolerant. Two callers, two contracts.
+- *Use `chapterOutlineSchema.strict()` to forbid extra keys.* Rejected — `.strict()` rejects EXTRA keys, not missing ones with defaults. The bug was the opposite direction: present-but-empty (defaulted) when the field should have been required.
+- *Make `.default([])` only apply when the field is `undefined`, not when it's `null` or missing.* zod's `.default()` does already only fire on `undefined`. The bug surfaces specifically because `outline_json` rows that omit a key entirely show up as `undefined` after JSON parse — exactly the case `.default()` rescues. Strict variant required.
+- *Add a runtime assertion inside `runPlannerCanonDeltaAudit` that throws on missing arrays.* Rejected — that puts the contract enforcement in the wrong layer. Schema validation is the right boundary; the audit should be able to assume well-formed inputs.
+
+**Charter §1 status:** unchanged.
+
+**Lane:** Codex round-2 fix bundle (3 mediums, this is the third and last). Round-2 verdict: 0 HIGH / 3 MEDIUM / 0 LOW; the transactional core (atomic batch, predicate regex coverage, schema-v2 coexistence) is verified sound. Phase 3-6 substantial lanes are now unblocked. Exp #425.
+
+---
+
 ### §Canon proposal Codex round-2 fix — single-resolve findProposal inside try (2026-05-04)
 
 **Decision:** The single-proposal resolve handler in `src/orchestrator/canon-proposal-routes.ts` now wraps both the authoritative pre-read (`findProposal` + stale-status checks) AND the substrate write inside one combined try/catch boundary. The 404 (unknown proposal) and 409 (stale-precondition or already-resolved) early returns remain inside the try block — they're explicit JSON-shaped responses, not error paths. A transient DB error on the pre-read now surfaces as a structured 500 (or 409 if it matches a race-conflict signal) instead of escaping the route as an unstructured exception.

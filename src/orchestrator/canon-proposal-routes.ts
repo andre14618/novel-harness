@@ -45,7 +45,7 @@ import {
   plannerProposalPrefix,
 } from "../harness/planner-canon-proposals"
 import { getChapterOutlines } from "../db/outlines"
-import { chapterOutlineSchema } from "../agents/planning-plotter/schema"
+import { persistedChapterOutlineSchema } from "../agents/planning-plotter/schema"
 import type { CanonFact, CanonUpdateProposal, ProposalStatus } from "../canon/api"
 import { z } from "zod"
 
@@ -412,14 +412,22 @@ export async function handleCanonProposalRoute(
           { status: 404 },
         )
       }
-      // Codex round-1 review of Package B (MEDIUM 1): validate the persisted
-      // outline shape via zod before handing it to the audit. A malformed /
-      // legacy / corrupt row previously raised an uncaught exception inside
+      // Codex round-1 Package B (MEDIUM 1): validate the persisted outline
+      // shape via zod before handing it to the audit. A malformed / legacy /
+      // corrupt row previously raised an uncaught exception inside
       // `runPlannerCanonDeltaAudit` that fell through to the generic 500
-      // path, bypassing the operator-facing fail-closed contract. Now we
-      // surface 422 + structured validation details so the operator can
-      // identify the bad chapter and either fix it or trigger a replan.
-      const validated = z.array(chapterOutlineSchema).safeParse(outlines)
+      // path, bypassing the operator-facing fail-closed contract. Surface
+      // 422 + structured validation details so the operator can identify
+      // the bad chapter and either fix it or trigger a replan.
+      //
+      // Codex round-2 (MEDIUM 1): use the STRICT persisted variant, not the
+      // permissive LLM-ingest schema. The permissive variant has
+      // `.default([])` on `scenes` / `establishedFacts` /
+      // `characterStateChanges` / `knowledgeChanges` and `.catch([])` on
+      // beat obligations — a row missing those fields silently passed
+      // validation and proceeded to generation, producing a partial proposal
+      // set instead of a 422.
+      const validated = z.array(persistedChapterOutlineSchema).safeParse(outlines)
       if (!validated.success) {
         return Response.json(
           {
