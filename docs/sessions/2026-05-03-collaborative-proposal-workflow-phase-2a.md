@@ -194,7 +194,8 @@ no-outlines-404). 265 canon+harness+orchestrator tests pass; tsc clean;
 - `bun test src/canon/ src/harness/ src/orchestrator/canon-proposal-routes.test.ts` — **265/265 pass / 1,154 expects / 20.47s**
 - `bunx tsc --noEmit` — clean
 - `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927, recallGateClear=YES`
-- Commit SHA: filled by commit step.
+- Commit SHA: `9cf6238` ([feat] collaborative proposal workflow Phase 2A — Canon Proposal Review API)
+- Experiment: `407` (ticket, target=world-bible-architecture, status=shipped)
 
 ## Cost
 
@@ -205,4 +206,4 @@ no-outlines-404). 265 canon+harness+orchestrator tests pass; tsc clean;
 
 ## Commits
 
-(to be filled)
+- `9cf6238` — `[feat] collaborative proposal workflow Phase 2A — Canon Proposal Review API`. Includes the new route module + 18 handler tests, server.ts wiring, this lane doc, design-doc Phase-2A-cleared marker + Recommended Next Lane → Phase 2B, decisions §"Collaborative proposal workflow Phase 2A cleared", current-state latest comment, todo Phase 2A done + Phase 2B open, lane-queue advance.
