@@ -10,6 +10,42 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 3 commit 4 — proposal_envelopes persistence (2026-05-04)
+
+**Decision:** Add a generic `proposal_envelopes` table (sql/037) and wire `/adjust` to persist each returned envelope. New `GET /api/novel/:id/proposal-envelopes` route lists pending envelopes for a novel. UI consumer of persisted envelopes + resolve-route wiring (load by id + write resolution) defer to follow-up sub-commits.
+
+**Why:** Phase 3 commits 1-3 + 5a shipped envelope mechanics with envelopes body-carried by the UI. That works mid-session but loses everything when the operator closes the panel or refreshes the page. The smallest persistence shape that unblocks (a) cross-session resumability, (b) durable audit trail, and (c) future server-side regen with `parent_envelope_id` provenance is the table + insert + list endpoints — that's what this commit ships.
+
+**Why generic across `kind`:** The design doc's §Proposal Envelope projection covers four kinds: `artifact_patch` (shipping today), `canon_update` (Phase 1 already ships its own canon_proposals storage; future migration could collapse them), `prose_edit` (Phase 5 editorial workbench), `editorial_flag` (Phase 5). The schema's polymorphic columns (`payload`, `target_*`, `precondition_*` as JSONB / TEXT) let each kind store its own shape without schema branching. Today only `artifact_patch` reads/writes; future kinds add their own typed coercion helpers atop the same storage.
+
+**Why best-effort persistence in /adjust:** The deterministic envelope id (sha256 over canonical payload + target.currentVersion + index) makes the insert idempotent. If the DB write fails (pool exhaustion, transient error), we still return the envelope in the response — the UI can resolve it via body-carry, and a retry that sees the same id is dropped via `ON CONFLICT (id) DO NOTHING`. This is consistent with the round-1/round-2/round-3/round-4 "fail closed but observably" pattern: log the failure, continue, surface in telemetry; don't abort the user's flow on persistence hiccups.
+
+**Concrete shape:**
+
+- `sql/037_proposal_envelopes.sql` — table with id PRIMARY KEY (the deterministic envelope id from commit 1's `stableHash`); composite index `(novel_id, status, created_at)` for the hot list-pending path; partial index on `parent_envelope_id` for future lineage queries (deferred regen sub-commit). No FK to `novels` — matches the canon_* / chapter_revisions convention. Orphan cleanup deferred.
+- `src/db/proposal-envelopes.ts` — typed helpers for `artifact_patch` (the kind alive today). Insert is idempotent + executor-threadable. List defaults to `pending` with a `status: "all"` audit override. Resolve-update mirrors canon_proposals' `WHERE status = 'pending'` guard pattern so a re-resolve attempt is a no-op (returns false).
+- `/adjust` route persists each built envelope after construction; failures log + continue.
+- New `GET /api/novel/:novelId/proposal-envelopes` route — query params `?status=` (default pending) + `?limit=` (capped 500). Returns `{ ok, envelopes }`.
+
+**Evidence:**
+
+- `bun test src/db/proposal-envelopes.test.ts` — 7/7 pass / 32 expects. Covers insert + list round-trip, idempotent insert, status filtering (pending / approved / all), findById hit + miss, resolve-transition + stale-status no-op, novel-scoped delete.
+- `bunx tsc --noEmit` — clean.
+- Migration applied locally via `bun -e 'import { migrate } from "./src/db/connection"; await migrate()'` — confirmed `Applied: 037_proposal_envelopes.sql`.
+- Diff scope: 4 files (`sql/037_proposal_envelopes.sql` new +60; `src/db/proposal-envelopes.ts` new +186; `src/db/proposal-envelopes.test.ts` new +179; `src/orchestrator/novel-routes.ts` +44 / -2).
+
+**Counterfactuals considered but rejected:**
+
+- *Per-kind tables (artifact_patch_envelopes, canon_update_envelopes, prose_edit_envelopes, editorial_flag_envelopes).* Premature. Today only one kind exists; the polymorphic-column approach reserves the option without committing to it. If a future kind needs kind-specific indexes / constraints, we extract then.
+- *FK to novels.* Matches the canon_* / chapter_revisions convention of avoiding the FK. Orphan cleanup is its own concern; the indexes scope-by-novel-id make orphan rows harmless to query performance.
+- *Wire resolve route persistence in this commit.* Bigger scope. The resolve route currently operates on the body-carried envelope — adding "load by id + write resolution status" requires (a) an alternative body shape or (b) overloading the existing one to optionally accept just an id. Both are non-trivial design choices that warrant their own commit + Codex review.
+- *UI consumer (load persisted envelopes on session open).* Bigger scope. The current AdjustPanel's state is conversation-driven; loading persisted envelopes outside of a fresh `/adjust` turn means rethinking what `turns[]` even means in that context. Defer until the model is clearer.
+- *Persist resolution synchronously inside the resolve route's `db.begin(...)` block.* Would couple commit 4 (persistence) to commit 2's atomic-resolve transaction — would require loading-by-id inside the route too. Currently resolve operates on body-carried envelopes; commit 4's table can be wired in once the resolve route also accepts persistence as the source of truth.
+
+**Ongoing:** Phase 3 progress: commits 1, 2, 2.5, 3, 4, 5a done. Remaining: commit 4 follow-ups (UI consumer of persisted envelopes; resolve-route loading-by-id + persisting resolution; parentEnvelopeId provenance on regen), commit 5b (LLM-firing quick actions).
+
+---
+
 ### §Phase 3 commit 5a — bulk quick actions (2026-05-04)
 
 **Decision:** Ship the two bounded quick actions from design doc §"Add quick actions: accept all low-risk, reject all, ask for alternatives, explain patch" — `Approve all low-risk` and `Reject all` — as commit 5a. The LLM-firing pair (ask-alternatives, explain-patch) defers to commit 5b because both require transport-stub infrastructure for tests, which is out of scope here.
