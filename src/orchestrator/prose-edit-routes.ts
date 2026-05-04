@@ -44,6 +44,11 @@ import {
 } from "../db/proposal-envelopes"
 import { proseEditProposalSchema } from "../canon/editorial-proposal"
 import type { ProseEditEnvelope } from "../canon/editorial-proposal"
+import {
+  evaluatePolicy,
+  type ApprovalPolicy,
+  type PolicyEvaluation,
+} from "../canon/approval-policy"
 
 // ── Body schema ──────────────────────────────────────────────────────────
 
@@ -92,13 +97,35 @@ const envelopeSchema = z.object({
   createdAt: z.string(),
 })
 
+const approvalPolicySchema = z.object({
+  version: z.string(),
+  mode: z.enum(["manual", "assisted", "autonomous", "eval"]),
+  autoApproveRiskCeiling: z.enum(["mechanical", "low", "medium", "high"]).optional(),
+  manualKinds: z
+    .array(z.enum(["artifact_patch", "canon_update", "prose_edit", "editorial_flag"]))
+    .optional(),
+})
+
 const resolveBodySchema = z.object({
   envelope: envelopeSchema,
   status: z.enum(["approved", "rejected"]),
   operatorNote: z.string().optional(),
+  policy: approvalPolicySchema.optional(),
 })
 
 type ResolveBody = z.infer<typeof resolveBodySchema>
+
+/**
+ * Phase 6 commit 3: when no policy is provided, default to manual mode.
+ * Mirrors `proposal-envelope-routes.ts` so callers get the same default
+ * shape across kinds. The version string is opaque; "manual-v1" lets the
+ * audit trail distinguish "no policy attached" (NULL) from "explicit
+ * manual default".
+ */
+const DEFAULT_MANUAL_POLICY: ApprovalPolicy = {
+  version: "manual-v1",
+  mode: "manual",
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -204,6 +231,11 @@ export async function handleProseEditRoute(
     )
   }
 
+  // Phase 6 commit 3: evaluate the active policy for the audit trail.
+  // The operator's `status` still drives what applies in this commit.
+  const activePolicy: ApprovalPolicy = parsedBody.policy ?? DEFAULT_MANUAL_POLICY
+  const policyEvaluation: PolicyEvaluation = evaluatePolicy(envelope as ProseEditEnvelope, activePolicy)
+
   // Reject: no draft work, just persist the resolution.
   if (status === "rejected") {
     try {
@@ -217,6 +249,9 @@ export async function handleProseEditRoute(
             resolvedByRef: null,
             resolvedNote: operatorNote ?? null,
             modifiedPayload: null,
+            policyDecision: policyEvaluation.decision,
+            policyVersion: policyEvaluation.policyVersion,
+            policyReasons: policyEvaluation.reasons,
           },
           tx,
         )
@@ -228,7 +263,12 @@ export async function handleProseEditRoute(
         }
         return { kind: "rejected" as const, envelopeId: envelope.id }
       })
-      return Response.json({ ok: true, envelopeId: outcome.envelopeId, status: "rejected" })
+      return Response.json({
+        ok: true,
+        envelopeId: outcome.envelopeId,
+        status: "rejected",
+        policy: { decision: policyEvaluation.decision, version: policyEvaluation.policyVersion },
+      })
     } catch (err) {
       if (err instanceof OutcomeError) return outcomeToResponse(err.outcome)
       throw err
@@ -295,6 +335,9 @@ export async function handleProseEditRoute(
           resolvedByRef: null,
           resolvedNote: operatorNote ?? null,
           modifiedPayload: null,
+          policyDecision: policyEvaluation.decision,
+          policyVersion: policyEvaluation.policyVersion,
+          policyReasons: policyEvaluation.reasons,
         },
         tx,
       )
@@ -315,6 +358,9 @@ export async function handleProseEditRoute(
               resolvedByRef: null,
               resolvedNote: operatorNote ?? null,
               modifiedPayload: null,
+              policyDecision: policyEvaluation.decision,
+              policyVersion: policyEvaluation.policyVersion,
+              policyReasons: policyEvaluation.reasons,
             },
             tx,
           )
@@ -345,6 +391,7 @@ export async function handleProseEditRoute(
       status: "approved",
       newDraftVersion: outcome.newDraftVersion,
       newDraftHash: outcome.newDraftHash,
+      policy: { decision: policyEvaluation.decision, version: policyEvaluation.policyVersion },
     })
   } catch (err) {
     if (err instanceof OutcomeError) return outcomeToResponse(err.outcome)

@@ -344,6 +344,125 @@ describe.skipIf(!reachable)("handleProseEditRoute (DB-backed)", () => {
     expect(body.actualStatus).toBe("rejected")
   })
 
+  // ── Phase 6 commit 3: ApprovalPolicy persistence on prose_edit resolve ──
+  // Mirrors the artifact_patch route's policy persistence (Phase 6 commit 2).
+  // Default manual policy applies when no `policy` is in the request body;
+  // operator's status still drives the apply.
+
+  test("Phase 6: default manual policy persists decision=queue/manual-v1 on approve", async () => {
+    const prose = "She paused at the threshold of the laboratory."
+    const draftHash = computeProseHash(prose)
+    await saveChapterDraft(novelId, 1, prose, prose.split(/\s+/).length)
+    const env = buildSpanEnvelope({
+      novelId, chapter: 1, start: 4, end: 10, replacement: "halted", draftHash,
+    })
+    await insertProseEditEnvelope(env)
+
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/prose-edits/resolve`, {
+        envelope: env,
+        status: "approved",
+      }),
+    )
+    expect(status).toBe(200)
+    expect(body.policy).toEqual({ decision: "queue", version: "manual-v1" })
+
+    const rows = (await db`SELECT resolution_policy_decision, resolution_policy_version, resolution_policy_reasons
+                           FROM proposal_envelopes WHERE id = ${env.id}`) as Array<{
+      resolution_policy_decision: string
+      resolution_policy_version: string
+      resolution_policy_reasons: string[] | string
+    }>
+    expect(rows[0].resolution_policy_decision).toBe("queue")
+    expect(rows[0].resolution_policy_version).toBe("manual-v1")
+    const reasons = typeof rows[0].resolution_policy_reasons === "string"
+      ? JSON.parse(rows[0].resolution_policy_reasons)
+      : rows[0].resolution_policy_reasons
+    expect(reasons.join(" ")).toContain("manual")
+  })
+
+  test("Phase 6: assisted-mode mechanical prose_edit evaluates approve", async () => {
+    const prose = "She paused at the threshold of the laboratory."
+    const draftHash = computeProseHash(prose)
+    await saveChapterDraft(novelId, 1, prose, prose.split(/\s+/).length)
+    // The lint-converter produces mechanical prose_edits via
+    // buildProseEditEnvelope's classifyEditRisk default of "medium" — to
+    // exercise the assisted-mode mechanical path we override risk on the
+    // envelope. Producers in the real flow can mark mechanical fixes
+    // explicitly (e.g., the lint-fix converter).
+    const env = buildSpanEnvelope({
+      novelId, chapter: 1, start: 4, end: 10, replacement: "halted", draftHash,
+    })
+    const mechanicalEnv = { ...env, risk: "mechanical" as const }
+    await insertProseEditEnvelope(mechanicalEnv)
+
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/prose-edits/resolve`, {
+        envelope: mechanicalEnv,
+        status: "approved",
+        policy: { version: "assisted-v1", mode: "assisted" },
+      }),
+    )
+    expect(status).toBe(200)
+    expect(body.policy).toEqual({ decision: "approve", version: "assisted-v1" })
+
+    const rows = (await db`SELECT resolution_policy_decision FROM proposal_envelopes WHERE id = ${mechanicalEnv.id}`) as Array<{
+      resolution_policy_decision: string
+    }>
+    expect(rows[0].resolution_policy_decision).toBe("approve")
+  })
+
+  test("Phase 6: rejected resolve also persists policy evaluation", async () => {
+    const prose = "She paused at the threshold of the laboratory."
+    const draftHash = computeProseHash(prose)
+    await saveChapterDraft(novelId, 1, prose, prose.split(/\s+/).length)
+    const env = buildSpanEnvelope({
+      novelId, chapter: 1, start: 4, end: 10, replacement: "halted", draftHash,
+    })
+    await insertProseEditEnvelope(env)
+
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/prose-edits/resolve`, {
+        envelope: env,
+        status: "rejected",
+        policy: { version: "auto-v9", mode: "autonomous" },
+      }),
+    )
+    expect(status).toBe(200)
+    // env.risk = "medium" (default for prose_edit per classifyEditRisk);
+    // autonomous default ceiling = "low" → queue.
+    expect(body.policy).toEqual({ decision: "queue", version: "auto-v9" })
+
+    const rows = (await db`SELECT resolution_policy_decision, resolution_policy_version, status
+                           FROM proposal_envelopes WHERE id = ${env.id}`) as Array<{
+      resolution_policy_decision: string
+      resolution_policy_version: string
+      status: string
+    }>
+    expect(rows[0].status).toBe("rejected")
+    expect(rows[0].resolution_policy_decision).toBe("queue")
+    expect(rows[0].resolution_policy_version).toBe("auto-v9")
+  })
+
+  test("Phase 6: invalid policy.mode in body returns 400", async () => {
+    const prose = "She paused at the threshold of the laboratory."
+    const draftHash = computeProseHash(prose)
+    await saveChapterDraft(novelId, 1, prose, prose.split(/\s+/).length)
+    const env = buildSpanEnvelope({
+      novelId, chapter: 1, start: 4, end: 10, replacement: "halted", draftHash,
+    })
+
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/prose-edits/resolve`, {
+        envelope: env,
+        status: "approved",
+        policy: { version: "x", mode: "free-for-all" },
+      }),
+    )
+    expect(status).toBe(400)
+    expect(body.error).toBe("invalid body")
+  })
+
   test("computeProseHash is deterministic + bytewise sensitive", () => {
     const a = "She paused at the threshold."
     const b = "She halted at the threshold." // 1-word swap
