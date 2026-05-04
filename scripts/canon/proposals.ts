@@ -232,6 +232,12 @@ async function cmdGenerate(novelId: string): Promise<number> {
     return 1
   }
   const result = await generatePlannerCanonProposals(novelId, outlines)
+  if (result.persistenceError) {
+    console.error(
+      `persistence error: ${result.persistenceError} (atomic rollback — no proposals written)`,
+    )
+    return 1
+  }
   const tag = result.gateClear ? "gate=CLEAR" : "gate=REFUSED"
   console.log(
     `${tag}  outlines=${outlines.length}  created=${result.created}  skipped=${result.skipped}`,

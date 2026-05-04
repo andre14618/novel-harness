@@ -10,6 +10,31 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon proposal Codex round-2 fix — CLI generate honors persistenceError (2026-05-04)
+
+**Decision:** `cmdGenerate` in `scripts/canon/proposals.ts` now checks `result.persistenceError` BEFORE deciding the exit code from `result.gateClear`. On atomic-batch rollback (the 503-class path introduced in commit `b554e42`), the CLI prints `persistence error: <msg> (atomic rollback — no proposals written)` to stderr and exits 1.
+
+**Why:** Codex round-2 review (round-2 thread covers fix bundle `b554e42…4fec19e`) flagged that `cmdGenerate` only checked `result.gateClear` for its exit code. On a rolled-back batch, `gateClear` stays `true` (the gate did clear; persistence was the failure), so the CLI was printing `gate=CLEAR` and exiting `0` even though zero proposals were written. An operator scripting around the CLI would treat that as success.
+
+**Why now:** Codex round-2 finding MEDIUM 3 of 3. Re-review items follow the established "one finding per commit" pattern.
+
+**Evidence:**
+
+- `bunx tsc --noEmit` — clean.
+- Smoke: `bun scripts/canon/proposals.ts` (no args) prints the usage banner — code path still loads. The persistence-error path is unit-test-equivalent because the result-shape contract is stable (`PlannerCanonProposalResult.persistenceError?: string` was added in `b554e42` and the harness test for it exists).
+- Diff scope: 1 file (`scripts/canon/proposals.ts`), +6 / -0.
+
+**Counterfactuals considered but rejected:**
+
+- *Drop `gateClear` from the CLI check entirely — only check `persistenceError`.* Rejected — `gateClear=false` (mechanical-gate refusal) is a distinct failure mode from `persistenceError` (atomic rollback). The existing `gate=REFUSED` path is correct; adding a persistence-rollback path doesn't replace it.
+- *Promote persistenceError to a thrown exception in `generatePlannerCanonProposals`.* Rejected — round-1's design was deliberate: the harness returns persistenceError as a structured field so HTTP handlers can return 503 + error body. The CLI being one of the surfaces that need to act on it is a downstream surface fix, not a contract change.
+
+**Charter §1 status:** unchanged.
+
+**Lane:** Codex round-2 fix bundle (3 mediums, this is one of them). Exp #423.
+
+---
+
 ### §Canon proposal modify-with-edits UI surface (2026-05-04)
 
 **Decision:** Pending rows in `ui/src/components/CanonProposalsPage.tsx` gain a `Modify…` button alongside `Approve` / `Reject`. Clicking expands the row's Proposed-fact column into an inline form: original text as a ghost-italic quote above an editable textarea, plus a confidence input (number 0-1, optional override) and a free-form operator note input. Save submits `resolveCanonProposal({ status: "modified", modifiedFact, operatorNote, expectedStatus: "pending" })`. The `id`, `kind`, and `provenance.source` are deliberately preserved so the audit trail can reconstruct the original-vs-modified delta. Cancel collapses the form without a write. Only one row can be in modify mode at a time (state lifted to the page).
