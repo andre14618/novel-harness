@@ -430,6 +430,43 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
     }
   }
 
+  /**
+   * Phase 3 commit 5a — bulk quick actions. Loops `resolveEnvelope` over
+   * every envelope whose current state is `pending` (skipping busy / done /
+   * stale / error rows so we don't double-resolve or stomp on operator
+   * decisions already made on this batch).
+   *
+   * Per the design's §"Add quick actions: accept all low-risk, reject
+   * all" — these are the two bounded actions that don't fire LLM calls.
+   * "Ask for alternatives" and "Explain patch" defer to a separate commit
+   * because they need transport-stub infrastructure for tests.
+   *
+   * We rely on the per-row resolve route (Phase 3 commit 2) for both
+   * concurrency safety (atomic compare-and-apply) and stale-precondition
+   * handling. A row that turns stale mid-bulk surfaces as a stale card
+   * just like a single-row resolve would; the bulk continues with the
+   * remaining pending rows.
+   */
+  const bulkResolve = async (filter: "all" | "low-risk") => {
+    const targets = envelopes.filter(env => {
+      const state = envelopeStates[env.id]
+      if (state && state.kind !== "pending") return false
+      if (filter === "low-risk") return env.risk === "low"
+      return true
+    })
+    if (targets.length === 0) return
+    const action = filter === "low-risk" ? "approved" : "rejected"
+    const verb = filter === "low-risk" ? "approve all low-risk" : "reject all"
+    if (!window.confirm(`${verb} ${targets.length} proposal${targets.length === 1 ? "" : "s"}?`)) return
+    // Sequential to keep server load + apply ordering predictable. Each
+    // resolveEnvelope call is its own atomic transaction server-side, so
+    // sequential vs parallel is purely a client-side choice.
+    for (const env of targets) {
+      // eslint-disable-next-line no-await-in-loop
+      await resolveEnvelope(env, action as "approved" | "rejected")
+    }
+  }
+
   const charName = (id: string) => characters.find(c => c.id === id)?.name ?? id
 
   return (
@@ -459,6 +496,54 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
           <div style={{ fontSize: "0.8em", marginBottom: 6, fontWeight: "bold" }}>
             Proposed changes ({envelopes.length})
           </div>
+          {/* Phase 3 commit 5a — bulk quick actions. Counts only PENDING
+              envelopes so the button labels reflect what would actually
+              fire (a card already in done/stale/error state is skipped).
+              Buttons disabled when no targets remain. */}
+          {(() => {
+            const pendingEnvelopes = envelopes.filter(env => {
+              const s = envelopeStates[env.id]
+              return !s || s.kind === "pending"
+            })
+            const lowRiskPending = pendingEnvelopes.filter(env => env.risk === "low")
+            const anyAction = pendingEnvelopes.length > 0
+            return (
+              <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+                <button
+                  onClick={() => bulkResolve("low-risk")}
+                  disabled={!anyAction || lowRiskPending.length === 0 || sending}
+                  style={{
+                    background: "#1f3a26",
+                    border: "1px solid #2c5a36",
+                    color: "#cfe",
+                    padding: "3px 8px",
+                    borderRadius: 3,
+                    fontSize: "0.78rem",
+                    cursor: lowRiskPending.length === 0 ? "not-allowed" : "pointer",
+                  }}
+                  title="Approve every PENDING envelope whose risk classification is `low` (additive field updates). Renames and structurally-risky patches stay pending."
+                >
+                  Approve all low-risk ({lowRiskPending.length})
+                </button>
+                <button
+                  onClick={() => bulkResolve("all")}
+                  disabled={!anyAction || sending}
+                  style={{
+                    background: "#3a1f1f",
+                    border: "1px solid #5a2c2c",
+                    color: "#fce",
+                    padding: "3px 8px",
+                    borderRadius: 3,
+                    fontSize: "0.78rem",
+                    cursor: !anyAction ? "not-allowed" : "pointer",
+                  }}
+                  title="Reject every PENDING envelope. Already-resolved cards on this batch are skipped."
+                >
+                  Reject all ({pendingEnvelopes.length})
+                </button>
+              </div>
+            )
+          })()}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {envelopes.map(env => (
               <EnvelopeCard
