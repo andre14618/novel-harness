@@ -814,3 +814,204 @@ describe.skipIf(!reachable)("handleProposalEnvelopeRoute (DB-backed)", () => {
     expect(row!.resolved_at).toBeNull()
   }, 15_000)
 })
+
+// ────────────────────────────────────────────────────────────────────────────
+// Phase 6 commit 2 — ApprovalPolicy evaluation persistence on resolution.
+//
+// The resolve route now evaluates the active `ApprovalPolicy` against the
+// envelope and persists `(decision, version, reasons)` on the resolved row.
+// The operator's `status` still drives the apply; the policy fields are an
+// audit trail surface (Phase 7's replay harness will compare them against
+// operator decisions). When no `policy` is in the request body, defaults to
+// `{ version: "manual-v1", mode: "manual" }` — so manual mode evaluation
+// records `decision = "queue"` even when the operator approves (audit signal
+// for "operator overrode the policy").
+// ────────────────────────────────────────────────────────────────────────────
+
+describe.skipIf(!reachable)("handleProposalEnvelopeRoute — Phase 6 policy persistence", () => {
+  let novelId: string
+
+  beforeEach(async () => {
+    novelId = `test-pe-policy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    await seedNovel(novelId)
+  })
+
+  afterEach(async () => {
+    await dropNovel(novelId)
+  })
+
+  test("default manual policy: approved status persists policy=queue/manual-v1", async () => {
+    await seedCharacter(novelId, makeCharacter("char-hero", "Aria"))
+    const patch: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "Find the second key" },
+    }
+    const envelope = await buildEnvelopeFromLive(novelId, patch)
+    await insertArtifactPatchEnvelope(envelope)
+
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope,
+        status: "approved",
+      }),
+    )
+    expect(status).toBe(200)
+    expect(body.applied).toBe(true)
+    expect(body.policy).toEqual({ decision: "queue", version: "manual-v1" })
+
+    const rows = (await db`SELECT resolution_policy_decision, resolution_policy_version, resolution_policy_reasons
+                           FROM proposal_envelopes WHERE id = ${envelope.id}`) as Array<{
+      resolution_policy_decision: string
+      resolution_policy_version: string
+      resolution_policy_reasons: string[] | string
+    }>
+    expect(rows[0].resolution_policy_decision).toBe("queue")
+    expect(rows[0].resolution_policy_version).toBe("manual-v1")
+    const reasons = typeof rows[0].resolution_policy_reasons === "string"
+      ? JSON.parse(rows[0].resolution_policy_reasons)
+      : rows[0].resolution_policy_reasons
+    expect(Array.isArray(reasons)).toBe(true)
+    expect(reasons.join(" ")).toContain("manual")
+  }, 15_000)
+
+  test("autonomous policy: low-risk envelope evaluates approve and persists", async () => {
+    await seedCharacter(novelId, makeCharacter("char-hero", "Aria"))
+    const patch: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "Find the second key" },
+    }
+    // characterUpdate is risk=low per buildArtifactPatchEnvelope; default
+    // autonomous ceiling is "low" so this should evaluate approve.
+    const envelope = await buildEnvelopeFromLive(novelId, patch)
+    expect(envelope.risk).toBe("low")
+    await insertArtifactPatchEnvelope(envelope)
+
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope,
+        status: "approved",
+        policy: { version: "auto-v1", mode: "autonomous" },
+      }),
+    )
+    expect(status).toBe(200)
+    expect(body.policy).toEqual({ decision: "approve", version: "auto-v1" })
+
+    const rows = (await db`SELECT resolution_policy_decision, resolution_policy_version
+                           FROM proposal_envelopes WHERE id = ${envelope.id}`) as Array<{
+      resolution_policy_decision: string
+      resolution_policy_version: string
+    }>
+    expect(rows[0].resolution_policy_decision).toBe("approve")
+    expect(rows[0].resolution_policy_version).toBe("auto-v1")
+  }, 15_000)
+
+  test("autonomous policy with low ceiling: medium-risk rename evaluates queue", async () => {
+    await seedCharacter(novelId, makeCharacter("char-hero", "Aria"))
+    const patch: AdjusterPatch = {
+      type: "characterRename",
+      characterId: "char-hero",
+      newName: "Aria the Brave",
+    }
+    // characterRename is risk=medium; default autonomous ceiling=low → queue.
+    const envelope = await buildEnvelopeFromLive(novelId, patch)
+    expect(envelope.risk).toBe("medium")
+    await insertArtifactPatchEnvelope(envelope)
+
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope,
+        status: "approved",
+        policy: { version: "auto-v2", mode: "autonomous" },
+      }),
+    )
+    expect(status).toBe(200)
+    expect(body.policy).toEqual({ decision: "queue", version: "auto-v2" })
+
+    const rows = (await db`SELECT resolution_policy_decision FROM proposal_envelopes WHERE id = ${envelope.id}`) as Array<{
+      resolution_policy_decision: string
+    }>
+    expect(rows[0].resolution_policy_decision).toBe("queue")
+  }, 15_000)
+
+  test("rejected resolve also persists policy evaluation", async () => {
+    await seedCharacter(novelId, makeCharacter("char-hero", "Aria"))
+    const patch: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "Steal the key" },
+    }
+    const envelope = await buildEnvelopeFromLive(novelId, patch)
+    await insertArtifactPatchEnvelope(envelope)
+
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope,
+        status: "rejected",
+        policy: { version: "test-v1", mode: "assisted" },
+      }),
+    )
+    expect(status).toBe(200)
+    expect(body.applied).toBe(false)
+    expect(body.policy).toEqual({ decision: "queue", version: "test-v1" })
+
+    const rows = (await db`SELECT resolution_policy_decision, resolution_policy_version
+                           FROM proposal_envelopes WHERE id = ${envelope.id}`) as Array<{
+      resolution_policy_decision: string
+      resolution_policy_version: string
+    }>
+    expect(rows[0].resolution_policy_decision).toBe("queue")
+    expect(rows[0].resolution_policy_version).toBe("test-v1")
+  }, 15_000)
+
+  test("invalid policy.mode in body returns 400", async () => {
+    await seedCharacter(novelId, makeCharacter("char-hero", "Aria"))
+    const patch: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "x" },
+    }
+    const envelope = await buildEnvelopeFromLive(novelId, patch)
+
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope,
+        status: "approved",
+        policy: { version: "x", mode: "free-for-all" },
+      }),
+    )
+    expect(status).toBe(400)
+    expect(body.error).toBe("invalid request body")
+  }, 15_000)
+
+  test("envelope-row missing: artifact still applied; no policy row to persist (audit gap warned)", async () => {
+    // Phase 3 commit 4 follow-up A graceful-degradation path. With no inserted
+    // envelope row, updateEnvelopeResolution is a no-op but the artifact apply
+    // still happens. The route shouldn't crash, the response should still
+    // carry the policy evaluation, and there should be no envelope row to
+    // check (proves the policy fields don't break the body-carry-only path).
+    await seedCharacter(novelId, makeCharacter("char-hero", "Aria"))
+    const patch: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "Find the second key" },
+    }
+    const envelope = await buildEnvelopeFromLive(novelId, patch)
+    // NOT inserting envelope into proposal_envelopes.
+
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/proposal-envelopes/resolve`, {
+        envelope,
+        status: "approved",
+      }),
+    )
+    expect(status).toBe(200)
+    expect(body.applied).toBe(true)
+    expect(body.policy).toEqual({ decision: "queue", version: "manual-v1" })
+
+    // No row in proposal_envelopes — body-carry path stayed audit-gap warning.
+    const row = await findEnvelopeById(envelope.id)
+    expect(row).toBeNull()
+  }, 15_000)
+})

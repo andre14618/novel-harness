@@ -55,6 +55,11 @@ import { stableHash } from "../canon/proposal-envelope"
 import { adjusterPatchSchema } from "../agents/artifact-adjuster/schema"
 import type { AdjusterPatch } from "../agents/artifact-adjuster/schema"
 import { findEnvelopeById, updateEnvelopeResolution } from "../db/proposal-envelopes"
+import {
+  evaluatePolicy,
+  type ApprovalPolicy,
+  type PolicyEvaluation,
+} from "../canon/approval-policy"
 
 const targetRefSchema = z.object({
   kind: z.enum([
@@ -84,7 +89,8 @@ const evidenceSchema = z.object({
 })
 
 const policyRecommendationSchema = z.object({
-  decision: z.enum(["queue", "shadow", "auto-apply"]),
+  decision: z.enum(["queue", "approve", "reject", "shadow"]),
+  policyVersion: z.string().optional(),
   reasons: z.array(z.string()),
 })
 
@@ -99,7 +105,7 @@ const envelopeSchema = z.object({
   novelId: z.string(),
   target: targetRefSchema,
   source: sourceRefSchema,
-  status: z.string(),
+  status: z.enum(["pending", "approved", "rejected", "modified", "shadowed", "expired"]),
   risk: z.enum(["mechanical", "low", "medium", "high"]),
   summary: z.string(),
   rationale: z.string(),
@@ -110,12 +116,22 @@ const envelopeSchema = z.object({
   createdAt: z.string(),
 })
 
+const approvalPolicySchema = z.object({
+  version: z.string(),
+  mode: z.enum(["manual", "assisted", "autonomous", "eval"]),
+  autoApproveRiskCeiling: z.enum(["mechanical", "low", "medium", "high"]).optional(),
+  manualKinds: z
+    .array(z.enum(["artifact_patch", "canon_update", "prose_edit", "editorial_flag"]))
+    .optional(),
+})
+
 const resolveBodySchema = z
   .object({
     envelope: envelopeSchema,
     status: z.enum(["approved", "rejected", "modified"]),
     modifiedPayload: adjusterPatchSchema.optional(),
     operatorNote: z.string().optional(),
+    policy: approvalPolicySchema.optional(),
   })
   .superRefine((body, ctx) => {
     if (body.status === "modified" && body.modifiedPayload === undefined) {
@@ -128,6 +144,18 @@ const resolveBodySchema = z
   })
 
 type ResolveBody = z.infer<typeof resolveBodySchema>
+
+/**
+ * Phase 6 commit 2: when no policy is provided, default to manual mode. The
+ * design's "manual is the safe default" — every proposal queues for the
+ * operator unless the caller passes an explicit autonomous/assisted policy.
+ * The version string is opaque; pin "manual-v1" so audit-trail consumers can
+ * distinguish "no policy attached" (NULL) from "explicit manual default".
+ */
+const DEFAULT_MANUAL_POLICY: ApprovalPolicy = {
+  version: "manual-v1",
+  mode: "manual",
+}
 
 function patchTargetsSameArtifact(a: AdjusterPatch, b: AdjusterPatch): boolean {
   // Patches must agree on which artifact they touch. Per-type:
@@ -314,6 +342,15 @@ export async function handleProposalEnvelopeRoute(
       )
     }
 
+    // Phase 6 commit 2: evaluate the active approval policy against the
+    // envelope. The result is recorded for AUDIT (resolution_policy_*
+    // columns) — Phase 7's replay harness compares it against the operator's
+    // status to compute autonomy metrics. The operator's `status` still
+    // drives what actually applies in this commit; a future commit will add
+    // an autonomous decide path that lets the policy fire the apply directly.
+    const activePolicy: ApprovalPolicy = body.policy ?? DEFAULT_MANUAL_POLICY
+    const policyEvaluation: PolicyEvaluation = evaluatePolicy(body.envelope, activePolicy)
+
     // Atomic compare-and-apply (Codex round-4 HIGH).
     // SELECT FOR UPDATE locks the target row inside the transaction; the
     // hash recomputation and the subsequent apply both happen under that
@@ -371,6 +408,9 @@ export async function handleProposalEnvelopeRoute(
             resolvedByRef: null,
             resolvedNote: body.operatorNote ?? null,
             modifiedPayload: body.status === "modified" ? body.modifiedPayload ?? null : null,
+            policyDecision: policyEvaluation.decision,
+            policyVersion: policyEvaluation.policyVersion,
+            policyReasons: policyEvaluation.reasons,
           },
           tx,
         )
@@ -403,6 +443,9 @@ export async function handleProposalEnvelopeRoute(
                 resolvedByRef: null,
                 resolvedNote: body.operatorNote ?? null,
                 modifiedPayload: body.status === "modified" ? body.modifiedPayload ?? null : null,
+                policyDecision: policyEvaluation.decision,
+                policyVersion: policyEvaluation.policyVersion,
+                policyReasons: policyEvaluation.reasons,
               },
               tx,
             )
@@ -474,6 +517,10 @@ export async function handleProposalEnvelopeRoute(
           envelopeId: outcome.envelopeId,
           applied: false,
           status: "rejected",
+          policy: {
+            decision: policyEvaluation.decision,
+            version: policyEvaluation.policyVersion,
+          },
         })
       case "applied":
         return Response.json({
@@ -482,6 +529,10 @@ export async function handleProposalEnvelopeRoute(
           applied: true,
           status: outcome.status,
           newVersion: outcome.newVersion,
+          policy: {
+            decision: policyEvaluation.decision,
+            version: policyEvaluation.policyVersion,
+          },
         })
     }
   }

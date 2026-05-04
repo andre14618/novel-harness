@@ -53,6 +53,9 @@ interface ProposalEnvelopeRow {
   resolved_by_ref: string | null
   resolved_note: string | null
   modified_payload: unknown | null
+  resolution_policy_decision: string | null
+  resolution_policy_version: string | null
+  resolution_policy_reasons: unknown | null
   created_at: string | Date
 }
 
@@ -199,6 +202,13 @@ export async function findEnvelopeById(
  * `WHERE status = 'pending'` guard mirrors the canon_proposals lifecycle —
  * a re-resolve attempt against a non-pending row is silently a no-op
  * (caller can detect this by inspecting the return value).
+ *
+ * Phase 6 commit 2: optional `policyDecision` / `policyVersion` /
+ * `policyReasons` capture what the active `ApprovalPolicy` decided at the
+ * moment of resolution. Pre-Phase-6 callers that don't pass them leave the
+ * columns NULL (sql/040 migration). The operator's `status` remains the
+ * load-bearing field; the policy fields are an audit trail surface for
+ * Phase 7's replay metrics.
  */
 export async function updateEnvelopeResolution(
   args: {
@@ -209,9 +219,14 @@ export async function updateEnvelopeResolution(
     resolvedByRef: string | null
     resolvedNote: string | null
     modifiedPayload: unknown | null
+    policyDecision?: string | null
+    policyVersion?: string | null
+    policyReasons?: ReadonlyArray<string> | null
   },
   executor: Executor = db,
 ): Promise<boolean> {
+  const policyReasonsJson =
+    args.policyReasons != null ? JSON.stringify([...args.policyReasons]) : null
   const result = (await executor`
     UPDATE proposal_envelopes
     SET status = ${args.status},
@@ -219,7 +234,10 @@ export async function updateEnvelopeResolution(
         resolved_by_kind = ${args.resolvedByKind},
         resolved_by_ref = ${args.resolvedByRef},
         resolved_note = ${args.resolvedNote},
-        modified_payload = ${args.modifiedPayload != null ? JSON.stringify(args.modifiedPayload) : null}::jsonb
+        modified_payload = ${args.modifiedPayload != null ? JSON.stringify(args.modifiedPayload) : null}::jsonb,
+        resolution_policy_decision = ${args.policyDecision ?? null},
+        resolution_policy_version = ${args.policyVersion ?? null},
+        resolution_policy_reasons = ${policyReasonsJson}::jsonb
     WHERE id = ${args.id} AND status = 'pending'
     RETURNING id
   `) as { id: string }[]

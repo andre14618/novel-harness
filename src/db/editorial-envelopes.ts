@@ -70,6 +70,9 @@ interface ProposalEnvelopeRow {
   resolved_by_ref: string | null
   resolved_note: string | null
   modified_payload: unknown | null
+  resolution_policy_decision: string | null
+  resolution_policy_version: string | null
+  resolution_policy_reasons: unknown | null
   created_at: string | Date
 }
 
