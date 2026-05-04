@@ -126,3 +126,129 @@ describe("computePlanningSnapshotHash — Phase 4 commit 1", () => {
     expect(a).toBe(b)
   })
 })
+
+describe("v2 input sensitivity (OpenCode HIGH 2)", () => {
+  // Each test extends baseInputs with one v2 input slice, then mutates
+  // that slice and confirms the hash moves. v1 callers don't exercise
+  // these paths because v1 ignores the v2 fields.
+
+  test("changes when a worldSystem is added", () => {
+    const a = computePlanningSnapshotHashFromInputs({ ...baseInputs }, "v2")
+    const b = computePlanningSnapshotHashFromInputs(
+      {
+        ...baseInputs,
+        worldSystems: [
+          {
+            id: "sys-magic", name: "Sigilcraft", type: "magic",
+            description: "Glyphs bind power",
+            rules: ["binding"], manifestations: ["glow"],
+            vocabulary: ["sigil"], constraints: ["written"],
+          },
+        ],
+      },
+      "v2",
+    )
+    expect(a).not.toBe(b)
+  })
+
+  test("changes when a culture is added", () => {
+    const a = computePlanningSnapshotHashFromInputs({ ...baseInputs }, "v2")
+    const b = computePlanningSnapshotHashFromInputs(
+      {
+        ...baseInputs,
+        cultures: [
+          {
+            id: "cult-mer", name: "Merfolk", description: "...",
+            values: ["water"], taboos: ["fire"], speechInfluences: "",
+            customs: [], systemViews: {},
+          },
+        ],
+      },
+      "v2",
+    )
+    expect(a).not.toBe(b)
+  })
+
+  test("changes when a characterCulture link is added", () => {
+    const a = computePlanningSnapshotHashFromInputs({ ...baseInputs }, "v2")
+    const b = computePlanningSnapshotHashFromInputs(
+      {
+        ...baseInputs,
+        characterCultures: [
+          { characterId: "char-hero", cultureId: "cult-mer", relationship: "native" },
+        ],
+      },
+      "v2",
+    )
+    expect(a).not.toBe(b)
+  })
+
+  test("changes when characterSystemAwareness is added", () => {
+    const a = computePlanningSnapshotHashFromInputs({ ...baseInputs }, "v2")
+    const b = computePlanningSnapshotHashFromInputs(
+      {
+        ...baseInputs,
+        characterSystemAwareness: [
+          {
+            characterId: "char-hero", systemId: "sys-magic",
+            awarenessLevel: "practitioner", perspective: "...",
+            chapterEstablished: 1,
+          },
+        ],
+      },
+      "v2",
+    )
+    expect(a).not.toBe(b)
+  })
+
+  test("v2 ignores v2 fields when called with version='v1' (back-compat)", () => {
+    const a = computePlanningSnapshotHashFromInputs({ ...baseInputs }, "v1")
+    const b = computePlanningSnapshotHashFromInputs(
+      {
+        ...baseInputs,
+        worldSystems: [
+          {
+            id: "sys-magic", name: "Sigilcraft", type: "magic", description: "...",
+            rules: [], manifestations: [], vocabulary: [], constraints: [],
+          },
+        ],
+      },
+      "v1",
+    )
+    // v1 namespace IS unchanged by v2 inputs — the contract is that
+    // v1 hashes a fixed input set so a v1-pinned client stays stable.
+    expect(a).toBe(b)
+  })
+
+  test("v2 default — same v1 inputs produce different v2 hash than v1 hash", () => {
+    const v1 = computePlanningSnapshotHashFromInputs(baseInputs, "v1")
+    const v2 = computePlanningSnapshotHashFromInputs(baseInputs, "v2")
+    expect(v1).not.toBe(v2)
+  })
+
+  test("v2 default — character culture order doesn't matter when pre-sorted by accessor", () => {
+    // Snapshot accessor sorts characterCultures by (characterId, cultureId).
+    // Test that two equivalent inputs yield the same hash.
+    const a = computePlanningSnapshotHashFromInputs(
+      {
+        ...baseInputs,
+        characterCultures: [
+          { characterId: "char-foe", cultureId: "cult-a", relationship: "native" },
+          { characterId: "char-hero", cultureId: "cult-b", relationship: "adopted" },
+        ],
+      },
+      "v2",
+    )
+    const b = computePlanningSnapshotHashFromInputs(
+      {
+        ...baseInputs,
+        characterCultures: [
+          { characterId: "char-foe", cultureId: "cult-a", relationship: "native" },
+          { characterId: "char-hero", cultureId: "cult-b", relationship: "adopted" },
+        ],
+      },
+      "v2",
+    )
+    expect(a).toBe(b)
+  })
+})

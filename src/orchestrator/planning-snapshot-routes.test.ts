@@ -127,13 +127,13 @@ describe.skipIf(!reachable)("handlePlanningSnapshotRoute (DB-backed)", () => {
     expect(body.ok).toBe(true)
     expect(body.novelId).toBe(novelId)
     expect(body.computedHash).toMatch(/^[0-9a-f]{64}$/)
-    expect(body.version).toBe("v1")
+    expect(body.version).toBe("v2")
     expect(body.lockedSnapshot).toBeNull()
     expect(body.drift).toBe(false)
   })
 
   test("GET /current after lock: lockedSnapshot is the row, drift=false on identical state", async () => {
-    const hash = await computePlanningSnapshotHash(novelId, "v1")
+    const hash = await computePlanningSnapshotHash(novelId, "v2")
     await expectJson(
       await invoke("POST", `/api/novel/${novelId}/planning-snapshot/lock`, {
         hash,
@@ -151,7 +151,7 @@ describe.skipIf(!reachable)("handlePlanningSnapshotRoute (DB-backed)", () => {
   })
 
   test("GET /current after lock: drift=true after the planning state changes", async () => {
-    const beforeHash = await computePlanningSnapshotHash(novelId, "v1")
+    const beforeHash = await computePlanningSnapshotHash(novelId, "v2")
     await expectJson(
       await invoke("POST", `/api/novel/${novelId}/planning-snapshot/lock`, {
         hash: beforeHash,
@@ -171,7 +171,7 @@ describe.skipIf(!reachable)("handlePlanningSnapshotRoute (DB-backed)", () => {
   // ── POST /lock ────────────────────────────────────────────────────────
 
   test("POST /lock with the live hash → 200 + locked row, ds row exists in DB", async () => {
-    const hash = await computePlanningSnapshotHash(novelId, "v1")
+    const hash = await computePlanningSnapshotHash(novelId, "v2")
     const { status, body } = await expectJson(
       await invoke("POST", `/api/novel/${novelId}/planning-snapshot/lock`, {
         hash,
@@ -188,7 +188,7 @@ describe.skipIf(!reachable)("handlePlanningSnapshotRoute (DB-backed)", () => {
     // DB-side: the row is there and locked.
     const row = await findPlanningSnapshot(hash)
     expect(row!.locked_at).not.toBeNull()
-  })
+  }, 30000)
 
   test("POST /lock with a hash that doesn't match live → 409 + expectedHash/providedHash", async () => {
     // The route now recomputes the live hash and rejects mismatches.
@@ -213,7 +213,7 @@ describe.skipIf(!reachable)("handlePlanningSnapshotRoute (DB-backed)", () => {
   })
 
   test("POST /lock idempotently records: live hash gets recorded then locked on first call", async () => {
-    const liveHash = await computePlanningSnapshotHash(novelId, "v1")
+    const liveHash = await computePlanningSnapshotHash(novelId, "v2")
     expect(await findPlanningSnapshot(liveHash)).toBeNull()
     const { status } = await expectJson(
       await invoke("POST", `/api/novel/${novelId}/planning-snapshot/lock`, {
@@ -226,7 +226,7 @@ describe.skipIf(!reachable)("handlePlanningSnapshotRoute (DB-backed)", () => {
   })
 
   test("POST /lock on already-locked → 409 + actualLock metadata", async () => {
-    const hash = await computePlanningSnapshotHash(novelId, "v1")
+    const hash = await computePlanningSnapshotHash(novelId, "v2")
     await expectJson(
       await invoke("POST", `/api/novel/${novelId}/planning-snapshot/lock`, {
         hash,

@@ -52,7 +52,12 @@ import {
   lockPlanningSnapshot,
 } from "../db/planning-snapshots"
 
-const SNAPSHOT_VERSION = "v1"
+// v2 (2026-05-04): hash now includes worldSystems / cultures /
+// characterCultures / characterSystemAwareness — the writer-consumed
+// planning graph rows. v1 callers can still recompute v1 hashes by
+// calling computePlanningSnapshotHash(novelId, "v1") directly; the
+// route uses v2 for all GET / POST traffic.
+const SNAPSHOT_VERSION = "v2"
 
 const HASH_RE = /^[0-9a-f]{64}$/
 
