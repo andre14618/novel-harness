@@ -10,6 +10,39 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 4 commit 1 — computePlanningSnapshotHash tracer-bullet (2026-05-04)
+
+**Decision:** Ship the smallest tracer-bullet for Phase 4 (Planning Snapshot Review): a pure compute helper that hashes (world, characters, spine, outlines) deterministically via `stableHash`. No persistence, no route, no UI, no replay-on-stale enforcement — those are subsequent commits.
+
+**Why a pure helper as the first commit (not a table or a route):** Phase 4's design doc lists 6 work items; building all of them in one commit would be a sprawling untestable bundle. The compute helper is the load-bearing primitive — every later piece (persistence, lock-snapshot route, drift detection at draft start, UI panel) depends on knowing how to compute the hash. Shipping the primitive first lets each subsequent commit ship one narrow concern with the helper as a known-good import.
+
+**Why hash these four artifacts (not also planner Canon proposals or planning directives):** No-ghost-canon means pending Canon proposals don't contribute to canon reads, so they shouldn't move the snapshot hash either. Approved/rejected proposals already affect the artifact state the writer reads (chapter outlines render approved facts; canon-substrate `factsAsOfChapter` returns approved-only) — so they show up via the artifact slices. Planning directives don't have a clean accessor today; adding them requires schema work that's out of scope for this commit. The `version` parameter is the door: a future v2 can extend the input set without silently invalidating pinned v1 hashes.
+
+**Why explicit `version: "v1"` byte mixed into the digest:** When the input set changes (e.g., adding planning directives in v2), the same artifacts produce a different hash. Without the version byte, older code that pinned a v1 hash would see drift on v2-running servers even though nothing actually changed. The byte is a namespace separator. Pinned by the `v1 vs v2` test.
+
+**Why the pure variant accepts already-loaded inputs:** Tests don't need to spin up a DB to validate the hashing logic. Also: a future caller may have artifacts in memory from another query and want to skip the extra DB roundtrip. The DB-bound entrypoint is a thin wrapper that `Promise.all`'s the four accessors and forwards.
+
+**Concrete shape:**
+- `src/canon/planning-snapshot.ts` (new): exports `PlanningSnapshotInputs` interface, `PlanningSnapshotVersion` type alias (`"v1"`), `computePlanningSnapshotHashFromInputs(inputs, version)`, `computePlanningSnapshotHash(novelId, version)`. Imports `stableHash` from `proposal-envelope.ts`.
+- `src/canon/planning-snapshot.test.ts` (new): 10 tests covering determinism, JSON round-trip, sensitivity to each of the 4 inputs, v1↔v2 namespace separation, fresh-novel (all-null/empty) case, key-order independence.
+
+**Evidence:**
+- `bun test src/canon/planning-snapshot.test.ts` — 10/10 pass / 11 expects.
+- `bunx tsc --noEmit` — clean.
+- Diff scope: 2 files (+235/-0). Pure additive.
+
+**Counterfactuals considered but rejected:**
+
+- *Build the helper + a planning_snapshots table + the lock-snapshot route in one commit.* Rejected. Three distinct concerns; the table needs design (which fields, indexes, FK behavior) and the route needs validation logic (idempotency, who-can-lock, audit trail). One per commit gives Codex review a clean signal at each layer.
+- *Include pending canon proposals in the v1 hash.* Rejected — no-ghost-canon. Pending proposals don't surface in canon reads; they shouldn't surface in the snapshot either. The whole point of the snapshot is "what the writer is drafting against," and the writer reads canon-substrate snapshots that filter out pending.
+- *Compute the hash at draft start instead of pre-locking.* That's exactly what the lock primitive enables — but it requires storage (snapshot_hash on a novel/draft row). Splitting the compute helper out as commit 1 lets us stage the storage decision in commit 2 without rebuilding the hashing logic.
+- *Hash the canon-substrate state directly (e.g., `factsAsOfChapter(novelId, currentChapter)`).* Rejected. The substrate is computed FROM the planning artifacts; hashing the artifacts directly is more honest about what "the planning state" actually is. A future drift-detection layer can still compare substrate snapshots if needed.
+- *Skip the version byte (just hash the inputs).* Rejected — pinned by the `v1 vs v2` test. Without the byte, schema bumps silently invalidate pinned hashes; clients that wrote `expectedSnapshotHash = X` would see false drift on a server that added new inputs.
+
+**Ongoing:** Phase 4 progress: commit 1 done. Remaining: commit 2 (persistence — `planning_snapshots` table, idempotent insert by hash), commit 3 (lock-snapshot route + a small `GET /:id/planning-snapshot/current` route returning the live hash + mechanical health), commit 4 (UI panel — collapsible groups for the 4 artifact slices + mechanical-health badges + Lock button), commit 5 (replay-on-stale enforcement: drafting reads the locked hash, recomputes, refuses to draft if drift). Phase 3 commit 5b (LLM-firing quick actions) still parked behind transport-stub infra.
+
+---
+
 ### §Phase 3 commit 4 follow-up D — audit-history view (2026-05-04)
 
 **Decision:** Add a collapsible "Show audit history" toggle below the active envelope batch in `AdjustPanel`. Opening fetches `GET /proposal-envelopes?status=all` and renders non-pending rows with status badge + patch summary + resolved-at timestamp + parentEnvelopeId reference. Read-only. Closes the last of 4 commit-4 follow-ups (A/B/C/D).
