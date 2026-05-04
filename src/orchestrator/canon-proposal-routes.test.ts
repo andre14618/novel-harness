@@ -760,6 +760,78 @@ describe.skipIf(!reachable)("handleCanonProposalRoute", () => {
     expect(body.actualStatus).toBe("approved")
   })
 
+  // Round-1 LOW (deferred from round-1, closed in round-2 follow-up):
+  // deterministic regression test for the concurrent-resolve race surface.
+  // The pre-fix bug was that the substrate's DB-level guard could surface a
+  // race as "updateProposalResolution: ... is not pending" inside the catch
+  // block, which the round-0 code mishandled as 500. The round-1 Package B
+  // HIGH 1 fix introduced `isResolveConcurrencyConflict` to recognize both
+  // race patterns. This test pins down that contract: two concurrent resolves
+  // on the SAME pending proposal MUST resolve to exactly one 200 (winner)
+  // and one 409 (loser, with actualStatus reflecting the winner's resolution).
+  // Idempotent: regardless of which side the DB schedules first, the
+  // post-condition is the same.
+  test("POST resolve — concurrent same-proposal resolves: one 200 + one 409 (race-window deterministic)", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+    const targetId = plannerProposalId(novelId, "fact-c1-f1")
+
+    // Fire BOTH resolves concurrently. They share a pending proposal row;
+    // exactly one DB-level update must succeed and exactly one must surface
+    // as a race conflict via `isResolveConcurrencyConflict`. Promise.all is
+    // the JS-side concurrency primitive — the actual DB-side race lives in
+    // the `WHERE status='pending'` guard inside `updateProposalResolution`.
+    const [resA, resB] = await Promise.all([
+      invoke(
+        "POST",
+        `/api/novel/${novelId}/canon-proposals/${encodeURIComponent(targetId)}/resolve`,
+        { status: "approved" },
+      ),
+      invoke(
+        "POST",
+        `/api/novel/${novelId}/canon-proposals/${encodeURIComponent(targetId)}/resolve`,
+        { status: "rejected" },
+      ),
+    ])
+
+    const a = await expectJson(resA)
+    const b = await expectJson(resB)
+    const statuses = [a.status, b.status].sort()
+    expect(statuses).toEqual([200, 409])
+
+    const winner = a.status === 200 ? a : b
+    const loser = a.status === 200 ? b : a
+    expect(winner.body.proposalId).toBe(targetId)
+    // Either approved (resA) or rejected (resB) wins — both are legal
+    // resolutions; we only assert the contract that EXACTLY one wins.
+    expect(["approved", "rejected"]).toContain(winner.body.status)
+    expect(loser.body.proposalId).toBe(targetId)
+    expect(["approved", "rejected"]).toContain(loser.body.actualStatus)
+    // The loser's actualStatus must match the winner's resolution.
+    expect(loser.body.actualStatus).toBe(winner.body.status)
+
+    // DB-side post-condition: the proposal row reflects exactly one
+    // resolution. The winning canon row exists if the winner approved; if
+    // the winner rejected, no canon row was committed.
+    const proposalRows = (await db`
+      SELECT status FROM canon_proposals WHERE id = ${targetId}
+    `) as { status: string }[]
+    expect(proposalRows).toHaveLength(1)
+    expect(proposalRows[0].status).toBe(winner.body.status)
+
+    const factRows = (await db`
+      SELECT approval_status FROM canon_facts
+      WHERE novel_id = ${novelId} AND logical_id = 'fact-c1-f1'
+    `) as { approval_status: string }[]
+    if (winner.body.status === "approved") {
+      expect(factRows).toHaveLength(1)
+      expect(factRows[0].approval_status).toBe("human-approved")
+    } else {
+      // Winner rejected → no canon row was committed by the resolve.
+      expect(factRows).toHaveLength(0)
+    }
+  }, 30_000)
+
   test("POST resolve already-resolved proposal (no expectedStatus) → 409", async () => {
     await seedOutlines(novelId)
     await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
