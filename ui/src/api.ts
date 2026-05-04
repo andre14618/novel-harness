@@ -829,3 +829,112 @@ export interface ExhaustionRow {
 export function getNovelExhaustions(novelId: string) {
   return fetchJSON<{ exhaustions: ExhaustionRow[] }>(`/api/novel/${encodeURIComponent(novelId)}/exhaustions`)
 }
+
+// ── Canon proposal review (Phase 2B) ──────────────────────────────────
+//
+// Minimal client surface for the operator review panel. Mirrors
+// `src/orchestrator/canon-proposal-routes.ts` shapes; types are kept narrow
+// — the substrate's full schema lives in `src/canon/api.ts` and we only need
+// what the UI renders.
+
+export type ProposalProvenanceSource =
+  | "planner-output"
+  | "planning-state-mapper"
+  | "planning-state-repair"
+  | "post-draft-extraction"
+  | "human-edit"
+  | "corpus-import"
+
+export type ProposalFactKind =
+  | "established_fact"
+  | "knowledge_change"
+  | "character_state"
+  | "promise"
+  | "payoff"
+
+export type ProposalStatus = "pending" | "approved" | "rejected" | "modified"
+
+export interface ProposedFactProvenance {
+  source: ProposalProvenanceSource
+  chapter: number
+  beat?: number
+  extractorVersion: string
+  confidence?: number
+  origin: "planned" | "observed"
+  supersedes?: string
+}
+
+export interface ProposedFact {
+  id: string
+  kind: ProposalFactKind
+  text: string
+  data?: Record<string, unknown>
+  provenance: ProposedFactProvenance
+}
+
+export interface CanonProposal {
+  id: string
+  source: ProposalProvenanceSource
+  targetFactId?: string
+  proposedFact: ProposedFact
+  status: ProposalStatus
+  modifiedFact?: ProposedFact & { provenance: ProposedFactProvenance & { approvalStatus: string; createdAt: string; updatedAt: string } }
+  operatorNote?: string
+  createdAt: string
+  resolvedAt?: string
+}
+
+export function listCanonProposals(
+  novelId: string,
+  opts?: { source?: string; chapter?: number; plannerOnly?: boolean },
+) {
+  const params = new URLSearchParams()
+  if (opts?.source) params.set("source", opts.source)
+  if (opts?.chapter !== undefined) params.set("chapter", String(opts.chapter))
+  if (opts?.plannerOnly) params.set("plannerOnly", "true")
+  const qs = params.toString()
+  const suffix = qs ? `?${qs}` : ""
+  return fetchJSON<{ proposals: CanonProposal[] }>(
+    `/api/novel/${encodeURIComponent(novelId)}/canon-proposals${suffix}`,
+  )
+}
+
+export interface ResolveProposalBody {
+  status: "approved" | "rejected" | "modified"
+  modifiedFact?: ProposedFact
+  operatorNote?: string
+  expectedStatus?: "pending"
+}
+
+export interface ResolveProposalResult {
+  proposalId: string
+  status: "approved" | "rejected" | "modified"
+  committedFact: unknown
+}
+
+export function resolveCanonProposal(
+  novelId: string,
+  proposalId: string,
+  body: ResolveProposalBody,
+) {
+  return fetchJSON<ResolveProposalResult>(
+    `/api/novel/${encodeURIComponent(novelId)}/canon-proposals/${encodeURIComponent(proposalId)}/resolve`,
+    { method: "POST", body: JSON.stringify(body) },
+  )
+}
+
+export interface GenerateProposalsResult {
+  novelId: string
+  outlinesCount: number
+  gateClear: boolean
+  created: number
+  skipped: number
+  gateReport: { summary: unknown }
+}
+
+export function generateProposalsFromOutline(novelId: string) {
+  return fetchJSON<GenerateProposalsResult>(
+    `/api/novel/${encodeURIComponent(novelId)}/canon-proposals/generate-from-outline`,
+    { method: "POST", body: "{}" },
+  )
+}

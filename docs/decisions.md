@@ -10,6 +10,31 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Collaborative proposal workflow Phase 2B cleared — Studio review panel UI over the Phase 2A API (2026-05-03)
+
+**Decision:** Ship the first UI surface for the no-ghost-canon proposal flow at `/app/canon-proposals/:novelId`. Renders pending proposals as a table (proposal id, fact id, kind, proposed text + provenance, decision column with Approve / Reject buttons), exposes the Phase 2A query filters (source / chapter / plannerOnly), and adds a "Generate from outline" button that hits the operator-triggered generate endpoint. Resolve calls send `expectedStatus: "pending"` so a stale-page race surfaces as 409 + reload-to-authoritative-state. Modify-with-edits is deliberately not in v1 — operators who need to edit hit the API directly. Browser hand-test verification by the operator is the remaining clearance step (per CLAUDE.md UI rule).
+
+**Why:** Phase 2A (commit `9cf6238`) shipped the API; Phase 2A telemetry (`1bec94e`) made it observable; Phase 1.5 (`b967c69`) auto-wires planner→proposals so the queue is populated by default. Phase 2B closes the operator-facing loop — until the UI exists, the only way to review proposals on a real novel is curl + raw JSON. v1 is intentionally narrow (no resolved-history view, no bulk approve/reject, no inline-diff) to keep the surface auditable; the rest is queued in `docs/todo.md` + the lane queue.
+
+**Evidence:**
+
+- `bunx tsc --noEmit` — clean (exit 0).
+- `cd ui && bunx vite build` — clean; 72 modules transformed; bundle 505.41 kB / 151.71 kB gzip.
+- `bun test src/canon/ src/harness/ src/orchestrator/canon-proposal-routes.test.ts` — 275/275 pass / 1,462 expects (server unchanged).
+- `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927, recallGateClear=YES`.
+
+**Counterfactuals considered but rejected:**
+
+- *Embed the proposal list inside `StudioPage.tsx` as a tab.* Rejected. StudioPage is already 1015 lines covering seed/start/director-chat/directives. A standalone `/canon-proposals/:novelId` route is the smallest correct addition and decouples the proposal lifecycle from Studio's seed-and-launch ergonomics. Folding the list into Studio later is reversible; coupling them now is harder to back out.
+- *Surface modify-with-edits in v1 via inline JSON edit field.* Rejected. The fact payload is a structured `CanonFact` shape; a freeform JSON editor is a footgun and a curated diff editor is its own design surface. v1 stays approve/reject; modify is a queued follow-on.
+- *Block the lane on browser hand-testing before declaring it cleared.* Rejected per CLAUDE.md UI rule ("if you can't test the UI, say so explicitly rather than claiming success"). The right shape is flag-and-disclose: the lane clears with browser-untested status documented in lane Results + decisions entry + the page footer itself.
+
+**Charter §1 status:** unchanged (cleared). This lane is a UI surface over an already-cleared API; no canon-read-write semantics changed.
+
+**Lane:** `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2b.md`. **Parent:** `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-2a-telemetry.md`.
+
+---
+
 ### §Step 2C live planner semantic labeling - panel clears execution, human confirmation remains (2026-05-03)
 
 **Decision:** The live planner Canon delta is ready for human-confirmation, not direct Canon writes. Added a cache-shaped semantic labeling runner that judges each emitted planner/state source ID with overlapping DeepSeek V4 Flash / V4 Pro calls and separately asks for missing planner-eligible Canon items.
