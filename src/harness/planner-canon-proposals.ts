@@ -73,7 +73,13 @@ import type {
  * authoritative for that prior version, and the new proposal goes through
  * its own approve/reject lifecycle.
  */
-export const PLANNER_PROPOSAL_SCHEMA_VERSION = "v1"
+// v2 — bumped 2026-05-03 per Codex round-1 review of Package A (HIGH 2).
+// Character-state proposals now carry structured `data.state` (location,
+// emotionalState, knows, doesNotKnow) so the committed canon row preserves
+// machine-readable state instead of only the audit's summarized text.
+// The version bump invalidates v1 deterministic ids — operators see fresh
+// v2 proposals alongside any v1 history (no auto-resolution).
+export const PLANNER_PROPOSAL_SCHEMA_VERSION = "v2"
 
 /** Result returned to callers. */
 export interface PlannerCanonProposalResult {
@@ -491,13 +497,21 @@ function dataPayloadFor(
   // state
   if (item.characterId) base.characterId = item.characterId
   if (item.characterName) base.characterName = item.characterName
-  // The audit's `text` summarizes location/emotion/knows/doesNotKnow; we
-  // keep the summary on `text` and store the structured fields on `data`.
-  // The PlannerCanonDeltaSourceItem doesn't carry the structured fields
-  // (it carries only the summarized `text`), so we don't have them here.
-  // Callers that need the structured payload will read from the underlying
-  // ChapterOutline directly. Phase 2+ may extend the audit's source-item
-  // shape to carry them; out of scope for Phase 1.
+  // Codex round-1 review of Package A (HIGH 2): preserve the structured
+  // state payload (location / emotionalState / knows / doesNotKnow) so
+  // approving a state proposal commits a canon row that downstream
+  // consumers can read deterministically — not just the audit's
+  // summarized text. Schema bumped to v2.
+  if (item.state) {
+    const state: Record<string, unknown> = {}
+    if (item.state.location !== undefined) state.location = item.state.location
+    if (item.state.emotionalState !== undefined) state.emotionalState = item.state.emotionalState
+    if (item.state.knows !== undefined) state.knows = item.state.knows
+    if (item.state.doesNotKnow !== undefined) state.doesNotKnow = item.state.doesNotKnow
+    if (Object.keys(state).length > 0) {
+      base.state = state
+    }
+  }
   return base
 }
 

@@ -196,6 +196,13 @@ describe("buildPlannerCanonProposals (pure mapping)", () => {
       expect(p.proposedFact.data?.["sourceItemKind"]).toBe("state")
       expect(p.proposedFact.data?.["characterId"]).toBeDefined()
       expect(p.proposedFact.data?.["characterName"]).toBeDefined()
+      // Codex round-1 review of Package A (HIGH 2): state proposals must
+      // carry the structured state fields so the committed canon row
+      // preserves machine-readable state, not just the audit summary.
+      expect(p.proposedFact.data?.["state"]).toBeDefined()
+      const state = p.proposedFact.data!["state"] as Record<string, unknown>
+      expect(state.location).toBeDefined()
+      expect(state.emotionalState).toBe("calm")
     }
   })
 
@@ -370,6 +377,30 @@ describe.skipIf(!reachable)("generatePlannerCanonProposals (DB-backed)", () => {
     expect(at3).toEqual(["fact-c2-f1"])
     const stillPending = await listPendingPlannerProposals(novelId)
     expect(stillPending).toHaveLength(29)
+  })
+
+  test("approving a state proposal → committed canon row preserves structured data.state (Codex Package A HIGH 2)", async () => {
+    const outlines = makeOutlines()
+    await generatePlannerCanonProposals(novelId, outlines)
+    const stateTargetId = plannerProposalId(novelId, "state-c1-s1")
+
+    const sub = new PostgresCanonSubstrate()
+    const { committedFact } = await sub.resolveProposal(stateTargetId, "approved")
+    expect(committedFact?.id).toBe("state-c1-s1")
+    expect(committedFact?.kind).toBe("character_state")
+
+    // The structured state fields must survive the planner→proposal→canon
+    // pipeline so downstream consumers can reconstruct deterministic
+    // character state from canon alone (not the summarized text).
+    const data = committedFact?.data as Record<string, unknown> | undefined
+    expect(data).toBeDefined()
+    expect(data?.["state"]).toBeDefined()
+    const state = data!["state"] as Record<string, unknown>
+    expect(state.location).toBe("Setting 1.1")
+    expect(state.emotionalState).toBe("calm")
+    expect(state.characterId).toBeUndefined() // characterId lives at data level, not under state
+    expect(data?.["characterId"]).toBe("char-actor-c1-1")
+    expect(data?.["characterName"]).toBe("Actor C1-1")
   })
 
   test("rejecting a planner proposal → canon stays clean; rejected row not pending", async () => {

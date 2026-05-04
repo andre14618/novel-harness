@@ -10,6 +10,32 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon proposal Codex review round-1 fix — character_state structured payload preservation + schema bump v2 (2026-05-03)
+
+**Decision:** State-kind proposals now carry the structured state fields — `location`, `emotionalState`, `knows`, `doesNotKnow` — through `PlannerCanonDeltaSourceItem` into `proposedFact.data.state`. The schema version bumps to **v2** so existing v1 proposal rows stay (operator-resolved or pending) and a fresh v2 row is generated for the same source item. Operators who already resolved a v1 row will see a paired v2 row that they can resolve identically; the substrate's no-ghost-canon rule means neither one is visible to canon reads until human-approved.
+
+**Why:** Codex round-1 review of Package A (HIGH 2) caught that `dataPayloadFor` for state items was keeping only `characterId` and `characterName`, summarizing `location/emotionalState/knows/doesNotKnow` into `text`. If a state proposal got approved, the committed `character_state` canon row was permanently missing its machine-readable fields — so downstream canon consumers couldn't reconstruct deterministic character state from canon alone. This commit closes that gap by threading the structured fields all the way through.
+
+**Evidence:**
+
+- 1 new pure mapping test in `src/harness/planner-canon-proposals.test.ts`: state proposals now have `data.state.location` + `data.state.emotionalState` populated.
+- 1 new approval-path test: approving a state proposal commits a canon row whose `data.state.location` and `data.state.emotionalState` survived the round-trip (the actual finding's specified test).
+- Full sweep — 293/293 pass / 1,615 expects (was 291; +2 — minus +1 / a hardcoded "v1" test that was already designed to test the override mechanism, so no breakage).
+- `bunx tsc --noEmit` — clean.
+- `bun scripts/audits/run-salvatore-recall.ts` — `meanRecall=0.927`.
+
+**Counterfactuals considered but rejected:**
+
+- *Bump schema version without fixing the payload (pure version bump for testing).* Pointless — the bump exists specifically to invalidate v1 ids whose payload was incomplete; bumping without the payload fix is no fix at all.
+- *Fix payload without bumping the version.* Rejected. Same deterministic id `planner:<novelId>:<sourceItemId>:v1` would have produced different proposed_payload contents across deploys; the audit trail would show "the same proposal" with quietly-different content. The schema-version-in-id pattern exists exactly to make payload changes visible at the id level.
+- *Auto-migrate v1 → v2 (re-run the proposal mapping over already-approved canon rows to retroactively add `data.state`).* Rejected for v1. The substrate is committed-only; mutating already-committed canon to add fields is a different lifecycle (operator audit trail, supersession rules) than the proposal flow. Operators can manually re-approve a v2 proposal if they want the structured payload on a previously-approved row, or live with the mixed-version state — both are auditable.
+
+**Charter §1 status:** unchanged.
+
+**Lane:** continuation of `docs/sessions/2026-05-03-collaborative-proposal-workflow-phase-1.md`. **Codex thread:** `019df0e2-0f13-73b3-a6b1-48eac1165fd1`.
+
+---
+
 ### §Canon proposal Codex review round-1 fixes — CLI mass-write guard + status enum hardening (2026-05-03)
 
 **Decision:** Address Codex round-1 Package C MEDIUM 2 + LOW 1 in one commit.

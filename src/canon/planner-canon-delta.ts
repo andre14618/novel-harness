@@ -21,6 +21,20 @@ export interface PlannerCanonDeltaSourceItem {
   category?: string
   characterName?: string
   characterId?: string
+  /**
+   * Structured `state`-only payload preserved from the outline so the
+   * downstream proposal carries machine-readable fields onto the committed
+   * canon row. Per Codex round-1 review of Package A (HIGH 2): without
+   * these the audit's `summarizeState` string was the only artifact left
+   * after approval, which broke deterministic character-state
+   * reconstruction from canon. Empty/absent on non-state items.
+   */
+  state?: {
+    location?: string
+    emotionalState?: string
+    knows?: readonly string[]
+    doesNotKnow?: readonly string[]
+  }
 }
 
 export interface PlannerCanonDeltaObligationRef {
@@ -294,6 +308,12 @@ function sourceItemsFor(outline: ChapterOutline): PlannerCanonDeltaSourceItem[] 
       text: summarizeState(change),
       characterName: change.name,
       characterId: (change as any).characterId,
+      state: {
+        ...(change.location ? { location: change.location } : {}),
+        ...(change.emotionalState ? { emotionalState: change.emotionalState } : {}),
+        ...(change.knows?.length ? { knows: [...change.knows] } : {}),
+        ...(change.doesNotKnow?.length ? { doesNotKnow: [...change.doesNotKnow] } : {}),
+      },
     })
   }
   return out
