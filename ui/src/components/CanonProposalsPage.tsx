@@ -36,6 +36,18 @@ const EMPTY_FILTER: Filter = {
   status: "pending",
 }
 
+// Codex round-3 HIGH: a Modify… form that only edits `text`/`provenance`
+// is unsafe for proposal kinds whose `data` carries machine-readable state
+// (knowledge_change → characterId/source; character_state → location +
+// emotionalState + knows/doesNotKnow). Editing the visible text without
+// touching `data` would commit a human-approved canon row whose payload
+// contradicts itself. Until a kind-aware editor lands, the v1 modify
+// surface is restricted to `established_fact` (where `data` only carries
+// `sourceItemKind` metadata that does not depend on the text).
+function isModifySafeKind(kind: ProposedFact["kind"]): boolean {
+  return kind === "established_fact"
+}
+
 function statusBadgeStyle(status: ProposalStatus): React.CSSProperties {
   switch (status) {
     case "pending":
@@ -251,22 +263,31 @@ function ProposalRow({
             >
               Reject
             </button>
-            <button
-              disabled={busy}
-              onClick={onStartModify}
-              style={{
-                background: "#2c2e4a",
-                border: "1px solid #66e",
-                color: "#cdf",
-                padding: "4px 10px",
-                borderRadius: 4,
-                fontSize: "0.78rem",
-                cursor: busy ? "wait" : "pointer",
-              }}
-              title="Edit text/confidence/note before committing as a modified resolution."
-            >
-              Modify…
-            </button>
+            {(() => {
+              const modifySafe = isModifySafeKind(fact.kind)
+              const disabled = busy || !modifySafe
+              const title = modifySafe
+                ? "Edit text/confidence/note before committing as a modified resolution."
+                : `Modify is disabled for ${fact.kind} proposals — kind carries structured data fields that the v1 form cannot edit safely (would commit text inconsistent with data). Approve, reject, or edit upstream.`
+              return (
+                <button
+                  disabled={disabled}
+                  onClick={onStartModify}
+                  style={{
+                    background: modifySafe ? "#2c2e4a" : "#1a1c28",
+                    border: `1px solid ${modifySafe ? "#66e" : "#3d4356"}`,
+                    color: modifySafe ? "#cdf" : "#566",
+                    padding: "4px 10px",
+                    borderRadius: 4,
+                    fontSize: "0.78rem",
+                    cursor: disabled ? (modifySafe ? "wait" : "not-allowed") : "pointer",
+                  }}
+                  title={title}
+                >
+                  Modify…
+                </button>
+              )
+            })()}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -369,6 +390,16 @@ export function CanonProposalsPage() {
   }
 
   const onSaveModify = async (proposal: CanonProposal) => {
+    if (!isModifySafeKind(proposal.proposedFact.kind)) {
+      // Defense in depth: the Modify… button is disabled for these kinds in
+      // ProposalRow, but a future code path that bypasses the button must
+      // not reach the resolve route with an unsafe partial edit.
+      setError(
+        `Modify is disabled for ${proposal.proposedFact.kind} proposals — ` +
+          `kind carries structured data the v1 form cannot edit safely.`,
+      )
+      return
+    }
     const text = modifyDraft.text.trim()
     if (text.length === 0) {
       setError("Modified text must not be empty.")
