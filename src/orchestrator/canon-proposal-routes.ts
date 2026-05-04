@@ -137,42 +137,48 @@ export async function handleCanonProposalRoute(
       )
     }
 
-    // Authoritative read for stale-precondition + 404 detection. We do this
-    // OUTSIDE the substrate.resolveProposal transaction because we want a
-    // distinct 409/404 response separate from the "already resolved" error
-    // the substrate raises. The substrate's own DB-level guard
+    // Authoritative read + substrate write are wrapped in a single try/catch
+    // so a transient DB error on the pre-read surfaces as a structured 500
+    // (or 409 if it presents as a race signal) instead of escaping to the
+    // server as an unstructured exception. We still do the read OUTSIDE the
+    // substrate's resolveProposal transaction because we want a distinct
+    // 409/404 response separate from the "already resolved" error the
+    // substrate raises. The substrate's own DB-level guard
     // (`updateProposalResolution WHERE status='pending'`) is the binding
-    // check; this is just the API-shaped surfacing of it.
-    const row = await findProposal(proposalId)
-    if (!row || row.novel_id !== novelId) {
-      return Response.json(
-        { error: `unknown proposalId ${proposalId} for novel ${novelId}` },
-        { status: 404 },
-      )
-    }
-    if (body.expectedStatus && row.status !== body.expectedStatus) {
-      return Response.json(
-        {
-          error: "stale precondition",
-          expectedStatus: body.expectedStatus,
-          actualStatus: row.status,
-          proposalId,
-        },
-        { status: 409 },
-      )
-    }
-    if (row.status !== "pending") {
-      return Response.json(
-        {
-          error: `proposal ${proposalId} already ${row.status}`,
-          actualStatus: row.status,
-          proposalId,
-        },
-        { status: 409 },
-      )
-    }
-
+    // check; the pre-read is the API-shaped surfacing of it. Per Codex
+    // round-2 finding MEDIUM 2, the previous structure had the pre-read
+    // outside the catch, so a transient pre-read failure escaped as 500
+    // unstructured.
     try {
+      const row = await findProposal(proposalId)
+      if (!row || row.novel_id !== novelId) {
+        return Response.json(
+          { error: `unknown proposalId ${proposalId} for novel ${novelId}` },
+          { status: 404 },
+        )
+      }
+      if (body.expectedStatus && row.status !== body.expectedStatus) {
+        return Response.json(
+          {
+            error: "stale precondition",
+            expectedStatus: body.expectedStatus,
+            actualStatus: row.status,
+            proposalId,
+          },
+          { status: 409 },
+        )
+      }
+      if (row.status !== "pending") {
+        return Response.json(
+          {
+            error: `proposal ${proposalId} already ${row.status}`,
+            actualStatus: row.status,
+            proposalId,
+          },
+          { status: 409 },
+        )
+      }
+
       const sub = new PostgresCanonSubstrate()
       const result = await sub.resolveProposal(
         proposalId,

@@ -10,6 +10,33 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Canon proposal Codex round-2 fix — single-resolve findProposal inside try (2026-05-04)
+
+**Decision:** The single-proposal resolve handler in `src/orchestrator/canon-proposal-routes.ts` now wraps both the authoritative pre-read (`findProposal` + stale-status checks) AND the substrate write inside one combined try/catch boundary. The 404 (unknown proposal) and 409 (stale-precondition or already-resolved) early returns remain inside the try block — they're explicit JSON-shaped responses, not error paths. A transient DB error on the pre-read now surfaces as a structured 500 (or 409 if it matches a race-conflict signal) instead of escaping the route as an unstructured exception.
+
+**Why:** Codex round-2 review flagged that the pre-read sat outside the try/catch — `findProposal(proposalId)` and the stale-status checks could throw on a transient DB blip and bubble up to the server's outer error handler. The bulk-resolve handler had already been wrapped (round-1 Package C); the single-resolve handler had not. Symmetric error-shape across both routes.
+
+**Why now:** Codex round-2 finding MEDIUM 2 of 3. Re-review items follow the established "one finding per commit" pattern.
+
+**Evidence:**
+
+- `bunx tsc --noEmit` — clean.
+- `bun test src/orchestrator/canon-proposal-routes.test.ts -t "POST resolve"` — 9/9 pass. Single-resolve test surface unchanged in semantics; only the structural error-handling changed, and the existing tests still cover all the 200/400/404/409/500 success+error branches.
+- The bulk-resolve race-window flakes that reproduced on clean main (per round-1 LOW) still flake; that's a separate test-side race in the `POST bulk-resolve — approves multiple in one request, per-row results` family and is unrelated to this single-resolve fix.
+- Diff scope: 1 file (`src/orchestrator/canon-proposal-routes.ts`), +18 / -7.
+
+**Counterfactuals considered but rejected:**
+
+- *Pull `findProposal` out into a helper that returns an `{ ok, status, response }` shape.* Rejected — the early-return pattern reads more directly. The combined try/catch is structurally idiomatic and matches the bulk-resolve handler's shape.
+- *Rely on the server-level error middleware to JSON-shape unstructured exceptions.* Rejected — the route's own `isResolveConcurrencyConflict` re-classification only fires inside this catch; an outer middleware can't replicate it without coupling the server to route-specific error shapes.
+- *Move `readActualStatus` outside the catch on the same theory.* Rejected — `readActualStatus` already wraps its own DB call in try/catch and returns null on failure, so it's safe to call inside the outer catch even if the DB is genuinely unavailable.
+
+**Charter §1 status:** unchanged.
+
+**Lane:** Codex round-2 fix bundle (3 mediums, this is one of them). Exp #424.
+
+---
+
 ### §Canon proposal Codex round-2 fix — CLI generate honors persistenceError (2026-05-04)
 
 **Decision:** `cmdGenerate` in `scripts/canon/proposals.ts` now checks `result.persistenceError` BEFORE deciding the exit code from `result.gateClear`. On atomic-batch rollback (the 503-class path introduced in commit `b554e42`), the CLI prints `persistence error: <msg> (atomic rollback — no proposals written)` to stderr and exits 1.
