@@ -10,6 +10,43 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### §Phase 3 commit 3 — regenerate-on-stale UI affordance (2026-05-04)
+
+**Decision:** Wire a `Regenerate` action on the EnvelopeCard's stale state. UI-only implementation: re-fire `adjustNovel(novelId, envelope.source.userMessage, turns)` so the conversational `/adjust` route re-derives patches against the latest artifact context. The fresh response replaces the prior envelope batch.
+
+**Why:** Phase 3 commit 2.5 surfaced a "Regenerate (commit 3) coming soon" placeholder on stale cards. Without an actual action, the only operator path to recover from a 409 was to abandon the conversation and start a new turn manually. Regen closes the loop.
+
+**Why no new server route:** The design doc constrains Phase 3 to "upgrade the existing artifact-adjuster flow without changing its model task." Re-running `/adjust` with the original userMessage satisfies that constraint exactly — same prompt, same model, same temperature; only the artifact context is refreshed. A dedicated `/regenerate` route would be redundant unless we want server-side provenance (parentEnvelopeId pointing to the stale envelope), which is a Phase 3 commit 4 concern (persistence) — out of scope here.
+
+**Concrete shape:**
+
+- `AdjustPanel.send` split into `sendMessage(msg)` (the programmatic core) + `send()` (input-driven wrapper that reads from the input field, clears it, then delegates to `sendMessage`). Lets regen reuse the existing send machinery without round-tripping through the input field's React state.
+- `regenerateFromEnvelope(envelope)` reads `envelope.source.userMessage`. If absent (defensive — production envelopes always carry it), surfaces an explicit error state on the card. Otherwise calls `sendMessage(original)`.
+- `EnvelopeCard` extended with `regenerating` (bool, mirrors the panel-level `sending` flag) and `onRegenerate` callback. Stale state renders a "Regenerate" button alongside the version-diff line; disabled while a regen is in flight; tooltip explains the model task is unchanged.
+
+**Trade-offs (documented in source comments):**
+
+- *Approved/rejected envelopes from the prior batch are discarded on regen.* `sendMessage` clears `envelopes` + `envelopeStates` before submitting. For v1 this is acceptable — operators usually regen when they want a different proposal, not when they want to merge it with prior decisions. Phase 3 commit 4 (persistence) will retain history.
+- *No semantic linking between the stale envelope and its replacement.* No `parentEnvelopeId` is threaded into the new envelope's source. Operators see a fresh batch and act on it. Server-side regen with provenance is deferred until commit 4 provides the storage plumbing.
+- *Conversation history grows with every regen.* Each regen appends a new user turn to `turns[]`. For very long sessions this could bloat the model's context. Acceptable for v1; could be mitigated by a "summarize older turns" affordance in a future commit.
+
+**Evidence:**
+
+- `bunx tsc --noEmit` (server + UI) — clean.
+- `bunx vite build` — clean. 518.98 kB / 155.25 kB gzip (was 518.09 kB / 154.95 kB; +0.89 kB / +0.30 kB gzip for the Regenerate button + handler + sendMessage refactor).
+- Diff scope: 1 file (`ui/src/components/ArtifactPreviews.tsx` +69 / -7). No server changes; no API client changes (regen reuses `adjustNovel`).
+- Browser hand-test deferred per CLAUDE.md UI rule.
+
+**Counterfactuals considered but rejected:**
+
+- *Add a server `/regenerate` route now.* Premature. The model task is unchanged; the conversation history can replay through `/adjust`. A dedicated route would only matter if (a) we needed server-side provenance (deferred to commit 4) or (b) the regen needed a different system prompt (e.g., "the artifact moved, please re-derive"), which the design doc explicitly forbids.
+- *Preserve approved/rejected envelopes across regen.* Would require diffing the new envelope batch against the prior one to identify "the regenerated version of envelope X" vs. "fresh new envelopes". Without server-side semantic linking, the diff would be heuristic (match by target.kind + target.ref). Heuristics on operator-visible state are bug bait; better to reset cleanly and let the operator re-decide.
+- *Add a "Regenerate all stale" button.* Useful when multiple cards are stale at once, but rare in practice (stale-precondition fires when the artifact moved out from under one envelope; usually only that envelope is stale). Defer to a future commit only if observed in operator usage.
+
+**Ongoing:** Phase 3 progress: commits 1, 2, 2.5, 3 done. Remaining: commit 4 (persistence), commit 5 (quick actions). Operator browser hand-test for the Regenerate button + the EnvelopeCard surface deferred.
+
+---
+
 ### §Phase 3 commit 2.5 — UI consumer of /proposal-envelopes/resolve (2026-05-04)
 
 **Decision:** Add per-envelope Approve / Reject cards to the conversational `/adjust` panel (`ArtifactPreviews.tsx` `AdjustPanel`) so the operator can act on each `proposalEnvelopes[i]` independently. New `resolveProposalEnvelope` API client wraps the Phase 3 commit 2 server route; new `EnvelopeCard` component renders one card per envelope with a risk badge, summarized payload, and a per-row state machine.
