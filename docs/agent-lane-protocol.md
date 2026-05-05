@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-02
+updated: 2026-05-05
 ---
 
 # Agent Lane Protocol
@@ -13,6 +13,9 @@ Default engineering control plane: **Claude Code or OpenCode interactive harness
 
 - **Lane captain:** owns the primary runtime hypothesis, integration, commits, and stop-gate decision.
 - **Evidence agent:** builds or runs fixed-panel replay, repeated same-family runs, or result analysis for the active lane.
+- **Test and Invariant Agent:** owns test tier shape, invariant promotion,
+  local gate health, and coverage handoff for a lane. Follow
+  `docs/test-invariant-agent.md`.
 - **Support agent:** handles tests, docs-impact audits, operator summaries, stop classifiers, and pickup docs.
 
 Only the lane captain should edit runtime behavior unless the lane context explicitly delegates a same-hypothesis arm to another worktree.

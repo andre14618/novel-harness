@@ -22,3 +22,8 @@ you need historical evidence for a decision.
 
 Current lane and runtime posture live in `docs/current-state.md` and
 `docs/sessions/lane-queue.md`. Do not duplicate transient roadmap status here.
+
+## Test And UI Gates
+
+Test and invariant work follows `docs/test-invariant-agent.md`. UI-facing work
+requires Playwright MCP evidence per `docs/ui-work-gate.md`.

@@ -125,7 +125,7 @@ Promotion tiers:
 
 See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
 
-- Active: test harness reliability cleanup has restored supported tiered gates.
+- Closed: test harness reliability cleanup has restored supported tiered gates.
   Direct broad `bun test` remains unsupported; use `bun run test:fast` for the
   default loop and `bun run test:db` for isolated DB integration. Phase-parity
   replay is explicit via `bun run test:replay` and currently needs a refreshed
@@ -203,6 +203,8 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
 - Craft heuristics that alter planner, writer, or checker behavior must prove
   value in diagnostic-only or A/B-gated form before production-default wiring.
   See `docs/decisions/L079-authoring-harness-eval-gates.md`.
+- Test and invariant work should use the dedicated role contract in
+  `docs/test-invariant-agent.md`.
 
 ## Verification Gates
 

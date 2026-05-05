@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-19
+updated: 2026-05-05
 ---
 
 # Invariants registry
@@ -154,6 +154,8 @@ Allowlist entries are a smell. Each one is either (a) a real edge case the invar
 
 ## Related
 
+- `docs/test-invariant-agent.md` — role contract for test tier and invariant
+  work
 - `.claude/skills/implement-ticket.md` Phase 5 — preflight bundle (includes invariants as blocking)
 - `docs/patterns/` — class-of-bug patterns that precede invariants
 - `docs/codex-preamble.md` — short failure-classes list Codex sees on every review

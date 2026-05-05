@@ -5,11 +5,8 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 
 ## Active
 
-- Test harness reliability cleanup. Supported fast/DB/archive gates are restored;
-  finish docs/commit cleanup and decide whether to refresh phase-parity replay
-  fixtures in a separate commit.
 - Authoring visibility/interactivity foundation remains the product lane and
-  can resume after the test-harness commit lands.
+  should use the Test and Invariant Agent contract for test/guard slices.
 
 ## Next
 
@@ -30,6 +27,10 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 
 ## Recently Closed
 
+- Dedicated Test and Invariant Agent role documented at
+  `docs/test-invariant-agent.md`; test/invariant slices now have a repeatable
+  baseline, tier-selection, invariant-promotion, and no-gap coverage handoff
+  contract.
 - Tiered test runner restored useful local gates: `bun run test:fast`,
   `bun run test:db`, `bun run test:archive`, `bun run test:list`, and explicit
   opt-in `bun run test:replay`.

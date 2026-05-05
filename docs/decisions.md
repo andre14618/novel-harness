@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-04
+updated: 2026-05-05
 role: decision-index
 archive: decisions/full-log-2026-05-04.md
 ---
@@ -16,6 +16,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
+| L80 | 2026-05-05 | active | Test and invariant work uses a dedicated support/evidence role with tiered gates, proof-before-blocking, and no hidden broad `bun test` reliance. | `docs/decisions/L080-test-invariant-agent-contract.md` |
 | L79 | 2026-05-04 | active | Authoring harness refinement: prioritize visibility/interactivity and deterministic impact awareness; require A/B evidence before production creative-heuristic wiring. | `docs/decisions/L079-authoring-harness-eval-gates.md` |
 | L78 | 2026-05-04 | active | UI/browser and CI posture: use Playwright MCP for browser preflight, keep external CI on hold indefinitely, backlog artifact/Canon observer expansion. | `docs/decisions/L078-ui-browser-ci-posture.md` |
 | L77 | 2026-05-04 | active | Proposal provenance and downstream checker attribution: proposals are system/user-triggered change requests; checker-fire outcomes require explicit correlation, not inference. | `docs/decisions/L077-proposal-provenance-checker-attribution.md` |
