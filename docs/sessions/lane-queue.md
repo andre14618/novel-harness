@@ -5,16 +5,18 @@ This file tracks active and immediately actionable work only.
 ## Active
 
 - Authoring visibility/interactivity foundation remains active.
-- Next low-risk implementation target: review remaining high-impact direct
-  planning mutations, with plan-assist whole-outline replacement treated as a
-  later higher-risk slice.
+- 2026-05-05 direct-mutation audit: no remaining direct-mutation slice is
+  non-deferred — initial-creation paths are out of scope, scalar artifact
+  PUTs are gated, and plan-assist whole-outline + chapter-plan-reviser
+  outline replacements both have lineage but are explicitly tagged as
+  later higher-risk envelope-wrap slices.
 
 ## Next
 
-- Review remaining high-impact direct planning mutations that still bypass
-  proposal envelopes or lack persisted mutation lineage.
 - Investigate semantic action drift and checker gray-zone warnings with
-  diagnostic evidence before adding new writer/checker nudges.
+  diagnostic evidence (`diagnostics:plan-drift`,
+  `diagnostics:checker-warnings`, `diagnostics:plan-assist-lineage`) before
+  adding new writer/checker nudges.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO
   rather than inferred.
