@@ -85,19 +85,32 @@ Known durable identifiers:
 - proposal `target.kind`, `target.ref`, `fieldPath`, and `currentVersion`
 - planning snapshot hash and artifact/draft hashes
 
-Audit questions:
+Audit questions (status as of 2026-05-05):
 
-- Are all persisted outlines enriched before storage and after repair/replan?
-- Do writer contexts and LLM call metadata preserve `chapterId` and `beatId`?
-- Do checker findings carry `beatId`, `obligationId`, or `sourceId` where the
-  failure is tied to a known plan artifact?
-- Do UI surfaces display and submit target refs rather than reconstructing
-  identity from labels?
-- Which direct `PUT` edit routes bypass proposal envelopes and impact preview?
-- Which planning directives and style/voice constraints lack stable target
-  refs?
-- Which world-system, culture, faction, and promise-like artifacts need IDs
-  before they can participate in deterministic impact analysis?
+- Persisted outlines enriched before storage and after repair/replan —
+  **resolved**: `saveChapterOutline()` enrichment hardening shipped; chapter
+  traceability covers downstream refs.
+- Writer contexts and LLM call metadata preserve `chapterId` and `beatId` —
+  **resolved**: `llm_calls.beat_id` persisted for beat writer, targeted beat
+  rewrites, adherence checks, and halluc-ungrounded checks.
+- Checker findings carry `beatId` / `obligationId` / `sourceId` —
+  **mostly resolved**: chapter-plan checker, validation findings, and
+  halluc-ungrounded carry stable refs; remaining checker-coverage backlog
+  tracked in `docs/stable-id-checker-coverage.md`.
+- UI surfaces display and submit target refs — **resolved**: Planning Studio
+  + Structural Planning Studio + Traceability UI all key off target refs.
+- Direct `PUT` edit routes bypassing proposal envelopes — **resolved**:
+  character/world/spine direct PUTs gated off; plan-assist whole-outline and
+  chapter-plan-reviser outline replacements still write directly but emit
+  durable lineage via `chapter_exhaustions` / `chapter_revisions`. Envelope
+  wrapping for those two paths is the explicit deferred higher-risk slice.
+- Planning directives and style/voice constraints with stable refs —
+  **resolved**: `planning_directive` proposal envelopes exist for `rawNotes`
+  and `tonalAnchors`.
+- World-system / culture / faction / promise-like artifacts with IDs —
+  **partial**: world-bible and story-spine scalar refs covered; world-system,
+  culture, faction, and promise-payoff ID work tracked in
+  `docs/world-knowledge-graph.md`.
 
 Deliverable: a target map document plus focused tests proving ID preservation
 on the first supported path.
