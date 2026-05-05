@@ -172,6 +172,10 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   beat keyword checks while preserving legacy blocker/warning strings.
 - Drafting validation rewrite routing prefers those structured finding
   codes/refs and keeps blocker-string routing only as a compatibility fallback.
+- `GET /api/novel/:novelId/chapter-health` now exposes read-only chapter
+  health over current outlines/drafts by recomputing deterministic validation
+  and attaching open issues, pending editorial/prose proposals, trace events,
+  checker calls, and checker-observation refs.
 - Deterministic lint-generated `prose_edit` span proposals now carry optional
   `beatRef` metadata when drafting can map the span through the exact
   `beatProses` join to an enriched outline beat id.

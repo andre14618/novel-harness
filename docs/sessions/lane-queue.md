@@ -40,8 +40,6 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
   modify-with-edits, status tabs, bulk reject, and bulk approve.
 - Studio artifact patch card evidence covered pending load, single resolve,
   stale regeneration surface, bulk actions, and audit history.
-- Evidence screenshots are stored at the repository root as `canon-*` and
-  `artifact-*` PNG files.
 - Follow-up UI fixes: preserve structured stale-precondition `409` responses for
   artifact regenerate handling, and remove stale Canon browser-untested copy.
 - Read-only planning target and deterministic impact-preview endpoints landed.
@@ -78,6 +76,9 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
   `codex-planning-modified-1777980329324` covered live create, edit, resolve
   modified, modified-tab diff display, and mobile rendering. The diff endpoint
   now reads `modified_payload` for modified proposals.
+- Chapter-health tracer slice landed `GET /api/novel/:novelId/chapter-health`
+  with deterministic validation, durable refs, and issue/proposal/trace/checker
+  aggregation.
 - Chapter-plan checker stable-ref slice landed: drafting attaches durable
   `beatId` to checker deviations from `outline.scenes[beat_index].beatId`
   while preserving the legacy `beat_index` contract.

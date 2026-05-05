@@ -20,6 +20,7 @@ import { handleProposalEnvelopeRoute } from "./proposal-envelope-routes"
 import { handlePlanningSnapshotRoute } from "./planning-snapshot-routes"
 import { handlePlanningTargetRoute } from "./planning-target-routes"
 import { handlePlanningProposalRoute } from "./planning-proposal-routes"
+import { handleChapterHealthRoute } from "./chapter-health-routes"
 import { handleProseEditRoute } from "./prose-edit-routes"
 import { handlePolicyDecideRoute } from "./policy-decide-routes"
 import { overviewPageHtml } from "./overview-page"
@@ -966,6 +967,10 @@ const server = Bun.serve({
     // ── Planning proposal edits (authoring refinement) ──
     const planningProposalResponse = await handlePlanningProposalRoute(req, url)
     if (planningProposalResponse) return planningProposalResponse
+
+    // ── Chapter health/traceability visibility (authoring refinement) ──
+    const chapterHealthResponse = await handleChapterHealthRoute(req, url)
+    if (chapterHealthResponse) return chapterHealthResponse
 
     // ── Prose-edit envelope apply (Phase 5 commit 4 — collaborative proposal workflow) ──
     const proseEditResponse = await handleProseEditRoute(req, url)
