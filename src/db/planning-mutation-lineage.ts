@@ -3,7 +3,7 @@ import type { ProposalEnvelopeKind } from "../canon/proposal-envelope"
 
 type Executor = typeof db
 
-export type PlanningMutationLineageSourceTable = "proposal_envelopes"
+export type PlanningMutationLineageSourceTable = "proposal_envelopes" | "chapter_exhaustions"
 
 export interface PlanningMutationAffectedRef {
   kind: string
@@ -112,12 +112,14 @@ export async function recordPlanningMutationLineage(
 
 export async function findPlanningMutationLineageByProposal(
   proposalId: string,
+  opts: { sourceTable?: PlanningMutationLineageSourceTable } = {},
   executor: Executor = db,
 ): Promise<PlanningMutationLineage | null> {
+  const sourceTable = opts.sourceTable ?? "proposal_envelopes"
   const rows = (await executor`
     SELECT *
     FROM planning_mutation_lineage
-    WHERE source_table = 'proposal_envelopes'
+    WHERE source_table = ${sourceTable}
       AND proposal_id = ${proposalId}
     ORDER BY changed_at DESC, id ASC
     LIMIT 1

@@ -75,4 +75,38 @@ describe.skipIf(!reachable)("planning mutation lineage", () => {
     expect((await listPlanningMutationLineageForRefs(novelId, ["ch-001-old"]))).toHaveLength(1)
     expect((await listPlanningMutationLineageForRefs(novelId, ["ch-001-new"]))).toHaveLength(1)
   })
+
+  test("records plan-assist lineage sourced from chapter_exhaustions", async () => {
+    const inserted = await recordPlanningMutationLineage({
+      id: "lineage-plan-assist-1",
+      proposalId: "42",
+      proposalKind: "planning_edit",
+      novelId,
+      sourceTable: "chapter_exhaustions",
+      actorKind: "human",
+      source: "plan-assist:plan-check-exhausted",
+      targetKind: "chapter_outline",
+      previousRef: "ch-001",
+      nextRef: "ch-001",
+      fieldPath: "planCheckOverridden",
+      previousVersion: "c".repeat(64),
+      nextVersion: "d".repeat(64),
+      changedAt: "2026-05-05T12:00:00.000Z",
+      reason: "operator override",
+      metadata: { decision: "override", attempt: 2 },
+    })
+    expect(inserted).toBe(true)
+
+    const found = await findPlanningMutationLineageByProposal("42", {
+      sourceTable: "chapter_exhaustions",
+    })
+    expect(found).toMatchObject({
+      id: "lineage-plan-assist-1",
+      proposalId: "42",
+      proposalKind: "planning_edit",
+      sourceTable: "chapter_exhaustions",
+      fieldPath: "planCheckOverridden",
+      metadata: { decision: "override", attempt: 2 },
+    })
+  })
 })

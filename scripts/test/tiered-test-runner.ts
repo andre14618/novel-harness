@@ -22,7 +22,7 @@ const REPLAY_TIMEOUT_MS = "120000"
 
 const DB_PATTERNS: Array<[RegExp, string]> = [
   [/^src\/db\//, "db-layer test"],
-  [/^src\/orchestrator\/.*routes\.test\.ts$/, "orchestrator route test"],
+  [/^src\/orchestrator\/.*routes.*\.test\.ts$/, "orchestrator route test"],
   [/^src\/harness\/canon-proposal-telemetry\.test\.ts$/, "canon proposal telemetry persistence"],
   [/^src\/harness\/planner-canon-proposals\.test\.ts$/, "planner canon proposal persistence"],
   [/^src\/canon\/substrate-equivalence\.test\.ts$/, "postgres canon substrate equivalence"],

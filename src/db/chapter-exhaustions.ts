@@ -91,7 +91,7 @@ export async function logExhaustionResolved(params: {
   chapter: number
   decision: ExhaustionDecision
   decisionDetails?: unknown
-}): Promise<boolean> {
+}): Promise<number | null> {
   const rows = await db`
     UPDATE chapter_exhaustions
     SET decided_at = NOW(),
@@ -107,7 +107,7 @@ export async function logExhaustionResolved(params: {
     )
     RETURNING id
   `
-  return rows.length > 0
+  return rows.length > 0 ? (rows[0] as { id: number }).id : null
 }
 
 export async function listExhaustionsForNovel(novelId: string): Promise<ExhaustionRow[]> {

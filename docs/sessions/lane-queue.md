@@ -23,6 +23,13 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 
 ## Recently Closed
 
+- Proposal-backed artifact editing guard landed in `scripts/lint/invariants-check.ts`;
+  production UI cannot call direct world/character/spine PUT helpers, and the
+  direct artifact route test now lives in the DB/integration tier.
+- Plan-assist direct manual decisions now preserve chapter IDs on replacement
+  outlines and record `planning_mutation_lineage` rows sourced from
+  `chapter_exhaustions`; whole-outline proposal wrapping remains a later
+  higher-risk slice.
 - Dedicated Test and Invariant Agent role documented at
   `docs/test-invariant-agent.md`; test/invariant slices now have a repeatable
   baseline, tier-selection, invariant-promotion, and no-gap coverage handoff
@@ -109,6 +116,4 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 - External CI for `policy:promotion-guard` is on hold indefinitely. Keep the
   local guard as the supported path unless the user reopens a concrete CI need.
 
-## Closed History
-
-Completed lane detail: `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
+Closed history: `docs/sessions/archive/lane-queue-2026-05-04-full.md`.

@@ -71,6 +71,11 @@ import {
   persistLintProseEditProposals,
 } from "./proposal-persistence"
 import { routeValidationBlockers } from "./validation-routing"
+import {
+  normalizePlanAssistReplacementOutline,
+  recordPlanAssistOutlineLineage,
+  recordPlanAssistOverrideLineage,
+} from "./plan-assist-lineage"
 
 /**
  * Merge per-novel `seed.pipelineOverrides` onto the module-level pipeline
@@ -1200,12 +1205,19 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           // User supplied a full replacement outline. Validated against
           // chapterOutlineSchema at the route. Persist and continue the
           // attempt loop — next attempt uses the new plan.
-          outline = {
-            ...outline,
-            ...decision.outline,
-            chapterNumber: outline.chapterNumber,  // defensive: preserve chapter identity
-          } as ChapterOutline
+          const previousOutline = outline
+          outline = normalizePlanAssistReplacementOutline(previousOutline, decision.outline)
           await saveChapterOutline(novelId, outline)
+          await recordPlanAssistOutlineLineage({
+            novelId,
+            chapter: ch,
+            payload: pendingExhaustion,
+            exhaustionId: decision.exhaustionId,
+            previousOutline,
+            nextOutline: outline,
+          }).catch((err) => {
+            log(novelId, "warn", `Plan-assist outline lineage failed: ${err instanceof Error ? err.message : err}`)
+          })
           log(novelId, "info", `Chapter ${ch} outline edited via plan-assist gate: ${outline.scenes.length} beats`)
           console.log(`  [PLAN-ASSIST] outline edited, restarting attempt with new plan`)
         } else if (decision.action === "override") {
@@ -1214,6 +1226,17 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           // without re-firing the gate. The chapter draft will still hit
           // the end-of-chapter approval gate for human sign-off.
           await setPlanCheckOverridden(novelId, ch, true)
+          await recordPlanAssistOverrideLineage({
+            novelId,
+            chapter: ch,
+            payload: pendingExhaustion,
+            exhaustionId: decision.exhaustionId,
+            outline,
+            previousValue: planCheckOverridden,
+            nextValue: true,
+          }).catch((err) => {
+            log(novelId, "warn", `Plan-assist override lineage failed: ${err instanceof Error ? err.message : err}`)
+          })
           log(novelId, "info", `Chapter ${ch} plan-check overridden via plan-assist gate`)
           console.log(`  [PLAN-ASSIST] override persisted, restarting attempt with checks skipped`)
         } else {
@@ -1572,16 +1595,34 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           }
           const decision = await presentForExhaustion(integrityExhaustionPayload)
           if (decision.action === "edit-plan") {
-            outline = {
-              ...outline,
-              ...decision.outline,
-              chapterNumber: outline.chapterNumber,  // defensive: preserve chapter identity
-            } as ChapterOutline
+            const previousOutline = outline
+            outline = normalizePlanAssistReplacementOutline(previousOutline, decision.outline)
             await saveChapterOutline(novelId, outline)
+            await recordPlanAssistOutlineLineage({
+              novelId,
+              chapter: ch,
+              payload: integrityExhaustionPayload,
+              exhaustionId: decision.exhaustionId,
+              previousOutline,
+              nextOutline: outline,
+            }).catch((err) => {
+              log(novelId, "warn", `Integrity-exhaustion outline lineage failed: ${err instanceof Error ? err.message : err}`)
+            })
             log(novelId, "info", `Chapter ${ch} outline edited via integrity-exhaustion gate: ${outline.scenes.length} beats`)
             console.log(`  [PLAN-ASSIST] outline edited at integrity exhaustion; chapter will retry from new plan on resume`)
           } else if (decision.action === "override") {
             await setPlanCheckOverridden(novelId, ch, true)
+            await recordPlanAssistOverrideLineage({
+              novelId,
+              chapter: ch,
+              payload: integrityExhaustionPayload,
+              exhaustionId: decision.exhaustionId,
+              outline,
+              previousValue: planCheckOverridden,
+              nextValue: true,
+            }).catch((err) => {
+              log(novelId, "warn", `Integrity-exhaustion override lineage failed: ${err instanceof Error ? err.message : err}`)
+            })
             log(novelId, "info", `Chapter ${ch} plan-check overridden via integrity-exhaustion gate`)
             console.log(`  [PLAN-ASSIST] plan-check override persisted; resume will skip strict checks`)
           } else {

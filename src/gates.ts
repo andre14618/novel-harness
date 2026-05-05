@@ -79,9 +79,9 @@ export interface PlanAssistGatePayload {
  * stops the chapter and propagates the bail out to the run.
  */
 export type PlanAssistDecision =
-  | { action: "edit-plan"; outline: ChapterOutline }
-  | { action: "override" }
-  | { action: "abort" }
+  | { action: "edit-plan"; outline: ChapterOutline; exhaustionId?: number | null }
+  | { action: "override"; exhaustionId?: number | null }
+  | { action: "abort"; exhaustionId?: number | null }
 
 interface PendingPlanAssistGate {
   novelId: string
@@ -89,6 +89,7 @@ interface PendingPlanAssistGate {
   payload: PlanAssistGatePayload
   resolve: (decision: PlanAssistDecision) => void
   createdAt: number
+  exhaustionId: Promise<number>
 }
 
 const pendingPlanAssistGates = new Map<string, PendingPlanAssistGate>()
@@ -187,6 +188,7 @@ export async function requestPlanAssist(
       payload,
       resolve,
       createdAt: Date.now(),
+      exhaustionId: fireP,
     }
     pendingPlanAssistGates.set(key, gate)
   })
@@ -206,7 +208,6 @@ export function resolvePlanAssist(
   if (!gate) return false
 
   pendingPlanAssistGates.delete(key)
-  gate.resolve(decision)
 
   emit(novelId, {
     type: "gate:plan-assist-resolved",
@@ -220,17 +221,33 @@ export function resolvePlanAssist(
     payload: { action: decision.action },
   }).catch(() => {})
 
-  // Telemetry — persist the decision on the matching row. Fire-and-forget.
-  logExhaustionResolved({
-    novelId,
-    chapter,
-    decision: decision.action,
-    decisionDetails: decision.action === "edit-plan" ? decision.outline : null,
-  }).catch(err => {
-    console.warn(`[gates] logExhaustionResolved failed: ${err instanceof Error ? err.message : err}`)
+  // Telemetry — persist the decision on the matching row before unblocking
+  // drafting, so downstream lineage can cite the chapter_exhaustions row.
+  ;(async () => {
+    let exhaustionId = await gate.exhaustionId.catch(() => 0)
+    try {
+      const resolvedId = await logExhaustionResolved({
+        novelId,
+        chapter,
+        decision: decision.action,
+        decisionDetails: decision.action === "edit-plan" ? decision.outline : null,
+      })
+      if (typeof resolvedId === "number" && resolvedId > 0) exhaustionId = resolvedId
+    } catch (err) {
+      console.warn(`[gates] logExhaustionResolved failed: ${err instanceof Error ? err.message : err}`)
+    }
+    gate.resolve(withExhaustionId(decision, exhaustionId))
+  })().catch((err) => {
+    console.warn(`[gates] resolvePlanAssist failed after gate resolution: ${err instanceof Error ? err.message : err}`)
+    gate.resolve(decision)
   })
 
   return true
+}
+
+function withExhaustionId(decision: PlanAssistDecision, exhaustionId: number): PlanAssistDecision {
+  if (exhaustionId <= 0) return decision
+  return { ...decision, exhaustionId } as PlanAssistDecision
 }
 
 /**

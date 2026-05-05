@@ -210,6 +210,7 @@ export async function presentForExhaustion(
     const decision = await Promise.race([gatePromise, cliPromise])
     if (gates.getPendingPlanAssist(payload.novelId)) {
       gates.resolvePlanAssist(payload.novelId, payload.chapter, decision)
+      return await gatePromise
     }
     return decision
   }

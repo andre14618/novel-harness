@@ -162,9 +162,15 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   re-enabled with `ORCHESTRATOR_ALLOW_DIRECT_ARTIFACT_PUT=1`. Browser evidence
   for disposable novel `codex-traceability-ui-1778003397963` is under
   `output/playwright/2026-05-05/artifact-preview-planning-edit-codex-traceability-ui-1778003397963/`.
+- Production UI is guarded against reintroducing direct artifact PUT callers by
+  `scripts/lint/invariants-check.ts`; route-shaped orchestrator tests with
+  extra suffixes are classified into the DB/integration tier.
 - Chapter-outline saves now persist enriched stable IDs for chapters, beats,
   source items, characters, and obligations; checker findings carry additive
   stable refs on the current high-value surfaces before broader traceability UI.
+- Plan-assist `edit-plan` and `override` remain direct manual-gate actions, but
+  drafting now records `planning_mutation_lineage` sourced from
+  `chapter_exhaustions` and preserves chapter IDs across replacement outlines.
 - Stable-ref checker coverage now includes chapter-plan checker deviations:
   drafting resolves `beatId` from `outline.scenes[beat_index].beatId` without
   changing the legacy `beat_index` contract.
