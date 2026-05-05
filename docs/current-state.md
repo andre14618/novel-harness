@@ -125,6 +125,11 @@ Promotion tiers:
 
 See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
 
+- Active: test harness reliability cleanup. Full `bun test` is not currently a
+  supported green gate: latest diagnostic full run was 1599 pass / 71 fail /
+  3 errors in 181.22s, with failures clustered in DB-backed route/telemetry
+  suites and archived eval tests. Follow `docs/test-harness-reliability-plan.md`
+  before broad new implementation work.
 - Active: authoring visibility/interactivity foundation. Next implementation
   should extend stable-ref checker coverage or structural mutation lineage
   before broader structural Planning Studio edits. See

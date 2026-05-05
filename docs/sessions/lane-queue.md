@@ -5,13 +5,21 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 
 ## Active
 
-- Authoring visibility/interactivity foundation. Follow
-  `docs/authoring-harness-refinement-plan.md`; the next implementation slice
-  should extend stable-ref coverage in checker findings or add structural
-  mutation lineage before broader structural Planning Studio edits.
+- Test harness reliability cleanup. Follow
+  `docs/test-harness-reliability-plan.md`; first restore trustworthy fast/DB
+  test gates, then resume broader authoring UI/backend slices.
+- Authoring visibility/interactivity foundation remains the product lane, but
+  broad new implementation should wait until the test-harness lane has a clean
+  supported gate.
 
 ## Next
 
+- Inventory current test tiers and separate pure unit, DB integration,
+  browser/e2e, archived eval, and long-running experiment coverage.
+- Diagnose current full-suite failure clusters from the 2026-05-05 `bun test`
+  run: canon proposal telemetry zero rows, chapter exhaustion cleanup zero
+  rows, planning-target fixture ID drift, DB route 404/409 clusters, archived
+  missing-module test, and phase parity mismatch.
 - Extend stable-ID coverage in checker findings before traceability UI.
 - Remaining stable-ID coverage hotspot: entity ID resolution for
   halluc-ungrounded findings.
