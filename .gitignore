@@ -16,6 +16,21 @@ wandb/
 __pycache__/
 *.pyc
 
+# Local browser-test evidence captured by Playwright MCP. Keep these on disk
+# for operator review, but do not commit bulky per-run screenshots/snapshots.
+.playwright-mcp/
+canon-*.png
+artifact-*.png
+planning-studio-*.png
+planning-studio-*.md
+planning-studio-*.txt
+planning-studio-*.json
+planning-modified-*.png
+planning-modified-*.md
+planning-modified-*.txt
+planning-modified-*.json
+login-snapshot.md
+
 # Ephemeral in-flight run registry — per-machine runtime state only
 .claude/in-flight/
 

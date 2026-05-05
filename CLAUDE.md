@@ -14,7 +14,7 @@ Current runtime details change often. Before changing behavior, check the live s
 
 - Pipeline state and active architecture: `docs/current-state.md`
 - Pending work: `docs/todo.md`
-- Decisions and rationale: `docs/decisions.md`
+- Decision index: `docs/decisions.md`
 - Model assignments: `src/models/roles.ts`
 - Model registry/pricing/capabilities: `src/models/registry.ts`
 - Pipeline flags: `src/config/pipeline.ts`
@@ -32,6 +32,8 @@ If this file and code disagree, trust code for runtime behavior. If this file an
 ## Development Workflow
 
 - **Session start contract:** every session opens with a written goal + component, a one-sentence why citing concrete evidence (experiment ID, smoke result, calibration row), a measurable signal that says the work worked, and the validated stop gates that fire (a/b/c/d/e). Capture these in `docs/sessions/YYYY-MM-DD-<short-name>.md` before code or runtime action. See `docs/session-start-contract.md`. If the four questions cannot be answered, the work is exploration — bound it explicitly rather than drifting into changes.
+- **UI Work Gate:** any UI-facing feature or fix requires Playwright MCP browser evidence before handoff. Capture load, interaction, and relevant edge/regression screenshots per `docs/ui-work-gate.md`; code inspection and unit tests are not enough for UI clearance.
+- **Creative Heuristic Eval Gate:** any craft heuristic that changes planner, writer, or checker behavior must start as diagnostic-only or A/B-gated work with a baseline, one changed lever, declared sample shape, measurable signal, stop gate, and promotion/rollback criteria. Do not wire scene turns, micro-tension, promise/story-debt influence, character-agency checks, world-detail forcing, genre strictness, or voice/motivation nudges into production defaults without evidence.
 - **Cost-threshold autonomy:** runtime actions costing under $2 per run proceed without asking — deploy + smoke + paired-replay + DB writes for normal lanes. Anything ≥$2 per run, anything touching shared/external state (orchestrator service config, shared infra), or anything that would push the standing $26 overnight budget close to its cap requires a check-in first. Record the actual cost in the lane doc when a run exceeds its quote.
 - **Engineering orchestration boundary:** use established interactive engineering harnesses — Claude Code or OpenCode — as the primary layer for coding, agent orchestration, review, and queue handoff. Novel Harness should not rebuild a custom autonomous coding supervisor inside the repo. `scripts/agent/lane-runner.ts` is retired as the default engineering control plane and remains legacy/optional for headless one-shot experiments only. Runtime LLM/API calls inside Novel Harness remain appropriate for novel planning, writing, checking, evaluation, and observability features.
 - **Autonomous loop default:** never declare a session "done" at a clean boundary. After every shipped commit, scan `docs/sessions/lane-queue.md` §Next and pick the top non-blocked item. Browser-untested UI work counts as in-bounds — flag-and-disclose per CLAUDE.md UI rule, don't skip it. Stop only when (a) a blocker requires human input, (b) every Next item is gated on environment access I lack (live browser, paid approval, externally-shared infra mutation), or (c) the user says stop. "I just shipped a bundle" / "I just sent something for review" / "I summarized" are NOT stop conditions — they are continuation points. If the only remaining work is to wait on a long-running task, schedule a wake-up rather than idling.
@@ -61,12 +63,14 @@ If this file and code disagree, trust code for runtime behavior. If this file an
 
 ## Documentation Discipline
 
-- `docs/todo.md` contains pending action items only. Completed work and rationale belong in `docs/decisions.md`, `docs/current-state.md`, result docs, or session retrospectives.
-- When an experiment concludes or a path is ruled out, update `docs/decisions.md`, remove rationale from `docs/todo.md`, conclude the DB experiment, and commit docs separately when practical.
+- `docs/todo.md` contains pending action items only. Completed work and rationale belong in linked decision records, `docs/current-state.md`, result docs, or session retrospectives.
+- `docs/current-state.md` is slim live truth, not a historical ledger. Keep it under 300 lines and move historical snapshots to `docs/archive/`.
+- `docs/decisions.md` is a slim index, not the full rationale log. Add detailed decisions as `docs/decisions/LNNN-short-slug.md`, then add one index row.
+- When an experiment concludes or a path is ruled out, update the relevant decision record/index, remove rationale from `docs/todo.md`, conclude the DB experiment, and commit docs separately when practical.
 - Capture methodology surprises in `docs/lessons-learned.md` during the same session. Use generalized “when X, then Y” lessons. **A failure-mode unit fixture that caught an over-relaxed implementation is a lesson.** Missing this entry is a docs-sweep failure even if every other doc is updated.
 - Capture specific findings in the appropriate persistent doc during the same session. Chat summaries die.
-- After meaningful PR-sized work, update `docs/current-state.md`, `docs/lessons-learned.md`, and `docs/todo.md` as needed.
-- **End-of-work documentation sweep is part of the clean-pass gate, not optional polish.** Before declaring a session/lane finished: co-stage `docs/current-state.md` (or footer `docs-impact: none`), append `docs/decisions.md` §Lxx, close the `docs/todo.md` item, append `docs/lessons-learned.md` if applicable, fill the lane doc Results, conclude the experiment row, advance `docs/sessions/lane-queue.md`, run `bun scripts/preflight-docs-impact.ts --strict` and `git diff --check`. See `docs/session-start-contract.md` for the full sweep checklist.
+- After meaningful PR-sized work, update `docs/current-state.md`, `docs/lessons-learned.md`, `docs/todo.md`, and linked decision records as needed.
+- **End-of-work documentation sweep is part of the clean-pass gate, not optional polish.** Before declaring a session/lane finished: update `docs/current-state.md` or record `docs-impact: none`, add/update any `docs/decisions/LNNN-*.md` record plus the index row, close the `docs/todo.md` item, append `docs/lessons-learned.md` if applicable, fill the lane doc Results, conclude the experiment row, advance `docs/sessions/lane-queue.md`, run `bun scripts/preflight-docs-impact.ts --strict` when applicable, run `bun run docs:weight`, and run `git diff --check`. See `docs/session-start-contract.md` for the full sweep checklist.
 - Write session retrospectives under `docs/sessions/` for sessions with multiple architectural iterations, Codex reviews, or supersession chains.
 
 ## Deployment Model
@@ -129,7 +133,7 @@ Use `nohup ... > /tmp/name.log 2>&1 &` for long-running LXC scripts. Do not pipe
 - `docs/current-state.md` — live architecture and runtime status
 - `docs/interactive-claude-captain-loop.md` — engineering orchestration boundary and captain loop
 - `docs/todo.md` — pending action items only
-- `docs/decisions.md` — append-only decisions and rationale
+- `docs/decisions.md` — decision index; detailed rationale lives in linked `docs/decisions/LNNN-*.md` files
 - `docs/overnight-runbook.md` — unattended loop contract, stop gates, and audit checklist
 - `docs/agent-lane-protocol.md` — multi-agent lane roles, heartbeat, status, and dashboard commands
 - `docs/experiment-design-rules.md` — experiment design, promotion thresholds, and lane discipline

@@ -2200,3 +2200,29 @@ L70b inherited stop gate (b) wording from L70 form (b): "any baseline-approved n
 - If the strict-read fires but causal attribution is clean, document both readings in Results and ship — but only when the lane code is provably absent from the regressed novel's execution path.
 
 (L70b, exp #399. Companion: `docs/sessions/2026-05-03-L70b-per-fragment-targeted-rewrite.md`, `docs/decisions.md` §L70b.)
+
+---
+
+## When adding impact preview, audit persisted identity before building mutation paths (2026-05-04)
+
+The authoring visibility tracer found that Novel Harness already had a durable
+ID contract for chapter outlines, beats, obligations, source IDs, characters,
+proposal targets, and snapshot hashes. The weak point was not ID generation; it
+was whether every persistence and checker boundary preserved those IDs. In
+particular, raw outline saves can persist missing IDs, and several checker
+findings still report beat indexes or text instead of stable refs.
+
+**The rule:** before adding an edit endpoint that promises deterministic
+downstream impact, first build a read-only target map and make missing IDs a
+visible validation finding. Mutation endpoints should not rely on IDs that only
+exist because a read path synthesized them in memory.
+
+**How to apply:**
+- Add target extraction and impact preview before write routes.
+- Treat synthesized IDs as warnings until the persistence boundary is hardened.
+- Do not build proposal-backed patch application for a target kind until the
+read-only target map can prove stable refs survive storage, route, and checker
+surfaces.
+
+(Authoring visibility/interactivity session:
+`docs/sessions/2026-05-04-authoring-visibility-interactivity.md`.)
