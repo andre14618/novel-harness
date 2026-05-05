@@ -60,7 +60,7 @@ This file is the actionable backlog only. Live architecture belongs in
   network, console, and checklist output.
 - [x] Add chapter health and plan-to-prose traceability views from existing
   checker outputs before adding new creative checkers.
-- [ ] Refresh phase-parity smoke after beat-count calibration; compare word
+- [x] Refresh phase-parity smoke after beat-count calibration; compare word
   count, beat count, approval rate, and semantic drift rate.
 - [ ] Investigate semantic action drift from drafting before adding new
   writer/checker nudges.
@@ -124,7 +124,8 @@ This file is the actionable backlog only. Live architecture belongs in
 ## Lower Priority
 
 - [ ] Checker calibration follow-ups: functional-state warning panel,
-  continuity subclass calibration, and stochastic checker convergence sweeps.
+  validation false-positive review, continuity subclass calibration, and
+  stochastic checker convergence sweeps.
 - [ ] Composite-prior methodology probe: choose one bundle before running more
   corpus/prompt experiments.
 - [ ] World-building corpus expansion for future bible-extraction calibration.

@@ -127,8 +127,8 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   Direct broad `bun test` remains unsupported; use `bun run test:fast` for the
   default loop, `bun run test:db` for bounded DB smoke, and
   `bun run test:db:full` for exhaustive isolated DB integration. Phase-parity
-  replay is explicit via `bun run test:replay` and currently needs a refreshed
-  fixture after prompt/request drift.
+  replay is explicit via `bun run test:replay`; the small smoke fixture is
+  refreshed and green after beat-count calibration.
 - Active: authoring visibility/interactivity foundation. The traceability UI
   tracer is browser-cleared; next slices should continue closing proposal
   bypasses and improving operator-visible impact/lineage.
@@ -159,9 +159,9 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
 - Studio artifact preview inline edits for supported world/character/spine
   scalar fields now queue `planning_edit` envelopes instead of directly
   mutating artifacts. Unsupported preview fields render read-only, and legacy
-  direct artifact `PUT` routes are disabled by default unless explicitly
-  re-enabled with `ORCHESTRATOR_ALLOW_DIRECT_ARTIFACT_PUT=1`. Browser evidence
-  for disposable novel `codex-traceability-ui-1778003397963` is under
+  direct artifact `PUT` routes are disabled in runtime; use
+  `/api/novel/:novelId/planning-proposals` instead. Browser evidence for
+  disposable novel `codex-traceability-ui-1778003397963` is under
   `output/playwright/2026-05-05/artifact-preview-planning-edit-codex-traceability-ui-1778003397963/`.
 - Production UI is guarded against reintroducing direct artifact PUT callers by
   `scripts/lint/invariants-check.ts`; route-shaped orchestrator tests with
@@ -277,9 +277,9 @@ Replay fixture parity is opt-in:
 bun run test:replay
 ```
 
-As of 2026-05-05, `test:replay` fails with `ReplayTransport miss:
-1dd73b5c320260717ff5bfefd77593cc` for `world-builder`, so the phase-parity
-fixture must be re-recorded in its own commit before treating replay as green.
+As of 2026-05-05, `test:replay` is green against the small
+`phase-parity-smoke` fixture. Intentional prompt/request drift still requires a
+dedicated fixture re-recording commit before replay can be treated as green.
 
 ## Documentation Rules
 

@@ -2,7 +2,7 @@ export const DIRECT_ARTIFACT_PUT_DISABLED_MESSAGE =
   "Direct artifact PUT routes are disabled by default; queue planning_edit proposals via /api/novel/:novelId/planning-proposals"
 
 export function directArtifactPutEnabled(): boolean {
-  return process.env.ORCHESTRATOR_ALLOW_DIRECT_ARTIFACT_PUT === "1"
+  return false
 }
 
 export function directArtifactPutDisabledResponse(): Response {
@@ -10,7 +10,7 @@ export function directArtifactPutDisabledResponse(): Response {
     {
       ok: false,
       error: DIRECT_ARTIFACT_PUT_DISABLED_MESSAGE,
-      enableWith: "ORCHESTRATOR_ALLOW_DIRECT_ARTIFACT_PUT=1",
+      replacementRoute: "/api/novel/:novelId/planning-proposals",
     },
     { status: 403 },
   )

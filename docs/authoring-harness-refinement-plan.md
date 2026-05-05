@@ -429,10 +429,11 @@ No candidate becomes default production behavior from source strength alone.
 2026-05-05 phase-parity fixture work produced three concrete investigations:
 
 - **Beat-count calibration:** the writer expanded 12-13 planned beats into
-  4,700-5,700 word chapters for 1,500-1,800 word targets. The immediate fix is
-  to calibrate deterministic beat floors to observed writer expansion length;
-  the backlog investigation is to run the refreshed smoke fixture and compare
-  generated word count, beat count, approval rate, and semantic drift rate.
+  4,700-5,700 word chapters for 1,500-1,800 word targets. The immediate fix
+  calibrated deterministic beat floors to observed writer expansion length. The
+  refreshed `phase-parity-smoke` evidence uses 5 beats for a 1,500-word target,
+  lands near target length, and passes replay; the remaining investigation is
+  whether that result holds across heavier fixtures.
 - **Semantic action drift:** one failed chapter changed the planned action from
   altering Grand Registry records to breaking into the Arbiter's office. Treat
   this as a real semantic failure caught by the harness; investigate whether
@@ -441,6 +442,10 @@ No candidate becomes default production behavior from source strength alone.
   emotional/readiness state may be over-strict. Build a small adjudicated panel
   before relaxing checker behavior, preserving hard catches for unsupported
   invented entities and changed core actions.
+- **Warning calibration:** the refreshed smoke fixture still produced
+  warning-class functional-state and validation findings despite passing plan
+  and continuity checks. Review warning precision before turning those warnings
+  into blocking behavior.
 
 ### Step 8 - Character Voice And Motivation Polish
 

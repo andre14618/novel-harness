@@ -11,11 +11,10 @@ This file tracks active and immediately actionable work only.
 
 ## Next
 
-- Refresh the phase-parity fixture in a dedicated commit if the current
-  prompt/request drift is intentional. Current opt-in failure:
-  `ReplayTransport miss: 1dd73b5c320260717ff5bfefd77593cc`.
-- After beat-count calibration, refresh the small phase-parity smoke first;
-  record length, approval, and semantic-drift evidence before the heavy fixture.
+- Review remaining high-impact direct planning mutations that still bypass
+  proposal envelopes or lack persisted mutation lineage.
+- Investigate semantic action drift and checker gray-zone warnings with
+  diagnostic evidence before adding new writer/checker nudges.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO
   rather than inferred.
@@ -24,6 +23,13 @@ This file tracks active and immediately actionable work only.
 
 ## Recently Closed
 
+- Legacy direct artifact `PUT` routes for character/world/spine updates now
+  stay disabled in runtime; meaningful artifact edits use `planning_edit`
+  proposal envelopes or existing artifact-patch resolution paths.
+- Beat-count calibration now uses observed writer expansion length instead of
+  the old targetWords/150 assumption. The refreshed `phase-parity-smoke`
+  fixture records 5 beats for a 1,500-word target, lands near target length,
+  and passes `bun run test:replay`.
 - Proposal-backed artifact editing guard landed in `scripts/lint/invariants-check.ts`;
   production UI cannot call direct world/character/spine PUT helpers, and the
   direct artifact route test now lives in the DB/integration tier.
@@ -35,22 +41,6 @@ This file tracks active and immediately actionable work only.
   `docs/test-invariant-agent.md`; test/invariant slices now have a repeatable
   baseline, tier-selection, invariant-promotion, and no-gap coverage handoff
   contract.
-- Tiered test runner restored useful local gates: `bun run test:fast`,
-  bounded DB smoke via `bun run test:db`, exhaustive DB via
-  `bun run test:db:full`, archive/list gates, and explicit opt-in replay.
-- Exhaustive DB tests run one file per process with `BUN_SQL_MAX=1`. Planning
-  target/snapshot DB reads were made serial where a single connection and
-  transactional `Promise.all` could stall.
-- Archived eval tests were split out of default coverage and the archived
-  Arm-B parity import path was repaired.
-- UI/browser clearance for proposal surfaces passed via Playwright MCP on
-  disposable novel `codex-ui-preflight-1777936779921`.
-- Canon proposal review evidence covered load, approve/reject,
-  modify-with-edits, status tabs, bulk reject, and bulk approve.
-- Studio artifact patch card evidence covered pending load, single resolve,
-  stale regeneration surface, bulk actions, and audit history.
-- Follow-up UI fixes: preserve structured stale-precondition `409` responses for
-  artifact regenerate handling, and remove stale Canon browser-untested copy.
 - Read-only planning target and deterministic impact-preview endpoints landed.
 - Initial `planning_edit` backend slices landed for scalar chapter-outline,
   beat-plan, beat-obligation, source-link, planning-directive,
@@ -60,13 +50,6 @@ This file tracks active and immediately actionable work only.
   Playwright evidence covered initial and modified flows on disposable novels
   `codex-planning-studio-1777948116315` and
   `codex-planning-modified-1777980329324`.
-- Studio artifact preview inline edits for supported world/character/spine
-  fields now queue `planning_edit` proposals instead of direct artifact PUTs;
-  unsupported fields render read-only, and direct artifact PUT routes are
-  explicit-opt-in only. Playwright MCP evidence on disposable novel
-  `codex-traceability-ui-1778003397963` covered supported world-setting
-  proposal creation, read-only unsupported world fields, clean console, and no
-  artifact PUT network calls.
 - Chapter-health landed `GET /chapter-health` and
   `/app/chapter-health/:novelId`; Playwright evidence on disposable novel
   `codex-chapter-health-ui-1778000670807` covered health load, filters,
@@ -78,9 +61,6 @@ This file tracks active and immediately actionable work only.
   `codex-traceability-ui-1778003397963` covered direct load, evidence expansion,
   health-card Trace navigation, mobile rendering, clean console, and `200`
   traceability/health API calls.
-- Local Playwright preflight setup helper landed as `bun run ui:preflight`;
-  it creates the evidence directory, runbook, console/network placeholders, and
-  manifest without adding browser-driver dependencies.
 - Chapter-plan checker stable-ref slice landed: drafting attaches durable
   `beatId` to checker deviations from `outline.scenes[beat_index].beatId`
   while preserving the legacy `beat_index` contract.

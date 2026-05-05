@@ -45,8 +45,8 @@ describe("handleNovelRoute direct artifact PUT gate", () => {
     const body = await res.json()
     expect(body.ok).toBe(false)
     expect(body.error).toContain("Direct artifact PUT routes are disabled by default")
-    expect(body.enableWith).toContain("ORCHESTRATOR_ALLOW_DIRECT_ARTIFACT_PUT=1")
-    expect(body.enableWith).not.toContain("DEBUG_ENABLE_INJECTION")
+    expect(body.replacementRoute).toBe("/api/novel/:novelId/planning-proposals")
+    expect(body.enableWith).toBeUndefined()
   })
 
   test.each([
@@ -76,9 +76,9 @@ describe("handleNovelRoute direct artifact PUT gate", () => {
     expect(body.error).toContain("Direct artifact PUT routes are disabled by default")
   })
 
-  test("explicit artifact PUT opt-in enables the gate", () => {
+  test("legacy artifact PUT opt-in no longer enables the gate", () => {
     resetDirectPutEnv()
     process.env.ORCHESTRATOR_ALLOW_DIRECT_ARTIFACT_PUT = "1"
-    expect(directArtifactPutEnabled()).toBe(true)
+    expect(directArtifactPutEnabled()).toBe(false)
   })
 })
