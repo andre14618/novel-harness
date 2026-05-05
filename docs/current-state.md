@@ -172,6 +172,8 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
 - Plan-assist `edit-plan` and `override` remain direct manual-gate actions, but
   drafting now records `planning_mutation_lineage` sourced from
   `chapter_exhaustions` and preserves chapter IDs across replacement outlines.
+- Accepted chapter-plan-reviser outline replacements now record
+  `planning_mutation_lineage` sourced from `chapter_revisions`.
 - Stable-ref checker coverage now includes chapter-plan checker deviations:
   drafting resolves `beatId` from `outline.scenes[beat_index].beatId` without
   changing the legacy `beat_index` contract.

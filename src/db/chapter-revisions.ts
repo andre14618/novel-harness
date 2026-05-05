@@ -53,9 +53,9 @@ export function hashIssueSig(deviations: ChapterPlanDeviation[]): string {
   return createHash("sha256").update(canonicalizeDeviations(deviations)).digest("hex").slice(0, 16)
 }
 
-export async function logRevision(input: LogRevisionInput): Promise<void> {
+export async function logRevision(input: LogRevisionInput): Promise<number | null> {
   const sig = hashIssueSig(input.deviations)
-  await db`
+  const rows = await db`
     INSERT INTO chapter_revisions (
       novel_id, chapter, attempt,
       issue_sig, issue_count, original_beat_count,
@@ -70,7 +70,9 @@ export async function logRevision(input: LogRevisionInput): Promise<void> {
       ${input.revisedBeats ? JSON.stringify(input.revisedBeats) : null}::jsonb,
       ${input.outcome}, ${input.rejectionReason ?? null}
     )
+    RETURNING id
   `
+  return rows.length > 0 ? (rows[0] as { id: number }).id : null
 }
 
 export interface RevisionRow {

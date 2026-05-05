@@ -137,7 +137,7 @@ export interface ReviserPolicyInput {
   /** Persistence callback (decoupled from `saveChapterOutline` import). */
   persistAcceptedOutline: (outline: ChapterOutline) => Promise<void>
   /** Telemetry callback (decoupled from `logRevision` import). */
-  logRevision: (entry: RevisionLogEntry) => Promise<void>
+  logRevision: (entry: RevisionLogEntry) => Promise<number | null | void>
   /**
    * Callback to mark revision used in DB BEFORE the LLM call. Caller may
    * also update its own in-memory `revisionUsed` here. The policy module
@@ -162,7 +162,7 @@ export interface ReviserPolicyInput {
 }
 
 export type ReviserOutcome =
-  | { kind: "accepted"; revisedOutline: ChapterOutline }
+  | { kind: "accepted"; revisedOutline: ChapterOutline; revisionId: number | null }
   | {
       kind: "rejected"
       reason: "beat_floor"
@@ -370,13 +370,17 @@ export async function attemptRevision(input: ReviserPolicyInput): Promise<Revise
 
   await persistAcceptedOutline(revisedOutline)
 
-  await logRevision({
+  const revisionId = await logRevision({
     novelId, chapter, attempt,
     deviations: rawDeviations,
     originalBeats: originalBeatsSnapshot,
     revisedBeats: revisedOutline.scenes,
     outcome: "accepted",
-  }).catch(() => { /* swallow */ })
+  }).catch(() => null)
 
-  return { kind: "accepted", revisedOutline }
+  return {
+    kind: "accepted",
+    revisedOutline,
+    revisionId: typeof revisionId === "number" && revisionId > 0 ? revisionId : null,
+  }
 }

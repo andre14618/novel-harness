@@ -109,4 +109,41 @@ describe.skipIf(!reachable)("planning mutation lineage", () => {
       metadata: { decision: "override", attempt: 2 },
     })
   })
+
+  test("records accepted reviser lineage sourced from chapter_revisions", async () => {
+    const inserted = await recordPlanningMutationLineage({
+      id: "lineage-reviser-1",
+      proposalId: "77",
+      proposalKind: "planning_edit",
+      novelId,
+      sourceTable: "chapter_revisions",
+      actorKind: "agent",
+      actorRef: "chapter-plan-reviser",
+      source: "chapter-plan-reviser:plan-check",
+      targetKind: "chapter_outline",
+      previousRef: "ch-001",
+      nextRef: "ch-001",
+      fieldPath: "outline",
+      previousVersion: "e".repeat(64),
+      nextVersion: "f".repeat(64),
+      changedAt: "2026-05-05T12:00:00.000Z",
+      reason: "accepted reviser output",
+      metadata: { source: "plan-check", revisionId: 77 },
+    })
+    expect(inserted).toBe(true)
+
+    const found = await findPlanningMutationLineageByProposal("77", {
+      sourceTable: "chapter_revisions",
+    })
+    expect(found).toMatchObject({
+      id: "lineage-reviser-1",
+      proposalId: "77",
+      proposalKind: "planning_edit",
+      sourceTable: "chapter_revisions",
+      actorKind: "agent",
+      actorRef: "chapter-plan-reviser",
+      fieldPath: "outline",
+      metadata: { source: "plan-check", revisionId: 77 },
+    })
+  })
 })

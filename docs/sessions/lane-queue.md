@@ -26,9 +26,9 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 - Proposal-backed artifact editing guard landed in `scripts/lint/invariants-check.ts`;
   production UI cannot call direct world/character/spine PUT helpers, and the
   direct artifact route test now lives in the DB/integration tier.
-- Plan-assist direct manual decisions now preserve chapter IDs on replacement
-  outlines and record `planning_mutation_lineage` rows sourced from
-  `chapter_exhaustions`; whole-outline proposal wrapping remains a later
+- Direct planning mutations now emit lineage for plan-assist edit/override
+  decisions via `chapter_exhaustions` and accepted chapter-plan-reviser outline
+  replacements via `chapter_revisions`; proposal wrapping remains a later
   higher-risk slice.
 - Dedicated Test and Invariant Agent role documented at
   `docs/test-invariant-agent.md`; test/invariant slices now have a repeatable

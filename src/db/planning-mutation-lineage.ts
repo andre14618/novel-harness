@@ -3,7 +3,7 @@ import type { ProposalEnvelopeKind } from "../canon/proposal-envelope"
 
 type Executor = typeof db
 
-export type PlanningMutationLineageSourceTable = "proposal_envelopes" | "chapter_exhaustions"
+export type PlanningMutationLineageSourceTable = "proposal_envelopes" | "chapter_exhaustions" | "chapter_revisions"
 
 export interface PlanningMutationAffectedRef {
   kind: string

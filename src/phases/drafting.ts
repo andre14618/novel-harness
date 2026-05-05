@@ -76,6 +76,7 @@ import {
   recordPlanAssistOutlineLineage,
   recordPlanAssistOverrideLineage,
 } from "./plan-assist-lineage"
+import { recordReviserAcceptedLineage } from "./reviser-lineage"
 
 /**
  * Merge per-novel `seed.pipelineOverrides` onto the module-level pipeline
@@ -821,7 +822,20 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             })
 
             if (outcome.kind === "accepted") {
+              const previousOutline = outline
               outline = outcome.revisedOutline
+              await recordReviserAcceptedLineage({
+                novelId,
+                chapter: ch,
+                attempt: attempts,
+                source: "plan-check",
+                revisionId: outcome.revisionId,
+                previousOutline,
+                nextOutline: outline,
+                issueCount: out.deviations?.length ?? 0,
+              }).catch((err) => {
+                log(novelId, "warn", `Chapter-plan-reviser lineage failed: ${err instanceof Error ? err.message : err}`)
+              })
               log(novelId, "info", `Chapter plan revised: ${outline.scenes.length} beats (was ${beatProses.length}); persisted to chapter_outlines`)
               console.log(`  Revised plan: ${outline.scenes.length} beats. Persisted. Restarting chapter draft with revised plan.`)
               bail = true
@@ -1100,7 +1114,20 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           })
 
           if (outcome.kind === "accepted") {
+            const previousOutline = outline
             outline = outcome.revisedOutline
+            await recordReviserAcceptedLineage({
+              novelId,
+              chapter: ch,
+              attempt: attempts,
+              source: "validation",
+              revisionId: outcome.revisionId,
+              previousOutline,
+              nextOutline: outline,
+              issueCount: currentBlockers.length,
+            }).catch((err) => {
+              log(novelId, "warn", `Validation chapter-plan-reviser lineage failed: ${err instanceof Error ? err.message : err}`)
+            })
             log(novelId, "info", `Chapter plan revised (validation path): ${outline.scenes.length} beats (was ${beatProses.length}); persisted to chapter_outlines`)
             console.log(`  Revised plan: ${outline.scenes.length} beats. Persisted. Restarting chapter draft with revised plan.`)
           } else if (outcome.kind === "rejected" && outcome.reason === "beat_floor") {
