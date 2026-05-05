@@ -28,7 +28,10 @@ This file tracks active and immediately actionable work only.
   `canon_facts` (`sql/050`) with `operational | reference | hidden` and
   `operational` default. `Fact.role` and `CanonFact.role` required in the
   type interfaces; `FactInput` lets write callers omit role. Additive
-  only; no consumer reads it yet.
+  only; no consumer reads it yet. Diagnostic-only `diagnostics:fact-roles`
+  reports per-table totals plus per-category/per-kind cross-tabs over both
+  `facts` and `canon_facts` (including active-only canon view) before any
+  role-aware consumer ships.
 - Adjudicated continuity gray-zone panel N=20 shipped (decision L81).
   continuity-facts blocker/warning at 60% TP (do not relax);
   continuity-state/warning is the dominant gray zone (20% TP / 40% FP / 40%
