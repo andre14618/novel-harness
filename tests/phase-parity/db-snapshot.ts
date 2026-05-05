@@ -92,6 +92,9 @@ export async function clearNovelState(novelId: string): Promise<void> {
   // pipeline_events, chapter_revisions, chapter_exhaustions) still scope by
   // novel_id so a partial clear is safe.
   const tables = [
+    "proposal_checker_observations", "proposal_resolution_impacts",
+    "proposal_resolution_outcomes", "planning_mutation_lineage",
+    "proposal_envelopes", "canon_proposals",
     "pipeline_events", "llm_calls",
     "issues", "validation_passes",
     "chapter_exhaustions", "chapter_revisions",
