@@ -408,6 +408,9 @@ These ideas stay backlog until tested:
 - world-detail relevance surfacing
 - genre strictness profiles
 - editorial-letter summaries
+- semantic drift prevention for planned actions that mutate during drafting
+- continuity checker calibration for gray state/object conflicts
+- beat-count calibration by current writer expansion length
 
 Experiment requirements:
 
@@ -420,6 +423,24 @@ Experiment requirements:
 - explicit promotion, rollback, and stop gates
 
 No candidate becomes default production behavior from source strength alone.
+
+### Current Investigation Set
+
+2026-05-05 phase-parity fixture work produced three concrete investigations:
+
+- **Beat-count calibration:** the writer expanded 12-13 planned beats into
+  4,700-5,700 word chapters for 1,500-1,800 word targets. The immediate fix is
+  to calibrate deterministic beat floors to observed writer expansion length;
+  the backlog investigation is to run the refreshed smoke fixture and compare
+  generated word count, beat count, approval rate, and semantic drift rate.
+- **Semantic action drift:** one failed chapter changed the planned action from
+  altering Grand Registry records to breaking into the Arbiter's office. Treat
+  this as a real semantic failure caught by the harness; investigate whether
+  shorter beat plans reduce drift before adding new writer/checker nudges.
+- **Checker gray zones:** continuity findings around object emphasis and
+  emotional/readiness state may be over-strict. Build a small adjudicated panel
+  before relaxing checker behavior, preserving hard catches for unsupported
+  invented entities and changed core actions.
 
 ### Step 8 - Character Voice And Motivation Polish
 

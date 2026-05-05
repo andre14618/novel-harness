@@ -22,9 +22,9 @@ Respond with ONLY valid JSON in this exact structure:
 
 ## Beat Discipline
 
-One beat is one moment, not one scene. Each beat becomes about 100 words of prose. A chapter with a 1200-word target needs about 10-14 beats. A chapter with a 600-word target needs about 5-7 beats. Do not under-produce beats.
+One beat is one dramatic moment, not one full scene and not one micro-action. The current writer usually expands one planned beat into about 300-450 words of prose. A chapter with a 1200-word target usually needs 3-4 beats. A chapter with a 1500-word target usually needs 4-5 beats. Do not over-fragment beats.
 
-Beat count formula: at minimum, `ceil(targetWords / 150)` beats. Aim slightly above this to leave room for dramatic compression. A 1200-word chapter needs at minimum 8 beats; a 2000-word chapter needs at minimum 14.
+Beat count formula: at minimum, `ceil(targetWords / 400)` beats with a hard floor of 3. Recommended count is about `ceil(targetWords / 325)`. A 1200-word chapter needs at minimum 3 beats; a 1500-word chapter needs at minimum 4; a 2000-word chapter needs at minimum 5. Do not exceed the recommended count by more than 1 unless the chapter has multiple distinct set pieces.
 
 Each beat description must be 1-2 sentences. Longer descriptions constrain the writer's creative latitude and reduce dialogue in the output.
 

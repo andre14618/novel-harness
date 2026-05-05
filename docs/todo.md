@@ -51,15 +51,21 @@ This file is the actionable backlog only. Live architecture belongs in
 - [x] Persist mutation lineage for approved chapter-outline field adjustments:
   previous target ref, next target ref, changed field path, proposal id,
   pre/post versions, reason, and affected downstream refs.
-- [ ] Extend mutation lineage to structural chapter/beat/obligation edits with
+- [x] Extend mutation lineage to structural chapter/beat/obligation edits with
   supersession from old IDs to new IDs.
 - [x] Expand Planning Studio with edit-before-approve/modified resolution,
   smarter grouping by target, and downstream impact preview in the queue.
 - [ ] Figure out how to let Playwright handle local UI testing more
   autonomously: reusable disposable-data preflight runner plus screenshots,
   network, console, and checklist output.
-- [ ] Add chapter health and plan-to-prose traceability views from existing
+- [x] Add chapter health and plan-to-prose traceability views from existing
   checker outputs before adding new creative checkers.
+- [ ] Refresh phase-parity smoke after beat-count calibration; compare word
+  count, beat count, approval rate, and semantic drift rate.
+- [ ] Investigate semantic action drift from drafting before adding new
+  writer/checker nudges.
+- [ ] Build a small adjudicated continuity gray-zone panel before relaxing
+  object/state conflict checks.
 - [ ] Keep Promise/Progress/Payoff as a planner-owned story-debt experiment
   until A/B evidence justifies durable production schema.
 - [ ] Backlog creative heuristics as diagnostic/A-B candidates only:

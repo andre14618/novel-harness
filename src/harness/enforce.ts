@@ -9,6 +9,7 @@
  */
 
 import type { CharacterProfile, ChapterOutline } from "../types"
+import { minimumBeatCountForTarget } from "./beat-counts"
 
 // ── Planning Phase ────────────────────────────────────────────────────────
 
@@ -62,12 +63,8 @@ export function enforcePlanningOutput(
       errors.push(`Chapter ${ch.chapterNumber} has no scene beats`)
       continue
     }
-    // Voice LoRAs and the DeepSeek writer both emit ~100-140 words per beat
-    // (median 100-110 from salvatore-structural-analysis.md). Floor: ceil(
-    // targetWords / 150). A 1200w chapter needs >=8 beats, a 2000w chapter
-    // needs >=14.
     const target = ch.targetWords ?? 1000
-    const floor = Math.max(3, Math.ceil(target / 150))
+    const floor = minimumBeatCountForTarget(target)
     if (ch.scenes.length < floor) {
       errors.push(`Chapter ${ch.chapterNumber}: ${ch.scenes.length} beats below floor ${floor} for ${target}w target`)
     }

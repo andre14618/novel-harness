@@ -1,7 +1,6 @@
 # Lane Queue
 
-This file tracks only active and immediately actionable work. Full historical
-snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
+This file tracks active and immediately actionable work only.
 
 ## Active
 
@@ -15,6 +14,8 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 - Refresh the phase-parity fixture in a dedicated commit if the current
   prompt/request drift is intentional. Current opt-in failure:
   `ReplayTransport miss: 1dd73b5c320260717ff5bfefd77593cc`.
+- After beat-count calibration, refresh the small phase-parity smoke first;
+  record length, approval, and semantic-drift evidence before the heavy fixture.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO
   rather than inferred.

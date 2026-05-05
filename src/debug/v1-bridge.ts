@@ -145,8 +145,8 @@ export function applyV1EnvVarsAsV2Rules(): BridgeReport {
   } else if (reviser === "reject") {
     // chapterBeatsSchema requires `scenes: SceneBeat[]`; sceneBeatSchema
     // requires only `description`. All other fields default. One scene
-    // is below the beat-floor of 3 (Math.max(3, ceil(targetWords/300))),
-    // so the reviser-policy module rejects this with reason="beat_floor"
+    // is below the calibrated beat-floor of 3, so the reviser-policy module
+    // rejects this with reason="beat_floor"
     // and emits the `gate:plan-assist kind="reviser-rejected"` event.
     const content = JSON.stringify({
       scenes: [

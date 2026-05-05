@@ -5,6 +5,7 @@ import type { StorySpine } from "../plotter/schema"
 import type { ChapterOutline } from "../planning-plotter/schema"
 import { renderDirectivesForPlanner } from "../../schemas/planning-directives"
 import { resolveStructuralPriors, renderStructuralPriorsForPlanner } from "../../models/roles"
+import { minimumBeatCountForTarget, recommendedBeatCountForTarget } from "../../harness/beat-counts"
 
 function renderSkeletonLine(sk: ChapterOutline): string {
   const chars = sk.charactersPresent?.length ? ` [${sk.charactersPresent.join(", ")}]` : ""
@@ -65,8 +66,8 @@ Purpose: ${targetChapter.purpose}
 Target words: ${targetChapter.targetWords}
 Characters present: ${(targetChapter.charactersPresent ?? []).join(", ")}
 
-Minimum beats required: ${Math.max(3, Math.ceil(targetChapter.targetWords / 150))} (each beat produces ~100-140 words of prose in the writer).
-Recommended: ${Math.max(3, Math.ceil(targetChapter.targetWords / 120))} beats to comfortably hit the target.`
+Minimum beats required: ${minimumBeatCountForTarget(targetChapter.targetWords)} (current writer usually produces ~300-450 words per planned beat).
+Recommended: ${recommendedBeatCountForTarget(targetChapter.targetWords)} beats. Do not exceed recommended by more than 1 unless the chapter has multiple distinct set pieces.`
 
   const directivesSection = seed.directives ? renderDirectivesForPlanner(seed.directives) : ""
   const priors = resolveStructuralPriors(seed.genre)

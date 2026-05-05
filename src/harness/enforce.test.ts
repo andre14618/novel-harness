@@ -38,6 +38,39 @@ test("planning enforcement keeps valid forward payoff links", () => {
   expect(result.warnings).toEqual([])
 })
 
+test("planning enforcement uses calibrated beat count floor", () => {
+  const outline = chapter({
+    targetWords: 1500,
+    scenes: [
+      beat({ description: "Istra finds the missing dose." }),
+      beat({ description: "Wren refuses the treatment." }),
+      beat({ description: "Istra proves the danger." }),
+    ],
+  })
+
+  const result = enforcePlanningOutput([outline], 1, [character("Istra Venn")])
+
+  expect(result.valid).toBe(false)
+  expect(result.errors).toEqual(["Chapter 1: 3 beats below floor 4 for 1500w target"])
+})
+
+test("planning enforcement accepts a compact 1500 word chapter at four beats", () => {
+  const outline = chapter({
+    targetWords: 1500,
+    scenes: [
+      beat({ description: "Istra finds the missing dose." }),
+      beat({ description: "Wren refuses the treatment." }),
+      beat({ description: "Istra proves the danger." }),
+      beat({ description: "Wren accepts the cost." }),
+    ],
+  })
+
+  const result = enforcePlanningOutput([outline], 1, [character("Istra Venn")])
+
+  expect(result.valid).toBe(true)
+  expect(result.errors).toEqual([])
+})
+
 function chapter(overrides: Partial<ChapterOutline> = {}): ChapterOutline {
   return {
     chapterNumber: 1,

@@ -9,7 +9,7 @@ Your job: revise the `scenes` (beat list) so the issues become satisfiable. Make
 
 Common failure modes and appropriate revisions:
 
-1. **Checker keeps rejecting a beat for "action not dramatized"** — the beat description probably asks for something the writer cannot achieve in ~100 words (too many actions, internal/external mismatch, physically impossible sequencing). Split the beat into 2 simpler beats, OR soften the action list to the single essential dramatic moment.
+1. **Checker keeps rejecting a beat for "action not dramatized"** — the beat description probably asks for too many actions, mixes incompatible internal/external turns, or requires impossible physical sequencing. Split it into simpler beats only when needed, OR soften the action list to the single essential dramatic moment.
 
 2. **Setting mismatch** — a beat assumes a location the prose cannot reach from the previous beat without an unmotivated jump. Add a short transit beat, or change the subject beat's setting to match the prior beat's ending.
 

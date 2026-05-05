@@ -153,7 +153,7 @@ isolates the upstream variable and prevents cross-tier confounds.
 | `establishedFacts` per-beat target | 0 / 1–2 / 3–5 | existing planner default |
 | `knowledgeChanges` per-beat explicitness | implicit / named-character / named-+-reason | implicit |
 | Payoff-link depth in beat.description | 0 / 1-hop / 2-hop | 1-hop (V1a shipped) |
-| Beat-count floor multiplier | 0.8× / 1.0× / 1.2× of `ceil(targetWords/150)` | 1.0× |
+| Beat-count floor multiplier | 0.8× / 1.0× / 1.2× of calibrated floor | 1.0× |
 
 **Measurement axes (primary):**
 1. Beat-count-floor pass rate (existing `enforcePlanningOutput` gate).

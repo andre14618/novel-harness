@@ -23,8 +23,7 @@
  *     V1 `DEBUG_FORCE_REVISER` short-circuits removed in D4a — the V2
  *     transport-interceptor + `src/debug/v1-bridge.ts` now handles
  *     debug-injection at the agent boundary instead).
- *   - Sanity checks: beat floor (`Math.max(3, ceil(targetWords / 300))`)
- *     and no-new-characters.
+ *   - Sanity checks: calibrated beat floor and no-new-characters.
  *   - Telemetry (`logRevision` callback) for `chapter_revisions` rows.
  *   - Persistence (`persistAcceptedOutline` callback) for accepted plans.
  *   - `pendingExhaustion` construction for all 4 non-accepted outcomes.
@@ -46,6 +45,7 @@
 
 import type { ChapterOutline, SceneBeat } from "../types"
 import type { PlanAssistGatePayload } from "../gates"
+import { minimumBeatCountForTarget } from "../harness/beat-counts"
 
 /**
  * Re-export of `PlanAssistGatePayload` under the policy-module vocabulary.
@@ -293,10 +293,10 @@ export async function attemptRevision(input: ReviserPolicyInput): Promise<Revise
     }
   }
 
-  // Post-revision sanity checks. Mirror the drafting.ts pre-refactor logic
-  // exactly so existing reviser tests pass without edits.
+  // Post-revision sanity checks stay aligned with the planning beat floor so
+  // reviser output is judged against the same chapter-size contract.
   const revisedScenes: SceneBeat[] = (revised.output.scenes ?? []) as SceneBeat[]
-  const minBeats = Math.max(3, Math.ceil(outline.targetWords / 300))
+  const minBeats = minimumBeatCountForTarget(outline.targetWords)
   const originalCharacters = new Set(
     [
       outline.povCharacter,

@@ -23,6 +23,7 @@ import * as harness from "../harness"
 import { autogenPlannerProposalsAfterPlanning } from "../harness/planner-canon-proposals"
 import type { BeatObligationsContract, SceneBeat } from "../types"
 import type { BeatObligationCoverageValidation } from "../harness/beat-obligations"
+import { minimumBeatCountForTarget } from "../harness/beat-counts"
 
 const PLANNING_OBLIGATION_WARNING_LIMIT = 8
 const PLANNING_OBLIGATION_COVERAGE_MAX_RETRIES = 2
@@ -137,7 +138,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   const retryIdx: number[] = []
   for (let i = 0; i < expanded.length; i++) {
     const ch = expanded[i]
-    const floor = Math.max(3, Math.ceil((ch.targetWords ?? 1000) / 150))
+    const floor = minimumBeatCountForTarget(ch.targetWords)
     if (!ch.scenes || ch.scenes.length < floor) {
       retryIdx.push(i)
       console.log(`  Ch ${ch.chapterNumber}: ${ch.scenes?.length ?? 0} beats < floor ${floor} — retrying expansion`)
@@ -149,7 +150,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
     const retries = retryIdx.map(i =>
       expandChapter(novelId, skeletons![i], skeletons!, worldBible, characters, spine, novel.seed, 2)
         .then(full => {
-          const floor = Math.max(3, Math.ceil((full.targetWords ?? 1000) / 150))
+          const floor = minimumBeatCountForTarget(full.targetWords)
           if (full.scenes && full.scenes.length >= floor) expanded[i] = full
           else log(novelId, "warn", `Ch ${full.chapterNumber}: retry still short (${full.scenes?.length ?? 0} < ${floor})`)
         })
@@ -183,7 +184,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
       return repairOrRemapChapterState(
         novelId, item.outline, item.validation, skeletons!, worldBible, characters, spine, novel.seed, coverageAttempt,
       ).then(full => {
-        const floor = Math.max(3, Math.ceil((full.targetWords ?? 1000) / 150))
+        const floor = minimumBeatCountForTarget(full.targetWords)
         if (full.scenes && full.scenes.length >= floor) expanded[item.idx] = full
         else log(novelId, "warn", `Ch ${full.chapterNumber}: obligation repair/remap still short (${full.scenes?.length ?? 0} < ${floor})`)
       })
