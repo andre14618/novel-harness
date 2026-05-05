@@ -378,7 +378,12 @@ export interface PlanningEditTarget {
 }
 
 export interface PlanningEditPayload {
-  action: "field_replace"
+  action:
+    | "field_replace"
+    | "beat_replace"
+    | "beat_reorder"
+    | "beat_obligation_replace"
+    | "beat_obligation_reorder"
   target: PlanningEditTarget
   previousValue: unknown
   proposedValue: unknown

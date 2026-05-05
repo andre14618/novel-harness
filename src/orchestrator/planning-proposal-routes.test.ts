@@ -69,7 +69,7 @@ describe("handlePlanningProposalRoute - create validation before DB lookup", () 
     expect(body.error).toBe("invalid request body")
     expect(body.issues).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        path: "target.fieldPath",
+        path: expect.stringMatching(/^target(?:\.fieldPath)?$/),
         message: expect.stringContaining("Invalid"),
       }),
     ]))

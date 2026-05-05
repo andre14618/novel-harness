@@ -4,10 +4,13 @@ import { stableHash } from "../canon/proposal-envelope"
 import {
   buildPlanningEditDiff,
   buildPlanningEditEnvelope,
+  planningEditCreateTargetSchema,
   planningEditPayloadSchema,
   planningEditTargetSchema,
   planningEditTargetsSameArtifact,
-  validatePlanningEditValue,
+  validatePlanningEditActionTarget,
+  validatePlanningEditProposedValue,
+  type PlanningEditAction,
   type BeatObligationPlanningEditField,
   type BeatPlanPlanningEditField,
   type CharacterBiblePlanningEditField,
@@ -62,7 +65,14 @@ import {
 import type { CharacterProfile, ChapterOutline, SeedInput, StorySpine, WorldBible } from "../types"
 
 const createBodySchema = z.object({
-  target: planningEditTargetSchema,
+  action: z.enum([
+    "field_replace",
+    "beat_replace",
+    "beat_reorder",
+    "beat_obligation_replace",
+    "beat_obligation_reorder",
+  ]).optional().default("field_replace"),
+  target: planningEditCreateTargetSchema,
   proposedValue: z.unknown(),
   rationale: z.string().min(1).optional(),
   source: z.object({
@@ -237,6 +247,10 @@ async function handlePlanningProposalDiff(
   const currentTarget = await loadPlanningEditTargetState(
     novelId,
     payloadForDiff.target,
+    {
+      action: payloadForDiff.action,
+      proposedValue: payloadForDiff.proposedValue,
+    },
   ).catch(() => null)
 
   return Response.json({
@@ -283,19 +297,31 @@ async function handleCreatePlanningProposal(
     return Response.json({ ok: false, error: `malformed json: ${String(err)}` }, { status: 400 })
   }
 
-  const valueError = validatePlanningEditValue(body.target.fieldPath, body.proposedValue)
+  const actionTargetError = validatePlanningEditActionTarget(body.action, body.target)
+  if (actionTargetError) {
+    return Response.json({ ok: false, error: actionTargetError, target: body.target }, { status: 400 })
+  }
+  const typedTarget = body.target as PlanningEditPayload["target"]
+  const valueError = validatePlanningEditProposedValue(
+    body.action,
+    typedTarget,
+    body.proposedValue,
+  )
   if (valueError) {
     return Response.json({ ok: false, error: valueError }, { status: 400 })
   }
 
   let impactPreview: PlanningImpactPreview
   try {
-    impactPreview = await previewPlanningImpact(novelId, body.target)
+    impactPreview = await previewPlanningImpact(novelId, impactPreviewTarget(typedTarget))
   } catch (err) {
     return planningProposalErrorResponse(err, "planning proposal create failed")
   }
 
-  const targetState = await loadPlanningEditTargetState(novelId, body.target)
+  const targetState = await loadPlanningEditTargetState(novelId, typedTarget, {
+    action: body.action,
+    proposedValue: body.proposedValue,
+  })
   if (!targetState) {
     return Response.json(
       { ok: false, error: "planning target not found", target: body.target },
@@ -304,7 +330,8 @@ async function handleCreatePlanningProposal(
   }
   const semanticError = validatePlanningEditSemantics(
     targetState,
-    body.target,
+    typedTarget,
+    body.action,
     body.proposedValue,
   )
   if (semanticError) {
@@ -320,10 +347,11 @@ async function handleCreatePlanningProposal(
 
   const envelope = buildPlanningEditEnvelope({
     novelId,
-    target: targetForEnvelope(body.target, impactPreview.target.currentVersion),
+    target: targetForEnvelope(typedTarget, targetState.currentVersion),
+    action: body.action,
     previousValue,
     proposedValue: body.proposedValue,
-    rationale: body.rationale ?? `Operator planning edit for ${body.target.fieldPath}`,
+    rationale: body.rationale ?? `Operator planning edit for ${planningEditActionLabel(body.action, typedTarget)}`,
     source: {
       agent: body.source?.agent ?? "operator-planning-edit",
       ...(body.source?.userMessage !== undefined ? { userMessage: body.source.userMessage } : {}),
@@ -415,8 +443,9 @@ async function handleResolvePlanningProposal(
       { status: 400 },
     )
   }
-  const valueError = validatePlanningEditValue(
-    payloadToApply.target.fieldPath,
+  const valueError = validatePlanningEditProposedValue(
+    payloadToApply.action,
+    payloadToApply.target,
     payloadToApply.proposedValue,
   )
   if (valueError) return Response.json({ ok: false, error: valueError }, { status: 400 })
@@ -441,6 +470,8 @@ async function handleResolvePlanningProposal(
       }
 
       const targetState = await loadPlanningEditTargetState(novelId, payloadToApply.target, {
+        action: payloadToApply.action,
+        proposedValue: payloadToApply.proposedValue,
         executor: tx,
         forUpdate: true,
       })
@@ -457,6 +488,7 @@ async function handleResolvePlanningProposal(
       const semanticError = validatePlanningEditSemantics(
         targetState,
         payloadToApply.target,
+        payloadToApply.action,
         payloadToApply.proposedValue,
       )
       if (semanticError) throw new PlanningProposalValidationError(semanticError)
@@ -464,8 +496,7 @@ async function handleResolvePlanningProposal(
       const applied = await applyResolvedPlanningEdit({
         novelId,
         targetState,
-        target: payloadToApply.target,
-        proposedValue: payloadToApply.proposedValue,
+        payload: payloadToApply,
         tx,
       })
 
@@ -493,7 +524,7 @@ async function handleResolvePlanningProposal(
           targetKind: envelope.target.kind,
           previousRef: targetState.ref,
           nextRef: applied.nextRef,
-          fieldPath: payloadToApply.target.fieldPath,
+          fieldPath: payloadToApply.target.fieldPath ?? payloadToApply.action,
           previousVersion: actualVersion,
           nextVersion: applied.nextVersion,
           preconditionKind: envelope.precondition.kind,
@@ -618,8 +649,14 @@ interface PlanningEditTargetState {
 async function loadPlanningEditTargetState(
   novelId: string,
   target: PlanningEditPayload["target"],
-  opts: { executor?: typeof db; forUpdate?: boolean } = {},
+  opts: {
+    action?: PlanningEditAction
+    proposedValue?: unknown
+    executor?: typeof db
+    forUpdate?: boolean
+  } = {},
 ): Promise<PlanningEditTargetState | null> {
+  const action = opts.action ?? "field_replace"
   if (target.kind === "planning_directive") {
     const novel = await getNovel(novelId, opts).catch(() => null)
     if (!novel) return null
@@ -665,11 +702,19 @@ async function loadPlanningEditTargetState(
     const stored = await getChapterOutlineByChapterId(novelId, target.ref, opts)
     if (!stored) return null
     const outline = normalizeChapterOutlineForPersistence(stored.outline)
+    if (action === "beat_reorder") {
+      return {
+        outline,
+        ref: outline.chapterId ?? target.ref,
+        currentVersion: stableHash(beatOrder(outline)),
+        previousValue: beatOrder(outline),
+      }
+    }
     return {
       outline,
       ref: outline.chapterId ?? target.ref,
       currentVersion: stableHash(outline),
-      previousValue: readChapterOutlineField(outline, target.fieldPath),
+      previousValue: readChapterOutlineField(outline, target.fieldPath as ChapterOutlinePlanningEditField),
     }
   }
   if (target.kind === "beat_plan") {
@@ -678,11 +723,32 @@ async function loadPlanningEditTargetState(
     const outline = normalizeChapterOutlineForPersistence(stored.outline)
     const beat = findBeat(outline, target.ref)
     if (!beat) return null
+    if (action === "beat_replace") {
+      return {
+        outline,
+        ref: beat.beatId ?? target.ref,
+        currentVersion: stableHash(beat),
+        previousValue: beat,
+      }
+    }
+    if (action === "beat_obligation_reorder") {
+      const listKey = reorderListKey(opts.proposedValue)
+      if (!listKey) return null
+      return {
+        outline,
+        ref: beat.beatId ?? target.ref,
+        currentVersion: stableHash(obligationOrder(beat, listKey)),
+        previousValue: {
+          listKey,
+          order: obligationOrder(beat, listKey),
+        },
+      }
+    }
     return {
       outline,
       ref: beat.beatId ?? target.ref,
       currentVersion: stableHash(beat),
-      previousValue: readBeatField(beat, target.fieldPath),
+      previousValue: readBeatField(beat, target.fieldPath as BeatPlanPlanningEditField),
     }
   }
   const stored = await getChapterOutlineByObligationId(novelId, target.ref, opts)
@@ -690,11 +756,19 @@ async function loadPlanningEditTargetState(
   const outline = normalizeChapterOutlineForPersistence(stored.outline)
   const obligation = findObligation(outline, target.ref)
   if (!obligation) return null
+  if (action === "beat_obligation_replace") {
+    return {
+      outline,
+      ref: typeof obligation.obligationId === "string" ? obligation.obligationId : target.ref,
+      currentVersion: stableHash(obligation),
+      previousValue: obligation,
+    }
+  }
   return {
     outline,
     ref: typeof obligation.obligationId === "string" ? obligation.obligationId : target.ref,
     currentVersion: stableHash(obligation),
-    previousValue: readObligationField(obligation, target.fieldPath),
+    previousValue: readObligationField(obligation, target.fieldPath as BeatObligationPlanningEditField),
   }
 }
 
@@ -705,13 +779,13 @@ function applyPlanningEditField(
 ): ChapterOutline {
   const next = JSON.parse(JSON.stringify(outline)) as ChapterOutline
   if (target.kind === "chapter_outline") {
-    ;(next as Record<string, unknown>)[target.fieldPath] = value
+    ;(next as Record<string, unknown>)[target.fieldPath as ChapterOutlinePlanningEditField] = value
     return normalizeChapterOutlineForPersistence(next)
   }
   if (target.kind === "beat_plan") {
     const beat = findBeat(next, target.ref)
     if (!beat) return normalizeChapterOutlineForPersistence(next)
-    ;(beat as Record<string, unknown>)[target.fieldPath] = value
+    ;(beat as Record<string, unknown>)[target.fieldPath as BeatPlanPlanningEditField] = value
     return normalizeChapterOutlineForPersistence(next)
   }
   const obligation = findObligation(next, target.ref)
@@ -725,15 +799,62 @@ function applyPlanningEditField(
     else delete obligation.characterId
     return normalizeChapterOutlineForPersistence(next)
   }
-  obligation[target.fieldPath] = value
+  obligation[target.fieldPath as BeatObligationPlanningEditField] = value
   return normalizeChapterOutlineForPersistence(next)
+}
+
+function applyPlanningStructuralEdit(
+  outline: ChapterOutline,
+  payload: PlanningEditPayload,
+): ChapterOutline {
+  const next = JSON.parse(JSON.stringify(outline)) as ChapterOutline
+  if (payload.action === "beat_replace") {
+    const scenes = next.scenes ?? []
+    const index = scenes.findIndex((beat) => beat.beatId === payload.target.ref)
+    if (index >= 0) scenes[index] = payload.proposedValue as SceneBeatInOutline
+    next.scenes = scenes
+    return normalizeChapterOutlineForPersistence(next)
+  }
+  if (payload.action === "beat_reorder") {
+    const byId = new Map((next.scenes ?? []).map((beat) => [beat.beatId, beat]))
+    next.scenes = (payload.proposedValue as string[])
+      .map((beatId) => byId.get(beatId))
+      .filter((beat): beat is SceneBeatInOutline => beat !== undefined)
+    return normalizeChapterOutlineForPersistence(next)
+  }
+  if (payload.action === "beat_obligation_replace") {
+    const context = findObligationContext(next, payload.target.ref)
+    if (!context) return normalizeChapterOutlineForPersistence(next)
+    const obligations = context.beat.obligations as Record<string, unknown>
+    const list = obligations[context.listKey]
+    if (Array.isArray(list)) list[context.itemIndex] = payload.proposedValue
+    return normalizeChapterOutlineForPersistence(next)
+  }
+  if (payload.action === "beat_obligation_reorder") {
+    const beat = findBeat(next, payload.target.ref)
+    const reorder = readObligationReorder(payload.proposedValue)
+    if (!beat || !reorder) return normalizeChapterOutlineForPersistence(next)
+    const obligations = beat.obligations as Record<string, unknown>
+    const list = obligations[reorder.listKey]
+    if (!Array.isArray(list)) return normalizeChapterOutlineForPersistence(next)
+    const byId = new Map(list.map((item) => [
+      typeof item === "object" && item !== null && !Array.isArray(item)
+        ? (item as { obligationId?: unknown }).obligationId
+        : undefined,
+      item,
+    ]))
+    obligations[reorder.listKey] = reorder.order
+      .map((obligationId) => byId.get(obligationId))
+      .filter((item) => item !== undefined)
+    return normalizeChapterOutlineForPersistence(next)
+  }
+  return next
 }
 
 async function applyResolvedPlanningEdit(args: {
   novelId: string
   targetState: PlanningEditTargetState
-  target: PlanningEditPayload["target"]
-  proposedValue: unknown
+  payload: PlanningEditPayload
   tx: typeof db
 }): Promise<{
   nextVersion: string
@@ -741,33 +862,35 @@ async function applyResolvedPlanningEdit(args: {
   metadata: Record<string, unknown>
   structuralLineage: StructuralPlanningMutationLineageDraft[]
 }> {
-  if (args.target.kind === "planning_directive") {
+  const target = args.payload.target
+  const proposedValue = args.payload.proposedValue
+  if (target.kind === "planning_directive") {
     if (!args.targetState.seed) {
       throw new PlanningProposalValidationError("planning directive target state missing seed")
     }
     const nextSeed = applyPlanningDirectiveField(
       args.targetState.seed,
-      args.target.fieldPath,
-      args.proposedValue,
+      target.fieldPath,
+      proposedValue,
     )
     await updateNovelSeed(args.novelId, nextSeed, args.tx)
     return {
-      nextVersion: stableHash(readPlanningDirectiveField(nextSeed, args.target.fieldPath)),
-      nextRef: args.target.ref,
+      nextVersion: stableHash(readPlanningDirectiveField(nextSeed, target.fieldPath)),
+      nextRef: target.ref,
       metadata: {
-        directiveKey: args.target.fieldPath,
+        directiveKey: target.fieldPath,
       },
       structuralLineage: [],
     }
   }
-  if (args.target.kind === "character") {
+  if (target.kind === "character") {
     if (!args.targetState.character) {
       throw new PlanningProposalValidationError("character target state missing profile")
     }
     const updated = await updateCharacterFields(
       args.novelId,
-      args.target.ref,
-      { [args.target.fieldPath]: args.proposedValue },
+      target.ref,
+      { [target.fieldPath]: proposedValue },
       args.tx,
     )
     return {
@@ -780,36 +903,36 @@ async function applyResolvedPlanningEdit(args: {
       structuralLineage: [],
     }
   }
-  if (args.target.kind === "world_bible") {
+  if (target.kind === "world_bible") {
     if (!args.targetState.world) {
       throw new PlanningProposalValidationError("world bible target state missing artifact")
     }
     const updated = await updateWorldBibleFields(
       args.novelId,
-      { [args.target.fieldPath]: args.proposedValue },
+      { [target.fieldPath]: proposedValue },
       args.tx,
     )
     return {
       nextVersion: stableHash(updated),
-      nextRef: args.target.ref,
+      nextRef: target.ref,
       metadata: {
         artifactKind: "world_bible",
       },
       structuralLineage: [],
     }
   }
-  if (args.target.kind === "story_spine") {
+  if (target.kind === "story_spine") {
     if (!args.targetState.spine) {
       throw new PlanningProposalValidationError("story spine target state missing artifact")
     }
     const updated = await updateStorySpineFields(
       args.novelId,
-      { [args.target.fieldPath]: args.proposedValue },
+      { [target.fieldPath]: proposedValue },
       args.tx,
     )
     return {
       nextVersion: stableHash(updated),
-      nextRef: args.target.ref,
+      nextRef: target.ref,
       metadata: {
         artifactKind: "story_spine",
       },
@@ -820,16 +943,14 @@ async function applyResolvedPlanningEdit(args: {
   if (!args.targetState.outline) {
     throw new PlanningProposalValidationError("planning edit target state missing outline")
   }
-  const nextOutline = applyPlanningEditField(
-    args.targetState.outline,
-    args.target,
-    args.proposedValue,
-  )
+  const nextOutline = args.payload.action === "field_replace"
+    ? applyPlanningEditField(args.targetState.outline, target, proposedValue)
+    : applyPlanningStructuralEdit(args.targetState.outline, args.payload)
   const normalizedNext = normalizeChapterOutlineForPersistence(nextOutline)
   await saveChapterOutline(args.novelId, normalizedNext, args.tx)
   return {
-    nextVersion: targetVersion(normalizedNext, args.target),
-    nextRef: targetRef(normalizedNext, args.target),
+    nextVersion: targetVersion(normalizedNext, args.payload),
+    nextRef: targetRef(normalizedNext, args.payload),
     metadata: {
       containingChapterId: normalizedNext.chapterId,
       containingChapterNumber: normalizedNext.chapterNumber,
@@ -951,6 +1072,7 @@ function findObligationContext(
   beat: SceneBeatInOutline
   beatIndex: number
   listKey: ObligationListKey
+  itemIndex: number
   obligation: Record<string, unknown>
 } | null {
   const scenes = outline.scenes ?? []
@@ -972,6 +1094,7 @@ function findObligationContext(
             beat,
             beatIndex,
             listKey,
+            itemIndex: value.indexOf(item),
             obligation: item as Record<string, unknown>,
           }
         }
@@ -981,11 +1104,127 @@ function findObligationContext(
   return null
 }
 
+function beatOrder(outline: ChapterOutline): string[] {
+  return (outline.scenes ?? [])
+    .map((beat) => beat.beatId)
+    .filter((beatId): beatId is string => typeof beatId === "string" && beatId.length > 0)
+}
+
+function obligationOrder(beat: SceneBeatInOutline, listKey: ObligationListKey): string[] {
+  const obligations = beat.obligations as Record<string, unknown> | undefined
+  const list = obligations?.[listKey]
+  if (!Array.isArray(list)) return []
+  return list
+    .map((item) =>
+      typeof item === "object" && item !== null && !Array.isArray(item)
+        ? (item as { obligationId?: unknown }).obligationId
+        : undefined
+    )
+    .filter((obligationId): obligationId is string =>
+      typeof obligationId === "string" && obligationId.length > 0
+    )
+}
+
+function readObligationReorder(value: unknown): {
+  listKey: ObligationListKey
+  order: string[]
+} | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null
+  const record = value as Record<string, unknown>
+  if (!isObligationListKey(record.listKey)) return null
+  if (!Array.isArray(record.order) || !record.order.every((item) => typeof item === "string")) {
+    return null
+  }
+  return { listKey: record.listKey, order: record.order as string[] }
+}
+
+function reorderListKey(value: unknown): ObligationListKey | null {
+  return readObligationReorder(value)?.listKey ?? null
+}
+
+function isObligationListKey(value: unknown): value is ObligationListKey {
+  return typeof value === "string" &&
+    (OBLIGATION_LIST_KEYS as readonly string[]).includes(value)
+}
+
+function validateExactOrderChange(
+  label: string,
+  currentOrder: readonly string[],
+  proposedOrder: readonly string[],
+): string | null {
+  const currentSet = new Set(currentOrder)
+  const proposedSet = new Set(proposedOrder)
+  const missing = currentOrder.filter((id) => !proposedSet.has(id))
+  const unknown = proposedOrder.filter((id) => !currentSet.has(id))
+  if (
+    currentOrder.length !== proposedOrder.length ||
+    missing.length > 0 ||
+    unknown.length > 0
+  ) {
+    return `${label} must contain exactly the current IDs; missing=${missing.join(",") || "(none)"} unknown=${unknown.join(",") || "(none)"}`
+  }
+  if (currentOrder.every((id, index) => proposedOrder[index] === id)) {
+    return `${label} matches current order`
+  }
+  return null
+}
+
 function validatePlanningEditSemantics(
   targetState: PlanningEditTargetState,
   target: PlanningEditPayload["target"],
+  action: PlanningEditAction,
   proposedValue: unknown,
 ): string | null {
+  if (action === "beat_reorder") {
+    if (!targetState.outline) return "beat_reorder target state missing outline"
+    return validateExactOrderChange(
+      "beat_reorder proposedValue",
+      beatOrder(targetState.outline),
+      proposedValue as string[],
+    )
+  }
+  if (action === "beat_replace") {
+    if (!targetState.outline) return "beat_replace target state missing outline"
+    const proposed = proposedValue as Record<string, unknown>
+    const proposedBeatId = typeof proposed.beatId === "string" ? proposed.beatId : ""
+    if (findBeat(targetState.outline, proposedBeatId)) {
+      return `beat_replace proposedValue.beatId ${proposedBeatId} already exists`
+    }
+    return null
+  }
+  if (action === "beat_obligation_replace") {
+    if (!targetState.outline) return "beat_obligation_replace target state missing outline"
+    const context = findObligationContext(targetState.outline, target.ref)
+    if (!context) return "beat_obligation_replace target not found"
+    const proposed = proposedValue as Record<string, unknown>
+    const proposedObligationId = typeof proposed.obligationId === "string"
+      ? proposed.obligationId
+      : ""
+    if (findObligation(targetState.outline, proposedObligationId)) {
+      return `beat_obligation_replace proposedValue.obligationId ${proposedObligationId} already exists`
+    }
+    if (context.listKey === "mustNotReveal") {
+      return sourceLinkFromObligation(proposed)
+        ? "mustNotReveal obligations do not support source-link replacements"
+        : null
+    }
+    const nextLink = sourceLinkFromObligation(proposed)
+    if (!nextLink) return "obligation replacement would leave the obligation without sourceId/sourceKind"
+    return validateObligationSourceLink(targetState.outline, context, nextLink)
+  }
+  if (action === "beat_obligation_reorder") {
+    if (!targetState.outline) return "beat_obligation_reorder target state missing outline"
+    const beat = findBeat(targetState.outline, target.ref)
+    if (!beat) return "beat_obligation_reorder target beat not found"
+    const reorder = readObligationReorder(proposedValue)
+    if (!reorder) return "beat_obligation_reorder proposedValue is invalid"
+    return validateExactOrderChange(
+      "beat_obligation_reorder proposedValue.order",
+      obligationOrder(beat, reorder.listKey),
+      reorder.order,
+    )
+  }
+
   if (target.kind === "planning_directive") {
     return target.ref === target.fieldPath
       ? null
@@ -995,7 +1234,8 @@ function validatePlanningEditSemantics(
     return target.ref === "" ? `${target.kind} ref must be non-empty` : null
   }
   if (target.kind !== "beat_obligation") return null
-  if (target.fieldPath === "text") return null
+  const fieldPath = target.fieldPath as BeatObligationPlanningEditField
+  if (fieldPath === "text") return null
 
   if (!targetState.outline) return "beat obligation target state missing outline"
   const context = findObligationContext(targetState.outline, target.ref)
@@ -1004,7 +1244,7 @@ function validatePlanningEditSemantics(
     return "mustNotReveal obligations do not support source-link edits"
   }
 
-  const nextLink = sourceLinkAfterEdit(context.obligation, target.fieldPath, proposedValue)
+  const nextLink = sourceLinkAfterEdit(context.obligation, fieldPath, proposedValue)
   if (!nextLink) return "source-link edit would leave the obligation without sourceId/sourceKind"
   return validateObligationSourceLink(targetState.outline, context, nextLink)
 }
@@ -1203,8 +1443,27 @@ function nameAliases(name: string): Set<string> {
 
 function targetVersion(
   outline: ChapterOutline,
-  target: PlanningEditPayload["target"],
+  payload: PlanningEditPayload,
 ): string {
+  const target = payload.target
+  if (payload.action === "beat_reorder") return stableHash(beatOrder(outline))
+  if (payload.action === "beat_obligation_reorder") {
+    const beat = findBeat(outline, target.ref)
+    const reorder = readObligationReorder(payload.proposedValue)
+    return stableHash(beat && reorder ? obligationOrder(beat, reorder.listKey) : null)
+  }
+  if (payload.action === "beat_replace") {
+    const proposed = payload.proposedValue as Record<string, unknown>
+    const beatId = typeof proposed.beatId === "string" ? proposed.beatId : target.ref
+    return stableHash(findBeat(outline, beatId) ?? null)
+  }
+  if (payload.action === "beat_obligation_replace") {
+    const proposed = payload.proposedValue as Record<string, unknown>
+    const obligationId = typeof proposed.obligationId === "string"
+      ? proposed.obligationId
+      : target.ref
+    return stableHash(findObligation(outline, obligationId) ?? null)
+  }
   if (target.kind === "chapter_outline") return stableHash(outline)
   if (target.kind === "beat_obligation") {
     const obligation = findObligation(outline, target.ref)
@@ -1216,8 +1475,17 @@ function targetVersion(
 
 function targetRef(
   outline: ChapterOutline,
-  target: PlanningEditPayload["target"],
+  payload: PlanningEditPayload,
 ): string {
+  const target = payload.target
+  if (payload.action === "beat_replace") {
+    const proposed = payload.proposedValue as Record<string, unknown>
+    return typeof proposed.beatId === "string" ? proposed.beatId : target.ref
+  }
+  if (payload.action === "beat_obligation_replace") {
+    const proposed = payload.proposedValue as Record<string, unknown>
+    return typeof proposed.obligationId === "string" ? proposed.obligationId : target.ref
+  }
   if (target.kind === "chapter_outline") return outline.chapterId ?? target.ref
   if (target.kind === "beat_obligation") {
     const obligation = findObligation(outline, target.ref)
@@ -1231,57 +1499,28 @@ function targetForEnvelope(
   target: PlanningEditPayload["target"],
   currentVersion: string,
 ): Parameters<typeof buildPlanningEditEnvelope>[0]["target"] {
-  switch (target.kind) {
-    case "planning_directive":
-      return {
-        kind: "planning_directive",
-        ref: target.ref,
-        fieldPath: target.fieldPath,
-        currentVersion,
-      }
-    case "character":
-      return {
-        kind: "character",
-        ref: target.ref,
-        fieldPath: target.fieldPath,
-        currentVersion,
-      }
-    case "world_bible":
-      return {
-        kind: "world_bible",
-        ref: target.ref,
-        fieldPath: target.fieldPath,
-        currentVersion,
-      }
-    case "story_spine":
-      return {
-        kind: "story_spine",
-        ref: target.ref,
-        fieldPath: target.fieldPath,
-        currentVersion,
-      }
-    case "chapter_outline":
-      return {
-        kind: "chapter_outline",
-        ref: target.ref,
-        fieldPath: target.fieldPath,
-        currentVersion,
-      }
-    case "beat_plan":
-      return {
-        kind: "beat_plan",
-        ref: target.ref,
-        fieldPath: target.fieldPath,
-        currentVersion,
-      }
-    case "beat_obligation":
-      return {
-        kind: "beat_obligation",
-        ref: target.ref,
-        fieldPath: target.fieldPath,
-        currentVersion,
-      }
+  return {
+    kind: target.kind,
+    ref: target.ref,
+    ...(target.fieldPath !== undefined ? { fieldPath: target.fieldPath } : {}),
+    currentVersion,
+  } as Parameters<typeof buildPlanningEditEnvelope>[0]["target"]
+}
+
+function impactPreviewTarget(
+  target: PlanningEditPayload["target"],
+): Parameters<typeof previewPlanningImpact>[1] {
+  if (target.fieldPath === "self" || target.fieldPath === "obligations") {
+    return { kind: target.kind, ref: target.ref }
   }
+  return target
+}
+
+function planningEditActionLabel(
+  action: PlanningEditAction,
+  target: PlanningEditPayload["target"],
+): string {
+  return `${target.kind}:${target.ref}:${target.fieldPath ?? action}`
 }
 
 function compactImpactPreview(

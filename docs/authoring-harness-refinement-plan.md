@@ -257,15 +257,18 @@ resolves them server-side by envelope id, locks the containing outline, seed
 row, character row, world-bible row, or story-spine row, checks the target
 hash, and returns structured `stale-precondition` responses when the target
 moved. Source-link edits are validated against the containing obligation list
-and chapter source registry. Structural reorder/replace operations remain
-backlog.
+and chapter source registry.
 
 Lineage status 2026-05-05: structural lineage detection is implemented as a
 pure helper for exact-ID beat/obligation reorders and same-slot replacements,
 and planning proposal resolution is wired to persist those structural
-supersession rows in the same transaction as the resolved proposal. The
-remaining backlog item is the actual structural `planning_edit` action contract
-and UI controls that call it.
+supersession rows in the same transaction as the resolved proposal.
+
+Structural action status 2026-05-05: backend `planning_edit` routes now create
+and apply `beat_replace`, `beat_reorder`, `beat_obligation_replace`, and
+`beat_obligation_reorder` proposals with stale preconditions, modified-payload
+validation, DB smoke coverage, and structural mutation lineage. The remaining
+backlog item is Planning Studio UI controls that call those actions.
 
 Diff status 2026-05-04: `planning_edit` envelopes now have a deterministic
 before/after diff helper. Create/apply responses include the diff, and
@@ -316,9 +319,9 @@ world-bible/story-spine scalar field paths. Impact preview includes historical
 Status 2026-05-05: structural supersession detection exists for
 replaced/reordered beats and obligations. The detector uses exact stable IDs
 for reorders and conservative same-slot exact-ID absence for replacements; it
-does not use text overlap or fuzzy matching. Proposal resolution now persists
-emitted structural lineage drafts transactionally, but no structural proposal
-action route or UI control has been opened yet.
+does not use text overlap or fuzzy matching. Proposal resolution persists
+emitted structural lineage drafts transactionally for the backend structural
+proposal routes; UI controls are still pending.
 
 ### Step 4 - Planning Studio UI Shell
 
@@ -335,9 +338,10 @@ Initial UI surface:
 - proposal queue grouped by target
 
 Backend prerequisites now available: target/impact endpoints, proposal-backed
-planning writes for low-risk scalar/text/link fields, mutation lineage, and
-read-only before/after diff endpoints. The next slice is UI, so it requires
-Playwright MCP evidence before handoff.
+planning writes for scalar/text/link fields, structural beat/obligation
+replace/reorder actions, mutation lineage, and read-only before/after diff
+endpoints. The next slice is UI, so it requires Playwright MCP evidence before
+handoff.
 
 UI rules:
 

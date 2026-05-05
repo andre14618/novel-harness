@@ -67,12 +67,10 @@ Current kinds:
 - `prose_edit`: proposed draft-text edit.
 - `editorial_flag`: review item for a likely draft issue.
 - `canon_update`: proposed Canon substrate update.
-- `planning_edit`: proposed planning artifact edit, currently limited to
-  scalar chapter-outline fields, scalar beat-plan fields, and beat-obligation
-  text/source-link replacements plus planning-directive style/voice fields
-  (`rawNotes`, `tonalAnchors`) and character-bible scalar fields
-  (`backstory`, `goals`, `fears`, `speechPattern`, `internalConflict`,
-  `avoids`), world-bible scalar fields, and story-spine scalar fields.
+- `planning_edit`: proposed planning artifact edit for scalar
+  chapter/beat/obligation/directive/character/world/spine fields, plus
+  structural beat and beat-obligation replace/reorder actions. Planning edits
+  remain manual by default.
 
 Every proposal should preserve producer, rationale, evidence, affected surface,
 precondition hash/generation, policy recommendation, resolution actor, and audit
@@ -179,10 +177,10 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   `beatProses` join to an enriched outline beat id.
 - Target links are derived from stored artifacts, and approved
   scalar/text/link/directive/character/world/spine planning edits now persist
-  old-ref/new-ref mutation lineage. Structural lineage detection and
-  transactional persistence wiring now exist for beat/obligation reorder and
-  same-slot replacement supersession; structural proposal action routes/UI are
-  the remaining prerequisite before broader planning UI expansion.
+  old-ref/new-ref mutation lineage. Structural proposal action routes now
+  create/apply beat and beat-obligation replace/reorder edits, and structural
+  lineage records exact-ID reorder plus same-slot replacement supersession.
+  Planning Studio UI controls remain pending.
 - Closed: Playwright MCP browser preflight for proposal UI passed on disposable
   novel `codex-ui-preflight-1777936779921`. Covered Canon proposal review load,
   approve/reject, modify-with-edits, status tabs, bulk approve/reject, and

@@ -16,6 +16,7 @@ import { deleteEnvelopesForNovel } from "../../src/db/proposal-envelopes"
 import {
   deletePlanningMutationLineageForNovel,
   findPlanningMutationLineageByProposal,
+  listPlanningMutationLineageForRefs,
 } from "../../src/db/planning-mutation-lineage"
 import { dbReachable } from "../../src/db/test-helpers"
 import { handlePlanningProposalRoute } from "../../src/orchestrator/planning-proposal-routes"
@@ -217,6 +218,190 @@ const cases: SmokeCase[] = [
       assert.equal(created.status, 400)
       assert.equal(created.body.ok, false)
       assert.match(created.body.error, /mustEstablish cannot reference sourceKind knowledge/)
+    },
+  },
+  {
+    name: "beat reorder apply structural lineage",
+    run: async (novelId) => {
+      const firstBeatId = "ch-001-ledger-test-beat-001-ledger-breaks"
+      const secondBeatId = "ch-001-ledger-test-beat-002-aldrics-answer"
+      await saveChapterOutline(novelId, outline({
+        scenes: [
+          beat(),
+          beat({
+            beatId: secondBeatId,
+            description: "Aldric answers Istra's accusation with a false mercy claim.",
+            obligations: emptyObligations(),
+          }),
+        ],
+      }))
+
+      const created = await expectJson(await invoke("POST", `/api/novel/${novelId}/planning-proposals`, {
+        action: "beat_reorder",
+        target: {
+          kind: "chapter_outline",
+          ref: "ch-001-ledger-test",
+          fieldPath: "scenes",
+        },
+        proposedValue: [secondBeatId, firstBeatId],
+        rationale: "Open with Aldric's claim, then prove the ledger break.",
+      }))
+      assert.equal(created.status, 200)
+      assert.equal(created.body.envelope.payload.action, "beat_reorder")
+
+      const resolved = await expectJson(await invoke(
+        "POST",
+        `/api/novel/${novelId}/planning-proposals/${encodeURIComponent(created.body.envelope.id)}/resolve`,
+        { status: "approved", resolvedBy: "test" },
+      ))
+      assert.equal(resolved.status, 200)
+      assert.equal(resolved.body.ok, true)
+
+      const persisted = await getChapterOutline(novelId, 1)
+      assert.deepEqual(persisted.scenes.map((scene) => scene.beatId), [secondBeatId, firstBeatId])
+      const lineage = await listPlanningMutationLineageForRefs(novelId, [firstBeatId, secondBeatId])
+      const structural = lineage.filter((row) => row.metadata.structuralOperation === "beat_reorder")
+      assert.equal(structural.length, 2)
+      assert.ok(structural.some((row) =>
+        row.previousRef === firstBeatId &&
+        row.nextRef === firstBeatId &&
+        row.fieldPath === "scenes"
+      ))
+    },
+  },
+  {
+    name: "beat replace apply structural lineage",
+    run: async (novelId) => {
+      const oldBeatId = "ch-001-ledger-test-beat-001-ledger-breaks"
+      const newBeatId = "ch-001-ledger-test-beat-001-public-proof"
+      const created = await expectJson(await invoke("POST", `/api/novel/${novelId}/planning-proposals`, {
+        action: "beat_replace",
+        target: {
+          kind: "beat_plan",
+          ref: oldBeatId,
+          fieldPath: "self",
+        },
+        proposedValue: beat({
+          beatId: newBeatId,
+          description: "Istra proves the forged ledger in front of the bell court.",
+        }),
+        rationale: "Replace the private proof beat with a public turn.",
+      }))
+      assert.equal(created.status, 200)
+      assert.equal(created.body.envelope.payload.action, "beat_replace")
+
+      const resolved = await expectJson(await invoke(
+        "POST",
+        `/api/novel/${novelId}/planning-proposals/${encodeURIComponent(created.body.envelope.id)}/resolve`,
+        { status: "approved", resolvedBy: "test" },
+      ))
+      assert.equal(resolved.status, 200)
+      assert.equal(resolved.body.ok, true)
+
+      const persisted = await getChapterOutline(novelId, 1)
+      assert.equal(persisted.scenes[0].beatId, newBeatId)
+      const lineage = await listPlanningMutationLineageForRefs(novelId, [oldBeatId, newBeatId])
+      assert.ok(lineage.some((row) =>
+        row.metadata.structuralOperation === "beat_replace" &&
+        row.previousRef === oldBeatId &&
+        row.nextRef === newBeatId &&
+        row.fieldPath === "scenes"
+      ))
+    },
+  },
+  {
+    name: "obligation reorder apply structural lineage",
+    run: async (novelId) => {
+      const beatId = "ch-001-ledger-test-beat-001-ledger-breaks"
+      await saveChapterOutline(novelId, outline({
+        scenes: [
+          beat({
+            obligations: {
+              ...emptyObligations(),
+              mustEstablish: [
+                obligation("obl-ledger-fact", "fact-ledger-forgery", "Aldric falsified the plague ledgers"),
+                obligation("obl-aldrics-motive", "fact-aldrics-motive", "Aldric forged ledgers to hide a failed cure"),
+              ],
+            },
+          }),
+        ],
+      }))
+
+      const created = await expectJson(await invoke("POST", `/api/novel/${novelId}/planning-proposals`, {
+        action: "beat_obligation_reorder",
+        target: {
+          kind: "beat_plan",
+          ref: beatId,
+          fieldPath: "obligations",
+        },
+        proposedValue: {
+          listKey: "mustEstablish",
+          order: ["obl-aldrics-motive", "obl-ledger-fact"],
+        },
+        rationale: "Establish motive before proving the forged ledger.",
+      }))
+      assert.equal(created.status, 200)
+      assert.equal(created.body.envelope.payload.action, "beat_obligation_reorder")
+
+      const resolved = await expectJson(await invoke(
+        "POST",
+        `/api/novel/${novelId}/planning-proposals/${encodeURIComponent(created.body.envelope.id)}/resolve`,
+        { status: "approved", resolvedBy: "test" },
+      ))
+      assert.equal(resolved.status, 200)
+      assert.equal(resolved.body.ok, true)
+
+      const ids = (await getChapterOutline(novelId, 1))
+        .scenes[0]
+        .obligations.mustEstablish
+        .map((item: any) => item.obligationId)
+      assert.deepEqual(ids, ["obl-aldrics-motive", "obl-ledger-fact"])
+      const lineage = await listPlanningMutationLineageForRefs(novelId, ids)
+      assert.equal(
+        lineage.filter((row) => row.metadata.structuralOperation === "obligation_reorder").length,
+        2,
+      )
+    },
+  },
+  {
+    name: "obligation replace apply structural lineage",
+    run: async (novelId) => {
+      const oldObligationId = "obl-ledger-fact"
+      const newObligationId = "obl-ledger-public-proof"
+      const created = await expectJson(await invoke("POST", `/api/novel/${novelId}/planning-proposals`, {
+        action: "beat_obligation_replace",
+        target: {
+          kind: "beat_obligation",
+          ref: oldObligationId,
+          fieldPath: "self",
+        },
+        proposedValue: obligation(
+          newObligationId,
+          "fact-ledger-forgery",
+          "Istra proves the forged ledger publicly",
+        ),
+        rationale: "Make the obligation match the stronger public proof beat.",
+      }))
+      assert.equal(created.status, 200)
+      assert.equal(created.body.envelope.payload.action, "beat_obligation_replace")
+
+      const resolved = await expectJson(await invoke(
+        "POST",
+        `/api/novel/${novelId}/planning-proposals/${encodeURIComponent(created.body.envelope.id)}/resolve`,
+        { status: "approved", resolvedBy: "test" },
+      ))
+      assert.equal(resolved.status, 200)
+      assert.equal(resolved.body.ok, true)
+
+      const persisted = await getChapterOutline(novelId, 1)
+      assert.equal(persisted.scenes[0].obligations.mustEstablish[0].obligationId, newObligationId)
+      const lineage = await listPlanningMutationLineageForRefs(novelId, [oldObligationId, newObligationId])
+      assert.ok(lineage.some((row) =>
+        row.metadata.structuralOperation === "obligation_replace" &&
+        row.previousRef === oldObligationId &&
+        row.nextRef === newObligationId &&
+        row.fieldPath === "obligations.mustEstablish"
+      ))
     },
   },
 ]
@@ -449,7 +634,27 @@ function outline(overrides: Partial<ChapterOutline> = {}): ChapterOutline {
   } as ChapterOutline
 }
 
-function beat(): SceneBeat {
+function emptyObligations(): SceneBeat["obligations"] {
+  return {
+    mustEstablish: [],
+    mustPayOff: [],
+    mustTransferKnowledge: [],
+    mustShowStateChange: [],
+    mustNotReveal: [],
+    allowedNewEntities: [],
+  }
+}
+
+function obligation(obligationId: string, sourceId: string, text: string) {
+  return {
+    obligationId,
+    sourceId,
+    sourceKind: "fact" as const,
+    text,
+  }
+}
+
+function beat(overrides: Partial<SceneBeat> = {}): SceneBeat {
   return {
     description: "Istra proves the ledger is forged and chooses to protect Wren.",
     characters: ["Istra"],
@@ -457,23 +662,15 @@ function beat(): SceneBeat {
     beatId: "ch-001-ledger-test-beat-001-ledger-breaks",
     requiredPayoffs: [],
     obligations: {
+      ...emptyObligations(),
       mustEstablish: [
-        {
-          obligationId: "obl-ledger-fact",
-          sourceId: "fact-ledger-forgery",
-          sourceKind: "fact",
-          text: "Aldric falsified the plague ledgers",
-        } as any,
+        obligation("obl-ledger-fact", "fact-ledger-forgery", "Aldric falsified the plague ledgers"),
       ],
-      mustPayOff: [],
-      mustTransferKnowledge: [],
-      mustShowStateChange: [],
-      mustNotReveal: [],
-      allowedNewEntities: [],
     },
     lifeValueAxes: [],
     miceActive: [],
     miceOpens: [],
     miceCloses: [],
+    ...overrides,
   } as SceneBeat
 }

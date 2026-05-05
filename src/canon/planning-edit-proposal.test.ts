@@ -4,6 +4,8 @@ import {
   buildPlanningEditEnvelope,
   planningEditTargetSchema,
   planningEditTargetsSameArtifact,
+  validatePlanningEditActionTarget,
+  validatePlanningEditProposedValue,
   validatePlanningEditValue,
 } from "./planning-edit-proposal"
 
@@ -236,6 +238,30 @@ describe("planning edit proposals", () => {
     expect(spine.payload.proposedValue).toBe("Truth costs comfort before it earns trust.")
   })
 
+  test("builds structural planning edit envelopes with explicit action labels", () => {
+    const env = buildPlanningEditEnvelope({
+      novelId: "novel-plan-edit",
+      action: "beat_reorder",
+      target: {
+        kind: "chapter_outline",
+        ref: "ch-001-ledger-test",
+        fieldPath: "scenes",
+        currentVersion: "4".repeat(64),
+      },
+      previousValue: ["beat-a", "beat-b"],
+      proposedValue: ["beat-b", "beat-a"],
+      rationale: "Move the confrontation earlier.",
+      source: { agent: "test" },
+      now,
+    })
+
+    expect(env.kind).toBe("planning_edit")
+    expect(env.payload.action).toBe("beat_reorder")
+    expect(env.target.fieldPath).toBe("scenes")
+    expect(env.summary).toBe("Update chapter_outline ch-001-ledger-test: scenes")
+    expect(env.risk).toBe("medium")
+  })
+
   test("targetWords is valid only as a positive integer", () => {
     expect(validatePlanningEditValue("targetWords", 1800)).toBeNull()
     expect(validatePlanningEditValue("targetWords", 0)).toMatch(/positive integer/)
@@ -308,6 +334,50 @@ describe("planning edit proposals", () => {
       ref: "novel-plan-edit",
       fieldPath: "acts",
     }).success).toBe(false)
+  })
+
+  test("structural action targets and proposed values validate deterministically", () => {
+    expect(validatePlanningEditActionTarget("beat_replace", {
+      kind: "beat_plan",
+      ref: "beat-a",
+      fieldPath: "self",
+    })).toBeNull()
+    expect(validatePlanningEditActionTarget("beat_replace", {
+      kind: "beat_plan",
+      ref: "beat-a",
+      fieldPath: "description",
+    })).toMatch(/fieldPath=self/)
+
+    expect(validatePlanningEditProposedValue("beat_replace", {
+      kind: "beat_plan",
+      ref: "beat-a",
+      fieldPath: "self",
+    }, {
+      beatId: "beat-b",
+      description: "Move the accusation earlier.",
+      kind: "dialogue",
+    })).toBeNull()
+    expect(validatePlanningEditProposedValue("beat_replace", {
+      kind: "beat_plan",
+      ref: "beat-a",
+      fieldPath: "self",
+    }, {
+      beatId: "beat-a",
+      description: "Same id is not a replacement.",
+    })).toMatch(/must differ/)
+    expect(validatePlanningEditProposedValue("beat_reorder", {
+      kind: "chapter_outline",
+      ref: "ch-001",
+      fieldPath: "scenes",
+    }, ["beat-a", "beat-a"])).toMatch(/duplicate/)
+    expect(validatePlanningEditProposedValue("beat_obligation_reorder", {
+      kind: "beat_plan",
+      ref: "beat-a",
+      fieldPath: "obligations",
+    }, {
+      listKey: "mustEstablish",
+      order: ["obl-b", "obl-a"],
+    })).toBeNull()
   })
 
   test("builds deterministic before/after diffs for planning edits", () => {
