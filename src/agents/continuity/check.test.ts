@@ -118,8 +118,8 @@ test("stateViolationToIssue leaves characterId absent when caller passes no char
 
 test("resolveFactId returns the durable id when the model echoed canonical fact text", () => {
   const facts: Fact[] = [
-    { id: "fact-cure", fact: "The bell tower hides the fever cure", category: "knowledge", establishedInChapter: 1 },
-    { id: "fact-door", fact: "  The infirmary door is locked  ", category: "rule", establishedInChapter: 2 },
+    { id: "fact-cure", fact: "The bell tower hides the fever cure", category: "knowledge", establishedInChapter: 1, role: "operational" },
+    { id: "fact-door", fact: "  The infirmary door is locked  ", category: "rule", establishedInChapter: 2, role: "operational" },
   ]
   expect(resolveFactId("The bell tower hides the fever cure", facts)).toBe("fact-cure")
   expect(resolveFactId("  The infirmary door is locked  ", facts)).toBe("fact-door")
@@ -128,14 +128,14 @@ test("resolveFactId returns the durable id when the model echoed canonical fact 
 
 test("resolveFactId returns the durable id when the model already echoed the id", () => {
   const facts: Fact[] = [
-    { id: "fact-cure", fact: "The bell tower hides the fever cure", category: "knowledge", establishedInChapter: 1 },
+    { id: "fact-cure", fact: "The bell tower hides the fever cure", category: "knowledge", establishedInChapter: 1, role: "operational" },
   ]
   expect(resolveFactId("fact-cure", facts)).toBe("fact-cure")
 })
 
 test("resolveFactId returns undefined for any fuzzy / partial / paraphrased match", () => {
   const facts: Fact[] = [
-    { id: "fact-cure", fact: "The bell tower hides the fever cure", category: "knowledge", establishedInChapter: 1 },
+    { id: "fact-cure", fact: "The bell tower hides the fever cure", category: "knowledge", establishedInChapter: 1, role: "operational" },
   ]
   // Substring is not exact match.
   expect(resolveFactId("bell tower hides the fever cure", facts)).toBeUndefined()
@@ -151,7 +151,7 @@ test("resolveFactId returns undefined for any fuzzy / partial / paraphrased matc
 
 test("resolveFactId skips facts without an id field even when the text matches", () => {
   const facts: Fact[] = [
-    { id: "", fact: "The bell tower hides the fever cure", category: "knowledge", establishedInChapter: 1 },
+    { id: "", fact: "The bell tower hides the fever cure", category: "knowledge", establishedInChapter: 1, role: "operational" },
   ]
   // The match is on text, but the fact carries no durable id — there's
   // nothing safe to copy onto the issue.

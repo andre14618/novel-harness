@@ -493,7 +493,12 @@ Character richness:
 
 World richness:
 
-- world fact roles: `operational | reference | hidden`
+- world fact roles: `operational | reference | hidden` —
+  **column shipped 2026-05-05** (`facts.role`, `sql/049`, default
+  `operational`). Consumer slices (writer-context filtering by role,
+  checker scoping for reference-class facts, fact-extraction pipeline
+  role assignment) are deliberately deferred to follow-up lanes;
+  `canon_facts.role` is also a follow-up.
 - established-in-prose tracking for operational rules
 - first-class faction entities with goals, resources, allies, enemies, and
   pressure on beats

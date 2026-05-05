@@ -31,12 +31,26 @@ export interface SeedInput {
 
 // ── Stored types (DB rows) ─────────────────────────────────────────────────
 
+/**
+ * How a fact participates in writing and checking, independent of its
+ * `category` shape tag. See `sql/049_world_fact_roles.sql`.
+ *
+ * - `operational` — enforced by the checker, visible to the writer. Default.
+ * - `reference`   — background info, advisory only; no continuity blockers.
+ * - `hidden`      — exists in canon but never appears in writer context.
+ */
+export type FactRole = "operational" | "reference" | "hidden"
+
 export interface Fact {
   id: string
   fact: string
   category: string
   establishedInChapter: number
+  role: FactRole
 }
+
+/** Insert shape: callers may omit `role`; the DB defaults to `operational`. */
+export type FactInput = Omit<Fact, "id" | "role"> & { role?: FactRole }
 
 export interface CharacterState {
   characterId: string

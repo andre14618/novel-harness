@@ -168,8 +168,8 @@ describe("READER-INFO STATE sub-block", () => {
       makeChar({ id: "2", name: "Aisha" }),
     ]
     const facts: Fact[] = [
-      { id: "f1", fact: "The Citadel was sealed in 1137", category: "event", establishedInChapter: 1 },
-      { id: "f2", fact: "Aisha's brother carries the amulet", category: "character", establishedInChapter: 1 },
+      { id: "f1", fact: "The Citadel was sealed in 1137", category: "event", establishedInChapter: 1, role: "operational" },
+      { id: "f2", fact: "Aisha's brother carries the amulet", category: "character", establishedInChapter: 1, role: "operational" },
     ]
     const states: CharacterState[] = [
       {

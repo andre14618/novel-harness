@@ -4,12 +4,11 @@ This file tracks active and immediately actionable work only.
 
 ## Active
 
-- Authoring visibility/interactivity foundation remains active.
-- 2026-05-05 direct-mutation audit: no remaining direct-mutation slice is
-  non-deferred — initial-creation paths are out of scope, scalar artifact
-  PUTs are gated, and plan-assist whole-outline + chapter-plan-reviser
-  outline replacements both have lineage but are explicitly tagged as
-  later higher-risk envelope-wrap slices.
+- Richness Backlog lane (2026-05-05): world fact roles. First additive
+  slice shipped (`facts.role` default `operational`, zero runtime change).
+- Authoring visibility/interactivity at scope ceiling: direct-mutation
+  audit found only deferred higher-risk slices (plan-assist whole-outline,
+  chapter-plan-reviser outline replacement).
 
 ## Next
 
@@ -25,20 +24,18 @@ This file tracks active and immediately actionable work only.
 
 ## Recently Closed
 
+- World fact role column shipped (`sql/049`, `facts.role` with
+  `operational | reference | hidden`, `operational` default). Additive
+  only; lays schema foundation for scoped-context / scoped-check follow-ups.
 - Adjudicated continuity gray-zone panel N=20 shipped (decision L81).
   continuity-facts blocker/warning at 60% TP (do not relax);
   continuity-state/warning is the dominant gray zone (20% TP / 40% FP / 40%
   AMB, mostly off-page transitions and figurative aspirations); follow-up
   needs N≥50 across continuity-state before any production checker change.
-- Added a diagnostic-only plan-assist lineage report over
-  `planning_mutation_lineage` rows whose `source_table` is
-  `chapter_exhaustions` (plan-assist edit/override decisions) or
-  `chapter_revisions` (chapter-plan-reviser accepted outline replacements).
-  Use `bun run diagnostics:plan-assist-lineage -- --novel <novelId>` to
-  inspect per-chapter event counts, beat-id added/removed/retained sets,
-  override transitions, and reviser issue counts before any envelope-wrap
-  decision on the deferred higher-risk slices. Smoke-verified against
-  `test-novel` (7 events: 4 plan-assist overrides, 3 reviser-accepted).
+- Added `diagnostics:plan-assist-lineage` over `planning_mutation_lineage`
+  rows from `chapter_exhaustions` / `chapter_revisions`. Smoke-verified
+  against `test-novel` (7 events). Feeds the deferred envelope-wrap
+  decision on plan-assist + reviser outline replacement.
 - Fixed the fast test runner's process shape for phase tests that install
   process-global Bun module mocks. `bun run test:fast` now runs those files in
   isolated subprocesses and keeps the phase contract test in the normal fast

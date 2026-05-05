@@ -66,7 +66,7 @@ const maret: CharacterProfile = {
 describe("selectReaderInfoStateForBeat — L38-A gating", () => {
   test("chapter 1 returns null even when priorChapterFacts is non-empty", () => {
     const facts: Fact[] = [
-      { id: "f1", fact: "Cassel arrived in the village", category: "event", establishedInChapter: 1 },
+      { id: "f1", fact: "Cassel arrived in the village", category: "event", establishedInChapter: 1, role: "operational" },
     ]
     const result = selectReaderInfoStateForBeat(1, facts, baseOutline, baseBeat, [maret], [])
     expect(result).toBeNull()
@@ -74,8 +74,8 @@ describe("selectReaderInfoStateForBeat — L38-A gating", () => {
 
   test("chapter 2 with prior facts + present-character doesNotKnow surfaces both signals", () => {
     const facts: Fact[] = [
-      { id: "f1", fact: "Maret copied the sealed report months ago", category: "event", establishedInChapter: 1 },
-      { id: "f2", fact: "Cassel noticed ink smudges on Maret's hands", category: "character", establishedInChapter: 1 },
+      { id: "f1", fact: "Maret copied the sealed report months ago", category: "event", establishedInChapter: 1, role: "operational" },
+      { id: "f2", fact: "Cassel noticed ink smudges on Maret's hands", category: "character", establishedInChapter: 1, role: "operational" },
     ]
     const states: CharacterState[] = [
       {
