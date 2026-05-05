@@ -52,8 +52,13 @@ The fixture must come from a real run, not a local dev environment, because:
 
 ```bash
 ssh novel-harness-lxc \
-  "cd ~/apps/novel-harness && bun tests/phase-parity/record-fixture.ts romance-drama"
+  "cd ~/apps/novel-harness && bun tests/phase-parity/record-fixture.ts phase-parity-smoke"
 ```
+
+The reference fixture should use `phase-parity-smoke`: a deliberately small
+one-chapter seed that still exercises concept, planning, drafting, validation,
+telemetry, and snapshot normalization without making the parity gate depend on
+multi-chapter semantic-checker luck.
 
 Then sync back:
 

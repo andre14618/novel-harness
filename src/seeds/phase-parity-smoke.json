@@ -1,0 +1,22 @@
+{
+  "premise": "In a riverside canal town, the flood watch bell jams on the same night the river wall cracks. A careful bell keeper, a retired mason, and a strict town reeve must reach the old tower, repair the gear, and sound the warning before the lower ward floods.",
+  "genre": "low-fantasy-adventure",
+  "chapterCount": 1,
+  "characters": [
+    {
+      "name": "Mira Vale",
+      "role": "protagonist",
+      "description": "Bell keeper, early 30s. Precise, practical, and trusted to maintain the flood watch tower. She notices small mechanical changes quickly and feels responsible for every family in the lower ward."
+    },
+    {
+      "name": "Orin Pike",
+      "role": "supporting",
+      "description": "Retired mason, late 60s. Helped build the old river wall and knows its weak points. Gruff but steady, he carries tools everywhere and trusts evidence more than authority."
+    },
+    {
+      "name": "Tomas Kade",
+      "role": "antagonist",
+      "description": "Town reeve, mid-40s. Responsible for avoiding panic during storms. He is not malicious, but his need for order makes him resist Mira's warning until the evidence is undeniable."
+    }
+  ]
+}
