@@ -5,14 +5,19 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 
 ## Active
 
-- Authoring visibility/interactivity foundation remains the product lane; use the Test and Invariant Agent contract for test/guard slices.
+- Authoring visibility/interactivity foundation remains active.
+- Next low-risk implementation target: close artifact preview direct-save
+  proposal bypasses for fields already covered by `planning_edit`, while
+  leaving plan-assist whole-outline replacement for a later higher-risk slice.
 
 ## Next
 
 - Refresh the phase-parity fixture in a dedicated commit if the current
   prompt/request drift is intentional. Current opt-in failure:
   `ReplayTransport miss: 1dd73b5c320260717ff5bfefd77593cc`.
-- Browser-test every UI-facing slice with Playwright MCP before handoff.
+- Browser-test every UI-facing slice with Playwright MCP before handoff, close
+  the browser session after the pass, and leave unconfirmed evidence as TODO
+  rather than inferred.
 - Keep creative heuristics diagnostic-only or A/B-gated until evidence proves
   value.
 
@@ -39,43 +44,25 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 - Follow-up UI fixes: preserve structured stale-precondition `409` responses for
   artifact regenerate handling, and remove stale Canon browser-untested copy.
 - Read-only planning target and deterministic impact-preview endpoints landed.
-- First `planning_edit` backend slice landed for scalar chapter-outline field
-  proposals with approval/rejection/modification, stale-precondition handling,
-  and persisted mutation lineage.
-- Second `planning_edit` backend slice landed for scalar beat-plan
-  `description`/`kind` proposals using beat-level target hashes.
-- Third `planning_edit` backend slice landed for beat-obligation `text`
-  proposals using obligation-level target hashes.
-- Fourth `planning_edit` backend slice landed for beat-obligation source-link
-  proposals using obligation-level target hashes and semantic source registry
-  validation.
-- Fifth `planning_edit` backend slice landed for planning-directive
-  `rawNotes`/`tonalAnchors` proposals using seed directive target hashes.
-- Sixth `planning_edit` backend slice landed for character-bible scalar
-  `backstory`/`goals`/`fears`/`speechPattern`/`internalConflict`/`avoids`
-  proposals using character target hashes.
-- Seventh `planning_edit` backend slice landed for world-bible scalar fields
-  and story-spine scalar fields using artifact target hashes and row locks.
-- Eighth `planning_edit` backend slice landed deterministic before/after diff
-  helpers, a read-only diff endpoint, and UI API wrappers for future Planning
-  Studio wiring.
-- Ninth `planning_edit` UI slice landed initial Planning Studio target
-  navigation, impact preview, proposal creation, queue diff, status tabs, and
-  approve/reject controls. Playwright MCP evidence on disposable novel
-  `codex-planning-studio-1777948116315` covered target load, create/approve,
-  pending stale display, rejected/approved tabs, Pipeline/Snapshot/Canon Queue
-  links, mobile rendering, clean console, and all relevant API calls returning
-  `200`.
-- Tenth `planning_edit` UI slice expanded Planning Studio queue review with
-  grouping by target, queue impact detail, edit-before-approve, and modified
-  resolution. Playwright MCP evidence on disposable novel
-  `codex-planning-modified-1777980329324` covered live create, edit, resolve
-  modified, modified-tab diff display, and mobile rendering. The diff endpoint
-  now reads `modified_payload` for modified proposals.
-- Chapter-health and traceability slices landed `GET /chapter-health`,
-  `/app/chapter-health/:novelId`, and `GET /traceability/chapter/:chapterNumber`.
-  Playwright evidence on disposable novel `codex-chapter-health-ui-1778000670807`
-  covered health load, filters, evidence expansion, mobile, clean console/API.
+- Initial `planning_edit` backend slices landed for scalar chapter-outline,
+  beat-plan, beat-obligation, source-link, planning-directive,
+  character-bible, world-bible, and story-spine proposals.
+- Planning Studio landed target navigation, impact preview, queue diffs, status
+  tabs, approve/reject, grouping, impact detail, and edit-before-approve.
+  Playwright evidence covered initial and modified flows on disposable novels
+  `codex-planning-studio-1777948116315` and
+  `codex-planning-modified-1777980329324`.
+- Chapter-health landed `GET /chapter-health` and
+  `/app/chapter-health/:novelId`; Playwright evidence on disposable novel
+  `codex-chapter-health-ui-1778000670807` covered health load, filters,
+  evidence expansion, mobile, and clean console/API.
+- Traceability UI landed at
+  `/app/traceability/:novelId/chapter/:chapterNumber`, with source registry,
+  upstream target, writer/checker/event, proposal outcome, checker observation,
+  and mutation-lineage evidence. Playwright MCP evidence on disposable novel
+  `codex-traceability-ui-1778003397963` covered direct load, evidence expansion,
+  health-card Trace navigation, mobile rendering, clean console, and `200`
+  traceability/health API calls.
 - Local Playwright preflight setup helper landed as `bun run ui:preflight`;
   it creates the evidence directory, runbook, console/network placeholders, and
   manifest without adding browser-driver dependencies.

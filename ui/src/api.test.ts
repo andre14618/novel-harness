@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test"
 import {
   createPlanningProposal,
   getChapterHealth,
+  getChapterTraceability,
   getPlanningProposalDiff,
   resolvePlanningProposal,
   resolveProposalEnvelope,
@@ -232,6 +233,41 @@ test("getChapterHealth fetches chapter health with optional chapter filter", asy
   await expect(getChapterHealth("test-novel", { chapter: 3 })).resolves.toEqual(response)
   const captured = requireRequest(request)
   expect(captured.url).toBe("/api/novel/test-novel/chapter-health?chapter=3")
+})
+
+test("getChapterTraceability fetches a chapter trace report", async () => {
+  const response = {
+    ok: true,
+    novelId: "test-novel",
+    generatedAt: "2026-05-05T00:00:00.000Z",
+    planningSnapshotHash: "a".repeat(64),
+    chapterNumber: 3,
+    chapterRef: "ch-003",
+    title: "Trace",
+    sourceRegistry: [],
+    beats: [],
+    summary: {
+      beatCount: 0,
+      obligationCount: 0,
+      linkedObligationCount: 0,
+      missingSourceCount: 0,
+      writerCallCount: 0,
+      checkerCallCount: 0,
+      traceEventCount: 0,
+    },
+  }
+  let request: CapturedFetchRequest | null = null
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    request = { url: String(url), init }
+    return new Response(JSON.stringify(response), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })
+  }) as typeof fetch
+
+  await expect(getChapterTraceability("test-novel", 3)).resolves.toEqual(response)
+  const captured = requireRequest(request)
+  expect(captured.url).toBe("/api/novel/test-novel/traceability/chapter/3")
 })
 
 test("resolvePlanningProposal returns structured stale planning responses", async () => {

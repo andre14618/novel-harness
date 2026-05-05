@@ -4440,6 +4440,20 @@ details[open] summary::before { transform: rotate(90deg); }
   padding: 3px 8px;
   text-transform: uppercase;
 }
+.chapter-health-card-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+.chapter-health-card-actions a {
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  color: var(--accent);
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  text-decoration: none;
+}
 .chapter-health-metrics {
   display: grid;
   grid-template-columns: repeat(6, minmax(100px, 1fr));
@@ -4547,6 +4561,222 @@ details[open] summary::before { transform: rotate(90deg); }
   overflow-wrap: anywhere;
 }
 
+/* ── Chapter Traceability ─────────────────────────────────────────── */
+.traceability-page {
+  color: var(--text-primary);
+  margin: 0 auto;
+  max-width: 1360px;
+  padding: 16px;
+}
+.traceability-toolbar {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.traceability-title-block {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.traceability-title-block strong {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+.traceability-title-block code,
+.traceability-ref-chips code,
+.traceability-target-list code,
+.traceability-registry-item code {
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 2px 6px;
+  overflow-wrap: anywhere;
+}
+.traceability-summary {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(7, minmax(118px, 1fr));
+  margin-bottom: 12px;
+}
+.traceability-summary-cell {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 9px 10px;
+}
+.traceability-summary-cell span,
+.traceability-registry-item span,
+.traceability-section-title,
+.traceability-obligation-main span,
+.traceability-beat-counts span {
+  color: var(--text-tertiary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.traceability-summary-cell strong {
+  display: block;
+  font-size: 1.12rem;
+  margin-top: 4px;
+}
+.traceability-summary-cell.good strong {
+  color: #9fe2b2;
+}
+.traceability-summary-cell.warn strong {
+  color: #f0d27a;
+}
+.traceability-registry {
+  border-bottom: 1px solid var(--border-default);
+  border-top: 1px solid var(--border-default);
+  margin-bottom: 12px;
+  padding: 10px 0;
+}
+.traceability-registry-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  margin-top: 8px;
+}
+.traceability-registry-item {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  display: grid;
+  gap: 5px;
+  padding: 8px;
+}
+.traceability-registry-item strong {
+  color: var(--text-secondary);
+  display: block;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  margin-top: 2px;
+}
+.traceability-registry-item p {
+  color: var(--text-tertiary);
+  font-size: 0.74rem;
+  line-height: 1.35;
+  margin: 0;
+}
+.traceability-beat-list {
+  display: grid;
+  gap: 10px;
+}
+.traceability-beat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 12px;
+}
+.traceability-beat-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.traceability-beat-title {
+  color: var(--text-primary);
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+.traceability-beat-description,
+.traceability-obligation-text,
+.traceability-source-hit {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+.traceability-beat-description {
+  margin: 4px 0 6px;
+}
+.traceability-beat-counts {
+  display: flex;
+  flex: 0 0 270px;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.traceability-beat-counts span {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  padding: 3px 7px;
+}
+.traceability-subgrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.55fr);
+}
+.traceability-obligation-list {
+  display: grid;
+  gap: 7px;
+}
+.traceability-obligation {
+  background: var(--bg-inset);
+  border-left: 3px solid #d66;
+  border-radius: 4px;
+  padding: 8px;
+}
+.traceability-obligation.linked {
+  border-left-color: #7fc18b;
+}
+.traceability-obligation-main {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.traceability-obligation-main strong {
+  color: var(--accent);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+.traceability-source-hit {
+  color: #9dc6f2;
+  margin-top: 4px;
+}
+.traceability-ref-chips,
+.traceability-target-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+.traceability-details {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 10px;
+  padding-top: 8px;
+}
+.traceability-details summary {
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+.traceability-evidence-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  margin-top: 9px;
+}
+.traceability-evidence ul {
+  margin: 0;
+  padding-left: 16px;
+}
+.traceability-evidence li {
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  line-height: 1.35;
+  margin-bottom: 4px;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 1040px) {
   .chapter-health-summary {
     grid-template-columns: repeat(3, minmax(120px, 1fr));
@@ -4555,11 +4785,23 @@ details[open] summary::before { transform: rotate(90deg); }
   .chapter-health-detail-grid {
     grid-template-columns: repeat(2, minmax(140px, 1fr));
   }
+  .traceability-summary {
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+  }
+  .traceability-registry-grid,
+  .traceability-evidence-grid {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+  .traceability-subgrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
   .chapter-health-toolbar,
-  .chapter-health-card-head {
+  .chapter-health-card-head,
+  .traceability-toolbar,
+  .traceability-beat-head {
     display: block;
   }
   .chapter-health-refresh {
@@ -4567,11 +4809,19 @@ details[open] summary::before { transform: rotate(90deg); }
   }
   .chapter-health-summary,
   .chapter-health-metrics,
-  .chapter-health-detail-grid {
+  .chapter-health-detail-grid,
+  .traceability-summary,
+  .traceability-registry-grid,
+  .traceability-evidence-grid {
     grid-template-columns: 1fr;
   }
+  .chapter-health-card-actions,
   .chapter-health-status {
     display: inline-block;
+    margin-top: 8px;
+  }
+  .traceability-beat-counts {
+    justify-content: flex-start;
     margin-top: 8px;
   }
 }

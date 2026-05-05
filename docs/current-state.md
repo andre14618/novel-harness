@@ -128,10 +128,9 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   default loop and `bun run test:db` for isolated DB integration. Phase-parity
   replay is explicit via `bun run test:replay` and currently needs a refreshed
   fixture after prompt/request drift.
-- Active: authoring visibility/interactivity foundation. Next implementation
-  should add structural mutation lineage before broader structural Planning
-  Studio edits. See
-  `docs/authoring-harness-refinement-plan.md`.
+- Active: authoring visibility/interactivity foundation. The traceability UI
+  tracer is browser-cleared; next slices should continue closing proposal
+  bypasses and improving operator-visible impact/lineage.
 - First backend tracer bullet exposes read-only planning targets and
   deterministic impact preview. Write tracers add `planning_edit` envelopes for
   scalar chapter-outline fields (`title`, `purpose`, `setting`, `targetWords`)
@@ -148,8 +147,9 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   `codex-planning-studio-1777948116315`. Covered target navigation, impact
   preview, proposal creation/approval evidence, pending stale diffs,
   approved/rejected status tabs, resolved-target copy, route links to Pipeline /
-  Snapshot / Canon Queue, and mobile rendering. Evidence screenshots use
-  `planning-studio-*` names at the repository root.
+  Snapshot / Canon Queue, and mobile rendering. That pass used legacy
+  repository-root `planning-studio-*` screenshots; new browser evidence belongs
+  under `output/playwright/`.
 - Planning Studio now also supports grouped proposal review, queue impact
   detail, and edit-before-approve modified resolution. Browser evidence on
   disposable novel `codex-planning-modified-1777980329324` covers live create,
@@ -183,6 +183,11 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
 - `GET /api/novel/:novelId/traceability/chapter/:chapterNumber` now exposes a
   read-only ID-first chapter trace: beat refs, obligation refs, source registry
   links, and writer/checker/event evidence with explicit positional fallback.
+- `/app/traceability/:novelId/chapter/:chapterNumber` renders the chapter trace
+  with source registry, upstream targets, writer/checker/event evidence, and
+  proposal/outcome/observation/lineage evidence. Browser evidence for
+  disposable novel `codex-traceability-ui-1778003397963` is under
+  `output/playwright/2026-05-05/traceability-codex-traceability-ui-1778003397963/`.
 - Deterministic lint-generated `prose_edit` span proposals now carry optional
   `beatRef` metadata when drafting can map the span through the exact
   `beatProses` join to an enriched outline beat id.
@@ -203,8 +208,9 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   approve/reject, modify-with-edits, status tabs, bulk approve/reject, and
   Studio artifact patch proposal cards for pending load, single resolve, stale
   regeneration surface, bulk actions, and audit history.
-- Browser evidence screenshots are stored at the repository root with
-  `canon-*` and `artifact-*` names.
+- That pass used legacy repository-root `canon-*` and `artifact-*` screenshots;
+  new browser evidence uses the `output/playwright/` session directory
+  convention.
 - UI fixes from clearance: artifact proposal resolve now preserves structured
   stale-precondition `409` responses for the regenerate UI, and the stale Canon
   proposal browser-untested footer copy was removed.

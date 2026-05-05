@@ -744,6 +744,155 @@ export function getChapterHealth(novelId: string, opts: { chapter?: number } = {
   )
 }
 
+export interface ChapterTraceabilityRef {
+  kind: string
+  ref: string
+  label?: string
+}
+
+export interface ChapterTraceabilityTargetRef {
+  kind: string
+  ref: string
+  fieldPath?: string
+}
+
+export interface ChapterTraceabilitySourceRegistryItem {
+  kind: "world_fact" | "knowledge" | "state" | "character"
+  ref: string
+  label: string
+  text?: string
+  characterId?: string
+  proposalEvidence?: ChapterTraceabilityEvidence[]
+}
+
+export interface ChapterTraceabilityObligation {
+  list: string
+  obligationId?: string
+  sourceKind?: string
+  sourceId?: string
+  characterId?: string
+  text: string
+  refs: ChapterTraceabilityRef[]
+  sourceFound: boolean
+  proposalEvidence?: ChapterTraceabilityEvidence[]
+}
+
+export interface ChapterTraceabilityEvidence {
+  target: ChapterTraceabilityRef
+  proposalEnvelopes: Array<{
+    id: string
+    kind: string
+    targetKind: string
+    targetRef: string
+    targetFieldPath?: string
+    status: string
+    risk: string
+    summary: string
+    createdAt: string
+    resolvedAt?: string
+  }>
+  resolutionImpacts: Array<{
+    id: string
+    proposalId: string
+    proposalKind: string
+    targetKind: string
+    targetRef: string
+    chapterNumber?: number
+    resolvedAt: string
+  }>
+  checkerObservations: Array<{
+    id: string
+    proposalId: string
+    proposalKind: string
+    checkerName: string
+    fired: boolean
+    observedAt: string
+  }>
+  mutationLineage: Array<{
+    id: string
+    proposalId: string
+    targetKind: string
+    previousRef: string
+    nextRef: string
+    fieldPath: string
+    changedAt: string
+  }>
+}
+
+export interface ChapterTraceabilityCall {
+  id: number
+  agent: string
+  role: "writer" | "checker" | "other"
+  linkEvidence: "beat_id" | "beat_index"
+  beatIndex?: number
+  beatId?: string
+  attempt?: number
+  failed: boolean
+  timestamp: string
+  promptTokens?: number
+  completionTokens?: number
+  metaRefs: ChapterTraceabilityRef[]
+}
+
+export interface ChapterTraceabilityEvent {
+  id: number
+  eventType: string
+  agent?: string
+  linkEvidence: "payload_beat_id" | "beat_index"
+  beatIndex?: number
+  llmCallId?: number
+  durationMs?: number
+  timestamp: string
+  refs: ChapterTraceabilityRef[]
+}
+
+export interface ChapterTraceabilityBeat {
+  beatIndex: number
+  beatId?: string
+  description: string
+  kind: string
+  characters: string[]
+  refs: ChapterTraceabilityRef[]
+  upstreamTargets: ChapterTraceabilityTargetRef[]
+  proposalEvidence?: ChapterTraceabilityEvidence[]
+  obligations: ChapterTraceabilityObligation[]
+  llmCalls: ChapterTraceabilityCall[]
+  traceEvents: ChapterTraceabilityEvent[]
+}
+
+export interface ChapterTraceabilityReport {
+  ok: boolean
+  novelId: string
+  generatedAt: string
+  planningSnapshotHash: string
+  chapterNumber: number
+  chapterRef: string
+  chapterId?: string
+  title: string
+  chapterEvidence?: ChapterTraceabilityEvidence[]
+  sourceRegistry: ChapterTraceabilitySourceRegistryItem[]
+  beats: ChapterTraceabilityBeat[]
+  summary: {
+    beatCount: number
+    obligationCount: number
+    linkedObligationCount: number
+    missingSourceCount: number
+    writerCallCount: number
+    checkerCallCount: number
+    traceEventCount: number
+    proposalEnvelopeCount?: number
+    resolutionImpactCount?: number
+    checkerObservationCount?: number
+    mutationLineageCount?: number
+  }
+}
+
+export function getChapterTraceability(novelId: string, chapterNumber: number) {
+  return fetchJSON<ChapterTraceabilityReport>(
+    `/api/novel/${encodeURIComponent(novelId)}/traceability/chapter/${encodeURIComponent(String(chapterNumber))}`,
+  )
+}
+
 // ── Planning Snapshot (Phase 4) ─────────────────────────────────────
 
 export interface LockedPlanningSnapshot {

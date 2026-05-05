@@ -118,7 +118,7 @@ export function ChapterHealthPage() {
 
       <div className="chapter-health-list">
         {chapters.map(chapter => (
-          <ChapterHealthCard key={chapter.chapterNumber} chapter={chapter} />
+          <ChapterHealthCard key={chapter.chapterNumber} chapter={chapter} novelId={novelId} />
         ))}
       </div>
     </div>
@@ -134,7 +134,7 @@ function SummaryCell({ label, value, tone }: { label: string; value: number; ton
   )
 }
 
-function ChapterHealthCard({ chapter }: { chapter: ChapterHealthChapter }) {
+function ChapterHealthCard({ chapter, novelId }: { chapter: ChapterHealthChapter; novelId: string }) {
   const statusClass = statusTone(chapter.status)
   const visibleFindings = chapter.findings.slice(0, 8)
   return (
@@ -155,7 +155,14 @@ function ChapterHealthCard({ chapter }: { chapter: ChapterHealthChapter }) {
             )}
           </div>
         </div>
-        <span className={`chapter-health-status ${statusClass}`}>{statusLabel(chapter.status)}</span>
+        <div className="chapter-health-card-actions">
+          {chapter.outline && (
+            <Link to={`/traceability/${encodeURIComponent(novelId)}/chapter/${chapter.chapterNumber}`}>
+              Trace
+            </Link>
+          )}
+          <span className={`chapter-health-status ${statusClass}`}>{statusLabel(chapter.status)}</span>
+        </div>
       </div>
 
       <div className="chapter-health-metrics">

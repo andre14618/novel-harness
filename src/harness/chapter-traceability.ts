@@ -1,6 +1,8 @@
 import db from "../db/connection"
 import { getNovel } from "../db/novels"
 import { getChapterOutlines } from "../db/outlines"
+import { listProposalResolutionImpactsByTargetRefs } from "../db/proposal-resolution-outcomes"
+import { listPlanningMutationLineageForRefs } from "../db/planning-mutation-lineage"
 import { enrichOutlineIds } from "./ids"
 import { loadPlanningTargetMap, type PlanningTargetMap, type PlanningTargetRef } from "./planning-targets"
 import type { BeatObligationsContract, ChapterOutline, SceneBeat } from "../types"
@@ -17,6 +19,7 @@ export interface ChapterTraceabilitySourceRegistryItem {
   label: string
   text?: string
   characterId?: string
+  proposalEvidence: ChapterTraceabilityEvidence[]
 }
 
 export interface ChapterTraceabilityObligation {
@@ -28,6 +31,7 @@ export interface ChapterTraceabilityObligation {
   text: string
   refs: ChapterTraceabilityRef[]
   sourceFound: boolean
+  proposalEvidence: ChapterTraceabilityEvidence[]
 }
 
 export interface ChapterTraceabilityCall {
@@ -65,9 +69,84 @@ export interface ChapterTraceabilityBeat {
   characters: string[]
   refs: ChapterTraceabilityRef[]
   upstreamTargets: PlanningTargetRef[]
+  proposalEvidence: ChapterTraceabilityEvidence[]
   obligations: ChapterTraceabilityObligation[]
   llmCalls: ChapterTraceabilityCall[]
   traceEvents: ChapterTraceabilityEvent[]
+}
+
+export interface ChapterTraceabilityProposalEnvelopeEvidence {
+  id: string
+  kind: string
+  targetKind: string
+  targetRef: string
+  targetFieldPath?: string
+  status: string
+  risk: string
+  summary: string
+  createdAt: string
+  resolvedAt?: string
+  matchedRefs: ChapterTraceabilityRef[]
+}
+
+export interface ChapterTraceabilityResolutionImpactEvidence {
+  id: string
+  proposalId: string
+  proposalKind: string
+  sourceTable: string
+  targetKind: string
+  targetRef: string
+  chapterNumber?: number
+  priorHash?: string
+  resultHash?: string
+  resultVersion?: string
+  resolvedAt: string
+  metadata: Record<string, unknown>
+}
+
+export interface ChapterTraceabilityCheckerObservationEvidence {
+  id: string
+  proposalId: string
+  proposalKind: string
+  sourceTable: string
+  targetKind: string
+  targetRef: string
+  chapterNumber?: number
+  resultHash?: string
+  checkerName: string
+  fired: boolean
+  observedAt: string
+  details: Record<string, unknown>
+}
+
+export interface ChapterTraceabilityMutationLineageEvidence {
+  id: string
+  proposalId: string
+  proposalKind: string
+  sourceTable: string
+  actorKind: string
+  actorRef?: string
+  source?: string
+  targetKind: string
+  previousRef: string
+  nextRef: string
+  fieldPath: string
+  previousVersion?: string
+  nextVersion?: string
+  preconditionKind?: string
+  preconditionHash?: string
+  changedAt: string
+  reason?: string
+  affectedDownstreamRefs: ChapterTraceabilityRef[]
+  metadata: Record<string, unknown>
+}
+
+export interface ChapterTraceabilityEvidence {
+  target: ChapterTraceabilityRef
+  proposalEnvelopes: ChapterTraceabilityProposalEnvelopeEvidence[]
+  resolutionImpacts: ChapterTraceabilityResolutionImpactEvidence[]
+  checkerObservations: ChapterTraceabilityCheckerObservationEvidence[]
+  mutationLineage: ChapterTraceabilityMutationLineageEvidence[]
 }
 
 export interface ChapterTraceabilityReport {
@@ -79,6 +158,7 @@ export interface ChapterTraceabilityReport {
   chapterRef: string
   chapterId?: string
   title: string
+  chapterEvidence: ChapterTraceabilityEvidence[]
   sourceRegistry: ChapterTraceabilitySourceRegistryItem[]
   beats: ChapterTraceabilityBeat[]
   summary: {
@@ -89,6 +169,10 @@ export interface ChapterTraceabilityReport {
     writerCallCount: number
     checkerCallCount: number
     traceEventCount: number
+    proposalEnvelopeCount: number
+    resolutionImpactCount: number
+    checkerObservationCount: number
+    mutationLineageCount: number
   }
 }
 
@@ -116,6 +200,72 @@ export interface ChapterTraceabilityEventInput {
   payload?: unknown
 }
 
+export interface ChapterTraceabilityProposalEnvelopeInput {
+  id: string
+  kind: string
+  targetKind: string
+  targetRef: string
+  targetFieldPath?: string | null
+  status: string
+  risk: string
+  summary: string
+  createdAt: string
+  resolvedAt?: string | null
+  targetRefs?: ChapterTraceabilityRef[]
+}
+
+export interface ChapterTraceabilityResolutionImpactInput {
+  id: string
+  proposalId: string
+  proposalKind: string
+  sourceTable: string
+  targetKind: string
+  targetRef: string
+  chapterNumber?: number | null
+  priorHash?: string | null
+  resultHash?: string | null
+  resultVersion?: string | null
+  resolvedAt: string
+  metadata?: Record<string, unknown>
+}
+
+export interface ChapterTraceabilityCheckerObservationInput {
+  id: string
+  proposalId: string
+  proposalKind: string
+  sourceTable: string
+  targetKind: string
+  targetRef: string
+  chapterNumber?: number | null
+  resultHash?: string | null
+  checkerName: string
+  fired: boolean
+  observedAt: string
+  details?: Record<string, unknown>
+}
+
+export interface ChapterTraceabilityMutationLineageInput {
+  id: string
+  proposalId: string
+  proposalKind: string
+  sourceTable: string
+  actorKind: string
+  actorRef?: string | null
+  source?: string | null
+  targetKind: string
+  previousRef: string
+  nextRef: string
+  fieldPath: string
+  previousVersion?: string | null
+  nextVersion?: string | null
+  preconditionKind?: string | null
+  preconditionHash?: string | null
+  changedAt: string
+  reason?: string | null
+  affectedDownstreamRefs?: ChapterTraceabilityRef[]
+  metadata?: Record<string, unknown>
+}
+
 export interface BuildChapterTraceabilityReportArgs {
   novelId: string
   chapterNumber: number
@@ -124,6 +274,10 @@ export interface BuildChapterTraceabilityReportArgs {
   targetMap: PlanningTargetMap
   llmCalls?: ChapterTraceabilityCallInput[]
   traceEvents?: ChapterTraceabilityEventInput[]
+  proposalEnvelopes?: ChapterTraceabilityProposalEnvelopeInput[]
+  resolutionImpacts?: ChapterTraceabilityResolutionImpactInput[]
+  checkerObservations?: ChapterTraceabilityCheckerObservationInput[]
+  mutationLineage?: ChapterTraceabilityMutationLineageInput[]
 }
 
 type ObligationListKey =
@@ -157,12 +311,18 @@ export function buildChapterTraceabilityReport(
   enrichOutlineIds(outline)
 
   const chapterRef = outline.chapterId ?? `chapter-${outline.chapterNumber}`
-  const sourceRegistry = buildSourceRegistry(outline)
-  const sourceKeys = new Set(sourceRegistry.map((item) => sourceKey(item.kind, item.ref)))
+  const sourceRegistryBase = buildSourceRegistry(outline)
+  const sourceKeys = new Set(sourceRegistryBase.map((item) => sourceKey(item.kind, item.ref)))
   const targetLabels = new Map(args.targetMap.targets.map((target) => [
     `${target.kind}:${target.ref}`,
     target.label,
   ]))
+  const evidenceIndex = buildEvidenceIndex(args)
+  const chapterEvidence = evidenceForRefs(chapterEvidenceRefs(chapterRef, outline.chapterNumber, targetLabels), evidenceIndex)
+  const sourceRegistry = sourceRegistryBase.map((item) => ({
+    ...item,
+    proposalEvidence: evidenceForRefs([ref(item.kind, item.ref, targetLabels)], evidenceIndex),
+  }))
 
   const callsByBeat = groupCallsByBeat(args.llmCalls ?? [])
   const eventsByBeat = groupEventsByBeat(args.traceEvents ?? [])
@@ -173,9 +333,13 @@ export function buildChapterTraceabilityReport(
       ref("chapter_outline", chapterRef, targetLabels),
       ...(beatId ? [ref("beat_plan", beatId, targetLabels)] : []),
     ]
-    const obligations = collectTraceableObligations(beat, sourceKeys, targetLabels)
+    const obligations = collectTraceableObligations(beat, sourceKeys, targetLabels, evidenceIndex)
     const llmCalls = callsForBeat(callsByBeat, beatIndex, beatId).map(mapCall)
     const traceEvents = eventsForBeat(eventsByBeat, beatIndex, beatId).map(mapEvent)
+    const proposalEvidence = evidenceForRefs(
+      beatId ? [ref("beat_plan", beatId, targetLabels)] : [],
+      evidenceIndex,
+    )
 
     return {
       beatIndex,
@@ -188,6 +352,7 @@ export function buildChapterTraceabilityReport(
         { kind: "chapter_outline", ref: chapterRef },
         ...collectBeatUpstreamTargets(beat),
       ]),
+      proposalEvidence,
       obligations,
       llmCalls,
       traceEvents,
@@ -208,6 +373,14 @@ export function buildChapterTraceabilityReport(
     0,
   )
   const traceEventCount = beats.reduce((sum, beat) => sum + beat.traceEvents.length, 0)
+  const evidenceSummary = summarizeEvidence([
+    ...chapterEvidence,
+    ...sourceRegistry.flatMap((item) => item.proposalEvidence),
+    ...beats.flatMap((beat) => [
+      ...beat.proposalEvidence,
+      ...beat.obligations.flatMap((item) => item.proposalEvidence),
+    ]),
+  ])
 
   return {
     ok: true,
@@ -218,6 +391,7 @@ export function buildChapterTraceabilityReport(
     chapterRef,
     chapterId: outline.chapterId,
     title: outline.title,
+    chapterEvidence,
     sourceRegistry,
     beats,
     summary: {
@@ -228,6 +402,10 @@ export function buildChapterTraceabilityReport(
       writerCallCount,
       checkerCallCount,
       traceEventCount,
+      proposalEnvelopeCount: evidenceSummary.proposalEnvelopeCount,
+      resolutionImpactCount: evidenceSummary.resolutionImpactCount,
+      checkerObservationCount: evidenceSummary.checkerObservationCount,
+      mutationLineageCount: evidenceSummary.mutationLineageCount,
     },
   }
 }
@@ -247,10 +425,16 @@ export async function loadChapterTraceabilityReport(
       404,
     )
   }
-  const [targetMap, llmCalls, traceEvents] = await Promise.all([
+  const evidenceRefs = collectReportEvidenceRefs(outline)
+  const evidenceRefValues = collectEvidenceRefValues(evidenceRefs)
+  const [targetMap, llmCalls, traceEvents, proposalEnvelopes, resolutionImpacts, checkerObservations, mutationLineage] = await Promise.all([
     loadPlanningTargetMap(novelId),
     loadTraceabilityCalls(novelId, chapterNumber),
     loadTraceabilityEvents(novelId, chapterNumber),
+    loadTraceabilityProposalEnvelopes(novelId, evidenceRefValues),
+    listProposalResolutionImpactsByTargetRefs(novelId, evidenceRefValues),
+    loadTraceabilityCheckerObservations(novelId, evidenceRefValues),
+    listPlanningMutationLineageForRefs(novelId, evidenceRefValues),
   ])
   return buildChapterTraceabilityReport({
     novelId,
@@ -259,6 +443,10 @@ export async function loadChapterTraceabilityReport(
     targetMap,
     llmCalls,
     traceEvents,
+    proposalEnvelopes,
+    resolutionImpacts,
+    checkerObservations,
+    mutationLineage,
   })
 }
 
@@ -323,8 +511,337 @@ async function loadTraceabilityEvents(
   }))
 }
 
-function buildSourceRegistry(outline: ChapterOutline): ChapterTraceabilitySourceRegistryItem[] {
-  const items: ChapterTraceabilitySourceRegistryItem[] = []
+async function loadTraceabilityProposalEnvelopes(
+  novelId: string,
+  targetRefs: readonly string[],
+): Promise<ChapterTraceabilityProposalEnvelopeInput[]> {
+  const uniqueRefs = [...new Set(targetRefs.filter(Boolean))]
+  const rowsById = new Map<string, any>()
+  for (const targetRef of uniqueRefs) {
+    const rows = await db`
+      SELECT id, kind, target_kind, target_ref, target_field_path,
+             status, risk, summary, created_at, resolved_at, payload
+      FROM proposal_envelopes
+      WHERE novel_id = ${novelId}
+        AND (
+          target_ref = ${targetRef}
+          OR payload #>> '{chapterRef}' = ${targetRef}
+          OR payload #>> '{beatRef}' = ${targetRef}
+          OR payload #>> '{obligationId}' = ${targetRef}
+          OR payload #>> '{characterId}' = ${targetRef}
+          OR payload #>> '{target,chapterRef}' = ${targetRef}
+          OR payload #>> '{target,beatRef}' = ${targetRef}
+          OR payload #>> '{target,obligationId}' = ${targetRef}
+          OR payload #>> '{target,characterId}' = ${targetRef}
+        )
+      ORDER BY created_at DESC, id ASC
+      LIMIT 50
+    `
+    for (const row of rows) rowsById.set((row as any).id, row)
+    if (rowsById.size >= 500) break
+  }
+  return [...rowsById.values()].slice(0, 500).map(rowToProposalEnvelopeEvidenceInput)
+}
+
+async function loadTraceabilityCheckerObservations(
+  novelId: string,
+  targetRefs: readonly string[],
+): Promise<ChapterTraceabilityCheckerObservationInput[]> {
+  const uniqueRefs = [...new Set(targetRefs.filter(Boolean))]
+  const out: ChapterTraceabilityCheckerObservationInput[] = []
+  const seen = new Set<string>()
+  for (const targetRef of uniqueRefs) {
+    const rows = await db`
+      SELECT id, proposal_id, proposal_kind, source_table, target_kind, target_ref,
+             chapter_number, result_hash, checker_name, fired, observed_at, details
+      FROM proposal_checker_observations
+      WHERE novel_id = ${novelId}
+        AND target_ref = ${targetRef}
+      ORDER BY observed_at DESC, id ASC
+      LIMIT 50
+    `
+    for (const row of rows as any[]) {
+      if (seen.has(row.id)) continue
+      seen.add(row.id)
+      out.push({
+        id: row.id,
+        proposalId: row.proposal_id,
+        proposalKind: row.proposal_kind,
+        sourceTable: row.source_table,
+        targetKind: row.target_kind,
+        targetRef: row.target_ref,
+        chapterNumber: row.chapter_number,
+        resultHash: row.result_hash,
+        checkerName: row.checker_name,
+        fired: row.fired === true,
+        observedAt: dateString(row.observed_at),
+        details: normalizeRecord(row.details),
+      })
+      if (out.length >= 500) return out
+    }
+  }
+  return out
+}
+
+function rowToProposalEnvelopeEvidenceInput(row: any): ChapterTraceabilityProposalEnvelopeInput {
+  const payload = row.payload
+  const targetRefs = dedupeRefs([
+    { kind: row.target_kind, ref: row.target_ref },
+    ...proposalRefsFromPayload(payload),
+  ])
+  return {
+    id: row.id,
+    kind: row.kind,
+    targetKind: row.target_kind,
+    targetRef: row.target_ref,
+    targetFieldPath: row.target_field_path,
+    status: row.status,
+    risk: row.risk,
+    summary: row.summary,
+    createdAt: dateString(row.created_at),
+    resolvedAt: row.resolved_at ? dateString(row.resolved_at) : null,
+    targetRefs,
+  }
+}
+
+function collectReportEvidenceRefs(outlineInput: ChapterOutline): ChapterTraceabilityRef[] {
+  const outline = clone(outlineInput)
+  enrichOutlineIds(outline)
+  const chapterRef = outline.chapterId ?? `chapter-${outline.chapterNumber}`
+  const refs: ChapterTraceabilityRef[] = [
+    ...chapterEvidenceRefs(chapterRef, outline.chapterNumber),
+  ]
+  for (const item of buildSourceRegistry(outline)) {
+    refs.push({ kind: item.kind, ref: item.ref })
+  }
+  for (const beat of outline.scenes ?? []) {
+    if (beat.beatId) refs.push({ kind: "beat_plan", ref: beat.beatId })
+    forEachObligation(beat.obligations, (item) => {
+      refs.push(...obligationEvidenceRefs(item))
+    })
+  }
+  return dedupeRefs(refs)
+}
+
+function collectEvidenceRefValues(refs: ChapterTraceabilityRef[]): string[] {
+  const values = new Set<string>()
+  for (const item of refs) {
+    values.add(item.ref)
+    values.add(refKey(item))
+  }
+  return [...values]
+}
+
+function chapterEvidenceRefs(
+  chapterRef: string,
+  chapterNumber: number,
+  labels?: Map<string, string>,
+): ChapterTraceabilityRef[] {
+  const legacyChapterRef = `chapter:${chapterNumber}`
+  return dedupeRefs([
+    ref("chapter_outline", chapterRef, labels),
+    ref("chapter_outline", legacyChapterRef, labels),
+    ref("chapter", legacyChapterRef, labels),
+  ])
+}
+
+function obligationEvidenceRefs(
+  item: BeatObligationsContract[ObligationListKey][number],
+  labels?: Map<string, string>,
+): ChapterTraceabilityRef[] {
+  const sourceRefKind = sourceKindToRegistryKind(item.sourceKind)
+  return dedupeRefs([
+    ...(item.obligationId ? [ref("beat_obligation", item.obligationId, labels)] : []),
+    ...(item.sourceId && sourceRefKind ? [ref(sourceRefKind, item.sourceId, labels)] : []),
+    ...(item.characterId ? [ref("character", item.characterId, labels)] : []),
+  ])
+}
+
+interface EvidenceIndex {
+  proposalEnvelopesByRef: Map<string, ChapterTraceabilityProposalEnvelopeInput[]>
+  resolutionImpactsByRef: Map<string, ChapterTraceabilityResolutionImpactInput[]>
+  checkerObservationsByRef: Map<string, ChapterTraceabilityCheckerObservationInput[]>
+  mutationLineageByRef: Map<string, ChapterTraceabilityMutationLineageInput[]>
+}
+
+function buildEvidenceIndex(args: BuildChapterTraceabilityReportArgs): EvidenceIndex {
+  const proposalEnvelopesByRef = new Map<string, ChapterTraceabilityProposalEnvelopeInput[]>()
+  for (const proposal of args.proposalEnvelopes ?? []) {
+    const refs = proposal.targetRefs && proposal.targetRefs.length > 0
+      ? proposal.targetRefs
+      : [{ kind: proposal.targetKind, ref: proposal.targetRef }]
+    for (const target of dedupeRefs(refs)) {
+      addGrouped(proposalEnvelopesByRef, [refKey(target)], proposal)
+    }
+  }
+
+  const resolutionImpactsByRef = new Map<string, ChapterTraceabilityResolutionImpactInput[]>()
+  for (const impact of args.resolutionImpacts ?? []) {
+    addGrouped(resolutionImpactsByRef, [impact.targetRef], impact)
+  }
+
+  const checkerObservationsByRef = new Map<string, ChapterTraceabilityCheckerObservationInput[]>()
+  for (const observation of args.checkerObservations ?? []) {
+    addGrouped(checkerObservationsByRef, [observation.targetRef], observation)
+  }
+
+  const mutationLineageByRef = new Map<string, ChapterTraceabilityMutationLineageInput[]>()
+  for (const lineage of args.mutationLineage ?? []) {
+    const keys = [
+      `${lineage.targetKind}:${lineage.previousRef}`,
+      `${lineage.targetKind}:${lineage.nextRef}`,
+      ...(lineage.affectedDownstreamRefs ?? []).map(refKey),
+    ]
+    addGrouped(mutationLineageByRef, [...new Set(keys)], lineage)
+  }
+
+  return {
+    proposalEnvelopesByRef,
+    resolutionImpactsByRef,
+    checkerObservationsByRef,
+    mutationLineageByRef,
+  }
+}
+
+function evidenceForRefs(
+  refs: ChapterTraceabilityRef[],
+  index: EvidenceIndex,
+): ChapterTraceabilityEvidence[] {
+  const out: ChapterTraceabilityEvidence[] = []
+  for (const target of dedupeRefs(refs)) {
+    const evidence: ChapterTraceabilityEvidence = {
+      target,
+      proposalEnvelopes: (index.proposalEnvelopesByRef.get(refKey(target)) ?? [])
+        .map(toProposalEnvelopeEvidence),
+      resolutionImpacts: (index.resolutionImpactsByRef.get(target.ref) ?? [])
+        .map(toResolutionImpactEvidence),
+      checkerObservations: (index.checkerObservationsByRef.get(target.ref) ?? [])
+        .map(toCheckerObservationEvidence),
+      mutationLineage: (index.mutationLineageByRef.get(refKey(target)) ?? [])
+        .map(toMutationLineageEvidence),
+    }
+    if (
+      evidence.proposalEnvelopes.length > 0 ||
+      evidence.resolutionImpacts.length > 0 ||
+      evidence.checkerObservations.length > 0 ||
+      evidence.mutationLineage.length > 0
+    ) {
+      out.push(evidence)
+    }
+  }
+  return out
+}
+
+function toProposalEnvelopeEvidence(
+  input: ChapterTraceabilityProposalEnvelopeInput,
+): ChapterTraceabilityProposalEnvelopeEvidence {
+  return {
+    id: input.id,
+    kind: input.kind,
+    targetKind: input.targetKind,
+    targetRef: input.targetRef,
+    ...(input.targetFieldPath ? { targetFieldPath: input.targetFieldPath } : {}),
+    status: input.status,
+    risk: input.risk,
+    summary: input.summary,
+    createdAt: input.createdAt,
+    ...(input.resolvedAt ? { resolvedAt: input.resolvedAt } : {}),
+    matchedRefs: dedupeRefs(input.targetRefs ?? [{ kind: input.targetKind, ref: input.targetRef }]),
+  }
+}
+
+function toResolutionImpactEvidence(
+  input: ChapterTraceabilityResolutionImpactInput,
+): ChapterTraceabilityResolutionImpactEvidence {
+  return {
+    id: input.id,
+    proposalId: input.proposalId,
+    proposalKind: input.proposalKind,
+    sourceTable: input.sourceTable,
+    targetKind: input.targetKind,
+    targetRef: input.targetRef,
+    ...(input.chapterNumber != null ? { chapterNumber: input.chapterNumber } : {}),
+    ...(input.priorHash ? { priorHash: input.priorHash } : {}),
+    ...(input.resultHash ? { resultHash: input.resultHash } : {}),
+    ...(input.resultVersion ? { resultVersion: input.resultVersion } : {}),
+    resolvedAt: input.resolvedAt,
+    metadata: input.metadata ?? {},
+  }
+}
+
+function toCheckerObservationEvidence(
+  input: ChapterTraceabilityCheckerObservationInput,
+): ChapterTraceabilityCheckerObservationEvidence {
+  return {
+    id: input.id,
+    proposalId: input.proposalId,
+    proposalKind: input.proposalKind,
+    sourceTable: input.sourceTable,
+    targetKind: input.targetKind,
+    targetRef: input.targetRef,
+    ...(input.chapterNumber != null ? { chapterNumber: input.chapterNumber } : {}),
+    ...(input.resultHash ? { resultHash: input.resultHash } : {}),
+    checkerName: input.checkerName,
+    fired: input.fired,
+    observedAt: input.observedAt,
+    details: input.details ?? {},
+  }
+}
+
+function toMutationLineageEvidence(
+  input: ChapterTraceabilityMutationLineageInput,
+): ChapterTraceabilityMutationLineageEvidence {
+  return {
+    id: input.id,
+    proposalId: input.proposalId,
+    proposalKind: input.proposalKind,
+    sourceTable: input.sourceTable,
+    actorKind: input.actorKind,
+    ...(input.actorRef ? { actorRef: input.actorRef } : {}),
+    ...(input.source ? { source: input.source } : {}),
+    targetKind: input.targetKind,
+    previousRef: input.previousRef,
+    nextRef: input.nextRef,
+    fieldPath: input.fieldPath,
+    ...(input.previousVersion ? { previousVersion: input.previousVersion } : {}),
+    ...(input.nextVersion ? { nextVersion: input.nextVersion } : {}),
+    ...(input.preconditionKind ? { preconditionKind: input.preconditionKind } : {}),
+    ...(input.preconditionHash ? { preconditionHash: input.preconditionHash } : {}),
+    changedAt: input.changedAt,
+    ...(input.reason ? { reason: input.reason } : {}),
+    affectedDownstreamRefs: dedupeRefs(input.affectedDownstreamRefs ?? []),
+    metadata: input.metadata ?? {},
+  }
+}
+
+function summarizeEvidence(items: ChapterTraceabilityEvidence[]): {
+  proposalEnvelopeCount: number
+  resolutionImpactCount: number
+  checkerObservationCount: number
+  mutationLineageCount: number
+} {
+  const proposalIds = new Set<string>()
+  const impactIds = new Set<string>()
+  const observationIds = new Set<string>()
+  const lineageIds = new Set<string>()
+  for (const item of items) {
+    for (const proposal of item.proposalEnvelopes) proposalIds.add(proposal.id)
+    for (const impact of item.resolutionImpacts) impactIds.add(impact.id)
+    for (const observation of item.checkerObservations) observationIds.add(observation.id)
+    for (const lineage of item.mutationLineage) lineageIds.add(lineage.id)
+  }
+  return {
+    proposalEnvelopeCount: proposalIds.size,
+    resolutionImpactCount: impactIds.size,
+    checkerObservationCount: observationIds.size,
+    mutationLineageCount: lineageIds.size,
+  }
+}
+
+function buildSourceRegistry(
+  outline: ChapterOutline,
+): Array<Omit<ChapterTraceabilitySourceRegistryItem, "proposalEvidence">> {
+  const items: Array<Omit<ChapterTraceabilitySourceRegistryItem, "proposalEvidence">> = []
   for (const fact of outline.establishedFacts ?? []) {
     if (!fact.id) continue
     items.push({
@@ -369,6 +886,7 @@ function collectTraceableObligations(
   beat: SceneBeat,
   sourceKeys: Set<string>,
   targetLabels: Map<string, string>,
+  evidenceIndex: EvidenceIndex,
 ): ChapterTraceabilityObligation[] {
   const obligations = beat.obligations
   if (!obligations) return []
@@ -397,6 +915,7 @@ function collectTraceableObligations(
         text: item.text,
         refs: dedupeRefs(refs),
         sourceFound,
+        proposalEvidence: evidenceForRefs(refs, evidenceIndex),
       })
     }
   }
@@ -473,6 +992,60 @@ function readMeta(value: unknown): unknown {
     return obj
   }
   return undefined
+}
+
+function proposalRefsFromPayload(payload: unknown): ChapterTraceabilityRef[] {
+  const root = safeRecord(payload)
+  if (!root) return []
+  const target = safeRecord(root.target)
+  const refs: ChapterTraceabilityRef[] = []
+  addChapterPayloadRef(refs, readString(root.chapterRef))
+  addChapterPayloadRef(refs, readString(target?.chapterRef))
+  addPayloadRef(refs, "beat_plan", readString(root.beatRef))
+  addPayloadRef(refs, "beat_plan", readString(target?.beatRef))
+  addPayloadRef(refs, "beat_obligation", readString(root.obligationId))
+  addPayloadRef(refs, "beat_obligation", readString(target?.obligationId))
+  addPayloadRef(refs, "character", readString(root.characterId))
+  addPayloadRef(refs, "character", readString(target?.characterId))
+  addSourcePayloadRef(refs, root)
+  if (target) addSourcePayloadRef(refs, target)
+  for (const entityRef of Array.isArray(root.entityRefs) ? root.entityRefs : []) {
+    const record = safeRecord(entityRef)
+    const kind = readString(record?.kind)
+    const value = readString(record?.ref)
+    if (kind && value) refs.push({ kind, ref: value })
+  }
+  return dedupeRefs(refs)
+}
+
+function addChapterPayloadRef(refs: ChapterTraceabilityRef[], value: string | undefined): void {
+  if (!value) return
+  refs.push({ kind: "chapter_outline", ref: value })
+  refs.push({ kind: "chapter", ref: value })
+}
+
+function addSourcePayloadRef(refs: ChapterTraceabilityRef[], value: Record<string, unknown>): void {
+  const sourceId = readString(value.sourceId)
+  const sourceKind = sourceKindToRegistryKind(readString(value.sourceKind))
+  if (sourceId && sourceKind) refs.push({ kind: sourceKind, ref: sourceId })
+}
+
+function addPayloadRef(
+  refs: ChapterTraceabilityRef[],
+  kind: string,
+  value: string | undefined,
+): void {
+  if (value) refs.push({ kind, ref: value })
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined
+}
+
+function safeRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined
 }
 
 function groupCallsByBeat(
@@ -581,6 +1154,10 @@ function ref(
   return { kind, ref: value, ...(labels?.get(`${kind}:${value}`) ? { label: labels.get(`${kind}:${value}`) } : {}) }
 }
 
+function refKey(item: Pick<ChapterTraceabilityRef, "kind" | "ref">): string {
+  return `${item.kind}:${item.ref}`
+}
+
 function sourceKey(kind: string, value: string): string {
   return `${kind}:${value}`
 }
@@ -614,10 +1191,10 @@ function dedupeTargetRefs(refs: PlanningTargetRef[]): PlanningTargetRef[] {
 }
 
 function dedupeRegistry(
-  items: ChapterTraceabilitySourceRegistryItem[],
-): ChapterTraceabilitySourceRegistryItem[] {
+  items: Array<Omit<ChapterTraceabilitySourceRegistryItem, "proposalEvidence">>,
+): Array<Omit<ChapterTraceabilitySourceRegistryItem, "proposalEvidence">> {
   const seen = new Set<string>()
-  const out: ChapterTraceabilitySourceRegistryItem[] = []
+  const out: Array<Omit<ChapterTraceabilitySourceRegistryItem, "proposalEvidence">> = []
   for (const item of items) {
     const key = sourceKey(item.kind, item.ref)
     if (seen.has(key)) continue
@@ -648,4 +1225,12 @@ function clone<T>(value: T): T {
 
 function dateString(value: string | Date): string {
   return value instanceof Date ? value.toISOString() : value
+}
+
+function normalizeRecord(raw: unknown): Record<string, unknown> {
+  if (typeof raw === "string") {
+    const parsed = JSON.parse(raw)
+    return safeRecord(parsed) ?? {}
+  }
+  return safeRecord(raw) ?? {}
 }

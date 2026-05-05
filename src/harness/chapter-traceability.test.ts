@@ -177,6 +177,106 @@ describe("buildChapterTraceabilityReport", () => {
       { kind: "character", ref: "char-istra" },
     ]))
   })
+
+  test("links proposal and mutation evidence by exact target refs only", () => {
+    const outline = chapterOutline()
+    const report = buildChapterTraceabilityReport({
+      novelId: "novel-trace-test",
+      chapterNumber: 1,
+      outline,
+      targetMap: buildPlanningTargetMap({
+        novelId: "novel-trace-test",
+        seed: null,
+        world: null,
+        characters: [],
+        spine: null,
+        outlines: [outline],
+        worldSystems: [],
+        cultures: [],
+        planningSnapshotHash: "a".repeat(64),
+      }),
+      proposalEnvelopes: [
+        {
+          id: "planning-edit:beat",
+          kind: "planning_edit",
+          targetKind: "beat_plan",
+          targetRef: "beat-ledger-verdict",
+          targetFieldPath: "description",
+          status: "approved",
+          risk: "medium",
+          summary: "Revise beat description",
+          createdAt: "2026-05-05T00:00:00.000Z",
+        },
+        {
+          id: "planning-edit:wrong-kind",
+          kind: "planning_edit",
+          targetKind: "character",
+          targetRef: "beat-ledger-verdict",
+          status: "approved",
+          risk: "medium",
+          summary: "Same value but different target kind",
+          createdAt: "2026-05-05T00:00:00.000Z",
+        },
+      ],
+      resolutionImpacts: [{
+        id: "impact-1",
+        proposalId: "prose-edit:1",
+        proposalKind: "prose_edit",
+        sourceTable: "proposal_envelopes",
+        targetKind: "draft",
+        targetRef: "fact-ledger-forgery",
+        chapterNumber: 1,
+        resolvedAt: "2026-05-05T00:00:00.000Z",
+      }],
+      checkerObservations: [{
+        id: "obs-1",
+        proposalId: "prose-edit:1",
+        proposalKind: "prose_edit",
+        sourceTable: "proposal_envelopes",
+        targetKind: "draft",
+        targetRef: "fact-ledger-forgery",
+        chapterNumber: 1,
+        checkerName: "validation",
+        fired: true,
+        observedAt: "2026-05-05T00:00:00.000Z",
+      }],
+      mutationLineage: [{
+        id: "lineage-1",
+        proposalId: "planning-edit:obligation",
+        proposalKind: "planning_edit",
+        sourceTable: "proposal_envelopes",
+        actorKind: "operator",
+        targetKind: "beat_obligation",
+        previousRef: "obl-ledger-fact",
+        nextRef: "obl-ledger-fact",
+        fieldPath: "text",
+        changedAt: "2026-05-05T00:00:00.000Z",
+      }],
+    })
+
+    const beat = report.beats[0]
+    expect(beat.proposalEvidence[0].target).toEqual({ kind: "beat_plan", ref: "beat-ledger-verdict", label: "Chapter 1, beat 1" })
+    expect(beat.proposalEvidence[0].proposalEnvelopes.map((item) => item.id)).toEqual([
+      "planning-edit:beat",
+    ])
+    expect(beat.proposalEvidence[0].proposalEnvelopes.map((item) => item.id)).not.toContain("planning-edit:wrong-kind")
+
+    const factSource = report.sourceRegistry.find((item) => item.kind === "world_fact")
+    expect(factSource?.proposalEvidence[0].resolutionImpacts[0].id).toBe("impact-1")
+    expect(factSource?.proposalEvidence[0].checkerObservations[0].id).toBe("obs-1")
+
+    const factObligation = beat.obligations.find((item) => item.obligationId === "obl-ledger-fact")
+    const obligationEvidence = factObligation?.proposalEvidence.find((item) =>
+      item.target.kind === "beat_obligation" && item.target.ref === "obl-ledger-fact"
+    )
+    expect(obligationEvidence?.mutationLineage[0].id).toBe("lineage-1")
+    expect(report.summary).toEqual(expect.objectContaining({
+      proposalEnvelopeCount: 1,
+      resolutionImpactCount: 1,
+      checkerObservationCount: 1,
+      mutationLineageCount: 1,
+    }))
+  })
 })
 
 function chapterOutline(overrides: Partial<ChapterOutline> = {}): ChapterOutline {
