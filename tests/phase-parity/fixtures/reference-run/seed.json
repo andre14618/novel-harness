@@ -1,24 +1,24 @@
 {
-  "novelId": "fantasy-system-heretic",
+  "novelId": "phase-parity-smoke",
   "seed": {
-    "premise": "In a world governed by the System — a divine framework that assigns every person a class, tracks their statistics, and rewards growth with tangible power — a young scribe's stats have been lying since she received them at fourteen. Her Strength reads 3. She has bent iron bars with her hands. The System has never corrected the discrepancy. Now a System Arbiter has arrived in her city to investigate an anomaly — her anomaly.",
-    "genre": "litrpg",
-    "chapterCount": 3,
+    "premise": "In a riverside canal town, the flood watch bell jams on the same night the river wall cracks. A careful bell keeper, a retired mason, and a strict town reeve must reach the old tower, repair the gear, and sound the warning before the lower ward floods.",
+    "genre": "low-fantasy-adventure",
+    "chapterCount": 1,
     "characters": [
       {
-        "name": "Maret",
+        "name": "Mira Vale",
         "role": "protagonist",
-        "description": "Scribe, early 20s. Has lived with false stats for eight years by hiding what she can do. Uses her official Scribe class as cover — the administrative access it grants lets her avoid most physical situations. Smart, secretive, deeply uncertain whether the System is protecting her or preparing something. Has never told anyone her real numbers."
+        "description": "Bell keeper, early 30s. Precise, practical, and trusted to maintain the flood watch tower. She notices small mechanical changes quickly and feels responsible for every family in the lower ward."
       },
       {
-        "name": "Journeyman Theo",
+        "name": "Orin Pike",
         "role": "supporting",
-        "description": "A young adventurer in Maret's city. His stats are genuinely mediocre — he knows exactly what he is and is at peace with it. Befriended Maret two years ago because she's smarter than anyone in his party. Has noticed that she avoids combat situations in ways that don't match a Scribe's normal reasons. Doesn't push. Asks good questions."
+        "description": "Retired mason, late 60s. Helped build the old river wall and knows its weak points. Gruff but steady, he carries tools everywhere and trusts evidence more than authority."
       },
       {
-        "name": "Arbiter Cassel",
+        "name": "Tomas Kade",
         "role": "antagonist",
-        "description": "System Arbiter, mid-40s. Investigates discrepancies between System records and observed reality. Genuinely believes in the System's justice — the Framework doesn't make mistakes, so anomalies must be corrected. His case file has Maret flagged as Threat Level: Unknown. He's not wrong to be cautious. He also doesn't know the System flagged her anomaly eight years ago and chose not to correct it."
+        "description": "Town reeve, mid-40s. Responsible for avoiding panic during storms. He is not malicious, but his need for order makes him resist Mira's warning until the evidence is undeniable."
       }
     ]
   }
