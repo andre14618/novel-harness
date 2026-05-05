@@ -180,6 +180,9 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   chapter cards, refs, and trace/proposal evidence. Browser evidence for
   disposable novel `codex-chapter-health-ui-1778000670807` is under
   `output/playwright/2026-05-05/chapter-health-codex-chapter-health-ui-1778000670807/`.
+- `GET /api/novel/:novelId/traceability/chapter/:chapterNumber` now exposes a
+  read-only ID-first chapter trace: beat refs, obligation refs, source registry
+  links, and writer/checker/event evidence with explicit positional fallback.
 - Deterministic lint-generated `prose_edit` span proposals now carry optional
   `beatRef` metadata when drafting can map the span through the exact
   `beatProses` join to an enriched outline beat id.

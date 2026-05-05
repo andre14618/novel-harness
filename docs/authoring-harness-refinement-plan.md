@@ -373,6 +373,13 @@ Acceptance criteria:
   when available.
 - The UI can show why a chapter is weak without reading raw trace logs.
 
+Status 2026-05-05: chapter health is implemented through
+`GET /api/novel/:novelId/chapter-health` and `/app/chapter-health/:novelId`.
+The first traceability endpoint,
+`GET /api/novel/:novelId/traceability/chapter/:chapterNumber`, now returns a
+read-only ID-first chapter map over beats, obligations, source registry items,
+writer/checker LLM calls, and trace events.
+
 ### Step 6 - Planner-Owned Story Debt Experiment
 
 Treat Promise/Progress/Payoff as a planner-owned story debt artifact first, not

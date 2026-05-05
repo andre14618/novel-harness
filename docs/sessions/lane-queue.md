@@ -72,10 +72,10 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
   `codex-planning-modified-1777980329324` covered live create, edit, resolve
   modified, modified-tab diff display, and mobile rendering. The diff endpoint
   now reads `modified_payload` for modified proposals.
-- Chapter-health tracer/UI slice landed `GET /api/novel/:novelId/chapter-health`
-  and `/app/chapter-health/:novelId`; Playwright evidence on disposable novel
-  `codex-chapter-health-ui-1778000670807` covered load, filters, evidence
-  expansion, mobile, clean console, and API `200`.
+- Chapter-health and traceability slices landed `GET /chapter-health`,
+  `/app/chapter-health/:novelId`, and `GET /traceability/chapter/:chapterNumber`.
+  Playwright evidence on disposable novel `codex-chapter-health-ui-1778000670807`
+  covered health load, filters, evidence expansion, mobile, clean console/API.
 - Local Playwright preflight setup helper landed as `bun run ui:preflight`;
   it creates the evidence directory, runbook, console/network placeholders, and
   manifest without adding browser-driver dependencies.
