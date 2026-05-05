@@ -220,5 +220,15 @@ export const continuityIssueSchema = z.object({
   description: z.string(),
   conflictsWith: z.string().optional(),
   suggestedFix: z.string().optional(),
+  // Stable-ID coverage (2026-05-04, additive). Populated by the continuity
+  // checker only on deterministic exact match between the LLM output and an
+  // input row — the checker never invents IDs from text. `factId` is set when
+  // the contradicted fact's text or id matches an entry in the input
+  // `Fact[]`; `characterId` is set when the violation's character matches an
+  // input `CharacterState.characterId`. Absent when no exact match exists or
+  // when the issue is not fact-/character-scoped. See
+  // `docs/stable-id-checker-coverage.md`.
+  factId: z.string().optional(),
+  characterId: z.string().optional(),
 })
 export type ContinuityIssue = z.infer<typeof continuityIssueSchema>

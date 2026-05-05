@@ -80,6 +80,7 @@ interface AgentConfig<T> {
   // they're working in (drafting loop, retry loops, etc.).
   chapter?: number
   beatIndex?: number
+  beatId?: string
   attempt?: number
 }
 
@@ -186,6 +187,7 @@ export function extractJSON(raw: string): string {
 export interface ExecuteTags {
   chapter?: number
   beatIndex?: number
+  beatId?: string
   attempt?: number
 }
 
@@ -413,6 +415,7 @@ export async function executeAndLog(
           responseContent: response?.content,
           chapter: tags?.chapter,
           beatIndex: tags?.beatIndex,
+          beatId: tags?.beatId,
           attempt: tags?.attempt,
           requestJson: requestJsonWithMeta,
           failed,
@@ -721,6 +724,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
         responseContent: content || undefined,
         chapter: config.chapter,
         beatIndex: config.beatIndex,
+        beatId: config.beatId,
         attempt: config.attempt,
         // Reconstruct the request envelope for reproducibility. We don't have
         // the literal extraBody/responseFormat from inside makeRequest here,

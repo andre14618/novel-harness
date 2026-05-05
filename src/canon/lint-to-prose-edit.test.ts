@@ -185,6 +185,41 @@ describe("buildProseEditProposalFromIssue", () => {
     expect(proposal!.draftVersion).toBe("lint:FILLER_PHRASE")
   })
 
+  test("adds beatRef when beat prose maps the span to a durable beat id", () => {
+    const beatProses = [
+      "Mira waited by the sealed archive.",
+      "She paused in order to listen.",
+    ]
+    const prose = beatProses.join("\n\n")
+    const issue = makeIssue("FILLER_PHRASE", "in order to", beatProses[1])
+    const proposal = buildProseEditProposalFromIssue(prose, issue, "chapter:7", {
+      beatProses,
+      beatRefs: ["beat-waiting", "beat-listening"],
+    })
+
+    expect(proposal).not.toBeNull()
+    expect(proposal!.target).toMatchObject({
+      kind: "span",
+      chapterRef: "chapter:7",
+      beatRef: "beat-listening",
+    })
+  })
+
+  test("omits beatRef when beat prose does not match the rendered prose", () => {
+    const prose = "She paused in order to listen."
+    const issue = makeIssue("FILLER_PHRASE", "in order to", prose)
+    const proposal = buildProseEditProposalFromIssue(prose, issue, "chapter:7", {
+      beatProses: ["Different beat prose."],
+      beatRefs: ["beat-different"],
+    })
+
+    expect(proposal).not.toBeNull()
+    expect(proposal!.target.kind).toBe("span")
+    if (proposal!.target.kind === "span") {
+      expect(proposal!.target.beatRef).toBeUndefined()
+    }
+  })
+
   test("returns null when the issue has no deterministic fix", () => {
     const prose = "x"
     const issue = makeIssue("RHYTHM_MONOTONY", "x", "x")
@@ -230,7 +265,8 @@ describe("buildProseEditEnvelopesFromLintIssues", () => {
       expect(env.target.currentVersion).toBe(expectedHash)
       expect(env.source.agent).toBe("lint-converter")
       expect(env.novelId).toBe(novelId)
-      expect(env.policyRecommendation.decision).toBe("queue")
+      expect(env.risk).toBe("mechanical")
+      expect(env.policyRecommendation.decision).toBe("approve")
     }
     // Each envelope has a distinct id (unique proposalIndex per fix).
     expect(new Set(envelopes.map(e => e.id)).size).toBe(envelopes.length)

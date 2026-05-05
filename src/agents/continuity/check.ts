@@ -96,11 +96,13 @@ export async function checkContinuity(
 
   if (factResult.status === "fulfilled") {
     for (const c of factResult.value.output.contradictions ?? []) {
+      const factId = resolveFactId(c.fact, facts)
       issues.push({
         severity: c.severity,
         description: c.reasoning,
         conflictsWith: c.fact,
         suggestedFix: undefined,
+        ...(factId ? { factId } : {}),
       })
     }
   } else {
@@ -115,7 +117,7 @@ export async function checkContinuity(
 
   if (stateResult.status === "fulfilled") {
     for (const v of stateResult.value.output.violations ?? []) {
-      issues.push(stateViolationToIssue(v))
+      issues.push(stateViolationToIssue(v, charStates))
     }
   } else {
     issues.push({
@@ -127,6 +129,32 @@ export async function checkContinuity(
   }
 
   return { issues }
+}
+
+/**
+ * Stable-ID hardening (2026-05-04, additive). The fact-check LLM emits
+ * `contradiction.fact` as free-form text. Map it back to a durable `Fact.id`
+ * only on a deterministic exact match: either the model already echoed an ID
+ * present in the input `Fact[]`, or the model echoed the canonical fact text
+ * verbatim. No fuzzy matching, no normalization beyond `trim()` so this
+ * helper never invents an ID. Returns `undefined` when no exact match
+ * exists. Fuzzy / semantic resolution is backlog (see
+ * `docs/stable-id-checker-coverage.md`).
+ */
+export function resolveFactId(modelFact: string | undefined, facts: readonly Fact[]): string | undefined {
+  if (typeof modelFact !== "string") return undefined
+  const trimmed = modelFact.trim()
+  if (trimmed.length === 0) return undefined
+  for (const fact of facts) {
+    const id = fact.id?.trim()
+    if (id && id === trimmed) return id
+  }
+  for (const fact of facts) {
+    const id = fact.id?.trim()
+    const text = fact.fact?.trim()
+    if (id && text && text === trimmed) return id
+  }
+  return undefined
 }
 
 // ── User prompt builders ─────────────────────────────────────────────────────
@@ -168,15 +196,39 @@ export function buildStateUserPrompt(draft: string, charStates: CharacterState[]
   return prompt
 }
 
-export function stateViolationToIssue(v: StateViolation): ContinuityIssue {
+export function stateViolationToIssue(
+  v: StateViolation,
+  charStates?: readonly CharacterState[],
+): ContinuityIssue {
   // Previous-chapter locations are starting-state hints. A later chapter can move
   // characters off-page or through planned scene transitions, so keep location
   // concerns visible without letting them halt the run as checker blockers.
   const severity = v.type === "location" ? (v.severity === "nit" ? "nit" : "warning") : (v.severity ?? "blocker")
+  // Stable-ID hardening (2026-05-04, additive). When the model's `character`
+  // field exactly matches a `CharacterState.characterId` from the input, copy
+  // that durable ID onto the issue. No fuzzy matching, no name → id lookup
+  // (broader entity-name resolution is backlog). Absent when no exact match
+  // exists or when the caller did not pass `charStates`.
+  const characterId = resolveCharacterId(v.character, charStates)
   return {
     severity,
     description: `${v.character} ${v.type} violation: ${v.reasoning}`,
     conflictsWith: v.evidence,
     suggestedFix: undefined,
+    ...(characterId ? { characterId } : {}),
   }
+}
+
+function resolveCharacterId(
+  modelCharacter: string | undefined,
+  charStates: readonly CharacterState[] | undefined,
+): string | undefined {
+  if (!charStates || charStates.length === 0) return undefined
+  if (typeof modelCharacter !== "string") return undefined
+  const trimmed = modelCharacter.trim()
+  if (trimmed.length === 0) return undefined
+  for (const cs of charStates) {
+    if (cs.characterId && cs.characterId === trimmed) return cs.characterId
+  }
+  return undefined
 }

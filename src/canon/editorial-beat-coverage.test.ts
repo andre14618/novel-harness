@@ -23,6 +23,7 @@ import {
   type BeatCoverageLlmOutput,
 } from "./editorial-beat-coverage"
 import { chapterOutlineSchema } from "../agents/planning-plotter/schema"
+import { enrichOutlineIds } from "../harness/ids"
 import type { ChapterOutline } from "../types"
 
 const fixedNow = new Date("2026-05-04T12:00:00.000Z")
@@ -267,6 +268,59 @@ describe("buildBeatCoverageProposalsFromLlm", () => {
     })
     expect(proposals).toHaveLength(1)
     expect(proposals[0].evidenceQuotes[0].text).toBe("first reason")
+  })
+
+  test("prefers beat.beatId for beatRef when the outline has been enriched", () => {
+    // Stable-ID hardening (2026-05-04): production outlines round-trip through
+    // `enrichOutlineIds` via `saveChapterOutline()`, so beat.beatId is
+    // populated. The producer threads that durable ref into the proposal
+    // payload's beatRef so downstream impact lookups can join findings to
+    // beat_plan targets without parsing positional `b<n>` strings.
+    const enriched = fixtureOutline()
+    enrichOutlineIds(enriched)
+    const expectedBeatId = enriched.scenes[1]!.beatId
+    expect(typeof expectedBeatId).toBe("string")
+    expect((expectedBeatId as string).length).toBeGreaterThan(0)
+    const out: BeatCoverageLlmOutput = {
+      beatVerdicts: [
+        { beatIndex: 0, covered: true, evidenceQuote: "ok", reason: "ok" },
+        { beatIndex: 1, covered: false, reason: "no door attempt in draft" },
+        { beatIndex: 2, covered: true, evidenceQuote: "ok", reason: "ok" },
+      ],
+    }
+    const proposals = buildBeatCoverageProposalsFromLlm({
+      llmOutput: out,
+      outline: enriched,
+      chapterRef,
+    })
+    expect(proposals).toHaveLength(1)
+    expect(proposals[0].beatRef).toBe(expectedBeatId)
+  })
+
+  test("falls back to positional b<n> when the outline is un-enriched", () => {
+    // Legacy / synthetic outlines that never went through `enrichOutlineIds`
+    // do not carry beatIds. The producer keeps emitting `b<n>` so downstream
+    // consumers (UI, persisted envelopes from older runs) see byte-identical
+    // beatRefs to the pre-2026-05-04 behavior.
+    const unenriched = fixtureOutline()
+    for (const beat of unenriched.scenes) {
+      delete (beat as { beatId?: string }).beatId
+    }
+    const out: BeatCoverageLlmOutput = {
+      beatVerdicts: [
+        { beatIndex: 0, covered: false, reason: "missing" },
+        { beatIndex: 1, covered: true, evidenceQuote: "ok", reason: "ok" },
+        { beatIndex: 2, covered: false, reason: "missing" },
+      ],
+    }
+    const proposals = buildBeatCoverageProposalsFromLlm({
+      llmOutput: out,
+      outline: unenriched,
+      chapterRef,
+    })
+    expect(proposals).toHaveLength(2)
+    expect(proposals[0].beatRef).toBe("b1")
+    expect(proposals[1].beatRef).toBe("b3")
   })
 
   test("chapterRef is determined by caller, not by outline.chapterId enrichment (MEDIUM H2)", () => {

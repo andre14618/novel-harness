@@ -163,7 +163,13 @@ describe("ProseEditProposal — schema + builder", () => {
   test("schema accepts a span-target edit", () => {
     const edit: ProseEditProposal = {
       draftVersion: "chapter:12:draft:v3",
-      target: { kind: "span", chapterRef: "chapter:12", start: 1024, end: 1086 },
+      target: {
+        kind: "span",
+        chapterRef: "chapter:12",
+        start: 1024,
+        end: 1086,
+        beatRef: "ch-012-beat-003-threshold",
+      },
       replacement: "She paused at the threshold, mindful of the lock.",
       rationale: "Adjust to acknowledge fact-c1-f1 (door is locked).",
     }

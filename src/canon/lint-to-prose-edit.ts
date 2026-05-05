@@ -60,6 +60,7 @@
 
 import { createHash } from "crypto"
 import { DETERMINISTIC_FIXES } from "../lint/fixers/deterministic"
+import { offsetToBeatIndex } from "../lint/integrity"
 import type { LintIssue } from "../lint/types"
 import { buildProseEditEnvelope } from "./editorial-proposal"
 import type {
@@ -76,6 +77,12 @@ export interface ProseSpanFix {
   replacement: string
   /** The lint category that produced this fix (e.g. "FILLER_PHRASE"). */
   category: string
+}
+
+export interface LintProseEditBeatContext {
+  beatProses: readonly string[]
+  beatRefs: readonly (string | undefined)[]
+  separator?: string
 }
 
 /**
@@ -178,9 +185,11 @@ export function buildProseEditProposalFromIssue(
   prose: string,
   issue: LintIssue,
   chapterRef: string,
+  beatContext?: LintProseEditBeatContext,
 ): ProseEditProposal | null {
   const fix = findFixForIssue(prose, issue)
   if (!fix) return null
+  const beatRef = resolveBeatRefForSpan(prose, fix.start, beatContext)
   return {
     draftVersion: `lint:${issue.category}`,
     target: {
@@ -188,10 +197,26 @@ export function buildProseEditProposalFromIssue(
       chapterRef,
       start: fix.start,
       end: fix.end,
+      ...(beatRef ? { beatRef } : {}),
     },
     replacement: fix.replacement,
     rationale: buildRationale(issue.category),
   }
+}
+
+function resolveBeatRefForSpan(
+  prose: string,
+  start: number,
+  beatContext?: LintProseEditBeatContext,
+): string | undefined {
+  if (!beatContext) return undefined
+  const separator = beatContext.separator ?? "\n\n"
+  const joinedProse = beatContext.beatProses.join(separator)
+  if (joinedProse !== prose) return undefined
+  const beatIndex = offsetToBeatIndex(start, [...beatContext.beatProses], separator)
+  if (beatIndex < 0) return undefined
+  const beatRef = beatContext.beatRefs[beatIndex]
+  return beatRef && beatRef.trim().length > 0 ? beatRef : undefined
 }
 
 export interface BuildLintProseEditEnvelopesArgs {
@@ -200,6 +225,7 @@ export interface BuildLintProseEditEnvelopesArgs {
   prose: string
   issues: readonly LintIssue[]
   agent: string
+  beatContext?: LintProseEditBeatContext
   parentEnvelopeId?: string
   /** Override for tests. Defaults to `new Date()`. */
   now?: Date
@@ -225,7 +251,7 @@ export function buildProseEditEnvelopesFromLintIssues(
   const envelopes: ProseEditEnvelope[] = []
   let proposalIndex = 0
   for (const issue of args.issues) {
-    const proposal = buildProseEditProposalFromIssue(args.prose, issue, args.chapterRef)
+    const proposal = buildProseEditProposalFromIssue(args.prose, issue, args.chapterRef, args.beatContext)
     if (!proposal) continue
     const env = buildProseEditEnvelope({
       novelId: args.novelId,
@@ -237,7 +263,16 @@ export function buildProseEditEnvelopesFromLintIssues(
       now,
       ...(args.parentEnvelopeId !== undefined ? { parentEnvelopeId: args.parentEnvelopeId } : {}),
     })
-    envelopes.push(env)
+    envelopes.push({
+      ...env,
+      risk: "mechanical",
+      policyRecommendation: {
+        decision: "approve",
+        reasons: [
+          `deterministic lint fix (${issue.category}); safe for assisted mechanical prose policy`,
+        ],
+      },
+    })
     proposalIndex++
   }
   return envelopes

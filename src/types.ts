@@ -24,6 +24,8 @@ export interface SeedInput {
   pipelineOverrides?: {
     qualityRedraftEnabled?: boolean
     qualityRedraftMinWords?: number
+    lintProseEditProposals?: boolean
+    editorialBeatCoverageProposals?: boolean
   }
 }
 
@@ -65,10 +67,22 @@ export interface NovelState {
 
 // ── Validation ─────────────────────────────────────────────────────────────
 
+export interface ValidationFinding {
+  severity: "blocker" | "warning"
+  code: string
+  description: string
+  chapterNumber?: number
+  chapterId?: string
+  beatIndex?: number
+  beatId?: string
+  metadata?: Record<string, unknown>
+}
+
 export interface ValidationResult {
   passed: boolean
   blockers: string[]
   warnings: string[]
+  findings?: ValidationFinding[]
 }
 
 // ── Backward compatibility — re-export schemas from agent directories ──────

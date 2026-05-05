@@ -198,6 +198,7 @@ import { mock as bunMock } from "bun:test"
 let nerPatchCalls: Array<{ id: number | null; data: any }> = []
 let nerPatchStarted = 0
 let nerPatchDelay: Promise<void> | null = null
+let llmCallOpts: any[] = []
 
 bunMock.module("../../db/ops", () => ({
   // Capture NER patch calls so persistence tests can assert the payload
@@ -213,6 +214,7 @@ bunMock.module("../../db/ops", () => ({
 
 bunMock.module("../../llm", () => ({
   callAgent: async (opts: any) => {
+    llmCallOpts.push(opts)
     // Default mock: LLM returns pass=true, llmCallId=42. Individual tests
     // override mockLLMResult and mockLLMCallId before calling checkHallucUngrounded.
     //
@@ -255,6 +257,7 @@ beforeEach(() => {
   nerPatchCalls = []
   nerPatchStarted = 0
   nerPatchDelay = null
+  llmCallOpts = []
   // L68: clear the per-call mock plumbing so prior tests' staged sequences
   // don't leak into subsequent tests.
   mockLLMResultsByCall = []
@@ -616,6 +619,24 @@ test("L16 persistence: awaits NER patch before returning", async () => {
   expect(result.pass).toBe(true)
   expect(returned).toBe(true)
   expect(nerPatchCalls.length).toBe(1)
+})
+
+test("stable-ref telemetry: passes beatId to halluc-ungrounded LLM calls", async () => {
+  const beat = {
+    ...baseBeat,
+    beatId: "ch-001-hall-beat-001-order-meeting",
+  }
+
+  await checkHallucUngrounded(
+    "Kael waited in the hall.",
+    beat,
+    baseOutline,
+    baseChars,
+    emptyWorldBible,
+    { novelId: "novel-stable-ref", chapter: 1, beatIndex: 0, attempt: 1 },
+  )
+
+  expect(llmCallOpts[0]?.beatId).toBe("ch-001-hall-beat-001-order-meeting")
 })
 
 test("L16 persistence: patch failure remains fail-open", async () => {

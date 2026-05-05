@@ -168,7 +168,7 @@ export type EditorialFlagEnvelope = ReviewProposalEnvelope<EditorialFlagProposal
  * envelopes' currentVersion check).
  */
 export type ProseEditTarget =
-  | { kind: "span"; chapterRef: string; start: number; end: number }
+  | { kind: "span"; chapterRef: string; start: number; end: number; beatRef?: string }
   | { kind: "beat"; chapterRef: string; beatRef: string }
 
 export const proseEditTargetSchema: z.ZodType<ProseEditTarget> = z.discriminatedUnion("kind", [
@@ -177,6 +177,7 @@ export const proseEditTargetSchema: z.ZodType<ProseEditTarget> = z.discriminated
     chapterRef: z.string(),
     start: z.number().int().nonnegative(),
     end: z.number().int().nonnegative(),
+    beatRef: z.string().optional(),
   }),
   z.object({
     kind: z.literal("beat"),

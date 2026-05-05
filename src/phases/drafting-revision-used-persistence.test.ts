@@ -173,7 +173,25 @@ mock.module("../agents/continuity/check", () => ({
   checkContinuity: async () => ({ issues: [] }),
 }))
 mock.module("../agents/chapter-plan-checker/context", () => ({ buildContext: () => "ctx" }))
-mock.module("../agents/chapter-plan-checker/schema", () => ({ chapterPlanCheckSchema: {} }))
+mock.module("../agents/chapter-plan-checker/schema", () => ({
+  chapterPlanCheckSchema: {
+    parse: (value: any) => ({
+      ...value,
+      deviations: (value.deviations ?? []).map((d: any) =>
+        typeof d === "string" ? { description: d, beat_index: null } : d,
+      ),
+    }),
+  },
+  attachChapterPlanDeviationBeatIds: (result: any, outline: any) => ({
+    ...result,
+    deviations: (result.deviations ?? []).map((d: any) => {
+      const beatId = d.beat_index == null ? undefined : outline?.scenes?.[d.beat_index]?.beatId
+      return beatId ? { ...d, beatId } : { ...d }
+    }),
+  }),
+  resolveDeviationBeatId: (outline: any, beatIndex: number | null) =>
+    beatIndex == null ? undefined : outline?.scenes?.[beatIndex]?.beatId,
+}))
 mock.module("../agents/chapter-plan-reviser/context", () => ({
   buildContext: () => "ctx",
   buildContextForValidation: () => "ctx-validation",

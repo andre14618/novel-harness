@@ -29,9 +29,16 @@ Return JSON only with this shape:
     {
       "kind": "established_fact_missing" | "knowledge_change_missing" | "character_state_missing" | "planned_state_contradicted",
       "planned_item": "string",
+      "planned_item_id": "string",
       "beat_index": 0,
       "evidence_quote": "exact prose quote or empty string",
       "explanation": "one sentence"
     }
   ]
 }
+
+Stable-ID rule for `planned_item_id`:
+- If the matched PLANNED_STATE item has its own `id` field, copy that id verbatim into `planned_item_id`. Do not paraphrase, abbreviate, or guess an id.
+- If the matched PLANNED_STATE item has no `id` field, omit `planned_item_id` entirely.
+- Never synthesize an id from prose, character names, or your own labels. The wrapper validates emitted ids against the planned-state registry and silently drops any value that does not match exactly.
+- `beat_index` continues to point at the CHAPTER_PROSE_BY_BEAT entry whose `beat_id` (when present) the wrapper uses for downstream lookups.

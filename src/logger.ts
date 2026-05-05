@@ -94,6 +94,7 @@ export interface LLMCallLogEntry {
   responseContent?: string
   chapter?: number
   beatIndex?: number
+  beatId?: string
   attempt?: number
   // Failure capture (sql/018_llm_call_errors.sql) — every attempt produces a row,
   // even when the call throws. requestJson is the full LLMRequest envelope so the
@@ -138,6 +139,7 @@ export async function logLLMCallStructured(novelId: string | null, entry: LLMCal
     novelId: novelId ?? undefined,
     chapter: entry.chapter,
     beatIndex: entry.beatIndex,
+    beatId: entry.beatId,
     attempt: entry.attempt,
     requestJson: entry.requestJson,
     failed: entry.failed,

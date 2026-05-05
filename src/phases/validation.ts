@@ -3,6 +3,7 @@ import {
   saveIssue, saveValidationPass,
 } from "../db"
 import db from "../db/connection"
+import { recordDraftCheckerObservationForHash } from "../db/proposal-resolution-outcomes"
 import { validateChapterDraft } from "../validation"
 import { displayPhaseHeader } from "../cli"
 import { emit } from "../events"
@@ -10,6 +11,7 @@ import { log } from "../logger"
 import { trace } from "../trace"
 import { pipeline } from "../config/pipeline"
 import type { Phase, PhaseResult, ValidationOutput, DraftingOutput } from "./contract"
+import { createHash } from "crypto"
 
 const MAX_PASSES = pipeline.maxValidationPasses
 
@@ -54,7 +56,21 @@ export async function runValidationPhase(novelId: string): Promise<PhaseResult<V
       const result = validateChapterDraft(draft.prose, outline, "validation")
       await trace(novelId, {
         eventType: "validation-check", chapter: ch,
-        payload: { passed: result.passed, blockers: result.blockers, warnings: result.warnings, pass },
+        payload: { passed: result.passed, blockers: result.blockers, warnings: result.warnings, findings: result.findings ?? [], pass },
+      })
+      await recordDraftCheckerObservationForHash({
+        novelId,
+        chapterNumber: ch,
+        resultHash: computeProseHash(draft.prose),
+        checkerName: "validation-check",
+        fired: !result.passed,
+        observedAt: new Date().toISOString(),
+        details: {
+          pass,
+          blockers: result.blockers,
+          warnings: result.warnings,
+          findings: result.findings ?? [],
+        },
       })
 
       if (!result.passed) {
@@ -98,6 +114,10 @@ export async function runValidationPhase(novelId: string): Promise<PhaseResult<V
 
   const output = await loadValidationOutput(novelId)
   return { kind: "complete", output }
+}
+
+function computeProseHash(prose: string): string {
+  return createHash("sha256").update(prose, "utf8").digest("hex")
 }
 
 /** Reconstruct ValidationOutput from DB. Called on resume by the typed

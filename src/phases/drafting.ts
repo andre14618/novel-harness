@@ -27,7 +27,10 @@ import { detectSyncDefects } from "../lint/quality-detectors"
 import { runBeatChecks, summarizeIssues } from "./beat-checks"
 import { checkContinuity } from "../agents/continuity/check"
 import { buildContext as buildChapterPlanCheckContext } from "../agents/chapter-plan-checker/context"
-import { chapterPlanCheckSchema } from "../agents/chapter-plan-checker/schema"
+import {
+  attachChapterPlanDeviationBeatIds,
+  chapterPlanCheckSchema,
+} from "../agents/chapter-plan-checker/schema"
 import {
   buildContext as buildChapterPlanReviseContext,
   buildContextForValidation as buildChapterPlanReviseContextForValidation,
@@ -62,6 +65,12 @@ import { checkFunctionalStateGrounding } from "../agents/functional-state-checke
 import { getModelForAgent } from "../models/roles"
 import type { ChapterOutline } from "../types"
 import { beatStableIdTraceMeta } from "../harness/stable-id-trace"
+import { beatCoverageLlmOutputSchema } from "../canon/editorial-beat-coverage"
+import {
+  persistEditorialBeatCoverageProposals,
+  persistLintProseEditProposals,
+} from "./proposal-persistence"
+import { routeValidationBlockers } from "./validation-routing"
 
 /**
  * Merge per-novel `seed.pipelineOverrides` onto the module-level pipeline
@@ -76,6 +85,9 @@ export function effectivePipeline(seed: SeedInput): typeof pipeline {
     ...pipeline,
     qualityRedraftEnabled: o.qualityRedraftEnabled ?? pipeline.qualityRedraftEnabled,
     qualityRedraftMinWords: o.qualityRedraftMinWords ?? pipeline.qualityRedraftMinWords,
+    lintProseEditProposals: o.lintProseEditProposals ?? pipeline.lintProseEditProposals,
+    editorialBeatCoverageProposals:
+      o.editorialBeatCoverageProposals ?? pipeline.editorialBeatCoverageProposals,
   }
 }
 
@@ -87,56 +99,6 @@ export interface BeatLevelFallbackState {
 export function clearAbandonedBeatLevelState(state: BeatLevelFallbackState): void {
   state.beatProses.length = 0
   state.acceptedBeatCheckIssues.length = 0
-}
-
-/**
- * Route validation blockers to specific beat indices for targeted rewrites.
- * Drafting-mode blockers come in two flavors (see src/validation.ts:21-37):
- *   - word-count blockers: "Chapter too short: …" / "Chapter far below target: …"
- *   - pov-missing blocker: 'POV character "X" never mentioned in draft'
- *
- * Heuristics (no LLM call):
- *   - word-count → expand the two shortest beats
- *   - pov-missing → rewrite the beat that plans the POV character with the
- *     smallest cast size (tie-break earliest index)
- */
-function routeValidationBlockers(
-  blockers: string[],
-  outline: ChapterOutline,
-  beatProses: string[],
-): Map<number, string[]> {
-  const perBeat = new Map<number, string[]>()
-  const addTo = (idx: number, desc: string) => {
-    if (idx < 0 || idx >= outline.scenes.length) return
-    const list = perBeat.get(idx) ?? []
-    list.push(desc)
-    perBeat.set(idx, list)
-  }
-
-  for (const blocker of blockers) {
-    if (blocker.includes("too short") || blocker.includes("far below target")) {
-      const withLen = beatProses
-        .map((p, i) => ({ i, len: p.split(/\s+/).filter(Boolean).length }))
-        .sort((a, b) => a.len - b.len)
-      const targets = withLen.slice(0, Math.min(2, withLen.length))
-      for (const t of targets) {
-        addTo(t.i, `Chapter is under the target word count — expand this beat with additional description, interiority, or dialogue as the beat's purpose allows.`)
-      }
-    } else if (blocker.startsWith("POV character") && blocker.includes("never mentioned")) {
-      const pov = outline.povCharacter
-      const candidates = outline.scenes
-        .map((s, i) => ({ i, castSize: s.characters?.length ?? 0, hasPov: s.characters?.includes(pov) }))
-        .filter(c => c.hasPov)
-        .sort((a, b) => a.castSize - b.castSize || a.i - b.i)
-      const target = candidates[0] ?? { i: 0 }
-      addTo(target.i, `POV character "${pov}" must be dramatized — ensure this beat puts "${pov}" on the page by name or clear referent.`)
-    } else {
-      // Unknown blocker type — append to beat 0 as last resort
-      addTo(0, `Validation issue: ${blocker}`)
-    }
-  }
-
-  return perBeat
 }
 
 /** Drafting phase implementation. Kept exported for tests
@@ -173,6 +135,12 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
   const eff = effectivePipeline(novel.seed)
   if (eff.qualityRedraftEnabled !== pipeline.qualityRedraftEnabled) {
     log(novelId, "info", `Drafting: pipelineOverrides applied — qualityRedraftEnabled=${eff.qualityRedraftEnabled}`)
+  }
+  if (eff.lintProseEditProposals !== pipeline.lintProseEditProposals) {
+    log(novelId, "info", `Drafting: pipelineOverrides applied — lintProseEditProposals=${eff.lintProseEditProposals}`)
+  }
+  if (eff.editorialBeatCoverageProposals !== pipeline.editorialBeatCoverageProposals) {
+    log(novelId, "info", `Drafting: pipelineOverrides applied — editorialBeatCoverageProposals=${eff.editorialBeatCoverageProposals}`)
   }
 
   console.log(`  Drafting ${totalChapters} chapters (approved chapters will be skipped)\n`)
@@ -387,7 +355,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   },
                   novelId,
                   "beat-writer",
-                  { chapter: ch, beatIndex: bi, attempt: retry + 1 },
+                  { chapter: ch, beatIndex: bi, beatId: beatSpec.beatId, attempt: retry + 1 },
                   {
                     stream: true,
                     meta: beatStableIdTraceMeta(outline, beatSpec),
@@ -412,7 +380,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   // charter (v1/v3) to ground legitimate continuity
                   // references.
                   prevBeat: bi > 0 ? outline.scenes[bi - 1] : undefined,
-                  tags: { novelId, chapter: ch, beatIndex: bi, attempt: retry + 1 },
+                  tags: { novelId, chapter: ch, beatIndex: bi, beatId: beatSpec.beatId, attempt: retry + 1 },
                 })
                 // Quality defects (repetition / underlength) detected AFTER existing
                 // checker pipeline. Motivated by 2026-04-21 rewrite-capability-probe:
@@ -573,13 +541,13 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       // escalation path fires without the prose actually being short/POV-missing.
       const _rawValidation = validateChapterDraft(prose, outline)
       const validation = (inject.forceValidation === "pov")
-        ? { passed: false as const, blockers: [`POV character "${outline.povCharacter}" never mentioned in draft`], warnings: _rawValidation.warnings }
+        ? { passed: false as const, blockers: [`POV character "${outline.povCharacter}" never mentioned in draft`], warnings: _rawValidation.warnings, findings: _rawValidation.findings ?? [] }
         : (inject.forceValidation === "word-count")
-          ? { passed: false as const, blockers: [`Chapter too short: 100 words (minimum 500)`], warnings: _rawValidation.warnings }
+          ? { passed: false as const, blockers: [`Chapter too short: 100 words (minimum 500)`], warnings: _rawValidation.warnings, findings: _rawValidation.findings ?? [] }
           : _rawValidation
       await trace(novelId, {
         eventType: "validation-check", chapter: ch,
-        payload: { passed: validation.passed, blockers: validation.blockers, warnings: validation.warnings },
+        payload: { passed: validation.passed, blockers: validation.blockers, warnings: validation.warnings, findings: validation.findings ?? [] },
       })
 
       let functionalIssues: FunctionalIssue[] = []
@@ -607,7 +575,10 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           // `inject.forcePlanCheck === "fail"` read below stays for
           // telemetry payload parity (campaign R1/R6/R7 SSE matchers
           // assert the `forcedPlanCheck` + `source` fields).
-          const initialPlanCheckResult = planCheckSettled.value.output
+          const initialPlanCheckResult = attachChapterPlanDeviationBeatIds(
+            planCheckSettled.value.output,
+            outline,
+          )
           await trace(novelId, {
             eventType: "plan-check-outcome", chapter: ch,
             payload: {
@@ -646,7 +617,10 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 userPrompt: buildChapterPlanCheckContext(prose, outline),
                 schema: chapterPlanCheckSchema,
               })
-              return recheck.output as typeof initialPlanCheckResult
+              return attachChapterPlanDeviationBeatIds(
+                recheck.output as typeof initialPlanCheckResult,
+                outline,
+              )
             },
             isPass: r => r.pass,
             route: r => {
@@ -714,7 +688,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   },
                   novelId,
                   "beat-writer",
-                  { chapter: ch, beatIndex: bi, attempt: attempts + currentRewritePass * 10 },
+                  { chapter: ch, beatIndex: bi, beatId: beatSpec.beatId, attempt: attempts + currentRewritePass * 10 },
                   {
                     stream: true,
                     meta: {
@@ -898,6 +872,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
         const canSettle = beatProses.length === outline.scenes.length
         let currentBlockers = validation.blockers
         let currentWarnings = validation.warnings
+        let currentFindings = validation.findings ?? []
         let currentValidationPass = 0
         type ValidationCheckResult = ReturnType<typeof validateChapterDraft>
 
@@ -932,6 +907,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             }
             currentBlockers = recheck.blockers
             currentWarnings = recheck.warnings
+            currentFindings = recheck.findings ?? []
             if (currentBlockers.length === 0) {
               console.log(`  Validation: passed after ${currentValidationPass} targeted rewrite pass(es)`)
               log(novelId, "info", `Validation passed after ${currentValidationPass} targeted rewrite pass(es)`)
@@ -941,7 +917,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             return recheck
           },
           isPass: r => r.passed,
-          route: r => routeValidationBlockers(r.blockers, outline, beatProses),
+          route: r => routeValidationBlockers(r.blockers, outline, beatProses, r.findings ?? []),
           rewriteBeat: async (bi, issueDescriptions) => {
             const beatWriterModel = getModelForAgent("beat-writer")
             const beatSystemPrompt = BEAT_WRITER_PROMPT
@@ -975,7 +951,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 },
                 novelId,
                 "beat-writer",
-                { chapter: ch, beatIndex: bi, attempt: attempts + currentValidationPass * 20 },
+                { chapter: ch, beatIndex: bi, beatId: beatSpec.beatId, attempt: attempts + currentValidationPass * 20 },
                 {
                   stream: true,
                   meta: {
@@ -1021,6 +997,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 warningCount: currentWarnings.length,
                 blockers: currentBlockers,
                 warnings: currentWarnings,
+                findings: currentFindings,
                 rewritePassCount: currentValidationPass,
                 settled: currentBlockers.length === 0,
                 forcedValidation: inject.forceValidation ?? null,
@@ -1153,6 +1130,12 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             severity: "warning" as const,
             beat_index: w.beat_index,
             description: w.description,
+            // Stable-ID coverage (2026-05-04, additive). Forward the durable
+            // beatId from the warning when the wrapper resolved it
+            // deterministically; FunctionalIssue.beatId is already optional
+            // (see src/phases/functional-checks.ts). plannedItemId is not on
+            // FunctionalIssue so it stays on the warning shape only.
+            ...(w.beatId ? { beatId: w.beatId } : {}),
           })),
         ]
         await trace(novelId, {
@@ -1263,6 +1246,36 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           console.log(`  Lint: ${lintResult.totalIssues} issues (${Object.entries(lintResult.counts).map(([k, v]) => `${k}:${v}`).join(", ")})`)
           log(novelId, "info", `Lint found ${lintResult.totalIssues} issues`)
 
+          if (eff.lintProseEditProposals) {
+            const persistStart = Date.now()
+            const proposalResult = await persistLintProseEditProposals({
+              novelId,
+              chapter: ch,
+              prose,
+              issues: lintResult.issues,
+              outline,
+              beatProses,
+            })
+            await trace(novelId, {
+              eventType: "lint-prose-edit-proposals", chapter: ch,
+              durationMs: Date.now() - persistStart,
+              payload: { ...proposalResult },
+            })
+            console.log(
+              `  Lint proposals: ${proposalResult.inserted} inserted, ${proposalResult.skipped} existing, ${proposalResult.errors.length} errors`,
+            )
+            log(
+              novelId,
+              proposalResult.errors.length > 0 ? "warn" : "info",
+              `Lint prose_edit proposals for chapter ${ch}: generated=${proposalResult.generated} inserted=${proposalResult.inserted} skipped=${proposalResult.skipped} errors=${proposalResult.errors.length}`,
+            )
+            lintSummary = `\n\n--- LINT (${lintResult.totalIssues} found, proposal mode) ---\n` +
+              Object.entries(lintResult.counts).map(([cat, count]) => `  ${cat}: ${count}`).join("\n") +
+              `\n  Proposals: ${proposalResult.inserted} inserted, ${proposalResult.skipped} existing, ${proposalResult.errors.length} errors`
+            if (proposalResult.errors.length > 0) {
+              lintSummary += `\n  Persistence errors: ${proposalResult.errors.map((e) => `${e.envelopeId}: ${e.error}`).join("; ")}`
+            }
+          } else {
           const fixer = getModelForAgent("lint-fixer")
           const fixStart = Date.now()
           const fixResult = await fixLintIssues(
@@ -1314,6 +1327,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             lintSummary = `\n\n--- LINT (${lintResult.totalIssues} found, ${totalFixed} fixed, ${fixResult.unfixed} remaining) ---\n` +
               Object.entries(lintResult.counts).map(([cat, count]) => `  ${cat}: ${count}`).join("\n")
           }
+          }
         } else {
           console.log("  Lint: clean")
         }
@@ -1321,6 +1335,49 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       } catch (err) {
         log(novelId, "warn", `Lint/fix failed for chapter ${ch}: ${err}`)
         console.log(`  Lint failed (non-blocking): ${err instanceof Error ? err.message : err}`)
+      }
+
+      if (eff.editorialBeatCoverageProposals) {
+        try {
+          emit(novelId, { type: "progress", data: { step: "editorial-beat-coverage", chapter: ch, status: "running" } })
+          const coverageStart = Date.now()
+          const proposalResult = await persistEditorialBeatCoverageProposals({
+            novelId,
+            chapter: ch,
+            prose,
+            outline,
+            callLLM: async ({ systemPrompt, userPrompt }) => {
+              const result = await callAgent({
+                novelId,
+                chapter: ch,
+                agentName: "editorial-beat-coverage",
+                systemPrompt,
+                userPrompt,
+                schema: beatCoverageLlmOutputSchema,
+              })
+              return result.output
+            },
+          })
+          await trace(novelId, {
+            eventType: "editorial-beat-coverage-proposals",
+            chapter: ch,
+            durationMs: Date.now() - coverageStart,
+            payload: { ...proposalResult },
+          })
+          console.log(
+            `  Beat-coverage proposals: ${proposalResult.inserted} inserted, ${proposalResult.skipped} existing, ${proposalResult.errors.length} errors`,
+          )
+          log(
+            novelId,
+            proposalResult.errors.length > 0 ? "warn" : "info",
+            `Editorial beat-coverage proposals for chapter ${ch}: generated=${proposalResult.generated} inserted=${proposalResult.inserted} skipped=${proposalResult.skipped} errors=${proposalResult.errors.length}`,
+          )
+          emit(novelId, { type: "progress", data: { step: "editorial-beat-coverage", chapter: ch, status: "complete" } })
+        } catch (err) {
+          log(novelId, "warn", `Editorial beat-coverage proposal persistence failed for chapter ${ch}: ${err}`)
+          console.log(`  Beat-coverage proposals failed (non-blocking): ${err instanceof Error ? err.message : err}`)
+          emit(novelId, { type: "progress", data: { step: "editorial-beat-coverage", chapter: ch, status: "failed" } })
+        }
       }
 
       let proseIntegrityIssues = detectProseIntegrityIssues(prose)
@@ -1416,7 +1473,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                     },
                     novelId,
                     "beat-writer",
-                    { chapter: ch, beatIndex: bi, attempt: attempts + 100 + integritySettlePass * 10 },
+                    { chapter: ch, beatIndex: bi, beatId: beatSpec.beatId, attempt: attempts + 100 + integritySettlePass * 10 },
                     {
                       stream: true,
                       meta: {

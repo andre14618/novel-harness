@@ -1,18 +1,30 @@
 import type { ChapterOutline } from "../../types"
 
 export function buildContext(outline: ChapterOutline, beatProses: string[]): string {
+  // PLANNED_STATE items already carry their durable ids from
+  // `enrichOutlineIds` (establishedFacts.id, knowledgeChanges.id,
+  // characterStateChanges.id). Serialized verbatim so the model can copy a
+  // matched item's id back as `planned_item_id` per the system prompt. The
+  // wrapper still validates the emitted id against the input registry
+  // before threading it onto the warning, so the prompt is best-effort, not
+  // load-bearing.
   const plannedState = {
     establishedFacts: outline.establishedFacts ?? [],
     characterStateChanges: outline.characterStateChanges ?? [],
     knowledgeChanges: outline.knowledgeChanges ?? [],
   }
 
-  const beats = beatProses.map((prose, index) => ({
-    beat_index: index,
-    beat_description: outline.scenes[index]?.description ?? "",
-    planned_characters: outline.scenes[index]?.characters ?? [],
-    prose,
-  }))
+  const beats = beatProses.map((prose, index) => {
+    const scene = outline.scenes[index]
+    const beatId = typeof scene?.beatId === "string" && scene.beatId.length > 0 ? scene.beatId : undefined
+    return {
+      beat_index: index,
+      ...(beatId ? { beat_id: beatId } : {}),
+      beat_description: scene?.description ?? "",
+      planned_characters: scene?.characters ?? [],
+      prose,
+    }
+  })
 
   return [
     "EVIDENCE_TIERS:",

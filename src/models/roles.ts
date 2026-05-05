@@ -107,6 +107,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // Planned story-state grounding. Warning-only until oracle calibration;
   // deterministic payoff-link integrity remains in src/phases/functional-checks.ts.
   "functional-state-checker":  { ...deepseekV4Flash, temperature: 0.1, maxTokens: 1536 },
+  "editorial-beat-coverage":  { ...deepseekV4Flash, temperature: 0.1, maxTokens: 4096 },
 
   // ── Extractors (structured extraction from prose) ─────────────────────
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },

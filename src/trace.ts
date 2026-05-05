@@ -28,6 +28,8 @@ export type TraceEventType =
   | "lint-fix-deterministic"
   | "lint-fix-llm"
   | "lint-fix-rejected"
+  | "lint-prose-edit-proposals"
+  | "editorial-beat-coverage-proposals"
   | "prose-integrity-check"
   | "validation-check"
   | "functional-check"

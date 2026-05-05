@@ -24,6 +24,19 @@ export const pipeline = {
   qualityRedraftEnabled: false,
   qualityRedraftMinWords: 100,  // underlength threshold for the detector
 
+  // Phase 7 proposal persistence hook. When true, deterministic lint issues
+  // are persisted as prose_edit proposal envelopes after the draft is saved,
+  // and the legacy inline lint-fix apply path is skipped for that chapter.
+  // Default off so existing drafting behavior is unchanged until an
+  // evaluation/scheduler lane explicitly opts into review-before-apply.
+  lintProseEditProposals: false,
+
+  // Phase 7 proposal persistence hook. When true, run the existing
+  // validator-backed editorial beat-coverage producer after a chapter draft
+  // has settled and persist uncovered beats as editorial_flag envelopes.
+  // Default off because this adds an LLM checker call per drafted chapter.
+  editorialBeatCoverageProposals: false,
+
   // State management
   embeddings: false,          // skip embedding step (beat path uses deterministic DB lookups)
 

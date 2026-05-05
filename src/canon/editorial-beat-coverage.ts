@@ -230,10 +230,20 @@ export function buildBeatCoverageProposalsFromLlm(
     const beat = args.outline.scenes[v.beatIndex]
     if (!beat) continue
     const beatNumber1Based = v.beatIndex + 1
+    // Prefer the durable kebab-case beatId assigned by `enrichOutlineIds`
+    // when the outline has been enriched (production read path: outlines
+    // round-trip through `saveChapterOutline()` → `enrichOutlineIds()`,
+    // see src/db/outlines.ts). Fall back to the positional `b<n>` token
+    // for un-enriched test fixtures or legacy outlines so existing
+    // callers / tests are unchanged byte-for-byte.
+    const beatRef =
+      typeof beat.beatId === "string" && beat.beatId.length > 0
+        ? beat.beatId
+        : `b${beatNumber1Based}`
     proposals.push({
       issueType: "missing-beat-coverage",
       severity,
-      beatRef: `b${beatNumber1Based}`,
+      beatRef,
       chapterRef: args.chapterRef,
       canonRefs: [],
       evidenceQuotes: v.reason ? [{ text: v.reason }] : [],
