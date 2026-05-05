@@ -39,5 +39,8 @@ function rowToFact(r: any): Fact {
 
 function normalizeRole(value: unknown): FactRole {
   if (value === "operational" || value === "reference" || value === "hidden") return value
+  if (value != null) {
+    console.warn(`facts.role: unrecognized value ${JSON.stringify(value)}, defaulting to "operational"`)
+  }
   return "operational"
 }

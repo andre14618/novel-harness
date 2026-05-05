@@ -332,6 +332,9 @@ export function factFromRow(row: FactRow): CanonFact {
 
 function normalizeFactRole(value: unknown): "operational" | "reference" | "hidden" {
   if (value === "operational" || value === "reference" || value === "hidden") return value
+  if (value != null) {
+    console.warn(`canon_facts.role: unrecognized value ${JSON.stringify(value)}, defaulting to "operational"`)
+  }
   return "operational"
 }
 

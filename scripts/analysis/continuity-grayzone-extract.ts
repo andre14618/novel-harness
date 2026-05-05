@@ -357,7 +357,7 @@ async function main(argv: string[]): Promise<number> {
   const fs = await import("node:fs/promises")
   const path = await import("node:path")
   await fs.mkdir(args.outDir, { recursive: true })
-  const ts = new Date().toISOString().replace(/[:.]/g, "").replace("T", "T").slice(0, 15)
+  const ts = new Date().toISOString().replace(/[:.]/g, "").replace(/Z$/, "")
   const jsonlPath = path.join(args.outDir, `continuity-grayzone-${ts}.jsonl`)
   const summaryPath = path.join(args.outDir, `continuity-grayzone-${ts}.summary.txt`)
   await fs.writeFile(jsonlPath, panelToJsonl(panel))

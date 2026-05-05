@@ -105,13 +105,32 @@ export function parseLabelsJson(text: string): FindingLabel[] {
   })
 }
 
+export interface JoinLabelsResult {
+  findings: AggregatedFinding[]
+  /**
+   * Same `findingId` appearing in more than one label file. Multiple
+   * adjudicators can disagree, and silently overwriting their labels would
+   * hide that. Caller decides whether to warn, error, or aggregate. The last
+   * label wins in the returned `findings`, matching prior behavior.
+   */
+  duplicateLabels: { findingId: string; labels: FindingLabel[] }[]
+}
+
 export function joinLabels(
   panel: PanelFindingRecord[],
   labels: FindingLabel[],
-): AggregatedFinding[] {
+): JoinLabelsResult {
   const byId = new Map<string, FindingLabel>()
-  for (const label of labels) byId.set(label.findingId, label)
-  return panel.map((finding) => {
+  const duplicates = new Map<string, FindingLabel[]>()
+  for (const label of labels) {
+    if (byId.has(label.findingId)) {
+      const existing = duplicates.get(label.findingId) ?? [byId.get(label.findingId)!]
+      existing.push(label)
+      duplicates.set(label.findingId, existing)
+    }
+    byId.set(label.findingId, label)
+  }
+  const findings = panel.map((finding) => {
     const label = byId.get(finding.findingId)
     return {
       ...finding,
@@ -120,6 +139,10 @@ export function joinLabels(
       rationale: label?.rationale ?? null,
     }
   })
+  return {
+    findings,
+    duplicateLabels: [...duplicates.entries()].map(([findingId, labels]) => ({ findingId, labels })),
+  }
 }
 
 export function buildAggregate(
@@ -302,11 +325,20 @@ async function main(argv: string[]): Promise<number> {
   }
 
   const joined = joinLabels(panel, labels)
-  const aggregate = buildAggregate(joined)
+  if (joined.duplicateLabels.length > 0) {
+    console.warn(
+      `WARNING: ${joined.duplicateLabels.length} finding(s) labeled by more than one adjudicator (last-write-wins applied):`,
+    )
+    for (const dup of joined.duplicateLabels) {
+      const summary = dup.labels.map((l) => l.label).join(", ")
+      console.warn(`  ${dup.findingId}: [${summary}]`)
+    }
+  }
+  const aggregate = buildAggregate(joined.findings)
   const md = renderMarkdown(aggregate)
 
   await fs.mkdir(args.outDir, { recursive: true })
-  const ts = new Date().toISOString().replace(/[:.]/g, "").slice(0, 15)
+  const ts = new Date().toISOString().replace(/[:.]/g, "").replace(/Z$/, "")
   const mdPath = path.join(args.outDir, `continuity-grayzone-results-${ts}.md`)
   const jsonPath = path.join(args.outDir, `continuity-grayzone-results-${ts}.json`)
   await fs.writeFile(mdPath, md)

@@ -23,11 +23,30 @@ describe("continuity-grayzone-aggregate", () => {
     )
 
     const joined = joinLabels(panel, labels)
-    expect(joined).toHaveLength(2)
-    expect(joined[0]!.label).toBe("TP")
-    expect(joined[0]!.subcategory).toBe("object_emphasis")
-    expect(joined[1]!.label).toBeNull()
-    expect(joined[1]!.subcategory).toBeNull()
+    expect(joined.findings).toHaveLength(2)
+    expect(joined.findings[0]!.label).toBe("TP")
+    expect(joined.findings[0]!.subcategory).toBe("object_emphasis")
+    expect(joined.findings[1]!.label).toBeNull()
+    expect(joined.findings[1]!.subcategory).toBeNull()
+    expect(joined.duplicateLabels).toHaveLength(0)
+  })
+
+  test("joinLabels surfaces duplicate findingIds across label files", () => {
+    const panel = parsePanelJsonl(
+      JSON.stringify(makePanelRecord("a", "continuity-facts", "blocker", "subj")) + "\n",
+    )
+    const labels = parseLabelsJson(
+      JSON.stringify([
+        { findingId: "a", label: "TP", subcategory: "object_emphasis", rationale: "first" },
+        { findingId: "a", label: "FP", subcategory: "object_emphasis", rationale: "second" },
+      ]),
+    )
+
+    const joined = joinLabels(panel, labels)
+    expect(joined.findings[0]!.label).toBe("FP")
+    expect(joined.duplicateLabels).toHaveLength(1)
+    expect(joined.duplicateLabels[0]!.findingId).toBe("a")
+    expect(joined.duplicateLabels[0]!.labels.map((l) => l.label)).toEqual(["TP", "FP"])
   })
 
   test("buildAggregate computes per-stratum and per-subcategory rates", () => {
