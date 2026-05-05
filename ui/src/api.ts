@@ -612,6 +612,138 @@ export function getNovelState(novelId: string) {
   return fetchJSON<NovelState>(`/api/novel/${novelId}/state`)
 }
 
+// ── Chapter Health / Traceability ─────────────────────────────────────
+
+export type ChapterHealthStatus = "missing_outline" | "missing_draft" | "fail" | "warn" | "pass"
+export type ChapterHealthSeverity = "blocker" | "warning" | "info"
+
+export interface ChapterHealthFinding {
+  source: "validation" | "issue" | "exhaustion" | "proposal"
+  severity: ChapterHealthSeverity
+  code: string
+  description: string
+  chapterNumber: number
+  chapterId?: string
+  beatIndex?: number
+  beatId?: string
+  refs: Array<{ kind: string; ref: string; label?: string }>
+  metadata?: Record<string, unknown>
+  stableSource: {
+    kind: "computed" | "table"
+    name?: string
+    table?: string
+    rowId?: string | number
+    inputHash?: string
+  }
+}
+
+export interface ChapterHealthChapter {
+  chapterNumber: number
+  chapterRef: string
+  chapterId?: string
+  title?: string
+  status: ChapterHealthStatus
+  draft?: { version: number; status: string; wordCount: number; hash: string }
+  outline?: {
+    targetRef: string
+    currentVersion: string
+    beatCount: number
+    beatRefs: string[]
+    obligationRefs: string[]
+  }
+  health: {
+    blockerCount: number
+    warningCount: number
+    infoCount: number
+    proposalCount: number
+    pendingProposalCount: number
+    latestValidationPassed?: boolean
+  }
+  findings: ChapterHealthFinding[]
+  trace: {
+    latestEvents: Array<{
+      id: number
+      eventType: string
+      beatIndex?: number
+      agent?: string
+      llmCallId?: number
+      durationMs?: number
+      timestamp: string
+      payload: unknown
+    }>
+    checkerCalls: Array<{
+      id: number
+      agent: string
+      beatIndex?: number
+      beatId?: string
+      attempt?: number
+      failed: boolean
+      zodValidationSuccess: boolean
+      jsonExtractionSuccess: boolean
+      timestamp: string
+      nerPrepass?: {
+        andGateDecision?: string
+        nerFindings: number
+        nerOnlyFindings: number
+      }
+    }>
+  }
+  proposals: {
+    envelopes: Array<{
+      id: string
+      kind: string
+      targetKind: string
+      targetRef: string
+      status: string
+      risk: string
+      summary: string
+      preconditionHash: string
+      createdAt: string
+      resolvedAt?: string
+    }>
+    checkerObservations: Array<{
+      id: string
+      proposalId: string
+      proposalKind: string
+      targetKind: string
+      targetRef: string
+      checkerName: string
+      fired: boolean
+      observedAt: string
+      resultHash?: string
+      details: unknown
+    }>
+  }
+}
+
+export interface ChapterHealthReport {
+  ok: boolean
+  novelId: string
+  generatedAt: string
+  chapters: ChapterHealthChapter[]
+  summary: {
+    chapterCount: number
+    pass: number
+    warn: number
+    fail: number
+    missingDraft: number
+    missingOutline: number
+    blockerFindings: number
+    warningFindings: number
+    infoFindings: number
+    pendingProposals: number
+  }
+}
+
+export function getChapterHealth(novelId: string, opts: { chapter?: number } = {}) {
+  const params = new URLSearchParams()
+  if (opts.chapter !== undefined) params.set("chapter", String(opts.chapter))
+  const qs = params.toString()
+  return fetchJSON<ChapterHealthReport>(
+    `/api/novel/${encodeURIComponent(novelId)}/chapter-health${qs ? `?${qs}` : ""}`,
+  )
+}
+
 // ── Planning Snapshot (Phase 4) ─────────────────────────────────────
 
 export interface LockedPlanningSnapshot {

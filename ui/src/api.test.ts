@@ -1,6 +1,7 @@
 import { afterEach, expect, test } from "bun:test"
 import {
   createPlanningProposal,
+  getChapterHealth,
   getPlanningProposalDiff,
   resolvePlanningProposal,
   resolveProposalEnvelope,
@@ -198,6 +199,39 @@ test("createPlanningProposal can post explicit structural planning actions", asy
     proposedValue: ["beat-b", "beat-a"],
     rationale: "Put the reveal first.",
   })
+})
+
+test("getChapterHealth fetches chapter health with optional chapter filter", async () => {
+  const response = {
+    ok: true,
+    novelId: "test-novel",
+    generatedAt: "2026-05-05T00:00:00.000Z",
+    chapters: [],
+    summary: {
+      chapterCount: 0,
+      pass: 0,
+      warn: 0,
+      fail: 0,
+      missingDraft: 0,
+      missingOutline: 0,
+      blockerFindings: 0,
+      warningFindings: 0,
+      infoFindings: 0,
+      pendingProposals: 0,
+    },
+  }
+  let request: CapturedFetchRequest | null = null
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    request = { url: String(url), init }
+    return new Response(JSON.stringify(response), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })
+  }) as typeof fetch
+
+  await expect(getChapterHealth("test-novel", { chapter: 3 })).resolves.toEqual(response)
+  const captured = requireRequest(request)
+  expect(captured.url).toBe("/api/novel/test-novel/chapter-health?chapter=3")
 })
 
 test("resolvePlanningProposal returns structured stale planning responses", async () => {

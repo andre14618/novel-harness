@@ -5,8 +5,7 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 
 ## Active
 
-- Authoring visibility/interactivity foundation remains the product lane and
-  should use the Test and Invariant Agent contract for test/guard slices.
+- Authoring visibility/interactivity foundation remains the product lane; use the Test and Invariant Agent contract for test/guard slices.
 
 ## Next
 
@@ -73,9 +72,10 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
   `codex-planning-modified-1777980329324` covered live create, edit, resolve
   modified, modified-tab diff display, and mobile rendering. The diff endpoint
   now reads `modified_payload` for modified proposals.
-- Chapter-health tracer slice landed `GET /api/novel/:novelId/chapter-health`
-  with deterministic validation, durable refs, and issue/proposal/trace/checker
-  aggregation.
+- Chapter-health tracer/UI slice landed `GET /api/novel/:novelId/chapter-health`
+  and `/app/chapter-health/:novelId`; Playwright evidence on disposable novel
+  `codex-chapter-health-ui-1778000670807` covered load, filters, evidence
+  expansion, mobile, clean console, and API `200`.
 - Local Playwright preflight setup helper landed as `bun run ui:preflight`;
   it creates the evidence directory, runbook, console/network placeholders, and
   manifest without adding browser-driver dependencies.

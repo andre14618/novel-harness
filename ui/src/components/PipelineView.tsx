@@ -492,6 +492,14 @@ export function PipelineView() {
             Planning Studio
           </Link>
         )}
+        {novelId && (
+          <Link
+            to={`/chapter-health/${encodeURIComponent(novelId)}`}
+            style={{ fontSize: "0.85rem", marginLeft: "0.75rem", color: "#9ac" }}
+          >
+            Chapter Health
+          </Link>
+        )}
         <h1 style={{ display: "inline", marginLeft: "1rem" }}>
           {novelId?.replace("novel-", "").slice(0, 13)}
         </h1>

@@ -16,6 +16,7 @@ import { PairwiseAdjudicatePage } from "./components/PairwiseAdjudicatePage"
 import { CanonProposalsPage } from "./components/CanonProposalsPage"
 import { PlanningStudioPage } from "./components/PlanningStudioPage"
 import PlanningSnapshotPage from "./components/PlanningSnapshotPage"
+import { ChapterHealthPage } from "./components/ChapterHealthPage"
 import "./styles/app.css"
 
 createRoot(document.getElementById("root")!).render(
@@ -36,6 +37,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/canon-proposals/:novelId" element={<CanonProposalsPage />} />
           <Route path="/planning-studio/:novelId" element={<PlanningStudioPage />} />
           <Route path="/planning-snapshot/:novelId" element={<PlanningSnapshotPage />} />
+          <Route path="/chapter-health/:novelId" element={<ChapterHealthPage />} />
           <Route path="/todo" element={<Navigate to="/docs?doc=todo.md" replace />} />
           <Route path="/compare" element={<Navigate to="/guide" replace />} />
           <Route path="/read" element={<NovelReadView />} />

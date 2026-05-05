@@ -176,6 +176,10 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   health over current outlines/drafts by recomputing deterministic validation
   and attaching open issues, pending editorial/prose proposals, trace events,
   checker calls, and checker-observation refs.
+- `/app/chapter-health/:novelId` renders that report with status filters,
+  chapter cards, refs, and trace/proposal evidence. Browser evidence for
+  disposable novel `codex-chapter-health-ui-1778000670807` is under
+  `output/playwright/2026-05-05/chapter-health-codex-chapter-health-ui-1778000670807/`.
 - Deterministic lint-generated `prose_edit` span proposals now carry optional
   `beatRef` metadata when drafting can map the span through the exact
   `beatProses` join to an enriched outline beat id.

@@ -320,6 +320,7 @@ export function PlanningStudioPage() {
         </div>
         <div className="planning-studio-links">
           <Link to={`/${encodeURIComponent(novelId)}`}>Pipeline</Link>
+          <Link to={`/chapter-health/${encodeURIComponent(novelId)}`}>Health</Link>
           <Link to={`/planning-snapshot/${encodeURIComponent(novelId)}`}>Snapshot</Link>
           <Link to={`/canon-proposals/${encodeURIComponent(novelId)}`}>Canon Queue</Link>
         </div>
