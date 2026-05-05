@@ -1383,7 +1383,7 @@
         "id": "pipeline_events:5fa8f04d64231d5c",
         "llm_call_id": null,
         "novel_id": "phase-parity-smoke",
-        "payload": "<HASH:1df26d7f1d032799>",
+        "payload": "<HASH:91df92f43a14054b>",
         "run_id": null,
         "timestamp": "<TS>"
       },
@@ -1396,7 +1396,7 @@
         "id": "pipeline_events:3e5a2850ad5f4278",
         "llm_call_id": null,
         "novel_id": "phase-parity-smoke",
-        "payload": "<HASH:db44d446ebf55a37>",
+        "payload": "<HASH:95cdb00d6e378bcc>",
         "run_id": null,
         "timestamp": "<TS>"
       },
