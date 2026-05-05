@@ -313,6 +313,7 @@ export function buildChapterTraceabilityReport(
   const chapterRef = outline.chapterId ?? `chapter-${outline.chapterNumber}`
   const sourceRegistryBase = buildSourceRegistry(outline)
   const sourceKeys = new Set(sourceRegistryBase.map((item) => sourceKey(item.kind, item.ref)))
+  const sourceKindById = new Map(sourceRegistryBase.map((item) => [item.ref, item.kind]))
   const targetLabels = new Map(args.targetMap.targets.map((target) => [
     `${target.kind}:${target.ref}`,
     target.label,
@@ -334,8 +335,8 @@ export function buildChapterTraceabilityReport(
       ...(beatId ? [ref("beat_plan", beatId, targetLabels)] : []),
     ]
     const obligations = collectTraceableObligations(beat, sourceKeys, targetLabels, evidenceIndex)
-    const llmCalls = callsForBeat(callsByBeat, beatIndex, beatId).map(mapCall)
-    const traceEvents = eventsForBeat(eventsByBeat, beatIndex, beatId).map(mapEvent)
+    const llmCalls = callsForBeat(callsByBeat, beatIndex, beatId).map((call) => mapCall(call, sourceKindById))
+    const traceEvents = eventsForBeat(eventsByBeat, beatIndex, beatId).map((event) => mapEvent(event, sourceKindById))
     const proposalEvidence = evidenceForRefs(
       beatId ? [ref("beat_plan", beatId, targetLabels)] : [],
       evidenceIndex,
@@ -932,7 +933,10 @@ function collectBeatUpstreamTargets(beat: SceneBeat): PlanningTargetRef[] {
   return refs
 }
 
-function mapCall(input: ChapterTraceabilityCallInput): ChapterTraceabilityCall {
+function mapCall(
+  input: ChapterTraceabilityCallInput,
+  sourceKindById: Map<string, ChapterTraceabilitySourceRegistryItem["kind"]>,
+): ChapterTraceabilityCall {
   return {
     id: input.id,
     agent: input.agent,
@@ -947,11 +951,14 @@ function mapCall(input: ChapterTraceabilityCallInput): ChapterTraceabilityCall {
     timestamp: input.timestamp,
     promptTokens: numberOrUndefined(input.promptTokens),
     completionTokens: numberOrUndefined(input.completionTokens),
-    metaRefs: refsFromMeta(readMeta(input.requestJson)),
+    metaRefs: refsFromMeta(readMeta(input.requestJson), sourceKindById),
   }
 }
 
-function mapEvent(input: ChapterTraceabilityEventInput): ChapterTraceabilityEvent {
+function mapEvent(
+  input: ChapterTraceabilityEventInput,
+  sourceKindById: Map<string, ChapterTraceabilitySourceRegistryItem["kind"]>,
+): ChapterTraceabilityEvent {
   const meta = readMeta(input.payload) as Record<string, unknown> | undefined
   return {
     id: input.id,
@@ -962,18 +969,25 @@ function mapEvent(input: ChapterTraceabilityEventInput): ChapterTraceabilityEven
     llmCallId: numberOrUndefined(input.llmCallId),
     durationMs: numberOrUndefined(input.durationMs),
     timestamp: input.timestamp,
-    refs: refsFromMeta(meta),
+    refs: refsFromMeta(meta, sourceKindById),
   }
 }
 
-function refsFromMeta(meta: unknown): ChapterTraceabilityRef[] {
+function refsFromMeta(
+  meta: unknown,
+  sourceKindById: Map<string, ChapterTraceabilitySourceRegistryItem["kind"]> = new Map(),
+): ChapterTraceabilityRef[] {
   if (!meta || typeof meta !== "object") return []
   const value = meta as Record<string, unknown>
   const refs: ChapterTraceabilityRef[] = []
   if (typeof value.chapterId === "string") refs.push({ kind: "chapter_outline", ref: value.chapterId })
   if (typeof value.beatId === "string") refs.push({ kind: "beat_plan", ref: value.beatId })
   for (const id of stringArray(value.obligationIds)) refs.push({ kind: "beat_obligation", ref: id })
-  for (const id of stringArray(value.sourceIds)) refs.push({ kind: "source", ref: id })
+  for (const id of stringArray(value.sourceIds)) {
+    refs.push({ kind: "source", ref: id })
+    const exactKind = sourceKindById.get(id)
+    if (exactKind) refs.push({ kind: exactKind, ref: id })
+  }
   for (const id of stringArray(value.characterIds)) refs.push({ kind: "character", ref: id })
   return dedupeRefs(refs)
 }

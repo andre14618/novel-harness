@@ -125,11 +125,13 @@ describe("buildChapterTraceabilityReport", () => {
     expect(beat.llmCalls[0].metaRefs).toEqual(expect.arrayContaining([
       { kind: "beat_obligation", ref: "obl-ledger-fact" },
       { kind: "source", ref: "fact-ledger-forgery" },
+      { kind: "world_fact", ref: "fact-ledger-forgery" },
     ]))
     expect(beat.traceEvents[0].linkEvidence).toBe("payload_beat_id")
     expect(beat.traceEvents[0].refs).toEqual(expect.arrayContaining([
       { kind: "beat_plan", ref: "beat-ledger-verdict" },
       { kind: "beat_obligation", ref: "obl-ledger-fact" },
+      { kind: "world_fact", ref: "fact-ledger-forgery" },
     ]))
   })
 
