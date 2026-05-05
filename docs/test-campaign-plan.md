@@ -37,7 +37,7 @@ Read once per-attempt in `src/phases/drafting.ts`:
 |---|---|
 | `DEBUG_FORCE_PLAN_CHECK=fail` | Synthesize `{pass:false, deviations:[{description:"forced plan-check failure",beat_index:0}]}` instead of calling `chapter-plan-checker`. Drives F2/F4/F5/F6/F7/F8. |
 | `DEBUG_FORCE_VALIDATION=pov` | Force `validateChapterDraft` to return `{passed:false, blockers:['POV character "X" never mentioned in draft']}`. Drives F3. |
-| `DEBUG_FORCE_VALIDATION=word-count` | Same, with word-count blocker. Alternate F3 trigger. |
+| `DEBUG_FORCE_VALIDATION=word-count` | Force a word-count warning only. Word count is advisory and no longer drives F3/rewrite/reviser paths. |
 | `DEBUG_FORCE_REVISER=reject` | Make reviser return a plan with 1 beat (fails beat-floor sanity) — forces `kind="reviser-rejected"` on the gate. Drives F5 variant. |
 | `DEBUG_FORCE_REVISER=throw` | Make reviser throw — tests the error path. |
 

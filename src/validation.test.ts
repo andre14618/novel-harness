@@ -52,18 +52,37 @@ function longDraft(sentence: string, count = 520): string {
 }
 
 describe("validateChapterDraft structured findings", () => {
-  test("adds stable chapter refs to chapter-level findings", () => {
+  test("adds stable chapter refs to advisory word-count findings", () => {
     const result = validateChapterDraft("Mira", outline())
 
-    expect(result.blockers).toEqual([
+    expect(result.passed).toBe(true)
+    expect(result.blockers).toEqual([])
+    expect(result.warnings).toEqual([
       "Chapter too short: 1 words (minimum 500)",
     ])
     expect(result.findings?.find(f => f.code === "word_count_min")).toMatchObject({
-      severity: "blocker",
+      severity: "warning",
       description: "Chapter too short: 1 words (minimum 500)",
       chapterNumber: 2,
       chapterId: "ch-002-ledger",
       metadata: { wordCount: 1, minimumWords: 500 },
+    })
+  })
+
+  test("far-below-target word count is advisory, not blocking", () => {
+    const result = validateChapterDraft(
+      longDraft("Mira studies the ledger quietly.", 180),
+      outline({ targetWords: 2000 }),
+    )
+
+    expect(result.passed).toBe(true)
+    expect(result.blockers).toEqual([])
+    expect(result.warnings).toContain("Chapter far below target: 900 words (target: 2000)")
+    expect(result.findings?.find(f => f.code === "word_count_far_below")).toMatchObject({
+      severity: "warning",
+      chapterNumber: 2,
+      chapterId: "ch-002-ledger",
+      metadata: { wordCount: 900, targetWords: 2000 },
     })
   })
 

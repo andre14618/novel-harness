@@ -37,13 +37,6 @@ function routeValidationFindings(
     }
 
     switch (finding.code) {
-      case "word_count_min":
-      case "word_count_far_below": {
-        for (const idx of shortestBeatIndices(beatProses, 2)) {
-          addTo(idx, "Chapter is under the target word count — expand this beat with additional description, interiority, or dialogue as the beat's purpose allows.")
-        }
-        break
-      }
       case "pov_missing": {
         addTo(selectPovBeatIndex(outline), `POV character "${outline.povCharacter}" must be dramatized — ensure this beat puts "${outline.povCharacter}" on the page by name or clear referent.`)
         break
@@ -65,11 +58,7 @@ function routeLegacyValidationBlockers(
   const addTo = addIssueToBeat(perBeat, outline)
 
   for (const blocker of blockers) {
-    if (blocker.includes("too short") || blocker.includes("far below target")) {
-      for (const idx of shortestBeatIndices(beatProses, 2)) {
-        addTo(idx, "Chapter is under the target word count — expand this beat with additional description, interiority, or dialogue as the beat's purpose allows.")
-      }
-    } else if (blocker.startsWith("POV character") && blocker.includes("never mentioned")) {
+    if (blocker.startsWith("POV character") && blocker.includes("never mentioned")) {
       addTo(selectPovBeatIndex(outline), `POV character "${outline.povCharacter}" must be dramatized — ensure this beat puts "${outline.povCharacter}" on the page by name or clear referent.`)
     } else {
       // Unknown blocker type — append to beat 0 as last resort
@@ -90,14 +79,6 @@ function addIssueToBeat(
     list.push(desc)
     perBeat.set(idx, list)
   }
-}
-
-function shortestBeatIndices(beatProses: string[], count: number): number[] {
-  return beatProses
-    .map((p, i) => ({ i, len: p.split(/\s+/).filter(Boolean).length }))
-    .sort((a, b) => a.len - b.len)
-    .slice(0, Math.min(count, beatProses.length))
-    .map(item => item.i)
 }
 
 function selectPovBeatIndex(outline: ChapterOutline): number {

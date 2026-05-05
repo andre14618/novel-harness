@@ -34,13 +34,14 @@ export function validateChapterDraft(
 
   const wordCount = draft.split(/\s+/).filter(Boolean).length
 
-  // Word count checks
+  // Word count is advisory. Structure, POV, and beat coverage can block;
+  // length drift should surface to the operator without forcing rewrites.
   if (wordCount < 500) {
-    addFinding("blocker", "word_count_min", `Chapter too short: ${wordCount} words (minimum 500)`, {
+    addFinding("warning", "word_count_min", `Chapter too short: ${wordCount} words (minimum 500)`, {
       metadata: { wordCount, minimumWords: 500 },
     })
   } else if (wordCount < outline.targetWords * 0.5) {
-    addFinding("blocker", "word_count_far_below", `Chapter far below target: ${wordCount} words (target: ${outline.targetWords})`, {
+    addFinding("warning", "word_count_far_below", `Chapter far below target: ${wordCount} words (target: ${outline.targetWords})`, {
       metadata: { wordCount, targetWords: outline.targetWords },
     })
   } else if (wordCount < outline.targetWords * 0.7) {

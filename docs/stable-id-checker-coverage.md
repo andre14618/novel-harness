@@ -307,9 +307,9 @@ Focused tests exist for ID-propagation only (no creative quality assertions):
   carry `beatId` for validation-mode beat keyword checks, and stay absent for
   beat keyword checks in drafting mode.
 - `src/phases/validation-routing.test.ts` — new cases assert structured
-  validation findings route word-count and beat-scoped blockers without parsing
-  blocker copy, and that legacy fallback remains available for stale or forced
-  blocker paths.
+  validation findings route beat-scoped blockers without parsing blocker copy,
+  word-count findings remain advisory/no-route, and legacy fallback remains
+  available for stale or forced blocker paths.
 
 ## How To Use This Doc
 

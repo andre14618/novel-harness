@@ -543,13 +543,13 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       ])
 
       // Seam B — DEBUG_FORCE_VALIDATION=pov|word-count: replace the validation
-      // result with a synthesized failure so the validation-driven reviser
-      // escalation path fires without the prose actually being short/POV-missing.
+      // result with a synthesized POV failure or word-count warning. Word count
+      // is advisory and must not drive validation rewrites/reviser escalation.
       const _rawValidation = validateChapterDraft(prose, outline)
       const validation = (inject.forceValidation === "pov")
         ? { passed: false as const, blockers: [`POV character "${outline.povCharacter}" never mentioned in draft`], warnings: _rawValidation.warnings, findings: _rawValidation.findings ?? [] }
         : (inject.forceValidation === "word-count")
-          ? { passed: false as const, blockers: [`Chapter too short: 100 words (minimum 500)`], warnings: _rawValidation.warnings, findings: _rawValidation.findings ?? [] }
+          ? { passed: _rawValidation.blockers.length === 0, blockers: _rawValidation.blockers, warnings: [`Chapter too short: 100 words (minimum 500)`, ..._rawValidation.warnings], findings: _rawValidation.findings ?? [] }
           : _rawValidation
       await trace(novelId, {
         eventType: "validation-check", chapter: ch,
@@ -877,9 +877,10 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       }
 
       // Validation result handling — targeted beat rewrite instead of full
-      // chapter restart. Drafting-mode blockers (word-count + pov-missing)
+      // chapter restart. Drafting-mode blockers (currently POV-missing)
       // route to beats via routeValidationBlockers(), then we call
-      // beat-writer on only those beats with issue descriptions.
+      // beat-writer on only those beats with issue descriptions. Word-count
+      // findings are warning-only and must not enter this path.
       // Skipped entirely when plan-check override is active — the user
       // explicitly chose to ship this chapter past blocking checks.
       if (!validation.passed && !planCheckOverridden) {
@@ -916,10 +917,10 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 warnings: [],
               }
             } else if (inject.forceValidation === "word-count") {
+              const rawRecheck = validateChapterDraft(prose, outline)
               recheck = {
-                passed: false,
-                blockers: [`Chapter too short: 100 words (minimum 500)`],
-                warnings: [],
+                ...rawRecheck,
+                warnings: [`Chapter too short: 100 words (minimum 500)`, ...rawRecheck.warnings],
               }
             } else {
               recheck = validateChapterDraft(prose, outline)

@@ -56,7 +56,7 @@ export function buildContext(
 /**
  * Build the user prompt for chapter-plan-reviser on the validation escalation
  * path — original plan + current prose + persistent validation blockers
- * (word-count shortfall, POV-missing) that survived the validation settle
+ * (for example POV-missing) that survived the validation settle
  * loop. Adds structural guidance keyed off the blocker shape because
  * validation blockers are deterministic chapter-shape facts, not LLM-judgment
  * deviations — the system prompt's failure-mode catalog doesn't cover

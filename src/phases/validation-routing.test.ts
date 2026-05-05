@@ -34,22 +34,20 @@ function outline(): ChapterOutline {
 }
 
 describe("routeValidationBlockers", () => {
-  test("routes word-count blockers from structured findings to the shortest beats", () => {
+  test("does not route word-count findings because length is advisory", () => {
     const description = "Chapter too short: 20 words (minimum 500)"
     const findings: ValidationFinding[] = [
-      { severity: "blocker", code: "word_count_min", description, chapterNumber: 1, chapterId: "ch-001-archive" },
+      { severity: "warning", code: "word_count_min", description, chapterNumber: 1, chapterId: "ch-001-archive" },
     ]
 
     const routed = routeValidationBlockers(
-      [description],
+      [],
       outline(),
       ["one two three", "one", "one two"],
       findings,
     )
 
-    expect([...routed.keys()]).toEqual([1, 2])
-    expect(routed.get(1)?.[0]).toContain("under the target word count")
-    expect(routed.get(2)?.[0]).toContain("under the target word count")
+    expect([...routed.keys()]).toEqual([])
   })
 
   test("routes beat-scoped validation findings directly to their beat index", () => {

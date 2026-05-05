@@ -9,9 +9,10 @@
  *     synthetic forced deviation. Drives test runs R1/R6/R7.
  *
  *   DEBUG_FORCE_VALIDATION=pov|word-count
- *     Forces validateChapterDraft() to return a specific blocker. Drives R5.
+ *     Forces validateChapterDraft() to return a POV blocker or word-count
+ *     warning. Only pov drives R5; word-count is advisory.
  *       pov        → 'POV character "X" never mentioned in draft'
- *       word-count → 'Chapter too short: 100 words (minimum 500)'
+ *       word-count → warning 'Chapter too short: 100 words (minimum 500)'
  *
  *   DEBUG_FORCE_REVISER=reject|throw
  *     Intercepts chapter-plan-reviser calls in drafting.ts.
@@ -27,7 +28,7 @@
 export type DebugInjection = {
   /** When "fail": synthesize a failing plan-check result instead of calling the LLM. */
   forcePlanCheck?: "fail"
-  /** When set: force validateChapterDraft() to return a blocker of this type. */
+  /** When set: force validateChapterDraft() to return this validation signal. */
   forceValidation?: "pov" | "word-count"
   /** When set: intercept chapter-plan-reviser to either reject or throw. */
   forceReviser?: "reject" | "throw"

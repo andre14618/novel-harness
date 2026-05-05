@@ -27,8 +27,8 @@
  *
  * What it deliberately does NOT own (per Codex round-3 Q5/Q6):
  *
- *   - Per-checker routing heuristics (validation's word-count/POV-missing
- *     detection, plan-check's setting_match / emotional_arc_correct
+ *   - Per-checker routing heuristics (validation's POV-missing detection,
+ *     plan-check's setting_match / emotional_arc_correct
  *     fallbacks, the "[validation] " issue prefix). All routing is the
  *     caller's `route` callback.
  *   - Reviser escalation. After `runSettleLoop` returns a non-accepted
