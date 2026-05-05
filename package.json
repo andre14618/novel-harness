@@ -24,6 +24,7 @@
     "lane-runner-legacy": "bun scripts/agent/lane-runner.ts",
     "ui:preflight": "bun scripts/playwright-preflight.ts",
     "diagnostics:checker-warnings": "bun scripts/analysis/checker-warning-report.ts",
+    "diagnostics:plan-assist-lineage": "bun scripts/analysis/plan-assist-lineage-report.ts",
     "diagnostics:plan-drift": "bun scripts/analysis/plan-drift-report.ts",
     "policy:promotion-guard": "bun scripts/approval-policy-promotion-guard.ts",
     "docs:weight": "bun scripts/check-doc-weight.ts"

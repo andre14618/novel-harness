@@ -23,6 +23,15 @@ This file tracks active and immediately actionable work only.
 
 ## Recently Closed
 
+- Added a diagnostic-only plan-assist lineage report over
+  `planning_mutation_lineage` rows whose `source_table` is
+  `chapter_exhaustions` (plan-assist edit/override decisions) or
+  `chapter_revisions` (chapter-plan-reviser accepted outline replacements).
+  Use `bun run diagnostics:plan-assist-lineage -- --novel <novelId>` to
+  inspect per-chapter event counts, beat-id added/removed/retained sets,
+  override transitions, and reviser issue counts before any envelope-wrap
+  decision on the deferred higher-risk slices. Smoke-verified against
+  `test-novel` (7 events: 4 plan-assist overrides, 3 reviser-accepted).
 - Fixed the fast test runner's process shape for phase tests that install
   process-global Bun module mocks. `bun run test:fast` now runs those files in
   isolated subprocesses and keeps the phase contract test in the normal fast
@@ -81,25 +90,13 @@ This file tracks active and immediately actionable work only.
   while preserving the legacy `beat_index` contract.
 - Beat-level LLM telemetry now persists `llm_calls.beat_id` for beat writer,
   targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
-- Validation now emits additive structured `findings[]` with stable beat refs
-  for validation-mode beat keyword checks while preserving blocker/warning
-  string behavior.
-- Validation structured findings now carry durable chapter refs on all findings,
-  and lint-generated prose edit span targets now carry optional beat refs when
-  an exact beat-prose map is available.
-- Drafting validation rewrite routing now uses structured validation finding
-  codes/refs first, with legacy blocker-string routing retained as fallback.
-- Halluc-ungrounded issue metadata now carries deterministic exact-match
-  `entityRefs[]` for `character`, `world_system`, and `culture` targets,
-  threads that metadata through beat-check aggregation, and preserves it on
-  accepted blocker deviations with the containing `beatId`.
-- Structural planning-edit routes now create/apply beat and beat-obligation
-  replace/reorder edits, with exact-ID structural lineage persisted.
-- Structural Planning Studio UI now creates explicit beat/obligation
-  replace/reorder proposal actions and preserves structural modified payloads.
-  Playwright MCP evidence on disposable novel
-  `codex-structural-ui-1777995796883` covered load, approve/reject/modified
-  paths, status tabs, and target-refresh recovery after stable ID replacement.
+- Validation findings carry durable chapter/beat refs and drafting-rewrite
+  routing prefers structured codes; halluc-ungrounded blockers preserve
+  `entityRefs[]` and the containing `beatId`. Older detail archived in
+  `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
+- Structural planning-edit routes and Structural Planning Studio UI shipped
+  the beat/obligation replace/reorder action surface with persisted structural
+  lineage; Playwright evidence on `codex-structural-ui-1777995796883`.
 
 ## Parked
 

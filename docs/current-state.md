@@ -179,6 +179,10 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
 - `bun run diagnostics:checker-warnings -- --novel <novelId>` summarizes
   warning-class functional-check and continuity evidence for checker
   calibration without changing runtime behavior.
+- `bun run diagnostics:plan-assist-lineage -- --novel <novelId>` summarizes
+  per-chapter plan-assist edit/override decisions and chapter-plan-reviser
+  accepted outline replacements from `planning_mutation_lineage` for the
+  deferred envelope-wrap decision, without changing runtime behavior.
 - Halluc-ungrounded issue metadata now carries exact-match `entityRefs[]` for
   `character`, `world_system`, and `culture` targets when deterministic
   resolution is possible, and accepted beat-check blockers preserve the
