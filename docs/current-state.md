@@ -179,9 +179,10 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   `beatProses` join to an enriched outline beat id.
 - Target links are derived from stored artifacts, and approved
   scalar/text/link/directive/character/world/spine planning edits now persist
-  old-ref/new-ref mutation lineage. Structural supersession for
-  beat/obligation replacement remains pending before broader planning UI
-  expansion.
+  old-ref/new-ref mutation lineage. Structural lineage detection and
+  transactional persistence wiring now exist for beat/obligation reorder and
+  same-slot replacement supersession; structural proposal action routes/UI are
+  the remaining prerequisite before broader planning UI expansion.
 - Closed: Playwright MCP browser preflight for proposal UI passed on disposable
   novel `codex-ui-preflight-1777936779921`. Covered Canon proposal review load,
   approve/reject, modify-with-edits, status tabs, bulk approve/reject, and

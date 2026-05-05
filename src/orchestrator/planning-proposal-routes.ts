@@ -47,6 +47,10 @@ import {
   PlanningTargetLookupError,
   type PlanningImpactPreview,
 } from "../harness/planning-targets"
+import {
+  collectStructuralPlanningMutationLineage,
+  type StructuralPlanningMutationLineageDraft,
+} from "../harness/planning-structural-lineage"
 import { characterIdFromName } from "../harness/ids"
 import { emptyDirectives, type PlanningDirectives } from "../schemas/planning-directives"
 import { recordPlanningMutationLineage } from "../db/planning-mutation-lineage"
@@ -476,9 +480,10 @@ async function handleResolvePlanningProposal(
         tx,
       })
 
+      const scalarLineageId = planningLineageId(envelopeId, actualVersion, applied.nextVersion)
       await recordPlanningMutationLineage(
         {
-          id: planningLineageId(envelopeId, actualVersion, applied.nextVersion),
+          id: scalarLineageId,
           proposalId: envelopeId,
           proposalKind: "planning_edit",
           novelId,
@@ -505,6 +510,37 @@ async function handleResolvePlanningProposal(
         },
         tx,
       )
+
+      for (const structuralLineage of applied.structuralLineage) {
+        await recordPlanningMutationLineage(
+          {
+            id: structuralPlanningLineageId(envelopeId, structuralLineage),
+            proposalId: envelopeId,
+            proposalKind: "planning_edit",
+            novelId,
+            sourceTable: "proposal_envelopes",
+            actorKind: body.resolvedBy ?? "human",
+            source: envelope.source.agent,
+            targetKind: structuralLineage.targetKind,
+            previousRef: structuralLineage.previousRef,
+            nextRef: structuralLineage.nextRef,
+            fieldPath: structuralLineage.fieldPath,
+            previousVersion: structuralLineage.previousVersion,
+            nextVersion: structuralLineage.nextVersion,
+            preconditionKind: envelope.precondition.kind,
+            preconditionHash: envelope.precondition.hash,
+            changedAt: resolvedAt,
+            reason: body.operatorNote ?? envelope.rationale,
+            affectedDownstreamRefs: affectedRefsFromImpactPreview(envelope.payload.impactPreview),
+            metadata: {
+              ...structuralLineage.metadata,
+              resolutionStatus: body.status,
+              parentLineageId: scalarLineageId,
+            },
+          },
+          tx,
+        )
+      }
 
       return {
         kind: "applied" as const,
@@ -703,6 +739,7 @@ async function applyResolvedPlanningEdit(args: {
   nextVersion: string
   nextRef: string
   metadata: Record<string, unknown>
+  structuralLineage: StructuralPlanningMutationLineageDraft[]
 }> {
   if (args.target.kind === "planning_directive") {
     if (!args.targetState.seed) {
@@ -720,6 +757,7 @@ async function applyResolvedPlanningEdit(args: {
       metadata: {
         directiveKey: args.target.fieldPath,
       },
+      structuralLineage: [],
     }
   }
   if (args.target.kind === "character") {
@@ -739,6 +777,7 @@ async function applyResolvedPlanningEdit(args: {
         characterId: updated.id,
         characterName: updated.name,
       },
+      structuralLineage: [],
     }
   }
   if (args.target.kind === "world_bible") {
@@ -756,6 +795,7 @@ async function applyResolvedPlanningEdit(args: {
       metadata: {
         artifactKind: "world_bible",
       },
+      structuralLineage: [],
     }
   }
   if (args.target.kind === "story_spine") {
@@ -773,6 +813,7 @@ async function applyResolvedPlanningEdit(args: {
       metadata: {
         artifactKind: "story_spine",
       },
+      structuralLineage: [],
     }
   }
 
@@ -784,8 +825,8 @@ async function applyResolvedPlanningEdit(args: {
     args.target,
     args.proposedValue,
   )
-  await saveChapterOutline(args.novelId, nextOutline, args.tx)
   const normalizedNext = normalizeChapterOutlineForPersistence(nextOutline)
+  await saveChapterOutline(args.novelId, normalizedNext, args.tx)
   return {
     nextVersion: targetVersion(normalizedNext, args.target),
     nextRef: targetRef(normalizedNext, args.target),
@@ -793,6 +834,10 @@ async function applyResolvedPlanningEdit(args: {
       containingChapterId: normalizedNext.chapterId,
       containingChapterNumber: normalizedNext.chapterNumber,
     },
+    structuralLineage: collectStructuralPlanningMutationLineage(
+      args.targetState.outline,
+      normalizedNext,
+    ),
   }
 }
 
@@ -1297,6 +1342,23 @@ function planningLineageId(
   nextVersion: string,
 ): string {
   return `lineage:${envelopeId}:${stableHash({ previousVersion, nextVersion }).slice(0, 16)}`
+}
+
+function structuralPlanningLineageId(
+  envelopeId: string,
+  lineage: StructuralPlanningMutationLineageDraft,
+): string {
+  return `lineage:${envelopeId}:structural:${
+    stableHash({
+      targetKind: lineage.targetKind,
+      previousRef: lineage.previousRef,
+      nextRef: lineage.nextRef,
+      fieldPath: lineage.fieldPath,
+      previousVersion: lineage.previousVersion,
+      nextVersion: lineage.nextVersion,
+      structuralOperation: lineage.metadata.structuralOperation,
+    }).slice(0, 16)
+  }`
 }
 
 function outcomeToResponse(

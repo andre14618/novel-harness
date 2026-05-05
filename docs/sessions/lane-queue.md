@@ -13,8 +13,9 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 - Refresh the phase-parity fixture in a dedicated commit if the current
   prompt/request drift is intentional. Current opt-in failure:
   `ReplayTransport miss: 1dd73b5c320260717ff5bfefd77593cc`.
-- Add structural mutation lineage for beat/obligation replace/reorder
-  operations before supporting structural UI edits.
+- Define structural `planning_edit` action routes for beat/obligation
+  replace/reorder operations, then wire those actions into Planning Studio UI
+  with Playwright evidence.
 - Figure out how to let Playwright handle local UI testing more autonomously:
   create a reusable preflight runner that captures screenshots, network, and
   console evidence with disposable data and clear guardrails.
@@ -97,6 +98,9 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
   `entityRefs[]` for `character`, `world_system`, and `culture` targets,
   threads that metadata through beat-check aggregation, and preserves it on
   accepted blocker deviations with the containing `beatId`.
+- Structural mutation lineage helper now detects exact-ID beat/obligation
+  reorder and same-slot replacement supersession, and planning proposal
+  resolution persists those rows transactionally when structural edits land.
 
 ## Parked
 

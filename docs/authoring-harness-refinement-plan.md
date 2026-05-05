@@ -260,6 +260,13 @@ moved. Source-link edits are validated against the containing obligation list
 and chapter source registry. Structural reorder/replace operations remain
 backlog.
 
+Lineage status 2026-05-05: structural lineage detection is implemented as a
+pure helper for exact-ID beat/obligation reorders and same-slot replacements,
+and planning proposal resolution is wired to persist those structural
+supersession rows in the same transaction as the resolved proposal. The
+remaining backlog item is the actual structural `planning_edit` action contract
+and UI controls that call it.
+
 Diff status 2026-05-04: `planning_edit` envelopes now have a deterministic
 before/after diff helper. Create/apply responses include the diff, and
 `GET /api/novel/:novelId/planning-proposals/:envelopeId/diff` returns the
@@ -304,8 +311,14 @@ Status 2026-05-04: `planning_mutation_lineage` now records approved
 beat-obligation text/source-link field paths, plus planning-directive
 `rawNotes`/`tonalAnchors` field paths, character-bible scalar field paths, and
 world-bible/story-spine scalar field paths. Impact preview includes historical
-`mutation_lineage` entries alongside current derived links. Structural
-supersession for replaced/reordered beats and obligations is still pending.
+`mutation_lineage` entries alongside current derived links.
+
+Status 2026-05-05: structural supersession detection exists for
+replaced/reordered beats and obligations. The detector uses exact stable IDs
+for reorders and conservative same-slot exact-ID absence for replacements; it
+does not use text overlap or fuzzy matching. Proposal resolution now persists
+emitted structural lineage drafts transactionally, but no structural proposal
+action route or UI control has been opened yet.
 
 ### Step 4 - Planning Studio UI Shell
 
