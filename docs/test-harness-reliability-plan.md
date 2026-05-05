@@ -57,6 +57,9 @@ The original 2026-05-05 full-run failures resolved into these outcomes:
 - Default `bun run test` should be fast, deterministic, and mostly DB-free.
 - DB-backed suites are allowed, but they must be explicitly named, disposable,
   and runnable as smoke or full integration commands with bounded timeouts.
+- Every change still needs targeted verification for its touched behavior. A
+  slower full sweep can supplement that signal, but it does not replace the
+  narrow test that proves the specific change.
 - A test that relies on a live DB must prove fixture setup, cleanup, and row
   isolation. Hidden state from a running dev server should not decide results.
 - Archived evals and replay fixtures must not participate in default coverage

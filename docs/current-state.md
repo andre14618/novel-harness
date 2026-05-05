@@ -266,6 +266,9 @@ bun run test:archive
 git diff --check
 ```
 
+Every slice still needs targeted verification for the behavior it changed.
+`test:db:full` is a broad sweep, not a replacement for narrow tests.
+
 Replay fixture parity is opt-in:
 
 ```bash

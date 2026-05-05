@@ -77,6 +77,24 @@ Load these before changing tests or guards:
    `git diff --check`; run `bun run docs:weight` when docs change and
    `./node_modules/.bin/tsc --noEmit` when TypeScript behavior changes.
 
+## Change-Scoped Verification Rule
+
+Every code change needs a limited verification run, even when the broader
+coverage lives in a slower tier. Pick the narrowest command that exercises the
+changed behavior, then add the relevant tier gate:
+
+- pure logic: targeted test file(s), then `bun run test:fast`
+- persistence, migrations, routes, or proposal resolution: targeted DB file(s)
+  or `--test-name-pattern` cases, then `bun run test:db`
+- broad persistence refactors: targeted DB coverage plus `bun run test:db:full`
+  when cross-suite risk is high enough to justify the runtime
+- replay-sensitive prompt/checker/policy behavior: targeted replay or frozen
+  fixture command; default replay remains explicit opt-in
+- UI-visible behavior: targeted unit tests plus Playwright MCP evidence
+
+The handoff must state which limited test covered the changed behavior and why
+any slower full sweep was deferred or required.
+
 ## Invariant Promotion Checklist
 
 A new invariant is not done until all of these are true:

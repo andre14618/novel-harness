@@ -50,6 +50,9 @@ runtime architecture.
 
 - Every test/invariant slice should baseline the current behavior, identify the
   correct tier, preserve coverage explicitly, and report any remaining gap.
+- Every code slice still needs targeted verification for the behavior it
+  changed. Full DB or replay sweeps supplement that signal; they do not replace
+  the narrow test that proves the specific changed path.
 - Moving a slow test out of `test:fast` or `test:db` requires a replacement
   map: pure logic tests, DB route smokes, full DB scenarios, replay fixture
   checks, or Playwright evidence as appropriate.
