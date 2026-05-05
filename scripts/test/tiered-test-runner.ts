@@ -3,20 +3,20 @@ import { SQL } from "bun"
 import { readdir, readFile } from "node:fs/promises"
 import { join } from "node:path"
 
-type Tier = "fast" | "db" | "db-full" | "replay" | "archive"
+export type Tier = "fast" | "db" | "db-full" | "replay" | "archive"
 
 interface Args {
   tier: Tier | "all" | null
   list: boolean
 }
 
-interface TestFile {
+export interface TestFile {
   path: string
   tier: Tier
   reason: string
 }
 
-interface TestCommand {
+export interface TestCommand {
   cmd: string[]
   reason: string
 }
@@ -104,26 +104,43 @@ const FAST_OVERRIDES = new Map<string, string>([
   ["src/orchestrator/planning-proposal-routes.test.ts", "fast non-DB route validation"],
 ])
 
-const args = parseArgs(process.argv.slice(2))
-const allFiles = await discoverTestFiles(".")
-const classified = await classifyFiles(allFiles)
+const FAST_ISOLATED_FILES = new Map<string, string>([
+  [
+    "src/phases/drafting-reviser-escalation.test.ts",
+    "process-global bun:test mocks for phase dependencies",
+  ],
+  [
+    "src/phases/drafting-revision-used-persistence.test.ts",
+    "process-global bun:test mocks for phase dependencies",
+  ],
+])
 
-if (args.list) {
-  printInventory(classified)
-  process.exit(0)
+if (import.meta.main) {
+  await main(process.argv.slice(2))
 }
 
-const tier = args.tier ?? "fast"
-if (tier === "all") {
-  await runTier("fast", classified)
-  await runTier("db-full", classified)
-  await runTier("replay", classified)
-  await runTier("archive", classified)
-} else {
-  await runTier(tier, classified)
+export async function main(argv: string[]): Promise<void> {
+  const args = parseArgs(argv)
+  const allFiles = await discoverTestFiles(".")
+  const classified = await classifyFiles(allFiles)
+
+  if (args.list) {
+    printInventory(classified)
+    process.exit(0)
+  }
+
+  const tier = args.tier ?? "fast"
+  if (tier === "all") {
+    await runTier("fast", classified)
+    await runTier("db-full", classified)
+    await runTier("replay", classified)
+    await runTier("archive", classified)
+  } else {
+    await runTier(tier, classified)
+  }
 }
 
-function parseArgs(argv: string[]): Args {
+export function parseArgs(argv: string[]): Args {
   let tier: Args["tier"] = null
   let list = false
   for (let i = 0; i < argv.length; i++) {
@@ -173,7 +190,7 @@ async function classifyFiles(paths: string[]): Promise<TestFile[]> {
   return files
 }
 
-async function classifyFile(path: string): Promise<TestFile> {
+export async function classifyFile(path: string): Promise<TestFile> {
   if (path.startsWith(ARCHIVE_PREFIX)) {
     return { path, tier: "archive", reason: "archived eval/history" }
   }
@@ -238,9 +255,8 @@ async function runTier(tier: Tier, files: TestFile[]): Promise<void> {
     return
   }
 
-  const timeout = tier === "replay" ? REPLAY_TIMEOUT_MS : FAST_TIMEOUT_MS
-  for (const chunk of chunked(tierFiles, FAST_CHUNK_SIZE)) {
-    runCommand("bun", ["test", "--timeout", timeout, ...chunk], process.env)
+  for (const command of planFileTestCommands(tier, tierFiles)) {
+    runCommand(command.cmd[0], command.cmd.slice(1), process.env)
   }
 }
 
@@ -287,6 +303,34 @@ function runCommand(command: string, cmdArgs: string[], env: Record<string, stri
     env,
   })
   if (result.exitCode !== 0) process.exit(result.exitCode)
+}
+
+export function planFileTestCommands(tier: Tier, tierFiles: string[]): TestCommand[] {
+  const timeout = tier === "replay" ? REPLAY_TIMEOUT_MS : FAST_TIMEOUT_MS
+  if (tier !== "fast") {
+    return chunked(tierFiles, FAST_CHUNK_SIZE).map((chunk) => ({
+      cmd: ["bun", "test", "--timeout", timeout, ...chunk],
+      reason: `${tier} chunk`,
+    }))
+  }
+
+  const regularFiles: string[] = []
+  const isolatedFiles: string[] = []
+  for (const file of tierFiles) {
+    if (FAST_ISOLATED_FILES.has(file)) isolatedFiles.push(file)
+    else regularFiles.push(file)
+  }
+
+  return [
+    ...chunked(regularFiles, FAST_CHUNK_SIZE).map((chunk) => ({
+      cmd: ["bun", "test", "--timeout", timeout, ...chunk],
+      reason: "fast chunk",
+    })),
+    ...isolatedFiles.map((file) => ({
+      cmd: ["bun", "test", "--timeout", timeout, file],
+      reason: FAST_ISOLATED_FILES.get(file) ?? "isolated fast test",
+    })),
+  ]
 }
 
 function chunked<T>(items: T[], size: number): T[][] {

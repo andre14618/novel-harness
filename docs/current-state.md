@@ -128,7 +128,9 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   default loop, `bun run test:db` for bounded DB smoke, and
   `bun run test:db:full` for exhaustive isolated DB integration. Phase-parity
   replay is explicit via `bun run test:replay`; the small smoke fixture is
-  refreshed and green after beat-count calibration.
+  refreshed and green after beat-count calibration. The fast tier isolates
+  phase tests that install process-global Bun module mocks so they cannot
+  poison unrelated contract tests in the same subprocess.
 - Active: authoring visibility/interactivity foundation. The traceability UI
   tracer is browser-cleared; next slices should continue closing proposal
   bypasses and improving operator-visible impact/lineage.

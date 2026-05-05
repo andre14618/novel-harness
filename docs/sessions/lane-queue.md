@@ -23,6 +23,10 @@ This file tracks active and immediately actionable work only.
 
 ## Recently Closed
 
+- Fixed the fast test runner's process shape for phase tests that install
+  process-global Bun module mocks. `bun run test:fast` now runs those files in
+  isolated subprocesses and keeps the phase contract test in the normal fast
+  chunk without cross-test mock poisoning.
 - Added a diagnostic-only checker warning report over existing
   `functional-check` trace events and continuity checker `llm_calls`. Use
   `bun run diagnostics:checker-warnings -- --novel <novelId>` before relaxing
