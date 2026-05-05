@@ -4,8 +4,11 @@ This file tracks active and immediately actionable work only.
 
 ## Active
 
-- Richness Backlog lane (2026-05-05): world fact roles. First additive
-  slice shipped (`facts.role` default `operational`, zero runtime change).
+- Richness Backlog lane (2026-05-05): world fact roles. Substrate fully
+  additive and observable — `facts.role` (sql/049), `canon_facts.role`
+  (sql/050), and `diagnostics:fact-roles` shipped. No consumer reads role
+  yet; next slice is consumer design (role-aware retrieval) which falls
+  under the Creative Heuristic Eval Gate.
 - Authoring visibility/interactivity at scope ceiling: direct-mutation
   audit found only deferred higher-risk slices (plan-assist whole-outline,
   chapter-plan-reviser outline replacement).
