@@ -47,7 +47,18 @@ export function buildBeatChecksMock() {
       for (let idx = 0; idx < outputs.ungrounded.length; idx++) {
         const s = outputs.ungrounded[idx]!
         const severity = outputs.ungroundedSeverity?.[idx] ?? "blocker"
-        issues.push({ source: "halluc-ungrounded", severity, description: s })
+        const metadata = outputs.ungroundedMetadata?.[idx]
+        issues.push({
+          source: "halluc-ungrounded",
+          severity,
+          description: s,
+          ...(metadata ? {
+            metadata: {
+              hallucUngrounded: metadata,
+              entityRefs: metadata.entityRefs,
+            },
+          } : {}),
+        })
       }
       return {
         pass: issues.every(i => i.severity !== "blocker"),

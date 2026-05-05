@@ -131,8 +131,8 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   replay is explicit via `bun run test:replay` and currently needs a refreshed
   fixture after prompt/request drift.
 - Active: authoring visibility/interactivity foundation. Next implementation
-  should extend stable-ref checker coverage or structural mutation lineage
-  before broader structural Planning Studio edits. See
+  should add structural mutation lineage before broader structural Planning
+  Studio edits. See
   `docs/authoring-harness-refinement-plan.md`.
 - First backend tracer bullet exposes read-only planning targets and
   deterministic impact preview. Write tracers add `planning_edit` envelopes for
@@ -158,13 +158,17 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   edit, resolve-modified, modified-tab diff display, and mobile rendering.
   Modified proposals now use `modified_payload` for their read-only diff.
 - Chapter-outline saves now persist enriched stable IDs for chapters, beats,
-  source items, characters, and obligations; checker findings still need
-  stable-ref coverage before broader traceability UI.
+  source items, characters, and obligations; checker findings carry additive
+  stable refs on the current high-value surfaces before broader traceability UI.
 - Stable-ref checker coverage now includes chapter-plan checker deviations:
   drafting resolves `beatId` from `outline.scenes[beat_index].beatId` without
   changing the legacy `beat_index` contract.
 - Beat-level LLM telemetry now persists `llm_calls.beat_id` for beat writer,
   targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
+- Halluc-ungrounded issue metadata now carries exact-match `entityRefs[]` for
+  `character`, `world_system`, and `culture` targets when deterministic
+  resolution is possible, and accepted beat-check blockers preserve the
+  containing `beatId`.
 - `validateChapterDraft()` now emits additive structured `findings[]` with
   stable chapter refs on all findings and stable beat refs for validation-mode
   beat keyword checks while preserving legacy blocker/warning strings.

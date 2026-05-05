@@ -15,6 +15,7 @@
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../types"
 import { checkBeatAdherence } from "../agents/writer/adherence-checker"
 import { checkHallucUngrounded } from "../agents/halluc-ungrounded"
+import type { HallucIssueMetadata } from "../agents/halluc-ungrounded"
 import { pipeline } from "../config/pipeline"
 
 export type BeatIssueSource =
@@ -25,6 +26,10 @@ export interface BeatIssue {
   source: BeatIssueSource
   severity: "blocker" | "warning"
   description: string
+  metadata?: {
+    hallucUngrounded?: HallucIssueMetadata
+    entityRefs?: HallucIssueMetadata["entityRefs"]
+  }
 }
 
 export interface BeatCheckResult {
@@ -78,6 +83,7 @@ export async function runBeatChecks(input: RunBeatChecksInput): Promise<BeatChec
     // (severity: "warning") do not consume beat retry budget. When issuesSeverity
     // is absent (v0/v2 variant), aggregateIssues defaults all issues to "blocker".
     ungroundedSeverity: ung.issuesSeverity,
+    ungroundedMetadata: ung.issueMetadata,
   })
 }
 
@@ -94,6 +100,7 @@ export interface RawCheckerOutputs {
    */
   ungrounded: string[]
   ungroundedSeverity?: Array<"blocker" | "warning">
+  ungroundedMetadata?: HallucIssueMetadata[]
 }
 
 /**
@@ -112,7 +119,18 @@ export function aggregateIssues(outputs: RawCheckerOutputs): BeatCheckResult {
   for (let idx = 0; idx < outputs.ungrounded.length; idx++) {
     const s = outputs.ungrounded[idx]!
     const severity = outputs.ungroundedSeverity?.[idx] ?? "blocker"
-    issues.push({ source: "halluc-ungrounded", severity, description: s })
+    const metadata = outputs.ungroundedMetadata?.[idx]
+    issues.push({
+      source: "halluc-ungrounded",
+      severity,
+      description: s,
+      ...(metadata ? {
+        metadata: {
+          hallucUngrounded: metadata,
+          entityRefs: metadata.entityRefs,
+        },
+      } : {}),
+    })
   }
 
   return {

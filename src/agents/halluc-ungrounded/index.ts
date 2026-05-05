@@ -8,6 +8,8 @@ import { buildContext, buildCharacterRoster, buildOutlineEntityList, deriveTitle
 import {
   hallucUngroundedSchema,
   type HallucUngroundedOutput,
+  type HallucEntityRef,
+  type HallucIssueMetadata,
   type HallucUngroundedResult,
   type NerFinding,
 } from "./schema"
@@ -27,7 +29,7 @@ const TITLE_TOKENS_LOWER: ReadonlySet<string> = new Set(
 )
 
 export { buildContext, buildCharacterRoster, buildOutlineEntityList, deriveTitleNouns, hallucUngroundedSchema }
-export type { HallucUngroundedOutput, HallucUngroundedResult, NerFinding }
+export type { HallucUngroundedOutput, HallucEntityRef, HallucIssueMetadata, HallucUngroundedResult, NerFinding }
 
 // Load the bounded checker prompt from disk so rubric updates don't require a
 // TS recompile.
@@ -200,6 +202,99 @@ function isNerGrounded(
     }
   }
   return false
+}
+
+interface EntityRefRegistryEntry {
+  kind: HallucEntityRef["kind"]
+  ref: string
+  name: string
+  label: string
+}
+
+function buildEntityRefRegistry(
+  characters: CharacterProfile[],
+  worldBible: any,
+): EntityRefRegistryEntry[] {
+  const entries: EntityRefRegistryEntry[] = []
+  for (const character of characters ?? []) {
+    const ref = typeof (character as any)?.id === "string" ? (character as any).id.trim() : ""
+    const name = typeof (character as any)?.name === "string" ? (character as any).name.trim() : ""
+    if (ref.length > 0 && name.length > 0) {
+      entries.push({ kind: "character", ref, name, label: `Character: ${name}` })
+    }
+  }
+  for (const system of worldBible?.systems ?? []) {
+    const ref = typeof system?.id === "string" ? system.id.trim() : ""
+    const name = typeof system?.name === "string" ? system.name.trim() : ""
+    if (ref.length > 0 && name.length > 0) {
+      entries.push({ kind: "world_system", ref, name, label: `World system: ${name}` })
+    }
+  }
+  for (const culture of worldBible?.cultures ?? []) {
+    const ref = typeof culture?.id === "string" ? culture.id.trim() : ""
+    const name = typeof culture?.name === "string" ? culture.name.trim() : ""
+    if (ref.length > 0 && name.length > 0) {
+      entries.push({ kind: "culture", ref, name, label: `Culture: ${name}` })
+    }
+  }
+  return entries.sort((a, b) =>
+    a.kind.localeCompare(b.kind) || a.ref.localeCompare(b.ref),
+  )
+}
+
+function normalizedEntityKey(value: string): string {
+  const normalized = normalizeForGroundedMatch(value)
+  return normalized.length > 0 ? normalized : value.toLowerCase().trim()
+}
+
+function entityNamesMatch(a: string, b: string): boolean {
+  const lowerA = a.toLowerCase().trim()
+  const lowerB = b.toLowerCase().trim()
+  if (lowerA.length === 0 || lowerB.length === 0) return false
+  return lowerA === lowerB || normalizedEntityKey(a) === normalizedEntityKey(b)
+}
+
+function titleStrippedPhrase(phrase: string): string | null {
+  const tokens = phrase.trim().split(/\s+/).filter(t => t.length > 0)
+  if (tokens.length < 2) return null
+  if (!TITLE_TOKENS_LOWER.has(tokens[0]!.toLowerCase())) return null
+  const stripped = tokens.slice(1).join(" ").trim()
+  return stripped.length > 0 ? stripped : null
+}
+
+function resolveEntityRefsFromRegistry(
+  phrase: string,
+  registry: readonly EntityRefRegistryEntry[],
+): HallucEntityRef[] {
+  const refs = new Map<string, HallucEntityRef>()
+  const stripped = titleStrippedPhrase(phrase)
+  for (const entry of registry) {
+    let match: HallucEntityRef["match"] | null = null
+    if (entityNamesMatch(phrase, entry.name)) {
+      match = "exact"
+    } else if (stripped && entityNamesMatch(stripped, entry.name)) {
+      match = "title-stripped-exact"
+    }
+    if (!match) continue
+    refs.set(`${entry.kind}:${entry.ref}`, {
+      kind: entry.kind,
+      ref: entry.ref,
+      label: entry.label,
+      matchedName: entry.name,
+      match,
+    })
+  }
+  return Array.from(refs.values()).sort((a, b) =>
+    a.kind.localeCompare(b.kind) || a.ref.localeCompare(b.ref),
+  )
+}
+
+export function resolveEntityRefsForPhrase(
+  phrase: string,
+  characters: CharacterProfile[],
+  worldBible: any,
+): HallucEntityRef[] {
+  return resolveEntityRefsFromRegistry(phrase, buildEntityRefRegistry(characters, worldBible))
 }
 
 /**
@@ -410,6 +505,7 @@ export async function checkHallucUngrounded(
   const outlineEntities = buildOutlineEntityList(outline)
   // L23b: derive title noun forms from character role fields.
   const derivedTitles = deriveTitleNouns(characters)
+  const entityRefRegistry = buildEntityRefRegistry(characters, worldBible)
 
   const userPrompt = buildContext(
     prose, beat, outline, characters, worldBible,
@@ -550,10 +646,14 @@ export async function checkHallucUngrounded(
     const llmPass = output.pass
 
     // Build NER finding list for result provenance.
-    const allNerFindings: NerFinding[] = nerUngrounded.map(c => ({
-      phrase: c.phrase,
-      class: c.class,
-    }))
+    const allNerFindings: NerFinding[] = nerUngrounded.map(c => {
+      const entityRefs = resolveEntityRefsFromRegistry(c.phrase, entityRefRegistry)
+      return {
+        phrase: c.phrase,
+        class: c.class,
+        ...(entityRefs.length > 0 ? { entityRefs } : {}),
+      }
+    })
 
     // L40: Apply NER's deterministic grounded-surface as a post-filter on
     // LLM-flagged entities. The LLM checker has the same evidence surface
@@ -594,6 +694,15 @@ export async function checkHallucUngrounded(
     const llmIssues = llmKeptRawIssues.map(i =>
       `Ungrounded entity "${i.entity}"${i.excerpt ? ` — context: "${i.excerpt}"` : ""}`,
     )
+    const issueMetadataForEntity = (entity: string, excerpt = ""): HallucIssueMetadata => ({
+      entity,
+      excerpt,
+      entityRefs: resolveEntityRefsFromRegistry(entity, entityRefRegistry),
+    })
+    const issueMetadataForLlmIssue = (issue: { entity: string; excerpt?: string }): HallucIssueMetadata =>
+      issueMetadataForEntity(issue.entity, issue.excerpt ?? "")
+    const llmIssueMetadata = llmKeptRawIssues.map(issueMetadataForLlmIssue)
+    const llmRescuedIssueMetadata = llmRescuedByNer.map(issueMetadataForLlmIssue)
 
     // Build the final result and determine the AND-gate decision label for
     // persistence. We defer `return` until after the NER patch call so the
@@ -605,16 +714,16 @@ export async function checkHallucUngrounded(
       // NER prepass not active (variant v0 / v2) — preserve prior behavior exactly.
       andGateDecision = "disabled"
       if (llmPass) {
-        finalResult = { pass: true, issues: [] }
+        finalResult = { pass: true, issues: [], issueMetadata: [] }
       } else {
-        finalResult = { pass: false, issues: llmIssues }
+        finalResult = { pass: false, issues: llmIssues, issueMetadata: llmIssueMetadata }
       }
     } else if (!llmEffectivelyFires && nerUngrounded.length === 0) {
       // Both pass → clean beat. (L40: `!llmEffectivelyFires` covers the
       // case where the LLM raised issues but every flagged entity was
       // rescued by NER's grounded surface.)
       andGateDecision = "pass"
-      finalResult = { pass: true, issues: [], nerFindings: [] }
+      finalResult = { pass: true, issues: [], issueMetadata: [], nerFindings: [] }
     } else {
       // AND-gate assembly (L31a + L31b redesign):
       //
@@ -675,6 +784,9 @@ export async function checkHallucUngrounded(
           const nerExtraIssues = nerUngrounded
             .filter(c => !llmEntitiesLower.has(c.phrase.toLowerCase().trim()))
             .map(c => `Ungrounded entity "${c.phrase}" [NER prepass]`)
+          const nerExtraIssueMetadata = nerUngrounded
+            .filter(c => !llmEntitiesLower.has(c.phrase.toLowerCase().trim()))
+            .map(c => issueMetadataForEntity(c.phrase))
           andGateDecision = "ner+llm-blocker"
           finalResult = {
             pass: false,
@@ -683,6 +795,7 @@ export async function checkHallucUngrounded(
               ...llmIssues.map(() => "blocker" as const),
               ...nerExtraIssues.map(() => "blocker" as const),
             ],
+            issueMetadata: [...llmIssueMetadata, ...nerExtraIssueMetadata],
             nerFindings: allNerFindings,
             nerOnlyFindings: [],
           }
@@ -693,6 +806,7 @@ export async function checkHallucUngrounded(
           const nerOnlyIssues = nerUngrounded.map(
             c => `Ungrounded entity "${c.phrase}" [NER-only warning — LLM passed]`,
           )
+          const nerOnlyIssueMetadata = nerUngrounded.map(c => issueMetadataForEntity(c.phrase))
           const nerOnlyFindings = allNerFindings
           andGateDecision = "ner-only-warning" // dominant decision for per-entity NER side
           finalResult = {
@@ -702,6 +816,7 @@ export async function checkHallucUngrounded(
               ...nerOnlyIssues.map(() => "warning" as const),
               ...llmIssues.map(() => "blocker" as const),
             ],
+            issueMetadata: [...nerOnlyIssueMetadata, ...llmIssueMetadata],
             nerFindings: allNerFindings,
             nerOnlyFindings,
           }
@@ -715,11 +830,13 @@ export async function checkHallucUngrounded(
         const nerOnlyIssues = nerUngrounded.map(
           c => `Ungrounded entity "${c.phrase}" [NER-only warning — LLM passed]`,
         )
+        const nerOnlyIssueMetadata = nerUngrounded.map(c => issueMetadataForEntity(c.phrase))
         andGateDecision = "ner-only-warning"
         finalResult = {
           pass: true,
           issues: nerOnlyIssues,
           issuesSeverity: nerOnlyIssues.map(() => "warning" as const),
+          issueMetadata: nerOnlyIssueMetadata,
           nerFindings: allNerFindings,
           nerOnlyFindings: allNerFindings,
         }
@@ -730,6 +847,7 @@ export async function checkHallucUngrounded(
           pass: false,
           issues: llmIssues,
           issuesSeverity: llmIssues.map(() => "blocker" as const),
+          issueMetadata: llmIssueMetadata,
           nerFindings: [],
           nerOnlyFindings: [],
         }
@@ -753,6 +871,8 @@ export async function checkHallucUngrounded(
           nerEnabled,
           nerFindings: allNerFindings,
           nerOnlyFindings: finalResult.nerOnlyFindings ?? [],
+          issueMetadata: finalResult.issueMetadata ?? [],
+          llmRescuedIssueMetadata,
           andGateDecision,
           // L40: count of LLM issues filtered out by NER's grounded-surface
           // post-pass. >0 means NER overrode an LLM-only blocker (or partial

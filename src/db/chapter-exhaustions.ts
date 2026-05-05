@@ -30,11 +30,18 @@ export interface ExhaustionRow {
   firedAt: string
   kind: ExhaustionKind
   resolverMode: ExhaustionResolverMode
-  unresolvedDeviations: Array<{ description: string; beat_index: number | null }>
+  unresolvedDeviations: ExhaustionDeviation[]
   reviserHistory: { attemptedScenes: unknown[]; rejectionReason: string } | null
   decidedAt: string | null
   decision: ExhaustionDecision | null
   decisionDetails: unknown | null
+}
+
+export interface ExhaustionDeviation {
+  description: string
+  beat_index: number | null
+  beatId?: string
+  metadata?: Record<string, unknown>
 }
 
 /**
@@ -53,7 +60,7 @@ export async function logExhaustionFired(params: {
   attempt: number
   kind: ExhaustionKind
   resolverMode: ExhaustionResolverMode
-  unresolvedDeviations: Array<{ description: string; beat_index: number | null }>
+  unresolvedDeviations: ExhaustionDeviation[]
   reviserHistory?: { attemptedScenes: unknown[]; rejectionReason: string } | null
 }): Promise<number> {
   const rows = await db`

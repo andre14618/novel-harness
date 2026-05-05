@@ -62,6 +62,8 @@ export interface ReviserIssue {
   description: string
   /** Optional structured beat reference, if known. */
   beat_index?: number | null
+  beatId?: string
+  metadata?: Record<string, unknown>
 }
 
 export interface ReviserStrategy {
@@ -206,7 +208,7 @@ export async function attemptRevision(input: ReviserPolicyInput): Promise<Revise
   // rather than re-mapping so the description text is preserved byte-
   // exactly to the pre-refactor behavior.
   const unresolvedDeviationsForPayload =
-    rawDeviations as Array<{ description: string; beat_index: number | null }>
+    rawDeviations as PlanAssistGatePayload["unresolvedDeviations"]
 
   // Ineligibility branch: emit the skip row + pendingExhaustion without
   // touching the LLM. Mirrors drafting.ts:840-865 (plan-check path) /

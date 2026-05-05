@@ -13,9 +13,6 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 - Refresh the phase-parity fixture in a dedicated commit if the current
   prompt/request drift is intentional. Current opt-in failure:
   `ReplayTransport miss: 1dd73b5c320260717ff5bfefd77593cc`.
-- Extend stable-ID coverage in checker findings before traceability UI.
-- Remaining stable-ID coverage hotspot: entity ID resolution for
-  halluc-ungrounded findings.
 - Add structural mutation lineage for beat/obligation replace/reorder
   operations before supporting structural UI edits.
 - Figure out how to let Playwright handle local UI testing more autonomously:
@@ -96,9 +93,17 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
   an exact beat-prose map is available.
 - Drafting validation rewrite routing now uses structured validation finding
   codes/refs first, with legacy blocker-string routing retained as fallback.
+- Halluc-ungrounded issue metadata now carries deterministic exact-match
+  `entityRefs[]` for `character`, `world_system`, and `culture` targets,
+  threads that metadata through beat-check aggregation, and preserves it on
+  accepted blocker deviations with the containing `beatId`.
 
 ## Parked
 
+- Broader checker entity resolution for aliases, display-name variants,
+  outline-derived entities, free-form allowed-new entities, and legacy
+  world-location refs remains parked until there is a canonical entity registry
+  or explicit checker output contract.
 - Artifact/Canon checker observation sources are backlog until concrete
   artifact-aware or Canon-generation-aware observers exist.
 - External CI for `policy:promotion-guard` is on hold indefinitely. Keep the

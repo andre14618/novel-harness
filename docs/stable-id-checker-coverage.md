@@ -31,7 +31,7 @@ they tag corpus beats by file offset, not novel artifacts.
 | `src/canon/lint-to-prose-edit.ts` | prose, `LintIssue`, optional `beatProses` + beat refs, `chapterRef` | span target now carries optional `beatRef` when the rendered prose exactly matches `beatProses.join("\n\n")` and the mapped beat has a durable id | caller-supplied `chapterRef` | n/a — span-target only | **Improved 2026-05-05** — durable beat metadata threaded without changing span apply semantics |
 | `src/canon/editorial-proposal.ts` (envelope) | proposal payload | `target.ref` for prose-edit beat targets is caller-shaped | `target.ref = chapterRef` | canon-fact refs are typed (`canonRefs[]`) | Already structurally OK |
 | `src/canon/proposal-envelope.ts` (artifact patch) | artifact-adjuster patch, `novelId`, artifacts | n/a | n/a | `target.ref = characterId / novelId / story_spine` (durable IDs) | Already structurally OK |
-| `src/agents/halluc-ungrounded/index.ts` | `prose`, `beat`, `outline`, `characters`, `worldBible`, `tags.{beatIndex,beatId}` | `llm_calls.beat_id` records `beat.beatId` alongside legacy `beat_index` for new beat-level calls | tags carry `chapter` number only | findings name the entity by surface form (`phrase`); not linked to a `characterId` | **Improved 2026-05-05** — durable beat telemetry persisted; entity refs remain surface-form |
+| `src/agents/halluc-ungrounded/index.ts` | `prose`, `beat`, `outline`, `characters`, `worldBible`, `tags.{beatIndex,beatId}` | `llm_calls.beat_id` records `beat.beatId` alongside legacy `beat_index` for new beat-level calls; accepted beat-check blockers now retain `beatId` | tags carry `chapter` number only | final issue metadata and `ner_prepass_json` now carry exact-match `entityRefs[]` for `character`, `world_system`, and `culture` targets when resolvable | **Improved 2026-05-05** — durable beat telemetry plus exact entity refs threaded; unresolved entities remain surface-form |
 | `src/agents/functional-state-checker/` | `outline` (enriched), `beatProses` | **was** `beat_index` only; **now** also exposes `beatId` from `outline.scenes[beat_index].beatId` when in range | implicit (caller passes outline) | findings now carry optional `plannedItemId` from exact id-match against `establishedFacts` / `knowledgeChanges` / `characterStateChanges`, or exact text-match on `establishedFacts.fact` / `knowledgeChanges.knowledge` (after `trim()`) | **Improved 2026-05-04** — additive `beatId` + `plannedItemId`; broader semantic / display-name resolution remains backlog |
 | `src/agents/continuity/check.ts` | `Fact[]` (with `id`), `CharacterState[]` (with `characterId`) | n/a | n/a | output now also carries optional `factId` (exact `Fact.id` or `Fact.fact`-text match) and `characterId` (exact `CharacterState.characterId` match); `conflictsWith` and `character`-name surfaces unchanged | **Improved 2026-05-04** — additive exact-match ID resolution; broader entity-name resolution remains backlog |
 | `src/agents/chapter-plan-checker/schema.ts` | outline, draft | **was** `beat_index` only; **now** drafting attaches `beatId` from `outline.scenes[beat_index].beatId` when in range | n/a | n/a | **Improved 2026-05-05** — additive beat refs threaded at the drafting consumption boundary |
@@ -174,7 +174,7 @@ source of truth. The legacy `description` and `beat_index` fields are preserved
 verbatim, and `canonicalizeDeviations()` still hashes only the legacy fields so
 revision dedupe semantics do not change.
 
-### `llm_calls.beat_id` — durable beat telemetry for beat-level calls
+### `halluc-ungrounded` — durable beat telemetry and exact entity refs
 
 Migration `sql/046_llm_call_beat_id.sql` adds `llm_calls.beat_id` and an
 index on `(novel_id, beat_id)`. `callAgent()` and `executeAndLog()` now accept
@@ -186,8 +186,24 @@ passes `beatIndex`.
 
 This closes the beat-id persistence part of the halluc-ungrounded gap: past
 and legacy rows can still be filtered by `beat_index`, while new rows can join
-directly to planning targets by durable `beat_id`. The checker's actual entity
-findings are unchanged and still name ungrounded entities by surface form.
+directly to planning targets by durable `beat_id`.
+
+The entity side is now additive metadata, not a checker behavior change:
+
+- `HallucUngroundedResult.issueMetadata[]` is parallel to the legacy
+  `issues[]` strings. Each entry records `{ entity, excerpt, entityRefs }`.
+- `entityRefs[]` is populated only by deterministic exact or bounded
+  title-stripped exact match against existing `CharacterProfile.id/name`,
+  `worldBible.systems[].id/name`, or `worldBible.cultures[].id/name`.
+- `src/phases/beat-checks.ts` threads that metadata into `BeatIssue.metadata`,
+  and `src/phases/checker-blockers.ts` preserves it on accepted blocker
+  deviations alongside the containing `beatId`.
+- `llm_calls.ner_prepass_json` also stores final `issueMetadata` and
+  `llmRescuedIssueMetadata`, so false-positive/rescue audits can see when a
+  flagged surface form was actually tied to a durable planning target.
+
+The human-readable issue strings, retry wording, pass/fail gate behavior, and
+LLM prompt/schema are unchanged.
 
 ### `validation.ts` — additive structured findings
 
@@ -236,9 +252,12 @@ rough order of "downstream lineage and impact tracking would benefit":
    model to echo the planned-item text verbatim.
 3. **`halluc-ungrounded` (partially closed 2026-05-05)** —
    `llm_calls.beat_id` now persists the durable beat ref for new beat-level
-   calls. Remaining gap: entity findings still identify ungrounded names by
-   surface form; linking them to `characterId` / world entity IDs needs a
-   canonical entity-name registry or an explicit checker output contract.
+   calls, and final issue metadata carries exact `character` / `world_system` /
+   `culture` refs when the surface form can be resolved safely. Remaining gaps:
+   free-form `allowed_new_entities`, outline-derived entities, legacy world
+   locations without IDs, aliases, display-name variants, and paraphrases still
+   remain surface-form only. Closing those needs a canonical entity registry or
+   an explicit checker output contract; fuzzy matching remains out of scope.
 4. **`validation.ts` (closed for current coverage scope 2026-05-05)** —
    structured findings now carry chapter refs on all findings and beat refs for
    validation-mode beat keyword checks. Drafting validation rewrite routing now
@@ -275,9 +294,14 @@ Focused tests exist for ID-propagation only (no creative quality assertions):
   drafting-side helper resolution from enriched outlines, absence on
   un-enriched / null / out-of-range paths, and legacy string-deviation
   coercion compatibility.
-- `src/agents/halluc-ungrounded/index.test.ts` — new case asserts
+- `src/agents/halluc-ungrounded/index.test.ts` — new cases assert
   `checkHallucUngrounded()` passes the durable `beatId` tag into its LLM call
-  when the beat has one.
+  when the beat has one, exact/title-stripped entity refs resolve only against
+  durable character / world-system / culture targets, and final issue metadata
+  carries those refs without changing issue strings.
+- `src/phases/beat-checks.test.ts` and `src/phases/checker-blockers.test.ts` —
+  new cases assert halluc-ungrounded metadata survives aggregation and accepted
+  blocker promotion with the containing `beatId`.
 - `src/validation.test.ts` — new cases assert structured validation findings
   preserve legacy blocker/warning strings, carry chapter refs on all findings,
   carry `beatId` for validation-mode beat keyword checks, and stay absent for

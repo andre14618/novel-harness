@@ -11,6 +11,22 @@ export const hallucUngroundedSchema = z.object({
 
 export type HallucUngroundedOutput = z.infer<typeof hallucUngroundedSchema>
 
+export type HallucEntityRefKind = "character" | "world_system" | "culture"
+
+export interface HallucEntityRef {
+  kind: HallucEntityRefKind
+  ref: string
+  label: string
+  matchedName: string
+  match: "exact" | "title-stripped-exact"
+}
+
+export interface HallucIssueMetadata {
+  entity: string
+  excerpt: string
+  entityRefs: HallucEntityRef[]
+}
+
 /**
  * A NER-prepass finding: an ungrounded candidate surfaced by the deterministic
  * entity extractor before the LLM call. Carries the candidate class so
@@ -29,6 +45,12 @@ export interface NerFinding {
    * `initials` and `capitalized-first-only` added in L23a (exp #341).
    */
   class: "title-pair" | "capitalized-multi-word" | "suffix-class" | "x-of-y-capitalized" | "number-word-tail" | "initials" | "capitalized-first-only"
+  /**
+   * Additive stable-ref coverage. Populated only when the finding phrase
+   * deterministically matches an existing character/world-system/culture
+   * identity. Usually empty for true ungrounded entities.
+   */
+  entityRefs?: HallucEntityRef[]
 }
 
 /**
@@ -52,6 +74,13 @@ export interface HallucUngroundedResult {
    * beat retry budget on warning-class entities the LLM already approved.
    */
   issuesSeverity?: Array<"blocker" | "warning">
+  /**
+   * Parallel metadata for `issues`. `issueMetadata[i]` describes the entity
+   * named by `issues[i]` and carries deterministic stable refs when the
+   * checker can prove an exact match. The human-readable issue strings remain
+   * the behavior contract.
+   */
+  issueMetadata?: HallucIssueMetadata[]
   /**
    * All NER candidates that were NOT grounded against the evidence surface.
    * Present when NER prepass ran (variants v1/v3/v4). Not present on v0/v2.

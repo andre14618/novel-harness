@@ -4,6 +4,7 @@ import type { FunctionalIssue } from "./functional-checks"
 
 export interface AcceptedBeatCheckIssues {
   beatIndex: number
+  beatId?: string
   issues: BeatIssue[]
 }
 
@@ -13,15 +14,24 @@ export interface CheckerBlockerInput {
   functionalIssues?: FunctionalIssue[]
 }
 
-export function buildCheckerBlockerDeviations(input: CheckerBlockerInput): Array<{ description: string; beat_index: number | null }> {
-  const deviations: Array<{ description: string; beat_index: number | null }> = []
+export interface CheckerBlockerDeviation {
+  description: string
+  beat_index: number | null
+  beatId?: string
+  metadata?: Record<string, unknown>
+}
+
+export function buildCheckerBlockerDeviations(input: CheckerBlockerInput): CheckerBlockerDeviation[] {
+  const deviations: CheckerBlockerDeviation[] = []
 
   for (const accepted of input.acceptedBeatIssues) {
     for (const issue of accepted.issues) {
       if (issue.severity !== "blocker") continue
       deviations.push({
         beat_index: accepted.beatIndex,
+        ...(accepted.beatId ? { beatId: accepted.beatId } : {}),
         description: `[beat-check:${issue.source}] Beat ${accepted.beatIndex + 1}: ${issue.description}`,
+        ...(issue.metadata ? { metadata: issue.metadata } : {}),
       })
     }
   }

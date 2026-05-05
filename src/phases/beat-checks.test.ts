@@ -42,6 +42,27 @@ test("aggregate: descriptions round-trip verbatim in `issues[]`", () => {
   expect(r.retryLines[0]?.startsWith(longDesc)).toBe(true)
 })
 
+test("aggregate: ungrounded issue metadata threads stable entity refs", () => {
+  const r = aggregateIssues({
+    adherence: [],
+    ungrounded: ['Ungrounded entity "Kael"'],
+    ungroundedMetadata: [{
+      entity: "Kael",
+      excerpt: "",
+      entityRefs: [{
+        kind: "character",
+        ref: "char-kael",
+        label: "Character: Kael",
+        matchedName: "Kael",
+        match: "exact",
+      }],
+    }],
+  })
+
+  expect(r.issues[0]?.metadata?.entityRefs?.[0]?.ref).toBe("char-kael")
+  expect(r.issues[0]?.metadata?.hallucUngrounded?.entity).toBe("Kael")
+})
+
 test("summarizeIssues: empty returns 'no issues'", () => {
   expect(summarizeIssues([])).toBe("no issues")
 })

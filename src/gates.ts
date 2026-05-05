@@ -60,7 +60,12 @@ export interface PlanAssistGatePayload {
   attempt: number
   outline: ChapterOutline
   prose: string
-  unresolvedDeviations: Array<{ description: string; beat_index: number | null }>
+  unresolvedDeviations: Array<{
+    description: string
+    beat_index: number | null
+    beatId?: string
+    metadata?: Record<string, unknown>
+  }>
   reviserHistory?: {
     attemptedScenes: SceneBeat[]
     rejectionReason: string

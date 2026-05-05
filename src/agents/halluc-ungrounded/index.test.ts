@@ -18,7 +18,7 @@
  */
 
 import { test, expect, mock, beforeEach } from "bun:test"
-import { runNerPrepass } from "./index"
+import { resolveEntityRefsForPhrase, runNerPrepass } from "./index"
 
 // ── Tests for the exported runNerPrepass helper ───────────────────────────────
 //
@@ -177,6 +177,38 @@ test("runNerPrepass: clean prose with no capitalized multi-word entities → emp
 
 test("runNerPrepass: empty prose → empty result", () => {
   expect(runNerPrepass("", EMPTY_SURFACE)).toHaveLength(0)
+})
+
+test("stable entity refs: exact and title-stripped matches resolve to durable planning refs", () => {
+  const refs = resolveEntityRefsForPhrase(
+    "Master Orin",
+    [
+      { id: "char-orin", name: "Orin", role: "archivist", speechPattern: "" },
+      { id: "char-kael", name: "Kael", role: "lead", speechPattern: "" },
+    ] as any,
+    {
+      systems: [{ id: "sys-aether", name: "Aether System" }],
+      cultures: [{ id: "cult-lowport", name: "Lowport Guilds" }],
+    },
+  )
+
+  expect(refs).toEqual([
+    {
+      kind: "character",
+      ref: "char-orin",
+      label: "Character: Orin",
+      matchedName: "Orin",
+      match: "title-stripped-exact",
+    },
+  ])
+
+  expect(resolveEntityRefsForPhrase("Aether System", [], {
+    systems: [{ id: "sys-aether", name: "Aether System" }],
+  } as any)[0]?.ref).toBe("sys-aether")
+
+  expect(resolveEntityRefsForPhrase("Lowport Guilds", [], {
+    cultures: [{ id: "cult-lowport", name: "Lowport Guilds" }],
+  } as any)[0]?.ref).toBe("cult-lowport")
 })
 
 // ── checkHallucUngrounded AND-gate integration tests ─────────────────────────
@@ -637,6 +669,38 @@ test("stable-ref telemetry: passes beatId to halluc-ungrounded LLM calls", async
   )
 
   expect(llmCallOpts[0]?.beatId).toBe("ch-001-hall-beat-001-order-meeting")
+})
+
+test("stable-ref metadata: LLM issue carries exact character ref when deterministic match exists", async () => {
+  process.env.BEAT_ENTITY_LIST_VARIANT = "v0"
+  try {
+    mockLLMResult = {
+      pass: false,
+      issues: [{ entity: "Kael", excerpt: "Kael stepped forward" }],
+    }
+    const result = await checkHallucUngrounded(
+      "Kael stepped forward.",
+      baseBeat,
+      baseOutline,
+      baseChars,
+      emptyWorldBible,
+    )
+
+    expect(result.pass).toBe(false)
+    expect(result.issueMetadata?.[0]).toMatchObject({
+      entity: "Kael",
+      excerpt: "Kael stepped forward",
+      entityRefs: [{
+        kind: "character",
+        ref: "kael",
+        label: "Character: Kael",
+        matchedName: "Kael",
+        match: "exact",
+      }],
+    })
+  } finally {
+    delete process.env.BEAT_ENTITY_LIST_VARIANT
+  }
 })
 
 test("L16 persistence: patch failure remains fail-open", async () => {

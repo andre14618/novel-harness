@@ -398,7 +398,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   beatProse = prose
                   if (!checks.pass) {
                     log(novelId, "warn", `Beat ${bi + 1} issues accepted after max retries: ${summarizeIssues(checks.issues)}`)
-                    acceptedBeatCheckIssues.push({ beatIndex: bi, issues: checks.issues })
+                    acceptedBeatCheckIssues.push({ beatIndex: bi, beatId: beatSpec.beatId, issues: checks.issues })
                   } else if (hasQualityDefect) {
                     log(novelId, "warn", `Beat ${bi + 1} quality defect(s) accepted after max retries: ${qualityDefects.map(d => d.kind).join(",")}`)
                   }
