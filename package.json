@@ -20,6 +20,7 @@
     "finalize-docs": "bun scripts/agent/finalize-docs.ts",
     "finalizer-packet": "bun scripts/agent/finalizer-packet.ts",
     "lane-runner-legacy": "bun scripts/agent/lane-runner.ts",
+    "ui:preflight": "bun scripts/playwright-preflight.ts",
     "policy:promotion-guard": "bun scripts/approval-policy-promotion-guard.ts",
     "docs:weight": "bun scripts/check-doc-weight.ts"
   },

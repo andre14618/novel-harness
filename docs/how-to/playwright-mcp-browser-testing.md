@@ -29,6 +29,16 @@ for final UI approval.
 - Test data contains at least one novel id with pending Canon proposals or
   artifact patch envelopes for the target scenario.
 
+Before browser actions, create the local evidence directory and runbook:
+
+```bash
+bun run ui:preflight -- --surface <surface> --novel <test-novel-id> --url /app/<route>/<test-novel-id>
+```
+
+The helper writes `RUNBOOK.md`, `console-final.md`, `network-final.md`, and
+`manifest.json` under the current evidence-storage convention. It does not
+drive the browser; use Playwright MCP for the actual browser steps.
+
 ## Evidence Contract
 
 For each tested surface, capture:

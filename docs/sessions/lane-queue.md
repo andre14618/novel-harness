@@ -13,9 +13,6 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 - Refresh the phase-parity fixture in a dedicated commit if the current
   prompt/request drift is intentional. Current opt-in failure:
   `ReplayTransport miss: 1dd73b5c320260717ff5bfefd77593cc`.
-- Figure out how to let Playwright handle local UI testing more autonomously:
-  create a reusable preflight runner that captures screenshots, network, and
-  console evidence with disposable data and clear guardrails.
 - Browser-test every UI-facing slice with Playwright MCP before handoff.
 - Keep creative heuristics diagnostic-only or A/B-gated until evidence proves
   value.
@@ -79,6 +76,9 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 - Chapter-health tracer slice landed `GET /api/novel/:novelId/chapter-health`
   with deterministic validation, durable refs, and issue/proposal/trace/checker
   aggregation.
+- Local Playwright preflight setup helper landed as `bun run ui:preflight`;
+  it creates the evidence directory, runbook, console/network placeholders, and
+  manifest without adding browser-driver dependencies.
 - Chapter-plan checker stable-ref slice landed: drafting attaches durable
   `beatId` to checker deviations from `outline.scenes[beat_index].beatId`
   while preserving the legacy `beat_index` contract.
