@@ -167,25 +167,20 @@ export async function computePlanningSnapshotHash(
   version: PlanningSnapshotVersion = "v2",
 ): Promise<string> {
   return await db.begin(async (tx: Executor) => {
-    const [world, characters, spine, outlines] = await Promise.all([
-      readWorldBibleOrNull(tx, novelId),
-      readCharactersOrdered(tx, novelId),
-      readStorySpineOrNull(tx, novelId),
-      readChapterOutlinesOrdered(tx, novelId),
-    ])
+    const world = await readWorldBibleOrNull(tx, novelId)
+    const characters = await readCharactersOrdered(tx, novelId)
+    const spine = await readStorySpineOrNull(tx, novelId)
+    const outlines = await readChapterOutlinesOrdered(tx, novelId)
     if (version === "v1") {
       return computePlanningSnapshotHashFromInputs(
         { world, characters, spine, outlines },
         "v1",
       )
     }
-    const [worldSystems, cultures, characterCultures, characterSystemAwareness] =
-      await Promise.all([
-        readWorldSystemsOrdered(tx, novelId),
-        readCulturesOrdered(tx, novelId),
-        readCharacterCulturesOrdered(tx, novelId),
-        readCharacterSystemAwarenessOrdered(tx, novelId),
-      ])
+    const worldSystems = await readWorldSystemsOrdered(tx, novelId)
+    const cultures = await readCulturesOrdered(tx, novelId)
+    const characterCultures = await readCharacterCulturesOrdered(tx, novelId)
+    const characterSystemAwareness = await readCharacterSystemAwarenessOrdered(tx, novelId)
     return computePlanningSnapshotHashFromInputs(
       {
         world, characters, spine, outlines,

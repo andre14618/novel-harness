@@ -549,7 +549,7 @@ describe.skipIf(!reachable)("handleCanonProposalRoute", () => {
                resolution_policy_reasons
         FROM canon_proposals
         WHERE novel_id = ${novelId}
-          AND id = ANY(${ids})
+          AND id IN (${ids[0]}, ${ids[1]}, ${ids[2]})
       `
     ) as Array<{
       id: string

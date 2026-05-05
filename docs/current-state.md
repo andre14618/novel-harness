@@ -125,11 +125,11 @@ Promotion tiers:
 
 See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
 
-- Active: test harness reliability cleanup. Full `bun test` is not currently a
-  supported green gate: latest diagnostic full run was 1599 pass / 71 fail /
-  3 errors in 181.22s, with failures clustered in DB-backed route/telemetry
-  suites and archived eval tests. Follow `docs/test-harness-reliability-plan.md`
-  before broad new implementation work.
+- Active: test harness reliability cleanup has restored supported tiered gates.
+  Direct broad `bun test` remains unsupported; use `bun run test:fast` for the
+  default loop and `bun run test:db` for isolated DB integration. Phase-parity
+  replay is explicit via `bun run test:replay` and currently needs a refreshed
+  fixture after prompt/request drift.
 - Active: authoring visibility/interactivity foundation. Next implementation
   should extend stable-ref checker coverage or structural mutation lineage
   before broader structural Planning Studio edits. See
@@ -206,21 +206,25 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
 
 ## Verification Gates
 
-Current touched-suite gate for Phase 6/7 work:
+Supported local gates:
 
 ```bash
-bun test src/canon/approval-policy.test.ts src/canon/approval-policy-replay.test.ts src/canon/editorial-beat-coverage.test.ts src/db/approval-policy-replay.test.ts src/db/proposal-resolution-outcomes.test.ts src/orchestrator/canon-proposal-routes.test.ts src/orchestrator/policy-decide-routes.test.ts src/orchestrator/proposal-envelope-routes.test.ts src/orchestrator/prose-edit-routes.test.ts src/phases/proposal-persistence.test.ts scripts/approval-policy-replay-report.test.ts scripts/approval-policy-promotion-guard.test.ts
+bun run test:fast
+bun run test:db
+bun run test:archive
 ./node_modules/.bin/tsc --noEmit
 git diff --check
 ```
 
-Planning proposal route coverage is split by speed: default `bun test` runs
-fast non-DB validation coverage in
-`src/orchestrator/planning-proposal-routes.test.ts`; explicit DB route smoke
-coverage runs with `bun run test:db`.
+Replay fixture parity is opt-in:
 
-Latest result: targeted authoring/proposal tests pass with DB-bound cases
-skipped in this environment; TypeScript clean.
+```bash
+bun run test:replay
+```
+
+As of 2026-05-05, `test:replay` fails with `ReplayTransport miss:
+1dd73b5c320260717ff5bfefd77593cc` for `world-builder`, so the phase-parity
+fixture must be re-recorded in its own commit before treating replay as green.
 
 ## Documentation Rules
 

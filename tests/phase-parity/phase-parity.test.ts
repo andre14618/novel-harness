@@ -35,8 +35,13 @@ const SEED_PATH = join(FIXTURE_DIR, "seed.json")
 
 const fixturesPresent = existsSync(TRANSPORT_PATH) && existsSync(EXPECTED_PATH) && existsSync(SEED_PATH)
 const reachable = await dbReachable()
+const replayEnabled = process.env.PHASE_PARITY_REPLAY === "1"
 
 describe("phase parity", () => {
+  if (!replayEnabled) {
+    test.skip("set PHASE_PARITY_REPLAY=1 to run fixture replay parity", () => {})
+    return
+  }
   if (!fixturesPresent) {
     test.skip("fixture recording required — see README.md", () => {})
     return

@@ -30,9 +30,9 @@ A run is "needs-human" if any gate is ambiguous or cannot be classified locally 
   - `./ui/node_modules/.bin/tsc -p ui/tsconfig.json --noEmit`
   - `bun build --target bun src/index.ts --outfile /tmp/index.js`
   - `bun build --target bun src/orchestrator/server.ts --outfile /tmp/orchestrator.js`
-  - `bun test src/` (narrow runtime tests; broader `bun test` if the touched surface warrants it)
+  - `bun run test:fast` (plus `bun run test:db` if the touched surface warrants persistence/route coverage)
 - Evidence: command exit codes, captured stdout/stderr.
-- PASS: all four tsc/build commands exit 0; runtime tests have zero new failures vs. the documented `BASELINE_TEST_FAILURES = 0` baseline.
+- PASS: all tsc/build commands exit 0; supported tiered tests have zero failures.
 - FAIL: any non-zero exit. Action: reject the run; fix or revert before re-running the full novel.
 - Owner: automated; lane runner / preflight loop.
 

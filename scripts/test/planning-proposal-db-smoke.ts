@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { spawnSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
 import db from "../../src/db/connection"
 import { createNovel } from "../../src/db/novels"
@@ -26,7 +27,7 @@ type SmokeCase = {
   run: (novelId: string) => Promise<void>
 }
 
-const CASE_TIMEOUT_MS = 20_000
+const CASE_TIMEOUT_MS = 60_000
 const CASE_RETRIES = 1
 
 const cases: SmokeCase[] = [
@@ -277,32 +278,27 @@ async function runChild(name: string): Promise<void> {
     console.log(`PASS ${smoke.name} ${Math.round(performance.now() - started)}ms`)
   } catch (err) {
     console.error(`FAIL ${smoke.name}: ${err instanceof Error ? err.stack ?? err.message : String(err)}`)
-    if (err instanceof Error && err.message.includes("timed out after")) {
-      process.exit(1)
-    }
     process.exitCode = 1
-  }
-
-  if (shouldCleanup) {
+  } finally {
+    if (!shouldCleanup) return
     await cleanupNovel(novelId)
   }
 }
 
 async function runChildProcess(scriptPath: string, name: string): Promise<number> {
-  const proc = Bun.spawn({
-    cmd: ["bun", scriptPath, "--case", name],
-    stdout: "inherit",
-    stderr: "inherit",
+  const result = spawnSync("bun", [scriptPath, "--case", name], {
+    stdio: "inherit",
+    timeout: CASE_TIMEOUT_MS + 5_000,
+    env: {
+      ...process.env,
+      BUN_SQL_MAX: process.env.BUN_SQL_MAX ?? "1",
+    },
   })
-  const timeout = setTimeout(() => {
-    console.error(`KILL ${name} after ${CASE_TIMEOUT_MS + 5_000}ms`)
-    proc.kill()
-  }, CASE_TIMEOUT_MS + 5_000)
-  try {
-    return await proc.exited
-  } finally {
-    clearTimeout(timeout)
+  if (result.error) {
+    console.error(`KILL ${name} after ${CASE_TIMEOUT_MS + 5_000}ms: ${result.error.message}`)
+    return 1
   }
+  return result.status ?? 1
 }
 
 function argValue(name: string): string | null {

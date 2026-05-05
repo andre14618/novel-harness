@@ -56,8 +56,11 @@ Diagnostic-only. Deterministic checks run and issues are logged; the chapter-lev
 bun install
 cp .env.example .env   # fill in API keys and DATABASE_URL
 
-# Run tests (no DB needed)
-bun test
+# Fast default tests (no DB needed)
+bun run test
+
+# DB integration tests (requires DATABASE_URL/ORCHESTRATOR_DB_URL)
+bun run test:db
 
 # Deploy to LXC and run
 bash scripts/deploy-lxc.sh
@@ -87,7 +90,10 @@ ui/             ← React + Vite SPA (The Studio, Pipeline View, Config, Experim
 docs/           ← decisions.md, lessons-learned.md, fine-tuning-strategy.md, ...
 ```
 
-Unit tests live next to their source (e.g. `src/models/registry.test.ts`) and run via `bun test`.
+Unit tests live next to their source (e.g. `src/models/registry.test.ts`).
+Use `bun run test:fast` for the default no-DB loop, `bun run test:db` for
+isolated DB integration, and `bun run test:archive` for archived eval/history
+tests. Direct broad `bun test` is not a supported gate.
 
 ## Web UI
 

@@ -4,7 +4,8 @@ Byte-parity gate for the phase-modularization refactor. Records a real Novel
 run's LLM calls + final DB state, then replays the LLM transport and asserts
 that the post-replay DB state byte-equals the recorded expectation.
 
-Lives at this path so `bun test` picks it up automatically.
+Lives in the explicit replay tier so stale fixtures do not block fast or DB
+integration gates.
 
 ## What's checked
 
@@ -37,7 +38,7 @@ sync with `docs/designs/phase-modularization.md`.
 | `normalize.ts` | `normalize(raw)` strips timestamps/UUIDs/serial-IDs, rounds floats, hashes large content |
 | `replay-transport.ts` | `RecordTransport` wraps DirectTransport and logs calls; `ReplayTransport` serves recorded responses by hashed request key |
 | `record-fixture.ts` | Recording entry point — runs on the LXC against a real DirectTransport, captures fixture |
-| `phase-parity.test.ts` | The byte-equal assertion — skipped when fixture absent |
+| `phase-parity.test.ts` | The byte-equal assertion — skipped unless replay is explicitly enabled |
 | `fixtures/reference-run/` | Recorded fixture: `transport-fixture.json`, `expected-snapshot.json`, `seed.json` |
 
 ## Recording a fixture (run on LXC)
@@ -66,13 +67,17 @@ git commit -m "[test] record phase-parity reference fixture"
 ## Running the test
 
 ```bash
-bun test tests/phase-parity/phase-parity.test.ts
+bun run test:replay
 ```
 
-Without a fixture: the test is skipped with the message
+Without `PHASE_PARITY_REPLAY=1`: the test is skipped with the message
+`set PHASE_PARITY_REPLAY=1 to run fixture replay parity`. The package script
+sets this flag for you.
+
+Without a fixture: the enabled test is skipped with the message
 `fixture recording required — see README.md`.
 
-With a fixture: the test runs `runNovel(novelId)` against the
+With the flag and a fixture: the test runs `runNovel(novelId)` against the
 `ReplayTransport`, snapshots the DB, normalizes, and asserts byte-equal vs
 the recorded expected snapshot.
 

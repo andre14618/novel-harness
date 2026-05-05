@@ -141,23 +141,13 @@ export async function loadPlanningTargetMap(novelId: string): Promise<PlanningTa
   const novel = await getNovel(novelId).catch((err) => {
     throw new PlanningTargetLookupError(String(err), 404)
   })
-  const [
-    world,
-    characters,
-    spine,
-    outlines,
-    worldSystems,
-    cultures,
-    planningSnapshotHash,
-  ] = await Promise.all([
-    getWorldBible(novelId).catch(() => null),
-    getCharacters(novelId).catch(() => []),
-    getStorySpine(novelId).catch(() => null),
-    getChapterOutlines(novelId).catch(() => []),
-    getWorldSystems(novelId).catch(() => []),
-    getCultures(novelId).catch(() => []),
-    computePlanningSnapshotHash(novelId, "v2"),
-  ])
+  const world = await getWorldBible(novelId).catch(() => null)
+  const characters = await getCharacters(novelId).catch(() => [])
+  const spine = await getStorySpine(novelId).catch(() => null)
+  const outlines = await getChapterOutlines(novelId).catch(() => [])
+  const worldSystems = await getWorldSystems(novelId).catch(() => [])
+  const cultures = await getCultures(novelId).catch(() => [])
+  const planningSnapshotHash = await computePlanningSnapshotHash(novelId, "v2")
 
   return buildPlanningTargetMap({
     novelId,
@@ -185,14 +175,13 @@ export async function previewPlanningImpact(
     )
   }
 
-  const [relatedProposalEnvelopes, relatedResolutionImpacts, relatedMutationLineage] = await Promise.all([
-    listProposalEnvelopeTargetSummaries(novelId, {
-      kind: target.kind,
-      ref: target.ref,
-    }),
-    listProposalResolutionImpactsByTargetRefs(novelId, impactTargetRefs(target)),
-    listPlanningMutationLineageForRefs(novelId, impactTargetRefs(target)),
-  ])
+  const targetRefs = impactTargetRefs(target)
+  const relatedProposalEnvelopes = await listProposalEnvelopeTargetSummaries(novelId, {
+    kind: target.kind,
+    ref: target.ref,
+  })
+  const relatedResolutionImpacts = await listProposalResolutionImpactsByTargetRefs(novelId, targetRefs)
+  const relatedMutationLineage = await listPlanningMutationLineageForRefs(novelId, targetRefs)
 
   const impacts = buildDeterministicImpacts(targetMap, target)
   for (const proposal of relatedProposalEnvelopes) {

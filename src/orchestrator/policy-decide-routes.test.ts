@@ -488,7 +488,7 @@ describe.skipIf(!reachable)("handlePolicyDecideRoute (artifact_patch)", () => {
     expect(staleProfile).toHaveLength(1)
     await db`
       UPDATE characters
-      SET profile_json = ${JSON.stringify({ ...staleProfile[0].profile_json, goals: "already moved on" })}::jsonb
+      SET profile_json = ${{ ...staleProfile[0].profile_json, goals: "already moved on" }}
       WHERE novel_id = ${novelId} AND id = 'char-hero'
     `
 

@@ -5,21 +5,17 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 
 ## Active
 
-- Test harness reliability cleanup. Follow
-  `docs/test-harness-reliability-plan.md`; first restore trustworthy fast/DB
-  test gates, then resume broader authoring UI/backend slices.
-- Authoring visibility/interactivity foundation remains the product lane, but
-  broad new implementation should wait until the test-harness lane has a clean
-  supported gate.
+- Test harness reliability cleanup. Supported fast/DB/archive gates are restored;
+  finish docs/commit cleanup and decide whether to refresh phase-parity replay
+  fixtures in a separate commit.
+- Authoring visibility/interactivity foundation remains the product lane and
+  can resume after the test-harness commit lands.
 
 ## Next
 
-- Inventory current test tiers and separate pure unit, DB integration,
-  browser/e2e, archived eval, and long-running experiment coverage.
-- Diagnose current full-suite failure clusters from the 2026-05-05 `bun test`
-  run: canon proposal telemetry zero rows, chapter exhaustion cleanup zero
-  rows, planning-target fixture ID drift, DB route 404/409 clusters, archived
-  missing-module test, and phase parity mismatch.
+- Refresh the phase-parity fixture in a dedicated commit if the current
+  prompt/request drift is intentional. Current opt-in failure:
+  `ReplayTransport miss: 1dd73b5c320260717ff5bfefd77593cc`.
 - Extend stable-ID coverage in checker findings before traceability UI.
 - Remaining stable-ID coverage hotspot: entity ID resolution for
   halluc-ungrounded findings.
@@ -34,6 +30,14 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 
 ## Recently Closed
 
+- Tiered test runner restored useful local gates: `bun run test:fast`,
+  `bun run test:db`, `bun run test:archive`, `bun run test:list`, and explicit
+  opt-in `bun run test:replay`.
+- DB integration tests now run one file per process with `BUN_SQL_MAX=1`.
+  Planning target/snapshot DB reads were made serial where a single connection
+  and transactional `Promise.all` could stall.
+- Archived eval tests were split out of default coverage and the archived
+  Arm-B parity import path was repaired.
 - UI/browser clearance for proposal surfaces passed via Playwright MCP on
   disposable novel `codex-ui-preflight-1777936779921`.
 - Canon proposal review evidence covered load, approve/reject,

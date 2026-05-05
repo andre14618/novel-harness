@@ -49,7 +49,7 @@ import {
   sectionHeader,
   computeSignature,
   type SectionSignature,
-} from "./beat-prompt-sections"
+} from "../../evals/beat-prompt-sections"
 
 // ── Types ──────────────────────────────────────────────────────────────
 

@@ -46,7 +46,7 @@ This sweep is mandatory before declaring a session or lane finished. Treat it as
 - `tuning_experiments` — conclude the experiment row with a one-paragraph summary citing the runtime commit.
 - Session/lane queue (`docs/sessions/lane-queue.md`) — advance Active/Next/Completed.
 
-Run before commit: `bun scripts/preflight-docs-impact.ts --strict`, `git diff --check`, the touched test surface (`bun test <path>`), and `bunx tsc --noEmit` if any `.ts` changed.
+Run before commit: `bun scripts/preflight-docs-impact.ts --strict`, `git diff --check`, the touched test surface (`bun test <path>` or the relevant tiered `bun run test:*` command), and `bunx tsc --noEmit` if any `.ts` changed.
 
 ## Cost-Threshold Autonomy
 
