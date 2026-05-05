@@ -394,6 +394,8 @@ export type PlanningEditEnvelope = ReviewProposalEnvelope<PlanningEditPayload> &
   kind: "planning_edit"
 }
 
+export type PlanningEditAction = PlanningEditPayload["action"]
+
 export interface PlanningTargetRef {
   kind: PlanningEditTargetKind | "world_fact" | "world_system" | "culture"
   ref: string
@@ -479,7 +481,7 @@ export interface PlanningEditDiffValue {
 }
 
 export interface PlanningEditDiff {
-  action: "field_replace"
+  action: PlanningEditAction
   target: PlanningEditTarget
   before: PlanningEditDiffValue
   after: PlanningEditDiffValue
@@ -503,6 +505,7 @@ export interface PlanningProposalDiffResponse {
 }
 
 export interface CreatePlanningProposalRequest {
+  action?: PlanningEditAction
   target: PlanningEditTarget
   proposedValue: unknown
   rationale?: string

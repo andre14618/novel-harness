@@ -13,8 +13,6 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 - Refresh the phase-parity fixture in a dedicated commit if the current
   prompt/request drift is intentional. Current opt-in failure:
   `ReplayTransport miss: 1dd73b5c320260717ff5bfefd77593cc`.
-- Wire structural `planning_edit` beat/obligation replace/reorder actions into
-  Planning Studio UI with Playwright evidence.
 - Figure out how to let Playwright handle local UI testing more autonomously:
   create a reusable preflight runner that captures screenshots, network, and
   console evidence with disposable data and clear guardrails.
@@ -99,6 +97,11 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
   accepted blocker deviations with the containing `beatId`.
 - Structural planning-edit routes now create/apply beat and beat-obligation
   replace/reorder edits, with exact-ID structural lineage persisted.
+- Structural Planning Studio UI now creates explicit beat/obligation
+  replace/reorder proposal actions and preserves structural modified payloads.
+  Playwright MCP evidence on disposable novel
+  `codex-structural-ui-1777995796883` covered load, approve/reject/modified
+  paths, status tabs, and target-refresh recovery after stable ID replacement.
 
 ## Parked
 
@@ -113,6 +116,4 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 
 ## Closed History
 
-Use the archive for completed lane detail:
-
-- `docs/sessions/archive/lane-queue-2026-05-04-full.md`
+Completed lane detail: `docs/sessions/archive/lane-queue-2026-05-04-full.md`.

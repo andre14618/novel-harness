@@ -29,6 +29,10 @@ planning-modified-*.png
 planning-modified-*.md
 planning-modified-*.txt
 planning-modified-*.json
+planning-structural-*.png
+planning-structural-*.md
+planning-structural-*.txt
+planning-structural-*.json
 login-snapshot.md
 
 # Ephemeral in-flight run registry — per-machine runtime state only

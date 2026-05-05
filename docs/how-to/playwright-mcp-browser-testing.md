@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-04
+updated: 2026-05-05
 role: browser-preflight-runbook
 ---
 
@@ -40,6 +40,21 @@ For each tested surface, capture:
 - Console errors, failed network requests, and visible error banners.
 - Final pass/fail summary with any untested paths called out explicitly.
 
+## Evidence Storage
+
+Store each browser run under:
+
+```text
+output/playwright/<YYYY-MM-DD>/<surface-or-lane>-<novelId-or-short-slug>/
+```
+
+Use descriptive filenames inside that session directory, for example
+`baseline.png`, `after-approve.png`, `console-final.md`, and
+`network-final.md`. `output/` is gitignored, so evidence stays available for
+local operator review without entering commits. Do not leave new Playwright
+evidence at the repository root except when moving legacy evidence into a
+session directory.
+
 ## Canon Proposal Checklist
 
 1. Navigate to `http://localhost:3006/app/canon-proposals/<novelId>`.
@@ -70,3 +85,9 @@ For each tested surface, capture:
   evidence.
 - Stop if the UI is not built and building it would require installing new
   dependencies without user approval.
+
+## Cleanup
+
+When the browser pass is complete, close the Playwright MCP tab/session and
+stop any local app server you started for the run. If the server was already
+running before the test, leave it running and say so in the handoff.

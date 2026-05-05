@@ -7,12 +7,14 @@ import {
   listPlanningProposals,
   previewPlanningImpact,
   resolvePlanningProposal,
+  type PlanningEditAction,
   type PlanningEditEnvelope,
   type PlanningEditPayload,
   type PlanningImpact,
   type PlanningImpactPreview,
   type PlanningProposalDiffResponse,
   type PlanningTarget,
+  type PlanningTargetRef,
   type ProposalEnvelopeStatus,
 } from "../api"
 
@@ -47,9 +49,9 @@ const SUPPORTED_FIELDS: Record<string, string[]> = {
     "avoids",
   ],
   story_spine: ["centralConflict", "theme", "endingDirection"],
-  chapter_outline: ["title", "purpose", "setting", "targetWords"],
-  beat_plan: ["description", "kind"],
-  beat_obligation: ["text", "sourceId", "sourceKind", "characterId", "sourceLink"],
+  chapter_outline: ["title", "purpose", "setting", "targetWords", "scenes"],
+  beat_plan: ["description", "kind", "self", "obligations"],
+  beat_obligation: ["text", "sourceId", "sourceKind", "characterId", "sourceLink", "self"],
 }
 
 const STATUS_TABS: Array<ProposalEnvelopeStatus | "all"> = ["pending", "approved", "rejected", "modified", "all"]
@@ -105,7 +107,11 @@ export function PlanningStudioPage() {
         .filter(target => EDITABLE_KINDS.has(target.kind) && target.fieldPaths.length > 0)
         .sort(compareTargets)
       setTargets(editable)
-      setSelectedKey(current => current || targetKey(editable[0]))
+      setSelectedKey(current =>
+        current && editable.some(targetKeyMatches(current))
+          ? current
+          : targetKey(editable[0]),
+      )
       setFieldPath(current => current || editable[0]?.fieldPaths[0] || "")
     } catch (err) {
       setTargetError((err as Error).message ?? String(err))
@@ -141,11 +147,26 @@ export function PlanningStudioPage() {
   }, [refreshProposals])
 
   useEffect(() => {
-    if (!selectedTarget) return
-    if (!fieldPath || !selectedTarget.fieldPaths.includes(fieldPath)) {
-      setFieldPath(selectedTarget.fieldPaths[0] ?? "")
+    if (!selectedTarget) {
+      const fallbackTarget = targets[0]
+      if (!fallbackTarget) {
+        if (selectedKey) setSelectedKey("")
+        if (fieldPath) setFieldPath("")
+        if (proposedText) setProposedText("")
+        return
+      }
+      const nextFieldPath = fallbackTarget.fieldPaths[0] ?? ""
+      setSelectedKey(targetKey(fallbackTarget))
+      setFieldPath(nextFieldPath)
+      setProposedText(defaultInputValue(nextFieldPath, fallbackTarget.kind))
+      return
     }
-  }, [selectedTarget, fieldPath])
+    if (!fieldPath || !selectedTarget.fieldPaths.includes(fieldPath)) {
+      const nextFieldPath = selectedTarget.fieldPaths[0] ?? ""
+      setFieldPath(nextFieldPath)
+      setProposedText(defaultInputValue(nextFieldPath, selectedTarget.kind))
+    }
+  }, [fieldPath, proposedText, selectedKey, selectedTarget, targets])
 
   useEffect(() => {
     if (!novelId || !selectedTarget || !fieldPath) {
@@ -154,11 +175,7 @@ export function PlanningStudioPage() {
     }
     let cancelled = false
     setImpactError(null)
-    void previewPlanningImpact(novelId, {
-      kind: selectedTarget.kind as any,
-      ref: selectedTarget.ref,
-      fieldPath,
-    })
+    void previewPlanningImpact(novelId, planningImpactTarget(selectedTarget, fieldPath))
       .then(res => {
         if (!cancelled) setImpact(res)
       })
@@ -200,8 +217,10 @@ export function PlanningStudioPage() {
     setCreating(true)
     setNotice(null)
     try {
-      const proposedValue = parseProposedValue(fieldPath, proposedText)
+      const action = planningEditActionFor(selectedTarget.kind, fieldPath)
+      const proposedValue = parseProposedValue(fieldPath, proposedText, selectedTarget.kind)
       const res = await createPlanningProposal(novelId, {
+        action,
         target: {
           kind: selectedTarget.kind as any,
           ref: selectedTarget.ref,
@@ -252,10 +271,14 @@ export function PlanningStudioPage() {
     let modifiedPayload: PlanningEditPayload
     try {
       modifiedPayload = {
-        action: "field_replace",
+        action: proposalDiff.diff.action,
         target: proposalDiff.diff.target,
         previousValue: proposalDiff.diff.before.value,
-        proposedValue: parseProposedValue(proposalDiff.diff.target.fieldPath, modifiedText),
+        proposedValue: parseProposedValue(
+          proposalDiff.diff.target.fieldPath,
+          modifiedText,
+          proposalDiff.diff.target.kind,
+        ),
         ...(proposalDiff.impactPreview ? { impactPreview: proposalDiff.impactPreview } : {}),
       }
     } catch (err) {
@@ -320,8 +343,10 @@ export function PlanningStudioPage() {
                 type="button"
                 className={selectedKey === targetKey(target) ? "active" : ""}
                 onClick={() => {
+                  const nextFieldPath = target.fieldPaths[0] ?? ""
                   setSelectedKey(targetKey(target))
-                  setFieldPath(target.fieldPaths[0] ?? "")
+                  setFieldPath(nextFieldPath)
+                  setProposedText(defaultInputValue(nextFieldPath, target.kind))
                 }}
               >
                 <span>{target.label}</span>
@@ -347,7 +372,7 @@ export function PlanningStudioPage() {
                   value={fieldPath}
                   onChange={event => {
                     setFieldPath(event.target.value)
-                    setProposedText(defaultInputValue(event.target.value))
+                    setProposedText(defaultInputValue(event.target.value, selectedTarget.kind))
                   }}
                 >
                   {selectedTarget.fieldPaths.map(path => (
@@ -358,6 +383,7 @@ export function PlanningStudioPage() {
 
               <PlanningValueInput
                 fieldPath={fieldPath}
+                targetKind={selectedTarget.kind}
                 value={proposedText}
                 onChange={setProposedText}
               />
@@ -420,7 +446,7 @@ export function PlanningStudioPage() {
                   >
                     <span>{envelope.summary}</span>
                     <small>
-                      {envelope.payload.target.fieldPath} · {envelope.status} ·{" "}
+                      {envelope.payload.action}:{envelope.payload.target.fieldPath} · {envelope.status} ·{" "}
                       {envelope.risk} · {envelope.id.slice(0, 38)}
                     </small>
                   </button>
@@ -449,11 +475,13 @@ export function PlanningStudioPage() {
 
 function PlanningValueInput({
   fieldPath,
+  targetKind,
   label = "Proposed value",
   value,
   onChange,
 }: {
   fieldPath: string
+  targetKind?: string
   label?: string
   value: string
   onChange: (value: string) => void
@@ -489,8 +517,8 @@ function PlanningValueInput({
       <textarea
         value={value}
         onChange={event => onChange(event.target.value)}
-        rows={fieldPath === "sourceLink" ? 6 : 5}
-        placeholder={placeholderForField(fieldPath)}
+        rows={textareaRowsForField(fieldPath)}
+        placeholder={placeholderForField(fieldPath, targetKind)}
       />
     </label>
   )
@@ -557,7 +585,16 @@ function DiffView({
   useEffect(() => {
     setEditingModified(false)
     setEditError(null)
-    setModifiedText(diff ? editableInputValue(diff.diff.target.fieldPath, diff.diff.after.value, diff.diff.after.display) : "")
+    setModifiedText(
+      diff
+        ? editableInputValue(
+          diff.diff.target.fieldPath,
+          diff.diff.after.value,
+          diff.diff.after.display,
+          diff.diff.target.kind,
+        )
+        : "",
+    )
   }, [diff?.envelopeId])
 
   if (error) return <div className="planning-error">{error}</div>
@@ -568,7 +605,7 @@ function DiffView({
   const diffImpacts = impactsFromPreview(diff.impactPreview)
   const submitModified = () => {
     try {
-      parseProposedValue(diff.diff.target.fieldPath, modifiedText)
+      parseProposedValue(diff.diff.target.fieldPath, modifiedText, diff.diff.target.kind)
     } catch (err) {
       setEditError((err as Error).message ?? String(err))
       return
@@ -605,6 +642,7 @@ function DiffView({
             <div className="planning-modify-box">
               <PlanningValueInput
                 fieldPath={diff.diff.target.fieldPath}
+                targetKind={diff.diff.target.kind}
                 label="Modified value"
                 value={modifiedText}
                 onChange={setModifiedText}
@@ -634,7 +672,14 @@ function DiffView({
                 onClick={() => {
                   setEditError(null)
                   setEditingModified(false)
-                  setModifiedText(editableInputValue(diff.diff.target.fieldPath, diff.diff.after.value, diff.diff.after.display))
+                  setModifiedText(
+                    editableInputValue(
+                      diff.diff.target.fieldPath,
+                      diff.diff.after.value,
+                      diff.diff.after.display,
+                      diff.diff.target.kind,
+                    ),
+                  )
                 }}
               >
                 Cancel
@@ -686,12 +731,15 @@ function impactsFromPreview(preview: unknown): CompactImpact[] {
   })
 }
 
-function editableInputValue(fieldPath: string, value: unknown, display: string): string {
+function editableInputValue(fieldPath: string, value: unknown, display: string, targetKind?: string): string {
   if (fieldPath === "tonalAnchors" && Array.isArray(value)) {
     return value.map(item => String(item)).join("\n")
   }
-  if (fieldPath === "sourceLink") {
-    return JSON.stringify(value ?? { sourceId: "", sourceKind: "fact" }, null, 2)
+  if (fieldPath === "scenes" && Array.isArray(value)) {
+    return value.map(item => String(item)).join("\n")
+  }
+  if (fieldPath === "sourceLink" || fieldPath === "self" || fieldPath === "obligations") {
+    return JSON.stringify(value ?? defaultStructuredValue(fieldPath, targetKind), null, 2)
   }
   if (value === null || value === undefined) return ""
   if (typeof value === "string") return value
@@ -725,27 +773,137 @@ function compareTargets(a: PlanningTarget, b: PlanningTarget): number {
 
 function supportedFieldPaths(target: PlanningTarget): string[] {
   const supported = SUPPORTED_FIELDS[target.kind] ?? []
-  return supported.filter(field => target.fieldPaths.includes(field))
+  const fields = supported.filter(field => target.fieldPaths.includes(field))
+  if (target.kind === "beat_plan" && supported.includes("self")) fields.push("self")
+  if (
+    target.kind === "beat_plan" &&
+    target.fieldPaths.includes("obligations") &&
+    supported.includes("obligations") &&
+    !fields.includes("obligations")
+  ) {
+    fields.push("obligations")
+  }
+  if (target.kind === "beat_obligation" && supported.includes("self")) fields.push("self")
+  if (
+    target.kind === "chapter_outline" &&
+    target.fieldPaths.includes("scenes") &&
+    supported.includes("scenes") &&
+    !fields.includes("scenes")
+  ) {
+    fields.push("scenes")
+  }
+  return Array.from(new Set(fields))
 }
 
-function parseProposedValue(fieldPath: string, raw: string): unknown {
-  if (fieldPath === "targetWords") return Number(raw)
+function planningEditActionFor(targetKind: string, fieldPath: string): PlanningEditAction {
+  if (targetKind === "chapter_outline" && fieldPath === "scenes") return "beat_reorder"
+  if (targetKind === "beat_plan" && fieldPath === "self") return "beat_replace"
+  if (targetKind === "beat_plan" && fieldPath === "obligations") return "beat_obligation_reorder"
+  if (targetKind === "beat_obligation" && fieldPath === "self") return "beat_obligation_replace"
+  return "field_replace"
+}
+
+function planningImpactTarget(target: PlanningTarget, fieldPath: string): PlanningTargetRef {
+  if (fieldPath === "self" || fieldPath === "obligations") {
+    return { kind: target.kind, ref: target.ref }
+  }
+  return { kind: target.kind, ref: target.ref, fieldPath }
+}
+
+function parseProposedValue(fieldPath: string, raw: string, targetKind?: string): unknown {
+  if (fieldPath === "targetWords") {
+    const parsed = Number(raw)
+    if (!Number.isFinite(parsed) || parsed < 1) throw new Error("targetWords must be a positive number")
+    return parsed
+  }
   if (fieldPath === "tonalAnchors") {
     return raw.split(/\r?\n/).map(line => line.trim()).filter(Boolean)
   }
   if (fieldPath === "sourceLink") return JSON.parse(raw)
+  if (fieldPath === "scenes") return parseIdList(raw, "scenes")
+  if (fieldPath === "self") return parseJsonObject(raw, targetKind === "beat_obligation" ? "obligation" : "beat")
+  if (fieldPath === "obligations") {
+    const parsed = parseJsonObject(raw, "obligation reorder")
+    const listKey = parsed.listKey
+    const order = parsed.order
+    if (typeof listKey !== "string" || listKey.trim().length === 0) {
+      throw new Error("obligation reorder must include a listKey")
+    }
+    return { ...parsed, listKey: listKey.trim(), order: parseStringArray(order, "order") }
+  }
   return raw
 }
 
-function defaultInputValue(fieldPath: string): string {
+function defaultInputValue(fieldPath: string, _targetKind?: string): string {
   if (fieldPath === "sourceLink") {
     return JSON.stringify({ sourceId: "", sourceKind: "fact" }, null, 2)
   }
   return ""
 }
 
-function placeholderForField(fieldPath: string): string {
+function placeholderForField(fieldPath: string, targetKind?: string): string {
   if (fieldPath === "tonalAnchors") return "One tonal anchor per line"
   if (fieldPath === "sourceLink") return "{\n  \"sourceId\": \"fact-example\",\n  \"sourceKind\": \"fact\"\n}"
+  if (fieldPath === "scenes") return "One beatId per line, in the desired chapter order"
+  if (fieldPath === "self" && targetKind === "beat_plan") {
+    return "{\n  \"beatId\": \"new-beat-id\",\n  \"description\": \"Replacement beat text\",\n  \"kind\": \"dialogue\",\n  \"characters\": [],\n  \"requiredPayoffs\": [],\n  \"obligations\": {}\n}"
+  }
+  if (fieldPath === "self" && targetKind === "beat_obligation") {
+    return "{\n  \"obligationId\": \"new-obligation-id\",\n  \"text\": \"Replacement obligation\",\n  \"sourceId\": \"fact-example\",\n  \"sourceKind\": \"fact\"\n}"
+  }
+  if (fieldPath === "obligations") {
+    return "{\n  \"listKey\": \"mustEstablish\",\n  \"order\": [\"obligation-id-a\", \"obligation-id-b\"]\n}"
+  }
   return "Enter proposed value"
+}
+
+function textareaRowsForField(fieldPath: string): number {
+  if (fieldPath === "sourceLink") return 6
+  if (fieldPath === "self" || fieldPath === "obligations") return 10
+  if (fieldPath === "scenes") return 7
+  return 5
+}
+
+function defaultStructuredValue(fieldPath: string, targetKind?: string): unknown {
+  if (fieldPath === "sourceLink") return { sourceId: "", sourceKind: "fact" }
+  if (fieldPath === "self" && targetKind === "beat_obligation") {
+    return { obligationId: "", text: "", sourceId: "", sourceKind: "fact" }
+  }
+  if (fieldPath === "self") {
+    return {
+      beatId: "",
+      description: "",
+      kind: "dialogue",
+      characters: [],
+      requiredPayoffs: [],
+      obligations: {},
+    }
+  }
+  if (fieldPath === "obligations") return { listKey: "", order: [] }
+  return null
+}
+
+function parseJsonObject(raw: string, label: string): Record<string, unknown> {
+  const parsed = JSON.parse(raw)
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`${label} must be a JSON object`)
+  }
+  return parsed as Record<string, unknown>
+}
+
+function parseIdList(raw: string, label: string): string[] {
+  const trimmed = raw.trim()
+  if (!trimmed) return []
+  if (trimmed.startsWith("[")) {
+    return parseStringArray(JSON.parse(trimmed), label)
+  }
+  return parseStringArray(trimmed.split(/[\r\n,]+/), label)
+}
+
+function parseStringArray(value: unknown, label: string): string[] {
+  if (!Array.isArray(value)) throw new Error(`${label} must be an array of stable IDs`)
+  const items = value.map(item => String(item).trim()).filter(Boolean)
+  if (items.length === 0) throw new Error(`${label} must include at least one stable ID`)
+  if (new Set(items).size !== items.length) throw new Error(`${label} cannot contain duplicate IDs`)
+  return items
 }

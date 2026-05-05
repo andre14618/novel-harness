@@ -180,7 +180,13 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   old-ref/new-ref mutation lineage. Structural proposal action routes now
   create/apply beat and beat-obligation replace/reorder edits, and structural
   lineage records exact-ID reorder plus same-slot replacement supersession.
-  Planning Studio UI controls remain pending.
+  Planning Studio now exposes those structural beat/obligation replace/reorder
+  actions through explicit action-aware controls.
+- Structural Planning Studio UI was browser-tested on disposable novel
+  `codex-structural-ui-1777995796883`. Evidence covers load, beat reorder
+  approve, beat replacement reject, obligation replacement edit-before-modified,
+  obligation reorder approve, status tabs, target-refresh recovery after stable
+  ID replacement, console/network capture, and local auth bypass.
 - Closed: Playwright MCP browser preflight for proposal UI passed on disposable
   novel `codex-ui-preflight-1777936779921`. Covered Canon proposal review load,
   approve/reject, modify-with-edits, status tabs, bulk approve/reject, and
@@ -203,6 +209,10 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
 - UI-facing work requires Playwright MCP evidence before handoff. Use
   `docs/ui-work-gate.md` and
   `docs/how-to/playwright-mcp-browser-testing.md`.
+- Browser evidence belongs in
+  `output/playwright/<YYYY-MM-DD>/<surface-or-lane>-<novelId-or-short-slug>/`;
+  close the Playwright tab/session and stop any test-only app server after the
+  pass completes.
 - Craft heuristics that alter planner, writer, or checker behavior must prove
   value in diagnostic-only or A/B-gated form before production-default wiring.
   See `docs/decisions/L079-authoring-harness-eval-gates.md`.

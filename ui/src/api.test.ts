@@ -10,6 +10,15 @@ import {
 } from "./api"
 
 const originalFetch = globalThis.fetch
+interface CapturedFetchRequest {
+  url: string
+  init?: RequestInit
+}
+
+function requireRequest(request: CapturedFetchRequest | null): CapturedFetchRequest {
+  if (!request) throw new Error("expected fetch to be called")
+  return request
+}
 
 afterEach(() => {
   globalThis.fetch = originalFetch
@@ -24,7 +33,7 @@ test("resolveProposalEnvelope returns structured stale-precondition responses", 
     actualVersion: "new",
     applied: false,
   }
-  let request: { url: string; init?: RequestInit } | null = null
+  let request: CapturedFetchRequest | null = null
   globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
     request = { url: String(url), init }
     return new Response(JSON.stringify(staleResponse), {
@@ -66,8 +75,9 @@ test("resolveProposalEnvelope returns structured stale-precondition responses", 
   await expect(
     resolveProposalEnvelope("test-novel", { envelope, status: "approved" }),
   ).resolves.toEqual(staleResponse)
-  expect(request?.url).toBe("/api/novel/test-novel/proposal-envelopes/resolve")
-  expect(request?.init?.method).toBe("POST")
+  const captured = requireRequest(request)
+  expect(captured.url).toBe("/api/novel/test-novel/proposal-envelopes/resolve")
+  expect(captured.init?.method).toBe("POST")
 })
 
 test("getPlanningProposalDiff fetches the read-only planning diff endpoint", async () => {
@@ -96,7 +106,7 @@ test("getPlanningProposalDiff fetches the read-only planning diff endpoint", asy
     },
     impactPreview: null,
   }
-  let request: { url: string; init?: RequestInit } | null = null
+  let request: CapturedFetchRequest | null = null
   globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
     request = { url: String(url), init }
     return new Response(JSON.stringify(diffResponse), {
@@ -107,11 +117,12 @@ test("getPlanningProposalDiff fetches the read-only planning diff endpoint", asy
 
   await expect(
     getPlanningProposalDiff("test-novel", "planning-edit:test:1"),
-  ).resolves.toEqual(diffResponse)
-  expect(request?.url).toBe(
+  ).resolves.toEqual(diffResponse as any)
+  const captured = requireRequest(request)
+  expect(captured.url).toBe(
     "/api/novel/test-novel/planning-proposals/planning-edit%3Atest%3A1/diff",
   )
-  expect(request?.init?.method).toBeUndefined()
+  expect(captured.init?.method).toBeUndefined()
 })
 
 test("createPlanningProposal posts planning edit create requests", async () => {
@@ -132,7 +143,7 @@ test("createPlanningProposal posts planning edit create requests", async () => {
     envelope: { id: "planning-edit:test:1", kind: "planning_edit" },
     impactPreview,
   }
-  let request: { url: string; init?: RequestInit } | null = null
+  let request: CapturedFetchRequest | null = null
   globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
     request = { url: String(url), init }
     return new Response(JSON.stringify(created), {
@@ -145,13 +156,47 @@ test("createPlanningProposal posts planning edit create requests", async () => {
     target: { kind: "story_spine", ref: "test-novel", fieldPath: "theme" },
     proposedValue: "Truth costs comfort.",
     rationale: "Sharpen theme.",
-  })).resolves.toEqual(created)
-  expect(request?.url).toBe("/api/novel/test-novel/planning-proposals")
-  expect(request?.init?.method).toBe("POST")
-  expect(JSON.parse(String(request?.init?.body))).toEqual({
+  })).resolves.toEqual(created as any)
+  const captured = requireRequest(request)
+  expect(captured.url).toBe("/api/novel/test-novel/planning-proposals")
+  expect(captured.init?.method).toBe("POST")
+  expect(JSON.parse(String(captured.init?.body))).toEqual({
     target: { kind: "story_spine", ref: "test-novel", fieldPath: "theme" },
     proposedValue: "Truth costs comfort.",
     rationale: "Sharpen theme.",
+  })
+})
+
+test("createPlanningProposal can post explicit structural planning actions", async () => {
+  const created = {
+    ok: true,
+    inserted: true,
+    envelope: { id: "planning-edit:test:structural", kind: "planning_edit" },
+    impactPreview: { impacts: [] },
+  }
+  let request: CapturedFetchRequest | null = null
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    request = { url: String(url), init }
+    return new Response(JSON.stringify(created), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })
+  }) as typeof fetch
+
+  await expect(createPlanningProposal("test-novel", {
+    action: "beat_reorder",
+    target: { kind: "chapter_outline", ref: "ch-1", fieldPath: "scenes" },
+    proposedValue: ["beat-b", "beat-a"],
+    rationale: "Put the reveal first.",
+  })).resolves.toEqual(created as any)
+  const captured = requireRequest(request)
+  expect(captured.url).toBe("/api/novel/test-novel/planning-proposals")
+  expect(captured.init?.method).toBe("POST")
+  expect(JSON.parse(String(captured.init?.body))).toEqual({
+    action: "beat_reorder",
+    target: { kind: "chapter_outline", ref: "ch-1", fieldPath: "scenes" },
+    proposedValue: ["beat-b", "beat-a"],
+    rationale: "Put the reveal first.",
   })
 })
 
@@ -162,8 +207,9 @@ test("resolvePlanningProposal returns structured stale planning responses", asyn
     envelopeId: "planning-edit:test:1",
     expectedVersion: "old",
     actualVersion: "new",
+    applied: false,
   }
-  let request: { url: string; init?: RequestInit } | null = null
+  let request: CapturedFetchRequest | null = null
   globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
     request = { url: String(url), init }
     return new Response(JSON.stringify(staleResponse), {
@@ -177,11 +223,12 @@ test("resolvePlanningProposal returns structured stale planning responses", asyn
     "planning-edit:test:1",
     { status: "approved", resolvedBy: "test" },
   )).resolves.toEqual(staleResponse)
-  expect(request?.url).toBe(
+  const captured = requireRequest(request)
+  expect(captured.url).toBe(
     "/api/novel/test-novel/planning-proposals/planning-edit%3Atest%3A1/resolve",
   )
-  expect(request?.init?.method).toBe("POST")
-  expect(JSON.parse(String(request?.init?.body))).toEqual({
+  expect(captured.init?.method).toBe("POST")
+  expect(JSON.parse(String(captured.init?.body))).toEqual({
     status: "approved",
     resolvedBy: "test",
   })
@@ -195,7 +242,7 @@ test("resolvePlanningProposal posts modified planning payloads", async () => {
     status: "modified",
     newVersion: "new",
   }
-  let request: { url: string; init?: RequestInit } | null = null
+  let request: CapturedFetchRequest | null = null
   globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
     request = { url: String(url), init }
     return new Response(JSON.stringify(response), {
@@ -233,12 +280,13 @@ test("resolvePlanningProposal posts modified planning payloads", async () => {
       operatorNote: "Use the sharper wording.",
       resolvedBy: "test",
     },
-  )).resolves.toEqual(response)
-  expect(request?.url).toBe(
+  )).resolves.toEqual(response as any)
+  const captured = requireRequest(request)
+  expect(captured.url).toBe(
     "/api/novel/test-novel/planning-proposals/planning-edit%3Atest%3A1/resolve",
   )
-  expect(request?.init?.method).toBe("POST")
-  expect(JSON.parse(String(request?.init?.body))).toEqual({
+  expect(captured.init?.method).toBe("POST")
+  expect(JSON.parse(String(captured.init?.body))).toEqual({
     status: "modified",
     modifiedPayload,
     operatorNote: "Use the sharper wording.",

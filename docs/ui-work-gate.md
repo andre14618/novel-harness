@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-04
+updated: 2026-05-05
 role: ui-verification-gate
 ---
 
@@ -39,8 +39,19 @@ is too small to justify a full scenario, record that judgment in the handoff.
 
 ## Storage
 
-Screenshots may be stored at the repository root with descriptive names during
-local clearance. Link or list the files in the final handoff or lane doc.
+Store screenshots, snapshots, console logs, and network logs in a per-run
+directory:
+
+```text
+output/playwright/<YYYY-MM-DD>/<surface-or-lane>-<novelId-or-short-slug>/
+```
+
+Use descriptive names such as `baseline.png`, `after-modify.png`,
+`console-final.md`, and `network-final.md`. Link or list the directory and key
+files in the final handoff or lane doc.
+
+After the evidence is captured, close the Playwright MCP browser tab/session.
+Stop any local app server started only for the browser test.
 
 Do not substitute screenshot generation from code inspection for real browser
 evidence. If Playwright MCP is unavailable, report the browser preflight as
