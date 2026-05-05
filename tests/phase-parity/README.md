@@ -7,6 +7,44 @@ that the post-replay DB state byte-equals the recorded expectation.
 Lives in the explicit replay tier so stale fixtures do not block fast or DB
 integration gates.
 
+## Why this matters
+
+The replay harness gives the Novel Harness a deterministic regression test for
+an otherwise stochastic system. A normal end-to-end novel run depends on live
+LLM responses, provider latency, model routing, prompt text, DB writes, checker
+ordering, and gate behavior. If a later code change makes the pipeline behave
+differently, a live rerun may blur the cause because the model can also change
+its answer. Replay removes that noise.
+
+The fixture freezes the LLM boundary:
+
+1. Recording captures each outbound LLM request and its response.
+2. Replay serves those recorded responses back to the pipeline by request hash.
+3. The test snapshots the resulting DB state and compares it to the recorded
+   normalized expectation.
+
+That means the harness can answer a narrow question: "Given the same seed and
+the same model responses, did our orchestration, persistence, proposal, checker,
+and phase-transition code produce the same novel state?" If not, the source
+change affected deterministic harness behavior and needs either a fix or a
+deliberate fixture refresh.
+
+For the broader AI novel system, this protects the machinery that turns plans
+into prose:
+
+- phase transitions stay stable across Concept, Planning, Drafting, and
+  Validation;
+- chapter outlines, beats, stable IDs, planned state, drafts, issues, LLM
+  telemetry, and pipeline events keep the same persistence shape;
+- checker warnings/blockers and approval behavior do not silently drift;
+- refactors can be separated from creative-output experiments;
+- fixture refreshes become explicit evidence that a pipeline behavior change
+  was intentional.
+
+It does not prove the generated prose is "better." It proves the harness is
+still applying the same deterministic process around the frozen creative calls.
+Quality changes still need component evals, A/B probes, or live smoke runs.
+
 ## What's checked
 
 The harness covers the table set documented in

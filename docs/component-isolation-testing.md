@@ -28,6 +28,11 @@ Checking layer:
 
 ## 2. Required End-to-End Tests
 
+- Phase-parity replay is the deterministic end-to-end gate for orchestration
+  and persistence changes. It freezes the LLM boundary with recorded responses,
+  reruns the full pipeline, and byte-compares the normalized DB snapshot. Use
+  it when the change could alter phase transitions, persistence shape,
+  proposal/checker side effects, stable IDs, telemetry, or approval flow.
 - Retry exhaustion must stay end-to-end because budgets in `src/phases/drafting.ts`, persisted flags in `chapter_outlines.revision_used` (`sql/031_chapter_outlines_revision_used.sql`), and gate telemetry in `chapter_revisions` / `chapter_exhaustions` only interact under a live chapter attempt.
 - Escalation flow must stay end-to-end because adherence and hallucination retries can change prose enough to alter later `chapter-plan-checker` verdicts; the meaningful behavior is beat issue -> targeted rewrite -> chapter-level recheck -> possible `chapter-plan-reviser`, not any single call in isolation.
 - Plan-reviser post-revision sanity checks must stay end-to-end because the important question is not “did the reviser return JSON,” but “did `saveChapterOutline()` persist an acceptable revision, restart the attempt, and honor the one-reviser lifetime cap.”
@@ -35,6 +40,9 @@ Checking layer:
 
 ## 3. Existing Reusable Infrastructure
 
+- `tests/phase-parity/` provides the full-pipeline replay harness. It records
+  LLM calls plus expected normalized DB state, then reruns with
+  `ReplayTransport`; use `bun run test:replay` for the explicit replay tier.
 - `scripts/variant/clone-for-variant.ts` already gives plan-freeze infrastructure for within-seed ladders by copying `novels`, `world_bibles`, `characters`, `chapter_outlines`, and planner-materialized state tables before drafting.
 - `docs/eval-infrastructure.md`, `sql/024_eval_briefs_and_results.sql`, and `sql/026_checker_eval_columns.sql` already define a DB-backed eval loop. `eval_briefs` holds frozen inputs; `eval_results` already supports both Phase C.3 voice evals and checker-style `expected_label_json` / `actual_label_json`.
 - `scripts/variant/*` is intentionally sparse today: the folder currently contains only `clone-for-variant.ts`. New isolation runners should live beside it so plan-freeze workflows stay discoverable and consistent.
