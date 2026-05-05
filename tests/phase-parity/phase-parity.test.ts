@@ -23,6 +23,7 @@ import { describe, expect, test } from "bun:test"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { setTransport } from "../../src/transport"
+import { setAutoMode, setResolverMode } from "../../src/cli"
 import { ReplayTransport } from "./replay-transport"
 import { captureSnapshot, clearNovelState } from "./db-snapshot"
 import { normalize, serialize } from "./normalize"
@@ -61,6 +62,8 @@ describe("phase parity", () => {
     }
 
     setTransport(ReplayTransport.fromFile(TRANSPORT_PATH))
+    setAutoMode(true)
+    setResolverMode("auto")
 
     await clearNovelState(seed.novelId)
     await createNovel(seed.novelId, seed.seed)

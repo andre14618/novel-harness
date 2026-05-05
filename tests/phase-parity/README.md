@@ -20,11 +20,16 @@ Snapshot normalization:
 | Field type | Treatment |
 |---|---|
 | `created_at`, `timestamp`, `*_at` columns | Replaced with `"<TS>"` |
+| telemetry `duration_ms` columns | Replaced with `"<DURATION>"` |
 | UUID PKs | Replaced with stable hash of (table, business-key fields) |
 | Serial PKs without business-key remap | Replaced with `<table>:row-<idx>` |
 | Floating-point columns | Rounded to 6 decimal places |
 | Large text/JSONB (prompts, prose, scenes_json, etc.) | Replaced with `<HASH:sha256-prefix>` |
 | Foreign-key UUIDs | Replaced with stable hash |
+
+`pipeline_events` are compared as a logical multiset rather than by serial
+insertion order because replay runs faster and parallel checker events can
+interleave differently from recording.
 
 Hashed-field list lives in `db-snapshot.ts:HASHED_FIELDS`; comparison key
 fields per table are in `normalize.ts:REMAP_PK_CONFIG`. Both must stay in

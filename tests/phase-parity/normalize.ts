@@ -9,14 +9,16 @@
  * stays manageable while still catching content drift. The hash list lives
  * in `db-snapshot.ts:HASHED_FIELDS`.
  *
- * Output is a stable JSON object: keys sorted, arrays in PK order (already
- * sorted by db-snapshot). Two normalized snapshots are byte-equal iff the
- * runs are equivalent under the rules below.
+ * Output is a stable JSON object: keys sorted, arrays in deterministic order
+ * (usually db-snapshot order; telemetry tables may be re-sorted by logical
+ * keys). Two normalized snapshots are byte-equal iff the runs are equivalent
+ * under the rules below.
  *
  * Rules:
  *   timestamps      → "<TS>"        (any TIMESTAMPTZ/created_at/timestamp/etc)
  *   UUID strings    → stable hash of (table, primary-key-fields, row-position)
  *   serial PKs      → row index within the table (0-based)
+ *   durations       → "<DURATION>" for telemetry wall-clock measurements
  *   floats          → rounded to 6 decimal places
  *   listed fields   → SHA-256 hash of stringified content
  */
@@ -62,6 +64,7 @@ const REMAP_PK_CONFIG: Record<string, string[]> = {
 }
 
 const HASHED_KEY = new Set(HASHED_FIELDS.map(({ table, field }) => `${table}.${field}`))
+const DURATION_FIELDS = new Set(["duration_ms"])
 
 function sha256(s: string): string {
   return createHash("sha256").update(s).digest("hex").slice(0, 16) // truncate for readability
@@ -98,6 +101,35 @@ function hashContent(v: unknown): string {
   return `<HASH:${sha256(s)}>`
 }
 
+function sortValue(v: unknown): string {
+  if (v === null || v === undefined) return ""
+  if (typeof v === "number") return String(v).padStart(8, "0")
+  if (isUUIDLike(v)) return "<UUID>"
+  if (typeof v === "object") return hashContent(v)
+  return String(v)
+}
+
+function pipelineEventSortKey(row: Record<string, unknown>): string {
+  return [
+    sortValue(row.novel_id),
+    sortValue(row.chapter),
+    sortValue(row.beat_index),
+    sortValue(row.event_type),
+    sortValue(row.agent),
+    sortValue(row.payload),
+  ].join("|")
+}
+
+function rowsForNormalization(table: string, rows: ReadonlyArray<Record<string, unknown>>): ReadonlyArray<Record<string, unknown>> {
+  if (table !== "pipeline_events") return rows
+
+  // Pipeline events include parallel checker/write telemetry. Serial insertion
+  // order can legitimately differ between recording and replay even when the
+  // same logical events occur, so compare the multiset in a deterministic
+  // logical order instead of PK order.
+  return [...rows].sort((a, b) => pipelineEventSortKey(a).localeCompare(pipelineEventSortKey(b)))
+}
+
 function normalizeRow(table: string, row: Record<string, unknown>, rowIdx: number): Record<string, unknown> {
   // Stable id is hashed from business-key fields (which exclude timestamps,
   // see REMAP_PK_CONFIG comment) plus row position.
@@ -110,6 +142,8 @@ function normalizeRow(table: string, row: Record<string, unknown>, rowIdx: numbe
 
     if (TIMESTAMP_FIELDS.has(k)) {
       v = "<TS>"
+    } else if (DURATION_FIELDS.has(k)) {
+      v = "<DURATION>"
     } else if (k === "id" && newId !== null) {
       v = newId
     } else if (k === "id" && typeof raw === "number") {
@@ -139,7 +173,7 @@ function sortKeys(obj: Record<string, unknown>): Record<string, unknown> {
 export function normalize(raw: RawSnapshot): NormalizedSnapshot {
   const tables: Record<string, ReadonlyArray<Record<string, unknown>>> = {}
   for (const [t, rows] of Object.entries(raw.tables)) {
-    tables[t] = rows.map((r, i) => sortKeys(normalizeRow(t, r, i)))
+    tables[t] = rowsForNormalization(t, rows).map((r, i) => sortKeys(normalizeRow(t, r, i)))
   }
   return { novelId: raw.novelId, tables }
 }
