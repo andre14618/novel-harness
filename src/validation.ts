@@ -1,10 +1,21 @@
 import type { ChapterOutline, ValidationFinding, ValidationResult } from "./types"
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
 function nameInDraft(name: string, draftLower: string): boolean {
-  // Check full name and first name (handles "Davan Cole" matching "Davan")
-  if (draftLower.includes(name.toLowerCase())) return true
-  const firstName = name.split(/\s+/)[0]
-  if (firstName && draftLower.includes(firstName.toLowerCase())) return true
+  const normalized = name.trim().toLowerCase().replace(/\s+/g, " ")
+  if (!normalized) return false
+
+  const candidates = new Set<string>([normalized])
+  const parts = normalized.split(/\s+/).filter(part => part.length >= 3)
+  if (parts[0]) candidates.add(parts[0])
+  if (parts.length > 1) candidates.add(parts[parts.length - 1]!)
+
+  for (const candidate of candidates) {
+    if (new RegExp(`\\b${escapeRegExp(candidate)}\\b`).test(draftLower)) return true
+  }
   return false
 }
 

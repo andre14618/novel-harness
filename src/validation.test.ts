@@ -135,4 +135,33 @@ describe("validateChapterDraft structured findings", () => {
     expect(result.blockers).toEqual([])
     expect(result.findings?.some(f => f.code.startsWith("beat_keyword_"))).toBe(false)
   })
+
+  test("character presence accepts surname references for multi-part names", () => {
+    const result = validateChapterDraft(
+      longDraft("Mira studies the ledger while Kade keeps watch at the archive door."),
+      outline({ charactersPresent: ["Mira", "Tomas Kade"] }),
+    )
+
+    expect(result.warnings).not.toContain('Character "Tomas Kade" listed but never mentioned')
+    expect(result.findings?.some(f =>
+      f.code === "character_missing" &&
+      f.metadata?.characterName === "Tomas Kade"
+    )).toBe(false)
+  })
+
+  test("POV presence accepts surname references without substring matches", () => {
+    const surnameOnly = validateChapterDraft(
+      longDraft("Kade keeps his hand on the ledger as the archive doors open."),
+      outline({ povCharacter: "Tomas Kade", charactersPresent: ["Tomas Kade"] }),
+    )
+    expect(surnameOnly.blockers).toEqual([])
+
+    const substringOnly = validateChapterDraft(
+      longDraft("A mirage shimmers above the archive stones."),
+      outline({ povCharacter: "Mira", charactersPresent: ["Mira"] }),
+    )
+    expect(substringOnly.blockers).toEqual([
+      'POV character "Mira" never mentioned in draft',
+    ])
+  })
 })

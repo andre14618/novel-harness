@@ -445,7 +445,9 @@ No candidate becomes default production behavior from source strength alone.
 - **Warning calibration:** the refreshed smoke fixture still produced
   warning-class functional-state and validation findings despite passing plan
   and continuity checks. Review warning precision before turning those warnings
-  into blocking behavior.
+  into blocking behavior. First calibration landed for deterministic validation
+  character-presence warnings: surname-only references now count for multi-part
+  names, and substring-only matches no longer count.
 
 ### Step 8 - Character Voice And Motivation Polish
 

@@ -186,6 +186,9 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
 - `validateChapterDraft()` now emits additive structured `findings[]` with
   stable chapter refs on all findings and stable beat refs for validation-mode
   beat keyword checks while preserving legacy blocker/warning strings.
+- Validation character-presence checks accept full-name, first-name, or
+  surname word-boundary references, reducing false warnings for characters
+  referenced by surname only without substring matches.
 - Drafting validation rewrite routing prefers those structured finding
   codes/refs and keeps blocker-string routing only as a compatibility fallback.
 - `GET /api/novel/:novelId/chapter-health` now exposes read-only chapter

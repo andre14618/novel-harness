@@ -23,6 +23,9 @@ This file tracks active and immediately actionable work only.
 
 ## Recently Closed
 
+- Validation character-presence warnings now handle surname-only references for
+  multi-part names and avoid substring matches, closing the false-positive class
+  observed in the refreshed smoke fixture.
 - Legacy direct artifact `PUT` routes for character/world/spine updates now
   stay disabled in runtime; meaningful artifact edits use `planning_edit`
   proposal envelopes or existing artifact-patch resolution paths.
