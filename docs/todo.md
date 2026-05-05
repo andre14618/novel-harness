@@ -123,8 +123,7 @@ This file is the actionable backlog only. Live architecture belongs in
 
 ## Lower Priority
 
-- [ ] Checker calibration follow-ups: functional-state warning panel,
-  validation false-positive review, continuity subclass calibration, and
+- [ ] Checker calibration follow-ups: continuity subclass adjudication and
   stochastic checker convergence sweeps.
 - [ ] Composite-prior methodology probe: choose one bundle before running more
   corpus/prompt experiments.

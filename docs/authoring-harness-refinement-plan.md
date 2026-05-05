@@ -450,7 +450,9 @@ No candidate becomes default production behavior from source strength alone.
   and continuity checks. Review warning precision before turning those warnings
   into blocking behavior. First calibration landed for deterministic validation
   character-presence warnings: surname-only references now count for multi-part
-  names, and substring-only matches no longer count.
+  names, and substring-only matches no longer count. Diagnostic support:
+  `bun run diagnostics:checker-warnings -- --novel <novelId>` summarizes
+  functional-check and continuity warning evidence for adjudication.
 
 ### Step 8 - Character Voice And Motivation Polish
 

@@ -23,6 +23,10 @@ This file tracks active and immediately actionable work only.
 
 ## Recently Closed
 
+- Added a diagnostic-only checker warning report over existing
+  `functional-check` trace events and continuity checker `llm_calls`. Use
+  `bun run diagnostics:checker-warnings -- --novel <novelId>` before relaxing
+  checker behavior.
 - Added a diagnostic-only plan drift report over existing
   `chapter-plan-checker` `llm_calls` rows. Use
   `bun run diagnostics:plan-drift -- --novel <novelId>` to inspect pass/fail,

@@ -174,6 +174,9 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
 - `bun run diagnostics:plan-drift -- --novel <novelId>` summarizes existing
   `chapter-plan-checker` telemetry for semantic action drift evidence without
   changing prompts, traces, replay fixtures, or writer behavior.
+- `bun run diagnostics:checker-warnings -- --novel <novelId>` summarizes
+  warning-class functional-check and continuity evidence for checker
+  calibration without changing runtime behavior.
 - Halluc-ungrounded issue metadata now carries exact-match `entityRefs[]` for
   `character`, `world_system`, and `culture` targets when deterministic
   resolution is possible, and accepted beat-check blockers preserve the
