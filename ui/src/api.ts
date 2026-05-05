@@ -18,6 +18,17 @@ async function fetchJSON<T>(url: string, opts?: RequestInit): Promise<T> {
   return res.json()
 }
 
+async function fetchJSONAllowingErrorBody<T>(url: string, opts?: RequestInit): Promise<T> {
+  const res = await fetch(url, { ...opts, headers: { ...headers, ...opts?.headers }, credentials: "same-origin" })
+  if (res.status === 401) {
+    window.location.href = "/login"
+    throw new Error("Session expired")
+  }
+  const body = await res.json().catch(() => null)
+  if (body !== null) return body as T
+  throw new Error(res.statusText || `HTTP ${res.status}`)
+}
+
 export function getSeeds() {
   return fetchJSON<{ seeds: string[] }>("/api/novel/seeds")
 }
@@ -195,6 +206,7 @@ export type ProposalEnvelopeKind =
   | "canon_update"
   | "prose_edit"
   | "editorial_flag"
+  | "planning_edit"
 
 export type ProposalEnvelopeStatus =
   | "pending"
@@ -213,6 +225,8 @@ export interface ProposalTargetRef {
     | "character"
     | "story_spine"
     | "chapter_outline"
+    | "beat_plan"
+    | "beat_obligation"
     | "canon_fact"
     | "prose_span"
   ref: string
@@ -342,8 +356,246 @@ export function resolveProposalEnvelope(
     operatorNote?: string
   },
 ) {
-  return fetchJSON<ResolveProposalEnvelopeResponse>(
+  return fetchJSONAllowingErrorBody<ResolveProposalEnvelopeResponse>(
     `/api/novel/${novelId}/proposal-envelopes/resolve`,
+    { method: "POST", body: JSON.stringify(body) },
+  )
+}
+
+export type PlanningEditTargetKind =
+  | "planning_directive"
+  | "world_bible"
+  | "character"
+  | "story_spine"
+  | "chapter_outline"
+  | "beat_plan"
+  | "beat_obligation"
+
+export interface PlanningEditTarget {
+  kind: PlanningEditTargetKind
+  ref: string
+  fieldPath: string
+}
+
+export interface PlanningEditPayload {
+  action: "field_replace"
+  target: PlanningEditTarget
+  previousValue: unknown
+  proposedValue: unknown
+  impactPreview?: PlanningImpactSnapshot
+}
+
+export type PlanningEditEnvelope = ReviewProposalEnvelope<PlanningEditPayload> & {
+  kind: "planning_edit"
+}
+
+export interface PlanningTargetRef {
+  kind: PlanningEditTargetKind | "world_fact" | "world_system" | "culture"
+  ref: string
+  fieldPath?: string
+}
+
+export interface PlanningTarget {
+  kind: PlanningTargetRef["kind"]
+  ref: string
+  label: string
+  fieldPaths: string[]
+  currentVersion: string
+  inSnapshot: boolean
+  location?: {
+    chapterNumber?: number
+    chapterId?: string
+    beatIndex?: number
+    beatId?: string
+  }
+  upstreamRefs: PlanningTargetRef[]
+  validationFindings: {
+    severity: "warning" | "error"
+    code: string
+    message: string
+    path?: string
+  }[]
+}
+
+export interface PlanningTargetMap {
+  ok: true
+  novelId: string
+  planningSnapshotVersion: "v2"
+  planningSnapshotHash: string
+  targets: PlanningTarget[]
+  validationFindings: PlanningTarget["validationFindings"]
+}
+
+export interface PlanningImpact {
+  kind: string
+  reason: string
+  target: PlanningTargetRef
+  location?: PlanningTarget["location"]
+  metadata?: Record<string, unknown>
+}
+
+export interface PlanningImpactPreview {
+  ok: true
+  novelId: string
+  planningSnapshotVersion: "v2"
+  planningSnapshotHash: string
+  target: PlanningTarget
+  impacts: PlanningImpact[]
+  relatedProposalEnvelopes: unknown[]
+  relatedResolutionImpacts: unknown[]
+  relatedMutationLineage: unknown[]
+}
+
+export interface PlanningImpactSnapshotRef {
+  kind: string
+  ref: string
+  fieldPath?: string
+}
+
+export interface PlanningImpactSnapshotImpact {
+  kind: string
+  reason?: string
+  target: PlanningImpactSnapshotRef
+  location?: PlanningTarget["location"] | Record<string, unknown>
+  metadata?: Record<string, unknown>
+}
+
+export interface PlanningImpactSnapshot {
+  planningSnapshotVersion?: string
+  planningSnapshotHash?: string
+  impacts: PlanningImpactSnapshotImpact[]
+  [key: string]: unknown
+}
+
+export interface PlanningEditDiffValue {
+  value: unknown
+  display: string
+  hash: string
+}
+
+export interface PlanningEditDiff {
+  action: "field_replace"
+  target: PlanningEditTarget
+  before: PlanningEditDiffValue
+  after: PlanningEditDiffValue
+  changed: boolean
+}
+
+export interface PlanningProposalDiffResponse {
+  ok: boolean
+  envelopeId: string
+  status: ProposalEnvelopeStatus
+  target: ProposalTargetRef
+  precondition: ProposalPrecondition
+  diff: PlanningEditDiff
+  currentTarget: {
+    currentVersion: string
+    currentValue: unknown
+    stale: boolean
+  } | null
+  impactPreview: PlanningImpactSnapshot | null
+  error?: string
+}
+
+export interface CreatePlanningProposalRequest {
+  target: PlanningEditTarget
+  proposedValue: unknown
+  rationale?: string
+  source?: {
+    agent?: string
+    userMessage?: string
+    parentEnvelopeId?: string
+  }
+}
+
+export interface CreatePlanningProposalResponse {
+  ok: boolean
+  inserted: boolean
+  envelope: PlanningEditEnvelope
+  impactPreview: PlanningImpactSnapshot
+  diff?: PlanningEditDiff
+  error?: string
+}
+
+export interface ResolvePlanningProposalResponse {
+  ok: boolean
+  envelopeId: string
+  applied: boolean
+  status?: "approved" | "rejected" | "modified"
+  newVersion?: string
+  diff?: PlanningEditDiff
+  expectedVersion?: string
+  actualVersion?: string
+  actualStatus?: string
+  error?: string
+}
+
+export type ResolvePlanningProposalRequest = {
+  operatorNote?: string
+  resolvedBy?: "human" | "policy" | "script" | "test"
+} & (
+  | {
+    status: "approved" | "rejected"
+    modifiedPayload?: never
+  }
+  | {
+    status: "modified"
+    modifiedPayload: PlanningEditPayload
+  }
+)
+
+export function createPlanningProposal(
+  novelId: string,
+  body: CreatePlanningProposalRequest,
+) {
+  return fetchJSON<CreatePlanningProposalResponse>(
+    `/api/novel/${novelId}/planning-proposals`,
+    { method: "POST", body: JSON.stringify(body) },
+  )
+}
+
+export function listPlanningProposals(
+  novelId: string,
+  opts: { status?: ProposalEnvelopeStatus | "all"; limit?: number } = {},
+) {
+  const params = new URLSearchParams()
+  if (opts.status !== undefined) params.set("status", opts.status)
+  if (opts.limit !== undefined) params.set("limit", String(opts.limit))
+  const qs = params.toString()
+  return fetchJSON<{ ok: boolean; envelopes: PlanningEditEnvelope[] }>(
+    `/api/novel/${novelId}/planning-proposals${qs ? `?${qs}` : ""}`,
+  )
+}
+
+export function getPlanningTargets(novelId: string) {
+  return fetchJSON<PlanningTargetMap>(
+    `/api/novel/${novelId}/planning-targets`,
+  )
+}
+
+export function previewPlanningImpact(
+  novelId: string,
+  target: PlanningTargetRef,
+) {
+  return fetchJSON<PlanningImpactPreview>(
+    `/api/novel/${novelId}/planning-impact/preview`,
+    { method: "POST", body: JSON.stringify({ target }) },
+  )
+}
+
+export function getPlanningProposalDiff(novelId: string, envelopeId: string) {
+  return fetchJSON<PlanningProposalDiffResponse>(
+    `/api/novel/${novelId}/planning-proposals/${encodeURIComponent(envelopeId)}/diff`,
+  )
+}
+
+export function resolvePlanningProposal(
+  novelId: string,
+  envelopeId: string,
+  body: ResolvePlanningProposalRequest,
+) {
+  return fetchJSONAllowingErrorBody<ResolvePlanningProposalResponse>(
+    `/api/novel/${novelId}/planning-proposals/${encodeURIComponent(envelopeId)}/resolve`,
     { method: "POST", body: JSON.stringify(body) },
   )
 }
@@ -509,6 +761,7 @@ export function getChapterVersions(novelId: string, chapter: number) {
 export interface BeatData {
   chapter: number
   beatIndex: number
+  beatId?: string | null
   prose: string
   wordCount: number
   promptTokens: number
@@ -590,6 +843,7 @@ export interface LLMCallRow {
   novel_id: string | null
   chapter: number | null
   beat_index: number | null
+  beat_id: string | null
   attempt: number | null
   timestamp: string
   failed: boolean | null
@@ -615,6 +869,7 @@ export interface LLMCallFilters {
   agent?: string
   chapter?: number
   beatIndex?: number
+  beatId?: string
   runId?: number
   limit?: number
   failedOnly?: boolean
@@ -626,6 +881,7 @@ export function listLLMCalls(filters: LLMCallFilters = {}) {
   if (filters.agent) qs.set("agent", filters.agent)
   if (filters.chapter != null) qs.set("chapter", String(filters.chapter))
   if (filters.beatIndex != null) qs.set("beat_index", String(filters.beatIndex))
+  if (filters.beatId) qs.set("beat_id", filters.beatId)
   if (filters.runId != null) qs.set("run_id", String(filters.runId))
   if (filters.limit != null) qs.set("limit", String(filters.limit))
   if (filters.failedOnly) qs.set("failed", "1")

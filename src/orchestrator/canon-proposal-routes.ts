@@ -106,9 +106,13 @@ const approvalPolicySchema = z.object({
   mode: z.enum(["manual", "assisted", "autonomous", "eval"]),
   autoApproveRiskCeiling: z.enum(["mechanical", "low", "medium", "high"]).optional(),
   manualKinds: z
-    .array(z.enum(["artifact_patch", "canon_update", "prose_edit", "editorial_flag"]))
+    .array(z.enum(["artifact_patch", "canon_update", "prose_edit", "editorial_flag", "planning_edit"]))
     .optional(),
 })
+
+const resolvedByKindSchema = z
+  .enum(["human", "policy", "script", "test"])
+  .optional()
 
 type ResolveStatus = Exclude<ProposalStatus, "pending">
 
@@ -179,7 +183,7 @@ export async function handleCanonProposalRoute(
       /** Phase 6 commit 4: optional policy for audit-trail recording. */
       policy?: unknown
       /** Phase 6 commit 4: who/what is driving this resolution. Default "human". */
-      resolvedBy?: "human" | "policy" | "script" | "test"
+      resolvedBy?: unknown
     }
     try {
       body = (await req.json()) as typeof body
@@ -198,6 +202,20 @@ export async function handleCanonProposalRoute(
     if (body.status === "modified" && !body.modifiedFact) {
       return Response.json(
         { error: "status=modified requires modifiedFact" },
+        { status: 400 },
+      )
+    }
+
+    const resolvedBy = resolvedByKindSchema.safeParse(body.resolvedBy)
+    if (!resolvedBy.success) {
+      return Response.json(
+        {
+          error: "invalid resolvedBy in body",
+          issues: resolvedBy.error.issues.map((i) => ({
+            path: i.path.join("."),
+            message: i.message,
+          })),
+        },
         { status: 400 },
       )
     }
@@ -228,7 +246,7 @@ export async function handleCanonProposalRoute(
       buildCanonUpdateEnvelopeForPolicy(novelId, proposalId),
       activePolicy,
     )
-    const resolvedByKind = body.resolvedBy ?? "human"
+    const resolvedByKind = resolvedBy.data ?? "human"
 
     // Authoritative read + substrate write are wrapped in a single try/catch
     // so a transient DB error on the pre-read surfaces as a structured 500
@@ -344,6 +362,8 @@ export async function handleCanonProposalRoute(
         operatorNote?: string
         expectedStatus?: string
       }>
+      policy?: unknown
+      resolvedBy?: unknown
     }
     try {
       body = (await req.json()) as typeof body
@@ -370,6 +390,39 @@ export async function handleCanonProposalRoute(
         { status: 400 },
       )
     }
+
+    let activePolicy: ApprovalPolicy = DEFAULT_MANUAL_POLICY
+    if (body.policy !== undefined) {
+      const parsed = approvalPolicySchema.safeParse(body.policy)
+      if (!parsed.success) {
+        return Response.json(
+          {
+            error: "invalid policy in body",
+            issues: parsed.error.issues.map((i) => ({
+              path: i.path.join("."),
+              message: i.message,
+            })),
+          },
+          { status: 400 },
+        )
+      }
+      activePolicy = parsed.data
+    }
+
+    const resolvedBy = resolvedByKindSchema.safeParse(body.resolvedBy)
+    if (!resolvedBy.success) {
+      return Response.json(
+        {
+          error: "invalid resolvedBy in body",
+          issues: resolvedBy.error.issues.map((i) => ({
+            path: i.path.join("."),
+            message: i.message,
+          })),
+        },
+        { status: 400 },
+      )
+    }
+    const resolvedByKind = resolvedBy.data ?? "human"
 
     type BulkResult = {
       proposalId: string
@@ -448,12 +501,20 @@ export async function handleCanonProposalRoute(
           })
           continue
         }
+        const policyEvaluation: PolicyEvaluation = evaluatePolicy(
+          buildCanonUpdateEnvelopeForPolicy(novelId, proposalId),
+          activePolicy,
+        )
         const result = await sub.resolveProposal(
           proposalId,
           r.status as ResolveStatus,
           {
             modifiedFact: r.modifiedFact,
             operatorNote: r.operatorNote,
+            resolvedByKind,
+            policyDecision: policyEvaluation.decision,
+            policyVersion: policyEvaluation.policyVersion,
+            policyReasons: policyEvaluation.reasons,
           },
         )
         results.push({

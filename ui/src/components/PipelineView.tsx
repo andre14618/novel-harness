@@ -484,6 +484,14 @@ export function PipelineView() {
         <Link to={`/${window.location.search}`} style={{ fontSize: "0.85rem" }}>
           &larr; Back
         </Link>
+        {novelId && (
+          <Link
+            to={`/planning-studio/${encodeURIComponent(novelId)}`}
+            style={{ fontSize: "0.85rem", marginLeft: "0.75rem", color: "#9ac" }}
+          >
+            Planning Studio
+          </Link>
+        )}
         <h1 style={{ display: "inline", marginLeft: "1rem" }}>
           {novelId?.replace("novel-", "").slice(0, 13)}
         </h1>

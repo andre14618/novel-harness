@@ -21,7 +21,8 @@
 --      `parent_envelope_id` will let regen track its lineage.
 --
 -- The schema is intentionally generic across envelope `kind` values
--- (`artifact_patch` | `canon_update` | `prose_edit` | `editorial_flag`)
+-- (`artifact_patch` | `canon_update` | `prose_edit` | `editorial_flag` |
+--  `planning_edit`)
 -- per the design doc's §Proposal Envelope. The `payload`,
 -- `target_*`, and `precondition_*` fields are JSONB / TEXT so each
 -- kind can store its own shape without schema branching.

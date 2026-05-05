@@ -1,13 +1,28 @@
 import db from "./connection"
 import type { WorldBible, CharacterProfile, StorySpine } from "../types"
 
+type Executor = typeof db
+
 export async function saveWorldBible(novelId: string, bible: WorldBible): Promise<void> {
   await db`INSERT INTO world_bibles (novel_id, content_json) VALUES (${novelId}, ${bible})
            ON CONFLICT (novel_id) DO UPDATE SET content_json = EXCLUDED.content_json`
 }
 
-export async function getWorldBible(novelId: string): Promise<WorldBible> {
-  const rows = await db`SELECT content_json FROM world_bibles WHERE novel_id = ${novelId}`
+export async function getWorldBible(
+  novelId: string,
+  opts: { executor?: Executor; forUpdate?: boolean } = {},
+): Promise<WorldBible> {
+  const executor = opts.executor ?? db
+  const rows = (opts.forUpdate === true
+    ? await executor`
+        SELECT content_json FROM world_bibles
+        WHERE novel_id = ${novelId}
+        FOR UPDATE
+      `
+    : await executor`
+        SELECT content_json FROM world_bibles
+        WHERE novel_id = ${novelId}
+      `) as Array<{ content_json: WorldBible }>
   if (!rows.length) throw new Error(`No world bible for novel ${novelId}`)
   return rows[0].content_json as WorldBible
 }
@@ -26,13 +41,45 @@ export async function getCharacters(novelId: string): Promise<CharacterProfile[]
   return rows.map((r: any) => r.profile_json as CharacterProfile)
 }
 
+export async function getCharacterById(
+  novelId: string,
+  characterId: string,
+  opts: { executor?: Executor; forUpdate?: boolean } = {},
+): Promise<CharacterProfile | null> {
+  const executor = opts.executor ?? db
+  const rows = (opts.forUpdate === true
+    ? await executor`
+        SELECT profile_json FROM characters
+        WHERE novel_id = ${novelId} AND id = ${characterId}
+        FOR UPDATE
+      `
+    : await executor`
+        SELECT profile_json FROM characters
+        WHERE novel_id = ${novelId} AND id = ${characterId}
+      `) as Array<{ profile_json: CharacterProfile }>
+  return rows[0]?.profile_json ?? null
+}
+
 export async function saveStorySpine(novelId: string, spine: StorySpine): Promise<void> {
   await db`INSERT INTO story_spines (novel_id, content_json) VALUES (${novelId}, ${spine})
            ON CONFLICT (novel_id) DO UPDATE SET content_json = EXCLUDED.content_json`
 }
 
-export async function getStorySpine(novelId: string): Promise<StorySpine> {
-  const rows = await db`SELECT content_json FROM story_spines WHERE novel_id = ${novelId}`
+export async function getStorySpine(
+  novelId: string,
+  opts: { executor?: Executor; forUpdate?: boolean } = {},
+): Promise<StorySpine> {
+  const executor = opts.executor ?? db
+  const rows = (opts.forUpdate === true
+    ? await executor`
+        SELECT content_json FROM story_spines
+        WHERE novel_id = ${novelId}
+        FOR UPDATE
+      `
+    : await executor`
+        SELECT content_json FROM story_spines
+        WHERE novel_id = ${novelId}
+      `) as Array<{ content_json: StorySpine }>
   if (!rows.length) throw new Error(`No story spine for novel ${novelId}`)
   return rows[0].content_json as StorySpine
 }

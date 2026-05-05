@@ -56,6 +56,10 @@ import { adjusterPatchSchema } from "../agents/artifact-adjuster/schema"
 import type { AdjusterPatch } from "../agents/artifact-adjuster/schema"
 import { findEnvelopeById, updateEnvelopeResolution } from "../db/proposal-envelopes"
 import {
+  recordProposalResolutionImpact,
+  recordProposalResolutionOutcome,
+} from "../db/proposal-resolution-outcomes"
+import {
   evaluatePolicy,
   type ApprovalPolicy,
   type PolicyEvaluation,
@@ -121,7 +125,7 @@ const approvalPolicySchema = z.object({
   mode: z.enum(["manual", "assisted", "autonomous", "eval"]),
   autoApproveRiskCeiling: z.enum(["mechanical", "low", "medium", "high"]).optional(),
   manualKinds: z
-    .array(z.enum(["artifact_patch", "canon_update", "prose_edit", "editorial_flag"]))
+    .array(z.enum(["artifact_patch", "canon_update", "prose_edit", "editorial_flag", "planning_edit"]))
     .optional(),
 })
 
@@ -173,6 +177,18 @@ function patchTargetsSameArtifact(a: AdjusterPatch, b: AdjusterPatch): boolean {
   if (a.type === "worldUpdate") return b.type === "worldUpdate"
   if (a.type === "spineUpdate") return b.type === "spineUpdate"
   return false
+}
+
+export function artifactPatchImpactTarget(patch: AdjusterPatch): string {
+  switch (patch.type) {
+    case "characterUpdate":
+    case "characterRename":
+      return `character:${patch.characterId}`
+    case "worldUpdate":
+      return "world_bible"
+    case "spineUpdate":
+      return "story_spine"
+  }
 }
 
 interface ApplyResult {
@@ -400,11 +416,13 @@ export async function handleProposalEnvelopeRoute(
         // row degrades gracefully; non-pending row is a hard 409). Joins
         // this transaction so the envelope row and the artifact stay in
         // sync — a rollback on either side rolls back both.
+        const resolvedAt = new Date().toISOString()
+        let resolutionRowPresent = false
         const updated = await updateEnvelopeResolution(
           {
             id: body.envelope.id,
             status: body.status,
-            resolvedAt: new Date().toISOString(),
+            resolvedAt,
             resolvedByKind: body.resolvedBy ?? "human",
             resolvedByRef: null,
             resolvedNote: body.operatorNote ?? null,
@@ -439,7 +457,7 @@ export async function handleProposalEnvelopeRoute(
               {
                 id: body.envelope.id,
                 status: body.status,
-                resolvedAt: new Date().toISOString(),
+                resolvedAt,
                 resolvedByKind: body.resolvedBy ?? "human",
                 resolvedByRef: null,
                 resolvedNote: body.operatorNote ?? null,
@@ -462,12 +480,60 @@ export async function handleProposalEnvelopeRoute(
                 actualStatus: reread?.status ?? "unknown",
               })
             }
+            resolutionRowPresent = true
           } else {
             // Row genuinely missing — /adjust persistence didn't fire
             // (older envelope, or transient DB error during build).
             // Audit gap accepted; the artifact apply still happened.
             console.warn(
               `[resolve] envelope ${body.envelope.id} not in proposal_envelopes; audit gap`,
+            )
+          }
+        } else {
+          resolutionRowPresent = true
+        }
+
+        if (resolutionRowPresent) {
+          await recordProposalResolutionOutcome(
+            {
+              id: `outcome:${body.envelope.id}`,
+              proposalId: body.envelope.id,
+              proposalKind: "artifact_patch",
+              novelId,
+              sourceTable: "proposal_envelopes",
+              resolvedAt,
+              observedAt: resolvedAt,
+              downstreamEditChurn: body.status === "rejected" ? 0 : 1,
+              downstreamCanonConflict: false,
+              metadata: {
+                observer: "artifact-patch-resolve-route",
+                outcome: body.status,
+                patchType: patchToApply.type,
+              },
+            },
+            tx,
+          )
+          if (runtime.kind === "applied") {
+            await recordProposalResolutionImpact(
+              {
+                id: `impact:${body.envelope.id}`,
+                proposalId: body.envelope.id,
+                proposalKind: "artifact_patch",
+                novelId,
+                sourceTable: "proposal_envelopes",
+                targetKind: "artifact",
+                targetRef: artifactPatchImpactTarget(patchToApply),
+                priorHash: actualVersion,
+                resultHash: runtime.newVersion,
+                resultVersion: runtime.newVersion,
+                resolvedAt,
+                metadata: {
+                  observer: "artifact-patch-resolve-route",
+                  outcome: body.status,
+                  patchType: patchToApply.type,
+                },
+              },
+              tx,
             )
           }
         }

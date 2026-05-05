@@ -1,0 +1,103 @@
+{
+  "fixtureId": "lint-to-prose-edit-generator-replay",
+  "formatVersion": "approval-policy-generator-replay-v1",
+  "generator": "lint-to-prose-edit",
+  "cases": [
+    {
+      "id": "lint-filler-phrase-001",
+      "input": {
+        "novelId": "novel-generator-replay-seed",
+        "chapterRef": "chapter:1",
+        "prose": "She paused in order to listen.",
+        "issues": [
+          {
+            "patternId": 1,
+            "charOffset": 11,
+            "category": "FILLER_PHRASE",
+            "match": "in order to",
+            "sentence": "She paused in order to listen.",
+            "fixTemplate": "to"
+          }
+        ],
+        "agent": "lint-fixture",
+        "now": "2026-05-04T12:00:00.000Z"
+      },
+      "expected": [
+        {
+          "envelopeId": "prose-edit:novel-generator-replay-seed:efb6d86e917679ea",
+          "status": "approved",
+          "resolvedByKind": "human",
+          "resolvedAt": "2026-05-04T12:05:00.000Z",
+          "sourceTable": "proposal_envelopes",
+          "downstreamCheckerFired": false,
+          "downstreamEditChurn": 1,
+          "downstreamCanonConflict": false
+        }
+      ]
+    },
+    {
+      "id": "lint-redundant-body-001",
+      "input": {
+        "novelId": "novel-generator-replay-seed",
+        "chapterRef": "chapter:2",
+        "prose": "He nodded his head and walked away.",
+        "issues": [
+          {
+            "patternId": 2,
+            "charOffset": 3,
+            "category": "REDUNDANT_BODY",
+            "match": "nodded his head",
+            "sentence": "He nodded his head and walked away.",
+            "fixTemplate": "nodded"
+          }
+        ],
+        "agent": "lint-fixture",
+        "now": "2026-05-04T12:10:00.000Z"
+      },
+      "expected": [
+        {
+          "envelopeId": "prose-edit:novel-generator-replay-seed:7154ada8a2269b19",
+          "status": "approved",
+          "resolvedByKind": "human",
+          "resolvedAt": "2026-05-04T12:15:00.000Z",
+          "sourceTable": "proposal_envelopes",
+          "downstreamCheckerFired": false,
+          "downstreamEditChurn": 2,
+          "downstreamCanonConflict": false
+        }
+      ]
+    },
+    {
+      "id": "lint-said-bookism-001",
+      "input": {
+        "novelId": "novel-generator-replay-seed",
+        "chapterRef": "chapter:3",
+        "prose": "\"Stop!\" he exclaimed.",
+        "issues": [
+          {
+            "patternId": 3,
+            "charOffset": 11,
+            "category": "SAID_BOOKISM",
+            "match": "exclaimed",
+            "sentence": "\"Stop!\" he exclaimed.",
+            "fixTemplate": "said"
+          }
+        ],
+        "agent": "lint-fixture",
+        "now": "2026-05-04T12:20:00.000Z"
+      },
+      "expected": [
+        {
+          "envelopeId": "prose-edit:novel-generator-replay-seed:78fc2ea838da9cdc",
+          "status": "approved",
+          "resolvedByKind": "human",
+          "resolvedAt": "2026-05-04T12:25:00.000Z",
+          "sourceTable": "proposal_envelopes",
+          "downstreamCheckerFired": false,
+          "downstreamEditChurn": 1,
+          "downstreamCanonConflict": false
+        }
+      ]
+    }
+  ]
+}

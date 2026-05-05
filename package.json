@@ -13,7 +13,9 @@
     "lane-message": "bun scripts/agent/lane-message.ts",
     "finalize-docs": "bun scripts/agent/finalize-docs.ts",
     "finalizer-packet": "bun scripts/agent/finalizer-packet.ts",
-    "lane-runner-legacy": "bun scripts/agent/lane-runner.ts"
+    "lane-runner-legacy": "bun scripts/agent/lane-runner.ts",
+    "policy:promotion-guard": "bun scripts/approval-policy-promotion-guard.ts",
+    "docs:weight": "bun scripts/check-doc-weight.ts"
   },
   "dependencies": {
     "yaml": "^2.8.3",

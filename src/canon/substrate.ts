@@ -121,7 +121,7 @@ export class InMemoryCanonSubstrate implements CanonSubstrate {
   private readonly entitiesByNovel = new Map<string, Map<CanonId, CommittedEntity[]>>()
   private readonly statesByNovel = new Map<string, Map<string, CommittedState[]>>()
   private readonly promisesByNovel = new Map<string, Map<CanonId, CommittedPromise[]>>()
-  private readonly proposalsByNovel = new Map<string, CanonUpdateProposal[]>()
+  private readonly proposalsByNovel = new Map<string, StoredCanonUpdateProposal[]>()
   private readonly snapshotGen = new Map<string, number>()
   private nextProposalId = 1
 
@@ -157,7 +157,7 @@ export class InMemoryCanonSubstrate implements CanonSubstrate {
     proposal: ProposalInput,
   ): Promise<CanonUpdateProposal> {
     const id = `proposal-${this.nextProposalId++}`
-    const record: CanonUpdateProposal = {
+    const record: StoredCanonUpdateProposal = {
       ...proposal,
       id,
       status: "pending",
@@ -201,6 +201,10 @@ export class InMemoryCanonSubstrate implements CanonSubstrate {
     proposal.status = status
     proposal.resolvedAt = new Date().toISOString()
     proposal.operatorNote = opts?.operatorNote ?? proposal.operatorNote
+    proposal.resolvedByKind = opts?.resolvedByKind
+    proposal.policyDecision = opts?.policyDecision
+    proposal.policyVersion = opts?.policyVersion
+    proposal.policyReasons = opts?.policyReasons
 
     if (status === "rejected") {
       // No canon write. Bump generation so consumers that cache snapshots
@@ -272,7 +276,7 @@ export class InMemoryCanonSubstrate implements CanonSubstrate {
 
   private findProposal(
     proposalId: string,
-  ): { novelId: string; proposal: CanonUpdateProposal } | null {
+  ): { novelId: string; proposal: StoredCanonUpdateProposal } | null {
     for (const [novelId, list] of this.proposalsByNovel) {
       const proposal = list.find((p) => p.id === proposalId)
       if (proposal) return { novelId, proposal }
@@ -430,6 +434,13 @@ export class InMemoryCanonSubstrate implements CanonSubstrate {
 }
 
 // ── Internal record shapes ───────────────────────────────────────────────────
+
+type StoredCanonUpdateProposal = CanonUpdateProposal & {
+  resolvedByKind?: "human" | "policy" | "script" | "test"
+  policyDecision?: "queue" | "approve" | "reject" | "shadow"
+  policyVersion?: string
+  policyReasons?: ReadonlyArray<string>
+}
 
 interface CommittedRecord {
   committedAtChapter: number

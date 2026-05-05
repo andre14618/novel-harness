@@ -26,7 +26,6 @@ import { computeProseHash } from "./prose-edit-routes"
 import { saveChapterDraft } from "../db/drafts"
 import {
   insertArtifactPatchEnvelope,
-  findEnvelopeById,
   deleteEnvelopesForNovel,
 } from "../db/proposal-envelopes"
 import { insertProseEditEnvelope } from "../db/editorial-envelopes"
@@ -138,6 +137,10 @@ async function expectJson(res: Response | null): Promise<{ status: number; body:
   return { status: res!.status, body: await res!.json() }
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 describe("handlePolicyDecideRoute — non-matching paths", () => {
   test("GET on policy-decide path returns 405", async () => {
     const url = new URL("http://localhost/api/novel/x/proposal-envelopes/y/policy-decide")
@@ -233,6 +236,52 @@ describe.skipIf(!reachable)("handlePolicyDecideRoute (artifact_patch)", () => {
     expect(audit[0].status).toBe("pending")
     const charRows = (await db`SELECT name FROM characters WHERE novel_id = ${novelId} AND id = 'char-hero'`) as { name: string }[]
     expect(charRows[0].name).toBe("Aria") // unchanged
+  }, 15_000)
+
+  test("queue decision re-checks envelope pending status right before returning", async () => {
+    await seedCharacter(novelId, makeCharacter("char-hero", "Aria"))
+    const patch: AdjusterPatch = {
+      type: "characterRename",
+      characterId: "char-hero",
+      newName: "Aria the Brave",
+    }
+    const env = await buildArtifactPatchEnvelopeFromLive(novelId, patch)
+    await insertArtifactPatchEnvelope(env)
+
+    let releaseConcurrentResolve!: () => void
+    let concurrentResolveStarted!: () => void
+    const releaseConcurrentResolvePromise = new Promise<void>((resolve) => {
+      releaseConcurrentResolve = resolve
+    })
+    const concurrentResolveStartedPromise = new Promise<void>((resolve) => {
+      concurrentResolveStarted = resolve
+    })
+    const concurrentResolve = db.begin(async (tx) => {
+      await tx`
+        UPDATE proposal_envelopes
+        SET status = 'approved',
+            resolved_at = now(),
+            resolved_by_kind = 'human'
+        WHERE id = ${env.id}
+      `
+      concurrentResolveStarted()
+      await releaseConcurrentResolvePromise
+    })
+    await concurrentResolveStartedPromise
+
+    const routeResponse = invoke(
+      "POST",
+      `/api/novel/${novelId}/proposal-envelopes/${env.id}/policy-decide`,
+      { policy: { version: "auto-v1", mode: "autonomous" } },
+    )
+    await sleep(25)
+    releaseConcurrentResolve()
+    await concurrentResolve
+
+    const { status, body } = await expectJson(await routeResponse)
+    expect(status).toBe(409)
+    expect(body.error).toBe("envelope already resolved")
+    expect(body.actualStatus).toBe("approved")
   }, 15_000)
 
   test("manual mode: every kind queues regardless", async () => {
@@ -421,6 +470,49 @@ describe.skipIf(!reachable)("handlePolicyDecideRoute (artifact_patch)", () => {
     const charRows = (await db`SELECT profile_json FROM characters WHERE novel_id = ${novelId} AND id = 'char-hero'`) as { profile_json: CharacterProfile }[]
     expect(charRows[0].profile_json.goals).toBe("Find the key")
   }, 15_000)
+
+  test("approve-reject reissue failures keep inner error semantics and do not overlay policy success fields", async () => {
+    await seedCharacter(novelId, makeCharacter("char-hero", "Aria"))
+    const patch: AdjusterPatch = {
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "Find the second key" },
+    }
+    const env = await buildArtifactPatchEnvelopeFromLive(novelId, patch)
+    await insertArtifactPatchEnvelope(env)
+
+    const staleProfile = (await db`
+      SELECT profile_json FROM characters
+      WHERE novel_id = ${novelId} AND id = 'char-hero'
+    `) as Array<{ profile_json: CharacterProfile }>
+    expect(staleProfile).toHaveLength(1)
+    await db`
+      UPDATE characters
+      SET profile_json = ${JSON.stringify({ ...staleProfile[0].profile_json, goals: "already moved on" })}::jsonb
+      WHERE novel_id = ${novelId} AND id = 'char-hero'
+    `
+
+    const { status, body } = await expectJson(
+      await invoke(
+        "POST",
+        `/api/novel/${novelId}/proposal-envelopes/${env.id}/policy-decide`,
+        { policy: { version: "auto-v1", mode: "autonomous" } },
+      ),
+    )
+    expect(status).toBe(409)
+    expect(body.ok).toBe(false)
+    expect(body.error).toBe("stale-precondition")
+    expect(body.decision).toBeUndefined()
+    expect(body.policy).toBeUndefined()
+    expect(body.policyEvaluation).toMatchObject({
+      decision: "approve",
+      version: "auto-v1",
+    })
+
+    // No mutation should happen on stale resolve failures.
+    const charRows = (await db`SELECT profile_json FROM characters WHERE novel_id = ${novelId} AND id = 'char-hero'`) as { profile_json: CharacterProfile }[]
+    expect(charRows[0].profile_json.goals).toBe("already moved on")
+  }, 20_000)
 })
 
 describe.skipIf(!reachable)("handlePolicyDecideRoute (prose_edit)", () => {

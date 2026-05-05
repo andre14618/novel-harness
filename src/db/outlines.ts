@@ -1,15 +1,144 @@
 import db from "./connection"
 import type { ChapterOutline } from "../types"
+import { enrichOutlineIds } from "../harness/ids"
 
-export async function saveChapterOutline(novelId: string, outline: ChapterOutline): Promise<void> {
-  await db`INSERT INTO chapter_outlines (novel_id, chapter_number, outline_json) VALUES (${novelId}, ${outline.chapterNumber}, ${outline})
+type Executor = typeof db
+
+export interface StoredChapterOutline {
+  chapterNumber: number
+  outline: ChapterOutline
+}
+
+export async function saveChapterOutline(
+  novelId: string,
+  outline: ChapterOutline,
+  executor: Executor = db,
+): Promise<void> {
+  const normalized = normalizeChapterOutlineForPersistence(outline)
+  await executor`INSERT INTO chapter_outlines (novel_id, chapter_number, outline_json) VALUES (${novelId}, ${normalized.chapterNumber}, ${normalized})
            ON CONFLICT (novel_id, chapter_number) DO UPDATE SET outline_json = EXCLUDED.outline_json`
+}
+
+export function normalizeChapterOutlineForPersistence(outline: ChapterOutline): ChapterOutline {
+  const normalized = JSON.parse(JSON.stringify(outline)) as ChapterOutline
+  enrichOutlineIds(normalized)
+  return normalized
 }
 
 export async function getChapterOutline(novelId: string, chapterNum: number): Promise<ChapterOutline> {
   const rows = await db`SELECT outline_json FROM chapter_outlines WHERE novel_id = ${novelId} AND chapter_number = ${chapterNum}`
   if (!rows.length) throw new Error(`No outline for chapter ${chapterNum}`)
   return rows[0].outline_json as ChapterOutline
+}
+
+export async function getChapterOutlineByChapterId(
+  novelId: string,
+  chapterId: string,
+  opts: { executor?: Executor; forUpdate?: boolean } = {},
+): Promise<StoredChapterOutline | null> {
+  const executor = opts.executor ?? db
+  const rows = (opts.forUpdate === true
+    ? await executor`
+        SELECT chapter_number, outline_json
+        FROM chapter_outlines
+        WHERE novel_id = ${novelId}
+          AND outline_json->>'chapterId' = ${chapterId}
+        FOR UPDATE
+      `
+    : await executor`
+        SELECT chapter_number, outline_json
+        FROM chapter_outlines
+        WHERE novel_id = ${novelId}
+          AND outline_json->>'chapterId' = ${chapterId}
+      `) as Array<{ chapter_number: number; outline_json: ChapterOutline }>
+  if (rows.length === 0) return null
+  return {
+    chapterNumber: rows[0]!.chapter_number,
+    outline: rows[0]!.outline_json,
+  }
+}
+
+export async function getChapterOutlineByBeatId(
+  novelId: string,
+  beatId: string,
+  opts: { executor?: Executor; forUpdate?: boolean } = {},
+): Promise<StoredChapterOutline | null> {
+  const executor = opts.executor ?? db
+  const rows = (opts.forUpdate === true
+    ? await executor`
+        SELECT chapter_number, outline_json
+        FROM chapter_outlines
+        WHERE novel_id = ${novelId}
+        ORDER BY chapter_number
+        FOR UPDATE
+      `
+    : await executor`
+        SELECT chapter_number, outline_json
+        FROM chapter_outlines
+        WHERE novel_id = ${novelId}
+        ORDER BY chapter_number
+      `) as Array<{ chapter_number: number; outline_json: ChapterOutline }>
+  for (const row of rows) {
+    const outline = normalizeChapterOutlineForPersistence(row.outline_json)
+    if ((outline.scenes ?? []).some((beat) => beat.beatId === beatId)) {
+      return {
+        chapterNumber: row.chapter_number,
+        outline,
+      }
+    }
+  }
+  return null
+}
+
+export async function getChapterOutlineByObligationId(
+  novelId: string,
+  obligationId: string,
+  opts: { executor?: Executor; forUpdate?: boolean } = {},
+): Promise<StoredChapterOutline | null> {
+  const executor = opts.executor ?? db
+  const rows = (opts.forUpdate === true
+    ? await executor`
+        SELECT chapter_number, outline_json
+        FROM chapter_outlines
+        WHERE novel_id = ${novelId}
+        ORDER BY chapter_number
+        FOR UPDATE
+      `
+    : await executor`
+        SELECT chapter_number, outline_json
+        FROM chapter_outlines
+        WHERE novel_id = ${novelId}
+        ORDER BY chapter_number
+      `) as Array<{ chapter_number: number; outline_json: ChapterOutline }>
+  for (const row of rows) {
+    const outline = normalizeChapterOutlineForPersistence(row.outline_json)
+    if (outlineHasObligationId(outline, obligationId)) {
+      return {
+        chapterNumber: row.chapter_number,
+        outline,
+      }
+    }
+  }
+  return null
+}
+
+function outlineHasObligationId(outline: ChapterOutline, obligationId: string): boolean {
+  for (const beat of outline.scenes ?? []) {
+    const obligations = beat.obligations as Record<string, unknown> | undefined
+    if (!obligations) continue
+    for (const value of Object.values(obligations)) {
+      if (!Array.isArray(value)) continue
+      if (value.some((item) =>
+        typeof item === "object" &&
+        item !== null &&
+        !Array.isArray(item) &&
+        (item as { obligationId?: unknown }).obligationId === obligationId
+      )) {
+        return true
+      }
+    }
+  }
+  return false
 }
 
 export async function getChapterOutlines(novelId: string): Promise<ChapterOutline[]> {

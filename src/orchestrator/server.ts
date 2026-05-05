@@ -18,6 +18,8 @@ import { handlePrefEvalRoute } from "./pref-eval-routes"
 import { handleCanonProposalRoute } from "./canon-proposal-routes"
 import { handleProposalEnvelopeRoute } from "./proposal-envelope-routes"
 import { handlePlanningSnapshotRoute } from "./planning-snapshot-routes"
+import { handlePlanningTargetRoute } from "./planning-target-routes"
+import { handlePlanningProposalRoute } from "./planning-proposal-routes"
 import { handleProseEditRoute } from "./prose-edit-routes"
 import { handlePolicyDecideRoute } from "./policy-decide-routes"
 import { overviewPageHtml } from "./overview-page"
@@ -96,15 +98,18 @@ await migrate()
   }
 })()
 
-const API_KEY = process.env.ORCHESTRATOR_API_KEY
-if (!API_KEY) throw new Error("ORCHESTRATOR_API_KEY not set")
+const AUTH_ENABLED = process.env.ORCHESTRATOR_AUTH_ENABLED === "1"
+const API_KEY = process.env.ORCHESTRATOR_API_KEY ?? ""
+if (AUTH_ENABLED && !API_KEY) throw new Error("ORCHESTRATOR_API_KEY not set")
 
-const PASSWORD = process.env.ORCHESTRATOR_PASSWORD
-if (!PASSWORD) throw new Error("ORCHESTRATOR_PASSWORD not set")
+const PASSWORD = process.env.ORCHESTRATOR_PASSWORD ?? ""
+if (AUTH_ENABLED && !PASSWORD) throw new Error("ORCHESTRATOR_PASSWORD not set")
 
 // Session token — HMAC of the password, used as cookie value so the raw
 // password is never stored client-side.
-const SESSION_TOKEN = new Bun.CryptoHasher("sha256").update(PASSWORD).update(API_KEY).digest("hex")
+const SESSION_TOKEN = AUTH_ENABLED
+  ? new Bun.CryptoHasher("sha256").update(PASSWORD).update(API_KEY).digest("hex")
+  : ""
 
 function parseCookies(req: Request): Record<string, string> {
   const header = req.headers.get("cookie") ?? ""
@@ -120,6 +125,7 @@ function parseCookies(req: Request): Record<string, string> {
 // from /login. The previous `?key=...` query-param fallback leaked the API
 // key into browser history, logs, and any URL copy/paste, so it's gone.
 function checkAuth(req: Request): Response | null {
+  if (!AUTH_ENABLED) return null
   const apiKey = req.headers.get("x-api-key")
   if (apiKey === API_KEY) return null
   const cookie = parseCookies(req).nh_session
@@ -128,6 +134,7 @@ function checkAuth(req: Request): Response | null {
 }
 
 function isAuthed(req: Request): boolean {
+  if (!AUTH_ENABLED) return true
   const apiKey = req.headers.get("x-api-key")
   if (apiKey === API_KEY) return true
   const cookie = parseCookies(req).nh_session
@@ -952,6 +959,14 @@ const server = Bun.serve({
     const planningSnapshotResponse = await handlePlanningSnapshotRoute(req, url)
     if (planningSnapshotResponse) return planningSnapshotResponse
 
+    // ── Planning target/impact visibility API (authoring refinement) ──
+    const planningTargetResponse = await handlePlanningTargetRoute(req, url)
+    if (planningTargetResponse) return planningTargetResponse
+
+    // ── Planning proposal edits (authoring refinement) ──
+    const planningProposalResponse = await handlePlanningProposalRoute(req, url)
+    if (planningProposalResponse) return planningProposalResponse
+
     // ── Prose-edit envelope apply (Phase 5 commit 4 — collaborative proposal workflow) ──
     const proseEditResponse = await handleProseEditRoute(req, url)
     if (proseEditResponse) return proseEditResponse
@@ -982,4 +997,4 @@ const server = Bun.serve({
 })
 
 console.log(`Orchestrator running at http://localhost:${server.port}`)
-console.log(`Novel UI: http://localhost:${server.port}/app  (sign in at /login)`)
+console.log(`Novel UI: http://localhost:${server.port}/app  (${AUTH_ENABLED ? "auth enabled; sign in at /login" : "auth disabled"})`)

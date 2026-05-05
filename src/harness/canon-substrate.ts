@@ -35,6 +35,7 @@
 
 import db from "../db/connection"
 import * as canonDb from "../db/canon-substrate"
+import { recordProposalResolutionOutcome } from "../db/proposal-resolution-outcomes"
 import { trace } from "../trace"
 import type { CanonSource } from "../canon/bundle"
 import type {
@@ -255,6 +256,27 @@ export class PostgresCanonSubstrate implements CanonSubstrate {
           policyVersion: opts?.policyVersion ?? null,
           policyReasons: opts?.policyReasons ?? null,
         }, tx)
+        await recordProposalResolutionOutcome(
+          {
+            id: `outcome:canon:${proposalId}`,
+            proposalId,
+            proposalKind: "canon_update",
+            novelId,
+            sourceTable: "canon_proposals",
+            resolvedAt,
+            observedAt: resolvedAt,
+            downstreamCanonConflict: true,
+            downstreamEditChurn: 0,
+            metadata: {
+              observer: "canon-substrate-resolve",
+              outcome: "rejected",
+              source: proposal.source,
+              factId: proposal.proposedFact.id,
+              targetFactId: proposal.targetFactId ?? null,
+            },
+          },
+          tx,
+        )
         await canonDb.bumpGeneration(novelId, tx)
         return
       }
@@ -274,6 +296,27 @@ export class PostgresCanonSubstrate implements CanonSubstrate {
         policyReasons: opts?.policyReasons ?? null,
       }, tx)
       await this.commitFact(novelId, factToCommit, proposal.targetFactId, tx)
+      await recordProposalResolutionOutcome(
+        {
+          id: `outcome:canon:${proposalId}`,
+          proposalId,
+          proposalKind: "canon_update",
+          novelId,
+          sourceTable: "canon_proposals",
+          resolvedAt,
+          observedAt: resolvedAt,
+          downstreamCanonConflict: false,
+          downstreamEditChurn: status === "modified" ? 1 : 0,
+          metadata: {
+            observer: "canon-substrate-resolve",
+            outcome: status,
+            source: proposal.source,
+            factId: factToCommit.id,
+            targetFactId: proposal.targetFactId ?? null,
+          },
+        },
+        tx,
+      )
       await canonDb.bumpGeneration(novelId, tx)
       committedFact = factToCommit
     })

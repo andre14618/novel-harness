@@ -16,7 +16,10 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test"
 import db from "../db/connection"
 import { dbReachable } from "../db/test-helpers"
-import { handleProposalEnvelopeRoute } from "./proposal-envelope-routes"
+import {
+  artifactPatchImpactTarget,
+  handleProposalEnvelopeRoute,
+} from "./proposal-envelope-routes"
 import { buildArtifactPatchEnvelope, stableHash } from "../canon/proposal-envelope"
 import type { AdjusterPatch } from "../agents/artifact-adjuster/schema"
 import type { CharacterProfile, WorldBible, StorySpine } from "../types"
@@ -25,6 +28,12 @@ import {
   findEnvelopeById,
   deleteEnvelopesForNovel,
 } from "../db/proposal-envelopes"
+import {
+  deleteProposalResolutionImpactsForNovel,
+  deleteProposalResolutionOutcomesForNovel,
+  findProposalResolutionImpact,
+  findProposalResolutionOutcome,
+} from "../db/proposal-resolution-outcomes"
 
 const reachable = await dbReachable()
 const fixedNow = new Date("2026-05-04T12:00:00.000Z")
@@ -54,6 +63,8 @@ async function seedSpine(novelId: string, s: StorySpine): Promise<void> {
 }
 
 async function dropNovel(novelId: string): Promise<void> {
+  await deleteProposalResolutionImpactsForNovel(novelId)
+  await deleteProposalResolutionOutcomesForNovel(novelId)
   await deleteEnvelopesForNovel(novelId)
   await db`DELETE FROM characters WHERE novel_id = ${novelId}`
   await db`DELETE FROM world_bibles WHERE novel_id = ${novelId}`
@@ -148,6 +159,29 @@ describe("handleProposalEnvelopeRoute — non-matching paths", () => {
   test("unknown path returns null", async () => {
     const res = await invoke("POST", "/api/novel/x/something-else")
     expect(res).toBeNull()
+  })
+})
+
+describe("artifactPatchImpactTarget", () => {
+  test("maps patch shape to a stable artifact impact ref", () => {
+    expect(artifactPatchImpactTarget({
+      type: "characterUpdate",
+      characterId: "char-hero",
+      patch: { goals: "Find the key" },
+    })).toBe("character:char-hero")
+    expect(artifactPatchImpactTarget({
+      type: "characterRename",
+      characterId: "char-hero",
+      newName: "Aria",
+    })).toBe("character:char-hero")
+    expect(artifactPatchImpactTarget({
+      type: "worldUpdate",
+      patch: { setting: "Tower" },
+    })).toBe("world_bible")
+    expect(artifactPatchImpactTarget({
+      type: "spineUpdate",
+      patch: { centralConflict: "A vs B" },
+    })).toBe("story_spine")
   })
 })
 
@@ -656,6 +690,31 @@ describe.skipIf(!reachable)("handleProposalEnvelopeRoute (DB-backed)", () => {
     expect(row!.resolved_note).toBe("looks good — ship it")
     expect(row!.modified_payload).toBeNull()
     expect(row!.resolved_at).not.toBeNull()
+
+    const outcome = await findProposalResolutionOutcome("proposal_envelopes", envelope.id)
+    expect(outcome).not.toBeNull()
+    expect(outcome!.proposalKind).toBe("artifact_patch")
+    expect(outcome!.downstreamEditChurn).toBe(1)
+    expect(outcome!.downstreamCanonConflict).toBe(false)
+    expect(outcome!.metadata.observer).toBe("artifact-patch-resolve-route")
+
+    const impact = await findProposalResolutionImpact("proposal_envelopes", envelope.id)
+    expect(impact).toMatchObject({
+      proposalId: envelope.id,
+      proposalKind: "artifact_patch",
+      novelId,
+      sourceTable: "proposal_envelopes",
+      targetKind: "artifact",
+      targetRef: "character:char-hero",
+      priorHash: envelope.target.currentVersion,
+      resultHash: body.newVersion,
+      resultVersion: body.newVersion,
+      metadata: {
+        observer: "artifact-patch-resolve-route",
+        outcome: "approved",
+        patchType: "characterUpdate",
+      },
+    })
   }, 15_000)
 
   test("persistence: rejected resolve writes status='rejected' (artifact unchanged)", async () => {
@@ -680,6 +739,10 @@ describe.skipIf(!reachable)("handleProposalEnvelopeRoute (DB-backed)", () => {
     const row = await findEnvelopeById(envelope.id)
     expect(row!.status).toBe("rejected")
     expect(row!.resolved_note).toBe("wrong direction")
+    const outcome = await findProposalResolutionOutcome("proposal_envelopes", envelope.id)
+    expect(outcome).not.toBeNull()
+    expect(outcome!.downstreamEditChurn).toBe(0)
+    expect(await findProposalResolutionImpact("proposal_envelopes", envelope.id)).toBeNull()
     // Artifact untouched.
     const charRows = (await db`SELECT profile_json FROM characters
                                WHERE novel_id = ${novelId} AND id = 'char-hero'`) as {
@@ -718,6 +781,20 @@ describe.skipIf(!reachable)("handleProposalEnvelopeRoute (DB-backed)", () => {
       ? JSON.parse(row!.modified_payload)
       : row!.modified_payload
     expect(stored).toEqual(modified)
+    const outcome = await findProposalResolutionOutcome("proposal_envelopes", envelope.id)
+    expect(outcome).not.toBeNull()
+    expect(outcome!.downstreamEditChurn).toBe(1)
+    expect(outcome!.metadata.outcome).toBe("modified")
+    const impact = await findProposalResolutionImpact("proposal_envelopes", envelope.id)
+    expect(impact).toMatchObject({
+      targetKind: "artifact",
+      targetRef: "character:char-hero",
+      priorHash: envelope.target.currentVersion,
+      metadata: {
+        outcome: "modified",
+        patchType: "characterUpdate",
+      },
+    })
   }, 15_000)
 
   test("persistence: re-resolving a non-pending DB row → 409 + actualStatus", async () => {
@@ -782,6 +859,7 @@ describe.skipIf(!reachable)("handleProposalEnvelopeRoute (DB-backed)", () => {
     expect(rows[0].profile_json.goals).toBe("Find the second key")
     // Envelope row still doesn't exist (audit gap accepted, not auto-recovered).
     expect(await findEnvelopeById(envelope.id)).toBeNull()
+    expect(await findProposalResolutionOutcome("proposal_envelopes", envelope.id)).toBeNull()
   }, 15_000)
 
   test("persistence: stale-precondition rollback leaves envelope row 'pending'", async () => {

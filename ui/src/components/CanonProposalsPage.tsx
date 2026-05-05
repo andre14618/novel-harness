@@ -826,15 +826,6 @@ export function CanonProposalsPage() {
         </table>
       )}
 
-      <p style={{ color: "#666", fontSize: "0.74rem", marginTop: 18 }}>
-        Phase 2B (UI) — browser-untested. The underlying API (Phase 2A,
-        commit <code>9cf6238</code>), telemetry (Phase 2A.5,{" "}
-        <code>1bec94e</code>), bulk-resolve endpoint (commit{" "}
-        <code>032d8c0</code>), and status filter (commit <code>e83d1f5</code>)
-        ship with handler tests; this page (single + bulk + modify
-        affordances + audit-history tabs) is awaiting hand-test
-        verification.
-      </p>
     </div>
   )
 }

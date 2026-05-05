@@ -1,0 +1,80 @@
+{
+  "fixtureId": "editorial-beat-coverage-generator-replay",
+  "formatVersion": "approval-policy-generator-replay-v1",
+  "generator": "editorial-beat-coverage",
+  "cases": [
+    {
+      "id": "beat-coverage-missing-door-001",
+      "input": {
+        "novelId": "novel-generator-replay-seed",
+        "chapterRef": "chapter:12",
+        "prose": "Mira walked the corridor. Later she found a key from the desk.",
+        "outline": {
+          "chapterNumber": 12,
+          "chapterId": "ch-012-locked-door",
+          "title": "The Locked Door",
+          "povCharacter": "Mira",
+          "setting": "humid library",
+          "purpose": "establish the locked-door obstacle",
+          "scenes": [
+            {
+              "description": "Mira walks the corridor",
+              "characters": ["Mira"],
+              "kind": "action"
+            },
+            {
+              "description": "Mira tries the door; it is locked",
+              "characters": ["Mira"],
+              "kind": "action"
+            },
+            {
+              "description": "Mira pockets a key from a nearby desk",
+              "characters": ["Mira"],
+              "kind": "action"
+            }
+          ],
+          "targetWords": 1000,
+          "charactersPresent": ["Mira"]
+        },
+        "draftHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "agent": "editorial-beat-fixture",
+        "uncoveredSeverity": "warning",
+        "now": "2026-05-04T13:00:00.000Z",
+        "rationale": "Frozen beat coverage replay fixture.",
+        "llmOutput": {
+          "beatVerdicts": [
+            {
+              "beatIndex": 0,
+              "covered": true,
+              "evidenceQuote": "Mira walked the corridor",
+              "reason": "corridor covered"
+            },
+            {
+              "beatIndex": 1,
+              "covered": false,
+              "reason": "door attempt missing"
+            },
+            {
+              "beatIndex": 2,
+              "covered": true,
+              "evidenceQuote": "key from the desk",
+              "reason": "key covered"
+            }
+          ]
+        }
+      },
+      "expected": [
+        {
+          "envelopeId": "editorial-flag:novel-generator-replay-seed:e988981224d681a8",
+          "status": "approved",
+          "resolvedByKind": "human",
+          "resolvedAt": "2026-05-04T13:05:00.000Z",
+          "sourceTable": "proposal_envelopes",
+          "downstreamCheckerFired": true,
+          "downstreamEditChurn": 8,
+          "downstreamCanonConflict": false
+        }
+      ]
+    }
+  ]
+}

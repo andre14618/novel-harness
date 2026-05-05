@@ -73,7 +73,7 @@ const approvalPolicySchema = z.object({
   mode: z.enum(["manual", "assisted", "autonomous", "eval"]),
   autoApproveRiskCeiling: z.enum(["mechanical", "low", "medium", "high"]).optional(),
   manualKinds: z
-    .array(z.enum(["artifact_patch", "canon_update", "prose_edit", "editorial_flag"]))
+    .array(z.enum(["artifact_patch", "canon_update", "prose_edit", "editorial_flag", "planning_edit"]))
     .optional(),
 })
 
@@ -162,7 +162,7 @@ export async function handlePolicyDecideRoute(
     typedEnvelope = rowToArtifactPatchEnvelope(row)
   } else if (row.kind === "prose_edit") {
     typedEnvelope = rowToProseEditEnvelope(row)
-  } else if (row.kind === "canon_update" || row.kind === "editorial_flag") {
+  } else if (row.kind === "canon_update" || row.kind === "editorial_flag" || row.kind === "planning_edit") {
     return Response.json(
       {
         ok: false,
@@ -172,7 +172,9 @@ export async function handlePolicyDecideRoute(
         message:
           row.kind === "canon_update"
             ? "canon_update envelopes resolve via /api/novel/:id/canon-proposals/:proposalId/resolve"
-            : "editorial_flag envelopes are flag-only — convert to a prose_edit envelope before resolving",
+            : row.kind === "planning_edit"
+              ? "planning_edit envelopes resolve via /api/novel/:id/planning-proposals/:envelopeId/resolve"
+              : "editorial_flag envelopes are flag-only — convert to a prose_edit envelope before resolving",
       },
       { status: 422 },
     )
@@ -189,6 +191,20 @@ export async function handlePolicyDecideRoute(
 
   // Dispatch
   if (evaluation.decision === "queue") {
+    const currentStatus = await db.begin(async (tx) => {
+      const rows = await tx`SELECT status FROM proposal_envelopes WHERE id = ${envelopeId} FOR UPDATE`
+      return rows.length > 0 ? rows[0].status : null
+    })
+    if (currentStatus === null) {
+      return Response.json({ ok: false, error: "envelope not found", envelopeId }, { status: 404 })
+    }
+    if (currentStatus !== "pending") {
+      return Response.json(
+        { ok: false, error: "envelope already resolved", envelopeId, actualStatus: currentStatus },
+        { status: 409 },
+      )
+    }
+
     return Response.json({
       ok: true,
       envelopeId,
@@ -289,6 +305,20 @@ export async function handlePolicyDecideRoute(
   // the body and re-emit so callers get the unified shape regardless of
   // which kind dispatched.
   const innerBody = (await inner.json()) as Record<string, unknown>
+  if ((typeof innerBody.ok === "boolean" && innerBody.ok === false) || inner.status >= 400) {
+    return Response.json(
+      {
+        ...innerBody,
+        policyEvaluation: {
+          decision: evaluation.decision,
+          version: evaluation.policyVersion,
+          reasons: evaluation.reasons,
+        },
+      },
+      { status: inner.status },
+    )
+  }
+
   return Response.json(
     {
       ...innerBody,

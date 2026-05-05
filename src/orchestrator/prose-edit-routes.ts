@@ -42,6 +42,10 @@ import {
   findEnvelopeById,
   updateEnvelopeResolution,
 } from "../db/proposal-envelopes"
+import {
+  recordProposalResolutionImpact,
+  recordProposalResolutionOutcome,
+} from "../db/proposal-resolution-outcomes"
 import { proseEditProposalSchema } from "../canon/editorial-proposal"
 import type { ProseEditEnvelope } from "../canon/editorial-proposal"
 import {
@@ -77,7 +81,7 @@ const preconditionSchema = z.object({
 
 const policyRecommendationSchema = z.object({
   decision: z.enum(["queue", "approve", "reject", "shadow"]),
-  reasons: z.array(z.string()).optional(),
+  reasons: z.array(z.string()).default([]),
 })
 
 const envelopeSchema = z.object({
@@ -102,7 +106,7 @@ const approvalPolicySchema = z.object({
   mode: z.enum(["manual", "assisted", "autonomous", "eval"]),
   autoApproveRiskCeiling: z.enum(["mechanical", "low", "medium", "high"]).optional(),
   manualKinds: z
-    .array(z.enum(["artifact_patch", "canon_update", "prose_edit", "editorial_flag"]))
+    .array(z.enum(["artifact_patch", "canon_update", "prose_edit", "editorial_flag", "planning_edit"]))
     .optional(),
 })
 
@@ -241,11 +245,12 @@ export async function handleProseEditRoute(
   if (status === "rejected") {
     try {
       const outcome = await db.begin(async (tx) => {
+        const resolvedAt = new Date().toISOString()
         const updated = await updateEnvelopeResolution(
           {
             id: envelope.id,
             status: "rejected",
-            resolvedAt: new Date().toISOString(),
+            resolvedAt,
             resolvedByKind: parsedBody.resolvedBy ?? "human",
             resolvedByRef: null,
             resolvedNote: operatorNote ?? null,
@@ -262,6 +267,23 @@ export async function handleProseEditRoute(
           if (!fresh) throw new OutcomeError({ kind: "alreadyResolved", envelopeId: envelope.id, actualStatus: "missing" })
           throw new OutcomeError({ kind: "alreadyResolved", envelopeId: envelope.id, actualStatus: fresh.status })
         }
+        await recordProposalResolutionOutcome(
+          {
+            id: `outcome:${envelope.id}`,
+            proposalId: envelope.id,
+            proposalKind: "prose_edit",
+            novelId: envelope.novelId,
+            sourceTable: "proposal_envelopes",
+            resolvedAt,
+            observedAt: resolvedAt,
+            downstreamEditChurn: 0,
+            metadata: {
+              observer: "prose-edit-resolve-route",
+              outcome: "rejected",
+            },
+          },
+          tx,
+        )
         return { kind: "rejected" as const, envelopeId: envelope.id }
       })
       return Response.json({
@@ -301,6 +323,7 @@ export async function handleProseEditRoute(
 
   try {
     const outcome = await db.begin(async (tx) => {
+      const resolvedAt = new Date().toISOString()
       const draft = await getLatestChapterDraft(envelope.novelId, chapterNum, { executor: tx, forUpdate: true })
       if (!draft) {
         throw new OutcomeError({ kind: "missing-draft", envelopeId: envelope.id, chapter: chapterNum })
@@ -331,7 +354,7 @@ export async function handleProseEditRoute(
         {
           id: envelope.id,
           status: "approved",
-          resolvedAt: new Date().toISOString(),
+          resolvedAt,
           resolvedByKind: parsedBody.resolvedBy ?? "human",
           resolvedByRef: null,
           resolvedNote: operatorNote ?? null,
@@ -352,10 +375,10 @@ export async function handleProseEditRoute(
           // Retry the resolve once; second 0-row throws alreadyResolved with the fresh status.
           const retry = await updateEnvelopeResolution(
             {
-              id: envelope.id,
-              status: "approved",
-              resolvedAt: new Date().toISOString(),
-              resolvedByKind: parsedBody.resolvedBy ?? "human",
+                id: envelope.id,
+                status: "approved",
+                resolvedAt,
+                resolvedByKind: parsedBody.resolvedBy ?? "human",
               resolvedByRef: null,
               resolvedNote: operatorNote ?? null,
               modifiedPayload: null,
@@ -377,6 +400,47 @@ export async function handleProseEditRoute(
           throw new OutcomeError({ kind: "alreadyResolved", envelopeId: envelope.id, actualStatus: fresh.status })
         }
       }
+
+      await recordProposalResolutionOutcome(
+        {
+          id: `outcome:${envelope.id}`,
+          proposalId: envelope.id,
+          proposalKind: "prose_edit",
+          novelId: envelope.novelId,
+          sourceTable: "proposal_envelopes",
+          resolvedAt,
+          observedAt: resolvedAt,
+          downstreamEditChurn: 1,
+          metadata: {
+            observer: "prose-edit-resolve-route",
+            outcome: "approved",
+            chapter: chapterNum,
+            targetKind: envelope.payload.target.kind,
+          },
+        },
+        tx,
+      )
+      await recordProposalResolutionImpact(
+        {
+          id: `impact:${envelope.id}`,
+          proposalId: envelope.id,
+          proposalKind: "prose_edit",
+          novelId: envelope.novelId,
+          sourceTable: "proposal_envelopes",
+          targetKind: "draft",
+          targetRef: envelope.payload.target.chapterRef,
+          chapterNumber: chapterNum,
+          priorHash: liveHash,
+          resultHash: newHash,
+          resultVersion: `chapter:${chapterNum}:draft:v${newVersion}`,
+          resolvedAt,
+          metadata: {
+            observer: "prose-edit-resolve-route",
+            targetKind: envelope.payload.target.kind,
+          },
+        },
+        tx,
+      )
 
       return {
         kind: "applied" as const,

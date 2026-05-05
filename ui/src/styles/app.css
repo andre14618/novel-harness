@@ -3951,3 +3951,365 @@ details[open] summary::before { transform: rotate(90deg); }
   color: var(--text-secondary);
 }
 
+/* ── Planning Studio ───────────────────────────────────────────────── */
+.planning-studio-page {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 16px;
+  color: var(--text-primary);
+}
+.planning-studio-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.planning-studio-header h2 {
+  margin: 0 0 4px 0;
+  font-size: 1.35rem;
+  letter-spacing: 0;
+}
+.planning-studio-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+}
+.planning-studio-subtitle code,
+.planning-target-summary code {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  padding: 1px 6px;
+}
+.planning-studio-links {
+  display: flex;
+  gap: 10px;
+  font-size: 0.82rem;
+}
+.planning-studio-links a {
+  color: var(--accent);
+}
+.planning-studio-notice {
+  border-radius: 4px;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  font-size: 0.84rem;
+}
+.planning-studio-notice.ok {
+  background: #1f3a26;
+  border: 1px solid #2c5a36;
+  color: #cfe;
+}
+.planning-studio-notice.error,
+.planning-error {
+  background: #3a1f1f;
+  border: 1px solid #5a2c2c;
+  color: #fce;
+}
+.planning-error {
+  border-radius: 4px;
+  padding: 7px 9px;
+  font-size: 0.8rem;
+}
+.planning-studio-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(360px, 1.15fr) minmax(360px, 1.1fr);
+  gap: 12px;
+  align-items: start;
+}
+.planning-studio-panel {
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  border-radius: 6px;
+  padding: 12px;
+  min-height: 220px;
+}
+.planning-studio-panel-title,
+.planning-preview-title {
+  color: var(--text-tertiary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+.planning-target-list,
+.planning-proposal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 620px;
+  overflow-y: auto;
+}
+.planning-target-list button,
+.planning-proposal-list button,
+.planning-status-tabs button,
+.planning-resolve-actions button,
+.planning-primary {
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  background: var(--bg-inset);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+}
+.planning-target-list button,
+.planning-proposal-list button {
+  padding: 8px;
+  text-align: left;
+}
+.planning-proposal-group {
+  display: grid;
+  gap: 5px;
+}
+.planning-proposal-group + .planning-proposal-group {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 2px;
+  padding-top: 8px;
+}
+.planning-proposal-group-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+}
+.planning-proposal-list .planning-proposal-group-title span {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  overflow-wrap: anywhere;
+}
+.planning-proposal-list .planning-proposal-group-title small {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+  font-size: 0.66rem;
+}
+.planning-target-list button.active,
+.planning-proposal-list button.active,
+.planning-status-tabs button.active {
+  border-color: var(--accent-dim);
+  background: var(--accent-surface);
+  color: var(--text-primary);
+}
+.planning-target-list span,
+.planning-proposal-list span {
+  display: block;
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+.planning-target-list small,
+.planning-proposal-list small {
+  display: block;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+}
+.planning-target-summary {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.planning-target-summary strong {
+  color: var(--accent);
+  font-size: 0.92rem;
+}
+.planning-target-summary span {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+.planning-field-label {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 10px;
+  color: var(--text-tertiary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.planning-field-label input,
+.planning-field-label select,
+.planning-field-label textarea {
+  width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  background: var(--bg-inset);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  padding: 7px 8px;
+  text-transform: none;
+}
+.planning-field-label textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+.planning-primary {
+  width: 100%;
+  border-color: var(--accent-dim);
+  background: var(--accent);
+  color: var(--bg-root);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 8px 10px;
+}
+.planning-primary:disabled,
+.planning-resolve-actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.planning-preview-block {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.planning-impact-summary {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-bottom: 6px;
+}
+.planning-preview-block ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.planning-preview-block li {
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  margin-bottom: 5px;
+}
+.planning-preview-block li strong {
+  color: var(--accent);
+  margin-right: 5px;
+}
+.planning-status-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.planning-status-tabs button {
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+.planning-muted {
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+}
+.planning-diff {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.planning-diff-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.planning-diff-meta span {
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 2px 6px;
+}
+.planning-diff-meta .stale {
+  border-color: #6a6a2c;
+  color: #fec;
+}
+.planning-diff-meta .fresh {
+  border-color: #2c5a36;
+  color: #cfe;
+}
+.planning-diff-meta .moved {
+  border-color: #39546f;
+  color: #cde7ff;
+}
+.planning-diff-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.planning-diff pre {
+  min-height: 110px;
+  max-height: 280px;
+  overflow: auto;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-inset);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.planning-diff-impact {
+  margin-top: 10px;
+}
+.planning-modify-box {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 10px;
+  padding-top: 10px;
+}
+.planning-modify-box .planning-field-label {
+  margin-bottom: 6px;
+}
+.planning-modify-box .planning-field-label textarea {
+  min-height: 76px;
+}
+.planning-resolve-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.planning-resolve-actions button {
+  flex: 1 1 112px;
+  font-size: 0.78rem;
+  padding: 7px 8px;
+}
+.planning-resolve-actions .planning-approve {
+  border-color: #2c5a36;
+  color: #cfe;
+}
+.planning-resolve-actions .planning-reject {
+  border-color: #5a2c2c;
+  color: #fce;
+}
+.planning-resolve-actions .planning-modify {
+  border-color: #39546f;
+  color: #cde7ff;
+}
+
+@media (max-width: 1080px) {
+  .planning-studio-grid {
+    grid-template-columns: 1fr;
+  }
+  .planning-target-list,
+  .planning-proposal-list {
+    max-height: 320px;
+  }
+}
+
+@media (max-width: 720px) {
+  .planning-studio-header,
+  .planning-diff-columns {
+    display: block;
+  }
+  .planning-studio-links {
+    margin-top: 8px;
+  }
+  .planning-diff-columns > div + div {
+    margin-top: 8px;
+  }
+}

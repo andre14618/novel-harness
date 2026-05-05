@@ -1,0 +1,62 @@
+{
+  "fixtureId": "basic-policy-replay",
+  "formatVersion": "approval-policy-replay-row-v1",
+  "rows": [
+    {
+      "id": "ap-approve-001",
+      "novelId": "novel-approval-policy-replay-seed",
+      "kind": "artifact_patch",
+      "risk": "low",
+      "status": "approved",
+      "resolvedByKind": "human",
+      "policyDecision": "approve",
+      "policyVersion": "auto-v1",
+      "resolvedAt": "2026-05-04T10:02:00.000Z",
+      "sourceTable": "proposal_envelopes",
+      "historicalDecision": "approve",
+      "goldDecision": "approve"
+    },
+    {
+      "id": "pe-reject-001",
+      "novelId": "novel-approval-policy-replay-seed",
+      "kind": "prose_edit",
+      "risk": "mechanical",
+      "status": "rejected",
+      "resolvedByKind": "human",
+      "policyDecision": "reject",
+      "policyVersion": "auto-v1",
+      "resolvedAt": "2026-05-04T10:03:00.000Z",
+      "sourceTable": "proposal_envelopes",
+      "historicalDecision": "reject",
+      "goldDecision": "reject"
+    },
+    {
+      "id": "cn-queue-001",
+      "novelId": "novel-approval-policy-replay-seed",
+      "kind": "canon_update",
+      "risk": "high",
+      "status": "approved",
+      "resolvedByKind": "human",
+      "policyDecision": "queue",
+      "policyVersion": "auto-v1",
+      "resolvedAt": "2026-05-04T10:04:00.000Z",
+      "sourceTable": "canon_proposals",
+      "historicalDecision": "approve",
+      "goldDecision": "approve"
+    },
+    {
+      "id": "cn-auto-bad-001",
+      "novelId": "novel-approval-policy-replay-seed",
+      "kind": "canon_update",
+      "risk": "high",
+      "status": "rejected",
+      "resolvedByKind": "human",
+      "policyDecision": "approve",
+      "policyVersion": "auto-v1-test",
+      "resolvedAt": "2026-05-04T10:05:00.000Z",
+      "sourceTable": "canon_proposals",
+      "historicalDecision": "reject",
+      "goldDecision": "reject"
+    }
+  ]
+}

@@ -28,6 +28,12 @@ import {
 } from "../db/editorial-envelopes"
 import { findEnvelopeById } from "../db/proposal-envelopes"
 import {
+  deleteProposalResolutionImpactsForNovel,
+  deleteProposalResolutionOutcomesForNovel,
+  findProposalResolutionImpact,
+  findProposalResolutionOutcome,
+} from "../db/proposal-resolution-outcomes"
+import {
   saveChapterDraft,
   getLatestChapterDraft,
 } from "../db/drafts"
@@ -41,6 +47,8 @@ async function seedNovel(novelId: string): Promise<void> {
 }
 
 async function dropNovel(novelId: string): Promise<void> {
+  await deleteProposalResolutionImpactsForNovel(novelId)
+  await deleteProposalResolutionOutcomesForNovel(novelId)
   await deleteEnvelopesForNovel(novelId)
   await db`DELETE FROM chapter_drafts WHERE novel_id = ${novelId}`
   await db`DELETE FROM novels WHERE id = ${novelId}`
@@ -147,6 +155,41 @@ describe.skipIf(!reachable)("handleProseEditRoute (DB-backed)", () => {
     const persisted = await findEnvelopeById(envelope.id)
     expect(persisted!.status).toBe("approved")
     expect(persisted!.resolved_note).toBe("tightening pacing")
+
+    const outcome = await findProposalResolutionOutcome("proposal_envelopes", envelope.id)
+    expect(outcome).toMatchObject({
+      proposalId: envelope.id,
+      proposalKind: "prose_edit",
+      novelId,
+      sourceTable: "proposal_envelopes",
+      downstreamEditChurn: 1,
+      downstreamCheckerFired: null,
+      downstreamCanonConflict: null,
+      metadata: {
+        observer: "prose-edit-resolve-route",
+        outcome: "approved",
+        chapter: 1,
+        targetKind: "span",
+      },
+    })
+
+    const impact = await findProposalResolutionImpact("proposal_envelopes", envelope.id)
+    expect(impact).toMatchObject({
+      proposalId: envelope.id,
+      proposalKind: "prose_edit",
+      novelId,
+      sourceTable: "proposal_envelopes",
+      targetKind: "draft",
+      targetRef: "chapter:1",
+      chapterNumber: 1,
+      priorHash: liveHash,
+      resultHash: computeProseHash(expectedProse),
+      resultVersion: "chapter:1:draft:v2",
+      metadata: {
+        observer: "prose-edit-resolve-route",
+        targetKind: "span",
+      },
+    })
   })
 
   test("approved span edit: stale precondition → 409 + actualHash, no draft writes", async () => {
@@ -204,6 +247,20 @@ describe.skipIf(!reachable)("handleProseEditRoute (DB-backed)", () => {
     const persisted = await findEnvelopeById(envelope.id)
     expect(persisted!.status).toBe("rejected")
     expect(persisted!.resolved_note).toBe("wrong direction")
+
+    const outcome = await findProposalResolutionOutcome("proposal_envelopes", envelope.id)
+    expect(outcome).toMatchObject({
+      proposalId: envelope.id,
+      proposalKind: "prose_edit",
+      novelId,
+      downstreamEditChurn: 0,
+      downstreamCheckerFired: null,
+      downstreamCanonConflict: null,
+      metadata: {
+        observer: "prose-edit-resolve-route",
+        outcome: "rejected",
+      },
+    })
   })
 
   test("missing draft → 404", async () => {
@@ -385,11 +442,10 @@ describe.skipIf(!reachable)("handleProseEditRoute (DB-backed)", () => {
     const prose = "She paused at the threshold of the laboratory."
     const draftHash = computeProseHash(prose)
     await saveChapterDraft(novelId, 1, prose, prose.split(/\s+/).length)
-    // The lint-converter produces mechanical prose_edits via
-    // buildProseEditEnvelope's classifyEditRisk default of "medium" — to
-    // exercise the assisted-mode mechanical path we override risk on the
-    // envelope. Producers in the real flow can mark mechanical fixes
-    // explicitly (e.g., the lint-fix converter).
+    // buildSpanEnvelope uses buildProseEditEnvelope's conservative default
+    // risk=medium. Deterministic lint producers mark their own envelopes
+    // mechanical; this unit-local fixture overrides risk to exercise the
+    // assisted-mode mechanical path without invoking the lint converter.
     const env = buildSpanEnvelope({
       novelId, chapter: 1, start: 4, end: 10, replacement: "halted", draftHash,
     })
@@ -442,6 +498,41 @@ describe.skipIf(!reachable)("handleProseEditRoute (DB-backed)", () => {
     expect(rows[0].status).toBe("rejected")
     expect(rows[0].resolution_policy_decision).toBe("queue")
     expect(rows[0].resolution_policy_version).toBe("auto-v9")
+  })
+
+  test("Phase 6: producer reject without reasons does not crash policy evaluation", async () => {
+    const prose = "She paused at the threshold of the laboratory."
+    const draftHash = computeProseHash(prose)
+    await saveChapterDraft(novelId, 1, prose, prose.split(/\s+/).length)
+    const env = buildSpanEnvelope({
+      novelId, chapter: 1, start: 4, end: 10, replacement: "halted", draftHash,
+    })
+    await insertProseEditEnvelope(env)
+    const legacyEnvelope = {
+      ...env,
+      policyRecommendation: { decision: "reject" },
+    }
+
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/prose-edits/resolve`, {
+        envelope: legacyEnvelope,
+        status: "rejected",
+        policy: { version: "auto-v10", mode: "autonomous" },
+      }),
+    )
+    expect(status).toBe(200)
+    expect(body.policy).toEqual({ decision: "reject", version: "auto-v10" })
+
+    const rows = (await db`SELECT resolution_policy_decision, resolution_policy_reasons
+                           FROM proposal_envelopes WHERE id = ${env.id}`) as Array<{
+      resolution_policy_decision: string
+      resolution_policy_reasons: string[] | string
+    }>
+    expect(rows[0].resolution_policy_decision).toBe("reject")
+    const reasons = typeof rows[0].resolution_policy_reasons === "string"
+      ? JSON.parse(rows[0].resolution_policy_reasons)
+      : rows[0].resolution_policy_reasons
+    expect(reasons).toEqual(["producer recommended reject"])
   })
 
   test("Phase 6: invalid policy.mode in body returns 400", async () => {

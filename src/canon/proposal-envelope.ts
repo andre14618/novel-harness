@@ -22,6 +22,7 @@ export type ProposalEnvelopeKind =
   | "canon_update"
   | "prose_edit"
   | "editorial_flag"
+  | "planning_edit"
 
 export type ProposalEnvelopeStatus =
   | "pending"
@@ -47,6 +48,8 @@ export interface ProposalTargetRef {
     | "character"
     | "story_spine"
     | "chapter_outline"
+    | "beat_plan"
+    | "beat_obligation"
     | "canon_fact"
     | "prose_span"
   ref: string

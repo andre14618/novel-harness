@@ -151,9 +151,16 @@ describe("evaluatePolicy — autonomous mode (default ceiling=low)", () => {
   })
 })
 
-describe("evaluatePolicy — manualKinds (canon_update default)", () => {
+describe("evaluatePolicy — manualKinds default", () => {
   test("canon_update always queues even at risk=mechanical in autonomous mode", () => {
     const env = makeEnvelope({ kind: "canon_update", risk: "mechanical" })
+    const result = evaluatePolicy(env, baseAutonomous)
+    expect(result.decision).toBe("queue")
+    expect(result.reasons.join(" ")).toContain("manualKinds")
+  })
+
+  test("planning_edit always queues even at risk=low in autonomous mode", () => {
+    const env = makeEnvelope({ kind: "planning_edit", risk: "low" })
     const result = evaluatePolicy(env, baseAutonomous)
     expect(result.decision).toBe("queue")
     expect(result.reasons.join(" ")).toContain("manualKinds")
@@ -212,6 +219,22 @@ describe("evaluatePolicy — producer reject override", () => {
     expect(result.decision).toBe("reject")
   })
 
+  test("producer reject without reasons still returns a deterministic reject", () => {
+    const env = makeEnvelope({
+      kind: "prose_edit",
+      risk: "low",
+      recommendation: "reject",
+    })
+    const malformedLegacyEnv = {
+      ...env,
+      policyRecommendation: { decision: "reject" as const },
+    } as ReviewProposalEnvelope
+
+    const result = evaluatePolicy(malformedLegacyEnv, baseAutonomous)
+    expect(result.decision).toBe("reject")
+    expect(result.reasons).toEqual(["producer recommended reject"])
+  })
+
   test("manualKinds takes precedence over producer reject", () => {
     // canon_update with producer reject — manualKinds is checked first,
     // so the operator sees the proposal rather than a silent reject.
@@ -257,6 +280,13 @@ describe("evaluatePolicy — eval mode", () => {
 
   test("eval mode shadows canon_update queue (manualKinds still applies)", () => {
     const env = makeEnvelope({ kind: "canon_update", risk: "mechanical" })
+    const result = evaluatePolicy(env, baseEval)
+    expect(result.decision).toBe("shadow")
+    expect(result.shadowOf).toBe("queue")
+  })
+
+  test("eval mode shadows planning_edit queue (manualKinds still applies)", () => {
+    const env = makeEnvelope({ kind: "planning_edit", risk: "low" })
     const result = evaluatePolicy(env, baseEval)
     expect(result.decision).toBe("shadow")
     expect(result.shadowOf).toBe("queue")

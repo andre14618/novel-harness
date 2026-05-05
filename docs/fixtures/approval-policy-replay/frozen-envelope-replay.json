@@ -1,0 +1,194 @@
+{
+  "fixtureId": "frozen-envelope-replay",
+  "formatVersion": "approval-policy-frozen-envelope-v1",
+  "cases": [
+    {
+      "id": "frozen-artifact-low-001",
+      "status": "approved",
+      "resolvedByKind": "human",
+      "resolvedAt": "2026-05-04T10:10:00.000Z",
+      "sourceTable": "proposal_envelopes",
+      "envelope": {
+        "id": "env-frozen-artifact-low-001",
+        "kind": "artifact_patch",
+        "novelId": "novel-approval-policy-replay-seed",
+        "target": {
+          "kind": "character",
+          "ref": "char-lyra",
+          "currentVersion": "char-lyra-v1"
+        },
+        "source": {
+          "agent": "fixture-replay",
+          "userMessage": "Approve low-risk artifact patch in frozen corpus."
+        },
+        "status": "pending",
+        "risk": "low",
+        "summary": "Low-risk character patch candidate.",
+        "rationale": "Seeded fixture for frozen-envelope replay.",
+        "evidence": [
+          {
+            "kind": "quote",
+            "text": "Low-risk patch example."
+          }
+        ],
+        "payload": {
+          "patchType": "character-name-update"
+        },
+        "precondition": {
+          "kind": "artifact_hash",
+          "hash": "111111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "policyRecommendation": {
+          "decision": "queue",
+          "policyVersion": "seed-v1",
+          "reasons": [
+            "seed fixture recommendation"
+          ]
+        },
+        "createdAt": "2026-05-04T10:01:00.000Z"
+      }
+    },
+    {
+      "id": "frozen-prose-mech-001",
+      "status": "approved",
+      "resolvedByKind": "human",
+      "resolvedAt": "2026-05-04T10:11:00.000Z",
+      "sourceTable": "proposal_envelopes",
+      "envelope": {
+        "id": "env-frozen-prose-mech-001",
+        "kind": "prose_edit",
+        "novelId": "novel-approval-policy-replay-seed",
+        "target": {
+          "kind": "prose_span",
+          "ref": "chapter-3",
+          "fieldPath": "sceneText",
+          "currentVersion": "chapter-3-v2"
+        },
+        "source": {
+          "agent": "fixture-replay",
+          "userMessage": "Approve mechanical prose edit in frozen corpus."
+        },
+        "status": "pending",
+        "risk": "mechanical",
+        "summary": "Mechanical prose edit candidate.",
+        "rationale": "Seeded fixture for frozen-envelope replay.",
+        "evidence": [
+          {
+            "kind": "quote",
+            "text": "Mechanical correction candidate."
+          }
+        ],
+        "payload": {
+          "start": 24,
+          "end": 31,
+          "replacement": "moonlit"
+        },
+        "precondition": {
+          "kind": "draft_hash",
+          "hash": "222222222222222222222222222222222222222222222222222222222222222222"
+        },
+        "policyRecommendation": {
+          "decision": "queue",
+          "policyVersion": "seed-v1",
+          "reasons": [
+            "seed fixture recommendation"
+          ]
+        },
+        "createdAt": "2026-05-04T10:02:00.000Z"
+      }
+    },
+    {
+      "id": "frozen-artifact-high-001",
+      "status": "rejected",
+      "resolvedByKind": "human",
+      "resolvedAt": "2026-05-04T10:12:00.000Z",
+      "sourceTable": "proposal_envelopes",
+      "envelope": {
+        "id": "env-frozen-artifact-high-001",
+        "kind": "artifact_patch",
+        "novelId": "novel-approval-policy-replay-seed",
+        "target": {
+          "kind": "world_bible",
+          "ref": "novel-approval-policy-replay-seed",
+          "currentVersion": "world-bible-v1"
+        },
+        "source": {
+          "agent": "fixture-replay",
+          "userMessage": "Reject high-risk artifact patch in frozen corpus."
+        },
+        "status": "pending",
+        "risk": "high",
+        "summary": "High-risk artifact patch candidate.",
+        "rationale": "Seeded fixture for frozen-envelope replay.",
+        "evidence": [
+          {
+            "kind": "quote",
+            "text": "High-risk patch example."
+          }
+        ],
+        "payload": {
+          "patchType": "world-bible-major-change"
+        },
+        "precondition": {
+          "kind": "artifact_hash",
+          "hash": "333333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "policyRecommendation": {
+          "decision": "approve",
+          "policyVersion": "seed-v1",
+          "reasons": [
+            "seed fixture recommendation"
+          ]
+        },
+        "createdAt": "2026-05-04T10:03:00.000Z"
+      }
+    },
+    {
+      "id": "frozen-canon-high-001",
+      "status": "approved",
+      "resolvedByKind": "human",
+      "resolvedAt": "2026-05-04T10:13:00.000Z",
+      "sourceTable": "canon_proposals",
+      "envelope": {
+        "id": "env-frozen-canon-high-001",
+        "kind": "canon_update",
+        "novelId": "novel-approval-policy-replay-seed",
+        "target": {
+          "kind": "canon_fact",
+          "ref": "canon-fact-77",
+          "currentVersion": "canon-fact-v1"
+        },
+        "source": {
+          "agent": "fixture-replay",
+          "userMessage": "Approve high-risk canon update in frozen corpus."
+        },
+        "status": "pending",
+        "risk": "high",
+        "summary": "High-risk canon update candidate.",
+        "rationale": "Seeded fixture for frozen-envelope replay.",
+        "evidence": [
+          {
+            "kind": "quote",
+            "text": "Canon update example."
+          }
+        ],
+        "payload": {
+          "factId": "canon-fact-77",
+          "operation": "replace"
+        },
+        "precondition": {
+          "kind": "canon_generation",
+          "hash": "444444444444444444444444444444444444444444444444444444444444444444"
+        },
+        "policyRecommendation": {
+          "decision": "queue",
+          "policyVersion": "seed-v1",
+          "reasons": [
+            "seed fixture recommendation"
+          ]
+        },
+        "createdAt": "2026-05-04T10:04:00.000Z"
+      }
+    }
+  ]
+}

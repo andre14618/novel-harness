@@ -1,8 +1,15 @@
 export { initDB } from "./connection"
-export { createNovel, getNovel, updatePhase, updateCurrentChapter, updateTotalChapters } from "./novels"
+export {
+  createNovel,
+  getNovel,
+  updateNovelSeed,
+  updatePhase,
+  updateCurrentChapter,
+  updateTotalChapters,
+} from "./novels"
 export {
   saveWorldBible, getWorldBible, saveCharacter, getCharacters, saveStorySpine, getStorySpine,
-  updateCharacterFields, updateWorldBibleFields, updateStorySpineFields,
+  getCharacterById, updateCharacterFields, updateWorldBibleFields, updateStorySpineFields,
 } from "./world"
 export { saveChapterOutline, getChapterOutline, getChapterOutlines, isPlanCheckOverridden, setPlanCheckOverridden, isRevisionUsed, setRevisionUsed } from "./outlines"
 export { logRevision, listRevisionsForNovel, hashIssueSig, canonicalizeDeviations, type RevisionOutcome, type LogRevisionInput, type RevisionRow } from "./chapter-revisions"

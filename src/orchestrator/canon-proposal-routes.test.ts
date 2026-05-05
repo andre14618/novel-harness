@@ -17,6 +17,10 @@ import { describe, expect, test, beforeEach, afterEach } from "bun:test"
 import db from "../db/connection"
 import { dbReachable } from "../db/test-helpers"
 import * as canonDb from "../db/canon-substrate"
+import {
+  deleteProposalResolutionOutcomesForNovel,
+  findProposalResolutionOutcome,
+} from "../db/proposal-resolution-outcomes"
 import { saveChapterOutline } from "../db/outlines"
 import {
   handleCanonProposalRoute,
@@ -130,6 +134,7 @@ async function seedOutlines(novelId: string): Promise<ChapterOutline[]> {
 }
 
 async function deleteFixture(novelId: string): Promise<void> {
+  await deleteProposalResolutionOutcomesForNovel(novelId)
   await db`DELETE FROM chapter_outlines WHERE novel_id = ${novelId}`
   await db`DELETE FROM novels WHERE id = ${novelId}`
 }
@@ -519,6 +524,55 @@ describe.skipIf(!reachable)("handleCanonProposalRoute", () => {
     expect(visibleIds).not.toContain("fact-c1-f2")
   })
 
+  test("POST bulk-resolve — persists policy metadata and resolvedBy for successful rows", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+    const ids = [
+      plannerProposalId(novelId, "fact-c1-f1"),
+      plannerProposalId(novelId, "fact-c1-f2"),
+      plannerProposalId(novelId, "fact-c2-f1"),
+    ]
+    const { status, body } = await expectJson(
+      await invoke("POST", `/api/novel/${novelId}/canon-proposals/bulk-resolve`, {
+        resolutions: ids.map((id) => ({ proposalId: id, status: "approved" })),
+      }),
+    )
+    expect(status).toBe(200)
+    expect(body.counts).toEqual({ ok: 3, error: 0 })
+
+    const rows = (
+      await db`
+        SELECT id,
+               resolved_by_kind,
+               resolution_policy_decision,
+               resolution_policy_version,
+               resolution_policy_reasons
+        FROM canon_proposals
+        WHERE novel_id = ${novelId}
+          AND id = ANY(${ids})
+      `
+    ) as Array<{
+      id: string
+      resolved_by_kind: string
+      resolution_policy_decision: string
+      resolution_policy_version: string
+      resolution_policy_reasons: unknown
+    }>
+    expect(rows).toHaveLength(3)
+    for (const row of rows) {
+      expect(ids).toContain(row.id)
+      expect(row.resolved_by_kind).toBe("human")
+      expect(row.resolution_policy_decision).toBe("queue")
+      expect(row.resolution_policy_version).toBe("manual-v1")
+      const reasons =
+        typeof row.resolution_policy_reasons === "string"
+          ? JSON.parse(row.resolution_policy_reasons)
+          : row.resolution_policy_reasons
+      expect(Array.isArray(reasons)).toBe(true)
+      expect((reasons as string[]).join(" ")).toContain("manual")
+    }
+  })
+
   test("POST bulk-resolve — already-resolved row → 409 entry, others succeed", async () => {
     await seedOutlines(novelId)
     await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
@@ -716,6 +770,22 @@ describe.skipIf(!reachable)("handleCanonProposalRoute", () => {
     )
     expect(status).toBe(400)
     expect(body.error).toMatch(/modifiedFact/)
+  })
+
+  test("POST resolve invalid resolvedBy is rejected", async () => {
+    await seedOutlines(novelId)
+    await generatePlannerCanonProposals(novelId, await seedHelper(novelId))
+    const targetId = plannerProposalId(novelId, "fact-c1-f1")
+
+    const { status, body } = await expectJson(
+      await invoke(
+        "POST",
+        `/api/novel/${novelId}/canon-proposals/${encodeURIComponent(targetId)}/resolve`,
+        { status: "approved", resolvedBy: "bot" },
+      ),
+    )
+    expect(status).toBe(400)
+    expect(body.error).toBe("invalid resolvedBy in body")
   })
 
   test("POST resolve invalid JSON body → 400", async () => {
@@ -975,6 +1045,13 @@ describe.skipIf(!reachable)("handleCanonProposalRoute", () => {
     expect(rows[0].resolved_by_kind).toBe("human")
     expect(rows[0].resolution_policy_decision).toBe("queue")
     expect(rows[0].resolution_policy_version).toBe("manual-v1")
+
+    const outcome = await findProposalResolutionOutcome("canon_proposals", targetId)
+    expect(outcome).not.toBeNull()
+    expect(outcome!.proposalKind).toBe("canon_update")
+    expect(outcome!.downstreamCanonConflict).toBe(false)
+    expect(outcome!.downstreamEditChurn).toBe(0)
+    expect(outcome!.metadata.observer).toBe("canon-substrate-resolve")
   })
 
   test("Phase 6: autonomous policy still queues canon (manualKinds=[canon_update] default)", async () => {
@@ -1068,6 +1145,11 @@ describe.skipIf(!reachable)("handleCanonProposalRoute", () => {
       resolved_by_kind: string
     }>
     expect(rows[0].resolved_by_kind).toBe("policy")
+
+    const outcome = await findProposalResolutionOutcome("canon_proposals", targetId)
+    expect(outcome).not.toBeNull()
+    expect(outcome!.downstreamCanonConflict).toBe(true)
+    expect(outcome!.downstreamEditChurn).toBe(0)
   })
 })
 

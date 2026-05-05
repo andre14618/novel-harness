@@ -23,6 +23,7 @@
 
 import db from "./connection"
 import type { ArtifactPatchEnvelope } from "../canon/proposal-envelope"
+import type { PlanningEditEnvelope } from "../canon/planning-edit-proposal"
 
 type Executor = typeof db
 
@@ -57,6 +58,20 @@ interface ProposalEnvelopeRow {
   resolution_policy_version: string | null
   resolution_policy_reasons: unknown | null
   created_at: string | Date
+}
+
+export interface ProposalEnvelopeTargetSummary {
+  id: string
+  novelId: string
+  kind: string
+  targetKind: string
+  targetRef: string
+  targetFieldPath: string | null
+  status: string
+  risk: string
+  summary: string
+  createdAt: string
+  resolvedAt: string | null
 }
 
 export function rowToArtifactPatchEnvelope(row: ProposalEnvelopeRow): ArtifactPatchEnvelope {
@@ -115,6 +130,62 @@ export function rowToArtifactPatchEnvelope(row: ProposalEnvelopeRow): ArtifactPa
   return env
 }
 
+export function rowToPlanningEditEnvelope(row: ProposalEnvelopeRow): PlanningEditEnvelope {
+  if (row.kind !== "planning_edit") {
+    throw new Error(
+      `rowToPlanningEditEnvelope: row ${row.id} has kind=${row.kind}, expected planning_edit`,
+    )
+  }
+  const evidence = (typeof row.evidence === "string"
+    ? JSON.parse(row.evidence)
+    : row.evidence) as PlanningEditEnvelope["evidence"]
+  const payload = (typeof row.payload === "string"
+    ? JSON.parse(row.payload)
+    : row.payload) as PlanningEditEnvelope["payload"]
+  const policyReasons = ((typeof row.policy_reasons === "string"
+    ? JSON.parse(row.policy_reasons)
+    : row.policy_reasons) as string[]).slice()
+  const createdAt = row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at
+  const env: PlanningEditEnvelope = {
+    id: row.id,
+    kind: "planning_edit",
+    novelId: row.novel_id,
+    target: {
+      kind: row.target_kind as PlanningEditEnvelope["target"]["kind"],
+      ref: row.target_ref,
+      ...(row.target_field_path != null ? { fieldPath: row.target_field_path } : {}),
+      currentVersion: row.target_current_version,
+    },
+    source: {
+      agent: row.source_agent,
+      ...(row.source_user_message != null ? { userMessage: row.source_user_message } : {}),
+      ...(row.parent_envelope_id != null ? { parentEnvelopeId: row.parent_envelope_id } : {}),
+    },
+    status: row.status as PlanningEditEnvelope["status"],
+    risk: row.risk as PlanningEditEnvelope["risk"],
+    summary: row.summary,
+    rationale: row.rationale,
+    evidence,
+    payload,
+    precondition: {
+      kind: row.precondition_kind as PlanningEditEnvelope["precondition"]["kind"],
+      hash: row.precondition_hash,
+    },
+    policyRecommendation: {
+      decision: row.policy_decision as PlanningEditEnvelope["policyRecommendation"]["decision"],
+      reasons: policyReasons,
+    },
+    createdAt,
+  }
+  if (row.resolved_at != null) {
+    env.resolvedAt = row.resolved_at instanceof Date ? row.resolved_at.toISOString() : row.resolved_at
+  }
+  if (row.resolved_by_kind != null) {
+    env.resolvedBy = row.resolved_by_kind as NonNullable<PlanningEditEnvelope["resolvedBy"]>
+  }
+  return env
+}
+
 /**
  * Insert an artifact-patch envelope. Idempotent: rerunning with the same
  * deterministic id is a no-op (`ON CONFLICT (id) DO NOTHING`). Returns
@@ -134,6 +205,44 @@ export async function insertArtifactPatchEnvelope(
   if (envelope.kind !== "artifact_patch") {
     throw new Error(
       `insertArtifactPatchEnvelope: envelope ${envelope.id} has kind=${envelope.kind}`,
+    )
+  }
+  const result = await executor`
+    INSERT INTO proposal_envelopes (
+      id, novel_id, kind,
+      target_kind, target_ref, target_field_path, target_current_version,
+      source_agent, source_user_message, parent_envelope_id,
+      status, risk, summary, rationale, evidence, payload,
+      precondition_kind, precondition_hash,
+      policy_decision, policy_reasons,
+      created_at
+    ) VALUES (
+      ${envelope.id}, ${envelope.novelId}, ${envelope.kind},
+      ${envelope.target.kind}, ${envelope.target.ref},
+      ${envelope.target.fieldPath ?? null}, ${envelope.target.currentVersion},
+      ${envelope.source.agent}, ${envelope.source.userMessage ?? null},
+      ${envelope.source.parentEnvelopeId ?? null},
+      ${envelope.status}, ${envelope.risk}, ${envelope.summary}, ${envelope.rationale},
+      ${JSON.stringify(envelope.evidence)}::jsonb,
+      ${JSON.stringify(envelope.payload)}::jsonb,
+      ${envelope.precondition.kind}, ${envelope.precondition.hash},
+      ${envelope.policyRecommendation.decision},
+      ${JSON.stringify(envelope.policyRecommendation.reasons)}::jsonb,
+      ${envelope.createdAt}::timestamptz
+    )
+    ON CONFLICT (id) DO NOTHING
+    RETURNING id
+  `
+  return Array.isArray(result) ? result.length > 0 : false
+}
+
+export async function insertPlanningEditEnvelope(
+  envelope: PlanningEditEnvelope,
+  executor: Executor = db,
+): Promise<boolean> {
+  if (envelope.kind !== "planning_edit") {
+    throw new Error(
+      `insertPlanningEditEnvelope: envelope ${envelope.id} has kind=${envelope.kind}`,
     )
   }
   const result = await executor`
@@ -188,6 +297,28 @@ export async function listArtifactPatchEnvelopes(
   return rows.map(rowToArtifactPatchEnvelope)
 }
 
+export async function listPlanningEditEnvelopes(
+  novelId: string,
+  opts: { status?: string | "all"; limit?: number } = {},
+): Promise<PlanningEditEnvelope[]> {
+  const status = opts.status ?? "pending"
+  const limit = opts.limit ?? 200
+  const rows = (status === "all"
+    ? await db`
+        SELECT * FROM proposal_envelopes
+        WHERE novel_id = ${novelId} AND kind = 'planning_edit'
+        ORDER BY created_at DESC
+        LIMIT ${limit}
+      `
+    : await db`
+        SELECT * FROM proposal_envelopes
+        WHERE novel_id = ${novelId} AND kind = 'planning_edit' AND status = ${status}
+        ORDER BY created_at DESC
+        LIMIT ${limit}
+      `) as ProposalEnvelopeRow[]
+  return rows.map(rowToPlanningEditEnvelope)
+}
+
 /** Look up a single envelope by id (any kind). Returns null when not found. */
 export async function findEnvelopeById(
   id: string,
@@ -195,6 +326,48 @@ export async function findEnvelopeById(
 ): Promise<ProposalEnvelopeRow | null> {
   const rows = (await executor`SELECT * FROM proposal_envelopes WHERE id = ${id}`) as ProposalEnvelopeRow[]
   return rows.length > 0 ? rows[0] : null
+}
+
+export async function listProposalEnvelopeTargetSummaries(
+  novelId: string,
+  target: { kind: string; ref: string },
+  executor: Executor = db,
+): Promise<ProposalEnvelopeTargetSummary[]> {
+  const rows = (await executor`
+    SELECT id, novel_id, kind, target_kind, target_ref, target_field_path,
+           status, risk, summary, created_at, resolved_at
+    FROM proposal_envelopes
+    WHERE novel_id = ${novelId}
+      AND target_kind = ${target.kind}
+      AND target_ref = ${target.ref}
+    ORDER BY created_at DESC, id ASC
+    LIMIT 200
+  `) as Array<{
+    id: string
+    novel_id: string
+    kind: string
+    target_kind: string
+    target_ref: string
+    target_field_path: string | null
+    status: string
+    risk: string
+    summary: string
+    created_at: string | Date
+    resolved_at: string | Date | null
+  }>
+  return rows.map((row) => ({
+    id: row.id,
+    novelId: row.novel_id,
+    kind: row.kind,
+    targetKind: row.target_kind,
+    targetRef: row.target_ref,
+    targetFieldPath: row.target_field_path,
+    status: row.status,
+    risk: row.risk,
+    summary: row.summary,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+    resolvedAt: row.resolved_at instanceof Date ? row.resolved_at.toISOString() : row.resolved_at,
+  }))
 }
 
 /**

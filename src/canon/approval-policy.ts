@@ -32,9 +32,10 @@
  *     for assisted mode is "deterministic mechanical prose fixes only."
  *   - **autonomous** — auto-approve any kind whose risk is at or below
  *     `autoApproveRiskCeiling` (default `"low"`), unless the kind is in
- *     the policy's `manualKinds` blocklist (default `["canon_update"]`
- *     because Canon needs human attention by design's "manual for Canon"
- *     safe default). If the envelope's `policyRecommendation.decision ===
+ *     the policy's `manualKinds` blocklist (default
+ *     `["canon_update", "planning_edit"]` because Canon and planning
+ *     mutations need human attention by design's manual safe default).
+ *     If the envelope's `policyRecommendation.decision ===
  *     "reject"`, the policy honors that (reject overrides auto-approve).
  *   - **eval** — never mutates. Every proposal returns `shadow` with the
  *     same reason text the policy would have used to approve / reject /
@@ -80,8 +81,9 @@ export interface ApprovalPolicy {
   autoApproveRiskCeiling?: ProposalEnvelopeRisk
   /**
    * Kinds that always queue regardless of mode (except eval, which
-   * shadows everything). Defaults to `["canon_update"]` — the design's
-   * "manual for Canon" safe default. Pass an empty array to opt out.
+   * shadows everything). Defaults to `["canon_update", "planning_edit"]` —
+   * the design's manual safe default for Canon and planning mutations. Pass
+   * an empty array to opt out.
    */
   manualKinds?: ReadonlyArray<ProposalEnvelopeKind>
 }
@@ -113,7 +115,10 @@ const RISK_RANK: Record<ProposalEnvelopeRisk, number> = {
 }
 
 const DEFAULT_RISK_CEILING: ProposalEnvelopeRisk = "low"
-const DEFAULT_MANUAL_KINDS: ReadonlyArray<ProposalEnvelopeKind> = ["canon_update"]
+const DEFAULT_MANUAL_KINDS: ReadonlyArray<ProposalEnvelopeKind> = [
+  "canon_update",
+  "planning_edit",
+]
 
 /**
  * Evaluate an envelope against a policy. Pure function: no side effects,
@@ -157,12 +162,13 @@ export function evaluatePolicy(
 
   // Producer reject overrides any approve path.
   if (envelope.policyRecommendation.decision === "reject") {
+    const producerReasons = envelope.policyRecommendation.reasons ?? []
     return {
       decision: "reject",
       policyVersion: policy.version,
       reasons: [
         `producer recommended reject`,
-        ...envelope.policyRecommendation.reasons,
+        ...producerReasons,
       ],
     }
   }

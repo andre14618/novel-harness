@@ -1,0 +1,51 @@
+{
+  "fixtureId": "artifact-patch-generator-replay",
+  "formatVersion": "approval-policy-generator-replay-v1",
+  "generator": "artifact-patch-envelope",
+  "cases": [
+    {
+      "id": "artifact-character-update-001",
+      "input": {
+        "novelId": "novel-generator-replay-seed",
+        "patch": {
+          "type": "characterUpdate",
+          "characterId": "char-mira",
+          "patch": {
+            "goals": "Open the locked door without alerting the archivist."
+          }
+        },
+        "patchIndex": 0,
+        "userMessage": "Tighten Mira goal after draft review.",
+        "rationale": "Frozen artifact patch replay fixture.",
+        "artifacts": {
+          "world": {
+            "setting": "humid library"
+          },
+          "characters": [
+            {
+              "id": "char-mira",
+              "name": "Mira",
+              "goals": "Find the archive key."
+            }
+          ],
+          "spine": {
+            "centralConflict": "Secrets in the archive."
+          }
+        },
+        "now": "2026-05-04T14:00:00.000Z"
+      },
+      "expected": [
+        {
+          "envelopeId": "artifact-patch:novel-generator-replay-seed:639eead153354978",
+          "status": "approved",
+          "resolvedByKind": "human",
+          "resolvedAt": "2026-05-04T14:05:00.000Z",
+          "sourceTable": "proposal_envelopes",
+          "downstreamCheckerFired": false,
+          "downstreamEditChurn": 3,
+          "downstreamCanonConflict": false
+        }
+      ]
+    }
+  ]
+}
