@@ -6,9 +6,9 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
 ## Active
 
 - Authoring visibility/interactivity foundation remains active.
-- Next low-risk implementation target: close artifact preview direct-save
-  proposal bypasses for fields already covered by `planning_edit`, while
-  leaving plan-assist whole-outline replacement for a later higher-risk slice.
+- Next low-risk implementation target: review remaining high-impact direct
+  planning mutations, with plan-assist whole-outline replacement treated as a
+  later higher-risk slice.
 
 ## Next
 
@@ -52,6 +52,13 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
   Playwright evidence covered initial and modified flows on disposable novels
   `codex-planning-studio-1777948116315` and
   `codex-planning-modified-1777980329324`.
+- Studio artifact preview inline edits for supported world/character/spine
+  fields now queue `planning_edit` proposals instead of direct artifact PUTs;
+  unsupported fields render read-only, and direct artifact PUT routes are
+  explicit-opt-in only. Playwright MCP evidence on disposable novel
+  `codex-traceability-ui-1778003397963` covered supported world-setting
+  proposal creation, read-only unsupported world fields, clean console, and no
+  artifact PUT network calls.
 - Chapter-health landed `GET /chapter-health` and
   `/app/chapter-health/:novelId`; Playwright evidence on disposable novel
   `codex-chapter-health-ui-1778000670807` covered health load, filters,

@@ -22,6 +22,10 @@ import type { SeedInput } from "../types"
 import { chapterOutlineSchema } from "../agents/planning-plotter/schema"
 import db from "../db/connection"
 import { z } from "zod"
+import {
+  directArtifactPutDisabledResponse,
+  directArtifactPutEnabled,
+} from "./direct-artifact-put-gate"
 
 const HARNESS_ROOT = process.env.HARNESS_ROOT ?? "/home/andre/apps/novel-harness"
 
@@ -652,6 +656,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
   // ── Artifact edits: character / world / spine ─────────────────────
   const charEditMatch = path.match(/^\/api\/novel\/([^/]+)\/character\/([^/]+)$/)
   if (charEditMatch && req.method === "PUT") {
+    if (!directArtifactPutEnabled()) return directArtifactPutDisabledResponse()
     const novelId = charEditMatch[1]
     const charId = charEditMatch[2]
     try {
@@ -665,6 +670,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
   }
 
   if (worldMatch && req.method === "PUT") {
+    if (!directArtifactPutEnabled()) return directArtifactPutDisabledResponse()
     const novelId = worldMatch[1]
     try {
       const body = await req.json() as Record<string, unknown>
@@ -677,6 +683,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
   }
 
   if (spineMatch && req.method === "PUT") {
+    if (!directArtifactPutEnabled()) return directArtifactPutDisabledResponse()
     const novelId = spineMatch[1]
     try {
       const body = await req.json() as Record<string, unknown>

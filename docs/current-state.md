@@ -155,6 +155,13 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   disposable novel `codex-planning-modified-1777980329324` covers live create,
   edit, resolve-modified, modified-tab diff display, and mobile rendering.
   Modified proposals now use `modified_payload` for their read-only diff.
+- Studio artifact preview inline edits for supported world/character/spine
+  scalar fields now queue `planning_edit` envelopes instead of directly
+  mutating artifacts. Unsupported preview fields render read-only, and legacy
+  direct artifact `PUT` routes are disabled by default unless explicitly
+  re-enabled with `ORCHESTRATOR_ALLOW_DIRECT_ARTIFACT_PUT=1`. Browser evidence
+  for disposable novel `codex-traceability-ui-1778003397963` is under
+  `output/playwright/2026-05-05/artifact-preview-planning-edit-codex-traceability-ui-1778003397963/`.
 - Chapter-outline saves now persist enriched stable IDs for chapters, beats,
   source items, characters, and obligations; checker findings carry additive
   stable refs on the current high-value surfaces before broader traceability UI.

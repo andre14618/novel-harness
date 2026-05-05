@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
   adjustNovel, getBeats, getCharacters, getChapterDraft, getOutlines, getStorySpine, getWorldBible, listProposalEnvelopes,
-  redraftChapter, resolveProposalEnvelope, updateCharacter, updateStorySpine, updateWorldBible,
+  redraftChapter, resolveProposalEnvelope,
   type AdjustTurn, type AdjusterPatch, type ArtifactPatchEnvelope, type BeatData,
 } from "../api"
+import {
+  mapArtifactPreviewPlanningEdit,
+  unsupportedArtifactPreviewEditMessage,
+  type ArtifactPreviewPlanningTarget,
+  type ArtifactPreviewSurface,
+} from "../artifact-preview-planning-edit"
 
 type ArtifactKey = "world" | "characters" | "spine" | "outlines" | "adjust"
 
@@ -100,11 +106,12 @@ function EditableText(props: {
   label: string
   value: string
   multiline?: boolean
-  onSave: (next: string) => Promise<void>
+  onSave: (next: string) => Promise<string | void>
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(props.value)
   const [saving, setSaving] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
 
   if (!editing) {
     return (
@@ -117,6 +124,7 @@ function EditableText(props: {
           >Edit</button>
         </div>
         <p style={{ whiteSpace: "pre-wrap" }}>{props.value || <em style={{ opacity: 0.5 }}>(empty)</em>}</p>
+        {notice && <div style={{ fontSize: "0.74em", color: "#9ac" }}>{notice}</div>}
       </div>
     )
   }
@@ -132,62 +140,94 @@ function EditableText(props: {
           disabled={saving}
           onClick={async () => {
             setSaving(true)
-            try { await props.onSave(draft); setEditing(false) }
-            catch (err) { alert(`Save failed: ${(err as Error).message}`) }
+            try {
+              const envelopeId = await props.onSave(draft)
+              setNotice(envelopeId ? `Queued planning_edit proposal ${envelopeId}` : "Queued planning_edit proposal")
+              setEditing(false)
+            }
+            catch (err) { alert(`Proposal failed: ${(err as Error).message}`) }
             finally { setSaving(false) }
           }}
-        >{saving ? "Saving…" : "Save"}</button>
+        >{saving ? "Queuing…" : "Propose"}</button>
         <button disabled={saving} onClick={() => setEditing(false)}>Cancel</button>
       </div>
     </div>
   )
 }
 
-function EditableList(props: {
+function ReadOnlyUnsupportedText(props: {
   label: string
-  values: string[]
-  onSave: (next: string[]) => Promise<void>
+  value: string
+  reason: string
 }) {
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(props.values.join("\n"))
-  const [saving, setSaving] = useState(false)
-
-  if (!editing) {
-    return (
-      <div className="artifact-section">
-        <div className="artifact-section-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span>{props.label}</span>
-          <button
-            onClick={() => { setDraft(props.values.join("\n")); setEditing(true) }}
-            style={{ fontSize: "0.72em", padding: "1px 6px", cursor: "pointer" }}
-          >Edit</button>
-        </div>
-        <ul>{props.values.map((v, i) => <li key={i}>{v}</li>)}</ul>
-      </div>
-    )
-  }
-
   return (
     <div className="artifact-section">
-      <div className="artifact-section-title">{props.label} (one per line)</div>
-      <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={5} style={{ width: "100%", boxSizing: "border-box" }} />
-      <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-        <button
-          disabled={saving}
-          onClick={async () => {
-            setSaving(true)
-            try {
-              const next = draft.split("\n").map(s => s.trim()).filter(Boolean)
-              await props.onSave(next)
-              setEditing(false)
-            } catch (err) { alert(`Save failed: ${(err as Error).message}`) }
-            finally { setSaving(false) }
-          }}
-        >{saving ? "Saving…" : "Save"}</button>
-        <button disabled={saving} onClick={() => setEditing(false)}>Cancel</button>
+      <div className="artifact-section-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span>{props.label}</span>
+        <span style={{ fontSize: "0.72em", color: "#789" }}>Read-only</span>
       </div>
+      <p style={{ whiteSpace: "pre-wrap" }}>{props.value || <em style={{ opacity: 0.5 }}>(empty)</em>}</p>
+      <div style={{ fontSize: "0.74em", color: "#789" }}>{props.reason}</div>
     </div>
   )
+}
+
+function ReadOnlyUnsupportedList(props: {
+  label: string
+  values: string[]
+  reason: string
+}) {
+  return (
+    <div className="artifact-section">
+      <div className="artifact-section-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span>{props.label}</span>
+        <span style={{ fontSize: "0.72em", color: "#789" }}>Read-only</span>
+      </div>
+      <ul>{props.values.map((v, i) => <li key={i}>{v}</li>)}</ul>
+      <div style={{ fontSize: "0.74em", color: "#789" }}>{props.reason}</div>
+    </div>
+  )
+}
+
+async function queueArtifactPlanningEdit(
+  novelId: string,
+  target: ArtifactPreviewPlanningTarget,
+  proposedValue: unknown,
+  label: string,
+): Promise<string | void> {
+  const res = await fetch(`/api/novel/${encodeURIComponent(novelId)}/planning-proposals`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      action: "field_replace",
+      target,
+      proposedValue,
+      rationale: `Operator artifact preview edit for ${label}`,
+      source: {
+        agent: "artifact-preview-ui",
+        userMessage: `Preview edit ${target.kind}.${target.fieldPath}`,
+      },
+    }),
+  })
+  const body = await res.json().catch(() => null) as { ok?: boolean; error?: string; envelope?: { id?: string } } | null
+  if (!res.ok || body?.ok === false) {
+    throw new Error(body?.error ?? `planning proposal request failed (${res.status})`)
+  }
+  return body?.envelope?.id
+}
+
+function planningEditSaver(args: {
+  novelId: string
+  surface: ArtifactPreviewSurface
+  fieldPath: string
+  label: string
+  characterId?: string | null
+}): (next: string) => Promise<string | void> {
+  return async (next: string) => {
+    const mapping = mapArtifactPreviewPlanningEdit(args)
+    if (!mapping.ok) throw new Error(mapping.reason)
+    return queueArtifactPlanningEdit(args.novelId, mapping.target, next, args.label)
+  }
 }
 
 // ── Previews ──────────────────────────────────────────────────────────
@@ -196,19 +236,24 @@ function WorldPreview({ novelId, world, onSaved }: { novelId: string; world: any
   const systems: any[] = world.systems ?? []
   const cultures: any[] = world.cultures ?? []
   const locations: any[] = world.locations ?? []
-  const save = async (patch: Record<string, unknown>) => { await updateWorldBible(novelId, patch); onSaved() }
+  const save = (fieldPath: string, label: string) => planningEditSaver({
+    novelId,
+    surface: "world",
+    fieldPath,
+    label,
+  })
   return (
     <div className="artifact-body">
-      <EditableText label="Setting"                 value={world.setting ?? ""}               multiline onSave={v => save({ setting: v })} />
-      <EditableText label="Time period"             value={world.timePeriod ?? ""}                      onSave={v => save({ timePeriod: v })} />
-      <EditableText label="Geography"               value={world.geography ?? ""}             multiline onSave={v => save({ geography: v })} />
-      <EditableText label="Political structure"     value={world.politicalStructure ?? ""}    multiline onSave={v => save({ politicalStructure: v })} />
-      <EditableText label="Technology / magic"      value={world.technologyConstraints ?? ""} multiline onSave={v => save({ technologyConstraints: v })} />
-      <EditableText label="Sensory palette"         value={world.sensoryPalette ?? ""}        multiline onSave={v => save({ sensoryPalette: v })} />
-      <EditableText label="Culture"                 value={world.culture ?? ""}               multiline onSave={v => save({ culture: v })} />
-      <EditableText label="History"                 value={world.history ?? ""}               multiline onSave={v => save({ history: v })} />
-      <EditableList label="Social customs"          values={world.socialCustoms ?? []}                 onSave={v => save({ socialCustoms: v })} />
-      <EditableList label="World rules"             values={world.rules ?? []}                         onSave={v => save({ rules: v })} />
+      <EditableText label="Setting"                 value={world.setting ?? ""}               multiline onSave={save("setting", "World setting")} />
+      <EditableText label="Time period"             value={world.timePeriod ?? ""}                      onSave={save("timePeriod", "World time period")} />
+      <EditableText label="Geography"               value={world.geography ?? ""}             multiline onSave={save("geography", "World geography")} />
+      <EditableText label="Political structure"     value={world.politicalStructure ?? ""}    multiline onSave={save("politicalStructure", "World political structure")} />
+      <EditableText label="Technology / magic"      value={world.technologyConstraints ?? ""} multiline onSave={save("technologyConstraints", "World technology / magic")} />
+      <EditableText label="Sensory palette"         value={world.sensoryPalette ?? ""}        multiline onSave={save("sensoryPalette", "World sensory palette")} />
+      <EditableText label="Culture"                 value={world.culture ?? ""}               multiline onSave={save("culture", "World culture")} />
+      <EditableText label="History"                 value={world.history ?? ""}               multiline onSave={save("history", "World history")} />
+      <ReadOnlyUnsupportedList label="Social customs" values={world.socialCustoms ?? []} reason={unsupportedArtifactPreviewEditMessage("world", "socialCustoms")} />
+      <ReadOnlyUnsupportedList label="World rules"    values={world.rules ?? []}         reason={unsupportedArtifactPreviewEditMessage("world", "rules")} />
       {systems.length > 0 && <Section title={`Systems (${systems.length})`}>
         <ul>{systems.map((s, i) => <li key={i}><strong>{s.name}</strong>{s.description ? ` — ${s.description}` : ""}</li>)}</ul>
       </Section>}
@@ -233,37 +278,45 @@ function CharactersPreview({ novelId, characters, onSaved }: { novelId: string; 
 }
 
 function CharacterCard({ novelId, character, onSaved }: { novelId: string; character: any; onSaved: () => void }) {
-  const save = async (patch: Record<string, unknown>) => {
-    await updateCharacter(novelId, character.id, patch as any)
-    onSaved()
-  }
+  const save = (fieldPath: string, label: string) => planningEditSaver({
+    novelId,
+    surface: "character",
+    fieldPath,
+    label,
+    characterId: character.id,
+  })
   return (
     <div className="artifact-character" style={{ borderBottom: "1px solid #333", paddingBottom: 10, marginBottom: 10 }}>
       <div className="artifact-character-head" style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <strong>{character.name}</strong>
         {character.role && <span className="artifact-badge">{character.role}</span>}
       </div>
-      <EditableText label="Name (proper name)"   value={character.name ?? ""}             onSave={v => save({ name: v })} />
-      <EditableText label="Role"                 value={character.role ?? ""}             onSave={v => save({ role: v })} />
-      <EditableText label="Wants (goals)"        value={character.goals ?? ""}            multiline onSave={v => save({ goals: v })} />
-      <EditableText label="Fears"                value={character.fears ?? ""}            multiline onSave={v => save({ fears: v })} />
-      <EditableText label="Internal conflict"    value={character.internalConflict ?? ""} multiline onSave={v => save({ internalConflict: v })} />
-      <EditableText label="Avoids"               value={character.avoids ?? ""}           multiline onSave={v => save({ avoids: v })} />
-      <EditableText label="Backstory"            value={character.backstory ?? ""}        multiline onSave={v => save({ backstory: v })} />
-      <EditableText label="Speech pattern"       value={character.speechPattern ?? ""}    multiline onSave={v => save({ speechPattern: v })} />
-      <EditableList label="Traits"               values={character.traits ?? []}                    onSave={v => save({ traits: v })} />
+      <ReadOnlyUnsupportedText label="Name (proper name)" value={character.name ?? ""} reason={unsupportedArtifactPreviewEditMessage("character", "name")} />
+      <ReadOnlyUnsupportedText label="Role"               value={character.role ?? ""} reason={unsupportedArtifactPreviewEditMessage("character", "role")} />
+      <EditableText label="Wants (goals)"        value={character.goals ?? ""}            multiline onSave={save("goals", "Character goals")} />
+      <EditableText label="Fears"                value={character.fears ?? ""}            multiline onSave={save("fears", "Character fears")} />
+      <EditableText label="Internal conflict"    value={character.internalConflict ?? ""} multiline onSave={save("internalConflict", "Character internal conflict")} />
+      <EditableText label="Avoids"               value={character.avoids ?? ""}           multiline onSave={save("avoids", "Character avoids")} />
+      <EditableText label="Backstory"            value={character.backstory ?? ""}        multiline onSave={save("backstory", "Character backstory")} />
+      <EditableText label="Speech pattern"       value={character.speechPattern ?? ""}    multiline onSave={save("speechPattern", "Character speech pattern")} />
+      <ReadOnlyUnsupportedList label="Traits" values={character.traits ?? []} reason={unsupportedArtifactPreviewEditMessage("character", "traits")} />
     </div>
   )
 }
 
 function SpinePreview({ novelId, spine, onSaved }: { novelId: string; spine: any; onSaved: () => void }) {
   const acts: any[] = spine.acts ?? []
-  const save = async (patch: Record<string, unknown>) => { await updateStorySpine(novelId, patch); onSaved() }
+  const save = (fieldPath: string, label: string) => planningEditSaver({
+    novelId,
+    surface: "spine",
+    fieldPath,
+    label,
+  })
   return (
     <div className="artifact-body">
-      <EditableText label="Central conflict" value={spine.centralConflict ?? ""} multiline onSave={v => save({ centralConflict: v })} />
-      <EditableText label="Theme"            value={spine.theme ?? ""}           multiline onSave={v => save({ theme: v })} />
-      <EditableText label="Ending direction" value={spine.endingDirection ?? ""} multiline onSave={v => save({ endingDirection: v })} />
+      <EditableText label="Central conflict" value={spine.centralConflict ?? ""} multiline onSave={save("centralConflict", "Story spine central conflict")} />
+      <EditableText label="Theme"            value={spine.theme ?? ""}           multiline onSave={save("theme", "Story spine theme")} />
+      <EditableText label="Ending direction" value={spine.endingDirection ?? ""} multiline onSave={save("endingDirection", "Story spine ending direction")} />
       {acts.length > 0 && (
         <Section title="Acts">
           <ol>{acts.map((a, i) => (
@@ -298,7 +351,6 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
   const [envelopeStates, setEnvelopeStates] = useState<Record<string, EnvelopeRowState>>({})
   const [input, setInput] = useState("")
   const [sending, setSending] = useState(false)
-  const [applying, setApplying] = useState(false)
   // Phase 3 commit 4 follow-up D — audit-history view. Collapsed by default;
   // fetches on first expand and refreshes when novelId changes (if visible).
   // Skip pagination — the MVP renders all rows reverse-chronological.
@@ -466,24 +518,14 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
 
   const applyAll = async () => {
     if (!pendingPatches.length) return
-    setApplying(true)
-    try {
-      for (const p of pendingPatches) {
-        if (p.type === "characterUpdate") await updateCharacter(novelId, p.characterId, p.patch as any)
-        else if (p.type === "characterRename") await updateCharacter(novelId, p.characterId, { name: p.newName })
-        else if (p.type === "worldUpdate") await updateWorldBible(novelId, p.patch)
-        else if (p.type === "spineUpdate") await updateStorySpine(novelId, p.patch)
-      }
-      setTurns(prev => [...prev, { role: "assistant", content: `Applied ${pendingPatches.length} change${pendingPatches.length === 1 ? "" : "s"}.` }])
-      setPendingPatches([])
-      setEnvelopes([])
-      setEnvelopeStates({})
-      onApplied()
-    } catch (err) {
-      alert(`Apply failed: ${(err as Error).message}`)
-    } finally {
-      setApplying(false)
-    }
+    setTurns(prev => [
+      ...prev,
+      {
+        role: "assistant",
+        content:
+          "Legacy direct artifact apply is disabled. Re-run the adjustment so the server returns reviewable proposal envelopes, then approve or reject the cards.",
+      },
+    ])
   }
 
   const resolveEnvelope = async (
@@ -572,7 +614,7 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
   return (
     <div className="artifact-body">
       <div style={{ fontSize: "0.85em", opacity: 0.75, marginBottom: 8 }}>
-        Describe a change to the world, a character, or the plot. The model proposes edits; click Apply to commit.
+        Describe a change to the world, a character, or the plot. The model proposes reviewable edits; approve or reject the proposal cards.
       </div>
       <div
         ref={logRef}
@@ -749,8 +791,8 @@ function AdjustPanel({ novelId, characters, onApplied }: { novelId: string; char
             ))}
           </ul>
           <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-            <button onClick={applyAll} disabled={applying}>{applying ? "Applying…" : "Apply all"}</button>
-            <button onClick={() => setPendingPatches([])} disabled={applying}>Discard</button>
+            <button onClick={applyAll}>Direct apply disabled</button>
+            <button onClick={() => setPendingPatches([])}>Discard</button>
           </div>
         </div>
       )}
