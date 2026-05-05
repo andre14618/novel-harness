@@ -2,12 +2,13 @@
 /**
  * Syntactic preflight checker for the invariants in `docs/invariants.md`.
  *
- * Ships three of the five registry invariants (the runtime ones live in
+ * Ships four of the six registry invariants (the runtime ones live in
  * `.test.ts` files under `src/phases/`):
  *
  *   #2 Seam-recheck symmetry         — AST walk over `src/phases/drafting.ts`
  *   #3 Trace-seeded watcher          — AST walk over `scripts/test/**\/*.ts`
  *   #5 Body-already-used detection   — AST walk over `src/**\/*.ts` + `scripts/**\/*.ts`
+ *   #6 Proposal-backed artifact edits — AST walk over production `ui/src/**`
  *
  * Exit 0 on green, 1 on any violation.
  *
@@ -27,6 +28,7 @@ import { loadAllowlist, isAllowlisted, type AllowlistEntry } from "./invariants-
 const INV_SEAM_RECHECK = "Seam-recheck symmetry"
 const INV_WATCHER = "Trace-seeded watcher for post-start event assertions"
 const INV_BODY_USED = "Body-already-used detection"
+const INV_PROPOSAL_BACKED_ARTIFACT_EDITS = "Proposal-backed artifact editing surfaces"
 
 const REPO_ROOT = process.cwd()
 
@@ -458,6 +460,128 @@ function checkTraceWatcher(
       })
     }
   }
+  return { violations, allowlisted: allowlistedCount, siteCount }
+}
+
+// ── Invariant #6 — Proposal-backed artifact editing surfaces ─────────────
+/**
+ * Production UI code must not reintroduce direct world/character/spine
+ * artifact mutations. Those edits should enter the manual review queue as
+ * `planning_edit` proposals or resolve existing artifact-patch envelopes.
+ *
+ * `ui/src/api.ts` still owns the low-level direct PUT helpers because the
+ * backend route exists behind an explicit env opt-in for legacy/admin use.
+ * Production UI surfaces outside that file must not call those helpers or
+ * issue raw PUTs to the direct artifact endpoints.
+ */
+const DIRECT_ARTIFACT_UI_HELPERS = new Set([
+  "updateCharacter",
+  "updateWorldBible",
+  "updateStorySpine",
+])
+
+function lineOf(sf: ts.SourceFile, node: ts.Node): number {
+  return sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1
+}
+
+function propertyNameText(name: ts.PropertyName): string | null {
+  if (ts.isIdentifier(name) || ts.isStringLiteralLike(name) || ts.isNumericLiteral(name)) return name.text
+  return null
+}
+
+function objectLiteralHasPutMethod(obj: ts.ObjectLiteralExpression): boolean {
+  for (const prop of obj.properties) {
+    if (!ts.isPropertyAssignment(prop)) continue
+    const name = propertyNameText(prop.name)
+    if (name !== "method") continue
+    const init = prop.initializer
+    if (ts.isStringLiteralLike(init) && init.text.toUpperCase() === "PUT") return true
+  }
+  return false
+}
+
+function targetsDirectArtifactEndpoint(expr: ts.Expression, sf: ts.SourceFile): boolean {
+  const text = ts.isStringLiteralLike(expr) ? expr.text : expr.getText(sf)
+  return (
+    text.includes("/world-bible") ||
+    text.includes("/story-spine") ||
+    /\/character\//.test(text)
+  )
+}
+
+function directArtifactHelperCallName(call: ts.CallExpression): string | null {
+  const callee = call.expression
+  if (ts.isIdentifier(callee) && DIRECT_ARTIFACT_UI_HELPERS.has(callee.text)) return callee.text
+  if (
+    ts.isPropertyAccessExpression(callee) &&
+    ts.isIdentifier(callee.name) &&
+    DIRECT_ARTIFACT_UI_HELPERS.has(callee.name.text)
+  ) {
+    return callee.name.text
+  }
+  return null
+}
+
+function rawDirectArtifactPut(call: ts.CallExpression, sf: ts.SourceFile): boolean {
+  if (call.arguments.length < 2) return false
+  const first = call.arguments[0]
+  const second = call.arguments[1]
+  if (!targetsDirectArtifactEndpoint(first, sf)) return false
+  if (!ts.isObjectLiteralExpression(second)) return false
+  return objectLiteralHasPutMethod(second)
+}
+
+function checkProposalBackedArtifactEdits(
+  files: string[],
+  allowlist: AllowlistEntry[],
+): { violations: Violation[]; allowlisted: number; siteCount: number } {
+  const violations: Violation[] = []
+  let allowlistedCount = 0
+  let siteCount = 0
+
+  for (const abs of files) {
+    const rel = relPath(abs)
+    const src = readFileSync(abs, "utf8")
+    const sf = ts.createSourceFile(rel, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+
+    function report(node: ts.Node, detail: string): void {
+      siteCount++
+      const line = lineOf(sf, node)
+      const hit = isAllowlisted(allowlist, INV_PROPOSAL_BACKED_ARTIFACT_EDITS, rel, line)
+      if (hit) {
+        console.log(`allowlisted: ${INV_PROPOSAL_BACKED_ARTIFACT_EDITS} @ ${rel}:${line} (expires ${hit.expires})`)
+        allowlistedCount++
+        return
+      }
+      violations.push({
+        invariant: INV_PROPOSAL_BACKED_ARTIFACT_EDITS,
+        file: rel,
+        line,
+        detail,
+      })
+    }
+
+    function visit(node: ts.Node): void {
+      if (ts.isCallExpression(node)) {
+        const helperName = directArtifactHelperCallName(node)
+        if (helperName) {
+          report(
+            node,
+            `production UI calls ${helperName}(), which directly PUTs artifact state; queue a planning_edit proposal or resolve an artifact_patch envelope instead`,
+          )
+        } else if (rawDirectArtifactPut(node, sf)) {
+          report(
+            node,
+            "production UI issues a raw PUT to a direct artifact endpoint; use /planning-proposals or proposal envelope resolution instead",
+          )
+        }
+      }
+      ts.forEachChild(node, visit)
+    }
+
+    visit(sf)
+  }
+
   return { violations, allowlisted: allowlistedCount, siteCount }
 }
 
@@ -1046,13 +1170,25 @@ function firstUnreachableBeforeSecond(
         }
         if (secondAncestor && secondAncestor !== firstAncestor && secondAncestor.pos >= firstAncestor.end) {
           // Check the branch of firstAncestor containing `first` terminates.
-          if (branchContainingTerminates(firstAncestor as ts.Node, first)) {
+          if (
+            branchContainingTerminates(firstAncestor as ts.Node, first) ||
+            containingBranchBetweenTerminates(firstAncestor as ts.Node, first)
+          ) {
             return true
           }
         }
       }
     }
     firstAncestor = parent
+  }
+  return false
+}
+
+function containingBranchBetweenTerminates(ancestor: ts.Node, inner: ts.Node): boolean {
+  let cur: ts.Node | undefined = inner.parent
+  while (cur && cur !== ancestor) {
+    if (branchContainingTerminates(cur, inner)) return true
+    cur = cur.parent
   }
   return false
 }
@@ -1158,6 +1294,7 @@ function checkBodyAlreadyUsed(
 // ── Target sets ──────────────────────────────────────────────────────────
 const DRAFTING_PATH = "src/phases/drafting.ts"
 const TEST_SCRIPT_GLOB_DIR = "scripts/test"
+const UI_SRC_DIR = "ui/src"
 const FIXTURE_DIR = "tests/invariants-fixtures"
 
 function collectScriptTestFiles(): string[] {
@@ -1177,6 +1314,18 @@ function collectAllSourceFiles(): string[] {
   )
   // Exclude fixture dir (intentional violations).
   return files.filter(f => !relPath(f).startsWith(FIXTURE_DIR))
+}
+
+function collectUiProductionFiles(): string[] {
+  return walkDir(resolve(REPO_ROOT, UI_SRC_DIR), [".ts", ".tsx"], [
+    "node_modules",
+  ]).filter((abs) => {
+    const rel = relPath(abs)
+    if (rel === "ui/src/api.ts") return false
+    if (rel.endsWith(".test.ts") || rel.endsWith(".test.tsx")) return false
+    if (rel.endsWith(".spec.ts") || rel.endsWith(".spec.tsx")) return false
+    return true
+  })
 }
 
 // ── Reporting ────────────────────────────────────────────────────────────
@@ -1199,11 +1348,13 @@ function reportViolations(vs: Violation[]): void {
  *   seam-recheck-symmetry                                      → #2
  *   trace-seeded-watcher-for-post-start-event-assertions       → #3
  *   body-already-used-detection                                → #5
+ *   proposal-backed-artifact-editing-surfaces                  → #6
  */
 const SLUG_TO_INV: Record<string, string> = {
   "seam-recheck-symmetry": INV_SEAM_RECHECK,
   "trace-seeded-watcher-for-post-start-event-assertions": INV_WATCHER,
   "body-already-used-detection": INV_BODY_USED,
+  "proposal-backed-artifact-editing-surfaces": INV_PROPOSAL_BACKED_ARTIFACT_EDITS,
 }
 
 function readExpectedSlug(abs: string): string | null {
@@ -1249,6 +1400,9 @@ function runSelfTest(): number {
     } else if (expected === INV_BODY_USED) {
       const res = checkBodyAlreadyUsed([abs], allowlist)
       fired = res.violations
+    } else if (expected === INV_PROPOSAL_BACKED_ARTIFACT_EDITS) {
+      const res = checkProposalBackedArtifactEdits([abs], allowlist)
+      fired = res.violations
     }
     const matched = fired.find(v => v.invariant === expected)
     if (matched) {
@@ -1291,18 +1445,22 @@ function runDefaultScan(targetFile: string | null): number {
   const allSources = targetFile ? [resolve(REPO_ROOT, targetFile)] : collectAllSourceFiles()
   const inv5 = checkBodyAlreadyUsed(allSources, allowlist)
 
-  const allViolations = [...inv2.violations, ...inv3.violations, ...inv5.violations]
-  const totalSites = inv2.siteCount + inv3.siteCount + inv5.siteCount
+  // #6
+  const uiSources = targetFile ? [resolve(REPO_ROOT, targetFile)] : collectUiProductionFiles()
+  const inv6 = checkProposalBackedArtifactEdits(uiSources, allowlist)
+
+  const allViolations = [...inv2.violations, ...inv3.violations, ...inv5.violations, ...inv6.violations]
+  const totalSites = inv2.siteCount + inv3.siteCount + inv5.siteCount + inv6.siteCount
 
   if (allViolations.length > 0) {
     reportViolations(allViolations)
     console.error(
-      `\ninvariants-check: 3 syntactic invariants, ${totalSites} sites scanned, ${allViolations.length} violation(s)`,
+      `\ninvariants-check: 4 syntactic invariants, ${totalSites} sites scanned, ${allViolations.length} violation(s)`,
     )
     return 1
   }
   console.log(
-    `invariants-check: 3 syntactic invariants, ${totalSites} sites scanned, 0 violations`,
+    `invariants-check: 4 syntactic invariants, ${totalSites} sites scanned, 0 violations`,
   )
   return 0
 }

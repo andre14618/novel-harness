@@ -46,12 +46,13 @@ Each invariant gets an entry below with:
 | 3 | Trace-seeded watcher for post-start event assertions | syntactic | shipped (exp #243, `scripts/lint/invariants-check.ts` + `tests/invariants-fixtures/watcher-missing.ts`) |
 | 4 | Branch-symmetric event emission | runtime (narrow) | shipped (exp #243, `src/phases/drafting-reviser-escalation.test.ts`) |
 | 5 | Body-already-used detection | syntactic | shipped (exp #243; widened to AST exp #244, `scripts/lint/invariants-check.ts` + `tests/invariants-fixtures/body-already-used{,-sequential,-json-first}.ts`) |
+| 6 | Proposal-backed artifact editing surfaces | syntactic | shipped (`scripts/lint/invariants-check.ts` + `tests/invariants-fixtures/direct-artifact-ui-put.ts`) |
 
 **Ratio target:** within 3-5 sessions after invariants ship, `bugs_caught_by_preflight` should catch up to or exceed `bugs_caught_by_codex` on the recurring bug classes named below. If the ratio doesn't move, invariants are theater — re-evaluate the shapes.
 
 ---
 
-## Planned invariants (5)
+## Invariants
 
 ### 1. revisionUsed restart persistence
 
@@ -96,6 +97,25 @@ Each invariant gets an entry below with:
 - **Implementation:** shipped at `scripts/lint/invariants-check.ts` `checkBodyAlreadyUsed()`. AST walk using the `typescript` compiler API: collects every body-consuming call, groups by `(enclosingFunction, receiverDeclaration)` — tracked by the binding's declaration-node identity, not name-string, so shadowing doesn't mis-group — with `(enclosingFunction, receiverShape)` as fallback for unresolvable receivers, then flags any source-ordered pair whose branch-containing-first does NOT always terminate. Reachability heuristic recognizes throw / return / continue / break as terminators; try-blocks terminate iff both `try`-last and `catch`-last statements terminate; `switch`-statements terminate iff every case arm (including `default`) terminates. Receivers that construct fresh objects at the call site (`new Response(...).text()`, `(await fn()).text()`) are excluded from grouping. Regression belt: `tests/invariants-fixtures/body-already-used.ts` (template-literal shape), `body-already-used-sequential.ts` (plain sequential double-consume), `body-already-used-json-first.ts` (ordering-symmetry `.json()` → `.text()`). Loop-statement terminators (T4, exp #247, Codex threads `a624cc89` / `aef73a30a2a74ce51`): `while (true) { ... }`, `for (;;) { ... }`, and `do { ... } while (cond)` are now recognized as terminal when (a) the body unconditionally exits the function AND (b) no `break`/`continue` inside the body targets that loop (switches capture `break` but not `continue`; nested loops capture their own). For `do-while`, the classifier is body-only regardless of the trailing `while (cond)` because the body runs unconditionally once. Known deferred false negatives: `for (; true ;)` (only `condition === undefined` is recognized, not a literal-true header expression), truthy non-keyword conditions (`!0`, `1 === 1`, numeric `1`), labeled-break/continue resolution (conservatively treated as targeting the current loop), and receiver-alias tracking (`const b = a; b.text(); a.json()` — separate ticket). Exp #244 widened from template-literal regex; retired the 4 short-circuit-error-throw allowlist entries from `.claude/invariants-allowlist.yaml`.
 - **Status:** shipped (exp #243, commit `ce6452c`); widened to AST detection (exp #244, 2026-04-19, commits `70f814d` + `b5cb37a` + `8cc3d2c`). Exp #245 closed as SUBSUMED by #244 per Codex triage `a0d7c3b5`. Loop-terminator extension shipped (exp #247, T4, 2026-04-19).
 - **Pattern doc:** `docs/patterns/ast-over-text-for-syntactic-invariants.md`
+
+### 6. Proposal-backed artifact editing surfaces
+
+- **Shape:** syntactic
+- **Catches:** Operator-facing UI paths that directly mutate world, character,
+  or story-spine artifacts after proposal-backed planning edits exist. Recent
+  instance: artifact preview inline saves and legacy adjust fallback bypassed
+  `planning_edit` / `artifact_patch` review until the direct artifact PUT
+  closure slice.
+- **Assertion:** Production `ui/src/**` files outside `ui/src/api.ts` must not
+  call `updateCharacter()`, `updateWorldBible()`, or `updateStorySpine()`, and
+  must not issue raw `PUT` calls to `/character/:id`, `/world-bible`, or
+  `/story-spine` artifact endpoints. UI edits to those surfaces must queue a
+  `planning_edit` proposal or resolve an existing artifact-patch envelope.
+- **Implementation:** shipped at `scripts/lint/invariants-check.ts`
+  `checkProposalBackedArtifactEdits()`. Regression belt:
+  `tests/invariants-fixtures/direct-artifact-ui-put.ts`.
+- **Status:** shipped
+- **Allowlist:** none
 
 ---
 
