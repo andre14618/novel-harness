@@ -21,7 +21,10 @@ runtime behavior unless the lane contract explicitly scopes that work.
 The repo keeps tiered local gates instead of relying on direct broad `bun test`:
 
 - `bun run test:fast` for pure and in-process default coverage
-- `bun run test:db` for persistence, route, and disposable-data integration
+- `bun run test:db` for bounded persistence, route, and disposable-data smoke
+  coverage
+- `bun run test:db:full` for exhaustive isolated DB integration when broad
+  persistence confidence is worth the runtime cost
 - `bun run test:replay` for explicit replay fixture parity
 - `bun run test:archive` for archived eval surfaces
 - Playwright MCP evidence for UI-facing clearance
@@ -47,9 +50,9 @@ runtime architecture.
 
 - Every test/invariant slice should baseline the current behavior, identify the
   correct tier, preserve coverage explicitly, and report any remaining gap.
-- Moving a slow test out of `test:fast` requires a replacement map: pure logic
-  tests, DB route smokes, replay fixture checks, or Playwright evidence as
-  appropriate.
+- Moving a slow test out of `test:fast` or `test:db` requires a replacement
+  map: pure logic tests, DB route smokes, full DB scenarios, replay fixture
+  checks, or Playwright evidence as appropriate.
 - New invariants require an entry in `docs/invariants.md`, a deliberate
   violation fixture or equivalent negative check, and agent-actionable failure
   output.

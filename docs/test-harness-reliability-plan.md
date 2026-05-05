@@ -21,11 +21,15 @@ The harness needs tests to be useful in three ways:
 
 ## Current Evidence
 
-Supported tiered coverage has been restored:
+Supported tiered coverage has been restored and split by cost:
 
 - `bun run test:fast`: 84 mostly pure/non-DB files; latest run passed.
-- `bun run test:db`: planning proposal DB smoke plus 23 isolated DB files,
-  each run with `BUN_SQL_MAX=1`; latest run passed.
+- `bun run test:db`: bounded DB smoke commands for representative persistence,
+  route, transaction, stale-precondition, and lineage paths. It performs an
+  upfront DB health check so a down listener/tunnel fails quickly.
+- `bun run test:db:full`: planning proposal DB smoke plus all isolated DB
+  files, each run with `BUN_SQL_MAX=1`. Use for broad persistence sweeps, not
+  every edit loop.
 - `bun run test:archive`: 6 archived eval/history files; latest run passed.
 - `bun scripts/test/tiered-test-runner.ts --tier replay`: skips unless
   `PHASE_PARITY_REPLAY=1`.
@@ -52,7 +56,7 @@ The original 2026-05-05 full-run failures resolved into these outcomes:
 
 - Default `bun run test` should be fast, deterministic, and mostly DB-free.
 - DB-backed suites are allowed, but they must be explicitly named, disposable,
-  and runnable as smoke/integration commands with bounded timeouts.
+  and runnable as smoke or full integration commands with bounded timeouts.
 - A test that relies on a live DB must prove fixture setup, cleanup, and row
   isolation. Hidden state from a running dev server should not decide results.
 - Archived evals and replay fixtures must not participate in default coverage
@@ -77,8 +81,9 @@ The original 2026-05-05 full-run failures resolved into these outcomes:
    or shared Bun SQL pool can interfere.
 
 4. **Add explicit commands.** Done.
-   Introduce clear scripts for `test:fast`, `test:db`, and later UI/browser
-   smoke. Each command should state what class of regressions it catches.
+   Introduce clear scripts for `test:fast`, DB smoke `test:db`, full DB sweep
+   `test:db:full`, and later UI/browser smoke. Each command should state what
+   class of regressions it catches.
 
 5. **Codify pass/fail gates.** Done in `docs/current-state.md`.
    Update `docs/current-state.md` with the supported local gates once they are
@@ -94,8 +99,9 @@ The original 2026-05-05 full-run failures resolved into these outcomes:
 - Broad `bun test` mixed DB suites, archived tests, and replay fixtures in one
   process/discovery surface. That made failures look product-level when several
   were test-shape problems.
-- DB-backed suites are stable when isolated one file per process with
-  `BUN_SQL_MAX=1`.
+- DB-backed suites are more stable when isolated one file per process with
+  `BUN_SQL_MAX=1`, but the exhaustive sweep can still exhaust or lose a local
+  DB/tunnel over long runs. The standard DB gate is now smoke-first.
 - Planning snapshot and target reads used concurrent `Promise.all` around a
   single transactional connection. Serial reads preserve snapshot consistency
   and remove single-connection stalls in the DB test shape.
@@ -105,6 +111,8 @@ The original 2026-05-05 full-run failures resolved into these outcomes:
 
 - `bun test` is intentionally replaced by documented tiered commands.
 - `bun run test:fast`, `bun run test:db`, and `bun run test:archive` pass.
+- `bun run test:db:full` remains available for exhaustive persistence sweeps
+  and should fail fast when the configured DB listener is unavailable.
 - Default fast command returns in seconds, not minutes.
 - DB smoke is stable across repeated runs with the local app stopped.
 - Every DB smoke uses disposable IDs and cleans its matching rows.

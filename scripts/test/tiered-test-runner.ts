@@ -1,8 +1,9 @@
 #!/usr/bin/env bun
+import { SQL } from "bun"
 import { readdir, readFile } from "node:fs/promises"
 import { join } from "node:path"
 
-type Tier = "fast" | "db" | "replay" | "archive"
+type Tier = "fast" | "db" | "db-full" | "replay" | "archive"
 
 interface Args {
   tier: Tier | "all" | null
@@ -15,10 +16,16 @@ interface TestFile {
   reason: string
 }
 
+interface TestCommand {
+  cmd: string[]
+  reason: string
+}
+
 const FAST_CHUNK_SIZE = 40
 const DB_TIMEOUT_MS = "30000"
 const FAST_TIMEOUT_MS = "30000"
 const REPLAY_TIMEOUT_MS = "120000"
+const DB_HEALTH_TIMEOUT_MS = 2_000
 
 const DB_PATTERNS: Array<[RegExp, string]> = [
   [/^src\/db\//, "db-layer test"],
@@ -29,6 +36,57 @@ const DB_PATTERNS: Array<[RegExp, string]> = [
   [/^src\/canon\/planning-snapshot\.test\.ts$/, "planning snapshot DB assertions"],
   [/^tests\/persist-phase-eval-run\.test\.ts$/, "phase eval persistence"],
   [/^scripts\/phase-eval\/promotion-check\.test\.ts$/, "promotion check persistence"],
+]
+
+const DB_SMOKE_COMMANDS: TestCommand[] = [
+  {
+    cmd: ["bun", "scripts/test/planning-proposal-db-smoke.ts"],
+    reason: "planning proposal create/resolve/apply lineage smoke",
+  },
+  {
+    cmd: ["bun", "test", "--timeout", DB_TIMEOUT_MS, "src/db/proposal-envelopes.test.ts"],
+    reason: "proposal envelope persistence smoke",
+  },
+  {
+    cmd: ["bun", "test", "--timeout", DB_TIMEOUT_MS, "src/db/planning-mutation-lineage.test.ts"],
+    reason: "planning mutation lineage persistence smoke",
+  },
+  {
+    cmd: [
+      "bun",
+      "test",
+      "--timeout",
+      DB_TIMEOUT_MS,
+      "--test-name-pattern",
+      "approved characterUpdate applies patch|stale precondition|concurrent same-envelope resolves",
+      "src/orchestrator/proposal-envelope-routes.test.ts",
+    ],
+    reason: "artifact patch proposal route transaction smoke",
+  },
+  {
+    cmd: [
+      "bun",
+      "test",
+      "--timeout",
+      DB_TIMEOUT_MS,
+      "--test-name-pattern",
+      "approved span edit: live hash matches|approved span edit: stale precondition|rejected: persists status",
+      "src/orchestrator/prose-edit-routes.test.ts",
+    ],
+    reason: "prose edit proposal route transaction smoke",
+  },
+  {
+    cmd: [
+      "bun",
+      "test",
+      "--timeout",
+      DB_TIMEOUT_MS,
+      "--test-name-pattern",
+      "returns 30 pending|approves multiple in one request|POST resolve approve",
+      "src/orchestrator/canon-proposal-routes.test.ts",
+    ],
+    reason: "canon proposal route transaction smoke",
+  },
 ]
 
 const DB_CONTENT_MARKERS: Array<[RegExp, string]> = [
@@ -58,7 +116,7 @@ if (args.list) {
 const tier = args.tier ?? "fast"
 if (tier === "all") {
   await runTier("fast", classified)
-  await runTier("db", classified)
+  await runTier("db-full", classified)
   await runTier("replay", classified)
   await runTier("archive", classified)
 } else {
@@ -84,7 +142,7 @@ function parseArgs(argv: string[]): Args {
 }
 
 function isTierArg(value: string | undefined): value is Tier | "all" {
-  return value === "fast" || value === "db" || value === "replay" || value === "archive" || value === "all"
+  return value === "fast" || value === "db" || value === "db-full" || value === "replay" || value === "archive" || value === "all"
 }
 
 async function discoverTestFiles(root: string): Promise<string[]> {
@@ -125,18 +183,23 @@ async function classifyFile(path: string): Promise<TestFile> {
   const fastReason = FAST_OVERRIDES.get(path)
   if (fastReason) return { path, tier: "fast", reason: fastReason }
   for (const [pattern, reason] of DB_PATTERNS) {
-    if (pattern.test(path)) return { path, tier: "db", reason }
+    if (pattern.test(path)) return { path, tier: "db-full", reason }
   }
 
   const content = await readFile(path, "utf8").catch(() => "")
   for (const [marker, reason] of DB_CONTENT_MARKERS) {
-    if (marker.test(content)) return { path, tier: "db", reason }
+    if (marker.test(content)) return { path, tier: "db-full", reason }
   }
   return { path, tier: "fast", reason: "pure/default test" }
 }
 
 function printInventory(files: TestFile[]): void {
-  for (const tier of ["fast", "db", "replay", "archive"] as const) {
+  console.log("\n[db] smoke")
+  for (const command of DB_SMOKE_COMMANDS) {
+    console.log(`${command.cmd.join(" ")}\t${command.reason}`)
+  }
+
+  for (const tier of ["fast", "db-full", "replay", "archive"] as const) {
     const tierFiles = files.filter((file) => file.tier === tier)
     console.log(`\n[${tier}] ${tierFiles.length}`)
     for (const file of tierFiles) {
@@ -147,8 +210,21 @@ function printInventory(files: TestFile[]): void {
 
 async function runTier(tier: Tier, files: TestFile[]): Promise<void> {
   const tierFiles = files.filter((file) => file.tier === tier).map((file) => file.path)
-  console.log(`[test:${tier}] ${tierFiles.length} files`)
   if (tier === "db") {
+    console.log(`[test:db] ${DB_SMOKE_COMMANDS.length} smoke commands`)
+    await assertDbReachable()
+    for (const command of DB_SMOKE_COMMANDS) {
+      runCommand(command.cmd[0], command.cmd.slice(1), {
+        ...process.env,
+        BUN_SQL_MAX: process.env.BUN_SQL_MAX ?? "1",
+      })
+    }
+    return
+  }
+
+  console.log(`[test:${tier}] ${tierFiles.length} files`)
+  if (tier === "db-full") {
+    await assertDbReachable()
     runCommand("bun", ["scripts/test/planning-proposal-db-smoke.ts"], {
       ...process.env,
       BUN_SQL_MAX: process.env.BUN_SQL_MAX ?? "1",
@@ -165,6 +241,40 @@ async function runTier(tier: Tier, files: TestFile[]): Promise<void> {
   const timeout = tier === "replay" ? REPLAY_TIMEOUT_MS : FAST_TIMEOUT_MS
   for (const chunk of chunked(tierFiles, FAST_CHUNK_SIZE)) {
     runCommand("bun", ["test", "--timeout", timeout, ...chunk], process.env)
+  }
+}
+
+async function assertDbReachable(): Promise<void> {
+  const rawUrl = process.env.DATABASE_URL ?? process.env.ORCHESTRATOR_DB_URL
+  if (!rawUrl) {
+    console.error("[test:db] DATABASE_URL or ORCHESTRATOR_DB_URL is not set")
+    process.exit(1)
+  }
+
+  const sql = new SQL(rawUrl, { max: 1 })
+  try {
+    await Promise.race([
+      sql`SELECT 1`,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("DB health check timeout")), DB_HEALTH_TIMEOUT_MS)),
+    ])
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err)
+    console.error(`[test:db] Postgres unreachable at ${describeDbUrl(rawUrl)}: ${detail}`)
+    console.error("[test:db] Check the local Postgres listener or SSH tunnel before running DB tiers.")
+    process.exit(1)
+  } finally {
+    await sql.close().catch(() => {})
+  }
+}
+
+function describeDbUrl(rawUrl: string): string {
+  try {
+    const url = new URL(rawUrl)
+    const port = url.port ? `:${url.port}` : ""
+    const database = url.pathname && url.pathname !== "/" ? url.pathname : ""
+    return `${url.hostname}${port}${database}`
+  } catch {
+    return "configured database URL"
   }
 }
 

@@ -35,11 +35,11 @@ snapshot archived at `docs/sessions/archive/lane-queue-2026-05-04-full.md`.
   baseline, tier-selection, invariant-promotion, and no-gap coverage handoff
   contract.
 - Tiered test runner restored useful local gates: `bun run test:fast`,
-  `bun run test:db`, `bun run test:archive`, `bun run test:list`, and explicit
-  opt-in `bun run test:replay`.
-- DB integration tests now run one file per process with `BUN_SQL_MAX=1`.
-  Planning target/snapshot DB reads were made serial where a single connection
-  and transactional `Promise.all` could stall.
+  bounded DB smoke via `bun run test:db`, exhaustive DB via
+  `bun run test:db:full`, archive/list gates, and explicit opt-in replay.
+- Exhaustive DB tests run one file per process with `BUN_SQL_MAX=1`. Planning
+  target/snapshot DB reads were made serial where a single connection and
+  transactional `Promise.all` could stall.
 - Archived eval tests were split out of default coverage and the archived
   Arm-B parity import path was repaired.
 - UI/browser clearance for proposal surfaces passed via Playwright MCP on

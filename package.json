@@ -8,6 +8,8 @@
     "test": "bun run test:fast",
     "test:fast": "bun scripts/test/tiered-test-runner.ts --tier fast",
     "test:db": "bun scripts/test/tiered-test-runner.ts --tier db",
+    "test:db:smoke": "bun scripts/test/tiered-test-runner.ts --tier db",
+    "test:db:full": "bun scripts/test/tiered-test-runner.ts --tier db-full",
     "test:replay": "PHASE_PARITY_REPLAY=1 bun scripts/test/tiered-test-runner.ts --tier replay",
     "test:archive": "bun scripts/test/tiered-test-runner.ts --tier archive",
     "test:all": "bun scripts/test/tiered-test-runner.ts --tier all",

@@ -15,7 +15,7 @@ Before kicking off an overnight session:
 2. **LXC reachable.** `ssh novel-harness-lxc "echo ok"` should succeed. Set up the SSH tunnel for Postgres if running anything that talks to the DB locally: `ssh -fNL 15432:127.0.0.1:5432 novel-harness-lxc`.
 3. **`.env` populated.** `ORCHESTRATOR_DB_URL` must resolve to a working Postgres listener (the SSH tunnel is the standard local form).
 4. **No active LXC generation.** `bash scripts/deploy-lxc.sh` checks for in-progress runs; if one is active, either let it finish or kill it before starting overnight work.
-5. **Tests green.** `bun run test:fast` should pass at HEAD before starting; run `bun run test:db` too when the lane touches persistence or routes. Autonomous subagents inherit any pre-existing breakage and may amplify it.
+5. **Tests green.** `bun run test:fast` should pass at HEAD before starting; run `bun run test:db` too when the lane touches persistence or routes, and reserve `bun run test:db:full` for broad DB sweeps. Autonomous subagents inherit any pre-existing breakage and may amplify it.
 6. **Pre-loop gate clean.** Run `bun scripts/agent/preflight-loop.ts docs/sessions/<lane>.md` (add `--allow-dirty` only if the dirty files are intentionally part of the lane). The gate validates loop-contract completeness, starting commit, experiment id, declared file/script scope, and worktree state. Non-zero exit means do not launch the captain: 10 = lane-context, 20 = dirty worktree, 22 = git/infra.
 
 ## Starting A Captain Loop

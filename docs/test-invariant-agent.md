@@ -54,8 +54,10 @@ Load these before changing tests or guards:
    negative test that proves the guard catches the intended shape.
 5. Keep tiers honest:
    - `bun run test:fast` is the default loop for pure or in-process tests.
-   - `bun run test:db` owns persistence, route, and disposable-data integration
-     tests.
+   - `bun run test:db` owns bounded persistence, route, and disposable-data
+     smoke coverage.
+   - `bun run test:db:full` owns the exhaustive isolated DB sweep when broad
+     persistence confidence is worth the runtime cost.
    - `bun run test:replay` owns explicit fixture parity and prompt/request drift.
    - `bun run test:archive` owns retired or archived eval surfaces.
    - Playwright MCP evidence owns browser-visible UI clearance.
@@ -95,8 +97,8 @@ A new invariant is not done until all of these are true:
 When moving a slow test out of the fast tier, preserve its value explicitly:
 
 - core branching and transformation logic should have pure tests
-- DB behavior should have disposable-data route or persistence tests in
-  `test:db`
+- DB behavior should have disposable-data route or persistence smoke coverage
+  in `test:db`, with broader scenarios left in `test:db:full`
 - replay-sensitive behavior should have fixture parity or candidate replay in
   `test:replay`
 - UI behavior should have Playwright MCP screenshots and console/network notes

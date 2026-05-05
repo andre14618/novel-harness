@@ -59,8 +59,11 @@ cp .env.example .env   # fill in API keys and DATABASE_URL
 # Fast default tests (no DB needed)
 bun run test
 
-# DB integration tests (requires DATABASE_URL/ORCHESTRATOR_DB_URL)
+# DB smoke tests (requires DATABASE_URL/ORCHESTRATOR_DB_URL)
 bun run test:db
+
+# Exhaustive DB integration sweep
+bun run test:db:full
 
 # Deploy to LXC and run
 bash scripts/deploy-lxc.sh
@@ -92,8 +95,9 @@ docs/           ← decisions.md, lessons-learned.md, fine-tuning-strategy.md, .
 
 Unit tests live next to their source (e.g. `src/models/registry.test.ts`).
 Use `bun run test:fast` for the default no-DB loop, `bun run test:db` for
-isolated DB integration, and `bun run test:archive` for archived eval/history
-tests. Direct broad `bun test` is not a supported gate.
+bounded DB smoke coverage, `bun run test:db:full` for the exhaustive isolated
+DB sweep, and `bun run test:archive` for archived eval/history tests. Direct
+broad `bun test` is not a supported gate.
 
 ## Web UI
 

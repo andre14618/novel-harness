@@ -125,7 +125,8 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
 
 - Closed: test harness reliability cleanup has restored supported tiered gates.
   Direct broad `bun test` remains unsupported; use `bun run test:fast` for the
-  default loop and `bun run test:db` for isolated DB integration. Phase-parity
+  default loop, `bun run test:db` for bounded DB smoke, and
+  `bun run test:db:full` for exhaustive isolated DB integration. Phase-parity
   replay is explicit via `bun run test:replay` and currently needs a refreshed
   fixture after prompt/request drift.
 - Active: authoring visibility/interactivity foundation. The traceability UI
@@ -259,6 +260,7 @@ Supported local gates:
 ```bash
 bun run test:fast
 bun run test:db
+bun run test:db:full
 bun run test:archive
 ./node_modules/.bin/tsc --noEmit
 git diff --check
