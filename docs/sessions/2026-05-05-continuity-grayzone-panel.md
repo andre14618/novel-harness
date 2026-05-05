@@ -43,9 +43,9 @@ role: lane-doc
 
 ## Results
 
-- Outcome: pending
-- Stop gate fired: pending
-- Evidence: pending
-- Cost: pending
-- Commits: pending
-- Review: pending
+- Outcome: shipped. Adjudicated panel of N=20 continuity findings produced TP/FP/AMB rates per stratum and per subcategory. Headline: continuity-facts blocker/warning at 60% TP (reasonably calibrated); continuity-state/warning at 20% TP / 40% FP / 40% AMB (dominant gray zone); `object_emphasis` subcategory at 67% TP. The taxonomy's `invented_entity` and `changed_core_action` subcategories had zero natural occurrence on the continuity surface — those failures fire on `halluc-ungrounded` and `chapter-plan-checker` respectively.
+- Stop gate fired: (a) clean pass — extractor + aggregator tests green (10/10), panel emitted and labeled, AMB rate 25% under the 40% adjudication-design-issue threshold.
+- Evidence: `docs/decisions/L081-continuity-grayzone-panel-2026-05-05.md`; raw panel and labels at `output/continuity-grayzone/` (gitignored, re-runnable from the JSONL plus label JSONs via the aggregator).
+- Cost: ~$0.50 estimated (2 Sonnet subagents adjudicating 10 findings each).
+- Commits: pending — captured in this session.
+- Review: self-reviewed against plan-doc Step 7 Investigation Set and the L79 authoring-harness eval-gates posture (no production checker change in this session; A/B-gated relaxation reserved for a follow-up panel of N≥50 stratified more thoroughly across continuity-state).

@@ -64,8 +64,9 @@ This file is the actionable backlog only. Live architecture belongs in
   count, beat count, approval rate, and semantic drift rate.
 - [ ] Investigate semantic action drift from drafting before adding new
   writer/checker nudges.
-- [ ] Build a small adjudicated continuity gray-zone panel before relaxing
-  object/state conflict checks.
+- [x] Build a small adjudicated continuity gray-zone panel before relaxing
+  object/state conflict checks. (N=20 shipped 2026-05-05; decision L81;
+  follow-up needs N≥50 across continuity-state before any checker relaxation.)
 - [ ] Keep Promise/Progress/Payoff as a planner-owned story-debt experiment
   until A/B evidence justifies durable production schema.
 - [ ] Backlog creative heuristics as diagnostic/A-B candidates only:

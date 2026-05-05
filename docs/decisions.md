@@ -16,6 +16,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
+| L81 | 2026-05-05 | active | Continuity gray-zone panel N=20: continuity-facts blocker/warning is reasonably calibrated (60% TP), continuity-state/warning is the dominant gray zone (20% TP, 80% non-catch), object_emphasis subcategory is well-calibrated. Follow-up needs N≥50 stratified panel before any production checker change. | `docs/decisions/L081-continuity-grayzone-panel-2026-05-05.md` |
 | L80 | 2026-05-05 | active | Test and invariant work uses a dedicated support/evidence role with tiered gates, proof-before-blocking, and no hidden broad `bun test` reliance. | `docs/decisions/L080-test-invariant-agent-contract.md` |
 | L79 | 2026-05-04 | active | Authoring harness refinement: prioritize visibility/interactivity and deterministic impact awareness; require A/B evidence before production creative-heuristic wiring. | `docs/decisions/L079-authoring-harness-eval-gates.md` |
 | L78 | 2026-05-04 | active | UI/browser and CI posture: use Playwright MCP for browser preflight, keep external CI on hold indefinitely, backlog artifact/Canon observer expansion. | `docs/decisions/L078-ui-browser-ci-posture.md` |

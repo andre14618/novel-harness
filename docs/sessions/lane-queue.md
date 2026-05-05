@@ -25,6 +25,11 @@ This file tracks active and immediately actionable work only.
 
 ## Recently Closed
 
+- Adjudicated continuity gray-zone panel N=20 shipped (decision L81).
+  continuity-facts blocker/warning at 60% TP (do not relax);
+  continuity-state/warning is the dominant gray zone (20% TP / 40% FP / 40%
+  AMB, mostly off-page transitions and figurative aspirations); follow-up
+  needs N≥50 across continuity-state before any production checker change.
 - Added a diagnostic-only plan-assist lineage report over
   `planning_mutation_lineage` rows whose `source_table` is
   `chapter_exhaustions` (plan-assist edit/override decisions) or

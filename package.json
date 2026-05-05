@@ -27,6 +27,7 @@
     "diagnostics:plan-assist-lineage": "bun scripts/analysis/plan-assist-lineage-report.ts",
     "diagnostics:plan-drift": "bun scripts/analysis/plan-drift-report.ts",
     "diagnostics:continuity-grayzone-extract": "bun scripts/analysis/continuity-grayzone-extract.ts",
+    "diagnostics:continuity-grayzone-aggregate": "bun scripts/analysis/continuity-grayzone-aggregate.ts",
     "policy:promotion-guard": "bun scripts/approval-policy-promotion-guard.ts",
     "docs:weight": "bun scripts/check-doc-weight.ts"
   },
