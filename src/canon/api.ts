@@ -13,6 +13,10 @@
  * NOT depend on these stubs at runtime.
  */
 
+import type { FactRole } from "../types"
+
+export type { FactRole }
+
 // ── Provenance & versioning ──────────────────────────────────────────────────
 
 /**
@@ -93,6 +97,11 @@ export interface CanonFact {
   /** Free-form structured payload (kind-dependent shape). */
   data?: Record<string, unknown>
   provenance: Provenance
+  /**
+   * How this fact participates in writing/checking. Mirrors `Fact.role` for
+   * legacy `facts`. See `sql/050_canon_fact_roles.sql`. Default `operational`.
+   */
+  role: FactRole
 }
 
 export interface CharacterState {

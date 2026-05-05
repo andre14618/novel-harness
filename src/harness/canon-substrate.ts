@@ -561,5 +561,6 @@ function normalizeForCommit(
     text: sourceFact.text,
     data: sourceFact.data,
     provenance,
+    role: sourceFact.role,
   }
 }

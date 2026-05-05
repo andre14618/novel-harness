@@ -16,12 +16,14 @@ const CANON: CanonFixture = {
       kind: "established_fact",
       text: "Planned fact.",
       provenance: provenance(1, "planned"),
+      role: "operational",
     },
     {
       id: "fact-observed",
       kind: "established_fact",
       text: "Observed fact.",
       provenance: provenance(1, "observed"),
+      role: "operational",
     },
     {
       id: "knowledge-observed",
@@ -29,6 +31,7 @@ const CANON: CanonFixture = {
       text: "A character learns something.",
       data: { characterId: "hero" },
       provenance: provenance(2, "observed"),
+      role: "operational",
     },
     {
       id: "state-observed",
@@ -36,12 +39,14 @@ const CANON: CanonFixture = {
       text: "Hero is wounded.",
       data: { characterId: "hero" },
       provenance: provenance(3, "observed"),
+      role: "operational",
     },
     {
       id: "promise-planned",
       kind: "promise",
       text: "A promise is opened.",
       provenance: provenance(3, "planned"),
+      role: "operational",
     },
   ],
   entities: [],

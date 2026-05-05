@@ -327,6 +327,7 @@ export class InMemoryCanonSubstrate implements CanonSubstrate {
       text: sourceFact.text,
       data: sourceFact.data,
       provenance,
+      role: sourceFact.role,
     }
   }
 

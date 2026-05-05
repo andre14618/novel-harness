@@ -305,6 +305,7 @@ describe.skipIf(!reachable)("handleCanonProposalRoute", () => {
           extractorVersion: "test-v1",
           origin: "observed",
         },
+        role: "operational",
       },
     })
 

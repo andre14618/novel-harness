@@ -163,10 +163,11 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
 - Chapter-outline saves now persist enriched stable IDs for chapters, beats,
   source items, characters, and obligations; checker findings carry additive
   stable refs on the current high-value surfaces before broader traceability UI.
-- `facts.role` (`operational | reference | hidden`, default `operational`)
-  exists as an additive structural column from `sql/049`. No consumer reads
-  it yet — it lays the schema for downstream scoped-context (drop `hidden`
-  from writer prompts) and scoped-check (advisory-only `reference`) work.
+- `facts.role` and `canon_facts.role` (`operational | reference | hidden`,
+  default `operational`) exist as additive structural columns from
+  `sql/049` and `sql/050`. No consumer reads role yet — these lay the
+  schema for downstream scoped-context (drop `hidden` from writer prompts)
+  and scoped-check (advisory-only `reference`) work.
 - Plan-assist `edit-plan` and `override` remain direct manual-gate actions, but
   drafting now records `planning_mutation_lineage` sourced from
   `chapter_exhaustions` and preserves chapter IDs across replacement outlines.

@@ -36,6 +36,7 @@ function fact(
       createdAt: "2026-05-03T00:00:00Z",
       updatedAt: "2026-05-03T00:00:00Z",
     },
+    role: "operational",
   }
 }
 

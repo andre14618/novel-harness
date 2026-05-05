@@ -55,7 +55,7 @@ function provenance(opts: Partial<Provenance> = {}): Provenance {
 }
 
 function fact(id: string, text: string, prov: Partial<Provenance> = {}): CanonFact {
-  return { id, kind: "established_fact", text, provenance: provenance(prov) }
+  return { id, kind: "established_fact", text, provenance: provenance(prov), role: "operational" }
 }
 
 function entity(id: string, name: string, prov: Partial<Provenance> = {}): Entity {
@@ -125,6 +125,7 @@ function proposalInput(
         origin: factToPropose.provenance.origin,
         supersedes: factToPropose.provenance.supersedes,
       },
+      role: factToPropose.role,
     },
   }
 }

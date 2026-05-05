@@ -440,6 +440,7 @@ function buildProposalFromSourceItem(
         // the operator does it via a separate proposal with targetFactId.
         supersedes: undefined,
       },
+      role: "operational",
     },
     status: "pending",
     createdAt,

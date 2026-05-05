@@ -24,6 +24,7 @@ function fact(id: string, text: string, chapter = 1): CanonFact {
       createdAt: "2026-05-03T00:00:00Z",
       updatedAt: "2026-05-03T00:00:00Z",
     },
+    role: "operational",
   }
 }
 

@@ -24,9 +24,11 @@ This file tracks active and immediately actionable work only.
 
 ## Recently Closed
 
-- World fact role column shipped (`sql/049`, `facts.role` with
-  `operational | reference | hidden`, `operational` default). Additive
-  only; lays schema foundation for scoped-context / scoped-check follow-ups.
+- World fact role columns shipped on both `facts` (`sql/049`) and
+  `canon_facts` (`sql/050`) with `operational | reference | hidden` and
+  `operational` default. `Fact.role` and `CanonFact.role` required in the
+  type interfaces; `FactInput` lets write callers omit role. Additive
+  only; no consumer reads it yet.
 - Adjudicated continuity gray-zone panel N=20 shipped (decision L81).
   continuity-facts blocker/warning at 60% TP (do not relax);
   continuity-state/warning is the dominant gray zone (20% TP / 40% FP / 40%

@@ -31,7 +31,7 @@ function provenance(opts: Partial<Provenance> = {}): Provenance {
 }
 
 function fact(id: string, text: string, prov: Partial<Provenance> = {}): CanonFact {
-  return { id, kind: "established_fact", text, provenance: provenance(prov) }
+  return { id, kind: "established_fact", text, provenance: provenance(prov), role: "operational" }
 }
 
 function entity(id: string, name: string, prov: Partial<Provenance> = {}): Entity {
@@ -101,6 +101,7 @@ function proposalInput(
         origin: factToPropose.provenance.origin,
         supersedes: factToPropose.provenance.supersedes,
       },
+      role: factToPropose.role,
     },
   }
 }
@@ -513,7 +514,7 @@ describe("CanonSubstrate — read-shape cleanliness (Codex M1)", () => {
     // produce by hydrating from rows.
     const json = JSON.parse(JSON.stringify(out[0]))
     expect(Object.keys(json).sort()).toEqual(
-      ["data", "id", "kind", "provenance", "text"].filter((k) =>
+      ["data", "id", "kind", "provenance", "role", "text"].filter((k) =>
         k === "data" ? json.data !== undefined : true,
       ),
     )

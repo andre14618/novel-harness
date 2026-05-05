@@ -269,6 +269,7 @@ describe.skipIf(!reachable)("canon-proposal lifecycle telemetry", () => {
           extractorVersion: "test-v1",
           origin: "observed",
         },
+        role: "operational",
       },
     })
 

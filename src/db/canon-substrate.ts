@@ -80,6 +80,7 @@ interface FactRow {
   superseded_at_chapter: number | null
   created_at: string | Date
   updated_at: string | Date
+  role: string
 }
 
 interface EntityRow {
@@ -233,7 +234,7 @@ export async function loadFactsSnapshot(
            source, committed_at_chapter, committed_at_beat,
            extractor_version, confidence, approval_status, origin,
            supersedes_logical_id, superseded_by_version, superseded_at_chapter,
-           created_at, updated_at
+           created_at, updated_at, role
     FROM canon_facts
     WHERE novel_id = ${novelId}
       AND approval_status IN ('human-approved', 'human-edited')
@@ -323,9 +324,15 @@ export function factFromRow(row: FactRow): CanonFact {
     kind: row.kind as FactKind,
     text: row.text,
     provenance: provFromRow(row),
+    role: normalizeFactRole(row.role),
   }
   if (data != null) fact.data = data
   return fact
+}
+
+function normalizeFactRole(value: unknown): "operational" | "reference" | "hidden" {
+  if (value === "operational" || value === "reference" || value === "hidden") return value
+  return "operational"
 }
 
 export function entityFromRow(row: EntityRow): Entity {
@@ -624,14 +631,15 @@ export async function insertFact(params: {
       novel_id, logical_id, version, kind, text, data,
       source, committed_at_chapter, committed_at_beat,
       extractor_version, confidence, approval_status, origin,
-      supersedes_logical_id, created_at, updated_at
+      supersedes_logical_id, created_at, updated_at, role
     ) VALUES (
       ${novelId}, ${fact.id}, ${version}, ${fact.kind}, ${fact.text},
       ${fact.data ? JSON.stringify(fact.data) : null}::jsonb,
       ${p.source}, ${p.chapter}, ${p.beat ?? null},
       ${p.extractorVersion}, ${p.confidence ?? null}, ${p.approvalStatus}, ${p.origin},
       ${p.supersedes ?? null},
-      ${p.createdAt}::timestamptz, ${p.updatedAt}::timestamptz
+      ${p.createdAt}::timestamptz, ${p.updatedAt}::timestamptz,
+      ${fact.role ?? "operational"}
     )
   `
 }
