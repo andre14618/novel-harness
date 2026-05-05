@@ -26,9 +26,16 @@ let _db: SQL | null = null
 function getDB(): SQL {
   if (!_db) {
     if (!DB_URL) throw new Error("DATABASE_URL not set")
-    _db = new SQL(DB_URL)
+    const max = parsePositiveInt(process.env.BUN_SQL_MAX ?? process.env.DB_POOL_MAX)
+    _db = max !== null ? new SQL(DB_URL, { max }) : new SQL(DB_URL)
   }
   return _db
+}
+
+function parsePositiveInt(value: string | undefined): number | null {
+  if (value === undefined || value.trim() === "") return null
+  const parsed = Number.parseInt(value, 10)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null
 }
 
 // Detect Postgres connection-loss errors so we can transparently reconnect.

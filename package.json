@@ -6,6 +6,7 @@
     "start": "bun src/index.ts",
     "dev": "bun --watch src/index.ts",
     "test": "bun test",
+    "test:db": "BUN_SQL_MAX=1 bun scripts/test/planning-proposal-db-smoke.ts",
     "monitor": "bun scripts/agent/monitor.ts --no-latest-novel --panel outside,coordination,process",
     "monitor:full": "bun scripts/agent/monitor.ts --full",
     "captain-terminal": "bun scripts/agent/open-claude-captain.ts",

@@ -209,6 +209,11 @@ bun test src/canon/approval-policy.test.ts src/canon/approval-policy-replay.test
 git diff --check
 ```
 
+Planning proposal route coverage is split by speed: default `bun test` runs
+fast non-DB validation coverage in
+`src/orchestrator/planning-proposal-routes.test.ts`; explicit DB route smoke
+coverage runs with `bun run test:db`.
+
 Latest result: targeted authoring/proposal tests pass with DB-bound cases
 skipped in this environment; TypeScript clean.
 
