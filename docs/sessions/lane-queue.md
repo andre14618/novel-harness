@@ -23,6 +23,10 @@ This file tracks active and immediately actionable work only.
 
 ## Recently Closed
 
+- Added a diagnostic-only plan drift report over existing
+  `chapter-plan-checker` `llm_calls` rows. Use
+  `bun run diagnostics:plan-drift -- --novel <novelId>` to inspect pass/fail,
+  deviations, stable beat refs, and parse errors before adding writer nudges.
 - Validation character-presence warnings now handle surname-only references for
   multi-part names and avoid substring matches, closing the false-positive class
   observed in the refreshed smoke fixture.

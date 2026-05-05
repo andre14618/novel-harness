@@ -438,6 +438,9 @@ No candidate becomes default production behavior from source strength alone.
   altering Grand Registry records to breaking into the Arbiter's office. Treat
   this as a real semantic failure caught by the harness; investigate whether
   shorter beat plans reduce drift before adding new writer/checker nudges.
+  Diagnostic support: `bun run diagnostics:plan-drift -- --novel <novelId>`
+  summarizes existing `chapter-plan-checker` telemetry by chapter, attempt,
+  deviation, and stable beat ref without changing runtime behavior.
 - **Checker gray zones:** continuity findings around object emphasis and
   emotional/readiness state may be over-strict. Build a small adjudicated panel
   before relaxing checker behavior, preserving hard catches for unsupported

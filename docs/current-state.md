@@ -144,18 +144,10 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   diffs, and `GET /api/novel/:novelId/planning-proposals/:envelopeId/diff`
   exposes read-only diff, current target staleness, and impact-preview data for
   Planning Studio UI.
-- Initial Planning Studio UI is browser-tested on disposable novel
-  `codex-planning-studio-1777948116315`. Covered target navigation, impact
-  preview, proposal creation/approval evidence, pending stale diffs,
-  approved/rejected status tabs, resolved-target copy, route links to Pipeline /
-  Snapshot / Canon Queue, and mobile rendering. That pass used legacy
-  repository-root `planning-studio-*` screenshots; new browser evidence belongs
-  under `output/playwright/`.
-- Planning Studio now also supports grouped proposal review, queue impact
-  detail, and edit-before-approve modified resolution. Browser evidence on
-  disposable novel `codex-planning-modified-1777980329324` covers live create,
-  edit, resolve-modified, modified-tab diff display, and mobile rendering.
-  Modified proposals now use `modified_payload` for their read-only diff.
+- Planning Studio supports target navigation, impact preview, queue diffs,
+  status tabs, approve/reject, grouped proposal review, and edit-before-approve
+  modified resolution. Modified proposals use `modified_payload` for read-only
+  diffs.
 - Studio artifact preview inline edits for supported world/character/spine
   scalar fields now queue `planning_edit` envelopes instead of directly
   mutating artifacts. Unsupported preview fields render read-only, and legacy
@@ -179,6 +171,9 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   changing the legacy `beat_index` contract.
 - Beat-level LLM telemetry now persists `llm_calls.beat_id` for beat writer,
   targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
+- `bun run diagnostics:plan-drift -- --novel <novelId>` summarizes existing
+  `chapter-plan-checker` telemetry for semantic action drift evidence without
+  changing prompts, traces, replay fixtures, or writer behavior.
 - Halluc-ungrounded issue metadata now carries exact-match `entityRefs[]` for
   `character`, `world_system`, and `culture` targets when deterministic
   resolution is possible, and accepted beat-check blockers preserve the
@@ -196,17 +191,13 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   and attaching open issues, pending editorial/prose proposals, trace events,
   checker calls, and checker-observation refs.
 - `/app/chapter-health/:novelId` renders that report with status filters,
-  chapter cards, refs, and trace/proposal evidence. Browser evidence for
-  disposable novel `codex-chapter-health-ui-1778000670807` is under
-  `output/playwright/2026-05-05/chapter-health-codex-chapter-health-ui-1778000670807/`.
+  chapter cards, refs, and trace/proposal evidence.
 - `GET /api/novel/:novelId/traceability/chapter/:chapterNumber` now exposes a
   read-only ID-first chapter trace: beat refs, obligation refs, source registry
   links, and writer/checker/event evidence with explicit positional fallback.
 - `/app/traceability/:novelId/chapter/:chapterNumber` renders the chapter trace
   with source registry, upstream targets, writer/checker/event evidence, and
-  proposal/outcome/observation/lineage evidence. Browser evidence for
-  disposable novel `codex-traceability-ui-1778003397963` is under
-  `output/playwright/2026-05-05/traceability-codex-traceability-ui-1778003397963/`.
+  proposal/outcome/observation/lineage evidence.
 - Deterministic lint-generated `prose_edit` span proposals now carry optional
   `beatRef` metadata when drafting can map the span through the exact
   `beatProses` join to an enriched outline beat id.
@@ -217,19 +208,8 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   lineage records exact-ID reorder plus same-slot replacement supersession.
   Planning Studio now exposes those structural beat/obligation replace/reorder
   actions through explicit action-aware controls.
-- Structural Planning Studio UI was browser-tested on disposable novel
-  `codex-structural-ui-1777995796883`. Evidence covers load, beat reorder
-  approve, beat replacement reject, obligation replacement edit-before-modified,
-  obligation reorder approve, status tabs, target-refresh recovery after stable
-  ID replacement, console/network capture, and local auth bypass.
-- Closed: Playwright MCP browser preflight for proposal UI passed on disposable
-  novel `codex-ui-preflight-1777936779921`. Covered Canon proposal review load,
-  approve/reject, modify-with-edits, status tabs, bulk approve/reject, and
-  Studio artifact patch proposal cards for pending load, single resolve, stale
-  regeneration surface, bulk actions, and audit history.
-- That pass used legacy repository-root `canon-*` and `artifact-*` screenshots;
-  new browser evidence uses the `output/playwright/` session directory
-  convention.
+- Structural Planning Studio UI exposes beat/obligation replace/reorder flows;
+  browser evidence for UI slices lives under `output/playwright/`.
 - UI fixes from clearance: artifact proposal resolve now preserves structured
   stale-precondition `409` responses for the regenerate UI, and the stale Canon
   proposal browser-untested footer copy was removed.
