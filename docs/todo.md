@@ -62,7 +62,7 @@ This file is the actionable backlog only. Live architecture belongs in
   checker outputs before adding new creative checkers.
 - [x] Refresh phase-parity smoke after beat-count calibration; compare word
   count, beat count, approval rate, and semantic drift rate.
-- [ ] Investigate semantic action drift, continuity gate behavior, and writer
+- [x] Investigate semantic action drift, continuity gate behavior, and writer
   expansion from drafting before adding new writer/checker nudges.
 - [x] Add pure fact-role policy selectors and opt-in Canon role scoping before
   wiring runtime writer/checker behavior.

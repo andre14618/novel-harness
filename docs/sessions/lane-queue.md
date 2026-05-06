@@ -14,9 +14,8 @@ This file tracks active and immediately actionable work only.
 
 ## Next
 
-- Investigate semantic action drift and checker gray-zone warnings with
-  diagnostic evidence (`diagnostics:semantic-gate` plus source reports)
-  before adding writer/checker nudges.
+- Use semantic-gate candidate lenses plus source reports for fresh disposable
+  evidence before planner, writer, or checker runtime nudges.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO
   rather than inferred.
