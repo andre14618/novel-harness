@@ -698,6 +698,7 @@
         "fact": "Reeve Kade refuses to authorize a repair crew until morning.",
         "id": "facts:3755943c48c7fcf3",
         "novel_id": "phase-parity-smoke",
+        "role": "operational",
         "tsv": "'author':6A 'crew':9A 'kade':3A 'morn':11A 'reev':2A 'refus':4A 'relationship':1B 'repair':8A"
       },
       {
@@ -708,6 +709,7 @@
         "fact": "The crack is widening and water is seeping through.",
         "id": "facts:43d6b238a28b6a57",
         "novel_id": "phase-parity-smoke",
+        "role": "operational",
         "tsv": "'crack':3A 'physic':1B 'seep':9A 'water':7A 'widen':5A"
       },
       {
@@ -718,6 +720,7 @@
         "fact": "The main gear is jammed by a broken spoke lodged in the teeth.",
         "id": "facts:1eb2a8f8bc53bcb9",
         "novel_id": "phase-parity-smoke",
+        "role": "operational",
         "tsv": "'broken':9A 'gear':4A 'jam':6A 'lodg':11A 'main':3A 'physic':1B 'spoke':10A 'teeth':14A"
       },
       {
@@ -728,6 +731,7 @@
         "fact": "The wall could fail within hours.",
         "id": "facts:2ff86c51801786a8",
         "novel_id": "phase-parity-smoke",
+        "role": "operational",
         "tsv": "'could':4A 'fail':5A 'hour':7A 'physic':1B 'wall':3A 'within':6A"
       },
       {
@@ -738,6 +742,7 @@
         "fact": "There is a fresh crack in the river wall near the old mill.",
         "id": "facts:996d90a42a04761c",
         "novel_id": "phase-parity-smoke",
+        "role": "operational",
         "tsv": "'crack':6A 'fresh':5A 'mill':14A 'near':11A 'old':13A 'physic':1B 'river':9A 'wall':10A"
       }
     ],
