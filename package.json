@@ -28,6 +28,7 @@
     "diagnostics:checker-warnings": "bun scripts/analysis/checker-warning-report.ts",
     "diagnostics:plan-assist-lineage": "bun scripts/analysis/plan-assist-lineage-report.ts",
     "diagnostics:plan-drift": "bun scripts/analysis/plan-drift-report.ts",
+    "diagnostics:writer-expansion": "bun scripts/analysis/writer-expansion-report.ts",
     "diagnostics:continuity-grayzone-extract": "bun scripts/analysis/continuity-grayzone-extract.ts",
     "diagnostics:continuity-grayzone-aggregate": "bun scripts/analysis/continuity-grayzone-aggregate.ts",
     "diagnostics:fact-roles": "bun scripts/analysis/fact-role-report.ts",

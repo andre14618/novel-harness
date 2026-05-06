@@ -173,16 +173,9 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
   changing the legacy `beat_index` contract.
 - Beat-level LLM telemetry now persists `llm_calls.beat_id` for beat writer,
   targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
-- `bun run diagnostics:plan-drift -- --novel <novelId>` summarizes
-  `chapter-plan-checker` telemetry, recovered/unresolved drift, and stable beat
-  refs without changing prompts, traces, replay fixtures, or writer behavior.
-- `bun run diagnostics:checker-warnings -- --novel <novelId>` summarizes
-  warning-class functional-check and continuity evidence for checker
-  calibration without changing runtime behavior.
-- `bun run diagnostics:plan-assist-lineage -- --novel <novelId>` summarizes
-  per-chapter plan-assist edit/override decisions and chapter-plan-reviser
-  accepted outline replacements from `planning_mutation_lineage` for the
-  deferred envelope-wrap decision, without changing runtime behavior.
+- Diagnostic-only CLIs summarize semantic drift (`diagnostics:plan-drift`),
+  writer expansion (`diagnostics:writer-expansion`), checker warnings, and
+  plan-assist lineage without changing runtime behavior.
 - World fact roles are additive on `facts` and `canon_facts`; diagnostics
   report totals, policy previews, and deterministic fixture behavior. Default
   runtime stays legacy; per-novel `factRoleContextPolicy: "role-aware"` is

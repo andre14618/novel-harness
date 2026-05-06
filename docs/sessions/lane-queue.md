@@ -16,8 +16,8 @@ This file tracks active and immediately actionable work only.
 
 - Investigate semantic action drift and checker gray-zone warnings with
   diagnostic evidence (`diagnostics:plan-drift`,
-  `diagnostics:checker-warnings`, `diagnostics:plan-assist-lineage`) before
-  adding new writer/checker nudges.
+  `diagnostics:writer-expansion`, `diagnostics:checker-warnings`,
+  `diagnostics:plan-assist-lineage`) before adding writer/checker nudges.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO
   rather than inferred.
