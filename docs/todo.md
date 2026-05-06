@@ -70,8 +70,8 @@ This file is the actionable backlog only. Live architecture belongs in
   fact-role policy effects before runtime wiring.
 - [x] Add per-novel A/B override for role-aware drafting context while keeping
   default runtime legacy.
-- [x] Add deterministic role-context fixture eval proving reference/hidden
-  behavior before live A/B runs.
+- [x] Add deterministic role-context fixture eval and preserve `facts.role` in
+  drafting variant clones before live A/B runs.
 - [ ] Wire role-aware writer retrieval and checker-blocking policy only after
   diagnostic/A-B evidence confirms hidden/reference handling improves outputs.
 - [x] Build a small adjudicated continuity gray-zone panel before relaxing

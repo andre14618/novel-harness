@@ -29,9 +29,9 @@ This file tracks active and immediately actionable work only.
 
 - Fact-role policy seam shipped: pure legacy/writer-visible/
   continuity-blocking selectors, opt-in Canon `includeFactRoles`, diagnostic
-  preview, deterministic fixture eval, and per-novel drafting override. Hidden
-  Canon facts require explicit `forceIncludeHiddenFacts` before `includeFactIds`
-  can surface them.
+  preview, deterministic fixture eval, role-preserving variant clones, and
+  per-novel drafting override. Hidden Canon facts require explicit
+  `forceIncludeHiddenFacts` before `includeFactIds` can surface them.
 - Adjudicated continuity gray-zone panel N=20 shipped (decision L81).
   continuity-facts blocker/warning at 60% TP (do not relax);
   continuity-state/warning is the dominant gray zone (20% TP / 40% FP / 40%

@@ -214,10 +214,11 @@ async function main() {
       `
 
       // facts — materialized from planner's establishedFacts by
-      // saveFact (src/db/facts.ts:4).
+      // saveFact (src/db/facts.ts:4). Preserve role so role-aware drafting
+      // A/B clones do not collapse reference/hidden facts to operational.
       await tx`
-        INSERT INTO facts (novel_id, fact, category, established_in_chapter, created_at)
-        SELECT ${target}, fact, category, established_in_chapter, created_at
+        INSERT INTO facts (novel_id, fact, category, established_in_chapter, role, created_at)
+        SELECT ${target}, fact, category, established_in_chapter, role, created_at
         FROM facts WHERE novel_id = ${source}
       `
 
