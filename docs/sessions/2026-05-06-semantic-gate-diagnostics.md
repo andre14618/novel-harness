@@ -53,6 +53,9 @@ The immediate question was whether the failure pattern was primarily:
     `--polarity positive` samples for adjudicating consistency-shaped blockers.
 - `4bceed5 feat: aggregate continuity labels by polarity`
   - Labeled continuity-panel summaries now include per-polarity TP/FP/AMB rates.
+- `7989118 test: sync planning beats default variant`
+  - Resynced the phase-eval `planning-beats/default.md` control to the live
+    `/400` minimum and `/325` recommended beat-count policy.
 
 ## Evidence
 
@@ -95,6 +98,9 @@ Observed signals:
   local DB, including seven continuity-facts blockers.
 - Aggregate smoke over a positive-polarity sample emitted a `Per-polarity rates`
   table, so adjudicated labels can now quantify support-echo false positives.
+- Prompt lint now reports zero default-drift errors for planning-beats; the
+  remaining findings are pre-existing negative-prime warnings and one config
+  info note.
 
 ## Interpretation
 
