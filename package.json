@@ -15,6 +15,7 @@
     "test:all": "bun scripts/test/tiered-test-runner.ts --tier all",
     "test:list": "bun scripts/test/tiered-test-runner.ts --list",
     "eval:role-context-policy": "bun scripts/evals/role-context-policy.ts",
+    "eval:fact-role-context-live-ab": "bun scripts/evals/fact-role-context-live-ab.ts",
     "monitor": "bun scripts/agent/monitor.ts --no-latest-novel --panel outside,coordination,process",
     "monitor:full": "bun scripts/agent/monitor.ts --full",
     "captain-terminal": "bun scripts/agent/open-claude-captain.ts",

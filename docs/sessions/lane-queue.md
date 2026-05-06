@@ -4,11 +4,10 @@ This file tracks active and immediately actionable work only.
 
 ## Active
 
-- Richness Backlog lane (2026-05-05): world fact roles. Substrate fully
-  additive and observable — `facts.role` (sql/049), `canon_facts.role`
-  (sql/050), and `diagnostics:fact-roles` shipped. Default runtime remains
-  legacy; per-novel `factRoleContextPolicy: "role-aware"` is A/B-only. Next
-  slice is live fixture comparison under the Creative Heuristic Eval Gate.
+- Richness Backlog lane (2026-05-05): world fact roles. Substrate/diagnostics
+  are shipped; default runtime stays legacy; per-novel role-aware policy is
+  A/B-only. Next: run the live A/B runner on a roleful disposable source under
+  the Creative Heuristic Eval Gate.
 - Authoring visibility/interactivity at scope ceiling: direct-mutation
   audit found only deferred higher-risk slices (plan-assist whole-outline,
   chapter-plan-reviser outline replacement).
@@ -29,9 +28,9 @@ This file tracks active and immediately actionable work only.
 
 - Fact-role policy seam shipped: pure legacy/writer-visible/
   continuity-blocking selectors, opt-in Canon `includeFactRoles`, diagnostic
-  preview, deterministic fixture eval, role-preserving/policy-setting variant
-  clones, and per-novel drafting override. Hidden Canon facts require explicit
-  `forceIncludeHiddenFacts` before `includeFactIds` can surface them.
+  preview, deterministic fixture eval, role-preserving/policy-setting clones,
+  live A/B runner, and per-novel drafting override. Hidden Canon facts require
+  explicit `forceIncludeHiddenFacts` before `includeFactIds` can surface them.
 - Adjudicated continuity gray-zone panel N=20 shipped (decision L81).
   continuity-facts blocker/warning at 60% TP (do not relax);
   continuity-state/warning is the dominant gray zone (20% TP / 40% FP / 40%
