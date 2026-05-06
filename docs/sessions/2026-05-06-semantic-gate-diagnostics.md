@@ -344,7 +344,10 @@ a one-off overnight lane. The next safe implementation sequence is:
 
 1. Use `diagnostics:semantic-gate-candidates` to pick candidate novels or fresh
    disposable runs.
-2. Choose one low-risk, evidence-backed lever.
-3. Add pure/focused tests and a replay or A/B signal before production default
+2. Use `diagnostics:semantic-gate-matrix` when comparing multiple low-risk
+   runtime levers; it runs disposable baseline children in parallel and treats
+   nonzero child exits with `summary.json` as evidence, not lost work.
+3. Choose one low-risk, evidence-backed lever.
+4. Add pure/focused tests and a replay or A/B signal before production default
    runtime changes.
-4. Commit code and a durable docs record together.
+5. Commit code and a durable docs record together.
