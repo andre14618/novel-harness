@@ -45,6 +45,9 @@ The immediate question was whether the failure pattern was primarily:
   - Added `bun run diagnostics:semantic-gate-candidates -- --limit N`.
   - Ranks novels by pending Plan-Assist Gates, checker blockers, Plan
     Adherence drift, writer expansion, outline shape, and missing drafts.
+- `15e5ac6 feat: tag checker finding polarity in diagnostics`
+  - Checker-warning diagnostics now classify findings as negative, positive, or
+    ambiguous so consistency-shaped blockers are visible before gate changes.
 
 ## Evidence
 
@@ -79,6 +82,9 @@ Observed signals:
   the latest 20; `fantasy-system-heretic` ranked second with one pending gate,
   one writer-expansion chapter, three outline-shape chapters, and two no-draft
   chapters.
+- The top candidate (`novel-1777786463873`) had four checker blockers; two
+  were positive-polarity continuity-facts blockers whose reasoning said the
+  prose was consistent with the fact.
 
 ## Interpretation
 
@@ -86,6 +92,11 @@ The stored `fantasy-system-heretic` state now points first at Chapter Plan shape
 and expansion pressure. That does not prove semantic drift is solved; it says
 the next runtime change should start from evidence that compares plan shape,
 draft length, drift, and gate behavior together.
+
+The top scanner candidate also shows a checker-calibration risk: some
+continuity-facts blocker rows can be consistency echoes rather than negative
+contradictions. Keep that diagnostic-only until an adjudicated sample or replay
+shows a deterministic runtime filter is safe.
 
 The earlier capped A/B clone rows were cleaned, so future A/B runs must persist
 the semantic-gate roll-up in their JSON/markdown summaries before cleanup. That

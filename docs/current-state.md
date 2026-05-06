@@ -178,8 +178,8 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
   targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
 - Diagnostic-only CLIs summarize and rank semantic gates
   (`diagnostics:semantic-gate`, `diagnostics:semantic-gate-candidates`),
-  semantic drift, writer expansion, checker warnings, and plan-assist lineage
-  without changing runtime behavior.
+  semantic drift, writer expansion, checker warnings with finding polarity, and
+  plan-assist lineage without changing runtime behavior.
 - World fact roles are additive on `facts` and `canon_facts`; diagnostics
   report totals, policy previews, and deterministic fixture behavior. Default
   runtime stays legacy; per-novel `factRoleContextPolicy: "role-aware"` is
