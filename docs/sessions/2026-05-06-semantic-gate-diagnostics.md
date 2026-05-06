@@ -48,6 +48,9 @@ The immediate question was whether the failure pattern was primarily:
 - `15e5ac6 feat: tag checker finding polarity in diagnostics`
   - Checker-warning diagnostics now classify findings as negative, positive, or
     ambiguous so consistency-shaped blockers are visible before gate changes.
+- `99ae892 feat: add polarity filters to continuity panel`
+  - Continuity gray-zone extraction now carries finding polarity and supports
+    `--polarity positive` samples for adjudicating consistency-shaped blockers.
 
 ## Evidence
 
@@ -85,6 +88,9 @@ Observed signals:
 - The top candidate (`novel-1777786463873`) had four checker blockers; two
   were positive-polarity continuity-facts blockers whose reasoning said the
   prose was consistent with the fact.
+- `bun run diagnostics:continuity-grayzone-extract -- --per-stratum 2
+  --polarity positive` found 45 positive-polarity continuity findings in the
+  local DB, including seven continuity-facts blockers.
 
 ## Interpretation
 
@@ -97,6 +103,10 @@ The top scanner candidate also shows a checker-calibration risk: some
 continuity-facts blocker rows can be consistency echoes rather than negative
 contradictions. Keep that diagnostic-only until an adjudicated sample or replay
 shows a deterministic runtime filter is safe.
+
+The continuity gray-zone panel can now provide that adjudication sample without
+changing gates: filter to `--polarity positive`, label the sample, then decide
+whether a deterministic support-echo filter is justified.
 
 The earlier capped A/B clone rows were cleaned, so future A/B runs must persist
 the semantic-gate roll-up in their JSON/markdown summaries before cleanup. That
