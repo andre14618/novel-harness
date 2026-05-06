@@ -94,6 +94,8 @@ describe("continuity-grayzone-extract", () => {
     })
 
     expect(panel.totalFindings).toBe(44)
+    expect(panel.agentFilter).toBe("all")
+    expect(panel.severityFilter).toBe("all")
     expect(panel.polarityFilter).toBe("all")
     expect(panel.byPolarity).toEqual({ negative: 0, positive: 0, ambiguous: 44 })
     expect(panel.strata).toHaveLength(6)
@@ -145,6 +147,31 @@ describe("continuity-grayzone-extract", () => {
     expect(panel.strata.find(s => s.key.agent === "continuity-facts" && s.key.severity === "blocker")!.sampled).toBe(3)
     expect(panel.strata.find(s => s.key.agent === "continuity-state" && s.key.severity === "warning")!.sampled).toBe(4)
     expect(renderPanelSummary(panel)).toContain("Polarity filter: positive")
+  })
+
+  test("buildPanel can filter to one stratum plus polarity", () => {
+    const findings = [
+      ...buildSyntheticFindings("continuity-facts", "blocker", 2, "positive"),
+      ...buildSyntheticFindings("continuity-facts", "warning", 3, "positive"),
+      ...buildSyntheticFindings("continuity-state", "blocker", 4, "positive"),
+      ...buildSyntheticFindings("continuity-facts", "blocker", 5, "negative"),
+    ]
+
+    const panel = buildPanel(findings, {
+      agentFilter: "continuity-facts",
+      severityFilter: "blocker",
+      polarityFilter: "positive",
+      perStratumTarget: 10,
+      generatedAt: "2026-05-05T00:00:00Z",
+    })
+
+    expect(panel.totalFindings).toBe(2)
+    expect(panel.agentFilter).toBe("continuity-facts")
+    expect(panel.severityFilter).toBe("blocker")
+    expect(panel.polarityFilter).toBe("positive")
+    expect(panel.strata.find(s => s.key.agent === "continuity-facts" && s.key.severity === "blocker")!.sampled).toBe(2)
+    expect(panel.strata.filter(s => s.sampled > 0)).toHaveLength(1)
+    expect(renderPanelSummary(panel)).toContain("Stratum filter: agent=continuity-facts, severity=blocker")
   })
 
   test("renderPanelSummary lists every stratum with sampled/total", () => {
