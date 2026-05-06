@@ -41,6 +41,19 @@ The helper writes `RUNBOOK.md`, `console-final.md`, `network-final.md`, and
 unless `--checklist <kind>` is provided. It does not drive the browser; use
 Playwright MCP for the actual browser steps.
 
+After the browser pass, verify the evidence directory:
+
+```bash
+bun run ui:evidence-check -- --dir output/playwright/<YYYY-MM-DD>/<surface-or-lane>-<novelId-or-short-slug>
+```
+
+The verifier reports `clear`, `not-clear`, or `incomplete`. Only `clear`
+means the directory has completed checklist items, baseline and interaction
+screenshots, final console/network captures, and a valid manifest. `not-clear`
+means the run was completed but the checklist recorded a fail/blocker.
+`incomplete` means required evidence is missing or still contains preflight
+placeholders.
+
 ## Evidence Contract
 
 For each tested surface, capture:

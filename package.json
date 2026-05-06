@@ -25,6 +25,7 @@
     "finalizer-packet": "bun scripts/agent/finalizer-packet.ts",
     "lane-runner-legacy": "bun scripts/agent/lane-runner.ts",
     "ui:preflight": "bun scripts/playwright-preflight.ts",
+    "ui:evidence-check": "bun scripts/playwright-evidence-check.ts",
     "diagnostics:checker-warnings": "bun scripts/analysis/checker-warning-report.ts",
     "diagnostics:plan-assist-lineage": "bun scripts/analysis/plan-assist-lineage-report.ts",
     "diagnostics:plan-drift": "bun scripts/analysis/plan-drift-report.ts",

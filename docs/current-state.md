@@ -243,9 +243,11 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
   `output/playwright/<YYYY-MM-DD>/<surface-or-lane>-<novelId-or-short-slug>/`;
   close the Playwright tab/session and stop any test-only app server after the
   pass completes.
-- `bun run ui:preflight -- --surface <surface> --novel <id> --url <path>` can
-  create that evidence directory, runbook, console/network placeholders, and
-  manifest before Playwright MCP browser actions.
+- `bun run ui:preflight -- --surface <surface> --novel <id> --url <path>`
+  creates the evidence directory, runbook, checklist, console/network
+  placeholders, and manifest before browser actions; `bun run
+  ui:evidence-check -- --dir <evidence-dir>` verifies clear/not-clear/incomplete
+  evidence after the pass.
 - Craft heuristics that alter planner, writer, or checker behavior must prove
   value in diagnostic-only or A/B-gated form before production-default wiring.
   See `docs/decisions/L079-authoring-harness-eval-gates.md`.
