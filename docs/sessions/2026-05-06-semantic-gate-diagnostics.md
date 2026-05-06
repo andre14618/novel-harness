@@ -220,6 +220,11 @@ Observed signals:
   `plan-assist:plan-check-exhausted` gate with `unresolved=4`, including
   blocker samples for Arbiter's carriage, ordinary-strength lifting, and the
   coin/sewer-map continuity issue.
+- Runtime gating refinement: continuity checker findings remain visible in
+  diagnostics/review evidence but no longer create Drafting Plan-Assist
+  blockers by themselves. L84 records the decision; Beat/plan,
+  halluc-ungrounded, validation, prose-integrity, and functional blockers
+  remain load-bearing.
 
 ## Interpretation
 

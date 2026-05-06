@@ -51,7 +51,7 @@ describe("buildCheckerBlockerDeviations", () => {
     expect((deviations[0]?.metadata?.entityRefs as any[] | undefined)?.[0]?.ref).toBe("char-kael")
   })
 
-  test("promotes continuity blockers to chapter-level deviations", () => {
+  test("keeps continuity blockers diagnostic-only", () => {
     const deviations = buildCheckerBlockerDeviations({
       acceptedBeatIssues: [],
       continuityIssues: [
@@ -60,9 +60,7 @@ describe("buildCheckerBlockerDeviations", () => {
       ],
     })
 
-    expect(deviations).toEqual([
-      { beat_index: null, description: "[continuity] Wren location violation" },
-    ])
+    expect(deviations).toEqual([])
   })
 
   test("does not promote continuity-state warnings into plan-assist blockers", () => {

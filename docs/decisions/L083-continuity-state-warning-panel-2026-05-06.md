@@ -1,5 +1,5 @@
 ---
-status: active
+status: superseded
 date: 2026-05-06
 decision: continuity-state-warning-panel-2026-05-06
 ---
@@ -13,9 +13,10 @@ catch signal. Treat these warnings as diagnostic noise until a narrower
 subclass proves value. Do not use raw `continuity-state/warning` counts as
 evidence for planner/writer/checker runtime nudges.
 
-This does not relax continuity blockers. Runtime already keeps location-state
-violations warning-class and `buildCheckerBlockerDeviations()` promotes only
-`blocker` issues into plan-assist gates.
+Runtime-gating implications were superseded by L84 after follow-up operator
+direction: continuity findings remain diagnostic/review evidence and no longer
+open Drafting Plan-Assist gates by themselves. The panel evidence here remains
+valid for continuity-state warning calibration.
 
 ## Evidence
 
@@ -44,10 +45,9 @@ could plausibly have been learned off-page.
 
 ## Implications
 
-- Keep continuity-facts behavior unchanged; L81 did not justify relaxing
-  facts blocker/warning behavior.
-- Keep continuity-state blockers in force for clear knowledge impossibility or
-  explicit same-time location contradiction.
+- Historical implication superseded: continuity-facts and continuity-state
+  findings no longer open Drafting Plan-Assist gates by themselves.
+- Keep continuity evidence visible for review and future proposal surfaces.
 - `diagnostics:checker-warnings` now classifies `continuity-state/warning` as
   `calibration=low-confidence` while leaving the finding visible.
 - Any prompt/runtime change to reduce warning generation still needs a replay
@@ -56,6 +56,8 @@ could plausibly have been learned off-page.
 ## Related
 
 - Parent decision: `docs/decisions/L081-continuity-grayzone-panel-2026-05-05.md`
+- Superseding decision:
+  `docs/decisions/L084-continuity-diagnostic-drafting-gates.md`
 - Session record: `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`
 - Tools: `scripts/analysis/continuity-grayzone-extract.ts`,
   `scripts/analysis/continuity-grayzone-aggregate.ts`

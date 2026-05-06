@@ -47,9 +47,9 @@ Repo-local agent scripts are support tooling, not a replacement control plane.
   scheduler/eval lanes for low-risk artifact/prose proposals.
 - Canon and planning edits remain manual by default through `manualKinds:
   ["canon_update", "planning_edit"]`.
-- Accepted autonomy posture: keep manual review as the product default, allow
-  deterministic mechanical assisted paths only with local replay/guard evidence,
-  and do not expand Canon autonomy without a new explicit decision.
+- Accepted autonomy posture: manual review remains default; deterministic
+  mechanical assistance needs local replay/guard evidence, and Canon autonomy
+  needs a new explicit decision.
 - Local UI auth is bypassed by default for the foreseeable browser-testing
   lane. Set `ORCHESTRATOR_AUTH_ENABLED=1` to restore orchestrator API/UI auth.
 
@@ -176,12 +176,11 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
   changing the legacy `beat_index` contract.
 - Beat-level LLM telemetry now persists `llm_calls.beat_id` for beat writer,
   targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
-- Diagnostic-only CLIs summarize and rank semantic gates
-  (`diagnostics:semantic-gate`, `diagnostics:semantic-gate-candidates`,
-  `diagnostics:semantic-gate-baseline`, `diagnostics:action-evidence`),
-  semantic drift, writer expansion, checker warnings with finding
-  polarity/calibration, and plan-assist lineage without changing runtime
-  behavior.
+- Diagnostic-only CLIs summarize/rank semantic gates, action evidence, semantic
+  drift, writer expansion, checker warnings with finding polarity/calibration,
+  and plan-assist lineage without changing runtime behavior.
+- Continuity findings remain diagnostic/review evidence and do not open Drafting
+  Plan-Assist Gates by themselves; see L84.
 - World fact roles are additive on `facts` and `canon_facts`; diagnostics
   report totals, policy previews, and deterministic fixture behavior. Default
   runtime stays legacy; per-novel `factRoleContextPolicy: "role-aware"` is

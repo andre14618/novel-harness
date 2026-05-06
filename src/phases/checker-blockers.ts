@@ -36,13 +36,9 @@ export function buildCheckerBlockerDeviations(input: CheckerBlockerInput): Check
     }
   }
 
-  for (const issue of input.continuityIssues) {
-    if (issue.severity !== "blocker") continue
-    deviations.push({
-      beat_index: null,
-      description: `[continuity] ${issue.description}`,
-    })
-  }
+  // Continuity findings are diagnostic/editorial evidence. They stay visible
+  // in checker-warning and action-evidence reports, but they do not block
+  // Drafting or open a Plan-Assist gate on their own.
 
   for (const issue of input.functionalIssues ?? []) {
     if (issue.severity !== "blocker") continue
