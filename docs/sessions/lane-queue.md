@@ -28,10 +28,10 @@ This file tracks active and immediately actionable work only.
 
 ## Recently Closed
 
-- Fact-role policy seam shipped: `src/harness/fact-roles.ts` defines legacy,
-  writer-visible, and continuity-blocking selectors with focused tests, and
-  Canon scoping supports opt-in `includeFactRoles`. Hidden Canon facts require
-  explicit `forceIncludeHiddenFacts` before `includeFactIds` can surface them.
+- Fact-role policy seam shipped: pure legacy/writer-visible/
+  continuity-blocking selectors, opt-in Canon `includeFactRoles`, and
+  `diagnostics:fact-role-context-preview`. Hidden Canon facts require explicit
+  `forceIncludeHiddenFacts` before `includeFactIds` can surface them.
 - Adjudicated continuity gray-zone panel N=20 shipped (decision L81).
   continuity-facts blocker/warning at 60% TP (do not relax);
   continuity-state/warning is the dominant gray zone (20% TP / 40% FP / 40%

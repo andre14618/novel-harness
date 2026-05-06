@@ -187,10 +187,10 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   `canon_facts` (`sql/050`) with `operational | reference | hidden` and
   `operational` default. `bun run diagnostics:fact-roles [--novel <novelId>]`
   reports per-table totals plus per-category/per-kind cross-tabs (active-only
-  canon view included). Role-aware consumer policy remains diagnostic/opt-in:
-  legacy selection preserves all loaded facts, writer selection keeps
-  `operational`/`reference`, and continuity-blocking selection keeps only
-  `operational`.
+  canon view included). `bun run diagnostics:fact-role-context-preview`
+  previews role-aware consumer policy before runtime wiring: legacy keeps all
+  loaded facts, writer keeps `operational`/`reference`, and
+  continuity-blocking keeps only `operational`.
 - Halluc-ungrounded issue metadata now carries exact-match `entityRefs[]` for
   `character`, `world_system`, and `culture` targets when deterministic
   resolution is possible, and accepted beat-check blockers preserve the

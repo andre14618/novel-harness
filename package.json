@@ -29,6 +29,7 @@
     "diagnostics:continuity-grayzone-extract": "bun scripts/analysis/continuity-grayzone-extract.ts",
     "diagnostics:continuity-grayzone-aggregate": "bun scripts/analysis/continuity-grayzone-aggregate.ts",
     "diagnostics:fact-roles": "bun scripts/analysis/fact-role-report.ts",
+    "diagnostics:fact-role-context-preview": "bun scripts/analysis/fact-role-context-preview.ts",
     "policy:promotion-guard": "bun scripts/approval-policy-promotion-guard.ts",
     "docs:weight": "bun scripts/check-doc-weight.ts"
   },
