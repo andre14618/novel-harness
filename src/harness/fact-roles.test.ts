@@ -9,7 +9,9 @@ import {
   isWriterVisibleFact,
   normalizeFactRole,
   partitionFactsByRole,
+  selectContinuityFactsForPolicy,
   selectFactsForSurface,
+  selectWriterFactsForPolicy,
 } from "./fact-roles"
 import type { FactRole } from "../types"
 
@@ -96,5 +98,33 @@ describe("fact role helpers", () => {
     expect(partition.hidden.map((fact) => fact.id)).toEqual(["hidden"])
     expect(isReferenceFact(partition.reference[0])).toBe(true)
     expect(isHiddenFact(partition.hidden[0])).toBe(true)
+  })
+
+  test("context policy defaults to legacy and can opt into role-aware writer/checker views", () => {
+    expect(selectWriterFactsForPolicy(facts).map((fact) => fact.id)).toEqual([
+      "operational",
+      "reference",
+      "hidden",
+      "missing",
+      "unknown",
+    ])
+    expect(selectContinuityFactsForPolicy(facts).map((fact) => fact.id)).toEqual([
+      "operational",
+      "reference",
+      "hidden",
+      "missing",
+      "unknown",
+    ])
+    expect(selectWriterFactsForPolicy(facts, "role-aware").map((fact) => fact.id)).toEqual([
+      "operational",
+      "reference",
+      "missing",
+      "unknown",
+    ])
+    expect(selectContinuityFactsForPolicy(facts, "role-aware").map((fact) => fact.id)).toEqual([
+      "operational",
+      "missing",
+      "unknown",
+    ])
   })
 })

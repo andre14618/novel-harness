@@ -1,3 +1,5 @@
+import type { FactRoleContextPolicy } from "../harness/fact-roles"
+
 export const pipeline = {
   // Drafting
   maxDraftAttempts: 3,
@@ -36,6 +38,11 @@ export const pipeline = {
   // has settled and persist uncovered beats as editorial_flag envelopes.
   // Default off because this adds an LLM checker call per drafted chapter.
   editorialBeatCoverageProposals: false,
+
+  // Diagnostic/A-B gate for fact-role-aware context. Default legacy preserves
+  // all loaded facts. Per-novel `role-aware` drops hidden facts from writer
+  // context and sends only operational facts to continuity blocking checks.
+  factRoleContextPolicy: "legacy" as FactRoleContextPolicy,
 
   // State management
   embeddings: false,          // skip embedding step (beat path uses deterministic DB lookups)

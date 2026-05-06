@@ -3,6 +3,7 @@ import type { FactRole } from "../types"
 export const FACT_ROLES = ["operational", "reference", "hidden"] as const satisfies readonly FactRole[]
 
 export type FactRoleSurface = "legacy" | "writer" | "continuity-blocking"
+export type FactRoleContextPolicy = "legacy" | "role-aware"
 
 export const FACT_ROLES_BY_SURFACE: Record<FactRoleSurface, readonly FactRole[]> = {
   legacy: FACT_ROLES,
@@ -42,6 +43,20 @@ export function selectFactsForSurface<T extends FactRoleTagged>(
   surface: FactRoleSurface = "legacy",
 ): T[] {
   return filterFactsByRole(facts, FACT_ROLES_BY_SURFACE[surface])
+}
+
+export function selectWriterFactsForPolicy<T extends FactRoleTagged>(
+  facts: readonly T[],
+  policy: FactRoleContextPolicy = "legacy",
+): T[] {
+  return selectFactsForSurface(facts, policy === "role-aware" ? "writer" : "legacy")
+}
+
+export function selectContinuityFactsForPolicy<T extends FactRoleTagged>(
+  facts: readonly T[],
+  policy: FactRoleContextPolicy = "legacy",
+): T[] {
+  return selectFactsForSurface(facts, policy === "role-aware" ? "continuity-blocking" : "legacy")
 }
 
 export function partitionFactsByRole<T extends FactRoleTagged>(

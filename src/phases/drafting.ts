@@ -46,6 +46,10 @@ import { diffPlanAgainstState, type PriorCharacterState } from "../state-diff"
 import { assertDraftableSnapshot } from "../canon/planning-snapshot"
 import { pipeline } from "../config/pipeline"
 import type { SeedInput } from "../types"
+import {
+  selectContinuityFactsForPolicy,
+  selectWriterFactsForPolicy,
+} from "../harness/fact-roles"
 import { loadInjection, hasAnyInjection, injectionSummary } from "../config/debug-injection"
 import * as gates from "../gates"
 import { PipelineBailError, type PlanAssistGatePayload } from "../gates"
@@ -94,6 +98,7 @@ export function effectivePipeline(seed: SeedInput): typeof pipeline {
     lintProseEditProposals: o.lintProseEditProposals ?? pipeline.lintProseEditProposals,
     editorialBeatCoverageProposals:
       o.editorialBeatCoverageProposals ?? pipeline.editorialBeatCoverageProposals,
+    factRoleContextPolicy: o.factRoleContextPolicy ?? pipeline.factRoleContextPolicy,
   }
 }
 
@@ -147,6 +152,9 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
   }
   if (eff.editorialBeatCoverageProposals !== pipeline.editorialBeatCoverageProposals) {
     log(novelId, "info", `Drafting: pipelineOverrides applied — editorialBeatCoverageProposals=${eff.editorialBeatCoverageProposals}`)
+  }
+  if (eff.factRoleContextPolicy !== pipeline.factRoleContextPolicy) {
+    log(novelId, "info", `Drafting: pipelineOverrides applied — factRoleContextPolicy=${eff.factRoleContextPolicy}`)
   }
 
   console.log(`  Drafting ${totalChapters} chapters (approved chapters will be skipped)\n`)
@@ -285,7 +293,9 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           // READER-INFO STATE. Empty for chapter 1 by design — the slot
           // builder also gates on chapterNumber > 1, so a non-empty fetch
           // here would be ignored anyway.
-          const priorChapterFacts = ch > 1 ? await getFactsUpToChapter(novelId, ch - 1) : []
+          const priorChapterFacts = ch > 1
+            ? selectWriterFactsForPolicy(await getFactsUpToChapter(novelId, ch - 1), eff.factRoleContextPolicy)
+            : []
 
           // Pre-resolve all beat references in parallel before the serial writing loop.
           // Kept for all writer routes; world-fact requirements travel through
@@ -536,7 +546,10 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             })
           : Promise.resolve(null),
         (async () => {
-          const facts = await getFactsUpToChapter(novelId, ch)
+          const facts = selectContinuityFactsForPolicy(
+            await getFactsUpToChapter(novelId, ch),
+            eff.factRoleContextPolicy,
+          )
           const charStates = await getCharacterStatesAtChapter(novelId, ch)
           return checkContinuity(prose, facts, charStates, { novelId, chapter: ch, attempt: attempts, outline })
         })(),
@@ -667,7 +680,9 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               const characters = await getCharacters(novelId)
               const charStates = await getCharacterStatesAtChapter(novelId, ch)
               const worldBible = await getWorldBible(novelId)
-              const priorChapterFacts = ch > 1 ? await getFactsUpToChapter(novelId, ch - 1) : []
+              const priorChapterFacts = ch > 1
+                ? selectWriterFactsForPolicy(await getFactsUpToChapter(novelId, ch - 1), eff.factRoleContextPolicy)
+                : []
               const beatSpec = outline.scenes[bi]
               const preResolved = await resolveReferences(beatSpec, outline, novelId, ch, characters)
                 .catch(() => ({ context: "", lookupCount: 0, llmUsed: false }))
@@ -944,7 +959,9 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             const characters = await getCharacters(novelId)
             const charStates = await getCharacterStatesAtChapter(novelId, ch)
             const worldBible = await getWorldBible(novelId)
-            const priorChapterFacts = ch > 1 ? await getFactsUpToChapter(novelId, ch - 1) : []
+            const priorChapterFacts = ch > 1
+              ? selectWriterFactsForPolicy(await getFactsUpToChapter(novelId, ch - 1), eff.factRoleContextPolicy)
+              : []
             const beatSpec = outline.scenes[bi]
             const preResolved = await resolveReferences(beatSpec, outline, novelId, ch, characters)
               .catch(() => ({ context: "", lookupCount: 0, llmUsed: false }))
@@ -1497,7 +1514,9 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 const characters = await getCharacters(novelId)
                 const charStates = await getCharacterStatesAtChapter(novelId, ch)
                 const worldBible = await getWorldBible(novelId)
-                const priorChapterFacts = ch > 1 ? await getFactsUpToChapter(novelId, ch - 1) : []
+                const priorChapterFacts = ch > 1
+                  ? selectWriterFactsForPolicy(await getFactsUpToChapter(novelId, ch - 1), eff.factRoleContextPolicy)
+                  : []
                 const beatSpec = outline.scenes[bi]
                 const preResolved = await resolveReferences(beatSpec, outline, novelId, ch, characters)
                   .catch(() => ({ context: "", lookupCount: 0, llmUsed: false }))

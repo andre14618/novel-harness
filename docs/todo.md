@@ -68,6 +68,8 @@ This file is the actionable backlog only. Live architecture belongs in
   wiring runtime writer/checker behavior.
 - [x] Add diagnostic preview for writer-visible and continuity-blocking
   fact-role policy effects before runtime wiring.
+- [x] Add per-novel A/B override for role-aware drafting context while keeping
+  default runtime legacy.
 - [ ] Wire role-aware writer retrieval and checker-blocking policy only after
   diagnostic/A-B evidence confirms hidden/reference handling improves outputs.
 - [x] Build a small adjudicated continuity gray-zone panel before relaxing

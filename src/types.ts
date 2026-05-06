@@ -26,6 +26,7 @@ export interface SeedInput {
     qualityRedraftMinWords?: number
     lintProseEditProposals?: boolean
     editorialBeatCoverageProposals?: boolean
+    factRoleContextPolicy?: import("./harness/fact-roles").FactRoleContextPolicy
   }
 }
 

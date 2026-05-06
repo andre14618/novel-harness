@@ -188,9 +188,9 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   `operational` default. `bun run diagnostics:fact-roles [--novel <novelId>]`
   reports per-table totals plus per-category/per-kind cross-tabs (active-only
   canon view included). `bun run diagnostics:fact-role-context-preview`
-  previews role-aware consumer policy before runtime wiring: legacy keeps all
-  loaded facts, writer keeps `operational`/`reference`, and
-  continuity-blocking keeps only `operational`.
+  previews role-aware consumer policy; per-novel `factRoleContextPolicy:
+  "role-aware"` opts drafting into writer `operational`/`reference` facts and
+  continuity-blocking `operational` facts while default runtime stays legacy.
 - Halluc-ungrounded issue metadata now carries exact-match `entityRefs[]` for
   `character`, `world_system`, and `culture` targets when deterministic
   resolution is possible, and accepted beat-check blockers preserve the
