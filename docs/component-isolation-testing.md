@@ -78,11 +78,12 @@ Each variant then writes the same beat brief side-by-side. Compare prose shape, 
 
 ## 7. Decision Tree
 
-1. Does the hypothesis change structure before prose exists? If yes, run `plan-diff`; if no, go to 2.
-2. Does it change only prose generation with fixed `chapter_outlines`, world state, and beat briefs? If yes, run `beat-compare`; if no, go to 3.
-3. Does it change only checker judgment on existing prose/context? If yes, run `scripts/replay/<checker>.ts`; if no, go to 4.
-4. Does success depend on retry budgets, targeted rewrites, reviser escalation, or persisted flags in `chapter_outlines` / `chapter_revisions`? If yes, run end-to-end; if no, go to 5.
-5. Does it touch SSE, trace, or `plan-assist` gate behavior across `src/trace.ts`, `src/events.ts`, `src/gates.ts`, and `ui/src/components/StudioPage.tsx`? If yes, run end-to-end; if no, isolated testing is primary, followed by one smoke e2e.
+1. Does the hypothesis change structure before prose exists? If yes, build the slice around `plan-diff`; if no, go to 2.
+2. Does it change only prose generation with fixed `chapter_outlines`, world state, and beat briefs? If yes, build the slice around `beat-compare`; if no, go to 3.
+3. Does it change only checker judgment on existing prose/context? If yes, build the slice around `scripts/replay/<checker>.ts`; if no, go to 4.
+4. Does the change alter phase transitions, persistence shape, stable IDs, proposal/checker side effects, telemetry, or approval flow? If yes, verify with phase-parity replay (`bun run test:replay`) after focused tests. Phase-parity is a full-pipeline regression gate, not the primary design loop for planner/writer/checker quality experiments. If no, go to 5.
+5. Does success depend on retry budgets, targeted rewrites, reviser escalation, or persisted flags in `chapter_outlines` / `chapter_revisions`? If yes, run end-to-end; if no, go to 6.
+6. Does it touch SSE, trace, or `plan-assist` gate behavior across `src/trace.ts`, `src/events.ts`, `src/gates.ts`, and `ui/src/components/StudioPage.tsx`? If yes, run end-to-end; if no, isolated testing is primary, followed by one smoke e2e.
 
 ## 8. Anti-Patterns
 
