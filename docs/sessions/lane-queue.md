@@ -19,24 +19,23 @@ This file tracks active and immediately actionable work only.
   rather than inferred.
 - Keep creative heuristics diagnostic-only or A/B-gated until evidence proves
   value.
+- Treat mechanically repairable prose syntax as a deterministic repair surface
+  before Drafting retries or Plan-Assist Gates; keep semantic/content changes
+  in Settle Loops, Reviser paths, or proposal/manual review.
 
 ## Recently Closed
 
 - Playwright evidence verification shipped: `ui:preflight` now pairs with `ui:evidence-check`.
+- Deterministic quote-integrity repair shipped before prose-integrity retry/gate
+  logic; detailed scoped-baseline evidence is in the semantic-gate session doc.
 - Continuity-state warning N=50 follow-up shipped (decision L83): 0% TP, 88% FP, 12% AMB; treat raw warning counts as diagnostic/UI noise, not runtime-nudge evidence.
 - Semantic-gate diagnostics shipped: writer expansion, semantic gate roll-up,
   and candidate ranking; future fact-role A/B summaries persist the roll-up.
   Record: `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.
-- Fact-role policy seam shipped: pure selectors, opt-in Canon role scoping,
-  diagnostic preview, fixture eval, resume-ready clones, live A/B runner with
-  terminal gate evidence / promotion verdict, and per-novel drafting override.
-  Hidden Canon facts require explicit `forceIncludeHiddenFacts` before
-  `includeFactIds` can surface them.
-- Adjudicated continuity gray-zone panel N=20 shipped (decision L81).
-  continuity-facts blocker/warning at 60% TP (do not relax);
-  continuity-state/warning is the dominant gray zone (20% TP / 40% FP / 40%
-  AMB, mostly off-page transitions and figurative aspirations); follow-up
-  needs N≥50 across continuity-state before any production checker change.
+- Fact-role policy seam shipped with opt-in Canon role scoping, diagnostic
+  preview, fixture eval, and live A/B runner; hidden facts stay explicit opt-in.
+- Adjudicated continuity gray-zone panel N=20 shipped (decision L81); follow-up
+  N≥50 across continuity-state is required before production checker changes.
 - Added `diagnostics:plan-assist-lineage` over `planning_mutation_lineage`
   rows from `chapter_exhaustions` / `chapter_revisions`. Smoke-verified
   against `test-novel` (7 events). Feeds the deferred envelope-wrap

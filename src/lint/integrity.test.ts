@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { detectProseIntegrityIssues, offsetToBeatIndex, validateLintFixIntegrity } from "./integrity"
+import { detectProseIntegrityIssues, offsetToBeatIndex, repairMechanicalQuoteIntegrity, validateLintFixIntegrity } from "./integrity"
 
 describe("validateLintFixIntegrity", () => {
   test("passes unchanged prose", () => {
@@ -84,6 +84,28 @@ He set his daughter down on the cot with a tenderness that made Istra's chest ti
     const issues = detectProseIntegrityIssues(prose)
 
     expect(issues.filter(i => i.kind === "quote-integrity")).toEqual([])
+  })
+
+  test("repairs reversed closing curly quote without a rewrite", () => {
+    const prose = `She did not stop writing. “If it pleases you, I am nearly finished. The margins require—“`
+    const before = detectProseIntegrityIssues(prose)
+
+    expect(before.some(i => i.kind === "quote-integrity")).toBe(true)
+
+    const repaired = repairMechanicalQuoteIntegrity(prose)
+    const after = detectProseIntegrityIssues(repaired.prose)
+
+    expect(repaired.fixed).toBe(1)
+    expect(repaired.prose).toContain("require—”")
+    expect(after.filter(i => i.kind === "quote-integrity")).toEqual([])
+  })
+
+  test("does not guess at unrecoverable odd quote counts", () => {
+    const prose = `She did not stop writing. “If it pleases you, I am nearly finished.`
+    const repaired = repairMechanicalQuoteIntegrity(prose)
+
+    expect(repaired.fixed).toBe(0)
+    expect(repaired.prose).toBe(prose)
   })
 
   // L63 / Lever A: duplicate-sentence and duplicate-fragment carry a `firstExcerpt`

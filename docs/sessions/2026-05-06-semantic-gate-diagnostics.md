@@ -75,6 +75,13 @@ The immediate question was whether the failure pattern was primarily:
 - `1d0ce57 test: assert phase replay shape`
   - Phase-parity replay now asserts the small fixture remains at 5 planned
     beats, has no over-planned chapter, and avoids severe over-target output.
+- Deterministic quote-integrity repair slice
+  - Added `repairMechanicalQuoteIntegrity()` for local curly quote orientation
+    mistakes that the integrity detector already flags and can safely balance.
+  - Drafting now applies that repair before prose-integrity retry/gate logic,
+    saves the repaired draft, and emits `prose-integrity-repair` trace evidence.
+  - This does not relax malformed-prose blocking and does not rewrite Beats or
+    Chapter Plans.
 
 ## Evidence
 
@@ -158,6 +165,23 @@ Observed signals:
   The sample came from 581 `continuity-state/warning` findings: 3 negative, 0
   positive, 47 ambiguous. This is panel material to label next, not a
   production checker-relaxation decision.
+- Scoped baseline run:
+  `diagnostics:semantic-gate-baseline -- --source fantasy-system-heretic
+  --chapters 2 --max-beats-per-chapter 5 --output-base
+  output/evals/semantic-gate-baseline/fantasy-system-heretic-capped-20260506T-scoped`
+  stopped at `integrity-exhausted` on Chapter 1 attempt 3. The final issue was
+  a mechanical quote-orientation error:
+  `... The margins require—“`, where the final curly quote should be closing.
+  Other repair actions in the run were Plan Adherence driven: attempt 1 rewrote
+  one Beat because the chapter did not reach Cassel's summons / Arbiter-office
+  endpoint and omitted the emergency coins / sewer map contingency; attempt 2
+  accepted a Reviser-produced Chapter Plan replacement after the prose named
+  the Arbiter `Vellic` instead of planned `Cassel`. Continuity emitted warnings
+  and nits only; it did not block the run.
+- Regression evidence for deterministic quote repair:
+  `bun test src/lint/integrity.test.ts`,
+  `bun test src/phases/drafting-reviser-escalation.test.ts`, and
+  `./node_modules/.bin/tsc --noEmit` passed.
 
 ## Interpretation
 
@@ -174,6 +198,12 @@ shows a deterministic runtime filter is safe.
 The continuity gray-zone panel can now provide that adjudication sample without
 changing gates: filter to `--polarity positive`, label the sample, then decide
 whether a deterministic support-echo filter is justified.
+
+Mechanical prose syntax should be repaired before consuming Drafting attempts
+or opening a Plan-Assist Gate when the repair is local and deterministic. The
+quote-integrity case above is syntax, not creative content: repair locally,
+trace it, then let the unchanged integrity detector decide whether any deeper
+malformation remains.
 
 Positive wording alone is not a safe relaxation rule. The diagnostic classifier
 must exclude findings that also contain explicit violation/contradiction

@@ -41,6 +41,11 @@ export interface LintFixIntegrityResult {
   issues: LintFixIntegrityIssue[]
 }
 
+export interface MechanicalQuoteIntegrityRepairResult {
+  prose: string
+  fixed: number
+}
+
 export function validateLintFixIntegrity(original: string, fixed: string): LintFixIntegrityResult {
   const issues: LintFixIntegrityIssue[] = []
 
@@ -65,6 +70,56 @@ export function detectProseIntegrityIssues(text: string): LintFixIntegrityIssue[
     ...detectNearbyDuplicateFragments(text),
     ...detectQuoteIntegrity(text),
   ])
+}
+
+export function repairMechanicalQuoteIntegrity(text: string): MechanicalQuoteIntegrityRepairResult {
+  const parts: string[] = []
+  let fixed = 0
+  let lastEnd = 0
+  const splitRe = /\n{2,}/g
+
+  for (const match of text.matchAll(splitRe)) {
+    const start = match.index ?? 0
+    const repaired = repairMechanicalQuoteParagraph(text.slice(lastEnd, start))
+    parts.push(repaired.text, match[0])
+    fixed += repaired.fixed
+    lastEnd = start + match[0].length
+  }
+
+  const repaired = repairMechanicalQuoteParagraph(text.slice(lastEnd))
+  parts.push(repaired.text)
+  fixed += repaired.fixed
+
+  return { prose: fixed > 0 ? parts.join("") : text, fixed }
+}
+
+function repairMechanicalQuoteParagraph(paragraph: string): { text: string; fixed: number } {
+  const beforeIssues = detectQuoteIntegrity(paragraph)
+  if (beforeIssues.length === 0) return { text: paragraph, fixed: 0 }
+
+  const quotes = [...paragraph.matchAll(/[“”]/g)]
+  if (quotes.length < 2 || quotes.length % 2 !== 0) return { text: paragraph, fixed: 0 }
+
+  const chars = paragraph.split("")
+  let expectOpen = true
+  let fixed = 0
+  for (const quote of quotes) {
+    const index = quote.index ?? 0
+    const replacement = expectOpen ? "“" : "”"
+    if (chars[index] !== replacement) {
+      chars[index] = replacement
+      fixed += 1
+    }
+    expectOpen = !expectOpen
+  }
+
+  if (fixed === 0) return { text: paragraph, fixed: 0 }
+
+  const candidate = chars.join("")
+  const afterIssues = detectQuoteIntegrity(candidate)
+  if (afterIssues.length >= beforeIssues.length) return { text: paragraph, fixed: 0 }
+
+  return { text: candidate, fixed }
 }
 
 function detectFusedBoundaries(text: string): LintFixIntegrityIssue[] {
