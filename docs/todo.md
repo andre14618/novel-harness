@@ -64,6 +64,10 @@ This file is the actionable backlog only. Live architecture belongs in
   count, beat count, approval rate, and semantic drift rate.
 - [ ] Investigate semantic action drift from drafting before adding new
   writer/checker nudges.
+- [x] Add pure fact-role policy selectors and opt-in Canon role scoping before
+  wiring runtime writer/checker behavior.
+- [ ] Wire role-aware writer retrieval and checker-blocking policy only after
+  diagnostic/A-B evidence confirms hidden/reference handling improves outputs.
 - [x] Build a small adjudicated continuity gray-zone panel before relaxing
   object/state conflict checks. (N=20 shipped 2026-05-05; decision L81;
   follow-up needs N≥50 across continuity-state before any checker relaxation.)

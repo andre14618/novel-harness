@@ -6,9 +6,10 @@ This file tracks active and immediately actionable work only.
 
 - Richness Backlog lane (2026-05-05): world fact roles. Substrate fully
   additive and observable — `facts.role` (sql/049), `canon_facts.role`
-  (sql/050), and `diagnostics:fact-roles` shipped. No consumer reads role
-  yet; next slice is consumer design (role-aware retrieval) which falls
-  under the Creative Heuristic Eval Gate.
+  (sql/050), and `diagnostics:fact-roles` shipped. Pure fact-role policy and
+  opt-in Canon scope allowlists now exist, but writer/checker runtime paths do
+  not opt into role filtering yet; next slice is role-aware retrieval/check
+  wiring under the Creative Heuristic Eval Gate.
 - Authoring visibility/interactivity at scope ceiling: direct-mutation
   audit found only deferred higher-risk slices (plan-assist whole-outline,
   chapter-plan-reviser outline replacement).
@@ -27,11 +28,10 @@ This file tracks active and immediately actionable work only.
 
 ## Recently Closed
 
-- World fact role columns shipped additively on `facts` (`sql/049`) and
-  `canon_facts` (`sql/050`) with `operational | reference | hidden` /
-  `operational` default; no consumer reads role yet. `diagnostics:fact-roles`
-  reports per-table totals plus per-category/per-kind cross-tabs (active-only
-  canon view included) before any role-aware retrieval slice ships.
+- Fact-role policy seam shipped: `src/harness/fact-roles.ts` defines legacy,
+  writer-visible, and continuity-blocking selectors with focused tests, and
+  Canon scoping supports opt-in `includeFactRoles`. Hidden Canon facts require
+  explicit `forceIncludeHiddenFacts` before `includeFactIds` can surface them.
 - Adjudicated continuity gray-zone panel N=20 shipped (decision L81).
   continuity-facts blocker/warning at 60% TP (do not relax);
   continuity-state/warning is the dominant gray zone (20% TP / 40% FP / 40%

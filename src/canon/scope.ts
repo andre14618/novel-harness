@@ -21,6 +21,7 @@ import type {
   CanonFact,
   CharacterState,
   Entity,
+  FactRole,
   StoryPromise,
 } from "./api"
 import type { L1Sections } from "./bundle"
@@ -48,6 +49,16 @@ export interface ScopingHints {
   includeFactIds?: readonly string[]
   /** Explicit fact IDs to force-exclude regardless of rules. */
   excludeFactIds?: readonly string[]
+  /**
+   * Optional CanonFact.role allowlist. Omit to preserve all fact roles,
+   * including hidden, matching pre-role-scope behavior.
+   */
+  includeFactRoles?: readonly FactRole[]
+  /**
+   * Allows includeFactIds to force hidden facts through role/relevance filters.
+   * Has no effect without includeFactIds, and excludeFactIds still wins.
+   */
+  forceIncludeHiddenFacts?: boolean
   /** Explicit entity IDs to force-include. */
   includeEntityIds?: readonly string[]
 }
@@ -236,6 +247,10 @@ function scopeFacts(
 ): CanonFact[] {
   const forceInclude = new Set(hints.includeFactIds ?? [])
   const forceExclude = new Set(hints.excludeFactIds ?? [])
+  const allowedRoles = hints.includeFactRoles
+    ? new Set<FactRole>(hints.includeFactRoles)
+    : undefined
+  const forceIncludeHiddenFacts = hints.forceIncludeHiddenFacts === true
   const recencyStart = Math.max(0, chapterN - recencyWindow)
 
   return raw.filter((f) => {
@@ -243,7 +258,11 @@ function scopeFacts(
     if (!isApproved(f.provenance.approvalStatus)) return false
     if (f.provenance.chapter > chapterN) return false
 
-    if (forceInclude.has(f.id)) return true
+    const roleAllowed = allowedRoles == null || allowedRoles.has(f.role)
+    if (forceInclude.has(f.id)) {
+      if (f.role !== "hidden" || forceIncludeHiddenFacts) return true
+    }
+    if (!roleAllowed) return false
 
     // Rule 5: established world rules (any origin — planned or observed).
     if (f.kind === "established_fact") return true

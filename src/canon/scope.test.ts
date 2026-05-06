@@ -20,6 +20,7 @@ function fact(
     origin?: "planned" | "observed"
     approvalStatus?: "auto-extracted" | "human-approved" | "human-edited" | "contested" | "rejected"
     data?: Record<string, unknown>
+    role?: CanonFact["role"]
   } = {},
 ): CanonFact {
   return {
@@ -36,7 +37,7 @@ function fact(
       createdAt: "2026-05-03T00:00:00Z",
       updatedAt: "2026-05-03T00:00:00Z",
     },
-    role: "operational",
+    role: opts.role ?? "operational",
   }
 }
 
@@ -642,6 +643,162 @@ describe("inclusion: force-include list", () => {
       100,
     )
     expect(withForce.facts.find((f) => f.id === "obscure-fact")).toBeDefined()
+  })
+})
+
+describe("fact role scope", () => {
+  test("default scoping keeps operational, reference, and hidden facts", () => {
+    const customRaw = {
+      ...FIXTURE(),
+      facts: [
+        fact("role-operational", "Operational canon.", {
+          kind: "established_fact",
+          role: "operational",
+        }),
+        fact("role-reference", "Reference canon.", {
+          kind: "established_fact",
+          role: "reference",
+        }),
+        fact("role-hidden", "Hidden canon.", {
+          kind: "established_fact",
+          role: "hidden",
+        }),
+      ],
+    }
+    const out = scopeCanonForChapter(customRaw, HINTS, 7)
+    expect(out.facts.map((f) => f.id).sort()).toEqual([
+      "role-hidden",
+      "role-operational",
+      "role-reference",
+    ])
+  })
+
+  test("includeFactIds does not lift hidden facts by default", () => {
+    const customRaw = {
+      ...FIXTURE(),
+      facts: [
+        fact("hidden-obscure", "Hidden obscure canon.", {
+          chapter: 1,
+          kind: "knowledge_change",
+          origin: "observed",
+          role: "hidden",
+          data: { characterId: "random-npc" },
+        }),
+      ],
+    }
+    const out = scopeCanonForChapter(
+      customRaw,
+      { ...HINTS, includeFactIds: ["hidden-obscure"] },
+      100,
+    )
+    expect(out.facts.find((f) => f.id === "hidden-obscure")).toBeUndefined()
+  })
+
+  test("writer-like role scope keeps operational/reference and excludes hidden", () => {
+    const customRaw = {
+      ...FIXTURE(),
+      facts: [
+        fact("role-operational", "Operational canon.", {
+          kind: "established_fact",
+          role: "operational",
+        }),
+        fact("role-reference", "Reference canon.", {
+          kind: "established_fact",
+          role: "reference",
+        }),
+        fact("role-hidden", "Hidden canon.", {
+          kind: "established_fact",
+          role: "hidden",
+        }),
+      ],
+    }
+    const out = scopeCanonForChapter(
+      customRaw,
+      { ...HINTS, includeFactRoles: ["operational", "reference"] },
+      7,
+    )
+    expect(out.facts.map((f) => f.id).sort()).toEqual([
+      "role-operational",
+      "role-reference",
+    ])
+  })
+
+  test("includeFactIds does not lift hidden facts through a writer-like role scope", () => {
+    const customRaw = {
+      ...FIXTURE(),
+      facts: [
+        fact("hidden-obscure", "Hidden obscure canon.", {
+          chapter: 1,
+          kind: "knowledge_change",
+          origin: "observed",
+          role: "hidden",
+          data: { characterId: "random-npc" },
+        }),
+      ],
+    }
+    const out = scopeCanonForChapter(
+      customRaw,
+      {
+        ...HINTS,
+        includeFactIds: ["hidden-obscure"],
+        includeFactRoles: ["operational", "reference"],
+      },
+      100,
+    )
+    expect(out.facts.find((f) => f.id === "hidden-obscure")).toBeUndefined()
+  })
+
+  test("forceIncludeHiddenFacts lets includeFactIds lift hidden facts through role scope", () => {
+    const customRaw = {
+      ...FIXTURE(),
+      facts: [
+        fact("hidden-obscure", "Hidden obscure canon.", {
+          chapter: 1,
+          kind: "knowledge_change",
+          origin: "observed",
+          role: "hidden",
+          data: { characterId: "random-npc" },
+        }),
+      ],
+    }
+    const out = scopeCanonForChapter(
+      customRaw,
+      {
+        ...HINTS,
+        forceIncludeHiddenFacts: true,
+        includeFactIds: ["hidden-obscure"],
+        includeFactRoles: ["operational", "reference"],
+      },
+      100,
+    )
+    expect(out.facts.find((f) => f.id === "hidden-obscure")).toBeDefined()
+  })
+
+  test("excludeFactIds wins over force-included hidden facts", () => {
+    const customRaw = {
+      ...FIXTURE(),
+      facts: [
+        fact("hidden-obscure", "Hidden obscure canon.", {
+          chapter: 1,
+          kind: "knowledge_change",
+          origin: "observed",
+          role: "hidden",
+          data: { characterId: "random-npc" },
+        }),
+      ],
+    }
+    const out = scopeCanonForChapter(
+      customRaw,
+      {
+        ...HINTS,
+        excludeFactIds: ["hidden-obscure"],
+        forceIncludeHiddenFacts: true,
+        includeFactIds: ["hidden-obscure"],
+        includeFactRoles: ["operational", "reference"],
+      },
+      100,
+    )
+    expect(out.facts.find((f) => f.id === "hidden-obscure")).toBeUndefined()
   })
 })
 

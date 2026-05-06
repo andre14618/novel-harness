@@ -163,11 +163,6 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
 - Chapter-outline saves now persist enriched stable IDs for chapters, beats,
   source items, characters, and obligations; checker findings carry additive
   stable refs on the current high-value surfaces before broader traceability UI.
-- `facts.role` and `canon_facts.role` (`operational | reference | hidden`,
-  default `operational`) exist as additive structural columns from
-  `sql/049` and `sql/050`. No consumer reads role yet — these lay the
-  schema for downstream scoped-context (drop `hidden` from writer prompts)
-  and scoped-check (advisory-only `reference`) work.
 - Plan-assist `edit-plan` and `override` remain direct manual-gate actions, but
   drafting now records `planning_mutation_lineage` sourced from
   `chapter_exhaustions` and preserves chapter IDs across replacement outlines.
@@ -190,10 +185,12 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   deferred envelope-wrap decision, without changing runtime behavior.
 - World fact role columns are additive on `facts` (`sql/049`) and
   `canon_facts` (`sql/050`) with `operational | reference | hidden` and
-  `operational` default; no consumer reads role yet. `bun run
-  diagnostics:fact-roles [--novel <novelId>]` reports per-table totals plus
-  per-category/per-kind cross-tabs (active-only canon view included) before
-  any role-aware retrieval slice ships under the Creative Heuristic Eval Gate.
+  `operational` default. `bun run diagnostics:fact-roles [--novel <novelId>]`
+  reports per-table totals plus per-category/per-kind cross-tabs (active-only
+  canon view included). Role-aware consumer policy remains diagnostic/opt-in:
+  legacy selection preserves all loaded facts, writer selection keeps
+  `operational`/`reference`, and continuity-blocking selection keeps only
+  `operational`.
 - Halluc-ungrounded issue metadata now carries exact-match `entityRefs[]` for
   `character`, `world_system`, and `culture` targets when deterministic
   resolution is possible, and accepted beat-check blockers preserve the
