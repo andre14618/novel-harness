@@ -1,0 +1,49 @@
+{
+  "id": "reference-hidden-basic",
+  "description": "Writer should keep reference facts but omit hidden facts; continuity should enforce only operational facts.",
+  "facts": [
+    {
+      "id": "fact-public-oath",
+      "fact": "The Bellwrights swear public oaths at dawn.",
+      "category": "rule",
+      "establishedInChapter": 1,
+      "role": "operational"
+    },
+    {
+      "id": "fact-old-calendar",
+      "fact": "The city still uses the old festival calendar in private ledgers.",
+      "category": "lore",
+      "establishedInChapter": 1,
+      "role": "reference"
+    },
+    {
+      "id": "fact-hidden-heir",
+      "fact": "Maret is secretly the missing heir to the red ledger.",
+      "category": "identity",
+      "establishedInChapter": 1,
+      "role": "hidden"
+    }
+  ],
+  "expect": {
+    "legacyWriterContains": [
+      "The Bellwrights swear public oaths at dawn.",
+      "The city still uses the old festival calendar in private ledgers.",
+      "Maret is secretly the missing heir to the red ledger."
+    ],
+    "roleAwareWriterContains": [
+      "The Bellwrights swear public oaths at dawn.",
+      "The city still uses the old festival calendar in private ledgers."
+    ],
+    "roleAwareWriterOmits": [
+      "Maret is secretly the missing heir to the red ledger."
+    ],
+    "legacyContinuityFactIds": [
+      "fact-public-oath",
+      "fact-old-calendar",
+      "fact-hidden-heir"
+    ],
+    "roleAwareContinuityFactIds": [
+      "fact-public-oath"
+    ]
+  }
+}
