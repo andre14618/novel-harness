@@ -2336,6 +2336,27 @@ for audit and follow-up review.
 
 ---
 
+## Replay fixture drift can be intended schema evidence (2026-05-06)
+
+The phase-parity replay failed after fact roles landed because the current DB
+snapshot included `facts.role = "operational"` while the expected fixture
+predated that column.
+
+**The rule:** when replay drift is only an intended durable schema field, refresh
+the fixture narrowly and rerun replay. Do not normalize away the field if it is
+part of the behavior the harness should preserve.
+
+**How to apply:**
+
+- Inspect the replay diff first; confirm the drift is scoped and intended.
+- Refresh only the expected snapshot, then rerun `bun run test:replay`.
+- Record why the fixture changed so future agents do not treat it as accidental
+  snapshot churn.
+
+(Follow-up from `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.)
+
+---
+
 ## Do not call every gate failure semantic drift (2026-05-06)
 
 The current semantic-gate candidates looked like drafting failures at first,

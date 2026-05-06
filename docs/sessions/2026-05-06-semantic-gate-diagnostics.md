@@ -69,6 +69,9 @@ The immediate question was whether the failure pattern was primarily:
 - `048b1fe feat: add gate candidate diagnostic lens`
   - Candidate ranking now emits a primary diagnostic lens and ordered source
     diagnostic commands so follow-up work starts from the likely evidence path.
+- `00d80e8 test: refresh phase parity fact roles`
+  - Refreshed the replay fixture snapshot for intended fact-role persistence
+    (`role: "operational"`) and verified `bun run test:replay` green.
 
 ## Evidence
 
@@ -83,6 +86,7 @@ Additional checks passed during the slice:
 
 ```bash
 ./node_modules/.bin/tsc --noEmit
+bun run test:replay
 bun run docs:weight
 git diff --check
 ```
@@ -127,6 +131,10 @@ Observed signals:
   `plan_shape`; direct source reports showed passing plan-adherence checks and
   severe over-planning/expansion pressure rather than active plan-drift
   evidence.
+- Current phase-parity replay is green after fixture refresh and produces a
+  5-beat, 1,519-word chapter, so the inspected over-planned DB candidates look
+  like historical rows rather than proof that the current replay path is still
+  over-planning.
 
 ## Interpretation
 
@@ -156,6 +164,10 @@ overstating them as proof of semantic failure.
 The currently visible stored failures should be treated first as plan-shape and
 writer-expansion evidence, not as a prompt nudge target. A future writer/checker
 change still needs fresh replay or A/B evidence.
+
+The refreshed replay fixture confirms current small-fixture planning can stay
+inside the calibrated beat count and target-length envelope. Broader seeds may
+still need A/B or replay before promoting any planner/writer change.
 
 The earlier capped A/B clone rows were cleaned, so future A/B runs must persist
 the semantic-gate roll-up in their JSON/markdown summaries before cleanup. That
