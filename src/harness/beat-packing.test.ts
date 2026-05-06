@@ -186,6 +186,24 @@ test("flags budgetExceeded only when the recommended floor cannot fit the anchor
   expect(result.audit.budgetExceeded).toBe(false)
 })
 
+test("balances merges across the chapter when obligation density is uniform", () => {
+  // 13 source beats, all empty obligations — the smoke's worst case.
+  // Without the smaller-merged-group tie-break the merger collapses every
+  // adjacent pair from the left, putting 9 source beats into beat 0.
+  const scenes = Array.from({ length: 13 }, (_, i) => beat(i, `desc-${i}`))
+  const result = packChapterToBudget(chapter(scenes, 1500))
+  expect(result.audit.budget).toBe(5)
+  expect(result.audit.packedBeatCount).toBe(5)
+  // No single packed group should swallow the entire opening half. With
+  // balanced tie-break the largest group ends up <= 4 source beats for a
+  // 13->5 reduction (any pair merge of size>4 implies an unbalanced run).
+  const largest = Math.max(...result.audit.mapping.map(m => m.sourceIndices.length))
+  expect(largest).toBeLessThanOrEqual(4)
+  // First and last anchors stay in their own groups.
+  expect(result.audit.mapping[0]!.sourceIndices.includes(0)).toBe(true)
+  expect(result.audit.mapping.at(-1)!.sourceIndices.includes(12)).toBe(true)
+})
+
 test("handles empty scene array as a clean no-op", () => {
   const result = packChapterToBudget(chapter([], 1500))
   expect(result.audit.noOp).toBe(true)

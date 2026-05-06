@@ -208,6 +208,7 @@ function mergeGroupsToBudget(
   while (groups.length > budget) {
     let pickIndex = -1
     let pickScore = Number.POSITIVE_INFINITY
+    let pickMergedSize = Number.POSITIVE_INFINITY
 
     for (let i = 0; i < groups.length - 1; i++) {
       const left = groups[i]!
@@ -221,8 +222,16 @@ function mergeGroupsToBudget(
 
       const score = obligationDensityOfGroup(left, scenes) +
         obligationDensityOfGroup(right, scenes)
-      if (score < pickScore) {
+      const mergedSize = left.length + right.length
+      // Primary: lowest combined obligation density. Secondary: smallest
+      // resulting merged group, so tied scores spread merges across the
+      // chapter rather than collapsing into a single front-loaded group.
+      // Tertiary: lowest index for stable, deterministic output.
+      const better = score < pickScore ||
+        (score === pickScore && mergedSize < pickMergedSize)
+      if (better) {
         pickScore = score
+        pickMergedSize = mergedSize
         pickIndex = i
       }
     }
