@@ -22,6 +22,7 @@ import { handlePlanningTargetRoute } from "./planning-target-routes"
 import { handlePlanningProposalRoute } from "./planning-proposal-routes"
 import { handleChapterHealthRoute } from "./chapter-health-routes"
 import { handleChapterTraceabilityRoute } from "./chapter-traceability-routes"
+import { handleSemanticGateMatrixRoute } from "./semantic-gate-matrix-routes"
 import { handleProseEditRoute } from "./prose-edit-routes"
 import { handlePolicyDecideRoute } from "./policy-decide-routes"
 import { overviewPageHtml } from "./overview-page"
@@ -974,6 +975,10 @@ const server = Bun.serve({
     if (chapterHealthResponse) return chapterHealthResponse
     const chapterTraceabilityResponse = await handleChapterTraceabilityRoute(req, url)
     if (chapterTraceabilityResponse) return chapterTraceabilityResponse
+
+    // ── Semantic-gate matrix diagnostics artifact viewer (read-only) ──
+    const semanticGateMatrixResponse = await handleSemanticGateMatrixRoute(req, url)
+    if (semanticGateMatrixResponse) return semanticGateMatrixResponse
 
     // ── Prose-edit envelope apply (Phase 5 commit 4 — collaborative proposal workflow) ──
     const proseEditResponse = await handleProseEditRoute(req, url)

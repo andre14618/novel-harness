@@ -893,6 +893,95 @@ export function getChapterTraceability(novelId: string, chapterNumber: number) {
   )
 }
 
+// ── Semantic Gate Matrix ───────────────────────────────────────────────
+
+export interface SemanticGateMatrixVariant {
+  id: string
+  label: string
+  maxBeatsPerChapter: number | null
+}
+
+export interface SemanticGateMatrixAssessment {
+  completed: boolean
+  approvedChapters: number
+  requestedChapters: number
+  terminalStatus: string
+  totalWords: number
+  draftedTargetWords: number
+  wordRatio: number | null
+  meanChapterWordRatio: number | null
+  semanticSignals: Record<string, number>
+  pendingPlanAssistGate: boolean
+  proposalCount: number
+  actionCount: number
+  llmCalls: number
+  failedLlmCalls: number
+  costUsd: number
+  riskScore: number
+  reasons: string[]
+}
+
+export interface SemanticGateMatrixVariantResult {
+  variant: SemanticGateMatrixVariant
+  status: "reported" | "failed" | string
+  exitCode: number | null
+  signal: string | null
+  outputBase: string
+  targetNovelId: string
+  command: string[]
+  stdoutPath: string
+  stderrPath: string
+  summaryPath: string
+  reportPath: string
+  error: string | null
+  baseline: unknown | null
+  assessment: SemanticGateMatrixAssessment
+}
+
+export interface SemanticGateMatrixRankingItem {
+  variantId: string
+  label: string
+  riskScore: number
+  completed: boolean
+  wordRatio: number | null
+  costUsd: number
+  reasons: string[]
+}
+
+export interface SemanticGateMatrixReport {
+  generatedAt: string
+  sourceNovelId: string
+  chapters: number
+  outputBase: string
+  parallel: number
+  variants: SemanticGateMatrixVariantResult[]
+  ranking: SemanticGateMatrixRankingItem[]
+  totals: {
+    variants: number
+    completed: number
+    failed: number
+    cleanPass: number
+    costUsd: number
+    llmCalls: number
+  }
+}
+
+export interface SemanticGateMatrixResponse {
+  ok: true
+  runId: string
+  summaryPath: string
+  reportPath: string | null
+  report: SemanticGateMatrixReport
+  reportMarkdown: string | null
+}
+
+export async function getSemanticGateMatrix(runId: string) {
+  const response = await fetchJSON<SemanticGateMatrixResponse>(
+    `/api/diagnostics/semantic-gate-matrix/${encodeURIComponent(runId)}`,
+  )
+  return response.report
+}
+
 // ── Planning Snapshot (Phase 4) ─────────────────────────────────────
 
 export interface LockedPlanningSnapshot {

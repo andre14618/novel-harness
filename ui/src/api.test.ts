@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test"
 import {
   createPlanningProposal,
   getChapterHealth,
+  getSemanticGateMatrix,
   getChapterTraceability,
   getPlanningProposalDiff,
   resolvePlanningProposal,
@@ -268,6 +269,45 @@ test("getChapterTraceability fetches a chapter trace report", async () => {
   await expect(getChapterTraceability("test-novel", 3)).resolves.toEqual(response)
   const captured = requireRequest(request)
   expect(captured.url).toBe("/api/novel/test-novel/traceability/chapter/3")
+})
+
+test("getSemanticGateMatrix unwraps the read-only artifact response", async () => {
+  const report = {
+    generatedAt: "2026-05-06T14:24:41.023Z",
+    sourceNovelId: "fantasy-system-heretic",
+    chapters: 2,
+    outputBase: "/tmp/matrix",
+    parallel: 2,
+    variants: [],
+    ranking: [],
+    totals: {
+      variants: 2,
+      completed: 1,
+      failed: 0,
+      cleanPass: 1,
+      costUsd: 0.12,
+      llmCalls: 18,
+    },
+  }
+  let request: CapturedFetchRequest | null = null
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    request = { url: String(url), init }
+    return new Response(JSON.stringify({
+      ok: true,
+      runId: "matrix/run",
+      summaryPath: "/tmp/matrix/summary.json",
+      reportPath: "/tmp/matrix/report.md",
+      report,
+      reportMarkdown: "# Matrix",
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })
+  }) as typeof fetch
+
+  await expect(getSemanticGateMatrix("matrix/run")).resolves.toEqual(report)
+  const captured = requireRequest(request)
+  expect(captured.url).toBe("/api/diagnostics/semantic-gate-matrix/matrix%2Frun")
 })
 
 test("resolvePlanningProposal returns structured stale planning responses", async () => {

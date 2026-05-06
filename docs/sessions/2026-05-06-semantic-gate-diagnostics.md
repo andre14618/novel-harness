@@ -281,6 +281,24 @@ Observed signals:
   evidence showed two Chapter Plan targeted rewrites for Chapter 2 beats 4-5
   because the emotional arc reversed from plan, plus one lint-fix attempt and
   one rejected fused-boundary lint repair.
+- Matrix comparison evidence:
+  `diagnostics:semantic-gate-matrix -- --source fantasy-system-heretic
+  --chapters 2 --variant beats=4 --variant beats=5 --parallel 2
+  --continuity-editorial-flag-proposals` completed both disposable arms.
+  Output:
+  `output/evals/semantic-gate-matrix/fantasy-system-heretic-20260506T142441023`.
+  Both arms approved 2/2 chapters with no failed child reports. The 5-beat arm
+  ranked lower risk (`113.45`) but expanded to 4,439 words (`wordRatio=1.35`)
+  and had one plan-drift chapter; the 4-beat arm stayed shorter at 3,526 words
+  (`wordRatio=1.07`) but had two plan-drift chapters. Interpretation: beat cap
+  is now in a usable range, but neither arm is clean enough to promote as a
+  runtime default without a larger A/B or replay comparison.
+- Read-only matrix artifact viewer shipped for
+  `/app/semantic-gate-matrix/fantasy-system-heretic-20260506T142441023` with
+  file-backed API route
+  `/api/diagnostics/semantic-gate-matrix/:runId`. Browser evidence is under
+  `output/playwright/2026-05-06/semantic-gate-matrix-fantasy-system-heretic-20260506t142441023`
+  and passed `ui:evidence-check`.
 - Local DB hygiene: `operator-summary --stale-gates --min-age-hours 0`
   found 20 stale pending Plan-Assist rows. After dry-run review,
   `scripts/agent/resolve-stale-gates.ts --older-than-hours 0 --apply` marked

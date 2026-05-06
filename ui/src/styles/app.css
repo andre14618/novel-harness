@@ -4777,6 +4777,279 @@ details[open] summary::before { transform: rotate(90deg); }
   overflow-wrap: anywhere;
 }
 
+/* ── Semantic Gate Matrix ─────────────────────────────────────────── */
+.semantic-gate-matrix-page {
+  color: var(--text-primary);
+  margin: 0 auto;
+  max-width: 1500px;
+  padding: 16px;
+}
+.semantic-gate-matrix-source {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(180px, 0.9fr) repeat(2, minmax(90px, 0.35fr)) minmax(260px, 1.8fr);
+  margin-bottom: 10px;
+  padding: 10px;
+}
+.semantic-gate-matrix-source span,
+.semantic-gate-matrix-summary-cell span,
+.semantic-gate-matrix-section-title,
+.semantic-gate-matrix-metric span,
+.semantic-gate-matrix-detail-row span {
+  color: var(--text-tertiary);
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.semantic-gate-matrix-source strong {
+  color: var(--text-primary);
+  display: block;
+  font-size: 0.9rem;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+}
+.semantic-gate-matrix-source code,
+.semantic-gate-matrix-variant-subtitle code,
+.semantic-gate-matrix-detail-row code {
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  color: var(--text-tertiary);
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1.3;
+  margin-top: 3px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 2px 6px;
+}
+.semantic-gate-matrix-path {
+  min-width: 0;
+}
+.semantic-gate-matrix-totals {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(6, minmax(108px, 1fr));
+  margin-bottom: 12px;
+}
+.semantic-gate-matrix-summary-cell {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.semantic-gate-matrix-summary-cell strong {
+  display: block;
+  font-size: 1.06rem;
+  margin-top: 3px;
+}
+.semantic-gate-matrix-summary-cell.good strong,
+.semantic-gate-matrix-status.good,
+.semantic-gate-matrix-metric.good strong {
+  color: #9fe2b2;
+}
+.semantic-gate-matrix-summary-cell.bad strong,
+.semantic-gate-matrix-status.bad,
+.semantic-gate-matrix-metric.bad strong {
+  color: #f19a9a;
+}
+.semantic-gate-matrix-status.warn,
+.semantic-gate-matrix-metric.warn strong {
+  color: #f0d27a;
+}
+.semantic-gate-matrix-ranking {
+  border-bottom: 1px solid var(--border-default);
+  border-top: 1px solid var(--border-default);
+  margin-bottom: 12px;
+  padding: 10px 0;
+}
+.semantic-gate-matrix-section-title {
+  margin-bottom: 6px;
+}
+.semantic-gate-matrix-ranking-list {
+  display: grid;
+  gap: 7px;
+}
+.semantic-gate-matrix-ranking-row {
+  align-items: flex-start;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 30px minmax(0, 1fr);
+  padding: 8px;
+}
+.semantic-gate-matrix-rank-number {
+  align-items: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  color: var(--accent);
+  display: flex;
+  font-size: 0.78rem;
+  font-weight: 700;
+  height: 28px;
+  justify-content: center;
+}
+.semantic-gate-matrix-ranking-main {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.semantic-gate-matrix-ranking-main strong {
+  color: var(--text-primary);
+  font-size: 0.86rem;
+}
+.semantic-gate-matrix-ranking-meta {
+  color: var(--text-tertiary);
+  font-size: 0.72rem;
+  margin-top: 3px;
+}
+.semantic-gate-matrix-variants {
+  align-items: stretch;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+.semantic-gate-matrix-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  min-width: 0;
+  padding: 11px;
+}
+.semantic-gate-matrix-card.good {
+  border-top: 3px solid #7fc18b;
+}
+.semantic-gate-matrix-card.warn {
+  border-top: 3px solid #d3ad48;
+}
+.semantic-gate-matrix-card.bad {
+  border-top: 3px solid #d66;
+}
+.semantic-gate-matrix-card-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 9px;
+}
+.semantic-gate-matrix-variant-title {
+  color: var(--text-primary);
+  font-size: 0.94rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.semantic-gate-matrix-variant-subtitle {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.semantic-gate-matrix-variant-subtitle span {
+  color: var(--text-tertiary);
+  font-size: 0.72rem;
+}
+.semantic-gate-matrix-status {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 7px;
+  text-transform: uppercase;
+}
+.semantic-gate-matrix-metrics {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 10px;
+}
+.semantic-gate-matrix-metric {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  min-width: 0;
+  padding: 7px 8px;
+}
+.semantic-gate-matrix-metric strong {
+  color: var(--text-secondary);
+  display: block;
+  font-size: 0.82rem;
+  line-height: 1.25;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+}
+.semantic-gate-matrix-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.semantic-gate-matrix-signals span {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  color: var(--text-tertiary);
+  font-size: 0.7rem;
+  padding: 3px 6px;
+}
+.semantic-gate-matrix-signals span.active {
+  color: var(--text-secondary);
+}
+.semantic-gate-matrix-signals strong {
+  color: var(--accent);
+}
+.semantic-gate-matrix-reasons {
+  margin: 0 0 10px;
+  padding-left: 16px;
+}
+.semantic-gate-matrix-reasons li {
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  line-height: 1.35;
+  margin-bottom: 3px;
+  overflow-wrap: anywhere;
+}
+.semantic-gate-matrix-error {
+  background: var(--red-surface);
+  border: 1px solid rgba(231, 88, 106, 0.35);
+  border-radius: 4px;
+  color: #f19a9a;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+  padding: 7px 8px;
+}
+.semantic-gate-matrix-details {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 9px;
+  padding-top: 8px;
+}
+.semantic-gate-matrix-details summary {
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.76rem;
+}
+.semantic-gate-matrix-detail-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+.semantic-gate-matrix-detail-row {
+  display: grid;
+  gap: 4px;
+}
+
 @media (max-width: 1040px) {
   .chapter-health-summary {
     grid-template-columns: repeat(3, minmax(120px, 1fr));
@@ -4795,6 +5068,12 @@ details[open] summary::before { transform: rotate(90deg); }
   .traceability-subgrid {
     grid-template-columns: 1fr;
   }
+  .semantic-gate-matrix-source {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+  .semantic-gate-matrix-totals {
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -4812,7 +5091,11 @@ details[open] summary::before { transform: rotate(90deg); }
   .chapter-health-detail-grid,
   .traceability-summary,
   .traceability-registry-grid,
-  .traceability-evidence-grid {
+  .traceability-evidence-grid,
+  .semantic-gate-matrix-source,
+  .semantic-gate-matrix-totals,
+  .semantic-gate-matrix-variants,
+  .semantic-gate-matrix-metrics {
     grid-template-columns: 1fr;
   }
   .chapter-health-card-actions,
@@ -4822,6 +5105,13 @@ details[open] summary::before { transform: rotate(90deg); }
   }
   .traceability-beat-counts {
     justify-content: flex-start;
+    margin-top: 8px;
+  }
+  .semantic-gate-matrix-card-head {
+    display: block;
+  }
+  .semantic-gate-matrix-status {
+    display: inline-block;
     margin-top: 8px;
   }
 }
