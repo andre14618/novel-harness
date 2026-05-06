@@ -77,12 +77,12 @@ This file is the actionable backlog only. Live architecture belongs in
 - [x] Build a small adjudicated continuity gray-zone panel before relaxing
   object/state conflict checks. (N=20 shipped 2026-05-05; decision L81;
   follow-up needs N≥50 across continuity-state before any checker relaxation.)
-- [ ] Keep Promise/Progress/Payoff as a planner-owned story-debt experiment
+- [x] Keep Promise/Progress/Payoff as a planner-owned story-debt experiment
   until A/B evidence justifies durable production schema.
-- [ ] Backlog creative heuristics as diagnostic/A-B candidates only:
+- [x] Backlog creative heuristics as diagnostic/A-B candidates only:
   scene turns, micro-tension, character agency, world-detail forcing,
   genre strictness, and editorial-letter summaries.
-- [ ] Backlog character voice/motivation polish after context engineering,
+- [x] Backlog character voice/motivation polish after context engineering,
   deterministic flow, and interactivity are working.
 
 ### Phase 7 ApprovalPolicy Replay And Promotion
