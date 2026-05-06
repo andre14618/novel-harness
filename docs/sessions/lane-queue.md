@@ -30,8 +30,8 @@ This file tracks active and immediately actionable work only.
   logic; detailed scoped-baseline evidence is in the semantic-gate session doc.
 - Continuity L83/L84 shipped: state warnings are diagnostic noise; continuity
   does not block Drafting, and fact-scoped blockers have opt-in editorial flags.
-- Semantic-gate diagnostics shipped: writer expansion, matrix run/list/viewer,
-  candidate ranking, load-bearing discounts, action/proposal evidence, drift witnesses.
+- Semantic-gate diagnostics shipped: writer expansion, baseline/matrix run
+  list/viewers, candidate ranking, load-bearing discounts, action/proposal evidence, drift witnesses.
   Record: `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.
 - Fact-role policy seam shipped with opt-in Canon role scoping, diagnostic
   preview, fixture eval, and live A/B runner; hidden facts stay explicit opt-in.

@@ -18,6 +18,7 @@ import { PlanningStudioPage } from "./components/PlanningStudioPage"
 import PlanningSnapshotPage from "./components/PlanningSnapshotPage"
 import { ChapterHealthPage } from "./components/ChapterHealthPage"
 import { ChapterTraceabilityPage } from "./components/ChapterTraceabilityPage"
+import { SemanticGateBaselinePage } from "./components/SemanticGateBaselinePage"
 import { SemanticGateMatrixPage } from "./components/SemanticGateMatrixPage"
 import "./styles/app.css"
 
@@ -41,6 +42,8 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/planning-snapshot/:novelId" element={<PlanningSnapshotPage />} />
           <Route path="/chapter-health/:novelId" element={<ChapterHealthPage />} />
           <Route path="/traceability/:novelId/chapter/:chapterNumber" element={<ChapterTraceabilityPage />} />
+          <Route path="/semantic-gate-baseline" element={<SemanticGateBaselinePage />} />
+          <Route path="/semantic-gate-baseline/:runId" element={<SemanticGateBaselinePage />} />
           <Route path="/semantic-gate-matrix" element={<SemanticGateMatrixPage />} />
           <Route path="/semantic-gate-matrix/:runId" element={<SemanticGateMatrixPage />} />
           <Route path="/todo" element={<Navigate to="/docs?doc=todo.md" replace />} />

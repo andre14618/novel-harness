@@ -308,6 +308,15 @@ Observed signals:
 - The list summary now also surfaces the top-ranked variant, risk score, word
   ratio, completion state, and short reasons so operators can triage matrix
   runs before opening detail pages.
+- Read-only semantic baseline artifact routes and UI shipped for
+  `/app/semantic-gate-baseline` and
+  `/app/semantic-gate-baseline/:runId`, backed by
+  `/api/diagnostics/semantic-gate-baseline`. The list shows terminal status,
+  approval/word/cost totals, and terminal reason; detail shows semantic
+  signals, draft rows, action evidence, LLM agents, plan-assist samples, and
+  artifact paths. Browser evidence is under
+  `output/playwright/2026-05-06/semantic-gate-baseline-recent-runs` and passed
+  `ui:evidence-check`.
 - Local DB hygiene: `operator-summary --stale-gates --min-age-hours 0`
   found 20 stale pending Plan-Assist rows. After dry-run review,
   `scripts/agent/resolve-stale-gates.ts --older-than-hours 0 --apply` marked

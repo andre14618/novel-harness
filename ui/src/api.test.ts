@@ -2,9 +2,11 @@ import { afterEach, expect, test } from "bun:test"
 import {
   createPlanningProposal,
   getChapterHealth,
+  getSemanticGateBaseline,
   getSemanticGateMatrix,
   getChapterTraceability,
   getPlanningProposalDiff,
+  listSemanticGateBaselines,
   listSemanticGateMatrices,
   resolvePlanningProposal,
   resolveProposalEnvelope,
@@ -347,6 +349,81 @@ test("listSemanticGateMatrices fetches compact recent run summaries", async () =
   await expect(listSemanticGateMatrices(7)).resolves.toEqual(response)
   const captured = requireRequest(request)
   expect(captured.url).toBe("/api/diagnostics/semantic-gate-matrix?limit=7")
+})
+
+test("listSemanticGateBaselines fetches compact recent baseline summaries", async () => {
+  const response = {
+    ok: true,
+    runs: [{
+      runId: "fantasy-system-heretic-capped",
+      summaryPath: "/tmp/baseline/summary.json",
+      reportPath: "/tmp/baseline/report.md",
+      sourceNovelId: "fantasy-system-heretic",
+      generatedAt: "2026-05-06T12:00:00.000Z",
+      novelId: "semantic-gate-baseline-test",
+      chapters: 2,
+      maxBeatsPerChapter: 5,
+      terminalStatus: "completed",
+      terminalReason: "completed requested chapters",
+      approvedChapters: 2,
+      latestChapters: 2,
+      totalWords: 3450,
+      llmCalls: 42,
+      costUsd: 0.03,
+      proposalTotal: 0,
+      mtimeMs: 1778068800000,
+    }],
+  }
+  let request: CapturedFetchRequest | null = null
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    request = { url: String(url), init }
+    return new Response(JSON.stringify(response), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })
+  }) as typeof fetch
+
+  await expect(listSemanticGateBaselines(5)).resolves.toEqual(response)
+  const captured = requireRequest(request)
+  expect(captured.url).toBe("/api/diagnostics/semantic-gate-baseline?limit=5")
+})
+
+test("getSemanticGateBaseline fetches the read-only baseline artifact response", async () => {
+  const response = {
+    ok: true,
+    runId: "baseline/run",
+    summaryPath: "/tmp/baseline/summary.json",
+    reportPath: "/tmp/baseline/report.md",
+    reportMarkdown: "# Semantic Gate Baseline",
+    report: {
+      generatedAt: "2026-05-06T12:00:00.000Z",
+      sourceNovelId: "fantasy-system-heretic",
+      novelId: "semantic-gate-baseline-test",
+      chapters: 2,
+      outputBase: "/tmp/baseline",
+      maxBeatsPerChapter: 5,
+      keptNovel: false,
+      terminal: {
+        status: "completed",
+        reason: "completed requested chapters",
+        latestPlanAssistGate: null,
+      },
+      drafts: { latestChapters: 2, approvedChapters: 2, totalWords: 3450, rows: [] },
+      llm: { calls: 42, failedCalls: 0, costUsd: 0.03, agents: [] },
+    },
+  }
+  let request: CapturedFetchRequest | null = null
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    request = { url: String(url), init }
+    return new Response(JSON.stringify(response), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })
+  }) as typeof fetch
+
+  await expect(getSemanticGateBaseline("baseline/run")).resolves.toEqual(response as any)
+  const captured = requireRequest(request)
+  expect(captured.url).toBe("/api/diagnostics/semantic-gate-baseline/baseline%2Frun")
 })
 
 test("resolvePlanningProposal returns structured stale planning responses", async () => {

@@ -54,9 +54,14 @@ export function SemanticGateMatrixPage() {
             <h2>Semantic Gate Matrix</h2>
             <div className="planning-studio-subtitle">Recent deterministic replay comparisons</div>
           </div>
-          <button className="chapter-health-refresh" type="button" onClick={load} disabled={loading}>
-            {loading ? "Refreshing" : "Refresh"}
-          </button>
+          <div className="semantic-gate-matrix-header-actions">
+            <Link className="chapter-health-refresh semantic-gate-matrix-link-button" to="/semantic-gate-baseline">
+              Baseline Runs
+            </Link>
+            <button className="chapter-health-refresh" type="button" onClick={load} disabled={loading}>
+              {loading ? "Refreshing" : "Refresh"}
+            </button>
+          </div>
         </div>
 
         {error && <div className="planning-error">Failed to load semantic gate matrices: {error}</div>}
@@ -85,6 +90,9 @@ export function SemanticGateMatrixPage() {
           </div>
         </div>
         <div className="semantic-gate-matrix-header-actions">
+          <Link className="chapter-health-refresh semantic-gate-matrix-link-button" to="/semantic-gate-baseline">
+            Baseline Runs
+          </Link>
           <Link className="chapter-health-refresh semantic-gate-matrix-link-button" to="/semantic-gate-matrix">
             Recent Runs
           </Link>

@@ -1012,6 +1012,165 @@ export async function getSemanticGateMatrix(runId: string) {
   return response.report
 }
 
+// ── Semantic Gate Baseline ─────────────────────────────────────────────
+
+export interface SemanticGateBaselineRunSummary {
+  runId: string
+  summaryPath: string
+  reportPath: string | null
+  sourceNovelId: string | null
+  generatedAt: string | null
+  novelId: string | null
+  chapters: number | null
+  maxBeatsPerChapter: number | null
+  terminalStatus: string | null
+  terminalReason: string | null
+  approvedChapters: number | null
+  latestChapters: number | null
+  totalWords: number | null
+  llmCalls: number | null
+  costUsd: number | null
+  proposalTotal: number | null
+  mtimeMs: number
+}
+
+export interface SemanticGateBaselineListResponse {
+  ok: true
+  runs: SemanticGateBaselineRunSummary[]
+}
+
+export interface SemanticGateBaselineResponse {
+  ok: true
+  runId: string
+  summaryPath: string
+  reportPath: string | null
+  report: SemanticGateBaselineReport
+  reportMarkdown: string | null
+}
+
+export interface SemanticGateBaselineReport {
+  generatedAt: string
+  sourceNovelId: string
+  novelId: string
+  chapters: number
+  outputBase: string
+  maxBeatsPerChapter: number | null
+  keptNovel: boolean
+  pipelineOverrides?: {
+    continuityEditorialFlagProposals?: boolean
+  }
+  process?: {
+    exitCode: number | null
+    signal: string | null
+    stdoutPath: string
+    stderrPath: string
+  }
+  novel?: {
+    phase: string | null
+    currentChapter: number | null
+    totalChapters: number | null
+    completed: boolean
+  }
+  terminal: {
+    status: string
+    reason: string
+    latestPlanAssistGate: {
+      id: number
+      chapter: number
+      attempt: number
+      kind: string
+      pending: boolean
+      unresolvedCount: number
+      unresolvedSamples: string[]
+    } | null
+    planAssistLogEvidence?: {
+      unresolvedCount: number | null
+      unresolvedSamples: string[]
+    } | null
+  }
+  drafts: {
+    latestChapters: number
+    approvedChapters: number
+    totalWords: number
+    rows: Array<{
+      chapter: number
+      version: number
+      status: string
+      wordCount: number
+    }>
+  }
+  llm: {
+    calls: number
+    failedCalls: number
+    costUsd: number
+    agents: Array<{
+      agent: string
+      calls: number
+      failedCalls: number
+      costUsd: number
+    }>
+  }
+  proposals?: {
+    total: number
+    byKind: Record<string, number>
+    byStatus: Record<string, number>
+    bySourceAgent: Record<string, number>
+    samples: Array<{
+      id: string
+      kind: string
+      status: string
+      sourceAgent: string
+      summary: string
+      createdAt: string
+    }>
+  }
+  checker?: {
+    semanticGate?: {
+      totals?: {
+        bySignal?: Record<string, number>
+      }
+      chapters?: Array<{
+        chapter: number | null
+        signals: string[]
+        plannedBeats: number
+        targetWords: number | null
+        draftWords: number | null
+      }>
+    }
+    actionEvidence?: {
+      total: number
+      byKind: Record<string, number>
+      items: Array<{
+        kind: string
+        chapter?: number | null
+        beat?: number | null
+        chapterNumber?: number | null
+        beatId?: string | null
+        summary?: string
+        timestamp?: string
+        createdAt?: string
+      }>
+    }
+    hallucUngrounded?: {
+      calls: number
+      blockerIssues: number
+      samples: string[]
+    }
+  }
+}
+
+export function listSemanticGateBaselines(limit = 20) {
+  return fetchJSON<SemanticGateBaselineListResponse>(
+    `/api/diagnostics/semantic-gate-baseline?limit=${encodeURIComponent(String(limit))}`,
+  )
+}
+
+export function getSemanticGateBaseline(runId: string) {
+  return fetchJSON<SemanticGateBaselineResponse>(
+    `/api/diagnostics/semantic-gate-baseline/${encodeURIComponent(runId)}`,
+  )
+}
+
 // ── Planning Snapshot (Phase 4) ─────────────────────────────────────
 
 export interface LockedPlanningSnapshot {

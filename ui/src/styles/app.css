@@ -4837,6 +4837,26 @@ details[open] summary::before { transform: rotate(90deg); }
   margin-bottom: 9px;
   padding: 8px;
 }
+.semantic-gate-baseline-reason {
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.semantic-gate-baseline-markdown {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  line-height: 1.45;
+  margin: 10px 0 0;
+  max-height: 420px;
+  overflow: auto;
+  padding: 10px;
+  white-space: pre-wrap;
+}
 .semantic-gate-matrix-run-path {
   min-width: 0;
 }
