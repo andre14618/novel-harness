@@ -56,6 +56,7 @@ describe("semantic-gate-candidates", () => {
     expect(report.candidates.map(candidate => candidate.novelId)).toEqual(["blocked", "expanded"])
     expect(report.candidates[0]!).toMatchObject({
       priority: "critical",
+      primaryLens: "mixed",
       evidence: {
         pendingPlanAssistGates: 1,
         checkerBlockers: 2,
@@ -65,6 +66,7 @@ describe("semantic-gate-candidates", () => {
     })
     expect(report.candidates[0]!.reasons).toContain("1 pending plan-assist gate(s)")
     expect(report.candidates[0]!.diagnosticsCommand).toBe("bun run diagnostics:semantic-gate -- --novel blocked")
+    expect(report.candidates[0]!.sourceDiagnosticsCommands).toContain("bun run diagnostics:checker-warnings -- --novel blocked")
   })
 
   test("renders an operator-facing next command", () => {
@@ -87,9 +89,10 @@ describe("semantic-gate-candidates", () => {
 
     const rendered = renderSemanticGateCandidateReport(report)
     expect(rendered).toContain("Semantic gate candidate report")
-    expect(rendered).toContain("blocked: high")
+    expect(rendered).toContain("blocked: high, score=15, lens=checker_gate")
     expect(rendered).toContain("blockers=1, effectiveBlockers=1")
     expect(rendered).toContain("next: bun run diagnostics:semantic-gate -- --novel blocked")
+    expect(rendered).toContain("sources: bun run diagnostics:checker-warnings -- --novel blocked")
   })
 
   test("discounts support-echo checker blocker candidates in effective scoring", () => {
@@ -132,6 +135,28 @@ describe("semantic-gate-candidates", () => {
     })
     expect(report.candidates[1]!.reasons).toContain("0 effective checker blocker(s) after support-echo discount")
     expect(report.candidates[1]!.reasons).toContain("4 support-echo checker blocker candidate(s)")
+  })
+
+  test("marks over-planned candidates with the plan-shape lens", () => {
+    const report = buildSemanticGateCandidateReport({
+      novels: [novel("overplanned", "drafting")],
+      reports: [
+        semanticReport("overplanned", {
+          no_draft: 1,
+          outline_shape: 3,
+          writer_expansion: 1,
+          plan_adherence_drift: 0,
+          checker_blocker: 0,
+          plan_assist_gate: 0,
+        }),
+      ],
+    })
+
+    expect(report.candidates[0]!).toMatchObject({
+      novelId: "overplanned",
+      primaryLens: "plan_shape",
+    })
+    expect(report.candidates[0]!.sourceDiagnosticsCommands[0]).toBe("bun run diagnostics:writer-expansion -- --novel overplanned")
   })
 })
 

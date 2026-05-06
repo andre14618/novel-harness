@@ -33,6 +33,13 @@ import {
 } from "./writer-expansion-report"
 
 export type SemanticGateCandidatePriority = "critical" | "high" | "medium" | "low"
+export type SemanticGateCandidateLens =
+  | "plan_shape"
+  | "writer_expansion"
+  | "checker_gate"
+  | "plan_drift"
+  | "missing_draft"
+  | "mixed"
 
 export interface SemanticGateCandidateNovelRow {
   id: string
@@ -50,8 +57,10 @@ export interface SemanticGateCandidate {
   totalChapters: number | null
   score: number
   priority: SemanticGateCandidatePriority
+  primaryLens: SemanticGateCandidateLens
   reasons: string[]
   diagnosticsCommand: string
+  sourceDiagnosticsCommands: string[]
   signalCounts: Record<SemanticGateSignal, number>
   chapters: {
     total: number
@@ -165,7 +174,8 @@ export function renderSemanticGateCandidateReport(report: SemanticGateCandidateR
     lines.push("")
     lines.push(
       `${index + 1}. ${candidate.novelId}: ${candidate.priority}, score=${formatScore(candidate.score)}, ` +
-        `phase=${candidate.phase ?? "?"}, chapter=${candidate.currentChapter ?? "?"}/${candidate.totalChapters ?? "?"}`,
+        `lens=${candidate.primaryLens}, phase=${candidate.phase ?? "?"}, ` +
+        `chapter=${candidate.currentChapter ?? "?"}/${candidate.totalChapters ?? "?"}`,
     )
     lines.push(`   signals: ${formatSignals(candidate.signalCounts)}`)
     lines.push(
@@ -179,6 +189,7 @@ export function renderSemanticGateCandidateReport(report: SemanticGateCandidateR
       lines.push(`   reasons: ${candidate.reasons.join("; ")}`)
     }
     lines.push(`   next: ${candidate.diagnosticsCommand}`)
+    lines.push(`   sources: ${candidate.sourceDiagnosticsCommands.join("; ")}`)
   })
 
   return lines.join("\n")
@@ -211,6 +222,7 @@ function candidateForNovel(
   }
   const score = scoreCandidate(signalCounts, evidence)
   if (score <= 0) return null
+  const primaryLens = primaryLensForCandidate(evidence)
 
   return {
     novelId: novel.id,
@@ -219,8 +231,10 @@ function candidateForNovel(
     totalChapters: novel.total_chapters,
     score,
     priority: priorityForScore(score),
+    primaryLens,
     reasons: candidateReasons(evidence),
     diagnosticsCommand: `bun run diagnostics:semantic-gate -- --novel ${novel.id}`,
+    sourceDiagnosticsCommands: sourceDiagnosticsCommands(novel.id, primaryLens),
     signalCounts,
     chapters,
     evidence,
@@ -264,6 +278,36 @@ function candidateReasons(evidence: SemanticGateCandidate["evidence"]): string[]
   if (evidence.outlineShapeChapters > 0) reasons.push(`${evidence.outlineShapeChapters} outline-shape chapter(s)`)
   if (evidence.noDraftChapters > 0) reasons.push(`${evidence.noDraftChapters} no-draft chapter(s)`)
   return reasons
+}
+
+function primaryLensForCandidate(evidence: SemanticGateCandidate["evidence"]): SemanticGateCandidateLens {
+  const scores: Record<Exclude<SemanticGateCandidateLens, "mixed">, number> = {
+    plan_shape: evidence.outlineShapeChapters * 2 + (evidence.outlineShapeChapters > 0 ? evidence.noDraftChapters : 0),
+    writer_expansion: evidence.writerExpansionChapters * 3,
+    checker_gate: evidence.pendingPlanAssistGates * 2 + evidence.effectiveCheckerBlockers,
+    plan_drift: evidence.unresolvedPlanDriftChapters * 4 + evidence.recoveredPlanDriftChapters * 2,
+    missing_draft: evidence.noDraftChapters,
+  }
+  const ranked = Object.entries(scores)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])) as Array<[Exclude<SemanticGateCandidateLens, "mixed">, number]>
+  const [top, topScore] = ranked[0]!
+  const secondScore = ranked[1]?.[1] ?? 0
+  if (topScore <= 0) return "mixed"
+  return topScore === secondScore ? "mixed" : top
+}
+
+function sourceDiagnosticsCommands(novelId: string, primaryLens: SemanticGateCandidateLens): string[] {
+  const commands = [
+    `bun run diagnostics:writer-expansion -- --novel ${novelId}`,
+    `bun run diagnostics:plan-drift -- --novel ${novelId}`,
+    `bun run diagnostics:checker-warnings -- --novel ${novelId}`,
+  ]
+  if (primaryLens === "plan_shape" || primaryLens === "writer_expansion" || primaryLens === "missing_draft") {
+    return commands
+  }
+  if (primaryLens === "checker_gate") return [commands[2]!, commands[0]!, commands[1]!]
+  if (primaryLens === "plan_drift") return [commands[1]!, commands[0]!, commands[2]!]
+  return commands
 }
 
 function priorityOrder(priority: SemanticGateCandidatePriority): number {
