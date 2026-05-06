@@ -56,6 +56,12 @@ The immediate question was whether the failure pattern was primarily:
 - `7989118 test: sync planning beats default variant`
   - Resynced the phase-eval `planning-beats/default.md` control to the live
     `/400` minimum and `/325` recommended beat-count policy.
+- `0ca7d5e feat: filter continuity panel by stratum`
+  - Continuity gray-zone extraction now supports `--agent` and `--severity`
+    filters so support-echo samples can target one checker stratum.
+- `f97c5a9 feat: refine checker polarity diagnostics`
+  - Positive wording inside explicit violation language now becomes ambiguous
+    rather than a support-echo candidate.
 
 ## Evidence
 
@@ -101,6 +107,12 @@ Observed signals:
 - Prompt lint now reports zero default-drift errors for planning-beats; the
   remaining findings are pre-existing negative-prime warnings and one config
   info note.
+- Tight support-echo panel:
+  `diagnostics:continuity-grayzone-extract -- --agent continuity-facts
+  --severity blocker --polarity positive --per-stratum 20`.
+  Initial classifier returned 7 positive-polarity blockers: 3 TP / 4 FP after
+  local adjudication. The refined classifier returned 4 positive-polarity
+  blockers, all 4 labeled FP.
 
 ## Interpretation
 
@@ -117,6 +129,11 @@ shows a deterministic runtime filter is safe.
 The continuity gray-zone panel can now provide that adjudication sample without
 changing gates: filter to `--polarity positive`, label the sample, then decide
 whether a deterministic support-echo filter is justified.
+
+Positive wording alone is not a safe relaxation rule. The diagnostic classifier
+must exclude findings that also contain explicit violation/contradiction
+language; after that refinement, the current positive `continuity-facts/blocker`
+stratum is a small but clean false-positive support-echo cluster.
 
 The earlier capped A/B clone rows were cleaned, so future A/B runs must persist
 the semantic-gate roll-up in their JSON/markdown summaries before cleanup. That

@@ -2313,3 +2313,27 @@ commit cluster pick the next valuable slice from that program.
   signal, and a clear stop gate.
 
 (Follow-up from `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.)
+
+---
+
+## Support-echo checker filters need violation-language guards (2026-05-06)
+
+The first positive-polarity continuity-facts blocker sample looked like an easy
+false-positive cluster, but adjudication showed 3/7 were true positives. Those
+true positives used support-looking verbs such as "acknowledges" or "confirms"
+inside reasoning that also said the prose violated the established rule.
+
+**The rule:** do not relax a checker on positive/support wording alone. First
+exclude findings that also contain explicit violation, contradiction, conflict,
+or "but the fact states" language, then adjudicate the remaining cluster.
+
+**How to apply:**
+
+- Treat mixed positive+violation wording as ambiguous diagnostic evidence, not
+  support-echo evidence.
+- Use `diagnostics:continuity-grayzone-extract -- --agent continuity-facts
+  --severity blocker --polarity positive` for the tight support-echo sample.
+- Promote any runtime filter only after the filtered sample is adjudicated and
+  replayed; current work remains diagnostic-only.
+
+(Follow-up from `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.)
