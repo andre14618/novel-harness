@@ -27,6 +27,7 @@ export interface Args {
   outputBase: string
   keepNovels: boolean
   injectFixture: string | null
+  maxBeatsPerChapter: number | null
   allowNoRoleDelta: boolean
   allowSingleChapter: boolean
 }
@@ -141,6 +142,7 @@ export interface LiveAbReport {
   chapters: number
   outputBase: string
   injectedFixture: string | null
+  maxBeatsPerChapter: number | null
   sourcePreflight: SourcePreflight
   sourceContextPreview: FactRoleContextPreviewReport
   arms: ArmRunSummary[]
@@ -212,8 +214,20 @@ export function parseArgs(argv: string[]): Args {
     outputBase: isAbsolute(rawOutput) ? rawOutput : resolve(process.cwd(), rawOutput),
     keepNovels: boolOpt(map["keep-novels"]),
     injectFixture: stringOpt(map["inject-fixture"]) ?? null,
+    maxBeatsPerChapter: optionalPositiveInt(map["max-beats-per-chapter"], "--max-beats-per-chapter"),
     allowNoRoleDelta: boolOpt(map["allow-no-role-delta"]),
     allowSingleChapter: boolOpt(map["allow-single-chapter"]),
+  }
+}
+
+export function capOutlineBeatsForEval<T extends { scenes?: unknown[] }>(outline: T, maxBeats: number): T {
+  if (!Number.isInteger(maxBeats) || maxBeats <= 0) {
+    throw new Error(`maxBeats must be a positive integer, got ${maxBeats}`)
+  }
+  if (!Array.isArray(outline.scenes) || outline.scenes.length <= maxBeats) return outline
+  return {
+    ...outline,
+    scenes: outline.scenes.slice(0, maxBeats),
   }
 }
 
@@ -281,6 +295,7 @@ export function renderLiveAbReport(report: LiveAbReport): string {
   lines.push(`Source: ${report.sourceNovelId}`)
   lines.push(`Chapters: ${report.chapters}`)
   lines.push(`Injected fixture: ${report.injectedFixture ?? "(none)"}`)
+  lines.push(`Max beats per chapter: ${report.maxBeatsPerChapter ?? "(source outline)"}`)
   lines.push("")
   lines.push("## Source Preflight")
   lines.push("")
@@ -373,6 +388,9 @@ async function main(argv: string[]): Promise<number> {
       cloneForPolicy(args.source, novelId, policy)
       createdNovels.push(novelId)
       await capNovelChapters(novelId, args.chapters)
+      if (args.maxBeatsPerChapter !== null) {
+        await capNovelOutlineBeats(novelId, args.chapters, args.maxBeatsPerChapter)
+      }
       if (args.injectFixture) await injectFixtureFacts(novelId, args.injectFixture)
       targets.push({ policy, novelId })
     }
@@ -389,6 +407,7 @@ async function main(argv: string[]): Promise<number> {
       chapters: args.chapters,
       outputBase: args.outputBase,
       injectedFixture: args.injectFixture,
+      maxBeatsPerChapter: args.maxBeatsPerChapter,
       sourcePreflight: preflight,
       sourceContextPreview,
       arms,
@@ -472,6 +491,29 @@ async function capNovelChapters(novelId: string, chapters: number): Promise<void
         updated_at = now()
     WHERE id = ${novelId}
   `
+}
+
+async function capNovelOutlineBeats(novelId: string, chapters: number, maxBeats: number): Promise<void> {
+  const rows = await db<Array<{ chapter_number: number; outline_json: { scenes?: unknown[] } }>>`
+    SELECT chapter_number, outline_json
+    FROM chapter_outlines
+    WHERE novel_id = ${novelId}
+      AND chapter_number <= ${chapters}
+    ORDER BY chapter_number
+  `
+  for (const row of rows) {
+    const originalCount = Array.isArray(row.outline_json?.scenes) ? row.outline_json.scenes.length : 0
+    const capped = capOutlineBeatsForEval(row.outline_json, maxBeats)
+    const cappedCount = Array.isArray(capped.scenes) ? capped.scenes.length : 0
+    if (cappedCount === originalCount) continue
+    await db`
+      UPDATE chapter_outlines
+      SET outline_json = ${capped}
+      WHERE novel_id = ${novelId}
+        AND chapter_number = ${row.chapter_number}
+    `
+    console.log(`  capped ${novelId} chapter ${row.chapter_number}: ${originalCount} -> ${cappedCount} beats`)
+  }
 }
 
 async function injectFixtureFacts(novelId: string, fixturePath: string): Promise<void> {
@@ -875,6 +917,16 @@ function stringOpt(value: string | true | undefined): string | undefined {
 function numberOpt(value: string | true | undefined, fallback: number): number {
   const raw = stringOpt(value)
   return raw ? Number(raw) : fallback
+}
+
+function optionalPositiveInt(value: string | true | undefined, label: string): number | null {
+  const raw = stringOpt(value)
+  if (!raw) return null
+  const parsed = Number(raw)
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`${label} must be a positive integer, got ${raw}`)
+  }
+  return parsed
 }
 
 function boolOpt(value: string | true | undefined): boolean {

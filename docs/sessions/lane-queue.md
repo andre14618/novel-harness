@@ -7,7 +7,7 @@ This file tracks active and immediately actionable work only.
 - Richness Backlog lane (2026-05-05): world fact roles. Substrate/diagnostics
   are shipped; default runtime stays legacy; per-novel role-aware policy is
   A/B-only. Next: run the live A/B runner on a roleful disposable source under
-  the Creative Heuristic Eval Gate.
+  the Creative Heuristic Eval Gate; use clone-only beat caps for bounded runs.
 - Authoring visibility/interactivity at scope ceiling: direct-mutation
   audit found only deferred higher-risk slices (plan-assist whole-outline,
   chapter-plan-reviser outline replacement).
