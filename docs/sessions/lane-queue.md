@@ -24,6 +24,7 @@ This file tracks active and immediately actionable work only.
 ## Recently Closed
 
 - Playwright evidence verification shipped: `ui:preflight` now pairs with `ui:evidence-check`.
+- Continuity-state warning N=50 follow-up shipped (decision L83): 0% TP, 88% FP, 12% AMB; treat raw warning counts as diagnostic/UI noise, not runtime-nudge evidence.
 - Semantic-gate diagnostics shipped: writer expansion, semantic gate roll-up,
   and candidate ranking; future fact-role A/B summaries persist the roll-up.
   Record: `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.
