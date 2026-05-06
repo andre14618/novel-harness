@@ -207,6 +207,9 @@ Observed signals:
   JSONB parsing now fixes the DB readers used by baseline, candidate reports,
   semantic-gate reports, chapter health, operator summaries, and replay
   comparisons.
+- Plan-Assist console evidence now renders zero-based stored `beat_index`
+  values as one-based operator labels. The stored contract is unchanged, but
+  a blocker for `beat_index: 4` now prints `[beat 5]` instead of `[beat 4]`.
 
 ## Interpretation
 

@@ -184,7 +184,7 @@ export async function presentForExhaustion(
   console.log("─".repeat(60))
   console.log(`  Unresolved issues (${payload.unresolvedDeviations.length}):`)
   for (const d of payload.unresolvedDeviations) {
-    const beat = d.beat_index == null ? "chapter-level" : `beat ${d.beat_index}`
+    const beat = formatPlanAssistDeviationBeatLabel(d)
     console.log(`    - [${beat}] ${d.description}`)
   }
   if (payload.reviserHistory) {
@@ -220,6 +220,10 @@ export async function presentForExhaustion(
   const decision = await gatePromise
   console.log(`  [WEB] ${decision.action}`)
   return decision
+}
+
+export function formatPlanAssistDeviationBeatLabel(deviation: { beat_index?: number | null }): string {
+  return deviation.beat_index == null ? "chapter-level" : `beat ${deviation.beat_index + 1}`
 }
 
 export function displayPhaseHeader(phase: string): void {
