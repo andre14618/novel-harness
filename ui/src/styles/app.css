@@ -5201,6 +5201,51 @@ details[open] summary::before { transform: rotate(90deg); }
   display: grid;
   gap: 4px;
 }
+.semantic-gate-cohort-child-run {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 8px;
+}
+.semantic-gate-cohort-child-run summary {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto minmax(140px, 0.7fr) minmax(90px, auto) minmax(220px, 1fr);
+}
+.semantic-gate-cohort-child-run summary strong {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.semantic-gate-cohort-child-run summary code {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  overflow-wrap: anywhere;
+}
+.semantic-gate-cohort-child-variants {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+}
+.semantic-gate-cohort-child-variant {
+  border: 1px solid var(--border-subtle);
+  border-left: 2px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 8px;
+}
+.semantic-gate-cohort-child-variant.good,
+.semantic-gate-cohort-child-run.good {
+  border-left-color: var(--success);
+}
+.semantic-gate-cohort-child-variant.warn,
+.semantic-gate-cohort-child-run.warn {
+  border-left-color: var(--warning);
+}
+.semantic-gate-cohort-child-variant.bad,
+.semantic-gate-cohort-child-run.bad {
+  border-left-color: var(--danger);
+}
 
 @media (max-width: 1040px) {
   .chapter-health-summary {
@@ -5254,7 +5299,8 @@ details[open] summary::before { transform: rotate(90deg); }
   .semantic-gate-matrix-run-list,
   .semantic-gate-matrix-run-metrics,
   .diagnostics-surface-grid,
-  .diagnostics-run-row {
+  .diagnostics-run-row,
+  .semantic-gate-cohort-child-run summary {
     grid-template-columns: 1fr;
   }
   .chapter-health-card-actions,

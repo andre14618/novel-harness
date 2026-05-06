@@ -1035,6 +1035,7 @@ export interface SemanticGateCohortMatrixRun {
   summaryPath: string
   reportPath: string
   error: string | null
+  matrix?: SemanticGateMatrixReport | null
 }
 
 export interface SemanticGateCohortVariantAggregate {

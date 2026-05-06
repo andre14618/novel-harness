@@ -8,6 +8,7 @@ import {
   type SemanticGateCohortMatrixRunSummary,
   type SemanticGateCohortRankingItem,
   type SemanticGateCohortVariantAggregate,
+  type SemanticGateMatrixVariantResult,
 } from "../api"
 
 export function SemanticGateCohortMatrixPage() {
@@ -286,12 +287,87 @@ function CohortVariantCard({ variant, rank }: { variant: SemanticGateCohortVaria
 
 function MatrixRunRow({ run }: { run: SemanticGateCohortMatrixRun }) {
   const label = run.replicate === null ? run.sourceNovelId : `${run.sourceNovelId} r${run.replicate}`
+  const matrix = run.matrix ?? null
+  const completed = matrix?.totals.completed ?? null
+  const variants = matrix?.totals.variants ?? null
+  const failed = matrix?.totals.failed ?? null
+  const statusTone = run.status === "failed" || (failed ?? 0) > 0 ? "bad" : completed === variants && variants ? "good" : "warn"
+
+  return (
+    <details className={`semantic-gate-matrix-details semantic-gate-cohort-child-run ${statusTone}`}>
+      <summary>
+        <span className={`semantic-gate-matrix-status ${statusTone}`}>{run.status}</span>
+        <strong>{label}</strong>
+        {matrix && <span>{completed}/{variants} variants</span>}
+        <code>{run.summaryPath}</code>
+      </summary>
+
+      {run.error && <div className="semantic-gate-matrix-error">{run.error}</div>}
+
+      {matrix ? (
+        <>
+          <div className="semantic-gate-matrix-metrics">
+            <Metric label="Source" value={matrix.sourceNovelId} />
+            <Metric label="Chapters" value={matrix.chapters} />
+            <Metric label="Completed" value={`${matrix.totals.completed}/${matrix.totals.variants}`} tone={matrix.totals.completed === matrix.totals.variants ? "good" : "warn"} />
+            <Metric label="Clean Pass" value={matrix.totals.cleanPass} tone={matrix.totals.cleanPass > 0 ? "good" : undefined} />
+            <Metric label="Failed" value={matrix.totals.failed} tone={matrix.totals.failed > 0 ? "bad" : "good"} />
+            <Metric label="Cost" value={formatCost(matrix.totals.costUsd)} />
+          </div>
+
+          <div className="semantic-gate-matrix-section-title">Child Variants</div>
+          <div className="semantic-gate-cohort-child-variants">
+            {matrix.variants.map(result => (
+              <ChildVariantRow key={result.variant.id} result={result} />
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="planning-muted">No child matrix summary was recorded.</div>
+      )}
+
+      <div className="semantic-gate-matrix-detail-list">
+        <DetailRow label="Output base" value={run.outputBase} />
+        <DetailRow label="Report artifact" value={run.reportPath} />
+        {run.stdoutPath && <DetailRow label="Stdout" value={run.stdoutPath} />}
+        {run.stderrPath && <DetailRow label="Stderr" value={run.stderrPath} />}
+        {run.command.length > 0 && <DetailRow label="Command" value={run.command.join(" ")} />}
+      </div>
+    </details>
+  )
+}
+
+function ChildVariantRow({ result }: { result: SemanticGateMatrixVariantResult }) {
+  const assessment = result.assessment
+  const statusTone = assessment.completed && result.status === "reported" ? "good" : result.status === "failed" ? "bad" : "warn"
+
+  return (
+    <div className={`semantic-gate-cohort-child-variant ${statusTone}`}>
+      <div className="semantic-gate-matrix-ranking-main">
+        <strong>{result.variant.label}</strong>
+        <span className={`semantic-gate-matrix-status ${statusTone}`}>
+          {assessment.completed ? "completed" : assessment.terminalStatus}
+        </span>
+      </div>
+      <div className="semantic-gate-matrix-ranking-meta">
+        risk {formatNullableDecimal(assessment.riskScore, 2)} - word ratio {formatRatio(assessment.wordRatio)} - {formatCost(assessment.costUsd)}
+      </div>
+      <StringChipList values={riskDriverLabels(assessment.riskBreakdown ?? [])} emptyText="No risk drivers." compact />
+      <ReasonList reasons={assessment.reasons} limit={2} />
+      <div className="semantic-gate-matrix-detail-list">
+        <DetailRow label="Target novel" value={result.targetNovelId} />
+        <DetailRow label="Summary artifact" value={result.summaryPath} />
+        <DetailRow label="Report artifact" value={result.reportPath} />
+      </div>
+    </div>
+  )
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="semantic-gate-matrix-detail-row">
-      <span>{run.status}</span>
-      <code>{label}</code>
-      {run.error && <span>{run.error}</span>}
-      <code>{run.summaryPath}</code>
+      <span>{label}</span>
+      <code>{value}</code>
     </div>
   )
 }
@@ -400,6 +476,14 @@ function formatNullableDecimal(value: number | null | undefined, digits: number)
 
 function formatCount(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(2)
+}
+
+function riskDriverLabels(components: NonNullable<SemanticGateMatrixVariantResult["assessment"]["riskBreakdown"]>): string[] {
+  return components
+    .filter(component => component.points > 0)
+    .sort((a, b) => b.points - a.points || a.label.localeCompare(b.label))
+    .slice(0, 4)
+    .map(component => `${component.label} ${formatCount(component.points)}`)
 }
 
 function riskTone(value: number): string {

@@ -463,6 +463,11 @@ lower beat cap." The better next work is visibility around child matrix runs
 and diagnostics-runner boundedness, so operators can see which source/variant
 failed, why, and whether a child was terminated because of an idle gate wait.
 
+The cohort detail UI now exposes each child matrix run inline: summary status,
+completed variants, child variant risk drivers, reasons, terminal status, and
+artifact paths. Browser evidence is clear at
+`output/playwright/2026-05-06/semantic-gate-cohort-drilldown-top-candidates/`.
+
 ## Follow-Up
 
 Use this record as input to the broader authoring harness program loop, not as
