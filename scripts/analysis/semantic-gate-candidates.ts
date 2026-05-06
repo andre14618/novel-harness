@@ -61,6 +61,7 @@ export interface SemanticGateCandidate {
   evidence: {
     pendingPlanAssistGates: number
     checkerBlockers: number
+    effectiveCheckerBlockers: number
     positivePolarityBlockers: number
     ambiguousPolarityBlockers: number
     unresolvedPlanDriftChapters: number
@@ -169,7 +170,8 @@ export function renderSemanticGateCandidateReport(report: SemanticGateCandidateR
     lines.push(`   signals: ${formatSignals(candidate.signalCounts)}`)
     lines.push(
       `   evidence: pendingGates=${candidate.evidence.pendingPlanAssistGates}, ` +
-        `blockers=${candidate.evidence.checkerBlockers}, unresolvedDrift=${candidate.evidence.unresolvedPlanDriftChapters}, ` +
+        `blockers=${candidate.evidence.checkerBlockers}, effectiveBlockers=${candidate.evidence.effectiveCheckerBlockers}, ` +
+        `unresolvedDrift=${candidate.evidence.unresolvedPlanDriftChapters}, ` +
         `recoveredDrift=${candidate.evidence.recoveredPlanDriftChapters}, ` +
         `positiveBlockers=${candidate.evidence.positivePolarityBlockers}, drafted=${candidate.chapters.drafted}/${candidate.chapters.total}`,
     )
@@ -188,10 +190,13 @@ function candidateForNovel(
 ): SemanticGateCandidate | null {
   if (!report || report.chapters.length === 0) return null
   const signalCounts = report.totals.bySignal
+  const checkerBlockers = sum(report.chapters, chapter => chapter.checker.blockers)
+  const positivePolarityBlockers = sum(report.chapters, chapter => chapter.checker.positivePolarityBlockers)
   const evidence = {
     pendingPlanAssistGates: sum(report.chapters, chapter => chapter.planAssist.pendingGates),
-    checkerBlockers: sum(report.chapters, chapter => chapter.checker.blockers),
-    positivePolarityBlockers: sum(report.chapters, chapter => chapter.checker.positivePolarityBlockers),
+    checkerBlockers,
+    effectiveCheckerBlockers: Math.max(0, checkerBlockers - positivePolarityBlockers),
+    positivePolarityBlockers,
     ambiguousPolarityBlockers: sum(report.chapters, chapter => chapter.checker.ambiguousPolarityBlockers),
     unresolvedPlanDriftChapters: report.chapters.filter(chapter => chapter.planDrift.unresolved).length,
     recoveredPlanDriftChapters: report.chapters.filter(chapter => chapter.planDrift.recovered).length,
@@ -232,7 +237,7 @@ function scoreCandidate(
     score += cappedCount * SIGNAL_WEIGHTS[signal]
   }
   score += evidence.pendingPlanAssistGates * 3
-  score += evidence.checkerBlockers * 2
+  score += evidence.effectiveCheckerBlockers * 2
   score += evidence.unresolvedPlanDriftChapters * 2
   return score
 }
@@ -248,7 +253,10 @@ function candidateReasons(evidence: SemanticGateCandidate["evidence"]): string[]
   const reasons: string[] = []
   if (evidence.pendingPlanAssistGates > 0) reasons.push(`${evidence.pendingPlanAssistGates} pending plan-assist gate(s)`)
   if (evidence.checkerBlockers > 0) reasons.push(`${evidence.checkerBlockers} checker blocker(s)`)
-  if (evidence.positivePolarityBlockers > 0) reasons.push(`${evidence.positivePolarityBlockers} positive-polarity checker blocker(s)`)
+  if (evidence.effectiveCheckerBlockers !== evidence.checkerBlockers) {
+    reasons.push(`${evidence.effectiveCheckerBlockers} effective checker blocker(s) after support-echo discount`)
+  }
+  if (evidence.positivePolarityBlockers > 0) reasons.push(`${evidence.positivePolarityBlockers} support-echo checker blocker candidate(s)`)
   if (evidence.ambiguousPolarityBlockers > 0) reasons.push(`${evidence.ambiguousPolarityBlockers} ambiguous-polarity checker blocker(s)`)
   if (evidence.unresolvedPlanDriftChapters > 0) reasons.push(`${evidence.unresolvedPlanDriftChapters} unresolved plan-drift chapter(s)`)
   if (evidence.recoveredPlanDriftChapters > 0) reasons.push(`${evidence.recoveredPlanDriftChapters} recovered drift chapter(s)`)

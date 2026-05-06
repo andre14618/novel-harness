@@ -59,6 +59,7 @@ describe("semantic-gate-candidates", () => {
       evidence: {
         pendingPlanAssistGates: 1,
         checkerBlockers: 2,
+        effectiveCheckerBlockers: 2,
         unresolvedPlanDriftChapters: 1,
       },
     })
@@ -87,7 +88,50 @@ describe("semantic-gate-candidates", () => {
     const rendered = renderSemanticGateCandidateReport(report)
     expect(rendered).toContain("Semantic gate candidate report")
     expect(rendered).toContain("blocked: high")
+    expect(rendered).toContain("blockers=1, effectiveBlockers=1")
     expect(rendered).toContain("next: bun run diagnostics:semantic-gate -- --novel blocked")
+  })
+
+  test("discounts support-echo checker blocker candidates in effective scoring", () => {
+    const report = buildSemanticGateCandidateReport({
+      novels: [
+        novel("support-echo", "drafting"),
+        novel("effective-blocker", "drafting"),
+      ],
+      reports: [
+        semanticReport("support-echo", {
+          no_draft: 0,
+          outline_shape: 0,
+          writer_expansion: 0,
+          plan_adherence_drift: 0,
+          checker_blocker: 1,
+          plan_assist_gate: 0,
+        }, {
+          checkerBlockers: 4,
+          positivePolarityBlockers: 4,
+        }),
+        semanticReport("effective-blocker", {
+          no_draft: 0,
+          outline_shape: 0,
+          writer_expansion: 0,
+          plan_adherence_drift: 0,
+          checker_blocker: 1,
+          plan_assist_gate: 0,
+        }, {
+          checkerBlockers: 2,
+        }),
+      ],
+    })
+
+    expect(report.candidates.map(candidate => candidate.novelId)).toEqual(["effective-blocker", "support-echo"])
+    expect(report.candidates[1]!.score).toBe(5)
+    expect(report.candidates[1]!.evidence).toMatchObject({
+      checkerBlockers: 4,
+      effectiveCheckerBlockers: 0,
+      positivePolarityBlockers: 4,
+    })
+    expect(report.candidates[1]!.reasons).toContain("0 effective checker blocker(s) after support-echo discount")
+    expect(report.candidates[1]!.reasons).toContain("4 support-echo checker blocker candidate(s)")
   })
 })
 
@@ -106,6 +150,8 @@ function semanticReport(
   evidence: {
     pendingGates?: number
     checkerBlockers?: number
+    positivePolarityBlockers?: number
+    ambiguousPolarityBlockers?: number
     unresolvedDrift?: boolean
   } = {},
 ): SemanticGateReport {
@@ -133,8 +179,8 @@ function semanticReport(
           totalItems: evidence.checkerBlockers ?? 0,
           blockers: evidence.checkerBlockers ?? 0,
           warnings: 0,
-          positivePolarityBlockers: 0,
-          ambiguousPolarityBlockers: 0,
+          positivePolarityBlockers: evidence.positivePolarityBlockers ?? 0,
+          ambiguousPolarityBlockers: evidence.ambiguousPolarityBlockers ?? 0,
           sources: evidence.checkerBlockers ? ["functional-check"] : [],
         },
         planAssist: {
