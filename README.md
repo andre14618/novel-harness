@@ -99,6 +99,13 @@ bounded DB smoke coverage, `bun run test:db:full` for the exhaustive isolated
 DB sweep, and `bun run test:archive` for archived eval/history tests. Direct
 broad `bun test` is not a supported gate.
 
+## Repository Workflow
+
+Active development happens directly on `main`. Use atomic commits plus focused
+verification for each slice. Create rollback tags before risky merges,
+rewrites, or migrations. Branches are reserved for explicit user requests or
+disposable experiments that may be thrown away.
+
 ## Web UI
 
 React SPA served at `/app` on the orchestrator (port 3006):

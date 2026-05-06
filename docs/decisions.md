@@ -16,6 +16,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
+| L85 | 2026-05-06 | active | Development is mainline-first: work directly on `main`, use rollback tags for risky moves, and reserve branches for explicit requests or disposable experiments. | `docs/decisions/L085-mainline-first-workflow.md` |
 | L84 | 2026-05-06 | active | Continuity findings remain diagnostic/review evidence and no longer open Drafting Plan-Assist gates by themselves; Beat/plan, halluc-ungrounded, validation, integrity, and functional blockers remain load-bearing. | `docs/decisions/L084-continuity-diagnostic-drafting-gates.md` |
 | L83 | 2026-05-06 | superseded | Continuity-state warning N=50 follow-up found 0% TP, 88% FP, 12% AMB. Runtime-gating implication superseded by L84; panel evidence remains relevant. | `docs/decisions/L083-continuity-state-warning-panel-2026-05-06.md` |
 | L82 | 2026-05-06 | active | Fact-role live A/B remains hold: role filtering worked, but both arms gated on chapter-2 continuity and role-aware regressed cost/hallucination. Default runtime stays legacy; role-aware remains A/B-only. | `docs/decisions/L082-fact-role-ab-hold.md` |

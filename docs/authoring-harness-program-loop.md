@@ -49,6 +49,9 @@ Improve the harness in this order:
 
 ## Trigger Rules
 
+- Work directly on `main` by default. Branches are for explicit user requests
+  or disposable experiments only; rollback tags are the safety mechanism for
+  risky mainline moves.
 - After any code commit cluster, update a durable doc when the change affects
   current architecture, active lane state, decisions, lessons, or next work.
 - Before changing planner, writer, or checker runtime behavior, produce
@@ -67,7 +70,7 @@ Improve the harness in this order:
 The default Codex loop is not the retired headless lane runner. It is:
 
 1. Read the context pack and this program loop.
-2. Inspect worktree and active docs.
+2. Confirm the repo is on `main`, then inspect worktree and active docs.
 3. Pick the highest-value ready slice from `docs/sessions/lane-queue.md` and
    `docs/todo.md`.
 4. Baseline with the narrowest meaningful signal.
@@ -92,6 +95,8 @@ only when parallel work has a concrete, disjoint output:
 
 Do not create multiple agents changing the same runtime lever. Do not treat
 Claude's overnight captain loop as the only valid control plane for Codex.
+Parallel work that needs branch isolation must be explicitly named disposable
+experiment work; otherwise integrate via atomic commits on `main`.
 
 ## Stop Conditions
 

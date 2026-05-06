@@ -1,6 +1,7 @@
 # Lane Queue
 
-This file tracks active and immediately actionable work only.
+This file tracks active work only. Active implementation happens on `main`
+unless the user explicitly requests a disposable branch.
 
 ## Active
 

@@ -22,17 +22,18 @@ Read these first, in order:
 - `docs/decisions.md` — decision index with links to detailed records.
 - `docs/sessions/lane-queue.md` — active lane and next work only.
 
-Use deeper docs only when linked by the context pack or when the code path
-requires them.
+Use deeper docs only when linked by the context pack or required by code.
 
 ## Operating Boundary
 
-Novel Harness owns novel-planning, writing, checking, revision, evaluation,
-proposal workflows, telemetry, and operator-facing review surfaces.
+Novel Harness owns novel-planning, writing, checking, revision, evaluation, proposal workflows, telemetry, and operator review surfaces.
 
 Novel Harness does not own a custom autonomous coding supervisor. Engineering
-work uses Claude Code, OpenCode, Codex, or equivalent external coding harnesses.
-Repo-local agent scripts are support tooling, not a replacement control plane.
+work uses Claude Code, OpenCode, Codex, or equivalent external coding harnesses;
+repo-local agent scripts are support tooling, not a replacement control plane.
+
+Git workflow is mainline-first: active work happens on `main` unless the user
+explicitly requests a branch or a disposable experiment needs one. Use rollback tags before risky moves.
 
 ## Active Architecture
 
@@ -106,9 +107,8 @@ Phase 7 has a read-only replay harness and local promotion guard:
   observations and Canon checker attribution are backlog items until concrete
   observer sources exist.
 
-Replay supports historical row fixtures, frozen-envelope candidate fixtures,
-and generator replay for artifact patches, deterministic lint-to-prose-edit,
-and frozen-output editorial beat coverage.
+Replay supports historical row fixtures, frozen-envelope candidate fixtures, and
+generator replay for artifact patches, deterministic lint-to-prose-edit, and frozen-output editorial beat coverage.
 
 Promotion tiers:
 

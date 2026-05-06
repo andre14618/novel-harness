@@ -18,6 +18,15 @@ you need historical evidence for a decision.
 - Historical snapshots belong in `docs/archive/` or `docs/sessions/archive/`.
 - Run `bun run docs:weight` before closing docs-heavy work.
 
+## Git Workflow
+
+- Work directly on `main` by default. Do not create lane or feature branches
+  unless the user explicitly asks or the work is a disposable experiment.
+- Before risky merges, rewrites, or migrations, create a rollback tag instead
+  of long-lived branches.
+- Commit coherent slices atomically on `main`; keep the worktree clean before
+  handing off or starting a new lane.
+
 ## Current Work
 
 Current lane and runtime posture live in `docs/current-state.md` and
