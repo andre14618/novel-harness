@@ -5,7 +5,7 @@ import type { StorySpine } from "../plotter/schema"
 import type { ChapterOutline } from "../planning-plotter/schema"
 import { renderDirectivesForPlanner } from "../../schemas/planning-directives"
 import { resolveStructuralPriors, renderStructuralPriorsForPlanner } from "../../models/roles"
-import { minimumBeatCountForTarget, recommendedBeatCountForTarget } from "../../harness/beat-counts"
+import { planningBeatCountPolicy } from "../../harness/beat-counts"
 
 function renderSkeletonLine(sk: ChapterOutline): string {
   const chars = sk.charactersPresent?.length ? ` [${sk.charactersPresent.join(", ")}]` : ""
@@ -33,6 +33,10 @@ export interface BeatExpansionArgs {
 
 export function buildContext(args: BeatExpansionArgs): string {
   const { targetChapter, allSkeletons, priorChapters, worldBible, characters, spine, seed } = args
+  const beatPolicy = planningBeatCountPolicy(
+    targetChapter.targetWords,
+    seed.pipelineOverrides?.planningMaxBeatsPerChapter,
+  )
 
   const worldSection = `WORLD BIBLE:
 Setting: ${worldBible.setting}
@@ -66,8 +70,8 @@ Purpose: ${targetChapter.purpose}
 Target words: ${targetChapter.targetWords}
 Characters present: ${(targetChapter.charactersPresent ?? []).join(", ")}
 
-Minimum beats required: ${minimumBeatCountForTarget(targetChapter.targetWords)} (current writer usually produces ~300-450 words per planned beat).
-Recommended: ${recommendedBeatCountForTarget(targetChapter.targetWords)} beats. Do not exceed recommended by more than 1 unless the chapter has multiple distinct set pieces.`
+Minimum beats required: ${beatPolicy.minRecommendedBeats} (current writer usually produces ~300-450 words per planned beat).
+${renderBeatCapGuidance(beatPolicy)}`
 
   const directivesSection = seed.directives ? renderDirectivesForPlanner(seed.directives) : ""
   const priors = resolveStructuralPriors(seed.genre)
@@ -87,4 +91,14 @@ ${allSkelSection}${priorSection}
 ${targetSection}${directivesSection}${structuralSection}
 
 Expand Chapter ${targetChapter.chapterNumber} into its beat sequence only. Do not emit chapter-level state or beat obligations; the state mapper assigns those in the next planning step.`
+}
+
+function renderBeatCapGuidance(policy: ReturnType<typeof planningBeatCountPolicy>): string {
+  if (policy.effectiveMaxBeats !== null) {
+    const floorNote = policy.capRaisedToFloor
+      ? ` Configured cap ${policy.configuredMaxBeats} is below the calibrated floor, so ${policy.effectiveMaxBeats} is the effective cap.`
+      : ""
+    return `Recommended: ${policy.recommendedBeats} beats. Planning max for this experiment: ${policy.effectiveMaxBeats} beats.${floorNote} Do not exceed this cap.`
+  }
+  return `Recommended: ${policy.recommendedBeats} beats. Do not exceed recommended by more than 1 unless the chapter has multiple distinct set pieces.`
 }

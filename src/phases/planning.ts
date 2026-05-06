@@ -1,4 +1,4 @@
-import { type ChapterOutline } from "../types"
+import { type ChapterOutline, type SeedInput } from "../types"
 import {
   getNovel, getWorldBible, getCharacters, getStorySpine,
   saveChapterOutline, updateTotalChapters, updatePhase,
@@ -23,7 +23,7 @@ import * as harness from "../harness"
 import { autogenPlannerProposalsAfterPlanning } from "../harness/planner-canon-proposals"
 import type { BeatObligationsContract, SceneBeat } from "../types"
 import type { BeatObligationCoverageValidation } from "../harness/beat-obligations"
-import { minimumBeatCountForTarget } from "../harness/beat-counts"
+import { minimumBeatCountForTarget, planningBeatCountPolicy } from "../harness/beat-counts"
 
 const PLANNING_OBLIGATION_WARNING_LIMIT = 8
 const PLANNING_OBLIGATION_COVERAGE_MAX_RETRIES = 2
@@ -44,6 +44,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   const characters = await getCharacters(novelId)
   const spine = await getStorySpine(novelId)
   const targetChapters = novel.seed.chapterCount ?? null
+  const planningMaxBeatsPerChapter = novel.seed.pipelineOverrides?.planningMaxBeatsPerChapter ?? null
 
   // ── Phase 1: chapter skeletons ──────────────────────────────────────
   const skeletonContext = buildPlanningContext(worldBible, characters, spine, novel.seed)
@@ -128,7 +129,9 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   console.log(`  Phase 3/3: state mappings ready; enforcing obligation coverage...`)
 
   // Post-expansion enforcement — beat count floor, POV, setting
-  const postEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters)
+  const postEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters, {
+    maxBeatsPerChapter: planningMaxBeatsPerChapter,
+  })
   for (const w of postEnforcement.warnings) {
     log(novelId, "warn", `Planning: ${w}`)
     console.log(`  Warning: ${w}`)
@@ -159,7 +162,9 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
     await Promise.all(retries)
   }
 
-  let finalEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters)
+  let finalEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters, {
+    maxBeatsPerChapter: planningMaxBeatsPerChapter,
+  })
   if (!finalEnforcement.valid) {
     throw new Error(`Planning failed after beat expansion + retry: ${finalEnforcement.errors.join("; ")}`)
   }
@@ -192,7 +197,9 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
     })
     await Promise.all(retries)
 
-    finalEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters)
+    finalEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters, {
+      maxBeatsPerChapter: planningMaxBeatsPerChapter,
+    })
     if (!finalEnforcement.valid) {
       throw new Error(`Planning failed after obligation coverage retry: ${finalEnforcement.errors.join("; ")}`)
     }
@@ -334,8 +341,34 @@ async function expandChapter(
     schema: beatExpansionSchema,
   })
 
-  const scenes = (result.output.scenes as SceneBeat[]).map(stripBeatMapperFields)
+  const scenes = capExpandedScenesForPlanning(
+    novelId,
+    skeleton,
+    (result.output.scenes as SceneBeat[]).map(stripBeatMapperFields),
+    seed,
+  )
   return mapChapterState(novelId, skeleton, allSkeletons, worldBible, characters, spine, seed, scenes, attempt)
+}
+
+function capExpandedScenesForPlanning(
+  novelId: string,
+  skeleton: ChapterOutline,
+  scenes: SceneBeat[],
+  seed: SeedInput,
+): SceneBeat[] {
+  const policy = planningBeatCountPolicy(
+    skeleton.targetWords,
+    seed.pipelineOverrides?.planningMaxBeatsPerChapter,
+  )
+  if (policy.effectiveMaxBeats === null || scenes.length <= policy.effectiveMaxBeats) return scenes
+  const capped = scenes.slice(0, policy.effectiveMaxBeats)
+  const note = policy.capRaisedToFloor ? `; configured cap ${policy.configuredMaxBeats} raised to floor` : ""
+  log(
+    novelId,
+    "info",
+    `Planning beats ch${skeleton.chapterNumber}: capped ${scenes.length} -> ${capped.length} by planningMaxBeatsPerChapter${note}`,
+  )
+  return capped
 }
 
 // Per-chapter ceiling on planning-state-repair LLM calls within a single

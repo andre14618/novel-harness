@@ -9,7 +9,7 @@
  */
 
 import type { CharacterProfile, ChapterOutline } from "../types"
-import { minimumBeatCountForTarget } from "./beat-counts"
+import { minimumBeatCountForTarget, planningBeatCountPolicy } from "./beat-counts"
 
 // ── Planning Phase ────────────────────────────────────────────────────────
 
@@ -20,6 +20,10 @@ export interface PlanningEnforcement {
   warnings: string[]
 }
 
+export interface PlanningEnforcementOptions {
+  maxBeatsPerChapter?: number | null
+}
+
 /**
  * Enforce chapter count and structural requirements on planner output.
  * Returns validated chapters or errors explaining what failed.
@@ -28,6 +32,7 @@ export function enforcePlanningOutput(
   chapters: ChapterOutline[],
   targetChapters: number | null,
   characters: CharacterProfile[],
+  options: PlanningEnforcementOptions = {},
 ): PlanningEnforcement {
   const errors: string[] = []
   const warnings: string[] = []
@@ -67,6 +72,10 @@ export function enforcePlanningOutput(
     const floor = minimumBeatCountForTarget(target)
     if (ch.scenes.length < floor) {
       errors.push(`Chapter ${ch.chapterNumber}: ${ch.scenes.length} beats below floor ${floor} for ${target}w target`)
+    }
+    const policy = planningBeatCountPolicy(target, options.maxBeatsPerChapter)
+    if (policy.effectiveMaxBeats !== null && ch.scenes.length > policy.effectiveMaxBeats) {
+      errors.push(`Chapter ${ch.chapterNumber}: ${ch.scenes.length} beats above experiment cap ${policy.effectiveMaxBeats} for ${target}w target`)
     }
   }
 

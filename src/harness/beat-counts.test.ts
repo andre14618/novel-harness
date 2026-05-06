@@ -3,6 +3,7 @@ import { expect, test } from "bun:test"
 import {
   assessBeatCountForTarget,
   minimumBeatCountForTarget,
+  planningBeatCountPolicy,
   recommendedBeatCountForTarget,
 } from "./beat-counts"
 
@@ -42,5 +43,30 @@ test("assesses under- and over-planned beat counts with the planner tolerance", 
     beatDeltaFromRecommended: 2,
     underPlanned: false,
     overPlanned: true,
+  })
+})
+
+test("resolves default-off planning beat cap policy", () => {
+  expect(planningBeatCountPolicy(1500, null)).toMatchObject({
+    minRecommendedBeats: 4,
+    recommendedBeats: 5,
+    configuredMaxBeats: null,
+    effectiveMaxBeats: null,
+    capRaisedToFloor: false,
+  })
+
+  expect(planningBeatCountPolicy(1500, 5)).toMatchObject({
+    configuredMaxBeats: 5,
+    effectiveMaxBeats: 5,
+    capRaisedToFloor: false,
+  })
+})
+
+test("raises an experiment cap below the calibrated floor", () => {
+  expect(planningBeatCountPolicy(2000, 4)).toMatchObject({
+    minRecommendedBeats: 5,
+    configuredMaxBeats: 4,
+    effectiveMaxBeats: 5,
+    capRaisedToFloor: true,
   })
 })

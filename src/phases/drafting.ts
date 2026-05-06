@@ -103,6 +103,8 @@ export function effectivePipeline(seed: SeedInput): typeof pipeline {
     continuityEditorialFlagProposals:
       o.continuityEditorialFlagProposals ?? pipeline.continuityEditorialFlagProposals,
     factRoleContextPolicy: o.factRoleContextPolicy ?? pipeline.factRoleContextPolicy,
+    planningMaxBeatsPerChapter:
+      o.planningMaxBeatsPerChapter ?? pipeline.planningMaxBeatsPerChapter,
   }
 }
 

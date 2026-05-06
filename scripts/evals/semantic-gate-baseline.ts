@@ -143,6 +143,7 @@ export interface SemanticGateBaselineReport {
   outputBase: string
   maxBeatsPerChapter: number | null
   pipelineOverrides: {
+    planningMaxBeatsPerChapter: number | null
     continuityEditorialFlagProposals: boolean
   }
   keptNovel: boolean
@@ -304,6 +305,7 @@ export function renderSemanticGateBaselineReport(report: SemanticGateBaselineRep
   lines.push(`Disposable novel: ${report.novelId}${report.keptNovel ? " (kept)" : " (cleaned after report)"}`)
   lines.push(`Chapters: ${report.chapters}`)
   lines.push(`Max beats per chapter: ${report.maxBeatsPerChapter ?? "(source outline)"}`)
+  lines.push(`Planning max beats override: ${report.pipelineOverrides.planningMaxBeatsPerChapter ?? "(disabled)"}`)
   lines.push(
     `Continuity editorial flags: ${
       report.pipelineOverrides.continuityEditorialFlagProposals ? "enabled" : "disabled"
@@ -482,24 +484,48 @@ async function capNovelChapters(novelId: string, chapters: number): Promise<void
 }
 
 async function applyBaselinePipelineOverrides(novelId: string, args: Args): Promise<void> {
-  if (!args.continuityEditorialFlagProposals) return
-  await db`
-    UPDATE novels
-    SET seed_json = jsonb_set(
-          jsonb_set(
-            COALESCE(seed_json, '{}'::jsonb),
-            '{pipelineOverrides}',
-            COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+  const applied: string[] = []
+  if (args.maxBeatsPerChapter !== null) {
+    await db`
+      UPDATE novels
+      SET seed_json = jsonb_set(
+            jsonb_set(
+              COALESCE(seed_json, '{}'::jsonb),
+              '{pipelineOverrides}',
+              COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+              true
+            ),
+            '{pipelineOverrides,planningMaxBeatsPerChapter}',
+            to_jsonb(${args.maxBeatsPerChapter}::int),
             true
           ),
-          '{pipelineOverrides,continuityEditorialFlagProposals}',
-          'true'::jsonb,
-          true
-        ),
-        updated_at = now()
-    WHERE id = ${novelId}
-  `
-  console.log(`  enabled continuityEditorialFlagProposals for ${novelId}`)
+          updated_at = now()
+      WHERE id = ${novelId}
+    `
+    applied.push(`planningMaxBeatsPerChapter=${args.maxBeatsPerChapter}`)
+  }
+
+  if (args.continuityEditorialFlagProposals) {
+    await db`
+      UPDATE novels
+      SET seed_json = jsonb_set(
+            jsonb_set(
+              COALESCE(seed_json, '{}'::jsonb),
+              '{pipelineOverrides}',
+              COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+              true
+            ),
+            '{pipelineOverrides,continuityEditorialFlagProposals}',
+            'true'::jsonb,
+            true
+          ),
+          updated_at = now()
+      WHERE id = ${novelId}
+    `
+    applied.push("continuityEditorialFlagProposals=true")
+  }
+
+  if (applied.length > 0) console.log(`  enabled pipeline overrides for ${novelId}: ${applied.join(", ")}`)
 }
 
 async function capNovelOutlineBeats(novelId: string, chapters: number, maxBeats: number): Promise<void> {
@@ -595,6 +621,7 @@ async function collectBaselineReport(input: {
     outputBase: input.outputBase,
     maxBeatsPerChapter: input.maxBeatsPerChapter,
     pipelineOverrides: {
+      planningMaxBeatsPerChapter: input.maxBeatsPerChapter,
       continuityEditorialFlagProposals: input.continuityEditorialFlagProposals,
     },
     keptNovel: input.keptNovel,

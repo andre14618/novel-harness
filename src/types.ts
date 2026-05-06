@@ -28,6 +28,7 @@ export interface SeedInput {
     editorialBeatCoverageProposals?: boolean
     continuityEditorialFlagProposals?: boolean
     factRoleContextPolicy?: import("./harness/fact-roles").FactRoleContextPolicy
+    planningMaxBeatsPerChapter?: number | null
   }
 }
 

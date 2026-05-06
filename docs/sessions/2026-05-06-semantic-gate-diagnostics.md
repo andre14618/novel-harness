@@ -324,6 +324,14 @@ Observed signals:
   `output/playwright/2026-05-06/diagnostics-recent-runs` and passed
   `ui:evidence-check`; the only console/network error was an intentional
   injected matrix-list `503` for edge-case proof.
+- Planning beat-cap experiment seam shipped as a default-off per-novel
+  `seed.pipelineOverrides.planningMaxBeatsPerChapter` override. Planning-beat
+  prompt guidance now renders the effective cap, generated beats are
+  deterministically capped before state mapping, planning enforcement rejects
+  over-cap outlines when the override is set, and semantic-gate baseline
+  artifacts persist/report the same override. A configured cap below the
+  calibrated floor is raised to the floor, so the experiment cannot make a
+  chapter structurally under-planned by configuration alone.
 - Local DB hygiene: `operator-summary --stale-gates --min-age-hours 0`
   found 20 stale pending Plan-Assist rows. After dry-run review,
   `scripts/agent/resolve-stale-gates.ts --older-than-hours 0 --apply` marked

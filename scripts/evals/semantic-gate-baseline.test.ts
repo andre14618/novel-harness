@@ -121,6 +121,7 @@ Unresolved issues (2):
     expect(rendered).toContain("# Semantic Gate Baseline")
     expect(rendered).toContain("Terminal status: pending-plan-assist")
     expect(rendered).toContain("Max beats per chapter: 5")
+    expect(rendered).toContain("Planning max beats override: 5")
     expect(rendered).toContain("Continuity editorial flags: enabled")
     expect(rendered).toContain("Approved: 1/2")
     expect(rendered).toContain("Signals: no_draft=1, outline_shape=2")
@@ -157,6 +158,7 @@ function reportFixture(): SemanticGateBaselineReport {
     outputBase: "/tmp/semantic-gate-baseline",
     maxBeatsPerChapter: 5,
     pipelineOverrides: {
+      planningMaxBeatsPerChapter: 5,
       continuityEditorialFlagProposals: true,
     },
     keptNovel: false,

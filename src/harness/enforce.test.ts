@@ -71,6 +71,43 @@ test("planning enforcement accepts a compact 1500 word chapter at four beats", (
   expect(result.errors).toEqual([])
 })
 
+test("planning enforcement rejects outlines above the experiment cap", () => {
+  const outline = chapter({
+    targetWords: 1500,
+    scenes: [
+      beat({ description: "Istra finds the missing dose." }),
+      beat({ description: "Wren refuses the treatment." }),
+      beat({ description: "Istra proves the danger." }),
+      beat({ description: "Wren accepts the cost." }),
+      beat({ description: "The council arrives." }),
+      beat({ description: "Istra locks the ward." }),
+    ],
+  })
+
+  const result = enforcePlanningOutput([outline], 1, [character("Istra Venn")], { maxBeatsPerChapter: 5 })
+
+  expect(result.valid).toBe(false)
+  expect(result.errors).toEqual(["Chapter 1: 6 beats above experiment cap 5 for 1500w target"])
+})
+
+test("planning enforcement raises an experiment cap below the floor", () => {
+  const outline = chapter({
+    targetWords: 2000,
+    scenes: [
+      beat({ description: "Istra finds the missing dose." }),
+      beat({ description: "Wren refuses the treatment." }),
+      beat({ description: "Istra proves the danger." }),
+      beat({ description: "Wren accepts the cost." }),
+      beat({ description: "The council arrives." }),
+    ],
+  })
+
+  const result = enforcePlanningOutput([outline], 1, [character("Istra Venn")], { maxBeatsPerChapter: 4 })
+
+  expect(result.valid).toBe(true)
+  expect(result.errors).toEqual([])
+})
+
 function chapter(overrides: Partial<ChapterOutline> = {}): ChapterOutline {
   return {
     chapterNumber: 1,

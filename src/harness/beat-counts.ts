@@ -14,6 +14,14 @@ export interface BeatCountAssessment {
   overPlanned: boolean
 }
 
+export interface PlanningBeatCountPolicy {
+  minRecommendedBeats: number
+  recommendedBeats: number
+  configuredMaxBeats: number | null
+  effectiveMaxBeats: number | null
+  capRaisedToFloor: boolean
+}
+
 function normalizeTargetWords(targetWords: number | null | undefined): number {
   return typeof targetWords === "number" && Number.isFinite(targetWords) && targetWords > 0
     ? targetWords
@@ -41,4 +49,29 @@ export function assessBeatCountForTarget(
     underPlanned: plannedBeats < minRecommendedBeats,
     overPlanned: plannedBeats > recommendedBeats + RECOMMENDED_BEAT_COUNT_OVERAGE_ALLOWED,
   }
+}
+
+export function planningBeatCountPolicy(
+  targetWords: number | null | undefined,
+  configuredMaxBeats: number | null | undefined,
+): PlanningBeatCountPolicy {
+  const minRecommendedBeats = minimumBeatCountForTarget(targetWords)
+  const recommendedBeats = recommendedBeatCountForTarget(targetWords)
+  const normalizedMax = normalizeConfiguredMaxBeats(configuredMaxBeats)
+  const effectiveMaxBeats = normalizedMax === null
+    ? null
+    : Math.max(minRecommendedBeats, normalizedMax)
+  return {
+    minRecommendedBeats,
+    recommendedBeats,
+    configuredMaxBeats: normalizedMax,
+    effectiveMaxBeats,
+    capRaisedToFloor: normalizedMax !== null && effectiveMaxBeats !== normalizedMax,
+  }
+}
+
+function normalizeConfiguredMaxBeats(value: number | null | undefined): number | null {
+  if (typeof value !== "number") return null
+  if (!Number.isInteger(value) || value <= 0) return null
+  return value
 }

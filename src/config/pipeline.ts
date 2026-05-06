@@ -50,6 +50,12 @@ export const pipeline = {
   // context and sends only operational facts to continuity blocking checks.
   factRoleContextPolicy: "legacy" as FactRoleContextPolicy,
 
+  // Diagnostic/A-B planning shape lever. Default null leaves planner behavior
+  // unchanged. Per-novel overrides cap generated planning beats before state
+  // mapping, but the effective cap never drops below the calibrated floor for
+  // the chapter target.
+  planningMaxBeatsPerChapter: null as number | null,
+
   // State management
   embeddings: false,          // skip embedding step (beat path uses deterministic DB lookups)
 
