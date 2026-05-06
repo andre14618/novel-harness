@@ -101,6 +101,12 @@ bun run diagnostics:semantic-gate -- --novel fantasy-system-heretic
 bun run diagnostics:semantic-gate-candidates -- --limit 5 --scan-limit 20
 ```
 
+Local DB-backed diagnostics in this workspace expect a listener on
+`127.0.0.1:15432`, loaded from `.env` as `ORCHESTRATOR_DB_URL`. If that
+listener is down, Bun SQL fails as `ERR_POSTGRES_CONNECTION_CLOSED` before the
+diagnostic can produce evidence. For this session, remote LXC Postgres was
+active and a foreground SSH tunnel restored local DB access for the fresh scan.
+
 Observed signals:
 
 - Chapter 1: `outline_shape`, `writer_expansion`, `plan_assist_gate`
@@ -141,6 +147,17 @@ Observed signals:
 - Replay now has an explicit writer-expansion postcondition in addition to the
   byte-equal snapshot, so beat-count/length regressions fail with a clearer
   signal.
+- Fresh 2026-05-06 rerun through the restored DB tunnel:
+  `diagnostics:semantic-gate-candidates -- --limit 5 --scan-limit 20 --json`
+  again returned three `critical` and two `medium` candidates. The top three
+  still classified as `plan_shape`; `fantasy-system-heretic` ranked second
+  with one pending gate, one writer-expansion chapter, three outline-shape
+  chapters, and two no-draft chapters.
+- Fresh continuity-state warning extraction wrote an unlabeled N=50 panel to
+  `output/continuity-grayzone/continuity-state-warning-n50-2026-05-06/`.
+  The sample came from 581 `continuity-state/warning` findings: 3 negative, 0
+  positive, 47 ambiguous. This is panel material to label next, not a
+  production checker-relaxation decision.
 
 ## Interpretation
 

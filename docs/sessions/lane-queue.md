@@ -5,9 +5,7 @@ This file tracks active and immediately actionable work only.
 ## Active
 
 - Authoring harness program loop: move visibility, interactivity, diagnostics, and evidence-backed runtime slices. See `docs/authoring-harness-program-loop.md`.
-- Richness Backlog lane: world fact roles remain A/B-only. Latest capped A/B is
-  hold; semantic-gate diagnostics and candidate ranking now choose the next
-  evidence-backed implementation slice.
+- Richness Backlog lane: fact roles remain A/B-only; semantic-gate diagnostics choose the next evidence-backed slice.
 - Authoring visibility/interactivity at scope ceiling: direct-mutation
   audit found only deferred higher-risk slices (plan-assist whole-outline,
   chapter-plan-reviser outline replacement).
@@ -16,6 +14,7 @@ This file tracks active and immediately actionable work only.
 
 - Use semantic-gate candidate lenses plus source reports for fresh disposable
   evidence before planner, writer, or checker runtime nudges.
+- For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO
   rather than inferred.
@@ -24,6 +23,7 @@ This file tracks active and immediately actionable work only.
 
 ## Recently Closed
 
+- Playwright evidence verification shipped: `ui:preflight` now pairs with `ui:evidence-check`.
 - Semantic-gate diagnostics shipped: writer expansion, semantic gate roll-up,
   and candidate ranking; future fact-role A/B summaries persist the roll-up.
   Record: `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.
