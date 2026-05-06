@@ -2423,3 +2423,35 @@ or "but the fact states" language, then adjudicate the remaining cluster.
   replayed; current work remains diagnostic-only.
 
 (Follow-up from `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.)
+
+---
+
+## Greedy mergers need a tie-break that prefers smaller groups when scores collapse (2026-05-06)
+
+The first calibrated:packed smoke (commit `da6e39f`,
+`output/evals/semantic-gate-cohort-matrix/calibrated-packed-smoke-20260506T213911Z`)
+collapsed 9 of 13 source beats into the chapter opener because the merger's
+primary key (combined obligation density) tied at score 0 across every adjacent
+pair, and the secondary key was lowest index — so the merger always picked the
+leftmost pair, producing groups `{9, 1, 1, 1, 1}` instead of a balanced
+distribution. The packing audit emitted under
+`<output-base>/.../calibrated-packing/<id>-ch1.json` made the failure mode
+visible immediately; the cohort would have shipped a degenerate left-cram on
+every obligation-poor source without it.
+
+**The rule:** when a greedy merger's primary score can collapse to a constant
+across the candidate set, the secondary key must prefer the smaller resulting
+group. Lowest-index tie-break is the wrong default — it concentrates merges on
+one side. Add the smaller-merged-group key, then lowest-index for determinism.
+
+**How to apply:**
+
+- Before shipping any greedy merger, contrive a uniform-score input fixture and
+  assert that no resulting group is more than ~1/N of the source size.
+- Before running the cohort, run a single-source smoke that emits the merger's
+  decision audit. The audit cost is negligible compared to a $0.45 cohort that
+  ships a degenerate algorithm.
+
+(Caught by smoke `calibrated-packed-smoke-20260506T213911Z`; fixed in
+`f8057d4` with regression test
+`balances merges across the chapter when obligation density is uniform`.)

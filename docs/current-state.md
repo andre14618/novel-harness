@@ -180,7 +180,14 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
   planning beat-cap overrides, and Diagnostics UI summarize/rank semantic gates with
   risk-driver breakdowns, candidate JSON artifacts, action/proposal evidence, drift
   witnesses, writer expansion, checker evidence, and plan-assist lineage without
-  runtime changes; L86 keeps hard caps A/B-only and queues calibrated obligation packing.
+  runtime changes. The planner-shape cohort matrix accepts a fourth
+  `calibrated:packed` arm (`src/harness/beat-packing.ts`,
+  `--variant calibrated:packed`, audits at
+  `<output-base>/.../calibrated-packing/<novelId>-ch<N>.json`); v1 is a
+  deterministic obligation-preserving repacker, never a runtime default.
+  L86 keeps hard caps A/B-only; `calibrated:packed` is HOLD/near-pass —
+  ties control on clean-pass at half the word ratio and 65% of cost
+  (cohort `calibrated-packed-cohort-20260506T215726Z`, experiment #479).
 - Continuity findings do not open Drafting Plan-Assist Gates; fact-scoped
   blockers can optionally persist manual `editorial_flag` envelopes; see L84.
 - World fact roles are additive on `facts` and `canon_facts`; diagnostics

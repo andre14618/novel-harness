@@ -88,3 +88,62 @@ not authoring quality. Eval runners now default child processes to
 `BUN_SQL_MAX=1`, and the LXC Postgres service has been tuned for local
 experiment fanout. See `docs/how-to/semantic-gate-experiments.md`.
 
+## 2026-05-06 Update — calibrated:packed v1 evidence
+
+A deterministic v1 of `calibrated:packed` shipped at commit
+`f8057d44dfdbd3bf2578bd79637919b89193184f` (helper at
+`src/harness/beat-packing.ts`, wired through the cohort matrix and baseline
+runner). v1 derives `budget = recommendedBeatCountForTarget(targetWords)`
+per chapter, anchors first/last source beats, and greedily merges adjacent
+middle beats by lowest combined obligation density (with a smaller-merged-group
+tie-break) until the budget is met. Merged beats serialize as
+"Packed from source beats X-Y:" bullet lists; obligations + payoff links
+are remapped to packed indices. v1 is experiment-only, no LLM cost added,
+and never wired into runtime planning.
+
+Cohort `calibrated-packed-cohort-20260506T215726Z` (N=12 sources × 4 variants
+× 1 chapter, experiment #479):
+
+| Variant | Completed | CleanPass | Mean Ratio | Cost |
+| --- | ---: | ---: | ---: | ---: |
+| `control:source` | 10/12 | 10 | 3.38 | `$0.2412` |
+| `calibrated:packed` | 10/12 | 10 | 1.76 | `$0.1568` |
+| `capped5:beats=5` | 11/12 | 3 | 1.58 | `$0.1349` |
+| `capped4:beats=4` | 11/12 | 2 | 1.17 | `$0.0884` |
+
+Status: **HOLD / near-pass** on the L086 promotion targets.
+
+- PASS — clean-pass count ties control (10 vs 10).
+- PASS — cost 65% of control (target < 70%).
+- PASS — plan-drift count no worse than better hard-cap (`plan_adherence_drift`
+  fires on most capped rows but on zero calibrated rows).
+- PASS — every audit emits `droppedObligationKeys: []` and
+  `droppedPayoffLinks: 0` (15 obligations preserved on the obligation-rich
+  smoke source `novel-1777782552884`).
+- NEAR-PASS — completion 10/12 vs better hard-cap 11/12.
+- NEAR-PASS — mean word ratio 1.76 vs target < 1.75.
+
+Both calibrated gate failures (`pp2-floor__prompt__fantasy-debt__1776557952`,
+`pp2-floor__prompt__fantasy-cartographer__1776557952`) are
+`integrity-exhausted` writer-side prose-duplication faults; packing audits
+on both show clean obligation preservation. The strongest single-source win
+is `novel-1776690840208`, where control gated, both capped arms gated with
+`no_draft`+`checker_blocker`, and calibrated completed cleanly at 1953
+words.
+
+Interpretation: the L086 hypothesis holds at this scale — a deterministic
+obligation-preserving repacker sits in the design space the cohort
+predicted, capturing control's semantic stability without control's
+length/cost penalty. The 1.76 word ratio leaves writer-expansion (not the
+planner shape) as the next dominant lever. Promotion remains `hold` until
+either a fresh-source / multi-chapter sample crosses the 1.75 line or a
+writer-expansion intervention reduces the ratio while the planner-shape
+lever stays unchanged.
+
+Artifacts:
+
+- `output/evals/semantic-gate-cohort-matrix/calibrated-packed-cohort-20260506T215726Z/summary.json`
+- `output/evals/semantic-gate-cohort-matrix/calibrated-packed-cohort-20260506T215726Z/matrices/*/summary.json`
+- `output/evals/semantic-gate-cohort-matrix/calibrated-packed-cohort-20260506T215726Z/matrices/*/variants/calibrated/calibrated-packing/*-ch1.json`
+- Session record: `docs/sessions/2026-05-06-pickup-planner-shape-baseline.md`
+
