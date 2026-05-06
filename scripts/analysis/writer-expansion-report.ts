@@ -7,6 +7,8 @@
  * (too many prose words per planned beat).
  */
 
+import { assessBeatCountForTarget } from "../../src/harness/beat-counts"
+
 export interface WriterExpansionOutlineRow {
   chapter_number: number
   outline_json: {
@@ -93,22 +95,22 @@ export function buildWriterExpansionReport(
       const outline = row.outline_json ?? {}
       const targetWords = positiveNumber(outline.targetWords) ? Number(outline.targetWords) : null
       const plannedBeats = Array.isArray(outline.scenes) ? outline.scenes.length : 0
-      const minRecommendedBeats = targetWords === null ? null : Math.max(3, Math.ceil(targetWords / 400))
-      const recommendedBeats = targetWords === null ? null : Math.max(3, Math.ceil(targetWords / 325))
+      const beatAssessment = targetWords === null ? null : assessBeatCountForTarget(targetWords, plannedBeats)
+      const minRecommendedBeats = beatAssessment?.minRecommendedBeats ?? null
+      const recommendedBeats = beatAssessment?.recommendedBeats ?? null
       const latest = latestDrafts.get(row.chapter_number) ?? null
       const wordCount = latest ? Number(latest.word_count) : null
       const wordRatio = wordCount !== null && targetWords !== null && targetWords > 0
         ? wordCount / targetWords
         : null
       const wordsPerBeat = wordCount !== null && plannedBeats > 0 ? wordCount / plannedBeats : null
-      const beatDeltaFromRecommended = recommendedBeats === null ? null : plannedBeats - recommendedBeats
+      const beatDeltaFromRecommended = beatAssessment?.beatDeltaFromRecommended ?? null
       const flags = expansionFlags({
         hasDraft: latest !== null,
         wordRatio,
         wordsPerBeat,
-        plannedBeats,
-        minRecommendedBeats,
-        recommendedBeats,
+        underPlannedBeats: beatAssessment?.underPlanned ?? false,
+        overPlannedBeats: beatAssessment?.overPlanned ?? false,
       })
 
       return {
@@ -195,9 +197,8 @@ function expansionFlags(input: {
   hasDraft: boolean
   wordRatio: number | null
   wordsPerBeat: number | null
-  plannedBeats: number
-  minRecommendedBeats: number | null
-  recommendedBeats: number | null
+  underPlannedBeats: boolean
+  overPlannedBeats: boolean
 }): WriterExpansionFlag[] {
   const flags: WriterExpansionFlag[] = []
   if (!input.hasDraft) flags.push("no_draft")
@@ -206,12 +207,8 @@ function expansionFlags(input: {
   if (input.wordRatio !== null && input.wordRatio < 0.75) flags.push("under_target")
   if (input.wordsPerBeat !== null && input.wordsPerBeat > 450) flags.push("high_words_per_beat")
   if (input.wordsPerBeat !== null && input.wordsPerBeat < 200) flags.push("low_words_per_beat")
-  if (input.recommendedBeats !== null && input.plannedBeats > input.recommendedBeats + 1) {
-    flags.push("over_planned_beats")
-  }
-  if (input.minRecommendedBeats !== null && input.plannedBeats < input.minRecommendedBeats) {
-    flags.push("under_planned_beats")
-  }
+  if (input.overPlannedBeats) flags.push("over_planned_beats")
+  if (input.underPlannedBeats) flags.push("under_planned_beats")
   return flags
 }
 
