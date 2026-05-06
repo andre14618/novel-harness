@@ -65,6 +65,22 @@ describe("buildCheckerBlockerDeviations", () => {
     ])
   })
 
+  test("does not promote continuity-state warnings into plan-assist blockers", () => {
+    const deviations = buildCheckerBlockerDeviations({
+      acceptedBeatIssues: [],
+      continuityIssues: [
+        {
+          severity: "warning",
+          description: "Wren location violation: prior state had her in the tower.",
+          conflictsWith: "Wren crossed the market.",
+          suggestedFix: undefined,
+        },
+      ],
+    })
+
+    expect(deviations).toEqual([])
+  })
+
   test("promotes functional blockers with their checker source", () => {
     const deviations = buildCheckerBlockerDeviations({
       acceptedBeatIssues: [],
