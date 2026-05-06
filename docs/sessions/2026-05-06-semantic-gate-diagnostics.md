@@ -382,6 +382,19 @@ Observed signals:
   Diagnostics landing, and mobile is under
   `output/playwright/2026-05-06/semantic-gate-cohort-matrix-risk-breakdown-cohort`
   and passed `ui:evidence-check`.
+- Top-candidate bounded cohort evidence:
+  `diagnostics:semantic-gate-cohort-matrix -- --candidate-report
+  output/evals/semantic-gate-candidates/top-20260506T164552.json
+  --candidate-limit 2 --chapters 1 --variant capped:beats=4 --variant
+  control:source --parallel-sources 2 --parallel-variants 2 --output-base
+  output/evals/semantic-gate-cohort-matrix/top-candidates-smoke-20260506T171308`
+  wrote a completed cohort summary after two idle control children were
+  terminated to unblock artifact writing. Capped ranked lower than control
+  (`meanRisk=920.50` vs `1057.76`) but completed only 1/2 runs and carried
+  pending Plan-Assist, plan-drift, and checker risk. Control completed 0/2 and
+  had `process-exit` terminal status in both arms. This is evidence against
+  promoting a beat-cap/runtime default and evidence for adding bounded child
+  timeouts or gate-exit handling to disposable diagnostics.
 - Continuity gray-zone aggregation now emits a support-echo readiness verdict.
   The default candidate filter is positive polarity with conservative
   thresholds (`min labeled 20`, `min FP 80%`, `max TP 5%`, `max AMB 20%`).
@@ -444,6 +457,11 @@ still need A/B or replay before promoting any planner/writer change.
 The earlier capped A/B clone rows were cleaned, so future A/B runs must persist
 the semantic-gate roll-up in their JSON/markdown summaries before cleanup. That
 is now wired in `c7c280a`.
+
+The top-candidate cohort confirms the current blocker is not simply "pick a
+lower beat cap." The better next work is visibility around child matrix runs
+and diagnostics-runner boundedness, so operators can see which source/variant
+failed, why, and whether a child was terminated because of an idle gate wait.
 
 ## Follow-Up
 
