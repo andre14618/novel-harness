@@ -341,8 +341,11 @@ export function renderSemanticGateBaselineReport(report: SemanticGateBaselineRep
       `severity=${formatRecord(report.checker.warnings.bySeverity)}; ` +
       `calibration=${formatRecord(report.checker.warnings.byCalibration)}`,
   )
-  lines.push(`Halluc-ungrounded: calls=${report.checker.hallucUngrounded.calls}; blockerIssues=${report.checker.hallucUngrounded.blockerIssues}`)
-  for (const sample of report.checker.hallucUngrounded.samples.slice(0, 3)) lines.push(`- halluc sample: ${sample}`)
+  lines.push(
+    `Halluc-ungrounded raw: calls=${report.checker.hallucUngrounded.calls}; ` +
+      `blockerIssues=${report.checker.hallucUngrounded.blockerIssues} (pre-retry checker output)`,
+  )
+  for (const sample of report.checker.hallucUngrounded.samples.slice(0, 3)) lines.push(`- halluc raw sample: ${sample}`)
   lines.push("")
   lines.push("## Action Evidence")
   lines.push(`Actions: total=${report.checker.actionEvidence.total}; ${formatRecord(report.checker.actionEvidence.byKind)}`)

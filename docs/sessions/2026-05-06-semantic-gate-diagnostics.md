@@ -111,6 +111,9 @@ The immediate question was whether the failure pattern was primarily:
   - Fresh top-20 scan shifted from three critical candidates to zero critical
     and five medium candidates; former top rows were demoted because plan-check
     passed, gates were not pending, and continuity blockers were diagnostic.
+- Baseline report wording calibration
+  - Halluc-ungrounded baseline counts are labeled as raw pre-retry checker
+    output so completed runs are not misread as approving accepted blockers.
 
 ## Evidence
 
@@ -259,6 +262,15 @@ Observed signals:
   `diagnostics:semantic-gate-candidates -- --limit 5 --scan-limit 20 --json`
   returned zero critical candidates. The highest current signals are
   plan-shape/writer-expansion, not active Drafting blockers.
+- Fresh continuity-flag baseline:
+  `diagnostics:semantic-gate-baseline -- --source fantasy-system-heretic
+  --chapters 2 --max-beats-per-chapter 5
+  --continuity-editorial-flag-proposals --output-base
+  output/evals/semantic-gate-baseline/fantasy-system-heretic-continuity-flags-20260506T095502`
+  completed 2/2 chapters with no Plan-Assist Gate. Chapter 1 approved at
+  2,018 words, Chapter 2 at 1,432 words, total cost `$0.0137`, and the
+  continuity editorial-flag hook generated zero envelopes because no
+  fact-scoped continuity blockers survived on the settled draft.
 - Post-L84 scoped baseline:
   `diagnostics:semantic-gate-baseline -- --source fantasy-system-heretic
   --chapters 2 --max-beats-per-chapter 5 --output-base
