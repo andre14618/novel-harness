@@ -8,6 +8,7 @@ data/harness.db-wal
 data/batches/
 state/
 .env
+.mcp.json
 .DS_Store
 novel.db
 scripts/lora-data/

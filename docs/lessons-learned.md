@@ -2284,3 +2284,32 @@ Promotion should require both.
   or defaults.
 
 (Decision: `docs/decisions/L082-fact-role-ab-hold.md`.)
+
+---
+
+## Broad infrastructure work needs a program loop, not a single overnight lane (2026-05-06)
+
+The semantic-gate follow-up initially started to become a single overnight lane
+because that was the existing Claude captain-loop shape. The user clarified
+that the real need is broader: a continuing infrastructure program that moves
+diagnostics, interactivity, testing, UI evidence, docs capture, and
+evidence-backed runtime slices forward across sessions.
+
+**The rule:** use single-lane overnight contracts for bounded experiments, not
+as the default shape for open-ended harness infrastructure. When the work spans
+multiple workstreams, create a program-loop document with trigger rules,
+concurrency rules, documentation rules, and stop conditions. Then let each
+commit cluster pick the next valuable slice from that program.
+
+**How to apply:**
+
+- Codex should use `docs/authoring-harness-program-loop.md` as the control
+  shape for ongoing authoring-harness infrastructure.
+- Claude/Playwright can run bounded worker tasks, especially browser evidence,
+  but they do not need to own the overall Codex control plane.
+- Every coherent commit cluster should have a durable record of what happened,
+  why, evidence, and next implications.
+- Use single lane docs only when a slice has one primary objective, one feedback
+  signal, and a clear stop gate.
+
+(Follow-up from `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.)

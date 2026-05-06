@@ -123,6 +123,9 @@ Promotion tiers:
 
 See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
 
+- Authoring harness work now uses the broader program loop in
+  `docs/authoring-harness-program-loop.md`; semantic-gate diagnostic session
+  record is `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.
 - Closed: test harness reliability cleanup has restored supported tiered gates.
   Direct broad `bun test` remains unsupported; use `bun run test:fast` for the
   default loop, `bun run test:db` for bounded DB smoke, and
