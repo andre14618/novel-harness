@@ -2336,6 +2336,28 @@ for audit and follow-up review.
 
 ---
 
+## Snapshot replay needs semantic postconditions for known risk classes (2026-05-06)
+
+Byte-equal replay is strong, but when a known failure class is chapter shape or
+length expansion, a snapshot diff can obscure the actual regression.
+
+**The rule:** add explicit postconditions beside snapshot parity for currently
+important risk classes. Keep the byte-equal check, but make the likely failure
+easy to read.
+
+**How to apply:**
+
+- Phase-parity replay now asserts planned beat count and writer-expansion
+  limits for the small fixture.
+- Add similar postconditions only for active, evidence-backed risks; avoid
+  turning replay into a duplicate full diagnostics suite.
+- If a postcondition fails, inspect the diagnostic report before changing
+  planner/writer prompts.
+
+(Follow-up from `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.)
+
+---
+
 ## Replay fixture drift can be intended schema evidence (2026-05-06)
 
 The phase-parity replay failed after fact roles landed because the current DB

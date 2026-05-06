@@ -72,6 +72,9 @@ The immediate question was whether the failure pattern was primarily:
 - `00d80e8 test: refresh phase parity fact roles`
   - Refreshed the replay fixture snapshot for intended fact-role persistence
     (`role: "operational"`) and verified `bun run test:replay` green.
+- `1d0ce57 test: assert phase replay shape`
+  - Phase-parity replay now asserts the small fixture remains at 5 planned
+    beats, has no over-planned chapter, and avoids severe over-target output.
 
 ## Evidence
 
@@ -135,6 +138,9 @@ Observed signals:
   5-beat, 1,519-word chapter, so the inspected over-planned DB candidates look
   like historical rows rather than proof that the current replay path is still
   over-planning.
+- Replay now has an explicit writer-expansion postcondition in addition to the
+  byte-equal snapshot, so beat-count/length regressions fail with a clearer
+  signal.
 
 ## Interpretation
 
