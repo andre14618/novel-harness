@@ -41,6 +41,10 @@ The immediate question was whether the failure pattern was primarily:
 - `c7c280a feat: persist semantic gate evidence in fact-role ab`
   - Fact-role live A/B summaries now include semantic-gate evidence while
     disposable clone rows still exist.
+- `a761935 feat: add semantic gate candidate scanner`
+  - Added `bun run diagnostics:semantic-gate-candidates -- --limit N`.
+  - Ranks novels by pending Plan-Assist Gates, checker blockers, Plan
+    Adherence drift, writer expansion, outline shape, and missing drafts.
 
 ## Evidence
 
@@ -63,6 +67,7 @@ Current DB smoke:
 
 ```bash
 bun run diagnostics:semantic-gate -- --novel fantasy-system-heretic
+bun run diagnostics:semantic-gate-candidates -- --limit 5 --scan-limit 20
 ```
 
 Observed signals:
@@ -70,6 +75,10 @@ Observed signals:
 - Chapter 1: `outline_shape`, `writer_expansion`, `plan_assist_gate`
 - Chapter 2: `no_draft`, `outline_shape`, `plan_assist_gate`
 - Chapter 3: `no_draft`, `outline_shape`
+- Candidate scan returned three `critical` novels and two `medium` novels from
+  the latest 20; `fantasy-system-heretic` ranked second with one pending gate,
+  one writer-expansion chapter, three outline-shape chapters, and two no-draft
+  chapters.
 
 ## Interpretation
 
@@ -87,7 +96,8 @@ is now wired in `c7c280a`.
 Use this record as input to the broader authoring harness program loop, not as
 a one-off overnight lane. The next safe implementation sequence is:
 
-1. Run semantic-gate diagnostics on candidate novels or fresh disposable runs.
+1. Use `diagnostics:semantic-gate-candidates` to pick candidate novels or fresh
+   disposable runs.
 2. Choose one low-risk, evidence-backed lever.
 3. Add pure/focused tests and a replay or A/B signal before production default
    runtime changes.

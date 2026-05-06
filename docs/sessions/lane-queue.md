@@ -6,8 +6,8 @@ This file tracks active and immediately actionable work only.
 
 - Authoring harness program loop: move visibility, interactivity, diagnostics, and evidence-backed runtime slices. See `docs/authoring-harness-program-loop.md`.
 - Richness Backlog lane: world fact roles remain A/B-only. Latest capped A/B is
-  hold; semantic-gate diagnostics now exist to choose the next evidence-backed
-  implementation slice.
+  hold; semantic-gate diagnostics and candidate ranking now choose the next
+  evidence-backed implementation slice.
 - Authoring visibility/interactivity at scope ceiling: direct-mutation
   audit found only deferred higher-risk slices (plan-assist whole-outline,
   chapter-plan-reviser outline replacement).
@@ -25,8 +25,8 @@ This file tracks active and immediately actionable work only.
 
 ## Recently Closed
 
-- Semantic-gate diagnostics shipped: writer expansion + semantic gate roll-up;
-  future fact-role A/B summaries persist the roll-up before clone cleanup.
+- Semantic-gate diagnostics shipped: writer expansion, semantic gate roll-up,
+  and candidate ranking; future fact-role A/B summaries persist the roll-up.
   Record: `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.
 - Fact-role policy seam shipped: pure selectors, opt-in Canon role scoping,
   diagnostic preview, fixture eval, resume-ready clones, live A/B runner with
