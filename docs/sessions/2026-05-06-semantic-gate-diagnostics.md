@@ -86,6 +86,8 @@ The immediate question was whether the failure pattern was primarily:
   - Semantic-gate baseline reports now include an `Action Evidence` section for
     targeted beat rewrites, deterministic/LLM lint actions, prose-integrity
     repairs, Chapter Plan Reviser rows, and Plan-Assist gates.
+  - `diagnostics:action-evidence -- --novel <id>` exposes the same action
+    evidence directly for existing novel runs without rerunning a baseline.
   - Baseline reports preserve fallback Plan-Assist stdout evidence when a DB
     consumer has not loaded unresolved gate details.
   - Plan-Assist unresolved-deviation readers now use shared JSONB normalization
@@ -210,6 +212,12 @@ Observed signals:
 - Plan-Assist console evidence now renders zero-based stored `beat_index`
   values as one-based operator labels. The stored contract is unchanged, but
   a blocker for `beat_index: 4` now prints `[beat 5]` instead of `[beat 4]`.
+- Live diagnostic smoke:
+  `bun run diagnostics:action-evidence -- --novel fantasy-system-heretic`
+  reported three actions and correctly showed the pending
+  `plan-assist:plan-check-exhausted` gate with `unresolved=4`, including
+  blocker samples for Arbiter's carriage, ordinary-strength lifting, and the
+  coin/sewer-map continuity issue.
 
 ## Interpretation
 

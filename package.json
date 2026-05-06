@@ -29,6 +29,7 @@
     "diagnostics:checker-warnings": "bun scripts/analysis/checker-warning-report.ts",
     "diagnostics:plan-assist-lineage": "bun scripts/analysis/plan-assist-lineage-report.ts",
     "diagnostics:plan-drift": "bun scripts/analysis/plan-drift-report.ts",
+    "diagnostics:action-evidence": "bun scripts/analysis/action-evidence-report.ts",
     "diagnostics:semantic-gate": "bun scripts/analysis/semantic-gate-report.ts",
     "diagnostics:semantic-gate-candidates": "bun scripts/analysis/semantic-gate-candidates.ts",
     "diagnostics:semantic-gate-baseline": "bun scripts/evals/semantic-gate-baseline.ts",

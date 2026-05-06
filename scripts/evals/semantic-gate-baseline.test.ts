@@ -1,11 +1,9 @@
 import { describe, expect, test } from "bun:test"
 
 import {
-  buildActionEvidenceSummary,
   buildBaselineTerminalSummary,
   capOutlineBeats,
   extractPlanAssistGateLogEvidence,
-  extractTargetedRewriteIssueSamples,
   parseArgs,
   renderSemanticGateBaselineReport,
   scopeWriterExpansionRows,
@@ -106,52 +104,6 @@ Unresolved issues (2):
         "[beat 3] planned action changed.",
       ],
     })
-  })
-
-  test("extractTargetedRewriteIssueSamples reads issue bullets from retry context", () => {
-    const samples = extractTargetedRewriteIssueSamples(`
---- TARGETED REWRITE (chapter-plan check) ---
-Chapter-plan issues found:
-- Arbiter's name is Vellic instead of Cassel as planned
-- The chapter ends in the wrong location
-Rewrite this beat to address the issues above.
-`)
-
-    expect(samples).toEqual([
-      "Arbiter's name is Vellic instead of Cassel as planned",
-      "The chapter ends in the wrong location",
-    ])
-  })
-
-  test("buildActionEvidenceSummary sorts and counts action evidence", () => {
-    const summary = buildActionEvidenceSummary([
-      {
-        source: "pipeline_events",
-        sourceId: "2",
-        kind: "lint-fix-rejected",
-        chapter: 1,
-        beat: null,
-        attempt: null,
-        summary: "guard rejected fix",
-        timestamp: "2026-05-06T12:00:02.000Z",
-      },
-      {
-        source: "llm_calls",
-        sourceId: "1",
-        kind: "targeted-rewrite:chapter-plan-check",
-        chapter: 1,
-        beat: 5,
-        attempt: 12,
-        summary: "wrong name",
-        timestamp: "2026-05-06T12:00:01.000Z",
-      },
-    ])
-
-    expect(summary.byKind).toEqual({
-      "targeted-rewrite:chapter-plan-check": 1,
-      "lint-fix-rejected": 1,
-    })
-    expect(summary.items.map(item => item.sourceId)).toEqual(["1", "2"])
   })
 
   test("renderSemanticGateBaselineReport carries the semantic gate evidence", () => {

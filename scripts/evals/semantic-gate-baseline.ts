@@ -16,6 +16,11 @@ import { isAbsolute, join, resolve } from "node:path"
 import db from "../../src/db/connection"
 import { parseJsonbArray } from "../../src/db/jsonb"
 import {
+  formatActionEvidenceItem,
+  loadActionEvidenceSummary,
+  type ActionEvidenceSummary,
+} from "../analysis/action-evidence-report"
+import {
   buildCheckerWarningReport,
   type CheckerWarningReport,
   type ContinuityCallRow,
@@ -105,23 +110,6 @@ export interface PlanAssistGateSummary {
 export interface PlanAssistGateLogEvidence {
   unresolvedCount: number | null
   unresolvedSamples: string[]
-}
-
-export interface ActionEvidenceItem {
-  source: "llm_calls" | "pipeline_events" | "chapter_revisions" | "chapter_exhaustions" | "stdout"
-  sourceId: string
-  kind: string
-  chapter: number | null
-  beat: number | null
-  attempt: number | null
-  summary: string
-  timestamp: string | null
-}
-
-export interface ActionEvidenceSummary {
-  total: number
-  byKind: Record<string, number>
-  items: ActionEvidenceItem[]
 }
 
 export interface BaselineTerminalSummary {
@@ -285,30 +273,6 @@ export function extractPlanAssistGateLogEvidence(stdout: string): PlanAssistGate
   }
 }
 
-export function extractTargetedRewriteIssueSamples(userPrompt: string, limit = 3): string[] {
-  const section = userPrompt.match(/(?:Chapter-plan|Validation|Integrity) issues found:\n([\s\S]*?)(?:\nRewrite this beat\b|$)/i)?.[1]
-  if (!section) return []
-  return section
-    .split(/\r?\n/)
-    .flatMap(line => {
-      const match = line.match(/^\s*-\s+(.+)$/)
-      return match ? [snippet(match[1]!, 180)] : []
-    })
-    .slice(0, limit)
-}
-
-export function buildActionEvidenceSummary(items: readonly ActionEvidenceItem[]): ActionEvidenceSummary {
-  const sorted = [...items].sort((a, b) => {
-    const at = a.timestamp ? Date.parse(a.timestamp) : Number.MAX_SAFE_INTEGER
-    const bt = b.timestamp ? Date.parse(b.timestamp) : Number.MAX_SAFE_INTEGER
-    if (at !== bt) return at - bt
-    return a.sourceId.localeCompare(b.sourceId)
-  })
-  const byKind: Record<string, number> = {}
-  for (const item of sorted) byKind[item.kind] = (byKind[item.kind] ?? 0) + 1
-  return { total: sorted.length, byKind, items: sorted }
-}
-
 export function renderSemanticGateBaselineReport(report: SemanticGateBaselineReport): string {
   const lines: string[] = []
   lines.push("# Semantic Gate Baseline")
@@ -356,12 +320,7 @@ export function renderSemanticGateBaselineReport(report: SemanticGateBaselineRep
   lines.push("## Action Evidence")
   lines.push(`Actions: total=${report.checker.actionEvidence.total}; ${formatRecord(report.checker.actionEvidence.byKind)}`)
   for (const item of report.checker.actionEvidence.items.slice(0, 20)) {
-    const loc = [
-      item.chapter == null ? null : `ch${item.chapter}`,
-      item.beat == null ? null : `beat${item.beat}`,
-      item.attempt == null ? null : `attempt${item.attempt}`,
-    ].filter(Boolean).join(" ")
-    lines.push(`- ${item.kind}${loc ? ` (${loc})` : ""}: ${item.summary} [${item.source}#${item.sourceId}]`)
+    lines.push(`- ${formatActionEvidenceItem(item)}`)
   }
   if (report.terminal.latestPlanAssistGate) {
     const gate = report.terminal.latestPlanAssistGate
@@ -549,12 +508,7 @@ async function collectBaselineReport(input: {
   const planAssistLineage = buildPlanAssistLineageReport(await loadPlanAssistLineageRows(input.novelId), input.novelId)
   const hallucUngrounded = await loadHallucSummary(input.novelId)
   const planAssistGates = await loadPlanAssistGates(input.novelId)
-  const actionEvidence = buildActionEvidenceSummary([
-    ...await loadTargetedRewriteActionEvidence(input.novelId),
-    ...await loadPipelineActionEvidence(input.novelId),
-    ...await loadChapterRevisionActionEvidence(input.novelId),
-    ...planAssistGates.map(planAssistGateActionEvidence),
-  ])
+  const actionEvidence = await loadActionEvidenceSummary(input.novelId)
   const semanticGate = buildSemanticGateReport({
     writerExpansion,
     planDrift,
@@ -595,110 +549,6 @@ async function collectBaselineReport(input: {
       actionEvidence,
     },
   }
-}
-
-async function loadTargetedRewriteActionEvidence(novelId: string): Promise<ActionEvidenceItem[]> {
-  const rows = await db<Array<{
-    id: number
-    chapter: number | null
-    beat_index: number | null
-    attempt: number | null
-    request_json: unknown
-    user_prompt: string | null
-    timestamp: string
-  }>>`
-    SELECT id, chapter, beat_index, attempt, request_json, user_prompt, timestamp
-    FROM llm_calls
-    WHERE novel_id = ${novelId}
-      AND agent = 'beat-writer'
-      AND request_json->'meta'->>'rewriteSource' IS NOT NULL
-    ORDER BY id
-  `
-  return rows.map(row => {
-    const meta = readMeta(row.request_json)
-    const source = typeof meta.rewriteSource === "string" ? meta.rewriteSource : "unknown"
-    const samples = extractTargetedRewriteIssueSamples(row.user_prompt ?? "")
-    return {
-      source: "llm_calls",
-      sourceId: String(row.id),
-      kind: `targeted-rewrite:${source}`,
-      chapter: row.chapter == null ? null : Number(row.chapter),
-      beat: row.beat_index == null ? null : Number(row.beat_index) + 1,
-      attempt: row.attempt == null ? null : Number(row.attempt),
-      summary: samples.length > 0 ? samples.join(" | ") : "beat-writer targeted rewrite",
-      timestamp: row.timestamp,
-    }
-  })
-}
-
-async function loadPipelineActionEvidence(novelId: string): Promise<ActionEvidenceItem[]> {
-  const rows = await db<Array<{
-    id: number
-    chapter: number | null
-    beat_index: number | null
-    event_type: string
-    payload: unknown
-    timestamp: string
-  }>>`
-    SELECT id, chapter, beat_index, event_type, payload, timestamp
-    FROM pipeline_events
-    WHERE novel_id = ${novelId}
-      AND event_type IN (
-        'lint-fix-deterministic',
-        'lint-fix-llm',
-        'lint-fix-rejected',
-        'prose-integrity-repair',
-        'integrity-settle-complete',
-        'plan-assist-wait',
-        'plan-assist-resolve'
-      )
-    ORDER BY timestamp, id
-  `
-  return rows.map(row => {
-    const payload = readRecord(row.payload)
-    return {
-      source: "pipeline_events",
-      sourceId: String(row.id),
-      kind: row.event_type,
-      chapter: row.chapter == null ? null : Number(row.chapter),
-      beat: row.beat_index == null ? null : Number(row.beat_index) + 1,
-      attempt: null,
-      summary: summarizePayload(payload),
-      timestamp: row.timestamp,
-    }
-  })
-}
-
-async function loadChapterRevisionActionEvidence(novelId: string): Promise<ActionEvidenceItem[]> {
-  const rows = await db<Array<{
-    id: number
-    chapter: number
-    attempt: number
-    issue_count: number
-    original_beat_count: number
-    revised_beat_count: number | null
-    outcome: string
-    rejection_reason: string | null
-    invoked_at: string
-  }>>`
-    SELECT id, chapter, attempt, issue_count, original_beat_count, revised_beat_count,
-           outcome, rejection_reason, invoked_at
-    FROM chapter_revisions
-    WHERE novel_id = ${novelId}
-    ORDER BY invoked_at, id
-  `
-  return rows.map(row => ({
-    source: "chapter_revisions",
-    sourceId: String(row.id),
-    kind: `chapter-plan-reviser:${row.outcome}`,
-    chapter: Number(row.chapter),
-    beat: null,
-    attempt: Number(row.attempt),
-    summary: row.outcome === "accepted"
-      ? `accepted Chapter Plan replacement; issues=${row.issue_count}, beats=${row.original_beat_count}->${row.revised_beat_count ?? "?"}`
-      : `outcome=${row.outcome}; issues=${row.issue_count}${row.rejection_reason ? `; reason=${row.rejection_reason}` : ""}`,
-    timestamp: row.invoked_at,
-  }))
 }
 
 async function loadDraftSummary(novelId: string): Promise<DraftSummary> {
@@ -903,49 +753,6 @@ function deviationSummary(value: unknown): string {
     ? "chapter-level"
     : `beat ${Number(record.beat_index) + 1}`
   return snippet(`[${beat}] ${String(record.description ?? JSON.stringify(value))}`, 180)
-}
-
-function planAssistGateActionEvidence(gate: PlanAssistGateSummary): ActionEvidenceItem {
-  return {
-    source: "chapter_exhaustions",
-    sourceId: String(gate.id),
-    kind: `plan-assist:${gate.kind}`,
-    chapter: gate.chapter,
-    beat: null,
-    attempt: gate.attempt,
-    summary: `${gate.pending ? "pending" : gate.decision ?? "resolved"} gate; unresolved=${gate.unresolvedCount}` +
-      (gate.unresolvedSamples.length > 0 ? `; ${gate.unresolvedSamples.join(" | ")}` : ""),
-    timestamp: null,
-  }
-}
-
-function readMeta(value: unknown): Record<string, unknown> {
-  return readRecord(readRecord(value).meta)
-}
-
-function readRecord(value: unknown): Record<string, unknown> {
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value)
-      return readRecord(parsed)
-    } catch {
-      return {}
-    }
-  }
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {}
-}
-
-function summarizePayload(payload: Record<string, unknown>): string {
-  const issues = Array.isArray(payload.issues) ? payload.issues : []
-  const primitives = ["kind", "fixed", "passed", "failed", "llmCalls", "cost", "settled", "passes", "initialBeatCount"]
-    .flatMap(key => payload[key] === undefined ? [] : [`${key}=${String(payload[key])}`])
-  if (issues.length > 0) {
-    const first = deviationSummary(issues[0])
-    return [...primitives, `issues=${issues.length}`, first].join("; ")
-  }
-  return primitives.length > 0 ? primitives.join("; ") : snippet(JSON.stringify(payload), 180)
 }
 
 function formatSignals(counts: Record<string, number>): string {
