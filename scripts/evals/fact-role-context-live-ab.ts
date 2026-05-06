@@ -122,6 +122,7 @@ export interface ArmTerminalSummary {
   status: "completed" | "pending-plan-assist" | "process-exit" | "incomplete"
   reason: string
   latestPlanAssistGate: PlanAssistGateSummary | null
+  planAssistLogEvidence: PlanAssistGateLogEvidence | null
 }
 
 export interface PlanAssistGateSummary {
@@ -133,6 +134,11 @@ export interface PlanAssistGateSummary {
   decision: string | null
   pending: boolean
   unresolvedCount: number
+  unresolvedSamples: string[]
+}
+
+export interface PlanAssistGateLogEvidence {
+  unresolvedCount: number | null
   unresolvedSamples: string[]
 }
 
@@ -331,6 +337,13 @@ export function renderLiveAbReport(report: LiveAbReport): string {
     if (gate) {
       lines.push(`- latest gate: id=${gate.id}; chapter=${gate.chapter}; attempt=${gate.attempt}; kind=${gate.kind}; decision=${gate.decision ?? "pending"}; unresolved=${gate.unresolvedCount}`)
       for (const sample of gate.unresolvedSamples) {
+        lines.push(`  - ${sample}`)
+      }
+    }
+    const logEvidence = arm.terminal.planAssistLogEvidence
+    if (logEvidence) {
+      lines.push(`- log unresolved: ${logEvidence.unresolvedCount ?? "unknown"}`)
+      for (const sample of logEvidence.unresolvedSamples) {
         lines.push(`  - ${sample}`)
       }
     }
@@ -575,7 +588,13 @@ async function collectArmSummary(
   const warnings = buildCheckerWarningReport(await loadCheckerWarningInputs(novelId), novelId)
   const hallucUngrounded = await loadHallucSummary(novelId)
   const planAssistGates = await loadPlanAssistGates(novelId)
-  const terminal = buildArmTerminalSummary(processResult, novel?.phase === "done" && drafts.approvedChapters >= chapters, planAssistGates)
+  const logGateEvidence = await loadPlanAssistGateLogEvidence(processResult.stdoutPath)
+  const terminal = buildArmTerminalSummary(
+    processResult,
+    novel?.phase === "done" && drafts.approvedChapters >= chapters,
+    planAssistGates,
+    logGateEvidence,
+  )
 
   return {
     policy,
@@ -600,6 +619,7 @@ export function buildArmTerminalSummary(
   processResult: Pick<ArmRunSummary["process"], "exitCode" | "signal">,
   completed: boolean,
   planAssistGates: readonly PlanAssistGateSummary[],
+  planAssistLogEvidence: PlanAssistGateLogEvidence | null = null,
 ): ArmTerminalSummary {
   const latestGate = planAssistGates[0] ?? null
   if (completed) {
@@ -607,6 +627,7 @@ export function buildArmTerminalSummary(
       status: "completed",
       reason: "completed requested chapters",
       latestPlanAssistGate: latestGate,
+      planAssistLogEvidence,
     }
   }
 
@@ -616,6 +637,7 @@ export function buildArmTerminalSummary(
       status: "pending-plan-assist",
       reason: `stopped at pending plan-assist gate: chapter ${pendingGate.chapter}, kind ${pendingGate.kind}`,
       latestPlanAssistGate: pendingGate,
+      planAssistLogEvidence,
     }
   }
 
@@ -624,6 +646,7 @@ export function buildArmTerminalSummary(
       status: "process-exit",
       reason: `process exited before completion: exit=${String(processResult.exitCode)}, signal=${processResult.signal ?? "none"}`,
       latestPlanAssistGate: latestGate,
+      planAssistLogEvidence,
     }
   }
 
@@ -631,6 +654,27 @@ export function buildArmTerminalSummary(
     status: "incomplete",
     reason: "process exited cleanly but requested chapters were not approved",
     latestPlanAssistGate: latestGate,
+    planAssistLogEvidence,
+  }
+}
+
+export function extractPlanAssistGateLogEvidence(stdout: string): PlanAssistGateLogEvidence | null {
+  const gateStart = stdout.lastIndexOf("PLAN-ASSIST GATE")
+  if (gateStart < 0) return null
+  const section = stdout.slice(gateStart)
+  const countMatch = section.match(/Unresolved issues \((\d+)\):/)
+  const sampleStart = countMatch?.index === undefined ? 0 : countMatch.index + countMatch[0].length
+  const samples = section
+    .slice(sampleStart)
+    .split(/\r?\n/)
+    .flatMap(line => {
+      const match = line.match(/^\s*-\s+(.+)$/)
+      return match ? [snippet(match[1]!, 180)] : []
+    })
+    .slice(0, 3)
+  return {
+    unresolvedCount: countMatch ? Number(countMatch[1]) : null,
+    unresolvedSamples: samples,
   }
 }
 
@@ -818,6 +862,14 @@ async function loadPlanAssistGates(novelId: string): Promise<PlanAssistGateSumma
       unresolvedSamples: deviations.slice(0, 3).map(deviationSummary),
     }
   })
+}
+
+async function loadPlanAssistGateLogEvidence(stdoutPath: string): Promise<PlanAssistGateLogEvidence | null> {
+  try {
+    return extractPlanAssistGateLogEvidence(await readFile(stdoutPath, "utf8"))
+  } catch {
+    return null
+  }
 }
 
 function deviationSummary(value: unknown): string {

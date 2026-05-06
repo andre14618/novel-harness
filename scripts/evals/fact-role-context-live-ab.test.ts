@@ -5,6 +5,7 @@ import {
   buildLiveAbDelta,
   buildRolePromptExposure,
   capOutlineBeatsForEval,
+  extractPlanAssistGateLogEvidence,
   parseArgs,
   renderLiveAbReport,
   type ArmRunSummary,
@@ -135,6 +136,22 @@ describe("fact-role-context-live-ab", () => {
     expect(summary.latestPlanAssistGate?.id).toBe(42)
   })
 
+  test("extracts unresolved plan-assist evidence from stdout logs", () => {
+    const evidence = extractPlanAssistGateLogEvidence(`
+PLAN-ASSIST GATE - plan-check-exhausted (chapter 2)
+Unresolved issues (1):
+  - [chapter-level] [continuity] The draft claims weakness despite established strength.
+[WAITING] Plan-assist pending in web UI...
+`)
+
+    expect(evidence).toEqual({
+      unresolvedCount: 1,
+      unresolvedSamples: [
+        "[chapter-level] [continuity] The draft claims weakness despite established strength.",
+      ],
+    })
+  })
+
   test("parseArgs defaults to a two-chapter disposable eval output", () => {
     const args = parseArgs(["--source", "source-novel"])
 
@@ -218,6 +235,7 @@ function arm(
       status: "completed",
       reason: "completed requested chapters",
       latestPlanAssistGate: null,
+      planAssistLogEvidence: null,
     },
     roleCounts: { operational: 1, reference: 1, hidden: 1, unknown: 0 },
     promptExposure: {
