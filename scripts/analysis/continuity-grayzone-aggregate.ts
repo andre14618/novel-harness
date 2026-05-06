@@ -9,6 +9,7 @@
  */
 
 export type AdjudicationLabel = "TP" | "FP" | "AMB"
+export type FindingPolarity = "negative" | "positive" | "ambiguous"
 export type Subcategory =
   | "object_emphasis"
   | "emotional_readiness_state"
@@ -26,6 +27,7 @@ export interface PanelFindingRecord {
   subject: string
   evidence: string
   reasoning: string
+  polarity?: FindingPolarity
   stateType: string | null
   proseExcerpt: string
   stratum: { agent: string; severity: string }
@@ -68,10 +70,17 @@ export interface SubcategoryAggregate {
   findings: AggregatedFinding[]
 }
 
+export interface PolarityAggregate {
+  polarity: string
+  rates: RateBreakdown
+  findings: AggregatedFinding[]
+}
+
 export interface PanelAggregate {
   generatedAt: string
   total: RateBreakdown
   strata: StratumAggregate[]
+  polarities: PolarityAggregate[]
   subcategories: SubcategoryAggregate[]
 }
 
@@ -171,7 +180,15 @@ export function buildAggregate(
     }),
   )
 
-  return { generatedAt, total, strata, subcategories }
+  const polarities = groupBy(findings, (f) => f.polarity ?? "unknown").map(
+    (group): PolarityAggregate => ({
+      polarity: group.key,
+      rates: computeRates(group.items),
+      findings: group.items,
+    }),
+  )
+
+  return { generatedAt, total, strata, polarities, subcategories }
 }
 
 export function renderMarkdown(aggregate: PanelAggregate): string {
@@ -204,6 +221,20 @@ export function renderMarkdown(aggregate: PanelAggregate): string {
         `${formatRate(stratum.rates.tp, stratum.rates.total)} | ` +
         `${formatRate(stratum.rates.fp, stratum.rates.total)} | ` +
         `${formatRate(stratum.rates.amb, stratum.rates.total)} |`,
+    )
+  }
+  lines.push("")
+
+  lines.push("## Per-polarity rates")
+  lines.push("")
+  lines.push("| polarity | total | TP | FP | AMB |")
+  lines.push("|---|---|---|---|---|")
+  for (const polarity of aggregate.polarities) {
+    lines.push(
+      `| \`${polarity.polarity}\` | ${polarity.rates.total} | ` +
+        `${formatRate(polarity.rates.tp, polarity.rates.total)} | ` +
+        `${formatRate(polarity.rates.fp, polarity.rates.total)} | ` +
+        `${formatRate(polarity.rates.amb, polarity.rates.total)} |`,
     )
   }
   lines.push("")

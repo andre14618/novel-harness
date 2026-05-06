@@ -52,9 +52,9 @@ describe("continuity-grayzone-aggregate", () => {
   test("buildAggregate computes per-stratum and per-subcategory rates", () => {
     const findings: AggregatedFinding[] = [
       makeAggregated("1", "continuity-facts", "blocker", "TP", "object_emphasis"),
-      makeAggregated("2", "continuity-facts", "blocker", "FP", "object_emphasis"),
+      makeAggregated("2", "continuity-facts", "blocker", "FP", "object_emphasis", "positive"),
       makeAggregated("3", "continuity-facts", "warning", "AMB", "other"),
-      makeAggregated("4", "continuity-state", "warning", "TP", "other"),
+      makeAggregated("4", "continuity-state", "warning", "TP", "other", "positive"),
       makeAggregated("5", "continuity-state", "warning", null, null),
     ]
 
@@ -75,6 +75,11 @@ describe("continuity-grayzone-aggregate", () => {
 
     const objectSub = aggregate.subcategories.find((s) => s.subcategory === "object_emphasis")!
     expect(objectSub.rates.total).toBe(2)
+
+    const positive = aggregate.polarities.find((p) => p.polarity === "positive")!
+    expect(positive.rates.total).toBe(2)
+    expect(positive.rates.tp).toBe(1)
+    expect(positive.rates.fp).toBe(1)
   })
 
   test("renderMarkdown emits per-stratum and per-subcategory tables", () => {
@@ -86,6 +91,8 @@ describe("continuity-grayzone-aggregate", () => {
     expect(md).toContain("# Continuity Gray-Zone Panel Results")
     expect(md).toContain("Sample size: 2")
     expect(md).toContain("`continuity-facts/blocker`")
+    expect(md).toContain("## Per-polarity rates")
+    expect(md).toContain("`ambiguous`")
     expect(md).toContain("`object_emphasis`")
     expect(md).toContain("`other`")
   })
@@ -104,6 +111,7 @@ function makePanelRecord(
   agent: "continuity-facts" | "continuity-state",
   severity: "blocker" | "warning" | "nit",
   subject: string,
+  polarity: "negative" | "positive" | "ambiguous" = "ambiguous",
 ): PanelFindingRecord {
   return {
     findingId: id,
@@ -115,6 +123,7 @@ function makePanelRecord(
     subject,
     evidence: "evidence text",
     reasoning: "reasoning text",
+    polarity,
     stateType: agent === "continuity-state" ? "location" : null,
     proseExcerpt: "prose",
     stratum: { agent, severity },
@@ -127,9 +136,10 @@ function makeAggregated(
   severity: "blocker" | "warning" | "nit",
   label: "TP" | "FP" | "AMB" | null,
   subcategory: string | null,
+  polarity: "negative" | "positive" | "ambiguous" = "ambiguous",
 ): AggregatedFinding {
   return {
-    ...makePanelRecord(id, agent, severity, "subject"),
+    ...makePanelRecord(id, agent, severity, "subject", polarity),
     label,
     subcategory,
     rationale: label ? "rationale" : null,
