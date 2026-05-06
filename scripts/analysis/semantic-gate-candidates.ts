@@ -61,6 +61,8 @@ export interface SemanticGateCandidate {
   evidence: {
     pendingPlanAssistGates: number
     checkerBlockers: number
+    positivePolarityBlockers: number
+    ambiguousPolarityBlockers: number
     unresolvedPlanDriftChapters: number
     recoveredPlanDriftChapters: number
     writerExpansionChapters: number
@@ -168,7 +170,8 @@ export function renderSemanticGateCandidateReport(report: SemanticGateCandidateR
     lines.push(
       `   evidence: pendingGates=${candidate.evidence.pendingPlanAssistGates}, ` +
         `blockers=${candidate.evidence.checkerBlockers}, unresolvedDrift=${candidate.evidence.unresolvedPlanDriftChapters}, ` +
-        `recoveredDrift=${candidate.evidence.recoveredPlanDriftChapters}, drafted=${candidate.chapters.drafted}/${candidate.chapters.total}`,
+        `recoveredDrift=${candidate.evidence.recoveredPlanDriftChapters}, ` +
+        `positiveBlockers=${candidate.evidence.positivePolarityBlockers}, drafted=${candidate.chapters.drafted}/${candidate.chapters.total}`,
     )
     if (candidate.reasons.length > 0) {
       lines.push(`   reasons: ${candidate.reasons.join("; ")}`)
@@ -188,6 +191,8 @@ function candidateForNovel(
   const evidence = {
     pendingPlanAssistGates: sum(report.chapters, chapter => chapter.planAssist.pendingGates),
     checkerBlockers: sum(report.chapters, chapter => chapter.checker.blockers),
+    positivePolarityBlockers: sum(report.chapters, chapter => chapter.checker.positivePolarityBlockers),
+    ambiguousPolarityBlockers: sum(report.chapters, chapter => chapter.checker.ambiguousPolarityBlockers),
     unresolvedPlanDriftChapters: report.chapters.filter(chapter => chapter.planDrift.unresolved).length,
     recoveredPlanDriftChapters: report.chapters.filter(chapter => chapter.planDrift.recovered).length,
     writerExpansionChapters: signalCounts.writer_expansion,
@@ -243,6 +248,8 @@ function candidateReasons(evidence: SemanticGateCandidate["evidence"]): string[]
   const reasons: string[] = []
   if (evidence.pendingPlanAssistGates > 0) reasons.push(`${evidence.pendingPlanAssistGates} pending plan-assist gate(s)`)
   if (evidence.checkerBlockers > 0) reasons.push(`${evidence.checkerBlockers} checker blocker(s)`)
+  if (evidence.positivePolarityBlockers > 0) reasons.push(`${evidence.positivePolarityBlockers} positive-polarity checker blocker(s)`)
+  if (evidence.ambiguousPolarityBlockers > 0) reasons.push(`${evidence.ambiguousPolarityBlockers} ambiguous-polarity checker blocker(s)`)
   if (evidence.unresolvedPlanDriftChapters > 0) reasons.push(`${evidence.unresolvedPlanDriftChapters} unresolved plan-drift chapter(s)`)
   if (evidence.recoveredPlanDriftChapters > 0) reasons.push(`${evidence.recoveredPlanDriftChapters} recovered drift chapter(s)`)
   if (evidence.writerExpansionChapters > 0) reasons.push(`${evidence.writerExpansionChapters} writer-expansion chapter(s)`)

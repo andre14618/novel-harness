@@ -60,6 +60,8 @@ export interface SemanticGateChapter {
     totalItems: number
     blockers: number
     warnings: number
+    positivePolarityBlockers: number
+    ambiguousPolarityBlockers: number
     sources: string[]
   }
   planAssist: {
@@ -127,6 +129,8 @@ export function buildSemanticGateReport(input: SemanticGateInputs, novelId: stri
       const checkerItems = checker?.items ?? []
       const blockers = checkerItems.filter(item => item.severity === "blocker").length
       const warnings = checkerItems.filter(item => item.severity === "warning").length
+      const positivePolarityBlockers = checkerItems.filter(item => item.severity === "blocker" && item.polarity === "positive").length
+      const ambiguousPolarityBlockers = checkerItems.filter(item => item.severity === "blocker" && item.polarity === "ambiguous").length
       const expansionFlags = expansion?.flags ?? []
       const signals = semanticGateSignals({
         expansionFlags,
@@ -157,6 +161,8 @@ export function buildSemanticGateReport(input: SemanticGateInputs, novelId: stri
           totalItems: checkerItems.length,
           blockers,
           warnings,
+          positivePolarityBlockers,
+          ambiguousPolarityBlockers,
           sources: uniqueSorted(checkerItems.map(item => item.source)),
         },
         planAssist: {
@@ -220,7 +226,8 @@ export function renderSemanticGateReport(report: SemanticGateReport): string {
     if (chapter.checker.totalItems > 0) {
       lines.push(
         `  - checker: blockers=${chapter.checker.blockers}, warnings=${chapter.checker.warnings}, ` +
-          `sources=${chapter.checker.sources.join(",")}`,
+          `positivePolarityBlockers=${chapter.checker.positivePolarityBlockers}, ` +
+          `ambiguousPolarityBlockers=${chapter.checker.ambiguousPolarityBlockers}, sources=${chapter.checker.sources.join(",")}`,
       )
     }
     if (chapter.planAssist.totalEvents > 0) {

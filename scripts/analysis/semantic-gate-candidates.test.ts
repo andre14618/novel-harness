@@ -133,6 +133,8 @@ function semanticReport(
           totalItems: evidence.checkerBlockers ?? 0,
           blockers: evidence.checkerBlockers ?? 0,
           warnings: 0,
+          positivePolarityBlockers: 0,
+          ambiguousPolarityBlockers: 0,
           sources: evidence.checkerBlockers ? ["functional-check"] : [],
         },
         planAssist: {

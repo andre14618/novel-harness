@@ -20,6 +20,7 @@ export interface CheckerWarningItem {
   source: "functional-check" | "continuity-facts" | "continuity-state"
   severity: "blocker" | "warning" | "nit" | "unknown"
   description: string
+  polarity: CheckerWarningPolarity
   chapter: number | null
   beatIndex?: number | null
   beatId?: string
@@ -27,6 +28,8 @@ export interface CheckerWarningItem {
   rowId: number
   attempt?: number | null
 }
+
+export type CheckerWarningPolarity = "negative" | "positive" | "ambiguous"
 
 export interface CheckerWarningChapter {
   chapter: number | null
@@ -37,6 +40,7 @@ export interface CheckerWarningReport {
   novelId: string | null
   totalItems: number
   bySeverity: Record<string, number>
+  byPolarity: Record<CheckerWarningPolarity, number>
   chapters: CheckerWarningChapter[]
 }
 
@@ -72,11 +76,18 @@ export function buildCheckerWarningReport(
 
   const bySeverity: Record<string, number> = {}
   for (const item of items) bySeverity[item.severity] = (bySeverity[item.severity] ?? 0) + 1
+  const byPolarity: Record<CheckerWarningPolarity, number> = {
+    negative: 0,
+    positive: 0,
+    ambiguous: 0,
+  }
+  for (const item of items) byPolarity[item.polarity]++
 
   return {
     novelId,
     totalItems: items.length,
     bySeverity,
+    byPolarity,
     chapters: [...byChapter.values()].map(chapterItems => ({
       chapter: chapterItems[0]?.chapter ?? null,
       items: chapterItems,
@@ -88,6 +99,9 @@ export function renderCheckerWarningReport(report: CheckerWarningReport): string
   const lines: string[] = []
   lines.push(`Checker warning report${report.novelId ? ` for ${report.novelId}` : ""}`)
   lines.push(`Items: ${report.totalItems} total${Object.keys(report.bySeverity).length ? ` (${formatSeverityCounts(report.bySeverity)})` : ""}`)
+  if (report.totalItems > 0) {
+    lines.push(`Polarity: ${formatPolarityCounts(report.byPolarity)}`)
+  }
   if (report.chapters.length === 0) {
     lines.push("No functional or continuity warning items found.")
     return lines.join("\n")
@@ -106,7 +120,8 @@ export function renderCheckerWarningReport(report: CheckerWarningReport): string
       const ref = item.beatId ? ` [${item.beatId}]` : ""
       const planned = item.plannedItemId ? ` planned=${item.plannedItemId}` : ""
       const attempt = item.attempt == null ? "" : ` attempt=${item.attempt}`
-      lines.push(`  - [${item.severity}] ${item.source}${beat}${ref}${planned}${attempt}: ${item.description}`)
+      const polarity = item.polarity === "negative" ? "" : ` polarity=${item.polarity}`
+      lines.push(`  - [${item.severity}] ${item.source}${beat}${ref}${planned}${attempt}${polarity}: ${item.description}`)
     }
   }
   return lines.join("\n")
@@ -122,7 +137,8 @@ function functionalEventToItems(row: FunctionalEventRow): CheckerWarningItem[] {
     out.push({
       source: "functional-check",
       severity: "warning",
-      description: stringField(item.description) ?? JSON.stringify(raw),
+      description: itemDescription(item, raw),
+      polarity: classifyFindingPolarity(itemDescription(item, raw)),
       chapter: row.chapter,
       beatIndex: numberOrNull(item.beat_index),
       beatId: stringField(item.beatId),
@@ -135,7 +151,8 @@ function functionalEventToItems(row: FunctionalEventRow): CheckerWarningItem[] {
     out.push({
       source: "functional-check",
       severity: "blocker",
-      description: stringField(item.description) ?? JSON.stringify(raw),
+      description: itemDescription(item, raw),
+      polarity: classifyFindingPolarity(itemDescription(item, raw)),
       chapter: row.chapter,
       beatIndex: numberOrNull(item.beat_index),
       beatId: stringField(item.beatId),
@@ -158,10 +175,12 @@ function continuityRowToItems(row: ContinuityCallRow): CheckerWarningItem[] {
   if (row.agent === "continuity-facts") {
     return asArray(payload.contradictions).map(raw => {
       const item = asRecord(raw)
+      const description = stringField(item.reasoning) ?? stringField(item.evidence) ?? JSON.stringify(raw)
       return {
         source: "continuity-facts",
         severity: severityField(item.severity),
-        description: stringField(item.reasoning) ?? stringField(item.evidence) ?? JSON.stringify(raw),
+        description,
+        polarity: classifyFindingPolarity(description),
         chapter: row.chapter,
         rowId: row.id,
         attempt: row.attempt,
@@ -172,10 +191,12 @@ function continuityRowToItems(row: ContinuityCallRow): CheckerWarningItem[] {
     return asArray(payload.violations).map(raw => {
       const item = asRecord(raw)
       const violationType = stringField(item.type)
+      const description = `${stringField(item.character) ?? "unknown"} ${violationType ?? "state"} violation: ${stringField(item.reasoning) ?? stringField(item.evidence) ?? JSON.stringify(raw)}`
       return {
         source: "continuity-state",
         severity: normalizeContinuityStateSeverity(severityField(item.severity), violationType),
-        description: `${stringField(item.character) ?? "unknown"} ${violationType ?? "state"} violation: ${stringField(item.reasoning) ?? stringField(item.evidence) ?? JSON.stringify(raw)}`,
+        description,
+        polarity: classifyFindingPolarity(description),
         chapter: row.chapter,
         rowId: row.id,
         attempt: row.attempt,
@@ -191,6 +212,18 @@ function normalizeContinuityStateSeverity(
 ): CheckerWarningItem["severity"] {
   if (violationType === "location" && severity === "blocker") return "warning"
   return severity
+}
+
+export function classifyFindingPolarity(description: string): CheckerWarningPolarity {
+  const text = description.toLowerCase()
+  const explicitNonContradiction = /\b(does not contradict|not a contradiction|no contradiction)\b/.test(text)
+  const positive = explicitNonContradiction ||
+    /\b(consistent with|matching the|matches the|confirms?|acknowledges?|simply not referenced|not referenced)\b/.test(text)
+  const negative = !explicitNonContradiction &&
+    /\b(contradicts?|contradicting|contradiction|inconsistent|conflicts?|missing|omits?|does not mention|not explicitly|states .+ but|requires .+ but)\b/.test(text)
+  if (positive && negative) return "ambiguous"
+  if (positive) return "positive"
+  return negative ? "negative" : "ambiguous"
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -219,6 +252,10 @@ function severityOrder(severity: CheckerWarningItem["severity"]): number {
   return severity === "blocker" ? 0 : severity === "warning" ? 1 : severity === "nit" ? 2 : 3
 }
 
+function itemDescription(item: Record<string, unknown>, raw: unknown): string {
+  return stringField(item.description) ?? JSON.stringify(raw)
+}
+
 function compareNullableNumber(a: number | null, b: number | null): number {
   if (a === b) return 0
   if (a === null) return 1
@@ -230,6 +267,12 @@ function formatSeverityCounts(counts: Record<string, number>): string {
   return Object.entries(counts)
     .sort(([a], [b]) => severityOrder(severityField(a)) - severityOrder(severityField(b)))
     .map(([severity, count]) => `${severity}: ${count}`)
+    .join(", ")
+}
+
+function formatPolarityCounts(counts: Record<CheckerWarningPolarity, number>): string {
+  return (["negative", "positive", "ambiguous"] as const)
+    .map(polarity => `${polarity}: ${counts[polarity]}`)
     .join(", ")
 }
 

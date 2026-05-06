@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import {
   buildCheckerWarningReport,
+  classifyFindingPolarity,
   renderCheckerWarningReport,
   type ContinuityCallRow,
   type FunctionalEventRow,
@@ -87,5 +88,40 @@ describe("checker-warning-report", () => {
       "continuity-facts",
     ])
     expect(renderCheckerWarningReport(report)).toContain("[warning] continuity-state attempt=1")
+  })
+
+  test("marks consistency-shaped blocker rows as positive polarity", () => {
+    const continuityRows: ContinuityCallRow[] = [{
+      id: 11,
+      agent: "continuity-facts",
+      chapter: 2,
+      attempt: 1,
+      response_content: JSON.stringify({
+        contradictions: [{
+          fact: "assessment scheduled for dawn",
+          severity: "blocker",
+          evidence: "He had scheduled the physical assessment for dawn.",
+          reasoning: "The draft confirms the assessment is scheduled for dawn, consistent with the fact.",
+        }, {
+          fact: "witness required when requested",
+          severity: "blocker",
+          evidence: "It requires no witness.",
+          reasoning: "The draft states verification requires no witness, contradicting the fact.",
+        }],
+      }),
+    }]
+
+    const report = buildCheckerWarningReport({ continuityRows }, "novel-continuity")
+
+    expect(report.bySeverity).toEqual({ blocker: 2 })
+    expect(report.byPolarity).toEqual({ negative: 1, positive: 1, ambiguous: 0 })
+    expect(report.chapters[0]!.items.map(item => item.polarity).sort()).toEqual(["negative", "positive"])
+    expect(renderCheckerWarningReport(report)).toContain("polarity=positive")
+  })
+
+  test("classifies explicit non-contradictions as positive polarity", () => {
+    expect(classifyFindingPolarity("The draft does not contradict this fact.")).toBe("positive")
+    expect(classifyFindingPolarity("The draft states the rule changed, contradicting the fact.")).toBe("negative")
+    expect(classifyFindingPolarity("The draft may be underspecified.")).toBe("ambiguous")
   })
 })
