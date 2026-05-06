@@ -34,6 +34,13 @@ export interface PlanDriftChapter {
   parseErrors: number
   finalPass: boolean | null
   finalDeviationCount: number
+  hadDrift: boolean
+  recovered: boolean
+  unresolved: boolean
+  deviationCount: number
+  beatDeviationCount: number
+  chapterLevelDeviationCount: number
+  driftedBeatRefs: string[]
   driftCalls: PlanDriftCall[]
 }
 
@@ -43,6 +50,10 @@ export interface PlanDriftReport {
   passingCalls: number
   failingCalls: number
   parseErrors: number
+  chaptersWithDrift: number
+  recoveredChapters: number
+  unresolvedChapters: number
+  driftedBeatRefs: string[]
   chapters: PlanDriftChapter[]
 }
 
@@ -70,17 +81,28 @@ export function buildPlanDriftReport(rows: PlanCheckCallRow[], novelId: string |
 
   const chapters = [...byChapter.values()].map((chapterCalls): PlanDriftChapter => {
     const final = chapterCalls[chapterCalls.length - 1]
+    const stats = collectDeviationStats(chapterCalls)
+    const hadDrift = chapterCalls.some(call => call.pass === false)
+    const finalPass = final?.pass ?? null
     return {
       chapter: final?.chapter ?? null,
       totalCalls: chapterCalls.length,
       passingCalls: chapterCalls.filter(call => call.pass === true).length,
       failingCalls: chapterCalls.filter(call => call.pass === false).length,
       parseErrors: chapterCalls.filter(call => call.pass === null).length,
-      finalPass: final?.pass ?? null,
+      finalPass,
       finalDeviationCount: final?.deviations.length ?? 0,
+      hadDrift,
+      recovered: hadDrift && finalPass === true,
+      unresolved: finalPass === false,
+      deviationCount: stats.deviationCount,
+      beatDeviationCount: stats.beatDeviationCount,
+      chapterLevelDeviationCount: stats.chapterLevelDeviationCount,
+      driftedBeatRefs: stats.driftedBeatRefs,
       driftCalls: chapterCalls.filter(call => call.pass === false || call.parseError),
     }
   })
+  const driftedBeatRefs = uniqueSorted(chapters.flatMap(chapter => chapter.driftedBeatRefs))
 
   return {
     novelId,
@@ -88,6 +110,10 @@ export function buildPlanDriftReport(rows: PlanCheckCallRow[], novelId: string |
     passingCalls: calls.filter(call => call.pass === true).length,
     failingCalls: calls.filter(call => call.pass === false).length,
     parseErrors: calls.filter(call => call.pass === null).length,
+    chaptersWithDrift: chapters.filter(chapter => chapter.hadDrift).length,
+    recoveredChapters: chapters.filter(chapter => chapter.recovered).length,
+    unresolvedChapters: chapters.filter(chapter => chapter.unresolved).length,
+    driftedBeatRefs,
     chapters,
   }
 }
@@ -96,6 +122,10 @@ export function renderPlanDriftReport(report: PlanDriftReport): string {
   const lines: string[] = []
   lines.push(`Plan drift report${report.novelId ? ` for ${report.novelId}` : ""}`)
   lines.push(`Calls: ${report.totalCalls} total, ${report.failingCalls} failing, ${report.passingCalls} passing, ${report.parseErrors} parse errors`)
+  lines.push(`Chapters: ${report.chaptersWithDrift} with drift, ${report.recoveredChapters} recovered, ${report.unresolvedChapters} unresolved`)
+  if (report.driftedBeatRefs.length > 0) {
+    lines.push(`Stable beat refs: ${report.driftedBeatRefs.join(", ")}`)
+  }
   if (report.chapters.length === 0) {
     lines.push("No chapter-plan-checker calls found.")
     return lines.join("\n")
@@ -104,8 +134,14 @@ export function renderPlanDriftReport(report: PlanDriftReport): string {
   for (const chapter of report.chapters) {
     const label = chapter.chapter === null ? "chapter ?" : `chapter ${chapter.chapter}`
     const final = chapter.finalPass === null ? "unknown" : chapter.finalPass ? "pass" : "fail"
+    const status = chapter.recovered ? ", recovered" : chapter.unresolved ? ", unresolved" : ""
+    const refs = chapter.driftedBeatRefs.length > 0 ? `, refs=${chapter.driftedBeatRefs.join(",")}` : ""
     lines.push("")
-    lines.push(`${label}: final=${final}, calls=${chapter.totalCalls}, failing=${chapter.failingCalls}, parseErrors=${chapter.parseErrors}`)
+    lines.push(
+      `${label}: final=${final}${status}, calls=${chapter.totalCalls}, ` +
+        `failing=${chapter.failingCalls}, deviations=${chapter.deviationCount}, ` +
+        `chapterLevel=${chapter.chapterLevelDeviationCount}, parseErrors=${chapter.parseErrors}${refs}`,
+    )
     for (const call of chapter.driftCalls) {
       const callLabel = `call ${call.id}${call.attempt === null ? "" : ` attempt ${call.attempt}`}`
       if (call.parseError) {
@@ -124,6 +160,21 @@ export function renderPlanDriftReport(report: PlanDriftReport): string {
     }
   }
   return lines.join("\n")
+}
+
+function collectDeviationStats(calls: PlanDriftCall[]): {
+  deviationCount: number
+  beatDeviationCount: number
+  chapterLevelDeviationCount: number
+  driftedBeatRefs: string[]
+} {
+  const deviations = calls.flatMap(call => call.pass === false ? call.deviations : [])
+  return {
+    deviationCount: deviations.length,
+    beatDeviationCount: deviations.filter(deviation => deviation.beatIndex !== null).length,
+    chapterLevelDeviationCount: deviations.filter(deviation => deviation.beatIndex === null).length,
+    driftedBeatRefs: uniqueSorted(deviations.flatMap(deviation => deviation.beatId ? [deviation.beatId] : [])),
+  }
 }
 
 function rowToCall(row: PlanCheckCallRow): PlanDriftCall {
@@ -178,6 +229,10 @@ function compareNullableNumber(a: number | null, b: number | null): number {
   if (a === null) return 1
   if (b === null) return -1
   return a - b
+}
+
+function uniqueSorted(values: string[]): string[] {
+  return [...new Set(values)].sort((a, b) => a.localeCompare(b))
 }
 
 function parseArgs(argv: string[]): Args {
