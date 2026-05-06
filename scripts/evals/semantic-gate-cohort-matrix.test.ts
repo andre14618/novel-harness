@@ -93,8 +93,24 @@ describe("buildCohortReport", () => {
           variantResult("beats-5", "beats 5", { completed: false, status: "reported", riskScore: 500, wordRatio: 1.4, costUsd: 0.2, pendingPlanAssistGate: true, reasons: ["pending plan-assist gate"] }),
         ]),
         matrixRun("novel-b", [
-          variantResult("beats-4", "beats 4", { completed: true, riskScore: 15, wordRatio: 1.2, costUsd: 0.3, reasons: ["1 writer-expansion chapter(s)"], semanticSignals: { writer_expansion: 1 } }),
-          variantResult("beats-5", "beats 5", { completed: true, riskScore: 100, wordRatio: 1.8, costUsd: 0.4, reasons: ["1 plan-drift chapter(s)"], semanticSignals: { plan_adherence_drift: 1 } }),
+          variantResult("beats-4", "beats 4", {
+            completed: true,
+            riskScore: 15,
+            wordRatio: 1.2,
+            costUsd: 0.3,
+            reasons: ["1 writer-expansion chapter(s)"],
+            semanticSignals: { writer_expansion: 1 },
+            riskBreakdown: [{ key: "writer_expansion", label: "writer expansion", value: 1, weight: 15, points: 15 }],
+          }),
+          variantResult("beats-5", "beats 5", {
+            completed: true,
+            riskScore: 100,
+            wordRatio: 1.8,
+            costUsd: 0.4,
+            reasons: ["1 plan-drift chapter(s)"],
+            semanticSignals: { plan_adherence_drift: 1 },
+            riskBreakdown: [{ key: "plan_adherence_drift", label: "plan drift", value: 1, weight: 80, points: 80 }],
+          }),
         ]),
       ],
     })
@@ -111,7 +127,9 @@ describe("buildCohortReport", () => {
       totalCostUsd: 0.4,
       totalLlmCalls: 20,
       semanticSignals: { writer_expansion: 1 },
+      riskDrivers: { "writer expansion": 15 },
     })
+    expect(report.ranking[0].topRiskDrivers).toEqual(["writer expansion (15)"])
     expect(report.totals).toMatchObject({
       matrixRuns: 2,
       reportedMatrices: 2,
@@ -218,6 +236,7 @@ function variantResult(
       failedLlmCalls: overrides.failedLlmCalls ?? 0,
       costUsd: overrides.costUsd ?? 0,
       riskScore: overrides.riskScore ?? 0,
+      riskBreakdown: overrides.riskBreakdown ?? [],
       reasons: overrides.reasons ?? ["clean"],
     },
   }

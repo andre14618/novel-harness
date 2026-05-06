@@ -5134,7 +5134,18 @@ details[open] summary::before { transform: rotate(90deg); }
   gap: 5px;
   margin-bottom: 10px;
 }
-.semantic-gate-matrix-signals span {
+.semantic-gate-matrix-risk-drivers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.semantic-gate-matrix-risk-drivers.compact {
+  margin-bottom: 6px;
+  margin-top: 5px;
+}
+.semantic-gate-matrix-signals span,
+.semantic-gate-matrix-risk-drivers span {
   background: var(--bg-inset);
   border: 1px solid var(--border-subtle);
   border-radius: 3px;
@@ -5145,7 +5156,8 @@ details[open] summary::before { transform: rotate(90deg); }
 .semantic-gate-matrix-signals span.active {
   color: var(--text-secondary);
 }
-.semantic-gate-matrix-signals strong {
+.semantic-gate-matrix-signals strong,
+.semantic-gate-matrix-risk-drivers strong {
   color: var(--accent);
 }
 .semantic-gate-matrix-reasons {

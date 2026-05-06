@@ -232,6 +232,7 @@ function RankingRow({ item, rank }: { item: SemanticGateMatrixRankingItem; rank:
         <div className="semantic-gate-matrix-ranking-meta">
           risk {formatNumber(item.riskScore, 2)} - word ratio {formatRatio(item.wordRatio)} - {formatCost(item.costUsd)}
         </div>
+        <RiskDriverList components={item.riskBreakdown ?? []} compact />
         <ReasonList reasons={item.reasons} limit={3} />
       </div>
     </div>
@@ -278,6 +279,9 @@ function VariantCard({ result, rank }: { result: SemanticGateMatrixVariantResult
 
       <div className="semantic-gate-matrix-section-title">Signals</div>
       <SignalList signals={assessment.semanticSignals} />
+
+      <div className="semantic-gate-matrix-section-title">Risk Drivers</div>
+      <RiskDriverList components={assessment.riskBreakdown ?? []} />
 
       <div className="semantic-gate-matrix-section-title">Reasons</div>
       <ReasonList reasons={assessment.reasons} />
@@ -330,6 +334,30 @@ function SignalList({ signals }: { signals: Record<string, number> }) {
           {key} <strong>{value}</strong>
         </span>
       ))}
+    </div>
+  )
+}
+
+function RiskDriverList({
+  components,
+  compact = false,
+}: {
+  components: NonNullable<SemanticGateMatrixRankingItem["riskBreakdown"]>
+  compact?: boolean
+}) {
+  const rows = components
+    .filter(component => component.points > 0)
+    .sort((a, b) => b.points - a.points || a.label.localeCompare(b.label))
+    .slice(0, compact ? 3 : undefined)
+  if (rows.length === 0) return <div className="planning-muted">No risk drivers.</div>
+  return (
+    <div className={`semantic-gate-matrix-risk-drivers ${compact ? "compact" : ""}`}>
+      {rows.map(component => (
+        <span key={component.key} title={`${formatNumber(component.value, 2)} × ${formatNumber(component.weight, 2)}`}>
+          {component.label} <strong>{formatNumber(component.points, 2)}</strong>
+        </span>
+      ))}
+      {compact && components.length > rows.length && <span>{components.length - rows.length} more</span>}
     </div>
   )
 }

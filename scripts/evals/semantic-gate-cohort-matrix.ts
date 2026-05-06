@@ -17,6 +17,7 @@ import {
   runBounded,
   type MatrixVariant,
   type MatrixVariantResult,
+  type RiskScoreComponent,
   type SemanticGateMatrixReport,
 } from "./semantic-gate-matrix"
 
@@ -65,6 +66,7 @@ export interface CohortVariantAggregate {
   totalCostUsd: number
   totalLlmCalls: number
   semanticSignals: Record<string, number>
+  riskDrivers: Record<string, number>
   terminalStatuses: Record<string, number>
   reasons: Record<string, number>
 }
@@ -86,6 +88,7 @@ export interface SemanticGateCohortMatrixReport {
     meanWordRatio: number | null
     totalCostUsd: number
     topReasons: string[]
+    topRiskDrivers: string[]
   }>
   totals: {
     matrixRuns: number
@@ -179,6 +182,7 @@ export function buildCohortReport(input: {
       meanWordRatio: variant.meanWordRatio,
       totalCostUsd: variant.totalCostUsd,
       topReasons: topEntries(variant.reasons, 4),
+      topRiskDrivers: topEntries(variant.riskDrivers, 4),
     }))
 
   return {
@@ -226,7 +230,9 @@ export function renderCohortReport(report: SemanticGateCohortMatrixReport): stri
       `- ${ranked.label}: meanRisk=${formatNullable(ranked.meanRiskScore, 2)}, ` +
         `completed=${ranked.completed}/${ranked.runs}, cleanPass=${ranked.cleanPass}, ` +
         `meanWordRatio=${formatNullable(ranked.meanWordRatio, 2)}, ` +
-        `cost=$${ranked.totalCostUsd.toFixed(4)}; ${ranked.topReasons.join("; ") || "no reasons"}`,
+        `cost=$${ranked.totalCostUsd.toFixed(4)}; ` +
+        `drivers=${ranked.topRiskDrivers.join(", ") || "none"}; ` +
+        `${ranked.topReasons.join("; ") || "no reasons"}`,
     )
   }
   lines.push("")
@@ -272,6 +278,7 @@ function aggregateVariants(runs: readonly CohortMatrixRun[]): CohortVariantAggre
       result.assessment.wordRatio === null ? [] : [result.assessment.wordRatio]
     )
     const semanticSignals: Record<string, number> = {}
+    const riskDrivers: Record<string, number> = {}
     const terminalStatuses: Record<string, number> = {}
     const reasons: Record<string, number> = {}
     let cleanPass = 0
@@ -280,6 +287,9 @@ function aggregateVariants(runs: readonly CohortMatrixRun[]): CohortVariantAggre
       increment(terminalStatuses, result.assessment.terminalStatus)
       for (const [signal, count] of Object.entries(result.assessment.semanticSignals)) {
         semanticSignals[signal] = (semanticSignals[signal] ?? 0) + count
+      }
+      for (const component of riskBreakdownForResult(result)) {
+        riskDrivers[component.label] = (riskDrivers[component.label] ?? 0) + component.points
       }
       for (const reason of result.assessment.reasons) increment(reasons, reason)
       if (isCleanPass(result)) cleanPass++
@@ -298,10 +308,18 @@ function aggregateVariants(runs: readonly CohortMatrixRun[]): CohortVariantAggre
       totalCostUsd: bucket.results.reduce((sum, result) => sum + result.assessment.costUsd, 0),
       totalLlmCalls: bucket.results.reduce((sum, result) => sum + result.assessment.llmCalls, 0),
       semanticSignals,
+      riskDrivers,
       terminalStatuses,
       reasons,
     }
   })
+}
+
+function riskBreakdownForResult(result: MatrixVariantResult): RiskScoreComponent[] {
+  const unknownAssessment = result.assessment as MatrixVariantResult["assessment"] & {
+    riskBreakdown?: RiskScoreComponent[]
+  }
+  return unknownAssessment.riskBreakdown ?? []
 }
 
 async function main(argv: string[]): Promise<number> {

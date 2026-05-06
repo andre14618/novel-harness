@@ -918,7 +918,16 @@ export interface SemanticGateMatrixAssessment {
   failedLlmCalls: number
   costUsd: number
   riskScore: number
+  riskBreakdown?: SemanticGateMatrixRiskComponent[]
   reasons: string[]
+}
+
+export interface SemanticGateMatrixRiskComponent {
+  key: string
+  label: string
+  value: number
+  weight: number
+  points: number
 }
 
 export interface SemanticGateMatrixVariantResult {
@@ -946,6 +955,7 @@ export interface SemanticGateMatrixRankingItem {
   wordRatio: number | null
   costUsd: number
   reasons: string[]
+  riskBreakdown?: SemanticGateMatrixRiskComponent[]
 }
 
 export interface SemanticGateMatrixReport {

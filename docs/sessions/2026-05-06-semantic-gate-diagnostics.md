@@ -114,6 +114,11 @@ The immediate question was whether the failure pattern was primarily:
 - Baseline report wording calibration
   - Halluc-ungrounded baseline counts are labeled as raw pre-retry checker
     output so completed runs are not misread as approving accepted blockers.
+- Risk-score explainability slice
+  - Matrix summaries now persist `riskBreakdown[]` next to `riskScore`, and
+    cohort aggregation rolls those components into top risk drivers.
+  - Matrix report markdown and the read-only Matrix UI show the weighted
+    drivers behind each score.
 
 ## Evidence
 
@@ -293,6 +298,17 @@ Observed signals:
   (`wordRatio=1.07`) but had two plan-drift chapters. Interpretation: beat cap
   is now in a usable range, but neither arm is clean enough to promote as a
   runtime default without a larger A/B or replay comparison.
+- Fresh risk-breakdown matrix:
+  `diagnostics:semantic-gate-matrix -- --source fantasy-system-heretic
+  --chapters 1 --variant capped:beats=4 --variant control:source --parallel 2
+  --output-base
+  output/evals/semantic-gate-matrix/fantasy-system-heretic-risk-breakdown-20260506T163037`
+  completed both disposable arms. Capped ranked at risk `0.97` from
+  `word-ratio delta=0.97`. Control ranked at `38.99` from `writer expansion=15`,
+  `outline shape=5`, and `word-ratio delta=18.99`. Browser evidence for the
+  risk-driver UI and legacy-summary fallback is under
+  `output/playwright/2026-05-06/semantic-gate-matrix-risk-risk-breakdown` and
+  passed `ui:evidence-check`.
 - Read-only matrix artifact viewer shipped for
   `/app/semantic-gate-matrix/fantasy-system-heretic-20260506T142441023` with
   file-backed API route

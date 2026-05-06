@@ -6,6 +6,7 @@ import {
   buildVariantAssessment,
   parseArgs,
   parseVariantSpec,
+  riskScoreBreakdownFor,
   runBounded,
   type MatrixVariantResult,
 } from "./semantic-gate-matrix"
@@ -124,6 +125,32 @@ describe("buildVariantAssessment", () => {
       riskScore: 1000,
       reasons: ["missing baseline summary"],
     })
+  })
+})
+
+describe("riskScoreBreakdownFor", () => {
+  test("reports the weighted components that form a diagnostic risk score", () => {
+    const components = riskScoreBreakdownFor({
+      completed: true,
+      pendingPlanAssistGate: false,
+      signalCounts: {
+        plan_adherence_drift: 1,
+        writer_expansion: 2,
+      },
+      wordRatio: 1.345,
+      failedLlmCalls: 0,
+    })
+
+    expect(components.map(component => ({
+      key: component.key,
+      value: component.value,
+      weight: component.weight,
+      points: Number(component.points.toFixed(2)),
+    }))).toEqual([
+      { key: "plan_adherence_drift", value: 1, weight: 80, points: 80 },
+      { key: "writer_expansion", value: 2, weight: 15, points: 30 },
+      { key: "word_ratio_delta", value: 0.345, weight: 10, points: 3.45 },
+    ])
   })
 })
 
@@ -280,6 +307,7 @@ function variantResult(
       failedLlmCalls: 0,
       costUsd: 0,
       riskScore: 0,
+      riskBreakdown: [],
       reasons: [],
       ...overrides,
     },

@@ -46,6 +46,14 @@ export interface MatrixVariantResult {
   assessment: MatrixVariantAssessment
 }
 
+export interface RiskScoreComponent {
+  key: string
+  label: string
+  value: number
+  weight: number
+  points: number
+}
+
 export interface MatrixVariantAssessment {
   completed: boolean
   approvedChapters: number
@@ -63,6 +71,7 @@ export interface MatrixVariantAssessment {
   failedLlmCalls: number
   costUsd: number
   riskScore: number
+  riskBreakdown: RiskScoreComponent[]
   reasons: string[]
 }
 
@@ -81,6 +90,7 @@ export interface SemanticGateMatrixReport {
     wordRatio: number | null
     costUsd: number
     reasons: string[]
+    riskBreakdown: RiskScoreComponent[]
   }>
   totals: {
     variants: number
@@ -192,6 +202,13 @@ export function buildVariantAssessment(
       failedLlmCalls: 0,
       costUsd: 0,
       riskScore: 1000,
+      riskBreakdown: [{
+        key: "missing_summary",
+        label: "missing summary",
+        value: 1,
+        weight: 1000,
+        points: 1000,
+      }],
       reasons: ["missing baseline summary"],
     }
   }
@@ -216,13 +233,14 @@ export function buildVariantAssessment(
     ? null
     : chapterRatios.reduce((sum, ratio) => sum + ratio, 0) / chapterRatios.length
   const wordRatio = draftedTargets > 0 ? baseline.drafts.totalWords / draftedTargets : null
-  const riskScore = riskScoreFor({
+  const riskBreakdown = riskScoreBreakdownFor({
     completed,
     pendingPlanAssistGate,
     signalCounts: baseline.checker.semanticGate.totals.bySignal,
     wordRatio,
     failedLlmCalls: baseline.llm.failedCalls,
   })
+  const riskScore = sumRiskScore(riskBreakdown)
 
   return {
     completed,
@@ -241,6 +259,7 @@ export function buildVariantAssessment(
     failedLlmCalls: baseline.llm.failedCalls,
     costUsd: baseline.llm.costUsd,
     riskScore,
+    riskBreakdown,
     reasons,
   }
 }
@@ -267,6 +286,7 @@ export function buildMatrixReport(input: {
       wordRatio: result.assessment.wordRatio,
       costUsd: result.assessment.costUsd,
       reasons: result.assessment.reasons,
+      riskBreakdown: result.assessment.riskBreakdown,
     }))
 
   return {
@@ -315,7 +335,7 @@ export function renderMatrixReport(report: SemanticGateMatrixReport): string {
     lines.push(
       `- ${ranked.label}: risk=${formatNullable(ranked.riskScore, 2)}, ` +
         `completed=${ranked.completed}, wordRatio=${formatNullable(ranked.wordRatio, 2)}, ` +
-        `cost=$${ranked.costUsd.toFixed(4)}; ${ranked.reasons.join("; ")}`,
+        `cost=$${ranked.costUsd.toFixed(4)}; drivers=${formatRiskBreakdown(ranked.riskBreakdown)}; ${ranked.reasons.join("; ")}`,
     )
   }
   lines.push("")
@@ -332,6 +352,7 @@ export function renderMatrixReport(report: SemanticGateMatrixReport): string {
       `Approved: ${a.approvedChapters}/${a.requestedChapters}; words=${a.totalWords}; ` +
         `wordRatio=${formatNullable(a.wordRatio, 2)}; actions=${a.actionCount}; proposals=${a.proposalCount}`,
     )
+    lines.push(`Risk: ${formatNullable(a.riskScore, 2)}; drivers=${formatRiskBreakdown(a.riskBreakdown)}`)
     lines.push(`Signals: ${signals || "(none)"}`)
     lines.push(`Artifact: ${result.reportPath}`)
     if (result.error) lines.push(`Error: ${result.error}`)
@@ -508,24 +529,46 @@ function assessmentReasons(input: {
   return reasons
 }
 
-function riskScoreFor(input: {
+export function riskScoreBreakdownFor(input: {
   completed: boolean
   pendingPlanAssistGate: boolean
   signalCounts: Record<string, number>
   wordRatio: number | null
   failedLlmCalls: number
-}): number {
-  let score = 0
-  if (!input.completed) score += 1000
-  if (input.pendingPlanAssistGate) score += 500
-  score += (input.signalCounts.checker_blocker ?? 0) * 100
-  score += (input.signalCounts.plan_adherence_drift ?? 0) * 80
-  score += (input.signalCounts.no_draft ?? 0) * 60
-  score += (input.signalCounts.writer_expansion ?? 0) * 15
-  score += (input.signalCounts.outline_shape ?? 0) * 5
-  score += input.failedLlmCalls * 25
-  if (input.wordRatio !== null) score += Math.abs(input.wordRatio - 1) * 10
-  return score
+}): RiskScoreComponent[] {
+  return [
+    riskComponent("incomplete", "incomplete", input.completed ? 0 : 1, 1000),
+    riskComponent("pending_plan_assist_gate", "pending Plan-Assist gate", input.pendingPlanAssistGate ? 1 : 0, 500),
+    riskComponent("checker_blocker", "checker blocker", input.signalCounts.checker_blocker ?? 0, 100),
+    riskComponent("plan_adherence_drift", "plan drift", input.signalCounts.plan_adherence_drift ?? 0, 80),
+    riskComponent("no_draft", "no draft", input.signalCounts.no_draft ?? 0, 60),
+    riskComponent("writer_expansion", "writer expansion", input.signalCounts.writer_expansion ?? 0, 15),
+    riskComponent("outline_shape", "outline shape", input.signalCounts.outline_shape ?? 0, 5),
+    riskComponent("failed_llm_call", "failed LLM call", input.failedLlmCalls, 25),
+    riskComponent("word_ratio_delta", "word-ratio delta", input.wordRatio === null ? 0 : Math.abs(input.wordRatio - 1), 10),
+  ].filter(component => component.points > 0)
+}
+
+function riskComponent(key: string, label: string, value: number, weight: number): RiskScoreComponent {
+  return {
+    key,
+    label,
+    value,
+    weight,
+    points: value * weight,
+  }
+}
+
+function sumRiskScore(components: readonly RiskScoreComponent[]): number {
+  return components.reduce((sum, component) => sum + component.points, 0)
+}
+
+function formatRiskBreakdown(components: readonly RiskScoreComponent[] | undefined): string {
+  if (!components || components.length === 0) return "none"
+  return components
+    .slice(0, 5)
+    .map(component => `${component.label}=${component.points.toFixed(2)}`)
+    .join(", ")
 }
 
 function pushArg(map: Record<string, Array<string | true>>, key: string, value: string | true): void {
