@@ -12,7 +12,7 @@ This file tracks active and immediately actionable work only.
 
 ## Next
 
-- Use semantic-gate candidate lenses, baseline, and matrix diagnostics for fresh disposable evidence before runtime nudges; opt continuity review flags in with `--continuity-editorial-flag-proposals`.
+- Use semantic-gate candidate JSON artifacts, baseline, matrix, and cohort diagnostics for fresh disposable evidence before runtime nudges; opt continuity review flags in with `--continuity-editorial-flag-proposals`.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO
@@ -31,7 +31,7 @@ This file tracks active and immediately actionable work only.
 - Continuity L83/L84 shipped: state warnings are diagnostic noise; continuity
   does not block Drafting, and fact-scoped blockers have opt-in editorial flags.
 - Semantic-gate diagnostics shipped: writer expansion, Diagnostics landing
-  page, default-off planning beat-cap seam, cohort aggregation, baseline/matrix viewers, risk-driver explanations, candidate ranking, load-bearing discounts, action/proposal evidence, drift witnesses.
+  page, default-off planning beat-cap seam, cohort aggregation, baseline/matrix viewers, risk-driver explanations, durable candidate JSON output, candidate ranking, load-bearing discounts, action/proposal evidence, drift witnesses.
   Record: `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.
 - Fact-role policy seam shipped with opt-in Canon role scoping, diagnostic
   preview, fixture eval, and live A/B runner; hidden facts stay explicit opt-in.

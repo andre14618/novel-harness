@@ -7,6 +7,9 @@
  * next evidence target without ad hoc SQL or creative-runtime changes.
  */
 
+import { mkdir, writeFile } from "node:fs/promises"
+import { dirname, resolve } from "node:path"
+
 import {
   buildSemanticGateReport,
   type SemanticGateReport,
@@ -99,6 +102,7 @@ interface Args {
   json: boolean
   includeArchived: boolean
   limit: number
+  outputPath: string | null
   scanLimit: number
 }
 
@@ -368,11 +372,12 @@ function groupByNovel<T extends NovelScopedRow>(rows: readonly T[]): Map<string,
   return grouped
 }
 
-function parseArgs(argv: string[]): Args {
+export function parseArgs(argv: string[]): Args {
   const args: Args = {
     json: false,
     includeArchived: false,
     limit: DEFAULT_LIMIT,
+    outputPath: null,
     scanLimit: DEFAULT_SCAN_LIMIT,
   }
   for (let i = 0; i < argv.length; i++) {
@@ -383,6 +388,8 @@ function parseArgs(argv: string[]): Args {
       args.includeArchived = true
     } else if (arg === "--limit") {
       args.limit = parsePositiveInt(argv[++i], "--limit")
+    } else if (arg === "--output") {
+      args.outputPath = parsePath(argv[++i], "--output")
     } else if (arg === "--scan-limit") {
       args.scanLimit = parsePositiveInt(argv[++i], "--scan-limit")
     } else {
@@ -390,6 +397,11 @@ function parseArgs(argv: string[]): Args {
     }
   }
   return args
+}
+
+function parsePath(value: string | undefined, name: string): string {
+  if (!value) throw new Error(`${name} requires a value`)
+  return value
 }
 
 function parsePositiveInt(value: string | undefined, name: string): number {
@@ -602,17 +614,31 @@ async function loadCandidateReports(args: Args): Promise<SemanticGateCandidateRe
   }
 }
 
+export async function writeSemanticGateCandidateJson(
+  report: SemanticGateCandidateReport,
+  outputPath: string,
+): Promise<string> {
+  const absolutePath = resolve(outputPath)
+  await mkdir(dirname(absolutePath), { recursive: true })
+  await writeFile(absolutePath, `${JSON.stringify(report, null, 2)}\n`, "utf8")
+  return absolutePath
+}
+
 async function main(argv: string[]): Promise<number> {
   let args: Args
   try {
     args = parseArgs(argv)
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err))
-    console.error("usage: bun scripts/analysis/semantic-gate-candidates.ts [--limit N] [--scan-limit N] [--include-archived] [--json]")
+    console.error("usage: bun scripts/analysis/semantic-gate-candidates.ts [--limit N] [--scan-limit N] [--include-archived] [--json] [--output path.json]")
     return 2
   }
 
   const report = await loadCandidateReports(args)
+  if (args.outputPath) {
+    const writtenPath = await writeSemanticGateCandidateJson(report, args.outputPath)
+    console.error(`Wrote ${writtenPath}`)
+  }
   console.log(args.json ? JSON.stringify(report, null, 2) : renderSemanticGateCandidateReport(report))
   return 0
 }

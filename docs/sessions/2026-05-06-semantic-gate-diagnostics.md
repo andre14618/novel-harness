@@ -119,6 +119,9 @@ The immediate question was whether the failure pattern was primarily:
     cohort aggregation rolls those components into top risk drivers.
   - Matrix report markdown and the read-only Matrix UI show the weighted
     drivers behind each score.
+- Durable candidate artifact slice
+  - `diagnostics:semantic-gate-candidates` now accepts `--output <path>` and
+    writes cohort-readable JSON while preserving existing stdout behavior.
 
 ## Evidence
 
@@ -267,6 +270,12 @@ Observed signals:
   `diagnostics:semantic-gate-candidates -- --limit 5 --scan-limit 20 --json`
   returned zero critical candidates. The highest current signals are
   plan-shape/writer-expansion, not active Drafting blockers.
+- Durable candidate artifact smoke:
+  `diagnostics:semantic-gate-candidates -- --limit 5 --scan-limit 20 --output
+  output/evals/semantic-gate-candidates/top-20260506T164552.json` wrote a
+  parseable JSON candidate report with five medium-priority candidates and no
+  critical/high rows. This artifact shape feeds
+  `diagnostics:semantic-gate-cohort-matrix -- --candidate-report <path>`.
 - Fresh continuity-flag baseline:
   `diagnostics:semantic-gate-baseline -- --source fantasy-system-heretic
   --chapters 2 --max-beats-per-chapter 5

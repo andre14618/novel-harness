@@ -1,13 +1,65 @@
 import { describe, expect, test } from "bun:test"
+import { mkdtemp, readFile, rm } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
 import {
   buildSemanticGateCandidateReport,
+  parseArgs,
   renderSemanticGateCandidateReport,
   type SemanticGateCandidateNovelRow,
+  writeSemanticGateCandidateJson,
 } from "./semantic-gate-candidates"
 import type { SemanticGateReport } from "./semantic-gate-report"
 
 describe("semantic-gate-candidates", () => {
+  test("parseArgs accepts a durable JSON output path", () => {
+    const args = parseArgs([
+      "--limit", "2",
+      "--scan-limit", "12",
+      "--json",
+      "--output", "output/evals/semantic-gate-candidates/top.json",
+    ])
+
+    expect(args).toMatchObject({
+      json: true,
+      limit: 2,
+      scanLimit: 12,
+      outputPath: "output/evals/semantic-gate-candidates/top.json",
+    })
+  })
+
+  test("writeSemanticGateCandidateJson creates a cohort-readable JSON artifact", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nh-semantic-gate-candidates-"))
+    try {
+      const report = buildSemanticGateCandidateReport({
+        novels: [novel("blocked", "drafting")],
+        reports: [
+          semanticReport("blocked", {
+            no_draft: 0,
+            outline_shape: 0,
+            writer_expansion: 0,
+            plan_adherence_drift: 0,
+            checker_blocker: 1,
+            plan_assist_gate: 1,
+          }, {
+            pendingGates: 1,
+            checkerBlockers: 1,
+          }),
+        ],
+      })
+      const outputPath = join(root, "nested", "candidates.json")
+
+      const writtenPath = await writeSemanticGateCandidateJson(report, outputPath)
+      const parsed = JSON.parse(await readFile(writtenPath, "utf8")) as typeof report
+
+      expect(parsed.candidates[0]!.novelId).toBe("blocked")
+      expect(parsed.candidates[0]!.diagnosticsCommand).toBe("bun run diagnostics:semantic-gate -- --novel blocked")
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
   test("ranks novels by pending gates, blockers, drift, and writer expansion", () => {
     const novels: SemanticGateCandidateNovelRow[] = [
       novel("quiet", "planning"),

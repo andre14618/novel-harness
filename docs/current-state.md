@@ -178,8 +178,9 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
   targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
 - Diagnostic-only CLIs, baseline/matrix/cohort runners/viewers, default-off planning
   beat-cap overrides, and Diagnostics UI summarize/rank semantic gates with risk-driver
-  breakdowns, action/proposal evidence, plan-check drift witnesses, writer expansion,
-  load-bearing checker evidence, and plan-assist lineage without changing runtime behavior.
+  breakdowns, candidate JSON artifacts, action/proposal evidence, plan-check drift
+  witnesses, writer expansion, load-bearing checker evidence, and plan-assist lineage
+  without changing runtime behavior.
 - Continuity findings do not open Drafting Plan-Assist Gates; fact-scoped
   blockers can optionally persist manual `editorial_flag` envelopes; see L84.
 - World fact roles are additive on `facts` and `canon_facts`; diagnostics
