@@ -5,6 +5,7 @@ import {
   extractTargetedRewriteIssueSamples,
   formatActionEvidenceItem,
   renderActionEvidenceReport,
+  summarizePipelineActionPayload,
 } from "./action-evidence-report"
 
 describe("action-evidence-report", () => {
@@ -85,5 +86,22 @@ Rewrite this beat to address the issues above.
     expect(rendered).toContain("Action evidence for novel-a")
     expect(rendered).toContain("plan-assist:plan-check-exhausted=1")
     expect(rendered).toContain("pending gate; unresolved=1")
+  })
+
+  test("summarizePipelineActionPayload renders plan-check witness evidence", () => {
+    const summary = summarizePipelineActionPayload({
+      outcome: "exhausted",
+      rewritePassCount: 2,
+      deviationCount: 2,
+      witnesses: [{
+        beatIndex: 4,
+        beatId: "beat-confession",
+        description: "Theo was missing from the confiding scene.",
+      }],
+    })
+
+    expect(summary).toBe(
+      "outcome=exhausted; rewritePassCount=2; deviationCount=2; witnesses=1; [beat 5] Theo was missing from the confiding scene.",
+    )
   })
 })

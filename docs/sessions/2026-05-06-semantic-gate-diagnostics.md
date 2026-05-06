@@ -96,6 +96,13 @@ The immediate question was whether the failure pattern was primarily:
     consumer has not loaded unresolved gate details.
   - Plan-Assist unresolved-deviation readers now use shared JSONB normalization
     so reports handle both native JSON arrays and string-returning DB clients.
+- Plan-check drift witness telemetry slice
+  - Drafting now emits trace-only `plan-check-drift-witness` events when
+    targeted plan-check settle still fails after rewrite passes.
+  - The payload records final unresolved deviations with stable beat refs,
+    repeat counts across plan-check attempts, and the terminal settle outcome.
+  - Chapter Health and action-evidence diagnostics include the witness event;
+    no writer/checker prompt, retry, reviser, or gate behavior changes.
 
 ## Evidence
 
@@ -236,6 +243,10 @@ Observed signals:
   proposal surfacing on its disposable clone with
   `--continuity-editorial-flag-proposals`, and its report records proposal
   envelope totals/samples before cleanup.
+- Plan-check witness evidence: unresolved post-settle plan drift now has a
+  trace-only `plan-check-drift-witness` row before reviser or Plan-Assist
+  handling, so future investigation can distinguish persistent same-beat drift
+  from changing checker findings.
 - Post-L84 scoped baseline:
   `diagnostics:semantic-gate-baseline -- --source fantasy-system-heretic
   --chapters 2 --max-beats-per-chapter 5 --output-base

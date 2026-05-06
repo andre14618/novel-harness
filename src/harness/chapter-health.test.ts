@@ -113,6 +113,17 @@ describe("buildChapterHealthReport", () => {
         eventType: "validation-check",
         timestamp: "2026-05-05T00:00:00.000Z",
         payload: { passed: false },
+      }, {
+        id: 22,
+        chapterNumber: 1,
+        beatIndex: null,
+        eventType: "plan-check-drift-witness",
+        timestamp: "2026-05-05T00:00:01.000Z",
+        payload: {
+          outcome: "exhausted",
+          deviationCount: 1,
+          witnesses: [{ beatIndex: 0, beatId: "beat-ledger-verdict", description: "Planner beat was not satisfied." }],
+        },
       }],
       checkerCalls: [{
         id: 31,
@@ -147,7 +158,10 @@ describe("buildChapterHealthReport", () => {
       "exhaustion",
       "proposal",
     ]))
-    expect(chapter.trace.latestEvents).toHaveLength(1)
+    expect(chapter.trace.latestEvents.map(event => event.eventType)).toEqual([
+      "validation-check",
+      "plan-check-drift-witness",
+    ])
     expect(chapter.trace.checkerCalls[0].nerPrepass?.andGateDecision).toBe("pass")
     expect(chapter.proposals.envelopes[0].id).toBe("editorial-flag:1")
     expect(chapter.proposals.checkerObservations[0].id).toBe("obs-1")

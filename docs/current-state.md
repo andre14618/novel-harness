@@ -177,7 +177,7 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
 - Beat-level LLM telemetry now persists `llm_calls.beat_id` for beat writer,
   targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
 - Diagnostic-only CLIs summarize/rank semantic gates, action/proposal evidence,
-  semantic drift, writer expansion, checker warnings with polarity/calibration,
+  plan-check drift witnesses, writer expansion, checker warning calibration,
   and plan-assist lineage without changing runtime behavior.
 - Continuity findings do not open Drafting Plan-Assist Gates; fact-scoped
   blockers can optionally persist manual `editorial_flag` envelopes; see L84.

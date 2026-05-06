@@ -282,6 +282,7 @@ const HEALTH_EVENT_TYPES = new Set([
   "editorial-beat-coverage-proposals",
   "continuity-editorial-flag-proposals",
   "plan-check-outcome",
+  "plan-check-drift-witness",
 ])
 
 const CHECKER_AGENTS = new Set([

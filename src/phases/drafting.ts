@@ -81,6 +81,7 @@ import {
   recordPlanAssistOutlineLineage,
   recordPlanAssistOverrideLineage,
 } from "./plan-assist-lineage"
+import { buildPlanCheckDriftWitnessPayload } from "./plan-check-drift-witness"
 import { recordReviserAcceptedLineage } from "./reviser-lineage"
 
 /**
@@ -615,6 +616,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             },
           })
           const canSettle = beatProses.length === outline.scenes.length
+          const planCheckWitnessHistory: Array<typeof initialPlanCheckResult> = [initialPlanCheckResult]
 
           // D3 settle loop. Caller closures own:
           //   - per-deviation routing (chapter-level fallbacks for
@@ -743,6 +745,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               log(novelId, "info", `Plan-check settle pass ${passNumber}: targeted rewrite of beats [${[...perBeat.keys()].sort((a, b) => a - b).join(",")}]`)
             },
             onIteration: async (passNumber, result) => {
+              planCheckWitnessHistory.push(result)
               await trace(novelId, {
                 eventType: "plan-check-outcome", chapter: ch,
                 payload: {
@@ -771,6 +774,18 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
 
           if (!out.pass) {
             out.deviations?.forEach(d => console.log(`    UNRESOLVED DEVIATION (beat ${d.beat_index ?? "chapter-level"}): ${d.description}`))
+            await trace(novelId, {
+              eventType: "plan-check-drift-witness",
+              chapter: ch,
+              payload: { ...buildPlanCheckDriftWitnessPayload({
+                result: out,
+                outline,
+                settleKind: planSettleOutcome.kind,
+                rewritePass: currentRewritePass,
+                forcedPlanCheck: inject.forcePlanCheck === "fail",
+                history: planCheckWitnessHistory,
+              }) },
+            })
 
             // Planner escalation — pass unresolved issues back to the
             // chapter-plan-reviser at most ONCE per chapter (across all

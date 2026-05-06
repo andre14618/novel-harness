@@ -141,6 +141,7 @@ async function loadPipelineActionEvidence(novelId: string): Promise<ActionEviden
         'lint-prose-edit-proposals',
         'editorial-beat-coverage-proposals',
         'continuity-editorial-flag-proposals',
+        'plan-check-drift-witness',
         'prose-integrity-repair',
         'integrity-settle-complete',
         'plan-assist-wait',
@@ -157,7 +158,7 @@ async function loadPipelineActionEvidence(novelId: string): Promise<ActionEviden
       chapter: row.chapter == null ? null : Number(row.chapter),
       beat: row.beat_index == null ? null : Number(row.beat_index) + 1,
       attempt: null,
-      summary: summarizePayload(payload),
+      summary: summarizePipelineActionPayload(payload),
       timestamp: row.timestamp,
     }
   })
@@ -249,13 +250,39 @@ function readRecord(value: unknown): Record<string, unknown> {
     : {}
 }
 
-function summarizePayload(payload: Record<string, unknown>): string {
+export function summarizePipelineActionPayload(payload: Record<string, unknown>): string {
   const issues = Array.isArray(payload.issues) ? payload.issues : []
-  const primitives = ["kind", "fixed", "passed", "failed", "llmCalls", "cost", "settled", "passes", "initialBeatCount"]
+  const deviations = Array.isArray(payload.deviations) ? payload.deviations : []
+  const witnesses = Array.isArray(payload.witnesses) ? payload.witnesses : []
+  const primitives = [
+    "kind",
+    "settleKind",
+    "outcome",
+    "rewritePass",
+    "rewritePassCount",
+    "unresolvedCount",
+    "deviationCount",
+    "fixed",
+    "passed",
+    "failed",
+    "llmCalls",
+    "cost",
+    "settled",
+    "passes",
+    "initialBeatCount",
+  ]
     .flatMap(key => payload[key] === undefined ? [] : [`${key}=${String(payload[key])}`])
   if (issues.length > 0) {
     const first = deviationSummary(issues[0])
     return [...primitives, `issues=${issues.length}`, first].join("; ")
+  }
+  if (deviations.length > 0) {
+    const first = deviationSummary(deviations[0])
+    return [...primitives, `deviations=${deviations.length}`, first].join("; ")
+  }
+  if (witnesses.length > 0) {
+    const first = deviationSummary(witnesses[0])
+    return [...primitives, `witnesses=${witnesses.length}`, first].join("; ")
   }
   return primitives.length > 0 ? primitives.join("; ") : snippet(JSON.stringify(payload), 180)
 }
@@ -263,9 +290,10 @@ function summarizePayload(payload: Record<string, unknown>): string {
 function deviationSummary(value: unknown): string {
   if (!value || typeof value !== "object") return snippet(String(value), 180)
   const record = value as Record<string, unknown>
-  const beat = record.beat_index === null || record.beat_index === undefined
+  const beatIndex = record.beat_index ?? record.beatIndex
+  const beat = beatIndex === null || beatIndex === undefined
     ? "chapter-level"
-    : `beat ${Number(record.beat_index) + 1}`
+    : `beat ${Number(beatIndex) + 1}`
   return snippet(`[${beat}] ${String(record.description ?? JSON.stringify(value))}`, 180)
 }
 
