@@ -4,6 +4,7 @@ import type { MatrixVariantResult, SemanticGateMatrixReport } from "./semantic-g
 import {
   buildCohortReport,
   candidateSourcesFromReportJson,
+  cohortChaptersFor,
   parseArgs,
   renderCohortReport,
   type CohortMatrixRun,
@@ -77,6 +78,26 @@ describe("candidateSourcesFromReportJson", () => {
 
   test("rejects malformed candidate reports", () => {
     expect(() => candidateSourcesFromReportJson("{}")).toThrow("candidate report missing candidates array")
+  })
+})
+
+describe("cohortChaptersFor", () => {
+  test("derives chapters from summary-only matrix artifacts", () => {
+    const chapters = cohortChaptersFor(
+      { sources: [], candidateReports: [], chapters: 2 },
+      [matrixRun("novel-a", [variantResult("beats-4", "beats 4", {})], 1)],
+    )
+
+    expect(chapters).toBe(1)
+  })
+
+  test("keeps the configured chapter count for live cohort runs", () => {
+    const chapters = cohortChaptersFor(
+      { sources: ["novel-a"], candidateReports: [], chapters: 2 },
+      [matrixRun("novel-a", [variantResult("beats-4", "beats 4", {})], 1)],
+    )
+
+    expect(chapters).toBe(2)
   })
 })
 
@@ -165,7 +186,7 @@ describe("buildCohortReport", () => {
   })
 })
 
-function matrixRun(sourceNovelId: string, variants: MatrixVariantResult[]): CohortMatrixRun {
+function matrixRun(sourceNovelId: string, variants: MatrixVariantResult[], chapters = 2): CohortMatrixRun {
   return {
     sourceNovelId,
     replicate: 1,
@@ -179,6 +200,7 @@ function matrixRun(sourceNovelId: string, variants: MatrixVariantResult[]): Coho
     error: null,
     matrix: {
       sourceNovelId,
+      chapters,
       variants,
     } as unknown as SemanticGateMatrixReport,
   }

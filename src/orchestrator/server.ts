@@ -24,6 +24,7 @@ import { handleChapterHealthRoute } from "./chapter-health-routes"
 import { handleChapterTraceabilityRoute } from "./chapter-traceability-routes"
 import { handleSemanticGateBaselineRoute } from "./semantic-gate-baseline-routes"
 import { handleSemanticGateMatrixRoute } from "./semantic-gate-matrix-routes"
+import { handleSemanticGateCohortMatrixRoute } from "./semantic-gate-cohort-matrix-routes"
 import { handleProseEditRoute } from "./prose-edit-routes"
 import { handlePolicyDecideRoute } from "./policy-decide-routes"
 import { overviewPageHtml } from "./overview-page"
@@ -980,6 +981,8 @@ const server = Bun.serve({
     // ── Semantic-gate diagnostics artifact viewers (read-only) ──
     const semanticGateMatrixResponse = await handleSemanticGateMatrixRoute(req, url)
     if (semanticGateMatrixResponse) return semanticGateMatrixResponse
+    const semanticGateCohortMatrixResponse = await handleSemanticGateCohortMatrixRoute(req, url)
+    if (semanticGateCohortMatrixResponse) return semanticGateCohortMatrixResponse
     const semanticGateBaselineResponse = await handleSemanticGateBaselineRoute(req, url)
     if (semanticGateBaselineResponse) return semanticGateBaselineResponse
 

@@ -1022,6 +1022,121 @@ export async function getSemanticGateMatrix(runId: string) {
   return response.report
 }
 
+// ── Semantic Gate Cohort Matrix ───────────────────────────────────────
+
+export interface SemanticGateCohortMatrixRun {
+  sourceNovelId: string
+  replicate: number | null
+  status: "reported" | "failed" | string
+  outputBase: string
+  command: string[]
+  stdoutPath: string | null
+  stderrPath: string | null
+  summaryPath: string
+  reportPath: string
+  error: string | null
+}
+
+export interface SemanticGateCohortVariantAggregate {
+  variantId: string
+  label: string
+  runs: number
+  reported: number
+  completed: number
+  failed: number
+  cleanPass: number
+  meanRiskScore: number | null
+  meanWordRatio: number | null
+  totalCostUsd: number
+  totalLlmCalls: number
+  semanticSignals: Record<string, number>
+  riskDrivers: Record<string, number>
+  terminalStatuses: Record<string, number>
+  reasons: Record<string, number>
+}
+
+export interface SemanticGateCohortRankingItem {
+  variantId: string
+  label: string
+  meanRiskScore: number | null
+  completed: number
+  runs: number
+  cleanPass: number
+  meanWordRatio: number | null
+  totalCostUsd: number
+  topReasons: string[]
+  topRiskDrivers: string[]
+}
+
+export interface SemanticGateCohortMatrixReport {
+  generatedAt: string
+  chapters: number
+  outputBase: string
+  variantSpecs: string[]
+  runs: SemanticGateCohortMatrixRun[]
+  variants: SemanticGateCohortVariantAggregate[]
+  ranking: SemanticGateCohortRankingItem[]
+  totals: {
+    matrixRuns: number
+    reportedMatrices: number
+    failedMatrices: number
+    variantRuns: number
+    completedVariantRuns: number
+    failedVariantRuns: number
+    cleanPass: number
+    costUsd: number
+    llmCalls: number
+  }
+}
+
+export interface SemanticGateCohortMatrixResponse {
+  ok: true
+  runId: string
+  summaryPath: string
+  reportPath: string | null
+  report: SemanticGateCohortMatrixReport
+  reportMarkdown: string | null
+}
+
+export interface SemanticGateCohortMatrixRunSummary {
+  runId: string
+  summaryPath: string
+  reportPath: string | null
+  generatedAt: string | null
+  matrixRuns: number | null
+  reportedMatrices: number | null
+  failedMatrices: number | null
+  variantRuns: number | null
+  completedVariantRuns: number | null
+  cleanPass: number | null
+  costUsd: number | null
+  topVariantLabel: string | null
+  topMeanRiskScore: number | null
+  topCompleted: number | null
+  topRuns: number | null
+  topReasons: string[]
+  topRiskDrivers: string[]
+  mtimeMs: number
+}
+
+export interface SemanticGateCohortMatrixListResponse {
+  ok: true
+  runs: SemanticGateCohortMatrixRunSummary[]
+}
+
+export function listSemanticGateCohortMatrices(limit = 20) {
+  return fetchJSON<SemanticGateCohortMatrixListResponse>(
+    `/api/diagnostics/semantic-gate-cohort-matrix?limit=${encodeURIComponent(String(limit))}`,
+  )
+}
+
+export async function getSemanticGateCohortMatrix(runId: string) {
+  const response = await fetchJSON<SemanticGateCohortMatrixResponse>(
+    `/api/diagnostics/semantic-gate-cohort-matrix/${encodeURIComponent(runId)}`,
+  )
+  return response.report
+}
+
 // ── Semantic Gate Baseline ─────────────────────────────────────────────
 
 export interface SemanticGateBaselineRunSummary {

@@ -6,7 +6,7 @@ const PAGES = [
   { path: "/context", label: "Context Engineering" },
   { path: "/workflow", label: "Workflow" },
   { path: "/finetune", label: "Fine-Tuning" },
-  { path: "/diagnostics", label: "Diagnostics", matches: ["/semantic-gate-matrix", "/semantic-gate-baseline"] },
+  { path: "/diagnostics", label: "Diagnostics", matches: ["/semantic-gate-matrix", "/semantic-gate-baseline", "/semantic-gate-cohort-matrix"] },
   { path: "/docs", label: "Docs" },
 ]
 

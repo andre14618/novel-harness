@@ -359,11 +359,12 @@ async function main(argv: string[]): Promise<number> {
   const liveRuns = liveSources.length > 0
     ? await runLiveMatrices({ ...args, sources: liveSources })
     : []
+  const runs = [...summaryRuns, ...liveRuns]
   const report = buildCohortReport({
-    chapters: args.chapters,
+    chapters: cohortChaptersFor(args, runs),
     outputBase: args.outputBase,
     variantSpecs: args.variantSpecs,
-    runs: [...summaryRuns, ...liveRuns],
+    runs,
   })
 
   const jsonPath = join(args.outputBase, "summary.json")
@@ -449,6 +450,12 @@ function loadMatrixSummary(summaryPath: string): { matrix: SemanticGateMatrixRep
   } catch (err) {
     return { matrix: null, error: `failed to parse summary.json: ${err instanceof Error ? err.message : String(err)}` }
   }
+}
+
+export function cohortChaptersFor(args: Pick<Args, "sources" | "candidateReports" | "chapters">, runs: readonly CohortMatrixRun[]): number {
+  if (args.sources.length > 0 || args.candidateReports.length > 0) return args.chapters
+  const chapters = uniqueNumbers(runs.flatMap(run => run.matrix ? [run.matrix.chapters] : []))
+  return chapters.length === 1 ? chapters[0]! : args.chapters
 }
 
 async function spawnBun(command: string[]): Promise<{
@@ -568,6 +575,10 @@ function topEntries(record: Record<string, number>, limit: number): string[] {
 }
 
 function uniqueStrings(values: readonly string[]): string[] {
+  return Array.from(new Set(values))
+}
+
+function uniqueNumbers(values: readonly number[]): number[] {
   return Array.from(new Set(values))
 }
 

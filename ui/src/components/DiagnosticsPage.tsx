@@ -2,27 +2,31 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import {
   listSemanticGateBaselines,
+  listSemanticGateCohortMatrices,
   listSemanticGateMatrices,
   type SemanticGateBaselineRunSummary,
+  type SemanticGateCohortMatrixRunSummary,
   type SemanticGateMatrixRunSummary,
 } from "../api"
 
 export function DiagnosticsPage() {
   const [baselines, setBaselines] = useState<SemanticGateBaselineRunSummary[]>([])
+  const [cohorts, setCohorts] = useState<SemanticGateCohortMatrixRunSummary[]>([])
   const [matrices, setMatrices] = useState<SemanticGateMatrixRunSummary[]>([])
   const [loading, setLoading] = useState(true)
-  const [surfaceErrors, setSurfaceErrors] = useState<{ baselines?: string; matrices?: string }>({})
+  const [surfaceErrors, setSurfaceErrors] = useState<{ baselines?: string; matrices?: string; cohorts?: string }>({})
 
   const load = async () => {
     setLoading(true)
     setSurfaceErrors({})
 
-    const [baselineResult, matrixResult] = await Promise.allSettled([
+    const [baselineResult, matrixResult, cohortResult] = await Promise.allSettled([
       listSemanticGateBaselines(5),
       listSemanticGateMatrices(5),
+      listSemanticGateCohortMatrices(5),
     ])
 
-    const nextErrors: { baselines?: string; matrices?: string } = {}
+    const nextErrors: { baselines?: string; matrices?: string; cohorts?: string } = {}
     if (baselineResult.status === "fulfilled") {
       setBaselines(baselineResult.value.runs)
     } else {
@@ -32,6 +36,11 @@ export function DiagnosticsPage() {
       setMatrices(matrixResult.value.runs)
     } else {
       nextErrors.matrices = errorMessage(matrixResult.reason)
+    }
+    if (cohortResult.status === "fulfilled") {
+      setCohorts(cohortResult.value.runs)
+    } else {
+      nextErrors.cohorts = errorMessage(cohortResult.reason)
     }
 
     setSurfaceErrors(nextErrors)
@@ -54,7 +63,7 @@ export function DiagnosticsPage() {
         </button>
       </div>
 
-      {loading && baselines.length === 0 && matrices.length === 0 && <div className="planning-muted">Loading diagnostics...</div>}
+      {loading && baselines.length === 0 && matrices.length === 0 && cohorts.length === 0 && <div className="planning-muted">Loading diagnostics...</div>}
 
       <div className="diagnostics-surface-grid">
         <section className="semantic-gate-matrix-card">
@@ -102,6 +111,32 @@ export function DiagnosticsPage() {
                 <strong>{run.sourceNovelId ?? "unknown source"}</strong>
                 <code>{run.runId}</code>
                 <span>{run.topVariantLabel ?? "no ranking"} - risk {formatNumber(run.topRiskScore)}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="semantic-gate-matrix-card">
+          <div className="diagnostics-surface-head">
+            <div>
+              <div className="semantic-gate-matrix-variant-title">Semantic Gate Cohorts</div>
+              <div className="semantic-gate-matrix-ranking-meta">Multi-source replay comparisons</div>
+            </div>
+            <Link className="chapter-health-refresh semantic-gate-matrix-link-button" to="/semantic-gate-cohort-matrix">
+              Open
+            </Link>
+          </div>
+          <div className="semantic-gate-matrix-detail-list">
+            {surfaceErrors.cohorts && <div className="planning-error">Cohorts unavailable: {surfaceErrors.cohorts}</div>}
+            {cohorts.length === 0 && !loading && !surfaceErrors.cohorts && <div className="planning-muted">No cohort runs found.</div>}
+            {cohorts.map(run => (
+              <Link key={run.runId} className="diagnostics-run-row" to={`/semantic-gate-cohort-matrix/${encodeURIComponent(run.runId)}`}>
+                <span className={`semantic-gate-matrix-status ${(run.failedMatrices ?? 0) > 0 ? "bad" : "good"}`}>
+                  {(run.failedMatrices ?? 0) > 0 ? "failed" : "recorded"}
+                </span>
+                <strong>{run.topVariantLabel ?? "no ranking"}</strong>
+                <code>{run.runId}</code>
+                <span>{formatApproved(run.completedVariantRuns, run.variantRuns)} variants - mean risk {formatNumber(run.topMeanRiskScore)}</span>
               </Link>
             ))}
           </div>

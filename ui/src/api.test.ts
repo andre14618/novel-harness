@@ -3,10 +3,12 @@ import {
   createPlanningProposal,
   getChapterHealth,
   getSemanticGateBaseline,
+  getSemanticGateCohortMatrix,
   getSemanticGateMatrix,
   getChapterTraceability,
   getPlanningProposalDiff,
   listSemanticGateBaselines,
+  listSemanticGateCohortMatrices,
   listSemanticGateMatrices,
   resolvePlanningProposal,
   resolveProposalEnvelope,
@@ -349,6 +351,88 @@ test("listSemanticGateMatrices fetches compact recent run summaries", async () =
   await expect(listSemanticGateMatrices(7)).resolves.toEqual(response)
   const captured = requireRequest(request)
   expect(captured.url).toBe("/api/diagnostics/semantic-gate-matrix?limit=7")
+})
+
+test("getSemanticGateCohortMatrix fetches the read-only cohort artifact response", async () => {
+  const report = {
+    generatedAt: "2026-05-06T16:04:25.000Z",
+    chapters: 2,
+    outputBase: "/tmp/cohort",
+    variantSpecs: ["beats=4", "beats=5"],
+    runs: [],
+    variants: [],
+    ranking: [],
+    totals: {
+      matrixRuns: 1,
+      reportedMatrices: 1,
+      failedMatrices: 0,
+      variantRuns: 2,
+      completedVariantRuns: 2,
+      failedVariantRuns: 0,
+      cleanPass: 1,
+      costUsd: 0.12,
+      llmCalls: 42,
+    },
+  }
+  let request: CapturedFetchRequest | null = null
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    request = { url: String(url), init }
+    return new Response(JSON.stringify({
+      ok: true,
+      runId: "cohort/run",
+      summaryPath: "/tmp/cohort/summary.json",
+      reportPath: "/tmp/cohort/report.md",
+      report,
+      reportMarkdown: "# Cohort",
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })
+  }) as typeof fetch
+
+  await expect(getSemanticGateCohortMatrix("cohort/run")).resolves.toEqual(report)
+  const captured = requireRequest(request)
+  expect(captured.url).toBe("/api/diagnostics/semantic-gate-cohort-matrix/cohort%2Frun")
+})
+
+test("listSemanticGateCohortMatrices fetches compact recent cohort summaries", async () => {
+  const response = {
+    ok: true,
+    runs: [
+      {
+        runId: "existing-summary-smoke-20260506T160425",
+        summaryPath: "/tmp/cohort/summary.json",
+        reportPath: "/tmp/cohort/report.md",
+        generatedAt: "2026-05-06T16:04:25.000Z",
+        matrixRuns: 1,
+        reportedMatrices: 1,
+        failedMatrices: 0,
+        variantRuns: 2,
+        completedVariantRuns: 2,
+        cleanPass: 1,
+        costUsd: 0.0494,
+        topVariantLabel: "beats 5",
+        topMeanRiskScore: 113.45,
+        topCompleted: 1,
+        topRuns: 1,
+        topReasons: ["1 plan-drift chapter(s) (1)"],
+        topRiskDrivers: ["plan drift (80)"],
+        mtimeMs: 1778078163270,
+      },
+    ],
+  }
+  let request: CapturedFetchRequest | null = null
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    request = { url: String(url), init }
+    return new Response(JSON.stringify(response), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })
+  }) as typeof fetch
+
+  await expect(listSemanticGateCohortMatrices(6)).resolves.toEqual(response)
+  const captured = requireRequest(request)
+  expect(captured.url).toBe("/api/diagnostics/semantic-gate-cohort-matrix?limit=6")
 })
 
 test("listSemanticGateBaselines fetches compact recent baseline summaries", async () => {

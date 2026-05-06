@@ -122,6 +122,12 @@ The immediate question was whether the failure pattern was primarily:
 - Durable candidate artifact slice
   - `diagnostics:semantic-gate-candidates` now accepts `--output <path>` and
     writes cohort-readable JSON while preserving existing stdout behavior.
+- Cohort artifact viewer slice
+  - Added read-only cohort artifact routes and UI at
+    `/app/semantic-gate-cohort-matrix` and
+    `/app/semantic-gate-cohort-matrix/:runId`.
+  - Summary-only cohort aggregation now derives the chapter count from the
+    source matrix artifact when all summaries agree.
 
 ## Evidence
 
@@ -368,6 +374,14 @@ Observed signals:
   `--candidate-report`, preserving failed child matrices as evidence.
   Artifact-only smoke over the existing `fantasy-system-heretic` matrix wrote
   `output/evals/semantic-gate-cohort-matrix/existing-summary-smoke-20260506T160425`.
+- Cohort viewer browser evidence:
+  artifact-only smoke
+  `output/evals/semantic-gate-cohort-matrix/risk-breakdown-summary-smoke-20260506T170226`
+  aggregated the fresh risk-breakdown matrix with `Chapters: 1`, non-empty
+  risk drivers, and no LLM calls. Browser evidence for detail, recent runs,
+  Diagnostics landing, and mobile is under
+  `output/playwright/2026-05-06/semantic-gate-cohort-matrix-risk-breakdown-cohort`
+  and passed `ui:evidence-check`.
 - Continuity gray-zone aggregation now emits a support-echo readiness verdict.
   The default candidate filter is positive polarity with conservative
   thresholds (`min labeled 20`, `min FP 80%`, `max TP 5%`, `max AMB 20%`).
