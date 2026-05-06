@@ -13,7 +13,7 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Use semantic-gate cohort diagnostics before runtime nudges; next planner experiment should compare source/hard-cap arms to calibrated obligation-packed beats per L86. Opt continuity review flags in with `--continuity-editorial-flag-proposals`.
+- Remote planner-shape experiment packet is ready for Claude/LXC: `docs/sessions/2026-05-06-remote-planner-shape-experiment-lane.md`. It defines the source vs hard-cap cohort now and the calibrated obligation-packed comparison after implementation.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO
