@@ -23,6 +23,8 @@ import {
 
 const DEFAULT_VARIANT_SPECS = ["beats=4", "beats=5", "beats=6"]
 
+process.env.BUN_SQL_MAX ??= "1"
+
 export interface Args {
   sources: string[]
   summaries: string[]
@@ -471,7 +473,7 @@ async function spawnBun(command: string[]): Promise<{
   return await new Promise(resolve => {
     const child = spawn("bun", command, {
       cwd: process.cwd(),
-      env: { ...process.env },
+      env: { ...process.env, BUN_SQL_MAX: process.env.BUN_SQL_MAX ?? "1" },
       stdio: ["ignore", "pipe", "pipe"],
     })
     const stdout: Buffer[] = []

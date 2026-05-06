@@ -48,6 +48,8 @@ import {
   type WriterExpansionReport,
 } from "../analysis/writer-expansion-report"
 
+process.env.BUN_SQL_MAX ??= "1"
+
 export interface Args {
   source: string
   chapters: number
@@ -479,7 +481,11 @@ function cloneSource(source: string, target: string): void {
     "--source", source,
     "--target", target,
     "--target-phase", "drafting",
-  ], { encoding: "utf8", maxBuffer: 20 * 1024 * 1024 })
+  ], {
+    encoding: "utf8",
+    env: { ...process.env, BUN_SQL_MAX: process.env.BUN_SQL_MAX ?? "1" },
+    maxBuffer: 20 * 1024 * 1024,
+  })
   if (result.stdout) process.stdout.write(result.stdout)
   if (result.stderr) process.stderr.write(result.stderr)
   if (result.status !== 0) {

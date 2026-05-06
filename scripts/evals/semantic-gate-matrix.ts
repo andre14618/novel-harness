@@ -13,6 +13,8 @@ import { isAbsolute, join, resolve } from "node:path"
 
 import type { SemanticGateBaselineReport } from "./semantic-gate-baseline"
 
+process.env.BUN_SQL_MAX ??= "1"
+
 export interface Args {
   source: string
   chapters: number
@@ -442,7 +444,7 @@ async function spawnBun(command: string[]): Promise<{
   return await new Promise(resolve => {
     const child = spawn("bun", command, {
       cwd: process.cwd(),
-      env: { ...process.env },
+      env: { ...process.env, BUN_SQL_MAX: process.env.BUN_SQL_MAX ?? "1" },
       stdio: ["ignore", "pipe", "pipe"],
     })
     const stdout: Buffer[] = []
