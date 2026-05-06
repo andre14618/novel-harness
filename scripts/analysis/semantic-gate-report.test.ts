@@ -100,7 +100,7 @@ describe("semantic-gate-report", () => {
       chapter: 2,
       signals: ["no_draft", "outline_shape", "plan_adherence_drift", "checker_blocker", "plan_assist_gate"],
       planDrift: { unresolved: true, deviationCount: 1, driftedBeatRefs: ["beat-2-4"] },
-      checker: { blockers: 1, sources: ["functional-check"] },
+      checker: { blockers: 1, loadBearingBlockers: 1, continuityBlockers: 0, sources: ["functional-check"] },
       planAssist: { totalEvents: 1, gateCount: 1, pendingGates: 1, planAssistEdits: 1 },
     })
 
@@ -108,7 +108,39 @@ describe("semantic-gate-report", () => {
     expect(rendered).toContain("Semantic gate report for novel-test")
     expect(rendered).toContain("chapter 2: signals=no_draft,outline_shape,plan_adherence_drift,checker_blocker,plan_assist_gate")
     expect(rendered).toContain("plan drift: final=fail")
+    expect(rendered).toContain("checker: blockers=1, loadBearing=1, continuity=0")
     expect(rendered).toContain("plan assist gates: total=1, pending=1")
+  })
+
+  test("keeps continuity blockers visible but diagnostic-only for semantic gate signals", () => {
+    const checkerWarnings = buildCheckerWarningReport({
+      continuityRows: [{
+        id: 301,
+        agent: "continuity-facts",
+        chapter: 1,
+        attempt: 1,
+        response_content: JSON.stringify({
+          contradictions: [{
+            severity: "blocker",
+            reasoning: "The draft contradicts a prior fact.",
+          }],
+        }),
+      }],
+    }, "novel-test")
+
+    const report = buildSemanticGateReport({
+      writerExpansion: buildWriterExpansionReport([outline(1, 1500, 5)], [], "novel-test"),
+      planDrift: buildPlanDriftReport([], "novel-test"),
+      checkerWarnings,
+      planAssistLineage: buildPlanAssistLineageReport([], "novel-test"),
+    }, "novel-test")
+
+    expect(report.chapters[0]!.checker).toMatchObject({
+      blockers: 1,
+      loadBearingBlockers: 0,
+      continuityBlockers: 1,
+    })
+    expect(report.chapters[0]!.signals).not.toContain("checker_blocker")
   })
 
   test("renders empty input", () => {

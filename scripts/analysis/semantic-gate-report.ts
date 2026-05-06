@@ -60,8 +60,11 @@ export interface SemanticGateChapter {
   checker: {
     totalItems: number
     blockers: number
+    loadBearingBlockers: number
+    continuityBlockers: number
     warnings: number
     positivePolarityBlockers: number
+    positivePolarityLoadBearingBlockers: number
     ambiguousPolarityBlockers: number
     sources: string[]
   }
@@ -129,15 +132,24 @@ export function buildSemanticGateReport(input: SemanticGateInputs, novelId: stri
       const chapter = parseChapterKey(key)
       const checkerItems = checker?.items ?? []
       const blockers = checkerItems.filter(item => item.severity === "blocker").length
+      const loadBearingBlockers = checkerItems.filter(item =>
+        item.severity === "blocker" && isLoadBearingCheckerSource(item.source)
+      ).length
+      const continuityBlockers = blockers - loadBearingBlockers
       const warnings = checkerItems.filter(item => item.severity === "warning").length
       const positivePolarityBlockers = checkerItems.filter(item => item.severity === "blocker" && item.polarity === "positive").length
+      const positivePolarityLoadBearingBlockers = checkerItems.filter(item =>
+        item.severity === "blocker" &&
+          item.polarity === "positive" &&
+          isLoadBearingCheckerSource(item.source)
+      ).length
       const ambiguousPolarityBlockers = checkerItems.filter(item => item.severity === "blocker" && item.polarity === "ambiguous").length
       const expansionFlags = expansion?.flags ?? []
       const signals = semanticGateSignals({
         expansionFlags,
         unresolvedPlanDrift: drift?.unresolved ?? false,
         recoveredPlanDrift: drift?.recovered ?? false,
-        checkerBlockers: blockers,
+        checkerBlockers: loadBearingBlockers,
         planAssistEvents: (assist?.totalEvents ?? 0) + gates.length,
       })
 
@@ -161,8 +173,11 @@ export function buildSemanticGateReport(input: SemanticGateInputs, novelId: stri
         checker: {
           totalItems: checkerItems.length,
           blockers,
+          loadBearingBlockers,
+          continuityBlockers,
           warnings,
           positivePolarityBlockers,
+          positivePolarityLoadBearingBlockers,
           ambiguousPolarityBlockers,
           sources: uniqueSorted(checkerItems.map(item => item.source)),
         },
@@ -226,7 +241,8 @@ export function renderSemanticGateReport(report: SemanticGateReport): string {
     }
     if (chapter.checker.totalItems > 0) {
       lines.push(
-        `  - checker: blockers=${chapter.checker.blockers}, warnings=${chapter.checker.warnings}, ` +
+        `  - checker: blockers=${chapter.checker.blockers}, loadBearing=${chapter.checker.loadBearingBlockers}, ` +
+          `continuity=${chapter.checker.continuityBlockers}, warnings=${chapter.checker.warnings}, ` +
           `positivePolarityBlockers=${chapter.checker.positivePolarityBlockers}, ` +
           `ambiguousPolarityBlockers=${chapter.checker.ambiguousPolarityBlockers}, sources=${chapter.checker.sources.join(",")}`,
       )
@@ -267,6 +283,13 @@ function semanticGateSignals(input: {
   if (input.checkerBlockers > 0) signals.push("checker_blocker")
   if (input.planAssistEvents > 0) signals.push("plan_assist_gate")
   return signals
+}
+
+function isLoadBearingCheckerSource(source: string): boolean {
+  // L84: continuity remains diagnostic/review evidence during Drafting; it no
+  // longer opens Plan-Assist gates by itself. Functional blockers remain
+  // load-bearing.
+  return source === "functional-check"
 }
 
 function emptySignalCounts(): Record<SemanticGateSignal, number> {

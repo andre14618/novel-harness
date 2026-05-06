@@ -60,6 +60,7 @@ describe("semantic-gate-candidates", () => {
       evidence: {
         pendingPlanAssistGates: 1,
         checkerBlockers: 2,
+        loadBearingCheckerBlockers: 2,
         effectiveCheckerBlockers: 2,
         unresolvedPlanDriftChapters: 1,
       },
@@ -91,7 +92,7 @@ describe("semantic-gate-candidates", () => {
     const rendered = renderSemanticGateCandidateReport(report)
     expect(rendered).toContain("Semantic gate candidate report")
     expect(rendered).toContain("blocked: high, score=15, lens=checker_gate")
-    expect(rendered).toContain("blockers=1, effectiveBlockers=1")
+    expect(rendered).toContain("blockers=1, loadBearingBlockers=1, effectiveBlockers=1")
     expect(rendered).toContain("next: bun run diagnostics:semantic-gate -- --novel blocked")
     expect(rendered).toContain("actions: bun run diagnostics:action-evidence -- --novel blocked")
     expect(rendered).toContain("sources: bun run diagnostics:checker-warnings -- --novel blocked")
@@ -132,6 +133,7 @@ describe("semantic-gate-candidates", () => {
     expect(report.candidates[1]!.score).toBe(5)
     expect(report.candidates[1]!.evidence).toMatchObject({
       checkerBlockers: 4,
+      loadBearingCheckerBlockers: 4,
       effectiveCheckerBlockers: 0,
       positivePolarityBlockers: 4,
     })
@@ -160,6 +162,56 @@ describe("semantic-gate-candidates", () => {
     })
     expect(report.candidates[0]!.sourceDiagnosticsCommands[0]).toBe("bun run diagnostics:writer-expansion -- --novel overplanned")
   })
+
+  test("does not prioritize historical plan-assist signals without pending gates", () => {
+    const report = buildSemanticGateCandidateReport({
+      novels: [novel("orphaned-gate", "drafting")],
+      reports: [
+        semanticReport("orphaned-gate", {
+          no_draft: 0,
+          outline_shape: 0,
+          writer_expansion: 0,
+          plan_adherence_drift: 0,
+          checker_blocker: 0,
+          plan_assist_gate: 1,
+        }),
+      ],
+    })
+
+    expect(report.candidates).toEqual([])
+  })
+
+  test("keeps continuity blockers raw but excludes them from effective scoring", () => {
+    const report = buildSemanticGateCandidateReport({
+      novels: [novel("continuity-only", "drafting")],
+      reports: [
+        semanticReport("continuity-only", {
+          no_draft: 0,
+          outline_shape: 1,
+          writer_expansion: 0,
+          plan_adherence_drift: 0,
+          checker_blocker: 0,
+          plan_assist_gate: 0,
+        }, {
+          checkerBlockers: 2,
+          continuityBlockers: 2,
+        }),
+      ],
+    })
+
+    expect(report.candidates[0]!).toMatchObject({
+      novelId: "continuity-only",
+      score: 1.5,
+      evidence: {
+        checkerBlockers: 2,
+        loadBearingCheckerBlockers: 0,
+        continuityCheckerBlockers: 2,
+        effectiveCheckerBlockers: 0,
+      },
+    })
+    expect(report.candidates[0]!.reasons).toContain("2 continuity checker blocker(s) kept diagnostic-only")
+    expect(report.candidates[0]!.reasons).toContain("0 load-bearing checker blocker(s) after continuity diagnostic discount")
+  })
 })
 
 function novel(id: string, phase: string): SemanticGateCandidateNovelRow {
@@ -178,7 +230,9 @@ function semanticReport(
     pendingGates?: number
     checkerBlockers?: number
     positivePolarityBlockers?: number
+    positivePolarityLoadBearingBlockers?: number
     ambiguousPolarityBlockers?: number
+    continuityBlockers?: number
     unresolvedDrift?: boolean
   } = {},
 ): SemanticGateReport {
@@ -205,8 +259,11 @@ function semanticReport(
         checker: {
           totalItems: evidence.checkerBlockers ?? 0,
           blockers: evidence.checkerBlockers ?? 0,
+          loadBearingBlockers: (evidence.checkerBlockers ?? 0) - (evidence.continuityBlockers ?? 0),
+          continuityBlockers: evidence.continuityBlockers ?? 0,
           warnings: 0,
           positivePolarityBlockers: evidence.positivePolarityBlockers ?? 0,
+          positivePolarityLoadBearingBlockers: evidence.positivePolarityLoadBearingBlockers ?? evidence.positivePolarityBlockers ?? 0,
           ambiguousPolarityBlockers: evidence.ambiguousPolarityBlockers ?? 0,
           sources: evidence.checkerBlockers ? ["functional-check"] : [],
         },

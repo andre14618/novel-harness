@@ -72,8 +72,11 @@ export interface SemanticGateCandidate {
   evidence: {
     pendingPlanAssistGates: number
     checkerBlockers: number
+    loadBearingCheckerBlockers: number
+    continuityCheckerBlockers: number
     effectiveCheckerBlockers: number
     positivePolarityBlockers: number
+    positivePolarityLoadBearingBlockers: number
     ambiguousPolarityBlockers: number
     unresolvedPlanDriftChapters: number
     recoveredPlanDriftChapters: number
@@ -182,7 +185,8 @@ export function renderSemanticGateCandidateReport(report: SemanticGateCandidateR
     lines.push(`   signals: ${formatSignals(candidate.signalCounts)}`)
     lines.push(
       `   evidence: pendingGates=${candidate.evidence.pendingPlanAssistGates}, ` +
-        `blockers=${candidate.evidence.checkerBlockers}, effectiveBlockers=${candidate.evidence.effectiveCheckerBlockers}, ` +
+        `blockers=${candidate.evidence.checkerBlockers}, loadBearingBlockers=${candidate.evidence.loadBearingCheckerBlockers}, ` +
+        `effectiveBlockers=${candidate.evidence.effectiveCheckerBlockers}, ` +
         `unresolvedDrift=${candidate.evidence.unresolvedPlanDriftChapters}, ` +
         `recoveredDrift=${candidate.evidence.recoveredPlanDriftChapters}, ` +
         `positiveBlockers=${candidate.evidence.positivePolarityBlockers}, drafted=${candidate.chapters.drafted}/${candidate.chapters.total}`,
@@ -205,12 +209,18 @@ function candidateForNovel(
   if (!report || report.chapters.length === 0) return null
   const signalCounts = report.totals.bySignal
   const checkerBlockers = sum(report.chapters, chapter => chapter.checker.blockers)
+  const loadBearingCheckerBlockers = sum(report.chapters, chapter => chapter.checker.loadBearingBlockers)
+  const continuityCheckerBlockers = sum(report.chapters, chapter => chapter.checker.continuityBlockers)
   const positivePolarityBlockers = sum(report.chapters, chapter => chapter.checker.positivePolarityBlockers)
+  const positivePolarityLoadBearingBlockers = sum(report.chapters, chapter => chapter.checker.positivePolarityLoadBearingBlockers)
   const evidence = {
     pendingPlanAssistGates: sum(report.chapters, chapter => chapter.planAssist.pendingGates),
     checkerBlockers,
-    effectiveCheckerBlockers: Math.max(0, checkerBlockers - positivePolarityBlockers),
+    loadBearingCheckerBlockers,
+    continuityCheckerBlockers,
+    effectiveCheckerBlockers: Math.max(0, loadBearingCheckerBlockers - positivePolarityLoadBearingBlockers),
     positivePolarityBlockers,
+    positivePolarityLoadBearingBlockers,
     ambiguousPolarityBlockers: sum(report.chapters, chapter => chapter.checker.ambiguousPolarityBlockers),
     unresolvedPlanDriftChapters: report.chapters.filter(chapter => chapter.planDrift.unresolved).length,
     recoveredPlanDriftChapters: report.chapters.filter(chapter => chapter.planDrift.recovered).length,
@@ -252,6 +262,10 @@ function scoreCandidate(
   let score = 0
   for (const [signal, count] of Object.entries(signalCounts) as Array<[SemanticGateSignal, number]>) {
     const cappedCount = signal === "no_draft" ? Math.min(count, 2) : count
+    if (signal === "plan_assist_gate") {
+      score += Math.min(cappedCount, evidence.pendingPlanAssistGates) * SIGNAL_WEIGHTS[signal]
+      continue
+    }
     score += cappedCount * SIGNAL_WEIGHTS[signal]
   }
   score += evidence.pendingPlanAssistGates * 3
@@ -271,7 +285,13 @@ function candidateReasons(evidence: SemanticGateCandidate["evidence"]): string[]
   const reasons: string[] = []
   if (evidence.pendingPlanAssistGates > 0) reasons.push(`${evidence.pendingPlanAssistGates} pending plan-assist gate(s)`)
   if (evidence.checkerBlockers > 0) reasons.push(`${evidence.checkerBlockers} checker blocker(s)`)
-  if (evidence.effectiveCheckerBlockers !== evidence.checkerBlockers) {
+  if (evidence.continuityCheckerBlockers > 0) {
+    reasons.push(`${evidence.continuityCheckerBlockers} continuity checker blocker(s) kept diagnostic-only`)
+  }
+  if (evidence.loadBearingCheckerBlockers !== evidence.checkerBlockers) {
+    reasons.push(`${evidence.loadBearingCheckerBlockers} load-bearing checker blocker(s) after continuity diagnostic discount`)
+  }
+  if (evidence.effectiveCheckerBlockers !== evidence.loadBearingCheckerBlockers) {
     reasons.push(`${evidence.effectiveCheckerBlockers} effective checker blocker(s) after support-echo discount`)
   }
   if (evidence.positivePolarityBlockers > 0) reasons.push(`${evidence.positivePolarityBlockers} support-echo checker blocker candidate(s)`)

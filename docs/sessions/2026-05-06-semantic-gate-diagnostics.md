@@ -103,6 +103,14 @@ The immediate question was whether the failure pattern was primarily:
     repeat counts across plan-check attempts, and the terminal settle outcome.
   - Chapter Health and action-evidence diagnostics include the witness event;
     no writer/checker prompt, retry, reviser, or gate behavior changes.
+- Candidate ranking calibration slice
+  - Semantic-gate rollups now split raw checker blockers from load-bearing
+    blockers; continuity blockers remain visible but diagnostic-only per L84.
+  - Candidate scoring now boosts Plan-Assist only for pending gates, not
+    orphaned/resolved gate history.
+  - Fresh top-20 scan shifted from three critical candidates to zero critical
+    and five medium candidates; former top rows were demoted because plan-check
+    passed, gates were not pending, and continuity blockers were diagnostic.
 
 ## Evidence
 
@@ -247,6 +255,10 @@ Observed signals:
   trace-only `plan-check-drift-witness` row before reviser or Plan-Assist
   handling, so future investigation can distinguish persistent same-beat drift
   from changing checker findings.
+- Ranking evidence: after load-bearing checker and pending-gate discounts,
+  `diagnostics:semantic-gate-candidates -- --limit 5 --scan-limit 20 --json`
+  returned zero critical candidates. The highest current signals are
+  plan-shape/writer-expansion, not active Drafting blockers.
 - Post-L84 scoped baseline:
   `diagnostics:semantic-gate-baseline -- --source fantasy-system-heretic
   --chapters 2 --max-beats-per-chapter 5 --output-base
