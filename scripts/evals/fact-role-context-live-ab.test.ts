@@ -116,6 +116,7 @@ describe("fact-role-context-live-ab", () => {
     expect(rendered).toContain("hiddenWriterFactsWithHit: -1")
     expect(rendered).toContain("| role-aware | novel-role-aware | completed | 2/2")
     expect(rendered).toContain("## Terminal Diagnostics")
+    expect(rendered).toContain("## Semantic Gate Signals")
   })
 
   test("verdict holds when exposure improves but role-aware does not complete cleanly", () => {
@@ -297,6 +298,7 @@ function arm(
       agents: [],
     },
     checker: {
+      semanticGate: semanticGate(`novel-${policy}`),
       planDrift: {} as ArmRunSummary["checker"]["planDrift"],
       warnings: {
         novelId: `novel-${policy}`,
@@ -307,6 +309,24 @@ function arm(
       hallucUngrounded: {
         calls: 2,
         blockerIssues: values.halluc,
+      },
+    },
+  }
+}
+
+function semanticGate(novelId: string): ArmRunSummary["checker"]["semanticGate"] {
+  return {
+    novelId,
+    chapters: [],
+    totals: {
+      chapters: 0,
+      bySignal: {
+        no_draft: 0,
+        outline_shape: 0,
+        writer_expansion: 0,
+        plan_adherence_drift: 0,
+        checker_blocker: 0,
+        plan_assist_gate: 0,
       },
     },
   }

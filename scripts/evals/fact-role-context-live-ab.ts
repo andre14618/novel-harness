@@ -16,7 +16,10 @@ import { isAbsolute, join, resolve } from "node:path"
 import db from "../../src/db/connection"
 import { buildCheckerWarningReport, type CheckerWarningReport, type ContinuityCallRow, type FunctionalEventRow } from "../analysis/checker-warning-report"
 import { buildFactRoleContextPreview, type FactRoleContextPreviewReport } from "../analysis/fact-role-context-preview"
+import { buildPlanAssistLineageReport, type PlanAssistLineageRow } from "../analysis/plan-assist-lineage-report"
 import { buildPlanDriftReport, type PlanCheckCallRow, type PlanDriftReport } from "../analysis/plan-drift-report"
+import { buildSemanticGateReport, type SemanticGateReport } from "../analysis/semantic-gate-report"
+import { buildWriterExpansionReport, type WriterExpansionDraftRow, type WriterExpansionOutlineRow } from "../analysis/writer-expansion-report"
 
 export type ArmPolicy = "legacy" | "role-aware"
 type FactRole = "operational" | "reference" | "hidden" | "unknown"
@@ -109,6 +112,7 @@ export interface ArmRunSummary {
     }>
   }
   checker: {
+    semanticGate: SemanticGateReport
     planDrift: PlanDriftReport
     warnings: CheckerWarningReport
     hallucUngrounded: {
@@ -415,6 +419,21 @@ export function renderLiveAbReport(report: LiveAbReport): string {
       }
     }
   }
+  lines.push("")
+  lines.push("## Semantic Gate Signals")
+  for (const arm of report.arms) {
+    lines.push("")
+    lines.push(`### ${arm.policy}`)
+    lines.push(`- signals: ${formatSemanticSignals(arm.checker.semanticGate.totals.bySignal)}`)
+    for (const chapter of arm.checker.semanticGate.chapters.filter(ch => ch.signals.length > 0)) {
+      const label = chapter.chapter === null ? "chapter ?" : `chapter ${chapter.chapter}`
+      lines.push(
+        `- ${label}: ${chapter.signals.join(",")}; target=${chapter.targetWords ?? "?"}; ` +
+          `beats=${chapter.plannedBeats}; draft=${chapter.draftWords ?? "none"}; ` +
+          `ratio=${formatNullable(chapter.wordRatio, 2)}`,
+      )
+    }
+  }
   if (report.delta) {
     lines.push("")
     lines.push("## Delta")
@@ -654,8 +673,17 @@ async function collectArmSummary(
   const llm = await loadLlmSummary(novelId)
   const planDrift = buildPlanDriftReport(await loadPlanCheckRows(novelId), novelId)
   const warnings = buildCheckerWarningReport(await loadCheckerWarningInputs(novelId), novelId)
+  const writerExpansion = buildWriterExpansionReport(await loadWriterExpansionOutlines(novelId), await loadWriterExpansionDrafts(novelId), novelId)
+  const planAssistLineage = buildPlanAssistLineageReport(await loadPlanAssistLineageRows(novelId), novelId)
   const hallucUngrounded = await loadHallucSummary(novelId)
   const planAssistGates = await loadPlanAssistGates(novelId)
+  const semanticGate = buildSemanticGateReport({
+    writerExpansion,
+    planDrift,
+    checkerWarnings: warnings,
+    planAssistLineage,
+    planAssistGates,
+  }, novelId)
   const logGateEvidence = await loadPlanAssistGateLogEvidence(processResult.stdoutPath)
   const terminal = buildArmTerminalSummary(
     processResult,
@@ -679,7 +707,7 @@ async function collectArmSummary(
     promptExposure: buildRolePromptExposure(facts, promptRows),
     drafts,
     llm,
-    checker: { planDrift, warnings, hallucUngrounded },
+    checker: { semanticGate, planDrift, warnings, hallucUngrounded },
   }
 }
 
@@ -854,6 +882,36 @@ async function loadPlanCheckRows(novelId: string): Promise<PlanCheckCallRow[]> {
       AND agent = 'chapter-plan-checker'
     ORDER BY chapter, attempt NULLS LAST, id
   ` as PlanCheckCallRow[]
+}
+
+async function loadWriterExpansionOutlines(novelId: string): Promise<WriterExpansionOutlineRow[]> {
+  return await db`
+    SELECT chapter_number, outline_json
+    FROM chapter_outlines
+    WHERE novel_id = ${novelId}
+    ORDER BY chapter_number
+  ` as WriterExpansionOutlineRow[]
+}
+
+async function loadWriterExpansionDrafts(novelId: string): Promise<WriterExpansionDraftRow[]> {
+  return await db`
+    SELECT DISTINCT ON (chapter_number) chapter_number, version, status, word_count
+    FROM chapter_drafts
+    WHERE novel_id = ${novelId}
+    ORDER BY chapter_number, version DESC
+  ` as WriterExpansionDraftRow[]
+}
+
+async function loadPlanAssistLineageRows(novelId: string): Promise<PlanAssistLineageRow[]> {
+  return await db`
+    SELECT id, novel_id, source_table, field_path, source, actor_kind, actor_ref,
+           previous_ref, next_ref, previous_version, next_version,
+           changed_at, reason, metadata
+    FROM planning_mutation_lineage
+    WHERE novel_id = ${novelId}
+      AND source_table IN ('chapter_exhaustions', 'chapter_revisions')
+    ORDER BY changed_at ASC, id ASC
+  ` as PlanAssistLineageRow[]
 }
 
 async function loadCheckerWarningInputs(novelId: string): Promise<{
@@ -1068,6 +1126,14 @@ function stringish(value: unknown): string | null {
 
 function formatRoleCounts(counts: Record<FactRole, number>): string {
   return `operational=${counts.operational}, reference=${counts.reference}, hidden=${counts.hidden}, unknown=${counts.unknown}`
+}
+
+function formatSemanticSignals(counts: Record<string, number>): string {
+  return Object.entries(counts).map(([signal, count]) => `${signal}=${count}`).join(", ")
+}
+
+function formatNullable(value: number | null, digits: number): string {
+  return value === null ? "?" : value.toFixed(digits)
 }
 
 function signed(value: number, digits = 0): string {

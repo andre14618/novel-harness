@@ -64,6 +64,8 @@ export interface SemanticGateChapter {
   }
   planAssist: {
     totalEvents: number
+    gateCount: number
+    pendingGates: number
     planAssistEdits: number
     planAssistOverrides: number
     reviserAccepted: number
@@ -89,6 +91,15 @@ interface SemanticGateInputs {
   planDrift: PlanDriftReport
   checkerWarnings: CheckerWarningReport
   planAssistLineage: PlanAssistLineageReport
+  planAssistGates?: readonly SemanticPlanAssistGateRow[]
+}
+
+export interface SemanticPlanAssistGateRow {
+  chapter: number | null
+  attempt: number | null
+  kind: string
+  pending: boolean
+  unresolvedCount: number
 }
 
 export function buildSemanticGateReport(input: SemanticGateInputs, novelId: string | null = null): SemanticGateReport {
@@ -97,11 +108,13 @@ export function buildSemanticGateReport(input: SemanticGateInputs, novelId: stri
   for (const chapter of input.planDrift.chapters) chapterKeys.add(chapterKey(chapter.chapter))
   for (const chapter of input.checkerWarnings.chapters) chapterKeys.add(chapterKey(chapter.chapter))
   for (const chapter of input.planAssistLineage.chapters) chapterKeys.add(chapterKey(chapter.chapter))
+  for (const gate of input.planAssistGates ?? []) chapterKeys.add(chapterKey(gate.chapter))
 
   const expansionByChapter = new Map(input.writerExpansion.chapters.map(chapter => [chapterKey(chapter.chapter), chapter]))
   const driftByChapter = new Map(input.planDrift.chapters.map(chapter => [chapterKey(chapter.chapter), chapter]))
   const checkerByChapter = new Map(input.checkerWarnings.chapters.map(chapter => [chapterKey(chapter.chapter), chapter]))
   const assistByChapter = new Map(input.planAssistLineage.chapters.map(chapter => [chapterKey(chapter.chapter), chapter]))
+  const gatesByChapter = groupGatesByChapter(input.planAssistGates ?? [])
 
   const chapters = [...chapterKeys]
     .map((key): SemanticGateChapter => {
@@ -109,6 +122,7 @@ export function buildSemanticGateReport(input: SemanticGateInputs, novelId: stri
       const drift = driftByChapter.get(key)
       const checker = checkerByChapter.get(key)
       const assist = assistByChapter.get(key)
+      const gates = gatesByChapter.get(key) ?? []
       const chapter = parseChapterKey(key)
       const checkerItems = checker?.items ?? []
       const blockers = checkerItems.filter(item => item.severity === "blocker").length
@@ -119,7 +133,7 @@ export function buildSemanticGateReport(input: SemanticGateInputs, novelId: stri
         unresolvedPlanDrift: drift?.unresolved ?? false,
         recoveredPlanDrift: drift?.recovered ?? false,
         checkerBlockers: blockers,
-        planAssistEvents: assist?.totalEvents ?? 0,
+        planAssistEvents: (assist?.totalEvents ?? 0) + gates.length,
       })
 
       return {
@@ -147,6 +161,8 @@ export function buildSemanticGateReport(input: SemanticGateInputs, novelId: stri
         },
         planAssist: {
           totalEvents: assist?.totalEvents ?? 0,
+          gateCount: gates.length,
+          pendingGates: gates.filter(gate => gate.pending).length,
           planAssistEdits: assist?.planAssistEdits ?? 0,
           planAssistOverrides: assist?.planAssistOverrides ?? 0,
           reviserAccepted: assist?.reviserAccepted ?? 0,
@@ -209,8 +225,13 @@ export function renderSemanticGateReport(report: SemanticGateReport): string {
     }
     if (chapter.planAssist.totalEvents > 0) {
       lines.push(
-        `  - plan assist: events=${chapter.planAssist.totalEvents}, edits=${chapter.planAssist.planAssistEdits}, ` +
+        `  - plan assist lineage: events=${chapter.planAssist.totalEvents}, edits=${chapter.planAssist.planAssistEdits}, ` +
           `overrides=${chapter.planAssist.planAssistOverrides}, reviser=${chapter.planAssist.reviserAccepted}`,
+      )
+    }
+    if (chapter.planAssist.gateCount > 0) {
+      lines.push(
+        `  - plan assist gates: total=${chapter.planAssist.gateCount}, pending=${chapter.planAssist.pendingGates}`,
       )
     }
   }
@@ -274,6 +295,17 @@ function compareNullableNumber(a: number | null, b: number | null): number {
 
 function uniqueSorted(values: string[]): string[] {
   return [...new Set(values)].sort((a, b) => a.localeCompare(b))
+}
+
+function groupGatesByChapter(gates: readonly SemanticPlanAssistGateRow[]): Map<string, SemanticPlanAssistGateRow[]> {
+  const grouped = new Map<string, SemanticPlanAssistGateRow[]>()
+  for (const gate of gates) {
+    const key = chapterKey(gate.chapter)
+    const list = grouped.get(key) ?? []
+    list.push(gate)
+    grouped.set(key, list)
+  }
+  return grouped
 }
 
 function formatNullable(value: number | null, digits: number): string {
@@ -343,12 +375,31 @@ async function loadInputs(novelId: string): Promise<SemanticGateInputs> {
         AND source_table IN ('chapter_exhaustions', 'chapter_revisions')
       ORDER BY changed_at ASC, id ASC
     ` as PlanAssistLineageRow[]
+    const gateRows = await db`
+      SELECT chapter, attempt, kind, decided_at IS NULL AS pending, unresolved_deviations
+      FROM chapter_exhaustions
+      WHERE novel_id = ${novelId}
+      ORDER BY fired_at DESC, id DESC
+    ` as Array<{
+      chapter: number | null
+      attempt: number | null
+      kind: string
+      pending: boolean
+      unresolved_deviations: unknown
+    }>
 
     return {
       writerExpansion: buildWriterExpansionReport(outlines, drafts, novelId),
       planDrift: buildPlanDriftReport(planChecks, novelId),
       checkerWarnings: buildCheckerWarningReport({ functionalEvents, continuityRows }, novelId),
       planAssistLineage: buildPlanAssistLineageReport(lineageRows, novelId),
+      planAssistGates: gateRows.map(row => ({
+        chapter: row.chapter,
+        attempt: row.attempt,
+        kind: row.kind,
+        pending: Boolean(row.pending),
+        unresolvedCount: Array.isArray(row.unresolved_deviations) ? row.unresolved_deviations.length : 0,
+      })),
     }
   } finally {
     await db.end().catch(() => {})

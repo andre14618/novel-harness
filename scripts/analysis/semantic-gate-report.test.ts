@@ -72,6 +72,15 @@ describe("semantic-gate-report", () => {
       planDrift,
       checkerWarnings,
       planAssistLineage,
+      planAssistGates: [
+        {
+          chapter: 2,
+          attempt: 1,
+          kind: "plan-check-exhausted",
+          pending: true,
+          unresolvedCount: 0,
+        },
+      ],
     }, "novel-test")
 
     expect(report.totals.bySignal).toMatchObject({
@@ -92,13 +101,14 @@ describe("semantic-gate-report", () => {
       signals: ["no_draft", "outline_shape", "plan_adherence_drift", "checker_blocker", "plan_assist_gate"],
       planDrift: { unresolved: true, deviationCount: 1, driftedBeatRefs: ["beat-2-4"] },
       checker: { blockers: 1, sources: ["functional-check"] },
-      planAssist: { totalEvents: 1, planAssistEdits: 1 },
+      planAssist: { totalEvents: 1, gateCount: 1, pendingGates: 1, planAssistEdits: 1 },
     })
 
     const rendered = renderSemanticGateReport(report)
     expect(rendered).toContain("Semantic gate report for novel-test")
     expect(rendered).toContain("chapter 2: signals=no_draft,outline_shape,plan_adherence_drift,checker_blocker,plan_assist_gate")
     expect(rendered).toContain("plan drift: final=fail")
+    expect(rendered).toContain("plan assist gates: total=1, pending=1")
   })
 
   test("renders empty input", () => {
