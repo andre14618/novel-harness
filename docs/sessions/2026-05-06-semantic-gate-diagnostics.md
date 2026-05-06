@@ -468,6 +468,13 @@ completed variants, child variant risk drivers, reasons, terminal status, and
 artifact paths. Browser evidence is clear at
 `output/playwright/2026-05-06/semantic-gate-cohort-drilldown-top-candidates/`.
 
+Bounded diagnostics follow-up: `src/index.ts` now closes the shared DB handle
+on CLI exit, and semantic-gate baseline/matrix/cohort runners accept/pass
+`--timeout-minutes` / `--child-timeout-minutes` with a 30-minute default. If a
+baseline child times out, the baseline still writes a partial evidence report
+with terminal status `process-timeout` instead of requiring manual process
+cleanup.
+
 ## Follow-Up
 
 Use this record as input to the broader authoring harness program loop, not as

@@ -56,6 +56,7 @@ export interface Args {
   target: string | null
   maxBeatsPerChapter: number | null
   continuityEditorialFlagProposals: boolean
+  timeoutMinutes: number
 }
 
 export interface SourcePreflight {
@@ -70,6 +71,8 @@ export interface BaselineProcessSummary {
   signal: string | null
   stdoutPath: string
   stderrPath: string
+  timedOut: boolean
+  timeoutMs: number
 }
 
 export interface DraftSummary {
@@ -129,7 +132,7 @@ export interface ProposalEnvelopeSummary {
 }
 
 export interface BaselineTerminalSummary {
-  status: "completed" | "pending-plan-assist" | "process-exit" | "incomplete"
+  status: "completed" | "pending-plan-assist" | "process-timeout" | "process-exit" | "incomplete"
   reason: string
   latestPlanAssistGate: PlanAssistGateSummary | null
   planAssistLogEvidence: PlanAssistGateLogEvidence | null
@@ -208,6 +211,7 @@ export function parseArgs(argv: string[]): Args {
     maxBeatsPerChapter: optionalPositiveInt(map["max-beats-per-chapter"], "--max-beats-per-chapter"),
     continuityEditorialFlagProposals:
       boolOpt(map["continuity-editorial-flags"] ?? map["continuity-editorial-flag-proposals"]),
+    timeoutMinutes: positiveInt(map["timeout-minutes"], "--timeout-minutes", 30),
   }
 }
 
@@ -234,7 +238,7 @@ export function scopeWriterExpansionRows(
 }
 
 export function buildBaselineTerminalSummary(
-  processResult: Pick<BaselineProcessSummary, "exitCode" | "signal">,
+  processResult: Pick<BaselineProcessSummary, "exitCode" | "signal"> & Partial<Pick<BaselineProcessSummary, "timedOut" | "timeoutMs">>,
   completed: boolean,
   planAssistGates: readonly PlanAssistGateSummary[],
   planAssistLogEvidence: PlanAssistGateLogEvidence | null = null,
@@ -255,6 +259,15 @@ export function buildBaselineTerminalSummary(
       status: "pending-plan-assist",
       reason: `stopped at pending plan-assist gate: chapter ${pendingGate.chapter}, kind ${pendingGate.kind}`,
       latestPlanAssistGate: pendingGate,
+      planAssistLogEvidence,
+    }
+  }
+
+  if (processResult.timedOut) {
+    return {
+      status: "process-timeout",
+      reason: `process timed out before completion after ${Math.round((processResult.timeoutMs ?? 0) / 1000)}s`,
+      latestPlanAssistGate: latestGate,
       planAssistLogEvidence,
     }
   }
@@ -387,7 +400,8 @@ async function main(argv: string[]): Promise<number> {
     console.error(err instanceof Error ? err.message : String(err))
     console.error(
       "usage: bun scripts/evals/semantic-gate-baseline.ts --source <drafting-source-novel-id> " +
-        "[--chapters 2] [--max-beats-per-chapter 5] [--output-base output/evals/...] [--keep-novel] " +
+        "[--chapters 2] [--max-beats-per-chapter 5] [--timeout-minutes 30] " +
+        "[--output-base output/evals/...] [--keep-novel] " +
         "[--continuity-editorial-flag-proposals]",
     )
     return 2
@@ -407,7 +421,7 @@ async function main(argv: string[]): Promise<number> {
       await capNovelOutlineBeats(targetNovelId, args.chapters, args.maxBeatsPerChapter)
     }
 
-    const processResult = runBaselineProcess(targetNovelId, args.outputBase)
+    const processResult = runBaselineProcess(targetNovelId, args.outputBase, args.timeoutMinutes)
     const report = await collectBaselineReport({
       sourceNovelId: args.source,
       novelId: targetNovelId,
@@ -551,22 +565,35 @@ async function capNovelOutlineBeats(novelId: string, chapters: number, maxBeats:
   }
 }
 
-function runBaselineProcess(novelId: string, outputBase: string): BaselineProcessSummary {
+function runBaselineProcess(novelId: string, outputBase: string, timeoutMinutes: number): BaselineProcessSummary {
   const stdoutPath = join(outputBase, "baseline.stdout.log")
   const stderrPath = join(outputBase, "baseline.stderr.log")
+  const timeoutMs = Math.round(timeoutMinutes * 60_000)
   const result = spawnSync("bun", ["src/index.ts", "--resume", novelId, "--auto"], {
     encoding: "utf8",
     maxBuffer: 100 * 1024 * 1024,
     env: { ...process.env },
+    timeout: timeoutMs,
   })
+  const timedOut = isSpawnTimeout(result.error)
+  const timeoutNote = timedOut
+    ? `\n[semantic-gate-baseline] child timed out after ${timeoutMinutes} minute(s); collecting partial evidence.\n`
+    : ""
   writeFileSync(stdoutPath, result.stdout ?? "")
-  writeFileSync(stderrPath, result.stderr ?? "")
+  writeFileSync(stderrPath, `${result.stderr ?? ""}${timeoutNote}`)
   return {
     exitCode: result.status,
     signal: result.signal,
     stdoutPath,
     stderrPath,
+    timedOut,
+    timeoutMs,
   }
+}
+
+function isSpawnTimeout(error: Error | undefined): boolean {
+  if (!error) return false
+  return (error as NodeJS.ErrnoException).code === "ETIMEDOUT"
 }
 
 async function collectBaselineReport(input: {

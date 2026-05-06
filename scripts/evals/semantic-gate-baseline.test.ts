@@ -20,6 +20,7 @@ describe("semantic-gate-baseline", () => {
     expect(args.target).toBeNull()
     expect(args.maxBeatsPerChapter).toBeNull()
     expect(args.continuityEditorialFlagProposals).toBe(false)
+    expect(args.timeoutMinutes).toBe(30)
     expect(args.outputBase).toContain("output/evals/semantic-gate-baseline")
   })
 
@@ -29,6 +30,7 @@ describe("semantic-gate-baseline", () => {
       "--chapters", "3",
       "--max-beats-per-chapter", "5",
       "--target", "target-novel",
+      "--timeout-minutes", "12",
       "--keep-novel",
       "--continuity-editorial-flag-proposals",
       "--output-base", "output/evals/custom",
@@ -39,6 +41,7 @@ describe("semantic-gate-baseline", () => {
     expect(args.target).toBe("target-novel")
     expect(args.keepNovel).toBe(true)
     expect(args.continuityEditorialFlagProposals).toBe(true)
+    expect(args.timeoutMinutes).toBe(12)
     expect(args.outputBase).toContain("output/evals/custom")
   })
 
@@ -95,6 +98,17 @@ describe("semantic-gate-baseline", () => {
     expect(summary.status).toBe("pending-plan-assist")
     expect(summary.reason).toContain("chapter 2")
     expect(summary.latestPlanAssistGate?.id).toBe(9)
+  })
+
+  test("terminal summary surfaces process timeout when no gate is pending", () => {
+    const summary = buildBaselineTerminalSummary(
+      { exitCode: null, signal: "SIGTERM", timedOut: true, timeoutMs: 720_000 },
+      false,
+      [],
+    )
+
+    expect(summary.status).toBe("process-timeout")
+    expect(summary.reason).toContain("720s")
   })
 
   test("extractPlanAssistGateLogEvidence reads unresolved samples from stdout", () => {
@@ -173,6 +187,8 @@ function reportFixture(): SemanticGateBaselineReport {
       signal: null,
       stdoutPath: "/tmp/stdout.log",
       stderrPath: "/tmp/stderr.log",
+      timedOut: false,
+      timeoutMs: 1_800_000,
     },
     novel: {
       phase: "drafting",

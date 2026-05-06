@@ -37,6 +37,7 @@ export interface Args {
   parallelVariants: number
   keepNovels: boolean
   continuityEditorialFlagProposals: boolean
+  childTimeoutMinutes: number
 }
 
 export interface CohortMatrixRun {
@@ -154,6 +155,7 @@ export function parseArgs(argv: string[]): Args {
     keepNovels: boolOpt(lastValue(map["keep-novels"])),
     continuityEditorialFlagProposals:
       boolOpt(lastValue(map["continuity-editorial-flags"]) ?? lastValue(map["continuity-editorial-flag-proposals"])),
+    childTimeoutMinutes: positiveInt(lastValue(map["child-timeout-minutes"]), "--child-timeout-minutes", 30),
   }
 }
 
@@ -351,6 +353,7 @@ async function main(argv: string[]): Promise<number> {
     variants: args.variants,
     keepNovels: args.keepNovels,
     continuityEditorialFlagProposals: args.continuityEditorialFlagProposals,
+    childTimeoutMinutes: args.childTimeoutMinutes,
   }, null, 2))
 
   const candidateSources = loadCandidateSources(args.candidateReports, args.candidateLimit)
@@ -398,6 +401,7 @@ async function runMatrixChild(args: Args, source: string, replicate: number): Pr
     "--chapters", String(args.chapters),
     "--output-base", outputBase,
     "--parallel", String(args.parallelVariants),
+    "--child-timeout-minutes", String(args.childTimeoutMinutes),
     ...args.variantSpecs.flatMap(spec => ["--variant", spec]),
     ...(args.keepNovels ? ["--keep-novels"] : []),
     ...(args.continuityEditorialFlagProposals ? ["--continuity-editorial-flag-proposals"] : []),

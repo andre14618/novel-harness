@@ -18,6 +18,7 @@ describe("semantic-gate-matrix parseArgs", () => {
     expect(args.source).toBe("fixture-novel")
     expect(args.chapters).toBe(2)
     expect(args.parallel).toBe(2)
+    expect(args.childTimeoutMinutes).toBe(30)
     expect(args.outputBase).toContain("output/evals/semantic-gate-matrix/fixture-novel-")
     expect(args.variants.map(variant => ({
       id: variant.id,
@@ -35,6 +36,7 @@ describe("semantic-gate-matrix parseArgs", () => {
       "--source=fixture-novel",
       "--chapters", "3",
       "--parallel", "4",
+      "--child-timeout-minutes", "14",
       "--variant", "tight:beats=4",
       "--variant", "control:source",
       "--keep-novels",
@@ -43,6 +45,7 @@ describe("semantic-gate-matrix parseArgs", () => {
 
     expect(args.chapters).toBe(3)
     expect(args.parallel).toBe(4)
+    expect(args.childTimeoutMinutes).toBe(14)
     expect(args.keepNovels).toBe(true)
     expect(args.continuityEditorialFlagProposals).toBe(true)
     expect(args.variants).toEqual([

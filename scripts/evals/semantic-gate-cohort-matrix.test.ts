@@ -19,6 +19,7 @@ describe("semantic-gate-cohort-matrix parseArgs", () => {
       "--replicates", "2",
       "--parallel-sources", "4",
       "--parallel-variants", "3",
+      "--child-timeout-minutes", "16",
       "--variant", "tight:beats=4",
       "--variant", "control:source",
       "--keep-novels",
@@ -31,6 +32,7 @@ describe("semantic-gate-cohort-matrix parseArgs", () => {
     expect(args.replicates).toBe(2)
     expect(args.parallelSources).toBe(4)
     expect(args.parallelVariants).toBe(3)
+    expect(args.childTimeoutMinutes).toBe(16)
     expect(args.keepNovels).toBe(true)
     expect(args.continuityEditorialFlagProposals).toBe(true)
     expect(args.variantSpecs).toEqual(["tight:beats=4", "control:source"])
@@ -56,6 +58,7 @@ describe("semantic-gate-cohort-matrix parseArgs", () => {
     expect(args.summaries).toEqual([])
     expect(args.candidateReports[0]).toContain("output/evals/candidates.json")
     expect(args.candidateLimit).toBe(2)
+    expect(args.childTimeoutMinutes).toBe(30)
   })
 
   test("requires a source, summary, or candidate report", () => {

@@ -21,6 +21,7 @@ export interface Args {
   parallel: number
   keepNovels: boolean
   continuityEditorialFlagProposals: boolean
+  childTimeoutMinutes: number
 }
 
 export interface MatrixVariant {
@@ -144,6 +145,7 @@ export function parseArgs(argv: string[]): Args {
     keepNovels: boolOpt(lastValue(map["keep-novels"])),
     continuityEditorialFlagProposals:
       boolOpt(lastValue(map["continuity-editorial-flags"]) ?? lastValue(map["continuity-editorial-flag-proposals"])),
+    childTimeoutMinutes: positiveInt(lastValue(map["child-timeout-minutes"]), "--child-timeout-minutes", 30),
   }
 }
 
@@ -391,6 +393,7 @@ async function runVariant(args: Args, variant: MatrixVariant, index: number): Pr
     "--chapters", String(args.chapters),
     "--output-base", variantOutputBase,
     "--target", targetNovelId,
+    "--timeout-minutes", String(args.childTimeoutMinutes),
     ...(variant.maxBeatsPerChapter == null ? [] : ["--max-beats-per-chapter", String(variant.maxBeatsPerChapter)]),
     ...(args.keepNovels ? ["--keep-novel"] : []),
     ...(args.continuityEditorialFlagProposals ? ["--continuity-editorial-flag-proposals"] : []),
@@ -475,7 +478,7 @@ async function main(argv: string[]): Promise<number> {
     console.error(
       "usage: bun scripts/evals/semantic-gate-matrix.ts --source <novel> " +
         "[--chapters 2] [--variant beats=4] [--variant beats=5] [--variant source] " +
-        "[--parallel 2] [--output-base output/evals/...] [--keep-novels]",
+        "[--parallel 2] [--child-timeout-minutes 30] [--output-base output/evals/...] [--keep-novels]",
     )
     return 2
   }
@@ -489,6 +492,7 @@ async function main(argv: string[]): Promise<number> {
     variants: args.variants,
     keepNovels: args.keepNovels,
     continuityEditorialFlagProposals: args.continuityEditorialFlagProposals,
+    childTimeoutMinutes: args.childTimeoutMinutes,
   }, null, 2))
 
   const results = await runBounded(args.variants, args.parallel, (variant, index) => runVariant(args, variant, index))

@@ -1,4 +1,5 @@
 import { initDB, createNovel, getNovel } from "./db"
+import db from "./db/connection"
 import { collectSeedInput, closeInput, setAutoMode, setResolverMode } from "./cli"
 import { getMode } from "./gates"
 import { runNovel } from "./state-machine"
@@ -79,6 +80,7 @@ async function main() {
     console.log(`\nYou can resume with: bun src/index.ts --resume ${novelId}`)
   } finally {
     closeInput()
+    await db.end().catch(() => {})
   }
 }
 
