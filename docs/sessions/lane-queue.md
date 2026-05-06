@@ -4,7 +4,7 @@ This file tracks active and immediately actionable work only.
 
 ## Active
 
-- Richness Backlog lane (2026-05-05): world fact roles. Substrate/diagnostics
+- Richness Backlog lane (2026-05-06): world fact roles. Substrate/diagnostics
   are shipped; default stays legacy. Latest capped A/B is hold: role filtering
   worked, but both arms gated on chapter-2 continuity and role-aware regressed
   cost/hallucination. Next: diagnose semantic gate/writer expansion.
@@ -26,10 +26,9 @@ This file tracks active and immediately actionable work only.
 
 ## Recently Closed
 
-- Fact-role policy seam shipped: pure legacy/writer-visible/
-  continuity-blocking selectors, opt-in Canon `includeFactRoles`, diagnostic
-  preview, deterministic fixture eval, role-preserving/policy-setting
-  resume-ready clones, live A/B runner, and per-novel drafting override.
+- Fact-role policy seam shipped: pure selectors, opt-in Canon role scoping,
+  diagnostic preview, fixture eval, resume-ready clones, live A/B runner with
+  terminal gate evidence / promotion verdict, and per-novel drafting override.
   Hidden Canon facts require explicit `forceIncludeHiddenFacts` before
   `includeFactIds` can surface them.
 - Adjudicated continuity gray-zone panel N=20 shipped (decision L81).
@@ -49,10 +48,9 @@ This file tracks active and immediately actionable work only.
   `functional-check` trace events and continuity checker `llm_calls`. Use
   `bun run diagnostics:checker-warnings -- --novel <novelId>` before relaxing
   checker behavior.
-- Added a diagnostic-only plan drift report over existing
-  `chapter-plan-checker` `llm_calls` rows. Use
-  `bun run diagnostics:plan-drift -- --novel <novelId>` to inspect pass/fail,
-  deviations, stable beat refs, and parse errors before adding writer nudges.
+- Added a diagnostic-only plan drift report over existing `chapter-plan-checker`
+  calls. Use `diagnostics:plan-drift` to inspect pass/fail,
+  recovered/unresolved drift, stable beat refs, and parse errors.
 - Validation character-presence warnings now handle surname-only references for
   multi-part names and avoid substring matches, closing the false-positive class
   observed in the refreshed smoke fixture.

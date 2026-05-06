@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-05
+updated: 2026-05-06
 role: canonical-current-truth
 archive: archive/current-state-2026-05-04-full.md
 ---
@@ -121,7 +121,7 @@ Promotion tiers:
 
 ## Active Work
 
-See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
+See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
 
 - Closed: test harness reliability cleanup has restored supported tiered gates.
   Direct broad `bun test` remains unsupported; use `bun run test:fast` for the
@@ -173,9 +173,9 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   changing the legacy `beat_index` contract.
 - Beat-level LLM telemetry now persists `llm_calls.beat_id` for beat writer,
   targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
-- `bun run diagnostics:plan-drift -- --novel <novelId>` summarizes existing
-  `chapter-plan-checker` telemetry for semantic action drift evidence without
-  changing prompts, traces, replay fixtures, or writer behavior.
+- `bun run diagnostics:plan-drift -- --novel <novelId>` summarizes
+  `chapter-plan-checker` telemetry, recovered/unresolved drift, and stable beat
+  refs without changing prompts, traces, replay fixtures, or writer behavior.
 - `bun run diagnostics:checker-warnings -- --novel <novelId>` summarizes
   warning-class functional-check and continuity evidence for checker
   calibration without changing runtime behavior.
@@ -183,15 +183,14 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   per-chapter plan-assist edit/override decisions and chapter-plan-reviser
   accepted outline replacements from `planning_mutation_lineage` for the
   deferred envelope-wrap decision, without changing runtime behavior.
-- World fact role columns are additive on `facts` (`sql/049`) and
-  `canon_facts` (`sql/050`) with `operational | reference | hidden` and
-  `operational` default. `bun run diagnostics:fact-roles [--novel <novelId>]`
-  reports per-table totals plus per-category/per-kind cross-tabs (active-only
-  canon view included). `bun run diagnostics:fact-role-context-preview`
-  previews role-aware consumer policy; per-novel `factRoleContextPolicy:
-  "role-aware"` opts drafting into writer `operational`/`reference` facts and
-  continuity-blocking `operational` facts while default runtime stays legacy.
-  `bun run eval:role-context-policy` covers deterministic fixture behavior; `bun run eval:fact-role-context-live-ab -- --source <id>` runs disposable legacy/role-aware clone comparison before production promotion, using resume-ready drafting clones and optional clone-only beat caps for bounded evidence runs.
+- World fact roles are additive on `facts` and `canon_facts`; diagnostics
+  report totals, policy previews, and deterministic fixture behavior. Default
+  runtime stays legacy; per-novel `factRoleContextPolicy: "role-aware"` is
+  A/B-only. `bun run eval:fact-role-context-live-ab -- --source <id>` runs
+  resume-ready disposable clones with optional clone-only beat caps and a
+  promotion verdict. Latest capped `fantasy-system-heretic` verdict is `hold`:
+  role filtering worked, but chapter-2 continuity gated both arms and
+  role-aware regressed cost/hallucination.
 - Halluc-ungrounded issue metadata now carries exact-match `entityRefs[]` for
   `character`, `world_system`, and `culture` targets when deterministic
   resolution is possible, and accepted beat-check blockers preserve the

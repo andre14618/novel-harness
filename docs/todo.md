@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-05
+updated: 2026-05-06
 role: actionable-backlog
 archive: archive/todo-2026-05-04-full.md
 ---
@@ -62,8 +62,8 @@ This file is the actionable backlog only. Live architecture belongs in
   checker outputs before adding new creative checkers.
 - [x] Refresh phase-parity smoke after beat-count calibration; compare word
   count, beat count, approval rate, and semantic drift rate.
-- [ ] Investigate semantic action drift from drafting before adding new
-  writer/checker nudges.
+- [ ] Investigate semantic action drift, continuity gate behavior, and writer
+  expansion from drafting before adding new writer/checker nudges.
 - [x] Add pure fact-role policy selectors and opt-in Canon role scoping before
   wiring runtime writer/checker behavior.
 - [x] Add diagnostic preview for writer-visible and continuity-blocking
@@ -72,8 +72,8 @@ This file is the actionable backlog only. Live architecture belongs in
   default runtime legacy.
 - [x] Add deterministic role-context fixture eval, preserve/set fact roles in
   resume-ready drafting variant clones, and add disposable live A/B runner.
-- [ ] Wire role-aware writer retrieval and checker-blocking policy only after
-  diagnostic/A-B evidence confirms hidden/reference handling improves outputs.
+- [ ] Wire role-aware writer/checker policy only after A/B evidence improves
+  outputs. Latest capped run is hold despite correct role filtering.
 - [x] Build a small adjudicated continuity gray-zone panel before relaxing
   object/state conflict checks. (N=20 shipped 2026-05-05; decision L81;
   follow-up needs N≥50 across continuity-state before any checker relaxation.)
