@@ -21,6 +21,7 @@ export interface CheckerWarningItem {
   severity: "blocker" | "warning" | "nit" | "unknown"
   description: string
   polarity: CheckerWarningPolarity
+  calibration: CheckerWarningCalibration
   chapter: number | null
   beatIndex?: number | null
   beatId?: string
@@ -30,6 +31,7 @@ export interface CheckerWarningItem {
 }
 
 export type CheckerWarningPolarity = "negative" | "positive" | "ambiguous"
+export type CheckerWarningCalibration = "standard" | "low-confidence"
 
 export interface CheckerWarningChapter {
   chapter: number | null
@@ -41,6 +43,7 @@ export interface CheckerWarningReport {
   totalItems: number
   bySeverity: Record<string, number>
   byPolarity: Record<CheckerWarningPolarity, number>
+  byCalibration: Record<CheckerWarningCalibration, number>
   chapters: CheckerWarningChapter[]
 }
 
@@ -82,12 +85,18 @@ export function buildCheckerWarningReport(
     ambiguous: 0,
   }
   for (const item of items) byPolarity[item.polarity]++
+  const byCalibration: Record<CheckerWarningCalibration, number> = {
+    standard: 0,
+    "low-confidence": 0,
+  }
+  for (const item of items) byCalibration[item.calibration]++
 
   return {
     novelId,
     totalItems: items.length,
     bySeverity,
     byPolarity,
+    byCalibration,
     chapters: [...byChapter.values()].map(chapterItems => ({
       chapter: chapterItems[0]?.chapter ?? null,
       items: chapterItems,
@@ -101,6 +110,7 @@ export function renderCheckerWarningReport(report: CheckerWarningReport): string
   lines.push(`Items: ${report.totalItems} total${Object.keys(report.bySeverity).length ? ` (${formatSeverityCounts(report.bySeverity)})` : ""}`)
   if (report.totalItems > 0) {
     lines.push(`Polarity: ${formatPolarityCounts(report.byPolarity)}`)
+    lines.push(`Calibration: ${formatCalibrationCounts(report.byCalibration)}`)
   }
   if (report.chapters.length === 0) {
     lines.push("No functional or continuity warning items found.")
@@ -121,7 +131,8 @@ export function renderCheckerWarningReport(report: CheckerWarningReport): string
       const planned = item.plannedItemId ? ` planned=${item.plannedItemId}` : ""
       const attempt = item.attempt == null ? "" : ` attempt=${item.attempt}`
       const polarity = item.polarity === "negative" ? "" : ` polarity=${item.polarity}`
-      lines.push(`  - [${item.severity}] ${item.source}${beat}${ref}${planned}${attempt}${polarity}: ${item.description}`)
+      const calibration = item.calibration === "standard" ? "" : ` calibration=${item.calibration}`
+      lines.push(`  - [${item.severity}] ${item.source}${beat}${ref}${planned}${attempt}${polarity}${calibration}: ${item.description}`)
     }
   }
   return lines.join("\n")
@@ -139,6 +150,7 @@ function functionalEventToItems(row: FunctionalEventRow): CheckerWarningItem[] {
       severity: "warning",
       description: itemDescription(item, raw),
       polarity: classifyFindingPolarity(itemDescription(item, raw)),
+      calibration: "standard",
       chapter: row.chapter,
       beatIndex: numberOrNull(item.beat_index),
       beatId: stringField(item.beatId),
@@ -153,6 +165,7 @@ function functionalEventToItems(row: FunctionalEventRow): CheckerWarningItem[] {
       severity: "blocker",
       description: itemDescription(item, raw),
       polarity: classifyFindingPolarity(itemDescription(item, raw)),
+      calibration: "standard",
       chapter: row.chapter,
       beatIndex: numberOrNull(item.beat_index),
       beatId: stringField(item.beatId),
@@ -181,6 +194,7 @@ function continuityRowToItems(row: ContinuityCallRow): CheckerWarningItem[] {
         severity: severityField(item.severity),
         description,
         polarity: classifyFindingPolarity(description),
+        calibration: "standard",
         chapter: row.chapter,
         rowId: row.id,
         attempt: row.attempt,
@@ -192,11 +206,13 @@ function continuityRowToItems(row: ContinuityCallRow): CheckerWarningItem[] {
       const item = asRecord(raw)
       const violationType = stringField(item.type)
       const description = `${stringField(item.character) ?? "unknown"} ${violationType ?? "state"} violation: ${stringField(item.reasoning) ?? stringField(item.evidence) ?? JSON.stringify(raw)}`
+      const severity = normalizeContinuityStateSeverity(severityField(item.severity), violationType)
       return {
         source: "continuity-state",
-        severity: normalizeContinuityStateSeverity(severityField(item.severity), violationType),
+        severity,
         description,
         polarity: classifyFindingPolarity(description),
+        calibration: continuityStateCalibration(severity),
         chapter: row.chapter,
         rowId: row.id,
         attempt: row.attempt,
@@ -204,6 +220,13 @@ function continuityRowToItems(row: ContinuityCallRow): CheckerWarningItem[] {
     })
   }
   return []
+}
+
+function continuityStateCalibration(severity: CheckerWarningItem["severity"]): CheckerWarningCalibration {
+  // L83: N=50 continuity-state/warning panel found 0% true positives. Keep the
+  // finding visible, but do not let raw warning counts masquerade as calibrated
+  // semantic-gate evidence.
+  return severity === "warning" ? "low-confidence" : "standard"
 }
 
 function normalizeContinuityStateSeverity(
@@ -273,6 +296,12 @@ function formatSeverityCounts(counts: Record<string, number>): string {
 function formatPolarityCounts(counts: Record<CheckerWarningPolarity, number>): string {
   return (["negative", "positive", "ambiguous"] as const)
     .map(polarity => `${polarity}: ${counts[polarity]}`)
+    .join(", ")
+}
+
+function formatCalibrationCounts(counts: Record<CheckerWarningCalibration, number>): string {
+  return (["standard", "low-confidence"] as const)
+    .map(calibration => `${calibration}: ${counts[calibration]}`)
     .join(", ")
 }
 

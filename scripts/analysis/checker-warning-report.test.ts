@@ -39,6 +39,7 @@ describe("checker-warning-report", () => {
           beatIndex: 2,
           beatId: "ch-001-beat-003",
           plannedItemId: "fact-1",
+          calibration: "standard",
           description: "supported fact is only implied",
         }],
       }],
@@ -83,11 +84,12 @@ describe("checker-warning-report", () => {
 
     expect(report.totalItems).toBe(2)
     expect(report.bySeverity).toEqual({ warning: 1, nit: 1 })
+    expect(report.byCalibration).toEqual({ standard: 1, "low-confidence": 1 })
     expect(report.chapters[0]!.items.map(item => item.source)).toEqual([
       "continuity-state",
       "continuity-facts",
     ])
-    expect(renderCheckerWarningReport(report)).toContain("[warning] continuity-state attempt=1")
+    expect(renderCheckerWarningReport(report)).toContain("[warning] continuity-state attempt=1 calibration=low-confidence")
   })
 
   test("marks consistency-shaped blocker rows as positive polarity", () => {
@@ -115,6 +117,7 @@ describe("checker-warning-report", () => {
 
     expect(report.bySeverity).toEqual({ blocker: 2 })
     expect(report.byPolarity).toEqual({ negative: 1, positive: 1, ambiguous: 0 })
+    expect(report.byCalibration).toEqual({ standard: 2, "low-confidence": 0 })
     expect(report.chapters[0]!.items.map(item => item.polarity).sort()).toEqual(["negative", "positive"])
     expect(renderCheckerWarningReport(report)).toContain("polarity=positive")
   })

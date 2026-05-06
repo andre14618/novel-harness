@@ -48,8 +48,8 @@ could plausibly have been learned off-page.
   facts blocker/warning behavior.
 - Keep continuity-state blockers in force for clear knowledge impossibility or
   explicit same-time location contradiction.
-- Consider a low-risk calibration slice that suppresses or separately
-  classifies `continuity-state/warning` in diagnostics and review UI.
+- `diagnostics:checker-warnings` now classifies `continuity-state/warning` as
+  `calibration=low-confidence` while leaving the finding visible.
 - Any prompt/runtime change to reduce warning generation still needs a replay
   or A/B check because prompt changes can shift blocker behavior.
 
