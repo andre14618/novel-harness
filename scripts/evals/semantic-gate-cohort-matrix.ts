@@ -25,6 +25,8 @@ const DEFAULT_VARIANT_SPECS = ["beats=4", "beats=5", "beats=6"]
 export interface Args {
   sources: string[]
   summaries: string[]
+  candidateReports: string[]
+  candidateLimit: number | null
   chapters: number
   outputBase: string
   variantSpecs: string[]
@@ -120,8 +122,11 @@ export function parseArgs(argv: string[]): Args {
 
   const sources = stringValues(map.source)
   const summaries = stringValues(map.summary).map(path => isAbsolute(path) ? path : resolve(process.cwd(), path))
-  if (sources.length === 0 && summaries.length === 0) {
-    throw new Error("at least one --source or --summary is required")
+  const candidateReports = stringValues(map["candidate-report"]).map(path =>
+    isAbsolute(path) ? path : resolve(process.cwd(), path)
+  )
+  if (sources.length === 0 && summaries.length === 0 && candidateReports.length === 0) {
+    throw new Error("at least one --source, --summary, or --candidate-report is required")
   }
   const variantSpecs = stringValues(map.variant)
   const effectiveVariantSpecs = variantSpecs.length > 0 ? variantSpecs : DEFAULT_VARIANT_SPECS
@@ -134,6 +139,8 @@ export function parseArgs(argv: string[]): Args {
   return {
     sources,
     summaries,
+    candidateReports,
+    candidateLimit: optionalPositiveInt(lastValue(map["candidate-limit"]), "--candidate-limit"),
     chapters: positiveInt(lastValue(map.chapters), "--chapters", 2),
     outputBase: isAbsolute(rawOutput) ? rawOutput : resolve(process.cwd(), rawOutput),
     variantSpecs: effectiveVariantSpecs,
@@ -233,6 +240,17 @@ export function renderCohortReport(report: SemanticGateCohortMatrixReport): stri
   return lines.join("\n")
 }
 
+export function candidateSourcesFromReportJson(text: string, limit: number | null = null): string[] {
+  const parsed = JSON.parse(text) as { candidates?: unknown }
+  if (!Array.isArray(parsed.candidates)) throw new Error("candidate report missing candidates array")
+  const sources = parsed.candidates.flatMap(candidate => {
+    if (!candidate || typeof candidate !== "object") return []
+    const novelId = (candidate as Record<string, unknown>).novelId
+    return typeof novelId === "string" && novelId.trim().length > 0 ? [novelId] : []
+  })
+  return limit === null ? sources : sources.slice(0, limit)
+}
+
 function aggregateVariants(runs: readonly CohortMatrixRun[]): CohortVariantAggregate[] {
   const buckets = new Map<string, {
     label: string
@@ -294,7 +312,7 @@ async function main(argv: string[]): Promise<number> {
     console.error(err instanceof Error ? err.message : String(err))
     console.error(
       "usage: bun scripts/evals/semantic-gate-cohort-matrix.ts " +
-        "[--source <novel> ...] [--summary <matrix-summary.json> ...] " +
+        "[--source <novel> ...] [--summary <matrix-summary.json> ...] [--candidate-report <json> ...] " +
         "[--chapters 2] [--replicates 1] [--variant beats=4] [--parallel-sources 2] [--parallel-variants 2]",
     )
     return 2
@@ -305,6 +323,8 @@ async function main(argv: string[]): Promise<number> {
     generatedAt: new Date().toISOString(),
     sources: args.sources,
     summaries: args.summaries,
+    candidateReports: args.candidateReports,
+    candidateLimit: args.candidateLimit,
     chapters: args.chapters,
     replicates: args.replicates,
     parallelSources: args.parallelSources,
@@ -315,9 +335,11 @@ async function main(argv: string[]): Promise<number> {
     continuityEditorialFlagProposals: args.continuityEditorialFlagProposals,
   }, null, 2))
 
+  const candidateSources = loadCandidateSources(args.candidateReports, args.candidateLimit)
+  const liveSources = uniqueStrings([...args.sources, ...candidateSources])
   const summaryRuns = args.summaries.map(path => loadSummaryRun(path))
-  const liveRuns = args.sources.length > 0
-    ? await runLiveMatrices(args)
+  const liveRuns = liveSources.length > 0
+    ? await runLiveMatrices({ ...args, sources: liveSources })
     : []
   const report = buildCohortReport({
     chapters: args.chapters,
@@ -396,6 +418,10 @@ function loadSummaryRun(summaryPath: string): CohortMatrixRun {
     error: loaded.error,
     matrix: loaded.matrix,
   }
+}
+
+function loadCandidateSources(paths: readonly string[], limit: number | null): string[] {
+  return paths.flatMap(path => candidateSourcesFromReportJson(readFileSync(path, "utf8"), limit))
 }
 
 function loadMatrixSummary(summaryPath: string): { matrix: SemanticGateMatrixReport | null; error: string | null } {
@@ -483,6 +509,14 @@ function positiveInt(value: string | true | undefined, name: string, defaultValu
   return parsed
 }
 
+function optionalPositiveInt(value: string | true | undefined, name: string): number | null {
+  if (value === undefined) return null
+  if (typeof value !== "string") throw new Error(`${name} requires a value`)
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isInteger(parsed) || parsed <= 0) throw new Error(`${name} must be a positive integer`)
+  return parsed
+}
+
 function firstDuplicate(values: readonly string[]): string | null {
   const seen = new Set<string>()
   for (const value of values) {
@@ -513,6 +547,10 @@ function topEntries(record: Record<string, number>, limit: number): string[] {
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, limit)
     .map(([key, count]) => `${key} (${count})`)
+}
+
+function uniqueStrings(values: readonly string[]): string[] {
+  return Array.from(new Set(values))
 }
 
 function safeSlug(value: string): string {

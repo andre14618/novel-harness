@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test"
 import type { MatrixVariantResult, SemanticGateMatrixReport } from "./semantic-gate-matrix"
 import {
   buildCohortReport,
+  candidateSourcesFromReportJson,
   parseArgs,
   renderCohortReport,
   type CohortMatrixRun,
@@ -40,11 +41,42 @@ describe("semantic-gate-cohort-matrix parseArgs", () => {
 
     expect(args.sources).toEqual([])
     expect(args.summaries[0]).toContain("output/evals/semantic-gate-matrix/run/summary.json")
+    expect(args.candidateReports).toEqual([])
     expect(args.variantSpecs).toEqual(["beats=4", "beats=5", "beats=6"])
   })
 
-  test("requires a source or summary", () => {
-    expect(() => parseArgs([])).toThrow("at least one --source or --summary is required")
+  test("accepts candidate reports as source input", () => {
+    const args = parseArgs([
+      "--candidate-report", "output/evals/candidates.json",
+      "--candidate-limit", "2",
+    ])
+
+    expect(args.sources).toEqual([])
+    expect(args.summaries).toEqual([])
+    expect(args.candidateReports[0]).toContain("output/evals/candidates.json")
+    expect(args.candidateLimit).toBe(2)
+  })
+
+  test("requires a source, summary, or candidate report", () => {
+    expect(() => parseArgs([])).toThrow("at least one --source, --summary, or --candidate-report is required")
+  })
+})
+
+describe("candidateSourcesFromReportJson", () => {
+  test("extracts candidate novel ids with an optional limit", () => {
+    const sources = candidateSourcesFromReportJson(JSON.stringify({
+      candidates: [
+        { novelId: "novel-a" },
+        { novelId: "novel-b" },
+        { notNovelId: "ignored" },
+      ],
+    }), 2)
+
+    expect(sources).toEqual(["novel-a", "novel-b"])
+  })
+
+  test("rejects malformed candidate reports", () => {
+    expect(() => candidateSourcesFromReportJson("{}")).toThrow("candidate report missing candidates array")
   })
 })
 

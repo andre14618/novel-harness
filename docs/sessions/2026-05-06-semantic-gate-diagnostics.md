@@ -339,7 +339,8 @@ Observed signals:
 - Cohort matrix aggregation shipped as
   `diagnostics:semantic-gate-cohort-matrix`. It can aggregate existing
   `semantic-gate-matrix` summaries or run the same variant set across multiple
-  source novels/replicates, preserving failed child matrices as evidence.
+  source novels/replicates, including sources read from candidate-scan JSON via
+  `--candidate-report`, preserving failed child matrices as evidence.
   Artifact-only smoke over the existing `fantasy-system-heretic` matrix wrote
   `output/evals/semantic-gate-cohort-matrix/existing-summary-smoke-20260506T160425`.
 - Continuity gray-zone aggregation now emits a support-echo readiness verdict.
