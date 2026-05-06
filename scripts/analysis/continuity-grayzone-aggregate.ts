@@ -76,15 +76,39 @@ export interface PolarityAggregate {
   findings: AggregatedFinding[]
 }
 
+export interface SupportEchoReadinessThresholds {
+  minLabeledCandidates: number
+  minFpRate: number
+  maxTpRate: number
+  maxAmbRate: number
+}
+
+export interface SupportEchoReadiness {
+  verdict: "ready" | "hold" | "insufficient-evidence"
+  candidateFilter: string
+  thresholds: SupportEchoReadinessThresholds
+  candidateCount: number
+  labeledCandidateCount: number
+  rates: RateBreakdown
+  reason: string
+}
+
 export interface PanelAggregate {
   generatedAt: string
   total: RateBreakdown
   strata: StratumAggregate[]
   polarities: PolarityAggregate[]
   subcategories: SubcategoryAggregate[]
+  supportEchoReadiness: SupportEchoReadiness
 }
 
 const ALL_LABELS: AdjudicationLabel[] = ["TP", "FP", "AMB"]
+const DEFAULT_SUPPORT_ECHO_THRESHOLDS: SupportEchoReadinessThresholds = {
+  minLabeledCandidates: 20,
+  minFpRate: 0.8,
+  maxTpRate: 0.05,
+  maxAmbRate: 0.2,
+}
 
 export function parsePanelJsonl(text: string): PanelFindingRecord[] {
   return text
@@ -157,6 +181,7 @@ export function joinLabels(
 export function buildAggregate(
   findings: AggregatedFinding[],
   generatedAt: string = new Date().toISOString(),
+  supportEchoThresholds: SupportEchoReadinessThresholds = DEFAULT_SUPPORT_ECHO_THRESHOLDS,
 ): PanelAggregate {
   const total = computeRates(findings)
 
@@ -188,7 +213,64 @@ export function buildAggregate(
     }),
   )
 
-  return { generatedAt, total, strata, polarities, subcategories }
+  return {
+    generatedAt,
+    total,
+    strata,
+    polarities,
+    subcategories,
+    supportEchoReadiness: assessSupportEchoReadiness(findings, supportEchoThresholds),
+  }
+}
+
+export function assessSupportEchoReadiness(
+  findings: AggregatedFinding[],
+  thresholds: SupportEchoReadinessThresholds = DEFAULT_SUPPORT_ECHO_THRESHOLDS,
+): SupportEchoReadiness {
+  const candidates = findings.filter(finding => finding.polarity === "positive")
+  const labeledCandidates = candidates.filter(finding => finding.label !== null)
+  const rates = computeRates(labeledCandidates)
+  const base = {
+    candidateFilter: "polarity=positive",
+    thresholds,
+    candidateCount: candidates.length,
+    labeledCandidateCount: labeledCandidates.length,
+    rates,
+  }
+
+  if (labeledCandidates.length < thresholds.minLabeledCandidates) {
+    return {
+      ...base,
+      verdict: "insufficient-evidence",
+      reason: `needs at least ${thresholds.minLabeledCandidates} labeled positive-polarity findings`,
+    }
+  }
+  if (rates.tpRate > thresholds.maxTpRate) {
+    return {
+      ...base,
+      verdict: "hold",
+      reason: `TP rate ${(rates.tpRate * 100).toFixed(0)}% exceeds max ${(thresholds.maxTpRate * 100).toFixed(0)}%`,
+    }
+  }
+  if (rates.ambRate > thresholds.maxAmbRate) {
+    return {
+      ...base,
+      verdict: "hold",
+      reason: `AMB rate ${(rates.ambRate * 100).toFixed(0)}% exceeds max ${(thresholds.maxAmbRate * 100).toFixed(0)}%`,
+    }
+  }
+  if (rates.fpRate < thresholds.minFpRate) {
+    return {
+      ...base,
+      verdict: "hold",
+      reason: `FP rate ${(rates.fpRate * 100).toFixed(0)}% is below min ${(thresholds.minFpRate * 100).toFixed(0)}%`,
+    }
+  }
+  return {
+    ...base,
+    verdict: "ready",
+    reason: "positive-polarity labeled sample meets deterministic support-echo filter thresholds",
+  }
 }
 
 export function renderMarkdown(aggregate: PanelAggregate): string {
@@ -251,6 +333,26 @@ export function renderMarkdown(aggregate: PanelAggregate): string {
         `${formatRate(sub.rates.amb, sub.rates.total)} |`,
     )
   }
+  lines.push("")
+
+  lines.push("## Support-echo readiness")
+  lines.push("")
+  const readiness = aggregate.supportEchoReadiness
+  lines.push(`Verdict: \`${readiness.verdict}\`.`)
+  lines.push(`Reason: ${readiness.reason}.`)
+  lines.push(
+    `Candidate filter: \`${readiness.candidateFilter}\`; ` +
+      `labeled=${readiness.labeledCandidateCount}/${readiness.candidateCount}; ` +
+      `FP=${formatRate(readiness.rates.fp, readiness.rates.total)}; ` +
+      `TP=${formatRate(readiness.rates.tp, readiness.rates.total)}; ` +
+      `AMB=${formatRate(readiness.rates.amb, readiness.rates.total)}.`,
+  )
+  lines.push(
+    `Thresholds: min labeled ${readiness.thresholds.minLabeledCandidates}, ` +
+      `min FP ${(readiness.thresholds.minFpRate * 100).toFixed(0)}%, ` +
+      `max TP ${(readiness.thresholds.maxTpRate * 100).toFixed(0)}%, ` +
+      `max AMB ${(readiness.thresholds.maxAmbRate * 100).toFixed(0)}%.`,
+  )
   lines.push("")
 
   return lines.join("\n")

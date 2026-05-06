@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import {
+  assessSupportEchoReadiness,
   buildAggregate,
   joinLabels,
   parseLabelsJson,
@@ -80,6 +81,7 @@ describe("continuity-grayzone-aggregate", () => {
     expect(positive.rates.total).toBe(2)
     expect(positive.rates.tp).toBe(1)
     expect(positive.rates.fp).toBe(1)
+    expect(aggregate.supportEchoReadiness.verdict).toBe("insufficient-evidence")
   })
 
   test("renderMarkdown emits per-stratum and per-subcategory tables", () => {
@@ -92,9 +94,45 @@ describe("continuity-grayzone-aggregate", () => {
     expect(md).toContain("Sample size: 2")
     expect(md).toContain("`continuity-facts/blocker`")
     expect(md).toContain("## Per-polarity rates")
+    expect(md).toContain("## Support-echo readiness")
+    expect(md).toContain("Verdict: `insufficient-evidence`")
     expect(md).toContain("`ambiguous`")
     expect(md).toContain("`object_emphasis`")
     expect(md).toContain("`other`")
+  })
+
+  test("support echo readiness requires enough positive false-positive labels", () => {
+    const ready = assessSupportEchoReadiness([
+      makeAggregated("1", "continuity-facts", "blocker", "FP", "object_emphasis", "positive"),
+      makeAggregated("2", "continuity-facts", "blocker", "FP", "object_emphasis", "positive"),
+      makeAggregated("3", "continuity-facts", "blocker", "AMB", "object_emphasis", "positive"),
+    ], {
+      minLabeledCandidates: 3,
+      minFpRate: 0.6,
+      maxTpRate: 0,
+      maxAmbRate: 0.4,
+    })
+
+    expect(ready).toMatchObject({
+      verdict: "ready",
+      candidateFilter: "polarity=positive",
+      candidateCount: 3,
+      labeledCandidateCount: 3,
+      reason: "positive-polarity labeled sample meets deterministic support-echo filter thresholds",
+    })
+
+    const hold = assessSupportEchoReadiness([
+      makeAggregated("1", "continuity-facts", "blocker", "TP", "object_emphasis", "positive"),
+      makeAggregated("2", "continuity-facts", "blocker", "FP", "object_emphasis", "positive"),
+    ], {
+      minLabeledCandidates: 2,
+      minFpRate: 0.5,
+      maxTpRate: 0,
+      maxAmbRate: 0.5,
+    })
+
+    expect(hold.verdict).toBe("hold")
+    expect(hold.reason).toContain("TP rate")
   })
 
   test("parseLabelsJson rejects malformed labels", () => {

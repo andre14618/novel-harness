@@ -342,6 +342,13 @@ Observed signals:
   source novels/replicates, preserving failed child matrices as evidence.
   Artifact-only smoke over the existing `fantasy-system-heretic` matrix wrote
   `output/evals/semantic-gate-cohort-matrix/existing-summary-smoke-20260506T160425`.
+- Continuity gray-zone aggregation now emits a support-echo readiness verdict.
+  The default candidate filter is positive polarity with conservative
+  thresholds (`min labeled 20`, `min FP 80%`, `max TP 5%`, `max AMB 20%`).
+  Real smokes remain `insufficient-evidence`: the labeled N=50
+  `continuity-state/warning` panel had 44 FP / 6 AMB / 0 TP overall but zero
+  positive-polarity candidates, and the positive `continuity-facts/blocker`
+  sample was 4/4 FP but below the N threshold.
 - Local DB hygiene: `operator-summary --stale-gates --min-age-hours 0`
   found 20 stale pending Plan-Assist rows. After dry-run review,
   `scripts/agent/resolve-stale-gates.ts --older-than-hours 0 --apply` marked

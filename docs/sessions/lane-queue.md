@@ -35,8 +35,7 @@ This file tracks active and immediately actionable work only.
   Record: `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.
 - Fact-role policy seam shipped with opt-in Canon role scoping, diagnostic
   preview, fixture eval, and live A/B runner; hidden facts stay explicit opt-in.
-- Adjudicated continuity gray-zone panel N=20 shipped (decision L81); follow-up
-  N≥50 across continuity-state is required before production checker changes.
+- Adjudicated continuity gray-zone panels and support-echo readiness reporting shipped; N≥50 evidence still holds production checker changes.
 - Added `diagnostics:plan-assist-lineage` over `planning_mutation_lineage`
   rows from `chapter_exhaustions` / `chapter_revisions`. Smoke-verified
   against `test-novel` (7 events). Feeds the deferred envelope-wrap
