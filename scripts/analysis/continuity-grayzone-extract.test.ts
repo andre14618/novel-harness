@@ -64,6 +64,7 @@ describe("continuity-grayzone-extract", () => {
     const factBlocker = findings.find((f) => f.findingId === "100:facts:0")!
     expect(factBlocker.agent).toBe("continuity-facts")
     expect(factBlocker.severity).toBe("blocker")
+    expect(factBlocker.polarity).toBe("ambiguous")
     expect(factBlocker.subject).toContain("hand was bandaged")
     expect(factBlocker.stateType).toBeNull()
     expect(factBlocker.proseExcerpt.startsWith("Prose paragraph one")).toBe(true)
@@ -71,6 +72,7 @@ describe("continuity-grayzone-extract", () => {
     const stateWarning = findings.find((f) => f.findingId === "200:state:0")!
     expect(stateWarning.agent).toBe("continuity-state")
     expect(stateWarning.severity).toBe("warning")
+    expect(stateWarning.polarity).toBe("ambiguous")
     expect(stateWarning.subject).toBe("Maret")
     expect(stateWarning.stateType).toBe("knowledge")
   })
@@ -92,6 +94,8 @@ describe("continuity-grayzone-extract", () => {
     })
 
     expect(panel.totalFindings).toBe(44)
+    expect(panel.polarityFilter).toBe("all")
+    expect(panel.byPolarity).toEqual({ negative: 0, positive: 0, ambiguous: 44 })
     expect(panel.strata).toHaveLength(6)
     expect(panel.sampledFindings).toBe(5 + 5 + 3 + 5 + 5 + 0)
 
@@ -117,8 +121,30 @@ describe("continuity-grayzone-extract", () => {
     for (const line of lines) {
       const parsed = JSON.parse(line)
       expect(parsed.stratum).toEqual({ agent: "continuity-facts", severity: "warning" })
+      expect(parsed.polarity).toBe("ambiguous")
       expect(parsed.findingId).toBeDefined()
     }
+  })
+
+  test("buildPanel can filter to positive-polarity findings for adjudication", () => {
+    const findings = [
+      ...buildSyntheticFindings("continuity-facts", "blocker", 2, "negative"),
+      ...buildSyntheticFindings("continuity-facts", "blocker", 3, "positive"),
+      ...buildSyntheticFindings("continuity-state", "warning", 4, "positive"),
+      ...buildSyntheticFindings("continuity-state", "warning", 5, "ambiguous"),
+    ]
+
+    const panel = buildPanel(findings, {
+      polarityFilter: "positive",
+      perStratumTarget: 10,
+      generatedAt: "2026-05-05T00:00:00Z",
+    })
+
+    expect(panel.totalFindings).toBe(7)
+    expect(panel.byPolarity).toEqual({ negative: 0, positive: 7, ambiguous: 0 })
+    expect(panel.strata.find(s => s.key.agent === "continuity-facts" && s.key.severity === "blocker")!.sampled).toBe(3)
+    expect(panel.strata.find(s => s.key.agent === "continuity-state" && s.key.severity === "warning")!.sampled).toBe(4)
+    expect(renderPanelSummary(panel)).toContain("Polarity filter: positive")
   })
 
   test("renderPanelSummary lists every stratum with sampled/total", () => {
@@ -177,6 +203,7 @@ function buildSyntheticFindings(
   agent: "continuity-facts" | "continuity-state",
   severity: "blocker" | "warning" | "nit",
   n: number,
+  polarity: "negative" | "positive" | "ambiguous" = "ambiguous",
 ) {
   return Array.from({ length: n }, (_, i) => ({
     findingId: `${agent}:${severity}:${i}`,
@@ -187,6 +214,7 @@ function buildSyntheticFindings(
     attempt: 1,
     timestamp: "2026-05-05T00:00:00Z",
     severity,
+    polarity,
     subject: `subject ${i}`,
     stateType: agent === "continuity-state" ? "location" : null,
     evidence: `evidence ${i}`,

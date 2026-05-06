@@ -9,6 +9,8 @@
  * script is read-only and does not change runtime behavior.
  */
 
+import { classifyFindingPolarity, type CheckerWarningPolarity } from "./checker-warning-report"
+
 export type ContinuityAgent = "continuity-facts" | "continuity-state"
 export type Severity = "blocker" | "warning" | "nit"
 
@@ -33,6 +35,7 @@ export interface ContinuityFinding {
   attempt: number | null
   timestamp: string | null
   severity: Severity
+  polarity: CheckerWarningPolarity
   /** continuity-facts: the alleged broken fact; continuity-state: the character name */
   subject: string
   /** continuity-state: location | knowledge; null for facts */
@@ -61,6 +64,8 @@ export interface ContinuityGrayzonePanel {
   sampledFindings: number
   perStratumTarget: number
   proseExcerptCharCap: number
+  polarityFilter: CheckerWarningPolarity | "all"
+  byPolarity: Record<CheckerWarningPolarity, number>
   strata: PanelStratum[]
 }
 
@@ -70,6 +75,7 @@ interface BuildOptions {
   generatedAt?: string
   /** deterministic per-stratum order via this seed mod (default 7) */
   seed?: number
+  polarityFilter?: CheckerWarningPolarity | "all"
 }
 
 const DEFAULT_PER_STRATUM = 5
@@ -109,11 +115,16 @@ export function buildPanel(findings: ContinuityFinding[], opts: BuildOptions = {
   const proseCap = Math.max(200, opts.proseExcerptCharCap ?? DEFAULT_PROSE_CAP)
   const seed = opts.seed ?? 7
   const generatedAt = opts.generatedAt ?? new Date().toISOString()
+  const polarityFilter = opts.polarityFilter ?? "all"
+  const filteredFindings = polarityFilter === "all"
+    ? findings
+    : findings.filter(finding => finding.polarity === polarityFilter)
+  const byPolarity = polarityCounts(filteredFindings)
   const strata: PanelStratum[] = []
 
   for (const agent of ALL_AGENTS) {
     for (const severity of ALL_SEVERITIES) {
-      const all = findings.filter((f) => f.agent === agent && f.severity === severity)
+      const all = filteredFindings.filter((f) => f.agent === agent && f.severity === severity)
       const sampled = stridedSample(all, perStratum, seed)
       strata.push({
         key: { agent, severity },
@@ -127,10 +138,12 @@ export function buildPanel(findings: ContinuityFinding[], opts: BuildOptions = {
   const sampledFindings = strata.reduce((acc, s) => acc + s.sampled, 0)
   return {
     generatedAt,
-    totalFindings: findings.length,
+    totalFindings: filteredFindings.length,
     sampledFindings,
     perStratumTarget: perStratum,
     proseExcerptCharCap: proseCap,
+    polarityFilter,
+    byPolarity,
     strata,
   }
 }
@@ -152,9 +165,12 @@ export function renderPanelSummary(panel: ContinuityGrayzonePanel): string {
     `Findings: ${panel.totalFindings} total, ${panel.sampledFindings} sampled across ` +
       `${panel.strata.length} strata (target ${panel.perStratumTarget} per stratum, prose cap ${panel.proseExcerptCharCap} chars)`,
   )
+  lines.push(`Polarity filter: ${panel.polarityFilter}; counts ${formatPolarityCounts(panel.byPolarity)}`)
   for (const stratum of panel.strata) {
+    const counts = polarityCounts(stratum.findings)
     lines.push(
-      `  - ${stratum.key.agent}/${stratum.key.severity}: ${stratum.sampled}/${stratum.total} sampled`,
+      `  - ${stratum.key.agent}/${stratum.key.severity}: ${stratum.sampled}/${stratum.total} sampled ` +
+        `(${formatPolarityCounts(counts)})`,
     )
   }
   return lines.join("\n")
@@ -203,6 +219,7 @@ function factFinding(
     attempt: row.attempt,
     timestamp: normalizeTimestamp(row.timestamp),
     severity,
+    polarity: classifyFindingPolarity(reasoning),
     subject: fact,
     stateType: null,
     evidence,
@@ -234,6 +251,7 @@ function stateFinding(
     attempt: row.attempt,
     timestamp: normalizeTimestamp(row.timestamp),
     severity,
+    polarity: classifyFindingPolarity(reasoning),
     subject: character,
     stateType,
     evidence,
@@ -251,6 +269,20 @@ function normalizeTimestamp(value: string | Date | null | undefined): string | n
   if (value instanceof Date) return value.toISOString()
   if (typeof value === "string" && value.length > 0) return value
   return null
+}
+
+function polarityCounts(findings: readonly ContinuityFinding[]): Record<CheckerWarningPolarity, number> {
+  const counts: Record<CheckerWarningPolarity, number> = {
+    negative: 0,
+    positive: 0,
+    ambiguous: 0,
+  }
+  for (const finding of findings) counts[finding.polarity]++
+  return counts
+}
+
+function formatPolarityCounts(counts: Record<CheckerWarningPolarity, number>): string {
+  return `negative=${counts.negative}, positive=${counts.positive}, ambiguous=${counts.ambiguous}`
 }
 
 /**
@@ -287,6 +319,7 @@ interface CliArgs {
   outDir: string
   perStratumTarget: number
   proseExcerptCharCap: number
+  polarityFilter: CheckerWarningPolarity | "all"
   json: boolean
 }
 
@@ -294,6 +327,7 @@ function parseArgs(argv: string[]): CliArgs {
   let outDir = "output/continuity-grayzone"
   let perStratum = DEFAULT_PER_STRATUM
   let proseCap = DEFAULT_PROSE_CAP
+  let polarityFilter: CheckerWarningPolarity | "all" = "all"
   let json = false
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
@@ -315,11 +349,17 @@ function parseArgs(argv: string[]): CliArgs {
       proseCap = parsed
     } else if (arg === "--json") {
       json = true
+    } else if (arg === "--polarity") {
+      const value = argv[++i]
+      if (value !== "negative" && value !== "positive" && value !== "ambiguous" && value !== "all") {
+        throw new Error("--polarity must be negative, positive, ambiguous, or all")
+      }
+      polarityFilter = value
     } else {
       throw new Error(`unknown arg: ${arg}`)
     }
   }
-  return { outDir, perStratumTarget: perStratum, proseExcerptCharCap: proseCap, json }
+  return { outDir, perStratumTarget: perStratum, proseExcerptCharCap: proseCap, polarityFilter, json }
 }
 
 async function loadRows(): Promise<ContinuityCallRow[]> {
@@ -342,7 +382,7 @@ async function main(argv: string[]): Promise<number> {
     console.error(err instanceof Error ? err.message : String(err))
     console.error(
       "usage: bun scripts/analysis/continuity-grayzone-extract.ts " +
-        "[--out <dir>] [--per-stratum N] [--prose-cap N] [--json]",
+        "[--out <dir>] [--per-stratum N] [--prose-cap N] [--polarity all|negative|positive|ambiguous] [--json]",
     )
     return 2
   }
@@ -352,6 +392,7 @@ async function main(argv: string[]): Promise<number> {
   const panel = buildPanel(findings, {
     perStratumTarget: args.perStratumTarget,
     proseExcerptCharCap: args.proseExcerptCharCap,
+    polarityFilter: args.polarityFilter,
   })
 
   const fs = await import("node:fs/promises")
