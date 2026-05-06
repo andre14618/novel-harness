@@ -25,6 +25,11 @@ interface ListRunSummary {
   failed: number | null
   cleanPass: number | null
   costUsd: number | null
+  topVariantLabel: string | null
+  topRiskScore: number | null
+  topWordRatio: number | null
+  topCompleted: boolean | null
+  topReasons: string[]
   mtimeMs: number
 }
 
@@ -210,6 +215,26 @@ function summarizeReport(report: unknown): Omit<ListRunSummary, "runId" | "summa
     failed: numberValue(totals.failed),
     cleanPass: numberValue(totals.cleanPass),
     costUsd: numberValue(totals.costUsd),
+    ...summarizeTopRankedVariant(object.ranking),
+  }
+}
+
+function summarizeTopRankedVariant(ranking: unknown): Pick<
+  ListRunSummary,
+  "topVariantLabel" | "topRiskScore" | "topWordRatio" | "topCompleted" | "topReasons"
+> {
+  const first = Array.isArray(ranking) ? ranking[0] : null
+  const top = first && typeof first === "object" ? first as Record<string, unknown> : {}
+  const reasons = Array.isArray(top.reasons) && top.reasons.every(reason => typeof reason === "string")
+    ? top.reasons.slice(0, 3)
+    : []
+
+  return {
+    topVariantLabel: stringValue(top.label),
+    topRiskScore: numberValue(top.riskScore),
+    topWordRatio: numberValue(top.wordRatio),
+    topCompleted: booleanValue(top.completed),
+    topReasons: reasons,
   }
 }
 
@@ -219,6 +244,10 @@ function stringValue(value: unknown): string | null {
 
 function numberValue(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null
+}
+
+function booleanValue(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null
 }
 
 function isMissingFileError(err: unknown): boolean {

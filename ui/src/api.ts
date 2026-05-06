@@ -986,6 +986,11 @@ export interface SemanticGateMatrixRunSummary {
   failed: number | null
   cleanPass: number | null
   costUsd: number | null
+  topVariantLabel: string | null
+  topRiskScore: number | null
+  topWordRatio: number | null
+  topCompleted: boolean | null
+  topReasons: string[]
   mtimeMs: number
 }
 

@@ -305,6 +305,9 @@ Observed signals:
   evidence is under
   `output/playwright/2026-05-06/semantic-gate-matrix-list-recent-runs` and
   passed `ui:evidence-check`.
+- The list summary now also surfaces the top-ranked variant, risk score, word
+  ratio, completion state, and short reasons so operators can triage matrix
+  runs before opening detail pages.
 - Local DB hygiene: `operator-summary --stale-gates --min-age-hours 0`
   found 20 stale pending Plan-Assist rows. After dry-run review,
   `scripts/agent/resolve-stale-gates.ts --older-than-hours 0 --apply` marked

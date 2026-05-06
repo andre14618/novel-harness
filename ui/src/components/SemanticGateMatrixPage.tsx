@@ -178,6 +178,21 @@ function RunSummaryCard({ run }: { run: SemanticGateMatrixRunSummary }) {
         <Metric label="Failed" value={formatNullableNumber(run.failed)} tone={failed > 0 ? "bad" : "good"} />
         <Metric label="Cost" value={run.costUsd === null ? "n/a" : formatCost(run.costUsd)} />
       </div>
+      <div className="semantic-gate-matrix-run-top">
+        <div className="semantic-gate-matrix-section-title">Top Ranked Variant</div>
+        <div className="semantic-gate-matrix-ranking-main">
+          <strong>{run.topVariantLabel ?? "n/a"}</strong>
+          {run.topCompleted != null && (
+            <span className={`semantic-gate-matrix-status ${run.topCompleted ? "good" : "bad"}`}>
+              {run.topCompleted ? "completed" : "incomplete"}
+            </span>
+          )}
+        </div>
+        <div className="semantic-gate-matrix-ranking-meta">
+          risk {formatNullableDecimal(run.topRiskScore, 2)} - word ratio {formatRatio(run.topWordRatio ?? null)}
+        </div>
+        <ReasonList reasons={run.topReasons ?? []} limit={2} />
+      </div>
       <div className="semantic-gate-matrix-run-path">
         <span>Summary</span>
         <code>{run.summaryPath}</code>
@@ -352,6 +367,10 @@ function formatNumber(value: number, digits: number): string {
 
 function formatNullableNumber(value: number | null): string {
   return value === null ? "n/a" : String(value)
+}
+
+function formatNullableDecimal(value: number | null | undefined, digits: number): string {
+  return value == null ? "n/a" : value.toFixed(digits)
 }
 
 function riskTone(value: number): string {

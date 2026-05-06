@@ -115,7 +115,24 @@ describe("handleSemanticGateMatrixRoute", () => {
       markdown: "# Older",
     })
     await writeRun(baseDir, "newer-run", {
-      summary: { generatedAt: "2026-05-06T15:00:00.000Z", sourceNovelId: "newer" },
+      summary: {
+        generatedAt: "2026-05-06T15:00:00.000Z",
+        sourceNovelId: "newer",
+        totals: { variants: 2, completed: 1, failed: 0, cleanPass: 1, costUsd: 0.042 },
+        ranking: [{
+          variantId: "beats-5",
+          label: "beats 5",
+          riskScore: 113.45,
+          completed: true,
+          wordRatio: 1.34,
+          reasons: [
+            "1 plan-drift chapter(s)",
+            "2 writer-expansion chapter(s)",
+            "completed without semantic-gate signals",
+            "extra reason not included",
+          ],
+        }],
+      },
       markdown: "# Newer",
     })
 
@@ -129,8 +146,54 @@ describe("handleSemanticGateMatrixRoute", () => {
     expect(body.runs[0].runId).toBe("newer-run")
     expect(body.runs[0].sourceNovelId).toBe("newer")
     expect(body.runs[0].generatedAt).toBe("2026-05-06T15:00:00.000Z")
-    expect(body.runs[0].variants).toBeNull()
+    expect(body.runs[0].variants).toBe(2)
+    expect(body.runs[0].completed).toBe(1)
+    expect(body.runs[0].failed).toBe(0)
+    expect(body.runs[0].cleanPass).toBe(1)
+    expect(body.runs[0].costUsd).toBe(0.042)
+    expect(body.runs[0].topVariantLabel).toBe("beats 5")
+    expect(body.runs[0].topRiskScore).toBe(113.45)
+    expect(body.runs[0].topWordRatio).toBe(1.34)
+    expect(body.runs[0].topCompleted).toBe(true)
+    expect(body.runs[0].topReasons).toEqual([
+      "1 plan-drift chapter(s)",
+      "2 writer-expansion chapter(s)",
+      "completed without semantic-gate signals",
+    ])
     expect(body.runs[0].reportPath).toEndWith("/newer-run/report.md")
+    expect(body.runs[0]).not.toHaveProperty("report")
+    expect(body.runs[0]).not.toHaveProperty("reportMarkdown")
+  })
+
+  test("uses null top-ranked fields when ranking is malformed", async () => {
+    const baseDir = await tempBase()
+    await writeRun(baseDir, "malformed-ranking-run", {
+      summary: {
+        generatedAt: "2026-05-06T16:00:00.000Z",
+        sourceNovelId: "malformed",
+        ranking: [{
+          label: 42,
+          riskScore: "high",
+          completed: "yes",
+          wordRatio: Number.POSITIVE_INFINITY,
+          reasons: ["ok", 12],
+        }],
+      },
+      markdown: "# Malformed",
+    })
+
+    const { status, body } = await json(
+      await invoke(baseDir, "GET", "/api/diagnostics/semantic-gate-matrix"),
+    )
+
+    expect(status).toBe(200)
+    expect(body.ok).toBe(true)
+    expect(body.runs).toHaveLength(1)
+    expect(body.runs[0].topVariantLabel).toBeNull()
+    expect(body.runs[0].topRiskScore).toBeNull()
+    expect(body.runs[0].topWordRatio).toBeNull()
+    expect(body.runs[0].topCompleted).toBeNull()
+    expect(body.runs[0].topReasons).toEqual([])
     expect(body.runs[0]).not.toHaveProperty("report")
     expect(body.runs[0]).not.toHaveProperty("reportMarkdown")
   })

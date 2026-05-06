@@ -4830,6 +4830,13 @@ details[open] summary::before { transform: rotate(90deg); }
   grid-template-columns: repeat(5, minmax(0, 1fr));
   margin-bottom: 9px;
 }
+.semantic-gate-matrix-run-top {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  margin-bottom: 9px;
+  padding: 8px;
+}
 .semantic-gate-matrix-run-path {
   min-width: 0;
 }
