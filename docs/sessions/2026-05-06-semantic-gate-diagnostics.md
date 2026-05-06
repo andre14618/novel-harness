@@ -88,6 +88,8 @@ The immediate question was whether the failure pattern was primarily:
     repairs, Chapter Plan Reviser rows, and Plan-Assist gates.
   - `diagnostics:action-evidence -- --novel <id>` exposes the same action
     evidence directly for existing novel runs without rerunning a baseline.
+  - Semantic-gate candidate rows now print the action-evidence command next to
+    the primary semantic-gate command so follow-up evidence is discoverable.
   - Baseline reports preserve fallback Plan-Assist stdout evidence when a DB
     consumer has not loaded unresolved gate details.
   - Plan-Assist unresolved-deviation readers now use shared JSONB normalization

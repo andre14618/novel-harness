@@ -66,6 +66,7 @@ describe("semantic-gate-candidates", () => {
     })
     expect(report.candidates[0]!.reasons).toContain("1 pending plan-assist gate(s)")
     expect(report.candidates[0]!.diagnosticsCommand).toBe("bun run diagnostics:semantic-gate -- --novel blocked")
+    expect(report.candidates[0]!.actionEvidenceCommand).toBe("bun run diagnostics:action-evidence -- --novel blocked")
     expect(report.candidates[0]!.sourceDiagnosticsCommands).toContain("bun run diagnostics:checker-warnings -- --novel blocked")
   })
 
@@ -92,6 +93,7 @@ describe("semantic-gate-candidates", () => {
     expect(rendered).toContain("blocked: high, score=15, lens=checker_gate")
     expect(rendered).toContain("blockers=1, effectiveBlockers=1")
     expect(rendered).toContain("next: bun run diagnostics:semantic-gate -- --novel blocked")
+    expect(rendered).toContain("actions: bun run diagnostics:action-evidence -- --novel blocked")
     expect(rendered).toContain("sources: bun run diagnostics:checker-warnings -- --novel blocked")
   })
 

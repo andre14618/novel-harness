@@ -61,6 +61,7 @@ export interface SemanticGateCandidate {
   primaryLens: SemanticGateCandidateLens
   reasons: string[]
   diagnosticsCommand: string
+  actionEvidenceCommand: string
   sourceDiagnosticsCommands: string[]
   signalCounts: Record<SemanticGateSignal, number>
   chapters: {
@@ -190,6 +191,7 @@ export function renderSemanticGateCandidateReport(report: SemanticGateCandidateR
       lines.push(`   reasons: ${candidate.reasons.join("; ")}`)
     }
     lines.push(`   next: ${candidate.diagnosticsCommand}`)
+    lines.push(`   actions: ${candidate.actionEvidenceCommand}`)
     lines.push(`   sources: ${candidate.sourceDiagnosticsCommands.join("; ")}`)
   })
 
@@ -235,6 +237,7 @@ function candidateForNovel(
     primaryLens,
     reasons: candidateReasons(evidence),
     diagnosticsCommand: `bun run diagnostics:semantic-gate -- --novel ${novel.id}`,
+    actionEvidenceCommand: `bun run diagnostics:action-evidence -- --novel ${novel.id}`,
     sourceDiagnosticsCommands: sourceDiagnosticsCommands(novel.id, primaryLens),
     signalCounts,
     chapters,
