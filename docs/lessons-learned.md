@@ -2316,6 +2316,26 @@ commit cluster pick the next valuable slice from that program.
 
 ---
 
+## Diagnostic scores should preserve raw evidence beside adjusted evidence (2026-05-06)
+
+Support-echo false positives should not inflate semantic-gate priority, but
+hiding them would erase useful checker-calibration evidence.
+
+**The rule:** when a diagnostic applies a discount, display both the raw count
+and the adjusted count. Use the adjusted count for ranking; keep raw evidence
+for audit and follow-up review.
+
+**How to apply:**
+
+- Semantic-gate candidate ranking uses effective checker blockers for scoring.
+- The report still displays raw checker blockers and support-echo candidates.
+- Runtime gates must not consume adjusted diagnostic scores until replay proves
+  the discount is safe outside the scanner.
+
+(Follow-up from `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.)
+
+---
+
 ## Support-echo checker filters need violation-language guards (2026-05-06)
 
 The first positive-polarity continuity-facts blocker sample looked like an easy

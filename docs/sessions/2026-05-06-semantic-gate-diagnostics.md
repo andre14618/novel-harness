@@ -62,6 +62,10 @@ The immediate question was whether the failure pattern was primarily:
 - `f97c5a9 feat: refine checker polarity diagnostics`
   - Positive wording inside explicit violation language now becomes ambiguous
     rather than a support-echo candidate.
+- `17ec6a6 feat: discount support echo in gate ranking`
+  - Candidate ranking now reports raw checker blockers and effective checker
+    blockers after diagnostic support-echo discount. This changes only the
+    read-only scanner score, not runtime gates.
 
 ## Evidence
 
@@ -113,6 +117,9 @@ Observed signals:
   Initial classifier returned 7 positive-polarity blockers: 3 TP / 4 FP after
   local adjudication. The refined classifier returned 4 positive-polarity
   blockers, all 4 labeled FP.
+- After scanner discount, `novel-1777786463873` remained top candidate but
+  reported `blockers=4` and `effectiveBlockers=2`; the two discounted blockers
+  remain visible as support-echo candidates instead of disappearing.
 
 ## Interpretation
 
@@ -134,6 +141,10 @@ Positive wording alone is not a safe relaxation rule. The diagnostic classifier
 must exclude findings that also contain explicit violation/contradiction
 language; after that refinement, the current positive `continuity-facts/blocker`
 stratum is a small but clean false-positive support-echo cluster.
+
+The candidate scanner should rank by effective blockers while preserving raw
+blocker counts. This keeps suspect support echoes available for review without
+overstating them as proof of semantic failure.
 
 The earlier capped A/B clone rows were cleaned, so future A/B runs must persist
 the semantic-gate roll-up in their JSON/markdown summaries before cleanup. That
