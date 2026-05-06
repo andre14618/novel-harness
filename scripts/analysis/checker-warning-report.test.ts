@@ -124,4 +124,13 @@ describe("checker-warning-report", () => {
     expect(classifyFindingPolarity("The draft states the rule changed, contradicting the fact.")).toBe("negative")
     expect(classifyFindingPolarity("The draft may be underspecified.")).toBe("ambiguous")
   })
+
+  test("does not treat positive wording inside a violation as support echo", () => {
+    expect(classifyFindingPolarity(
+      "Vael acknowledges Sable's existence, all direct violations of the rule that teachers ignore Sable.",
+    )).toBe("ambiguous")
+    expect(classifyFindingPolarity(
+      "Aldric's own words confirm his daughter is still sick, but the fact states she is recovering.",
+    )).toBe("ambiguous")
+  })
 })

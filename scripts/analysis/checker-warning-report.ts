@@ -220,7 +220,7 @@ export function classifyFindingPolarity(description: string): CheckerWarningPola
   const positive = explicitNonContradiction ||
     /\b(consistent with|matching the|matches the|confirms?|acknowledges?|simply not referenced|not referenced)\b/.test(text)
   const negative = !explicitNonContradiction &&
-    /\b(contradicts?|contradicting|contradiction|inconsistent|conflicts?|missing|omits?|does not mention|not explicitly|states .+ but|requires .+ but)\b/.test(text)
+    /\b(contradicts?|contradicting|contradiction|inconsistent|conflicts?|violates?|violation|violations|missing|omits?|does not mention|not explicitly|states .+ but|requires .+ but|but the fact (?:says|states))\b/.test(text)
   if (positive && negative) return "ambiguous"
   if (positive) return "positive"
   return negative ? "negative" : "ambiguous"
