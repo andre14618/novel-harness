@@ -66,6 +66,9 @@ The immediate question was whether the failure pattern was primarily:
   - Candidate ranking now reports raw checker blockers and effective checker
     blockers after diagnostic support-echo discount. This changes only the
     read-only scanner score, not runtime gates.
+- `048b1fe feat: add gate candidate diagnostic lens`
+  - Candidate ranking now emits a primary diagnostic lens and ordered source
+    diagnostic commands so follow-up work starts from the likely evidence path.
 
 ## Evidence
 
@@ -120,6 +123,10 @@ Observed signals:
 - After scanner discount, `novel-1777786463873` remained top candidate but
   reported `blockers=4` and `effectiveBlockers=2`; the two discounted blockers
   remain visible as support-echo candidates instead of disappearing.
+- With diagnostic lenses enabled, the top three current candidates classify as
+  `plan_shape`; direct source reports showed passing plan-adherence checks and
+  severe over-planning/expansion pressure rather than active plan-drift
+  evidence.
 
 ## Interpretation
 
@@ -145,6 +152,10 @@ stratum is a small but clean false-positive support-echo cluster.
 The candidate scanner should rank by effective blockers while preserving raw
 blocker counts. This keeps suspect support echoes available for review without
 overstating them as proof of semantic failure.
+
+The currently visible stored failures should be treated first as plan-shape and
+writer-expansion evidence, not as a prompt nudge target. A future writer/checker
+change still needs fresh replay or A/B evidence.
 
 The earlier capped A/B clone rows were cleaned, so future A/B runs must persist
 the semantic-gate roll-up in their JSON/markdown summaries before cleanup. That

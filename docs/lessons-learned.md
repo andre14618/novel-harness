@@ -2336,6 +2336,29 @@ for audit and follow-up review.
 
 ---
 
+## Do not call every gate failure semantic drift (2026-05-06)
+
+The current semantic-gate candidates looked like drafting failures at first,
+but source diagnostics showed passing plan-adherence checks plus severe
+over-planning and expansion pressure.
+
+**The rule:** classify the evidence lens before changing creative prompts or
+checker behavior. Plan-shape, writer-expansion, checker-gate, and plan-drift
+failures need different levers and different validation.
+
+**How to apply:**
+
+- Use `diagnostics:semantic-gate-candidates` to pick candidates and read the
+  `lens=` field.
+- For `plan_shape` and `writer_expansion`, inspect writer-expansion and beat
+  count evidence first.
+- For `checker_gate` and `plan_drift`, inspect checker warnings and plan-drift
+  reports before changing prompts.
+
+(Follow-up from `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.)
+
+---
+
 ## Support-echo checker filters need violation-language guards (2026-05-06)
 
 The first positive-polarity continuity-facts blocker sample looked like an easy
