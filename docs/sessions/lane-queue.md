@@ -27,14 +27,11 @@ This file tracks active and immediately actionable work only.
 
 ## Recently Closed
 
-- World fact role columns shipped on both `facts` (`sql/049`) and
-  `canon_facts` (`sql/050`) with `operational | reference | hidden` and
-  `operational` default. `Fact.role` and `CanonFact.role` required in the
-  type interfaces; `FactInput` lets write callers omit role. Additive
-  only; no consumer reads it yet. Diagnostic-only `diagnostics:fact-roles`
-  reports per-table totals plus per-category/per-kind cross-tabs over both
-  `facts` and `canon_facts` (including active-only canon view) before any
-  role-aware consumer ships.
+- World fact role columns shipped additively on `facts` (`sql/049`) and
+  `canon_facts` (`sql/050`) with `operational | reference | hidden` /
+  `operational` default; no consumer reads role yet. `diagnostics:fact-roles`
+  reports per-table totals plus per-category/per-kind cross-tabs (active-only
+  canon view included) before any role-aware retrieval slice ships.
 - Adjudicated continuity gray-zone panel N=20 shipped (decision L81).
   continuity-facts blocker/warning at 60% TP (do not relax);
   continuity-state/warning is the dominant gray zone (20% TP / 40% FP / 40%
@@ -62,10 +59,9 @@ This file tracks active and immediately actionable work only.
 - Legacy direct artifact `PUT` routes for character/world/spine updates now
   stay disabled in runtime; meaningful artifact edits use `planning_edit`
   proposal envelopes or existing artifact-patch resolution paths.
-- Beat-count calibration now uses observed writer expansion length instead of
-  the old targetWords/150 assumption. The refreshed `phase-parity-smoke`
-  fixture records 5 beats for a 1,500-word target, lands near target length,
-  and passes `bun run test:replay`.
+- Beat-count calibration now uses observed writer expansion length, not
+  targetWords/150; refreshed phase-parity-smoke records 5 beats for 1,500
+  words and passes `bun run test:replay`.
 - Proposal-backed artifact editing guard landed in `scripts/lint/invariants-check.ts`;
   production UI cannot call direct world/character/spine PUT helpers, and the
   direct artifact route test now lives in the DB/integration tier.

@@ -188,6 +188,12 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   per-chapter plan-assist edit/override decisions and chapter-plan-reviser
   accepted outline replacements from `planning_mutation_lineage` for the
   deferred envelope-wrap decision, without changing runtime behavior.
+- World fact role columns are additive on `facts` (`sql/049`) and
+  `canon_facts` (`sql/050`) with `operational | reference | hidden` and
+  `operational` default; no consumer reads role yet. `bun run
+  diagnostics:fact-roles [--novel <novelId>]` reports per-table totals plus
+  per-category/per-kind cross-tabs (active-only canon view included) before
+  any role-aware retrieval slice ships under the Creative Heuristic Eval Gate.
 - Halluc-ungrounded issue metadata now carries exact-match `entityRefs[]` for
   `character`, `world_system`, and `culture` targets when deterministic
   resolution is possible, and accepted beat-check blockers preserve the
