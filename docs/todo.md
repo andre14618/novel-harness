@@ -72,6 +72,7 @@ This file is the actionable backlog only. Live architecture belongs in
   default runtime legacy.
 - [x] Add deterministic role-context fixture eval and preserve `facts.role` in
   drafting variant clones before live A/B runs.
+- [x] Let drafting variant clones set `factRoleContextPolicy` for A/B setup.
 - [ ] Wire role-aware writer retrieval and checker-blocking policy only after
   diagnostic/A-B evidence confirms hidden/reference handling improves outputs.
 - [x] Build a small adjudicated continuity gray-zone panel before relaxing

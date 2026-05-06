@@ -192,7 +192,7 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   "role-aware"` opts drafting into writer `operational`/`reference` facts and
   continuity-blocking `operational` facts while default runtime stays legacy.
   `bun run eval:role-context-policy` provides a deterministic fixture; drafting
-  variant clones preserve `facts.role`.
+  variant clones preserve `facts.role` and can set the policy override.
 - Halluc-ungrounded issue metadata now carries exact-match `entityRefs[]` for
   `character`, `world_system`, and `culture` targets when deterministic
   resolution is possible, and accepted beat-check blockers preserve the

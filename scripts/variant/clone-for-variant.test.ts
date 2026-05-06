@@ -12,3 +12,9 @@ test("drafting variant clone preserves fact roles for role-aware context A/B run
     "SELECT ${target}, fact, category, established_in_chapter, role, created_at",
   )
 })
+
+test("variant clone can set factRoleContextPolicy on target seed pipelineOverrides", () => {
+  expect(SOURCE).toContain("--fact-role-context-policy")
+  expect(SOURCE).toContain("'{pipelineOverrides,factRoleContextPolicy}'")
+  expect(SOURCE).toContain("to_jsonb(${factRoleContextPolicy}::text)")
+})

@@ -60,6 +60,7 @@
  *     --source <source-novel-id> \
  *     --target <target-novel-id> \
  *     [--target-phase drafting|concept-done]   (default: drafting)
+ *     [--fact-role-context-policy legacy|role-aware]
  *
  * The script is idempotent on target-novel creation (errors if target
  * already exists). Clone happens in a single transaction — either the
@@ -74,6 +75,7 @@ interface Args {
   source: string
   target: string
   targetPhase: TargetPhase
+  factRoleContextPolicy: "legacy" | "role-aware" | null
 }
 
 function parseArgs(): Args {
@@ -81,6 +83,7 @@ function parseArgs(): Args {
   let source: string | null = null
   let target: string | null = null
   let targetPhase: TargetPhase = "drafting"
+  let factRoleContextPolicy: Args["factRoleContextPolicy"] = null
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--source") source = args[++i] ?? null
     else if (args[i] === "--target") target = args[++i] ?? null
@@ -91,12 +94,20 @@ function parseArgs(): Args {
         process.exit(1)
       }
       targetPhase = val
+    } else if (args[i] === "--fact-role-context-policy") {
+      const val = args[++i] ?? null
+      if (val !== "legacy" && val !== "role-aware") {
+        console.error(`--fact-role-context-policy must be 'legacy' or 'role-aware', got '${val}'`)
+        process.exit(1)
+      }
+      factRoleContextPolicy = val
     }
   }
   if (!source || !target) {
     console.error(
       "Usage: bun scripts/variant/clone-for-variant.ts \\\n" +
-      "         --source <id> --target <id> [--target-phase drafting|concept-done]"
+      "         --source <id> --target <id> [--target-phase drafting|concept-done] " +
+      "[--fact-role-context-policy legacy|role-aware]"
     )
     process.exit(1)
   }
@@ -104,7 +115,7 @@ function parseArgs(): Args {
     console.error("--source and --target must differ.")
     process.exit(1)
   }
-  return { source, target, targetPhase }
+  return { source, target, targetPhase, factRoleContextPolicy }
 }
 
 /** Tables cloned in BOTH modes (concept-side state). */
@@ -155,7 +166,7 @@ const CONCEPT_DONE_MUST_BE_ABSENT = [
 ] as const
 
 async function main() {
-  const { source, target, targetPhase } = parseArgs()
+  const { source, target, targetPhase, factRoleContextPolicy } = parseArgs()
 
   // Pre-flight: target must not exist, source must exist.
   const [{ exists: targetExists } = { exists: false }] = await db`
@@ -186,6 +197,24 @@ async function main() {
       SELECT ${target}, ${targetNovelPhase}, seed_json, 1, total_chapters, now(), now()
       FROM novels WHERE id = ${source}
     `
+    if (factRoleContextPolicy) {
+      await tx`
+        UPDATE novels
+        SET seed_json = jsonb_set(
+              jsonb_set(
+                seed_json,
+                '{pipelineOverrides}',
+                COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+                true
+              ),
+              '{pipelineOverrides,factRoleContextPolicy}',
+              to_jsonb(${factRoleContextPolicy}::text),
+              true
+            ),
+            updated_at = now()
+        WHERE id = ${target}
+      `
+    }
 
     // ─── Common clones (both modes) ───────────────────────────────────
 
@@ -372,6 +401,9 @@ async function main() {
   })
 
   console.log(`\n  Cloned ${source} → ${target} (phase='${targetNovelPhase}', current_chapter=1)`)
+  if (factRoleContextPolicy) {
+    console.log(`  factRoleContextPolicy=${factRoleContextPolicy}`)
+  }
 }
 
 main().then(() => process.exit(0)).catch(err => {
