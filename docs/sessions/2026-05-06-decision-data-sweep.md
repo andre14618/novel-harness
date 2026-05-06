@@ -129,3 +129,78 @@ Use existing diagnostics before adding new architecture:
 The immediate repository principle remains L079: prove value with replay,
 cohort, or A/B evidence before wiring creative heuristics into production
 defaults.
+
+## Acceleration Follow-Up
+
+The first attempt to increase sample size exposed an infrastructure limit, not
+a harness-quality signal. Running six sources by three variants at
+`--parallel-sources 3 --parallel-variants 3` without a per-process Bun SQL pool
+cap caused Postgres clone failures:
+
+- `sorry, too many clients already`
+- `remaining connection slots are reserved for roles with the SUPERUSER attribute`
+
+Those failures came from subprocess fanout opening too many idle DB clients.
+They should be classified as experiment-runner throughput failures, not as
+semantic-gate failures.
+
+Two fixes were applied:
+
+- Eval runners now default `BUN_SQL_MAX=1` for baseline, matrix, and cohort
+  children, while preserving explicit operator overrides.
+- The LXC Postgres config at
+  `/etc/postgresql/16/main/conf.d/99-novel-harness-experiments.conf` now raises
+  experiment capacity:
+  - `max_connections = 300`
+  - `shared_buffers = 1GB`
+  - `effective_cache_size = 6GB`
+  - `maintenance_work_mem = 256MB`
+  - `work_mem = 8MB`
+
+After restarting Postgres, `max_connections=300` and `shared_buffers=1GB` were
+active. The higher-throughput cohort then ran:
+
+```bash
+bun run diagnostics:semantic-gate-cohort-matrix -- \
+  --candidate-report output/evals/semantic-gate-candidates/accelerated-20260506T200315Z-drafted-top10.json \
+  --candidate-limit 10 \
+  --chapters 1 \
+  --variant capped4:beats=4 \
+  --variant capped5:beats=5 \
+  --variant control:source \
+  --parallel-sources 8 \
+  --parallel-variants 3 \
+  --child-timeout-minutes 10 \
+  --continuity-editorial-flag-proposals \
+  --output-base output/evals/semantic-gate-cohort-matrix/accelerated-top10-p8-20260506T200315Z
+```
+
+Result:
+
+| Variant | Completed | Clean Pass | Mean Risk | Mean Word Ratio | Cost |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `control:source` | 7/10 | 7 | 425.58 | 3.57 | `$0.2096` |
+| `capped5:beats=5` | 7/10 | 4 | 530.11 | 1.37 | `$0.0905` |
+| `capped4:beats=4` | 7/10 | 3 | 534.89 | 0.98 | `$0.0726` |
+
+Artifacts:
+
+- `output/evals/semantic-gate-cohort-matrix/accelerated-top10-p8-20260506T200315Z/summary.json`
+- `output/evals/semantic-gate-cohort-matrix/accelerated-top10-p8-20260506T200315Z/report.md`
+
+Interpretation:
+
+- Higher concurrency is now viable. The N=10 run produced 30 variant arms with
+  no failed summaries, no DB-slot failures, 1,228 LLM calls, and `$0.3727`
+  total cost.
+- Source-outline control still has the strongest clean-pass count in this
+  cohort, but at a severe length/cost penalty: mean word ratio `3.57` and more
+  than twice the capped5 cost.
+- Beat caps reduce length and cost materially, but they introduce more
+  Plan-Assist/plan-drift risk in the current implementation. That means the
+  next product lever should not be "hard cap beats globally." The better
+  hypothesis is calibrated plan-shape selection plus preserving enough planned
+  causal turns for semantic closure.
+- Future accelerated sweeps should keep `BUN_SQL_MAX=1`, use the tuned LXC DB,
+  and prefer larger cohorts over single-run anecdotes before changing runtime
+  defaults.
