@@ -225,6 +225,16 @@ Observed signals:
   blockers by themselves. L84 records the decision; Beat/plan,
   halluc-ungrounded, validation, prose-integrity, and functional blockers
   remain load-bearing.
+- Post-L84 scoped baseline:
+  `diagnostics:semantic-gate-baseline -- --source fantasy-system-heretic
+  --chapters 2 --max-beats-per-chapter 5 --output-base
+  output/evals/semantic-gate-baseline/fantasy-system-heretic-capped-20260506T-continuity-diagnostic`
+  completed with no Plan-Assist Gate. Chapter 1 approved at 2,387 words and
+  Chapter 2 approved at 2,167 words. Remaining signals were writer expansion
+  for Chapter 1 and recovered Plan Adherence drift for Chapter 2. Action
+  evidence showed two Chapter Plan targeted rewrites for Chapter 2 beats 4-5
+  because the emotional arc reversed from plan, plus one lint-fix attempt and
+  one rejected fused-boundary lint repair.
 
 ## Interpretation
 
