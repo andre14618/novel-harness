@@ -177,9 +177,10 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
 - Beat-level LLM telemetry now persists `llm_calls.beat_id` for beat writer,
   targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
 - Diagnostic-only CLIs summarize and rank semantic gates
-  (`diagnostics:semantic-gate`, `diagnostics:semantic-gate-candidates`),
-  semantic drift, writer expansion, checker warnings with finding polarity, and
-  plan-assist lineage without changing runtime behavior.
+  (`diagnostics:semantic-gate`, `diagnostics:semantic-gate-candidates`,
+  `diagnostics:semantic-gate-baseline`), semantic drift, writer expansion,
+  checker warnings with finding polarity/calibration, and plan-assist lineage
+  without changing runtime behavior.
 - World fact roles are additive on `facts` and `canon_facts`; diagnostics
   report totals, policy previews, and deterministic fixture behavior. Default
   runtime stays legacy; per-novel `factRoleContextPolicy: "role-aware"` is
