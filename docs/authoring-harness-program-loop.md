@@ -33,7 +33,7 @@ Improve the harness in this order:
   `diagnostics:semantic-gate`, `diagnostics:writer-expansion`,
   `diagnostics:plan-drift`, `diagnostics:checker-warnings`,
   `diagnostics:plan-assist-lineage`, `diagnostics:semantic-gate-matrix`,
-  replay, and live A/B summaries.
+  `diagnostics:semantic-gate-cohort-matrix`, replay, and live A/B summaries.
 - Proposal and interactivity infrastructure:
   Planning Studio, proposal diffs, stale impact preview, structural edits,
   artifact preview edits, and mutation lineage.

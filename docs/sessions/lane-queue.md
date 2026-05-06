@@ -13,7 +13,7 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Use semantic-gate candidate JSON artifacts, baseline, matrix, and cohort diagnostics for fresh disposable evidence before runtime nudges; next decision-data pass should cover four to six candidate sources before promoting any planner beat-shape default. Opt continuity review flags in with `--continuity-editorial-flag-proposals`.
+- Use semantic-gate cohort diagnostics before runtime nudges; next planner experiment should compare source/hard-cap arms to calibrated obligation-packed beats per L86. Opt continuity review flags in with `--continuity-editorial-flag-proposals`.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

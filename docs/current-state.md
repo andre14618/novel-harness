@@ -176,10 +176,11 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
   changing the legacy `beat_index` contract.
 - Beat-level LLM telemetry now persists `llm_calls.beat_id` for beat writer,
   targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
-- Diagnostic-only CLIs, baseline/matrix/cohort runners/viewers, default-off planning
-  beat-cap overrides, and Diagnostics UI summarize/rank semantic gates with risk-driver
-  breakdowns, candidate JSON artifacts, action/proposal evidence, drift witnesses,
-  writer expansion, checker evidence, and plan-assist lineage without runtime changes.
+- Diagnostic-only CLIs, accelerated baseline/matrix/cohort runners/viewers, default-off
+  planning beat-cap overrides, and Diagnostics UI summarize/rank semantic gates with
+  risk-driver breakdowns, candidate JSON artifacts, action/proposal evidence, drift
+  witnesses, writer expansion, checker evidence, and plan-assist lineage without
+  runtime changes; L86 keeps hard caps A/B-only and queues calibrated obligation packing.
 - Continuity findings do not open Drafting Plan-Assist Gates; fact-scoped
   blockers can optionally persist manual `editorial_flag` envelopes; see L84.
 - World fact roles are additive on `facts` and `canon_facts`; diagnostics
