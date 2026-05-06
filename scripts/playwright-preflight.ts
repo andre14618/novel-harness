@@ -9,6 +9,7 @@ export interface PlaywrightPreflightArgs {
   novel: string | null
   session: string | null
   url: string | null
+  checklist: string | null
   baseUrl: string
   seedCommand: string | null
   date: string
@@ -22,6 +23,7 @@ export interface PlaywrightPreflightPlan {
   evidenceDir: string
   startingUrl: string | null
   runbookPath: string
+  checklistPath: string
   consolePath: string
   networkPath: string
   manifestPath: string
@@ -39,6 +41,7 @@ export function parseArgs(argv: string[], now = new Date()): PlaywrightPreflight
     novel: null,
     session: null,
     url: null,
+    checklist: null,
     baseUrl: "http://localhost:3006",
     seedCommand: null,
     date: now.toISOString().slice(0, 10),
@@ -52,6 +55,7 @@ export function parseArgs(argv: string[], now = new Date()): PlaywrightPreflight
     else if (arg === "--novel") args.novel = requireValue(argv, ++i, arg)
     else if (arg === "--session") args.session = requireValue(argv, ++i, arg)
     else if (arg === "--url") args.url = requireValue(argv, ++i, arg)
+    else if (arg === "--checklist") args.checklist = requireValue(argv, ++i, arg)
     else if (arg === "--base-url") args.baseUrl = trimTrailingSlash(requireValue(argv, ++i, arg))
     else if (arg === "--seed-command") args.seedCommand = requireValue(argv, ++i, arg)
     else if (arg === "--date") args.date = requireDate(requireValue(argv, ++i, arg))
@@ -81,6 +85,7 @@ export function buildPlan(args: PlaywrightPreflightArgs): PlaywrightPreflightPla
     evidenceDir,
     startingUrl,
     runbookPath: join(evidenceDir, "RUNBOOK.md"),
+    checklistPath: join(evidenceDir, "CHECKLIST.md"),
     consolePath: join(evidenceDir, "console-final.md"),
     networkPath: join(evidenceDir, "network-final.md"),
     manifestPath: join(evidenceDir, "manifest.json"),
@@ -100,6 +105,7 @@ export async function preparePlaywrightPreflight(
     : await (opts.checkServer ?? checkServer)(args.baseUrl)
 
   await writeFile(plan.runbookPath, renderRunbook(plan, server, seedExitCode), "utf8")
+  await writeFile(plan.checklistPath, renderChecklist(plan), "utf8")
   await writeFile(plan.consolePath, "# Console Capture\n\nPending Playwright MCP capture.\n", "utf8")
   await writeFile(plan.networkPath, "# Network Capture\n\nPending Playwright MCP capture.\n", "utf8")
   await writeFile(plan.manifestPath, `${JSON.stringify({
@@ -108,6 +114,7 @@ export async function preparePlaywrightPreflight(
     session: args.session,
     baseUrl: args.baseUrl,
     startingUrl: plan.startingUrl,
+    checklist: checklistKind(args),
     evidenceDir: plan.evidenceDir,
     seedCommand: args.seedCommand,
     seedExitCode,
@@ -154,6 +161,7 @@ Seed command: ${seedLine}
 
 - baseline.png
 - after-action screenshots for each approve/reject/modify/bulk/stale/tab action exercised
+- CHECKLIST.md with each applicable item marked pass/fail/blocked
 - console-final.md
 - network-final.md
 
@@ -162,11 +170,99 @@ Seed command: ${seedLine}
 1. Use Playwright MCP browser tools to open the starting URL.
 2. Use only disposable/test data.
 3. Capture screenshots into this evidence directory.
-4. Record console errors and failed network requests in the files above.
-5. Report pass/fail and blockers in the handoff.
-6. Close the Playwright MCP tab/session when finished.
-7. Stop any app server started only for this run.
+4. Mark each applicable item in CHECKLIST.md as pass/fail/blocked.
+5. Record console errors and failed network requests in the files above.
+6. Report pass/fail and blockers in the handoff.
+7. Close the Playwright MCP tab/session when finished.
+8. Stop any app server started only for this run.
 `
+}
+
+function renderChecklist(plan: PlaywrightPreflightPlan): string {
+  const kind = checklistKind(plan.args)
+  const items = checklistItems(kind)
+  return [
+    "# Browser Evidence Checklist",
+    "",
+    `Surface: ${plan.args.surface}`,
+    `Checklist: ${kind}`,
+    `Starting URL: ${plan.startingUrl ?? "fill in before browser run"}`,
+    "",
+    "Mark each line `[x] pass`, `[!] fail`, or `[?] blocked/untested` before handoff.",
+    "",
+    ...items.map(item => `- [ ] ${item}`),
+    "",
+  ].join("\n")
+}
+
+function checklistKind(args: PlaywrightPreflightArgs): string {
+  if (args.checklist?.trim()) return slug(args.checklist)
+  const surface = args.surface.toLowerCase()
+  if (surface.includes("canon")) return "canon-proposals"
+  if (surface.includes("artifact")) return "artifact-patches"
+  if (surface.includes("planning") || surface.includes("studio")) return "planning-studio"
+  if (surface.includes("traceability")) return "traceability"
+  if (surface.includes("chapter-health")) return "chapter-health"
+  return "generic"
+}
+
+function checklistItems(kind: string): string[] {
+  if (kind === "canon-proposals") {
+    return [
+      "Pending proposal list loads on disposable data.",
+      "Single approve resolves one pending proposal and records the updated row.",
+      "Single reject resolves one pending proposal and records the updated row.",
+      "Modify-with-edits creates a modified resolution and visible before/after state.",
+      "Pending, approved, rejected, and all status tabs/filters render correctly.",
+      "Bulk approve/reject works only on disposable selected proposals and shows a capped summary.",
+      "Console capture has no unexpected errors; network capture has no unexpected failed API calls.",
+    ]
+  }
+  if (kind === "artifact-patches") {
+    return [
+      "Studio artifact proposal cards load persisted pending envelopes.",
+      "Single approve/reject resolves disposable artifact patch envelopes.",
+      "Stale-precondition envelope shows safe regenerate or stale handling UI.",
+      "Bulk quick actions resolve only disposable selected envelopes.",
+      "Resolved envelopes appear in audit history/status tabs.",
+      "Console capture has no unexpected errors; network capture has no unexpected failed API calls.",
+    ]
+  }
+  if (kind === "planning-studio") {
+    return [
+      "Target navigation loads chapter, beat, obligation, directive, character, world, and spine targets that exist in the fixture.",
+      "Impact preview updates deterministically for the selected target.",
+      "Proposal creation writes a pending envelope with a visible before/after diff.",
+      "Approve, reject, and modify-before-approve paths work on disposable proposals.",
+      "Status tabs/grouping show pending and resolved proposal history.",
+      "Console capture has no unexpected errors; network capture has no unexpected failed API calls.",
+    ]
+  }
+  if (kind === "traceability") {
+    return [
+      "Traceability page loads the requested chapter.",
+      "Source registry and upstream target refs render with stable IDs.",
+      "Writer/checker/event evidence expands without layout overlap.",
+      "Adjacent navigation back to chapter health or proposal evidence works when present.",
+      "Console capture has no unexpected errors; network capture has no unexpected failed API calls.",
+    ]
+  }
+  if (kind === "chapter-health") {
+    return [
+      "Chapter health page loads the requested novel.",
+      "Status filters update the visible chapter set.",
+      "Evidence expansion shows checker/proposal/trace details.",
+      "Mobile viewport keeps cards, filters, and action links readable.",
+      "Console capture has no unexpected errors; network capture has no unexpected failed API calls.",
+    ]
+  }
+  return [
+    "Baseline page load succeeds on disposable/test data.",
+    "Primary golden-path action for this surface succeeds.",
+    "One relevant edge case or empty/error state is exercised.",
+    "One adjacent navigation or regression-prone surface is checked.",
+    "Console capture has no unexpected errors; network capture has no unexpected failed API calls.",
+  ]
 }
 
 function runSeedCommand(command: string): number {
@@ -218,6 +314,7 @@ function usage(): string {
     "  --novel <id>            Disposable/test novel id.",
     "  --session <slug>        Session slug when no novel id applies.",
     "  --url <url-or-path>     Starting browser URL or path under --base-url.",
+    "  --checklist <kind>     Optional checklist kind; inferred from --surface by default.",
     "  --base-url <url>        Defaults to http://localhost:3006.",
     "  --seed-command <cmd>    Optional command to run before writing the runbook.",
     "  --skip-server-check     Do not probe --base-url.",

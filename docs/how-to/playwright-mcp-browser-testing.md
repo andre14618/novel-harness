@@ -36,8 +36,10 @@ bun run ui:preflight -- --surface <surface> --novel <test-novel-id> --url /app/<
 ```
 
 The helper writes `RUNBOOK.md`, `console-final.md`, `network-final.md`, and
-`manifest.json` under the current evidence-storage convention. It does not
-drive the browser; use Playwright MCP for the actual browser steps.
+`manifest.json` under the current evidence-storage convention. It also writes
+`CHECKLIST.md` with a surface-specific checklist inferred from `--surface`
+unless `--checklist <kind>` is provided. It does not drive the browser; use
+Playwright MCP for the actual browser steps.
 
 ## Evidence Contract
 
@@ -47,6 +49,8 @@ For each tested surface, capture:
 - Baseline screenshot after first settled load.
 - Screenshot after each meaningful action: approve, reject, modify, bulk
   resolve, regenerate stale proposal, or tab/filter switch.
+- Completed `CHECKLIST.md` with each applicable item marked pass, fail, or
+  blocked/untested.
 - Console errors, failed network requests, and visible error banners.
 - Final pass/fail summary with any untested paths called out explicitly.
 
@@ -59,7 +63,7 @@ output/playwright/<YYYY-MM-DD>/<surface-or-lane>-<novelId-or-short-slug>/
 ```
 
 Use descriptive filenames inside that session directory, for example
-`baseline.png`, `after-approve.png`, `console-final.md`, and
+`baseline.png`, `after-approve.png`, `CHECKLIST.md`, `console-final.md`, and
 `network-final.md`. `output/` is gitignored, so evidence stays available for
 local operator review without entering commits. Do not leave new Playwright
 evidence at the repository root except when moving legacy evidence into a

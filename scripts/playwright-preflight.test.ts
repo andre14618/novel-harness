@@ -26,6 +26,7 @@ describe("playwright-preflight parseArgs", () => {
       "--surface", "Planning Studio",
       "--novel", "novel-1",
       "--url", "/app/studio/novel-1",
+      "--checklist", "planning-studio",
       "--date", "2026-05-05",
       "--skip-server-check",
     ])
@@ -33,6 +34,7 @@ describe("playwright-preflight parseArgs", () => {
     expect(args.surface).toBe("Planning Studio")
     expect(args.novel).toBe("novel-1")
     expect(args.url).toBe("/app/studio/novel-1")
+    expect(args.checklist).toBe("planning-studio")
     expect(args.date).toBe("2026-05-05")
     expect(args.skipServerCheck).toBe(true)
   })
@@ -73,16 +75,40 @@ describe("playwright-preflight plan", () => {
     const { plan } = await preparePlaywrightPreflight(args)
 
     const runbook = await readFile(plan.runbookPath, "utf8")
+    const checklist = await readFile(plan.checklistPath, "utf8")
     const consoleCapture = await readFile(plan.consolePath, "utf8")
     const networkCapture = await readFile(plan.networkPath, "utf8")
     const manifest = JSON.parse(await readFile(plan.manifestPath, "utf8"))
 
     expect(runbook).toContain("Surface: Planning Studio")
     expect(runbook).toContain("Starting URL: http://localhost:3006/app/studio/novel-1")
+    expect(runbook).toContain("CHECKLIST.md")
+    expect(checklist).toContain("Checklist: planning-studio")
+    expect(checklist).toContain("Impact preview updates deterministically")
     expect(runbook).toContain("Close the Playwright MCP tab/session")
     expect(consoleCapture).toContain("Pending Playwright MCP capture")
     expect(networkCapture).toContain("Pending Playwright MCP capture")
     expect(manifest.surface).toBe("Planning Studio")
+    expect(manifest.checklist).toBe("planning-studio")
     expect(manifest.server.ok).toBe(true)
+  })
+
+  test("infers canon proposal checklist from surface", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nh-playwright-preflight-"))
+    tempRoots.push(root)
+    const args = parseArgs([
+      "--surface", "Canon Proposal Review",
+      "--novel", "novel-1",
+      "--url", "/app/canon-proposals/novel-1",
+      "--date", "2026-05-05",
+      "--root", root,
+      "--skip-server-check",
+    ])
+    const { plan } = await preparePlaywrightPreflight(args)
+
+    const checklist = await readFile(plan.checklistPath, "utf8")
+    expect(checklist).toContain("Checklist: canon-proposals")
+    expect(checklist).toContain("Modify-with-edits")
+    expect(checklist).toContain("Bulk approve/reject")
   })
 })
