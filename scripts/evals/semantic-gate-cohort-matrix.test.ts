@@ -231,7 +231,7 @@ function variantResult(
   overrides: Partial<MatrixVariantResult["assessment"]> & { status?: MatrixVariantResult["status"] },
 ): MatrixVariantResult {
   return {
-    variant: { id, label, maxBeatsPerChapter: null },
+    variant: { id, label, maxBeatsPerChapter: null, packStrategy: null },
     status: overrides.status ?? "reported",
     exitCode: overrides.status === "failed" ? 1 : 0,
     signal: null,

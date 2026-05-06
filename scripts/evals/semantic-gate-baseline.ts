@@ -47,8 +47,12 @@ import {
   type WriterExpansionOutlineRow,
   type WriterExpansionReport,
 } from "../analysis/writer-expansion-report"
+import { packChapterToBudget, type ChapterPackingAudit } from "../../src/harness/beat-packing"
+import { chapterOutlineSchema } from "../../src/agents/planning-plotter/schema"
 
 process.env.BUN_SQL_MAX ??= "1"
+
+export type BaselinePackStrategy = "calibrated-packed"
 
 export interface Args {
   source: string
@@ -57,6 +61,7 @@ export interface Args {
   keepNovel: boolean
   target: string | null
   maxBeatsPerChapter: number | null
+  packStrategy: BaselinePackStrategy | null
   continuityEditorialFlagProposals: boolean
   timeoutMinutes: number
 }
@@ -140,6 +145,18 @@ export interface BaselineTerminalSummary {
   planAssistLogEvidence: PlanAssistGateLogEvidence | null
 }
 
+export interface BaselinePackingSummary {
+  chapters: number
+  totalSourceBeats: number
+  totalPackedBeats: number
+  totalDroppedObligations: number
+  totalDroppedPayoffLinks: number
+  budgetExceededChapters: number
+  endpointPreservedChapters: number
+  openerPreservedChapters: number
+  audits: ChapterPackingAudit[]
+}
+
 export interface SemanticGateBaselineReport {
   generatedAt: string
   sourceNovelId: string
@@ -147,6 +164,8 @@ export interface SemanticGateBaselineReport {
   chapters: number
   outputBase: string
   maxBeatsPerChapter: number | null
+  packStrategy: BaselinePackStrategy | null
+  packing: BaselinePackingSummary | null
   pipelineOverrides: {
     planningMaxBeatsPerChapter: number | null
     continuityEditorialFlagProposals: boolean
@@ -211,6 +230,7 @@ export function parseArgs(argv: string[]): Args {
     keepNovel: boolOpt(map["keep-novel"]),
     target: stringOpt(map.target) ?? null,
     maxBeatsPerChapter: optionalPositiveInt(map["max-beats-per-chapter"], "--max-beats-per-chapter"),
+    packStrategy: parsePackStrategy(map["pack-strategy"]),
     continuityEditorialFlagProposals:
       boolOpt(map["continuity-editorial-flags"] ?? map["continuity-editorial-flag-proposals"]),
     timeoutMinutes: positiveInt(map["timeout-minutes"], "--timeout-minutes", 30),
@@ -320,6 +340,16 @@ export function renderSemanticGateBaselineReport(report: SemanticGateBaselineRep
   lines.push(`Disposable novel: ${report.novelId}${report.keptNovel ? " (kept)" : " (cleaned after report)"}`)
   lines.push(`Chapters: ${report.chapters}`)
   lines.push(`Max beats per chapter: ${report.maxBeatsPerChapter ?? "(source outline)"}`)
+  lines.push(`Pack strategy: ${report.packStrategy ?? "(none)"}`)
+  if (report.packing) {
+    lines.push(
+      `Calibrated packing: ${report.packing.totalSourceBeats} -> ${report.packing.totalPackedBeats} beats ` +
+        `across ${report.packing.chapters} chapter(s); obligations dropped=${report.packing.totalDroppedObligations}; ` +
+        `payoff links dropped=${report.packing.totalDroppedPayoffLinks}; ` +
+        `budgetExceeded=${report.packing.budgetExceededChapters}; ` +
+        `endpointsPreserved=${report.packing.endpointPreservedChapters}/${report.packing.chapters}`,
+    )
+  }
   lines.push(`Planning max beats override: ${report.pipelineOverrides.planningMaxBeatsPerChapter ?? "(disabled)"}`)
   lines.push(
     `Continuity editorial flags: ${
@@ -402,8 +432,8 @@ async function main(argv: string[]): Promise<number> {
     console.error(err instanceof Error ? err.message : String(err))
     console.error(
       "usage: bun scripts/evals/semantic-gate-baseline.ts --source <drafting-source-novel-id> " +
-        "[--chapters 2] [--max-beats-per-chapter 5] [--timeout-minutes 30] " +
-        "[--output-base output/evals/...] [--keep-novel] " +
+        "[--chapters 2] [--max-beats-per-chapter 5] [--pack-strategy calibrated-packed] " +
+        "[--timeout-minutes 30] [--output-base output/evals/...] [--keep-novel] " +
         "[--continuity-editorial-flag-proposals]",
     )
     return 2
@@ -419,7 +449,10 @@ async function main(argv: string[]): Promise<number> {
     cloned = true
     await applyBaselinePipelineOverrides(targetNovelId, args)
     await capNovelChapters(targetNovelId, args.chapters)
-    if (args.maxBeatsPerChapter !== null) {
+    let packingAudit: ChapterPackingAudit[] | null = null
+    if (args.packStrategy === "calibrated-packed") {
+      packingAudit = await packNovelOutlineBeats(targetNovelId, args.chapters, args.outputBase)
+    } else if (args.maxBeatsPerChapter !== null) {
       await capNovelOutlineBeats(targetNovelId, args.chapters, args.maxBeatsPerChapter)
     }
 
@@ -430,6 +463,8 @@ async function main(argv: string[]): Promise<number> {
       chapters: args.chapters,
       outputBase: args.outputBase,
       maxBeatsPerChapter: args.maxBeatsPerChapter,
+      packStrategy: args.packStrategy,
+      packingAudit,
       continuityEditorialFlagProposals: args.continuityEditorialFlagProposals,
       keptNovel: args.keepNovel,
       preflight,
@@ -571,6 +606,89 @@ async function capNovelOutlineBeats(novelId: string, chapters: number, maxBeats:
   }
 }
 
+async function packNovelOutlineBeats(
+  novelId: string,
+  chapters: number,
+  outputBase: string,
+): Promise<ChapterPackingAudit[]> {
+  const rows = await db<Array<{ chapter_number: number; outline_json: unknown }>>`
+    SELECT chapter_number, outline_json
+    FROM chapter_outlines
+    WHERE novel_id = ${novelId}
+      AND chapter_number <= ${chapters}
+    ORDER BY chapter_number
+  `
+  const audits: ChapterPackingAudit[] = []
+  const auditDir = join(outputBase, "calibrated-packing")
+  mkdirSync(auditDir, { recursive: true })
+
+  for (const row of rows) {
+    const parsed = chapterOutlineSchema.safeParse(row.outline_json)
+    if (!parsed.success) {
+      console.error(`  packing skipped chapter ${row.chapter_number}: outline_json failed schema parse`)
+      continue
+    }
+    const outline = { ...parsed.data, chapterNumber: Number(row.chapter_number) }
+    const result = packChapterToBudget(outline)
+    audits.push(result.audit)
+    writeFileSync(
+      join(auditDir, `${novelId}-ch${row.chapter_number}.json`),
+      JSON.stringify(result.audit, null, 2),
+    )
+    if (result.audit.noOp) {
+      console.log(
+        `  packed ${novelId} chapter ${row.chapter_number}: no-op (` +
+          `${result.audit.sourceBeatCount} beats <= budget ${result.audit.budget})`,
+      )
+      continue
+    }
+    await db`
+      UPDATE chapter_outlines
+      SET outline_json = ${result.outline as unknown as Record<string, unknown>}
+      WHERE novel_id = ${novelId}
+        AND chapter_number = ${row.chapter_number}
+    `
+    const droppedObligations = result.audit.mapping.reduce(
+      (sum, m) => sum + m.droppedObligationKeys.length,
+      0,
+    )
+    console.log(
+      `  packed ${novelId} chapter ${row.chapter_number}: ` +
+        `${result.audit.sourceBeatCount} -> ${result.audit.packedBeatCount} beats ` +
+        `(budget ${result.audit.budget}; obligations dropped=${droppedObligations}; ` +
+        `payoff links dropped=${result.audit.droppedPayoffLinks}; ` +
+        `endpointPreserved=${result.audit.endpointPreserved}; ` +
+        `budgetExceeded=${result.audit.budgetExceeded})`,
+    )
+  }
+
+  return audits
+}
+
+function buildPackingSummary(audits: ChapterPackingAudit[]): BaselinePackingSummary {
+  const totalSourceBeats = audits.reduce((sum, a) => sum + a.sourceBeatCount, 0)
+  const totalPackedBeats = audits.reduce((sum, a) => sum + a.packedBeatCount, 0)
+  const totalDroppedObligations = audits.reduce(
+    (sum, a) => sum + a.mapping.reduce((m, entry) => m + entry.droppedObligationKeys.length, 0),
+    0,
+  )
+  const totalDroppedPayoffLinks = audits.reduce((sum, a) => sum + a.droppedPayoffLinks, 0)
+  const budgetExceededChapters = audits.filter(a => a.budgetExceeded).length
+  const endpointPreservedChapters = audits.filter(a => a.endpointPreserved).length
+  const openerPreservedChapters = audits.filter(a => a.openerPreserved).length
+  return {
+    chapters: audits.length,
+    totalSourceBeats,
+    totalPackedBeats,
+    totalDroppedObligations,
+    totalDroppedPayoffLinks,
+    budgetExceededChapters,
+    endpointPreservedChapters,
+    openerPreservedChapters,
+    audits,
+  }
+}
+
 function runBaselineProcess(novelId: string, outputBase: string, timeoutMinutes: number): BaselineProcessSummary {
   const stdoutPath = join(outputBase, "baseline.stdout.log")
   const stderrPath = join(outputBase, "baseline.stderr.log")
@@ -608,6 +726,8 @@ async function collectBaselineReport(input: {
   chapters: number
   outputBase: string
   maxBeatsPerChapter: number | null
+  packStrategy: BaselinePackStrategy | null
+  packingAudit: ChapterPackingAudit[] | null
   continuityEditorialFlagProposals: boolean
   keptNovel: boolean
   preflight: SourcePreflight
@@ -653,6 +773,8 @@ async function collectBaselineReport(input: {
     chapters: input.chapters,
     outputBase: input.outputBase,
     maxBeatsPerChapter: input.maxBeatsPerChapter,
+    packStrategy: input.packStrategy,
+    packing: input.packingAudit ? buildPackingSummary(input.packingAudit) : null,
     pipelineOverrides: {
       planningMaxBeatsPerChapter: input.maxBeatsPerChapter,
       continuityEditorialFlagProposals: input.continuityEditorialFlagProposals,
@@ -964,6 +1086,15 @@ function optionalPositiveInt(value: string | true | undefined, name: string): nu
   const parsed = Number.parseInt(value, 10)
   if (!Number.isInteger(parsed) || parsed <= 0) throw new Error(`${name} must be a positive integer`)
   return parsed
+}
+
+function parsePackStrategy(value: string | true | undefined): BaselinePackStrategy | null {
+  if (value === undefined) return null
+  if (typeof value !== "string") throw new Error("--pack-strategy requires a value")
+  if (value === "calibrated-packed" || value === "calibrated:packed" || value === "packed") {
+    return "calibrated-packed"
+  }
+  throw new Error(`--pack-strategy: unsupported value ${value}`)
 }
 
 function safeSlug(value: string): string {

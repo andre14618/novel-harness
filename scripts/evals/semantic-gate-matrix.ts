@@ -26,10 +26,13 @@ export interface Args {
   childTimeoutMinutes: number
 }
 
+export type MatrixVariantPackStrategy = "tail-slice" | "calibrated-packed"
+
 export interface MatrixVariant {
   id: string
   label: string
   maxBeatsPerChapter: number | null
+  packStrategy: MatrixVariantPackStrategy | null
 }
 
 export interface MatrixVariantResult {
@@ -167,6 +170,21 @@ export function parseVariantSpec(value: string | true, index = 0): MatrixVariant
       id: safeSlug(label),
       label,
       maxBeatsPerChapter: null,
+      packStrategy: null,
+    }
+  }
+
+  if (trimmedSpec === "packed" || trimmedSpec === "calibrated-packed") {
+    // L086 calibrated:packed arm — per-chapter recommended budget with
+    // obligation-preserving merges. Beat budget is derived per chapter
+    // inside the baseline runner, so no integer cap travels with the
+    // variant.
+    const label = labelPrefix.startsWith("variant-") ? "calibrated packed" : labelPrefix
+    return {
+      id: safeSlug(label),
+      label,
+      maxBeatsPerChapter: null,
+      packStrategy: "calibrated-packed",
     }
   }
 
@@ -178,6 +196,7 @@ export function parseVariantSpec(value: string | true, index = 0): MatrixVariant
       id: safeSlug(label),
       label,
       maxBeatsPerChapter: maxBeats,
+      packStrategy: "tail-slice",
     }
   }
 
@@ -397,6 +416,7 @@ async function runVariant(args: Args, variant: MatrixVariant, index: number): Pr
     "--target", targetNovelId,
     "--timeout-minutes", String(args.childTimeoutMinutes),
     ...(variant.maxBeatsPerChapter == null ? [] : ["--max-beats-per-chapter", String(variant.maxBeatsPerChapter)]),
+    ...(variant.packStrategy === "calibrated-packed" ? ["--pack-strategy", "calibrated-packed"] : []),
     ...(args.keepNovels ? ["--keep-novel"] : []),
     ...(args.continuityEditorialFlagProposals ? ["--continuity-editorial-flag-proposals"] : []),
   ]

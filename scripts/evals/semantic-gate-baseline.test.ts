@@ -51,6 +51,17 @@ describe("semantic-gate-baseline", () => {
     expect(args.continuityEditorialFlagProposals).toBe(true)
   })
 
+  test("parseArgs accepts --pack-strategy calibrated-packed", () => {
+    const args = parseArgs(["--source", "source-novel", "--pack-strategy", "calibrated-packed"])
+
+    expect(args.packStrategy).toBe("calibrated-packed")
+  })
+
+  test("parseArgs rejects unknown pack strategies", () => {
+    expect(() => parseArgs(["--source", "source-novel", "--pack-strategy", "wishful-thinking"]))
+      .toThrow("--pack-strategy: unsupported value")
+  })
+
   test("capOutlineBeats trims clone outlines without mutating the original", () => {
     const outline = {
       chapterNumber: 1,
@@ -171,6 +182,8 @@ function reportFixture(): SemanticGateBaselineReport {
     chapters: 2,
     outputBase: "/tmp/semantic-gate-baseline",
     maxBeatsPerChapter: 5,
+    packStrategy: null,
+    packing: null,
     pipelineOverrides: {
       planningMaxBeatsPerChapter: 5,
       continuityEditorialFlagProposals: true,

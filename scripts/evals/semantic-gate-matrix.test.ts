@@ -24,10 +24,11 @@ describe("semantic-gate-matrix parseArgs", () => {
       id: variant.id,
       label: variant.label,
       maxBeatsPerChapter: variant.maxBeatsPerChapter,
+      packStrategy: variant.packStrategy,
     }))).toEqual([
-      { id: "beats-4", label: "beats 4", maxBeatsPerChapter: 4 },
-      { id: "beats-5", label: "beats 5", maxBeatsPerChapter: 5 },
-      { id: "beats-6", label: "beats 6", maxBeatsPerChapter: 6 },
+      { id: "beats-4", label: "beats 4", maxBeatsPerChapter: 4, packStrategy: "tail-slice" },
+      { id: "beats-5", label: "beats 5", maxBeatsPerChapter: 5, packStrategy: "tail-slice" },
+      { id: "beats-6", label: "beats 6", maxBeatsPerChapter: 6, packStrategy: "tail-slice" },
     ])
   })
 
@@ -49,8 +50,19 @@ describe("semantic-gate-matrix parseArgs", () => {
     expect(args.keepNovels).toBe(true)
     expect(args.continuityEditorialFlagProposals).toBe(true)
     expect(args.variants).toEqual([
-      { id: "tight", label: "tight", maxBeatsPerChapter: 4 },
-      { id: "control", label: "control", maxBeatsPerChapter: null },
+      { id: "tight", label: "tight", maxBeatsPerChapter: 4, packStrategy: "tail-slice" },
+      { id: "control", label: "control", maxBeatsPerChapter: null, packStrategy: null },
+    ])
+  })
+
+  test("parses calibrated:packed variant spec", () => {
+    const args = parseArgs([
+      "--source", "fixture-novel",
+      "--variant", "calibrated:packed",
+    ])
+
+    expect(args.variants).toEqual([
+      { id: "calibrated", label: "calibrated", maxBeatsPerChapter: null, packStrategy: "calibrated-packed" },
     ])
   })
 
@@ -280,7 +292,7 @@ function variantResult(
   overrides: Partial<MatrixVariantResult["assessment"]> & { status?: MatrixVariantResult["status"] },
 ): MatrixVariantResult {
   return {
-    variant: { id, label, maxBeatsPerChapter: null },
+    variant: { id, label, maxBeatsPerChapter: null, packStrategy: null },
     status: overrides.status ?? "reported",
     exitCode: overrides.status === "failed" ? 1 : 0,
     signal: null,
