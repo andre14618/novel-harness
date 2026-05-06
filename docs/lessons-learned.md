@@ -2226,3 +2226,61 @@ surfaces.
 
 (Authoring visibility/interactivity session:
 `docs/sessions/2026-05-04-authoring-visibility-interactivity.md`.)
+
+---
+
+## Docs sweeps should compress active context only after durable capture (2026-05-06)
+
+The 2026-05-06 active-lane docs sweep correctly updated the context pack under
+line limits, but it initially only shortened `current-state`, `lane-queue`, and
+`todo`. That made the active docs easier to load, but it did not by itself
+capture the decision and lesson from the capped fact-role A/B run.
+
+**The rule:** a docs sweep is non-destructive compression plus durable capture.
+If a line-limit edit removes or condenses unique rationale, evidence, or a
+decision, first move that information into the right durable home:
+
+- decision/rationale -> `docs/decisions/LNNN-*.md` plus `docs/decisions.md`
+- operator lesson -> `docs/lessons-learned.md`
+- transient lane details -> `docs/sessions/` or `docs/sessions/archive/`
+- active next step -> `docs/sessions/lane-queue.md`
+
+Only after that should the active context-pack file be shortened to a pointer
+or one-line summary. Shortening without capture is information loss even when
+`docs:weight` passes.
+
+**How to apply:**
+
+- Before deleting or condensing a current-state/lane/todo paragraph, ask what
+  durable artifact now owns the detail.
+- Prefer replacing detail with a link to a decision/session/lesson record, not
+  silent deletion.
+- Treat `docs:weight` as a context-budget guard, not as the definition of a
+  complete docs sweep.
+
+(Follow-up from the fact-role live A/B hold; durable decision:
+`docs/decisions/L082-fact-role-ab-hold.md`.)
+
+---
+
+## Mechanism success is not promotion evidence when gate outcomes regress (2026-05-06)
+
+The capped fact-role live A/B proved the role-aware context mechanism did what
+it was supposed to do: hidden facts disappeared from writer and continuity
+prompts, and reference facts disappeared from continuity prompts. But the run
+still produced a `hold` verdict because both arms stopped at chapter-2
+plan-assist gates and role-aware regressed hallucination blockers and cost.
+
+**The rule:** eval reports should separate mechanism evidence from promotion
+evidence. A mechanism can be correct while the product outcome is not better.
+Promotion should require both.
+
+**How to apply:**
+
+- Report prompt/context exposure separately from completion, blocker,
+  hallucination, and cost deltas.
+- Give live A/B reports an explicit `promote-candidate` / `hold` verdict.
+- When a run is `hold`, document the dominant blocker before changing prompts
+  or defaults.
+
+(Decision: `docs/decisions/L082-fact-role-ab-hold.md`.)

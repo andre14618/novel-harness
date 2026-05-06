@@ -285,9 +285,10 @@ dedicated fixture re-recording commit before replay can be treated as green.
 
 - Keep this file under 300 lines.
 - Keep `docs/decisions.md` as an index, not the full log.
-- Archive historical snapshots instead of deleting them.
-- New major decisions should get a dedicated file under `docs/decisions/` and
-  a one-line index entry in `docs/decisions.md`.
+- Archive historical snapshots instead of deleting them; docs sweeps should
+  capture decisions/lessons before compressing active context.
+- New major decisions get a dedicated file under `docs/decisions/` plus an
+  index entry in `docs/decisions.md`.
 - Run `bun run docs:weight` before closing docs-heavy work.
 
 ## Browser Preflight

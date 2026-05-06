@@ -16,6 +16,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
+| L82 | 2026-05-06 | active | Fact-role live A/B remains hold: role filtering worked, but both arms gated on chapter-2 continuity and role-aware regressed cost/hallucination. Default runtime stays legacy; role-aware remains A/B-only. | `docs/decisions/L082-fact-role-ab-hold.md` |
 | L81 | 2026-05-05 | active | Continuity gray-zone panel N=20: continuity-facts blocker/warning is reasonably calibrated (60% TP), continuity-state/warning is the dominant gray zone (20% TP, 80% non-catch), object_emphasis subcategory is well-calibrated. Follow-up needs N≥50 stratified panel before any production checker change. | `docs/decisions/L081-continuity-grayzone-panel-2026-05-05.md` |
 | L80 | 2026-05-05 | active | Test and invariant work uses a dedicated support/evidence role with tiered gates, proof-before-blocking, and no hidden broad `bun test` reliance. | `docs/decisions/L080-test-invariant-agent-contract.md` |
 | L79 | 2026-05-04 | active | Authoring harness refinement: prioritize visibility/interactivity and deterministic impact awareness; require A/B evidence before production creative-heuristic wiring. | `docs/decisions/L079-authoring-harness-eval-gates.md` |
