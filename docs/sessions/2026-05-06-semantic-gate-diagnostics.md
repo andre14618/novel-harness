@@ -51,6 +51,8 @@ The immediate question was whether the failure pattern was primarily:
 - `99ae892 feat: add polarity filters to continuity panel`
   - Continuity gray-zone extraction now carries finding polarity and supports
     `--polarity positive` samples for adjudicating consistency-shaped blockers.
+- `4bceed5 feat: aggregate continuity labels by polarity`
+  - Labeled continuity-panel summaries now include per-polarity TP/FP/AMB rates.
 
 ## Evidence
 
@@ -91,6 +93,8 @@ Observed signals:
 - `bun run diagnostics:continuity-grayzone-extract -- --per-stratum 2
   --polarity positive` found 45 positive-polarity continuity findings in the
   local DB, including seven continuity-facts blockers.
+- Aggregate smoke over a positive-polarity sample emitted a `Per-polarity rates`
+  table, so adjudicated labels can now quantify support-echo false positives.
 
 ## Interpretation
 
