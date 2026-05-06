@@ -4784,6 +4784,75 @@ details[open] summary::before { transform: rotate(90deg); }
   max-width: 1500px;
   padding: 16px;
 }
+.semantic-gate-matrix-header-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.semantic-gate-matrix-link-button {
+  display: inline-flex;
+  text-decoration: none;
+}
+.semantic-gate-matrix-run-list {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+.semantic-gate-matrix-run-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  color: inherit;
+  display: block;
+  min-width: 0;
+  padding: 11px;
+  text-decoration: none;
+  transition: border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+}
+.semantic-gate-matrix-run-card:hover {
+  background: var(--bg-raised);
+  border-color: var(--accent-dim);
+  transform: translateY(-1px);
+}
+.semantic-gate-matrix-run-card.good {
+  border-top: 3px solid #7fc18b;
+}
+.semantic-gate-matrix-run-card.warn {
+  border-top: 3px solid #d3ad48;
+}
+.semantic-gate-matrix-run-card.bad {
+  border-top: 3px solid #d66;
+}
+.semantic-gate-matrix-run-metrics {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: 9px;
+}
+.semantic-gate-matrix-run-path {
+  min-width: 0;
+}
+.semantic-gate-matrix-run-path span {
+  color: var(--text-tertiary);
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.semantic-gate-matrix-run-path code {
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  color: var(--text-tertiary);
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1.3;
+  margin-top: 3px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 2px 6px;
+}
 .semantic-gate-matrix-source {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
@@ -5074,6 +5143,9 @@ details[open] summary::before { transform: rotate(90deg); }
   .semantic-gate-matrix-totals {
     grid-template-columns: repeat(3, minmax(120px, 1fr));
   }
+  .semantic-gate-matrix-run-metrics {
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -5095,7 +5167,9 @@ details[open] summary::before { transform: rotate(90deg); }
   .semantic-gate-matrix-source,
   .semantic-gate-matrix-totals,
   .semantic-gate-matrix-variants,
-  .semantic-gate-matrix-metrics {
+  .semantic-gate-matrix-metrics,
+  .semantic-gate-matrix-run-list,
+  .semantic-gate-matrix-run-metrics {
     grid-template-columns: 1fr;
   }
   .chapter-health-card-actions,

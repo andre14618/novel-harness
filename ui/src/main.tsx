@@ -41,6 +41,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/planning-snapshot/:novelId" element={<PlanningSnapshotPage />} />
           <Route path="/chapter-health/:novelId" element={<ChapterHealthPage />} />
           <Route path="/traceability/:novelId/chapter/:chapterNumber" element={<ChapterTraceabilityPage />} />
+          <Route path="/semantic-gate-matrix" element={<SemanticGateMatrixPage />} />
           <Route path="/semantic-gate-matrix/:runId" element={<SemanticGateMatrixPage />} />
           <Route path="/todo" element={<Navigate to="/docs?doc=todo.md" replace />} />
           <Route path="/compare" element={<Navigate to="/guide" replace />} />

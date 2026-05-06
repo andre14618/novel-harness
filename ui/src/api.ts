@@ -975,6 +975,31 @@ export interface SemanticGateMatrixResponse {
   reportMarkdown: string | null
 }
 
+export interface SemanticGateMatrixRunSummary {
+  runId: string
+  summaryPath: string
+  reportPath: string | null
+  sourceNovelId: string | null
+  generatedAt: string | null
+  variants: number | null
+  completed: number | null
+  failed: number | null
+  cleanPass: number | null
+  costUsd: number | null
+  mtimeMs: number
+}
+
+export interface SemanticGateMatrixListResponse {
+  ok: true
+  runs: SemanticGateMatrixRunSummary[]
+}
+
+export function listSemanticGateMatrices(limit = 20) {
+  return fetchJSON<SemanticGateMatrixListResponse>(
+    `/api/diagnostics/semantic-gate-matrix?limit=${encodeURIComponent(String(limit))}`,
+  )
+}
+
 export async function getSemanticGateMatrix(runId: string) {
   const response = await fetchJSON<SemanticGateMatrixResponse>(
     `/api/diagnostics/semantic-gate-matrix/${encodeURIComponent(runId)}`,

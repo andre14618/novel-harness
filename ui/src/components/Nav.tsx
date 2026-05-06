@@ -6,6 +6,7 @@ const PAGES = [
   { path: "/context", label: "Context Engineering" },
   { path: "/workflow", label: "Workflow" },
   { path: "/finetune", label: "Fine-Tuning" },
+  { path: "/semantic-gate-matrix", label: "Diagnostics" },
   { path: "/docs", label: "Docs" },
 ]
 

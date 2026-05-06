@@ -299,6 +299,12 @@ Observed signals:
   `/api/diagnostics/semantic-gate-matrix/:runId`. Browser evidence is under
   `output/playwright/2026-05-06/semantic-gate-matrix-fantasy-system-heretic-20260506t142441023`
   and passed `ui:evidence-check`.
+- Matrix discoverability follow-up shipped a recent-run list at
+  `/app/semantic-gate-matrix`, a Diagnostics nav entry, and a compact UI API
+  wrapper over `GET /api/diagnostics/semantic-gate-matrix?limit=20`. Browser
+  evidence is under
+  `output/playwright/2026-05-06/semantic-gate-matrix-list-recent-runs` and
+  passed `ui:evidence-check`.
 - Local DB hygiene: `operator-summary --stale-gates --min-age-hours 0`
   found 20 stale pending Plan-Assist rows. After dry-run review,
   `scripts/agent/resolve-stale-gates.ts --older-than-hours 0 --apply` marked

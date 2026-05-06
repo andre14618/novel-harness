@@ -1,24 +1,33 @@
 import { useEffect, useMemo, useState } from "react"
-import { useParams } from "react-router-dom"
+import { Link, useParams } from "react-router-dom"
 import {
   getSemanticGateMatrix,
+  listSemanticGateMatrices,
   type SemanticGateMatrixRankingItem,
   type SemanticGateMatrixReport,
+  type SemanticGateMatrixRunSummary,
   type SemanticGateMatrixVariantResult,
 } from "../api"
 
 export function SemanticGateMatrixPage() {
   const { runId } = useParams<{ runId: string }>()
   const [report, setReport] = useState<SemanticGateMatrixReport | null>(null)
+  const [runs, setRuns] = useState<SemanticGateMatrixRunSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const load = async () => {
-    if (!runId) return
     setLoading(true)
     setError(null)
     try {
-      setReport(await getSemanticGateMatrix(runId))
+      if (runId) {
+        setRuns([])
+        setReport(await getSemanticGateMatrix(runId))
+      } else {
+        setReport(null)
+        const response = await listSemanticGateMatrices()
+        setRuns(response.runs)
+      }
     } catch (err) {
       setError((err as Error).message ?? String(err))
     } finally {
@@ -37,7 +46,33 @@ export function SemanticGateMatrixPage() {
     return map
   }, [report])
 
-  if (!runId) return <div className="semantic-gate-matrix-page">Missing run id.</div>
+  if (!runId) {
+    return (
+      <div className="semantic-gate-matrix-page">
+        <div className="planning-studio-header">
+          <div>
+            <h2>Semantic Gate Matrix</h2>
+            <div className="planning-studio-subtitle">Recent deterministic replay comparisons</div>
+          </div>
+          <button className="chapter-health-refresh" type="button" onClick={load} disabled={loading}>
+            {loading ? "Refreshing" : "Refresh"}
+          </button>
+        </div>
+
+        {error && <div className="planning-error">Failed to load semantic gate matrices: {error}</div>}
+        {loading && runs.length === 0 && <div className="planning-muted">Loading semantic gate matrices...</div>}
+        {!loading && !error && runs.length === 0 && <div className="planning-muted">No semantic gate matrix runs found.</div>}
+
+        {runs.length > 0 && (
+          <div className="semantic-gate-matrix-run-list" aria-label="recent semantic gate matrix runs">
+            {runs.map(run => (
+              <RunSummaryCard key={run.runId} run={run} />
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="semantic-gate-matrix-page">
@@ -49,9 +84,14 @@ export function SemanticGateMatrixPage() {
             {report?.generatedAt && <> - generated {formatDate(report.generatedAt)}</>}
           </div>
         </div>
-        <button className="chapter-health-refresh" type="button" onClick={load} disabled={loading}>
-          {loading ? "Refreshing" : "Refresh"}
-        </button>
+        <div className="semantic-gate-matrix-header-actions">
+          <Link className="chapter-health-refresh semantic-gate-matrix-link-button" to="/semantic-gate-matrix">
+            Recent Runs
+          </Link>
+          <button className="chapter-health-refresh" type="button" onClick={load} disabled={loading}>
+            {loading ? "Refreshing" : "Refresh"}
+          </button>
+        </div>
       </div>
 
       {error && <div className="planning-error">Failed to load semantic gate matrix: {error}</div>}
@@ -108,6 +148,41 @@ export function SemanticGateMatrixPage() {
         </>
       )}
     </div>
+  )
+}
+
+function RunSummaryCard({ run }: { run: SemanticGateMatrixRunSummary }) {
+  const failed = run.failed ?? 0
+  const completed = run.completed ?? 0
+  const variants = run.variants ?? 0
+  const statusTone = failed > 0 ? "bad" : completed === variants && variants > 0 ? "good" : "warn"
+
+  return (
+    <Link className={`semantic-gate-matrix-run-card ${statusTone}`} to={`/semantic-gate-matrix/${encodeURIComponent(run.runId)}`}>
+      <div className="semantic-gate-matrix-card-head">
+        <div>
+          <div className="semantic-gate-matrix-variant-title">{run.sourceNovelId ?? "unknown source"}</div>
+          <div className="semantic-gate-matrix-variant-subtitle">
+            <code>{run.runId}</code>
+            {run.generatedAt && <span>{formatDate(run.generatedAt)}</span>}
+          </div>
+        </div>
+        <span className={`semantic-gate-matrix-status ${statusTone}`}>
+          {failed > 0 ? "failed" : "recorded"}
+        </span>
+      </div>
+      <div className="semantic-gate-matrix-run-metrics">
+        <Metric label="Variants" value={formatNullableNumber(run.variants)} />
+        <Metric label="Completed" value={formatNullableNumber(run.completed)} tone={completed > 0 ? "good" : undefined} />
+        <Metric label="Clean Pass" value={formatNullableNumber(run.cleanPass)} tone={(run.cleanPass ?? 0) > 0 ? "good" : undefined} />
+        <Metric label="Failed" value={formatNullableNumber(run.failed)} tone={failed > 0 ? "bad" : "good"} />
+        <Metric label="Cost" value={run.costUsd === null ? "n/a" : formatCost(run.costUsd)} />
+      </div>
+      <div className="semantic-gate-matrix-run-path">
+        <span>Summary</span>
+        <code>{run.summaryPath}</code>
+      </div>
+    </Link>
   )
 }
 
@@ -273,6 +348,10 @@ function formatRatio(value: number | null): string {
 
 function formatNumber(value: number, digits: number): string {
   return value.toFixed(digits)
+}
+
+function formatNullableNumber(value: number | null): string {
+  return value === null ? "n/a" : String(value)
 }
 
 function riskTone(value: number): string {

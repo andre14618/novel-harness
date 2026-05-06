@@ -5,6 +5,7 @@ import {
   getSemanticGateMatrix,
   getChapterTraceability,
   getPlanningProposalDiff,
+  listSemanticGateMatrices,
   resolvePlanningProposal,
   resolveProposalEnvelope,
   type ArtifactPatchEnvelope,
@@ -308,6 +309,39 @@ test("getSemanticGateMatrix unwraps the read-only artifact response", async () =
   await expect(getSemanticGateMatrix("matrix/run")).resolves.toEqual(report)
   const captured = requireRequest(request)
   expect(captured.url).toBe("/api/diagnostics/semantic-gate-matrix/matrix%2Frun")
+})
+
+test("listSemanticGateMatrices fetches compact recent run summaries", async () => {
+  const response = {
+    ok: true,
+    runs: [
+      {
+        runId: "fantasy-system-heretic-20260506T142441023",
+        summaryPath: "/tmp/matrix/summary.json",
+        reportPath: "/tmp/matrix/report.md",
+        sourceNovelId: "fantasy-system-heretic",
+        generatedAt: "2026-05-06T14:24:41.023Z",
+        variants: 2,
+        completed: 2,
+        failed: 0,
+        cleanPass: 0,
+        costUsd: 0.0494,
+        mtimeMs: 1778078163270,
+      },
+    ],
+  }
+  let request: CapturedFetchRequest | null = null
+  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+    request = { url: String(url), init }
+    return new Response(JSON.stringify(response), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })
+  }) as typeof fetch
+
+  await expect(listSemanticGateMatrices(7)).resolves.toEqual(response)
+  const captured = requireRequest(request)
+  expect(captured.url).toBe("/api/diagnostics/semantic-gate-matrix?limit=7")
 })
 
 test("resolvePlanningProposal returns structured stale planning responses", async () => {
