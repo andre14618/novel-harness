@@ -12,7 +12,7 @@ This file tracks active and immediately actionable work only.
 
 ## Next
 
-- Use semantic-gate candidate lenses and `diagnostics:semantic-gate-baseline` for fresh disposable evidence before runtime nudges.
+- Use semantic-gate candidate lenses and `diagnostics:semantic-gate-baseline` for fresh disposable evidence before runtime nudges; opt continuity review flags in with `--continuity-editorial-flag-proposals`.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

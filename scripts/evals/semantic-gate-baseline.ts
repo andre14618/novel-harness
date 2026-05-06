@@ -55,6 +55,7 @@ export interface Args {
   keepNovel: boolean
   target: string | null
   maxBeatsPerChapter: number | null
+  continuityEditorialFlagProposals: boolean
 }
 
 export interface SourcePreflight {
@@ -112,6 +113,21 @@ export interface PlanAssistGateLogEvidence {
   unresolvedSamples: string[]
 }
 
+export interface ProposalEnvelopeSummary {
+  total: number
+  byKind: Record<string, number>
+  byStatus: Record<string, number>
+  bySourceAgent: Record<string, number>
+  samples: Array<{
+    id: string
+    kind: string
+    status: string
+    sourceAgent: string
+    summary: string
+    createdAt: string
+  }>
+}
+
 export interface BaselineTerminalSummary {
   status: "completed" | "pending-plan-assist" | "process-exit" | "incomplete"
   reason: string
@@ -126,6 +142,9 @@ export interface SemanticGateBaselineReport {
   chapters: number
   outputBase: string
   maxBeatsPerChapter: number | null
+  pipelineOverrides: {
+    continuityEditorialFlagProposals: boolean
+  }
   keptNovel: boolean
   sourcePreflight: SourcePreflight
   process: BaselineProcessSummary
@@ -135,6 +154,7 @@ export interface SemanticGateBaselineReport {
     totalChapters: number | null
     completed: boolean
   }
+  proposals: ProposalEnvelopeSummary
   terminal: BaselineTerminalSummary
   drafts: DraftSummary
   llm: LlmSummary
@@ -185,6 +205,8 @@ export function parseArgs(argv: string[]): Args {
     keepNovel: boolOpt(map["keep-novel"]),
     target: stringOpt(map.target) ?? null,
     maxBeatsPerChapter: optionalPositiveInt(map["max-beats-per-chapter"], "--max-beats-per-chapter"),
+    continuityEditorialFlagProposals:
+      boolOpt(map["continuity-editorial-flags"] ?? map["continuity-editorial-flag-proposals"]),
   }
 }
 
@@ -282,6 +304,11 @@ export function renderSemanticGateBaselineReport(report: SemanticGateBaselineRep
   lines.push(`Disposable novel: ${report.novelId}${report.keptNovel ? " (kept)" : " (cleaned after report)"}`)
   lines.push(`Chapters: ${report.chapters}`)
   lines.push(`Max beats per chapter: ${report.maxBeatsPerChapter ?? "(source outline)"}`)
+  lines.push(
+    `Continuity editorial flags: ${
+      report.pipelineOverrides.continuityEditorialFlagProposals ? "enabled" : "disabled"
+    }`,
+  )
   lines.push(`Terminal status: ${report.terminal.status}`)
   lines.push(`Reason: ${report.terminal.reason}`)
   lines.push("")
@@ -322,6 +349,17 @@ export function renderSemanticGateBaselineReport(report: SemanticGateBaselineRep
   for (const item of report.checker.actionEvidence.items.slice(0, 20)) {
     lines.push(`- ${formatActionEvidenceItem(item)}`)
   }
+  lines.push("")
+  lines.push("## Proposal Envelopes")
+  lines.push(
+    `Total: ${report.proposals.total}; ` +
+      `status=${formatRecord(report.proposals.byStatus)}; ` +
+      `kind=${formatRecord(report.proposals.byKind)}; ` +
+      `source=${formatRecord(report.proposals.bySourceAgent)}`,
+  )
+  for (const sample of report.proposals.samples.slice(0, 10)) {
+    lines.push(`- ${sample.kind}/${sample.status} from ${sample.sourceAgent}: ${sample.summary}`)
+  }
   if (report.terminal.latestPlanAssistGate) {
     const gate = report.terminal.latestPlanAssistGate
     lines.push("")
@@ -344,7 +382,8 @@ async function main(argv: string[]): Promise<number> {
     console.error(err instanceof Error ? err.message : String(err))
     console.error(
       "usage: bun scripts/evals/semantic-gate-baseline.ts --source <drafting-source-novel-id> " +
-        "[--chapters 2] [--max-beats-per-chapter 5] [--output-base output/evals/...] [--keep-novel]",
+        "[--chapters 2] [--max-beats-per-chapter 5] [--output-base output/evals/...] [--keep-novel] " +
+        "[--continuity-editorial-flag-proposals]",
     )
     return 2
   }
@@ -357,6 +396,7 @@ async function main(argv: string[]): Promise<number> {
     const preflight = await validateSource(args)
     cloneSource(args.source, targetNovelId)
     cloned = true
+    await applyBaselinePipelineOverrides(targetNovelId, args)
     await capNovelChapters(targetNovelId, args.chapters)
     if (args.maxBeatsPerChapter !== null) {
       await capNovelOutlineBeats(targetNovelId, args.chapters, args.maxBeatsPerChapter)
@@ -369,6 +409,7 @@ async function main(argv: string[]): Promise<number> {
       chapters: args.chapters,
       outputBase: args.outputBase,
       maxBeatsPerChapter: args.maxBeatsPerChapter,
+      continuityEditorialFlagProposals: args.continuityEditorialFlagProposals,
       keptNovel: args.keepNovel,
       preflight,
       processResult,
@@ -437,6 +478,27 @@ async function capNovelChapters(novelId: string, chapters: number): Promise<void
   `
 }
 
+async function applyBaselinePipelineOverrides(novelId: string, args: Args): Promise<void> {
+  if (!args.continuityEditorialFlagProposals) return
+  await db`
+    UPDATE novels
+    SET seed_json = jsonb_set(
+          jsonb_set(
+            COALESCE(seed_json, '{}'::jsonb),
+            '{pipelineOverrides}',
+            COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+            true
+          ),
+          '{pipelineOverrides,continuityEditorialFlagProposals}',
+          'true'::jsonb,
+          true
+        ),
+        updated_at = now()
+    WHERE id = ${novelId}
+  `
+  console.log(`  enabled continuityEditorialFlagProposals for ${novelId}`)
+}
+
 async function capNovelOutlineBeats(novelId: string, chapters: number, maxBeats: number): Promise<void> {
   const rows = await db<Array<{ chapter_number: number; outline_json: { scenes?: unknown[] } }>>`
     SELECT chapter_number, outline_json
@@ -484,6 +546,7 @@ async function collectBaselineReport(input: {
   chapters: number
   outputBase: string
   maxBeatsPerChapter: number | null
+  continuityEditorialFlagProposals: boolean
   keptNovel: boolean
   preflight: SourcePreflight
   processResult: BaselineProcessSummary
@@ -509,6 +572,7 @@ async function collectBaselineReport(input: {
   const hallucUngrounded = await loadHallucSummary(input.novelId)
   const planAssistGates = await loadPlanAssistGates(input.novelId)
   const actionEvidence = await loadActionEvidenceSummary(input.novelId)
+  const proposals = await loadProposalEnvelopeSummary(input.novelId)
   const semanticGate = buildSemanticGateReport({
     writerExpansion,
     planDrift,
@@ -527,6 +591,9 @@ async function collectBaselineReport(input: {
     chapters: input.chapters,
     outputBase: input.outputBase,
     maxBeatsPerChapter: input.maxBeatsPerChapter,
+    pipelineOverrides: {
+      continuityEditorialFlagProposals: input.continuityEditorialFlagProposals,
+    },
     keptNovel: input.keptNovel,
     sourcePreflight: input.preflight,
     process: input.processResult,
@@ -536,6 +603,7 @@ async function collectBaselineReport(input: {
       totalChapters: novel?.total_chapters ?? null,
       completed,
     },
+    proposals,
     terminal,
     drafts,
     llm,
@@ -725,6 +793,38 @@ async function loadPlanAssistGates(novelId: string): Promise<PlanAssistGateSumma
   })
 }
 
+async function loadProposalEnvelopeSummary(novelId: string): Promise<ProposalEnvelopeSummary> {
+  const rows = await db<Array<{
+    id: string
+    kind: string
+    status: string
+    source_agent: string
+    summary: string
+    created_at: string | Date
+  }>>`
+    SELECT id, kind, status, source_agent, summary, created_at
+    FROM proposal_envelopes
+    WHERE novel_id = ${novelId}
+    ORDER BY created_at DESC, id DESC
+    LIMIT 100
+  `
+
+  return {
+    total: rows.length,
+    byKind: countBy(rows, row => row.kind),
+    byStatus: countBy(rows, row => row.status),
+    bySourceAgent: countBy(rows, row => row.source_agent),
+    samples: rows.slice(0, 10).map(row => ({
+      id: row.id,
+      kind: row.kind,
+      status: row.status,
+      sourceAgent: row.source_agent,
+      summary: snippet(row.summary, 180),
+      createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+    })),
+  }
+}
+
 async function loadPlanAssistGateLogEvidence(stdoutPath: string): Promise<PlanAssistGateLogEvidence | null> {
   try {
     return extractPlanAssistGateLogEvidence(await readFile(stdoutPath, "utf8"))
@@ -766,6 +866,15 @@ function formatRecord(counts: Record<string, number>): string {
   return entries.length === 0
     ? "(none)"
     : entries.map(([key, count]) => `${key}=${count}`).join(", ")
+}
+
+function countBy<T>(items: readonly T[], keyFor: (item: T) => string): Record<string, number> {
+  const counts: Record<string, number> = {}
+  for (const item of items) {
+    const key = keyFor(item) || "(blank)"
+    counts[key] = (counts[key] ?? 0) + 1
+  }
+  return counts
 }
 
 function stringOpt(value: string | true | undefined): string | undefined {

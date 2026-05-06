@@ -86,6 +86,8 @@ The immediate question was whether the failure pattern was primarily:
   - Semantic-gate baseline reports now include an `Action Evidence` section for
     targeted beat rewrites, deterministic/LLM lint actions, prose-integrity
     repairs, Chapter Plan Reviser rows, and Plan-Assist gates.
+  - Baseline reports also include proposal-envelope totals/samples and can opt
+    into continuity review flags with `--continuity-editorial-flag-proposals`.
   - `diagnostics:action-evidence -- --novel <id>` exposes the same action
     evidence directly for existing novel runs without rerunning a baseline.
   - Semantic-gate candidate rows now print the action-evidence command next to
@@ -230,6 +232,10 @@ Observed signals:
   `seed.pipelineOverrides.continuityEditorialFlagProposals`. The hook is
   nonblocking, emits `continuity-editorial-flag-proposals`, and leaves
   state-only/warning/nit continuity findings diagnostic-only.
+- Baseline evidence hook: `diagnostics:semantic-gate-baseline` can enable that
+  proposal surfacing on its disposable clone with
+  `--continuity-editorial-flag-proposals`, and its report records proposal
+  envelope totals/samples before cleanup.
 - Post-L84 scoped baseline:
   `diagnostics:semantic-gate-baseline -- --source fantasy-system-heretic
   --chapters 2 --max-beats-per-chapter 5 --output-base

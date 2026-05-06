@@ -19,6 +19,7 @@ describe("semantic-gate-baseline", () => {
     expect(args.keepNovel).toBe(false)
     expect(args.target).toBeNull()
     expect(args.maxBeatsPerChapter).toBeNull()
+    expect(args.continuityEditorialFlagProposals).toBe(false)
     expect(args.outputBase).toContain("output/evals/semantic-gate-baseline")
   })
 
@@ -29,6 +30,7 @@ describe("semantic-gate-baseline", () => {
       "--max-beats-per-chapter", "5",
       "--target", "target-novel",
       "--keep-novel",
+      "--continuity-editorial-flag-proposals",
       "--output-base", "output/evals/custom",
     ])
 
@@ -36,7 +38,14 @@ describe("semantic-gate-baseline", () => {
     expect(args.maxBeatsPerChapter).toBe(5)
     expect(args.target).toBe("target-novel")
     expect(args.keepNovel).toBe(true)
+    expect(args.continuityEditorialFlagProposals).toBe(true)
     expect(args.outputBase).toContain("output/evals/custom")
+  })
+
+  test("parseArgs accepts the short continuity editorial flag alias", () => {
+    const args = parseArgs(["--source", "source-novel", "--continuity-editorial-flags"])
+
+    expect(args.continuityEditorialFlagProposals).toBe(true)
   })
 
   test("capOutlineBeats trims clone outlines without mutating the original", () => {
@@ -112,11 +121,14 @@ Unresolved issues (2):
     expect(rendered).toContain("# Semantic Gate Baseline")
     expect(rendered).toContain("Terminal status: pending-plan-assist")
     expect(rendered).toContain("Max beats per chapter: 5")
+    expect(rendered).toContain("Continuity editorial flags: enabled")
     expect(rendered).toContain("Approved: 1/2")
     expect(rendered).toContain("Signals: no_draft=1, outline_shape=2")
     expect(rendered).toContain("calibration=standard=2, low-confidence=3")
     expect(rendered).toContain("Action Evidence")
     expect(rendered).toContain("targeted-rewrite:chapter-plan-check")
+    expect(rendered).toContain("Proposal Envelopes")
+    expect(rendered).toContain("continuity-editorial-flags")
     expect(rendered).toContain("Latest Plan-Assist Gate")
   })
 
@@ -143,6 +155,9 @@ function reportFixture(): SemanticGateBaselineReport {
     chapters: 2,
     outputBase: "/tmp/semantic-gate-baseline",
     maxBeatsPerChapter: 5,
+    pipelineOverrides: {
+      continuityEditorialFlagProposals: true,
+    },
     keptNovel: false,
     sourcePreflight: {
       sourceNovelId: "fantasy-system-heretic",
@@ -161,6 +176,20 @@ function reportFixture(): SemanticGateBaselineReport {
       currentChapter: 2,
       totalChapters: 2,
       completed: false,
+    },
+    proposals: {
+      total: 1,
+      byKind: { editorial_flag: 1 },
+      byStatus: { pending: 1 },
+      bySourceAgent: { "continuity-editorial-flags": 1 },
+      samples: [{
+        id: "editorial-flag:novel:abc",
+        kind: "editorial_flag",
+        status: "pending",
+        sourceAgent: "continuity-editorial-flags",
+        summary: "warning: off-canon @ chapter:1",
+        createdAt: "2026-05-06T12:00:01.000Z",
+      }],
     },
     terminal: {
       status: "pending-plan-assist",
