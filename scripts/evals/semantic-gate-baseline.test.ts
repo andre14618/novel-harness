@@ -6,6 +6,7 @@ import {
   extractPlanAssistGateLogEvidence,
   parseArgs,
   renderSemanticGateBaselineReport,
+  scopeWriterExpansionRows,
   type SemanticGateBaselineReport,
 } from "./semantic-gate-baseline"
 
@@ -49,6 +50,20 @@ describe("semantic-gate-baseline", () => {
     expect(capped).not.toBe(outline)
     expect(capped.scenes).toEqual([{ beatId: "a" }, { beatId: "b" }])
     expect(outline.scenes).toHaveLength(3)
+  })
+
+  test("scopeWriterExpansionRows excludes source outlines beyond requested chapters", () => {
+    const scoped = scopeWriterExpansionRows([
+      { chapter_number: 1, outline_json: { scenes: [] } },
+      { chapter_number: 2, outline_json: { scenes: [] } },
+      { chapter_number: 3, outline_json: { scenes: [] } },
+    ], [
+      { chapter_number: 1, version: 1, status: "approved", word_count: 1200 },
+      { chapter_number: 3, version: 1, status: "approved", word_count: 900 },
+    ], 2)
+
+    expect(scoped.outlines.map(row => row.chapter_number)).toEqual([1, 2])
+    expect(scoped.drafts.map(row => row.chapter_number)).toEqual([1])
   })
 
   test("terminal summary surfaces pending plan-assist before generic process failure", () => {

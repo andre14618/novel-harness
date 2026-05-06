@@ -191,6 +191,17 @@ export function capOutlineBeats<T extends { scenes?: unknown[] }>(outline: T, ma
   }
 }
 
+export function scopeWriterExpansionRows(
+  outlines: readonly WriterExpansionOutlineRow[],
+  drafts: readonly WriterExpansionDraftRow[],
+  chapters: number,
+): { outlines: WriterExpansionOutlineRow[]; drafts: WriterExpansionDraftRow[] } {
+  return {
+    outlines: outlines.filter(row => Number(row.chapter_number) <= chapters),
+    drafts: drafts.filter(row => Number(row.chapter_number) <= chapters),
+  }
+}
+
 export function buildBaselineTerminalSummary(
   processResult: Pick<BaselineProcessSummary, "exitCode" | "signal">,
   completed: boolean,
@@ -463,9 +474,14 @@ async function collectBaselineReport(input: {
   `
   const drafts = await loadDraftSummary(input.novelId)
   const llm = await loadLlmSummary(input.novelId)
-  const writerExpansion = buildWriterExpansionReport(
+  const writerExpansionRows = scopeWriterExpansionRows(
     await loadWriterExpansionOutlines(input.novelId),
     await loadWriterExpansionDrafts(input.novelId),
+    input.chapters,
+  )
+  const writerExpansion = buildWriterExpansionReport(
+    writerExpansionRows.outlines,
+    writerExpansionRows.drafts,
     input.novelId,
   )
   const planDrift = buildPlanDriftReport(await loadPlanCheckRows(input.novelId), input.novelId)
