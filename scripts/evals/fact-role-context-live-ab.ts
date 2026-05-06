@@ -82,6 +82,7 @@ export interface ArmRunSummary {
     totalChapters: number | null
     completed: boolean
   }
+  terminal: ArmTerminalSummary
   roleCounts: Record<FactRole, number>
   promptExposure: RolePromptExposure
   drafts: {
@@ -114,6 +115,24 @@ export interface ArmRunSummary {
       blockerIssues: number
     }
   }
+}
+
+export interface ArmTerminalSummary {
+  status: "completed" | "pending-plan-assist" | "process-exit" | "incomplete"
+  reason: string
+  latestPlanAssistGate: PlanAssistGateSummary | null
+}
+
+export interface PlanAssistGateSummary {
+  id: number
+  chapter: number
+  attempt: number
+  kind: string
+  resolverMode: string
+  decision: string | null
+  pending: boolean
+  unresolvedCount: number
+  unresolvedSamples: string[]
 }
 
 export interface LiveAbReport {
@@ -269,13 +288,13 @@ export function renderLiveAbReport(report: LiveAbReport): string {
   lines.push("")
   lines.push("## Arms")
   lines.push("")
-  lines.push("| policy | novel | completed | approved | words | llm calls | cost | hidden writer facts | hidden continuity facts | reference continuity facts | blockers | halluc blockers |")
-  lines.push("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+  lines.push("| policy | novel | status | approved | words | llm calls | cost | hidden writer facts | hidden continuity facts | reference continuity facts | blockers | halluc blockers |")
+  lines.push("|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
   for (const arm of report.arms) {
     lines.push([
       arm.policy,
       arm.novelId,
-      String(arm.novel.completed),
+      arm.terminal.status,
       `${arm.drafts.approvedChapters}/${report.chapters}`,
       String(arm.drafts.totalWords),
       String(arm.llm.calls),
@@ -286,6 +305,20 @@ export function renderLiveAbReport(report: LiveAbReport): string {
       String(arm.checker.warnings.bySeverity.blocker ?? 0),
       String(arm.checker.hallucUngrounded.blockerIssues),
     ].join(" | ").replace(/^/, "| ").replace(/$/, " |"))
+  }
+  lines.push("")
+  lines.push("## Terminal Diagnostics")
+  for (const arm of report.arms) {
+    lines.push("")
+    lines.push(`### ${arm.policy}`)
+    lines.push(`- ${arm.terminal.reason}`)
+    const gate = arm.terminal.latestPlanAssistGate
+    if (gate) {
+      lines.push(`- latest gate: id=${gate.id}; chapter=${gate.chapter}; attempt=${gate.attempt}; kind=${gate.kind}; decision=${gate.decision ?? "pending"}; unresolved=${gate.unresolvedCount}`)
+      for (const sample of gate.unresolvedSamples) {
+        lines.push(`  - ${sample}`)
+      }
+    }
   }
   if (report.delta) {
     lines.push("")
@@ -499,6 +532,8 @@ async function collectArmSummary(
   const planDrift = buildPlanDriftReport(await loadPlanCheckRows(novelId), novelId)
   const warnings = buildCheckerWarningReport(await loadCheckerWarningInputs(novelId), novelId)
   const hallucUngrounded = await loadHallucSummary(novelId)
+  const planAssistGates = await loadPlanAssistGates(novelId)
+  const terminal = buildArmTerminalSummary(processResult, novel?.phase === "done" && drafts.approvedChapters >= chapters, planAssistGates)
 
   return {
     policy,
@@ -510,11 +545,50 @@ async function collectArmSummary(
       totalChapters: novel?.total_chapters ?? null,
       completed: novel?.phase === "done" && drafts.approvedChapters >= chapters,
     },
+    terminal,
     roleCounts,
     promptExposure: buildRolePromptExposure(facts, promptRows),
     drafts,
     llm,
     checker: { planDrift, warnings, hallucUngrounded },
+  }
+}
+
+export function buildArmTerminalSummary(
+  processResult: Pick<ArmRunSummary["process"], "exitCode" | "signal">,
+  completed: boolean,
+  planAssistGates: readonly PlanAssistGateSummary[],
+): ArmTerminalSummary {
+  const latestGate = planAssistGates[0] ?? null
+  if (completed) {
+    return {
+      status: "completed",
+      reason: "completed requested chapters",
+      latestPlanAssistGate: latestGate,
+    }
+  }
+
+  const pendingGate = planAssistGates.find(gate => gate.pending) ?? null
+  if (pendingGate) {
+    return {
+      status: "pending-plan-assist",
+      reason: `stopped at pending plan-assist gate: chapter ${pendingGate.chapter}, kind ${pendingGate.kind}`,
+      latestPlanAssistGate: pendingGate,
+    }
+  }
+
+  if (processResult.exitCode !== 0 || processResult.signal) {
+    return {
+      status: "process-exit",
+      reason: `process exited before completion: exit=${String(processResult.exitCode)}, signal=${processResult.signal ?? "none"}`,
+      latestPlanAssistGate: latestGate,
+    }
+  }
+
+  return {
+    status: "incomplete",
+    reason: "process exited cleanly but requested chapters were not approved",
+    latestPlanAssistGate: latestGate,
   }
 }
 
@@ -669,6 +743,59 @@ async function loadHallucSummary(novelId: string): Promise<ArmRunSummary["checke
   return { calls: rows.length, blockerIssues }
 }
 
+async function loadPlanAssistGates(novelId: string): Promise<PlanAssistGateSummary[]> {
+  const rows = await db<Array<{
+    id: number
+    chapter: number
+    attempt: number
+    kind: string
+    resolver_mode: string
+    decision: string | null
+    pending: boolean
+    unresolved_deviations: unknown
+  }>>`
+    SELECT id, chapter, attempt, kind, resolver_mode, decision,
+           decided_at IS NULL AS pending,
+           unresolved_deviations
+    FROM chapter_exhaustions
+    WHERE novel_id = ${novelId}
+    ORDER BY fired_at DESC, id DESC
+  `
+
+  return rows.map(row => {
+    const deviations = Array.isArray(row.unresolved_deviations) ? row.unresolved_deviations : []
+    return {
+      id: Number(row.id),
+      chapter: Number(row.chapter),
+      attempt: Number(row.attempt),
+      kind: row.kind,
+      resolverMode: row.resolver_mode,
+      decision: row.decision,
+      pending: Boolean(row.pending),
+      unresolvedCount: deviations.length,
+      unresolvedSamples: deviations.slice(0, 3).map(deviationSummary),
+    }
+  })
+}
+
+function deviationSummary(value: unknown): string {
+  if (typeof value === "string") return snippet(value, 180)
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>
+    const pieces = [
+      stringish(record.source),
+      stringish(record.code),
+      stringish(record.severity),
+      stringish(record.message),
+      stringish(record.description),
+      stringish(record.text),
+    ].filter(Boolean)
+    if (pieces.length > 0) return snippet(pieces.join(": "), 180)
+    return snippet(JSON.stringify(record), 180)
+  }
+  return snippet(String(value), 180)
+}
+
 async function loadRoleCounts(novelId: string): Promise<Record<FactRole, number>> {
   const counts = makeRoleCountMap()
   const rows = await db<Array<{ role: string | null; count: number }>>`
@@ -761,6 +888,10 @@ function stamp(): string {
 function snippet(value: string, max: number): string {
   const flat = value.replace(/\s+/g, " ").trim()
   return flat.length <= max ? flat : `${flat.slice(0, max - 3)}...`
+}
+
+function stringish(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null
 }
 
 function formatRoleCounts(counts: Record<FactRole, number>): string {

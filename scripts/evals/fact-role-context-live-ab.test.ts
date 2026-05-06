@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
 import {
+  buildArmTerminalSummary,
   buildLiveAbDelta,
   buildRolePromptExposure,
   parseArgs,
@@ -105,7 +106,30 @@ describe("fact-role-context-live-ab", () => {
     expect(rendered).toContain("# Fact Role Context Live A/B")
     expect(rendered).toContain("role-aware minus legacy")
     expect(rendered).toContain("hiddenWriterFactsWithHit: -1")
-    expect(rendered).toContain("| role-aware | novel-role-aware | true | 2/2")
+    expect(rendered).toContain("| role-aware | novel-role-aware | completed | 2/2")
+    expect(rendered).toContain("## Terminal Diagnostics")
+  })
+
+  test("terminal summary surfaces pending plan-assist gates before generic process failures", () => {
+    const summary = buildArmTerminalSummary(
+      { exitCode: 1, signal: null },
+      false,
+      [{
+        id: 42,
+        chapter: 1,
+        attempt: 2,
+        kind: "plan-check-exhausted",
+        resolverMode: "auto",
+        decision: null,
+        pending: true,
+        unresolvedCount: 1,
+        unresolvedSamples: ["Beat 5: courier carriage"],
+      }],
+    )
+
+    expect(summary.status).toBe("pending-plan-assist")
+    expect(summary.reason).toContain("chapter 1")
+    expect(summary.latestPlanAssistGate?.id).toBe(42)
   })
 
   test("parseArgs defaults to a two-chapter disposable eval output", () => {
@@ -166,6 +190,11 @@ function arm(
       currentChapter: 1,
       totalChapters: 2,
       completed: true,
+    },
+    terminal: {
+      status: "completed",
+      reason: "completed requested chapters",
+      latestPlanAssistGate: null,
     },
     roleCounts: { operational: 1, reference: 1, hidden: 1, unknown: 0 },
     promptExposure: {
