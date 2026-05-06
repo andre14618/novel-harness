@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test"
 import {
   buildArmTerminalSummary,
   buildLiveAbDelta,
+  buildLiveAbVerdict,
   buildRolePromptExposure,
   capOutlineBeatsForEval,
   extractPlanAssistGateLogEvidence,
@@ -101,17 +102,52 @@ describe("fact-role-context-live-ab", () => {
         arm("role-aware", { approved: 2, hiddenWriter: 0, hiddenContinuity: 0, referenceContinuity: 0, blockers: 0, halluc: 0, cost: 0.1 }),
       ],
       delta: null,
+      verdict: {} as LiveAbReport["verdict"],
     }
     report.delta = buildLiveAbDelta(report.arms)
+    report.verdict = buildLiveAbVerdict(report.arms, report.chapters)
 
     const rendered = renderLiveAbReport(report)
 
     expect(rendered).toContain("# Fact Role Context Live A/B")
+    expect(rendered).toContain("Status: promote-candidate")
     expect(rendered).toContain("Max beats per chapter: 5")
     expect(rendered).toContain("role-aware minus legacy")
     expect(rendered).toContain("hiddenWriterFactsWithHit: -1")
     expect(rendered).toContain("| role-aware | novel-role-aware | completed | 2/2")
     expect(rendered).toContain("## Terminal Diagnostics")
+  })
+
+  test("verdict holds when exposure improves but role-aware does not complete cleanly", () => {
+    const legacy = arm("legacy", {
+      approved: 1,
+      hiddenWriter: 1,
+      hiddenContinuity: 1,
+      referenceContinuity: 1,
+      blockers: 1,
+      halluc: 3,
+      cost: 0.014,
+      completed: false,
+    })
+    const roleAware = arm("role-aware", {
+      approved: 1,
+      hiddenWriter: 0,
+      hiddenContinuity: 0,
+      referenceContinuity: 0,
+      blockers: 1,
+      halluc: 4,
+      cost: 0.025,
+      completed: false,
+    })
+
+    const verdict = buildLiveAbVerdict([legacy, roleAware], 2)
+
+    expect(verdict.status).toBe("hold")
+    expect(verdict.exposureOk).toBe(true)
+    expect(verdict.completionOk).toBe(false)
+    expect(verdict.hallucRegressionOk).toBe(false)
+    expect(verdict.costRegressionOk).toBe(false)
+    expect(verdict.reasons).toContain("one or both arms failed to complete the requested chapters")
   })
 
   test("terminal summary surfaces pending plan-assist gates before generic process failures", () => {
@@ -214,8 +250,10 @@ function arm(
     blockers: number
     halluc: number
     cost: number
+    completed?: boolean
   },
 ): ArmRunSummary {
+  const completed = values.completed ?? true
   return {
     policy,
     novelId: `novel-${policy}`,
@@ -226,10 +264,10 @@ function arm(
       stderrPath: `/tmp/${policy}.stderr.log`,
     },
     novel: {
-      phase: "done",
+      phase: completed ? "done" : "drafting",
       currentChapter: 1,
       totalChapters: 2,
-      completed: true,
+      completed,
     },
     terminal: {
       status: "completed",

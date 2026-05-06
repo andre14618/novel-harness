@@ -161,6 +161,17 @@ export interface LiveAbReport {
     hallucBlockerIssues: number
     costUsd: number
   } | null
+  verdict: LiveAbVerdict
+}
+
+export interface LiveAbVerdict {
+  status: "promote-candidate" | "hold"
+  exposureOk: boolean
+  completionOk: boolean
+  blockerRegressionOk: boolean
+  hallucRegressionOk: boolean
+  costRegressionOk: boolean
+  reasons: string[]
 }
 
 export interface SourcePreflight {
@@ -293,6 +304,55 @@ export function buildLiveAbDelta(arms: readonly ArmRunSummary[]): LiveAbReport["
   }
 }
 
+export function buildLiveAbVerdict(arms: readonly ArmRunSummary[], chapters: number): LiveAbVerdict {
+  const delta = buildLiveAbDelta(arms)
+  const legacy = arms.find(arm => arm.policy === "legacy")
+  const roleAware = arms.find(arm => arm.policy === "role-aware")
+  const reasons: string[] = []
+
+  if (!delta || !legacy || !roleAware) {
+    return {
+      status: "hold",
+      exposureOk: false,
+      completionOk: false,
+      blockerRegressionOk: false,
+      hallucRegressionOk: false,
+      costRegressionOk: false,
+      reasons: ["missing legacy or role-aware arm"],
+    }
+  }
+
+  const exposureOk =
+    delta.hiddenWriterFactsWithHit < 0 &&
+    delta.hiddenContinuityFactsWithHit < 0 &&
+    delta.referenceContinuityFactsWithHit < 0
+  const completionOk =
+    legacy.novel.completed &&
+    roleAware.novel.completed &&
+    legacy.drafts.approvedChapters >= chapters &&
+    roleAware.drafts.approvedChapters >= chapters &&
+    delta.approvedChapters >= 0
+  const blockerRegressionOk = delta.blockerWarnings <= 0
+  const hallucRegressionOk = delta.hallucBlockerIssues <= 0
+  const costRegressionOk = delta.costUsd <= 0
+
+  if (!exposureOk) reasons.push("role-aware did not reduce hidden writer, hidden continuity, and reference continuity exposure")
+  if (!completionOk) reasons.push("one or both arms failed to complete the requested chapters")
+  if (!blockerRegressionOk) reasons.push(`blocker warnings regressed by ${signed(delta.blockerWarnings)}`)
+  if (!hallucRegressionOk) reasons.push(`hallucination blockers regressed by ${signed(delta.hallucBlockerIssues)}`)
+  if (!costRegressionOk) reasons.push(`cost regressed by ${signed(delta.costUsd, 4)}`)
+
+  return {
+    status: reasons.length === 0 ? "promote-candidate" : "hold",
+    exposureOk,
+    completionOk,
+    blockerRegressionOk,
+    hallucRegressionOk,
+    costRegressionOk,
+    reasons: reasons.length === 0 ? ["role-aware met live A/B promotion evidence gates"] : reasons,
+  }
+}
+
 export function renderLiveAbReport(report: LiveAbReport): string {
   const lines: string[] = []
   lines.push("# Fact Role Context Live A/B")
@@ -306,6 +366,13 @@ export function renderLiveAbReport(report: LiveAbReport): string {
   lines.push("## Source Preflight")
   lines.push("")
   lines.push(`phase=${report.sourcePreflight.phase}; outlines=${report.sourcePreflight.outlineCount}; facts=${formatRoleCounts(report.sourcePreflight.roleCounts)}`)
+  lines.push("")
+  lines.push("## Verdict")
+  lines.push("")
+  lines.push(`Status: ${report.verdict.status}`)
+  for (const reason of report.verdict.reasons) {
+    lines.push(`- ${reason}`)
+  }
   lines.push("")
   lines.push("## Arms")
   lines.push("")
@@ -425,6 +492,7 @@ async function main(argv: string[]): Promise<number> {
       sourceContextPreview,
       arms,
       delta: buildLiveAbDelta(arms),
+      verdict: buildLiveAbVerdict(arms, args.chapters),
     }
 
     const jsonPath = join(args.outputBase, "summary.json")
