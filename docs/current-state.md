@@ -176,7 +176,7 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
   changing the legacy `beat_index` contract.
 - Beat-level LLM telemetry now persists `llm_calls.beat_id` for beat writer,
   targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
-- Diagnostic-only CLIs, baseline/matrix runners/viewers, default-off planning
+- Diagnostic-only CLIs, baseline/matrix/cohort runners/viewers, default-off planning
   beat-cap overrides, and Diagnostics UI summarize/rank semantic gates, action/proposal
   evidence, plan-check drift witnesses, writer expansion, load-bearing checker
   evidence, and plan-assist lineage without changing runtime behavior.

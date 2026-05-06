@@ -34,6 +34,7 @@
     "diagnostics:semantic-gate-candidates": "bun scripts/analysis/semantic-gate-candidates.ts",
     "diagnostics:semantic-gate-baseline": "bun scripts/evals/semantic-gate-baseline.ts",
     "diagnostics:semantic-gate-matrix": "bun scripts/evals/semantic-gate-matrix.ts",
+    "diagnostics:semantic-gate-cohort-matrix": "bun scripts/evals/semantic-gate-cohort-matrix.ts",
     "diagnostics:writer-expansion": "bun scripts/analysis/writer-expansion-report.ts",
     "diagnostics:continuity-grayzone-extract": "bun scripts/analysis/continuity-grayzone-extract.ts",
     "diagnostics:continuity-grayzone-aggregate": "bun scripts/analysis/continuity-grayzone-aggregate.ts",

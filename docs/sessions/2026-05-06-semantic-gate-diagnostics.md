@@ -331,7 +331,17 @@ Observed signals:
   over-cap outlines when the override is set, and semantic-gate baseline
   artifacts persist/report the same override. A configured cap below the
   calibrated floor is raised to the floor, so the experiment cannot make a
-  chapter structurally under-planned by configuration alone.
+  chapter structurally under-planned by configuration alone. Disposable smoke
+  `fantasy-system-heretic-planning-cap-smoke-20260506T160006` completed capped
+  and control arms 1/1; capped wrote `planningMaxBeatsPerChapter=4` and stayed
+  shorter, but carried one plan-drift signal, so this remains A/B evidence
+  rather than a default change.
+- Cohort matrix aggregation shipped as
+  `diagnostics:semantic-gate-cohort-matrix`. It can aggregate existing
+  `semantic-gate-matrix` summaries or run the same variant set across multiple
+  source novels/replicates, preserving failed child matrices as evidence.
+  Artifact-only smoke over the existing `fantasy-system-heretic` matrix wrote
+  `output/evals/semantic-gate-cohort-matrix/existing-summary-smoke-20260506T160425`.
 - Local DB hygiene: `operator-summary --stale-gates --min-age-hours 0`
   found 20 stale pending Plan-Assist rows. After dry-run review,
   `scripts/agent/resolve-stale-gates.ts --older-than-hours 0 --apply` marked
