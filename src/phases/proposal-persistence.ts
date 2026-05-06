@@ -1,4 +1,8 @@
 import {
+  buildContinuityEditorialFlagEnvelopes,
+  type BuildContinuityEditorialFlagEnvelopesArgs,
+} from "../canon/continuity-editorial-flags"
+import {
   buildProseEditEnvelopesFromLintIssues,
   type BuildLintProseEditEnvelopesArgs,
 } from "../canon/lint-to-prose-edit"
@@ -9,7 +13,7 @@ import {
 import type { EditorialFlagEnvelope, ProseEditEnvelope } from "../canon/editorial-proposal"
 import { insertEditorialFlagEnvelope, insertProseEditEnvelope } from "../db/editorial-envelopes"
 import type { LintIssue } from "../lint/types"
-import type { ChapterOutline } from "../types"
+import type { ChapterOutline, ContinuityIssue } from "../types"
 import { createHash } from "crypto"
 
 export interface PersistLintProseEditProposalsResult {
@@ -26,6 +30,13 @@ export interface PersistEditorialBeatCoverageProposalsResult {
   errors: Array<{ envelopeId: string; error: string }>
   coveredBeats: number
   uncoveredBeats: number
+}
+
+export interface PersistContinuityEditorialFlagProposalsResult {
+  generated: number
+  inserted: number
+  skipped: number
+  errors: Array<{ envelopeId: string; error: string }>
 }
 
 export async function persistLintProseEditProposals(args: {
@@ -122,6 +133,47 @@ export async function persistEditorialBeatCoverageProposals(args: {
     errors,
     coveredBeats: result.rawOutput.beatVerdicts.filter((v) => v.covered).length,
     uncoveredBeats: result.rawOutput.beatVerdicts.filter((v) => !v.covered).length,
+  }
+}
+
+export async function persistContinuityEditorialFlagProposals(args: {
+  novelId: string
+  chapter: number
+  prose: string
+  issues: readonly ContinuityIssue[]
+  now?: Date
+  insertEnvelope?: (envelope: EditorialFlagEnvelope) => Promise<boolean>
+}): Promise<PersistContinuityEditorialFlagProposalsResult> {
+  const envelopeArgs: BuildContinuityEditorialFlagEnvelopesArgs = {
+    novelId: args.novelId,
+    chapterRef: `chapter:${args.chapter}`,
+    issues: args.issues,
+    draftHash: computeDraftHash(args.prose),
+    ...(args.now !== undefined ? { now: args.now } : { now: new Date() }),
+  }
+  const envelopes = buildContinuityEditorialFlagEnvelopes(envelopeArgs)
+  const insert = args.insertEnvelope ?? insertEditorialFlagEnvelope
+  const errors: PersistContinuityEditorialFlagProposalsResult["errors"] = []
+  let inserted = 0
+  let skipped = 0
+
+  for (const envelope of envelopes) {
+    try {
+      if (await insert(envelope)) inserted++
+      else skipped++
+    } catch (err) {
+      errors.push({
+        envelopeId: envelope.id,
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+
+  return {
+    generated: envelopes.length,
+    inserted,
+    skipped,
+    errors,
   }
 }
 

@@ -39,6 +39,12 @@ export const pipeline = {
   // Default off because this adds an LLM checker call per drafted chapter.
   editorialBeatCoverageProposals: false,
 
+  // Phase 7 proposal persistence hook. When true, fact-scoped continuity
+  // blocker findings become nonblocking editorial_flag envelopes after the
+  // chapter draft has settled. No extra LLM calls; default off to avoid
+  // review-queue noise until a lane deliberately enables it.
+  continuityEditorialFlagProposals: false,
+
   // Diagnostic/A-B gate for fact-role-aware context. Default legacy preserves
   // all loaded facts. Per-novel `role-aware` drops hidden facts from writer
   // context and sends only operational facts to continuity blocking checks.

@@ -30,6 +30,7 @@ export type TraceEventType =
   | "lint-fix-rejected"
   | "lint-prose-edit-proposals"
   | "editorial-beat-coverage-proposals"
+  | "continuity-editorial-flag-proposals"
   | "prose-integrity-repair"
   | "prose-integrity-check"
   | "validation-check"

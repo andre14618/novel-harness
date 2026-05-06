@@ -280,6 +280,7 @@ const HEALTH_EVENT_TYPES = new Set([
   "lint-detect",
   "lint-prose-edit-proposals",
   "editorial-beat-coverage-proposals",
+  "continuity-editorial-flag-proposals",
   "plan-check-outcome",
 ])
 
@@ -287,7 +288,8 @@ const CHECKER_AGENTS = new Set([
   "chapter-plan-checker",
   "halluc-ungrounded",
   "functional-state-checker",
-  "continuity-checker",
+  "continuity-facts",
+  "continuity-state",
   "prose-integrity-checker",
   "lint-detector",
   "editorial-beat-coverage",

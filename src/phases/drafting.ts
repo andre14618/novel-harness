@@ -71,6 +71,7 @@ import type { ChapterOutline } from "../types"
 import { beatStableIdTraceMeta } from "../harness/stable-id-trace"
 import { beatCoverageLlmOutputSchema } from "../canon/editorial-beat-coverage"
 import {
+  persistContinuityEditorialFlagProposals,
   persistEditorialBeatCoverageProposals,
   persistLintProseEditProposals,
 } from "./proposal-persistence"
@@ -98,6 +99,8 @@ export function effectivePipeline(seed: SeedInput): typeof pipeline {
     lintProseEditProposals: o.lintProseEditProposals ?? pipeline.lintProseEditProposals,
     editorialBeatCoverageProposals:
       o.editorialBeatCoverageProposals ?? pipeline.editorialBeatCoverageProposals,
+    continuityEditorialFlagProposals:
+      o.continuityEditorialFlagProposals ?? pipeline.continuityEditorialFlagProposals,
     factRoleContextPolicy: o.factRoleContextPolicy ?? pipeline.factRoleContextPolicy,
   }
 }
@@ -152,6 +155,9 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
   }
   if (eff.editorialBeatCoverageProposals !== pipeline.editorialBeatCoverageProposals) {
     log(novelId, "info", `Drafting: pipelineOverrides applied — editorialBeatCoverageProposals=${eff.editorialBeatCoverageProposals}`)
+  }
+  if (eff.continuityEditorialFlagProposals !== pipeline.continuityEditorialFlagProposals) {
+    log(novelId, "info", `Drafting: pipelineOverrides applied — continuityEditorialFlagProposals=${eff.continuityEditorialFlagProposals}`)
   }
   if (eff.factRoleContextPolicy !== pipeline.factRoleContextPolicy) {
     log(novelId, "info", `Drafting: pipelineOverrides applied — factRoleContextPolicy=${eff.factRoleContextPolicy}`)
@@ -1702,6 +1708,38 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       // don't see stale avoidance context (defensive; the chapter will exit
       // the while-loop on approval shortly).
       priorIntegrityIssues = []
+
+      if (eff.continuityEditorialFlagProposals && issues.length > 0) {
+        try {
+          emit(novelId, { type: "progress", data: { step: "continuity-editorial-flags", chapter: ch, status: "running" } })
+          const continuityProposalStart = Date.now()
+          const proposalResult = await persistContinuityEditorialFlagProposals({
+            novelId,
+            chapter: ch,
+            prose,
+            issues,
+          })
+          await trace(novelId, {
+            eventType: "continuity-editorial-flag-proposals",
+            chapter: ch,
+            durationMs: Date.now() - continuityProposalStart,
+            payload: { ...proposalResult },
+          })
+          console.log(
+            `  Continuity editorial flags: ${proposalResult.inserted} inserted, ${proposalResult.skipped} existing, ${proposalResult.errors.length} errors`,
+          )
+          log(
+            novelId,
+            proposalResult.errors.length > 0 ? "warn" : "info",
+            `Continuity editorial_flag proposals for chapter ${ch}: generated=${proposalResult.generated} inserted=${proposalResult.inserted} skipped=${proposalResult.skipped} errors=${proposalResult.errors.length}`,
+          )
+          emit(novelId, { type: "progress", data: { step: "continuity-editorial-flags", chapter: ch, status: "complete" } })
+        } catch (err) {
+          log(novelId, "warn", `Continuity editorial flag persistence failed for chapter ${ch}: ${err}`)
+          console.log(`  Continuity editorial flags failed (non-blocking): ${err instanceof Error ? err.message : err}`)
+          emit(novelId, { type: "progress", data: { step: "continuity-editorial-flags", chapter: ch, status: "failed" } })
+        }
+      }
 
       // 5. Human gate
       let displayContent = prose

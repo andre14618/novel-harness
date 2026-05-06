@@ -225,6 +225,11 @@ Observed signals:
   blockers by themselves. L84 records the decision; Beat/plan,
   halluc-ungrounded, validation, prose-integrity, and functional blockers
   remain load-bearing.
+- Proposal surfacing follow-up: fact-scoped continuity blocker findings can now
+  persist manual `editorial_flag` envelopes when a novel opts into
+  `seed.pipelineOverrides.continuityEditorialFlagProposals`. The hook is
+  nonblocking, emits `continuity-editorial-flag-proposals`, and leaves
+  state-only/warning/nit continuity findings diagnostic-only.
 - Post-L84 scoped baseline:
   `diagnostics:semantic-gate-baseline -- --source fantasy-system-heretic
   --chapters 2 --max-beats-per-chapter 5 --output-base

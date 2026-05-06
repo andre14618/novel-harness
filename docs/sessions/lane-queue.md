@@ -28,7 +28,8 @@ This file tracks active and immediately actionable work only.
 - Playwright evidence verification shipped: `ui:preflight` now pairs with `ui:evidence-check`.
 - Deterministic quote-integrity repair shipped before prose-integrity retry/gate
   logic; detailed scoped-baseline evidence is in the semantic-gate session doc.
-- Continuity-state warning N=50 follow-up shipped (decision L83): 0% TP, 88% FP, 12% AMB; treat raw warning counts as diagnostic/UI noise, not runtime-nudge evidence.
+- Continuity L83/L84 shipped: state warnings are diagnostic noise; continuity
+  does not block Drafting, and fact-scoped blockers have opt-in editorial flags.
 - Semantic-gate diagnostics shipped: writer expansion, semantic gate roll-up,
   and candidate ranking; future fact-role A/B summaries persist the roll-up.
   Record: `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.

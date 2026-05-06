@@ -50,10 +50,15 @@ The safer product shape is:
 - A real continuity problem should become an operator-visible editorial flag or
   proposal-backed edit, not an automatic drafting gate, until a narrower
   blocker subclass earns promotion evidence.
+- Opt-in implementation now exists behind
+  `seed.pipelineOverrides.continuityEditorialFlagProposals`: fact-scoped
+  continuity blocker findings persist manual `editorial_flag` envelopes after
+  the chapter draft settles. State-only, warning, and nit findings remain
+  diagnostic-only.
 - This does not relax halluc-ungrounded, Plan Adherence, prose-integrity,
   validation, or functional-state blockers.
-- Future work should add proposal/UI surfacing for high-confidence continuity
-  findings instead of silently discarding them.
+- Future work can A/B the opt-in hook before considering any default-on
+  proposal generation.
 
 ## Related
 

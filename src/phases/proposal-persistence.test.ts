@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import {
   computeDraftHash,
+  persistContinuityEditorialFlagProposals,
   persistEditorialBeatCoverageProposals,
   persistLintProseEditProposals,
 } from "./proposal-persistence"
@@ -233,6 +234,85 @@ describe("persistEditorialBeatCoverageProposals", () => {
       skipped: 1,
       coveredBeats: 0,
       uncoveredBeats: 2,
+    })
+    expect(result.errors).toHaveLength(1)
+    expect(result.errors[0].error).toBe("db unavailable")
+  })
+})
+
+describe("persistContinuityEditorialFlagProposals", () => {
+  test("persists fact-scoped continuity blockers as editorial_flag envelopes", async () => {
+    const inserted: EditorialFlagEnvelope[] = []
+    const result = await persistContinuityEditorialFlagProposals({
+      novelId: "novel-1",
+      chapter: 2,
+      prose: "Cassel verifies stats without a witness.",
+      issues: [{
+        severity: "blocker",
+        description: "Draft says Cassel can verify stats without a witness.",
+        conflictsWith: "A witness is required if the citizen requests it.",
+        factId: "fact-witness-required",
+      }],
+      now: new Date("2026-05-06T12:00:00.000Z"),
+      insertEnvelope: async envelope => {
+        inserted.push(envelope)
+        return true
+      },
+    })
+
+    expect(result).toEqual({
+      generated: 1,
+      inserted: 1,
+      skipped: 0,
+      errors: [],
+    })
+    expect(inserted).toHaveLength(1)
+    expect(inserted[0]).toMatchObject({
+      kind: "editorial_flag",
+      novelId: "novel-1",
+      source: { agent: "continuity-editorial-flags" },
+      target: {
+        kind: "chapter_outline",
+        ref: "chapter:2",
+        currentVersion: computeDraftHash("Cassel verifies stats without a witness."),
+      },
+      payload: {
+        issueType: "off-canon",
+        severity: "warning",
+        canonRefs: [{ kind: "fact", id: "fact-witness-required" }],
+      },
+    })
+  })
+
+  test("reports idempotent skips and per-envelope persistence errors", async () => {
+    const result = await persistContinuityEditorialFlagProposals({
+      novelId: "novel-1",
+      chapter: 2,
+      prose: "Conflicting prose.",
+      issues: [
+        {
+          severity: "blocker",
+          description: "first",
+          conflictsWith: "fact one",
+          factId: "fact-one",
+        },
+        {
+          severity: "blocker",
+          description: "second",
+          conflictsWith: "fact two",
+          factId: "fact-two",
+        },
+      ],
+      insertEnvelope: async envelope => {
+        if (envelope.payload.canonRefs[0]?.id === "fact-one") return false
+        throw new Error("db unavailable")
+      },
+    })
+
+    expect(result).toMatchObject({
+      generated: 2,
+      inserted: 0,
+      skipped: 1,
     })
     expect(result.errors).toHaveLength(1)
     expect(result.errors[0].error).toBe("db unavailable")

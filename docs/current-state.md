@@ -179,8 +179,8 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
 - Diagnostic-only CLIs summarize/rank semantic gates, action evidence, semantic
   drift, writer expansion, checker warnings with finding polarity/calibration,
   and plan-assist lineage without changing runtime behavior.
-- Continuity findings remain diagnostic/review evidence and do not open Drafting
-  Plan-Assist Gates by themselves; see L84.
+- Continuity findings do not open Drafting Plan-Assist Gates; fact-scoped
+  blockers can optionally persist manual `editorial_flag` envelopes; see L84.
 - World fact roles are additive on `facts` and `canon_facts`; diagnostics
   report totals, policy previews, and deterministic fixture behavior. Default
   runtime stays legacy; per-novel `factRoleContextPolicy: "role-aware"` is
