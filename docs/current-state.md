@@ -191,7 +191,7 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-05:
   previews role-aware consumer policy; per-novel `factRoleContextPolicy:
   "role-aware"` opts drafting into writer `operational`/`reference` facts and
   continuity-blocking `operational` facts while default runtime stays legacy.
-  `bun run eval:role-context-policy` covers deterministic fixture behavior; `bun run eval:fact-role-context-live-ab -- --source <id>` runs disposable legacy/role-aware clone comparison before production promotion.
+  `bun run eval:role-context-policy` covers deterministic fixture behavior; `bun run eval:fact-role-context-live-ab -- --source <id>` runs disposable legacy/role-aware clone comparison before production promotion, using resume-ready drafting clones.
 - Halluc-ungrounded issue metadata now carries exact-match `entityRefs[]` for
   `character`, `world_system`, and `culture` targets when deterministic
   resolution is possible, and accepted beat-check blockers preserve the

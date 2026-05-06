@@ -13,6 +13,13 @@ test("drafting variant clone preserves fact roles for role-aware context A/B run
   )
 })
 
+test("drafting variant clone carries concept-side state needed by resume rehydration", () => {
+  expect(SOURCE).toContain('"story_spines"')
+  expect(SOURCE).toContain("INSERT INTO story_spines (novel_id, content_json)")
+  expect(SOURCE).toContain('"world_systems"')
+  expect(SOURCE).toContain('"retrieval_config"')
+})
+
 test("variant clone can set factRoleContextPolicy on target seed pipelineOverrides", () => {
   expect(SOURCE).toContain("--fact-role-context-policy")
   expect(SOURCE).toContain("'{pipelineOverrides,factRoleContextPolicy}'")

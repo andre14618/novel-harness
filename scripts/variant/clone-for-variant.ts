@@ -13,10 +13,14 @@
  *    Post-concept tables (chapter_outlines, facts, etc.) are NOT cloned
  *    and are asserted empty on the target.
  *
- * Tables cloned in `drafting` mode (preserved for back-compat):
+ * Tables cloned in `drafting` mode:
  *   - novels              — seed_json + metadata; phase='drafting'
  *   - world_bibles        — world-bible JSON
  *   - characters          — character profiles
+ *   - story_spines        — concept output needed by resume rehydration
+ *   - world_systems, cultures, character_cultures, character_system_awareness
+ *                          — concept-side graph used by drafting context
+ *   - retrieval_config    — per-novel retrieval tuning row, if present
  *   - chapter_outlines    — frozen plans (row per chapter)
  *   - facts               — materialized establishedFacts
  *   - character_states    — materialized characterStateChanges
@@ -118,10 +122,16 @@ function parseArgs(): Args {
   return { source, target, targetPhase, factRoleContextPolicy }
 }
 
-/** Tables cloned in BOTH modes (concept-side state). */
+/** Tables cloned in BOTH modes (concept-side state + per-novel config). */
 const COMMON_CLONE_TABLES = [
   "world_bibles",
   "characters",
+  "world_systems",
+  "cultures",
+  "character_cultures",
+  "character_system_awareness",
+  "story_spines",
+  "retrieval_config",
 ] as const
 
 /** Tables cloned only in drafting mode (post-concept state). */
@@ -132,18 +142,6 @@ const DRAFTING_ONLY_CLONE_TABLES = [
   "character_knowledge",
   "relationship_states",
   "timeline_events",
-] as const
-
-/** Tables cloned only in concept-done mode (concept-side extras + per-novel config).
- *  These are concept-time state (world_systems, cultures, etc.) plus the per-novel
- *  retrieval tuning row that the planner reads on the next phase. */
-const CONCEPT_DONE_ONLY_CLONE_TABLES = [
-  "world_systems",
-  "cultures",
-  "character_cultures",
-  "character_system_awareness",
-  "story_spines",
-  "retrieval_config",
 ] as const
 
 /** Tables that MUST be absent on a concept-done target. The runner asserts
@@ -232,6 +230,71 @@ async function main() {
       SELECT id, ${target}, name, profile_json FROM characters WHERE novel_id = ${source}
     `
 
+    // world_systems — PK (novel_id, id). Per-system metadata.
+    await tx`
+      INSERT INTO world_systems (
+        id, novel_id, name, type, description,
+        rules_json, manifestations_json, vocabulary_json, constraints_json
+      )
+      SELECT id, ${target}, name, type, description,
+             rules_json, manifestations_json, vocabulary_json, constraints_json
+      FROM world_systems WHERE novel_id = ${source}
+    `
+
+    // cultures — PK (novel_id, id).
+    await tx`
+      INSERT INTO cultures (
+        id, novel_id, name, description,
+        values_json, taboos_json, speech_influences, customs_json, system_views_json
+      )
+      SELECT id, ${target}, name, description,
+             values_json, taboos_json, speech_influences, customs_json, system_views_json
+      FROM cultures WHERE novel_id = ${source}
+    `
+
+    // character_cultures — PK (novel_id, character_id, culture_id).
+    await tx`
+      INSERT INTO character_cultures (novel_id, character_id, culture_id, relationship)
+      SELECT ${target}, character_id, culture_id, relationship
+      FROM character_cultures WHERE novel_id = ${source}
+    `
+
+    // character_system_awareness — PK (novel_id, character_id, system_id).
+    await tx`
+      INSERT INTO character_system_awareness (
+        novel_id, character_id, system_id,
+        awareness_level, perspective, chapter_established
+      )
+      SELECT ${target}, character_id, system_id,
+             awareness_level, perspective, chapter_established
+      FROM character_system_awareness WHERE novel_id = ${source}
+    `
+
+    // story_spines — PK novel_id (one row per novel). Drafting clones need
+    // this because src/index resume rehydrates completed concept output before
+    // entering the drafting phase.
+    await tx`
+      INSERT INTO story_spines (novel_id, content_json)
+      SELECT ${target}, content_json FROM story_spines WHERE novel_id = ${source}
+    `
+
+    // retrieval_config — PK novel_id (per-novel tuning row, sql/011).
+    // Only inserts if a row exists for the source; callers fall back to
+    // defaults when absent.
+    await tx`
+      INSERT INTO retrieval_config (
+        novel_id, max_facts, max_events, max_summaries, max_states,
+        max_relationships, max_knowledge, min_similarity,
+        rrf_k, fetch_per_leg, character_boost, location_boost,
+        recency_half_life, updated_at
+      )
+      SELECT ${target}, max_facts, max_events, max_summaries, max_states,
+             max_relationships, max_knowledge, min_similarity,
+             rrf_k, fetch_per_leg, character_boost, location_boost,
+             recency_half_life, now()
+      FROM retrieval_config WHERE novel_id = ${source}
+    `
+
     if (targetPhase === "drafting") {
       // ─── Drafting-mode clones (preserve original behavior) ─────────
 
@@ -290,71 +353,6 @@ async function main() {
                witnesses_json, consequences, created_at
         FROM timeline_events WHERE novel_id = ${source}
       `
-    } else {
-      // ─── concept-done mode clones (concept-side + per-novel config) ──
-
-      // world_systems — PK (novel_id, id). Per-system metadata.
-      await tx`
-        INSERT INTO world_systems (
-          id, novel_id, name, type, description,
-          rules_json, manifestations_json, vocabulary_json, constraints_json
-        )
-        SELECT id, ${target}, name, type, description,
-               rules_json, manifestations_json, vocabulary_json, constraints_json
-        FROM world_systems WHERE novel_id = ${source}
-      `
-
-      // cultures — PK (novel_id, id).
-      await tx`
-        INSERT INTO cultures (
-          id, novel_id, name, description,
-          values_json, taboos_json, speech_influences, customs_json, system_views_json
-        )
-        SELECT id, ${target}, name, description,
-               values_json, taboos_json, speech_influences, customs_json, system_views_json
-        FROM cultures WHERE novel_id = ${source}
-      `
-
-      // character_cultures — PK (novel_id, character_id, culture_id).
-      await tx`
-        INSERT INTO character_cultures (novel_id, character_id, culture_id, relationship)
-        SELECT ${target}, character_id, culture_id, relationship
-        FROM character_cultures WHERE novel_id = ${source}
-      `
-
-      // character_system_awareness — PK (novel_id, character_id, system_id).
-      await tx`
-        INSERT INTO character_system_awareness (
-          novel_id, character_id, system_id,
-          awareness_level, perspective, chapter_established
-        )
-        SELECT ${target}, character_id, system_id,
-               awareness_level, perspective, chapter_established
-        FROM character_system_awareness WHERE novel_id = ${source}
-      `
-
-      // story_spines — PK novel_id (one row per novel).
-      await tx`
-        INSERT INTO story_spines (novel_id, content_json)
-        SELECT ${target}, content_json FROM story_spines WHERE novel_id = ${source}
-      `
-
-      // retrieval_config — PK novel_id (per-novel tuning row, sql/011).
-      // Only inserts if a row exists for the source; the planner falls
-      // back to defaults if absent.
-      await tx`
-        INSERT INTO retrieval_config (
-          novel_id, max_facts, max_events, max_summaries, max_states,
-          max_relationships, max_knowledge, min_similarity,
-          rrf_k, fetch_per_leg, character_boost, location_boost,
-          recency_half_life, updated_at
-        )
-        SELECT ${target}, max_facts, max_events, max_summaries, max_states,
-               max_relationships, max_knowledge, min_similarity,
-               rrf_k, fetch_per_leg, character_boost, location_boost,
-               recency_half_life, now()
-        FROM retrieval_config WHERE novel_id = ${source}
-      `
     }
 
     // ─── Post-condition audits (INSIDE the transaction) ────────────────
@@ -366,7 +364,7 @@ async function main() {
 
     const cloneTables: readonly string[] = targetPhase === "drafting"
       ? [...COMMON_CLONE_TABLES, ...DRAFTING_ONLY_CLONE_TABLES]
-      : [...COMMON_CLONE_TABLES, ...CONCEPT_DONE_ONLY_CLONE_TABLES]
+      : [...COMMON_CLONE_TABLES]
 
     const mismatches: string[] = []
     for (const t of cloneTables) {

@@ -71,7 +71,7 @@ This file is the actionable backlog only. Live architecture belongs in
 - [x] Add per-novel A/B override for role-aware drafting context while keeping
   default runtime legacy.
 - [x] Add deterministic role-context fixture eval, preserve/set fact roles in
-  drafting variant clones, and add disposable live A/B runner setup.
+  resume-ready drafting variant clones, and add disposable live A/B runner.
 - [ ] Wire role-aware writer retrieval and checker-blocking policy only after
   diagnostic/A-B evidence confirms hidden/reference handling improves outputs.
 - [x] Build a small adjudicated continuity gray-zone panel before relaxing
