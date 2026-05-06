@@ -1,4 +1,5 @@
 import db from "./connection"
+import { parseJsonbArray, parseJsonbObject } from "./jsonb"
 
 // Types duplicated here rather than imported from ../gates to avoid a
 // back-reference cycle — gates.ts imports these DB helpers as values.
@@ -128,11 +129,11 @@ export async function listExhaustionsForNovel(novelId: string): Promise<Exhausti
     firedAt: new Date(r.fired_at).toISOString(),
     kind: r.kind,
     resolverMode: r.resolver_mode,
-    unresolvedDeviations: r.unresolved_deviations,
-    reviserHistory: r.reviser_history,
+    unresolvedDeviations: parseJsonbArray<ExhaustionDeviation>(r.unresolved_deviations),
+    reviserHistory: parseJsonbObject<{ attemptedScenes: unknown[]; rejectionReason: string }>(r.reviser_history),
     decidedAt: r.decided_at ? new Date(r.decided_at).toISOString() : null,
     decision: r.decision,
-    decisionDetails: r.decision_details,
+    decisionDetails: parseJsonbObject(r.decision_details),
   }))
 }
 
@@ -164,11 +165,11 @@ export async function listOrphanedExhaustions(olderThanMs = 60_000): Promise<Exh
     firedAt: new Date(r.fired_at).toISOString(),
     kind: r.kind,
     resolverMode: r.resolver_mode,
-    unresolvedDeviations: r.unresolved_deviations,
-    reviserHistory: r.reviser_history,
+    unresolvedDeviations: parseJsonbArray<ExhaustionDeviation>(r.unresolved_deviations),
+    reviserHistory: parseJsonbObject<{ attemptedScenes: unknown[]; rejectionReason: string }>(r.reviser_history),
     decidedAt: r.decided_at ? new Date(r.decided_at).toISOString() : null,
     decision: r.decision,
-    decisionDetails: r.decision_details,
+    decisionDetails: parseJsonbObject(r.decision_details),
   }))
 }
 

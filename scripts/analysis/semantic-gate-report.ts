@@ -30,6 +30,7 @@ import {
   type WriterExpansionOutlineRow,
   type WriterExpansionReport,
 } from "./writer-expansion-report"
+import { parseJsonbArray } from "../../src/db/jsonb"
 
 export type SemanticGateSignal =
   | "no_draft"
@@ -405,7 +406,7 @@ async function loadInputs(novelId: string): Promise<SemanticGateInputs> {
         attempt: row.attempt,
         kind: row.kind,
         pending: Boolean(row.pending),
-        unresolvedCount: Array.isArray(row.unresolved_deviations) ? row.unresolved_deviations.length : 0,
+        unresolvedCount: parseJsonbArray(row.unresolved_deviations).length,
       })),
     }
   } finally {

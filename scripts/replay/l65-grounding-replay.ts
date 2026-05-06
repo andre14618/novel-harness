@@ -14,6 +14,7 @@
  */
 
 import db from "../../src/db/connection"
+import { parseJsonbArray } from "../../src/db/jsonb"
 import {
   extractUngroundedEntitiesFromDescriptions,
   formatChapterUngroundedRetryContext,
@@ -27,7 +28,7 @@ async function main() {
     ORDER BY fired_at DESC LIMIT 1
   `
   const raw = exhRow[0]?.unresolved_deviations ?? []
-  const parsed: Array<{ description?: string }> = typeof raw === "string" ? JSON.parse(raw) : raw
+  const parsed = parseJsonbArray<{ description?: string }>(raw)
   const exhDescriptions: string[] = parsed.map(d => d.description ?? "").filter(s => s.length > 0)
 
   // Strip the [beat-check:halluc-ungrounded] Beat N: prefix that

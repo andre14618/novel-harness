@@ -31,6 +31,7 @@ import {
   type WriterExpansionDraftRow,
   type WriterExpansionOutlineRow,
 } from "./writer-expansion-report"
+import { parseJsonbArray } from "../../src/db/jsonb"
 
 export type SemanticGateCandidatePriority = "critical" | "high" | "medium" | "low"
 export type SemanticGateCandidateLens =
@@ -568,7 +569,7 @@ async function loadCandidateReports(args: Args): Promise<SemanticGateCandidateRe
         attempt: row.attempt,
         kind: row.kind,
         pending: Boolean(row.pending),
-        unresolvedCount: Array.isArray(row.unresolved_deviations) ? row.unresolved_deviations.length : 0,
+        unresolvedCount: parseJsonbArray(row.unresolved_deviations).length,
       })),
     }, novel.id))
 

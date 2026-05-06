@@ -42,6 +42,7 @@
 
 import { dbReachable } from "../src/db/test-helpers"
 import db from "../src/db/connection"
+import { parseJsonbArray } from "../src/db/jsonb"
 
 // ── Types (DB rows) ───────────────────────────────────────────────────────
 
@@ -399,13 +400,7 @@ function printExhaustions(rows: ExhaustionRow[]): void {
   console.log(`\nPlan-assist gates: ${rows.length} total, ${open.length} pending`)
   for (const r of rows) {
     const status = r.decision === null ? "PENDING" : r.decision.toUpperCase()
-    let devCount: number | string = "?"
-    try {
-      const parsed = typeof r.unresolved_deviations === "string"
-        ? JSON.parse(r.unresolved_deviations)
-        : r.unresolved_deviations
-      devCount = Array.isArray(parsed) ? parsed.length : "?"
-    } catch { /* ignore parse errors; leave devCount as ? */ }
+    const devCount = parseJsonbArray(r.unresolved_deviations).length
     console.log(`  #${r.id}  ch${r.chapter} attempt ${r.attempt}  ${r.kind.padEnd(22, " ")}  ${status.padEnd(10, " ")}  ${devCount} deviation${devCount === 1 ? "" : "s"}`)
   }
 }

@@ -52,11 +52,7 @@ describe.skipIf(!reachable)("cleanOrphanedExhaustionsForNovel", () => {
     for (const r of rows) {
       expect(r.decidedAt).not.toBeNull()
       expect(r.decision).toBe("orphaned")
-      // decisionDetails is returned as a jsonb string by bun-pg; parse before
-      // shape-checking. (Other consumers JSON.parse on read; the helper does
-      // not normalize.)
-      const parsed = typeof r.decisionDetails === "string" ? JSON.parse(r.decisionDetails) : r.decisionDetails
-      expect(parsed).toMatchObject({ reason: "test cleanup reason" })
+      expect(r.decisionDetails).toMatchObject({ reason: "test cleanup reason" })
     }
   })
 
@@ -72,10 +68,7 @@ describe.skipIf(!reachable)("cleanOrphanedExhaustionsForNovel", () => {
 
     const rows = await listExhaustionsForNovel(TEST_NOVEL)
     expect(rows.length).toBe(1)
-    const parsed = typeof rows[0]!.decisionDetails === "string"
-      ? JSON.parse(rows[0]!.decisionDetails as string)
-      : rows[0]!.decisionDetails
-    expect(parsed).toMatchObject({ reason: "manual decision" })
+    expect(rows[0]!.decisionDetails).toMatchObject({ reason: "manual decision" })
   })
 
   test("returns 0 when there are no pending rows for the novel", async () => {

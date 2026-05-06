@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test"
 
 import {
+  buildActionEvidenceSummary,
   buildBaselineTerminalSummary,
   capOutlineBeats,
   extractPlanAssistGateLogEvidence,
+  extractTargetedRewriteIssueSamples,
   parseArgs,
   renderSemanticGateBaselineReport,
   scopeWriterExpansionRows,
@@ -106,6 +108,52 @@ Unresolved issues (2):
     })
   })
 
+  test("extractTargetedRewriteIssueSamples reads issue bullets from retry context", () => {
+    const samples = extractTargetedRewriteIssueSamples(`
+--- TARGETED REWRITE (chapter-plan check) ---
+Chapter-plan issues found:
+- Arbiter's name is Vellic instead of Cassel as planned
+- The chapter ends in the wrong location
+Rewrite this beat to address the issues above.
+`)
+
+    expect(samples).toEqual([
+      "Arbiter's name is Vellic instead of Cassel as planned",
+      "The chapter ends in the wrong location",
+    ])
+  })
+
+  test("buildActionEvidenceSummary sorts and counts action evidence", () => {
+    const summary = buildActionEvidenceSummary([
+      {
+        source: "pipeline_events",
+        sourceId: "2",
+        kind: "lint-fix-rejected",
+        chapter: 1,
+        beat: null,
+        attempt: null,
+        summary: "guard rejected fix",
+        timestamp: "2026-05-06T12:00:02.000Z",
+      },
+      {
+        source: "llm_calls",
+        sourceId: "1",
+        kind: "targeted-rewrite:chapter-plan-check",
+        chapter: 1,
+        beat: 5,
+        attempt: 12,
+        summary: "wrong name",
+        timestamp: "2026-05-06T12:00:01.000Z",
+      },
+    ])
+
+    expect(summary.byKind).toEqual({
+      "targeted-rewrite:chapter-plan-check": 1,
+      "lint-fix-rejected": 1,
+    })
+    expect(summary.items.map(item => item.sourceId)).toEqual(["1", "2"])
+  })
+
   test("renderSemanticGateBaselineReport carries the semantic gate evidence", () => {
     const rendered = renderSemanticGateBaselineReport(reportFixture())
 
@@ -115,7 +163,23 @@ Unresolved issues (2):
     expect(rendered).toContain("Approved: 1/2")
     expect(rendered).toContain("Signals: no_draft=1, outline_shape=2")
     expect(rendered).toContain("calibration=standard=2, low-confidence=3")
+    expect(rendered).toContain("Action Evidence")
+    expect(rendered).toContain("targeted-rewrite:chapter-plan-check")
     expect(rendered).toContain("Latest Plan-Assist Gate")
+  })
+
+  test("renderSemanticGateBaselineReport falls back to plan-assist stdout evidence", () => {
+    const fixture = reportFixture()
+    fixture.terminal.latestPlanAssistGate!.unresolvedSamples = []
+    fixture.terminal.planAssistLogEvidence = {
+      unresolvedCount: 1,
+      unresolvedSamples: ["[chapter-level] Prose integrity quote-integrity"],
+    }
+
+    const rendered = renderSemanticGateBaselineReport(fixture)
+
+    expect(rendered).toContain("Log evidence:")
+    expect(rendered).toContain("[chapter-level] Prose integrity quote-integrity")
   })
 })
 
@@ -225,7 +289,21 @@ function reportFixture(): SemanticGateBaselineReport {
         chapters: [],
       },
       planAssistLineage: {} as SemanticGateBaselineReport["checker"]["planAssistLineage"],
-      hallucUngrounded: { calls: 2, blockerIssues: 0 },
+      hallucUngrounded: { calls: 2, blockerIssues: 0, samples: [] },
+      actionEvidence: {
+        total: 1,
+        byKind: { "targeted-rewrite:chapter-plan-check": 1 },
+        items: [{
+          source: "llm_calls",
+          sourceId: "42",
+          kind: "targeted-rewrite:chapter-plan-check",
+          chapter: 1,
+          beat: 5,
+          attempt: 12,
+          summary: "Arbiter's name is Vellic instead of Cassel as planned",
+          timestamp: "2026-05-06T12:00:01.000Z",
+        }],
+      },
     },
   }
 }

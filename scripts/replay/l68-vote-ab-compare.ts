@@ -21,6 +21,7 @@
  */
 
 import db from "../../src/db/connection"
+import { parseJsonbArray } from "../../src/db/jsonb"
 import { writeFileSync } from "node:fs"
 
 interface Pair {
@@ -124,10 +125,8 @@ async function statsFor(novelId: string, arm: "n1-baseline" | "n2-vote"): Promis
   `
   const planCheckExhaustedRows = exhRows.filter(e => {
     if (e.kind !== "plan-check-exhausted") return false
-    const raw = typeof e.unresolved_deviations === "string"
-      ? JSON.parse(e.unresolved_deviations)
-      : (e.unresolved_deviations ?? [])
-    return raw.some((d: { description?: string }) => (d.description ?? "").includes("halluc-ungrounded"))
+    const deviations = parseJsonbArray<{ description?: string }>(e.unresolved_deviations)
+    return deviations.some((d: { description?: string }) => (d.description ?? "").includes("halluc-ungrounded"))
   }).length
 
   // Total cost + total LLM calls
@@ -156,10 +155,8 @@ async function statsFor(novelId: string, arm: "n1-baseline" | "n2-vote"): Promis
     const exhForChapter = exhRows.find(e => e.chapter === chapter)
     let bailEntity: string | null = null
     if (exhForChapter) {
-      const raw = typeof exhForChapter.unresolved_deviations === "string"
-        ? JSON.parse(exhForChapter.unresolved_deviations)
-        : (exhForChapter.unresolved_deviations ?? [])
-      const m = raw[0]?.description?.match?.(/Ungrounded entity "([^"]+)"/)
+      const deviations = parseJsonbArray<{ description?: string }>(exhForChapter.unresolved_deviations)
+      const m = deviations[0]?.description?.match?.(/Ungrounded entity "([^"]+)"/)
       bailEntity = m?.[1] ?? null
     }
     chapterPropertyTable.push({

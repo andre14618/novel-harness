@@ -2,6 +2,7 @@ import { createHash } from "node:crypto"
 
 import { stableHash } from "../canon/proposal-envelope"
 import db from "../db/connection"
+import { parseJsonbArray } from "../db/jsonb"
 import { getNovel } from "../db/novels"
 import { getChapterOutlines } from "../db/outlines"
 import { validateChapterDraft } from "../validation"
@@ -914,9 +915,7 @@ async function loadExhaustions(
     attempt: row.attempt,
     kind: row.kind,
     decidedAt: row.decided_at ? dateString(row.decided_at) : null,
-    unresolvedDeviations: Array.isArray(row.unresolved_deviations)
-      ? row.unresolved_deviations
-      : [],
+    unresolvedDeviations: parseJsonbArray(row.unresolved_deviations),
   }))
 }
 

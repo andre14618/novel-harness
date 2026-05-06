@@ -82,6 +82,14 @@ The immediate question was whether the failure pattern was primarily:
     saves the repaired draft, and emits `prose-integrity-repair` trace evidence.
   - This does not relax malformed-prose blocking and does not rewrite Beats or
     Chapter Plans.
+- Baseline action-evidence / JSONB telemetry slice
+  - Semantic-gate baseline reports now include an `Action Evidence` section for
+    targeted beat rewrites, deterministic/LLM lint actions, prose-integrity
+    repairs, Chapter Plan Reviser rows, and Plan-Assist gates.
+  - Baseline reports preserve fallback Plan-Assist stdout evidence when a DB
+    consumer has not loaded unresolved gate details.
+  - Plan-Assist unresolved-deviation readers now use shared JSONB normalization
+    so reports handle both native JSON arrays and string-returning DB clients.
 
 ## Evidence
 
@@ -182,6 +190,23 @@ Observed signals:
   `bun test src/lint/integrity.test.ts`,
   `bun test src/phases/drafting-reviser-escalation.test.ts`, and
   `./node_modules/.bin/tsc --noEmit` passed.
+- Post-repair scoped baseline:
+  `diagnostics:semantic-gate-baseline -- --source fantasy-system-heretic
+  --chapters 2 --max-beats-per-chapter 5 --output-base
+  output/evals/semantic-gate-baseline/fantasy-system-heretic-capped-20260506T-action-evidence`
+  cleared the quote gate. Chapter 1 approved on attempt 1 at 2,289 words.
+  Chapter 2 stopped at `plan-check-exhausted`, not word count. The report
+  surfaced four `targeted-rewrite:chapter-plan-check` actions, one
+  `plan-assist-wait`, and one `plan-assist:plan-check-exhausted` gate.
+  The visible blockers were missing Theo/confiding scene evidence, reversed
+  emotional-arc evidence, and one beat-level halluc-ungrounded issue for
+  `"duty clerk"`.
+- That run exposed a telemetry read-shape bug: a pending gate could appear as
+  `unresolved=0` when `chapter_exhaustions.unresolved_deviations` arrived as a
+  JSONB string. The stdout fallback preserved the blocker evidence; shared
+  JSONB parsing now fixes the DB readers used by baseline, candidate reports,
+  semantic-gate reports, chapter health, operator summaries, and replay
+  comparisons.
 
 ## Interpretation
 
@@ -204,6 +229,13 @@ or opening a Plan-Assist Gate when the repair is local and deterministic. The
 quote-integrity case above is syntax, not creative content: repair locally,
 trace it, then let the unchanged integrity detector decide whether any deeper
 malformation remains.
+
+Current telemetry is stronger than the previous report surface, but the lesson
+is still evidence-first: do not add deterministic name patching just because one
+attempt used `Vellic` instead of `Cassel`. That mismatch happened after Beat
+writing and was accompanied by broader Plan Adherence/action-shape failures in
+fresh evidence. Prefer logged Beat-scoped targeted rewrites and Plan-Assist
+evidence before deciding whether any deterministic remediation is safe.
 
 Positive wording alone is not a safe relaxation rule. The diagnostic classifier
 must exclude findings that also contain explicit violation/contradiction

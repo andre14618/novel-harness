@@ -14,6 +14,7 @@ import { readFile } from "node:fs/promises"
 import { isAbsolute, join, resolve } from "node:path"
 
 import db from "../../src/db/connection"
+import { parseJsonbArray } from "../../src/db/jsonb"
 import { buildCheckerWarningReport, type CheckerWarningReport, type ContinuityCallRow, type FunctionalEventRow } from "../analysis/checker-warning-report"
 import { buildFactRoleContextPreview, type FactRoleContextPreviewReport } from "../analysis/fact-role-context-preview"
 import { buildPlanAssistLineageReport, type PlanAssistLineageRow } from "../analysis/plan-assist-lineage-report"
@@ -975,7 +976,7 @@ async function loadPlanAssistGates(novelId: string): Promise<PlanAssistGateSumma
   `
 
   return rows.map(row => {
-    const deviations = Array.isArray(row.unresolved_deviations) ? row.unresolved_deviations : []
+    const deviations = parseJsonbArray(row.unresolved_deviations)
     return {
       id: Number(row.id),
       chapter: Number(row.chapter),
