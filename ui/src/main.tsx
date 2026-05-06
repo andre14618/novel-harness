@@ -8,6 +8,7 @@ import { FinetunePage } from "./components/FinetunePage"
 import { ContextEngineeringPage } from "./components/ContextEngineeringPage"
 import { WorkflowPage } from "./components/WorkflowPage"
 import { DocsPage } from "./components/DocsPage"
+import { DiagnosticsPage } from "./components/DiagnosticsPage"
 import { ChartersPage } from "./components/ChartersPage"
 import { ExperimentFamiliesPage } from "./components/ExperimentFamiliesPage"
 import { NovelReadView } from "./components/NovelReadView"
@@ -34,6 +35,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/context" element={<ContextEngineeringPage />} />
           <Route path="/workflow" element={<WorkflowPage />} />
           <Route path="/finetune" element={<FinetunePage />} />
+          <Route path="/diagnostics" element={<DiagnosticsPage />} />
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/charters" element={<ChartersPage />} />
           <Route path="/pairwise/:bundle" element={<PairwiseAdjudicatePage />} />

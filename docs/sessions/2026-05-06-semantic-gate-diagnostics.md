@@ -317,6 +317,13 @@ Observed signals:
   artifact paths. Browser evidence is under
   `output/playwright/2026-05-06/semantic-gate-baseline-recent-runs` and passed
   `ui:evidence-check`.
+- Diagnostics landing page shipped at `/app/diagnostics`. It loads baseline
+  and matrix recent-run summaries independently, links to both detail viewers,
+  keeps the Diagnostics nav active on child routes, and degrades per section
+  when one diagnostic API fails. Browser evidence is under
+  `output/playwright/2026-05-06/diagnostics-recent-runs` and passed
+  `ui:evidence-check`; the only console/network error was an intentional
+  injected matrix-list `503` for edge-case proof.
 - Local DB hygiene: `operator-summary --stale-gates --min-age-hours 0`
   found 20 stale pending Plan-Assist rows. After dry-run review,
   `scripts/agent/resolve-stale-gates.ts --older-than-hours 0 --apply` marked

@@ -6,7 +6,7 @@ const PAGES = [
   { path: "/context", label: "Context Engineering" },
   { path: "/workflow", label: "Workflow" },
   { path: "/finetune", label: "Fine-Tuning" },
-  { path: "/semantic-gate-matrix", label: "Diagnostics" },
+  { path: "/diagnostics", label: "Diagnostics", matches: ["/semantic-gate-matrix", "/semantic-gate-baseline"] },
   { path: "/docs", label: "Docs" },
 ]
 
@@ -31,7 +31,7 @@ export function Nav() {
       {PAGES.map(p => {
         const active = p.path === "/"
           ? location.pathname === "/"
-          : location.pathname.startsWith(p.path)
+          : location.pathname.startsWith(p.path) || p.matches?.some(path => location.pathname.startsWith(path))
         return (
           <Link
             key={p.path}

@@ -4857,6 +4857,50 @@ details[open] summary::before { transform: rotate(90deg); }
   padding: 10px;
   white-space: pre-wrap;
 }
+.diagnostics-surface-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
+}
+.diagnostics-surface-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.diagnostics-run-row {
+  align-items: center;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  color: inherit;
+  display: grid;
+  gap: 7px;
+  grid-template-columns: auto minmax(120px, 0.7fr) minmax(160px, 1fr) minmax(120px, 0.7fr);
+  padding: 7px 8px;
+  text-decoration: none;
+}
+.diagnostics-run-row:hover {
+  background: var(--bg-raised);
+  border-color: var(--accent-dim);
+}
+.diagnostics-run-row strong {
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+.diagnostics-run-row code {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  overflow-wrap: anywhere;
+}
+.diagnostics-run-row > span:last-child {
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
 .semantic-gate-matrix-run-path {
   min-width: 0;
 }
@@ -5196,7 +5240,9 @@ details[open] summary::before { transform: rotate(90deg); }
   .semantic-gate-matrix-variants,
   .semantic-gate-matrix-metrics,
   .semantic-gate-matrix-run-list,
-  .semantic-gate-matrix-run-metrics {
+  .semantic-gate-matrix-run-metrics,
+  .diagnostics-surface-grid,
+  .diagnostics-run-row {
     grid-template-columns: 1fr;
   }
   .chapter-health-card-actions,
