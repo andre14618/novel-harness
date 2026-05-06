@@ -28,6 +28,7 @@ import { ReplayTransport } from "./replay-transport"
 import { captureSnapshot, clearNovelState } from "./db-snapshot"
 import { normalize, serialize } from "./normalize"
 import { dbReachable } from "../../src/db/test-helpers"
+import { buildWriterExpansionReport } from "../../scripts/analysis/writer-expansion-report"
 
 const FIXTURE_DIR = join(import.meta.dir, "fixtures", "reference-run")
 const TRANSPORT_PATH = join(FIXTURE_DIR, "transport-fixture.json")
@@ -70,6 +71,20 @@ describe("phase parity", () => {
     await runNovel(seed.novelId)
 
     const raw = await captureSnapshot(seed.novelId)
+    const expansion = buildWriterExpansionReport(
+      raw.tables.chapter_outlines as Parameters<typeof buildWriterExpansionReport>[0],
+      raw.tables.chapter_drafts as Parameters<typeof buildWriterExpansionReport>[1],
+      seed.novelId,
+    )
+    expect(expansion.totals).toMatchObject({
+      outlineChapters: 1,
+      draftedChapters: 1,
+      plannedBeats: 5,
+      overPlannedBeatChapters: 0,
+      severeOverTargetChapters: 0,
+    })
+    expect(expansion.chapters[0]?.wordRatio).toBeLessThanOrEqual(1.25)
+
     const got = serialize(normalize(raw))
     const expected = readFileSync(EXPECTED_PATH, "utf8")
 
