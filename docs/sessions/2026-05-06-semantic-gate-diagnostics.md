@@ -235,6 +235,11 @@ Observed signals:
   evidence showed two Chapter Plan targeted rewrites for Chapter 2 beats 4-5
   because the emotional arc reversed from plan, plus one lint-fix attempt and
   one rejected fused-boundary lint repair.
+- Local DB hygiene: `operator-summary --stale-gates --min-age-hours 0`
+  found 20 stale pending Plan-Assist rows. After dry-run review,
+  `scripts/agent/resolve-stale-gates.ts --older-than-hours 0 --apply` marked
+  them `decision='orphaned'` with evidence preserved. A follow-up stale-gate
+  audit returned 0 pending stale gates.
 
 ## Interpretation
 
