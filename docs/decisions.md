@@ -16,6 +16,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
+| L87 | 2026-05-06 | active | Agents must state the changed phase/surface, exact change, expected benefit, downstream projection, and evidence gate before non-trivial implementation. | `docs/decisions/L087-agent-phase-impact-contract.md` |
 | L86 | 2026-05-06 | active | Accelerated semantic-gate cohorts show hard beat caps reduce length/cost but trade off semantic stability; next planner lever is calibrated obligation packing, not a global beat cap. | `docs/decisions/L086-calibrated-planner-shape.md` |
 | L85 | 2026-05-06 | active | Development is mainline-first: work directly on `main`, use rollback tags for risky moves, and reserve branches for explicit requests or disposable experiments. | `docs/decisions/L085-mainline-first-workflow.md` |
 | L84 | 2026-05-06 | active | Continuity findings remain diagnostic/review evidence and no longer open Drafting Plan-Assist gates by themselves; Beat/plan, halluc-ungrounded, validation, integrity, and functional blockers remain load-bearing. | `docs/decisions/L084-continuity-diagnostic-drafting-gates.md` |

@@ -126,25 +126,17 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
 - Authoring harness work now uses the broader program loop in
   `docs/authoring-harness-program-loop.md`; semantic-gate diagnostic session
   record is `docs/sessions/2026-05-06-semantic-gate-diagnostics.md`.
-- Closed: test harness reliability cleanup has restored supported tiered gates.
-  Direct broad `bun test` remains unsupported; use `bun run test:fast` for the
-  default loop, `bun run test:db` for bounded DB smoke, and
-  `bun run test:db:full` for exhaustive isolated DB integration. Phase-parity
-  replay is explicit via `bun run test:replay`; the small smoke fixture is
-  refreshed and green after beat-count calibration. The fast tier isolates
-  phase tests that install process-global Bun module mocks so they cannot
-  poison unrelated contract tests in the same subprocess.
+- Closed: test harness reliability restored supported tiered gates. Direct broad
+  `bun test` remains unsupported; use `test:fast`, `test:db`,
+  `test:db:full`, and opt-in `test:replay` by intent. The fast tier isolates
+  phase tests with process-global Bun module mocks from unrelated contracts.
 - Active: authoring visibility/interactivity foundation. The traceability UI
   tracer is browser-cleared; next slices should continue closing proposal
   bypasses and improving operator-visible impact/lineage.
-- First backend tracer bullet exposes read-only planning targets and
-  deterministic impact preview. Write tracers add `planning_edit` envelopes for
-  scalar chapter-outline fields (`title`, `purpose`, `setting`, `targetWords`)
-  beat-plan fields (`description`, `kind`), and beat-obligation `text` /
-  `sourceId` / `sourceKind` / `characterId` / `sourceLink` fields, plus
-  planning-directive `rawNotes` / `tonalAnchors` and character-bible scalar
-  fields, plus world-bible and story-spine scalar fields, with stale
-  preconditions, approve/reject/modified resolution, and lineage recording.
+- First backend tracer exposes read-only planning targets and deterministic
+  impact preview. Write tracers add `planning_edit` envelopes for chapter,
+  beat, obligation, directive, character, world, and spine scalar fields, with
+  stale preconditions, approve/reject/modified resolution, and lineage.
 - Planning-edit create/apply responses now include deterministic before/after
   diffs, and `GET /api/novel/:novelId/planning-proposals/:envelopeId/diff`
   exposes read-only diff, current target staleness, and impact-preview data for
@@ -176,18 +168,11 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
   changing the legacy `beat_index` contract.
 - Beat-level LLM telemetry now persists `llm_calls.beat_id` for beat writer,
   targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
-- Diagnostic-only CLIs, accelerated baseline/matrix/cohort runners/viewers, default-off
-  planning beat-cap overrides, and Diagnostics UI summarize/rank semantic gates with
-  risk-driver breakdowns, candidate JSON artifacts, action/proposal evidence, drift
-  witnesses, writer expansion, checker evidence, and plan-assist lineage without
-  runtime changes. The planner-shape cohort matrix accepts a fourth
-  `calibrated:packed` arm (`src/harness/beat-packing.ts`,
-  `--variant calibrated:packed`, audits at
-  `<output-base>/.../calibrated-packing/<novelId>-ch<N>.json`); v1 is a
-  deterministic obligation-preserving repacker, never a runtime default.
-  L86 keeps hard caps A/B-only; `calibrated:packed` is HOLD/near-pass —
-  ties control on clean-pass at half the word ratio and 65% of cost
-  (cohort `calibrated-packed-cohort-20260506T215726Z`, experiment #479).
+- Semantic-gate diagnostics, accelerated cohorts, and Diagnostics UI expose
+  risk drivers, candidate artifacts, action/proposal evidence, drift witnesses,
+  writer expansion, checker evidence, and plan-assist lineage. Beat caps and
+  `calibrated:packed` remain A/B-only; L86 records that downstream packing is
+  evidence, not the production correction.
 - Continuity findings do not open Drafting Plan-Assist Gates; fact-scoped
   blockers can optionally persist manual `editorial_flag` envelopes; see L84.
 - World fact roles are additive on `facts` and `canon_facts`; diagnostics
@@ -246,6 +231,10 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
 
 ## Authoring Gates
 
+- Non-trivial work must begin with a change packet: phase/surface, exact
+  change, expected benefit/outcome, downstream projection across affected
+  IDs/contracts, and verification signal. If benefit is speculative, keep the
+  change diagnostic-only or A/B-gated. See L87.
 - UI-facing work requires Playwright MCP evidence before handoff. Use
   `docs/ui-work-gate.md` and
   `docs/how-to/playwright-mcp-browser-testing.md`.

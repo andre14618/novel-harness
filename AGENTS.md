@@ -27,6 +27,13 @@ you need historical evidence for a decision.
 - Commit coherent slices atomically on `main`; keep the worktree clean before
   handing off or starting a new lane.
 
+## Change Intent
+
+Before non-trivial implementation, surface the change packet: phase/surface,
+exact change, expected benefit/outcome, downstream projection across affected
+IDs/contracts, and the evidence gate. If the phase or benefit is unclear, keep
+the work diagnostic/docs-only or stop for user judgment.
+
 ## Current Work
 
 Current lane and runtime posture live in `docs/current-state.md` and

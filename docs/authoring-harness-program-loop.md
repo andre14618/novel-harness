@@ -65,6 +65,25 @@ Improve the harness in this order:
 - If docs are shortened for line limits, first move rationale/evidence into a
   durable decision, lesson, session record, or feature document.
 
+## Change Intent Contract
+
+Before non-trivial implementation, the agent must state the change packet:
+
+- Phase/surface: which creation phase, UI, checker, telemetry, or test surface
+  is being changed.
+- Exact change: the concrete behavior, files/modules, data shape, or workflow
+  being altered.
+- Expected benefit/outcome: what improves and how it should be visible.
+- Downstream projection: which planner, writer, checker, proposal, UI, ID,
+  lineage, or evaluation contracts should change as a consequence.
+- Evidence gate: the targeted test, replay, diagnostic, A/B run, or Playwright
+  pass that will prove or disprove the benefit.
+- Non-goals/risks: what is deliberately not being changed, especially when a
+  downstream patch is only evidence for an upstream design question.
+
+If the expected benefit is speculative, keep the work diagnostic-only or A/B
+gated. If the phase is ambiguous, clarify the layer before editing.
+
 ## Loop Shape
 
 The default Codex loop is not the retired headless lane runner. It is:
@@ -73,14 +92,16 @@ The default Codex loop is not the retired headless lane runner. It is:
 2. Confirm the repo is on `main`, then inspect worktree and active docs.
 3. Pick the highest-value ready slice from `docs/sessions/lane-queue.md` and
    `docs/todo.md`.
-4. Baseline with the narrowest meaningful signal.
-5. Implement one coherent slice.
-6. Verify with focused tests plus cheap static checks; broaden only when risk
+4. Write the change packet so the phase, benefit, downstream projection, and
+   evidence gate are explicit.
+5. Baseline with the narrowest meaningful signal.
+6. Implement one coherent slice.
+7. Verify with focused tests plus cheap static checks; broaden only when risk
    warrants it.
-7. Commit atomically.
-8. Update durable docs and commit the docs/cleanup slice when the result changes
+8. Commit atomically.
+9. Update durable docs and commit the docs/cleanup slice when the result changes
    active state, decisions, or lessons.
-9. Continue to the next ready slice until a stop condition or human decision is
+10. Continue to the next ready slice until a stop condition or human decision is
    reached.
 
 ## Concurrency
