@@ -250,11 +250,22 @@ or diagnostic summaries exist.
 
 Do this before writing or checker changes:
 
-1. Add a read-only contract projection over current chapter outlines.
-2. Emit candidate chapter/scene contracts and obligation refs.
-3. Score the projection with the planner rubric.
-4. Run it on the controlled legacy/native pair.
-5. Review side by side with the operator.
+1. Choose an authored craft/template exemplar as the target shape. Examples:
+   a commercial 24-chapter structure, romance obligatory beats,
+   pulp-quarter structure, LitRPG/progression strategy, or corpus-derived
+   scene/function distributions.
+2. Translate that exemplar into template slots, chapter-contract expectations,
+   scene-contract expectations, and obligation requirements.
+3. Create a small diagnostic fixture from the exemplar. This is not a legacy
+   harness outline and does not need to come from an existing novel row.
+4. Score the fixture with the planner rubric to make sure the rubric rewards
+   the intended method.
+5. Ask the native planner to produce this contract shape on a frozen concept
+   seed.
+6. Use legacy outline projection only as baseline/migration evidence: it can
+   show how old beat-shaped plans differ from the target, but it must not
+   define the future contract.
+7. Review side by side with the operator.
 
 Only after that should the harness test:
 
@@ -275,3 +286,6 @@ Only after that should the harness test:
 - Do not infer that Salvatore's small corpus beat size is the production writer
   call size; use corpus beats as annotation/trace granularity unless a
   beat-first experiment explicitly proves value.
+- Do not define the future harness method by projecting from existing
+  beat-shaped outlines. Existing outlines are diagnostic/baseline artifacts,
+  not golden examples.

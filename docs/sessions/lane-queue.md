@@ -32,6 +32,9 @@ unless the user explicitly requests a disposable branch.
 - Next docs/code slice should use `docs/planner-output-contract.md` as the
   target: template slot -> chapter contract -> scene contract -> obligations
   before writer/checker/UI changes.
+- Golden examples for that contract should come from authored craft/template
+  structures or corpus-derived distributions, not existing beat-shaped harness
+  outlines. Legacy outlines are baseline/migration evidence only.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

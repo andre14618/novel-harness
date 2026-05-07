@@ -80,6 +80,9 @@ Risk: a fixed scaffold can overfit the wrong genre or create formulaic plans.
 Mitigation: treat templates as selectable/flexible slots, not a hard 24-chapter
 requirement.
 
+Golden example source: authored craft/template structures and corpus-derived
+scene/function distributions, not legacy Novel Harness outlines.
+
 ## H2 - Scene Plan/Write/Adherence Unit
 
 Hypothesis: DeepSeek-like verbose writers may perform better when asked to
@@ -329,15 +332,17 @@ Risk: hardest attribution and largest blast radius. Keep later.
 
 1. **Hypothesis charter:** choose one upstream method to test: structure
    template H1, scene-contract projection H2, or chapter-contract scoring H3.
-2. **Planner contract projection:** use `docs/planner-output-contract.md` to
-   define the expected chapter/scene/obligation shape.
+2. **Planner contract target:** choose an authored craft/template exemplar
+   rather than deriving the target from existing harness outlines.
 3. **Diagnostic-only implementation:** add template/scene/contract
    observations linked to IDs, no writer changes.
 4. **Controlled planning comparison:** same frozen concept seed, one changed
    layer, planner-quality report plus human side-by-side review.
-5. **Promotion decision:** if plan quality improves, decide whether to project
+5. **Legacy baseline, optional:** project old outlines only to understand the
+   migration gap, not to define the target.
+6. **Promotion decision:** if plan quality improves, decide whether to project
    the winning method into drafting.
-6. **Writer experiment:** only then test scene-level or chapter-level writing
+7. **Writer experiment:** only then test scene-level or chapter-level writing
    changes.
 
 ## What Not To Do Next
