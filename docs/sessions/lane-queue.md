@@ -49,6 +49,11 @@ unless the user explicitly requests a disposable branch.
   Plan-A bias. After AB/BA swap control, stable method wins are `0/18` and
   position-biased pairs are `18/18`; do not use this judge for promotion until
   repaired or replaced. Same-plan calibration passed `3/3`.
+- Narrow DeepSeek discernment calibration found a useful judge shape:
+  `direct-label` hit `95%` exact and `evidence-first` hit `90%` exact on 21
+  known-answer planning-quality cases, while broad pairwise judging remains
+  invalid. Use anchored categorical labels by dimension before prose tests.
+  Record: `docs/sessions/2026-05-07-planner-discernment-calibration.md`.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

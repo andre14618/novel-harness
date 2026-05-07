@@ -1,0 +1,132 @@
+{
+  "fixtureId": "planner-discernment-calibration-v0",
+  "description": "Known-answer calibration set for testing whether DeepSeek can distinguish narrow planning-quality levels.",
+  "cases": [
+    {
+      "caseId": "agency-0-observer",
+      "dimension": "characterAgency",
+      "expectedLabel": "AGENCY-0",
+      "text": "Chapter excerpt: Mara watches Ashren's guards search the market. Sena argues with a clerk nearby. Mara notes the true-ink smell and waits until the commotion passes. Endpoint: the guards leave and Mara continues walking."
+    },
+    {
+      "caseId": "agency-1-vague-choice",
+      "dimension": "characterAgency",
+      "expectedLabel": "AGENCY-1",
+      "text": "Chapter excerpt: Mara decides she should probably investigate the erased road someday. Ilyan says the Survey may not like questions. Mara thinks about the risk but keeps the map folded and goes home. Endpoint: Mara resolves to be more careful."
+    },
+    {
+      "caseId": "agency-2-pressured-choice",
+      "dimension": "characterAgency",
+      "expectedLabel": "AGENCY-2",
+      "text": "Chapter excerpt: Ilyan offers Mara a legal pardon if she gives him Sena's smuggled map before Ashren arrives. Mara wants the pardon but knows the map is the only proof of the erased province. She refuses, tears up the pardon writ, and flees with Sena. Endpoint: Ashren names Mara an outlaw."
+    },
+    {
+      "caseId": "agency-3-defining-choice",
+      "dimension": "characterAgency",
+      "expectedLabel": "AGENCY-3",
+      "text": "Chapter excerpt: Mara reaches the Crown hearing with proof that would restore her charter, but exposing it will also reveal Sena's illegal route network and endanger every village hiding from Ashren. Mara chooses the villages over her career, burns the restoration writ in public, and publishes the forbidden road. Endpoint: Mara becomes the outlaw cartographer she feared, but the erased province can now be found."
+    },
+    {
+      "caseId": "agency-0-antagonist-drives-turn",
+      "dimension": "characterAgency",
+      "expectedLabel": "AGENCY-0",
+      "text": "Chapter excerpt: Ashren's soldiers burst into the room, seize Mara's map, and drag Sena away. Mara shouts for them to stop, but the scene turns because Ashren gives the order and the soldiers obey. Endpoint: Mara is left alone with no map and no decision made."
+    },
+    {
+      "caseId": "agency-1-energetic-no-cost",
+      "dimension": "characterAgency",
+      "expectedLabel": "AGENCY-1",
+      "text": "Chapter excerpt: Mara decides to climb across three rooftops to reach the archive faster. No one opposes her, and if she fails she can simply take the stairs. She reaches the archive, pleased with herself. Endpoint: Mara starts searching shelves."
+    },
+    {
+      "caseId": "agency-2-costly-but-not-defining",
+      "dimension": "characterAgency",
+      "expectedLabel": "AGENCY-2",
+      "text": "Chapter excerpt: Mara can escape through the alley before the patrol arrives, but Sena is pinned under a fallen cart with the only route ledger. Mara turns back, loses her head start, and frees Sena. Endpoint: the patrol sees Mara's face and begins the chase."
+    },
+    {
+      "caseId": "world-0-generic",
+      "dimension": "worldPressure",
+      "expectedLabel": "WORLD-0",
+      "text": "Chapter excerpt: The city has towers, old maps, and many customs. Mara walks through the archive and sees unusual lamps. The setting feels ancient while she searches for a clue. Endpoint: Mara finds a note."
+    },
+    {
+      "caseId": "world-1-decorative",
+      "dimension": "worldPressure",
+      "expectedLabel": "WORLD-1",
+      "text": "Chapter excerpt: True-ink is said to burn when maps lie, and Mara remembers this as she studies a legal map. The rule is mentioned in her thoughts, but the ink does not affect the scene. Endpoint: Mara decides the map looks suspicious."
+    },
+    {
+      "caseId": "world-2-operational-constraint",
+      "dimension": "worldPressure",
+      "expectedLabel": "WORLD-2",
+      "text": "Chapter excerpt: Mara tries to draw a safe route around Ashren's checkpoint, but true-ink burns through every false road she adds. The burning forces her to include the hidden village, making the map illegal evidence. Endpoint: Mara hides the smoking page before the clerk sees it."
+    },
+    {
+      "caseId": "world-3-story-engine",
+      "dimension": "worldPressure",
+      "expectedLabel": "WORLD-3",
+      "text": "Chapter excerpt: Mara lies to the living road by naming a harmless destination, and the road twists back toward Ashren's patrol. To save Sena, Mara must speak the erased province's true name aloud, which opens the forbidden route and alerts every Survey bell in the valley. Endpoint: the world rule forces Mara's public commitment and starts the pursuit."
+    },
+    {
+      "caseId": "world-1-lore-heavy-decoration",
+      "dimension": "worldPressure",
+      "expectedLabel": "WORLD-1",
+      "text": "Chapter excerpt: The archive is built under seven oath-wheels, each painted with a different ancient map taboo. Mara admires the machinery and remembers guild legends about oath-cartographers. The wheels never move, and no rule changes her options. Endpoint: Mara chooses a drawer to inspect."
+    },
+    {
+      "caseId": "world-2-rule-reveals-evidence",
+      "dimension": "worldPressure",
+      "expectedLabel": "WORLD-2",
+      "text": "Chapter excerpt: When Mara copies Ashren's official border, true-ink burns only along one missing valley. The burn reveals where the false map was altered, forcing Mara to hide the page from the clerk. Endpoint: Mara has illegal evidence but has not yet acted on it publicly."
+    },
+    {
+      "caseId": "world-3-rule-forces-sacrifice",
+      "dimension": "worldPressure",
+      "expectedLabel": "WORLD-3",
+      "text": "Chapter excerpt: The living road will open only if Mara names the person she most wants to protect. Naming Sena will save the village but expose Sena to Ashren's oath-trackers. Mara speaks Sena's name, the road opens, and every tracker turns toward them. Endpoint: the world rule forces a sacrifice and launches the pursuit."
+    },
+    {
+      "caseId": "endpoint-0-disconnected",
+      "dimension": "endpointLanding",
+      "expectedLabel": "ENDPOINT-0",
+      "text": "Declared endpoint: Mara commits to the forbidden road. Final scene: Mara eats dinner, notices the rain, and remembers her mother's advice. Consequence: the chapter closes quietly with no new action."
+    },
+    {
+      "caseId": "endpoint-1-stated-weak",
+      "dimension": "endpointLanding",
+      "expectedLabel": "ENDPOINT-1",
+      "text": "Declared endpoint: Mara commits to the forbidden road. Final scene: Mara says she may need to take the forbidden road later. Consequence: Sena nods, and they agree to rest before deciding what to do."
+    },
+    {
+      "caseId": "endpoint-2-landed",
+      "dimension": "endpointLanding",
+      "expectedLabel": "ENDPOINT-2",
+      "text": "Declared endpoint: Mara commits to the forbidden road. Final scene: Mara rejects Ilyan's pardon, marks the forbidden road in true-ink, and gives the map to Sena. Consequence: Ashren can now charge Mara with illegal cartography."
+    },
+    {
+      "caseId": "endpoint-3-propulsive",
+      "dimension": "endpointLanding",
+      "expectedLabel": "ENDPOINT-3",
+      "text": "Declared endpoint: Mara commits to the forbidden road. Final scene: Mara rejects Ilyan's pardon, speaks the erased province's true name, and steps onto the living road as Survey bells start ringing. Consequence: Ashren's riders can follow the bells, Sena is exposed as Mara's accomplice, and the next chapter must become a pursuit."
+    },
+    {
+      "caseId": "endpoint-0-dramatic-wrong-turn",
+      "dimension": "endpointLanding",
+      "expectedLabel": "ENDPOINT-0",
+      "text": "Declared endpoint: Mara commits to the forbidden road. Final scene: a warehouse explodes across town, killing an unnamed clerk and scattering ash over the harbor. Consequence: everyone runs toward the smoke, but Mara has not chosen the road or changed her commitment."
+    },
+    {
+      "caseId": "endpoint-1-verbal-only",
+      "dimension": "endpointLanding",
+      "expectedLabel": "ENDPOINT-1",
+      "text": "Declared endpoint: Mara commits to the forbidden road. Final scene: Mara tells Sena, 'I suppose the forbidden road may be our only option.' Consequence: they agree to sleep before making a real decision."
+    },
+    {
+      "caseId": "endpoint-2-landed-contained",
+      "dimension": "endpointLanding",
+      "expectedLabel": "ENDPOINT-2",
+      "text": "Declared endpoint: Mara commits to the forbidden road. Final scene: Mara signs the forbidden road into her map and seals it with true-ink. Consequence: she can no longer submit a legal map to regain her charter, but no immediate pursuer or next-scene crisis appears."
+    }
+  ]
+}
