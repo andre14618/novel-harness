@@ -61,10 +61,53 @@ The generated chapter purpose named the jammed bell, failing wall, Kade's
 dismissal, and Mira's decision to seek Orin. The beat list was five native
 story-turn beats rather than a sliced or packed legacy outline.
 
+## Controlled Comparison
+
+The first legacy-vs-native run reran concept for both arms. That was the wrong
+comparison shape because the world, story spine, and character profiles drifted
+between arms. The corrected run used
+`scripts/variant/clone-for-variant.ts --target-phase concept-done` to freeze one
+concept output and replan it twice.
+
+Source concept:
+
+- `test-planner-fantasy-system-heretic-1778113870729`
+
+Arms:
+
+- Legacy: `native-contract-controlled-legacy-1778113870729`
+- Native: `native-contract-controlled-native-1778113870729`
+
+Evidence logs:
+
+- `output/evals/planner-isolated/native-contract-fantasy-system-heretic-20260506/controlled-legacy.log`
+- `output/evals/planner-isolated/native-contract-fantasy-system-heretic-20260506/controlled-native.log`
+
+Summary:
+
+| Arm | Beat Counts | Total Beats | Planner Headroom | Mapper Headroom | Warning |
+| --- | --- | ---: | ---: | ---: | --- |
+| legacy | `ch1=8/2000w`, `ch2=8/2500w`, `ch3=8/2500w` | 24 | 86% | 36% | dropped non-forward payoff link |
+| native | `ch1=5/1500w`, `ch2=6/1800w`, `ch3=7/2000w` | 18 | 88% | 53% | none visible |
+
+What improved:
+
+- Native produced the target-sized beat counts expected for the current writer.
+- Native lowered total beats by 25% without post-hoc slicing or packing.
+- Native lowered state-mapper pressure and avoided the visible payoff-link
+  sanitation warning.
+
+What remains uncertain:
+
+- Native may have reduced Theo's relational role in chapter 2 despite listing
+  him as present.
+- Native chapter 3 ended closer to a decision/hook than a completed exposure,
+  so endpoint satisfaction needs scoring.
+- Planner-only evidence does not prove the writer can draft better prose from
+  this plan.
+
 ## Next
 
-Run a paired legacy-vs-native planner-only comparison on a 3-chapter seed
-(`fantasy-system-heretic`, `fantasy-echo-mage`, or `fantasy-inscription`) and
-compare beat counts, purpose contracts, mapper obligation coverage, and token
-headroom. Only move to downstream drafting comparison if the planning shape
-looks coherent.
+Either draft the controlled pair and compare semantic-gate signals, or add a
+small planner-quality rubric first: endpoint completion, relation/character
+presence, obligation coverage, and chapter-contract satisfaction.

@@ -447,8 +447,9 @@ No candidate becomes default production behavior from source strength alone.
   refreshed `phase-parity-smoke` evidence uses 5 beats for a 1,500-word target,
   lands near target length, and passes replay; the remaining investigation is
   whether upstream concept/planning can author that shape natively. L088 treats
-  downstream packing as diagnostic evidence only and moves the active lever to
-  native chapter contracts plus native story-turn beats.
+  downstream packing as diagnostic evidence only. The first controlled
+  3-chapter native comparison reduced beats and mapper pressure, but story
+  completeness now needs planner-quality scoring or downstream drafting proof.
 - **Semantic action drift:** one failed chapter changed the planned action from
   altering Grand Registry records to breaking into the Arbiter's office. Treat
   this as a real semantic failure caught by the harness; investigate whether

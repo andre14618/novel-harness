@@ -13,11 +13,10 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Upstream native planning contract experiment is next: after the 1-chapter
-  smoke pass, run a legacy-vs-native concept->planning comparison on at least
-  one 3-chapter seed, then compare downstream drafting signals if planning
-  shape holds. `calibrated:packed` remains L086 diagnostic evidence, not a
-  production rescue path; see L088.
+- Upstream native planning contract is directional hold after the controlled
+  3-chapter planner comparison: better beat budget and mapper pressure, but
+  story completeness/relationship texture needs scoring. Next either draft the
+  controlled pair or add a planner-quality rubric; see L088.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO
@@ -45,6 +44,10 @@ unless the user explicitly requests a disposable branch.
   context guidance, over-fragmentation retry/reject enforcement, and
   `test-planner-isolated` runner flag. Smoke on `phase-parity-smoke` produced
   5 beats for 1500w with clean planning token headroom.
+- Controlled comparison on frozen `fantasy-system-heretic` concept produced
+  legacy 24 beats vs native 18 beats. Native improved mapper headroom and
+  avoided visible payoff-link sanitation, but still needs story-quality and
+  downstream drafting evidence.
 - Additional recent UI, diagnostics, checker, proposal, traceability, test, and
   lineage closures are archived in
   `docs/sessions/archive/lane-queue-2026-05-06-recent-closed.md`.

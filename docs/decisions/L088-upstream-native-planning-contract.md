@@ -78,6 +78,33 @@ from concept/planning on the smallest fixture. This is only a smoke pass; the
 next evidence step is a legacy-vs-native comparison on at least one 3-chapter
 seed, then downstream drafting/semantic-gate comparison if planning shape holds.
 
+## 2026-05-06 Controlled 3-Chapter Comparison
+
+First paired attempt reran concept in both arms and was rejected as confounded:
+world, spine, and character outputs differed. The controlled run froze one
+concept output and cloned it into two `concept-done` planning targets:
+
+- Source concept: `test-planner-fantasy-system-heretic-1778113870729`
+- Legacy arm: `native-contract-controlled-legacy-1778113870729`
+- Native arm: `native-contract-controlled-native-1778113870729`
+- Logs: `output/evals/planner-isolated/native-contract-fantasy-system-heretic-20260506/`
+
+Result:
+
+| Arm | Beat Counts | Total Beats | Mapper Headroom | Warnings |
+| --- | --- | ---: | ---: | --- |
+| legacy | `8/8/8` for `2000/2500/2500w` | 24 | 36% | dropped non-forward payoff link |
+| native | `5/6/7` for `1500/1800/2000w` | 18 | 53% | none visible |
+
+Interpretation: native planning contract is directionally useful for upstream
+shape: fewer native beats, shorter target budgets, lower beat-expansion tokens,
+better mapper headroom, and no visible payoff-link sanitation warning. It is
+not yet a promotion win. The native arm may have reduced relational texture
+and left chapter-3 resolution closer to a decision/hook than a fully completed
+exposure beat. The next gate is downstream drafting on this controlled pair, or
+a planner-quality rubric that scores endpoint completion, relational presence,
+and chapter-contract satisfaction before drafting.
+
 ## Non-Goals
 
 - Do not promote `calibrated:packed`.

@@ -9,6 +9,7 @@
  *   bun scripts/test-planner-isolated.ts fantasy-healer
  *   bun scripts/test-planner-isolated.ts fantasy-healer,fantasy-archive,fantasy-cartographer,fantasy-cultivation-void
  *   bun scripts/test-planner-isolated.ts fantasy-healer --native-planning-contract
+ *   bun scripts/test-planner-isolated.ts --novel <concept-done-novel-id> [--native-planning-contract]
  */
 import { initDB, createNovel } from "../src/db"
 import { setAutoMode, setResolverMode } from "../src/cli"
@@ -39,13 +40,24 @@ interface CallStat {
 
 interface Args {
   seedNames: string[]
+  novelId: string | null
   nativePlanningContract: boolean
+}
+
+interface PlannerIsolatedResult {
+  seedName: string
+  novelId: string
+  stats: CallStat[]
+  chapters: number
+  totalBeats: number
+  beatCounts: Array<{ chapter: number; beats: number; targetWords: number }>
+  error?: string
 }
 
 async function testSeed(
   seedName: string,
   options: { nativePlanningContract: boolean },
-): Promise<{ seedName: string; novelId: string; stats: CallStat[]; chapters: number; totalBeats: number; beatCounts: Array<{ chapter: number; beats: number; targetWords: number }> }> {
+): Promise<PlannerIsolatedResult> {
   console.log(`\n━━━ ${seedName} ━━━`)
   const seed = await loadSeed(seedName)
   if (options.nativePlanningContract) {
@@ -65,6 +77,23 @@ async function testSeed(
   console.log(`  [2/2] planning phase...`)
   await runPlanningPhase(novelId)
 
+  return collectPlannerResult(seedName, novelId)
+}
+
+async function testExistingConceptNovel(
+  novelId: string,
+  options: { nativePlanningContract: boolean },
+): Promise<PlannerIsolatedResult> {
+  console.log(`\n━━━ ${novelId} ━━━`)
+  console.log(`  novel: ${novelId}`)
+  await setNativePlanningContractOverride(novelId, options.nativePlanningContract)
+  await initNovelRun(novelId)
+  console.log(`  [1/1] planning phase...`)
+  await runPlanningPhase(novelId)
+  return collectPlannerResult(novelId, novelId)
+}
+
+async function collectPlannerResult(seedName: string, novelId: string): Promise<PlannerIsolatedResult> {
   const calls = await db`
     SELECT agent, attempt, chapter, prompt_tokens, completion_tokens,
            max_tokens, failed, error_text
@@ -110,6 +139,25 @@ async function testSeed(
   return { seedName, novelId, stats, chapters, totalBeats, beatCounts }
 }
 
+async function setNativePlanningContractOverride(novelId: string, enabled: boolean): Promise<void> {
+  await db`
+    UPDATE novels
+    SET seed_json = jsonb_set(
+          jsonb_set(
+            COALESCE(seed_json, '{}'::jsonb),
+            '{pipelineOverrides}',
+            COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+            true
+          ),
+          '{pipelineOverrides,nativePlanningContractV1}',
+          to_jsonb(${enabled}::boolean),
+          true
+        ),
+        updated_at = now()
+    WHERE id = ${novelId}
+  `
+}
+
 async function main() {
   setAutoMode(true)
   setResolverMode(getMode(true))
@@ -120,12 +168,23 @@ async function main() {
   }
 
   const results = []
-  for (const s of args.seedNames) {
+  if (args.novelId) {
     try {
-      results.push(await testSeed(s, { nativePlanningContract: args.nativePlanningContract }))
+      results.push(await testExistingConceptNovel(args.novelId, {
+        nativePlanningContract: args.nativePlanningContract,
+      }))
     } catch (err) {
-      console.error(`✗ ${s}: ${err instanceof Error ? err.message : err}`)
-      results.push({ seedName: s, novelId: "", stats: [], chapters: 0, totalBeats: 0, beatCounts: [], error: String(err) })
+      console.error(`✗ ${args.novelId}: ${err instanceof Error ? err.message : err}`)
+      results.push({ seedName: args.novelId, novelId: args.novelId, stats: [], chapters: 0, totalBeats: 0, beatCounts: [], error: String(err) })
+    }
+  } else {
+    for (const s of args.seedNames) {
+      try {
+        results.push(await testSeed(s, { nativePlanningContract: args.nativePlanningContract }))
+      } catch (err) {
+        console.error(`✗ ${s}: ${err instanceof Error ? err.message : err}`)
+        results.push({ seedName: s, novelId: "", stats: [], chapters: 0, totalBeats: 0, beatCounts: [], error: String(err) })
+      }
     }
   }
 
@@ -165,18 +224,27 @@ main()
 
 function parseArgs(argv: string[]): Args {
   let seedArg: string | null = null
+  let novelId: string | null = null
   let nativePlanningContract = false
-  for (const arg of argv) {
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]!
     if (arg === "--native-planning-contract" || arg === "--native-planning-contract-v1") {
       nativePlanningContract = true
+      continue
+    }
+    if (arg === "--novel" || arg === "--novel-id") {
+      novelId = argv[++i] ?? null
+      if (!novelId) throw new Error(`${arg} requires a value`)
       continue
     }
     if (arg.startsWith("--")) throw new Error(`unknown arg: ${arg}`)
     if (seedArg !== null) throw new Error(`unexpected extra seed arg: ${arg}`)
     seedArg = arg
   }
+  if (novelId && seedArg) throw new Error("pass either a seed name or --novel, not both")
   return {
-    seedNames: (seedArg ?? "fantasy-healer").split(",").map(s => s.trim()).filter(Boolean),
+    seedNames: novelId ? [] : (seedArg ?? "fantasy-healer").split(",").map(s => s.trim()).filter(Boolean),
+    novelId,
     nativePlanningContract,
   }
 }
