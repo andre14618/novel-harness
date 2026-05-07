@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-06
+updated: 2026-05-07
 role: canonical-current-truth
 archive: archive/current-state-2026-05-04-full.md
 ---
@@ -168,11 +168,12 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
   changing the legacy `beat_index` contract.
 - Beat-level LLM telemetry now persists `llm_calls.beat_id` for beat writer,
   targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
-- Semantic-gate diagnostics, accelerated cohorts, and Diagnostics UI expose
-  risk drivers, candidate artifacts, action/proposal evidence, drift witnesses,
-  writer expansion, checker evidence, and plan-assist lineage. Beat caps and
-  `calibrated:packed` remain diagnostic-only; L88 moves the active shape lever
-  upstream to default-off `nativePlanningContractV1` concept/planning tests.
+- Semantic-gate diagnostics, accelerated cohorts, planner-quality reports, and
+  Diagnostics UI expose risk drivers, candidate artifacts, action/proposal
+  evidence, drift witnesses, writer expansion, checker evidence, and
+  plan-assist lineage. Beat caps and `calibrated:packed` remain
+  diagnostic-only; L88 moves the active shape lever upstream to default-off
+  `nativePlanningContractV1` concept/planning tests with story-quality scoring.
 - Continuity findings do not open Drafting Plan-Assist Gates; fact-scoped
   blockers can optionally persist manual `editorial_flag` envelopes; see L84.
 - World fact roles are additive on `facts` and `canon_facts`; diagnostics

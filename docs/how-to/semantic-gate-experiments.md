@@ -103,7 +103,13 @@ The N=10 accelerated cohort showed that hard beat caps reduce cost and length,
 but increase plan-drift and Plan-Assist risk. Source outlines are more stable
 but often massively overlong.
 
-The next experiment should compare `control:source`, hard caps, and a
-calibrated planner-shape variant that packs required obligations into a smaller
-beat budget without dropping the chapter endpoint or emotional turn.
+The follow-up calibrated-packing cohort showed that deterministic obligation
+packing can preserve source obligations while reducing length, but it remains
+diagnostic evidence. It repairs an unrealistic downstream outline shape after
+the fact.
 
+Per L088, the next product-relevant experiments should move upstream into
+concept/planning: author native chapter contracts and story-turn beats, then
+score endpoint landing, character materiality, obligation health, drafting
+word ratio, and semantic-gate behavior. Do not use hard caps or
+`calibrated:packed` as runtime defaults.

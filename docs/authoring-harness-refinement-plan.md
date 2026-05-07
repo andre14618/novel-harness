@@ -449,7 +449,9 @@ No candidate becomes default production behavior from source strength alone.
   whether upstream concept/planning can author that shape natively. L088 treats
   downstream packing as diagnostic evidence only. The first controlled
   3-chapter native comparison reduced beats and mapper pressure, but story
-  completeness now needs planner-quality scoring or downstream drafting proof.
+  completeness remains unproven. Planner-quality scoring now confirms the next
+  target is semantic allocation upstream: endpoint landing, character
+  materiality, and story-function distribution, not beat count by itself.
 - **Semantic action drift:** one failed chapter changed the planned action from
   altering Grand Registry records to breaking into the Arbiter's office. Treat
   this as a real semantic failure caught by the harness; investigate whether

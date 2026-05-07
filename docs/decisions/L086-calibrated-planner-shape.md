@@ -1,5 +1,5 @@
 ---
-status: active
+status: superseded
 date: 2026-05-06
 role: decision-record
 ---
@@ -11,13 +11,15 @@ role: decision-record
 Do not promote hard chapter beat caps as a production default from the current
 semantic-gate cohorts.
 
-The next planning runtime candidate should be an experimental calibrated
-planner-shape pass: choose a beat budget from target length and source
-obligations, then pack required causal, emotional, character, canon, and ending
-obligations into the fewest sufficient load-bearing beats.
+This record originally selected an experimental calibrated planner-shape pass
+as the next diagnostic candidate: choose a beat budget from target length and
+source obligations, then pack required causal, emotional, character, canon, and
+ending obligations into the fewest sufficient load-bearing beats.
 
-Keep this diagnostic/A-B-only until cohort evidence shows that it preserves
-semantic stability while reducing length, cost, and retry pressure.
+L088 supersedes that as the product direction. Downstream packing remains
+diagnostic evidence for the failure class; new product work should move
+upstream into concept/planning and prove story quality with planner-quality or
+drafting evidence.
 
 ## Evidence
 
@@ -74,12 +76,13 @@ A calibrated planner-shape pass should:
 
 - `planningMaxBeatsPerChapter` remains an experiment seam, not a production
   default.
-- Future A/B variants should include `calibrated-packed` or equivalent against
-  `control:source`, `capped4`, and `capped5`.
-- Promotion requires evidence that the calibrated arm approaches capped-arm
-  length/cost while maintaining control-like semantic stability.
-- Richer character/world/plot work should wait until this shape can carry
-  obligations through planning into prose without full rewinds.
+- Historical A/B variants included `calibrated-packed` against
+  `control:source`, `capped4`, and `capped5`; keep those results as diagnostic
+  evidence, not a runtime roadmap.
+- Downstream packing should not be promoted as the active product lever.
+- Richer character/world/plot work should now be evaluated through upstream
+  concept/planning contracts, planner-quality scoring, and downstream drafting
+  evidence.
 
 ## Experiment Throughput Note
 

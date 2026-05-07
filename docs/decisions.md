@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-06
+updated: 2026-05-07
 role: decision-index
 archive: decisions/full-log-2026-05-04.md
 ---
@@ -16,9 +16,9 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
-| L88 | 2026-05-06 | active | Downstream beat calibration/packing is diagnostic evidence only; the next authoring-quality lever is a default-off native planning contract in concept/planning that authors realistic story-turn beats upstream. | `docs/decisions/L088-upstream-native-planning-contract.md` |
+| L88 | 2026-05-06 | active | Downstream beat calibration/packing is diagnostic evidence only; the active authoring-quality lever is default-off native concept/planning plus planner-quality scoring for endpoint landing and character materiality. | `docs/decisions/L088-upstream-native-planning-contract.md` |
 | L87 | 2026-05-06 | active | Agents must state the changed phase/surface, exact change, expected benefit, downstream projection, and evidence gate before non-trivial implementation. | `docs/decisions/L087-agent-phase-impact-contract.md` |
-| L86 | 2026-05-06 | active | Accelerated semantic-gate cohorts show hard beat caps reduce length/cost but trade off semantic stability; next planner lever is calibrated obligation packing, not a global beat cap. | `docs/decisions/L086-calibrated-planner-shape.md` |
+| L86 | 2026-05-06 | superseded | Accelerated semantic-gate cohorts showed hard beat caps delete context and calibrated packing preserves obligations better, but L88 supersedes downstream packing as product direction. | `docs/decisions/L086-calibrated-planner-shape.md` |
 | L85 | 2026-05-06 | active | Development is mainline-first: work directly on `main`, use rollback tags for risky moves, and reserve branches for explicit requests or disposable experiments. | `docs/decisions/L085-mainline-first-workflow.md` |
 | L84 | 2026-05-06 | active | Continuity findings remain diagnostic/review evidence and no longer open Drafting Plan-Assist gates by themselves; Beat/plan, halluc-ungrounded, validation, integrity, and functional blockers remain load-bearing. | `docs/decisions/L084-continuity-diagnostic-drafting-gates.md` |
 | L83 | 2026-05-06 | superseded | Continuity-state warning N=50 follow-up found 0% TP, 88% FP, 12% AMB. Runtime-gating implication superseded by L84; panel evidence remains relevant. | `docs/decisions/L083-continuity-state-warning-panel-2026-05-06.md` |
