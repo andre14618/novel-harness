@@ -35,6 +35,9 @@ unless the user explicitly requests a disposable branch.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.
+- Review `docs/method-packs/commercial-fantasy-adventure-v0.md` as the first
+  general method-pack charter before implementing template definitions,
+  fixtures, or planner prompt changes.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

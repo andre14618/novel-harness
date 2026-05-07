@@ -254,6 +254,7 @@ Do this before writing or checker changes:
    a commercial 24-chapter structure, romance obligatory beats,
    pulp-quarter structure, LitRPG/progression strategy, or corpus-derived
    scene/function distributions.
+   First candidate pack: `docs/method-packs/commercial-fantasy-adventure-v0.md`.
 2. Translate that exemplar into template slots, chapter-contract expectations,
    scene-contract expectations, and obligation requirements.
 3. Create a small diagnostic fixture from the exemplar. This is not a legacy

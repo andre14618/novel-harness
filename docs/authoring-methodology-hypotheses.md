@@ -29,6 +29,9 @@ quality evidence.
 
 Planner method target: `docs/planner-output-contract.md`.
 
+First candidate method pack:
+`docs/method-packs/commercial-fantasy-adventure-v0.md`.
+
 ## Hypotheses
 
 | ID | Hypothesis | Optimized Layer | First Evidence Gate | Priority |
@@ -61,6 +64,8 @@ Candidate templates:
 First slice:
 
 - Add read-only template definitions as data, not runtime defaults.
+- Start with `commercial-fantasy-adventure-v0` as the general method-pack
+  charter; keep LitRPG and other specialist genres out of V0.
 - Assign `templateId` and `structureSlotId` to chapter skeletons or diagnostic
   rows.
 - Score whether each chapter purpose satisfies its intended structural job.
