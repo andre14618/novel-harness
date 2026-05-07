@@ -45,6 +45,16 @@ describe("planner-discernment-calibration", () => {
     expect(relationshipPrompt).not.toContain("MOTIVE-0")
     expect(relationshipPrompt).not.toContain("STAKES-0")
 
+    const materialPrompt = buildDiscernmentSystemPrompt("characterMateriality", "direct-label")
+    expect(materialPrompt).toContain("MATERIAL-0")
+    expect(materialPrompt).not.toContain("REL-0")
+    expect(materialPrompt).not.toContain("WFACT-0")
+
+    const worldFactPrompt = buildDiscernmentSystemPrompt("worldFactPressure", "direct-label")
+    expect(worldFactPrompt).toContain("WFACT-0")
+    expect(worldFactPrompt).not.toContain("WORLD-0")
+    expect(worldFactPrompt).not.toContain("MATERIAL-0")
+
     const stakesPrompt = buildDiscernmentSystemPrompt("stakesValueShift", "direct-label")
     expect(stakesPrompt).toContain("STAKES-0")
     expect(stakesPrompt).not.toContain("REL-0")
@@ -100,6 +110,13 @@ describe("planner-discernment-calibration", () => {
       hasInternalPressureOrTradeoff: true,
       consequenceExpressesDriver: true,
     })).toBe("MOTIVE-3")
+    expect(deriveLabel("characterMateriality", {
+      hasRequiredCharacter: true,
+      characterTakesMaterialAction: true,
+      affectsChoiceOrConflict: true,
+      affectsOutcomeOrConsequence: true,
+      createsFuturePressure: false,
+    })).toBe("MATERIAL-2")
     expect(deriveLabel("relationshipDelta", {
       hasRelationshipPair: true,
       hasInteraction: true,
@@ -107,6 +124,13 @@ describe("planner-discernment-calibration", () => {
       changeAffectsSceneOutcome: true,
       changeCreatesFutureObligationOrThreat: false,
     })).toBe("REL-2")
+    expect(deriveLabel("worldFactPressure", {
+      hasRequiredWorldFact: true,
+      factAffectsAction: true,
+      createsConstraintOrCost: true,
+      affectsOutcomeOrConsequence: true,
+      forcesNextConflictOrChoice: true,
+    })).toBe("WFACT-3")
     expect(deriveLabel("stakesValueShift", {
       hasStartingValueState: true,
       hasStakes: true,

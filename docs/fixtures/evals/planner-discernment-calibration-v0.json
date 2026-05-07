@@ -379,6 +379,90 @@
       "dimension": "stakesValueShift",
       "expectedLabel": "STAKES-3",
       "text": "Scene excerpt: Mara starts with a hopeful legal plan: present the ledger and regain her charter. Ilyan burns the ledger in front of the witness. Outcome: legal rescue becomes impossible, her only proof is gone, and she must choose between fleeing or making a public accusation without evidence."
+    },
+    {
+      "caseId": "material-0-required-name-only",
+      "dimension": "characterMateriality",
+      "expectedLabel": "MATERIAL-0",
+      "text": "Scene excerpt: Required characters: Mara and Sena. Mara copies the route ledger, notices a broken seal, and hides the page. Sena's name appears in the scene list, but he does not appear, speak, affect the conflict, or change the outcome."
+    },
+    {
+      "caseId": "material-1-present-ornamental",
+      "dimension": "characterMateriality",
+      "expectedLabel": "MATERIAL-1",
+      "text": "Scene excerpt: Required characters: Mara and Sena. Sena stands beside Mara while she negotiates with the clerk. He watches quietly and reacts with surprise after Mara succeeds. Outcome: Mara gets the ledger because of her own lie; Sena could be removed without changing the conflict or result."
+    },
+    {
+      "caseId": "material-2-changes-tactic",
+      "dimension": "characterMateriality",
+      "expectedLabel": "MATERIAL-2",
+      "text": "Scene excerpt: Required characters: Mara and Sena. Mara wants the route ledger, but the clerk will only release it to a registered courier. Sena produces an old courier badge and distracts the clerk long enough for Mara to copy the page. Outcome: Sena's action changes Mara's tactic and lets them leave with the clue."
+    },
+    {
+      "caseId": "material-3-betrayal-drives-future-pressure",
+      "dimension": "characterMateriality",
+      "expectedLabel": "MATERIAL-3",
+      "text": "Scene excerpt: Required characters: Mara and Ilyan. Mara trusts Ilyan to block Ashren's clerk while she marks the forbidden road. Ilyan instead unlocks the witness door and names Mara as the illegal cartographer. Outcome: his betrayal turns the scene, destroys her legal cover, and forces the next chapter into flight."
+    },
+    {
+      "caseId": "material-1-reaction-only",
+      "dimension": "characterMateriality",
+      "expectedLabel": "MATERIAL-1",
+      "text": "Scene excerpt: Required characters: Mara and Arel. Arel gasps when true-ink burns through the border, then asks what it means. Mara explains the discovery and decides the next step herself. Outcome: Arel's reaction emphasizes the reveal but does not affect the choice, conflict, outcome, or consequence."
+    },
+    {
+      "caseId": "material-2-information-changes-choice",
+      "dimension": "characterMateriality",
+      "expectedLabel": "MATERIAL-2",
+      "text": "Scene excerpt: Required characters: Mara and Sena. Mara plans to publish the ledger immediately. Sena recognizes his sister's village on the protected route list and tells Mara that publication will expose refugees. Outcome: Mara withholds the public accusation and chooses to find the village first."
+    },
+    {
+      "caseId": "material-3-sacrifice-creates-obligation",
+      "dimension": "characterMateriality",
+      "expectedLabel": "MATERIAL-3",
+      "text": "Scene excerpt: Required characters: Mara and Sena. Ashren offers to spare Sena if he gives up Mara's map. Sena instead burns his own smuggler seal to prove the route is real. Outcome: he loses clan protection, saves Mara's evidence, and Mara now owes him a future rescue."
+    },
+    {
+      "caseId": "wfact-0-listed-not-used",
+      "dimension": "worldFactPressure",
+      "expectedLabel": "WFACT-0",
+      "text": "Scene excerpt: Required world fact: true-ink burns on false maps. Mara argues with a clerk and steals the ledger. The ink rule is listed in the plan metadata but never appears in the scene and does not affect action or outcome."
+    },
+    {
+      "caseId": "wfact-1-decorative-atmosphere",
+      "dimension": "worldFactPressure",
+      "expectedLabel": "WFACT-1",
+      "text": "Scene excerpt: Required world fact: oath-wheels record legal cartographers. The oath-wheels glow above the archive while Mara copies the ledger. They create atmosphere and remind her of guild history, but they do not constrain her options or change the outcome."
+    },
+    {
+      "caseId": "wfact-2-constrains-action",
+      "dimension": "worldFactPressure",
+      "expectedLabel": "WFACT-2",
+      "text": "Scene excerpt: Required world fact: true-ink burns on false maps. Mara tries to redraw the border, but true-ink burns through every false line. The burn forces her to hide the page from the clerk and proves which valley was erased. Outcome: she leaves with illegal evidence."
+    },
+    {
+      "caseId": "wfact-3-forces-next-conflict",
+      "dimension": "worldFactPressure",
+      "expectedLabel": "WFACT-3",
+      "text": "Scene excerpt: Required world fact: living roads open only to spoken true names. Mara wants to escape quietly, but the road will not move until she says the erased province's true name. Speaking it opens the road and rings every Survey bell. Outcome: the world rule forces public exposure and the next chapter becomes a pursuit."
+    },
+    {
+      "caseId": "wfact-0-mentioned-not-operational",
+      "dimension": "worldFactPressure",
+      "expectedLabel": "WFACT-0",
+      "text": "Scene excerpt: Required world fact: map licenses expire at sunset. Mara notes that her license will expire soon, but the scene's conflict is a simple locked drawer. She opens it with a borrowed key before sunset matters. Outcome: the license rule never changes her options."
+    },
+    {
+      "caseId": "wfact-2-costly-constraint",
+      "dimension": "worldFactPressure",
+      "expectedLabel": "WFACT-2",
+      "text": "Scene excerpt: Required world fact: oath-wheels record every legal map correction. Mara can correct Ashren's border, but the wheel will register her name and make the evidence traceable to her. Outcome: she makes the correction anyway and leaves with proof at personal risk."
+    },
+    {
+      "caseId": "wfact-3-sacrifice-by-rule",
+      "dimension": "worldFactPressure",
+      "expectedLabel": "WFACT-3",
+      "text": "Scene excerpt: Required world fact: the refuge gate opens only when a traveler gives up a protected name. To save the hidden village from Ashren's riders, Mara gives the gate her mother's name. Outcome: the gate opens, but Ashren can now track her family line, forcing a future rescue."
     }
   ]
 }

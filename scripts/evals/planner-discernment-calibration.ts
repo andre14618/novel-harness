@@ -17,7 +17,9 @@ export type Dimension =
   | "sceneDramaturgy"
   | "promiseProgress"
   | "motivationSpecificity"
+  | "characterMateriality"
   | "relationshipDelta"
+  | "worldFactPressure"
   | "stakesValueShift"
 export type PromptMode = "direct-label" | "evidence-first" | "gate-derived"
 
@@ -109,7 +111,9 @@ export const DIMENSIONS: Dimension[] = [
   "sceneDramaturgy",
   "promiseProgress",
   "motivationSpecificity",
+  "characterMateriality",
   "relationshipDelta",
+  "worldFactPressure",
   "stakesValueShift",
 ]
 
@@ -401,12 +405,26 @@ function labelDefinitions(dimension: Dimension): string {
 - MOTIVE-2: Motivation is specific to the character and shapes the scene choice or tactic.
 - MOTIVE-3: Competing motivations, values, fear, flaw, or relationship pressure create an internally charged choice with consequence.`
   }
+  if (dimension === "characterMateriality") {
+    return `Character materiality labels:
+- MATERIAL-0: A required character is absent, only named, or interchangeable with a prop or messenger.
+- MATERIAL-1: Required character is present but mostly ornamental; they do not materially affect choice, conflict, turn, outcome, or consequence.
+- MATERIAL-2: Required character materially affects the scene by changing a choice, tactic, conflict, information state, outcome, or consequence.
+- MATERIAL-3: Required character drives a consequential turn, reversal, alliance, betrayal, obligation, sacrifice, or future plot pressure.`
+  }
   if (dimension === "relationshipDelta") {
     return `Relationship delta labels:
 - REL-0: No meaningful relationship interaction or state is present.
 - REL-1: Relationship is present but static; trust, leverage, debt, intimacy, suspicion, loyalty, or rivalry does not change.
 - REL-2: Relationship state changes concretely because of the scene interaction.
 - REL-3: Relationship turn creates a new obligation, betrayal, alliance, power shift, threat, or future plot pressure.`
+  }
+  if (dimension === "worldFactPressure") {
+    return `World-fact pressure labels:
+- WFACT-0: Required world fact is absent, only listed, or replaceable by generic setting detail.
+- WFACT-1: Required world fact is present but decorative/contextual; it does not change character options or scene outcome.
+- WFACT-2: Required world fact constrains action, changes available options, creates cost, reveals information, or alters the outcome.
+- WFACT-3: Required world fact forces a major choice, irreversible consequence, scene turn, or next conflict.`
   }
   return `Stakes/value shift labels:
 - STAKES-0: No clear stakes or value state is established.
@@ -480,8 +498,14 @@ function evidenceContract(dimension: Dimension): string {
   if (dimension === "motivationSpecificity") {
     return `{"motivation": "", "characterDriver": "", "fearFlawOrValue": "", "relationshipPressure": "", "choiceLink": "", "consequence": ""}`
   }
+  if (dimension === "characterMateriality") {
+    return `{"requiredCharacter": "", "materialAction": "", "effectOnChoiceOrConflict": "", "effectOnOutcome": "", "futurePressure": ""}`
+  }
   if (dimension === "relationshipDelta") {
     return `{"relationship": "", "initialState": "", "interaction": "", "changedState": "", "plotEffect": ""}`
+  }
+  if (dimension === "worldFactPressure") {
+    return `{"requiredWorldFact": "", "sceneFunction": "", "constraintOrCost": "", "effectOnOutcome": "", "futurePressure": ""}`
   }
   return `{"startingValueState": "", "stakes": "", "turn": "", "endingValueState": "", "costOrEscalation": ""}`
 }
@@ -508,8 +532,14 @@ function gateContract(dimension: Dimension): string {
   if (dimension === "motivationSpecificity") {
     return `{"hasMotivation": true|false, "tiesToSpecificCharacterDriver": true|false, "driverShapesChoice": true|false, "hasInternalPressureOrTradeoff": true|false, "consequenceExpressesDriver": true|false}`
   }
+  if (dimension === "characterMateriality") {
+    return `{"hasRequiredCharacter": true|false, "characterTakesMaterialAction": true|false, "affectsChoiceOrConflict": true|false, "affectsOutcomeOrConsequence": true|false, "createsFuturePressure": true|false}`
+  }
   if (dimension === "relationshipDelta") {
     return `{"hasRelationshipPair": true|false, "hasInteraction": true|false, "changesRelationshipState": true|false, "changeAffectsSceneOutcome": true|false, "changeCreatesFutureObligationOrThreat": true|false}`
+  }
+  if (dimension === "worldFactPressure") {
+    return `{"hasRequiredWorldFact": true|false, "factAffectsAction": true|false, "createsConstraintOrCost": true|false, "affectsOutcomeOrConsequence": true|false, "forcesNextConflictOrChoice": true|false}`
   }
   return `{"hasStartingValueState": true|false, "hasStakes": true|false, "hasTurn": true|false, "endingStateDiffers": true|false, "shiftHasCostOrEscalation": true|false, "shiftIsIrreversibleOrForcesNext": true|false}`
 }
@@ -581,11 +611,23 @@ export function deriveLabel(dimension: Dimension, gates: Record<string, boolean>
     if (!gates.hasInternalPressureOrTradeoff || !gates.consequenceExpressesDriver) return "MOTIVE-2"
     return "MOTIVE-3"
   }
+  if (dimension === "characterMateriality") {
+    if (!gates.hasRequiredCharacter) return "MATERIAL-0"
+    if (!gates.characterTakesMaterialAction || (!gates.affectsChoiceOrConflict && !gates.affectsOutcomeOrConsequence)) return "MATERIAL-1"
+    if (!gates.createsFuturePressure) return "MATERIAL-2"
+    return "MATERIAL-3"
+  }
   if (dimension === "relationshipDelta") {
     if (!gates.hasRelationshipPair || !gates.hasInteraction) return "REL-0"
     if (!gates.changesRelationshipState) return "REL-1"
     if (!gates.changeCreatesFutureObligationOrThreat) return "REL-2"
     return "REL-3"
+  }
+  if (dimension === "worldFactPressure") {
+    if (!gates.hasRequiredWorldFact) return "WFACT-0"
+    if (!gates.factAffectsAction || (!gates.createsConstraintOrCost && !gates.affectsOutcomeOrConsequence)) return "WFACT-1"
+    if (!gates.forcesNextConflictOrChoice) return "WFACT-2"
+    return "WFACT-3"
   }
   if (!gates.hasStartingValueState || !gates.hasStakes) return "STAKES-0"
   if (!gates.hasTurn || !gates.endingStateDiffers) return "STAKES-1"
@@ -668,6 +710,15 @@ function gatesForExpected(dimension: Dimension, label: string): Record<string, b
       consequenceExpressesDriver: ordinal >= 3,
     }
   }
+  if (dimension === "characterMateriality") {
+    return {
+      hasRequiredCharacter: ordinal >= 1,
+      characterTakesMaterialAction: ordinal >= 2,
+      affectsChoiceOrConflict: ordinal >= 2,
+      affectsOutcomeOrConsequence: ordinal >= 2,
+      createsFuturePressure: ordinal >= 3,
+    }
+  }
   if (dimension === "relationshipDelta") {
     return {
       hasRelationshipPair: ordinal >= 1,
@@ -675,6 +726,15 @@ function gatesForExpected(dimension: Dimension, label: string): Record<string, b
       changesRelationshipState: ordinal >= 2,
       changeAffectsSceneOutcome: ordinal >= 2,
       changeCreatesFutureObligationOrThreat: ordinal >= 3,
+    }
+  }
+  if (dimension === "worldFactPressure") {
+    return {
+      hasRequiredWorldFact: ordinal >= 1,
+      factAffectsAction: ordinal >= 2,
+      createsConstraintOrCost: ordinal >= 2,
+      affectsOutcomeOrConsequence: ordinal >= 2,
+      forcesNextConflictOrChoice: ordinal >= 3,
     }
   }
   return {
@@ -702,7 +762,9 @@ function dimensionPrefix(dimension: Dimension): string {
   if (dimension === "sceneDramaturgy") return "SCENE"
   if (dimension === "promiseProgress") return "PROMISE"
   if (dimension === "motivationSpecificity") return "MOTIVE"
+  if (dimension === "characterMateriality") return "MATERIAL"
   if (dimension === "relationshipDelta") return "REL"
+  if (dimension === "worldFactPressure") return "WFACT"
   return "STAKES"
 }
 

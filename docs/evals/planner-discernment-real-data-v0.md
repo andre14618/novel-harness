@@ -41,7 +41,8 @@ The runner labels:
 - chapter excerpts for `characterAgency`, `worldPressure`,
   `endpointLanding`, `causalMomentum`, and `promiseProgress`;
 - scene excerpts for `sceneDramaturgy`, `motivationSpecificity`,
-  `relationshipDelta`, and `stakesValueShift`.
+  `characterMateriality`, `relationshipDelta`, `worldFactPressure`, and
+  `stakesValueShift`.
 
 It groups calls by dimension to preserve a stable prompt prefix for cache
 reuse.
@@ -52,6 +53,10 @@ dimension against every scene:
 - `relationshipDelta` is skipped unless the scene requires a non-POV character
   and has deterministic relationship-pressure signals such as trust, leverage,
   debt, alliance, betrayal, promise, rivalry, or suspicion.
+- `characterMateriality` is skipped unless the scene requires a non-POV
+  character.
+- `worldFactPressure` is skipped unless the scene requires at least one world
+  fact.
 - Skipped rows are reported as applicability skips and are not counted as low
   labels.
 - `REL-1` means an applicable relationship-oriented scene is static. A
@@ -290,3 +295,73 @@ Updated interpretation:
   not all non-relationship scenes.
 - This supports a conditional planner contract: require relationship-state
   movement only when a scene actually depends on relationship pressure.
+
+## Conditional Materiality Pilot
+
+After adding `characterMateriality` and `worldFactPressure`, the same
+replicate/chapter-limit shape was run with evidence-first labels:
+
+- cells: `6`;
+- excerpts: `72`;
+- judged rows: `73`;
+- applicability skips: `23`.
+
+Calibration artifact:
+
+`output/method-pack-diagnostics/2026-05-07T22-26-20-352Z/discernment-calibration/`
+
+Real-data artifact:
+
+`output/method-pack-diagnostics/2026-05-07T22-25-29-493Z/planner-discernment-real-data/`
+
+Result:
+
+| Dimension | Unit | Control Mean | Method Mean | Delta | Notes |
+| --- | --- | ---: | ---: | ---: | --- |
+| `characterMateriality` | scene | 2.00 | 1.94 | -0.06 | one method `MATERIAL-1` |
+| `worldFactPressure` | scene | 1.95 | 2.00 | +0.05 | one control `WFACT-1` |
+
+Interpretation:
+
+- Both dimensions are usable as targeted review sensors.
+- `characterMateriality` found one method-arm scene where a required
+  antagonist may be procedurally present but not materially shaping the scene
+  beyond the expected status loss.
+- `worldFactPressure` found one control scene where a required world fact was
+  present but may not actually constrain the action.
+- The signal is narrow, not a promotion result. Use the flagged examples for
+  operator calibration before changing planner contracts.
+
+## Operator Calibration Queue
+
+The review queue generator turns selected diagnostic labels into operator
+review rows with source excerpt, judge evidence, missing-for-next-level, and a
+blank operator disposition:
+
+```bash
+bun run diagnostics:planner-discernment-review-queue -- \
+  --report output/method-pack-diagnostics/2026-05-07T21-56-48-363Z/planner-discernment-real-data \
+  --report output/method-pack-diagnostics/2026-05-07T22-12-07-034Z/planner-discernment-real-data \
+  --report output/method-pack-diagnostics/2026-05-07T22-25-29-493Z/planner-discernment-real-data \
+  --limit 20
+```
+
+Artifact:
+
+`output/method-pack-diagnostics/2026-05-07T22-27-03-873Z/planner-discernment-review-queue-multi-report/`
+
+Default labels:
+
+- `REL-1`;
+- `MOTIVE-1`;
+- `MOTIVE-2`;
+- `STAKES-2`;
+- `MATERIAL-1`;
+- `WFACT-1`.
+
+Purpose:
+
+- decide whether a diagnostic label is actually a story-quality problem;
+- decide whether the fix belongs in the planner contract, method pack,
+  diagnostics only, or nowhere;
+- prevent model labels from becoming unreviewed production blockers.

@@ -318,3 +318,55 @@ Updated interpretation:
 - The next planner change should be conditional: relationship-state deltas
   belong only in scenes whose conflict, tactic, reveal, or consequence depends
   on relationship pressure.
+
+## Conditional Materiality Slice
+
+Added two more conditional scene dimensions:
+
+- `characterMateriality`: applies when a scene requires a non-POV character and
+  asks whether that character materially affects choice, conflict, turn,
+  outcome, consequence, or future pressure.
+- `worldFactPressure`: applies when a scene requires world facts and asks
+  whether those facts constrain action, create cost, alter options, affect
+  outcome, or force next conflict.
+
+Implementation:
+
+- Added known-answer fixture rows for both dimensions.
+- Added rubric labels, evidence contracts, gate-derived labels, and tests.
+- Added real-data applicability skips for non-applicable scenes.
+- Added `bun run diagnostics:planner-discernment-review-queue` to build an
+  operator calibration queue from selected labels.
+
+Calibration:
+
+- Artifact:
+  `output/method-pack-diagnostics/2026-05-07T22-26-20-352Z/discernment-calibration/`
+- Result: `direct-label` and `evidence-first` both hit `100%` exact with
+  `0%` over-label on `28` calls after correcting one ambiguous `WFACT`
+  fixture from `WFACT-1` to `WFACT-0`.
+
+Real-data pilot:
+
+- Artifact:
+  `output/method-pack-diagnostics/2026-05-07T22-25-29-493Z/planner-discernment-real-data/`
+- Scope: same method-pack cohort, replicate `1`, first `2` chapters,
+  evidence-first, `73` judged rows and `23` applicability skips.
+- `characterMateriality`: control `2.00`, method `1.94`; one method
+  `MATERIAL-1`.
+- `worldFactPressure`: control `1.95`, method `2.00`; one control `WFACT-1`.
+
+Operator queue:
+
+- Artifact:
+  `output/method-pack-diagnostics/2026-05-07T22-27-03-873Z/planner-discernment-review-queue-multi-report/`
+- Default labels: `REL-1`, `MOTIVE-1`, `MOTIVE-2`, `STAKES-2`,
+  `MATERIAL-1`, `WFACT-1`.
+
+Interpretation:
+
+- The next useful review is not another broad score. It is operator review of
+  the small flagged set to decide whether the planner contract should require
+  stronger material character action, operational world facts, sharper motive,
+  or no change.
+- These remain diagnostics only. No writer/checker/UI behavior changed.

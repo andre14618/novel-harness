@@ -58,8 +58,10 @@ unless the user explicitly requests a disposable branch.
   sample. Result: no method-pack semantic lift; `relationshipDelta` is the
   clearest value sensor but now requires applicability skips so valid
   non-relationship scenes are not scored low. Filtered rerun weakened the broad
-  regression concern; next build an operator calibration queue from applicable
-  `REL-1`, `MOTIVE-1`, and saturated `MOTIVE-2` / `STAKES-2` examples. Eval doc:
+  regression concern. `characterMateriality` and `worldFactPressure` are now
+  conditional scene diagnostics. Next review the generated operator queue for
+  `REL-1`, `MOTIVE-1/2`, `STAKES-2`, `MATERIAL-1`, and `WFACT-1`, then decide
+  which planner-contract changes are worth testing. Eval doc:
   `docs/evals/planner-discernment-real-data-v0.md`.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close

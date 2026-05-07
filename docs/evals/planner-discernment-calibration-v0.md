@@ -30,7 +30,9 @@ Current dimensions:
 - `sceneDramaturgy`: `SCENE-0` through `SCENE-3`.
 - `promiseProgress`: `PROMISE-0` through `PROMISE-3`.
 - `motivationSpecificity`: `MOTIVE-0` through `MOTIVE-3`.
+- `characterMateriality`: `MATERIAL-0` through `MATERIAL-3`.
 - `relationshipDelta`: `REL-0` through `REL-3`.
+- `worldFactPressure`: `WFACT-0` through `WFACT-3`.
 - `stakesValueShift`: `STAKES-0` through `STAKES-3`.
 
 The labels are ordinal but not open-ended scores. Higher labels require concrete
@@ -69,7 +71,9 @@ It includes clean and adversarial cases:
 - playable versus non-playable scene shapes;
 - repeated promises versus concrete clues, payoffs, and reframes.
 - generic motivation versus character-specific pressure;
+- required character presence versus material scene effect;
 - static co-presence versus relationship state change;
+- required world facts as decorative context versus operational pressure;
 - stated stakes versus concrete value shifts.
 
 ## Live Flash Result
@@ -244,6 +248,51 @@ Interpretation:
   level.
 - Relationship and motivation labels are more nuance-sensitive than the floor
   dimensions; do not wire them as blockers.
+
+## Conditional Materiality Flash Result
+
+The fixture was expanded again by adding conditional scene dimensions:
+
+- `characterMateriality`: for scenes with required non-POV characters, does
+  that character materially affect choice, conflict, turn, outcome, or future
+  pressure?
+- `worldFactPressure`: for scenes with required world facts, does that fact
+  constrain action, create cost, alter options, affect outcome, or force next
+  conflict?
+
+Command:
+
+```bash
+bun run diagnostics:planner-discernment-calibration -- \
+  --live \
+  --model deepseek-v4-flash \
+  --no-thinking \
+  --concurrency 8 \
+  --max-tokens 1400 \
+  --dimension characterMateriality \
+  --dimension worldFactPressure \
+  --mode direct-label \
+  --mode evidence-first
+```
+
+Artifact:
+
+`output/method-pack-diagnostics/2026-05-07T22-26-20-352Z/discernment-calibration/`
+
+Result:
+
+| Prompt shape | Exact | Off-by-one | Over-label | Severe over-label | Verdict |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `direct-label` | 100% | 100% | 0% | 0% | `USEFUL` |
+| `evidence-first` | 100% | 100% | 0% | 0% | `USEFUL` |
+
+Implementation note:
+
+- A first pass exposed an ambiguous `WFACT-1` fixture where a rule was merely
+  mentioned and did not operate in the scene. The expected label was corrected
+  to `WFACT-0` before this recorded result.
+- These dimensions require applicability filters on real data. They should not
+  be evaluated against every scene.
 
 ## Live Pro Sample
 

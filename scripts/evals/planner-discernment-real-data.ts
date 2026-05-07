@@ -55,6 +55,7 @@ interface PlannerExcerpt {
   sceneIndex: number | null
   povCharacterId: string | null
   requiredCharacterIds: string[]
+  requiredWorldFactIds: string[]
   text: string
 }
 
@@ -146,7 +147,9 @@ const DEFAULT_MAX_TOKENS = 1400
 const SCENE_DIMENSIONS = new Set<Dimension>([
   "sceneDramaturgy",
   "motivationSpecificity",
+  "characterMateriality",
   "relationshipDelta",
+  "worldFactPressure",
   "stakesValueShift",
 ])
 
@@ -253,6 +256,7 @@ function collectExcerpts(cellPaths: string[], args: Args): PlannerExcerpt[] {
           sceneIndex: null,
           povCharacterId: null,
           requiredCharacterIds: [],
+          requiredWorldFactIds: [],
           text: renderChapterExcerpt(fixture, arm.plan.armId, chapter),
         })
         for (let sceneIndex = 0; sceneIndex < chapter.scenes.length; sceneIndex++) {
@@ -272,6 +276,7 @@ function collectExcerpts(cellPaths: string[], args: Args): PlannerExcerpt[] {
             sceneIndex,
             povCharacterId: scene.povCharacterId,
             requiredCharacterIds: scene.requiredCharacterIds ?? [],
+            requiredWorldFactIds: scene.requiredWorldFactIds ?? [],
             text: renderSceneExcerpt(fixture, arm.plan.armId, chapter, scene),
           })
         }
@@ -340,6 +345,15 @@ function unitTypeForDimension(dimension: Dimension): UnitType {
 }
 
 function applicabilitySkipReason(dimension: Dimension, excerpt: PlannerExcerpt): string | null {
+  if (dimension === "characterMateriality") {
+    const otherRequiredCharacters = new Set(excerpt.requiredCharacterIds.filter(id => id !== excerpt.povCharacterId))
+    if (otherRequiredCharacters.size === 0) return "scene does not require a non-POV character"
+    return null
+  }
+  if (dimension === "worldFactPressure") {
+    if (excerpt.requiredWorldFactIds.length === 0) return "scene does not require a world fact"
+    return null
+  }
   if (dimension !== "relationshipDelta") return null
   const otherRequiredCharacters = new Set(excerpt.requiredCharacterIds.filter(id => id !== excerpt.povCharacterId))
   if (otherRequiredCharacters.size === 0) return "scene does not require a non-POV character"
@@ -458,7 +472,9 @@ Reader promise: ${fixture.concept.readerPromise}
 Central conflict: ${fixture.concept.centralConflict}
 Protagonist: ${fixture.concept.protagonist.name}; desire=${fixture.concept.protagonist.desire}; fear=${fixture.concept.protagonist.fear}; flaw=${fixture.concept.protagonist.flaw}
 Key characters:
-${fixture.concept.characters.map(character => `- ${character.characterId}: ${character.name}; role=${character.role}; materiality=${character.materiality}`).join("\n") || "- none"}
+${(fixture.concept.characters ?? []).map(character => `- ${character.characterId}: ${character.name}; role=${character.role}; materiality=${character.materiality}`).join("\n") || "- none"}
+Key world facts:
+${(fixture.concept.worldFacts ?? []).map(fact => `- ${fact.worldFactId}: ${fact.fact}`).join("\n") || "- none"}
 
 Plan arm: ${planArmId}
 Parent chapter: ${chapter.chapterId}; function=${chapter.chapterFunction}; endpoint=${chapter.endpointOrHook}

@@ -78,6 +78,43 @@ describe("planner-discernment-real-data", () => {
       "test:commercial-fantasy-adventure-v0:flash:relationshipDelta:1",
     ])
   })
+
+  test("applies character and world dimensions only to relevant scenes", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "planner-discernment-real-data-"))
+    const fixturePath = join(dir, "fixture.json")
+    const cellDir = join(dir, "cohort", "cells")
+    await Bun.$`mkdir -p ${cellDir}`.quiet()
+
+    writeFileSync(fixturePath, JSON.stringify(fixture(), null, 2))
+    writeFileSync(join(cellDir, "cell-r01.json"), JSON.stringify(cell(fixturePath), null, 2))
+
+    const report = await buildRealDataReport({
+      cohortDir: join(dir, "cohort"),
+      cellPaths: [],
+      outputDir: null,
+      live: false,
+      model: "deepseek-v4-flash",
+      thinking: false,
+      maxTokens: 1400,
+      concurrency: 2,
+      promptMode: "direct-label",
+      dimensions: ["characterMateriality", "worldFactPressure"],
+      chapterLimit: 1,
+      replicate: 1,
+      json: false,
+    }, "2026-05-07T00:00:00.000Z")
+
+    expect(report.excerptCount).toBe(6)
+    expect(report.resultCount).toBe(6)
+    expect(report.applicabilitySkipCount).toBe(2)
+    expect(report.applicabilitySkips.every(row => row.dimension === "characterMateriality")).toBe(true)
+    expect(report.summaries.map(row => `${row.armId}:${row.dimension}:${row.count}`).sort()).toEqual([
+      "control:no-method:flash:characterMateriality:1",
+      "control:no-method:flash:worldFactPressure:2",
+      "test:commercial-fantasy-adventure-v0:flash:characterMateriality:1",
+      "test:commercial-fantasy-adventure-v0:flash:worldFactPressure:2",
+    ])
+  })
 })
 
 function fixture() {
