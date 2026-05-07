@@ -55,14 +55,12 @@ unless the user explicitly requests a disposable branch.
   prose tests. Prefer `evidence-first` for nuance-sensitive dimensions. Record:
   `docs/sessions/2026-05-07-planner-discernment-calibration.md`.
 - Real planner data pilot applied those labels to the live method-pack cohort
-  sample. Result: no method-pack semantic lift; `relationshipDelta` is the
-  clearest value sensor but now requires applicability skips so valid
-  non-relationship scenes are not scored low. Filtered rerun weakened the broad
-  regression concern. `characterMateriality` and `worldFactPressure` are now
-  conditional scene diagnostics. Next review the generated operator queue for
-  `REL-1`, `MOTIVE-1/2`, `STAKES-2`, `MATERIAL-1`, and `WFACT-1`, then decide
-  which planner-contract changes are worth testing. Eval doc:
-  `docs/evals/planner-discernment-real-data-v0.md`.
+  sample. Result: no method-pack semantic lift; conditional scene diagnostics
+  now cover relationship delta, character materiality, and world-fact pressure.
+  Review the operator queue plus finding aggregate for `REL-1`, `MOTIVE-1/2`,
+  `STAKES-2`, `MATERIAL-1`, and `WFACT-1`; the aggregate routes issues to
+  `planning_edit`-shaped rewrite packets but does not mutate plans or create
+  envelopes. Eval doc: `docs/evals/planner-discernment-real-data-v0.md`.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

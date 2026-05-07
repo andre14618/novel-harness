@@ -365,3 +365,48 @@ Purpose:
 - decide whether the fix belongs in the planner contract, method pack,
   diagnostics only, or nowhere;
 - prevent model labels from becoming unreviewed production blockers.
+
+## Finding Aggregate / Plan Rewrite Bridge
+
+The finding aggregate is the first deterministic bridge from diagnostics toward
+plan rewrite. It groups selected labels by planning target and emits a
+rewrite packet:
+
+- target: scene `beat_plan.description` when `sceneId` exists, otherwise
+  chapter `chapter_outline.purpose`;
+- fix intents: deterministic routing such as material-character pressure,
+  operational-world-fact pressure, relationship delta, motivation sharpening,
+  or stakes sharpening;
+- preserve IDs: required obligation, character, and world-fact IDs parsed from
+  structured result fields or excerpt text;
+- proposal candidate: a `planning_edit`-shaped `field_replace` target marked
+  `requiresProposedValue: true`.
+
+It does not mutate a plan, create a proposal envelope, auto-approve, or invent
+the corrected plan text. The missing step is semantic: an operator or rewrite
+agent still has to produce the proposed value and preserve or intentionally
+remove the listed IDs.
+
+Command:
+
+```bash
+bun run diagnostics:planner-discernment-finding-aggregate -- \
+  --report output/method-pack-diagnostics/2026-05-07T21-56-48-363Z/planner-discernment-real-data \
+  --report output/method-pack-diagnostics/2026-05-07T22-12-07-034Z/planner-discernment-real-data \
+  --report output/method-pack-diagnostics/2026-05-07T22-25-29-493Z/planner-discernment-real-data \
+  --limit 20
+```
+
+Artifact:
+
+`output/method-pack-diagnostics/2026-05-07T23-00-00-000Z/planner-discernment-finding-aggregate-multi-report/`
+
+This run emitted `20` grouped targets and `50` findings. The default aggregate
+also includes `MATERIAL-0` and `WFACT-0` because complete absence of material
+character/world pressure is a higher-severity rewrite candidate than a merely
+weak scene.
+
+Use this artifact after operator calibration to choose the first default-off
+planner rewrite experiment. A valid next experiment should take one aggregate
+group, author a new proposed target value, then pass it through normal
+`planning_edit` proposal review rather than writing directly into the plan.

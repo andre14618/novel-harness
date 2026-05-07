@@ -370,3 +370,33 @@ Interpretation:
   stronger material character action, operational world facts, sharper motive,
   or no change.
 - These remain diagnostics only. No writer/checker/UI behavior changed.
+
+## Finding Aggregate Slice
+
+Added `bun run diagnostics:planner-discernment-finding-aggregate` as the
+deterministic bridge from diagnostic labels to plan-rewrite packets.
+
+Scope:
+
+- Input: one or more real-data reports.
+- Grouping: fixture, arm, chapter, and scene target.
+- Output: selected findings, fix intents, preserved obligation/character/world
+  IDs, and a `planning_edit`-shaped `field_replace` proposal candidate.
+- Artifact:
+  `output/method-pack-diagnostics/2026-05-07T23-00-00-000Z/planner-discernment-finding-aggregate-multi-report/`
+- Result: `20` grouped targets and `50` findings from the selected reports.
+
+Boundary:
+
+- The aggregate does not mutate planning artifacts.
+- The aggregate does not create proposal envelopes.
+- The aggregate does not synthesize the replacement plan text.
+- Every candidate is marked `requiresProposedValue: true` and
+  `safeToAutoApply: false`.
+
+Purpose:
+
+- use model diagnostics to route likely fixes into the right plan target;
+- preserve durable IDs during review;
+- make the next semantic rewrite experiment explicit and auditable before any
+  planner-contract change.
