@@ -105,6 +105,28 @@ exposure beat. The next gate is downstream drafting on this controlled pair, or
 a planner-quality rubric that scores endpoint completion, relational presence,
 and chapter-contract satisfaction before drafting.
 
+## Planner-Quality Diagnostic
+
+Added `scripts/analysis/planner-quality-report.ts` as a read-only diagnostic,
+not a runtime gate. It scores existing `chapter_outlines` for beat budget,
+declared endpoint overlap with the final beat, listed-character materiality in
+beat text, weak story-turn beats, and obligation coverage.
+
+Controlled pair evidence:
+
+| Arm | Beats | Endpoint Issues | Inactive Listed Characters | Weak Story-Turn Beats | Obligation Errors |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| legacy | 24 | 2 | 1 | 5 | 0 |
+| native | 18 | 3 | 2 | 3 | 0 |
+
+Interpretation: native still improves mechanical shape and reduces weak
+story-turn detections, but the diagnostic confirms it is not enough to count
+beats. The native arm introduces or preserves material story risks: Theo is
+listed without text presence in chapters 1-2, and several declared endpoints
+do not land cleanly in the final beat. The next upstream work should target
+chapter contract satisfaction and character materiality before treating native
+planning as a drafting-quality win.
+
 ## Non-Goals
 
 - Do not promote `calibrated:packed`.

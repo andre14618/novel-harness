@@ -14,9 +14,10 @@ unless the user explicitly requests a disposable branch.
 ## Next
 
 - Upstream native planning contract is directional hold after the controlled
-  3-chapter planner comparison: better beat budget and mapper pressure, but
-  story completeness/relationship texture needs scoring. Next either draft the
-  controlled pair or add a planner-quality rubric; see L088.
+  3-chapter planner comparison and planner-quality diagnostic: better beat
+  budget, mapper pressure, and weak-turn count, but endpoint satisfaction and
+  listed-character materiality still need upstream work. Next choose whether to
+  revise concept/planning contracts or draft the controlled pair; see L088.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO
@@ -48,6 +49,10 @@ unless the user explicitly requests a disposable branch.
   legacy 24 beats vs native 18 beats. Native improved mapper headroom and
   avoided visible payoff-link sanitation, but still needs story-quality and
   downstream drafting evidence.
+- Planner-quality diagnostic added for controlled planning pairs. On the
+  frozen `fantasy-system-heretic` pair it confirmed native's mechanical shape
+  improvement while flagging endpoint/relationship risks that beat counts alone
+  would hide.
 - Additional recent UI, diagnostics, checker, proposal, traceability, test, and
   lineage closures are archived in
   `docs/sessions/archive/lane-queue-2026-05-06-recent-closed.md`.

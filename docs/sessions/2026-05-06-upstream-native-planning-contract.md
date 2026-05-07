@@ -108,6 +108,36 @@ What remains uncertain:
 
 ## Next
 
-Either draft the controlled pair and compare semantic-gate signals, or add a
-small planner-quality rubric first: endpoint completion, relation/character
-presence, obligation coverage, and chapter-contract satisfaction.
+## Planner-Quality Diagnostic
+
+Added `scripts/analysis/planner-quality-report.ts` as a read-only diagnostic
+for existing `chapter_outlines`. It reports beat-budget fit, declared endpoint
+overlap with the final beat, listed-character materiality in beat text, weak
+story-turn beats, and obligation coverage. Evidence was saved beside the
+planner logs:
+
+- `output/evals/planner-isolated/native-contract-fantasy-system-heretic-20260506/planner-quality-legacy.txt`
+- `output/evals/planner-isolated/native-contract-fantasy-system-heretic-20260506/planner-quality-native.txt`
+
+Results:
+
+| Arm | Beats | Endpoint Issues | Inactive Listed Characters | Weak Story-Turn Beats | Obligation Errors |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| legacy | 24 | 2 | 1 | 5 | 0 |
+| native | 18 | 3 | 2 | 3 | 0 |
+
+Interpretation:
+
+- Native remains better on mechanical shape and weak story-turn count.
+- Native is not a clean story-quality win: it has more endpoint issues and
+  more listed-character materiality gaps.
+- This supports the user correction: beat-count calibration is not the target
+  by itself. The useful next lever is upstream concept/planning contract
+  quality: endpoint landing, character materiality, and story-function
+  allocation before drafting.
+
+## Next
+
+Use the planner-quality evidence to choose either an upstream
+concept/planning-contract revision or a controlled drafting comparison. Do not
+continue downstream beat calibration as the active product direction.

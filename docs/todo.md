@@ -63,8 +63,8 @@ This file is the actionable backlog only. Live architecture belongs in
   count, beat count, approval rate, and semantic drift rate.
 - [x] Investigate semantic action drift, continuity gate behavior, and writer
   expansion from drafting before adding new writer/checker nudges.
-- [ ] Add planner-quality scoring or draft controlled native-planning pair
-  before any further downstream beat calibration work. See L088.
+- [ ] Use planner-quality evidence to choose the next upstream
+  concept/planning revision or controlled drafting comparison. See L088.
 - [x] Add pure fact-role policy selectors and opt-in Canon role scoping before
   wiring runtime writer/checker behavior.
 - [x] Add diagnostic preview for writer-visible and continuity-blocking
