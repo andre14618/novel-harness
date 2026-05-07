@@ -56,6 +56,12 @@ unless the user explicitly requests a disposable branch.
   exact with `0%` over-label in the latest Flash run. Use one excerpt, one
   dimension, one rubric before prose tests. Record:
   `docs/sessions/2026-05-07-planner-discernment-calibration.md`.
+- Real planner data pilot applied those labels to the live method-pack cohort
+  sample. Result: no method-pack semantic lift, most dimensions saturated at
+  level `2`, and character agency remained the clearest weakness. Next sharpen
+  dimensions for motivation specificity, relationship-state movement, stakes /
+  value shift, and promise novelty before spending on the full 18-cell cohort.
+  Eval doc: `docs/evals/planner-discernment-real-data-v0.md`.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

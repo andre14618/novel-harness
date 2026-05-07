@@ -159,3 +159,51 @@ Conclusion:
 - `evidence-first` is the preferred operator-facing explanation shape.
 - `gate-derived` should stay secondary because binary gates lose nuance on
   endpoint, causal, and promise-progress boundaries.
+
+## Real Planner Data Pilot
+
+Added `bun run diagnostics:planner-discernment-real-data` to apply the
+calibrated labels to actual method-pack cohort cells.
+
+Pilot scope:
+
+- source cohort:
+  `output/method-pack-diagnostics/2026-05-07T13-51-44-961Z/cohort`;
+- all 6 concepts, replicate 1 only;
+- no-method control vs commercial fantasy/adventure method-pack arm;
+- first 2 chapters only;
+- `72` real planner excerpts;
+- `168` labels per prompt mode.
+
+Direct-label artifact:
+
+`output/method-pack-diagnostics/2026-05-07T21-43-19-012Z/planner-discernment-real-data/`
+
+Evidence-first artifact:
+
+`output/method-pack-diagnostics/2026-05-07T21-44-22-045Z/planner-discernment-real-data/`
+
+Result:
+
+- No semantic lift from the method-pack arm on the sampled real planner data.
+- Direct-label showed a small character-agency regression for the method arm
+  (`1.75` vs `1.92` mean ordinal).
+- Evidence-first showed no arm delta, but was more conservative on character
+  agency overall (`1.67` mean for both arms).
+- World pressure, endpoint landing, causal momentum, promise progress, and
+  scene dramaturgy mostly saturated at level `2` for both arms.
+
+Interpretation:
+
+- The sensor can run on real plans and produces actionable explanations.
+- Current dimensions are good at detecting broken/missing plan shape, but many
+  are not sharp enough to separate decent from excellent on current outputs.
+- The clearest live weakness is protagonist choice pressure: several chapters
+  have choices that are not tightly linked to concrete cost and consequence.
+
+Follow-up:
+
+- Add sharper real-data dimensions for motivation specificity, relationship
+  state movement, scene stakes/value shift, and promise novelty.
+- Build an operator calibration queue from `AGENCY-1` and saturated `*-2`
+  examples before running the full 18-cell cohort.

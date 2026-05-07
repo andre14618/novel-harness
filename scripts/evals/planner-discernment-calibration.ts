@@ -9,14 +9,14 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join, resolve } from "node:path"
 
-type Dimension =
+export type Dimension =
   | "characterAgency"
   | "worldPressure"
   | "endpointLanding"
   | "causalMomentum"
   | "sceneDramaturgy"
   | "promiseProgress"
-type PromptMode = "direct-label" | "evidence-first" | "gate-derived"
+export type PromptMode = "direct-label" | "evidence-first" | "gate-derived"
 
 interface CalibrationFixture {
   fixtureId: string
@@ -43,7 +43,7 @@ interface Args {
   json: boolean
 }
 
-interface JudgeOutput {
+export interface JudgeOutput {
   label: string
   confidence: number
   evidence: Record<string, string>
@@ -97,7 +97,7 @@ interface CalibrationReport {
 
 const DEFAULT_FIXTURE_PATH = "docs/fixtures/evals/planner-discernment-calibration-v0.json"
 const DEFAULT_MODES: PromptMode[] = ["direct-label", "evidence-first", "gate-derived"]
-const DIMENSIONS: Dimension[] = [
+export const DIMENSIONS: Dimension[] = [
   "characterAgency",
   "worldPressure",
   "endpointLanding",
@@ -105,6 +105,22 @@ const DIMENSIONS: Dimension[] = [
   "sceneDramaturgy",
   "promiseProgress",
 ]
+
+export interface PlanningExcerptJudgeArgs {
+  live: boolean
+  model: Args["model"]
+  thinking: boolean
+  maxTokens: number
+  dimension: Dimension
+  promptMode: PromptMode
+  caseId: string
+  text: string
+}
+
+export interface PlanningExcerptJudgeResult {
+  label: string
+  output: JudgeOutput
+}
 
 export async function buildCalibrationReport(args: Args, generatedAt = new Date().toISOString()): Promise<CalibrationReport> {
   const fixture = loadFixture(args.fixturePath)
@@ -130,6 +146,33 @@ export async function buildCalibrationReport(args: Args, generatedAt = new Date(
     results,
     summaries: summarizeResults(results),
   }
+}
+
+export async function judgePlanningExcerpt(args: PlanningExcerptJudgeArgs): Promise<PlanningExcerptJudgeResult> {
+  const calibrationCase: CalibrationCase = {
+    caseId: args.caseId,
+    dimension: args.dimension,
+    expectedLabel: `${dimensionPrefix(args.dimension)}-0`,
+    text: args.text,
+  }
+  const runArgs: Args = {
+    fixturePath: DEFAULT_FIXTURE_PATH,
+    outputDir: null,
+    live: args.live,
+    model: args.model,
+    thinking: args.thinking,
+    maxTokens: args.maxTokens,
+    concurrency: 1,
+    modes: [args.promptMode],
+    json: false,
+  }
+  const output = args.live
+    ? await callDeepSeekJudge(runArgs, calibrationCase, args.promptMode)
+    : syntheticOutput(calibrationCase, args.promptMode)
+  const label = args.promptMode === "gate-derived"
+    ? deriveLabel(args.dimension, output.gates)
+    : normalizeLabel(output.label, args.dimension)
+  return { label, output }
 }
 
 export function summarizeResults(results: CalibrationResult[]): ModeSummary[] {
