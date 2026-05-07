@@ -50,7 +50,9 @@ Candidate experiments are collected in
   proposal/review, UI, telemetry, or test infrastructure.
 - Methodology candidates start default-off and diagnostic/A-B-only.
 - Prefer additive IDs and observations: `templateId`, `structureSlotId`,
-  future `sceneId`, `chapterId`, `beatId`, `obligationId`, and source refs.
+  future `sceneId`, `chapterId`, `obligationId`, and source refs. Under a
+  scene-first method, `beatId` is legacy/internal compatibility unless beat
+  planning remains the primary contract.
 - Browser testing is required for UI-facing handoff, but Playwright work should
   not be expanded just to create motion while the active question is upstream
   planning quality.

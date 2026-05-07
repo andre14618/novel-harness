@@ -32,7 +32,7 @@ quality evidence.
 | ID | Hypothesis | Optimized Layer | First Evidence Gate | Priority |
 | --- | --- | --- | --- | --- |
 | H1 | Structure-template macro planning | concept/planning template | planner-quality comparison | high |
-| H2 | Scene as generation unit, beats as checklist | scene plan / writer interface | scene-plan diagnostic, then A/B draft | high |
+| H2 | Scene as plan/write/adherence unit | scene plan / writer interface | scene-contract diagnostic, then A/B draft | high |
 | H3 | Native chapter contracts before beats | chapter plan | endpoint/materiality score | high |
 | H4 | Planner-owned Promise/Progress/Payoff | story spine / chapter plan | story-debt diagnostic | medium-high |
 | H5 | Character materiality and motivation obligations | character plan / chapter plan | character-visible plan score | medium-high |
@@ -78,12 +78,24 @@ Risk: a fixed scaffold can overfit the wrong genre or create formulaic plans.
 Mitigation: treat templates as selectable/flexible slots, not a hard 24-chapter
 requirement.
 
-## H2 - Scene Generation Unit, Beat Checklist
+## H2 - Scene Plan/Write/Adherence Unit
 
 Hypothesis: DeepSeek-like verbose writers may perform better when asked to
 write a complete scene rather than expanding each beat as a separate mini
-scene. Beats remain traceable obligations, not necessarily the generation
-unit.
+scene. If scenes become the planning and writing unit, adherence should also
+move to the scene contract. Beats should not remain the load-bearing adherence
+contract unless they remain the load-bearing planning/writing contract.
+
+Method shape:
+
+- `sceneId` is the primary plan, generation, prose-span, checker, and revision
+  unit.
+- `obligationId` and `sourceId` are the durable traceability units inside the
+  scene.
+- `characterId`, `worldFactId`, `structureSlotId`, and promise/payoff refs
+  describe why an obligation exists.
+- `beatId` is legacy compatibility or an optional internal hint. It is not the
+  future primary contract.
 
 Target shape:
 
@@ -91,35 +103,42 @@ Target shape:
 chapterId
   sceneId
     scene goal / conflict / outcome / value turn
-    beatIds[]
     obligationIds[]
+    sourceIds[]
+    character/materiality refs
+    structureSlotId
     draft span refs
-    beat-satisfaction observations
+    scene-contract observations
+    obligation-coverage observations
 ```
 
 First slice:
 
-- Add a diagnostic scene-plan projection from existing chapter outlines.
+- Add a diagnostic scene-contract projection from existing chapter outlines.
 - Do not change drafting initially.
-- Report how beats would group into scene units and whether each scene has a
-  coherent goal/conflict/outcome.
+- Report candidate `sceneId`s, scene goal/conflict/outcome, value turn,
+  required obligations/source refs, and whether current beat-shaped outlines
+  can be lifted into scene contracts without losing traceability.
 
 Second slice, only if the projection looks coherent:
 
 - Default-off A/B writer arm where the writer drafts one scene from a scene
-  contract and beat checklist.
-- Validate beat satisfaction somewhere in the scene, allowing creative
-  reordering.
+  contract and obligation/source checklist.
+- Validate scene-contract satisfaction and obligation coverage across the
+  whole scene. Ordering can differ if causality still works.
 
 Expected benefit: more natural pacing, fewer stitching artifacts, better prose
 rhythm, and fewer over-expanded beat mini-scenes.
 
-Trace needs: future `sceneId`, source `beatId[]`, `obligationId[]`, source
-refs, prose span refs, and beat-satisfaction observations.
+Trace needs: future `sceneId`, `obligationId[]`, `sourceId[]`,
+`characterId[]`, `structureSlotId`, prose span refs, and scene-contract
+observations. Preserve old `beatId`s where available for compatibility, but do
+not make them the new assertion surface.
 
-Risk: attribution becomes harder when the writer merges or reorders beats.
-Mitigation: scene-scope beat-satisfaction checker and span mapping before
-promotion.
+Risk: attribution becomes harder if obligations are vague or too broad.
+Mitigation: define scene obligations directly and keep checker verdicts at
+`satisfied`, `partially_satisfied`, `missing`, `contradicted`, or
+`satisfied_by_valid_merge`; avoid strict beat-index matching.
 
 ## H3 - Native Chapter Contracts
 
@@ -229,7 +248,8 @@ First slice:
 Expected benefit: better detection of "on plot but flat" plans before prose.
 
 Trace needs: future `sceneId`, `chapterId`, value axis, open/close polarity,
-goal/conflict/outcome observations, and source beat IDs.
+goal/conflict/outcome observations, source IDs, and obligation IDs. Do not
+require source beat IDs for new methodology work.
 
 Risk: overfitting craft heuristics. Mitigation: score as warnings and compare
 against human preference before runtime use.
@@ -296,7 +316,7 @@ same time, which makes attribution difficult.
 Potential later gate:
 
 - H1-H3 show stronger upstream plans.
-- H2 provides scene/beat satisfaction observations.
+- H2 provides scene-contract and obligation-coverage observations.
 - Revision can target failed spans without rewriting the whole chapter.
 
 Expected benefit: more coherent prose flow across the chapter.
@@ -306,7 +326,7 @@ Risk: hardest attribution and largest blast radius. Keep later.
 ## Recommended Sequence
 
 1. **Hypothesis charter:** choose one upstream method to test: structure
-   template H1, scene-plan projection H2, or chapter-contract scoring H3.
+   template H1, scene-contract projection H2, or chapter-contract scoring H3.
 2. **Diagnostic-only implementation:** add template/scene/contract
    observations linked to IDs, no writer changes.
 3. **Controlled planning comparison:** same frozen concept seed, one changed
@@ -325,3 +345,5 @@ Risk: hardest attribution and largest blast radius. Keep later.
 - Do not introduce multiple methodology changes in one cohort.
 - Do not treat a shorter chapter as a story-quality win without endpoint,
   character, world, and payoff evidence.
+- Do not keep beat-level adherence as the primary checker contract if scenes
+  become the planning and writing unit.

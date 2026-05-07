@@ -6,8 +6,8 @@ unless the user explicitly requests a disposable branch.
 ## Active
 
 - Upstream planning methodology lane: narrow the active product question to
-  concept/planning templates, chapter contracts, scene functions, and
-  planner-quality diagnostics. See L089.
+  concept/planning templates, chapter contracts, scene contracts, obligation
+  traceability, and planner-quality diagnostics. See L089.
 - Visibility/interactivity foundation is at scope ceiling for now; additional
   UI work is lower priority unless a UI surface changes as part of a specific
   accepted slice.
@@ -26,6 +26,9 @@ unless the user explicitly requests a disposable branch.
   drafting/checking/UI. Hold other layers steady unless the test explicitly
   measures downstream projection. Candidate hypotheses are collected in
   `docs/authoring-methodology-hypotheses.md`.
+- If pursuing scene-first methodology, treat `sceneId` as the plan/write/check
+  unit and `obligationId`/`sourceId` as the traceability unit; do not preserve
+  beat-level adherence as the primary future contract by default.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO
