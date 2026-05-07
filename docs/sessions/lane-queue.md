@@ -45,6 +45,9 @@ unless the user explicitly requests a disposable branch.
   Flash for bulk cohorts and Pro only as smaller judge/adjudication unless its
   prompt/output shape is narrowed. Session:
   `docs/sessions/2026-05-07-method-pack-planner-cohort.md`.
+- Blind semantic pairwise judge over the same N=18 plan cells is also `HOLD`
+  but more directional: method won `11/18` pairs with mean semantic delta
+  `+2.22`. Calibrate against operator review before using as a promotion gate.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

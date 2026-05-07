@@ -101,9 +101,54 @@ The current method pack is not a promotion win. It enforces structural slot fit
 and ID discipline, but it does not yet make plans more character-driven,
 world-operational, or endpoint-strong than the no-method control.
 
+## Semantic Judge
+
+A blind semantic pairwise judge was added after the deterministic cohort because
+the checklist measures plan-contract proxies, not story value. The judge sees
+only neutral `Plan A` / `Plan B` packets and compares which plan would give the
+same downstream writer stronger material.
+
+Rubric artifact:
+
+`docs/evals/method-pack-planner-semantic-judge-prompt-v0.md`
+
+Command:
+
+```bash
+bun run diagnostics:method-pack-planner-semantic-judge -- \
+  --cohort-dir output/method-pack-diagnostics/2026-05-07T13-51-44-961Z/cohort \
+  --concurrency 3 \
+  --model deepseek-v4-flash \
+  --no-thinking \
+  --max-tokens 3000
+```
+
+Artifact:
+
+`output/method-pack-diagnostics/2026-05-07T15-53-25-248Z/semantic-judge/`
+
+Result:
+
+- Verdict: `SEMANTIC-HOLD`.
+- Method wins: `11/18` blind pairs (`61%`).
+- Control wins: `7/18` blind pairs (`39%`).
+- Ties: `0/18`.
+- Mean method score delta: `+2.22` on a 25-point semantic scale.
+- Median method score delta: `+6.50`.
+
+Interpretation:
+
+- The semantic judge saw directional method-pack value that the deterministic
+  checklist mostly missed.
+- The effect was inconsistent and below the two-thirds blind-win promotion
+  gate, so this remains `HOLD`.
+- This still judges plans only. It does not prove prose quality, drafting
+  adherence, or final reader experience.
+
 Next useful data step:
 
-- revise the planning methodology/rubric to target character pressure,
-  operational world constraints, and endpoint landing directly; or
-- add an LLM/human comparative judge for plan quality, because the current
-  deterministic rubric is near-saturated on schema completeness.
+- calibrate the semantic judge against operator review on a subset of pairs;
+- use the winning/losing judge evidence to revise the method pack toward
+  character pressure, operational world constraints, and endpoint landing; or
+- run a smaller draft-from-plan comparison once the upstream semantic signal is
+  stable enough to justify prose-level cost.

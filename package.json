@@ -38,6 +38,7 @@
     "diagnostics:writer-expansion": "bun scripts/analysis/writer-expansion-report.ts",
     "diagnostics:method-pack-planner": "bun scripts/evals/method-pack-planner-diagnostic.ts",
     "diagnostics:method-pack-planner-cohort": "bun scripts/evals/method-pack-planner-cohort.ts",
+    "diagnostics:method-pack-planner-semantic-judge": "bun scripts/evals/method-pack-planner-semantic-judge.ts",
     "diagnostics:continuity-grayzone-extract": "bun scripts/analysis/continuity-grayzone-extract.ts",
     "diagnostics:continuity-grayzone-aggregate": "bun scripts/analysis/continuity-grayzone-aggregate.ts",
     "diagnostics:fact-roles": "bun scripts/analysis/fact-role-report.ts",
