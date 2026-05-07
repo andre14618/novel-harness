@@ -20,7 +20,7 @@
  * Saves results as a tuning_experiment per the standing rule.
  *
  * Usage:
- *   bun scripts/test-wandb-inference.ts
+ *   bun scripts/archive/finetune/test-wandb-inference.ts
  */
 
 import { createTuningExperiment, concludeExperiment } from "../../src/db/ops"
