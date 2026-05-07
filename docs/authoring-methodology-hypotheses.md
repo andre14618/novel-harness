@@ -27,6 +27,8 @@ Prefer upstream diagnostic evidence before drafting changes. Do not use UI
 work, checker strictness, or broad writer rewrites as substitutes for plan
 quality evidence.
 
+Planner method target: `docs/planner-output-contract.md`.
+
 ## Hypotheses
 
 | ID | Hypothesis | Optimized Layer | First Evidence Gate | Priority |
@@ -327,13 +329,15 @@ Risk: hardest attribution and largest blast radius. Keep later.
 
 1. **Hypothesis charter:** choose one upstream method to test: structure
    template H1, scene-contract projection H2, or chapter-contract scoring H3.
-2. **Diagnostic-only implementation:** add template/scene/contract
+2. **Planner contract projection:** use `docs/planner-output-contract.md` to
+   define the expected chapter/scene/obligation shape.
+3. **Diagnostic-only implementation:** add template/scene/contract
    observations linked to IDs, no writer changes.
-3. **Controlled planning comparison:** same frozen concept seed, one changed
+4. **Controlled planning comparison:** same frozen concept seed, one changed
    layer, planner-quality report plus human side-by-side review.
-4. **Promotion decision:** if plan quality improves, decide whether to project
+5. **Promotion decision:** if plan quality improves, decide whether to project
    the winning method into drafting.
-5. **Writer experiment:** only then test scene-level or chapter-level writing
+6. **Writer experiment:** only then test scene-level or chapter-level writing
    changes.
 
 ## What Not To Do Next
