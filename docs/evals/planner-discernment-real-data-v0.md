@@ -40,7 +40,8 @@ The runner labels:
 
 - chapter excerpts for `characterAgency`, `worldPressure`,
   `endpointLanding`, `causalMomentum`, and `promiseProgress`;
-- scene excerpts for `sceneDramaturgy`.
+- scene excerpts for `sceneDramaturgy`, `motivationSpecificity`,
+  `relationshipDelta`, and `stakesValueShift`.
 
 It groups calls by dimension to preserve a stable prompt prefix for cache
 reuse.
@@ -134,3 +135,101 @@ Next useful slices:
   `*-2` examples.
 - Run the full 18-cell cohort only after the dimensions can separate quality
   above "basic playable plan."
+
+## Richness Sensor Pilot
+
+After the first real-data run saturated on most floor dimensions, three
+scene-level richness dimensions were added:
+
+- `motivationSpecificity`: does the scene action flow from a character-specific
+  desire, fear, flaw, value, or relationship pressure?
+- `relationshipDelta`: does the scene change trust, leverage, debt, loyalty,
+  rivalry, intimacy, suspicion, or power?
+- `stakesValueShift`: does the scene visibly move a value state, such as safe
+  to exposed, trusted to suspect, legal to criminal, or hopeful to trapped?
+
+Calibration:
+
+- `evidence-first` hit `100%` exact on the 21 new known-answer cases.
+- `direct-label` hit `95%` exact, with one off-by-one motivation over-label.
+
+Calibration artifact:
+
+`output/method-pack-diagnostics/2026-05-07T21-56-20-313Z/discernment-calibration/`
+
+### Richness Evidence-First Run
+
+Command:
+
+```bash
+bun run diagnostics:planner-discernment-real-data -- \
+  --live \
+  --model deepseek-v4-flash \
+  --no-thinking \
+  --concurrency 10 \
+  --max-tokens 1400 \
+  --replicate 1 \
+  --chapter-limit 2 \
+  --mode evidence-first \
+  --dimension motivationSpecificity \
+  --dimension relationshipDelta \
+  --dimension stakesValueShift
+```
+
+Artifact:
+
+`output/method-pack-diagnostics/2026-05-07T21-56-48-363Z/planner-discernment-real-data/`
+
+Result:
+
+| Dimension | Unit | Control Mean | Method Mean | Delta | Interpretation |
+| --- | --- | ---: | ---: | ---: | --- |
+| `motivationSpecificity` | scene | 2.00 | 2.00 | 0.00 | saturated |
+| `relationshipDelta` | scene | 1.92 | 1.83 | -0.08 | method weaker |
+| `stakesValueShift` | scene | 2.00 | 2.00 | 0.00 | saturated |
+
+### Richness Direct-Label Cross-Check
+
+Artifact:
+
+`output/method-pack-diagnostics/2026-05-07T21-57-50-023Z/planner-discernment-real-data/`
+
+Result:
+
+| Dimension | Unit | Control Mean | Method Mean | Delta | Interpretation |
+| --- | --- | ---: | ---: | ---: | --- |
+| `motivationSpecificity` | scene | 1.92 | 1.88 | -0.04 | method slightly weaker |
+| `relationshipDelta` | scene | 1.92 | 1.75 | -0.17 | method weaker |
+| `stakesValueShift` | scene | 2.00 | 2.00 | 0.00 | saturated |
+
+## Richness Interpretation
+
+The new dimensions are more useful than the first floor set, but uneven:
+
+- `relationshipDelta` is the strongest new signal. It found repeated scenes
+  where characters are co-present or emotionally reacting, but the relationship
+  state does not concretely change.
+- `motivationSpecificity` is somewhat useful, especially under `direct-label`,
+  but still often sits at level `2`. It needs operator review before we trust
+  it as a promotion signal.
+- `stakesValueShift` remains a floor check on this cohort. Current planner
+  outputs usually include a value shift, but the label does not distinguish
+  good from excellent stakes design yet.
+
+Method-pack implication:
+
+- The commercial fantasy/adventure method pack still does not show a semantic
+  lift on this sampled cohort.
+- It may be worse on relationship movement, which fits the broader concern
+  that method scaffolds can improve structure while failing to make characters
+  drive scenes.
+
+Next value-add slice:
+
+- Build a small operator calibration queue from `REL-1`, `MOTIVE-1`, and
+  saturated `MOTIVE-2` / `STAKES-2` examples.
+- Revise upstream scene contracts to require planned relationship-state deltas
+  only where the scene actually depends on a relationship; avoid forcing every
+  scene to carry one.
+- Add a sharper stakes sensor later if operator review shows `STAKES-2`
+  hides meaningful quality differences.

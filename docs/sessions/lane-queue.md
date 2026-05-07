@@ -50,18 +50,21 @@ unless the user explicitly requests a disposable branch.
   position-biased pairs are `18/18`; do not use this judge for promotion until
   repaired or replaced. Same-plan calibration passed `3/3`.
 - Narrow DeepSeek discernment calibration found a useful judge shape while
-  broad pairwise judging remains invalid. The expanded 42-case fixture covers
+  broad pairwise judging remains invalid. The expanded fixture covers
   agency, world pressure, endpoint landing, causal momentum, scene dramaturgy,
-  and promise progress; `direct-label` and `evidence-first` both hit `100%`
-  exact with `0%` over-label in the latest Flash run. Use one excerpt, one
-  dimension, one rubric before prose tests. Record:
+  promise progress, motivation specificity, relationship deltas, and stakes
+  value shifts. Use one excerpt, one dimension, one rubric before prose tests.
+  `evidence-first` is preferred for nuance-sensitive richness dimensions.
+  Record:
   `docs/sessions/2026-05-07-planner-discernment-calibration.md`.
 - Real planner data pilot applied those labels to the live method-pack cohort
-  sample. Result: no method-pack semantic lift, most dimensions saturated at
-  level `2`, and character agency remained the clearest weakness. Next sharpen
-  dimensions for motivation specificity, relationship-state movement, stakes /
-  value shift, and promise novelty before spending on the full 18-cell cohort.
-  Eval doc: `docs/evals/planner-discernment-real-data-v0.md`.
+  sample. Result: no method-pack semantic lift; relationshipDelta is the
+  clearest new value sensor and may show method-pack regression, while
+  motivation and stakes still often saturate at level `2`. Next build an
+  operator calibration queue from `REL-1`, `MOTIVE-1`, and saturated
+  `MOTIVE-2` / `STAKES-2` examples, then revise upstream scene contracts only
+  where relationship pressure actually drives the scene. Eval doc:
+  `docs/evals/planner-discernment-real-data-v0.md`.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

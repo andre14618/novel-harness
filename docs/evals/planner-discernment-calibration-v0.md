@@ -29,6 +29,9 @@ Current dimensions:
 - `causalMomentum`: `CAUSAL-0` through `CAUSAL-3`.
 - `sceneDramaturgy`: `SCENE-0` through `SCENE-3`.
 - `promiseProgress`: `PROMISE-0` through `PROMISE-3`.
+- `motivationSpecificity`: `MOTIVE-0` through `MOTIVE-3`.
+- `relationshipDelta`: `REL-0` through `REL-3`.
+- `stakesValueShift`: `STAKES-0` through `STAKES-3`.
 
 The labels are ordinal but not open-ended scores. Higher labels require concrete
 evidence, and the judge is instructed to use the lowest label whose evidence
@@ -65,6 +68,9 @@ It includes clean and adversarial cases:
 - static or merely chronological event chains;
 - playable versus non-playable scene shapes;
 - repeated promises versus concrete clues, payoffs, and reframes.
+- generic motivation versus character-specific pressure;
+- static co-presence versus relationship state change;
+- stated stakes versus concrete value shifts.
 
 ## Live Flash Result
 
@@ -191,6 +197,53 @@ Run shape:
 - Direct plus evidence-first run: `84` calls.
 - The prompt prefix stays small because each call carries only one dimension
   rubric, and live output showed repeated DeepSeek prompt-cache hits.
+
+## Richness Dimension Flash Result
+
+The fixture was expanded again from `42` to `63` known-answer cases by adding
+scene-level richness dimensions:
+
+- `motivationSpecificity`;
+- `relationshipDelta`;
+- `stakesValueShift`.
+
+These dimensions are aimed above the floor checks. They test whether the plan
+is not merely playable, but more character- and scene-driven.
+
+Command:
+
+```bash
+bun run diagnostics:planner-discernment-calibration -- \
+  --live \
+  --model deepseek-v4-flash \
+  --no-thinking \
+  --concurrency 8 \
+  --max-tokens 1400 \
+  --dimension motivationSpecificity \
+  --dimension relationshipDelta \
+  --dimension stakesValueShift \
+  --mode direct-label \
+  --mode evidence-first
+```
+
+Artifact:
+
+`output/method-pack-diagnostics/2026-05-07T21-56-20-313Z/discernment-calibration/`
+
+Result:
+
+| Prompt shape | Exact | Off-by-one | Over-label | Severe over-label | Verdict |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `direct-label` | 95% | 100% | 5% | 0% | `USEFUL` |
+| `evidence-first` | 100% | 100% | 0% | 0% | `USEFUL` |
+
+Interpretation:
+
+- `evidence-first` is the preferred shape for richer scene dimensions.
+- `direct-label` remains useful but over-labeled one motivation example by one
+  level.
+- Relationship and motivation labels are more nuance-sensitive than the floor
+  dimensions; do not wire them as blockers.
 
 ## Live Pro Sample
 

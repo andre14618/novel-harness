@@ -253,6 +253,132 @@
       "dimension": "promiseProgress",
       "expectedLabel": "PROMISE-3",
       "text": "Standing promise: what did Mara's mother hide in the route ledger? Chapter excerpt: Mara reads her mother's note: the ledger names every family sheltered in the erased province, including Sena's. The discovery pays off the hidden-ledger promise and forces Mara to protect the ledger instead of publishing it. Endpoint: the central investigation becomes a protection mission."
+    },
+    {
+      "caseId": "motive-0-logistical-action",
+      "dimension": "motivationSpecificity",
+      "expectedLabel": "MOTIVE-0",
+      "text": "Scene excerpt: Mara goes to the archive because the plot needs the next clue. She opens the drawer, copies the ledger, and leaves. No desire, fear, flaw, value, or relationship pressure explains why this action matters to her."
+    },
+    {
+      "caseId": "motive-1-generic-duty",
+      "dimension": "motivationSpecificity",
+      "expectedLabel": "MOTIVE-1",
+      "text": "Scene excerpt: Mara searches the archive because she wants to do the right thing. The goal is morally positive but generic; it is not tied to her fear of betraying hidden villages, her need to regain her charter, her distrust of Sena, or her flaw of trusting maps over people."
+    },
+    {
+      "caseId": "motive-2-specific-driver",
+      "dimension": "motivationSpecificity",
+      "expectedLabel": "MOTIVE-2",
+      "text": "Scene excerpt: Mara refuses Ilyan's shortcut because accepting his help would prove she still needs the Crown Survey she claims to reject. Her fear of dependence shapes the tactic: she chooses the illegal basement route instead. Outcome: she reaches the ledger but leaves evidence of trespass."
+    },
+    {
+      "caseId": "motive-3-competing-drivers",
+      "dimension": "motivationSpecificity",
+      "expectedLabel": "MOTIVE-3",
+      "text": "Scene excerpt: Sena begs Mara to burn the route ledger because it names refugee villages. Mara wants her charter restored and needs the ledger as proof, but her mother's old lesson makes her fear becoming another official who sacrifices people to maps. She burns the page that would clear her name and keeps only the village route. Outcome: she loses her legal defense and commits to protecting Sena's people."
+    },
+    {
+      "caseId": "motive-1-external-deadline-only",
+      "dimension": "motivationSpecificity",
+      "expectedLabel": "MOTIVE-1",
+      "text": "Scene excerpt: Mara hurries because guards will arrive in ten minutes. The deadline creates pressure, but the plan does not connect her action to a personal desire, fear, flaw, value, or relationship. Outcome: she escapes before the bells ring."
+    },
+    {
+      "caseId": "motive-2-relationship-pressure",
+      "dimension": "motivationSpecificity",
+      "expectedLabel": "MOTIVE-2",
+      "text": "Scene excerpt: Mara lies to the clerk because Sena is watching and she cannot bear to let him see her return to obedient Survey habits. Her pride and fragile trust with Sena shape the choice. Outcome: the clerk becomes suspicious, but Sena follows her instead of abandoning the plan."
+    },
+    {
+      "caseId": "motive-3-flaw-costs-relationship",
+      "dimension": "motivationSpecificity",
+      "expectedLabel": "MOTIVE-3",
+      "text": "Scene excerpt: Mara can ask Sena what he knows or secretly verify his story with true-ink. Her flaw pushes her to trust measurement over him, while her need for an ally pushes the other way. She tests the map behind his back. Outcome: the ink proves him right, but Sena catches her and their alliance becomes conditional."
+    },
+    {
+      "caseId": "rel-0-no-relationship",
+      "dimension": "relationshipDelta",
+      "expectedLabel": "REL-0",
+      "text": "Scene excerpt: Mara studies a map alone, copies a border, and hides the page. No meaningful interaction with another character occurs, and no relationship state is established or changed."
+    },
+    {
+      "caseId": "rel-1-static-banter",
+      "dimension": "relationshipDelta",
+      "expectedLabel": "REL-1",
+      "text": "Scene excerpt: Mara and Sena trade jokes while crossing the market. They already trust each other, and the exchange does not alter trust, debt, leverage, suspicion, loyalty, rivalry, intimacy, or power. Outcome: they continue toward the archive."
+    },
+    {
+      "caseId": "rel-2-trust-changes",
+      "dimension": "relationshipDelta",
+      "expectedLabel": "REL-2",
+      "text": "Scene excerpt: Mara expects Sena to sell her out when Ilyan offers a reward, but Sena lies that the ledger is a fake and draws the guard away. Mara realizes he chose her over quick money. Outcome: she gives him the real route name and their trust improves."
+    },
+    {
+      "caseId": "rel-3-new-obligation",
+      "dimension": "relationshipDelta",
+      "expectedLabel": "REL-3",
+      "text": "Scene excerpt: Mara publicly names Sena as her source to stop Ashren from executing him as an anonymous smuggler. The act saves Sena but exposes him as her accomplice. Outcome: Sena now owes her his life, Ashren can hunt them both, and their alliance becomes an unavoidable shared fate."
+    },
+    {
+      "caseId": "rel-1-co-present-no-change",
+      "dimension": "relationshipDelta",
+      "expectedLabel": "REL-1",
+      "text": "Scene excerpt: Ilyan stands beside Mara while she reads the map. He warns her that the road is dangerous. She ignores him because she already mistrusts him, and nothing in the exchange changes that mistrust or affects the outcome."
+    },
+    {
+      "caseId": "rel-3-leverage-shifts",
+      "dimension": "relationshipDelta",
+      "expectedLabel": "REL-3",
+      "text": "Scene excerpt: Ilyan catches Mara with the forbidden ink and could report her immediately. Instead he demands a copy of the map. Outcome: their relationship shifts from former colleagues to mutual blackmail, and Mara must bargain with him to leave."
+    },
+    {
+      "caseId": "rel-3-betrayal-drives-plot",
+      "dimension": "relationshipDelta",
+      "expectedLabel": "REL-3",
+      "text": "Scene excerpt: Mara trusts Ilyan with the safe route, but he gives it to Ashren to regain his Survey post. Outcome: Mara loses the route, Ilyan becomes an active betrayer, and the next chapter must deal with Ashren reaching the hidden village first."
+    },
+    {
+      "caseId": "stakes-0-no-value-state",
+      "dimension": "stakesValueShift",
+      "expectedLabel": "STAKES-0",
+      "text": "Scene excerpt: Mara walks through the archive and notices the quiet shelves. She finds a drawer and reads a page. The scene does not establish what can be lost, won, exposed, protected, changed, or endangered."
+    },
+    {
+      "caseId": "stakes-1-stated-static",
+      "dimension": "stakesValueShift",
+      "expectedLabel": "STAKES-1",
+      "text": "Scene excerpt: Mara says the map is important and dangerous. She copies it without interference, hides it safely, and leaves in the same position she entered. The stakes are stated but the value state does not visibly change."
+    },
+    {
+      "caseId": "stakes-2-safe-to-exposed",
+      "dimension": "stakesValueShift",
+      "expectedLabel": "STAKES-2",
+      "text": "Scene excerpt: Mara enters the archive anonymously and safe. When true-ink burns through the false border, smoke marks her sleeve and the clerk sees it. Outcome: she leaves with evidence but is now identifiable as the illegal cartographer."
+    },
+    {
+      "caseId": "stakes-3-irreversible-criminal",
+      "dimension": "stakesValueShift",
+      "expectedLabel": "STAKES-3",
+      "text": "Scene excerpt: Mara can still surrender the map and remain legal. Instead she signs the forbidden road in true-ink before the Crown witness. Outcome: she moves from licensed cartographer to public criminal, Ashren orders her arrest, and the next conflict must be escape."
+    },
+    {
+      "caseId": "stakes-1-action-without-shift",
+      "dimension": "stakesValueShift",
+      "expectedLabel": "STAKES-1",
+      "text": "Scene excerpt: Mara runs across rooftops while guards shout below. The chase is exciting, but she starts wanted and ends wanted with no clearer cost, exposure, relationship change, or new danger. Outcome: she reaches the next street."
+    },
+    {
+      "caseId": "stakes-2-trust-to-suspicion",
+      "dimension": "stakesValueShift",
+      "expectedLabel": "STAKES-2",
+      "text": "Scene excerpt: Mara begins believing Sena is a useful ally. She finds his mark on the forged border and realizes he knew more than he admitted. Outcome: the value state shifts from trust to suspicion, and she withholds the route name."
+    },
+    {
+      "caseId": "stakes-3-hope-to-trapped",
+      "dimension": "stakesValueShift",
+      "expectedLabel": "STAKES-3",
+      "text": "Scene excerpt: Mara starts with a hopeful legal plan: present the ledger and regain her charter. Ilyan burns the ledger in front of the witness. Outcome: legal rescue becomes impossible, her only proof is gone, and she must choose between fleeing or making a public accusation without evidence."
     }
   ]
 }

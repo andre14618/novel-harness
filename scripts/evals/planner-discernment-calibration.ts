@@ -16,6 +16,9 @@ export type Dimension =
   | "causalMomentum"
   | "sceneDramaturgy"
   | "promiseProgress"
+  | "motivationSpecificity"
+  | "relationshipDelta"
+  | "stakesValueShift"
 export type PromptMode = "direct-label" | "evidence-first" | "gate-derived"
 
 interface CalibrationFixture {
@@ -40,6 +43,7 @@ interface Args {
   maxTokens: number
   concurrency: number
   modes: PromptMode[]
+  dimensions: Dimension[]
   json: boolean
 }
 
@@ -104,6 +108,9 @@ export const DIMENSIONS: Dimension[] = [
   "causalMomentum",
   "sceneDramaturgy",
   "promiseProgress",
+  "motivationSpecificity",
+  "relationshipDelta",
+  "stakesValueShift",
 ]
 
 export interface PlanningExcerptJudgeArgs {
@@ -128,7 +135,7 @@ export async function buildCalibrationReport(args: Args, generatedAt = new Date(
   // Group by stable prompt prefix: mode + dimension. This makes live calls
   // cheaper and cleaner by avoiding mixed rubric context in adjacent requests.
   for (const promptMode of args.modes) {
-    for (const dimension of DIMENSIONS) {
+    for (const dimension of args.dimensions) {
       for (const calibrationCase of fixture.cases.filter(row => row.dimension === dimension)) {
         tasks.push(() => runCase(args, calibrationCase, promptMode))
       }
@@ -164,6 +171,7 @@ export async function judgePlanningExcerpt(args: PlanningExcerptJudgeArgs): Prom
     maxTokens: args.maxTokens,
     concurrency: 1,
     modes: [args.promptMode],
+    dimensions: [args.dimension],
     json: false,
   }
   const output = args.live
@@ -379,11 +387,32 @@ function labelDefinitions(dimension: Dimension): string {
 - SCENE-2: Playable scene. Goal, opposition, turn, outcome, and consequence are all present.
 - SCENE-3: Strong scene. The playable scene also has stakes or value shift and leaves a consequential hook.`
   }
-  return `Promise progress labels:
+  if (dimension === "promiseProgress") {
+    return `Promise progress labels:
 - PROMISE-0: No reader promise, plot question, setup, or story debt is advanced.
 - PROMISE-1: Promise is merely repeated, restated, or teased without new information.
 - PROMISE-2: Concrete progress. A new clue, partial payoff, or complication changes what the reader understands.
 - PROMISE-3: Major promise movement. A payoff, reveal, or reframe changes the pursuit, obligation, or central conflict.`
+  }
+  if (dimension === "motivationSpecificity") {
+    return `Motivation specificity labels:
+- MOTIVE-0: Action has no clear character motivation beyond logistics or plot movement.
+- MOTIVE-1: Motivation is named but generic, external, or weakly tied to the character's desire, fear, flaw, value, or relationship pressure.
+- MOTIVE-2: Motivation is specific to the character and shapes the scene choice or tactic.
+- MOTIVE-3: Competing motivations, values, fear, flaw, or relationship pressure create an internally charged choice with consequence.`
+  }
+  if (dimension === "relationshipDelta") {
+    return `Relationship delta labels:
+- REL-0: No meaningful relationship interaction or state is present.
+- REL-1: Relationship is present but static; trust, leverage, debt, intimacy, suspicion, loyalty, or rivalry does not change.
+- REL-2: Relationship state changes concretely because of the scene interaction.
+- REL-3: Relationship turn creates a new obligation, betrayal, alliance, power shift, threat, or future plot pressure.`
+  }
+  return `Stakes/value shift labels:
+- STAKES-0: No clear stakes or value state is established.
+- STAKES-1: Stakes are stated but generic or static; the scene outcome does not visibly change the value state.
+- STAKES-2: Scene turns a concrete value state, such as safe to exposed, trusted to suspect, legal to criminal, hopeful to trapped.
+- STAKES-3: The value shift is sharp, costly, irreversible, or forces the next conflict or choice.`
 }
 
 function outputContract(dimension: Dimension, promptMode: PromptMode): string {
@@ -445,7 +474,16 @@ function evidenceContract(dimension: Dimension): string {
   if (dimension === "sceneDramaturgy") {
     return `{"goal": "", "opposition": "", "turn": "", "outcome": "", "consequence": "", "stakesOrValueShift": ""}`
   }
-  return `{"promise": "", "newInformation": "", "payoffOrComplication": "", "changedPursuitOrObligation": "", "reframe": ""}`
+  if (dimension === "promiseProgress") {
+    return `{"promise": "", "newInformation": "", "payoffOrComplication": "", "changedPursuitOrObligation": "", "reframe": ""}`
+  }
+  if (dimension === "motivationSpecificity") {
+    return `{"motivation": "", "characterDriver": "", "fearFlawOrValue": "", "relationshipPressure": "", "choiceLink": "", "consequence": ""}`
+  }
+  if (dimension === "relationshipDelta") {
+    return `{"relationship": "", "initialState": "", "interaction": "", "changedState": "", "plotEffect": ""}`
+  }
+  return `{"startingValueState": "", "stakes": "", "turn": "", "endingValueState": "", "costOrEscalation": ""}`
 }
 
 function gateContract(dimension: Dimension): string {
@@ -464,7 +502,16 @@ function gateContract(dimension: Dimension): string {
   if (dimension === "sceneDramaturgy") {
     return `{"hasConcreteGoal": true|false, "hasOpposition": true|false, "hasTurn": true|false, "hasOutcome": true|false, "hasConsequence": true|false, "hasStakesOrValueShift": true|false}`
   }
-  return `{"referencesPromise": true|false, "addsNewInformation": true|false, "paysOffSetup": true|false, "changesGoalOrObligation": true|false, "reframesCentralConflict": true|false}`
+  if (dimension === "promiseProgress") {
+    return `{"referencesPromise": true|false, "addsNewInformation": true|false, "paysOffSetup": true|false, "changesGoalOrObligation": true|false, "reframesCentralConflict": true|false}`
+  }
+  if (dimension === "motivationSpecificity") {
+    return `{"hasMotivation": true|false, "tiesToSpecificCharacterDriver": true|false, "driverShapesChoice": true|false, "hasInternalPressureOrTradeoff": true|false, "consequenceExpressesDriver": true|false}`
+  }
+  if (dimension === "relationshipDelta") {
+    return `{"hasRelationshipPair": true|false, "hasInteraction": true|false, "changesRelationshipState": true|false, "changeAffectsSceneOutcome": true|false, "changeCreatesFutureObligationOrThreat": true|false}`
+  }
+  return `{"hasStartingValueState": true|false, "hasStakes": true|false, "hasTurn": true|false, "endingStateDiffers": true|false, "shiftHasCostOrEscalation": true|false, "shiftIsIrreversibleOrForcesNext": true|false}`
 }
 
 function normalizeOutput(raw: any, dimension: Dimension): JudgeOutput {
@@ -522,10 +569,28 @@ export function deriveLabel(dimension: Dimension, gates: Record<string, boolean>
     if (!gates.hasStakesOrValueShift) return "SCENE-2"
     return "SCENE-3"
   }
-  if (!gates.referencesPromise) return "PROMISE-0"
-  if (!gates.addsNewInformation && !gates.paysOffSetup) return "PROMISE-1"
-  if (!gates.changesGoalOrObligation && !gates.reframesCentralConflict) return "PROMISE-2"
-  return "PROMISE-3"
+  if (dimension === "promiseProgress") {
+    if (!gates.referencesPromise) return "PROMISE-0"
+    if (!gates.addsNewInformation && !gates.paysOffSetup) return "PROMISE-1"
+    if (!gates.changesGoalOrObligation && !gates.reframesCentralConflict) return "PROMISE-2"
+    return "PROMISE-3"
+  }
+  if (dimension === "motivationSpecificity") {
+    if (!gates.hasMotivation) return "MOTIVE-0"
+    if (!gates.tiesToSpecificCharacterDriver || !gates.driverShapesChoice) return "MOTIVE-1"
+    if (!gates.hasInternalPressureOrTradeoff || !gates.consequenceExpressesDriver) return "MOTIVE-2"
+    return "MOTIVE-3"
+  }
+  if (dimension === "relationshipDelta") {
+    if (!gates.hasRelationshipPair || !gates.hasInteraction) return "REL-0"
+    if (!gates.changesRelationshipState) return "REL-1"
+    if (!gates.changeCreatesFutureObligationOrThreat) return "REL-2"
+    return "REL-3"
+  }
+  if (!gates.hasStartingValueState || !gates.hasStakes) return "STAKES-0"
+  if (!gates.hasTurn || !gates.endingStateDiffers) return "STAKES-1"
+  if (!gates.shiftIsIrreversibleOrForcesNext) return "STAKES-2"
+  return "STAKES-3"
 }
 
 function syntheticOutput(calibrationCase: CalibrationCase, promptMode: PromptMode): JudgeOutput {
@@ -585,12 +650,40 @@ function gatesForExpected(dimension: Dimension, label: string): Record<string, b
       hasStakesOrValueShift: ordinal >= 3,
     }
   }
+  if (dimension === "promiseProgress") {
+    return {
+      referencesPromise: ordinal >= 1,
+      addsNewInformation: ordinal >= 2,
+      paysOffSetup: ordinal >= 2,
+      changesGoalOrObligation: ordinal >= 3,
+      reframesCentralConflict: ordinal >= 3,
+    }
+  }
+  if (dimension === "motivationSpecificity") {
+    return {
+      hasMotivation: ordinal >= 1,
+      tiesToSpecificCharacterDriver: ordinal >= 2,
+      driverShapesChoice: ordinal >= 2,
+      hasInternalPressureOrTradeoff: ordinal >= 3,
+      consequenceExpressesDriver: ordinal >= 3,
+    }
+  }
+  if (dimension === "relationshipDelta") {
+    return {
+      hasRelationshipPair: ordinal >= 1,
+      hasInteraction: ordinal >= 1,
+      changesRelationshipState: ordinal >= 2,
+      changeAffectsSceneOutcome: ordinal >= 2,
+      changeCreatesFutureObligationOrThreat: ordinal >= 3,
+    }
+  }
   return {
-    referencesPromise: ordinal >= 1,
-    addsNewInformation: ordinal >= 2,
-    paysOffSetup: ordinal >= 2,
-    changesGoalOrObligation: ordinal >= 3,
-    reframesCentralConflict: ordinal >= 3,
+    hasStartingValueState: ordinal >= 1,
+    hasStakes: ordinal >= 1,
+    hasTurn: ordinal >= 2,
+    endingStateDiffers: ordinal >= 2,
+    shiftHasCostOrEscalation: ordinal >= 2,
+    shiftIsIrreversibleOrForcesNext: ordinal >= 3,
   }
 }
 
@@ -607,7 +700,10 @@ function dimensionPrefix(dimension: Dimension): string {
   if (dimension === "endpointLanding") return "ENDPOINT"
   if (dimension === "causalMomentum") return "CAUSAL"
   if (dimension === "sceneDramaturgy") return "SCENE"
-  return "PROMISE"
+  if (dimension === "promiseProgress") return "PROMISE"
+  if (dimension === "motivationSpecificity") return "MOTIVE"
+  if (dimension === "relationshipDelta") return "REL"
+  return "STAKES"
 }
 
 function labelOrdinal(label: string): number {
@@ -643,6 +739,7 @@ function parseArgs(argv: string[]): Args {
   let maxTokens = 1400
   let concurrency = 4
   const modes: PromptMode[] = []
+  const dimensions: Dimension[] = []
   let json = false
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!
@@ -661,11 +758,13 @@ function parseArgs(argv: string[]): Args {
     else if (arg.startsWith("--concurrency=")) concurrency = parsePositiveInt(arg.slice("--concurrency=".length), "--concurrency")
     else if (arg === "--mode") modes.push(parseMode(requireValue(argv, ++i, "--mode")))
     else if (arg.startsWith("--mode=")) modes.push(parseMode(arg.slice("--mode=".length)))
+    else if (arg === "--dimension") dimensions.push(parseDimension(requireValue(argv, ++i, "--dimension")))
+    else if (arg.startsWith("--dimension=")) dimensions.push(parseDimension(arg.slice("--dimension=".length)))
     else if (arg === "--json") json = true
     else throw new Error(`unknown arg: ${arg}`)
   }
   if (model === "deepseek-v4-pro" && !argv.includes("--no-thinking")) thinking = true
-  return { fixturePath, outputDir, live, model, thinking, maxTokens, concurrency, modes: modes.length ? modes : DEFAULT_MODES, json }
+  return { fixturePath, outputDir, live, model, thinking, maxTokens, concurrency, modes: modes.length ? modes : DEFAULT_MODES, dimensions: dimensions.length ? dimensions : DIMENSIONS, json }
 }
 
 function requireValue(argv: string[], index: number, flag: string): string {
@@ -682,6 +781,11 @@ function parseModel(value: string): Args["model"] {
 function parseMode(value: string): PromptMode {
   if (value === "direct-label" || value === "evidence-first" || value === "gate-derived") return value
   throw new Error(`unsupported mode: ${value}`)
+}
+
+function parseDimension(value: string): Dimension {
+  if (DIMENSIONS.includes(value as Dimension)) return value as Dimension
+  throw new Error(`unsupported dimension: ${value}`)
 }
 
 function parsePositiveInt(value: string, flag: string): number {

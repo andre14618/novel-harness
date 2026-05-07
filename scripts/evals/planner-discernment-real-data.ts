@@ -126,7 +126,12 @@ const DEFAULT_COHORT_DIR = "output/method-pack-diagnostics/2026-05-07T13-51-44-9
 const DEFAULT_PROMPT_MODE: PromptMode = "direct-label"
 const DEFAULT_CONCURRENCY = 8
 const DEFAULT_MAX_TOKENS = 1400
-const CHAPTER_DIMENSIONS = DIMENSIONS.filter(dimension => dimension !== "sceneDramaturgy")
+const SCENE_DIMENSIONS = new Set<Dimension>([
+  "sceneDramaturgy",
+  "motivationSpecificity",
+  "relationshipDelta",
+  "stakesValueShift",
+])
 
 export async function buildRealDataReport(args: Args, generatedAt = new Date().toISOString()): Promise<RealDataReport> {
   const cellPaths = collectCellPaths(args)
@@ -249,7 +254,7 @@ function collectExcerpts(cellPaths: string[], args: Args): PlannerExcerpt[] {
 function buildTasks(excerpts: PlannerExcerpt[], args: Args): Array<() => Promise<DiscernmentResult>> {
   const tasks: Array<() => Promise<DiscernmentResult>> = []
   for (const dimension of args.dimensions) {
-    const unitType: UnitType = dimension === "sceneDramaturgy" ? "scene" : "chapter"
+    const unitType = unitTypeForDimension(dimension)
     for (const excerpt of excerpts.filter(row => row.unitType === unitType)) {
       tasks.push(async () => {
         const caseId = `${excerpt.excerptId}:${dimension}`
@@ -278,6 +283,10 @@ function buildTasks(excerpts: PlannerExcerpt[], args: Args): Array<() => Promise
     }
   }
   return tasks
+}
+
+function unitTypeForDimension(dimension: Dimension): UnitType {
+  return SCENE_DIMENSIONS.has(dimension) ? "scene" : "chapter"
 }
 
 function summarize(results: DiscernmentResult[]): ArmDimensionSummary[] {
@@ -366,6 +375,9 @@ function renderSceneExcerpt(
 Premise: ${fixture.concept.premise}
 Reader promise: ${fixture.concept.readerPromise}
 Central conflict: ${fixture.concept.centralConflict}
+Protagonist: ${fixture.concept.protagonist.name}; desire=${fixture.concept.protagonist.desire}; fear=${fixture.concept.protagonist.fear}; flaw=${fixture.concept.protagonist.flaw}
+Key characters:
+${fixture.concept.characters.map(character => `- ${character.characterId}: ${character.name}; role=${character.role}; materiality=${character.materiality}`).join("\n") || "- none"}
 
 Plan arm: ${planArmId}
 Parent chapter: ${chapter.chapterId}; function=${chapter.chapterFunction}; endpoint=${chapter.endpointOrHook}
@@ -458,7 +470,7 @@ function parseArgs(argv: string[]): Args {
     maxTokens,
     concurrency,
     promptMode,
-    dimensions: dimensions.length > 0 ? dimensions : [...CHAPTER_DIMENSIONS, "sceneDramaturgy"],
+    dimensions: dimensions.length > 0 ? dimensions : DIMENSIONS,
     chapterLimit,
     replicate,
     json,

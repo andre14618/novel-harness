@@ -34,6 +34,21 @@ describe("planner-discernment-calibration", () => {
     expect(promisePrompt).toContain("PROMISE-0")
     expect(promisePrompt).not.toContain("SCENE-0")
     expect(promisePrompt).not.toContain("ENDPOINT-0")
+
+    const motivePrompt = buildDiscernmentSystemPrompt("motivationSpecificity", "direct-label")
+    expect(motivePrompt).toContain("MOTIVE-0")
+    expect(motivePrompt).not.toContain("PROMISE-0")
+    expect(motivePrompt).not.toContain("REL-0")
+
+    const relationshipPrompt = buildDiscernmentSystemPrompt("relationshipDelta", "direct-label")
+    expect(relationshipPrompt).toContain("REL-0")
+    expect(relationshipPrompt).not.toContain("MOTIVE-0")
+    expect(relationshipPrompt).not.toContain("STAKES-0")
+
+    const stakesPrompt = buildDiscernmentSystemPrompt("stakesValueShift", "direct-label")
+    expect(stakesPrompt).toContain("STAKES-0")
+    expect(stakesPrompt).not.toContain("REL-0")
+    expect(stakesPrompt).not.toContain("AGENCY-0")
   })
 
   test("derives anchored labels from binary gates", () => {
@@ -78,6 +93,28 @@ describe("planner-discernment-calibration", () => {
       changesGoalOrObligation: false,
       reframesCentralConflict: false,
     })).toBe("PROMISE-2")
+    expect(deriveLabel("motivationSpecificity", {
+      hasMotivation: true,
+      tiesToSpecificCharacterDriver: true,
+      driverShapesChoice: true,
+      hasInternalPressureOrTradeoff: true,
+      consequenceExpressesDriver: true,
+    })).toBe("MOTIVE-3")
+    expect(deriveLabel("relationshipDelta", {
+      hasRelationshipPair: true,
+      hasInteraction: true,
+      changesRelationshipState: true,
+      changeAffectsSceneOutcome: true,
+      changeCreatesFutureObligationOrThreat: false,
+    })).toBe("REL-2")
+    expect(deriveLabel("stakesValueShift", {
+      hasStartingValueState: true,
+      hasStakes: true,
+      hasTurn: true,
+      endingStateDiffers: true,
+      shiftHasCostOrEscalation: true,
+      shiftIsIrreversibleOrForcesNext: false,
+    })).toBe("STAKES-2")
   })
 
   test("tracks exact, off-by-one, and severe over-label rates", () => {

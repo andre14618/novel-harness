@@ -207,3 +207,68 @@ Follow-up:
   state movement, scene stakes/value shift, and promise novelty.
 - Build an operator calibration queue from `AGENCY-1` and saturated `*-2`
   examples before running the full 18-cell cohort.
+
+## Richness Sensor Slice
+
+Added three scene-level dimensions intended to move above basic plan-floor
+checks:
+
+- `motivationSpecificity`: whether scene action follows from a
+  character-specific desire, fear, flaw, value, or relationship pressure.
+- `relationshipDelta`: whether the scene changes trust, leverage, debt,
+  loyalty, rivalry, intimacy, suspicion, or power.
+- `stakesValueShift`: whether the scene visibly changes a value state.
+
+Held constant:
+
+- no planner, writer, checker, UI, or runtime default changes;
+- same one-excerpt/one-dimension judge shape;
+- DeepSeek V4 Flash with no thinking for bulk calibration and real-data
+  diagnostics.
+
+Calibration result on `21` new known-answer cases:
+
+- `evidence-first`: `100%` exact, `100%` off-by-one, `0%` over-label.
+- `direct-label`: `95%` exact, `100%` off-by-one, `5%` over-label,
+  `0%` severe over-label.
+
+Calibration artifact:
+
+`output/method-pack-diagnostics/2026-05-07T21-56-20-313Z/discernment-calibration/`
+
+Real-data evidence-first artifact:
+
+`output/method-pack-diagnostics/2026-05-07T21-56-48-363Z/planner-discernment-real-data/`
+
+Real-data direct-label artifact:
+
+`output/method-pack-diagnostics/2026-05-07T21-57-50-023Z/planner-discernment-real-data/`
+
+Real-data result:
+
+- `motivationSpecificity`: no method-pack lift; saturated around level `2`.
+- `relationshipDelta`: strongest new signal; method-pack arm was weaker than
+  control in both prompt shapes.
+- `stakesValueShift`: saturated at level `2`; currently a floor check, not a
+  good-vs-great discriminator.
+
+Interpretation:
+
+- The judge can provide useful diagnostic labels when the task is narrow and
+  calibrated against known answers.
+- The method-pack does not yet show semantic lift on the sampled real planner
+  data and may weaken relationship movement.
+- This supports the current repository principle: methodology changes must
+  name the optimized layer and prove value before planner/writer/checker
+  defaults are changed.
+- Do not wire these labels as blockers. Use them as comparison sensors and
+  operator-review prompts.
+
+Revised follow-up:
+
+- Build a small operator calibration queue from `REL-1`, `MOTIVE-1`, and
+  saturated `MOTIVE-2` / `STAKES-2` examples.
+- Revise upstream scene contracts only where the scene depends on relationship
+  pressure; avoid forcing every scene to carry a relationship delta.
+- Add a sharper stakes/promise novelty sensor only after operator review shows
+  the current `STAKES-2` bucket hides meaningful quality differences.
