@@ -1,0 +1,936 @@
+#!/usr/bin/env bun
+/**
+ * Planner-only diagnostic for the commercial fantasy/adventure method pack.
+ *
+ * This is intentionally outside the production pipeline. It compares a
+ * no-method planning arm with a method-pack arm on chapter/scene contract
+ * quality before drafting, checking, proposal flows, or UI change.
+ */
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { dirname, resolve } from "node:path"
+import { z } from "zod"
+
+const coveragePolicySchema = z.enum(["must_satisfy", "should_surface", "forbid", "optional"])
+const sourceKindSchema = z.enum(["character", "world", "structure", "story_promise", "concept"])
+
+const targetSlotSchema = z.object({
+  structureSlotId: z.string(),
+  structureJob: z.string(),
+  planningTest: z.string(),
+})
+
+const characterSchema = z.object({
+  characterId: z.string(),
+  name: z.string(),
+  role: z.string(),
+  materiality: z.string(),
+})
+
+const worldFactSchema = z.object({
+  worldFactId: z.string(),
+  fact: z.string(),
+})
+
+const fixtureSchema = z.object({
+  diagnosticId: z.string(),
+  methodPackId: z.string(),
+  templateId: z.string(),
+  targetSlots: z.array(targetSlotSchema).min(1),
+  concept: z.object({
+    genreProfileId: z.string(),
+    premise: z.string(),
+    readerPromise: z.string(),
+    centralConflict: z.string(),
+    protagonist: z.object({
+      characterId: z.string(),
+      name: z.string(),
+      desire: z.string(),
+      fear: z.string(),
+      flaw: z.string(),
+    }),
+    characters: z.array(characterSchema),
+    worldFacts: z.array(worldFactSchema),
+    storyPromise: z.object({
+      promiseId: z.string(),
+      text: z.string(),
+    }),
+    constraints: z.array(z.string()),
+  }),
+  arms: z.array(z.object({
+    armId: z.string(),
+    label: z.string(),
+    methodPackEnabled: z.boolean(),
+    plan: z.unknown(),
+  })).optional(),
+})
+
+const obligationSchema = z.object({
+  obligationId: z.string(),
+  sourceId: z.string(),
+  sourceKind: sourceKindSchema,
+  coveragePolicy: coveragePolicySchema,
+  requirementText: z.string(),
+  linkedCharacterIds: z.array(z.string()).default([]),
+  linkedWorldFactIds: z.array(z.string()).default([]),
+})
+
+const sceneContractSchema = z.object({
+  sceneId: z.string(),
+  chapterId: z.string(),
+  structureSlotId: z.string(),
+  sceneFunction: z.string(),
+  povCharacterId: z.string(),
+  locationOrArena: z.string(),
+  goal: z.string(),
+  conflict: z.string(),
+  turnOrValueShift: z.string(),
+  outcome: z.string(),
+  consequence: z.string(),
+  requiredObligationIds: z.array(z.string()).default([]),
+  requiredSourceIds: z.array(z.string()).default([]),
+  requiredCharacterIds: z.array(z.string()).default([]),
+  requiredWorldFactIds: z.array(z.string()).default([]),
+}).strict()
+
+const chapterContractSchema = z.object({
+  chapterId: z.string(),
+  structureSlotId: z.string(),
+  chapterFunction: z.string(),
+  povCharacterId: z.string(),
+  protagonistPressure: z.string(),
+  centralConflict: z.string(),
+  irreversibleChange: z.string(),
+  endpointOrHook: z.string(),
+  requiredCharacterWork: z.string(),
+  requiredWorldWork: z.string(),
+  requiredStoryDebtWork: z.string(),
+  scenes: z.array(sceneContractSchema).min(1),
+  obligations: z.array(obligationSchema).default([]),
+}).strict()
+
+export const plannerContractPlanSchema = z.object({
+  armId: z.string(),
+  methodPackId: z.string().nullable().default(null),
+  templateId: z.string().nullable().default(null),
+  chapters: z.array(chapterContractSchema).min(1),
+  notes: z.string().optional(),
+}).strict()
+
+const plannerContractPlanOutputSchema = z.preprocess((value) => {
+  if (value && typeof value === "object" && "plan" in value) {
+    return (value as { plan?: unknown }).plan
+  }
+  return value
+}, plannerContractPlanSchema)
+
+export type PlannerContractPlan = z.infer<typeof plannerContractPlanSchema>
+export type PlannerDiagnosticFixture = z.infer<typeof fixtureSchema>
+
+export interface DimensionScore {
+  passed: number
+  possible: number
+  ratio: number | null
+  issues: string[]
+}
+
+export interface ArmScore {
+  armId: string
+  methodPackEnabled: boolean
+  totalPassed: number
+  totalPossible: number
+  totalRatio: number
+  dimensions: Record<string, DimensionScore>
+}
+
+export interface DiagnosticArmResult {
+  armId: string
+  label: string
+  methodPackEnabled: boolean
+  plan: PlannerContractPlan
+  score: ArmScore
+}
+
+export interface DiagnosticReport {
+  diagnosticId: string
+  generatedAt: string
+  mode: "fixture" | "live"
+  fixturePath: string
+  arms: DiagnosticArmResult[]
+  comparison: {
+    controlArmId: string | null
+    testArmId: string | null
+    totalRatioDelta: number | null
+    verdict: string
+    reason: string
+  }
+}
+
+interface Args {
+  fixturePath: string
+  live: boolean
+  json: boolean
+  outputPath: string | null
+}
+
+const DEFAULT_FIXTURE_PATH = "docs/fixtures/method-packs/commercial-fantasy-adventure-v0/frozen-concept.json"
+
+const ACTION_TERMS = [
+  "choose", "choice", "cost", "force", "forces", "risk", "refuse", "reveal",
+  "betray", "sacrifice", "confront", "expose", "protect", "escape", "commit",
+  "decide", "threaten", "punish", "change", "break",
+]
+
+const GENERIC_TERMS = new Set(["none", "n/a", "tbd", "unknown", "same", "generic"])
+
+const STOPWORDS = new Set([
+  "about", "after", "again", "against", "also", "because", "before", "being",
+  "between", "chapter", "could", "from", "have", "into", "that", "their",
+  "them", "then", "there", "this", "through", "with", "will", "would",
+  "while", "where", "which", "what", "when",
+])
+
+export function scorePlan(
+  plan: PlannerContractPlan,
+  fixture: PlannerDiagnosticFixture,
+  methodPackEnabled: boolean,
+): ArmScore {
+  const dimensions: Record<string, DimensionScore> = {
+    templateSlotFit: templateSlotFit(plan, fixture, methodPackEnabled),
+    chapterContractComplete: chapterContractComplete(plan),
+    sceneContractComplete: sceneContractComplete(plan),
+    characterMateriality: characterMateriality(plan, fixture),
+    worldRelevance: worldRelevance(plan, fixture),
+    obligationClarity: obligationClarity(plan),
+    endpointLanding: endpointLanding(plan),
+    overfragmentation: overfragmentation(plan),
+    idCompleteness: idCompleteness(plan, fixture),
+  }
+  const scored = Object.values(dimensions).filter(d => d.possible > 0)
+  const totalPassed = scored.reduce((sum, d) => sum + d.passed, 0)
+  const totalPossible = scored.reduce((sum, d) => sum + d.possible, 0)
+  return {
+    armId: plan.armId,
+    methodPackEnabled,
+    totalPassed,
+    totalPossible,
+    totalRatio: totalPossible > 0 ? totalPassed / totalPossible : 0,
+    dimensions,
+  }
+}
+
+export function normalizePlannerContractPlan(
+  raw: unknown,
+  fixture: PlannerDiagnosticFixture,
+  defaults: { armId: string; methodPackEnabled: boolean },
+): PlannerContractPlan {
+  const unwrapped = record(raw)
+  const source = record("plan" in unwrapped ? unwrapped.plan : unwrapped)
+  const chaptersRaw = Array.isArray(source.chapters) ? source.chapters : []
+  const chapters = chaptersRaw.map((chapterRaw, index) =>
+    normalizeChapterContract(chapterRaw, fixture, defaults, index)
+  )
+  const candidate = {
+    armId: stringValue(source.armId) || defaults.armId,
+    methodPackId: defaults.methodPackEnabled
+      ? fixture.methodPackId
+      : nullableString(source.methodPackId),
+    templateId: defaults.methodPackEnabled
+      ? fixture.templateId
+      : nullableString(source.templateId),
+    chapters,
+    notes: stringValue(source.notes) || undefined,
+  }
+  return plannerContractPlanSchema.parse(candidate)
+}
+
+export function buildDiagnosticReport(
+  fixture: PlannerDiagnosticFixture,
+  arms: Array<{ armId: string; label: string; methodPackEnabled: boolean; plan: PlannerContractPlan }>,
+  options: { mode: "fixture" | "live"; fixturePath: string; generatedAt?: string },
+): DiagnosticReport {
+  const results = arms.map(arm => ({
+    ...arm,
+    score: scorePlan(arm.plan, fixture, arm.methodPackEnabled),
+  }))
+  const control = results.find(arm => !arm.methodPackEnabled) ?? null
+  const test = results.find(arm => arm.methodPackEnabled) ?? null
+  const totalRatioDelta = control && test ? test.score.totalRatio - control.score.totalRatio : null
+  const testSlotFit = test?.score.dimensions.templateSlotFit
+  const testCriticalIssues = test ? [
+    ...test.score.dimensions.idCompleteness.issues,
+    ...test.score.dimensions.sceneContractComplete.issues,
+  ] : []
+  let verdict = "HOLD"
+  let reason = "Need both control and method-pack arms before drawing a directional conclusion."
+  if (control && test && totalRatioDelta !== null) {
+    if (testCriticalIssues.length > 0) {
+      verdict = "HOLD"
+      reason = "Method-pack arm has structural or ID issues; revise before any live promotion."
+    } else if ((testSlotFit?.ratio ?? 0) < 1) {
+      verdict = "HOLD"
+      reason = "Method-pack arm did not preserve the requested structure-slot map."
+    } else if (totalRatioDelta >= 0.08) {
+      verdict = "DIRECTIONAL-PASS"
+      reason = "Method-pack arm improved deterministic plan-contract score by at least 8 points without structural issues."
+    } else if (totalRatioDelta < 0) {
+      verdict = "NO-PROMOTION"
+      reason = "Method-pack arm scored worse than the no-method control on this diagnostic."
+    } else {
+      verdict = "HOLD"
+      reason = "Method-pack arm ran, but the deterministic improvement is too small for promotion."
+    }
+  }
+  return {
+    diagnosticId: fixture.diagnosticId,
+    generatedAt: options.generatedAt ?? new Date().toISOString(),
+    mode: options.mode,
+    fixturePath: options.fixturePath,
+    arms: results,
+    comparison: {
+      controlArmId: control?.armId ?? null,
+      testArmId: test?.armId ?? null,
+      totalRatioDelta,
+      verdict,
+      reason,
+    },
+  }
+}
+
+export function renderDiagnosticReport(report: DiagnosticReport): string {
+  const lines: string[] = []
+  lines.push(`Method-pack planner diagnostic: ${report.diagnosticId}`)
+  lines.push(`Mode=${report.mode}; fixture=${report.fixturePath}`)
+  lines.push("")
+  for (const arm of report.arms) {
+    lines.push(`${arm.armId} (${arm.label})`)
+    lines.push(`  methodPack=${arm.methodPackEnabled}; score=${arm.score.totalPassed}/${arm.score.totalPossible} (${formatPct(arm.score.totalRatio)})`)
+    for (const [name, score] of Object.entries(arm.score.dimensions)) {
+      const ratio = score.ratio === null ? "n/a" : formatPct(score.ratio)
+      lines.push(`  ${name}: ${score.passed}/${score.possible} (${ratio})`)
+      for (const issue of score.issues.slice(0, 4)) lines.push(`    - ${issue}`)
+      if (score.issues.length > 4) lines.push(`    - ...${score.issues.length - 4} more`)
+    }
+    lines.push("")
+  }
+  lines.push(`Verdict: ${report.comparison.verdict}`)
+  lines.push(`Reason: ${report.comparison.reason}`)
+  if (report.comparison.totalRatioDelta !== null) {
+    lines.push(`Delta: ${formatSignedPct(report.comparison.totalRatioDelta)}`)
+  }
+  return lines.join("\n")
+}
+
+function templateSlotFit(
+  plan: PlannerContractPlan,
+  fixture: PlannerDiagnosticFixture,
+  methodPackEnabled: boolean,
+): DimensionScore {
+  if (!methodPackEnabled) {
+    return { passed: 0, possible: 0, ratio: null, issues: ["not applicable for no-method control"] }
+  }
+  const expected = fixture.targetSlots.map(slot => slot.structureSlotId)
+  const issues: string[] = []
+  let passed = 0
+  for (let i = 0; i < expected.length; i++) {
+    const chapter = plan.chapters[i]
+    if (!chapter) {
+      issues.push(`missing chapter for ${expected[i]}`)
+      continue
+    }
+    if (chapter.structureSlotId === expected[i]) passed++
+    else issues.push(`chapter ${i + 1} expected ${expected[i]}, got ${chapter.structureSlotId}`)
+  }
+  if (plan.chapters.length !== expected.length) {
+    issues.push(`expected ${expected.length} chapters for fixture, got ${plan.chapters.length}`)
+  }
+  return dimension(passed, expected.length, issues)
+}
+
+function chapterContractComplete(plan: PlannerContractPlan): DimensionScore {
+  const fields = [
+    "chapterFunction",
+    "protagonistPressure",
+    "centralConflict",
+    "irreversibleChange",
+    "endpointOrHook",
+    "requiredStoryDebtWork",
+  ] as const
+  const issues: string[] = []
+  let passed = 0
+  for (const chapter of plan.chapters) {
+    for (const field of fields) {
+      if (meaningful(chapter[field])) passed++
+      else issues.push(`${chapter.chapterId}.${field} is missing or generic`)
+    }
+  }
+  return dimension(passed, plan.chapters.length * fields.length, issues)
+}
+
+function sceneContractComplete(plan: PlannerContractPlan): DimensionScore {
+  const fields = ["goal", "conflict", "turnOrValueShift", "outcome", "consequence"] as const
+  const issues: string[] = []
+  let passed = 0
+  let possible = 0
+  for (const chapter of plan.chapters) {
+    for (const scene of chapter.scenes) {
+      for (const field of fields) {
+        possible++
+        if (meaningful(scene[field])) passed++
+        else issues.push(`${scene.sceneId}.${field} is missing or generic`)
+      }
+    }
+  }
+  return dimension(passed, possible, issues)
+}
+
+function characterMateriality(plan: PlannerContractPlan, fixture: PlannerDiagnosticFixture): DimensionScore {
+  const knownCharacterIds = new Set([
+    fixture.concept.protagonist.characterId,
+    ...fixture.concept.characters.map(c => c.characterId),
+  ])
+  const issues: string[] = []
+  let passed = 0
+  for (const chapter of plan.chapters) {
+    const sceneCharacterIds = new Set(chapter.scenes.flatMap(scene => scene.requiredCharacterIds))
+    const hasKnownCharacter = [...sceneCharacterIds].some(id => knownCharacterIds.has(id))
+    const text = `${chapter.requiredCharacterWork} ${chapter.protagonistPressure} ${chapter.centralConflict}`
+    if (meaningful(chapter.requiredCharacterWork) && hasKnownCharacter && hasActionPressure(text)) passed++
+    else issues.push(`${chapter.chapterId} does not make character work materially active`)
+  }
+  return dimension(passed, plan.chapters.length, issues)
+}
+
+function worldRelevance(plan: PlannerContractPlan, fixture: PlannerDiagnosticFixture): DimensionScore {
+  const knownWorldIds = new Set(fixture.concept.worldFacts.map(fact => fact.worldFactId))
+  const issues: string[] = []
+  let passed = 0
+  for (const chapter of plan.chapters) {
+    const sceneWorldIds = new Set(chapter.scenes.flatMap(scene => scene.requiredWorldFactIds))
+    const obligationWorldIds = new Set(chapter.obligations.flatMap(obligation => obligation.linkedWorldFactIds))
+    const hasKnownWorld = [...sceneWorldIds, ...obligationWorldIds].some(id => knownWorldIds.has(id))
+    const text = `${chapter.requiredWorldWork} ${chapter.centralConflict} ${chapter.irreversibleChange}`
+    if (meaningful(chapter.requiredWorldWork) && hasKnownWorld && hasActionPressure(text)) passed++
+    else issues.push(`${chapter.chapterId} does not make world facts operational`)
+  }
+  return dimension(passed, plan.chapters.length, issues)
+}
+
+function obligationClarity(plan: PlannerContractPlan): DimensionScore {
+  const issues: string[] = []
+  let passed = 0
+  let possible = 0
+  for (const chapter of plan.chapters) {
+    for (const obligation of chapter.obligations) {
+      possible++
+      if (meaningful(obligation.requirementText) && obligation.coveragePolicy === "must_satisfy") passed++
+      else issues.push(`${obligation.obligationId} is vague or not must_satisfy`)
+    }
+    if (chapter.obligations.length === 0) {
+      possible++
+      issues.push(`${chapter.chapterId} has no obligations`)
+    }
+  }
+  return dimension(passed, possible, issues)
+}
+
+function endpointLanding(plan: PlannerContractPlan): DimensionScore {
+  const issues: string[] = []
+  let passed = 0
+  for (const chapter of plan.chapters) {
+    const lastScene = chapter.scenes.at(-1)
+    const landingText = `${lastScene?.outcome ?? ""} ${lastScene?.consequence ?? ""}`
+    const overlap = tokenOverlapRatio(chapter.endpointOrHook, landingText)
+    if (meaningful(chapter.endpointOrHook) && overlap >= 0.22) passed++
+    else issues.push(`${chapter.chapterId} endpoint does not land in final scene outcome/consequence`)
+  }
+  return dimension(passed, plan.chapters.length, issues)
+}
+
+function overfragmentation(plan: PlannerContractPlan): DimensionScore {
+  const issues: string[] = []
+  let passed = 0
+  for (const chapter of plan.chapters) {
+    if (chapter.scenes.length >= 1 && chapter.scenes.length <= 4) passed++
+    else issues.push(`${chapter.chapterId} has ${chapter.scenes.length} scenes; expected 1-4`)
+  }
+  return dimension(passed, plan.chapters.length, issues)
+}
+
+function idCompleteness(plan: PlannerContractPlan, fixture: PlannerDiagnosticFixture): DimensionScore {
+  const issues: string[] = []
+  const knownCharacterIds = new Set([
+    fixture.concept.protagonist.characterId,
+    ...fixture.concept.characters.map(c => c.characterId),
+  ])
+  const knownWorldIds = new Set(fixture.concept.worldFacts.map(fact => fact.worldFactId))
+  const knownStructureIds = new Set(fixture.targetSlots.map(slot => slot.structureSlotId))
+  const seenChapterIds = new Set<string>()
+  const seenSceneIds = new Set<string>()
+  let passed = 0
+  let possible = 0
+
+  const check = (condition: boolean, issue: string) => {
+    possible++
+    if (condition) passed++
+    else issues.push(issue)
+  }
+
+  for (const chapter of plan.chapters) {
+    check(Boolean(chapter.chapterId) && !seenChapterIds.has(chapter.chapterId), `${chapter.chapterId || "chapter"} duplicate/missing chapterId`)
+    seenChapterIds.add(chapter.chapterId)
+    check(Boolean(chapter.structureSlotId), `${chapter.chapterId} missing structureSlotId`)
+    if (plan.methodPackId) {
+      check(knownStructureIds.has(chapter.structureSlotId), `${chapter.chapterId} unknown structureSlotId ${chapter.structureSlotId}`)
+    }
+    check(knownCharacterIds.has(chapter.povCharacterId), `${chapter.chapterId} unknown povCharacterId ${chapter.povCharacterId}`)
+
+    const obligationIds = new Set(chapter.obligations.map(obligation => obligation.obligationId))
+    const sourceIds = new Set(chapter.obligations.map(obligation => obligation.sourceId))
+    for (const obligation of chapter.obligations) {
+      check(Boolean(obligation.obligationId), `${chapter.chapterId} obligation missing obligationId`)
+      check(Boolean(obligation.sourceId), `${obligation.obligationId} missing sourceId`)
+      for (const characterId of obligation.linkedCharacterIds) {
+        check(knownCharacterIds.has(characterId), `${obligation.obligationId} unknown linkedCharacterId ${characterId}`)
+      }
+      for (const worldFactId of obligation.linkedWorldFactIds) {
+        check(knownWorldIds.has(worldFactId), `${obligation.obligationId} unknown linkedWorldFactId ${worldFactId}`)
+      }
+    }
+
+    for (const scene of chapter.scenes) {
+      check(Boolean(scene.sceneId) && !seenSceneIds.has(scene.sceneId), `${scene.sceneId || "scene"} duplicate/missing sceneId`)
+      seenSceneIds.add(scene.sceneId)
+      check(scene.chapterId === chapter.chapterId, `${scene.sceneId} chapterId does not match ${chapter.chapterId}`)
+      check(scene.structureSlotId === chapter.structureSlotId, `${scene.sceneId} structureSlotId does not match chapter`)
+      check(scene.requiredObligationIds.length > 0, `${scene.sceneId} has no requiredObligationIds`)
+      check(scene.requiredSourceIds.length > 0, `${scene.sceneId} has no requiredSourceIds`)
+      for (const obligationId of scene.requiredObligationIds) {
+        check(obligationIds.has(obligationId), `${scene.sceneId} references unknown obligationId ${obligationId}`)
+      }
+      for (const sourceId of scene.requiredSourceIds) {
+        check(sourceIds.has(sourceId), `${scene.sceneId} references unknown sourceId ${sourceId}`)
+      }
+      for (const characterId of scene.requiredCharacterIds) {
+        check(knownCharacterIds.has(characterId), `${scene.sceneId} references unknown characterId ${characterId}`)
+      }
+      for (const worldFactId of scene.requiredWorldFactIds) {
+        check(knownWorldIds.has(worldFactId), `${scene.sceneId} references unknown worldFactId ${worldFactId}`)
+      }
+    }
+  }
+  return dimension(passed, possible, issues)
+}
+
+function normalizeChapterContract(
+  raw: unknown,
+  fixture: PlannerDiagnosticFixture,
+  defaults: { methodPackEnabled: boolean },
+  index: number,
+): z.infer<typeof chapterContractSchema> {
+  const source = record(raw)
+  const structureSlotId = stringValue(source.structureSlotId)
+    || (defaults.methodPackEnabled
+      ? fixture.targetSlots[index]?.structureSlotId
+      : `BASE-${String(index + 1).padStart(2, "0")}`)
+  const chapterId = stringValue(source.chapterId)
+    || `ch-${String(index + 1).padStart(2, "0")}-${slug(structureSlotId)}`
+  const povCharacterId = stringValue(source.povCharacterId) || stringValue(source.pov) || ""
+  const obligations = normalizeObligations(source, chapterId, fixture)
+  const scenesRaw = Array.isArray(source.scenes) ? source.scenes : []
+  const scenesSource = scenesRaw.length > 0 ? scenesRaw : [{}]
+  return {
+    chapterId,
+    structureSlotId,
+    chapterFunction: stringValue(source.chapterFunction) || stringValue(source.function) || stringValue(source.purpose) || stringValue(source.title) || "",
+    povCharacterId,
+    protagonistPressure: stringValue(source.protagonistPressure) || stringValue(source.pressure) || "",
+    centralConflict: stringValue(source.centralConflict) || stringValue(source.conflict) || "",
+    irreversibleChange: stringValue(source.irreversibleChange) || stringValue(source.change) || stringValue(source.reversal) || "",
+    endpointOrHook: stringValue(source.endpointOrHook) || stringValue(source.chapterHook) || stringValue(source.hook) || "",
+    requiredCharacterWork: stringValue(source.requiredCharacterWork) || stringValue(source.characterWork) || "",
+    requiredWorldWork: stringValue(source.requiredWorldWork) || stringValue(source.worldWork) || "",
+    requiredStoryDebtWork: stringValue(source.requiredStoryDebtWork) || stringValue(source.storyDebtWork) || stringValue(source.promiseWork) || "",
+    scenes: scenesSource.map((sceneRaw, sceneIndex) =>
+      normalizeSceneContract(sceneRaw, chapterId, structureSlotId, povCharacterId, obligations, sceneIndex)
+    ),
+    obligations,
+  }
+}
+
+function normalizeSceneContract(
+  raw: unknown,
+  chapterId: string,
+  structureSlotId: string,
+  povCharacterId: string,
+  obligations: Array<z.infer<typeof obligationSchema>>,
+  index: number,
+): z.infer<typeof sceneContractSchema> {
+  const source = record(raw)
+  const defaultObligationIds = obligations.length === 1 ? [obligations[0]!.obligationId] : []
+  const defaultSourceIds = obligations.length === 1 ? [obligations[0]!.sourceId] : []
+  return {
+    sceneId: stringValue(source.sceneId) || `${chapterId}-scene-${String(index + 1).padStart(2, "0")}`,
+    chapterId: stringValue(source.chapterId) || chapterId,
+    structureSlotId: stringValue(source.structureSlotId) || structureSlotId,
+    sceneFunction: stringValue(source.sceneFunction) || stringValue(source.function) || stringValue(source.purpose) || "",
+    povCharacterId: stringValue(source.povCharacterId) || povCharacterId,
+    locationOrArena: stringValue(source.locationOrArena) || stringValue(source.location) || stringValue(source.arena) || "",
+    goal: stringValue(source.goal),
+    conflict: stringValue(source.conflict),
+    turnOrValueShift: stringValue(source.turnOrValueShift) || stringValue(source.turn) || stringValue(source.valueShift) || "",
+    outcome: stringValue(source.outcome),
+    consequence: stringValue(source.consequence),
+    requiredObligationIds: stringArray(source.requiredObligationIds, defaultObligationIds),
+    requiredSourceIds: stringArray(source.requiredSourceIds, defaultSourceIds),
+    requiredCharacterIds: stringArray(source.requiredCharacterIds),
+    requiredWorldFactIds: stringArray(source.requiredWorldFactIds),
+  }
+}
+
+function normalizeObligations(
+  chapter: Record<string, unknown>,
+  chapterId: string,
+  fixture: PlannerDiagnosticFixture,
+): Array<z.infer<typeof obligationSchema>> {
+  const rawItems = Array.isArray(chapter.obligations)
+    ? chapter.obligations
+    : Array.isArray(chapter.must_satisfy)
+      ? chapter.must_satisfy
+      : []
+  return rawItems.map((raw, index) => {
+    const source = record(raw)
+    const text = typeof raw === "string"
+      ? raw
+      : stringValue(source.requirementText) || stringValue(source.text) || stringValue(source.requirement) || ""
+    const linkedCharacterIds = stringArray(source.linkedCharacterIds)
+    const linkedWorldFactIds = stringArray(source.linkedWorldFactIds)
+    const inferredSourceId = stringValue(source.sourceId)
+      || linkedWorldFactIds[0]
+      || linkedCharacterIds[0]
+      || fixture.concept.storyPromise.promiseId
+    return {
+      obligationId: stringValue(source.obligationId) || `obl-${chapterId}-${String(index + 1).padStart(2, "0")}`,
+      sourceId: inferredSourceId,
+      sourceKind: sourceKindSchema.safeParse(source.sourceKind).success
+        ? source.sourceKind as z.infer<typeof sourceKindSchema>
+        : inferSourceKind(inferredSourceId, fixture),
+      coveragePolicy: coveragePolicySchema.safeParse(source.coveragePolicy).success
+        ? source.coveragePolicy as z.infer<typeof coveragePolicySchema>
+        : "must_satisfy",
+      requirementText: text,
+      linkedCharacterIds,
+      linkedWorldFactIds,
+    }
+  })
+}
+
+function inferSourceKind(sourceId: string, fixture: PlannerDiagnosticFixture): z.infer<typeof sourceKindSchema> {
+  if (fixture.concept.characters.some(character => character.characterId === sourceId)) return "character"
+  if (fixture.concept.protagonist.characterId === sourceId) return "character"
+  if (fixture.concept.worldFacts.some(fact => fact.worldFactId === sourceId)) return "world"
+  if (fixture.targetSlots.some(slot => slot.structureSlotId === sourceId)) return "structure"
+  if (fixture.concept.storyPromise.promiseId === sourceId) return "story_promise"
+  return "concept"
+}
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? value as Record<string, unknown> : {}
+}
+
+function stringValue(value: unknown): string {
+  return typeof value === "string" ? value : ""
+}
+
+function nullableString(value: unknown): string | null {
+  return typeof value === "string" ? value : null
+}
+
+function stringArray(value: unknown, fallback: string[] = []): string[] {
+  if (!Array.isArray(value)) return fallback
+  return value.filter((item): item is string => typeof item === "string")
+}
+
+function slug(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "contract"
+}
+
+function dimension(passed: number, possible: number, issues: string[]): DimensionScore {
+  return {
+    passed,
+    possible,
+    ratio: possible > 0 ? passed / possible : null,
+    issues,
+  }
+}
+
+function meaningful(text: string): boolean {
+  const normalized = text.trim().toLowerCase()
+  if (!normalized || GENERIC_TERMS.has(normalized)) return false
+  return contentTokens(text).length >= 3 && text.trim().length >= 16
+}
+
+function hasActionPressure(text: string): boolean {
+  const tokens = new Set(contentTokens(text))
+  return ACTION_TERMS.some(term => tokens.has(term))
+}
+
+function tokenOverlapRatio(a: string, b: string): number {
+  const left = [...new Set(contentTokens(a))]
+  if (left.length === 0) return 0
+  const right = new Set(contentTokens(b))
+  const matched = left.filter(token => right.has(token))
+  return matched.length / left.length
+}
+
+function contentTokens(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/['']/g, "")
+    .split(/[^a-z0-9]+/)
+    .filter(token => token.length > 3 && !STOPWORDS.has(token))
+}
+
+function formatPct(value: number): string {
+  return `${Math.round(value * 100)}%`
+}
+
+function formatSignedPct(value: number): string {
+  const sign = value >= 0 ? "+" : ""
+  return `${sign}${(value * 100).toFixed(1)} points`
+}
+
+function parseArgs(argv: string[]): Args {
+  let fixturePath = DEFAULT_FIXTURE_PATH
+  let live = false
+  let json = false
+  let outputPath: string | null = null
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]!
+    if (arg === "--live") live = true
+    else if (arg === "--json") json = true
+    else if (arg === "--fixture") fixturePath = requireValue(argv, ++i, "--fixture")
+    else if (arg.startsWith("--fixture=")) fixturePath = arg.slice("--fixture=".length)
+    else if (arg === "--output") outputPath = requireValue(argv, ++i, "--output")
+    else if (arg.startsWith("--output=")) outputPath = arg.slice("--output=".length)
+    else throw new Error(`unknown arg: ${arg}`)
+  }
+  return { fixturePath, live, json, outputPath }
+}
+
+function requireValue(argv: string[], index: number, flag: string): string {
+  const value = argv[index]
+  if (!value) throw new Error(`${flag} requires a value`)
+  return value
+}
+
+function loadFixture(path: string): PlannerDiagnosticFixture {
+  const abs = resolve(process.cwd(), path)
+  if (!existsSync(abs)) throw new Error(`fixture not found: ${abs}`)
+  const parsed = fixtureSchema.safeParse(JSON.parse(readFileSync(abs, "utf-8")))
+  if (!parsed.success) {
+    throw new Error(`fixture invalid: ${parsed.error.issues.map(issue => `${issue.path.join(".")}: ${issue.message}`).join("; ")}`)
+  }
+  return parsed.data
+}
+
+function loadFixtureArms(fixture: PlannerDiagnosticFixture): Array<{
+  armId: string
+  label: string
+  methodPackEnabled: boolean
+  plan: PlannerContractPlan
+}> {
+  if (!fixture.arms?.length) return []
+  return fixture.arms.map(arm => {
+    const parsed = plannerContractPlanSchema.safeParse(arm.plan)
+    if (!parsed.success) {
+      throw new Error(`fixture arm ${arm.armId} invalid: ${parsed.error.issues.map(issue => `${issue.path.join(".")}: ${issue.message}`).join("; ")}`)
+    }
+    return { ...arm, plan: parsed.data }
+  })
+}
+
+async function runLiveArms(fixture: PlannerDiagnosticFixture): Promise<Array<{
+  armId: string
+  label: string
+  methodPackEnabled: boolean
+  plan: PlannerContractPlan
+}>> {
+  const { callAgent } = await import("../../src/llm")
+  const arms = [
+    { armId: "control:no-method", label: "No-method control", methodPackEnabled: false },
+    { armId: "test:commercial-fantasy-adventure-v0", label: "Commercial fantasy/adventure V0", methodPackEnabled: true },
+  ]
+  const results = []
+  for (const arm of arms) {
+    const response = await callAgent({
+      systemPrompt: liveSystemPrompt(),
+      userPrompt: liveUserPrompt(fixture, arm),
+      schema: z.unknown(),
+      temperature: 0.25,
+      maxTokens: 9000,
+      thinking: false,
+      agentName: "method-pack-planner-diagnostic",
+    })
+    const plan = normalizePlannerContractPlan(response.output, fixture, arm)
+    results.push({ ...arm, plan })
+  }
+  return results
+}
+
+function liveSystemPrompt(): string {
+  return `You are an upstream novel planner diagnostic agent.
+
+Produce planning contracts only. Do not write prose. Do not emit beat-level mini-actions.
+
+Respond with only valid JSON matching the requested schema:
+- one plan object;
+- do not wrap the object in a "plan" property;
+- chapters are chapter contracts;
+- scenes are scene contracts and are the generation/adherence unit;
+- obligations are source-linked contract items inside chapters.
+
+Quality target:
+- every chapter must have pressure, conflict, irreversible change, and an endpoint/hook;
+- every scene must have goal, conflict, turn/value shift, outcome, and consequence;
+- character and world refs must materially affect choices, costs, constraints, or consequences;
+- obligations must be concrete enough for a writer to satisfy and a checker to evaluate.`
+}
+
+function liveUserPrompt(
+  fixture: PlannerDiagnosticFixture,
+  arm: { armId: string; methodPackEnabled: boolean },
+): string {
+  const conceptJson = JSON.stringify(fixture.concept, null, 2)
+  const slotJson = JSON.stringify(fixture.targetSlots, null, 2)
+  if (arm.methodPackEnabled) {
+    return `Run arm ${arm.armId}.
+
+Use methodPackId=${fixture.methodPackId} and templateId=${fixture.templateId}.
+Use exactly these six structure slots in this order:
+${slotJson}
+
+Frozen concept:
+${conceptJson}
+
+Return exactly six chapter contracts, one per structure slot. Each chapter must contain exactly one scene contract and exactly two must_satisfy obligations. Use the provided characterId, worldFactId, and promiseId values; do not invent replacement IDs.`
+      + liveShapeReminder()
+  }
+  return `Run arm ${arm.armId}.
+
+Do not use a method pack. Use methodPackId=null and templateId=null.
+Create a freeform six-part upstream plan from the same frozen concept. Use structureSlotId values BASE-01 through BASE-06 in order.
+
+Frozen concept:
+${conceptJson}
+
+Return exactly six chapter contracts. Each chapter must contain exactly one scene contract and exactly two must_satisfy obligations. Use the provided characterId, worldFactId, and promiseId values; do not invent replacement IDs.`
+    + liveShapeReminder()
+}
+
+function liveShapeReminder(): string {
+  return `
+
+Hard diagnostic limits for this micro-fixture only:
+- exactly 6 chapters;
+- exactly 1 scene per chapter;
+- exactly 2 obligations per chapter;
+- every string field should be 8-18 words;
+- do not include chapterNumber, chapterName, title, sceneNumber, chapterHook, must_satisfy, or nested scene obligations;
+- put obligations only in chapter.obligations;
+- scene.requiredObligationIds must reference the two chapter obligationIds;
+- scene.requiredSourceIds must reference the two chapter obligation sourceIds.
+
+Required top-level JSON shape:
+{
+  "armId": "...",
+  "methodPackId": null,
+  "templateId": null,
+  "chapters": [
+    {
+      "chapterId": "...",
+      "structureSlotId": "...",
+      "chapterFunction": "...",
+      "povCharacterId": "char-mara-vey",
+      "protagonistPressure": "...",
+      "centralConflict": "...",
+      "irreversibleChange": "...",
+      "endpointOrHook": "...",
+      "requiredCharacterWork": "...",
+      "requiredWorldWork": "...",
+      "requiredStoryDebtWork": "...",
+      "obligations": [
+        {
+          "obligationId": "...",
+          "sourceId": "...",
+          "sourceKind": "character",
+          "coveragePolicy": "must_satisfy",
+          "requirementText": "...",
+          "linkedCharacterIds": ["char-mara-vey"],
+          "linkedWorldFactIds": []
+        }
+      ],
+      "scenes": [
+        {
+          "sceneId": "...",
+          "chapterId": "...",
+          "structureSlotId": "...",
+          "sceneFunction": "...",
+          "povCharacterId": "char-mara-vey",
+          "locationOrArena": "...",
+          "goal": "...",
+          "conflict": "...",
+          "turnOrValueShift": "...",
+          "outcome": "...",
+          "consequence": "...",
+          "requiredObligationIds": ["..."],
+          "requiredSourceIds": ["..."],
+          "requiredCharacterIds": ["char-mara-vey"],
+          "requiredWorldFactIds": []
+        }
+      ]
+    }
+  ]
+}`
+}
+
+function defaultOutputPath(): string {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-")
+  return `output/method-pack-diagnostics/${stamp}/commercial-fantasy-planner-diagnostic.json`
+}
+
+async function main(argv: string[]): Promise<number> {
+  let args: Args
+  try {
+    args = parseArgs(argv)
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : String(err))
+    console.error("usage: bun scripts/evals/method-pack-planner-diagnostic.ts [--live] [--fixture <path>] [--output <path>] [--json]")
+    return 2
+  }
+
+  const fixture = loadFixture(args.fixturePath)
+  const arms = args.live ? await runLiveArms(fixture) : loadFixtureArms(fixture)
+  if (arms.length === 0) {
+    console.error("fixture has no offline arms; pass --live to run the planner diagnostic against the LLM")
+    return 2
+  }
+  const report = buildDiagnosticReport(fixture, arms, {
+    mode: args.live ? "live" : "fixture",
+    fixturePath: args.fixturePath,
+  })
+
+  const outputPath = args.outputPath ?? (args.live ? defaultOutputPath() : null)
+  if (outputPath) {
+    const abs = resolve(process.cwd(), outputPath)
+    mkdirSync(dirname(abs), { recursive: true })
+    writeFileSync(abs, JSON.stringify(report, null, 2))
+    console.error(`wrote ${abs}`)
+  }
+  console.log(args.json ? JSON.stringify(report, null, 2) : renderDiagnosticReport(report))
+  return report.comparison.verdict === "NO-PROMOTION" ? 1 : 0
+}
+
+if (import.meta.main) {
+  process.exit(await main(process.argv.slice(2)))
+}
