@@ -53,6 +53,8 @@ interface PlannerExcerpt {
   chapterIndex: number
   sceneId: string | null
   sceneIndex: number | null
+  povCharacterId: string | null
+  requiredCharacterIds: string[]
   text: string
 }
 
@@ -104,6 +106,19 @@ interface DimensionComparison {
   highRateDelta: number | null
 }
 
+interface ApplicabilitySkip {
+  excerptId: string
+  cellPath: string
+  fixtureId: string
+  armId: string
+  methodPackEnabled: boolean
+  unitType: UnitType
+  chapterId: string
+  sceneId: string | null
+  dimension: Dimension
+  reason: string
+}
+
 interface RealDataReport {
   generatedAt: string
   cohortDir: string
@@ -117,7 +132,9 @@ interface RealDataReport {
   replicate: number | null
   excerptCount: number
   resultCount: number
+  applicabilitySkipCount: number
   results: DiscernmentResult[]
+  applicabilitySkips: ApplicabilitySkip[]
   summaries: ArmDimensionSummary[]
   comparisons: DimensionComparison[]
 }
@@ -136,10 +153,10 @@ const SCENE_DIMENSIONS = new Set<Dimension>([
 export async function buildRealDataReport(args: Args, generatedAt = new Date().toISOString()): Promise<RealDataReport> {
   const cellPaths = collectCellPaths(args)
   const excerpts = collectExcerpts(cellPaths, args)
-  const tasks = buildTasks(excerpts, args)
+  const taskPlan = buildTaskPlan(excerpts, args)
   const results = args.live
-    ? await runBounded(tasks, args.concurrency)
-    : await Promise.all(tasks.map(task => task()))
+    ? await runBounded(taskPlan.tasks, args.concurrency)
+    : await Promise.all(taskPlan.tasks.map(task => task()))
   return {
     generatedAt,
     cohortDir: args.cohortDir,
@@ -153,7 +170,9 @@ export async function buildRealDataReport(args: Args, generatedAt = new Date().t
     replicate: args.replicate,
     excerptCount: excerpts.length,
     resultCount: results.length,
+    applicabilitySkipCount: taskPlan.applicabilitySkips.length,
     results,
+    applicabilitySkips: taskPlan.applicabilitySkips,
     summaries: summarize(results),
     comparisons: compareArms(results),
   }
@@ -162,7 +181,7 @@ export async function buildRealDataReport(args: Args, generatedAt = new Date().t
 export function renderRealDataReport(report: RealDataReport): string {
   const lines: string[] = []
   lines.push("Planner discernment real-data report")
-  lines.push(`cohort=${report.cohortDir}; cells=${report.cellPaths.length}; excerpts=${report.excerptCount}; results=${report.resultCount}`)
+  lines.push(`cohort=${report.cohortDir}; cells=${report.cellPaths.length}; excerpts=${report.excerptCount}; results=${report.resultCount}; applicabilitySkips=${report.applicabilitySkipCount}`)
   lines.push(`model=${report.model}; thinking=${report.thinking}; mode=${report.promptMode}; live=${report.live}`)
   lines.push("")
   lines.push("Dimension comparisons:")
@@ -179,6 +198,13 @@ export function renderRealDataReport(report: RealDataReport): string {
       .map(([label, count]) => `${label}:${count}`)
       .join(" ")
     lines.push(`- ${row.armId} ${row.dimension}: mean=${row.meanOrdinal.toFixed(2)} high=${formatPct(row.highRate)} low=${formatPct(row.lowRate)} ${counts}`)
+  }
+  if (report.applicabilitySkips.length > 0) {
+    lines.push("")
+    lines.push("Applicability skips:")
+    for (const row of summarizeApplicabilitySkips(report.applicabilitySkips)) {
+      lines.push(`- ${row.dimension} ${row.armId}: skipped=${row.count}; ${row.reason}`)
+    }
   }
   lines.push("")
   lines.push("Lowest-label examples:")
@@ -225,6 +251,8 @@ function collectExcerpts(cellPaths: string[], args: Args): PlannerExcerpt[] {
           chapterIndex,
           sceneId: null,
           sceneIndex: null,
+          povCharacterId: null,
+          requiredCharacterIds: [],
           text: renderChapterExcerpt(fixture, arm.plan.armId, chapter),
         })
         for (let sceneIndex = 0; sceneIndex < chapter.scenes.length; sceneIndex++) {
@@ -242,6 +270,8 @@ function collectExcerpts(cellPaths: string[], args: Args): PlannerExcerpt[] {
             chapterIndex,
             sceneId: scene.sceneId,
             sceneIndex,
+            povCharacterId: scene.povCharacterId,
+            requiredCharacterIds: scene.requiredCharacterIds ?? [],
             text: renderSceneExcerpt(fixture, arm.plan.armId, chapter, scene),
           })
         }
@@ -251,11 +281,31 @@ function collectExcerpts(cellPaths: string[], args: Args): PlannerExcerpt[] {
   return excerpts
 }
 
-function buildTasks(excerpts: PlannerExcerpt[], args: Args): Array<() => Promise<DiscernmentResult>> {
+function buildTaskPlan(excerpts: PlannerExcerpt[], args: Args): {
+  tasks: Array<() => Promise<DiscernmentResult>>
+  applicabilitySkips: ApplicabilitySkip[]
+} {
   const tasks: Array<() => Promise<DiscernmentResult>> = []
+  const applicabilitySkips: ApplicabilitySkip[] = []
   for (const dimension of args.dimensions) {
     const unitType = unitTypeForDimension(dimension)
     for (const excerpt of excerpts.filter(row => row.unitType === unitType)) {
+      const skipReason = applicabilitySkipReason(dimension, excerpt)
+      if (skipReason) {
+        applicabilitySkips.push({
+          excerptId: excerpt.excerptId,
+          cellPath: excerpt.cellPath,
+          fixtureId: excerpt.fixtureId,
+          armId: excerpt.armId,
+          methodPackEnabled: excerpt.methodPackEnabled,
+          unitType: excerpt.unitType,
+          chapterId: excerpt.chapterId,
+          sceneId: excerpt.sceneId,
+          dimension,
+          reason: skipReason,
+        })
+        continue
+      }
       tasks.push(async () => {
         const caseId = `${excerpt.excerptId}:${dimension}`
         const judged = await judgePlanningExcerpt({
@@ -282,12 +332,24 @@ function buildTasks(excerpts: PlannerExcerpt[], args: Args): Array<() => Promise
       })
     }
   }
-  return tasks
+  return { tasks, applicabilitySkips }
 }
 
 function unitTypeForDimension(dimension: Dimension): UnitType {
   return SCENE_DIMENSIONS.has(dimension) ? "scene" : "chapter"
 }
+
+function applicabilitySkipReason(dimension: Dimension, excerpt: PlannerExcerpt): string | null {
+  if (dimension !== "relationshipDelta") return null
+  const otherRequiredCharacters = new Set(excerpt.requiredCharacterIds.filter(id => id !== excerpt.povCharacterId))
+  if (otherRequiredCharacters.size === 0) return "scene does not require a non-POV character"
+  if (!RELATIONSHIP_PRESSURE_PATTERN.test(excerpt.text)) {
+    return "scene has multiple characters but no deterministic relationship-pressure signal"
+  }
+  return null
+}
+
+const RELATIONSHIP_PRESSURE_PATTERN = /\b(ally|alliance|betray|betrayal|blackmail|debt|deal|distrust|friend|honor|intimacy|leverage|loyal|loyalty|owes?|partner|power|promise|rival|rivalry|suspicion|trust|warns?|watches|withholds?)\b/i
 
 function summarize(results: DiscernmentResult[]): ArmDimensionSummary[] {
   const groups = new Map<string, DiscernmentResult[]>()
@@ -337,6 +399,25 @@ function compareArms(results: DiscernmentResult[]): DimensionComparison[] {
       highRateDelta: controlHighRate === null || testHighRate === null ? null : testHighRate - controlHighRate,
     }
   })
+}
+
+function summarizeApplicabilitySkips(skips: ApplicabilitySkip[]): Array<{
+  armId: string
+  dimension: Dimension
+  reason: string
+  count: number
+}> {
+  const groups = new Map<string, ApplicabilitySkip[]>()
+  for (const skip of skips) {
+    const key = `${skip.armId}\t${skip.dimension}\t${skip.reason}`
+    groups.set(key, [...(groups.get(key) ?? []), skip])
+  }
+  return [...groups.values()].map(rows => ({
+    armId: rows[0]!.armId,
+    dimension: rows[0]!.dimension,
+    reason: rows[0]!.reason,
+    count: rows.length,
+  })).sort((a, b) => a.dimension.localeCompare(b.dimension) || a.armId.localeCompare(b.armId) || a.reason.localeCompare(b.reason))
 }
 
 function renderChapterExcerpt(fixture: PlannerDiagnosticFixture, planArmId: string, chapter: DiagnosticReport["arms"][number]["plan"]["chapters"][number]): string {

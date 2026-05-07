@@ -46,6 +46,18 @@ The runner labels:
 It groups calls by dimension to preserve a stable prompt prefix for cache
 reuse.
 
+Applicability is separate from quality. The runner must not score every
+dimension against every scene:
+
+- `relationshipDelta` is skipped unless the scene requires a non-POV character
+  and has deterministic relationship-pressure signals such as trust, leverage,
+  debt, alliance, betrayal, promise, rivalry, or suspicion.
+- Skipped rows are reported as applicability skips and are not counted as low
+  labels.
+- `REL-1` means an applicable relationship-oriented scene is static. A
+  non-relationship scene should normally be `not applicable`, not `REL-0` or
+  `REL-1`.
+
 ## Pilot Shape
 
 Pilot scope:
@@ -233,3 +245,48 @@ Next value-add slice:
   scene to carry one.
 - Add a sharper stakes sensor later if operator review shows `STAKES-2`
   hides meaningful quality differences.
+
+Follow-up correction:
+
+- Earlier relationship means included scenes that may have been valid
+  non-relationship scenes, so they are useful as a prompt to investigate, not
+  as a clean score.
+
+## Applicability-Filtered Relationship Rerun
+
+After adding relationship applicability skips, `relationshipDelta` was rerun on
+the same replicate/chapter-limit shape:
+
+- cells: `6`;
+- excerpts: `72`;
+- judged relationship scenes: `34`;
+- applicability skips: `14`, evenly split `7` control / `7` method.
+
+Evidence-first artifact:
+
+`output/method-pack-diagnostics/2026-05-07T22-12-07-034Z/planner-discernment-real-data/`
+
+Evidence-first result:
+
+| Dimension | Unit | Control Mean | Method Mean | Delta | Notes |
+| --- | --- | ---: | ---: | ---: | --- |
+| `relationshipDelta` | scene | 2.00 | 2.00 | 0.00 | one method `REL-1`; one method `REL-3` |
+
+Direct-label artifact:
+
+`output/method-pack-diagnostics/2026-05-07T22-12-07-057Z/planner-discernment-real-data/`
+
+Direct-label result:
+
+| Dimension | Unit | Control Mean | Method Mean | Delta | Notes |
+| --- | --- | ---: | ---: | ---: | --- |
+| `relationshipDelta` | scene | 2.00 | 1.94 | -0.06 | two method `REL-1`; one method `REL-3` |
+
+Updated interpretation:
+
+- The broad "relationship regression" concern weakened after applicability
+  filtering.
+- The useful queue is now the small set of applicable `REL-1` method scenes,
+  not all non-relationship scenes.
+- This supports a conditional planner contract: require relationship-state
+  movement only when a scene actually depends on relationship pressure.

@@ -43,6 +43,41 @@ describe("planner-discernment-real-data", () => {
     ])
     expect(report.comparisons).toHaveLength(2)
   })
+
+  test("skips relationshipDelta for scenes where the dimension is not applicable", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "planner-discernment-real-data-"))
+    const fixturePath = join(dir, "fixture.json")
+    const cellDir = join(dir, "cohort", "cells")
+    await Bun.$`mkdir -p ${cellDir}`.quiet()
+
+    writeFileSync(fixturePath, JSON.stringify(fixture(), null, 2))
+    writeFileSync(join(cellDir, "cell-r01.json"), JSON.stringify(cell(fixturePath), null, 2))
+
+    const report = await buildRealDataReport({
+      cohortDir: join(dir, "cohort"),
+      cellPaths: [],
+      outputDir: null,
+      live: false,
+      model: "deepseek-v4-flash",
+      thinking: false,
+      maxTokens: 1400,
+      concurrency: 2,
+      promptMode: "direct-label",
+      dimensions: ["relationshipDelta"],
+      chapterLimit: 1,
+      replicate: 1,
+      json: false,
+    }, "2026-05-07T00:00:00.000Z")
+
+    expect(report.excerptCount).toBe(6)
+    expect(report.resultCount).toBe(2)
+    expect(report.applicabilitySkipCount).toBe(2)
+    expect(report.applicabilitySkips.every(row => row.dimension === "relationshipDelta")).toBe(true)
+    expect(report.summaries.map(row => `${row.armId}:${row.dimension}:${row.count}`).sort()).toEqual([
+      "control:no-method:flash:relationshipDelta:1",
+      "test:commercial-fantasy-adventure-v0:flash:relationshipDelta:1",
+    ])
+  })
 })
 
 function fixture() {
@@ -149,21 +184,22 @@ function arm(armId: string, methodPackEnabled: boolean) {
 }
 
 function scene(sceneId: string) {
+  const relationshipScene = sceneId.endsWith("02")
   return {
     sceneId,
     chapterId: "ch-001",
     structureSlotId: "BASE-01",
-    sceneFunction: "Mara tests the map.",
+    sceneFunction: relationshipScene ? "Mara decides whether to trust Sena." : "Mara tests the map.",
     povCharacterId: "char-mara",
     locationOrArena: "archive",
     goal: "Mara wants to prove the border is false.",
-    conflict: "The clerk demands the page.",
-    turnOrValueShift: "The ink burns and exposes the missing valley.",
-    outcome: "Mara hides the smoking map.",
-    consequence: "The clerk calls a guard.",
+    conflict: relationshipScene ? "Sena withholds the route unless Mara trusts him." : "The clerk demands the page.",
+    turnOrValueShift: relationshipScene ? "Mara admits the map is incomplete and gives Sena leverage." : "The ink burns and exposes the missing valley.",
+    outcome: relationshipScene ? "Sena agrees to guide her, but now knows she needs him." : "Mara hides the smoking map.",
+    consequence: relationshipScene ? "Their alliance becomes useful but conditional." : "The clerk calls a guard.",
     requiredObligationIds: ["obl-001"],
-    requiredSourceIds: ["char-mara"],
-    requiredCharacterIds: ["char-mara"],
+    requiredSourceIds: relationshipScene ? ["char-mara", "char-sena"] : ["char-mara"],
+    requiredCharacterIds: relationshipScene ? ["char-mara", "char-sena"] : ["char-mara"],
     requiredWorldFactIds: ["world-ink"],
   }
 }

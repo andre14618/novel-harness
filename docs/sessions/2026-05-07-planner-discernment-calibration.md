@@ -258,6 +258,8 @@ Interpretation:
   calibrated against known answers.
 - The method-pack does not yet show semantic lift on the sampled real planner
   data and may weaken relationship movement.
+- Applicability must be separated from quality. A scene without relationship
+  pressure should not be scored as a weak relationship scene.
 - This supports the current repository principle: methodology changes must
   name the optimized layer and prove value before planner/writer/checker
   defaults are changed.
@@ -272,3 +274,47 @@ Revised follow-up:
   pressure; avoid forcing every scene to carry a relationship delta.
 - Add a sharper stakes/promise novelty sensor only after operator review shows
   the current `STAKES-2` bucket hides meaningful quality differences.
+
+## Applicability-Filtered Relationship Rerun
+
+Implemented deterministic applicability skips for `relationshipDelta` in the
+real-data runner:
+
+- skip scenes without a required non-POV character;
+- skip scenes with multiple characters but no deterministic
+  relationship-pressure signal;
+- report skips separately from low labels.
+
+Live rerun scope:
+
+- same method-pack cohort source;
+- replicate `1`;
+- first `2` chapters;
+- DeepSeek V4 Flash, no thinking;
+- `34` judged relationship scenes;
+- `14` applicability skips.
+
+Evidence-first artifact:
+
+`output/method-pack-diagnostics/2026-05-07T22-12-07-034Z/planner-discernment-real-data/`
+
+Direct-label artifact:
+
+`output/method-pack-diagnostics/2026-05-07T22-12-07-057Z/planner-discernment-real-data/`
+
+Result:
+
+- Evidence-first: control `2.00`, method `2.00`, delta `0.00`; one method
+  `REL-1`, one method `REL-3`.
+- Direct-label: control `2.00`, method `1.94`, delta `-0.06`; two method
+  `REL-1`, one method `REL-3`.
+
+Updated interpretation:
+
+- The broad relationship-regression concern is weaker after applicability
+  filtering.
+- The useful review set is the small number of applicable method-arm `REL-1`
+  scenes.
+- The next planner change should be conditional: relationship-state deltas
+  belong only in scenes whose conflict, tactic, reveal, or consequence depends
+  on relationship pressure.

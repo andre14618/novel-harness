@@ -50,20 +50,16 @@ unless the user explicitly requests a disposable branch.
   position-biased pairs are `18/18`; do not use this judge for promotion until
   repaired or replaced. Same-plan calibration passed `3/3`.
 - Narrow DeepSeek discernment calibration found a useful judge shape while
-  broad pairwise judging remains invalid. The expanded fixture covers
-  agency, world pressure, endpoint landing, causal momentum, scene dramaturgy,
-  promise progress, motivation specificity, relationship deltas, and stakes
-  value shifts. Use one excerpt, one dimension, one rubric before prose tests.
-  `evidence-first` is preferred for nuance-sensitive richness dimensions.
-  Record:
+  broad pairwise judging remains invalid. The expanded fixture covers floor
+  and richness dimensions; use one excerpt, one dimension, one rubric before
+  prose tests. Prefer `evidence-first` for nuance-sensitive dimensions. Record:
   `docs/sessions/2026-05-07-planner-discernment-calibration.md`.
 - Real planner data pilot applied those labels to the live method-pack cohort
-  sample. Result: no method-pack semantic lift; relationshipDelta is the
-  clearest new value sensor and may show method-pack regression, while
-  motivation and stakes still often saturate at level `2`. Next build an
-  operator calibration queue from `REL-1`, `MOTIVE-1`, and saturated
-  `MOTIVE-2` / `STAKES-2` examples, then revise upstream scene contracts only
-  where relationship pressure actually drives the scene. Eval doc:
+  sample. Result: no method-pack semantic lift; `relationshipDelta` is the
+  clearest value sensor but now requires applicability skips so valid
+  non-relationship scenes are not scored low. Filtered rerun weakened the broad
+  regression concern; next build an operator calibration queue from applicable
+  `REL-1`, `MOTIVE-1`, and saturated `MOTIVE-2` / `STAKES-2` examples. Eval doc:
   `docs/evals/planner-discernment-real-data-v0.md`.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
