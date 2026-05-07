@@ -1,0 +1,94 @@
+{
+  "diagnosticId": "cfa-cohort-ember-library-heist",
+  "methodPackId": "commercial-fantasy-adventure-v0",
+  "templateId": "commercial-24-flex-v0",
+  "targetSlots": [
+    {
+      "structureSlotId": "CFA-01",
+      "structureJob": "Pressure baseline",
+      "planningTest": "Show what the protagonist wants, lacks, or cannot tolerate before the story changes."
+    },
+    {
+      "structureSlotId": "CFA-04",
+      "structureJob": "Invitation to danger",
+      "planningTest": "Present the concrete path into the story problem."
+    },
+    {
+      "structureSlotId": "CFA-06",
+      "structureJob": "First irreversible step",
+      "planningTest": "End the opening with a choice or consequence that prevents easy retreat."
+    },
+    {
+      "structureSlotId": "CFA-11",
+      "structureJob": "Major reversal",
+      "planningTest": "Reveal information or opposition that changes what the protagonist thinks the story is."
+    },
+    {
+      "structureSlotId": "CFA-17",
+      "structureJob": "Forced truth",
+      "planningTest": "Confront the protagonist with the flaw, false belief, or missing knowledge."
+    },
+    {
+      "structureSlotId": "CFA-22",
+      "structureJob": "Defining choice",
+      "planningTest": "Make victory depend on a meaningful choice, not only force or luck."
+    }
+  ],
+  "concept": {
+    "genreProfileId": "general-commercial-fantasy-adventure",
+    "premise": "Orin Vale, a failed apprentice archivist, steals a fireproof index from the Ember Library and discovers that every banned book is a sleeping witness. To clear his sister's treason charge, he must wake the right witness before the library burns its own memories.",
+    "readerPromise": "A library-heist fantasy adventure about forbidden knowledge, family loyalty, and the danger of waking truths that remember you.",
+    "centralConflict": "Orin needs forbidden testimony to save his sister, while the Archivist Council protects the library by destroying witnesses that implicate them.",
+    "protagonist": {
+      "characterId": "char-orin-vale",
+      "name": "Orin Vale",
+      "desire": "restore his apprentice rank and save his condemned sister",
+      "fear": "proving his sister guilty after risking everything for her",
+      "flaw": "he hides behind clever thefts instead of asking people to trust him"
+    },
+    "characters": [
+      {
+        "characterId": "char-sable-reed",
+        "name": "Sable Reed",
+        "role": "supporting",
+        "materiality": "A rival index thief who knows the library's secret routes and charges painful favors."
+      },
+      {
+        "characterId": "char-mira-vale",
+        "name": "Mira Vale",
+        "role": "supporting",
+        "materiality": "Orin's accused sister knows which banned book was planted but refuses to name her informant."
+      },
+      {
+        "characterId": "char-warden-cass",
+        "name": "Warden Cass",
+        "role": "antagonist",
+        "materiality": "The council's fire warden can burn memories, records, and rooms before testimony wakes."
+      }
+    ],
+    "worldFacts": [
+      {
+        "worldFactId": "world-ember-index",
+        "fact": "An ember index points to banned books only when the seeker names the person they are willing to betray."
+      },
+      {
+        "worldFactId": "world-sleeping-books",
+        "fact": "Banned books sleep as witnesses and wake speaking in the voice of their last honest reader."
+      },
+      {
+        "worldFactId": "world-memory-fire",
+        "fact": "Library fire burns remembered events before it burns paper, removing evidence from witnesses and suspects."
+      }
+    ],
+    "storyPromise": {
+      "promiseId": "promise-wake-witness",
+      "text": "If Orin wakes the right book, he can prove who framed Mira but may erase someone else's innocence."
+    },
+    "constraints": [
+      "Produce planning contracts only, not prose.",
+      "Use scene contracts as the generation and adherence unit.",
+      "Make character and world obligations materially affect choices, costs, or consequences.",
+      "Keep the diagnostic to six chapter-contract units."
+    ]
+  }
+}

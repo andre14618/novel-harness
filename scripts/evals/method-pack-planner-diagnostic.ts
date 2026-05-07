@@ -171,9 +171,13 @@ interface Args {
   live: boolean
   json: boolean
   outputPath: string | null
+  scenesPerChapter: number
+  obligationsPerChapter: number
 }
 
 const DEFAULT_FIXTURE_PATH = "docs/fixtures/method-packs/commercial-fantasy-adventure-v0/frozen-concept.json"
+const DEFAULT_SCENES_PER_CHAPTER = 2
+const DEFAULT_OBLIGATIONS_PER_CHAPTER = 2
 
 const ACTION_TERMS = [
   "choose", "choice", "cost", "force", "forces", "risk", "refuse", "reveal",
@@ -700,11 +704,22 @@ function formatSignedPct(value: number): string {
   return `${sign}${(value * 100).toFixed(1)} points`
 }
 
+export interface LivePlannerOptions {
+  scenesPerChapter?: number
+  obligationsPerChapter?: number
+  maxTokens?: number
+  temperature?: number
+  replicateIndex?: number
+  includePro?: boolean
+}
+
 function parseArgs(argv: string[]): Args {
   let fixturePath = DEFAULT_FIXTURE_PATH
   let live = false
   let json = false
   let outputPath: string | null = null
+  let scenesPerChapter = DEFAULT_SCENES_PER_CHAPTER
+  let obligationsPerChapter = DEFAULT_OBLIGATIONS_PER_CHAPTER
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!
     if (arg === "--live") live = true
@@ -713,9 +728,13 @@ function parseArgs(argv: string[]): Args {
     else if (arg.startsWith("--fixture=")) fixturePath = arg.slice("--fixture=".length)
     else if (arg === "--output") outputPath = requireValue(argv, ++i, "--output")
     else if (arg.startsWith("--output=")) outputPath = arg.slice("--output=".length)
+    else if (arg === "--scenes-per-chapter") scenesPerChapter = parsePositiveInt(requireValue(argv, ++i, "--scenes-per-chapter"), "--scenes-per-chapter")
+    else if (arg.startsWith("--scenes-per-chapter=")) scenesPerChapter = parsePositiveInt(arg.slice("--scenes-per-chapter=".length), "--scenes-per-chapter")
+    else if (arg === "--obligations-per-chapter") obligationsPerChapter = parsePositiveInt(requireValue(argv, ++i, "--obligations-per-chapter"), "--obligations-per-chapter")
+    else if (arg.startsWith("--obligations-per-chapter=")) obligationsPerChapter = parsePositiveInt(arg.slice("--obligations-per-chapter=".length), "--obligations-per-chapter")
     else throw new Error(`unknown arg: ${arg}`)
   }
-  return { fixturePath, live, json, outputPath }
+  return { fixturePath, live, json, outputPath, scenesPerChapter, obligationsPerChapter }
 }
 
 function requireValue(argv: string[], index: number, flag: string): string {
@@ -724,7 +743,13 @@ function requireValue(argv: string[], index: number, flag: string): string {
   return value
 }
 
-function loadFixture(path: string): PlannerDiagnosticFixture {
+function parsePositiveInt(value: string, flag: string): number {
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed) || parsed < 1) throw new Error(`${flag} must be a positive integer`)
+  return parsed
+}
+
+export function loadFixture(path: string): PlannerDiagnosticFixture {
   const abs = resolve(process.cwd(), path)
   if (!existsSync(abs)) throw new Error(`fixture not found: ${abs}`)
   const parsed = fixtureSchema.safeParse(JSON.parse(readFileSync(abs, "utf-8")))
@@ -734,7 +759,7 @@ function loadFixture(path: string): PlannerDiagnosticFixture {
   return parsed.data
 }
 
-function loadFixtureArms(fixture: PlannerDiagnosticFixture): Array<{
+export function loadFixtureArms(fixture: PlannerDiagnosticFixture): Array<{
   armId: string
   label: string
   methodPackEnabled: boolean
@@ -750,32 +775,162 @@ function loadFixtureArms(fixture: PlannerDiagnosticFixture): Array<{
   })
 }
 
-async function runLiveArms(fixture: PlannerDiagnosticFixture): Promise<Array<{
+export async function runLiveArms(fixture: PlannerDiagnosticFixture, options: LivePlannerOptions = {}): Promise<Array<{
   armId: string
   label: string
   methodPackEnabled: boolean
   plan: PlannerContractPlan
 }>> {
-  const { callAgent } = await import("../../src/llm")
+  const scenesPerChapter = options.scenesPerChapter ?? DEFAULT_SCENES_PER_CHAPTER
+  const obligationsPerChapter = options.obligationsPerChapter ?? DEFAULT_OBLIGATIONS_PER_CHAPTER
   const arms = [
-    { armId: "control:no-method", label: "No-method control", methodPackEnabled: false },
-    { armId: "test:commercial-fantasy-adventure-v0", label: "Commercial fantasy/adventure V0", methodPackEnabled: true },
+    {
+      armId: "control:no-method:flash",
+      label: "No-method control / DeepSeek V4 Flash",
+      methodPackEnabled: false,
+      agentName: "method-pack-planner-diagnostic",
+      thinking: false,
+      model: "deepseek-v4-flash",
+      temperature: options.temperature ?? 0.3,
+      maxTokens: options.maxTokens ?? 14000,
+    },
+    {
+      armId: "test:commercial-fantasy-adventure-v0:flash",
+      label: "Commercial fantasy/adventure V0 / DeepSeek V4 Flash",
+      methodPackEnabled: true,
+      agentName: "method-pack-planner-diagnostic",
+      thinking: false,
+      model: "deepseek-v4-flash",
+      temperature: options.temperature ?? 0.3,
+      maxTokens: options.maxTokens ?? 14000,
+    },
   ]
+  if (options.includePro) {
+    arms.push(
+      {
+        armId: "control:no-method:pro",
+        label: "No-method control / DeepSeek V4 Pro",
+        methodPackEnabled: false,
+        agentName: "method-pack-planner-diagnostic-pro",
+        thinking: true,
+        model: "deepseek-v4-pro",
+        temperature: 0.25,
+        maxTokens: 32000,
+      },
+      {
+        armId: "test:commercial-fantasy-adventure-v0:pro",
+        label: "Commercial fantasy/adventure V0 / DeepSeek V4 Pro",
+        methodPackEnabled: true,
+        agentName: "method-pack-planner-diagnostic-pro",
+        thinking: true,
+        model: "deepseek-v4-pro",
+        temperature: 0.25,
+        maxTokens: 32000,
+      },
+    )
+  }
   const results = []
   for (const arm of arms) {
-    const response = await callAgent({
+    const output = await callDeepSeekPlanner({
       systemPrompt: liveSystemPrompt(),
-      userPrompt: liveUserPrompt(fixture, arm),
-      schema: z.unknown(),
-      temperature: 0.25,
-      maxTokens: 9000,
-      thinking: false,
-      agentName: "method-pack-planner-diagnostic",
+      userPrompt: liveUserPrompt(fixture, arm, { scenesPerChapter, obligationsPerChapter, replicateIndex: options.replicateIndex }),
+      temperature: arm.temperature,
+      maxTokens: arm.maxTokens,
+      thinking: arm.thinking,
+      model: arm.model,
+      agentName: arm.agentName,
     })
-    const plan = normalizePlannerContractPlan(response.output, fixture, arm)
+    const plan = normalizePlannerContractPlan(output, fixture, arm)
     results.push({ ...arm, plan })
   }
   return results
+}
+
+async function callDeepSeekPlanner(options: {
+  systemPrompt: string
+  userPrompt: string
+  model: string
+  temperature: number
+  maxTokens: number
+  thinking: boolean
+  agentName: string
+}): Promise<unknown> {
+  const key = process.env.DEEPSEEK_API_KEY
+  if (!key) throw new Error("DEEPSEEK_API_KEY not set in .env")
+  const timeoutMs = options.model === "deepseek-v4-pro" ? 300_000 : 180_000
+  let lastError: unknown = null
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      controller.abort(new Error(`DeepSeek ${options.model} timeout after ${timeoutMs}ms`))
+    }, timeoutMs)
+    try {
+      console.log(`  [LLM] Calling ${options.model} (${options.agentName}, temp=${options.temperature}, thinking=${options.thinking ? "on" : "off"}, attempt=${attempt})...`)
+      const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: options.model,
+          messages: [
+            { role: "system", content: options.systemPrompt },
+            { role: "user", content: options.userPrompt },
+          ],
+          temperature: options.temperature,
+          max_tokens: options.maxTokens,
+          response_format: { type: "json_object" },
+          thinking: { type: options.thinking ? "enabled" : "disabled" },
+        }),
+      })
+      const text = await response.text()
+      if (!response.ok) {
+        throw new Error(`DeepSeek ${options.model} ${response.status}: ${text.slice(0, 500)}`)
+      }
+      return parseDeepSeekPlannerResponse(text, options)
+    } catch (err) {
+      lastError = err
+      console.warn(`  [LLM] ${options.model} attempt ${attempt} failed: ${err instanceof Error ? err.message : String(err)}`)
+      if (attempt >= 2) break
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError))
+}
+
+function parseDeepSeekPlannerResponse(text: string, options: {
+  model: string
+  maxTokens: number
+}): unknown {
+  const data = JSON.parse(text) as {
+    choices?: Array<{ message?: { content?: string }; finish_reason?: string | null }>
+    usage?: { prompt_tokens?: number; completion_tokens?: number; prompt_cache_hit_tokens?: number }
+  }
+  const content = data.choices?.[0]?.message?.content ?? ""
+  const finishReason = data.choices?.[0]?.finish_reason ?? null
+  const promptTokens = data.usage?.prompt_tokens ?? 0
+  const completionTokens = data.usage?.completion_tokens ?? 0
+  const cachedTokens = data.usage?.prompt_cache_hit_tokens ?? 0
+  const cachedSuffix = cachedTokens > 0 ? ` [cache:${cachedTokens}]` : ""
+  console.log(`  [LLM] Response: ${promptTokens}+${completionTokens} tokens${cachedSuffix}; finish=${finishReason ?? "unknown"}`)
+  if (finishReason === "length") {
+    throw new Error(`DeepSeek ${options.model} hit max token cap: completion_tokens=${completionTokens} maxTokens=${options.maxTokens}`)
+  }
+  return JSON.parse(extractJsonObject(content))
+}
+
+function extractJsonObject(raw: string): string {
+  let text = raw.trim()
+  if (text.startsWith("```")) {
+    text = text.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "").trim()
+  }
+  const start = text.indexOf("{")
+  const end = text.lastIndexOf("}")
+  if (start < 0 || end < start) throw new Error(`No JSON object in DeepSeek response: ${text.slice(0, 200)}`)
+  return text.slice(start, end + 1)
 }
 
 function liveSystemPrompt(): string {
@@ -800,46 +955,64 @@ Quality target:
 function liveUserPrompt(
   fixture: PlannerDiagnosticFixture,
   arm: { armId: string; methodPackEnabled: boolean },
+  options: { scenesPerChapter: number; obligationsPerChapter: number; replicateIndex?: number },
 ): string {
   const conceptJson = JSON.stringify(fixture.concept, null, 2)
   const slotJson = JSON.stringify(fixture.targetSlots, null, 2)
+  const replicateLine = options.replicateIndex === undefined
+    ? ""
+    : `\nReplicate ${options.replicateIndex + 1}: independently re-plan the same frozen concept; do not copy prior sample wording.`
+  const sharedPrefix = `Planner diagnostic shared input.
+This shared prefix is intentionally stable across arms for DeepSeek prefix-cache reuse.
+
+Frozen concept:
+${conceptJson}
+
+Shared output contract:
+- Produce planning contracts only, not prose.
+- Return exactly six chapter contracts.
+- Each chapter must contain exactly ${options.scenesPerChapter} scene contracts.
+- Each chapter must contain exactly ${options.obligationsPerChapter} must_satisfy obligations.
+- Use the provided characterId, worldFactId, and promiseId values; do not invent replacement IDs.`
   if (arm.methodPackEnabled) {
-    return `Run arm ${arm.armId}.
+    return `${sharedPrefix}
+
+Arm-specific instructions:
+Run arm ${arm.armId}.
+${replicateLine}
 
 Use methodPackId=${fixture.methodPackId} and templateId=${fixture.templateId}.
 Use exactly these six structure slots in this order:
 ${slotJson}
 
-Frozen concept:
-${conceptJson}
-
-Return exactly six chapter contracts, one per structure slot. Each chapter must contain exactly one scene contract and exactly two must_satisfy obligations. Use the provided characterId, worldFactId, and promiseId values; do not invent replacement IDs.`
-      + liveShapeReminder()
+Return exactly six chapter contracts, one per structure slot.`
+      + liveShapeReminder(options, fixture)
   }
-  return `Run arm ${arm.armId}.
+  return `${sharedPrefix}
+
+Arm-specific instructions:
+Run arm ${arm.armId}.
+${replicateLine}
 
 Do not use a method pack. Use methodPackId=null and templateId=null.
 Create a freeform six-part upstream plan from the same frozen concept. Use structureSlotId values BASE-01 through BASE-06 in order.
-
-Frozen concept:
-${conceptJson}
-
-Return exactly six chapter contracts. Each chapter must contain exactly one scene contract and exactly two must_satisfy obligations. Use the provided characterId, worldFactId, and promiseId values; do not invent replacement IDs.`
-    + liveShapeReminder()
+`
+    + liveShapeReminder(options, fixture)
 }
 
-function liveShapeReminder(): string {
+function liveShapeReminder(options: { scenesPerChapter: number; obligationsPerChapter: number }, fixture: PlannerDiagnosticFixture): string {
+  const protagonistId = fixture.concept.protagonist.characterId
   return `
 
-Hard diagnostic limits for this micro-fixture only:
+Hard diagnostic limits for this fixture only:
 - exactly 6 chapters;
-- exactly 1 scene per chapter;
-- exactly 2 obligations per chapter;
+- exactly ${options.scenesPerChapter} scene contracts per chapter;
+- exactly ${options.obligationsPerChapter} obligations per chapter;
 - every string field should be 8-18 words;
 - do not include chapterNumber, chapterName, title, sceneNumber, chapterHook, must_satisfy, or nested scene obligations;
 - put obligations only in chapter.obligations;
-- scene.requiredObligationIds must reference the two chapter obligationIds;
-- scene.requiredSourceIds must reference the two chapter obligation sourceIds.
+- every scene.requiredObligationIds value must reference a chapter obligationId;
+- every scene.requiredSourceIds value must reference a chapter obligation sourceId.
 
 Required top-level JSON shape:
 {
@@ -851,7 +1024,7 @@ Required top-level JSON shape:
       "chapterId": "...",
       "structureSlotId": "...",
       "chapterFunction": "...",
-      "povCharacterId": "char-mara-vey",
+      "povCharacterId": "${protagonistId}",
       "protagonistPressure": "...",
       "centralConflict": "...",
       "irreversibleChange": "...",
@@ -866,7 +1039,7 @@ Required top-level JSON shape:
           "sourceKind": "character",
           "coveragePolicy": "must_satisfy",
           "requirementText": "...",
-          "linkedCharacterIds": ["char-mara-vey"],
+          "linkedCharacterIds": ["${protagonistId}"],
           "linkedWorldFactIds": []
         }
       ],
@@ -876,7 +1049,7 @@ Required top-level JSON shape:
           "chapterId": "...",
           "structureSlotId": "...",
           "sceneFunction": "...",
-          "povCharacterId": "char-mara-vey",
+          "povCharacterId": "${protagonistId}",
           "locationOrArena": "...",
           "goal": "...",
           "conflict": "...",
@@ -885,7 +1058,7 @@ Required top-level JSON shape:
           "consequence": "...",
           "requiredObligationIds": ["..."],
           "requiredSourceIds": ["..."],
-          "requiredCharacterIds": ["char-mara-vey"],
+          "requiredCharacterIds": ["${protagonistId}"],
           "requiredWorldFactIds": []
         }
       ]
@@ -905,12 +1078,15 @@ async function main(argv: string[]): Promise<number> {
     args = parseArgs(argv)
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err))
-    console.error("usage: bun scripts/evals/method-pack-planner-diagnostic.ts [--live] [--fixture <path>] [--output <path>] [--json]")
+    console.error("usage: bun scripts/evals/method-pack-planner-diagnostic.ts [--live] [--fixture <path>] [--output <path>] [--json] [--scenes-per-chapter <n>] [--obligations-per-chapter <n>]")
     return 2
   }
 
   const fixture = loadFixture(args.fixturePath)
-  const arms = args.live ? await runLiveArms(fixture) : loadFixtureArms(fixture)
+  const arms = args.live ? await runLiveArms(fixture, {
+    scenesPerChapter: args.scenesPerChapter,
+    obligationsPerChapter: args.obligationsPerChapter,
+  }) : loadFixtureArms(fixture)
   if (arms.length === 0) {
     console.error("fixture has no offline arms; pass --live to run the planner diagnostic against the LLM")
     return 2

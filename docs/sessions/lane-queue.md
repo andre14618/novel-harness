@@ -38,6 +38,13 @@ unless the user explicitly requests a disposable branch.
 - Review `docs/method-packs/commercial-fantasy-adventure-v0.md` as the first
   general method-pack charter before implementing template definitions,
   fixtures, or planner prompt changes.
+- Method-pack Flash cohort completed at N=18 paired cells and is `HOLD`:
+  slot fit/IDs held, but character materiality, world relevance, and endpoint
+  landing did not improve over no-method control. Pro-thinking timed out in
+  the sampled diagnostic shape and again in a narrowed one-scene smoke; use
+  Flash for bulk cohorts and Pro only as smaller judge/adjudication unless its
+  prompt/output shape is narrowed. Session:
+  `docs/sessions/2026-05-07-method-pack-planner-cohort.md`.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

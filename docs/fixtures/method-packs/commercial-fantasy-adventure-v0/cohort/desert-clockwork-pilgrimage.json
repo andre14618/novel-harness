@@ -1,0 +1,94 @@
+{
+  "diagnosticId": "cfa-cohort-desert-clockwork-pilgrimage",
+  "methodPackId": "commercial-fantasy-adventure-v0",
+  "templateId": "commercial-24-flex-v0",
+  "targetSlots": [
+    {
+      "structureSlotId": "CFA-01",
+      "structureJob": "Pressure baseline",
+      "planningTest": "Show what the protagonist wants, lacks, or cannot tolerate before the story changes."
+    },
+    {
+      "structureSlotId": "CFA-04",
+      "structureJob": "Invitation to danger",
+      "planningTest": "Present the concrete path into the story problem."
+    },
+    {
+      "structureSlotId": "CFA-06",
+      "structureJob": "First irreversible step",
+      "planningTest": "End the opening with a choice or consequence that prevents easy retreat."
+    },
+    {
+      "structureSlotId": "CFA-11",
+      "structureJob": "Major reversal",
+      "planningTest": "Reveal information or opposition that changes what the protagonist thinks the story is."
+    },
+    {
+      "structureSlotId": "CFA-17",
+      "structureJob": "Forced truth",
+      "planningTest": "Confront the protagonist with the flaw, false belief, or missing knowledge."
+    },
+    {
+      "structureSlotId": "CFA-22",
+      "structureJob": "Defining choice",
+      "planningTest": "Make victory depend on a meaningful choice, not only force or luck."
+    }
+  ],
+  "concept": {
+    "genreProfileId": "general-commercial-fantasy-adventure",
+    "premise": "Sariq Nahl, a clockwork caravan guide, inherits a broken pilgrimage automaton that predicts where wells will vanish. To save his drought-struck city, he must cross a treaty desert with rivals who believe the machine is stealing water from the future.",
+    "readerPromise": "A desert pilgrimage fantasy adventure about scarcity, prophecy, and whether survival justifies borrowing from tomorrow.",
+    "centralConflict": "Sariq needs the automaton's predictions to find water, while the treaty clans hunt anyone using machinery that changes future wells.",
+    "protagonist": {
+      "characterId": "char-sariq-nahl",
+      "name": "Sariq Nahl",
+      "desire": "earn a caravan license and bring water rights back to his city",
+      "fear": "discovering his guidance saves clients by condemning unseen travelers",
+      "flaw": "he relies on calculations to avoid admitting whose suffering he is choosing"
+    },
+    "characters": [
+      {
+        "characterId": "char-amina-resh",
+        "name": "Amina Resh",
+        "role": "supporting",
+        "materiality": "A treaty-clan scout who can lead Sariq through taboo routes if he shares the machine's truth."
+      },
+      {
+        "characterId": "char-dalen-voss",
+        "name": "Dalen Voss",
+        "role": "supporting",
+        "materiality": "A merchant sponsor whose water contract helps the city but pushes Sariq toward selfish choices."
+      },
+      {
+        "characterId": "char-matriarch-sahel",
+        "name": "Matriarch Sahel",
+        "role": "antagonist",
+        "materiality": "A clan leader enforcing the treaty who can destroy the automaton and strand the caravan."
+      }
+    ],
+    "worldFacts": [
+      {
+        "worldFactId": "world-vanishing-wells",
+        "fact": "Desert wells vanish from the present when a clockwork prediction draws too much certainty from their future."
+      },
+      {
+        "worldFactId": "world-treaty-desert",
+        "fact": "The treaty clans mark safe routes with wind bells that sound only for travelers who have shared water honestly."
+      },
+      {
+        "worldFactId": "world-pilgrim-automaton",
+        "fact": "The pilgrimage automaton calculates routes by consuming a brass memory of every oath spoken near it."
+      }
+    ],
+    "storyPromise": {
+      "promiseId": "promise-future-water",
+      "text": "If Sariq learns what the automaton costs, he can save the city but must choose whose future water disappears."
+    },
+    "constraints": [
+      "Produce planning contracts only, not prose.",
+      "Use scene contracts as the generation and adherence unit.",
+      "Make character and world obligations materially affect choices, costs, or consequences.",
+      "Keep the diagnostic to six chapter-contract units."
+    ]
+  }
+}
