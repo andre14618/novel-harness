@@ -14,7 +14,7 @@ This file is the actionable backlog only. Live architecture belongs in
 
 ## Current Priority
 
-### Authoring Visibility And Interactivity Foundation
+### Upstream Planning Methodology And Traceability
 
 - [x] Audit durable IDs across outlines, beats, obligations, writer context,
   checker findings, proposal targets, and UI edit paths. Record gaps in
@@ -55,8 +55,8 @@ This file is the actionable backlog only. Live architecture belongs in
   supersession from old IDs to new IDs.
 - [x] Expand Planning Studio with edit-before-approve/modified resolution,
   smarter grouping by target, and downstream impact preview in the queue.
-- [ ] Figure out autonomous local Playwright UI testing: disposable-data
-  preflight runner plus screenshots, network, console, and checklist output.
+- [ ] Keep further UI/Playwright work deferred unless a slice changes UI
+  behavior; current product focus is upstream planning methodology.
 - [x] Add chapter health and plan-to-prose traceability views from existing
   checker outputs before adding new creative checkers.
 - [x] Refresh phase-parity smoke after beat-count calibration; compare word
@@ -64,7 +64,8 @@ This file is the actionable backlog only. Live architecture belongs in
 - [x] Investigate semantic action drift, continuity gate behavior, and writer
   expansion from drafting before adding new writer/checker nudges.
 - [ ] Use planner-quality evidence to choose the next upstream
-  concept/planning revision or controlled drafting comparison. See L088.
+  concept/planning revision, structure-template diagnostic, or controlled
+  drafting comparison. See L088/L089.
 - [x] Add pure fact-role policy selectors and opt-in Canon role scoping before
   wiring runtime writer/checker behavior.
 - [x] Add diagnostic preview for writer-visible and continuity-blocking
@@ -129,9 +130,7 @@ This file is the actionable backlog only. Live architecture belongs in
 
 - [x] Keep this backlog under 150 lines.
 - [x] Move parked product ideas to `docs/features-expansion-todo.md`.
-- [ ] Extract any reopened historical item from
-  `docs/archive/todo-2026-05-04-full.md` into this file only when it becomes
-  actionable.
+- [ ] Extract reopened historical items from archive only when actionable.
 
 ## Lower Priority
 

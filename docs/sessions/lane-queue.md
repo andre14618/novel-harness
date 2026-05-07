@@ -5,11 +5,14 @@ unless the user explicitly requests a disposable branch.
 
 ## Active
 
-- Authoring harness program loop: move visibility, interactivity, diagnostics, and evidence-backed runtime slices. See `docs/authoring-harness-program-loop.md`.
-- Richness Backlog lane: fact roles remain A/B-only; semantic-gate diagnostics choose the next evidence-backed slice.
-- Authoring visibility/interactivity at scope ceiling: direct-mutation
-  audit found only deferred higher-risk slices (plan-assist whole-outline,
-  chapter-plan-reviser outline replacement).
+- Upstream planning methodology lane: narrow the active product question to
+  concept/planning templates, chapter contracts, scene functions, and
+  planner-quality diagnostics. See L089.
+- Visibility/interactivity foundation is at scope ceiling for now; additional
+  UI work is lower priority unless a UI surface changes as part of a specific
+  accepted slice.
+- Fact roles remain A/B-only; do not wire writer/checker policy without new
+  evidence.
 
 ## Next
 
@@ -18,18 +21,22 @@ unless the user explicitly requests a disposable branch.
   budget, mapper pressure, and weak-turn count, but endpoint satisfaction and
   listed-character materiality still need upstream work. Next choose whether to
   revise concept/planning contracts or draft the controlled pair; see L088.
+- Evaluate upstream structure-template scaffolds, including commercial
+  chapter-function templates, as concept/planning diagnostics before touching
+  drafting/checking/UI. Hold other layers steady unless the test explicitly
+  measures downstream projection.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO
-  rather than inferred.
+  rather than inferred. Do not run Playwright for non-UI methodology work.
 - Keep creative heuristics diagnostic-only or A/B-gated until evidence proves
   value.
 - Treat mechanically repairable prose syntax as a deterministic repair surface
   before Drafting retries or Plan-Assist Gates; keep semantic/content changes
   in Settle Loops, Reviser paths, or proposal/manual review.
 - Before the next implementation slice, write the L87 change packet so phase,
-  exact change, expected benefit, downstream projection, and evidence gate are
-  explicit.
+  optimized layer, exact change, expected benefit, downstream projection, and
+  evidence gate are explicit.
 
 ## Recently Closed
 

@@ -121,7 +121,7 @@ Promotion tiers:
 
 ## Active Work
 
-See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
+See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-07:
 
 - Authoring harness work now uses the broader program loop in
   `docs/authoring-harness-program-loop.md`; semantic-gate diagnostic session
@@ -130,9 +130,9 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
   `bun test` remains unsupported; use `test:fast`, `test:db`,
   `test:db:full`, and opt-in `test:replay` by intent. The fast tier isolates
   phase tests with process-global Bun module mocks from unrelated contracts.
-- Active: authoring visibility/interactivity foundation. The traceability UI
-  tracer is browser-cleared; next slices should continue closing proposal
-  bypasses and improving operator-visible impact/lineage.
+- Active product focus: upstream concept/planning methodology. Use templates,
+  chapter contracts, scene functions, and planner-quality evidence to improve
+  plan shape before changing drafting, checking, or UI defaults.
 - First backend tracer exposes read-only planning targets and deterministic
   impact preview. Write tracers add `planning_edit` envelopes for chapter,
   beat, obligation, directive, character, world, and spine scalar fields, with
@@ -234,11 +234,12 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
 
 - Non-trivial work must begin with a change packet: phase/surface, exact
   change, expected benefit/outcome, downstream projection across affected
-  IDs/contracts, and verification signal. If benefit is speculative, keep the
-  change diagnostic-only or A/B-gated. See L87.
+  IDs/contracts, optimized layer, and verification signal. If benefit is
+  speculative, keep the change diagnostic-only or A/B-gated. See L87 and L89.
 - UI-facing work requires Playwright MCP evidence before handoff. Use
   `docs/ui-work-gate.md` and
-  `docs/how-to/playwright-mcp-browser-testing.md`.
+  `docs/how-to/playwright-mcp-browser-testing.md`; do not expand UI work when
+  the active question is upstream methodology.
 - Browser evidence belongs in
   `output/playwright/<YYYY-MM-DD>/<surface-or-lane>-<novelId-or-short-slug>/`;
   close the Playwright tab/session and stop any test-only app server after the

@@ -1,31 +1,29 @@
 ---
 status: active
-updated: 2026-05-06
+updated: 2026-05-07
 role: program-loop-contract
 ---
 
 # Authoring Harness Program Loop
 
 This is the durable control shape for continuing Novel Harness infrastructure
-work across Codex, Claude, Playwright, and future agent sessions. It is broader
-than a single overnight lane: the goal is to keep moving the authoring harness
-toward better novel planning, operator interactivity, traceability, and
-plan-faithful drafting without prematurely wiring creative heuristics.
+work across Codex, Claude, Playwright, and future agent sessions. The current
+product lane is deliberately narrower than the full harness: improve upstream
+planning methodology first, then project effects downstream only after evidence
+shows the layer is worth carrying forward.
 
 ## Direction
 
-Improve the harness in this order:
+Current methodology work optimizes one layer at a time:
 
-1. Visibility: make failures, lineage, stale impact, and plan-to-prose evidence
-   inspectable by humans and agents.
-2. Interactivity: route operator and agent adjustments through durable proposal
-   envelopes, stale preconditions, diffs, and mutation lineage.
-3. Context engineering: improve what the planner, writer, and checkers see,
-   but only after diagnostics show the target failure class.
-4. Runtime levers: promote planner/writer/checker changes only through
-   diagnostic-only, replay, fixture, or A/B evidence.
-5. Polish: character voice, motivation, world detail, promise/payoff, scene
-   turns, and prose richness follow once the deterministic flow is observable.
+1. Upstream concept/planning: genre strategy, structure templates, chapter
+   contracts, scene functions, and beat/obligation checklists.
+2. Planner diagnostics: endpoint landing, character materiality, obligation
+   health, story-function allocation, and downstream projection.
+3. Drafting/revision: only after upstream plan-quality evidence justifies
+   changing the writer surface.
+4. Checker/proposal/UI surfaces: only when the changed behavior reaches those
+   layers, with the prior layer held steady for attribution.
 
 ## Workstreams
 
@@ -41,8 +39,9 @@ Improve the harness in this order:
   keep fast pure tests fast; keep DB/e2e tests bounded and explicit; promote
   recurring bugs into invariants or focused regression tests.
 - UI clearance:
-  every UI-facing slice gets Playwright MCP evidence before handoff, with
-  evidence under `output/playwright/<date>/<surface>-<novel>/`.
+  every UI-facing slice still gets Playwright MCP evidence before handoff, but
+  UI work is not the active product lever while methodology questions are
+  upstream planning questions.
 - Documentation:
   every coherent commit cluster gets a durable record of what happened, why it
   happened, evidence, and next implications.
@@ -71,6 +70,9 @@ Before non-trivial implementation, the agent must state the change packet:
 
 - Phase/surface: which creation phase, UI, checker, telemetry, or test surface
   is being changed.
+- Optimized layer: concept, planning template, chapter plan, scene plan, beat
+  obligations, writer, checker, revision, proposal/review, UI, telemetry, or
+  test infrastructure.
 - Exact change: the concrete behavior, files/modules, data shape, or workflow
   being altered.
 - Expected benefit/outcome: what improves and how it should be visible.
@@ -82,7 +84,9 @@ Before non-trivial implementation, the agent must state the change packet:
   downstream patch is only evidence for an upstream design question.
 
 If the expected benefit is speculative, keep the work diagnostic-only or A/B
-gated. If the phase is ambiguous, clarify the layer before editing.
+gated. If the phase is ambiguous, clarify the layer before editing. Do not
+change multiple creative layers in one experiment unless the goal is explicitly
+to test a downstream projection.
 
 ## Loop Shape
 

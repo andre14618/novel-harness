@@ -11,6 +11,9 @@ Before non-trivial implementation, agents must surface a change packet:
 
 - Phase/surface: the creation phase, UI, checker, telemetry, test, or docs
   surface being changed.
+- Optimized layer: concept, planning template, chapter plan, scene plan, beat
+  obligations, writer, checker, revision, proposal/review, UI, telemetry, or
+  test infrastructure.
 - Exact change: the behavior, files/modules, data shape, or workflow being
   altered.
 - Expected benefit/outcome: what should improve and how that improvement should
@@ -47,6 +50,8 @@ than to scaffolding that is only locally convenient.
   a verification signal before they become default behavior.
 - "Rescue operator", "upstream phase fix", "UI visibility", and "test
   infrastructure" are different phase claims and should not be blurred.
+- Methodology work should isolate one layer at a time so a test can explain
+  what caused a better or worse result.
 - Stable IDs, lineage records, proposal envelopes, and replay/diagnostic
   outputs are part of the projection, not after-the-fact bookkeeping.
 - Docs sweeps should capture lessons and decisions, not just shorten live docs.
