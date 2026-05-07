@@ -91,13 +91,18 @@ interface CalibrationReport {
 
 const DEFAULT_FIXTURE_PATH = "docs/fixtures/evals/planner-discernment-calibration-v0.json"
 const DEFAULT_MODES: PromptMode[] = ["direct-label", "evidence-first", "gate-derived"]
+const DIMENSIONS: Dimension[] = ["characterAgency", "worldPressure", "endpointLanding"]
 
 export async function buildCalibrationReport(args: Args, generatedAt = new Date().toISOString()): Promise<CalibrationReport> {
   const fixture = loadFixture(args.fixturePath)
   const tasks: Array<() => Promise<CalibrationResult>> = []
+  // Group by stable prompt prefix: mode + dimension. This makes live calls
+  // cheaper and cleaner by avoiding mixed rubric context in adjacent requests.
   for (const promptMode of args.modes) {
-    for (const calibrationCase of fixture.cases) {
-      tasks.push(() => runCase(args, calibrationCase, promptMode))
+    for (const dimension of DIMENSIONS) {
+      for (const calibrationCase of fixture.cases.filter(row => row.dimension === dimension)) {
+        tasks.push(() => runCase(args, calibrationCase, promptMode))
+      }
     }
   }
   const results = await runBounded(tasks, args.concurrency)
@@ -228,7 +233,7 @@ async function callDeepSeekJudge(args: Args, calibrationCase: CalibrationCase, p
         body: JSON.stringify({
           model: args.model,
           messages: [
-            { role: "system", content: systemPrompt() },
+            { role: "system", content: buildDiscernmentSystemPrompt(calibrationCase.dimension, promptMode) },
             { role: "user", content: userPrompt(calibrationCase, promptMode) },
           ],
           temperature: 0,
@@ -262,92 +267,109 @@ async function callDeepSeekJudge(args: Args, calibrationCase: CalibrationCase, p
   throw lastError instanceof Error ? lastError : new Error(String(lastError))
 }
 
-function systemPrompt(): string {
+export function buildDiscernmentSystemPrompt(dimension: Dimension, promptMode: PromptMode): string {
   return `You calibrate narrow semantic quality labels for upstream novel planning.
 
 This is not pairwise. Classify one excerpt against one dimension.
 Use the lowest label whose evidence requirements are fully satisfied. Do not reward polish, length, schema completeness, or genre excitement.
 
-Character agency labels:
-- AGENCY-0: No real protagonist choice. The protagonist observes, reacts, waits, or is moved by events.
-- AGENCY-1: Choice exists but pressure, cost, or consequence is vague.
-- AGENCY-2: Pressured choice with consequence. The protagonist wants something, faces opposition, chooses, and the choice changes the situation.
-- AGENCY-3: Defining choice. The protagonist chooses between two costly values, reveals character, and creates an irreversible plot turn.
+Dimension: ${dimension}
+Prompt mode: ${promptMode}
 
-World pressure labels:
-- WORLD-0: No meaningful world rule affects the scene; setting/lore is generic.
-- WORLD-1: World rule is mentioned but decorative; it does not change what characters can do.
-- WORLD-2: World rule creates an operational constraint, cost, or revelation in the scene.
-- WORLD-3: World rule forces a major choice, irreversible consequence, or scene/chapter turn.
+${labelDefinitions(dimension)}
 
-Endpoint landing labels:
-- ENDPOINT-0: Declared endpoint is absent or disconnected from the final scene.
-- ENDPOINT-1: Endpoint is stated weakly, delayed, or left as intention without concrete consequence.
-- ENDPOINT-2: Endpoint lands through final action and consequence.
-- ENDPOINT-3: Endpoint lands and creates forward propulsion: new danger, pursuit, obligation, reversal, or unavoidable next chapter.
-
-Return only JSON.`
+${outputContract(dimension, promptMode)}`
 }
 
 function userPrompt(calibrationCase: CalibrationCase, promptMode: PromptMode): string {
-  const base = `Prompt mode: ${promptMode}
-Dimension: ${calibrationCase.dimension}
-
+  return `Case ID: ${calibrationCase.caseId}
 Excerpt:
 ${calibrationCase.text}`
-  if (promptMode === "gate-derived") {
-    return `${base}
+}
 
-Do not provide a label. Fill the evidence gates only.
+function labelDefinitions(dimension: Dimension): string {
+  if (dimension === "characterAgency") {
+    return `Character agency labels:
+- AGENCY-0: No real protagonist choice. The protagonist observes, reacts, waits, or is moved by events.
+- AGENCY-1: Choice exists but pressure, cost, or consequence is vague.
+- AGENCY-2: Pressured choice with consequence. The protagonist wants something, faces opposition, chooses, and the choice changes the situation.
+- AGENCY-3: Defining choice. The protagonist chooses between two costly values, reveals character, and creates an irreversible plot turn.`
+  }
+  if (dimension === "worldPressure") {
+    return `World pressure labels:
+- WORLD-0: No meaningful world rule affects the scene; setting/lore is generic.
+- WORLD-1: World rule is mentioned but decorative; it does not change what characters can do.
+- WORLD-2: World rule creates an operational constraint, cost, or revelation in the scene.
+- WORLD-3: World rule forces a major choice, irreversible consequence, or scene/chapter turn.`
+  }
+  return `Endpoint landing labels:
+- ENDPOINT-0: Declared endpoint is absent or disconnected from the final scene.
+- ENDPOINT-1: Endpoint is stated weakly, delayed, or left as intention without concrete consequence.
+- ENDPOINT-2: Endpoint lands through final action and consequence.
+- ENDPOINT-3: Endpoint lands and creates forward propulsion: new danger, pursuit, obligation, reversal, or unavoidable next chapter.`
+}
+
+function outputContract(dimension: Dimension, promptMode: PromptMode): string {
+  const labels = labelAlternatives(dimension)
+  const evidence = evidenceContract(dimension)
+  if (promptMode === "gate-derived") {
+    return `Do not provide a label. Fill only the gates for this dimension.
 
 Return JSON:
 {
   "confidence": 0.0-1.0,
-  "evidence": {"choice": "", "pressure": "", "cost": "", "consequence": "", "worldRule": "", "endpoint": ""},
-  "gates": {
-    "hasChoice": true|false,
-    "hasOpposition": true|false,
-    "hasCost": true|false,
-    "hasConsequence": true|false,
-    "hasValueTradeoff": true|false,
-    "referencesWorldRule": true|false,
-    "ruleAffectsAction": true|false,
-    "createsCostOrConstraint": true|false,
-    "causesTurnOrConsequence": true|false,
-    "declaredEndpoint": true|false,
-    "finalActionMatchesEndpoint": true|false,
-    "consequenceChangesNextChapter": true|false,
-    "createsForwardQuestion": true|false
-  },
+  "evidence": ${evidence},
+  "gates": ${gateContract(dimension)},
   "missingForNextLevel": "what is missing for the next stronger level"
 }`
   }
   if (promptMode === "evidence-first") {
-    return `${base}
-
-First extract concrete evidence, then choose the strictest label justified by that evidence.
+    return `First extract concrete evidence, then choose the strictest label justified by that evidence.
 
 Return JSON:
 {
-  "label": "AGENCY-0|AGENCY-1|AGENCY-2|AGENCY-3|WORLD-0|WORLD-1|WORLD-2|WORLD-3|ENDPOINT-0|ENDPOINT-1|ENDPOINT-2|ENDPOINT-3",
+  "label": "${labels}",
   "confidence": 0.0-1.0,
-  "evidence": {"choice": "", "pressure": "", "cost": "", "consequence": "", "worldRule": "", "endpoint": ""},
+  "evidence": ${evidence},
   "gates": {},
   "missingForNextLevel": "what is missing for the next stronger level"
 }`
   }
-  return `${base}
-
-Choose the one label that best fits. Use the lowest label whose evidence requirements are fully satisfied.
+  return `Choose the one label that best fits. Use the lowest label whose evidence requirements are fully satisfied.
 
 Return JSON:
 {
-  "label": "AGENCY-0|AGENCY-1|AGENCY-2|AGENCY-3|WORLD-0|WORLD-1|WORLD-2|WORLD-3|ENDPOINT-0|ENDPOINT-1|ENDPOINT-2|ENDPOINT-3",
+  "label": "${labels}",
   "confidence": 0.0-1.0,
-  "evidence": {"choice": "", "pressure": "", "cost": "", "consequence": "", "worldRule": "", "endpoint": ""},
+  "evidence": ${evidence},
   "gates": {},
   "missingForNextLevel": "what is missing for the next stronger level"
 }`
+}
+
+function labelAlternatives(dimension: Dimension): string {
+  const prefix = dimensionPrefix(dimension)
+  return `${prefix}-0|${prefix}-1|${prefix}-2|${prefix}-3`
+}
+
+function evidenceContract(dimension: Dimension): string {
+  if (dimension === "characterAgency") {
+    return `{"choice": "", "pressure": "", "cost": "", "consequence": "", "valueTradeoff": ""}`
+  }
+  if (dimension === "worldPressure") {
+    return `{"worldRule": "", "effectOnAction": "", "costOrConstraint": "", "turnOrConsequence": ""}`
+  }
+  return `{"declaredEndpoint": "", "finalAction": "", "consequence": "", "forwardHook": ""}`
+}
+
+function gateContract(dimension: Dimension): string {
+  if (dimension === "characterAgency") {
+    return `{"hasChoice": true|false, "hasOpposition": true|false, "hasCost": true|false, "hasConsequence": true|false, "hasValueTradeoff": true|false}`
+  }
+  if (dimension === "worldPressure") {
+    return `{"referencesWorldRule": true|false, "ruleAffectsAction": true|false, "createsCostOrConstraint": true|false, "causesTurnOrConsequence": true|false}`
+  }
+  return `{"declaredEndpoint": true|false, "finalActionMatchesEndpoint": true|false, "consequenceChangesNextChapter": true|false, "createsForwardQuestion": true|false}`
 }
 
 function normalizeOutput(raw: any, dimension: Dimension): JudgeOutput {

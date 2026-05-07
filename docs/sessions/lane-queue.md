@@ -54,6 +54,10 @@ unless the user explicitly requests a disposable branch.
   known-answer planning-quality cases, while broad pairwise judging remains
   invalid. Use anchored categorical labels by dimension before prose tests.
   Record: `docs/sessions/2026-05-07-planner-discernment-calibration.md`.
+- Dimension-specific rerun improved the sensor: `direct-label` and
+  `evidence-first` hit `100%` exact on the same 21-case fixture, while prompt
+  tokens dropped from roughly `580-670` to `340-407`. Production diagnostics
+  should use one excerpt, one dimension, one rubric.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

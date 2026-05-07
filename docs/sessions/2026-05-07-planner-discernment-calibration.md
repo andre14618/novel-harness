@@ -87,6 +87,32 @@ Avoid for now:
 - gate-derived labels as the default workaround;
 - Pro as the bulk calibration model.
 
+## Dimension-Specific Rerun
+
+The harness was revised so each live call sees only one dimension rubric and
+one compact output contract. Calls are grouped by `promptMode + dimension` for
+prefix-cache reuse.
+
+Result on the same 21-case fixture:
+
+- `direct-label`: `100%` exact, `100%` off-by-one, `0%` over-label,
+  `0%` severe over-label.
+- `evidence-first`: `100%` exact, `100%` off-by-one, `0%` over-label,
+  `0%` severe over-label.
+- `gate-derived`: `95%` exact, `100%` off-by-one, `0%` over-label,
+  `0%` severe over-label.
+
+Artifact:
+
+`output/method-pack-diagnostics/2026-05-07T21-07-03-277Z/discernment-calibration/`
+
+Operational note:
+
+- Prompt tokens dropped from roughly `580-670` in the all-rubric shape to
+  roughly `340-407` in the dimension-specific shape.
+- DeepSeek prompt cache hits continued to appear on repeated prefixes.
+- The useful production shape is now one excerpt, one dimension, one rubric.
+
 ## Next
 
 - Apply `direct-label` and `evidence-first` sensors to real planner cohort

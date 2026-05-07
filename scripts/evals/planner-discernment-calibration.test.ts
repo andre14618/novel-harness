@@ -1,12 +1,25 @@
 import { describe, expect, test } from "bun:test"
 
 import {
+  buildDiscernmentSystemPrompt,
   deriveLabel,
   scoreCase,
   summarizeResults,
 } from "./planner-discernment-calibration"
 
 describe("planner-discernment-calibration", () => {
+  test("uses one dimension rubric per live prompt", () => {
+    const agencyPrompt = buildDiscernmentSystemPrompt("characterAgency", "direct-label")
+    expect(agencyPrompt).toContain("AGENCY-0")
+    expect(agencyPrompt).not.toContain("WORLD-0")
+    expect(agencyPrompt).not.toContain("ENDPOINT-0")
+
+    const worldPrompt = buildDiscernmentSystemPrompt("worldPressure", "evidence-first")
+    expect(worldPrompt).toContain("WORLD-0")
+    expect(worldPrompt).not.toContain("AGENCY-0")
+    expect(worldPrompt).not.toContain("ENDPOINT-0")
+  })
+
   test("derives anchored labels from binary gates", () => {
     expect(deriveLabel("characterAgency", {
       hasChoice: true,

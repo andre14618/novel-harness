@@ -39,6 +39,11 @@ The harness tests three shapes:
 - `evidence-first`: extract evidence first, then classify.
 - `gate-derived`: fill binary evidence gates; the script derives the label.
 
+Each live call now receives exactly one dimension rubric. Do not include all
+rubric definitions in a normal discernment call. Group calls by
+`promptMode + dimension` so the stable prefix can be reused and the model is not
+asked to hold unrelated labels in context.
+
 ## Fixture
 
 Known-answer fixture:
@@ -89,6 +94,46 @@ Interpretation:
   positives are costly.
 - `gate-derived` is not the best workaround here; it over-labels because gate
   truthiness is too coarse.
+
+## Dimension-Specific Flash Result
+
+After the first result, the prompt shape was refined so each call sees only the
+active dimension's labels and output contract. Calls are grouped by
+`promptMode + dimension`.
+
+Command:
+
+```bash
+bun run diagnostics:planner-discernment-calibration -- \
+  --live \
+  --model deepseek-v4-flash \
+  --no-thinking \
+  --concurrency 6 \
+  --max-tokens 1400
+```
+
+Artifact:
+
+`output/method-pack-diagnostics/2026-05-07T21-07-03-277Z/discernment-calibration/`
+
+Result:
+
+| Prompt shape | Exact | Off-by-one | Over-label | Severe over-label | Verdict |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `direct-label` | 100% | 100% | 0% | 0% | `USEFUL` |
+| `evidence-first` | 100% | 100% | 0% | 0% | `USEFUL` |
+| `gate-derived` | 95% | 100% | 0% | 0% | `USEFUL` |
+
+Prompt token counts also dropped materially: the earlier all-rubric shape
+commonly sent about `580-670` prompt tokens, while the dimension-specific shape
+mostly sent about `340-407`.
+
+Current recommendation:
+
+- Use `direct-label` as the default cheap sensor.
+- Use `evidence-first` when an operator needs more explanation or false
+  positives are costlier than false negatives.
+- Keep `gate-derived` as an experimental/checking shape, not the default.
 
 ## Live Pro Sample
 
