@@ -85,6 +85,22 @@ export interface LLMTransport {
   execute(request: LLMRequest): Promise<LLMResponse>
 }
 
+const ACTIVE_MODEL_IDS = new Set(["deepseek-v4-flash", "deepseek-v4-pro"])
+
+export function normalizeToActiveModelPolicy(request: LLMRequest): LLMRequest {
+  const model = ACTIVE_MODEL_IDS.has(request.model) ? request.model : "deepseek-v4-flash"
+  const extraBody = { ...(request.provider === "deepseek" ? request.extraBody ?? {} : {}) }
+  if (!("thinking" in extraBody)) {
+    extraBody.thinking = { type: model === "deepseek-v4-pro" ? "enabled" : "disabled" }
+  }
+  return {
+    ...request,
+    provider: "deepseek",
+    model,
+    extraBody,
+  }
+}
+
 // ── Singleton ────────────────────────────────────────────────────────────
 
 let active: LLMTransport | null = null
@@ -102,6 +118,7 @@ export function setTransport(t: LLMTransport): void {
 
 export class DirectTransport implements LLMTransport {
   async execute(request: LLMRequest): Promise<LLMResponse> {
+    request = normalizeToActiveModelPolicy(request)
     const providerDef = PROVIDERS[request.provider]
     const apiKey = getApiKey(request.provider)
     // request.noRetries (charter §6 experiment discipline): 0 retries → 1 total

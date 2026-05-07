@@ -1,5 +1,5 @@
 /**
- * Generate fine-tuning training data for Together AI LoRA.
+ * Generate fine-tuning training data for review.
  *
  * Usage:
  *   bun scripts/build-finetune-data.ts --task fact-extractor [--limit 50]
@@ -12,7 +12,7 @@
  *
  * Workflow:
  *   1. Pulls chapters from Postgres
- *   2. Runs base Qwen 3.5 9B to get baseline extraction
+ *   2. Runs DeepSeek V4 Flash to get baseline extraction
  *   3. Inserts each pair into finetune_training_data with status='pending'
  *   4. Review pairs in the web UI at /app/finetune
  *   5. Export approved pairs as JSONL for Together AI
@@ -83,8 +83,8 @@ async function runBaseModel(systemPrompt: string, userPrompt: string): Promise<B
   const response = await transport.execute({
     systemPrompt,
     userPrompt,
-    model: "Qwen/Qwen3.5-9B",
-    provider: "together",
+    model: "deepseek-v4-flash",
+    provider: "deepseek",
     temperature: 0.1,
     maxTokens: 2048,
     responseFormat: { type: "json_object" },

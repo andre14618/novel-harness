@@ -70,6 +70,25 @@ test("callAgent rejects completion cap hits before JSON parsing", async () => {
   })).rejects.toThrow("hit max token cap")
 })
 
+test("callAgent coerces legacy explicit routes to DeepSeek V4 Flash", async () => {
+  const cap: { req: LLMRequest | null } = { req: null }
+  setTransport(capturingTransport(req => { cap.req = req }))
+
+  await callAgent({
+    provider: "cerebras",
+    model: "qwen-3-235b-a22b-instruct-2507",
+    thinking: false,
+    systemPrompt: "Return JSON.",
+    userPrompt: "Return {\"pass\": true}.",
+    schema: z.object({ pass: z.boolean() }),
+    agentName: "legacy-explicit-route",
+  })
+
+  expect(cap.req?.provider).toBe("deepseek")
+  expect(cap.req?.model).toBe("deepseek-v4-flash")
+  expect(cap.req?.extraBody).toEqual({ thinking: { type: "disabled" } })
+})
+
 test("executeAndLog rejects cap hits for raw text calls", async () => {
   setTransport(responseTransport({
     content: "truncated prose",

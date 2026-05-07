@@ -9,7 +9,7 @@
  * Pass criterion: ≥9/10 correct, 0 parse errors, response time <3s/call.
  *
  * Usage:
- *   CEREBRAS_API_KEY=... WANDB_API_KEY=... bun scripts/smoke-test-adherence.ts
+ *   DEEPSEEK_API_KEY=... bun scripts/smoke-test-adherence.ts
  */
 
 import { readFileSync } from "fs"

@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 /**
- * Head-to-head validation for brief extraction.
+ * DeepSeek-only validation for brief extraction.
  *
  * Task: given a beat's prose, extract {characters, pov, setting, tone,
- * transition_in}. Tests DeepSeek V3.2, Cerebras Qwen 235B, Mimo Flash,
- * and Kimi K2 (Groq) against a Sonnet subagent baseline.
+ * transition_in}. Uses DeepSeek V4 Flash with thinking disabled because this
+ * is a local extraction check, not a cross-artifact reasoning task.
  *
  * Sample: 10 beats from novels/salvatore-icewind-dale/beats.jsonl
  *   mixed kinds (action/dialogue/interiority/description), mixed books.
@@ -12,7 +12,7 @@
  * Metric: field-level agreement with Sonnet. Writes
  *   /tmp/brief-test-<model>.jsonl per model
  *   /tmp/brief-test-sample.jsonl (the beats used)
- *   /tmp/brief-test-sonnet.json (ground truth, written by separate agent dispatch)
+ *   /tmp/brief-test-deepseek_flash.json
  */
 
 import { readFileSync, writeFileSync } from "fs"
@@ -47,30 +47,13 @@ interface Brief {
   transition_in: string
 }
 
-const MODELS: Record<string, { url: string; key: string; model: string; maxTokens: number }> = {
-  deepseek: {
+const MODELS: Record<string, { url: string; key: string; model: string; maxTokens: number; thinking: "enabled" | "disabled" }> = {
+  deepseek_flash: {
     url: "https://api.deepseek.com/v1/chat/completions",
     key: process.env.DEEPSEEK_API_KEY!,
     model: "deepseek-v4-flash",
     maxTokens: 2048,
-  },
-  cerebras: {
-    url: "https://api.cerebras.ai/v1/chat/completions",
-    key: process.env.CEREBRAS_API_KEY!,
-    model: "qwen-3-235b-a22b-instruct-2507",
-    maxTokens: 2048,
-  },
-  kimi: {
-    url: "https://api.groq.com/openai/v1/chat/completions",
-    key: process.env.GROQ_API_KEY!,
-    model: "moonshotai/kimi-k2-instruct-0905",
-    maxTokens: 2048,
-  },
-  mimo: {
-    url: "https://api.xiaomimimo.com/v1/chat/completions",
-    key: process.env.MIMO_API_KEY!,
-    model: "mimo-v2-flash",
-    maxTokens: 2048,
+    thinking: "disabled",
   },
 }
 
@@ -104,6 +87,7 @@ async function callModel(
         ],
         temperature: 0.1,
         max_tokens: cfg.maxTokens,
+        thinking: { type: cfg.thinking },
       }),
     })
     if (!resp.ok) {
@@ -186,7 +170,7 @@ async function main() {
     }
   }
 
-  console.log("\nNext: dispatch Sonnet subagent against /tmp/brief-test-sample.jsonl to produce /tmp/brief-test-sonnet.json as reference.")
+  console.log("\nNext: compare /tmp/brief-test-deepseek_flash.json against the saved reference set if one is present.")
 }
 
 await main()

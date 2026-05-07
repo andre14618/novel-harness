@@ -1,6 +1,6 @@
 /**
  * Re-lint experiment generations with current enabled patterns,
- * then run Llama 8B tonal fixes on AI_CLICHE hits.
+ * then run DeepSeek V4 Flash tonal fixes on AI_CLICHE hits.
  *
  * Usage: RUNS=323,324,325 bun scripts/relint-and-fix.ts
  */
@@ -76,8 +76,8 @@ async function main() {
     console.log(`  ${b.hits}x [${b.id}] ${b.category}: ${b.pattern?.slice(0, 55) || "(heuristic)"}`)
   }
 
-  // Phase 2: Fix AI_CLICHE and HEDGE_QUALIFIER hits with Llama 8B
-  console.log("\n=== PHASE 2: LLAMA 8B TONAL FIXES ===\n")
+  // Phase 2: Fix AI_CLICHE and HEDGE_QUALIFIER hits with DeepSeek V4 Flash.
+  console.log("\n=== PHASE 2: DEEPSEEK V4 FLASH TONAL FIXES ===\n")
 
   const fixableIssues = await db`
     SELECT li.id, li.generation_id, li.match, li.sentence,
@@ -114,8 +114,8 @@ Fix the flagged sentence.`
       const response = await getTransport().execute({
         systemPrompt: SYSTEM_PROMPT,
         userPrompt,
-        model: "llama-3.1-8b-instant",
-        provider: "groq",
+        model: "deepseek-v4-flash",
+        provider: "deepseek",
         temperature: 0.3,
         maxTokens: 512,
         responseFormat: { type: "text" },

@@ -16,6 +16,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
+| L90 | 2026-05-07 | active | Active LLM calls use only DeepSeek V4 Flash or DeepSeek V4 Pro with per-role thinking level; legacy provider/model references are historical, not active routing permission. | `docs/decisions/L090-deepseek-only-active-model-policy.md` |
 | L89 | 2026-05-07 | active | Methodology experiments must name the optimized layer and isolate one layer at a time; current product focus is upstream concept/planning templates and plan quality, not broad UI/writer/checker changes. | `docs/decisions/L089-layer-scoped-methodology-experiments.md` |
 | L88 | 2026-05-06 | active | Downstream beat calibration/packing is diagnostic evidence only; the active authoring-quality lever is default-off native concept/planning plus planner-quality scoring for endpoint landing and character materiality. | `docs/decisions/L088-upstream-native-planning-contract.md` |
 | L87 | 2026-05-06 | active | Agents must state the changed phase/surface, exact change, expected benefit, downstream projection, and evidence gate before non-trivial implementation. | `docs/decisions/L087-agent-phase-impact-contract.md` |

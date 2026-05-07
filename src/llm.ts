@@ -7,7 +7,7 @@ import {
   type ProviderName, type ProviderDef,
 } from "./models/registry"
 import { getModelForAgent, getAgentConfig, type ModelAssignment } from "./models/roles"
-import { CompletionCapHitError, getTransport, isCompletionCapHitError, type LLMResponse } from "./transport"
+import { CompletionCapHitError, getTransport, isCompletionCapHitError, normalizeToActiveModelPolicy, type LLMResponse } from "./transport"
 
 export type { ProviderName } from "./models/registry"
 
@@ -29,30 +29,40 @@ function toProviderConfig(name: ProviderName): ProviderConfig {
 }
 
 const MODEL_DEFAULTS: Record<string, string> = {
-  cerebras: "qwen-3-235b-a22b-instruct-2507",
-  groq: "qwen/qwen3-32b",
-  openrouter: "qwen/qwen3-32b",
-  openai: "gpt-5.4-mini",
+  cerebras: "deepseek-v4-flash",
+  groq: "deepseek-v4-flash",
+  openrouter: "deepseek-v4-flash",
+  openai: "deepseek-v4-flash",
   deepseek: "deepseek-v4-flash",
 }
 
+const ALLOWED_MODEL_IDS = new Set(["deepseek-v4-flash", "deepseek-v4-pro"])
+
 // Global defaults from .env
-const DEFAULT_PROVIDER = (process.env.LLM_PROVIDER ?? "openrouter") as ProviderName
-const DEFAULT_MODEL = process.env.MODEL ?? MODEL_DEFAULTS[DEFAULT_PROVIDER] ?? "qwen/qwen3-32b"
+const DEFAULT_PROVIDER = normalizeProviderName((process.env.LLM_PROVIDER ?? "deepseek") as ProviderName)
+const DEFAULT_MODEL = normalizeModelName(process.env.MODEL ?? MODEL_DEFAULTS[DEFAULT_PROVIDER] ?? "deepseek-v4-flash")
+
+function normalizeProviderName(provider: ProviderName): ProviderName {
+  return provider === "deepseek" ? "deepseek" : "deepseek"
+}
+
+function normalizeModelName(model: string): string {
+  return ALLOWED_MODEL_IDS.has(model) ? model : "deepseek-v4-flash"
+}
 
 function resolveProvider(override?: ProviderName): ProviderConfig {
-  const name = override ?? DEFAULT_PROVIDER
+  const name = normalizeProviderName(override ?? DEFAULT_PROVIDER)
   return toProviderConfig(name)
 }
 
 function resolveModel(providerOverride?: ProviderName, modelOverride?: string): string {
-  if (modelOverride) return modelOverride
-  if (providerOverride) return MODEL_DEFAULTS[providerOverride] ?? DEFAULT_MODEL
-  return DEFAULT_MODEL
+  if (modelOverride) return normalizeModelName(modelOverride)
+  if (providerOverride) return normalizeModelName(MODEL_DEFAULTS[providerOverride] ?? DEFAULT_MODEL)
+  return normalizeModelName(DEFAULT_MODEL)
 }
 
 function resolveProviderName(override?: ProviderName): ProviderName {
-  return override ?? DEFAULT_PROVIDER
+  return normalizeProviderName(override ?? DEFAULT_PROVIDER)
 }
 
 // ── Interfaces ────────────────────────────────────────────────────────────
@@ -241,6 +251,7 @@ export async function executeAndLog(
   tags?: ExecuteTags,
   opts?: ExecuteOpts,
 ): Promise<LLMResponse> {
+  request = normalizeToActiveModelPolicy(request)
   const startedAt = Date.now()
   let response: LLMResponse | null = null
   let caughtError: unknown = null
@@ -738,7 +749,12 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
           maxTokens,
           thinking,
           responseFormat: { type: "json_object" },
-          extraBody: provider.extraBody(),
+          extraBody: {
+            ...provider.extraBody(),
+            ...(providerName === "deepseek"
+              ? { thinking: { type: thinking ? "enabled" : "disabled" } }
+              : {}),
+          },
           needsNothink,
           finishReason: requestResult?.finishReason ?? null,
           hitCompletionCap: requestResult?.hitCompletionCap ?? false,

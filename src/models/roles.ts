@@ -25,9 +25,6 @@ export interface ModelAssignment {
 
 const DEFAULTS = { temperature: 0.7, maxTokens: 4096, thinking: false } as const
 
-const groqQwen32B: ModelAssignment = { provider: "groq", model: "qwen/qwen3-32b" }
-const cerebrasQwen235B: ModelAssignment = { provider: "cerebras", model: "qwen-3-235b-a22b-instruct-2507" }
-const groqKimiK2: ModelAssignment = { provider: "groq", model: "moonshotai/kimi-k2-instruct-0905" }
 // DeepSeek V4 Flash — single API model. Thinking mode is a per-agent toggle
 // via the `thinking` flag. When true, llm.ts injects `thinking: {type:
 // "enabled"}` into the request body. Same pricing in both modes
@@ -51,7 +48,6 @@ const groqKimiK2: ModelAssignment = { provider: "groq", model: "moonshotai/kimi-
 // (~12× output cost vs Flash at base rate; reserved for cases where Flash
 // thinking proves insufficient).
 const deepseekV4Flash: ModelAssignment = { provider: "deepseek", model: "deepseek-v4-flash" }
-const mimoFlash: ModelAssignment = { provider: "mimo", model: "mimo-v2-flash" }
 
 export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
@@ -77,21 +73,22 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "planning-beats":            { ...deepseekV4Flash, temperature: 0.6, maxTokens: 8192 },
   "planning-state-mapper":     { ...deepseekV4Flash, thinking: true, temperature: 0.25, maxTokens: 16384 },
   "planning-state-repair":     { ...deepseekV4Flash, thinking: false, temperature: 0.2, maxTokens: 2048 },
+  // Offline planner-method diagnostics. Kept on the same base planning model
+  // family so method-pack A/B evidence is not confounded by the generic
+  // process default model.
+  "method-pack-planner-diagnostic": { ...deepseekV4Flash, temperature: 0.25, maxTokens: 9000 },
 
   // ── Studio: pre-planning chat + extraction ───────────────────────────
-  // Chat: Groq Qwen3-32B (high-volume, cheap).
-  // Extractor: one-shot transcript → PlanningDirectives. Single-step, no
-  // thinking. Adjuster: light revision under feedback. Single-step, no thinking.
-  "planning-conversationalist": { ...groqQwen32B, temperature: 0.65, maxTokens: 2048 },
+  // Chat: guided-conversation judgments benefit from thinking, but stay on
+  // DeepSeek V4 Flash so active runtime has one model family. Extractor:
+  // one-shot transcript → PlanningDirectives. Single-step, no thinking.
+  // Adjuster: light revision under feedback. Single-step, no thinking.
+  "planning-conversationalist": { ...deepseekV4Flash, thinking: true, temperature: 0.65, maxTokens: 2048 },
   "planning-extractor":         { ...deepseekV4Flash, temperature: 0.2, maxTokens: 2048 },
   "artifact-adjuster":          { ...deepseekV4Flash, temperature: 0.3, maxTokens: 2048 },
 
   // ── Beat support ──────────────────────────────────────────────────────
-  // reference-resolver stays on Llama 3.1 8B Groq — set-union over implicit
-  // references, fast tier is the right home, parallel-N may or may not
-  // help (different output shape than adherence-checker — pending its own
-  // benchmark via scripts/best-of-n-experiment.ts).
-  "reference-resolver":        { provider: "groq", model: "llama-3.1-8b-instant", temperature: 0.1, maxTokens: 512 },
+  "reference-resolver":        { ...deepseekV4Flash, temperature: 0.1, maxTokens: 512 },
 
   // Runtime checkers default to bounded DeepSeek V4 Flash non-thinking calls.
   // Existing W&B checker adapters are retained only as historical artifacts;
@@ -110,11 +107,11 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "editorial-beat-coverage":  { ...deepseekV4Flash, temperature: 0.1, maxTokens: 4096 },
 
   // ── Extractors (structured extraction from prose) ─────────────────────
-  "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },
-  "fact-extractor":            { ...mimoFlash, temperature: 0.1, maxTokens: 8192 },
-  "character-state":           { ...mimoFlash, temperature: 0.1, maxTokens: 8192 },
+  "summary-extractor":         { ...deepseekV4Flash, temperature: 0.2, maxTokens: 8192 },
+  "fact-extractor":            { ...deepseekV4Flash, temperature: 0.1, maxTokens: 8192 },
+  "character-state":           { ...deepseekV4Flash, temperature: 0.1, maxTokens: 8192 },
   "relationship-timeline":     { ...deepseekV4Flash, temperature: 0.2, maxTokens: 8192 },
-  "graph-linker":              { ...mimoFlash, temperature: 0.2, maxTokens: 4096 },
+  "graph-linker":              { ...deepseekV4Flash, temperature: 0.2, maxTokens: 4096 },
 
   // ── Validators (analytical checks) ────────────────────────────────────
   // continuity: decomposed into 2 parallel calls (facts + state) via check.ts.
@@ -123,9 +120,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "continuity-state":          { ...deepseekV4Flash, temperature: 0.1, maxTokens: 2048 },
 
   // ── Lint fixer (per-sentence creative fixes via LLM) ──────────────────
-  // Stays on Cerebras 235B — high call count (6–17/run), latency-sensitive,
-  // sentence-level rewrites where DeepSeek's voice advantage doesn't help.
-  "lint-fixer":                { ...cerebrasQwen235B, temperature: 0.2 },
+  "lint-fixer":                { ...deepseekV4Flash, temperature: 0.2 },
 
   // ── Chapter plan checker (structural adherence) ────────────────────
   // Reverted to DeepSeek V3.2 base model 2026-04-18 after a dual-oracle

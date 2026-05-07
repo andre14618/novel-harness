@@ -10,7 +10,7 @@
  *
  * This data is the highest-leverage addition to the synthetic training set
  * because it represents the actual distribution the model sees in production:
- * real planner output, real 235B writer prose, real edge cases.
+ * real planner output, real DeepSeek writer prose, real edge cases.
  *
  * Output merges with the curated synthetic data for the final training file.
  *
@@ -28,8 +28,8 @@ import { getTransport } from "../../src/transport"
 import type { ChapterOutline, SceneBeat } from "../../src/types"
 import type { ProviderName } from "../../src/models/registry"
 
-const ORACLE_PROVIDER: ProviderName = "cerebras"
-const ORACLE_MODEL = "qwen-3-235b-a22b-instruct-2507"
+const ORACLE_PROVIDER: ProviderName = "deepseek"
+const ORACLE_MODEL = "deepseek-v4-flash"
 
 const LIMIT_ARG = process.argv.indexOf("--limit")
 const CHAPTER_LIMIT = LIMIT_ARG !== -1 ? parseInt(process.argv[LIMIT_ARG + 1]) : 999

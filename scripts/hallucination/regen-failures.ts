@@ -3,8 +3,8 @@
  *
  * Reads the existing raw JSONL, determines which (scenario × variant) combos
  * are missing, and regenerates them with stricter prompts:
- *   - FAIL_NEW_SYSTEM_OR_FACTION: explicit VERBATIM clause (Cerebras was
- *     paraphrasing multi-word tokens like "the Pale Guild").
+ *   - FAIL_NEW_SYSTEM_OR_FACTION: explicit VERBATIM clause to prevent
+ *     paraphrasing multi-word tokens like "the Pale Guild".
  *   - FAIL_NEW_CHARACTER (dialogue-only subcase): emphatic "name must NEVER
  *     appear outside quoted speech" clause.
  *   - Other variants: second try with temperature kept at 0.8.
@@ -225,8 +225,8 @@ Now write the prose.`
   const result = await transport.execute({
     systemPrompt: GEN_SYSTEM,
     userPrompt,
-    provider: "cerebras" as const,
-    model: "qwen-3-235b-a22b-instruct-2507",
+    provider: "deepseek" as const,
+    model: "deepseek-v4-flash",
     temperature: 0.8,
     maxTokens: 800,
   })

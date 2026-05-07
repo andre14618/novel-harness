@@ -372,8 +372,8 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   {
                     systemPrompt: beatSystemPrompt,
                     userPrompt: resolvedUserPrompt,
-                    model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
-                    provider: beatWriterModel?.provider ?? "cerebras",
+                    model: beatWriterModel?.model ?? "deepseek-v4-flash",
+                    provider: beatWriterModel?.provider ?? "deepseek",
                     temperature: beatWriterModel?.temperature ?? 0.8,
                     maxTokens: beatWriterModel?.maxTokens ?? 4000,
                     responseFormat: { type: "text" },
@@ -711,8 +711,8 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   {
                     systemPrompt: beatSystemPrompt,
                     userPrompt: beatCtx.userPrompt + retryContext + formatChapterIntegrityRetryContext(priorIntegrityIssues) + formatChapterUngroundedRetryContext(priorUngroundedEntities),
-                    model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
-                    provider: beatWriterModel?.provider ?? "cerebras",
+                    model: beatWriterModel?.model ?? "deepseek-v4-flash",
+                    provider: beatWriterModel?.provider ?? "deepseek",
                     temperature: beatWriterModel?.temperature ?? 0.8,
                     maxTokens: beatWriterModel?.maxTokens ?? 4000,
                     responseFormat: { type: "text" },
@@ -1003,8 +1003,8 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 {
                   systemPrompt: beatSystemPrompt,
                   userPrompt: beatCtx.userPrompt + retryContext + formatChapterIntegrityRetryContext(priorIntegrityIssues),
-                  model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
-                  provider: beatWriterModel?.provider ?? "cerebras",
+                  model: beatWriterModel?.model ?? "deepseek-v4-flash",
+                  provider: beatWriterModel?.provider ?? "deepseek",
                   temperature: beatWriterModel?.temperature ?? 0.8,
                   maxTokens: beatWriterModel?.maxTokens ?? 4000,
                   responseFormat: { type: "text" },
@@ -1572,8 +1572,8 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                     {
                       systemPrompt: beatSystemPrompt,
                       userPrompt: beatCtx.userPrompt + retryContext + formatChapterUngroundedRetryContext(priorUngroundedEntities),
-                      model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
-                      provider: beatWriterModel?.provider ?? "cerebras",
+                      model: beatWriterModel?.model ?? "deepseek-v4-flash",
+                      provider: beatWriterModel?.provider ?? "deepseek",
                       temperature: beatWriterModel?.temperature ?? 0.8,
                       maxTokens: beatWriterModel?.maxTokens ?? 4000,
                       responseFormat: { type: "text" },

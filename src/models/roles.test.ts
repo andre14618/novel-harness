@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { getModelForAgent, resolveStructuralPriors } from "./roles"
+import { AGENT_MODELS, getModelForAgent, resolveStructuralPriors } from "./roles"
 
 describe("writer genre pack routing", () => {
   test("fantasy genre supplies structural priors without changing the writer model", () => {
@@ -21,5 +21,16 @@ describe("writer genre pack routing", () => {
     expect(getModelForAgent("functional-state-checker")?.provider).toBe("deepseek")
     expect(getModelForAgent("continuity-facts")?.provider).toBe("deepseek")
     expect(getModelForAgent("continuity-state")?.provider).toBe("deepseek")
+  })
+
+  test("active agent routes use only DeepSeek V4 Flash or Pro", () => {
+    const allowed = new Set(["deepseek-v4-flash", "deepseek-v4-pro"])
+    for (const [agent, assignment] of Object.entries(AGENT_MODELS)) {
+      expect({ agent, provider: assignment.provider }).toEqual({ agent, provider: "deepseek" })
+      expect({ agent, allowed: allowed.has(assignment.model) }).toEqual({ agent, allowed: true })
+      if (assignment.model === "deepseek-v4-pro") {
+        expect({ agent, thinking: assignment.thinking }).toEqual({ agent, thinking: true })
+      }
+    }
   })
 })

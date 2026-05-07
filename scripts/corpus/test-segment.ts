@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Head-to-head validation for beat segmentation.
+ * DeepSeek-only validation for beat segmentation.
  *
  * Harder task than brief extraction — requires:
  *   1. Verbatim text preservation ("every word of scene in exactly one beat")
@@ -57,20 +57,14 @@ interface Scene {
   text: string
 }
 
-const MODELS: Record<string, { url: string; key: string; model: string; maxTokens: number }> = {
-  deepseek: {
+const MODELS: Record<string, { url: string; key: string; model: string; maxTokens: number; thinking: "enabled" | "disabled" }> = {
+  deepseek_flash: {
     url: "https://api.deepseek.com/v1/chat/completions",
     key: process.env.DEEPSEEK_API_KEY!,
     model: "deepseek-v4-flash",
     maxTokens: 8192,
+    thinking: "disabled",
   },
-  cerebras: {
-    url: "https://api.cerebras.ai/v1/chat/completions",
-    key: process.env.CEREBRAS_API_KEY!,
-    model: "qwen-3-235b-a22b-instruct-2507",
-    maxTokens: 8192,
-  },
-  // Skipping Mimo for this test — verbatim-long-output shape is outside its comfort zone
 }
 
 function buildUserPrompt(scene: Scene): string {
@@ -100,6 +94,7 @@ async function callModel(
         ],
         temperature: 0.1,
         max_tokens: cfg.maxTokens,
+        thinking: { type: cfg.thinking },
       }),
     })
     if (!resp.ok) return { error: `${resp.status}: ${(await resp.text()).slice(0, 300)}` }
@@ -241,7 +236,7 @@ async function main() {
     console.log(`${name.padEnd(12)} ${avgRecon.toFixed(3).padEnd(12)} ${avgVerbatim.toFixed(3).padEnd(14)} ${String(totalSchemaErr).padEnd(12)} ${String(Math.round(avgMedian)).padEnd(11)} ${String(r.mean_latency_ms).padEnd(12)} ~$${(r.total_tokens * 0.85e-6).toFixed(4)}`)
   }
 
-  console.log("\nNext: dispatch Sonnet subagent against /tmp/segment-test-sample.jsonl to produce /tmp/segment-test-sonnet.json as reference.")
+  console.log("\nNext: compare /tmp/segment-test-deepseek_flash.json against the saved reference set if one is present.")
 }
 
 await main()

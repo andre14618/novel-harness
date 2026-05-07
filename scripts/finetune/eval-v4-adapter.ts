@@ -1,9 +1,10 @@
 /**
- * Evaluate V4 adherence adapter against Sonnet oracle on 30 ground-truth pairs.
+ * Evaluate DeepSeek Flash adherence labels against DeepSeek Pro oracle labels
+ * on 30 ground-truth pairs.
  *
  * Runs each pair through:
- *   1. V4 adapter (adherence-checker-v4 on W&B Inference)
- *   2. Sonnet oracle (claude-sonnet-4-6 via OpenRouter, same prompt)
+ *   1. DeepSeek V4 Flash checker shape
+ *   2. DeepSeek V4 Pro oracle shape
  *
  * Reports per-pair agreement and overall accuracy.
  *
@@ -16,14 +17,14 @@ import { getTransport } from "../../src/transport.ts"
 
 const PAIRS_FILE = "/tmp/eval-pairs-30.json"
 
-const V4_ADAPTER = {
-  provider: "wandb" as const,
-  model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v4",
+const FLASH_CHECKER = {
+  provider: "deepseek" as const,
+  model: "deepseek-v4-flash",
 }
 
-const CEREBRAS_ORACLE = {
-  provider: "cerebras" as const,
-  model: "qwen-3-235b-a22b-instruct-2507",
+const DEEPSEEK_PRO_ORACLE = {
+  provider: "deepseek" as const,
+  model: "deepseek-v4-pro",
 }
 
 const SYSTEM_PROMPT = `You verify whether the prose ENACTS the scene beat on-page.
@@ -87,37 +88,37 @@ console.log(`Evaluating ${pairs.length} pairs...\n`)
 
 let agreements = 0
 let total = 0
-const mismatches: Array<{ id: number; label: string; v4: boolean; oracle: boolean; reasoning_v4: string; reasoning_oracle: string }> = []
+const mismatches: Array<{ id: number; label: string; flash: boolean; oracle: boolean; reasoning_flash: string; reasoning_oracle: string }> = []
 
 for (const pair of pairs) {
   const userPrompt = `BEAT: ${pair.beatDescription}\nCHARACTERS EXPECTED: ${pair.beatCharacters.join(", ")}\n\nPROSE:\n---\n${pair.prose.slice(0, 2000)}\n---`
 
-  // Run V4 and oracle in parallel
-  const [v4Result, oracleResult] = await Promise.all([
-    callModel(V4_ADAPTER, userPrompt),
-    callModel(CEREBRAS_ORACLE, userPrompt),
+  // Run Flash and Pro oracle in parallel
+  const [flashResult, oracleResult] = await Promise.all([
+    callModel(FLASH_CHECKER, userPrompt),
+    callModel(DEEPSEEK_PRO_ORACLE, userPrompt),
   ])
 
-  if (!v4Result || !oracleResult) {
+  if (!flashResult || !oracleResult) {
     console.log(`  [${pair.label}] SKIP — parse error`)
     continue
   }
 
-  const agree = v4Result.events_present === oracleResult.events_present
+  const agree = flashResult.events_present === oracleResult.events_present
   if (agree) agreements++
   total++
 
   const mark = agree ? "✓" : "✗"
-  console.log(`  ${mark} [${pair.label}] v4=${v4Result.events_present} oracle=${oracleResult.events_present}`)
+  console.log(`  ${mark} [${pair.label}] flash=${flashResult.events_present} oracle=${oracleResult.events_present}`)
   if (!agree) {
-    console.log(`    V4:     ${v4Result.reasoning}`)
+    console.log(`    Flash:  ${flashResult.reasoning}`)
     console.log(`    Oracle: ${oracleResult.reasoning}`)
     mismatches.push({
       id: pair.id,
       label: pair.label,
-      v4: v4Result.events_present,
+      flash: flashResult.events_present,
       oracle: oracleResult.events_present,
-      reasoning_v4: v4Result.reasoning,
+      reasoning_flash: flashResult.reasoning,
       reasoning_oracle: oracleResult.reasoning,
     })
   }

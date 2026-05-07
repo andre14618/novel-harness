@@ -9,7 +9,7 @@
  *   Labeling: Sonnet 4.6 via Claude Code subagents (Stage 4, separate script).
  *
  * Pipeline stages covered by this script:
- *   Stage 2 — prose generation (one Cerebras call per pair).
+ *   Stage 2 — prose generation (one DeepSeek V4 Flash call per pair).
  *   Stage 3 — injection validation (keyword/regex check inline).
  *
  * Pipeline stages elsewhere:
@@ -36,13 +36,10 @@ const POOLS = JSON.parse(
   readFileSync(join(import.meta.dir, "injection-pools.json"), "utf8"),
 )
 
-// Writer model is parameterized. DeepSeek V3.2 is the default after 2026-04-18
-// A/B measurement (99.4% Sonnet agreement vs Cerebras Qwen 235B's 96.4% on
-// instruction-constrained prose generation). Cerebras available for bulk
-// throughput cases where speed outweighs adherence quality.
-const WRITER_PROVIDER = (process.env.HALLUC_WRITER_PROVIDER ?? "deepseek") as "cerebras" | "deepseek"
-const WRITER_MODEL = process.env.HALLUC_WRITER_MODEL
-  ?? (WRITER_PROVIDER === "deepseek" ? "deepseek-v4-flash" : "qwen-3-235b-a22b-instruct-2507")
+// Active model policy: synthetic prose generation uses DeepSeek V4 Flash with
+// thinking disabled by the shared transport normalizer.
+const WRITER_PROVIDER = "deepseek"
+const WRITER_MODEL = "deepseek-v4-flash"
 const OUT_SUFFIX = process.env.HALLUC_OUT_SUFFIX ?? "raw"
 
 const OUT_PATH = join(import.meta.dir, "..", "..", "finetune-data", `halluc-checker-v2-pairs-${OUT_SUFFIX}.jsonl`)

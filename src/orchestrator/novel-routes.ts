@@ -345,19 +345,18 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         userMessage: body.message,
       })
 
-      // Qwen3 reasoning is ON for this agent — the guided-conversation
+      // DeepSeek thinking is ON for this agent — the guided-conversation
       // judgments (coverage tracking, sparsity detection, contradiction
-      // catching) benefit from an explicit reasoning pass. Cost delta is
-      // ~0.15¢ per 10-turn session; latency adds ~500ms/turn which also
-      // helps the UX feel less jarringly fast.
+      // catching) benefit from an explicit reasoning pass.
       const response = await getTransport().execute({
         systemPrompt: CHAT_PROMPT,
         userPrompt,
-        model: role?.model ?? "qwen/qwen3-32b",
-        provider: (role?.provider ?? "groq") as any,
+        model: role?.model ?? "deepseek-v4-flash",
+        provider: (role?.provider ?? "deepseek") as any,
         temperature: role?.temperature ?? chatConfig.temperature,
         maxTokens: role?.maxTokens ?? chatConfig.maxTokens,
         responseFormat: { type: "text" },
+        extraBody: { thinking: { type: role?.thinking ? "enabled" : "disabled" } },
       })
 
       // Strip the <think>…</think> block from the user-visible reply.
@@ -735,11 +734,12 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       const response = await getTransport().execute({
         systemPrompt: ADJUST_PROMPT,
         userPrompt,
-        model: role?.model ?? "qwen-3-235b-a22b-instruct-2507",
-        provider: (role?.provider ?? "cerebras") as any,
+        model: role?.model ?? "deepseek-v4-flash",
+        provider: (role?.provider ?? "deepseek") as any,
         temperature: role?.temperature ?? adjustConfig.temperature,
         maxTokens: role?.maxTokens ?? adjustConfig.maxTokens,
         responseFormat: { type: "json_object" },
+        extraBody: { thinking: { type: role?.thinking ? "enabled" : "disabled" } },
       })
 
       let parsed
