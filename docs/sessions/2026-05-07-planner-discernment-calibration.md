@@ -120,3 +120,42 @@ Operational note:
 - Have the operator review a small sample to calibrate labels before using
   model-only results as a decision signal.
 - Track where method packs change dimension labels, not just aggregate quality.
+
+## Expanded Dimension Slice
+
+Added three planning-quality dimensions to test whether the same cheap judge
+shape generalizes beyond the initial agency/world/endpoint set:
+
+- `causalMomentum`: static/list-like material versus causal escalation and
+  forced next action.
+- `sceneDramaturgy`: summary/lore versus playable scenes with goal,
+  opposition, turn, outcome, and consequence.
+- `promiseProgress`: repeated story promises versus clues, payoffs, and
+  reframes.
+
+Held constant:
+
+- no planner, writer, checker, UI, or runtime default changes;
+- same one-excerpt/one-dimension prompt shape;
+- same DeepSeek V4 Flash no-thinking model for bulk calibration.
+
+Evidence:
+
+- Deterministic synthetic run: `126/126` exact.
+- Live Flash run on `42` cases x `3` prompt modes:
+  - `direct-label`: `100%` exact, `0%` over-label.
+  - `evidence-first`: `100%` exact, `0%` over-label.
+  - `gate-derived`: `88%` exact, `10%` over-label, `0%` severe over-label.
+
+Artifact:
+
+`output/method-pack-diagnostics/2026-05-07T21-21-45-909Z/discernment-calibration/`
+
+Conclusion:
+
+- The useful semantic sensor is dimension-specific categorical labeling, not
+  broad pairwise plan preference.
+- `direct-label` is the cheapest default for bulk diagnostics.
+- `evidence-first` is the preferred operator-facing explanation shape.
+- `gate-derived` should stay secondary because binary gates lose nuance on
+  endpoint, causal, and promise-progress boundaries.

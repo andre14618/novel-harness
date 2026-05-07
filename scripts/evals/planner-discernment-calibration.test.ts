@@ -18,6 +18,22 @@ describe("planner-discernment-calibration", () => {
     expect(worldPrompt).toContain("WORLD-0")
     expect(worldPrompt).not.toContain("AGENCY-0")
     expect(worldPrompt).not.toContain("ENDPOINT-0")
+
+    const causalPrompt = buildDiscernmentSystemPrompt("causalMomentum", "direct-label")
+    expect(causalPrompt).toContain("CAUSAL-0")
+    expect(causalPrompt).not.toContain("AGENCY-0")
+    expect(causalPrompt).not.toContain("WORLD-0")
+    expect(causalPrompt).not.toContain("SCENE-0")
+
+    const scenePrompt = buildDiscernmentSystemPrompt("sceneDramaturgy", "direct-label")
+    expect(scenePrompt).toContain("SCENE-0")
+    expect(scenePrompt).not.toContain("CAUSAL-0")
+    expect(scenePrompt).not.toContain("PROMISE-0")
+
+    const promisePrompt = buildDiscernmentSystemPrompt("promiseProgress", "direct-label")
+    expect(promisePrompt).toContain("PROMISE-0")
+    expect(promisePrompt).not.toContain("SCENE-0")
+    expect(promisePrompt).not.toContain("ENDPOINT-0")
   })
 
   test("derives anchored labels from binary gates", () => {
@@ -40,6 +56,28 @@ describe("planner-discernment-calibration", () => {
       consequenceChangesNextChapter: true,
       createsForwardQuestion: false,
     })).toBe("ENDPOINT-2")
+    expect(deriveLabel("causalMomentum", {
+      hasEvents: true,
+      hasCausalLink: true,
+      escalatesPressure: true,
+      hasConcreteConsequence: true,
+      outcomeForcesNextAction: true,
+    })).toBe("CAUSAL-3")
+    expect(deriveLabel("sceneDramaturgy", {
+      hasConcreteGoal: true,
+      hasOpposition: true,
+      hasTurn: true,
+      hasOutcome: true,
+      hasConsequence: true,
+      hasStakesOrValueShift: false,
+    })).toBe("SCENE-2")
+    expect(deriveLabel("promiseProgress", {
+      referencesPromise: true,
+      addsNewInformation: true,
+      paysOffSetup: true,
+      changesGoalOrObligation: false,
+      reframesCentralConflict: false,
+    })).toBe("PROMISE-2")
   })
 
   test("tracks exact, off-by-one, and severe over-label rates", () => {

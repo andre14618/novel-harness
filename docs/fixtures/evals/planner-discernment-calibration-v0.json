@@ -127,6 +127,132 @@
       "dimension": "endpointLanding",
       "expectedLabel": "ENDPOINT-2",
       "text": "Declared endpoint: Mara commits to the forbidden road. Final scene: Mara signs the forbidden road into her map and seals it with true-ink. Consequence: she can no longer submit a legal map to regain her charter, but no immediate pursuer or next-scene crisis appears."
+    },
+    {
+      "caseId": "causal-0-static-list",
+      "dimension": "causalMomentum",
+      "expectedLabel": "CAUSAL-0",
+      "text": "Chapter excerpt: Mara visits the river gate, the bell tower, and the old archive. Each place has a different smell and history. She remembers three childhood lessons about maps. Endpoint: the chapter ends after the descriptions."
+    },
+    {
+      "caseId": "causal-1-chronological-errands",
+      "dimension": "causalMomentum",
+      "expectedLabel": "CAUSAL-1",
+      "text": "Chapter excerpt: Mara buys ink, checks the archive door, speaks briefly with Sena, and walks home before curfew. The events happen in order, but none clearly causes the next or makes the situation harder. Endpoint: Mara plans to return tomorrow."
+    },
+    {
+      "caseId": "causal-2-choice-causes-escalation",
+      "dimension": "causalMomentum",
+      "expectedLabel": "CAUSAL-2",
+      "text": "Chapter excerpt: Mara copies Ashren's border in true-ink. Because the ink burns through the missing valley, the clerk notices smoke and demands to see her page. Mara hides it in her sleeve, which makes the clerk suspicious. Endpoint: the clerk calls for a guard."
+    },
+    {
+      "caseId": "causal-3-compounding-reversal",
+      "dimension": "causalMomentum",
+      "expectedLabel": "CAUSAL-3",
+      "text": "Chapter excerpt: Mara burns the pardon to protect Sena. That alerts Ashren's oath clerk, who seals every legal gate. Forced away from the main road, Mara names the forbidden route, which opens but rings the Survey bells. Endpoint: the bells force the next chapter into pursuit."
+    },
+    {
+      "caseId": "causal-1-busy-disconnected",
+      "dimension": "causalMomentum",
+      "expectedLabel": "CAUSAL-1",
+      "text": "Chapter excerpt: Mara sprints over rooftops, ducks through a laundry yard, argues with a baker, steals a lantern, and reaches the archive. The action is energetic, but the obstacles do not arise from prior choices and nothing materially escalates. Endpoint: she opens the archive door."
+    },
+    {
+      "caseId": "causal-2-discovery-consequence",
+      "dimension": "causalMomentum",
+      "expectedLabel": "CAUSAL-2",
+      "text": "Chapter excerpt: Mara compares two maps and discovers Ashren erased a village. Because she tells Sena, Sena reveals that his family still lives there. The discovery changes the plan from proving fraud to reaching the village first. Endpoint: Mara and Sena leave the archive with a new destination."
+    },
+    {
+      "caseId": "causal-3-failure-forces-new-plan",
+      "dimension": "causalMomentum",
+      "expectedLabel": "CAUSAL-3",
+      "text": "Chapter excerpt: Mara tries to smuggle the route ledger through the legal gate, but true-ink exposes the false cover. The guard seizes the ledger, so Mara must publicly accuse Ashren before the evidence disappears. Endpoint: her failed stealth plan forces an open accusation and immediate retaliation."
+    },
+    {
+      "caseId": "scene-0-lore-summary",
+      "dimension": "sceneDramaturgy",
+      "expectedLabel": "SCENE-0",
+      "text": "Chapter excerpt: The Cartographers' Guild was founded two centuries ago after the river changed course. Its members follow seven taboos and maintain careful records. Mara's family once belonged to the guild. Endpoint: the history explains why maps matter."
+    },
+    {
+      "caseId": "scene-1-goal-without-opposition",
+      "dimension": "sceneDramaturgy",
+      "expectedLabel": "SCENE-1",
+      "text": "Chapter excerpt: Mara wants to find the missing valley entry before dawn. She enters the archive, chooses the correct shelf, and copies the ledger without anyone interfering. Endpoint: she leaves with the note."
+    },
+    {
+      "caseId": "scene-2-playable-negotiation",
+      "dimension": "sceneDramaturgy",
+      "expectedLabel": "SCENE-2",
+      "text": "Chapter excerpt: Mara wants Ilyan to let her inspect the sealed ledger. Ilyan refuses unless she gives him Sena's map. Mara lies that the map is already with Ashren, forcing Ilyan to unlock the ledger before Ashren can claim credit. Outcome: Mara gets one page but Ilyan realizes she is protecting Sena."
+    },
+    {
+      "caseId": "scene-3-strong-confrontation",
+      "dimension": "sceneDramaturgy",
+      "expectedLabel": "SCENE-3",
+      "text": "Chapter excerpt: Mara wants Ashren to admit the erased province exists before the Crown witness leaves. Ashren threatens to expose Sena unless Mara recants. Mara instead marks the forbidden road in true-ink in front of the witness. Outcome: she saves the province's proof but loses her legal charter, and Ashren orders her arrest."
+    },
+    {
+      "caseId": "scene-0-atmospheric-no-scene",
+      "dimension": "sceneDramaturgy",
+      "expectedLabel": "SCENE-0",
+      "text": "Chapter excerpt: Rain falls over the archive roof. Lamps glow against wet stone. Mara thinks about how lonely the city has become and how much she misses honest maps. Endpoint: the mood darkens before the next chapter."
+    },
+    {
+      "caseId": "scene-1-turn-without-outcome",
+      "dimension": "sceneDramaturgy",
+      "expectedLabel": "SCENE-1",
+      "text": "Chapter excerpt: Mara asks Sena for the forbidden road's name. Sena hesitates and says the name may kill them both. The scene breaks away before Mara answers, learns anything, or changes course. Endpoint: the question remains open."
+    },
+    {
+      "caseId": "scene-2-playable-contained",
+      "dimension": "sceneDramaturgy",
+      "expectedLabel": "SCENE-2",
+      "text": "Chapter excerpt: Mara wants to leave the archive unnoticed. The clerk blocks the exit and asks why her sleeve is smoking. Mara spills clean ink over the clerk's register, creating a harmless crisis, and escapes while the clerk saves the book. Outcome: she gets away, but the clerk remembers her face."
+    },
+    {
+      "caseId": "promise-0-unrelated-action",
+      "dimension": "promiseProgress",
+      "expectedLabel": "PROMISE-0",
+      "text": "Standing promise: who erased the province and why? Chapter excerpt: Mara repairs a bridge rope, helps a child across, and watches river birds circle above the city. No clue, setup, or related question advances. Endpoint: she continues toward the archive."
+    },
+    {
+      "caseId": "promise-1-repeated-tease",
+      "dimension": "promiseProgress",
+      "expectedLabel": "PROMISE-1",
+      "text": "Standing promise: who erased the province and why? Chapter excerpt: Sena says the erased province is dangerous and important. Mara agrees they must learn the truth someday. No new clue or partial answer appears. Endpoint: they decide to keep investigating."
+    },
+    {
+      "caseId": "promise-2-new-clue",
+      "dimension": "promiseProgress",
+      "expectedLabel": "PROMISE-2",
+      "text": "Standing promise: who erased the province and why? Chapter excerpt: Mara finds true-ink burns only where Ashren's official border crosses the missing valley. The clue does not reveal the motive, but it proves the erasure was deliberate. Endpoint: Mara now knows which map was altered."
+    },
+    {
+      "caseId": "promise-3-major-reframe",
+      "dimension": "promiseProgress",
+      "expectedLabel": "PROMISE-3",
+      "text": "Standing promise: who erased the province and why? Chapter excerpt: Mara opens the sealed ledger and learns the province erased itself by oath to hide refugees from the Crown, while Ashren has been keeping the oath alive through false maps. Endpoint: Mara's goal changes from exposing Ashren to deciding whether the truth would destroy the refuge."
+    },
+    {
+      "caseId": "promise-1-flashy-no-progress",
+      "dimension": "promiseProgress",
+      "expectedLabel": "PROMISE-1",
+      "text": "Standing promise: who erased the province and why? Chapter excerpt: Ashren dramatically warns that the answer will ruin Mara. The warning repeats the importance of the mystery but provides no new fact, clue, payoff, or changed obligation. Endpoint: Mara remains curious."
+    },
+    {
+      "caseId": "promise-2-partial-payoff",
+      "dimension": "promiseProgress",
+      "expectedLabel": "PROMISE-2",
+      "text": "Standing promise: why does true-ink burn over the old border? Chapter excerpt: Sena reveals true-ink burns when a map violates an oath, not when a map is merely false. This explains the earlier burns but does not reveal whose oath controls the border. Endpoint: Mara changes which records she searches next."
+    },
+    {
+      "caseId": "promise-3-payoff-forces-obligation",
+      "dimension": "promiseProgress",
+      "expectedLabel": "PROMISE-3",
+      "text": "Standing promise: what did Mara's mother hide in the route ledger? Chapter excerpt: Mara reads her mother's note: the ledger names every family sheltered in the erased province, including Sena's. The discovery pays off the hidden-ledger promise and forces Mara to protect the ledger instead of publishing it. Endpoint: the central investigation becomes a protection mission."
     }
   ]
 }

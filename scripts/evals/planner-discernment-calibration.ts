@@ -9,7 +9,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join, resolve } from "node:path"
 
-type Dimension = "characterAgency" | "worldPressure" | "endpointLanding"
+type Dimension =
+  | "characterAgency"
+  | "worldPressure"
+  | "endpointLanding"
+  | "causalMomentum"
+  | "sceneDramaturgy"
+  | "promiseProgress"
 type PromptMode = "direct-label" | "evidence-first" | "gate-derived"
 
 interface CalibrationFixture {
@@ -91,7 +97,14 @@ interface CalibrationReport {
 
 const DEFAULT_FIXTURE_PATH = "docs/fixtures/evals/planner-discernment-calibration-v0.json"
 const DEFAULT_MODES: PromptMode[] = ["direct-label", "evidence-first", "gate-derived"]
-const DIMENSIONS: Dimension[] = ["characterAgency", "worldPressure", "endpointLanding"]
+const DIMENSIONS: Dimension[] = [
+  "characterAgency",
+  "worldPressure",
+  "endpointLanding",
+  "causalMomentum",
+  "sceneDramaturgy",
+  "promiseProgress",
+]
 
 export async function buildCalibrationReport(args: Args, generatedAt = new Date().toISOString()): Promise<CalibrationReport> {
   const fixture = loadFixture(args.fixturePath)
@@ -302,11 +315,32 @@ function labelDefinitions(dimension: Dimension): string {
 - WORLD-2: World rule creates an operational constraint, cost, or revelation in the scene.
 - WORLD-3: World rule forces a major choice, irreversible consequence, or scene/chapter turn.`
   }
-  return `Endpoint landing labels:
+  if (dimension === "endpointLanding") {
+    return `Endpoint landing labels:
 - ENDPOINT-0: Declared endpoint is absent or disconnected from the final scene.
 - ENDPOINT-1: Endpoint is stated weakly, delayed, or left as intention without concrete consequence.
 - ENDPOINT-2: Endpoint lands through final action and consequence.
 - ENDPOINT-3: Endpoint lands and creates forward propulsion: new danger, pursuit, obligation, reversal, or unavoidable next chapter.`
+  }
+  if (dimension === "causalMomentum") {
+    return `Causal momentum labels:
+- CAUSAL-0: Static, disconnected, or list-like material. Events do not produce each other.
+- CAUSAL-1: Chronological sequence with weak cause-effect. Things happen, but pressure does not clearly escalate from prior actions.
+- CAUSAL-2: Clear cause-effect escalation. A choice, discovery, or obstacle produces a concrete consequence.
+- CAUSAL-3: Compounding causal chain. The consequence forces the next action, reversal, pursuit, obligation, or harder choice.`
+  }
+  if (dimension === "sceneDramaturgy") {
+    return `Scene dramaturgy labels:
+- SCENE-0: Not a playable scene. Mostly lore, summary, description, or logistics without goal and opposition.
+- SCENE-1: Partial scene setup. Some goal, pressure, or activity exists, but a core scene part is missing.
+- SCENE-2: Playable scene. Goal, opposition, turn, outcome, and consequence are all present.
+- SCENE-3: Strong scene. The playable scene also has stakes or value shift and leaves a consequential hook.`
+  }
+  return `Promise progress labels:
+- PROMISE-0: No reader promise, plot question, setup, or story debt is advanced.
+- PROMISE-1: Promise is merely repeated, restated, or teased without new information.
+- PROMISE-2: Concrete progress. A new clue, partial payoff, or complication changes what the reader understands.
+- PROMISE-3: Major promise movement. A payoff, reveal, or reframe changes the pursuit, obligation, or central conflict.`
 }
 
 function outputContract(dimension: Dimension, promptMode: PromptMode): string {
@@ -359,7 +393,16 @@ function evidenceContract(dimension: Dimension): string {
   if (dimension === "worldPressure") {
     return `{"worldRule": "", "effectOnAction": "", "costOrConstraint": "", "turnOrConsequence": ""}`
   }
-  return `{"declaredEndpoint": "", "finalAction": "", "consequence": "", "forwardHook": ""}`
+  if (dimension === "endpointLanding") {
+    return `{"declaredEndpoint": "", "finalAction": "", "consequence": "", "forwardHook": ""}`
+  }
+  if (dimension === "causalMomentum") {
+    return `{"events": "", "causalLink": "", "escalation": "", "consequence": "", "forcedNextAction": ""}`
+  }
+  if (dimension === "sceneDramaturgy") {
+    return `{"goal": "", "opposition": "", "turn": "", "outcome": "", "consequence": "", "stakesOrValueShift": ""}`
+  }
+  return `{"promise": "", "newInformation": "", "payoffOrComplication": "", "changedPursuitOrObligation": "", "reframe": ""}`
 }
 
 function gateContract(dimension: Dimension): string {
@@ -369,7 +412,16 @@ function gateContract(dimension: Dimension): string {
   if (dimension === "worldPressure") {
     return `{"referencesWorldRule": true|false, "ruleAffectsAction": true|false, "createsCostOrConstraint": true|false, "causesTurnOrConsequence": true|false}`
   }
-  return `{"declaredEndpoint": true|false, "finalActionMatchesEndpoint": true|false, "consequenceChangesNextChapter": true|false, "createsForwardQuestion": true|false}`
+  if (dimension === "endpointLanding") {
+    return `{"declaredEndpoint": true|false, "finalActionMatchesEndpoint": true|false, "consequenceChangesNextChapter": true|false, "createsForwardQuestion": true|false}`
+  }
+  if (dimension === "causalMomentum") {
+    return `{"hasEvents": true|false, "hasCausalLink": true|false, "escalatesPressure": true|false, "hasConcreteConsequence": true|false, "outcomeForcesNextAction": true|false}`
+  }
+  if (dimension === "sceneDramaturgy") {
+    return `{"hasConcreteGoal": true|false, "hasOpposition": true|false, "hasTurn": true|false, "hasOutcome": true|false, "hasConsequence": true|false, "hasStakesOrValueShift": true|false}`
+  }
+  return `{"referencesPromise": true|false, "addsNewInformation": true|false, "paysOffSetup": true|false, "changesGoalOrObligation": true|false, "reframesCentralConflict": true|false}`
 }
 
 function normalizeOutput(raw: any, dimension: Dimension): JudgeOutput {
@@ -409,10 +461,28 @@ export function deriveLabel(dimension: Dimension, gates: Record<string, boolean>
     if (!gates.causesTurnOrConsequence) return "WORLD-2"
     return "WORLD-3"
   }
-  if (!gates.declaredEndpoint || !gates.finalActionMatchesEndpoint) return "ENDPOINT-0"
-  if (!gates.consequenceChangesNextChapter) return "ENDPOINT-1"
-  if (!gates.createsForwardQuestion) return "ENDPOINT-2"
-  return "ENDPOINT-3"
+  if (dimension === "endpointLanding") {
+    if (!gates.declaredEndpoint || !gates.finalActionMatchesEndpoint) return "ENDPOINT-0"
+    if (!gates.consequenceChangesNextChapter) return "ENDPOINT-1"
+    if (!gates.createsForwardQuestion) return "ENDPOINT-2"
+    return "ENDPOINT-3"
+  }
+  if (dimension === "causalMomentum") {
+    if (!gates.hasEvents) return "CAUSAL-0"
+    if (!gates.hasCausalLink || !gates.escalatesPressure || !gates.hasConcreteConsequence) return "CAUSAL-1"
+    if (!gates.outcomeForcesNextAction) return "CAUSAL-2"
+    return "CAUSAL-3"
+  }
+  if (dimension === "sceneDramaturgy") {
+    if (!gates.hasConcreteGoal && !gates.hasOpposition) return "SCENE-0"
+    if (!gates.hasConcreteGoal || !gates.hasOpposition || !gates.hasTurn || !gates.hasOutcome || !gates.hasConsequence) return "SCENE-1"
+    if (!gates.hasStakesOrValueShift) return "SCENE-2"
+    return "SCENE-3"
+  }
+  if (!gates.referencesPromise) return "PROMISE-0"
+  if (!gates.addsNewInformation && !gates.paysOffSetup) return "PROMISE-1"
+  if (!gates.changesGoalOrObligation && !gates.reframesCentralConflict) return "PROMISE-2"
+  return "PROMISE-3"
 }
 
 function syntheticOutput(calibrationCase: CalibrationCase, promptMode: PromptMode): JudgeOutput {
@@ -445,11 +515,39 @@ function gatesForExpected(dimension: Dimension, label: string): Record<string, b
       causesTurnOrConsequence: ordinal >= 3,
     }
   }
+  if (dimension === "endpointLanding") {
+    return {
+      declaredEndpoint: ordinal >= 1,
+      finalActionMatchesEndpoint: ordinal >= 1,
+      consequenceChangesNextChapter: ordinal >= 2,
+      createsForwardQuestion: ordinal >= 3,
+    }
+  }
+  if (dimension === "causalMomentum") {
+    return {
+      hasEvents: ordinal >= 1,
+      hasCausalLink: ordinal >= 2,
+      escalatesPressure: ordinal >= 2,
+      hasConcreteConsequence: ordinal >= 2,
+      outcomeForcesNextAction: ordinal >= 3,
+    }
+  }
+  if (dimension === "sceneDramaturgy") {
+    return {
+      hasConcreteGoal: ordinal >= 1,
+      hasOpposition: ordinal >= 2,
+      hasTurn: ordinal >= 2,
+      hasOutcome: ordinal >= 2,
+      hasConsequence: ordinal >= 2,
+      hasStakesOrValueShift: ordinal >= 3,
+    }
+  }
   return {
-    declaredEndpoint: ordinal >= 1,
-    finalActionMatchesEndpoint: ordinal >= 2,
-    consequenceChangesNextChapter: ordinal >= 2,
-    createsForwardQuestion: ordinal >= 3,
+    referencesPromise: ordinal >= 1,
+    addsNewInformation: ordinal >= 2,
+    paysOffSetup: ordinal >= 2,
+    changesGoalOrObligation: ordinal >= 3,
+    reframesCentralConflict: ordinal >= 3,
   }
 }
 
@@ -463,7 +561,10 @@ function normalizeLabel(raw: string, dimension: Dimension): string {
 function dimensionPrefix(dimension: Dimension): string {
   if (dimension === "characterAgency") return "AGENCY"
   if (dimension === "worldPressure") return "WORLD"
-  return "ENDPOINT"
+  if (dimension === "endpointLanding") return "ENDPOINT"
+  if (dimension === "causalMomentum") return "CAUSAL"
+  if (dimension === "sceneDramaturgy") return "SCENE"
+  return "PROMISE"
 }
 
 function labelOrdinal(label: string): number {

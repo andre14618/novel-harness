@@ -21,11 +21,14 @@ The target is discernment, not preference:
 
 ## Dimensions
 
-Initial dimensions:
+Current dimensions:
 
 - `characterAgency`: `AGENCY-0` through `AGENCY-3`.
 - `worldPressure`: `WORLD-0` through `WORLD-3`.
 - `endpointLanding`: `ENDPOINT-0` through `ENDPOINT-3`.
+- `causalMomentum`: `CAUSAL-0` through `CAUSAL-3`.
+- `sceneDramaturgy`: `SCENE-0` through `SCENE-3`.
+- `promiseProgress`: `PROMISE-0` through `PROMISE-3`.
 
 The labels are ordinal but not open-ended scores. Higher labels require concrete
 evidence, and the judge is instructed to use the lowest label whose evidence
@@ -59,6 +62,9 @@ It includes clean and adversarial cases:
 - operational world constraints;
 - world rules that force sacrifice;
 - declared endpoints that are disconnected, verbal-only, landed, or propulsive.
+- static or merely chronological event chains;
+- playable versus non-playable scene shapes;
+- repeated promises versus concrete clues, payoffs, and reframes.
 
 ## Live Flash Result
 
@@ -134,6 +140,57 @@ Current recommendation:
 - Use `evidence-first` when an operator needs more explanation or false
   positives are costlier than false negatives.
 - Keep `gate-derived` as an experimental/checking shape, not the default.
+
+## Expanded Dimension Flash Result
+
+The fixture was expanded from `21` to `42` known-answer cases by adding:
+
+- `causalMomentum`;
+- `sceneDramaturgy`;
+- `promiseProgress`.
+
+This tests whether the same narrow judgment shape can detect planning concerns
+that matter before prose: cause-effect movement, scene playability, and reader
+promise progress.
+
+Command:
+
+```bash
+bun run diagnostics:planner-discernment-calibration -- \
+  --live \
+  --model deepseek-v4-flash \
+  --no-thinking \
+  --concurrency 8 \
+  --max-tokens 1400
+```
+
+Artifact:
+
+`output/method-pack-diagnostics/2026-05-07T21-21-45-909Z/discernment-calibration/`
+
+Result:
+
+| Prompt shape | Exact | Off-by-one | Over-label | Severe over-label | Verdict |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `direct-label` | 100% | 100% | 0% | 0% | `USEFUL` |
+| `evidence-first` | 100% | 100% | 0% | 0% | `USEFUL` |
+| `gate-derived` | 88% | 100% | 10% | 0% | `USEFUL` |
+
+Interpretation:
+
+- The cheap dimension-specific shape generalized across the added dimensions.
+- `direct-label` remains the default bulk sensor.
+- `evidence-first` remains the safer review/explanation sensor.
+- `gate-derived` still over-compresses nuance into booleans. It is useful for
+  diagnostics but not the default promotion signal.
+
+Run shape:
+
+- Full all-shape run: `42` cases x `3` prompt modes = `126` Flash calls.
+- Direct-only run: `42` calls.
+- Direct plus evidence-first run: `84` calls.
+- The prompt prefix stays small because each call carries only one dimension
+  rubric, and live output showed repeated DeepSeek prompt-cache hits.
 
 ## Live Pro Sample
 

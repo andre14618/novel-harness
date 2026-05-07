@@ -49,15 +49,13 @@ unless the user explicitly requests a disposable branch.
   Plan-A bias. After AB/BA swap control, stable method wins are `0/18` and
   position-biased pairs are `18/18`; do not use this judge for promotion until
   repaired or replaced. Same-plan calibration passed `3/3`.
-- Narrow DeepSeek discernment calibration found a useful judge shape:
-  `direct-label` hit `95%` exact and `evidence-first` hit `90%` exact on 21
-  known-answer planning-quality cases, while broad pairwise judging remains
-  invalid. Use anchored categorical labels by dimension before prose tests.
-  Record: `docs/sessions/2026-05-07-planner-discernment-calibration.md`.
-- Dimension-specific rerun improved the sensor: `direct-label` and
-  `evidence-first` hit `100%` exact on the same 21-case fixture, while prompt
-  tokens dropped from roughly `580-670` to `340-407`. Production diagnostics
-  should use one excerpt, one dimension, one rubric.
+- Narrow DeepSeek discernment calibration found a useful judge shape while
+  broad pairwise judging remains invalid. The expanded 42-case fixture covers
+  agency, world pressure, endpoint landing, causal momentum, scene dramaturgy,
+  and promise progress; `direct-label` and `evidence-first` both hit `100%`
+  exact with `0%` over-label in the latest Flash run. Use one excerpt, one
+  dimension, one rubric before prose tests. Record:
+  `docs/sessions/2026-05-07-planner-discernment-calibration.md`.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO
