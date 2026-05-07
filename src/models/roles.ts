@@ -76,7 +76,14 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // Offline planner-method diagnostics. Kept on the same base planning model
   // family so method-pack A/B evidence is not confounded by the generic
   // process default model.
-  "method-pack-planner-diagnostic": { ...deepseekV4Flash, temperature: 0.25, maxTokens: 9000 },
+  "method-pack-planner-diagnostic": { ...deepseekV4Flash, temperature: 0.3, maxTokens: 14000 },
+  // Pro escalation for the same planner-method diagnostic. Used to measure
+  // whether a stronger planning model materially improves upstream contract
+  // quality before changing runtime defaults.
+  "method-pack-planner-diagnostic-pro": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.25, maxTokens: 32000,
+  },
 
   // ── Studio: pre-planning chat + extraction ───────────────────────────
   // Chat: guided-conversation judgments benefit from thinking, but stay on
@@ -337,6 +344,10 @@ async function loadPersistedOverrides(): Promise<void> {
   }
 }
 
+// DB generation config (autoresearcher-tunable temperature/maxTokens) must be
+// initialized before top-level awaits below can expose this module to callers.
+let dbGenConfigCache: Map<string, { temperature?: number; maxTokens?: number }> | null = null
+
 await loadPersistedOverrides()
 
 export function getModelForAgent(agentName: string): ModelAssignment | undefined {
@@ -447,8 +458,6 @@ Chapters should NOT close with pure description — the reader needs momentum or
 `
 
 // ── DB generation config (autoresearcher-tunable temperature/maxTokens) ──
-
-let dbGenConfigCache: Map<string, { temperature?: number; maxTokens?: number }> | null = null
 
 /** Load all agent generation overrides from DB into cache */
 export async function loadGenerationConfig(): Promise<void> {

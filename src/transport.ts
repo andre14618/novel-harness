@@ -78,7 +78,11 @@ export class CompletionCapHitError extends Error {
 }
 
 export function isCompletionCapHitError(err: unknown): err is CompletionCapHitError {
-  return err instanceof CompletionCapHitError
+  return !!err
+    && typeof err === "object"
+    && (err as { name?: string }).name === "CompletionCapHitError"
+    && "response" in err
+    && "maxTokens" in err
 }
 
 export interface LLMTransport {

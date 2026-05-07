@@ -2,31 +2,13 @@ import { z } from "zod"
 import { logLLMCallStructured, getRunId, type LLMCallLogEntry } from "./logger"
 import { emit } from "./events"
 import { traceAgentStart, traceAgentComplete, traceAgentFail, traceLLMCallStart, broadcastLLMToken } from "./trace"
-import {
-  PROVIDERS, getApiKey, getTokenCost, getModel,
-  type ProviderName, type ProviderDef,
-} from "./models/registry"
+import { getTokenCost, type ProviderName } from "./models/registry"
 import { getModelForAgent, getAgentConfig, type ModelAssignment } from "./models/roles"
 import { CompletionCapHitError, getTransport, isCompletionCapHitError, normalizeToActiveModelPolicy, type LLMResponse } from "./transport"
 
 export type { ProviderName } from "./models/registry"
 
 // ── Provider resolution ──────────────────────────────────────────────────
-
-interface ProviderConfig {
-  apiUrl: string
-  getApiKey: () => string
-  extraBody: () => Record<string, any>
-}
-
-function toProviderConfig(name: ProviderName): ProviderConfig {
-  const def = PROVIDERS[name]
-  return {
-    apiUrl: def.apiUrl,
-    getApiKey: () => getApiKey(name),
-    extraBody: () => def.extraBody?.() ?? {},
-  }
-}
 
 const MODEL_DEFAULTS: Record<string, string> = {
   cerebras: "deepseek-v4-flash",
@@ -35,8 +17,6 @@ const MODEL_DEFAULTS: Record<string, string> = {
   openai: "deepseek-v4-flash",
   deepseek: "deepseek-v4-flash",
 }
-
-const ALLOWED_MODEL_IDS = new Set(["deepseek-v4-flash", "deepseek-v4-pro"])
 
 // Global defaults from .env
 const DEFAULT_PROVIDER = normalizeProviderName((process.env.LLM_PROVIDER ?? "deepseek") as ProviderName)
@@ -47,12 +27,9 @@ function normalizeProviderName(provider: ProviderName): ProviderName {
 }
 
 function normalizeModelName(model: string): string {
-  return ALLOWED_MODEL_IDS.has(model) ? model : "deepseek-v4-flash"
-}
-
-function resolveProvider(override?: ProviderName): ProviderConfig {
-  const name = normalizeProviderName(override ?? DEFAULT_PROVIDER)
-  return toProviderConfig(name)
+  return model === "deepseek-v4-flash" || model === "deepseek-v4-pro"
+    ? model
+    : "deepseek-v4-flash"
 }
 
 function resolveModel(providerOverride?: ProviderName, modelOverride?: string): string {
@@ -477,7 +454,6 @@ async function makeRequest(
   userPrompt: string,
   temperature: number,
   maxTokens: number,
-  provider: ProviderConfig,
   model: string,
   providerName: ProviderName,
   agentName: string,
@@ -499,7 +475,7 @@ async function makeRequest(
     temperature,
     maxTokens,
     responseFormat: { type: "json_object" },
-    extraBody: { ...provider.extraBody(), ...thinkingExtra },
+    extraBody: thinkingExtra,
     callerId: agentName,
     debugContext,
   })
@@ -536,15 +512,12 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
   const effectiveProvider = config.provider ?? role?.provider
   const effectiveModel = config.model ?? role?.model
   const providerName = resolveProviderName(effectiveProvider)
-  const provider = resolveProvider(effectiveProvider)
   const model = resolveModel(effectiveProvider, effectiveModel)
 
-  // /nothink is a Qwen convention — only apply to models that explicitly declare it
-  const modelDef = getModel(model, providerName)
-  const needsNothink = !thinking && !!modelDef?.needsNothink
-  console.log(`  [LLM] Calling ${model} (temp=${temperature}${needsNothink ? ", nothink" : ""})...`)
+  const needsNothink = false
+  console.log(`  [LLM] Calling ${model} (temp=${temperature})...`)
 
-  const userPrompt = needsNothink ? `/nothink\n${config.userPrompt}` : config.userPrompt
+  const userPrompt = config.userPrompt
 
   let content = ""
   let requestResult: MakeRequestResult | null = null
@@ -622,7 +595,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
   }
 
   try {
-    requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model, providerName, config.agentName ?? "unknown", thinking, debugContext)
+    requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, model, providerName, config.agentName ?? "unknown", thinking, debugContext)
     content = requestResult.content
     if (completionCapHit(requestResult.usage.completion_tokens, maxTokens, requestResult.finishReason)) {
       requestResult.hitCompletionCap = true
@@ -644,7 +617,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
       jsonExtractionRetried = true
       const retryResult = await makeRequest(
         config.systemPrompt + "\n\nIMPORTANT: Respond with ONLY valid JSON. No markdown, no commentary.",
-        config.userPrompt, temperature, maxTokens, provider, model, providerName, config.agentName ?? "unknown", thinking, debugContext,
+        config.userPrompt, temperature, maxTokens, model, providerName, config.agentName ?? "unknown", thinking, debugContext,
       )
       requestResult = retryResult
       content = retryResult.content
@@ -737,9 +710,9 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
         beatIndex: config.beatIndex,
         beatId: config.beatId,
         attempt: config.attempt,
-        // Reconstruct the request envelope for reproducibility. We don't have
-        // the literal extraBody/responseFormat from inside makeRequest here,
-        // so we re-derive from the same provider config makeRequest used.
+        // Reconstruct the request envelope for reproducibility. Active calls
+        // are DeepSeek-only, so the only provider-specific body we need to
+        // persist is the explicit thinking toggle used by makeRequest.
         // Per-call structured metadata (e.g. groundedSources for the
         // beat-entity-list charter) is merged in via config.logMetadata.
         requestJson: {
@@ -749,12 +722,9 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
           maxTokens,
           thinking,
           responseFormat: { type: "json_object" },
-          extraBody: {
-            ...provider.extraBody(),
-            ...(providerName === "deepseek"
-              ? { thinking: { type: thinking ? "enabled" : "disabled" } }
-              : {}),
-          },
+          extraBody: providerName === "deepseek"
+            ? { thinking: { type: thinking ? "enabled" : "disabled" } }
+            : {},
           needsNothink,
           finishReason: requestResult?.finishReason ?? null,
           hitCompletionCap: requestResult?.hitCompletionCap ?? false,

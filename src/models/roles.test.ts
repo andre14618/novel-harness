@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { AGENT_MODELS, getModelForAgent, resolveStructuralPriors } from "./roles"
+import { AGENT_MODELS, getAgentConfig, getModelForAgent, resolveStructuralPriors } from "./roles"
 
 describe("writer genre pack routing", () => {
   test("fantasy genre supplies structural priors without changing the writer model", () => {
@@ -32,5 +32,20 @@ describe("writer genre pack routing", () => {
         expect({ agent, thinking: assignment.thinking }).toEqual({ agent, thinking: true })
       }
     }
+  })
+
+  test("getAgentConfig is available immediately after module initialization", () => {
+    expect(getAgentConfig("method-pack-planner-diagnostic")).toMatchObject({
+      provider: "deepseek",
+      model: "deepseek-v4-flash",
+      thinking: false,
+      maxTokens: 14000,
+    })
+    expect(getAgentConfig("method-pack-planner-diagnostic-pro")).toMatchObject({
+      provider: "deepseek",
+      model: "deepseek-v4-pro",
+      thinking: true,
+      maxTokens: 32000,
+    })
   })
 })
