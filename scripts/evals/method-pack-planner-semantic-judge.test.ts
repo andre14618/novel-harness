@@ -6,21 +6,43 @@ import {
 } from "./method-pack-planner-semantic-judge"
 
 describe("method-pack-planner-semantic-judge", () => {
-  test("aggregates blind pairwise preferences after unblinding", () => {
+  test("only counts preferences that survive AB/BA swap control", () => {
+    const stableMethodA = stableCell("method", 5)
+    const stableMethodB = stableCell("method", 4)
+    const positionBiased = positionBiasedCell()
     const aggregate = summarizeSemanticCells([
-      cell({ winner: "A", methodSide: "A", methodScore: 23, controlScore: 18 }),
-      cell({ winner: "B", methodSide: "B", methodScore: 22, controlScore: 17 }),
-      cell({ winner: "TIE", methodSide: "A", methodScore: 19, controlScore: 19 }),
-    ])
+      stableMethodA,
+      stableMethodB,
+      positionBiased,
+    ] as any[])
 
     expect(aggregate.methodWins).toBe(2)
     expect(aggregate.controlWins).toBe(0)
-    expect(aggregate.ties).toBe(1)
-    expect(aggregate.methodWinRate).toBeCloseTo(2 / 3)
-    expect(aggregate.verdict).toBe("SEMANTIC-PASS")
+    expect(aggregate.positionBiased).toBe(1)
+    expect(aggregate.methodWinRateAll).toBeCloseTo(2 / 3)
+    expect(aggregate.verdict).toBe("SEMANTIC-HOLD")
+    expect(aggregate.reason).toContain("position-biased")
   })
 
-  test("renders semantic report without leaking Plan A/B as method/control labels", () => {
+  test("same-plan calibration failure prevents promotion", () => {
+    const aggregate = summarizeSemanticCells([
+      stableCell("method", 5),
+      stableCell("method", 4),
+      stableCell("method", 3),
+    ] as any[], [
+      calibration(false),
+      calibration(false),
+      calibration(true),
+    ] as any[])
+
+    expect(aggregate.methodWins).toBe(3)
+    expect(aggregate.calibrationPassRate).toBeCloseTo(1 / 3)
+    expect(aggregate.verdict).toBe("SEMANTIC-HOLD")
+    expect(aggregate.reason).toContain("calibration")
+  })
+
+  test("renders swap-control details", () => {
+    const cells = [stableCell("control", -4)]
     const reportText = renderSemanticJudgeReport({
       generatedAt: "2026-05-07T00:00:00.000Z",
       cohortDir: "output/example",
@@ -28,56 +50,129 @@ describe("method-pack-planner-semantic-judge", () => {
       model: "deepseek-v4-flash",
       thinking: false,
       maxTokens: 3000,
+      minStableDelta: 2,
       cellCount: 1,
-      cells: [cell({ winner: "B", methodSide: "A", methodScore: 17, controlScore: 21 })],
-      aggregate: summarizeSemanticCells([
-        cell({ winner: "B", methodSide: "A", methodScore: 17, controlScore: 21 }),
-      ]),
+      calibrationCount: 0,
+      cells: cells as any[],
+      calibration: [],
+      aggregate: summarizeSemanticCells(cells as any[]),
     })
 
     expect(reportText).toContain("Method-pack planner semantic judge")
-    expect(reportText).toContain("control")
+    expect(reportText).toContain("control-vs-method")
+    expect(reportText).toContain("method-vs-control")
     expect(reportText).toContain("delta=-4.00")
   })
 })
 
-function cell(input: {
-  winner: "A" | "B" | "TIE"
-  methodSide: "A" | "B"
-  methodScore: number
-  controlScore: number
+function stableCell(outcome: "method" | "control", delta: number) {
+  const winnerFirst = outcome === "method" ? "B" : "A"
+  const winnerSecond = outcome === "method" ? "A" : "B"
+  return makeCell({
+    stableOutcome: outcome,
+    winnerFirst,
+    winnerSecond,
+    deltaFirst: delta,
+    deltaSecond: delta,
+  })
+}
+
+function positionBiasedCell() {
+  return makeCell({
+    stableOutcome: "position-biased",
+    winnerFirst: "A",
+    winnerSecond: "A",
+    deltaFirst: -5,
+    deltaSecond: 5,
+  })
+}
+
+function makeCell(input: {
+  stableOutcome: "method" | "control" | "position-biased"
+  winnerFirst: "A" | "B" | "TIE"
+  winnerSecond: "A" | "B" | "TIE"
+  deltaFirst: number
+  deltaSecond: number
 }) {
-  const controlSide = input.methodSide === "A" ? "B" : "A"
-  const scores = {
-    A: score(input.methodSide === "A" ? input.methodScore : input.controlScore),
-    B: score(input.methodSide === "B" ? input.methodScore : input.controlScore),
-  }
+  const passes = [
+    pass("control-vs-method", input.winnerFirst, "B", "A", input.deltaFirst),
+    pass("method-vs-control", input.winnerSecond, "A", "B", input.deltaSecond),
+  ] as const
+  const methodDelta = (input.deltaFirst + input.deltaSecond) / 2
   return {
     cellPath: "cell.json",
     diagnosticId: "fixture-a",
     fixturePath: "fixture.json",
     replicate: 0,
-    planAArmId: "hidden-a",
-    planBArmId: "hidden-b",
-    methodSide: input.methodSide,
+    stableOutcome: input.stableOutcome,
+    methodWon: input.stableOutcome === "method",
+    controlWon: input.stableOutcome === "control",
+    tie: false,
+    weak: false,
+    positionBiased: input.stableOutcome === "position-biased",
+    methodScore: 20 + methodDelta,
+    controlScore: 20,
+    methodDelta,
+    confidence: 0.8,
+    passes,
+  }
+}
+
+function pass(
+  orientation: "control-vs-method" | "method-vs-control",
+  winner: "A" | "B" | "TIE",
+  methodSide: "A" | "B",
+  controlSide: "A" | "B",
+  methodDelta: number,
+) {
+  const methodScore = 20 + methodDelta
+  const controlScore = 20
+  const scores = {
+    A: score(methodSide === "A" ? methodScore : controlScore),
+    B: score(methodSide === "B" ? methodScore : controlScore),
+  }
+  return {
+    orientation,
+    planAArmId: "arm-a",
+    planBArmId: "arm-b",
+    methodSide,
     controlSide,
-    winner: input.winner,
-    methodWon: input.winner === input.methodSide,
-    controlWon: input.winner === controlSide,
-    tie: input.winner === "TIE",
-    methodScore: input.methodScore,
-    controlScore: input.controlScore,
-    methodDelta: input.methodScore - input.controlScore,
+    winner,
+    underlyingWinner: winner === "TIE" ? "tie" : winner === methodSide ? "method" : "control",
+    methodScore,
+    controlScore,
+    methodDelta,
     confidence: 0.8,
     judgment: {
-      winner: input.winner,
+      winner,
       confidence: 0.8,
       scores,
       rationale: "example rationale",
       decisiveEvidence: ["specific story evidence"],
       concerns: { A: [], B: [] },
     },
-  } as any
+  }
+}
+
+function calibration(passed: boolean) {
+  return {
+    cellPath: "cell.json",
+    diagnosticId: "fixture-a",
+    replicate: 0,
+    sourceArm: "control",
+    winner: passed ? "TIE" : "A",
+    passed,
+    scoreDelta: passed ? 0 : 4,
+    confidence: 0.8,
+    judgment: {
+      winner: passed ? "TIE" : "A",
+      confidence: 0.8,
+      scores: { A: score(20), B: score(passed ? 20 : 16) },
+      rationale: "calibration",
+      decisiveEvidence: [],
+      concerns: { A: [], B: [] },
+    },
+  }
 }
 
 function score(total: number) {

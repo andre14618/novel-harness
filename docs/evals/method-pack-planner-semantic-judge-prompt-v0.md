@@ -8,8 +8,9 @@ updated: 2026-05-07
 
 **Judge model:** DeepSeek V4 Flash by default. DeepSeek V4 Pro may be sampled
 only after narrowing the prompt/output shape enough to avoid timeout.
-**Format:** blind pairwise, Plan A/B side assignment swapped by deterministic
-fixture/replicate hash and unblinded only during aggregation.
+**Format:** blind pairwise with AB/BA swap control. Every cell is judged twice:
+`control/method` and `method/control`. Unblinding happens only during
+aggregation.
 **Rubric:** which upstream plan is more likely to produce a stronger commercial
 fantasy/adventure novel if drafted by the same downstream writer/checker stack.
 
@@ -32,8 +33,27 @@ The packet strips:
 - file paths and method/control labels.
 
 The judge sees the same frozen concept once, then both plans in the same
-rendered format. Aggregation maps A/B back to method/control after the judge
-response is locked.
+rendered format. Aggregation maps A/B back to method/control after both judge
+responses are locked.
+
+## Bias Control
+
+One A/B judgment is not promotion evidence. Each pair must run as:
+
+- `control-vs-method`: Plan A is control, Plan B is method.
+- `method-vs-control`: Plan A is method, Plan B is control.
+
+A win counts only when the same underlying arm wins both orientations and the
+mean score delta clears the configured minimum, currently `2` on the 25-point
+scale.
+
+If the judge picks the same screen side both times, the pair is
+`position-biased`. If either pass ties or the score delta is too small, the pair
+is a weak/tie outcome.
+
+The runner also supports same-plan calibration pairs. A same-plan packet should
+return `TIE` with near-equal scores. Calibration failures keep the semantic
+judge at `HOLD`.
 
 ## System Prompt
 
@@ -43,6 +63,7 @@ You are a blind semantic judge for upstream novel planning contracts.
 You compare Plan A and Plan B for likely usefulness in producing a compelling commercial fantasy/adventure novel.
 Do not reward schema completeness by itself. Do not reward a plan for using named methodology, templates, IDs, or formal labels.
 Prefer the plan that gives a future scene/chapter writer stronger semantic material.
+Presentation order is not evidence. If the plans are equivalent or the preference is not clear, choose TIE.
 
 Score each plan 1-5 on:
 - characterAgency: characters want specific things, make choices under pressure, and change the plot.
@@ -76,8 +97,10 @@ Return only JSON:
 
 Primary promotion signal:
 
-- method wins at least two-thirds of blind pairs;
+- method wins at least two-thirds of all pairs after AB/BA swap control;
 - mean method score delta is at least `+2` on the 25-point scale;
+- position-biased pairs stay below `25%`;
+- same-plan calibration pass rate is at least two-thirds;
 - deterministic structural gates remain clean.
 
 Otherwise the result is `SEMANTIC-HOLD` or `SEMANTIC-NO-PROMOTION`.

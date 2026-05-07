@@ -1,12 +1,15 @@
 #!/usr/bin/env bun
 /**
- * Blind semantic judge for method-pack planner cohorts.
+ * Bias-controlled semantic judge for method-pack planner cohorts.
  *
- * This consumes saved planner-cohort cell reports and asks an LLM judge to
- * compare the control/method plans as unlabeled Plan A vs Plan B. The goal is
- * to test story-usefulness signals that deterministic schema checks cannot
- * measure: character agency, causal momentum, world-as-engine, endpoint force,
- * and prose-readiness.
+ * Each control/method plan pair is judged twice:
+ * - AB: Plan A = control, Plan B = method
+ * - BA: Plan A = method, Plan B = control
+ *
+ * A win only counts if the same underlying arm wins both orientations and the
+ * score delta clears the minimum threshold. If the judge simply picks the same
+ * screen side both times, the pair is marked POSITION-BIASED and excluded from
+ * promotion evidence.
  */
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs"
@@ -16,6 +19,9 @@ import { loadFixture, type DiagnosticReport, type PlannerContractPlan, type Plan
 
 type PlanSide = "A" | "B"
 type SemanticWinner = PlanSide | "TIE"
+type UnderlyingWinner = "method" | "control" | "tie"
+type StableOutcome = "method" | "control" | "tie" | "weak" | "position-biased"
+type JudgeOrientation = "control-vs-method" | "method-vs-control"
 
 interface Args {
   cohortDir: string
@@ -25,6 +31,8 @@ interface Args {
   model: "deepseek-v4-flash" | "deepseek-v4-pro"
   thinking: boolean
   maxTokens: number
+  minStableDelta: number
+  calibrationPairs: number
   json: boolean
 }
 
@@ -45,22 +53,47 @@ interface SemanticJudgeOutput {
   concerns: Record<PlanSide, string[]>
 }
 
-interface SemanticCellResult {
-  cellPath: string
-  diagnosticId: string
-  fixturePath: string
-  replicate: number
+interface SemanticPassResult {
+  orientation: JudgeOrientation
   planAArmId: string
   planBArmId: string
   methodSide: PlanSide
   controlSide: PlanSide
   winner: SemanticWinner
-  methodWon: boolean
-  controlWon: boolean
-  tie: boolean
+  underlyingWinner: UnderlyingWinner
   methodScore: number
   controlScore: number
   methodDelta: number
+  confidence: number
+  judgment: SemanticJudgeOutput
+}
+
+interface SemanticCellResult {
+  cellPath: string
+  diagnosticId: string
+  fixturePath: string
+  replicate: number
+  stableOutcome: StableOutcome
+  methodWon: boolean
+  controlWon: boolean
+  tie: boolean
+  weak: boolean
+  positionBiased: boolean
+  methodScore: number
+  controlScore: number
+  methodDelta: number
+  confidence: number
+  passes: [SemanticPassResult, SemanticPassResult]
+}
+
+interface CalibrationResult {
+  cellPath: string
+  diagnosticId: string
+  replicate: number
+  sourceArm: "method" | "control"
+  winner: SemanticWinner
+  passed: boolean
+  scoreDelta: number
   confidence: number
   judgment: SemanticJudgeOutput
 }
@@ -70,12 +103,19 @@ interface SemanticAggregate {
   methodWins: number
   controlWins: number
   ties: number
-  methodWinRate: number
-  controlWinRate: number
-  tieRate: number
+  weak: number
+  positionBiased: number
+  stablePairs: number
+  methodWinRateAll: number
+  methodWinRateStable: number
+  controlWinRateAll: number
+  positionBiasedRate: number
   meanMethodDelta: number
   medianMethodDelta: number
   meanConfidence: number
+  calibrationPairs: number
+  calibrationPassed: number
+  calibrationPassRate: number
   verdict: string
   reason: string
 }
@@ -87,18 +127,26 @@ interface SemanticJudgeReport {
   model: string
   thinking: boolean
   maxTokens: number
+  minStableDelta: number
   cellCount: number
+  calibrationCount: number
   cells: SemanticCellResult[]
+  calibration: CalibrationResult[]
   aggregate: SemanticAggregate
 }
 
 const DEFAULT_COHORT_DIR = "output/method-pack-diagnostics/2026-05-07T13-51-44-961Z/cohort"
+const DEFAULT_MIN_STABLE_DELTA = 2
+const DEFAULT_CALIBRATION_PAIRS = 3
 
 export async function buildSemanticJudgeReport(args: Args, generatedAt = new Date().toISOString()): Promise<SemanticJudgeReport> {
   const cellPaths = args.cellPaths.length > 0 ? args.cellPaths : collectCellPaths(args.cohortDir)
   if (cellPaths.length === 0) throw new Error(`no cell JSON files found under ${args.cohortDir}`)
-  const tasks = cellPaths.map(cellPath => async () => judgeCell(args, cellPath))
-  const cells = await runBounded(tasks, args.concurrency)
+
+  const cellTasks = cellPaths.map(cellPath => async () => judgeCell(args, cellPath))
+  const cells = await runBounded(cellTasks, args.concurrency)
+  const calibration = await runCalibration(args, cellPaths)
+
   return {
     generatedAt,
     cohortDir: args.cohortDir,
@@ -106,59 +154,83 @@ export async function buildSemanticJudgeReport(args: Args, generatedAt = new Dat
     model: args.model,
     thinking: args.thinking,
     maxTokens: args.maxTokens,
+    minStableDelta: args.minStableDelta,
     cellCount: cells.length,
+    calibrationCount: calibration.length,
     cells,
-    aggregate: summarizeSemanticCells(cells),
+    calibration,
+    aggregate: summarizeSemanticCells(cells, calibration),
   }
 }
 
-export function summarizeSemanticCells(cells: SemanticCellResult[]): SemanticAggregate {
+export function summarizeSemanticCells(cells: SemanticCellResult[], calibration: CalibrationResult[] = []): SemanticAggregate {
   const methodWins = cells.filter(cell => cell.methodWon).length
   const controlWins = cells.filter(cell => cell.controlWon).length
   const ties = cells.filter(cell => cell.tie).length
-  const deltas = cells.map(cell => cell.methodDelta)
-  const confidences = cells.map(cell => cell.confidence)
-  const meanMethodDelta = mean(deltas)
-  const methodWinRate = ratio(methodWins, cells.length)
-  const controlWinRate = ratio(controlWins, cells.length)
-  const tieRate = ratio(ties, cells.length)
-  const { verdict, reason } = semanticVerdict(meanMethodDelta, methodWinRate, controlWinRate)
-  return {
+  const weak = cells.filter(cell => cell.weak).length
+  const positionBiased = cells.filter(cell => cell.positionBiased).length
+  const stablePairs = methodWins + controlWins
+  const deltas = cells.filter(cell => !cell.positionBiased).map(cell => cell.methodDelta)
+  const confidences = cells.flatMap(cell => cell.passes.map(pass => pass.confidence))
+  const calibrationPassed = calibration.filter(row => row.passed).length
+  const calibrationPassRate = ratio(calibrationPassed, calibration.length)
+  const aggregate = {
     cells: cells.length,
     methodWins,
     controlWins,
     ties,
-    methodWinRate,
-    controlWinRate,
-    tieRate,
-    meanMethodDelta,
+    weak,
+    positionBiased,
+    stablePairs,
+    methodWinRateAll: ratio(methodWins, cells.length),
+    methodWinRateStable: ratio(methodWins, stablePairs),
+    controlWinRateAll: ratio(controlWins, cells.length),
+    positionBiasedRate: ratio(positionBiased, cells.length),
+    meanMethodDelta: mean(deltas),
     medianMethodDelta: median(deltas),
     meanConfidence: mean(confidences),
-    verdict,
-    reason,
+    calibrationPairs: calibration.length,
+    calibrationPassed,
+    calibrationPassRate,
+    verdict: "SEMANTIC-HOLD",
+    reason: "",
   }
+  const verdict = semanticVerdict(aggregate)
+  return { ...aggregate, ...verdict }
 }
 
 export function renderSemanticJudgeReport(report: SemanticJudgeReport): string {
   const lines: string[] = []
   lines.push("Method-pack planner semantic judge")
-  lines.push(`model=${report.model}; thinking=${report.thinking}; cells=${report.cellCount}`)
+  lines.push(`model=${report.model}; thinking=${report.thinking}; cells=${report.cellCount}; minStableDelta=${report.minStableDelta}`)
   lines.push(`cohort=${report.cohortDir}`)
   lines.push("")
   lines.push(`Aggregate verdict: ${report.aggregate.verdict}`)
   lines.push(`Reason: ${report.aggregate.reason}`)
-  lines.push(`Method wins: ${report.aggregate.methodWins}/${report.aggregate.cells} (${formatPct(report.aggregate.methodWinRate)})`)
-  lines.push(`Control wins: ${report.aggregate.controlWins}/${report.aggregate.cells} (${formatPct(report.aggregate.controlWinRate)})`)
-  lines.push(`Ties: ${report.aggregate.ties}/${report.aggregate.cells} (${formatPct(report.aggregate.tieRate)})`)
-  lines.push(`Mean method score delta: ${formatSigned(report.aggregate.meanMethodDelta)}; median: ${formatSigned(report.aggregate.medianMethodDelta)}`)
-  lines.push(`Mean confidence: ${report.aggregate.meanConfidence.toFixed(2)}`)
+  lines.push(`Stable method wins: ${report.aggregate.methodWins}/${report.aggregate.cells} (${formatPct(report.aggregate.methodWinRateAll)} of all; ${formatPct(report.aggregate.methodWinRateStable)} of stable)`)
+  lines.push(`Stable control wins: ${report.aggregate.controlWins}/${report.aggregate.cells} (${formatPct(report.aggregate.controlWinRateAll)} of all)`)
+  lines.push(`Weak/tie: ${report.aggregate.weak + report.aggregate.ties}/${report.aggregate.cells}`)
+  lines.push(`Position-biased: ${report.aggregate.positionBiased}/${report.aggregate.cells} (${formatPct(report.aggregate.positionBiasedRate)})`)
+  lines.push(`Mean method score delta, excluding position-biased pairs: ${formatSigned(report.aggregate.meanMethodDelta)}; median: ${formatSigned(report.aggregate.medianMethodDelta)}`)
+  lines.push(`Mean pass confidence: ${report.aggregate.meanConfidence.toFixed(2)}`)
+  if (report.calibrationCount > 0) {
+    lines.push(`Same-plan calibration: ${report.aggregate.calibrationPassed}/${report.aggregate.calibrationPairs} (${formatPct(report.aggregate.calibrationPassRate)})`)
+  }
   lines.push("")
   lines.push("Cells:")
   for (const cell of report.cells) {
-    const winner = cell.tie ? "tie" : cell.methodWon ? "method" : "control"
-    lines.push(`- r${cell.replicate + 1} ${cell.diagnosticId}: ${winner}; delta=${formatSigned(cell.methodDelta)}; confidence=${cell.confidence.toFixed(2)}`)
-    const evidence = cell.judgment.decisiveEvidence.slice(0, 2).join(" / ")
-    if (evidence) lines.push(`  evidence: ${evidence}`)
+    lines.push(`- r${cell.replicate + 1} ${cell.diagnosticId}: ${cell.stableOutcome}; delta=${formatSigned(cell.methodDelta)}; confidence=${cell.confidence.toFixed(2)}`)
+    for (const pass of cell.passes) {
+      const evidence = pass.judgment.decisiveEvidence.slice(0, 1).join(" / ")
+      lines.push(`  ${pass.orientation}: winner=${pass.winner} -> ${pass.underlyingWinner}; delta=${formatSigned(pass.methodDelta)}${evidence ? `; evidence=${evidence}` : ""}`)
+    }
+  }
+  if (report.calibration.length > 0) {
+    lines.push("")
+    lines.push("Calibration:")
+    for (const row of report.calibration) {
+      lines.push(`- r${row.replicate + 1} ${row.diagnosticId} ${row.sourceArm}: winner=${row.winner}; scoreDelta=${formatSigned(row.scoreDelta)}; ${row.passed ? "pass" : "fail"}`)
+    }
   }
   if (report.outputDir) {
     lines.push("")
@@ -167,15 +239,21 @@ export function renderSemanticJudgeReport(report: SemanticJudgeReport): string {
   return lines.join("\n")
 }
 
-function semanticVerdict(meanDelta: number, methodWinRate: number, controlWinRate: number): { verdict: string; reason: string } {
+function semanticVerdict(aggregate: Omit<SemanticAggregate, "verdict" | "reason">): { verdict: string; reason: string } {
   const twoThirds = 2 / 3
-  if (methodWinRate >= twoThirds && meanDelta >= 2) {
-    return { verdict: "SEMANTIC-PASS", reason: "Blind judge prefers the method plan in at least two-thirds of cells with a meaningful mean score lift." }
+  if (aggregate.calibrationPairs > 0 && aggregate.calibrationPassRate < 0.67) {
+    return { verdict: "SEMANTIC-HOLD", reason: "Same-plan calibration failed too often; judge preference is not trustworthy enough for promotion." }
   }
-  if (controlWinRate >= twoThirds && meanDelta <= -2) {
-    return { verdict: "SEMANTIC-NO-PROMOTION", reason: "Blind judge prefers the no-method control in at least two-thirds of cells with a meaningful score deficit for method." }
+  if (aggregate.positionBiasedRate > 0.25) {
+    return { verdict: "SEMANTIC-HOLD", reason: "More than 25% of pairs are position-biased under AB/BA swap control." }
   }
-  return { verdict: "SEMANTIC-HOLD", reason: "Blind semantic preference is too small or inconsistent for promotion." }
+  if (aggregate.methodWinRateAll >= twoThirds && aggregate.meanMethodDelta >= 2) {
+    return { verdict: "SEMANTIC-PASS", reason: "Method survives AB/BA swap control in at least two-thirds of all cells with a meaningful mean score lift." }
+  }
+  if (aggregate.controlWinRateAll >= twoThirds && aggregate.meanMethodDelta <= -2) {
+    return { verdict: "SEMANTIC-NO-PROMOTION", reason: "Control survives AB/BA swap control in at least two-thirds of all cells with a meaningful method deficit." }
+  }
+  return { verdict: "SEMANTIC-HOLD", reason: "Stable semantic preference is too small, weak, or inconsistent for promotion." }
 }
 
 async function judgeCell(args: Args, cellPath: string): Promise<SemanticCellResult> {
@@ -185,43 +263,133 @@ async function judgeCell(args: Args, cellPath: string): Promise<SemanticCellResu
   const method = report.arms.find(arm => arm.methodPackEnabled)
   if (!control || !method) throw new Error(`${cellPath} needs one control arm and one method arm`)
 
-  const swap = shouldSwap(report.diagnosticId, parseReplicate(cellPath))
-  const planA = swap ? method.plan : control.plan
-  const planB = swap ? control.plan : method.plan
-  const planAArmId = swap ? method.armId : control.armId
-  const planBArmId = swap ? control.armId : method.armId
-  const methodSide: PlanSide = swap ? "A" : "B"
-  const controlSide: PlanSide = swap ? "B" : "A"
-
-  const judgment = await callDeepSeekJudge({
-    model: args.model,
-    thinking: args.thinking,
-    maxTokens: args.maxTokens,
-    systemPrompt: judgeSystemPrompt(),
-    userPrompt: judgeUserPrompt(fixture, planA, planB),
+  const controlFirst = await judgeOrientation(args, fixture, {
+    orientation: "control-vs-method",
+    planA: control.plan,
+    planB: method.plan,
+    planAArmId: control.armId,
+    planBArmId: method.armId,
+    methodSide: "B",
+    controlSide: "A",
   })
-  const methodScore = judgment.scores[methodSide].total
-  const controlScore = judgment.scores[controlSide].total
-  const winner = judgment.winner
-  const methodWon = winner === methodSide
-  const controlWon = winner === controlSide
-  const tie = winner === "TIE"
+  const methodFirst = await judgeOrientation(args, fixture, {
+    orientation: "method-vs-control",
+    planA: method.plan,
+    planB: control.plan,
+    planAArmId: method.armId,
+    planBArmId: control.armId,
+    methodSide: "A",
+    controlSide: "B",
+  })
+  const passes: [SemanticPassResult, SemanticPassResult] = [controlFirst, methodFirst]
+  const stableOutcome = stableOutcomeForPasses(passes, args.minStableDelta)
+  const methodScore = mean(passes.map(pass => pass.methodScore))
+  const controlScore = mean(passes.map(pass => pass.controlScore))
+  const methodDelta = methodScore - controlScore
+
   return {
     cellPath,
     diagnosticId: report.diagnosticId,
     fixturePath: report.fixturePath,
     replicate: parseReplicate(cellPath),
-    planAArmId,
-    planBArmId,
-    methodSide,
-    controlSide,
-    winner,
-    methodWon,
-    controlWon,
-    tie,
+    stableOutcome,
+    methodWon: stableOutcome === "method",
+    controlWon: stableOutcome === "control",
+    tie: stableOutcome === "tie",
+    weak: stableOutcome === "weak",
+    positionBiased: stableOutcome === "position-biased",
+    methodScore,
+    controlScore,
+    methodDelta,
+    confidence: mean(passes.map(pass => pass.confidence)),
+    passes,
+  }
+}
+
+async function judgeOrientation(args: Args, fixture: PlannerDiagnosticFixture, input: {
+  orientation: JudgeOrientation
+  planA: PlannerContractPlan
+  planB: PlannerContractPlan
+  planAArmId: string
+  planBArmId: string
+  methodSide: PlanSide
+  controlSide: PlanSide
+}): Promise<SemanticPassResult> {
+  const judgment = await callDeepSeekJudge({
+    model: args.model,
+    thinking: args.thinking,
+    maxTokens: args.maxTokens,
+    systemPrompt: judgeSystemPrompt(),
+    userPrompt: judgeUserPrompt(fixture, input.planA, input.planB),
+  })
+  const methodScore = judgment.scores[input.methodSide].total
+  const controlScore = judgment.scores[input.controlSide].total
+  const underlyingWinner = winnerToUnderlying(judgment.winner, input.methodSide, input.controlSide)
+  return {
+    orientation: input.orientation,
+    planAArmId: input.planAArmId,
+    planBArmId: input.planBArmId,
+    methodSide: input.methodSide,
+    controlSide: input.controlSide,
+    winner: judgment.winner,
+    underlyingWinner,
     methodScore,
     controlScore,
     methodDelta: methodScore - controlScore,
+    confidence: clampNumber(judgment.confidence, 0, 1),
+    judgment,
+  }
+}
+
+function stableOutcomeForPasses(passes: [SemanticPassResult, SemanticPassResult], minStableDelta: number): StableOutcome {
+  const [first, second] = passes
+  if (first.winner !== "TIE" && first.winner === second.winner) return "position-biased"
+  if (first.underlyingWinner === "tie" || second.underlyingWinner === "tie") return "tie"
+  if (first.underlyingWinner !== second.underlyingWinner) return "weak"
+  if (first.underlyingWinner === "method") {
+    return first.methodDelta >= minStableDelta && second.methodDelta >= minStableDelta ? "method" : "weak"
+  }
+  return first.methodDelta <= -minStableDelta && second.methodDelta <= -minStableDelta ? "control" : "weak"
+}
+
+function winnerToUnderlying(winner: SemanticWinner, methodSide: PlanSide, controlSide: PlanSide): UnderlyingWinner {
+  if (winner === "TIE") return "tie"
+  if (winner === methodSide) return "method"
+  if (winner === controlSide) return "control"
+  return "tie"
+}
+
+async function runCalibration(args: Args, cellPaths: string[]): Promise<CalibrationResult[]> {
+  if (args.calibrationPairs <= 0) return []
+  const selected = cellPaths.slice(0, args.calibrationPairs)
+  const tasks = selected.map((cellPath, index) => async () => judgeCalibrationCell(args, cellPath, index))
+  return runBounded(tasks, Math.min(args.concurrency, Math.max(1, tasks.length)))
+}
+
+async function judgeCalibrationCell(args: Args, cellPath: string, index: number): Promise<CalibrationResult> {
+  const report = readDiagnosticReport(cellPath)
+  const fixture = loadFixture(report.fixturePath)
+  const control = report.arms.find(arm => !arm.methodPackEnabled)
+  const method = report.arms.find(arm => arm.methodPackEnabled)
+  if (!control || !method) throw new Error(`${cellPath} needs one control arm and one method arm`)
+  const sourceArm = index % 2 === 0 ? "control" : "method"
+  const plan = sourceArm === "control" ? control.plan : method.plan
+  const judgment = await callDeepSeekJudge({
+    model: args.model,
+    thinking: args.thinking,
+    maxTokens: args.maxTokens,
+    systemPrompt: judgeSystemPrompt(),
+    userPrompt: judgeUserPrompt(fixture, plan, plan),
+  })
+  const scoreDelta = judgment.scores.A.total - judgment.scores.B.total
+  return {
+    cellPath,
+    diagnosticId: report.diagnosticId,
+    replicate: parseReplicate(cellPath),
+    sourceArm,
+    winner: judgment.winner,
+    passed: judgment.winner === "TIE" && Math.abs(scoreDelta) <= 1,
+    scoreDelta,
     confidence: clampNumber(judgment.confidence, 0, 1),
     judgment,
   }
@@ -233,6 +401,7 @@ function judgeSystemPrompt(): string {
 You compare Plan A and Plan B for likely usefulness in producing a compelling commercial fantasy/adventure novel.
 Do not reward schema completeness by itself. Do not reward a plan for using named methodology, templates, IDs, or formal labels.
 Prefer the plan that gives a future scene/chapter writer stronger semantic material.
+Presentation order is not evidence. If the plans are equivalent or the preference is not clear, choose TIE.
 
 Score each plan 1-5 on:
 - characterAgency: characters want specific things, make choices under pressure, and change the plot.
@@ -460,6 +629,8 @@ function parseArgs(argv: string[]): Args {
   let model: Args["model"] = "deepseek-v4-flash"
   let thinking = false
   let maxTokens = 3000
+  let minStableDelta = DEFAULT_MIN_STABLE_DELTA
+  let calibrationPairs = DEFAULT_CALIBRATION_PAIRS
   let json = false
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!
@@ -477,11 +648,15 @@ function parseArgs(argv: string[]): Args {
     else if (arg === "--no-thinking") thinking = false
     else if (arg === "--max-tokens") maxTokens = parsePositiveInt(requireValue(argv, ++i, "--max-tokens"), "--max-tokens")
     else if (arg.startsWith("--max-tokens=")) maxTokens = parsePositiveInt(arg.slice("--max-tokens=".length), "--max-tokens")
+    else if (arg === "--min-stable-delta") minStableDelta = parseNonNegativeNumber(requireValue(argv, ++i, "--min-stable-delta"), "--min-stable-delta")
+    else if (arg.startsWith("--min-stable-delta=")) minStableDelta = parseNonNegativeNumber(arg.slice("--min-stable-delta=".length), "--min-stable-delta")
+    else if (arg === "--calibration-pairs") calibrationPairs = parseNonNegativeInt(requireValue(argv, ++i, "--calibration-pairs"), "--calibration-pairs")
+    else if (arg.startsWith("--calibration-pairs=")) calibrationPairs = parseNonNegativeInt(arg.slice("--calibration-pairs=".length), "--calibration-pairs")
     else if (arg === "--json") json = true
     else throw new Error(`unknown arg: ${arg}`)
   }
   if (model === "deepseek-v4-pro" && !argv.includes("--no-thinking")) thinking = true
-  return { cohortDir, cellPaths, outputDir, concurrency, model, thinking, maxTokens, json }
+  return { cohortDir, cellPaths, outputDir, concurrency, model, thinking, maxTokens, minStableDelta, calibrationPairs, json }
 }
 
 function requireValue(argv: string[], index: number, flag: string): string {
@@ -501,16 +676,21 @@ function parsePositiveInt(value: string, flag: string): number {
   return parsed
 }
 
+function parseNonNegativeInt(value: string, flag: string): number {
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${flag} must be a non-negative integer`)
+  return parsed
+}
+
+function parseNonNegativeNumber(value: string, flag: string): number {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${flag} must be a non-negative number`)
+  return parsed
+}
+
 function parseReplicate(cellPath: string): number {
   const match = basename(cellPath).match(/-r(\d+)\.json$/)
   return match ? Number.parseInt(match[1]!, 10) - 1 : 0
-}
-
-function shouldSwap(diagnosticId: string, replicate: number): boolean {
-  const key = `${diagnosticId}:${replicate}`
-  let hash = 0
-  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0
-  return hash % 2 === 0
 }
 
 function extractJsonObject(raw: string): string {
@@ -569,7 +749,7 @@ async function main(argv: string[]): Promise<number> {
     args = parseArgs(argv)
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err))
-    console.error("usage: bun scripts/evals/method-pack-planner-semantic-judge.ts [--cohort-dir <dir>] [--cell <path> ...] [--output-dir <dir>] [--concurrency <n>] [--model deepseek-v4-flash|deepseek-v4-pro] [--thinking|--no-thinking] [--json]")
+    console.error("usage: bun scripts/evals/method-pack-planner-semantic-judge.ts [--cohort-dir <dir>] [--cell <path> ...] [--output-dir <dir>] [--concurrency <n>] [--model deepseek-v4-flash|deepseek-v4-pro] [--thinking|--no-thinking] [--min-stable-delta <n>] [--calibration-pairs <n>] [--json]")
     return 2
   }
   if (!args.outputDir) args.outputDir = defaultOutputDir()

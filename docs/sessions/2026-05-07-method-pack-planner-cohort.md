@@ -138,17 +138,56 @@ Result:
 
 Interpretation:
 
-- The semantic judge saw directional method-pack value that the deterministic
-  checklist mostly missed.
-- The effect was inconsistent and below the two-thirds blind-win promotion
-  gate, so this remains `HOLD`.
+- This first semantic result is not promotion evidence. Inspection showed the
+  judge selected `Plan A` in `18/18` cells. The reported `11/18` method wins
+  matched the number of cells where method happened to be placed in `Plan A`.
+- The runner was revised to use AB/BA swap control before counting semantic
+  wins.
 - This still judges plans only. It does not prove prose quality, drafting
   adherence, or final reader experience.
 
+## Semantic Judge, Swap-Controlled
+
+Command:
+
+```bash
+bun run diagnostics:method-pack-planner-semantic-judge -- \
+  --cohort-dir output/method-pack-diagnostics/2026-05-07T13-51-44-961Z/cohort \
+  --concurrency 3 \
+  --model deepseek-v4-flash \
+  --no-thinking \
+  --max-tokens 3000 \
+  --min-stable-delta 2 \
+  --calibration-pairs 3
+```
+
+Artifact:
+
+`output/method-pack-diagnostics/2026-05-07T16-06-48-104Z/semantic-judge/`
+
+Result:
+
+- Verdict: `SEMANTIC-HOLD`.
+- Stable method wins: `0/18`.
+- Stable control wins: `0/18`.
+- Position-biased pairs: `18/18`.
+- Same-plan calibration: `3/3`.
+
+Interpretation:
+
+- DeepSeek V4 Flash can identify same-plan equality in calibration, but this
+  pairwise prompt still has severe first-position bias on non-identical plans.
+- No method/control semantic preference should be inferred from this judge
+  until the prompt, judge model, or evaluation shape is repaired.
+- Use operator review, Claude-side AB/BA judging, or a narrower DeepSeek Pro
+  judge as the next adjudication step.
+
 Next useful data step:
 
-- calibrate the semantic judge against operator review on a subset of pairs;
-- use the winning/losing judge evidence to revise the method pack toward
+- calibrate a bias-controlled semantic judge against operator review on a
+  subset of pairs;
+- test Claude or a narrowed DeepSeek Pro judge with the same AB/BA controls;
+- use only stable, non-position-biased evidence to revise the method pack toward
   character pressure, operational world constraints, and endpoint landing; or
 - run a smaller draft-from-plan comparison once the upstream semantic signal is
   stable enough to justify prose-level cost.
