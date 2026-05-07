@@ -16,6 +16,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
+| L88 | 2026-05-06 | active | Downstream beat calibration/packing is diagnostic evidence only; the next authoring-quality lever is a default-off native planning contract in concept/planning that authors realistic story-turn beats upstream. | `docs/decisions/L088-upstream-native-planning-contract.md` |
 | L87 | 2026-05-06 | active | Agents must state the changed phase/surface, exact change, expected benefit, downstream projection, and evidence gate before non-trivial implementation. | `docs/decisions/L087-agent-phase-impact-contract.md` |
 | L86 | 2026-05-06 | active | Accelerated semantic-gate cohorts show hard beat caps reduce length/cost but trade off semantic stability; next planner lever is calibrated obligation packing, not a global beat cap. | `docs/decisions/L086-calibrated-planner-shape.md` |
 | L85 | 2026-05-06 | active | Development is mainline-first: work directly on `main`, use rollback tags for risky moves, and reserve branches for explicit requests or disposable experiments. | `docs/decisions/L085-mainline-first-workflow.md` |

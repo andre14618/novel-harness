@@ -111,7 +111,7 @@ Cohort `calibrated-packed-cohort-20260506T215726Z` (N=12 sources × 4 variants
 | `capped5:beats=5` | 11/12 | 3 | 1.58 | `$0.1349` |
 | `capped4:beats=4` | 11/12 | 2 | 1.17 | `$0.0884` |
 
-Status: **HOLD / near-pass** on the L086 promotion targets.
+Status: **HOLD / diagnostic evidence only** on the L086 promotion targets.
 
 - PASS — clean-pass count ties control (10 vs 10).
 - PASS — cost 65% of control (target < 70%).
@@ -131,14 +131,13 @@ is `novel-1776690840208`, where control gated, both capped arms gated with
 `no_draft`+`checker_blocker`, and calibrated completed cleanly at 1953
 words.
 
-Interpretation: the L086 hypothesis holds at this scale — a deterministic
-obligation-preserving repacker sits in the design space the cohort
-predicted, capturing control's semantic stability without control's
-length/cost penalty. The 1.76 word ratio leaves writer-expansion (not the
-planner shape) as the next dominant lever. Promotion remains `hold` until
-either a fresh-source / multi-chapter sample crosses the 1.75 line or a
-writer-expansion intervention reduces the ratio while the planner-shape
-lever stays unchanged.
+Interpretation: the L086 diagnostic hypothesis holds at this scale, but the
+production framing is wrong. A deterministic obligation-preserving repacker can
+measure whether fewer beats help without dropping obligations, but it is still
+repairing an unrealistic source artifact after the fact. L088 supersedes
+`calibrated:packed` as the next active lever: concept/planning should author a
+native chapter contract and native story-turn beats upstream, then downstream
+drafting/checking should be evaluated from that source.
 
 Artifacts:
 
@@ -146,4 +145,3 @@ Artifacts:
 - `output/evals/semantic-gate-cohort-matrix/calibrated-packed-cohort-20260506T215726Z/matrices/*/summary.json`
 - `output/evals/semantic-gate-cohort-matrix/calibrated-packed-cohort-20260506T215726Z/matrices/*/variants/calibrated/calibrated-packing/*-ch1.json`
 - Session record: `docs/sessions/2026-05-06-pickup-planner-shape-baseline.md`
-

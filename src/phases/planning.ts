@@ -23,7 +23,7 @@ import * as harness from "../harness"
 import { autogenPlannerProposalsAfterPlanning } from "../harness/planner-canon-proposals"
 import type { BeatObligationsContract, SceneBeat } from "../types"
 import type { BeatObligationCoverageValidation } from "../harness/beat-obligations"
-import { minimumBeatCountForTarget, planningBeatCountPolicy } from "../harness/beat-counts"
+import { assessBeatCountForTarget, minimumBeatCountForTarget, planningBeatCountPolicy } from "../harness/beat-counts"
 
 const PLANNING_OBLIGATION_WARNING_LIMIT = 8
 const PLANNING_OBLIGATION_COVERAGE_MAX_RETRIES = 2
@@ -45,6 +45,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   const spine = await getStorySpine(novelId)
   const targetChapters = novel.seed.chapterCount ?? null
   const planningMaxBeatsPerChapter = novel.seed.pipelineOverrides?.planningMaxBeatsPerChapter ?? null
+  const nativePlanningContractV1 = Boolean(novel.seed.pipelineOverrides?.nativePlanningContractV1)
 
   // ── Phase 1: chapter skeletons ──────────────────────────────────────
   const skeletonContext = buildPlanningContext(worldBible, characters, spine, novel.seed)
@@ -131,31 +132,33 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   // Post-expansion enforcement — beat count floor, POV, setting
   const postEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters, {
     maxBeatsPerChapter: planningMaxBeatsPerChapter,
+    nativePlanningContractV1,
   })
   for (const w of postEnforcement.warnings) {
     log(novelId, "warn", `Planning: ${w}`)
     console.log(`  Warning: ${w}`)
   }
 
-  // Targeted retry: any chapter under its beat-count floor gets re-expanded once
-  const retryIdx: number[] = []
+  // Targeted retry: under-planned chapters always retry; native-contract
+  // experiments also retry over-fragmented chapters instead of slicing/packing.
+  const retryIdx: Array<{ index: number; reason: string }> = []
   for (let i = 0; i < expanded.length; i++) {
     const ch = expanded[i]
-    const floor = minimumBeatCountForTarget(ch.targetWords)
-    if (!ch.scenes || ch.scenes.length < floor) {
-      retryIdx.push(i)
-      console.log(`  Ch ${ch.chapterNumber}: ${ch.scenes?.length ?? 0} beats < floor ${floor} — retrying expansion`)
+    const reason = planningBeatExpansionRetryReason(ch, { nativePlanningContractV1 })
+    if (reason) {
+      retryIdx.push({ index: i, reason })
+      console.log(`  Ch ${ch.chapterNumber}: ${reason} — retrying expansion`)
     }
   }
 
   if (retryIdx.length > 0) {
     emit(novelId, { type: "progress", data: { step: "planning-beats", status: "retrying", chapters: retryIdx.length } })
-    const retries = retryIdx.map(i =>
-      expandChapter(novelId, skeletons![i], skeletons!, worldBible, characters, spine, novel.seed, 2)
+    const retries = retryIdx.map(({ index: i, reason }) =>
+      expandChapter(novelId, skeletons![i], skeletons!, worldBible, characters, spine, novel.seed, 2, reason)
         .then(full => {
-          const floor = minimumBeatCountForTarget(full.targetWords)
-          if (full.scenes && full.scenes.length >= floor) expanded[i] = full
-          else log(novelId, "warn", `Ch ${full.chapterNumber}: retry still short (${full.scenes?.length ?? 0} < ${floor})`)
+          const retryReason = planningBeatExpansionRetryReason(full, { nativePlanningContractV1 })
+          if (!retryReason) expanded[i] = full
+          else log(novelId, "warn", `Ch ${full.chapterNumber}: retry still failed planning shape (${retryReason})`)
         })
         .catch(err => log(novelId, "warn", `Ch ${skeletons![i].chapterNumber} retry failed: ${err.message}`))
     )
@@ -164,6 +167,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
 
   let finalEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters, {
     maxBeatsPerChapter: planningMaxBeatsPerChapter,
+    nativePlanningContractV1,
   })
   if (!finalEnforcement.valid) {
     throw new Error(`Planning failed after beat expansion + retry: ${finalEnforcement.errors.join("; ")}`)
@@ -199,6 +203,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
 
     finalEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters, {
       maxBeatsPerChapter: planningMaxBeatsPerChapter,
+      nativePlanningContractV1,
     })
     if (!finalEnforcement.valid) {
       throw new Error(`Planning failed after obligation coverage retry: ${finalEnforcement.errors.join("; ")}`)
@@ -320,6 +325,7 @@ async function expandChapter(
   spine: any,
   seed: any,
   attempt: number = 1,
+  retryFeedback?: string,
 ): Promise<ChapterOutline> {
   const userPrompt = buildBeatContext({
     targetChapter: skeleton,
@@ -329,6 +335,7 @@ async function expandChapter(
     characters,
     spine,
     seed,
+    retryFeedback,
   })
 
   const result = await callAgent({
@@ -348,6 +355,23 @@ async function expandChapter(
     seed,
   )
   return mapChapterState(novelId, skeleton, allSkeletons, worldBible, characters, spine, seed, scenes, attempt)
+}
+
+export function planningBeatExpansionRetryReason(
+  outline: Pick<ChapterOutline, "chapterNumber" | "targetWords" | "scenes">,
+  options: { nativePlanningContractV1?: boolean } = {},
+): string | null {
+  const target = outline.targetWords ?? 1000
+  const count = outline.scenes?.length ?? 0
+  const floor = minimumBeatCountForTarget(target)
+  if (count < floor) return `${count} beats < floor ${floor} for ${target}w target`
+  if (options.nativePlanningContractV1) {
+    const assessment = assessBeatCountForTarget(target, count)
+    if (assessment.overPlanned) {
+      return `${count} beats > native planning budget ${assessment.recommendedBeats}+1 for ${target}w target`
+    }
+  }
+  return null
 }
 
 function capExpandedScenesForPlanning(

@@ -29,6 +29,7 @@ export interface SeedInput {
     continuityEditorialFlagProposals?: boolean
     factRoleContextPolicy?: import("./harness/fact-roles").FactRoleContextPolicy
     planningMaxBeatsPerChapter?: number | null
+    nativePlanningContractV1?: boolean
   }
 }
 

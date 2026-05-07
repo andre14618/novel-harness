@@ -29,10 +29,11 @@ export interface BeatExpansionArgs {
   characters: CharacterProfile[]
   spine: StorySpine
   seed: SeedInput
+  retryFeedback?: string
 }
 
 export function buildContext(args: BeatExpansionArgs): string {
-  const { targetChapter, allSkeletons, priorChapters, worldBible, characters, spine, seed } = args
+  const { targetChapter, allSkeletons, priorChapters, worldBible, characters, spine, seed, retryFeedback } = args
   const beatPolicy = planningBeatCountPolicy(
     targetChapter.targetWords,
     seed.pipelineOverrides?.planningMaxBeatsPerChapter,
@@ -71,7 +72,8 @@ Target words: ${targetChapter.targetWords}
 Characters present: ${(targetChapter.charactersPresent ?? []).join(", ")}
 
 Minimum beats required: ${beatPolicy.minRecommendedBeats} (current writer usually produces ~300-450 words per planned beat).
-${renderBeatCapGuidance(beatPolicy)}`
+${renderBeatCapGuidance(beatPolicy)}
+${renderNativePlanningContractGuidance(beatPolicy, Boolean(seed.pipelineOverrides?.nativePlanningContractV1))}`
 
   const directivesSection = seed.directives ? renderDirectivesForPlanner(seed.directives) : ""
   const priors = resolveStructuralPriors(seed.genre)
@@ -88,7 +90,7 @@ ${spineSection}
 
 ${allSkelSection}${priorSection}
 
-${targetSection}${directivesSection}${structuralSection}
+${targetSection}${directivesSection}${structuralSection}${retryFeedback ? `\n\n--- PREVIOUS BEAT EXPANSION FAILED ---\n${retryFeedback}\nFix this by authoring native story-turn beats for the same chapter contract. Do not drop the endpoint or hide discarded beats inside one run-on description.` : ""}
 
 Expand Chapter ${targetChapter.chapterNumber} into its beat sequence only. Do not emit chapter-level state or beat obligations; the state mapper assigns those in the next planning step.`
 }
@@ -101,4 +103,13 @@ function renderBeatCapGuidance(policy: ReturnType<typeof planningBeatCountPolicy
     return `Recommended: ${policy.recommendedBeats} beats. Planning max for this experiment: ${policy.effectiveMaxBeats} beats.${floorNote} Do not exceed this cap.`
   }
   return `Recommended: ${policy.recommendedBeats} beats. Do not exceed recommended by more than 1 unless the chapter has multiple distinct set pieces.`
+}
+
+function renderNativePlanningContractGuidance(
+  policy: ReturnType<typeof planningBeatCountPolicy>,
+  enabled: boolean,
+): string {
+  if (!enabled) return ""
+  return `
+Native planning contract experiment: Author exactly ${policy.recommendedBeats} complete story-turn beats for this chapter. Each beat should be large enough to draft into roughly 300-450 words and must carry a concrete pressure, choice, reveal, reversal, or consequence. Do not emit micro-actions, transit-only beats, or packed bullet lists. The final beat must preserve the chapter endpoint/hook named in the skeleton purpose.`
 }

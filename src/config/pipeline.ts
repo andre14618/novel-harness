@@ -56,6 +56,12 @@ export const pipeline = {
   // the chapter target.
   planningMaxBeatsPerChapter: null as number | null,
 
+  // Diagnostic/A-B upstream planning-shape lever. Default false leaves current
+  // planner behavior unchanged. When enabled, planning prompts ask for native
+  // story-turn beats at calibrated granularity and enforcement retries/rejects
+  // over-fragmented plans instead of slicing or post-hoc packing them.
+  nativePlanningContractV1: false,
+
   // State management
   embeddings: false,          // skip embedding step (beat path uses deterministic DB lookups)
 

@@ -108,6 +108,32 @@ test("planning enforcement raises an experiment cap below the floor", () => {
   expect(result.errors).toEqual([])
 })
 
+test("planning enforcement rejects over-fragmented native contract outlines without a cap", () => {
+  const outline = chapter({
+    targetWords: 1500,
+    scenes: [
+      beat({ description: "Istra finds the missing dose." }),
+      beat({ description: "Wren refuses the treatment." }),
+      beat({ description: "Istra proves the danger." }),
+      beat({ description: "Wren accepts the cost." }),
+      beat({ description: "The council arrives." }),
+      beat({ description: "Istra locks the ward." }),
+      beat({ description: "Wren names the price." }),
+    ],
+  })
+
+  const legacy = enforcePlanningOutput([outline], 1, [character("Istra Venn")])
+  const native = enforcePlanningOutput([outline], 1, [character("Istra Venn")], {
+    nativePlanningContractV1: true,
+  })
+
+  expect(legacy.valid).toBe(true)
+  expect(native.valid).toBe(false)
+  expect(native.errors).toEqual([
+    "Chapter 1: 7 beats above native planning budget 5+1 for 1500w target",
+  ])
+})
+
 function chapter(overrides: Partial<ChapterOutline> = {}): ChapterOutline {
   return {
     chapterNumber: 1,

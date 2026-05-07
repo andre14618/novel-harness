@@ -171,8 +171,8 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-06:
 - Semantic-gate diagnostics, accelerated cohorts, and Diagnostics UI expose
   risk drivers, candidate artifacts, action/proposal evidence, drift witnesses,
   writer expansion, checker evidence, and plan-assist lineage. Beat caps and
-  `calibrated:packed` remain A/B-only; L86 records that downstream packing is
-  evidence, not the production correction.
+  `calibrated:packed` remain diagnostic-only; L88 moves the active shape lever
+  upstream to default-off `nativePlanningContractV1` concept/planning tests.
 - Continuity findings do not open Drafting Plan-Assist Gates; fact-scoped
   blockers can optionally persist manual `editorial_flag` envelopes; see L84.
 - World fact roles are additive on `facts` and `canon_facts`; diagnostics

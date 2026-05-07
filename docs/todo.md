@@ -55,15 +55,16 @@ This file is the actionable backlog only. Live architecture belongs in
   supersession from old IDs to new IDs.
 - [x] Expand Planning Studio with edit-before-approve/modified resolution,
   smarter grouping by target, and downstream impact preview in the queue.
-- [ ] Figure out how to let Playwright handle local UI testing more
-  autonomously: reusable disposable-data preflight runner plus screenshots,
-  network, console, and checklist output.
+- [ ] Figure out autonomous local Playwright UI testing: disposable-data
+  preflight runner plus screenshots, network, console, and checklist output.
 - [x] Add chapter health and plan-to-prose traceability views from existing
   checker outputs before adding new creative checkers.
 - [x] Refresh phase-parity smoke after beat-count calibration; compare word
   count, beat count, approval rate, and semantic drift rate.
 - [x] Investigate semantic action drift, continuity gate behavior, and writer
   expansion from drafting before adding new writer/checker nudges.
+- [ ] Run upstream native planning contract legacy-vs-native comparison before
+  any further downstream beat calibration work. See L088.
 - [x] Add pure fact-role policy selectors and opt-in Canon role scoping before
   wiring runtime writer/checker behavior.
 - [x] Add diagnostic preview for writer-visible and continuity-blocking

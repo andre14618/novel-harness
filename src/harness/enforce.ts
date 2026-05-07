@@ -9,7 +9,7 @@
  */
 
 import type { CharacterProfile, ChapterOutline } from "../types"
-import { minimumBeatCountForTarget, planningBeatCountPolicy } from "./beat-counts"
+import { assessBeatCountForTarget, minimumBeatCountForTarget, planningBeatCountPolicy } from "./beat-counts"
 
 // ── Planning Phase ────────────────────────────────────────────────────────
 
@@ -22,6 +22,7 @@ export interface PlanningEnforcement {
 
 export interface PlanningEnforcementOptions {
   maxBeatsPerChapter?: number | null
+  nativePlanningContractV1?: boolean
 }
 
 /**
@@ -76,6 +77,15 @@ export function enforcePlanningOutput(
     const policy = planningBeatCountPolicy(target, options.maxBeatsPerChapter)
     if (policy.effectiveMaxBeats !== null && ch.scenes.length > policy.effectiveMaxBeats) {
       errors.push(`Chapter ${ch.chapterNumber}: ${ch.scenes.length} beats above experiment cap ${policy.effectiveMaxBeats} for ${target}w target`)
+    }
+    if (options.nativePlanningContractV1) {
+      const assessment = assessBeatCountForTarget(target, ch.scenes.length)
+      if (assessment.overPlanned) {
+        errors.push(
+          `Chapter ${ch.chapterNumber}: ${ch.scenes.length} beats above native planning budget ` +
+            `${assessment.recommendedBeats}+1 for ${target}w target`,
+        )
+      }
     }
   }
 

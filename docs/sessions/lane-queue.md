@@ -13,15 +13,11 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Calibrated:packed v1 hold/near-pass at N=12, 1 chapter; next test should
-  be a multi-chapter (≥3) fresh-source sample to see whether the 1.76
-  word ratio crosses under 1.75 and whether packing audits stay clean
-  with mid-novel chapters' denser obligation graphs. Reference:
-  `docs/sessions/2026-05-06-pickup-planner-shape-baseline.md` and L086
-  update.
-- Writer-expansion is now the dominant length lever once beats are chosen
-  well. A v2 calibrated arm gating on writer expansion (rather than
-  planner shape) is the next planner-shape experiment if v1 stalls.
+- Upstream native planning contract experiment is next: after the 1-chapter
+  smoke pass, run a legacy-vs-native concept->planning comparison on at least
+  one 3-chapter seed, then compare downstream drafting signals if planning
+  shape holds. `calibrated:packed` remains L086 diagnostic evidence, not a
+  production rescue path; see L088.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO
@@ -43,8 +39,12 @@ unless the user explicitly requests a disposable branch.
   3.38) and 65% of control cost. Promotion remains `hold` per L086 — word
   ratio missed 1.75 by 0.01 and completion 10/12 vs better hard-cap 11/12.
   Audits show zero dropped obligations and zero dropped payoffs across all
-  12 cells. Record:
+  12 cells, but is now diagnostic evidence only per L088. Record:
   `docs/sessions/2026-05-06-pickup-planner-shape-baseline.md`.
+- `nativePlanningContractV1` first slice shipped: default-off concept/planning
+  context guidance, over-fragmentation retry/reject enforcement, and
+  `test-planner-isolated` runner flag. Smoke on `phase-parity-smoke` produced
+  5 beats for 1500w with clean planning token headroom.
 - Additional recent UI, diagnostics, checker, proposal, traceability, test, and
   lineage closures are archived in
   `docs/sessions/archive/lane-queue-2026-05-06-recent-closed.md`.
