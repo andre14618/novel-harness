@@ -1,0 +1,327 @@
+---
+status: active
+updated: 2026-05-07
+role: methodology-hypothesis-bank
+---
+
+# Authoring Methodology Hypotheses
+
+This document collects candidate ways to make Novel Harness better at
+structuring and telling a novel under operator influence. It is not a backlog
+of prompts to wire immediately. Each hypothesis must be tested at the layer it
+claims to improve, with adjacent layers held steady unless the experiment is
+explicitly measuring downstream projection. See L089.
+
+## Evaluation Rule
+
+Every methodology experiment should declare:
+
+- optimized layer;
+- one changed lever;
+- fixed inputs and held-constant downstream layers;
+- durable IDs or observation refs needed for traceability;
+- expected improvement and failure mode;
+- evidence gate before promotion.
+
+Prefer upstream diagnostic evidence before drafting changes. Do not use UI
+work, checker strictness, or broad writer rewrites as substitutes for plan
+quality evidence.
+
+## Hypotheses
+
+| ID | Hypothesis | Optimized Layer | First Evidence Gate | Priority |
+| --- | --- | --- | --- | --- |
+| H1 | Structure-template macro planning | concept/planning template | planner-quality comparison | high |
+| H2 | Scene as generation unit, beats as checklist | scene plan / writer interface | scene-plan diagnostic, then A/B draft | high |
+| H3 | Native chapter contracts before beats | chapter plan | endpoint/materiality score | high |
+| H4 | Planner-owned Promise/Progress/Payoff | story spine / chapter plan | story-debt diagnostic | medium-high |
+| H5 | Character materiality and motivation obligations | character plan / chapter plan | character-visible plan score | medium-high |
+| H6 | Operational world relevance | world plan / chapter plan | relevance and rule-use diagnostic | medium |
+| H7 | Scene-internal craft fields | scene plan | plan-quality diagnostic | medium |
+| H8 | Genre/market strategy profiles | concept/planning template | genre-fit planner diagnostic | medium |
+| H9 | Human oversight checkpoints | evaluation workflow | side-by-side rubric panel | medium |
+| H10 | Chapter-scope draft then revise | writer/reviser | only after H1-H3 evidence | later |
+
+## H1 - Structure-Template Macro Planning
+
+Hypothesis: a commercial structure scaffold can make planning better because
+the planner has chapter-level story jobs before it starts inventing beats.
+
+Candidate templates:
+
+- flexible 24-chapter commercial outline inspired by Plottr/Derek Murphy style
+  chapter functions;
+- romance obligatory beats;
+- pulp quarter structure;
+- LitRPG/progression strategy;
+- generic three-act or four-part commercial fantasy scaffold.
+
+First slice:
+
+- Add read-only template definitions as data, not runtime defaults.
+- Assign `templateId` and `structureSlotId` to chapter skeletons or diagnostic
+  rows.
+- Score whether each chapter purpose satisfies its intended structural job.
+- Hold writer, checker, UI, and proposal behavior fixed.
+
+Expected benefit: chapter plans should have clearer function, stronger
+endpoint hooks, and less arbitrary middle-chapter drift before drafting.
+
+Trace needs: `templateId`, `structureSlotId`, `chapterId`, chapter purpose,
+endpoint text, protagonist pressure, irreversible change, and hook/outcome.
+
+Evidence gate: compare no-template vs template-guided planning on the same
+frozen concept seed. Use planner-quality metrics plus human side-by-side
+review before drafting.
+
+Risk: a fixed scaffold can overfit the wrong genre or create formulaic plans.
+Mitigation: treat templates as selectable/flexible slots, not a hard 24-chapter
+requirement.
+
+## H2 - Scene Generation Unit, Beat Checklist
+
+Hypothesis: DeepSeek-like verbose writers may perform better when asked to
+write a complete scene rather than expanding each beat as a separate mini
+scene. Beats remain traceable obligations, not necessarily the generation
+unit.
+
+Target shape:
+
+```text
+chapterId
+  sceneId
+    scene goal / conflict / outcome / value turn
+    beatIds[]
+    obligationIds[]
+    draft span refs
+    beat-satisfaction observations
+```
+
+First slice:
+
+- Add a diagnostic scene-plan projection from existing chapter outlines.
+- Do not change drafting initially.
+- Report how beats would group into scene units and whether each scene has a
+  coherent goal/conflict/outcome.
+
+Second slice, only if the projection looks coherent:
+
+- Default-off A/B writer arm where the writer drafts one scene from a scene
+  contract and beat checklist.
+- Validate beat satisfaction somewhere in the scene, allowing creative
+  reordering.
+
+Expected benefit: more natural pacing, fewer stitching artifacts, better prose
+rhythm, and fewer over-expanded beat mini-scenes.
+
+Trace needs: future `sceneId`, source `beatId[]`, `obligationId[]`, source
+refs, prose span refs, and beat-satisfaction observations.
+
+Risk: attribution becomes harder when the writer merges or reorders beats.
+Mitigation: scene-scope beat-satisfaction checker and span mapping before
+promotion.
+
+## H3 - Native Chapter Contracts
+
+Hypothesis: planning improves when each chapter is first described as a story
+contract: protagonist pressure, central conflict, irreversible change, endpoint
+or hook, and downstream promise. Beat count is secondary.
+
+Current evidence: `nativePlanningContractV1` improved beat budget and mapper
+headroom, but planner-quality diagnostics found endpoint and character
+materiality risks.
+
+Next slice:
+
+- Strengthen the planner-quality diagnostic before prompt changes.
+- Score whether the final beat lands the declared endpoint semantically, not
+  just by token overlap.
+- Score whether listed supporting characters materially affect the chapter.
+
+Expected benefit: fewer chapters that are mechanically tidy but semantically
+thin.
+
+Trace needs: `chapterId`, declared endpoint, final beat/ref, characters
+present, character IDs, and materiality observations.
+
+Risk: optimizing the chapter contract can still leave scenes under-specified.
+Mitigation: pair with H2/H7 only after chapter-contract quality improves.
+
+## H4 - Planner-Owned Promise/Progress/Payoff
+
+Hypothesis: the harness needs story debt as a planning primitive. Current
+adherence checks ask whether planned events occurred, but not whether promises
+opened by the story are progressed or paid off.
+
+First slice:
+
+- Diagnostic-only story-debt extraction from story spine and chapter purposes.
+- No durable production schema until evidence improves plan coherence.
+- Track promise opened, expected progress zone, intended payoff zone, and
+  current status.
+
+Expected benefit: stronger plot momentum and fewer dropped setup/payoff chains.
+
+Trace needs: `promiseId`, `structureSlotId`, `chapterId`, optional `sceneId`,
+payoff obligation IDs, and status observations.
+
+Risk: a promise ledger can become over-engineered or intrusive. Mitigation:
+keep it planner-owned and diagnostic until a side-by-side plan comparison
+shows value.
+
+## H5 - Character Materiality And Motivation
+
+Hypothesis: plans improve when characters are active sources of scene pressure,
+not just names attached to beats.
+
+First slice:
+
+- Add planner diagnostics for listed-character materiality, motivation
+  pressure, and relationship texture.
+- Use existing character IDs where available; fall back to names only for
+  legacy rows.
+- Do not wire voice/motivation prose nudges yet.
+
+Expected benefit: chapters where characters drive action from goals, fears,
+relationships, and arc pressure.
+
+Trace needs: `characterId`, `chapterId`, future `sceneId`, materiality finding,
+relationship arc refs, motivation source refs, and beat/obligation refs.
+
+Risk: too many required character obligations can make plans stiff.
+Mitigation: keep findings diagnostic, not blocking, and review with human
+side-by-side samples.
+
+## H6 - Operational World Relevance
+
+Hypothesis: world-building improves prose only when the planner selects
+relevant operational details for the current chapter/scene. Dumping more world
+bible context or enforcing every fact creates noise.
+
+First slice:
+
+- Diagnostic relevance score for world facts per chapter/scene.
+- Separate `operational`, `reference`, and `hidden` facts.
+- Only established operational facts are candidates for future enforcement.
+
+Expected benefit: world details appear because they affect conflict, choices,
+costs, or constraints.
+
+Trace needs: `worldFactId`, role, established-in-prose status, `chapterId`,
+future `sceneId`, and use/omission observations.
+
+Risk: overly broad world-rule checking drowns the operator. Mitigation:
+diagnostic-only until role and established-state evidence is strong.
+
+## H7 - Scene-Internal Craft Fields
+
+Hypothesis: scene-level fields are useful when they describe what the scene
+does internally: goal, conflict, outcome, value polarity open/close, and
+decision/consequence.
+
+First slice:
+
+- Add these as diagnostic projection fields or template fields, not a broad
+  cross-cutting scene-state table.
+- Do not add scene-level continuity for location, knowledge propagation, or
+  character state yet.
+
+Expected benefit: better detection of "on plot but flat" plans before prose.
+
+Trace needs: future `sceneId`, `chapterId`, value axis, open/close polarity,
+goal/conflict/outcome observations, and source beat IDs.
+
+Risk: overfitting craft heuristics. Mitigation: score as warnings and compare
+against human preference before runtime use.
+
+## H8 - Genre/Market Strategy Profiles
+
+Hypothesis: AI writing is most competitive in specific commercial lanes, so
+planning should know the genre and reader contract before choosing structure
+or strictness.
+
+Candidate profiles:
+
+- fantasy adventure;
+- LitRPG/progression fantasy;
+- romance;
+- thriller/pulp;
+- cozy/mystery variants.
+
+First slice:
+
+- Require declared genre/market strategy in concept diagnostics.
+- Map strategy to candidate templates and planner-quality dimensions.
+- Do not infer genre automatically as a runtime default.
+
+Expected benefit: fewer generic plans and better alignment with Kindle
+Unlimited-style reader expectations.
+
+Trace needs: `genreProfileId`, `templateId`, chapter/scene function refs, and
+genre-specific diagnostic observations.
+
+Risk: too many profiles create combinatorial overhead. Mitigation: start with
+one or two target markets where AI prose is likely to be competitive.
+
+## H9 - Human Oversight And Side-By-Side Evaluation
+
+Hypothesis: methodology changes need human oversight because the harness can
+optimize easy metrics while making the story worse.
+
+First slice:
+
+- Define a compact human review rubric for plan outputs:
+  endpoint landed, character agency, relationship texture, world relevance,
+  plot momentum, and commercial readability.
+- Use side-by-side comparisons for planning variants before drafting.
+- Store the chosen variant and rationale as evidence.
+
+Expected benefit: better experiment steering and fewer false wins from
+mechanical metrics.
+
+Trace needs: `experimentId`, `variantId`, source seed, reviewer decision,
+rubric scores, and linked chapter/template refs.
+
+Risk: human review is slower. Mitigation: use it only at promotion gates, not
+for every diagnostic row.
+
+## H10 - Chapter-Scope Draft Then Revise
+
+Hypothesis: a strong model may produce better prose if it drafts a full chapter
+from the plan, then a revision pass fixes checklist failures.
+
+Do not test this first. It changes the writer and revision architecture at the
+same time, which makes attribution difficult.
+
+Potential later gate:
+
+- H1-H3 show stronger upstream plans.
+- H2 provides scene/beat satisfaction observations.
+- Revision can target failed spans without rewriting the whole chapter.
+
+Expected benefit: more coherent prose flow across the chapter.
+
+Risk: hardest attribution and largest blast radius. Keep later.
+
+## Recommended Sequence
+
+1. **Hypothesis charter:** choose one upstream method to test: structure
+   template H1, scene-plan projection H2, or chapter-contract scoring H3.
+2. **Diagnostic-only implementation:** add template/scene/contract
+   observations linked to IDs, no writer changes.
+3. **Controlled planning comparison:** same frozen concept seed, one changed
+   layer, planner-quality report plus human side-by-side review.
+4. **Promotion decision:** if plan quality improves, decide whether to project
+   the winning method into drafting.
+5. **Writer experiment:** only then test scene-level or chapter-level writing
+   changes.
+
+## What Not To Do Next
+
+- Do not expand UI/Playwright work unless a UI surface changes.
+- Do not promote `calibrated:packed` or hard beat caps as runtime defaults.
+- Do not add broad checker blockers for micro-tension, scene turns,
+  world-detail use, or character agency before diagnostic evidence.
+- Do not introduce multiple methodology changes in one cohort.
+- Do not treat a shorter chapter as a story-quality win without endpoint,
+  character, world, and payoff evidence.

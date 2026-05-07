@@ -65,7 +65,8 @@ This file is the actionable backlog only. Live architecture belongs in
   expansion from drafting before adding new writer/checker nudges.
 - [ ] Use planner-quality evidence to choose the next upstream
   concept/planning revision, structure-template diagnostic, or controlled
-  drafting comparison. See L088/L089.
+  drafting comparison. See L088/L089 and
+  `docs/authoring-methodology-hypotheses.md`.
 - [x] Add pure fact-role policy selectors and opt-in Canon role scoping before
   wiring runtime writer/checker behavior.
 - [x] Add diagnostic preview for writer-visible and continuity-blocking

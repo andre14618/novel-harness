@@ -24,7 +24,8 @@ unless the user explicitly requests a disposable branch.
 - Evaluate upstream structure-template scaffolds, including commercial
   chapter-function templates, as concept/planning diagnostics before touching
   drafting/checking/UI. Hold other layers steady unless the test explicitly
-  measures downstream projection.
+  measures downstream projection. Candidate hypotheses are collected in
+  `docs/authoring-methodology-hypotheses.md`.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

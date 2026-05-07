@@ -40,6 +40,9 @@ upstream as possible: concept/planning input, structure-slot labels, and
 read-only diagnostics. Only after plan-quality evidence improves should it be
 fed into drafting, checking, proposal flows, or UI defaults.
 
+Candidate experiments are collected in
+`docs/authoring-methodology-hypotheses.md`.
+
 ## Implications
 
 - Change packets must include `optimized layer`: concept, planning template,
