@@ -90,6 +90,14 @@ decision is clear:
 8. Drafting/checking outcomes are joined later to learn whether the disposition
    improved downstream behavior.
 
+Current bridge route:
+
+`POST /api/novel/:novelId/plan-readiness/:itemId/create-planning-proposal`
+
+This route creates a manual `planning_edit` proposal only for open/deferred
+items, only when the readiness target hash is current, and only when the
+operator supplies a replacement value.
+
 ## Data Use
 
 Operator dispositions are first-class training and evaluation data, but not
@@ -112,11 +120,13 @@ Done:
 - persistent `plan_readiness_items` storage plus store tests;
 - aggregate JSON import into readiness item drafts;
 - read/list, import, disposition, and staleness-refresh routes.
+- manual bridge from open/deferred readiness items to `planning_edit`
+  proposals when the operator supplies a replacement target value.
 
 Next:
 
-1. Add a proposal bridge that creates `planning_edit` only after a proposed
-   replacement value or remove-requirement action exists.
+1. Add a supported remove-requirement action for required character/world-fact
+   IDs; this needs a structural planning-edit target, not ad hoc mutation.
 2. Join readiness dispositions to downstream drafting/checking outcomes.
 3. Add a minimal Planning Studio review panel only after the data contract is
    stable; UI work then requires Playwright evidence.

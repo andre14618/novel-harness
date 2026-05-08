@@ -5,6 +5,7 @@ import { createNovel } from "../db/novels"
 import { saveChapterOutline } from "../db/outlines"
 import { dbReachable } from "../db/test-helpers"
 import { deletePlanReadinessItemsForNovel } from "../db/plan-readiness"
+import { deleteEnvelopesForNovel, listPlanningEditEnvelopes } from "../db/proposal-envelopes"
 import { handlePlanReadinessRoute } from "./plan-readiness-routes"
 import type { ChapterOutline, SceneBeat } from "../types"
 
@@ -49,6 +50,18 @@ describe("handlePlanReadinessRoute - validation", () => {
       message: "proposalEnvelopeId is required when status === \"proposal_created\"",
     })
   })
+
+  test("create-planning-proposal requires proposedValue before DB lookup", async () => {
+    const { status, body } = await expectJson(await invoke(
+      "POST",
+      "/api/novel/missing/plan-readiness/item-1/create-planning-proposal",
+      { operatorNote: "needs revision" },
+    ))
+
+    expect(status).toBe(400)
+    expect(body.ok).toBe(false)
+    expect(body.error).toContain("proposedValue is required")
+  })
 })
 
 describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
@@ -70,6 +83,7 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
 
   afterEach(async () => {
     await deletePlanReadinessItemsForNovel(novelId)
+    await deleteEnvelopesForNovel(novelId)
     await db`DELETE FROM chapter_outlines WHERE novel_id = ${novelId}`
     await db`DELETE FROM novels WHERE id = ${novelId}`
   })
@@ -111,9 +125,79 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
     expect(disposition.body.item.status).toBe("not_applicable")
     expect(disposition.body.item.operatorDisposition).toBe("not_applicable")
   })
+
+  test("creates a manual planning_edit proposal from an open readiness item", async () => {
+    const imported = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/import`,
+      {
+        aggregate: aggregate(),
+        importedByKind: "test",
+        importedByRef: "route-test",
+      },
+    ))
+    const itemId = imported.body.items[0].id
+
+    const created = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/${itemId}/create-planning-proposal`,
+      {
+        proposedValue: "Istra forces Vey to swear on the oath road, shifting their leverage before the trial ends.",
+        operatorNote: "Make the relationship pressure material before drafting.",
+      },
+    ))
+
+    expect(created.status).toBe(200)
+    expect(created.body.ok).toBe(true)
+    expect(created.body.readinessItem.status).toBe("proposal_created")
+    expect(created.body.readinessItem.operatorDisposition).toBe("real_issue")
+    expect(created.body.readinessItem.proposalEnvelopeId).toBe(created.body.proposal.envelope.id)
+    expect(created.body.proposal.envelope.kind).toBe("planning_edit")
+    expect(created.body.proposal.envelope.source.agent).toBe("plan-readiness-review")
+    expect(created.body.proposal.envelope.evidence.some((e: any) =>
+      e.ref === `plan_readiness_items:${itemId}`
+    )).toBe(true)
+
+    const pending = await listPlanningEditEnvelopes(novelId)
+    expect(pending.map(envelope => envelope.id)).toContain(created.body.proposal.envelope.id)
+  })
+
+  test("does not create a proposal when the readiness target is stale", async () => {
+    const imported = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/import`,
+      {
+        aggregate: aggregate(),
+        importedByKind: "test",
+        importedByRef: "route-test",
+      },
+    ))
+    const itemId = imported.body.items[0].id
+
+    await saveChapterOutline(novelId, outline("Istra and Vey already changed the road testimony."))
+
+    const stale = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/${itemId}/create-planning-proposal`,
+      {
+        proposedValue: "A now-stale proposed replacement.",
+        operatorNote: "Should not apply to old target hash.",
+      },
+    ))
+
+    expect(stale.status).toBe(409)
+    expect(stale.body.ok).toBe(false)
+    expect(stale.body.error).toBe("stale-readiness-item")
+    const staleList = await expectJson(await invoke(
+      "GET",
+      `/api/novel/${novelId}/plan-readiness?status=stale`,
+    ))
+    expect(staleList.body.items.map((item: any) => item.id)).toContain(itemId)
+    expect(await listPlanningEditEnvelopes(novelId)).toHaveLength(0)
+  })
 })
 
-function outline(): ChapterOutline {
+function outline(beatDescription = "Istra faces Vey but the oath road does not change the choice."): ChapterOutline {
   return {
     chapterNumber: 1,
     chapterId: "ch-route-1",
@@ -125,16 +209,16 @@ function outline(): ChapterOutline {
     targetWords: 600,
     charactersPresent: ["Istra", "Vey"],
     charactersPresentIds: ["char-istra", "char-vey"],
-    scenes: [beat()],
+    scenes: [beat(beatDescription)],
     establishedFacts: [],
   } as unknown as ChapterOutline
 }
 
-function beat(): SceneBeat {
+function beat(description: string): SceneBeat {
   return {
     beatId: "beat-route-1",
     kind: "dialogue",
-    description: "Istra faces Vey but the oath road does not change the choice.",
+    description,
     characters: ["Istra", "Vey"],
     requiredCharacterIds: ["char-istra", "char-vey"],
     requiredWorldFactIds: ["world-oath-road"],

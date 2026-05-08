@@ -1,6 +1,6 @@
 import { z } from "zod"
 import db from "../db/connection"
-import { stableHash } from "../canon/proposal-envelope"
+import { stableHash, type ProposalEvidence } from "../canon/proposal-envelope"
 import {
   buildPlanningEditDiff,
   buildPlanningEditEnvelope,
@@ -80,6 +80,11 @@ const createBodySchema = z.object({
     userMessage: z.string().optional(),
     parentEnvelopeId: z.string().optional(),
   }).optional(),
+  evidence: z.array(z.object({
+    kind: z.enum(["quote", "structured", "link"]),
+    text: z.string(),
+    ref: z.string().optional(),
+  })).optional(),
 })
 
 const approvalPolicySchema = z.object({
@@ -359,6 +364,7 @@ async function handleCreatePlanningProposal(
         ? { parentEnvelopeId: body.source.parentEnvelopeId }
         : {}),
     },
+    evidence: body.evidence as ProposalEvidence[] | undefined,
     impactPreview: compactImpactPreview(impactPreview),
     now: new Date(),
   })

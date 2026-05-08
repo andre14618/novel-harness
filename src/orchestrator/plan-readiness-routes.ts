@@ -14,8 +14,10 @@ import {
   markStalePlanReadinessItems,
   updatePlanReadinessDisposition,
   upsertPlanReadinessItems,
+  type PlanReadinessItem,
 } from "../db/plan-readiness"
 import { loadPlanningTargetMap, PlanningTargetLookupError } from "../harness/planning-targets"
+import { handlePlanningProposalRoute } from "./planning-proposal-routes"
 
 const statusSchema = z.enum(PLAN_READINESS_STATUSES)
 const statusQuerySchema = z.union([statusSchema, z.literal("all")])
@@ -44,6 +46,12 @@ const dispositionBodySchema = z
     }
   })
 
+const createPlanningProposalBodySchema = z.object({
+  proposedValue: z.unknown().optional(),
+  operatorNote: z.string().nullable().optional(),
+  rationale: z.string().optional(),
+})
+
 export async function handlePlanReadinessRoute(
   req: Request,
   url: URL,
@@ -66,6 +74,15 @@ export async function handlePlanReadinessRoute(
   if (refreshMatch) {
     const novelId = decodeURIComponent(refreshMatch[1]!)
     if (req.method === "POST") return handleRefreshPlanReadinessStaleness(novelId)
+    return new Response("Method not allowed", { status: 405 })
+  }
+
+  const createProposalMatch =
+    /^\/api\/novel\/([^/]+)\/plan-readiness\/([^/]+)\/create-planning-proposal\/?$/.exec(url.pathname)
+  if (createProposalMatch) {
+    const novelId = decodeURIComponent(createProposalMatch[1]!)
+    const itemId = decodeURIComponent(createProposalMatch[2]!)
+    if (req.method === "POST") return handleCreatePlanningProposalFromReadiness(req, novelId, itemId)
     return new Response("Method not allowed", { status: 405 })
   }
 
@@ -198,6 +215,146 @@ async function handlePlanReadinessDisposition(
   }
 }
 
+async function handleCreatePlanningProposalFromReadiness(
+  req: Request,
+  novelId: string,
+  itemId: string,
+): Promise<Response> {
+  let body: z.infer<typeof createPlanningProposalBodySchema>
+  try {
+    const raw = await req.json()
+    if (!hasOwn(raw, "proposedValue")) {
+      return Response.json(
+        {
+          ok: false,
+          error: "proposedValue is required to create a planning proposal from readiness review",
+        },
+        { status: 400 },
+      )
+    }
+    const parsed = createPlanningProposalBodySchema.safeParse(raw)
+    if (!parsed.success) return invalidBody(parsed.error)
+    body = parsed.data
+  } catch (err) {
+    return Response.json({ ok: false, error: `malformed json: ${String(err)}` }, { status: 400 })
+  }
+
+  try {
+    const item = await findPlanReadinessItem(novelId, itemId)
+    if (!item) return Response.json({ ok: false, error: "readiness item not found" }, { status: 404 })
+    if (item.status === "proposal_created" && item.proposalEnvelopeId) {
+      return Response.json(
+        {
+          ok: false,
+          error: "readiness item already has a planning proposal",
+          readinessItemId: item.id,
+          proposalEnvelopeId: item.proposalEnvelopeId,
+        },
+        { status: 409 },
+      )
+    }
+    if (item.status !== "open" && item.status !== "deferred") {
+      return Response.json(
+        {
+          ok: false,
+          error: "readiness item is not open for proposal creation",
+          readinessItemId: item.id,
+          status: item.status,
+        },
+        { status: 409 },
+      )
+    }
+    if (item.sourceHashKind === "target_current_version") {
+      const targetVersions = await loadReadinessTargetVersions(novelId)
+      const currentVersion = targetVersions.get(readinessTargetKey(item.target))
+      if (!currentVersion) {
+        return Response.json(
+          { ok: false, error: "readiness target not found", readinessItemId: item.id },
+          { status: 404 },
+        )
+      }
+      if (currentVersion !== item.sourceHash) {
+        await markStalePlanReadinessItems(novelId, [{
+          targetKind: item.target.kind,
+          targetRef: item.target.ref,
+          sourceHash: currentVersion,
+        }])
+        return Response.json(
+          {
+            ok: false,
+            error: "stale-readiness-item",
+            readinessItemId: item.id,
+            expectedSourceHash: item.sourceHash,
+            actualSourceHash: currentVersion,
+          },
+          { status: 409 },
+        )
+      }
+    }
+
+    const createUrl = new URL(`http://localhost/api/novel/${encodeURIComponent(novelId)}/planning-proposals`)
+    const planningBody = {
+      action: "field_replace",
+      target: item.target,
+      proposedValue: body.proposedValue,
+      rationale: body.rationale ?? readinessProposalRationale(item, body.operatorNote ?? null),
+      source: {
+        agent: "plan-readiness-review",
+        userMessage: readinessProposalUserMessage(item, body.operatorNote ?? null),
+      },
+      evidence: readinessProposalEvidence(item, body.operatorNote ?? null),
+    }
+    const proposalResponse = await handlePlanningProposalRoute(
+      new Request(createUrl, {
+        method: "POST",
+        body: JSON.stringify(planningBody),
+        headers: { "content-type": "application/json" },
+      }),
+      createUrl,
+    )
+    if (!proposalResponse) {
+      return Response.json(
+        { ok: false, error: "planning proposal route did not handle readiness bridge request" },
+        { status: 500 },
+      )
+    }
+    const proposalBody = await proposalResponse.json()
+    if (!proposalResponse.ok || proposalBody.ok === false) {
+      return Response.json(
+        {
+          ...proposalBody,
+          readinessItemId: item.id,
+        },
+        { status: proposalResponse.status },
+      )
+    }
+    const envelopeId = proposalBody.envelope?.id
+    if (typeof envelopeId !== "string" || envelopeId.length === 0) {
+      return Response.json(
+        { ok: false, error: "planning proposal response missing envelope id", readinessItemId: item.id },
+        { status: 500 },
+      )
+    }
+
+    const updated = await updatePlanReadinessDisposition({
+      id: item.id,
+      novelId,
+      status: "proposal_created",
+      operatorDisposition: "real_issue",
+      operatorNote: body.operatorNote ?? null,
+      proposalEnvelopeId: envelopeId,
+    })
+    return Response.json({
+      ok: true,
+      novelId,
+      readinessItem: updated,
+      proposal: proposalBody,
+    })
+  } catch (err) {
+    return planReadinessErrorResponse(err, "plan-readiness proposal bridge failed")
+  }
+}
+
 async function loadReadinessTargetVersions(novelId: string): Promise<Map<string, string>> {
   const map = await loadPlanningTargetMap(novelId)
   const out = new Map<string, string>()
@@ -234,6 +391,54 @@ function parseLimit(raw: string | null, fallback: number): number {
   if (raw == null) return fallback
   if (!/^\d+$/.test(raw)) return fallback
   return Math.min(Math.max(parseInt(raw, 10), 1), 500)
+}
+
+function readinessProposalRationale(item: PlanReadinessItem, operatorNote: string | null): string {
+  return [
+    `Plan Readiness Review marked ${item.diagnosticLabel} on ${item.target.kind}:${item.target.ref}.`,
+    `Fix intent: ${item.fixIntent}.`,
+    `Diagnostic: ${item.explanation}`,
+    item.missingForNextLevel ? `Missing for next level: ${item.missingForNextLevel}` : "",
+    operatorNote ? `Operator note: ${operatorNote}` : "",
+    `Preserve IDs: ${JSON.stringify(item.preserveIds)}`,
+  ].filter(Boolean).join("\n")
+}
+
+function readinessProposalUserMessage(item: PlanReadinessItem, operatorNote: string | null): string {
+  return [
+    `readinessItemId=${item.id}`,
+    `dimension=${item.dimension}`,
+    `label=${item.diagnosticLabel}`,
+    `fixIntent=${item.fixIntent}`,
+    operatorNote ? `operatorNote=${operatorNote}` : "",
+  ].filter(Boolean).join("; ")
+}
+
+function readinessProposalEvidence(item: PlanReadinessItem, operatorNote: string | null) {
+  return [
+    {
+      kind: "structured" as const,
+      ref: `plan_readiness_items:${item.id}`,
+      text: JSON.stringify({
+        readinessItemId: item.id,
+        dimension: item.dimension,
+        diagnosticLabel: item.diagnosticLabel,
+        fixIntent: item.fixIntent,
+        severity: item.severity,
+        explanation: item.explanation,
+        missingForNextLevel: item.missingForNextLevel,
+        preserveIds: item.preserveIds,
+        evidence: item.evidence,
+        operatorNote,
+      }),
+    },
+  ]
+}
+
+function hasOwn(value: unknown, key: string): boolean {
+  return value !== null &&
+    typeof value === "object" &&
+    Object.prototype.hasOwnProperty.call(value, key)
 }
 
 function invalidBody(error: z.ZodError): Response {

@@ -1,6 +1,7 @@
 import { z } from "zod"
 import {
   stableHash,
+  type ProposalEvidence,
   type ProposalEnvelopeRisk,
   type ProposalTargetRef,
   type ReviewProposalEnvelope,
@@ -307,6 +308,7 @@ interface BuildPlanningEditEnvelopeArgs {
     userMessage?: string
     parentEnvelopeId?: string
   }
+  evidence?: readonly ProposalEvidence[]
   impactPreview?: PlanningEditImpactSnapshot
   now: Date
 }
@@ -355,16 +357,19 @@ export function buildPlanningEditEnvelope(
     risk,
     summary: summarizePlanningEdit(payload),
     rationale: args.rationale,
-    evidence: [{
-      kind: "structured",
-      text: stableHash({
-        action,
-        fieldPath: args.target.fieldPath,
-        previousValue: args.previousValue,
-        proposedValue: args.proposedValue,
-      }),
-      ref: `${args.target.kind}:${args.target.ref}:${args.target.fieldPath ?? action}`,
-    }],
+    evidence: [
+      {
+        kind: "structured",
+        text: stableHash({
+          action,
+          fieldPath: args.target.fieldPath,
+          previousValue: args.previousValue,
+          proposedValue: args.proposedValue,
+        }),
+        ref: `${args.target.kind}:${args.target.ref}:${args.target.fieldPath ?? action}`,
+      },
+      ...(args.evidence ?? []),
+    ],
     payload,
     precondition: {
       kind: "artifact_hash",

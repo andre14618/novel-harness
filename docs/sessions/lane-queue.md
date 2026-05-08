@@ -56,8 +56,9 @@ unless the user explicitly requests a disposable branch.
   `docs/sessions/2026-05-07-planner-discernment-calibration.md`.
 - Plan Readiness Review is now the default bridge from planner diagnostics to
   drafting when diagnostics are available. Backend persistence/import/list,
-  disposition capture, and staleness refresh are in place. Next add the manual
-  `planning_edit` bridge and downstream outcome join before UI. See L91.
+  disposition capture, staleness refresh, and manual `planning_edit` proposal
+  creation from replacement values are in place. Next add supported
+  remove-requirement edits and downstream outcome joins before UI. See L91.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO
