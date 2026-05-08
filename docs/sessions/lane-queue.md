@@ -57,11 +57,10 @@ unless the user explicitly requests a disposable branch.
 - Plan Readiness Review is now the default bridge from planner diagnostics to
   drafting when diagnostics are available. Backend persistence/import/list,
   disposition capture, staleness refresh, and manual `planning_edit` proposal
-  creation from replacement values are in place, plus a read-only outcome
-  report over linked proposal resolution, planning lineage, and exact observer
-  rows where available. Next add supported remove-requirement edits and
-  concrete downstream observer capture for approved planning edits before UI.
-  See L91.
+  creation now supports replacement values and exact required-ID removal. The
+  outcome report joins readiness items to proposal resolution, planning
+  lineage, approved-draft impact contexts, and exact checker observations where
+  available. Next gather real operator/outcome data before UI. See L91.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

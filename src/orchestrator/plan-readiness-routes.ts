@@ -48,6 +48,7 @@ const dispositionBodySchema = z
   })
 
 const createPlanningProposalBodySchema = z.object({
+  action: z.enum(["field_replace", "beat_requirement_remove"]).optional().default("field_replace"),
   proposedValue: z.unknown().optional(),
   operatorNote: z.string().nullable().optional(),
   rationale: z.string().optional(),
@@ -282,6 +283,17 @@ async function handleCreatePlanningProposalFromReadiness(
         { status: 409 },
       )
     }
+    if (body.action === "beat_requirement_remove" && item.target.kind !== "beat_plan") {
+      return Response.json(
+        {
+          ok: false,
+          error: "beat_requirement_remove readiness proposals require a beat_plan target",
+          readinessItemId: item.id,
+          target: item.target,
+        },
+        { status: 400 },
+      )
+    }
     if (item.sourceHashKind === "target_current_version") {
       const targetVersions = await loadReadinessTargetVersions(novelId)
       const currentVersion = targetVersions.get(readinessTargetKey(item.target))
@@ -311,9 +323,12 @@ async function handleCreatePlanningProposalFromReadiness(
     }
 
     const createUrl = new URL(`http://localhost/api/novel/${encodeURIComponent(novelId)}/planning-proposals`)
+    const proposalTarget = body.action === "beat_requirement_remove"
+      ? { kind: "beat_plan" as const, ref: item.target.ref, fieldPath: "requirements" as const }
+      : item.target
     const planningBody = {
-      action: "field_replace",
-      target: item.target,
+      action: body.action,
+      target: proposalTarget,
       proposedValue: body.proposedValue,
       rationale: body.rationale ?? readinessProposalRationale(item, body.operatorNote ?? null),
       source: {

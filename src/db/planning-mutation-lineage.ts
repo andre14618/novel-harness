@@ -145,6 +145,34 @@ export async function listPlanningMutationLineageByProposal(
   return rows.map(rowToPlanningMutationLineage)
 }
 
+export async function listPlanningEditMutationLineageForChapter(
+  novelId: string,
+  chapterNumber: number,
+  executor: Executor = db,
+): Promise<PlanningMutationLineage[]> {
+  const chapter = String(chapterNumber)
+  const rows = (await executor`
+    SELECT *
+    FROM planning_mutation_lineage
+    WHERE novel_id = ${novelId}
+      AND source_table = 'proposal_envelopes'
+      AND proposal_kind = 'planning_edit'
+      AND (
+        (CASE
+          WHEN jsonb_typeof(metadata) = 'string' THEN (metadata #>> '{}')::jsonb
+          ELSE metadata
+        END)->>'containingChapterNumber' = ${chapter}
+        OR (CASE
+          WHEN jsonb_typeof(metadata) = 'string' THEN (metadata #>> '{}')::jsonb
+          ELSE metadata
+        END)->>'chapterNumber' = ${chapter}
+      )
+    ORDER BY changed_at DESC, id ASC
+    LIMIT 500
+  `) as PlanningMutationLineageRow[]
+  return rows.map(rowToPlanningMutationLineage)
+}
+
 export async function listPlanningMutationLineageForRefs(
   novelId: string,
   refs: readonly string[],

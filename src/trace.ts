@@ -53,6 +53,7 @@ export type TraceEventType =
   | "canon-proposal-create"
   | "canon-proposal-resolve"
   | "canon-proposal-generate-summary"
+  | "proposal-outcome"
   | "error"
 
 export interface TraceEvent {

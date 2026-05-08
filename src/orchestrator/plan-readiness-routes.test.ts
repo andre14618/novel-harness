@@ -182,6 +182,43 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
     expect(pending.map(envelope => envelope.id)).toContain(created.body.proposal.envelope.id)
   })
 
+  test("creates a remove-requirement planning_edit proposal from a readiness item", async () => {
+    const imported = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/import`,
+      {
+        aggregate: aggregate(),
+        importedByKind: "test",
+        importedByRef: "route-test",
+      },
+    ))
+    const itemId = imported.body.items[0].id
+
+    const created = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/${itemId}/create-planning-proposal`,
+      {
+        action: "beat_requirement_remove",
+        proposedValue: {
+          requiredCharacterIds: ["char-istra"],
+          requiredWorldFactIds: ["world-oath-road"],
+        },
+        operatorNote: "Vey is present but should not be required for this beat.",
+      },
+    ))
+
+    expect(created.status).toBe(200)
+    expect(created.body.ok).toBe(true)
+    expect(created.body.proposal.envelope.payload.action).toBe("beat_requirement_remove")
+    expect(created.body.proposal.envelope.target).toMatchObject({
+      kind: "beat_plan",
+      ref: "beat-route-1",
+      fieldPath: "requirements",
+    })
+    expect(created.body.proposal.diff.before.value.requiredCharacterIds).toEqual(["char-istra", "char-vey"])
+    expect(created.body.proposal.diff.after.value.requiredCharacterIds).toEqual(["char-istra"])
+  })
+
   test("does not create a proposal when the readiness target is stale", async () => {
     const imported = await expectJson(await invoke(
       "POST",

@@ -262,6 +262,36 @@ describe("planning edit proposals", () => {
     expect(env.risk).toBe("medium")
   })
 
+  test("builds beat requirement removal envelopes", () => {
+    const env = buildPlanningEditEnvelope({
+      novelId: "novel-plan-edit",
+      action: "beat_requirement_remove",
+      target: {
+        kind: "beat_plan",
+        ref: "beat-oath-road",
+        fieldPath: "requirements",
+        currentVersion: "5".repeat(64),
+      },
+      previousValue: {
+        requiredCharacterIds: ["char-istra", "char-vey"],
+        requiredWorldFactIds: ["world-oath-road"],
+      },
+      proposedValue: {
+        requiredCharacterIds: ["char-istra"],
+        requiredWorldFactIds: ["world-oath-road"],
+      },
+      rationale: "Remove a non-material required character from the scene contract.",
+      source: { agent: "test" },
+      now,
+    })
+
+    expect(env.kind).toBe("planning_edit")
+    expect(env.payload.action).toBe("beat_requirement_remove")
+    expect(env.target.kind).toBe("beat_plan")
+    expect(env.target.fieldPath).toBe("requirements")
+    expect(env.summary).toBe("Update beat_plan beat-oath-road: requirements")
+  })
+
   test("targetWords is valid only as a positive integer", () => {
     expect(validatePlanningEditValue("targetWords", 1800)).toBeNull()
     expect(validatePlanningEditValue("targetWords", 0)).toMatch(/positive integer/)
@@ -378,6 +408,32 @@ describe("planning edit proposals", () => {
       listKey: "mustEstablish",
       order: ["obl-b", "obl-a"],
     })).toBeNull()
+    expect(validatePlanningEditActionTarget("beat_requirement_remove", {
+      kind: "beat_plan",
+      ref: "beat-a",
+      fieldPath: "requirements",
+    })).toBeNull()
+    expect(validatePlanningEditActionTarget("beat_requirement_remove", {
+      kind: "beat_plan",
+      ref: "beat-a",
+      fieldPath: "description",
+    })).toMatch(/fieldPath=requirements/)
+    expect(validatePlanningEditProposedValue("beat_requirement_remove", {
+      kind: "beat_plan",
+      ref: "beat-a",
+      fieldPath: "requirements",
+    }, {
+      requiredCharacterIds: ["char-hero"],
+      requiredWorldFactIds: [],
+    })).toBeNull()
+    expect(validatePlanningEditProposedValue("beat_requirement_remove", {
+      kind: "beat_plan",
+      ref: "beat-a",
+      fieldPath: "requirements",
+    }, {
+      requiredCharacterIds: ["char-hero", "char-hero"],
+      requiredWorldFactIds: [],
+    })).toMatch(/duplicate/)
   })
 
   test("builds deterministic before/after diffs for planning edits", () => {

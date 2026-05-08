@@ -97,7 +97,9 @@ Current bridge route:
 
 This route creates a manual `planning_edit` proposal only for open/deferred
 items, only when the readiness target hash is current, and only when the
-operator supplies a replacement value.
+operator supplies a replacement value. It supports replacement-value edits and
+`beat_requirement_remove` edits for exact `requiredCharacterIds` /
+`requiredWorldFactIds` removal from a beat contract.
 
 Current attribution route:
 
@@ -106,8 +108,10 @@ Current attribution route:
 This route is read-only. It reports readiness disposition, linked proposal
 resolution, planning mutation lineage, and any exact downstream
 outcome/impact/checker observations already attached to the proposal. Planning
-lineage is not treated as proof of downstream quality; applied proposals with
-lineage but no observer rows are marked as needing downstream observation.
+lineage is not treated as proof of downstream quality. When drafting later
+approves a chapter affected by a proposal-backed planning edit, the harness
+records a draft impact keyed by exact draft hash; validation can then attach
+checker observations to that planning edit without timing-based inference.
 
 ## Data Use
 
@@ -135,15 +139,16 @@ Done:
   proposals when the operator supplies a replacement target value.
 - read-only outcome report joining readiness items to linked proposal status,
   planning mutation lineage, and exact downstream observers where available.
+- supported `beat_requirement_remove` planning edits for exact
+  `requiredCharacterIds` / `requiredWorldFactIds` removal.
+- draft-impact observer capture for approved planning edits, keyed by approved
+  draft hash so validation checker observations can attach exactly.
 
 Next:
 
-1. Add a supported remove-requirement action for required character/world-fact
-   IDs; this needs a structural planning-edit target, not ad hoc mutation.
-2. Add concrete downstream observer capture for approved planning edits after
-   drafting/checking, so outcome reports can distinguish quality improvement
-   from lineage-only application.
-3. Add a minimal Planning Studio review panel only after the data contract is
+1. Use the readiness/outcome backend on real planner diagnostic runs to gather
+   operator disposition and downstream checker data.
+2. Add a minimal Planning Studio review panel only after the data contract is
    stable; UI work then requires Playwright evidence.
 
 ## Non-Goals

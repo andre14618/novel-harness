@@ -71,6 +71,7 @@ const createBodySchema = z.object({
     "beat_reorder",
     "beat_obligation_replace",
     "beat_obligation_reorder",
+    "beat_requirement_remove",
   ]).optional().default("field_replace"),
   target: planningEditCreateTargetSchema,
   proposedValue: z.unknown(),
@@ -166,6 +167,11 @@ interface ObligationSourceLink {
   sourceId: string
   sourceKind: EditableSourceKind
   characterId?: string
+}
+
+interface BeatRequirementState {
+  requiredCharacterIds: string[]
+  requiredWorldFactIds: string[]
 }
 
 export async function handlePlanningProposalRoute(
@@ -750,6 +756,14 @@ async function loadPlanningEditTargetState(
         },
       }
     }
+    if (action === "beat_requirement_remove") {
+      return {
+        outline,
+        ref: beat.beatId ?? target.ref,
+        currentVersion: stableHash(beatRequirementState(beat)),
+        previousValue: beatRequirementState(beat),
+      }
+    }
     return {
       outline,
       ref: beat.beatId ?? target.ref,
@@ -852,6 +866,14 @@ function applyPlanningStructuralEdit(
     obligations[reorder.listKey] = reorder.order
       .map((obligationId) => byId.get(obligationId))
       .filter((item) => item !== undefined)
+    return normalizeChapterOutlineForPersistence(next)
+  }
+  if (payload.action === "beat_requirement_remove") {
+    const beat = findBeat(next, payload.target.ref)
+    const requirements = readBeatRequirementState(payload.proposedValue)
+    if (!beat || !requirements) return normalizeChapterOutlineForPersistence(next)
+    ;(beat as Record<string, unknown>).requiredCharacterIds = requirements.requiredCharacterIds
+    ;(beat as Record<string, unknown>).requiredWorldFactIds = requirements.requiredWorldFactIds
     return normalizeChapterOutlineForPersistence(next)
   }
   return next
@@ -1144,6 +1166,36 @@ function readObligationReorder(value: unknown): {
   return { listKey: record.listKey, order: record.order as string[] }
 }
 
+function beatRequirementState(beat: SceneBeatInOutline): BeatRequirementState {
+  const record = beat as Record<string, unknown>
+  return {
+    requiredCharacterIds: stringArray(record.requiredCharacterIds),
+    requiredWorldFactIds: stringArray(record.requiredWorldFactIds),
+  }
+}
+
+function readBeatRequirementState(value: unknown): BeatRequirementState | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null
+  const record = value as Record<string, unknown>
+  if (!Array.isArray(record.requiredCharacterIds) || !Array.isArray(record.requiredWorldFactIds)) {
+    return null
+  }
+  if (
+    !record.requiredCharacterIds.every((item) => typeof item === "string") ||
+    !record.requiredWorldFactIds.every((item) => typeof item === "string")
+  ) {
+    return null
+  }
+  return {
+    requiredCharacterIds: [...record.requiredCharacterIds],
+    requiredWorldFactIds: [...record.requiredWorldFactIds],
+  }
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
+}
+
 function reorderListKey(value: unknown): ObligationListKey | null {
   return readObligationReorder(value)?.listKey ?? null
 }
@@ -1230,6 +1282,14 @@ function validatePlanningEditSemantics(
       reorder.order,
     )
   }
+  if (action === "beat_requirement_remove") {
+    if (!targetState.outline) return "beat_requirement_remove target state missing outline"
+    const beat = findBeat(targetState.outline, target.ref)
+    if (!beat) return "beat_requirement_remove target beat not found"
+    const proposed = readBeatRequirementState(proposedValue)
+    if (!proposed) return "beat_requirement_remove proposedValue is invalid"
+    return validateBeatRequirementRemoval(beatRequirementState(beat), proposed)
+  }
 
   if (target.kind === "planning_directive") {
     return target.ref === target.fieldPath
@@ -1253,6 +1313,54 @@ function validatePlanningEditSemantics(
   const nextLink = sourceLinkAfterEdit(context.obligation, fieldPath, proposedValue)
   if (!nextLink) return "source-link edit would leave the obligation without sourceId/sourceKind"
   return validateObligationSourceLink(targetState.outline, context, nextLink)
+}
+
+function validateBeatRequirementRemoval(
+  current: BeatRequirementState,
+  proposed: BeatRequirementState,
+): string | null {
+  const characterError = validateExactRequirementRemoval(
+    "requiredCharacterIds",
+    current.requiredCharacterIds,
+    proposed.requiredCharacterIds,
+  )
+  const worldError = validateExactRequirementRemoval(
+    "requiredWorldFactIds",
+    current.requiredWorldFactIds,
+    proposed.requiredWorldFactIds,
+  )
+  const removedKinds = [characterError.removed, worldError.removed].filter(Boolean)
+  if (characterError.error) return characterError.error
+  if (worldError.error) return worldError.error
+  if (removedKinds.length !== 1) {
+    return `beat_requirement_remove must remove exactly one required ID; removed=${removedKinds.join(",") || "(none)"}`
+  }
+  return null
+}
+
+function validateExactRequirementRemoval(
+  label: keyof BeatRequirementState,
+  current: readonly string[],
+  proposed: readonly string[],
+): { removed: string | null; error: string | null } {
+  const currentSet = new Set(current)
+  const proposedSet = new Set(proposed)
+  const removed = current.filter((id) => !proposedSet.has(id))
+  const added = proposed.filter((id) => !currentSet.has(id))
+  if (added.length > 0) {
+    return { removed: null, error: `beat_requirement_remove ${label} cannot add IDs: ${added.join(",")}` }
+  }
+  if (removed.length > 1) {
+    return { removed: null, error: `beat_requirement_remove ${label} removed more than one ID: ${removed.join(",")}` }
+  }
+  const expected = current.filter((id) => id !== removed[0])
+  if (
+    expected.length !== proposed.length ||
+    !expected.every((id, index) => proposed[index] === id)
+  ) {
+    return { removed: null, error: `beat_requirement_remove ${label} must preserve current order except the removed ID` }
+  }
+  return { removed: removed[0] ? `${label}:${removed[0]}` : null, error: null }
 }
 
 function sourceLinkAfterEdit(
@@ -1458,6 +1566,10 @@ function targetVersion(
     const reorder = readObligationReorder(payload.proposedValue)
     return stableHash(beat && reorder ? obligationOrder(beat, reorder.listKey) : null)
   }
+  if (payload.action === "beat_requirement_remove") {
+    const beat = findBeat(outline, target.ref)
+    return stableHash(beat ? beatRequirementState(beat) : null)
+  }
   if (payload.action === "beat_replace") {
     const proposed = payload.proposedValue as Record<string, unknown>
     const beatId = typeof proposed.beatId === "string" ? proposed.beatId : target.ref
@@ -1516,7 +1628,11 @@ function targetForEnvelope(
 function impactPreviewTarget(
   target: PlanningEditPayload["target"],
 ): Parameters<typeof previewPlanningImpact>[1] {
-  if (target.fieldPath === "self" || target.fieldPath === "obligations") {
+  if (
+    target.fieldPath === "self" ||
+    target.fieldPath === "obligations" ||
+    target.fieldPath === "requirements"
+  ) {
     return { kind: target.kind, ref: target.ref }
   }
   return target

@@ -1,5 +1,14 @@
-import { describe, expect, test } from "bun:test"
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test"
+import db, { migrate } from "../db/connection"
+import { createNovel } from "../db/novels"
+import { getChapterOutline, saveChapterOutline } from "../db/outlines"
+import { dbReachable } from "../db/test-helpers"
+import { deleteEnvelopesForNovel } from "../db/proposal-envelopes"
+import { deletePlanningMutationLineageForNovel } from "../db/planning-mutation-lineage"
 import { handlePlanningProposalRoute } from "./planning-proposal-routes"
+import type { ChapterOutline, SceneBeat } from "../types"
+
+const reachable = await dbReachable()
 
 async function invoke(method: string, path: string, body?: unknown): Promise<Response | null> {
   const url = new URL(`http://localhost${path}`)
@@ -143,3 +152,139 @@ describe("handlePlanningProposalRoute - resolve validation before DB lookup", ()
     ]))
   })
 })
+
+describe.skipIf(!reachable)("handlePlanningProposalRoute (DB-backed)", () => {
+  let novelId: string
+
+  beforeAll(async () => {
+    await migrate()
+  })
+
+  beforeEach(async () => {
+    novelId = `test-planning-proposal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    await createNovel(novelId, {
+      premise: "A trial exposes an oath road.",
+      genre: "fantasy",
+      characters: [],
+    })
+    await saveChapterOutline(novelId, outline())
+  })
+
+  afterEach(async () => {
+    await deletePlanningMutationLineageForNovel(novelId)
+    await deleteEnvelopesForNovel(novelId)
+    await db`DELETE FROM chapter_outlines WHERE novel_id = ${novelId}`
+    await db`DELETE FROM novels WHERE id = ${novelId}`
+  })
+
+  test("creates and applies a beat requirement removal planning edit", async () => {
+    const created = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/planning-proposals`,
+      {
+        action: "beat_requirement_remove",
+        target: {
+          kind: "beat_plan",
+          ref: "beat-route-1",
+          fieldPath: "requirements",
+        },
+        proposedValue: {
+          requiredCharacterIds: ["char-istra"],
+          requiredWorldFactIds: ["world-oath-road"],
+        },
+        rationale: "Vey is present but no longer required to drive this beat.",
+        source: { agent: "test" },
+      },
+    ))
+
+    expect(created.status).toBe(200)
+    expect(created.body.ok).toBe(true)
+    expect(created.body.envelope.payload.action).toBe("beat_requirement_remove")
+    expect(created.body.diff.before.value.requiredCharacterIds).toEqual(["char-istra", "char-vey"])
+    expect(created.body.diff.after.value.requiredCharacterIds).toEqual(["char-istra"])
+
+    const resolved = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/planning-proposals/${created.body.envelope.id}/resolve`,
+      { status: "approved", resolvedBy: "test" },
+    ))
+
+    expect(resolved.status).toBe(200)
+    expect(resolved.body.ok).toBe(true)
+    const persisted = await getChapterOutline(novelId, 1)
+    expect((persisted.scenes[0] as any).requiredCharacterIds).toEqual(["char-istra"])
+    expect((persisted.scenes[0] as any).requiredWorldFactIds).toEqual(["world-oath-road"])
+  })
+
+  test("rejects requirement edits that add IDs or remove too many IDs", async () => {
+    const addUnknown = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/planning-proposals`,
+      {
+        action: "beat_requirement_remove",
+        target: {
+          kind: "beat_plan",
+          ref: "beat-route-1",
+          fieldPath: "requirements",
+        },
+        proposedValue: {
+          requiredCharacterIds: ["char-istra", "char-vey", "char-new"],
+          requiredWorldFactIds: ["world-oath-road"],
+        },
+      },
+    ))
+    expect(addUnknown.status).toBe(400)
+    expect(addUnknown.body.error).toMatch(/cannot add IDs/)
+
+    const removeTwo = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/planning-proposals`,
+      {
+        action: "beat_requirement_remove",
+        target: {
+          kind: "beat_plan",
+          ref: "beat-route-1",
+          fieldPath: "requirements",
+        },
+        proposedValue: {
+          requiredCharacterIds: [],
+          requiredWorldFactIds: ["world-oath-road"],
+        },
+      },
+    ))
+    expect(removeTwo.status).toBe(400)
+    expect(removeTwo.body.error).toMatch(/removed more than one ID/)
+  })
+})
+
+function outline(): ChapterOutline {
+  return {
+    chapterNumber: 1,
+    chapterId: "ch-route-1",
+    title: "Oath Trial",
+    povCharacter: "Istra",
+    povCharacterId: "char-istra",
+    setting: "Trial road",
+    purpose: "Show the oath road law.",
+    targetWords: 600,
+    charactersPresent: ["Istra", "Vey"],
+    charactersPresentIds: ["char-istra", "char-vey"],
+    scenes: [beat()],
+    establishedFacts: [],
+  } as unknown as ChapterOutline
+}
+
+function beat(): SceneBeat {
+  return {
+    beatId: "beat-route-1",
+    kind: "dialogue",
+    description: "Istra faces Vey but the oath road does not change the choice.",
+    characters: ["Istra", "Vey"],
+    requiredCharacterIds: ["char-istra", "char-vey"],
+    requiredWorldFactIds: ["world-oath-road"],
+    mustEstablish: [],
+    mustPayOff: [],
+    mustTransferKnowledge: [],
+    mustShowStateChange: [],
+  } as unknown as SceneBeat
+}

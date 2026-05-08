@@ -83,6 +83,7 @@ import {
 } from "./plan-assist-lineage"
 import { buildPlanCheckDriftWitnessPayload } from "./plan-check-drift-witness"
 import { recordReviserAcceptedLineage } from "./reviser-lineage"
+import { recordPlanningEditDraftImpactsForChapter } from "./planning-edit-draft-impact"
 
 /**
  * Merge per-novel `seed.pipelineOverrides` onto the module-level pipeline
@@ -1783,6 +1784,30 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       if (decision === "approve") {
         approved = true
         await approveChapterDraft(novelId, ch)
+        const approvedDraft = await getApprovedDraft(novelId, ch)
+        if (approvedDraft) {
+          const impactResult = await recordPlanningEditDraftImpactsForChapter({
+            novelId,
+            chapterNumber: ch,
+            prose: approvedDraft.prose,
+            draftVersion: approvedDraft.version,
+          }).catch((err) => {
+            log(novelId, "warn", `Planning-edit draft impact capture failed for chapter ${ch}: ${err instanceof Error ? err.message : err}`)
+            return null
+          })
+          if (impactResult && impactResult.recorded > 0) {
+            await trace(novelId, {
+              eventType: "proposal-outcome",
+              chapter: ch,
+              payload: {
+                kind: "planning-edit-draft-impact",
+                recorded: impactResult.recorded,
+                proposalIds: impactResult.proposalIds,
+                resultHash: impactResult.resultHash,
+              },
+            })
+          }
+        }
 
         emit(novelId, { type: "progress", data: { step: "state-extraction", chapter: ch, status: "running" } })
         const extractStart = Date.now()

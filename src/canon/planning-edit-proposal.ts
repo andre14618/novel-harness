@@ -194,11 +194,18 @@ export const beatObligationReorderPlanningEditTargetSchema = z.object({
   fieldPath: z.literal("obligations"),
 })
 
+export const beatRequirementRemovePlanningEditTargetSchema = z.object({
+  kind: z.literal("beat_plan"),
+  ref: z.string().min(1),
+  fieldPath: z.literal("requirements"),
+})
+
 export const planningEditStructuralTargetSchema = z.union([
   beatReplacePlanningEditTargetSchema,
   beatReorderPlanningEditTargetSchema,
   beatObligationReplacePlanningEditTargetSchema,
   beatObligationReorderPlanningEditTargetSchema,
+  beatRequirementRemovePlanningEditTargetSchema,
 ])
 
 export const planningEditCreateTargetSchema = z.union([
@@ -252,6 +259,10 @@ export const planningEditPayloadSchema = z.discriminatedUnion("action", [
   planningEditPayloadBaseSchema.extend({
     action: z.literal("beat_obligation_reorder"),
     target: beatObligationReorderPlanningEditTargetSchema,
+  }),
+  planningEditPayloadBaseSchema.extend({
+    action: z.literal("beat_requirement_remove"),
+    target: beatRequirementRemovePlanningEditTargetSchema,
   }),
 ])
 
@@ -468,9 +479,14 @@ export function validatePlanningEditActionTarget(
       ? null
       : "beat_obligation_replace requires target kind=beat_obligation fieldPath=self"
   }
-  return beatObligationReorderPlanningEditTargetSchema.safeParse(target).success
+  if (action === "beat_obligation_reorder") {
+    return beatObligationReorderPlanningEditTargetSchema.safeParse(target).success
+      ? null
+      : "beat_obligation_reorder requires target kind=beat_plan fieldPath=obligations"
+  }
+  return beatRequirementRemovePlanningEditTargetSchema.safeParse(target).success
     ? null
-    : "beat_obligation_reorder requires target kind=beat_plan fieldPath=obligations"
+    : "beat_requirement_remove requires target kind=beat_plan fieldPath=requirements"
 }
 
 export function validatePlanningEditProposedValue(
@@ -488,7 +504,8 @@ export function validatePlanningEditProposedValue(
   if (action === "beat_obligation_replace") {
     return validateObligationReplacementValue(target.ref, value)
   }
-  return validateObligationReorderValue(value)
+  if (action === "beat_obligation_reorder") return validateObligationReorderValue(value)
+  return validateBeatRequirementStateValue(value)
 }
 
 function validateBeatReplacementValue(targetRef: string, value: unknown): string | null {
@@ -558,6 +575,22 @@ function validateObligationReorderValue(value: unknown): string | null {
   return validateStableIdOrder("beat_obligation_reorder proposedValue.order", record.order, {
     allowEmpty: true,
   })
+}
+
+function validateBeatRequirementStateValue(value: unknown): string | null {
+  const record = objectRecord(value, "beat_requirement_remove proposedValue")
+  if (typeof record === "string") return record
+  const characterError = validateStableIdOrder(
+    "beat_requirement_remove proposedValue.requiredCharacterIds",
+    record.requiredCharacterIds,
+    { allowEmpty: true },
+  )
+  if (characterError) return characterError
+  return validateStableIdOrder(
+    "beat_requirement_remove proposedValue.requiredWorldFactIds",
+    record.requiredWorldFactIds,
+    { allowEmpty: true },
+  )
 }
 
 function validateStableIdOrder(

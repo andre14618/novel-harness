@@ -249,8 +249,8 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-08:
   evidence after the pass.
 - When planner-quality diagnostics are available, Plan Readiness Review is the
   default checkpoint before drafting; backend routes persist/import/list
-  diagnostic items, operator dispositions, staleness, manual `planning_edit`
-  creation, and read-only outcome reports over proposal resolution/lineage. See L91.
+  diagnostics, dispositions, staleness, manual replacement/remove-requirement
+  `planning_edit` creation, and exact draft-impact attribution. See L91.
 - Craft heuristics that alter planner/writer/checker behavior must prove value
   in diagnostic-only or A/B-gated form before production-default wiring.
 - Test and invariant work should use the dedicated role contract in

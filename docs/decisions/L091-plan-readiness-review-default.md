@@ -77,6 +77,7 @@ The first implementation should prove:
 - dispositions can be recorded without mutating plans;
 - proposal creation remains manual and uses existing `planning_edit` paths;
 - stale target hashes invalidate old readiness items;
-- focused tests cover import, disposition, proposal bridge, and staleness.
+- focused tests cover import, disposition, proposal bridge, exact
+  remove-requirement edits, staleness, and draft-impact observer attachment.
 
 UI evidence is required only when the Planning Studio review surface is added.
