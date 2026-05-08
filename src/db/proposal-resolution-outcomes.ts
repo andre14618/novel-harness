@@ -350,6 +350,22 @@ export async function listCheckerObservationsForDraftHash(
   return rows.map(rowToProposalCheckerObservation)
 }
 
+export async function listProposalCheckerObservationsByProposal(
+  sourceTable: ProposalResolutionOutcomeSourceTable,
+  proposalId: string,
+  executor: Executor = db,
+): Promise<ProposalCheckerObservation[]> {
+  const rows = (await executor`
+    SELECT *
+    FROM proposal_checker_observations
+    WHERE source_table = ${sourceTable}
+      AND proposal_id = ${proposalId}
+    ORDER BY observed_at DESC, id ASC
+    LIMIT 200
+  `) as ProposalCheckerObservationRow[]
+  return rows.map(rowToProposalCheckerObservation)
+}
+
 async function refreshDownstreamCheckerRollup(
   sourceTable: ProposalResolutionOutcomeSourceTable,
   proposalId: string,

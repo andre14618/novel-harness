@@ -6,7 +6,9 @@ import { saveChapterOutline } from "../db/outlines"
 import { dbReachable } from "../db/test-helpers"
 import { deletePlanReadinessItemsForNovel } from "../db/plan-readiness"
 import { deleteEnvelopesForNovel, listPlanningEditEnvelopes } from "../db/proposal-envelopes"
+import { deletePlanningMutationLineageForNovel } from "../db/planning-mutation-lineage"
 import { handlePlanReadinessRoute } from "./plan-readiness-routes"
+import { handlePlanningProposalRoute } from "./planning-proposal-routes"
 import type { ChapterOutline, SceneBeat } from "../types"
 
 const reachable = await dbReachable()
@@ -24,6 +26,23 @@ async function invoke(method: string, path: string, body?: unknown): Promise<Res
 async function expectJson(res: Response | null): Promise<{ status: number; body: any }> {
   expect(res).not.toBeNull()
   return { status: res!.status, body: await res!.json() }
+}
+
+async function resolvePlanningProposal(
+  novelId: string,
+  envelopeId: string,
+  body: unknown,
+): Promise<{ status: number; body: any }> {
+  const url = new URL(`http://localhost/api/novel/${novelId}/planning-proposals/${envelopeId}/resolve`)
+  const res = await handlePlanningProposalRoute(
+    new Request(url, {
+      method: "POST",
+      body: JSON.stringify(body),
+      headers: { "content-type": "application/json" },
+    }),
+    url,
+  )
+  return expectJson(res)
 }
 
 describe("handlePlanReadinessRoute - validation", () => {
@@ -82,6 +101,7 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
   })
 
   afterEach(async () => {
+    await deletePlanningMutationLineageForNovel(novelId)
     await deletePlanReadinessItemsForNovel(novelId)
     await deleteEnvelopesForNovel(novelId)
     await db`DELETE FROM chapter_outlines WHERE novel_id = ${novelId}`
@@ -194,6 +214,62 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
     ))
     expect(staleList.body.items.map((item: any) => item.id)).toContain(itemId)
     expect(await listPlanningEditEnvelopes(novelId)).toHaveLength(0)
+  })
+
+  test("outcome report links readiness items to proposal resolution and planning lineage", async () => {
+    const imported = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/import`,
+      {
+        aggregate: aggregate(),
+        importedByKind: "test",
+        importedByRef: "route-test",
+      },
+    ))
+    const itemId = imported.body.items[0].id
+    const created = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/${itemId}/create-planning-proposal`,
+      {
+        proposedValue: "Istra forces Vey to swear on the oath road, shifting their leverage before the trial ends.",
+        operatorNote: "Make the relationship pressure material before drafting.",
+      },
+    ))
+    const envelopeId = created.body.proposal.envelope.id
+
+    const pendingReport = await expectJson(await invoke(
+      "GET",
+      `/api/novel/${novelId}/plan-readiness/outcomes`,
+    ))
+    expect(pendingReport.status).toBe(200)
+    expect(pendingReport.body.summary.linkedProposalCount).toBe(1)
+    expect(pendingReport.body.summary.byProposalStatus.pending).toBe(1)
+    expect(pendingReport.body.items[0].downstream.interpretation).toBe("pending_operator_resolution")
+
+    const approved = await resolvePlanningProposal(novelId, envelopeId, {
+      status: "approved",
+      resolvedBy: "test",
+      operatorNote: "Approve readiness bridge test.",
+    })
+    expect(approved.status).toBe(200)
+    expect(approved.body.ok).toBe(true)
+
+    const report = await expectJson(await invoke(
+      "GET",
+      `/api/novel/${novelId}/plan-readiness/outcomes`,
+    ))
+    expect(report.status).toBe(200)
+    expect(report.body.summary.appliedProposalCount).toBe(1)
+    expect(report.body.summary.planningLineageRecordedCount).toBe(1)
+    expect(report.body.summary.needsDownstreamObservationCount).toBe(1)
+    expect(report.body.summary.downstreamObservedCount).toBe(0)
+    expect(report.body.items).toHaveLength(1)
+    expect(report.body.items[0].readinessItem.id).toBe(itemId)
+    expect(report.body.items[0].proposal.id).toBe(envelopeId)
+    expect(report.body.items[0].proposal.status).toBe("approved")
+    expect(report.body.items[0].downstream.observationStatus).toBe("lineage_only")
+    expect(report.body.items[0].downstream.interpretation).toBe("applied_no_downstream_observation")
+    expect(report.body.items[0].downstream.planningLineage[0].proposalId).toBe(envelopeId)
   })
 })
 

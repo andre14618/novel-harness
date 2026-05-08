@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-07
+updated: 2026-05-08
 role: actionable-backlog
 archive: archive/todo-2026-05-04-full.md
 ---
@@ -64,9 +64,8 @@ This file is the actionable backlog only. Live architecture belongs in
 - [x] Investigate semantic action drift, continuity gate behavior, and writer
   expansion from drafting before adding new writer/checker nudges.
 - [ ] Extend Plan Readiness Review with supported remove-requirement edits and
-  downstream outcome joins before UI. Persistence/import/disposition/staleness
-  plus replacement-value `planning_edit` bridge are in place. See L91 and
-  `docs/plan-readiness-review.md`.
+  downstream observer capture before UI. Persistence/import/disposition,
+  staleness, replacement-value `planning_edit` bridge, and read-only outcome attribution are in place. See L91 and `docs/plan-readiness-review.md`.
 - [x] Add pure fact-role policy selectors and opt-in Canon role scoping before
   wiring runtime writer/checker behavior.
 - [x] Add diagnostic preview for writer-visible and continuity-blocking

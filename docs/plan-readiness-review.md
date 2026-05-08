@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-07
+updated: 2026-05-08
 role: plan-readiness-operating-model
 ---
 
@@ -86,9 +86,10 @@ decision is clear:
    plan.
 6. `revise` or `remove requirement` creates a normal manual `planning_edit`
    proposal with stale preconditions.
-7. Applying a proposal marks related readiness items stale or fixed.
-8. Drafting/checking outcomes are joined later to learn whether the disposition
-   improved downstream behavior.
+7. Applying a proposal records normal proposal resolution and planning mutation
+   lineage.
+8. Read-only outcome reports join readiness items to proposal status, planning
+   lineage, and exact downstream observer rows when those rows exist.
 
 Current bridge route:
 
@@ -97,6 +98,16 @@ Current bridge route:
 This route creates a manual `planning_edit` proposal only for open/deferred
 items, only when the readiness target hash is current, and only when the
 operator supplies a replacement value.
+
+Current attribution route:
+
+`GET /api/novel/:novelId/plan-readiness/outcomes`
+
+This route is read-only. It reports readiness disposition, linked proposal
+resolution, planning mutation lineage, and any exact downstream
+outcome/impact/checker observations already attached to the proposal. Planning
+lineage is not treated as proof of downstream quality; applied proposals with
+lineage but no observer rows are marked as needing downstream observation.
 
 ## Data Use
 
@@ -122,12 +133,16 @@ Done:
 - read/list, import, disposition, and staleness-refresh routes.
 - manual bridge from open/deferred readiness items to `planning_edit`
   proposals when the operator supplies a replacement target value.
+- read-only outcome report joining readiness items to linked proposal status,
+  planning mutation lineage, and exact downstream observers where available.
 
 Next:
 
 1. Add a supported remove-requirement action for required character/world-fact
    IDs; this needs a structural planning-edit target, not ad hoc mutation.
-2. Join readiness dispositions to downstream drafting/checking outcomes.
+2. Add concrete downstream observer capture for approved planning edits after
+   drafting/checking, so outcome reports can distinguish quality improvement
+   from lineage-only application.
 3. Add a minimal Planning Studio review panel only after the data contract is
    stable; UI work then requires Playwright evidence.
 

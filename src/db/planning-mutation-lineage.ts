@@ -127,6 +127,24 @@ export async function findPlanningMutationLineageByProposal(
   return rows.length > 0 ? rowToPlanningMutationLineage(rows[0]!) : null
 }
 
+export async function listPlanningMutationLineageByProposal(
+  proposalId: string,
+  opts: { sourceTable?: PlanningMutationLineageSourceTable; limit?: number } = {},
+  executor: Executor = db,
+): Promise<PlanningMutationLineage[]> {
+  const sourceTable = opts.sourceTable ?? "proposal_envelopes"
+  const limit = opts.limit ?? 200
+  const rows = (await executor`
+    SELECT *
+    FROM planning_mutation_lineage
+    WHERE source_table = ${sourceTable}
+      AND proposal_id = ${proposalId}
+    ORDER BY changed_at DESC, id ASC
+    LIMIT ${limit}
+  `) as PlanningMutationLineageRow[]
+  return rows.map(rowToPlanningMutationLineage)
+}
+
 export async function listPlanningMutationLineageForRefs(
   novelId: string,
   refs: readonly string[],

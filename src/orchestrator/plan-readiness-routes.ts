@@ -17,6 +17,7 @@ import {
   type PlanReadinessItem,
 } from "../db/plan-readiness"
 import { loadPlanningTargetMap, PlanningTargetLookupError } from "../harness/planning-targets"
+import { loadPlanReadinessOutcomeReport } from "../harness/plan-readiness-outcomes"
 import { handlePlanningProposalRoute } from "./planning-proposal-routes"
 
 const statusSchema = z.enum(PLAN_READINESS_STATUSES)
@@ -74,6 +75,13 @@ export async function handlePlanReadinessRoute(
   if (refreshMatch) {
     const novelId = decodeURIComponent(refreshMatch[1]!)
     if (req.method === "POST") return handleRefreshPlanReadinessStaleness(novelId)
+    return new Response("Method not allowed", { status: 405 })
+  }
+
+  const outcomesMatch = /^\/api\/novel\/([^/]+)\/plan-readiness\/outcomes\/?$/.exec(url.pathname)
+  if (outcomesMatch) {
+    const novelId = decodeURIComponent(outcomesMatch[1]!)
+    if (req.method === "GET") return handlePlanReadinessOutcomes(url, novelId)
     return new Response("Method not allowed", { status: 405 })
   }
 
@@ -182,6 +190,16 @@ async function handleRefreshPlanReadinessStaleness(novelId: string): Promise<Res
     return Response.json({ ok: true, novelId, ...result })
   } catch (err) {
     return planReadinessErrorResponse(err, "plan-readiness staleness refresh failed")
+  }
+}
+
+async function handlePlanReadinessOutcomes(url: URL, novelId: string): Promise<Response> {
+  const limit = parseLimit(url.searchParams.get("limit"), 200)
+  try {
+    const report = await loadPlanReadinessOutcomeReport(novelId, { limit })
+    return Response.json(report)
+  } catch (err) {
+    return planReadinessErrorResponse(err, "plan-readiness outcome report failed")
   }
 }
 

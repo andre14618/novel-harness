@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-07
+updated: 2026-05-08
 role: canonical-current-truth
 archive: archive/current-state-2026-05-04-full.md
 ---
@@ -121,7 +121,7 @@ Promotion tiers:
 
 ## Active Work
 
-See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-07:
+See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-08:
 
 - Authoring harness work now uses the broader program loop in
   `docs/authoring-harness-program-loop.md`; semantic-gate diagnostic session
@@ -249,8 +249,8 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-07:
   evidence after the pass.
 - When planner-quality diagnostics are available, Plan Readiness Review is the
   default checkpoint before drafting; backend routes persist/import/list
-  diagnostic items, operator dispositions, staleness, and manual creation of
-  `planning_edit` proposals from replacement values. See L91.
+  diagnostic items, operator dispositions, staleness, manual `planning_edit`
+  creation, and read-only outcome reports over proposal resolution/lineage. See L91.
 - Craft heuristics that alter planner/writer/checker behavior must prove value
   in diagnostic-only or A/B-gated form before production-default wiring.
 - Test and invariant work should use the dedicated role contract in
