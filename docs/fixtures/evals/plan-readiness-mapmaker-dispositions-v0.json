@@ -1,0 +1,50 @@
+{
+  "actions": [
+    {
+      "match": {
+        "label": "STAKES-2",
+        "targetRef": "sc-01-01"
+      },
+      "decision": "field_replace",
+      "proposedValue": "Scene function: Mara's hearing strips more than status: Ashren publicly revokes her charter, names her last expedition a fraud, and makes further mapping illegal without Survey permission.\nGoal: Mara tries to defend the expedition report well enough to keep legal standing.\nConflict: Ashren controls the hearing record and twists every map discrepancy into evidence of incompetence.\nTurn/value shift: Mara notices Ashren already knows the missing province should exist, so the humiliation becomes proof of a cover-up.\nOutcome: Mara loses the charter, public credibility, and lawful access to Survey archives.\nConsequence: Any attempt to keep investigating now risks arrest and permanent erasure from the cartographers' rolls.",
+      "operatorNote": "Make the cost and next-conflict pressure explicit before drafting.",
+      "rationale": "The scene already has the right event; the plan needs sharper irreversible cost and downstream pressure.",
+      "approve": true
+    },
+    {
+      "match": {
+        "label": "REL-1",
+        "targetRef": "sc-01-02"
+      },
+      "decision": "not_applicable",
+      "operatorNote": "Single-character discovery scene; relationship movement is not the target."
+    },
+    {
+      "match": {
+        "label": "MATERIAL-1",
+        "targetRef": "sc-01-01"
+      },
+      "decision": "accepted_as_is",
+      "operatorNote": "Ashren is materially active because he revokes the charter and controls the hearing outcome."
+    },
+    {
+      "match": {
+        "label": "MOTIVE-2",
+        "targetRef": "sc-02-01"
+      },
+      "decision": "deferred",
+      "operatorNote": "The dock negotiation has enough plan-level motivation; watch for prose execution."
+    }
+  ],
+  "downstreamObservation": {
+    "enabled": true,
+    "checkerName": "validation-check",
+    "fired": false,
+    "chapters": [1],
+    "draftVersion": 1,
+    "details": {
+      "source": "codex-disposition-fixture",
+      "note": "Diagnostic clear observation for explicit disposition-plan plumbing; not a human quality label."
+    }
+  }
+}

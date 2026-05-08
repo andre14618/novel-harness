@@ -57,6 +57,18 @@ describe("plan-readiness-data-loop", () => {
         proposalEnvelopeId: "proposal-1",
         resolutionStatus: "approved",
       }],
+      downstreamObservations: {
+        enabled: true,
+        checkerName: "validation-check",
+        fired: false,
+        chapters: [{
+          chapterNumber: 1,
+          recordedImpacts: 1,
+          proposalIds: ["proposal-1"],
+          resultHash: "hash",
+          checkerObservations: 1,
+        }],
+      },
       outcomes: {
         summary: {
           linkedProposalCount: 1,
@@ -70,6 +82,7 @@ describe("plan-readiness-data-loop", () => {
     })
 
     expect(rendered).toContain("Plan Readiness Data Loop")
+    expect(rendered).toContain("checkerObservations=1")
     expect(rendered).toContain("does not prove story-quality improvement")
   })
 })

@@ -16,8 +16,10 @@ import { createNovel } from "../../src/db/novels"
 import { saveChapterOutline } from "../../src/db/outlines"
 import { listPlanReadinessItems, type PlanReadinessItem } from "../../src/db/plan-readiness"
 import { getChapterOutlines } from "../../src/db/outlines"
+import { recordDraftCheckerObservationForHash } from "../../src/db/proposal-resolution-outcomes"
 import { handlePlanReadinessRoute } from "../../src/orchestrator/plan-readiness-routes"
 import { handlePlanningProposalRoute } from "../../src/orchestrator/planning-proposal-routes"
+import { recordPlanningEditDraftImpactsForChapter } from "../../src/phases/planning-edit-draft-impact"
 import type { ChapterOutline, SceneBeat, SeedInput } from "../../src/types"
 import type { BeatObligationsContract } from "../../src/schemas/shared"
 import {
@@ -47,6 +49,8 @@ interface Args {
   outputDir: string | null
   novelId: string | null
   approveProposals: boolean
+  dispositionPath: string | null
+  downstreamObservation: "none" | "clear" | "fired"
   json: boolean
 }
 
@@ -74,6 +78,48 @@ interface LoopAction {
   error?: string
 }
 
+interface DispositionPlan {
+  actions?: DispositionPlanAction[]
+  downstreamObservation?: DownstreamObservationPlan
+}
+
+interface DispositionPlanAction {
+  match: {
+    itemId?: string
+    label?: string
+    dimension?: string
+    targetRef?: string
+    targetKind?: "chapter_outline" | "beat_plan"
+  }
+  decision: "field_replace" | "beat_requirement_remove" | "not_applicable" | "accepted_as_is" | "deferred" | "fixed"
+  proposedValue?: unknown
+  operatorNote?: string
+  rationale?: string
+  approve?: boolean
+}
+
+interface DownstreamObservationPlan {
+  enabled?: boolean
+  checkerName?: string
+  fired?: boolean
+  chapters?: number[]
+  draftVersion?: number
+  details?: Record<string, unknown>
+}
+
+interface DownstreamObservationReport {
+  enabled: boolean
+  checkerName: string | null
+  fired: boolean | null
+  chapters: Array<{
+    chapterNumber: number
+    recordedImpacts: number
+    proposalIds: string[]
+    resultHash: string
+    checkerObservations: number
+  }>
+}
+
 interface LoopReport {
   generatedAt: string
   novelId: string
@@ -91,6 +137,7 @@ interface LoopReport {
     itemCount: number
   }
   actions: LoopAction[]
+  downstreamObservations: DownstreamObservationReport
   outcomes: unknown
   aggregate: unknown
 }
@@ -194,7 +241,7 @@ export function renderLoopReport(report: LoopReport): string {
   lines.push(`- skipped: ${report.imported.skipped}`)
   lines.push(`- imported items: ${report.imported.itemCount}`)
   lines.push("")
-  lines.push("## Sample Review Actions")
+  lines.push("## Review Actions")
   for (const action of report.actions) {
     const suffix = action.error
       ? ` ERROR: ${action.error}`
@@ -210,6 +257,15 @@ export function renderLoopReport(report: LoopReport): string {
   lines.push(`- planning lineage recorded: ${summary.planningLineageRecordedCount ?? "n/a"}`)
   lines.push(`- needs downstream observation: ${summary.needsDownstreamObservationCount ?? "n/a"}`)
   lines.push(`- downstream observed: ${summary.downstreamObservedCount ?? "n/a"}`)
+  lines.push("")
+  lines.push("## Downstream Observation")
+  lines.push(`- enabled: ${report.downstreamObservations.enabled}`)
+  lines.push(`- checker: ${report.downstreamObservations.checkerName ?? "n/a"}`)
+  lines.push(`- fired: ${report.downstreamObservations.fired ?? "n/a"}`)
+  lines.push(`- observed chapters: ${report.downstreamObservations.chapters.length}`)
+  for (const row of report.downstreamObservations.chapters) {
+    lines.push(`- chapter ${row.chapterNumber}: impacts=${row.recordedImpacts}; checkerObservations=${row.checkerObservations}; proposals=${row.proposalIds.join(", ") || "none"}`)
+  }
   lines.push("")
   lines.push("## Interpretation")
   lines.push("- This proves the diagnostic-to-readiness-to-planning-edit path can run end to end on disposable planner data.")
@@ -255,7 +311,15 @@ async function runLoop(args: Args): Promise<LoopReport> {
 
   const items = (await listPlanReadinessItems(novelId, { status: "all", limit: 100 }))
     .sort((a, b) => a.id.localeCompare(b.id))
-  const actions = await applySampleReviewActions(novelId, items, args.approveProposals)
+  const dispositionPlan = args.dispositionPath ? loadDispositionPlan(args.dispositionPath) : null
+  const actions = dispositionPlan
+    ? await applyPlannedReviewActions(novelId, items, dispositionPlan.actions ?? [], args.approveProposals)
+    : await applySampleReviewActions(novelId, items, args.approveProposals)
+  const downstreamObservations = await maybeRecordDownstreamObservations(
+    novelId,
+    await getChapterOutlines(novelId),
+    dispositionPlan?.downstreamObservation ?? downstreamObservationFromArg(args.downstreamObservation),
+  )
   const outcomes = await expectRouteJson(await invokeReadiness(
     "GET",
     `/api/novel/${novelId}/plan-readiness/outcomes`,
@@ -278,6 +342,7 @@ async function runLoop(args: Args): Promise<LoopReport> {
       itemCount: Array.isArray(imported.items) ? imported.items.length : 0,
     },
     actions,
+    downstreamObservations,
     outcomes,
     aggregate: filteredAggregate,
   }
@@ -371,14 +436,112 @@ async function applySampleReviewActions(
   return actions
 }
 
+async function applyPlannedReviewActions(
+  novelId: string,
+  items: readonly PlanReadinessItem[],
+  planActions: readonly DispositionPlanAction[],
+  approveProposals: boolean,
+): Promise<LoopAction[]> {
+  const actions: LoopAction[] = []
+  const consumed = new Set<string>()
+  const outlines = await getChapterOutlines(novelId)
+  const approvals = new Map<string, boolean>()
+
+  for (const planAction of planActions) {
+    const item = findPlannedItem(items, planAction.match, consumed)
+    if (!item) {
+      actions.push({
+        kind: isProposalDecision(planAction.decision) ? "proposal" : "disposition",
+        itemId: "(unmatched)",
+        label: planAction.match.label ?? "(any-label)",
+        targetRef: planAction.match.targetRef ?? "(any-target)",
+        status: isProposalDecision(planAction.decision) ? undefined : planAction.decision,
+        action: isProposalDecision(planAction.decision) ? planAction.decision : undefined,
+        error: "no matching open readiness item",
+      })
+      continue
+    }
+    consumed.add(item.id)
+
+    if (planAction.decision === "field_replace") {
+      const result = await createFieldReplaceProposal(novelId, item, outlines, false, {
+        proposedValue: planAction.proposedValue,
+        operatorNote: planAction.operatorNote,
+        rationale: planAction.rationale,
+        requireProposedValue: true,
+      })
+      if (result.proposalEnvelopeId) approvals.set(result.proposalEnvelopeId, planAction.approve ?? approveProposals)
+      actions.push(result)
+      continue
+    }
+
+    if (planAction.decision === "beat_requirement_remove") {
+      const result = await createRemoveRequirementProposal(novelId, item, outlines, false, {
+        proposedValue: planAction.proposedValue,
+        operatorNote: planAction.operatorNote,
+        rationale: planAction.rationale,
+      })
+      if (result.proposalEnvelopeId) approvals.set(result.proposalEnvelopeId, planAction.approve ?? approveProposals)
+      actions.push(result)
+      continue
+    }
+
+    const response = await invokeReadiness(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/${item.id}/disposition`,
+      {
+        status: planAction.decision,
+        operatorDisposition: operatorDispositionForDecision(planAction.decision),
+        operatorNote: planAction.operatorNote ?? `Disposition plan marked ${planAction.decision}.`,
+      },
+    )
+    const body = await response?.json().catch((err) => ({ ok: false, error: String(err) }))
+    actions.push({
+      kind: "disposition",
+      itemId: item.id,
+      label: item.diagnosticLabel,
+      targetRef: item.target.ref,
+      status: planAction.decision,
+      operatorDisposition: operatorDispositionForDecision(planAction.decision),
+      ...(response?.ok ? {} : { error: String(body?.error ?? response?.status ?? "unknown") }),
+    })
+  }
+
+  for (const action of actions) {
+    if (action.kind !== "proposal" || !action.proposalEnvelopeId || action.error) continue
+    if (approvals.get(action.proposalEnvelopeId) !== true) continue
+    action.resolutionStatus = await approvePlanningProposal(novelId, action.proposalEnvelopeId)
+  }
+
+  return actions
+}
+
 async function createFieldReplaceProposal(
   novelId: string,
   item: PlanReadinessItem,
   outlines: readonly ChapterOutline[],
   approveProposals: boolean,
+  opts: {
+    proposedValue?: unknown
+    operatorNote?: string
+    rationale?: string
+    requireProposedValue?: boolean
+  } = {},
 ): Promise<LoopAction> {
+  if (opts.requireProposedValue && !Object.prototype.hasOwnProperty.call(opts, "proposedValue")) {
+    return {
+      kind: "proposal",
+      itemId: item.id,
+      label: item.diagnosticLabel,
+      targetRef: item.target.ref,
+      action: "field_replace",
+      error: "field_replace disposition action requires proposedValue",
+    }
+  }
   const current = currentValueForItem(item, outlines)
-  const proposedValue = [
+  const proposedValue = Object.prototype.hasOwnProperty.call(opts, "proposedValue")
+    ? opts.proposedValue
+    : [
     current || item.explanation,
     "",
     `Readiness revision: address ${item.diagnosticLabel} by making ${item.fixIntent} explicit while preserving ${JSON.stringify(item.preserveIds)}.`,
@@ -390,8 +553,8 @@ async function createFieldReplaceProposal(
     {
       action: "field_replace",
       proposedValue,
-      operatorNote: "Sample operator action: create a replacement planning proposal from readiness review.",
-      rationale: `Sample readiness loop replacement for ${item.diagnosticLabel}.`,
+      operatorNote: opts.operatorNote ?? "Sample operator action: create a replacement planning proposal from readiness review.",
+      rationale: opts.rationale ?? `Sample readiness loop replacement for ${item.diagnosticLabel}.`,
     },
   )
   const body = await created?.json().catch((err) => ({ ok: false, error: String(err) }))
@@ -416,8 +579,15 @@ async function createRemoveRequirementProposal(
   item: PlanReadinessItem,
   outlines: readonly ChapterOutline[],
   approveProposals: boolean,
+  opts: {
+    proposedValue?: unknown
+    operatorNote?: string
+    rationale?: string
+  } = {},
 ): Promise<LoopAction> {
-  const proposedValue = removableRequirementForItem(item, outlines)
+  const proposedValue = Object.prototype.hasOwnProperty.call(opts, "proposedValue")
+    ? opts.proposedValue
+    : removableRequirementForItem(item, outlines)
   if (!proposedValue) {
     return {
       kind: "proposal",
@@ -434,8 +604,8 @@ async function createRemoveRequirementProposal(
     {
       action: "beat_requirement_remove",
       proposedValue,
-      operatorNote: "Sample operator action: remove one requirement that readiness review marked as not doing work.",
-      rationale: `Sample readiness loop requirement removal for ${item.diagnosticLabel}.`,
+      operatorNote: opts.operatorNote ?? "Sample operator action: remove one requirement that readiness review marked as not doing work.",
+      rationale: opts.rationale ?? `Sample readiness loop requirement removal for ${item.diagnosticLabel}.`,
     },
   )
   const body = await created?.json().catch((err) => ({ ok: false, error: String(err) }))
@@ -453,6 +623,71 @@ async function createRemoveRequirementProposal(
     action.resolutionStatus = await approvePlanningProposal(novelId, envelopeId)
   }
   return action
+}
+
+async function maybeRecordDownstreamObservations(
+  novelId: string,
+  outlines: readonly ChapterOutline[],
+  plan: DownstreamObservationPlan,
+): Promise<DownstreamObservationReport> {
+  const enabled = plan.enabled === true
+  const checkerName = plan.checkerName ?? "validation-check"
+  const fired = plan.fired === true
+  const report: DownstreamObservationReport = {
+    enabled,
+    checkerName: enabled ? checkerName : null,
+    fired: enabled ? fired : null,
+    chapters: [],
+  }
+  if (!enabled) return report
+
+  const selectedChapters = new Set(plan.chapters ?? outlines.map(outline => outline.chapterNumber))
+  for (const outline of outlines) {
+    if (!selectedChapters.has(outline.chapterNumber)) continue
+    const impact = await recordPlanningEditDraftImpactsForChapter({
+      novelId,
+      chapterNumber: outline.chapterNumber,
+      prose: renderDiagnosticDraftForObservation(outline),
+      draftVersion: plan.draftVersion ?? 1,
+    })
+    let checkerObservations = 0
+    if (impact.recorded > 0) {
+      const observations = await recordDraftCheckerObservationForHash({
+        novelId,
+        chapterNumber: outline.chapterNumber,
+        resultHash: impact.resultHash,
+        checkerName,
+        fired,
+        observedAt: new Date().toISOString(),
+        details: {
+          source: "plan-readiness-data-loop",
+          diagnosticOnly: true,
+          syntheticDraft: true,
+          fired,
+          ...(plan.details ?? {}),
+        },
+      })
+      checkerObservations = observations.length
+    }
+    report.chapters.push({
+      chapterNumber: outline.chapterNumber,
+      recordedImpacts: impact.recorded,
+      proposalIds: impact.proposalIds,
+      resultHash: impact.resultHash,
+      checkerObservations,
+    })
+  }
+  return report
+}
+
+function renderDiagnosticDraftForObservation(outline: ChapterOutline): string {
+  const lines: string[] = []
+  lines.push(`Diagnostic draft observation for ${outline.chapterId ?? `chapter-${outline.chapterNumber}`}.`)
+  lines.push(`Purpose: ${outline.purpose}`)
+  for (const [index, beat] of (outline.scenes ?? []).entries()) {
+    lines.push(`Scene ${index + 1} (${beat.beatId ?? "missing-id"}): ${beat.description}`)
+  }
+  return lines.join("\n\n")
 }
 
 async function approvePlanningProposal(novelId: string, envelopeId: string): Promise<string> {
@@ -540,6 +775,16 @@ function sourceKindForObligation(sourceKind: string): "fact" | "knowledge" | "st
   return "knowledge"
 }
 
+function loadDispositionPlan(path: string): DispositionPlan {
+  const abs = resolve(process.cwd(), path)
+  if (!existsSync(abs)) throw new Error(`disposition plan not found: ${abs}`)
+  const parsed = JSON.parse(readFileSync(abs, "utf-8")) as DispositionPlan
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("disposition plan must be a JSON object")
+  }
+  return parsed
+}
+
 function loadCell(path: string): MethodPackCell {
   const abs = resolve(process.cwd(), path)
   if (!existsSync(abs)) throw new Error(`cell not found: ${abs}`)
@@ -575,6 +820,41 @@ function outcomeSummary(outcomes: unknown): Record<string, unknown> {
   return summary && typeof summary === "object" ? summary as Record<string, unknown> : {}
 }
 
+function downstreamObservationFromArg(value: Args["downstreamObservation"]): DownstreamObservationPlan {
+  if (value === "none") return { enabled: false }
+  return { enabled: true, fired: value === "fired" }
+}
+
+function findPlannedItem(
+  items: readonly PlanReadinessItem[],
+  match: DispositionPlanAction["match"],
+  consumed: Set<string>,
+): PlanReadinessItem | null {
+  const candidates = items.filter(item => {
+    if (consumed.has(item.id)) return false
+    if (item.status !== "open" && item.status !== "deferred") return false
+    if (match.itemId && item.id !== match.itemId) return false
+    if (match.label && item.diagnosticLabel !== match.label) return false
+    if (match.dimension && item.dimension !== match.dimension) return false
+    if (match.targetRef && item.target.ref !== match.targetRef) return false
+    if (match.targetKind && item.target.kind !== match.targetKind) return false
+    return true
+  })
+  return candidates[0] ?? null
+}
+
+function isProposalDecision(decision: DispositionPlanAction["decision"]): decision is "field_replace" | "beat_requirement_remove" {
+  return decision === "field_replace" || decision === "beat_requirement_remove"
+}
+
+function operatorDispositionForDecision(decision: DispositionPlanAction["decision"]): string {
+  if (decision === "not_applicable") return "not_applicable"
+  if (decision === "accepted_as_is") return "acceptable_choice"
+  if (decision === "deferred") return "defer_to_drafting"
+  if (decision === "fixed") return "fixed"
+  return "real_issue"
+}
+
 function parseArgs(argv: string[]): Args {
   const reports: string[] = []
   const labels: string[] = []
@@ -584,6 +864,8 @@ function parseArgs(argv: string[]): Args {
   let outputDir: string | null = null
   let novelId: string | null = null
   let approveProposals = true
+  let dispositionPath: string | null = null
+  let downstreamObservation: Args["downstreamObservation"] = "none"
   let json = false
 
   for (let i = 0; i < argv.length; i++) {
@@ -602,6 +884,10 @@ function parseArgs(argv: string[]): Args {
     else if (arg.startsWith("--output-dir=")) outputDir = arg.slice("--output-dir=".length)
     else if (arg === "--novel-id") novelId = requireValue(argv, ++i, "--novel-id")
     else if (arg.startsWith("--novel-id=")) novelId = arg.slice("--novel-id=".length)
+    else if (arg === "--dispositions") dispositionPath = requireValue(argv, ++i, "--dispositions")
+    else if (arg.startsWith("--dispositions=")) dispositionPath = arg.slice("--dispositions=".length)
+    else if (arg === "--observe-downstream") downstreamObservation = parseDownstreamObservation(requireValue(argv, ++i, "--observe-downstream"))
+    else if (arg.startsWith("--observe-downstream=")) downstreamObservation = parseDownstreamObservation(arg.slice("--observe-downstream=".length))
     else if (arg === "--no-approve") approveProposals = false
     else if (arg === "--json") json = true
     else throw new Error(`unknown arg: ${arg}`)
@@ -618,6 +904,8 @@ function parseArgs(argv: string[]): Args {
     outputDir,
     novelId,
     approveProposals,
+    dispositionPath,
+    downstreamObservation,
     json,
   }
 }
@@ -648,6 +936,11 @@ function parsePositiveInt(value: string, flag: string): number {
   return parsed
 }
 
+function parseDownstreamObservation(value: string): Args["downstreamObservation"] {
+  if (value === "none" || value === "clear" || value === "fired") return value
+  throw new Error("--observe-downstream must be one of: none, clear, fired")
+}
+
 function unique(values: string[]): string[] {
   return [...new Set(values)]
 }
@@ -667,7 +960,7 @@ async function main(argv: string[]): Promise<number> {
     args = parseArgs(argv)
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err))
-    console.error("usage: bun scripts/evals/plan-readiness-data-loop.ts --cell <method-pack-cell.json> --report <real-data-report.json> [--report <json> ...] [--arm <armId>] [--label <LABEL> ...] [--limit <n>] [--output-dir <dir>] [--novel-id <id>] [--no-approve] [--json]")
+    console.error("usage: bun scripts/evals/plan-readiness-data-loop.ts --cell <method-pack-cell.json> --report <real-data-report.json> [--report <json> ...] [--arm <armId>] [--label <LABEL> ...] [--limit <n>] [--output-dir <dir>] [--novel-id <id>] [--dispositions <plan.json>] [--observe-downstream none|clear|fired] [--no-approve] [--json]")
     return 2
   }
 

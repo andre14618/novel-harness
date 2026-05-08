@@ -119,15 +119,19 @@ Current diagnostic command:
 bun run diagnostics:plan-readiness-data-loop -- \
   --cell <method-pack-cohort-cell.json> \
   --report <planner-discernment-real-data-report.json> \
-  --arm <arm-id>
+  --arm <arm-id> \
+  --dispositions <operator-disposition-plan.json> \
+  --observe-downstream clear
 ```
 
 This command builds a disposable DB novel from a matched scene-first planner
-cell, imports selected discernment findings, records sample dispositions,
-creates replacement/remove-requirement planning proposals, optionally approves
-them, and writes JSON/Markdown evidence under `output/method-pack-diagnostics/`.
-It proves the readiness bridge and lineage path; it does not prove story
-quality until a later draft/checker or operator-labeled outcome is attached.
+cell, imports selected discernment findings, records explicit or sample
+dispositions, creates replacement/remove-requirement planning proposals,
+optionally approves them, records diagnostic draft/checker observations through
+the exact draft-hash observer path, and writes JSON/Markdown evidence under
+`output/method-pack-diagnostics/`. It proves the readiness bridge, lineage, and
+observer plumbing; it does not prove story quality until a real draft/checker
+or operator-labeled outcome is attached.
 
 ## Data Use
 
@@ -163,11 +167,16 @@ Done:
   dispositions, planning proposal creation/approval, lineage, and outcome
   reporting. First evidence:
   `output/method-pack-diagnostics/2026-05-08-plan-readiness-data-loop-mapmaker-r01/`.
+- explicit disposition-plan support plus exact downstream draft/checker
+  observation capture. Fixture:
+  `docs/fixtures/evals/plan-readiness-mapmaker-dispositions-v0.json`.
+  Evidence:
+  `output/method-pack-diagnostics/2026-05-08-plan-readiness-data-loop-mapmaker-disposition-v0/`.
 
 Next:
 
 1. Use the data-loop command with real operator-selected dispositions instead
-   of sample dispositions, then attach draft/checker or operator-labeled
+   of fixture dispositions, then attach real draft/checker or operator-labeled
    downstream outcomes.
 2. Add a minimal Planning Studio review panel only after the data contract is
    stable; UI work then requires Playwright evidence.
