@@ -55,10 +55,9 @@ unless the user explicitly requests a disposable branch.
   prose tests. Prefer `evidence-first` for nuance-sensitive dimensions. Record:
   `docs/sessions/2026-05-07-planner-discernment-calibration.md`.
 - Plan Readiness Review is now the default bridge from planner diagnostics to
-  drafting when diagnostics are available. Next build persistent readiness
-  items, aggregate import, operator dispositions, staleness, and a manual
-  `planning_edit` bridge before adding UI. See
-  `docs/plan-readiness-review.md` and L91.
+  drafting when diagnostics are available. Backend persistence/import/list,
+  disposition capture, and staleness refresh are in place. Next add the manual
+  `planning_edit` bridge and downstream outcome join before UI. See L91.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

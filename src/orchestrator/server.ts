@@ -20,6 +20,7 @@ import { handleProposalEnvelopeRoute } from "./proposal-envelope-routes"
 import { handlePlanningSnapshotRoute } from "./planning-snapshot-routes"
 import { handlePlanningTargetRoute } from "./planning-target-routes"
 import { handlePlanningProposalRoute } from "./planning-proposal-routes"
+import { handlePlanReadinessRoute } from "./plan-readiness-routes"
 import { handleChapterHealthRoute } from "./chapter-health-routes"
 import { handleChapterTraceabilityRoute } from "./chapter-traceability-routes"
 import { handleSemanticGateBaselineRoute } from "./semantic-gate-baseline-routes"
@@ -971,6 +972,10 @@ const server = Bun.serve({
     // ── Planning proposal edits (authoring refinement) ──
     const planningProposalResponse = await handlePlanningProposalRoute(req, url)
     if (planningProposalResponse) return planningProposalResponse
+
+    // ── Plan readiness review before drafting (upstream methodology) ──
+    const planReadinessResponse = await handlePlanReadinessRoute(req, url)
+    if (planReadinessResponse) return planReadinessResponse
 
     // ── Chapter health/traceability visibility (authoring refinement) ──
     const chapterHealthResponse = await handleChapterHealthRoute(req, url)

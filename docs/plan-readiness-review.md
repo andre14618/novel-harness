@@ -107,13 +107,18 @@ Use the data to:
 
 ## Next Build Slices
 
-1. Add persistent `plan_readiness_items` storage plus pure store tests.
-2. Add an importer from planner-discernment aggregate JSON to readiness items.
-3. Add read/list and disposition routes.
-4. Add a proposal bridge that creates `planning_edit` only after a proposed
+Done:
+
+- persistent `plan_readiness_items` storage plus store tests;
+- aggregate JSON import into readiness item drafts;
+- read/list, import, disposition, and staleness-refresh routes.
+
+Next:
+
+1. Add a proposal bridge that creates `planning_edit` only after a proposed
    replacement value or remove-requirement action exists.
-5. Add staleness detection from target hashes.
-6. Add a minimal Planning Studio review panel only after the data contract is
+2. Join readiness dispositions to downstream drafting/checking outcomes.
+3. Add a minimal Planning Studio review panel only after the data contract is
    stable; UI work then requires Playwright evidence.
 
 ## Non-Goals

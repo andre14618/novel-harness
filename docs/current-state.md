@@ -248,9 +248,9 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-07:
   ui:evidence-check -- --dir <evidence-dir>` verifies clear/not-clear/incomplete
   evidence after the pass.
 - When planner-quality diagnostics are available, Plan Readiness Review is the
-  default checkpoint before drafting. Items are conversational/manual and only
-  become changes through `planning_edit` proposals. See
-  `docs/plan-readiness-review.md` and L91.
+  default checkpoint before drafting; backend routes persist/import/list
+  diagnostic items and operator dispositions without mutating plans. Changes
+  still go through `planning_edit` proposals. See L91.
 - Craft heuristics that alter planner/writer/checker behavior must prove value
   in diagnostic-only or A/B-gated form before production-default wiring.
 - Test and invariant work should use the dedicated role contract in
