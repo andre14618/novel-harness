@@ -43,6 +43,7 @@
     "diagnostics:planner-discernment-real-data": "bun scripts/evals/planner-discernment-real-data.ts",
     "diagnostics:planner-discernment-review-queue": "bun scripts/evals/planner-discernment-review-queue.ts",
     "diagnostics:planner-discernment-finding-aggregate": "bun scripts/evals/planner-discernment-finding-aggregate.ts",
+    "diagnostics:plan-readiness-data-loop": "bun scripts/evals/plan-readiness-data-loop.ts",
     "diagnostics:continuity-grayzone-extract": "bun scripts/analysis/continuity-grayzone-extract.ts",
     "diagnostics:continuity-grayzone-aggregate": "bun scripts/analysis/continuity-grayzone-aggregate.ts",
     "diagnostics:fact-roles": "bun scripts/analysis/fact-role-report.ts",

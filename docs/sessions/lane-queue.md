@@ -60,7 +60,9 @@ unless the user explicitly requests a disposable branch.
   creation now supports replacement values and exact required-ID removal. The
   outcome report joins readiness items to proposal resolution, planning
   lineage, approved-draft impact contexts, and exact checker observations where
-  available. Next gather real operator/outcome data before UI. See L91.
+  available. The data-loop command proved matched diagnostic import, sample
+  dispositions, proposal approval, lineage, and outcome reporting on disposable
+  planner data; next gather real operator/draft outcome data before UI. See L91.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

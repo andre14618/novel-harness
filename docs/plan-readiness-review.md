@@ -113,6 +113,22 @@ approves a chapter affected by a proposal-backed planning edit, the harness
 records a draft impact keyed by exact draft hash; validation can then attach
 checker observations to that planning edit without timing-based inference.
 
+Current diagnostic command:
+
+```bash
+bun run diagnostics:plan-readiness-data-loop -- \
+  --cell <method-pack-cohort-cell.json> \
+  --report <planner-discernment-real-data-report.json> \
+  --arm <arm-id>
+```
+
+This command builds a disposable DB novel from a matched scene-first planner
+cell, imports selected discernment findings, records sample dispositions,
+creates replacement/remove-requirement planning proposals, optionally approves
+them, and writes JSON/Markdown evidence under `output/method-pack-diagnostics/`.
+It proves the readiness bridge and lineage path; it does not prove story
+quality until a later draft/checker or operator-labeled outcome is attached.
+
 ## Data Use
 
 Operator dispositions are first-class training and evaluation data, but not
@@ -143,11 +159,16 @@ Done:
   `requiredCharacterIds` / `requiredWorldFactIds` removal.
 - draft-impact observer capture for approved planning edits, keyed by approved
   draft hash so validation checker observations can attach exactly.
+- disposable data-loop command proving matched diagnostic import,
+  dispositions, planning proposal creation/approval, lineage, and outcome
+  reporting. First evidence:
+  `output/method-pack-diagnostics/2026-05-08-plan-readiness-data-loop-mapmaker-r01/`.
 
 Next:
 
-1. Use the readiness/outcome backend on real planner diagnostic runs to gather
-   operator disposition and downstream checker data.
+1. Use the data-loop command with real operator-selected dispositions instead
+   of sample dispositions, then attach draft/checker or operator-labeled
+   downstream outcomes.
 2. Add a minimal Planning Studio review panel only after the data contract is
    stable; UI work then requires Playwright evidence.
 
