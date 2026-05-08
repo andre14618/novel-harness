@@ -38,6 +38,7 @@ unless the user explicitly requests a disposable branch.
 - Review `docs/method-packs/commercial-fantasy-adventure-v0.md` as the first
   general method-pack charter before implementing template definitions,
   fixtures, or planner prompt changes.
+- Apply frameworks via `docs/research/writing-frameworks/framework-application-plan.md`; next is diagnostic-only CFA v1 plus framework-to-prose POC.
 - Method-pack Flash cohort completed at N=18 paired cells and is `HOLD`:
   slot fit/IDs held, but character materiality, world relevance, and endpoint
   landing did not improve over no-method control. Pro-thinking timed out in

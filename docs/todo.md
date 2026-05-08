@@ -64,8 +64,9 @@ This file is the actionable backlog only. Live architecture belongs in
 - [x] Investigate semantic action drift, continuity gate behavior, and writer
   expansion from drafting before adding new writer/checker nudges.
 - [x] Extend Plan Readiness Review with supported remove-requirement edits and
-  downstream observer capture plus a disposable data-loop command before UI.
-  See L91 and `docs/plan-readiness-review.md`.
+  downstream observer capture plus data-loop command before UI; see L91.
+- [ ] Build diagnostic-only `commercial-fantasy-adventure-v1` from the framework
+  application plan, then run a framework-to-prose POC before production defaults.
 - [x] Add pure fact-role policy selectors and opt-in Canon role scoping before
   wiring runtime writer/checker behavior.
 - [x] Add diagnostic preview for writer-visible and continuity-blocking
