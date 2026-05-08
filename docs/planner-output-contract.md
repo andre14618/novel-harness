@@ -84,6 +84,24 @@ The operator should eventually judge or adjust:
 UI for this is not the active product lever yet. First prove the contract and
 diagnostics.
 
+## Plan Readiness Review
+
+Planner diagnostics should feed Plan Readiness Review before drafting when
+diagnostics are available. The readiness layer asks whether the current chapter
+or scene contract is good enough to write from:
+
+- Are required characters materially shaping choice, conflict, turn, outcome,
+  consequence, or future pressure?
+- Are required world facts operational in action, cost, constraint, reveal, or
+  outcome?
+- Does a relationship-oriented scene actually change relationship state?
+- Is the POV motivation specific enough, and does the stakes/value shift matter
+  enough for this scene?
+
+The review captures operator intent and disposition. It does not rewrite the
+plan by itself; any accepted change should become a normal `planning_edit`
+proposal with stable target refs and stale preconditions.
+
 ## Contract Levels
 
 ### Novel Strategy

@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-06
+updated: 2026-05-07
 role: actionable-backlog
 archive: archive/todo-2026-05-04-full.md
 ---
@@ -63,10 +63,10 @@ This file is the actionable backlog only. Live architecture belongs in
   count, beat count, approval rate, and semantic drift rate.
 - [x] Investigate semantic action drift, continuity gate behavior, and writer
   expansion from drafting before adding new writer/checker nudges.
-- [ ] Use planner-quality evidence to choose the next upstream
-  concept/planning revision, structure-template diagnostic, or controlled
-  drafting comparison. See L088/L089 and
-  `docs/authoring-methodology-hypotheses.md`.
+- [ ] Build Plan Readiness Review persistence/import/disposition slices before
+  UI: aggregate planner diagnostics into operator-reviewed items, capture
+  human determinations, and bridge accepted changes to manual `planning_edit`
+  proposals. See L91 and `docs/plan-readiness-review.md`.
 - [x] Add pure fact-role policy selectors and opt-in Canon role scoping before
   wiring runtime writer/checker behavior.
 - [x] Add diagnostic preview for writer-visible and continuity-blocking

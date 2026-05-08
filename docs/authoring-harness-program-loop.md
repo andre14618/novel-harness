@@ -55,6 +55,8 @@ Current methodology work optimizes one layer at a time:
   current architecture, active lane state, decisions, lessons, or next work.
 - Before changing planner, writer, or checker runtime behavior, produce
   diagnostic or A/B evidence for the exact failure class.
+- Before drafting from planning artifacts with available planner-quality
+  diagnostics, use Plan Readiness Review or record why it was bypassed.
 - If the same failure fingerprint appears twice, improve the harness with a
   test, invariant, diagnostic, or replay seam before another prompt tweak.
 - If a UI surface changes, run Playwright MCP or mark browser evidence as

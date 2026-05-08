@@ -54,13 +54,11 @@ unless the user explicitly requests a disposable branch.
   and richness dimensions; use one excerpt, one dimension, one rubric before
   prose tests. Prefer `evidence-first` for nuance-sensitive dimensions. Record:
   `docs/sessions/2026-05-07-planner-discernment-calibration.md`.
-- Real planner data pilot applied those labels to the live method-pack cohort
-  sample. Result: no method-pack semantic lift; conditional scene diagnostics
-  now cover relationship delta, character materiality, and world-fact pressure.
-  Review the operator queue plus finding aggregate for `REL-1`, `MOTIVE-1/2`,
-  `STAKES-2`, `MATERIAL-1`, and `WFACT-1`; the aggregate routes issues to
-  `planning_edit`-shaped rewrite packets but does not mutate plans or create
-  envelopes. Eval doc: `docs/evals/planner-discernment-real-data-v0.md`.
+- Plan Readiness Review is now the default bridge from planner diagnostics to
+  drafting when diagnostics are available. Next build persistent readiness
+  items, aggregate import, operator dispositions, staleness, and a manual
+  `planning_edit` bridge before adding UI. See
+  `docs/plan-readiness-review.md` and L91.
 - For local DB-backed diagnostics, verify `15432`; if down, use a temporary LXC Postgres SSH tunnel.
 - Browser-test every UI-facing slice with Playwright MCP before handoff, close
   the browser session after the pass, and leave unconfirmed evidence as TODO

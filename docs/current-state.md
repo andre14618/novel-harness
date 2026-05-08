@@ -240,18 +240,19 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-07:
   `docs/ui-work-gate.md` and
   `docs/how-to/playwright-mcp-browser-testing.md`; do not expand UI work when
   the active question is upstream methodology.
-- Browser evidence belongs in
-  `output/playwright/<YYYY-MM-DD>/<surface-or-lane>-<novelId-or-short-slug>/`;
-  close the Playwright tab/session and stop any test-only app server after the
-  pass completes.
+- Browser evidence belongs under `output/playwright/<YYYY-MM-DD>/...`; close
+  the browser session and stop any test-only app server after the pass.
 - `bun run ui:preflight -- --surface <surface> --novel <id> --url <path>`
   creates the evidence directory, runbook, checklist, console/network
   placeholders, and manifest before browser actions; `bun run
   ui:evidence-check -- --dir <evidence-dir>` verifies clear/not-clear/incomplete
   evidence after the pass.
-- Craft heuristics that alter planner, writer, or checker behavior must prove
-  value in diagnostic-only or A/B-gated form before production-default wiring.
-  See `docs/decisions/L079-authoring-harness-eval-gates.md`.
+- When planner-quality diagnostics are available, Plan Readiness Review is the
+  default checkpoint before drafting. Items are conversational/manual and only
+  become changes through `planning_edit` proposals. See
+  `docs/plan-readiness-review.md` and L91.
+- Craft heuristics that alter planner/writer/checker behavior must prove value
+  in diagnostic-only or A/B-gated form before production-default wiring.
 - Test and invariant work should use the dedicated role contract in
   `docs/test-invariant-agent.md`.
 
