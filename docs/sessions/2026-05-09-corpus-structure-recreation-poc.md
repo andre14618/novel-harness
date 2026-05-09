@@ -211,3 +211,23 @@ motivation, weak final-scene turn/consequence, and underused world/relationship
 pressure. That is useful as a diagnostic: the structure can recreate scene
 shape, but the prose still needs stronger character-specific choice pressure
 before this should influence production planner/writer changes.
+
+## Multi-Chapter Semantic Sweep
+
+Ran the same diagnostic over the existing passing scene-call artifacts for
+chapters 2, 5, and 8. No new prose was generated.
+
+| Chapter | Scenes | Tasks | Low Findings | Main Weakness |
+| --- | ---: | ---: | ---: | --- |
+| 1 | 4 | 16 | 5 | generic motivation and weak final-scene pressure |
+| 2 | 4 | 16 | 6 | passive opening and relationship deltas not changing state |
+| 5 | 1 | 4 | 0 | clean on sampled dimensions |
+| 8 | 7 | 28 | 1 | one scene used world facts as background only |
+
+Conclusion: the scene-first POC has enough structure to be reviewed
+semantically, and the narrow judge showed discernment beyond deterministic
+shape checks. The next methodology change should not be a beat-count or
+calibration knob. It should strengthen the upstream scene contract so each
+planned scene carries a character-specific choice, a concrete relationship or
+world-pressure change when applicable, and a dramatized consequence before the
+writer sees it.
