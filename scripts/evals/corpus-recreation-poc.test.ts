@@ -50,6 +50,8 @@ describe("corpus-recreation-poc", () => {
     expect(comparison.sceneContract.knownPromiseRefCount).toBe(2)
     expect(comparison.sceneContract.knownPayoffRefCount).toBe(2)
     expect(comparison.sceneContract.orphanPayoffRefCount).toBe(0)
+    expect(comparison.sceneContract.sceneTurnCount).toBe(0)
+    expect(comparison.sceneContract.sceneTurnRefIssueCount).toBe(0)
     expect(comparison.sceneContract.observableConsequenceCount).toBe(2)
     expect(comparison.sceneContract.materialityTestCount).toBe(2)
     expect(comparison.issues).toEqual([])
@@ -100,6 +102,49 @@ describe("corpus-recreation-poc", () => {
     expect(prompt).toContain("promiseId must use its story debt threadId")
     expect(prompt).toContain("payoffId must use its payoff threadId and matching promiseId")
     expect(prompt).toContain("cross-thread pressure should be split into separate obligations")
+    expect(prompt).toContain("create sceneTurns for causal choices/reveals/costs")
+    expect(prompt).toContain("attach obligations to them with sceneTurnId")
+  })
+
+  test("scene turn refs group parent turns while preserving single-thread obligations", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+    })
+    const turnPlan = structuredClone(plan())
+    turnPlan.sceneTurns = [{
+      sceneTurnId: "turn-sc02-public-confession",
+      sceneId: "analog-sc02",
+      summary: "Nara names the convoy before witnesses and changes multiple pressures.",
+      turnType: "choice",
+    }]
+    turnPlan.obligations.push({
+      obligationId: "obl-oathmark-public",
+      sceneId: "analog-sc02",
+      sceneTurnId: "turn-sc02-public-confession",
+      sourceId: "debt-oathmark",
+      threadId: "thread-oathmark-public-accountability",
+      promiseId: "debt-oathmark",
+      payoffId: "payoff-oathmark-public-confession",
+      requirementText: "Nara's public admission must narrow the oathmark debt.",
+      materialityTest: "The admission makes the oathmark debt visible to witnesses.",
+    })
+    turnPlan.obligations[1] = {
+      ...turnPlan.obligations[1]!,
+      sceneTurnId: "turn-sc02-public-confession",
+    }
+
+    const comparison = comparePlanToReference(turnPlan, packet)
+
+    expect(comparison.sceneContract.sceneTurnCount).toBe(1)
+    expect(comparison.sceneContract.sceneTurnRefCount).toBe(2)
+    expect(comparison.sceneContract.sceneTurnRefIssueCount).toBe(0)
+    expect(comparison.sceneContract.scenes[1]!.sceneTurnIds).toEqual(["turn-sc02-public-confession"])
+    expect(comparison.sceneContract.promiseThreadMismatchCount).toBe(0)
+    expect(comparison.sceneContract.payoffThreadMismatchCount).toBe(0)
+    expect(comparison.issues).toEqual([])
   })
 
   test("thread-context writer arm adds compact per-scene context without changing baseline prompt", () => {
@@ -178,6 +223,7 @@ describe("corpus-recreation-poc", () => {
     badPlan.obligations.push({
       obligationId: "obl-thread-mismatch",
       sceneId: "analog-sc02",
+      sceneTurnId: "turn-sc01-key-heat",
       sourceId: "char-tovin-ash",
       threadId: "thread-tovin-leverage",
       promiseId: "debt-oathmark",
@@ -185,6 +231,12 @@ describe("corpus-recreation-poc", () => {
       requirementText: "Tovin pressures Nara through a mismatched promise.",
       materialityTest: "Tovin changes Nara's choices through leverage.",
     })
+    badPlan.sceneTurns = [{
+      sceneTurnId: "turn-sc01-key-heat",
+      sceneId: "analog-sc01",
+      summary: "The key's heat changes the road scene.",
+      turnType: "cost",
+    }]
 
     const comparison = comparePlanToReference(badPlan, packet)
 
@@ -192,11 +244,13 @@ describe("corpus-recreation-poc", () => {
     expect(comparison.sceneContract.orphanPayoffRefCount).toBe(1)
     expect(comparison.sceneContract.promiseThreadMismatchCount).toBe(1)
     expect(comparison.sceneContract.payoffThreadMismatchCount).toBe(1)
+    expect(comparison.sceneContract.sceneTurnRefIssueCount).toBe(1)
     expect(comparison.issues.some(issue => issue.includes("obligations missing threadId: obl-key-heat"))).toBe(true)
     expect(comparison.issues.some(issue => issue.includes("unknown threadIds: thread-missing"))).toBe(true)
     expect(comparison.issues.some(issue => issue.includes("payoffIds do not belong to declared promiseId: payoff-key-cost-exposure"))).toBe(true)
     expect(comparison.issues.some(issue => issue.includes("promiseIds belong to different threadId: obl-thread-mismatch:debt-oathmark"))).toBe(true)
     expect(comparison.issues.some(issue => issue.includes("payoffIds belong to different threadId: obl-thread-mismatch:payoff-oathmark-public-confession"))).toBe(true)
+    expect(comparison.issues.some(issue => issue.includes("sceneTurnIds point to different scene: obl-thread-mismatch:turn-sc01-key-heat->analog-sc01"))).toBe(true)
   })
 
   test("flags weak upstream scene contracts before prose generation", () => {
@@ -301,6 +355,7 @@ describe("corpus-recreation-poc", () => {
           {
             obligationId: "obl-null-refs",
             sceneId: "analog-sc01",
+            sceneTurnId: null,
             sourceId: "char-tovin-ash",
             threadId: "thread-tovin-leverage",
             promiseId: null,
@@ -317,6 +372,7 @@ describe("corpus-recreation-poc", () => {
     expect(parsed.obligations[0]).toEqual({
       obligationId: "obl-null-refs",
       sceneId: "analog-sc01",
+      sceneTurnId: undefined,
       sourceId: "char-tovin-ash",
       threadId: "thread-tovin-leverage",
       promiseId: undefined,
@@ -423,6 +479,7 @@ function plan() {
     targetWords: 1000,
     chapterFunction: "Open the artifact pressure and force Nara into public risk.",
     endpointOrHook: "Nara crosses the ward line knowing the bells may expose her.",
+    sceneTurns: [] as Array<{ sceneTurnId: string; sceneId: string; summary: string; turnType?: string }>,
     scenes: [
       {
         sceneId: "analog-sc01",
@@ -482,6 +539,7 @@ function plan() {
       {
         obligationId: "obl-key-heat",
         sceneId: "analog-sc01",
+        sceneTurnId: undefined as string | undefined,
         sourceId: "world-sun-metal-key",
         threadId: "thread-key-cost",
         promiseId: "debt-key-cost",
@@ -492,6 +550,7 @@ function plan() {
       {
         obligationId: "obl-tovin-leverage",
         sceneId: "analog-sc02",
+        sceneTurnId: undefined as string | undefined,
         sourceId: "char-tovin-ash",
         threadId: "thread-tovin-leverage",
         requirementText: "Tovin must gain leverage from Nara's public choice.",

@@ -81,6 +81,11 @@ chain of derived runs belongs to.
 
 `payoffId` identifies a planned payoff or partial payoff for a promise.
 
+`sceneTurnId` identifies a causal parent event inside one scene. A scene turn
+can have multiple child obligations when one choice, reveal, cost, or reversal
+moves multiple story threads. Each child obligation still keeps exactly one
+`threadId` and any matching `promiseId`/`payoffId`.
+
 `obligationId` remains the local contract item a writer/checker can satisfy.
 Obligations can point to `threadId`, `promiseId`, and `payoffId`.
 
@@ -97,7 +102,7 @@ rootRunId
   runId: chapter planning
     chapterId -> thread movements
   runId: scene planning
-    sceneId -> obligations -> threadId/promiseId/payoffId
+    sceneId -> sceneTurnId -> obligations -> threadId/promiseId/payoffId
   runId: scene writing
     sceneId -> draftSpanId -> produced prose
   runId: semantic/prose review
@@ -148,6 +153,8 @@ Minimum shape:
 
 - chapter contract declares expected `threadMovements`;
 - scene contract declares required thread movements for that scene;
+- optional `sceneTurnId` parents group one causal turn into multiple
+  single-thread child obligations;
 - obligation contract can reference `threadId`, `promiseId`, and `payoffId`;
 - every payoff references an opened promise or explicitly declares itself as a
   standalone reveal/turn.
@@ -182,6 +189,12 @@ not add more writer-context.
 Follow-up: deterministic `threadRefConsistency` issues now flow into the corpus
 readiness aggregate as manual `THREADREF-1` candidates with thread/promise/payoff
 IDs preserved. This is a review surface, not an auto-rewrite.
+
+Option B follow-up: the corpus planner contract now supports additive
+`sceneTurns` and optional obligation `sceneTurnId` refs. This is only a
+graph-ready artifact seam: deterministic validation catches unknown,
+duplicate, and cross-scene turn refs, but the lane does not build a graph,
+change the DB, or change default writer behavior.
 
 ### Lane 3 - Thread Map Diagnostics
 

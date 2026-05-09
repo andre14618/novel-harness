@@ -31,8 +31,8 @@ unless the user explicitly requests a disposable branch.
   unit and `obligationId`/`sourceId` as the traceability unit; do not preserve
   beat-level adherence as the primary future contract by default. See L092.
 - L093 three-chapter smoke still found 3 relationship-pressure cross-thread
-  promise mismatches; deterministic `THREADREF-1` issues now route to manual
-  readiness with repair hints. Next: gather labels or test applying packets. See
+  promise mismatches; `THREADREF-1` routes to manual readiness, and additive
+  `sceneTurnId` parents now make multi-thread turns graph-ready without a graph. See
   `docs/sessions/2026-05-09-thread-map-multichapter-smoke.md`.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
