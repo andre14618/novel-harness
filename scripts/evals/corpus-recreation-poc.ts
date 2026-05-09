@@ -144,6 +144,8 @@ const beatHintSchema = z.object({
   purpose: z.string().min(8),
 })
 
+const optionalModelStringSchema = z.string().min(1).nullish().transform(value => value ?? undefined)
+
 const recreationScenePlanSchema = z.object({
   sceneId: z.string().min(1),
   referenceSceneOrdinal: z.number().int().min(0),
@@ -177,11 +179,11 @@ const recreationPlanSchema = z.object({
       obligationId: z.string().min(1),
       sceneId: z.string().min(1),
       sourceId: z.string().min(1),
-      threadId: z.string().min(1).optional(),
-      promiseId: z.string().min(1).optional(),
-      payoffId: z.string().min(1).optional(),
+      threadId: optionalModelStringSchema,
+      promiseId: optionalModelStringSchema,
+      payoffId: optionalModelStringSchema,
       requirementText: z.string().min(8),
-      materialityTest: z.string().min(8).optional(),
+      materialityTest: optionalModelStringSchema,
     })).default([]),
   }),
 }).strict()
@@ -203,6 +205,8 @@ const exampleSceneSchema = z.object({
 type RecreationPlan = z.infer<typeof recreationPlanSchema>["plan"]
 type ExampleChapter = z.infer<typeof exampleChapterSchema>
 type ExampleScene = z.infer<typeof exampleSceneSchema>
+
+const PLANNER_PROMPT_VERSION = "thread-ref-consistency-v2"
 
 export class ModelJsonParseError extends Error {
   readonly snippet: string
@@ -887,6 +891,9 @@ Hard rules:
 - Every obligation needs threadId. Use threadId to name the narrative continuity vector being moved.
 - Use promiseId when an obligation opens, progresses, complicates, or pays a story debt. promiseId must match a provided storyDebtId.
 - Use payoffId when an obligation lands or partially lands a planned payoff. payoffId must match a provided payoffId and belong to the same promiseId/storyDebtId.
+- When an obligation includes promiseId, its threadId must match that story debt's threadId.
+- When an obligation includes payoffId, its threadId must match that payoff's threadId, and its promiseId must match that payoff's storyDebtId.
+- If a scene action creates pressure across two threads, split it into separate obligations instead of attaching one thread's promise or payoff to another threadId.
 - Outcome and consequence must be distinct. The consequence should be observable pressure caused by the scene turn, not only an internal realization.
 - Add obligations for scene-specific character/world/story-debt pressure that the writer must dramatize.
 - Output ONLY valid JSON matching this schema:
@@ -952,6 +959,7 @@ Create one original analog chapter plan. Match the reference chapter's structura
 - each scene's choiceAlternatives should name concrete options and make Nara's oathmark/convoy/witness/escape pressure matter;
 - each scene should carry active relationship or world pressure when applicable, with obligations whose sourceId exactly matches the pressure the writer must dramatize;
 - every obligation should carry threadId, and story-debt/payoff obligations should also carry promiseId and payoffId when applicable;
+- keep thread refs internally consistent: promiseId must use its story debt threadId, payoffId must use its payoff threadId and matching promiseId, and cross-thread pressure should be split into separate obligations;
 - each scene's consequence should be externally observable or create a future obligation/threat.
 ${plannerVariantTail(variant)}
 
@@ -1337,6 +1345,14 @@ export function parseJsonResponseContent(label: string, content: string): unknow
   }
 }
 
+export function parseRecreationPlanOutput(rawPlan: unknown): RecreationPlan {
+  const parsed = recreationPlanSchema.safeParse(rawPlan)
+  if (!parsed.success) {
+    throw new Error(`planner output invalid: ${parsed.error.issues.map(issue => `${issue.path.join(".")}: ${issue.message}`).join("; ")}`)
+  }
+  return parsed.data.plan
+}
+
 export function parseExampleSceneOutput(rawScene: unknown, expectedSceneId: string): ExampleScene {
   const parsed = exampleSceneSchema.safeParse(rawScene)
   if (!parsed.success) {
@@ -1455,11 +1471,11 @@ async function main(): Promise<void> {
   if (args.planFromDir) {
     const sourcePlanPath = resolve(process.cwd(), args.planFromDir, "plan.json")
     if (!existsSync(sourcePlanPath)) throw new Error(`--plan-from requires plan.json at ${sourcePlanPath}`)
-    const parsed = recreationPlanSchema.safeParse({ plan: JSON.parse(readFileSync(sourcePlanPath, "utf-8")) })
-    if (!parsed.success) {
-      throw new Error(`--plan-from plan invalid: ${parsed.error.issues.map(issue => `${issue.path.join(".")}: ${issue.message}`).join("; ")}`)
+    try {
+      plan = parseRecreationPlanOutput({ plan: JSON.parse(readFileSync(sourcePlanPath, "utf-8")) })
+    } catch (error) {
+      throw new Error(`--plan-from plan invalid: ${error instanceof Error ? error.message : String(error)}`)
     }
-    plan = parsed.data.plan
     planComparison = comparePlanToReference(plan, packet, {
       requireMaterialityTests: args.plannerVariant === "materiality-v1",
     })
@@ -1475,11 +1491,7 @@ async function main(): Promise<void> {
       userPrompt: plannerUserPrompt(packet, args.plannerVariant),
       label: "planner-recreation",
     })
-    const parsed = recreationPlanSchema.safeParse(rawPlan)
-    if (!parsed.success) {
-      throw new Error(`planner output invalid: ${parsed.error.issues.map(issue => `${issue.path.join(".")}: ${issue.message}`).join("; ")}`)
-    }
-    plan = parsed.data.plan
+    plan = parseRecreationPlanOutput(rawPlan)
     planComparison = comparePlanToReference(plan, packet, {
       requireMaterialityTests: args.plannerVariant === "materiality-v1",
     })
@@ -1576,6 +1588,7 @@ async function main(): Promise<void> {
       writeChapter: args.writeChapter,
       sceneCalls: args.sceneCalls,
       writerContextMode: args.writerContextMode,
+      plannerPromptVersion: PLANNER_PROMPT_VERSION,
       planFromDir: args.planFromDir,
       referencePath: args.referencePath,
     },

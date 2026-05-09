@@ -158,8 +158,12 @@ that reference missing scenes.
 
 Status 2026-05-09: first contract slice implemented for corpus recreation POC.
 Planner output can carry `threadId`, `promiseId`, and `payoffId` on scene
-obligations; deterministic comparison flags missing/unknown refs and payoff
-refs attached to the wrong promise. Review, aggregate, semantic, and readiness
+obligations; deterministic comparison flags missing/unknown refs, payoff refs
+attached to the wrong promise, and promise/payoff refs attached to the wrong
+thread. The planner prompt now explicitly tells the model to split cross-thread
+pressure into separate obligations instead of attaching one thread's
+promise/payoff to another `threadId`; this is diagnostic until smoke evidence
+shows the mismatch rate falls. Review, aggregate, semantic, and readiness
 artifacts surface these refs. Remaining Lane 2/3 work: emit a dedicated thread
 map with promise progress/payoff rows.
 

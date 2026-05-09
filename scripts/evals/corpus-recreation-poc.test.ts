@@ -8,6 +8,7 @@ import {
   ModelJsonParseError,
   parseJsonResponseContent,
   plannerUserPrompt,
+  parseRecreationPlanOutput,
   parseExampleSceneOutput,
   sceneThreadContextForPrompt,
   sceneWriterUserPrompt,
@@ -85,6 +86,20 @@ describe("corpus-recreation-poc", () => {
     expect(prompt).toContain("changed choice, cost, constraint, relationship state, outcome, or future pressure")
     expect(prompt).toContain("\"plannerVariant\": \"materiality-v1\"")
     expect(prompt).not.toContain("writerContextMode")
+  })
+
+  test("planner prompt requires internally consistent thread refs", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+    })
+    const prompt = plannerUserPrompt(packet)
+
+    expect(prompt).toContain("promiseId must use its story debt threadId")
+    expect(prompt).toContain("payoffId must use its payoff threadId and matching promiseId")
+    expect(prompt).toContain("cross-thread pressure should be split into separate obligations")
   })
 
   test("thread-context writer arm adds compact per-scene context without changing baseline prompt", () => {
@@ -269,6 +284,46 @@ describe("corpus-recreation-poc", () => {
   test("wraps malformed model JSON as retryable parse evidence", () => {
     expect(() => parseJsonResponseContent("scene", "{\"sceneId\":\"x\""))
       .toThrow(ModelJsonParseError)
+  })
+
+  test("normalizes null optional planner refs from model JSON", () => {
+    const validPlan = {
+      ...plan(),
+      scenes: plan().scenes.map(scene => ({
+        ...scene,
+        beatHints: scene.beatHints.map(beat => ({ ...beat, purpose: `${beat.purpose} purpose` })),
+      })),
+    }
+    const raw = {
+      plan: {
+        ...validPlan,
+        obligations: [
+          {
+            obligationId: "obl-null-refs",
+            sceneId: "analog-sc01",
+            sourceId: "char-tovin-ash",
+            threadId: "thread-tovin-leverage",
+            promiseId: null,
+            payoffId: null,
+            requirementText: "Tovin presses Nara without opening a named story debt.",
+            materialityTest: null,
+          },
+        ],
+      },
+    }
+
+    const parsed = parseRecreationPlanOutput(raw)
+
+    expect(parsed.obligations[0]).toEqual({
+      obligationId: "obl-null-refs",
+      sceneId: "analog-sc01",
+      sourceId: "char-tovin-ash",
+      threadId: "thread-tovin-leverage",
+      promiseId: undefined,
+      payoffId: undefined,
+      requirementText: "Tovin presses Nara without opening a named story debt.",
+      materialityTest: undefined,
+    })
   })
 
   test("scene parser strips harmless model echoes while enforcing scene id", () => {

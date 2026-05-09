@@ -30,8 +30,10 @@ unless the user explicitly requests a disposable branch.
 - If pursuing scene-first methodology, treat `sceneId` as the plan/write/check
   unit and `obligationId`/`sourceId` as the traceability unit; do not preserve
   beat-level adherence as the primary future contract by default. See L092.
-- Next L093 slice: tighten planner thread/promise/payoff consistency before
-  more writer-context testing; first controlled smoke did not promote context.
+- Latest L093 planner-thread repair cleared the measured mismatch in a fresh
+  smoke; see `docs/sessions/2026-05-09-planner-thread-ref-smoke.md`. Next
+  clarify chapter-local vs future-horizon payoff expectations before more
+  writer-context testing.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.
@@ -101,8 +103,7 @@ unless the user explicitly requests a disposable branch.
   frozen `fantasy-system-heretic` pair it confirmed native's mechanical shape
   improvement while flagging endpoint/relationship risks that beat counts alone
   would hide.
-- Additional recent UI, diagnostics, checker, proposal, traceability, test, and
-  lineage closures are archived in
+- Additional recent closures are archived in
   `docs/sessions/archive/lane-queue-2026-05-06-recent-closed.md`.
 
 ## Parked
