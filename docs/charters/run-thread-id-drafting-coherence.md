@@ -220,6 +220,12 @@ relationship work. Not every scene needs every checker.
 Evidence gate: advisory diagnostics only. Findings feed Plan Readiness Review
 or side-by-side comparison; they do not block drafting by default.
 
+Status 2026-05-09: first advisory dimensions are wired into the existing
+narrow judge surface. `threadProgression` runs only when a scene has declared
+`threadId` obligations, and `promisePayoff` runs only when a scene has declared
+`promiseId` or `payoffId` obligations. Both are diagnostic-only and use the
+same stable-prefix/volatile-excerpt shape as existing scene semantic review.
+
 ### Lane 6 - Operator Review And Side-By-Side Evidence
 
 Extend static review artifacts before building UI.

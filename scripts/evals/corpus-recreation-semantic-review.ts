@@ -196,6 +196,8 @@ export interface CorpusSemanticReviewReport {
 const DEFAULT_POC_DIR = "output/corpus-recreation-poc/crystal_shard-ch1-flash-scene-calls-r4"
 const DEFAULT_DIMENSIONS: Dimension[] = [
   "sceneDramaturgy",
+  "threadProgression",
+  "promisePayoff",
   "motivationSpecificity",
   "worldFactPressure",
   "relationshipDelta",
@@ -216,9 +218,16 @@ export function buildSceneSemanticTasks(input: {
     const obligations = input.plan.obligations.filter(row => row.sceneId === scene.sceneId)
     const relevantWorldFacts = relevantWorldFactsForScene(input.packet, obligations)
     const relevantCharacters = relevantCharactersForScene(input.packet, obligations)
+    const threadRefCount = obligations.filter(row => row.threadId).length
+    const promiseOrPayoffRefCount = obligations.filter(row => row.promiseId || row.payoffId).length
 
     for (const dimension of input.dimensions) {
-      const skipReason = applicabilitySkipReason(dimension, relevantWorldFacts.length, relevantCharacters.length)
+      const skipReason = applicabilitySkipReason(dimension, {
+        worldFactCount: relevantWorldFacts.length,
+        characterCount: relevantCharacters.length,
+        threadRefCount,
+        promiseOrPayoffRefCount,
+      })
       if (skipReason) {
         skips.push({ sceneId: scene.sceneId, sceneIndex, dimension, reason: skipReason })
         continue
@@ -448,10 +457,17 @@ function relevantCharactersForScene(
   return packet.originalAnalogSeed.supportingCharacters.filter(character => sourceIds.has(character.characterId))
 }
 
-function applicabilitySkipReason(dimension: Dimension, worldFactCount: number, characterCount: number): string | null {
-  if (dimension === "worldFactPressure" && worldFactCount === 0) return "no world-fact sourceId obligation declared for this scene"
-  if (dimension === "relationshipDelta" && characterCount === 0) return "no supporting-character sourceId obligation declared for this scene"
-  if (dimension === "characterMateriality" && characterCount === 0) return "no supporting-character sourceId obligation declared for this scene"
+function applicabilitySkipReason(dimension: Dimension, counts: {
+  worldFactCount: number
+  characterCount: number
+  threadRefCount: number
+  promiseOrPayoffRefCount: number
+}): string | null {
+  if (dimension === "threadProgression" && counts.threadRefCount === 0) return "no threadId obligation declared for this scene"
+  if (dimension === "promisePayoff" && counts.promiseOrPayoffRefCount === 0) return "no promiseId or payoffId obligation declared for this scene"
+  if (dimension === "worldFactPressure" && counts.worldFactCount === 0) return "no world-fact sourceId obligation declared for this scene"
+  if (dimension === "relationshipDelta" && counts.characterCount === 0) return "no supporting-character sourceId obligation declared for this scene"
+  if (dimension === "characterMateriality" && counts.characterCount === 0) return "no supporting-character sourceId obligation declared for this scene"
   return null
 }
 
@@ -565,7 +581,9 @@ function parseDimension(value: string): Dimension {
     "endpointLanding",
     "causalMomentum",
     "sceneDramaturgy",
+    "threadProgression",
     "promiseProgress",
+    "promisePayoff",
     "motivationSpecificity",
     "characterMateriality",
     "relationshipDelta",

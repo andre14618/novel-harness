@@ -13,11 +13,13 @@ describe("corpus-recreation-semantic-review", () => {
       plan: plan() as any,
       chapter: chapter() as any,
       promptMode: "evidence-first",
-      dimensions: ["sceneDramaturgy", "motivationSpecificity", "worldFactPressure", "relationshipDelta"],
+      dimensions: ["sceneDramaturgy", "threadProgression", "promisePayoff", "motivationSpecificity", "worldFactPressure", "relationshipDelta"],
     })
 
     expect(built.tasks.map(task => `${task.sceneId}:${task.dimension}`)).toEqual([
       "scene-a:sceneDramaturgy",
+      "scene-a:threadProgression",
+      "scene-a:promisePayoff",
       "scene-a:motivationSpecificity",
       "scene-a:worldFactPressure",
       "scene-a:relationshipDelta",
@@ -25,6 +27,18 @@ describe("corpus-recreation-semantic-review", () => {
       "scene-b:motivationSpecificity",
     ])
     expect(built.skips).toEqual([
+      {
+        sceneId: "scene-b",
+        sceneIndex: 1,
+        dimension: "threadProgression",
+        reason: "no threadId obligation declared for this scene",
+      },
+      {
+        sceneId: "scene-b",
+        sceneIndex: 1,
+        dimension: "promisePayoff",
+        reason: "no promiseId or payoffId obligation declared for this scene",
+      },
       {
         sceneId: "scene-b",
         sceneIndex: 1,
@@ -41,8 +55,10 @@ describe("corpus-recreation-semantic-review", () => {
     expect(built.tasks[0]!.excerpt).toContain("SCENE CONTRACT:")
     expect(built.tasks[0]!.excerpt).toContain("RELEVANT THREAD/PAYOFF REFS:")
     expect(built.tasks[0]!.excerpt).toContain("thread-key-cost")
-    expect(built.tasks[2]!.relevantWorldFactIds).toEqual(["world-aurora-bells"])
-    expect(built.tasks[3]!.relevantCharacterIds).toEqual(["char-tovin-ash"])
+    expect(built.tasks[0]!.excerpt).toContain("debt-key")
+    expect(built.tasks[0]!.excerpt).toContain("payoff-key-exposure")
+    expect(built.tasks.find(task => task.dimension === "worldFactPressure")!.relevantWorldFactIds).toEqual(["world-aurora-bells"])
+    expect(built.tasks.find(task => task.dimension === "relationshipDelta")!.relevantCharacterIds).toEqual(["char-tovin-ash"])
   })
 
   test("renders summaries and low-signal findings", () => {
@@ -137,7 +153,21 @@ function packet() {
           description: "The key's help creates exposure.",
         },
       ],
-      storyDebts: [],
+      storyDebts: [
+        {
+          storyDebtId: "debt-key",
+          threadId: "thread-key-cost",
+          promiseText: "The key will expose Nara unless she accepts public risk.",
+        },
+      ],
+      storyPayoffs: [
+        {
+          payoffId: "payoff-key-exposure",
+          threadId: "thread-key-cost",
+          storyDebtId: "debt-key",
+          payoffText: "The aurora bells expose Nara at the gate.",
+        },
+      ],
     },
   }
 }
@@ -198,6 +228,8 @@ function plan() {
         sceneId: "scene-a",
         sourceId: "world-aurora-bells",
         threadId: "thread-key-cost",
+        promiseId: "debt-key",
+        payoffId: "payoff-key-exposure",
         requirementText: "The aurora bells expose Nara at the gate.",
       },
       {

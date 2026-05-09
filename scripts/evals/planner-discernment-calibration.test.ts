@@ -30,10 +30,20 @@ describe("planner-discernment-calibration", () => {
     expect(scenePrompt).not.toContain("CAUSAL-0")
     expect(scenePrompt).not.toContain("PROMISE-0")
 
+    const threadPrompt = buildDiscernmentSystemPrompt("threadProgression", "direct-label")
+    expect(threadPrompt).toContain("THREAD-0")
+    expect(threadPrompt).not.toContain("SCENE-0")
+    expect(threadPrompt).not.toContain("PROMISE-0")
+
     const promisePrompt = buildDiscernmentSystemPrompt("promiseProgress", "direct-label")
     expect(promisePrompt).toContain("PROMISE-0")
     expect(promisePrompt).not.toContain("SCENE-0")
     expect(promisePrompt).not.toContain("ENDPOINT-0")
+
+    const payoffPrompt = buildDiscernmentSystemPrompt("promisePayoff", "direct-label")
+    expect(payoffPrompt).toContain("PAYOFF-0")
+    expect(payoffPrompt).not.toContain("PROMISE-0")
+    expect(payoffPrompt).not.toContain("THREAD-0")
 
     const motivePrompt = buildDiscernmentSystemPrompt("motivationSpecificity", "direct-label")
     expect(motivePrompt).toContain("MOTIVE-0")
@@ -96,6 +106,12 @@ describe("planner-discernment-calibration", () => {
       hasConsequence: true,
       hasStakesOrValueShift: false,
     })).toBe("SCENE-2")
+    expect(deriveLabel("threadProgression", {
+      referencesDeclaredThread: true,
+      changesThreadState: true,
+      hasConcreteConsequence: true,
+      createsDownstreamPressure: false,
+    })).toBe("THREAD-2")
     expect(deriveLabel("promiseProgress", {
       referencesPromise: true,
       addsNewInformation: true,
@@ -103,6 +119,13 @@ describe("planner-discernment-calibration", () => {
       changesGoalOrObligation: false,
       reframesCentralConflict: false,
     })).toBe("PROMISE-2")
+    expect(deriveLabel("promisePayoff", {
+      referencesDeclaredPromiseOrPayoff: true,
+      landsNewUnderstanding: true,
+      satisfiesPartialOrFullPayoff: true,
+      changesObligationOrConflict: true,
+      createsFuturePressure: true,
+    })).toBe("PAYOFF-3")
     expect(deriveLabel("motivationSpecificity", {
       hasMotivation: true,
       tiesToSpecificCharacterDriver: true,

@@ -15,7 +15,9 @@ export type Dimension =
   | "endpointLanding"
   | "causalMomentum"
   | "sceneDramaturgy"
+  | "threadProgression"
   | "promiseProgress"
+  | "promisePayoff"
   | "motivationSpecificity"
   | "characterMateriality"
   | "relationshipDelta"
@@ -109,7 +111,9 @@ export const DIMENSIONS: Dimension[] = [
   "endpointLanding",
   "causalMomentum",
   "sceneDramaturgy",
+  "threadProgression",
   "promiseProgress",
+  "promisePayoff",
   "motivationSpecificity",
   "characterMateriality",
   "relationshipDelta",
@@ -391,12 +395,26 @@ function labelDefinitions(dimension: Dimension): string {
 - SCENE-2: Playable scene. Goal, opposition, turn, outcome, and consequence are all present.
 - SCENE-3: Strong scene. The playable scene also has stakes or value shift and leaves a consequential hook.`
   }
+  if (dimension === "threadProgression") {
+    return `Thread progression labels:
+- THREAD-0: Declared narrative thread is absent or not recognizable in the scene.
+- THREAD-1: Thread is mentioned, repeated, or decorated without changing story state.
+- THREAD-2: Thread advances through a concrete action, discovery, pressure change, relationship shift, cost, or consequence.
+- THREAD-3: Thread advances and creates downstream pressure: new obligation, pursuit, reversal, danger, alliance, betrayal, or unavoidable next step.`
+  }
   if (dimension === "promiseProgress") {
     return `Promise progress labels:
 - PROMISE-0: No reader promise, plot question, setup, or story debt is advanced.
 - PROMISE-1: Promise is merely repeated, restated, or teased without new information.
 - PROMISE-2: Concrete progress. A new clue, partial payoff, or complication changes what the reader understands.
 - PROMISE-3: Major promise movement. A payoff, reveal, or reframe changes the pursuit, obligation, or central conflict.`
+  }
+  if (dimension === "promisePayoff") {
+    return `Promise payoff labels:
+- PAYOFF-0: Declared promise/payoff is absent or contradicted.
+- PAYOFF-1: Promise/payoff is referenced but only teased, restated, or deferred without satisfying new reader understanding.
+- PAYOFF-2: Partial payoff or concrete progress lands; the reader gains new information, cost, complication, or narrowed question.
+- PAYOFF-3: Payoff lands with consequence: it resolves or reframes the promise and changes pursuit, obligation, conflict, or future pressure.`
   }
   if (dimension === "motivationSpecificity") {
     return `Motivation specificity labels:
@@ -492,8 +510,14 @@ function evidenceContract(dimension: Dimension): string {
   if (dimension === "sceneDramaturgy") {
     return `{"goal": "", "opposition": "", "turn": "", "outcome": "", "consequence": "", "stakesOrValueShift": ""}`
   }
+  if (dimension === "threadProgression") {
+    return `{"declaredThread": "", "sceneEvidence": "", "stateChange": "", "consequence": "", "downstreamPressure": ""}`
+  }
   if (dimension === "promiseProgress") {
     return `{"promise": "", "newInformation": "", "payoffOrComplication": "", "changedPursuitOrObligation": "", "reframe": ""}`
+  }
+  if (dimension === "promisePayoff") {
+    return `{"declaredPromiseOrPayoff": "", "payoffEvidence": "", "newReaderUnderstanding": "", "changedObligationOrConflict": "", "futurePressure": ""}`
   }
   if (dimension === "motivationSpecificity") {
     return `{"motivation": "", "characterDriver": "", "fearFlawOrValue": "", "relationshipPressure": "", "choiceLink": "", "consequence": ""}`
@@ -526,8 +550,14 @@ function gateContract(dimension: Dimension): string {
   if (dimension === "sceneDramaturgy") {
     return `{"hasConcreteGoal": true|false, "hasOpposition": true|false, "hasTurn": true|false, "hasOutcome": true|false, "hasConsequence": true|false, "hasStakesOrValueShift": true|false}`
   }
+  if (dimension === "threadProgression") {
+    return `{"referencesDeclaredThread": true|false, "changesThreadState": true|false, "hasConcreteConsequence": true|false, "createsDownstreamPressure": true|false}`
+  }
   if (dimension === "promiseProgress") {
     return `{"referencesPromise": true|false, "addsNewInformation": true|false, "paysOffSetup": true|false, "changesGoalOrObligation": true|false, "reframesCentralConflict": true|false}`
+  }
+  if (dimension === "promisePayoff") {
+    return `{"referencesDeclaredPromiseOrPayoff": true|false, "landsNewUnderstanding": true|false, "satisfiesPartialOrFullPayoff": true|false, "changesObligationOrConflict": true|false, "createsFuturePressure": true|false}`
   }
   if (dimension === "motivationSpecificity") {
     return `{"hasMotivation": true|false, "tiesToSpecificCharacterDriver": true|false, "driverShapesChoice": true|false, "hasInternalPressureOrTradeoff": true|false, "consequenceExpressesDriver": true|false}`
@@ -599,11 +629,23 @@ export function deriveLabel(dimension: Dimension, gates: Record<string, boolean>
     if (!gates.hasStakesOrValueShift) return "SCENE-2"
     return "SCENE-3"
   }
+  if (dimension === "threadProgression") {
+    if (!gates.referencesDeclaredThread) return "THREAD-0"
+    if (!gates.changesThreadState || !gates.hasConcreteConsequence) return "THREAD-1"
+    if (!gates.createsDownstreamPressure) return "THREAD-2"
+    return "THREAD-3"
+  }
   if (dimension === "promiseProgress") {
     if (!gates.referencesPromise) return "PROMISE-0"
     if (!gates.addsNewInformation && !gates.paysOffSetup) return "PROMISE-1"
     if (!gates.changesGoalOrObligation && !gates.reframesCentralConflict) return "PROMISE-2"
     return "PROMISE-3"
+  }
+  if (dimension === "promisePayoff") {
+    if (!gates.referencesDeclaredPromiseOrPayoff) return "PAYOFF-0"
+    if (!gates.landsNewUnderstanding && !gates.satisfiesPartialOrFullPayoff) return "PAYOFF-1"
+    if (!gates.changesObligationOrConflict && !gates.createsFuturePressure) return "PAYOFF-2"
+    return "PAYOFF-3"
   }
   if (dimension === "motivationSpecificity") {
     if (!gates.hasMotivation) return "MOTIVE-0"
@@ -692,6 +734,14 @@ function gatesForExpected(dimension: Dimension, label: string): Record<string, b
       hasStakesOrValueShift: ordinal >= 3,
     }
   }
+  if (dimension === "threadProgression") {
+    return {
+      referencesDeclaredThread: ordinal >= 1,
+      changesThreadState: ordinal >= 2,
+      hasConcreteConsequence: ordinal >= 2,
+      createsDownstreamPressure: ordinal >= 3,
+    }
+  }
   if (dimension === "promiseProgress") {
     return {
       referencesPromise: ordinal >= 1,
@@ -699,6 +749,15 @@ function gatesForExpected(dimension: Dimension, label: string): Record<string, b
       paysOffSetup: ordinal >= 2,
       changesGoalOrObligation: ordinal >= 3,
       reframesCentralConflict: ordinal >= 3,
+    }
+  }
+  if (dimension === "promisePayoff") {
+    return {
+      referencesDeclaredPromiseOrPayoff: ordinal >= 1,
+      landsNewUnderstanding: ordinal >= 2,
+      satisfiesPartialOrFullPayoff: ordinal >= 2,
+      changesObligationOrConflict: ordinal >= 3,
+      createsFuturePressure: ordinal >= 3,
     }
   }
   if (dimension === "motivationSpecificity") {
@@ -760,7 +819,9 @@ function dimensionPrefix(dimension: Dimension): string {
   if (dimension === "endpointLanding") return "ENDPOINT"
   if (dimension === "causalMomentum") return "CAUSAL"
   if (dimension === "sceneDramaturgy") return "SCENE"
+  if (dimension === "threadProgression") return "THREAD"
   if (dimension === "promiseProgress") return "PROMISE"
+  if (dimension === "promisePayoff") return "PAYOFF"
   if (dimension === "motivationSpecificity") return "MOTIVE"
   if (dimension === "characterMateriality") return "MATERIAL"
   if (dimension === "relationshipDelta") return "REL"
