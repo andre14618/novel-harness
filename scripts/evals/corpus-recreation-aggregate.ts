@@ -57,6 +57,8 @@ export interface CorpusRecreationAggregateRow {
   contractChoiceCount: number
   contractObligationCount: number
   contractKnownSourceIdCount: number
+  contractKnownThreadRefCount: number
+  contractOrphanPayoffRefCount: number
   contractObservableConsequenceCount: number
   semanticTaskCount: number
   semanticSkipCount: number
@@ -181,6 +183,8 @@ function readPocRow(pocDir: string): CorpusRecreationAggregateRow {
     contractChoiceCount: numberOrZero(sceneContract.choiceAlternativeCount),
     contractObligationCount: numberOrZero(sceneContract.declaredObligationCount),
     contractKnownSourceIdCount: numberOrZero(sceneContract.knownSourceIdCount),
+    contractKnownThreadRefCount: numberOrZero(sceneContract.knownThreadRefCount),
+    contractOrphanPayoffRefCount: numberOrZero(sceneContract.orphanPayoffRefCount),
     contractObservableConsequenceCount: numberOrZero(sceneContract.observableConsequenceCount),
     semanticTaskCount: numberOrZero(semantic.taskCount),
     semanticSkipCount: numberOrZero(semantic.skipCount),
@@ -263,6 +267,8 @@ function formatContract(row: CorpusRecreationAggregateRow): string {
   return [
     `choices ${row.contractChoiceCount}/${row.contractTotal}`,
     `ids ${row.contractKnownSourceIdCount}/${row.contractTotal}`,
+    `threads ${row.contractKnownThreadRefCount}/${row.contractTotal}`,
+    ...(row.contractOrphanPayoffRefCount ? [`payoff-orphans ${row.contractOrphanPayoffRefCount}`] : []),
     `conseq ${row.contractObservableConsequenceCount}/${row.contractTotal}`,
   ].join("; ")
 }

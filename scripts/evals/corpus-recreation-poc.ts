@@ -82,9 +82,22 @@ interface OriginalAnalogSeed {
     fact: string
     operationalUse: string
   }>
+  storyThreads: Array<{
+    threadId: string
+    kind: "main_plot" | "character_arc" | "relationship" | "world_rule" | "mystery"
+    label: string
+    description: string
+  }>
   storyDebts: Array<{
     storyDebtId: string
+    threadId: string
     promiseText: string
+  }>
+  storyPayoffs: Array<{
+    payoffId: string
+    threadId: string
+    storyDebtId: string
+    payoffText: string
   }>
   forbiddenSourceTerms: string[]
 }
@@ -160,6 +173,9 @@ const recreationPlanSchema = z.object({
       obligationId: z.string().min(1),
       sceneId: z.string().min(1),
       sourceId: z.string().min(1),
+      threadId: z.string().min(1).optional(),
+      promiseId: z.string().min(1).optional(),
+      payoffId: z.string().min(1).optional(),
       requirementText: z.string().min(8),
       materialityTest: z.string().min(8).optional(),
     })).default([]),
@@ -222,6 +238,10 @@ interface PlanComparison {
     choiceAlternativeCount: number
     declaredObligationCount: number
     knownSourceIdCount: number
+    knownThreadRefCount: number
+    knownPromiseRefCount: number
+    knownPayoffRefCount: number
+    orphanPayoffRefCount: number
     observableConsequenceCount: number
     materialityTestCount: number
     scenes: SceneContractDiagnostic[]
@@ -234,6 +254,11 @@ interface SceneContractDiagnostic {
   hasChoiceAlternatives: boolean
   hasDeclaredObligation: boolean
   hasKnownSourceIds: boolean
+  hasKnownThreadRefs: boolean
+  unknownThreadIds: string[]
+  unknownPromiseIds: string[]
+  unknownPayoffIds: string[]
+  orphanPayoffIds: string[]
   hasObservableConsequence: boolean
   hasMaterialityTest: boolean
   unknownSourceIds: string[]
@@ -319,14 +344,50 @@ const ORIGINAL_ANALOG_SEED: OriginalAnalogSeed = {
       operationalUse: "Tovin can turn Nara's honest map into proof of treason if she signs it alone.",
     },
   ],
+  storyThreads: [
+    {
+      threadId: "thread-oathmark-public-accountability",
+      kind: "character_arc",
+      label: "Nara's oathmark and public responsibility",
+      description: "Nara moves from private escape toward public responsibility for the lost convoy.",
+    },
+    {
+      threadId: "thread-key-cost",
+      kind: "world_rule",
+      label: "The sun-metal key has a visible cost",
+      description: "Each helpful use of the key should create danger, leverage, or exposure that cannot be hidden.",
+    },
+    {
+      threadId: "thread-tovin-leverage",
+      kind: "relationship",
+      label: "Tovin converts help into leverage",
+      description: "Tovin's offers and observations should tighten his leverage over Nara's route.",
+    },
+  ],
   storyDebts: [
     {
       storyDebtId: "debt-oathmark",
+      threadId: "thread-oathmark-public-accountability",
       promiseText: "Nara can restore her oathmark only if the frontier learns what happened to her lost convoy.",
     },
     {
       storyDebtId: "debt-key-cost",
+      threadId: "thread-key-cost",
       promiseText: "The sun-metal key's help must reveal a cost that cannot be hidden inside navigation.",
+    },
+  ],
+  storyPayoffs: [
+    {
+      payoffId: "payoff-oathmark-public-confession",
+      threadId: "thread-oathmark-public-accountability",
+      storyDebtId: "debt-oathmark",
+      payoffText: "Nara names the lost convoy or otherwise accepts public responsibility before witnesses.",
+    },
+    {
+      payoffId: "payoff-key-cost-exposure",
+      threadId: "thread-key-cost",
+      storyDebtId: "debt-key-cost",
+      payoffText: "The key's useful action creates public exposure, danger to the city, or leverage for a rival.",
     },
   ],
   forbiddenSourceTerms: [
@@ -542,6 +603,10 @@ function buildSceneContractDiagnostics(
     choiceAlternativeCount: scenes.filter(scene => scene.hasChoiceAlternatives).length,
     declaredObligationCount: scenes.filter(scene => scene.hasDeclaredObligation).length,
     knownSourceIdCount: scenes.filter(scene => scene.hasKnownSourceIds).length,
+    knownThreadRefCount: scenes.filter(scene => scene.hasKnownThreadRefs).length,
+    knownPromiseRefCount: scenes.filter(scene => scene.unknownPromiseIds.length === 0).length,
+    knownPayoffRefCount: scenes.filter(scene => scene.unknownPayoffIds.length === 0).length,
+    orphanPayoffRefCount: scenes.reduce((sum, scene) => sum + scene.orphanPayoffIds.length, 0),
     observableConsequenceCount: scenes.filter(scene => scene.hasObservableConsequence).length,
     materialityTestCount: scenes.filter(scene => scene.hasMaterialityTest).length,
     scenes,
@@ -557,12 +622,44 @@ function evaluateSceneContract(
   const issues: string[] = []
   const obligations = plan.obligations.filter(obligation => obligation.sceneId === scene.sceneId)
   const knownSourceIds = knownPressureSourceIds(packet)
+  const knownThreadIds = new Set(packet.originalAnalogSeed.storyThreads.map(thread => thread.threadId))
+  const knownPromiseIds = new Set(packet.originalAnalogSeed.storyDebts.map(debt => debt.storyDebtId))
+  const knownPayoffIds = new Set(packet.originalAnalogSeed.storyPayoffs.map(payoff => payoff.payoffId))
+  const payoffById = new Map(packet.originalAnalogSeed.storyPayoffs.map(payoff => [payoff.payoffId, payoff]))
   const unknownSourceIds = obligations
     .map(obligation => obligation.sourceId)
     .filter(sourceId => !knownSourceIds.has(sourceId))
+  const missingThreadIds = obligations
+    .filter(obligation => !obligation.threadId)
+    .map(obligation => obligation.obligationId)
+  const unknownThreadIds = obligations
+    .map(obligation => obligation.threadId)
+    .filter((threadId): threadId is string => Boolean(threadId))
+    .filter(threadId => !knownThreadIds.has(threadId))
+  const unknownPromiseIds = obligations
+    .map(obligation => obligation.promiseId)
+    .filter((promiseId): promiseId is string => Boolean(promiseId))
+    .filter(promiseId => !knownPromiseIds.has(promiseId))
+  const unknownPayoffIds = obligations
+    .map(obligation => obligation.payoffId)
+    .filter((payoffId): payoffId is string => Boolean(payoffId))
+    .filter(payoffId => !knownPayoffIds.has(payoffId))
+  const orphanPayoffIds = obligations
+    .filter(obligation => obligation.payoffId)
+    .filter(obligation => {
+      const payoff = payoffById.get(obligation.payoffId!)
+      return !obligation.promiseId || Boolean(payoff && payoff.storyDebtId !== obligation.promiseId)
+    })
+    .map(obligation => obligation.payoffId!)
   const hasChoiceAlternatives = scene.choiceAlternatives.length >= 2
   const hasDeclaredObligation = obligations.length > 0
   const hasKnownSourceIds = hasDeclaredObligation && unknownSourceIds.length === 0
+  const hasKnownThreadRefs = hasDeclaredObligation
+    && missingThreadIds.length === 0
+    && unknownThreadIds.length === 0
+    && unknownPromiseIds.length === 0
+    && unknownPayoffIds.length === 0
+    && orphanPayoffIds.length === 0
   const hasObservableConsequence = isObservableConsequence(scene.consequence, scene.outcome)
   const hasMaterialityTest = hasDeclaredObligation && obligations.every(obligation =>
     typeof obligation.materialityTest === "string" && obligation.materialityTest.trim().length >= 8
@@ -570,6 +667,11 @@ function evaluateSceneContract(
   if (!hasChoiceAlternatives) issues.push("choiceAlternatives must declare at least two options")
   if (!hasDeclaredObligation) issues.push("scene lacks explicit obligation sourceIds")
   if (unknownSourceIds.length > 0) issues.push(`unknown obligation sourceIds: ${unknownSourceIds.join(", ")}`)
+  if (missingThreadIds.length > 0) issues.push(`obligations missing threadId: ${missingThreadIds.join(", ")}`)
+  if (unknownThreadIds.length > 0) issues.push(`unknown threadIds: ${unknownThreadIds.join(", ")}`)
+  if (unknownPromiseIds.length > 0) issues.push(`unknown promiseIds: ${unknownPromiseIds.join(", ")}`)
+  if (unknownPayoffIds.length > 0) issues.push(`unknown payoffIds: ${unknownPayoffIds.join(", ")}`)
+  if (orphanPayoffIds.length > 0) issues.push(`payoffIds do not belong to declared promiseId: ${orphanPayoffIds.join(", ")}`)
   if (!hasObservableConsequence) issues.push("consequence is generic, internal-only, or indistinct from outcome")
   if (opts.requireMaterialityTests && !hasMaterialityTest) {
     issues.push("each obligation needs a materialityTest for how it changes choice, cost, relationship state, outcome, or future pressure")
@@ -579,6 +681,11 @@ function evaluateSceneContract(
     hasChoiceAlternatives,
     hasDeclaredObligation,
     hasKnownSourceIds,
+    hasKnownThreadRefs,
+    unknownThreadIds,
+    unknownPromiseIds,
+    unknownPayoffIds,
+    orphanPayoffIds,
     hasObservableConsequence,
     hasMaterialityTest,
     unknownSourceIds,
@@ -728,6 +835,9 @@ Hard rules:
 - Treat beat hints as internal annotations inside scenes, not separate writer calls.
 - Every scene needs a crisisChoice plus a choiceAlternatives array with explicit options tied to the protagonist's want, need, lie, or truth.
 - Every scene needs active pressure from a supporting character, world fact, or story debt. Declare that pressure with obligations whose sourceId exactly matches a provided characterId, worldFactId, or storyDebtId.
+- Every obligation needs threadId. Use threadId to name the narrative continuity vector being moved.
+- Use promiseId when an obligation opens, progresses, complicates, or pays a story debt. promiseId must match a provided storyDebtId.
+- Use payoffId when an obligation lands or partially lands a planned payoff. payoffId must match a provided payoffId and belong to the same promiseId/storyDebtId.
 - Outcome and consequence must be distinct. The consequence should be observable pressure caused by the scene turn, not only an internal realization.
 - Add obligations for scene-specific character/world/story-debt pressure that the writer must dramatize.
 - Output ONLY valid JSON matching this schema:
@@ -763,7 +873,7 @@ Hard rules:
       }
     ],
     "obligations": [
-      {"obligationId": "obl-...", "sceneId": "analog-ch01-sc01", "sourceId": "char/world/debt id", "requirementText": "string", "materialityTest": "optional concrete story effect this obligation must change"}
+      {"obligationId": "obl-...", "sceneId": "analog-ch01-sc01", "sourceId": "char/world/debt id", "threadId": "thread-...", "promiseId": "optional storyDebtId", "payoffId": "optional payoffId", "requirementText": "string", "materialityTest": "optional concrete story effect this obligation must change"}
     ]
   }
 }`
@@ -792,6 +902,7 @@ Create one original analog chapter plan. Match the reference chapter's structura
 - if sourceStructuralDigest/beatPurposeHints are present, map each source structural function to an original analog function.
 - each scene's choiceAlternatives should name concrete options and make Nara's oathmark/convoy/witness/escape pressure matter;
 - each scene should carry active relationship or world pressure when applicable, with obligations whose sourceId exactly matches the pressure the writer must dramatize;
+- every obligation should carry threadId, and story-debt/payoff obligations should also carry promiseId and payoffId when applicable;
 - each scene's consequence should be externally observable or create a future obligation/threat.
 ${plannerVariantTail(variant)}
 
@@ -1113,6 +1224,8 @@ export function renderRecreationReport(args: {
     lines.push(`- Scene contract choices: ${args.planComparison.sceneContract.choiceAlternativeCount}/${args.planComparison.sceneContract.total}`)
     lines.push(`- Scenes with declared obligations: ${args.planComparison.sceneContract.declaredObligationCount}/${args.planComparison.sceneContract.total}`)
     lines.push(`- Scenes with known obligation sourceIds: ${args.planComparison.sceneContract.knownSourceIdCount}/${args.planComparison.sceneContract.total}`)
+    lines.push(`- Scenes with known thread refs: ${args.planComparison.sceneContract.knownThreadRefCount}/${args.planComparison.sceneContract.total}`)
+    lines.push(`- Payoff ref mismatches: ${args.planComparison.sceneContract.orphanPayoffRefCount}`)
     lines.push(`- Observable consequences: ${args.planComparison.sceneContract.observableConsequenceCount}/${args.planComparison.sceneContract.total}`)
     lines.push(`- Obligation materiality tests: ${args.planComparison.sceneContract.materialityTestCount}/${args.planComparison.sceneContract.total}`)
     if (args.planComparison.issues.length) {

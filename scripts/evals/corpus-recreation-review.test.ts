@@ -60,6 +60,9 @@ describe("corpus-recreation-review", () => {
             obligationId: "obl-1",
             sceneId: "analog-sc01",
             sourceId: "world-bell",
+            threadId: "thread-bell",
+            promiseId: "debt-bell",
+            payoffId: "payoff-bell-rings",
             requirementText: "Make the bell matter.",
             materialityTest: "The bell changes the outcome.",
           },
@@ -125,6 +128,8 @@ describe("corpus-recreation-review", () => {
       expect(html).toContain("Reference shape")
       expect(html).toContain("private structural digest")
       expect(html).toContain("Make the bell matter.")
+      expect(html).toContain("{thread:thread-bell}")
+      expect(html).toContain("{payoff:payoff-bell-rings}")
       expect(html).toContain("scene prose below advisory floor")
       expect(html).toContain("World fact must change the available choices.")
       expect(html).toContain("commercialPacing")
@@ -226,6 +231,7 @@ function writeReviewFixture(path: string, opts: {
         obligationId: "obl-1",
         sceneId: "analog-sc01",
         sourceId: "world-bell",
+        threadId: "thread-bell",
         requirementText: "Make the bell matter.",
       },
     ],

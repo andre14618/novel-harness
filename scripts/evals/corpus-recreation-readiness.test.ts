@@ -28,6 +28,9 @@ describe("corpus-recreation-readiness", () => {
           obligationId: "obl-bells",
           sceneId: "analog-ch02-sc01",
           sourceId: "world-aurora-bells",
+          threadId: "thread-key-cost",
+          promiseId: "debt-key-cost",
+          payoffId: "payoff-key-cost-exposure",
           requirementText: "The bells constrain Nara's crossing.",
         }],
       })
@@ -42,6 +45,9 @@ describe("corpus-recreation-readiness", () => {
             relevantWorldFactIds: ["world-aurora-bells"],
             relevantCharacterIds: [],
             obligationIds: ["obl-bells"],
+            threadIds: ["thread-key-cost"],
+            promiseIds: ["debt-key-cost"],
+            payoffIds: ["payoff-key-cost-exposure"],
             label: "WFACT-1",
             ordinal: 1,
             excerpt: "SCENE CONTRACT:\n...",
@@ -74,7 +80,10 @@ describe("corpus-recreation-readiness", () => {
         sourceIds: {
           obligationIds: ["obl-bells"],
           worldFactIds: ["world-aurora-bells"],
-          sourceIds: ["world-aurora-bells"],
+          threadIds: ["thread-key-cost"],
+          promiseIds: ["debt-key-cost"],
+          payoffIds: ["payoff-key-cost-exposure"],
+          sourceIds: ["world-aurora-bells", "thread-key-cost", "debt-key-cost", "payoff-key-cost-exposure"],
         },
         rewritePacket: {
           proposalCandidate: {

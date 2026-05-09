@@ -68,9 +68,22 @@ interface CorpusReviewPacket {
       fact: string
       operationalUse: string
     }>
+    storyThreads?: Array<{
+      threadId: string
+      kind?: string
+      label?: string
+      description?: string
+    }>
     storyDebts: Array<{
       storyDebtId: string
+      threadId?: string
       promiseText: string
+    }>
+    storyPayoffs?: Array<{
+      payoffId: string
+      threadId?: string
+      storyDebtId?: string
+      payoffText?: string
     }>
   }
 }
@@ -85,6 +98,9 @@ interface CorpusReviewPlan {
     obligationId: string
     sceneId: string
     sourceId: string
+    threadId?: string
+    promiseId?: string
+    payoffId?: string
     requirementText: string
     materialityTest?: string
   }>
@@ -380,10 +396,16 @@ function renderSceneSemanticExcerpt(input: {
     "RELEVANT WORLD FACTS:",
     ...formatList(input.relevantWorldFacts.map(row => `${row.worldFactId}: ${row.fact}; operational use=${row.operationalUse}`)),
     "",
+    "RELEVANT THREAD/PAYOFF REFS:",
+    ...formatList(relevantThreadLines(input.packet, input.obligations)),
+    "",
     "SCENE OBLIGATIONS:",
     ...formatList(input.obligations.map(row => {
       const materiality = row.materialityTest ? ` materialityTest=${row.materialityTest}` : ""
-      return `${row.obligationId} (${row.sourceId}): ${row.requirementText}${materiality}`
+      const thread = row.threadId ? ` threadId=${row.threadId}` : ""
+      const promise = row.promiseId ? ` promiseId=${row.promiseId}` : ""
+      const payoff = row.payoffId ? ` payoffId=${row.payoffId}` : ""
+      return `${row.obligationId} (${row.sourceId}):${thread}${promise}${payoff} ${row.requirementText}${materiality}`
     })),
     "",
     "BEAT HINTS AS INTERNAL ANNOTATIONS:",
@@ -392,6 +414,22 @@ function renderSceneSemanticExcerpt(input: {
     "SCENE PROSE:",
     input.prose,
   ].join("\n")
+}
+
+function relevantThreadLines(packet: CorpusReviewPacket, obligations: CorpusReviewPlan["obligations"]): string[] {
+  const threadIds = new Set(obligations.map(row => row.threadId).filter(Boolean) as string[])
+  const promiseIds = new Set(obligations.map(row => row.promiseId).filter(Boolean) as string[])
+  const payoffIds = new Set(obligations.map(row => row.payoffId).filter(Boolean) as string[])
+  const threads = (packet.originalAnalogSeed.storyThreads ?? [])
+    .filter(thread => threadIds.has(thread.threadId))
+    .map(thread => `${thread.threadId}: ${thread.label ?? thread.kind ?? "thread"}; ${thread.description ?? ""}`.trim())
+  const promises = packet.originalAnalogSeed.storyDebts
+    .filter(debt => promiseIds.has(debt.storyDebtId))
+    .map(debt => `${debt.storyDebtId}: ${debt.promiseText}`)
+  const payoffs = (packet.originalAnalogSeed.storyPayoffs ?? [])
+    .filter(payoff => payoffIds.has(payoff.payoffId))
+    .map(payoff => `${payoff.payoffId}: ${payoff.payoffText ?? ""}`.trim())
+  return [...threads, ...promises, ...payoffs]
 }
 
 function relevantWorldFactsForScene(

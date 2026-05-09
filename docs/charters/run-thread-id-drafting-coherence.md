@@ -154,6 +154,13 @@ Evidence gate: fixture validation catches unknown refs, duplicate refs,
 orphaned payoffs, promises with no planned progress/payoff, and obligations
 that reference missing scenes.
 
+Status 2026-05-09: first contract slice implemented for corpus recreation POC.
+Planner output can carry `threadId`, `promiseId`, and `payoffId` on scene
+obligations; deterministic comparison flags missing/unknown refs and payoff
+refs attached to the wrong promise. Review, aggregate, semantic, and readiness
+artifacts surface these refs. Remaining Lane 2/3 work: emit a dedicated thread
+map with promise progress/payoff rows.
+
 ### Lane 3 - Thread Map Diagnostics
 
 Produce a read-only thread map from a plan artifact.

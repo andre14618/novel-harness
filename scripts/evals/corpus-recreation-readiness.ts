@@ -51,6 +51,9 @@ interface CorpusReadinessGroup {
     obligationIds: string[]
     characterIds: string[]
     worldFactIds: string[]
+    threadIds: string[]
+    promiseIds: string[]
+    payoffIds: string[]
     sourceIds: string[]
   }
   highestSeverity: Severity
@@ -171,6 +174,8 @@ export function renderCorpusRecreationReadinessAggregate(report: CorpusReadiness
     lines.push(`Preserve obligations: ${group.sourceIds.obligationIds.join(", ") || "none"}`)
     lines.push(`Preserve characters: ${group.sourceIds.characterIds.join(", ") || "none"}`)
     lines.push(`Preserve world facts: ${group.sourceIds.worldFactIds.join(", ") || "none"}`)
+    lines.push(`Preserve threads: ${group.sourceIds.threadIds.join(", ") || "none"}`)
+    lines.push(`Preserve payoffs: ${group.sourceIds.payoffIds.join(", ") || "none"}`)
     lines.push("")
     lines.push("Operator question:")
     lines.push(`- ${operatorQuestionFor(group)}`)
@@ -254,12 +259,27 @@ function sourceIdsFor(result: any, obligations: any[]): CorpusReadinessGroup["so
   ])
   const characterIds = unique(stringArray(result.relevantCharacterIds))
   const worldFactIds = unique(stringArray(result.relevantWorldFactIds))
+  const threadIds = unique([
+    ...stringArray(result.threadIds),
+    ...obligations.map(obligation => String(obligation.threadId ?? "")).filter(Boolean),
+  ])
+  const promiseIds = unique([
+    ...stringArray(result.promiseIds),
+    ...obligations.map(obligation => String(obligation.promiseId ?? "")).filter(Boolean),
+  ])
+  const payoffIds = unique([
+    ...stringArray(result.payoffIds),
+    ...obligations.map(obligation => String(obligation.payoffId ?? "")).filter(Boolean),
+  ])
   const sourceIds = unique([
     ...characterIds,
     ...worldFactIds,
+    ...threadIds,
+    ...promiseIds,
+    ...payoffIds,
     ...obligations.map(obligation => String(obligation.sourceId ?? "")).filter(Boolean),
   ])
-  return { obligationIds, characterIds, worldFactIds, sourceIds }
+  return { obligationIds, characterIds, worldFactIds, threadIds, promiseIds, payoffIds, sourceIds }
 }
 
 function rewriteGoalsFor(finding: CorpusReadinessFinding, scene: any): string[] {

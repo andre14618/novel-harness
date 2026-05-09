@@ -520,6 +520,9 @@ function formatObligation(obligation: any): string {
   const pieces = [
     obligation.obligationId,
     obligation.sourceId ? `[${obligation.sourceId}]` : "",
+    obligation.threadId ? `{thread:${obligation.threadId}}` : "",
+    obligation.promiseId ? `{promise:${obligation.promiseId}}` : "",
+    obligation.payoffId ? `{payoff:${obligation.payoffId}}` : "",
     obligation.requirementText,
     obligation.materialityTest ? `Materiality: ${obligation.materialityTest}` : "",
   ].filter(Boolean)

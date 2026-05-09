@@ -80,6 +80,9 @@ interface Obligation {
   obligationId: string
   sceneId: string
   sourceId: string
+  threadId?: string
+  promiseId?: string
+  payoffId?: string
   requirementText: string
   materialityTest?: string
 }

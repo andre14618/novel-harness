@@ -42,6 +42,10 @@ describe("corpus-recreation-poc", () => {
     expect(comparison.sceneContract.choiceAlternativeCount).toBe(2)
     expect(comparison.sceneContract.declaredObligationCount).toBe(2)
     expect(comparison.sceneContract.knownSourceIdCount).toBe(2)
+    expect(comparison.sceneContract.knownThreadRefCount).toBe(2)
+    expect(comparison.sceneContract.knownPromiseRefCount).toBe(2)
+    expect(comparison.sceneContract.knownPayoffRefCount).toBe(2)
+    expect(comparison.sceneContract.orphanPayoffRefCount).toBe(0)
     expect(comparison.sceneContract.observableConsequenceCount).toBe(2)
     expect(comparison.sceneContract.materialityTestCount).toBe(2)
     expect(comparison.issues).toEqual([])
@@ -93,6 +97,31 @@ describe("corpus-recreation-poc", () => {
     expect(comparison.sceneContract.declaredObligationCount).toBe(0)
     expect(comparison.sceneContract.knownSourceIdCount).toBe(0)
     expect(comparison.issues.some(issue => issue.includes("scene lacks explicit obligation sourceIds"))).toBe(true)
+  })
+
+  test("flags missing or mismatched thread and payoff refs deterministically", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+    })
+    const badPlan = structuredClone(plan())
+    delete (badPlan.obligations[0] as any).threadId
+    badPlan.obligations[1] = {
+      ...badPlan.obligations[1]!,
+      threadId: "thread-missing",
+      promiseId: "debt-oathmark",
+      payoffId: "payoff-key-cost-exposure",
+    }
+
+    const comparison = comparePlanToReference(badPlan, packet)
+
+    expect(comparison.sceneContract.knownThreadRefCount).toBe(0)
+    expect(comparison.sceneContract.orphanPayoffRefCount).toBe(1)
+    expect(comparison.issues.some(issue => issue.includes("obligations missing threadId: obl-key-heat"))).toBe(true)
+    expect(comparison.issues.some(issue => issue.includes("unknown threadIds: thread-missing"))).toBe(true)
+    expect(comparison.issues.some(issue => issue.includes("payoffIds do not belong to declared promiseId: payoff-key-cost-exposure"))).toBe(true)
   })
 
   test("flags weak upstream scene contracts before prose generation", () => {
@@ -337,6 +366,9 @@ function plan() {
         obligationId: "obl-key-heat",
         sceneId: "analog-sc01",
         sourceId: "world-sun-metal-key",
+        threadId: "thread-key-cost",
+        promiseId: "debt-key-cost",
+        payoffId: "payoff-key-cost-exposure",
         requirementText: "The sun-metal key must pressure Nara's choice at the gate.",
         materialityTest: "The key changes whether Nara can risk a clean escape or must face the gate.",
       },
@@ -344,6 +376,7 @@ function plan() {
         obligationId: "obl-tovin-leverage",
         sceneId: "analog-sc02",
         sourceId: "char-tovin-ash",
+        threadId: "thread-tovin-leverage",
         requirementText: "Tovin must gain leverage from Nara's public choice.",
         materialityTest: "Tovin gains public leverage that changes Nara's available route.",
       },

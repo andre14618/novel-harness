@@ -39,6 +39,8 @@ describe("corpus-recreation-semantic-review", () => {
       },
     ])
     expect(built.tasks[0]!.excerpt).toContain("SCENE CONTRACT:")
+    expect(built.tasks[0]!.excerpt).toContain("RELEVANT THREAD/PAYOFF REFS:")
+    expect(built.tasks[0]!.excerpt).toContain("thread-key-cost")
     expect(built.tasks[2]!.relevantWorldFactIds).toEqual(["world-aurora-bells"])
     expect(built.tasks[3]!.relevantCharacterIds).toEqual(["char-tovin-ash"])
   })
@@ -127,6 +129,14 @@ function packet() {
           operationalUse: "The bells can expose Nara.",
         },
       ],
+      storyThreads: [
+        {
+          threadId: "thread-key-cost",
+          kind: "world_rule",
+          label: "Key cost",
+          description: "The key's help creates exposure.",
+        },
+      ],
       storyDebts: [],
     },
   }
@@ -187,12 +197,14 @@ function plan() {
         obligationId: "obl-bells",
         sceneId: "scene-a",
         sourceId: "world-aurora-bells",
+        threadId: "thread-key-cost",
         requirementText: "The aurora bells expose Nara at the gate.",
       },
       {
         obligationId: "obl-tovin",
         sceneId: "scene-a",
         sourceId: "char-tovin-ash",
+        threadId: "thread-key-cost",
         requirementText: "Tovin gains leverage from Nara's exposed lie.",
       },
     ],
