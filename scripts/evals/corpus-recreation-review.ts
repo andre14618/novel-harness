@@ -46,6 +46,7 @@ interface ReviewRun {
   runManifest: RunManifest | null
   threadMap: CorpusThreadMapReport | null
   threadContext: CorpusThreadContextReport | null
+  writerContext: any | null
   scenes: ReviewScene[]
 }
 
@@ -116,6 +117,7 @@ function readReviewRun(pocDir: string): ReviewRun {
   const runManifest = readRunManifestIfExists(join(resolved, "run-manifest.json"))
   const threadMap = readOptionalJson(join(resolved, "thread-map.json")) as CorpusThreadMapReport | null
   const threadContext = readOptionalJson(join(resolved, "thread-context.json")) as CorpusThreadContextReport | null
+  const writerContext = readOptionalJson(join(resolved, "writer-context.json"))
   const target = packet.target ?? {}
   const sourceReference = packet.sourceReference ?? {}
   const targetBlueprints = Array.isArray(target.sceneBlueprints) ? target.sceneBlueprints : []
@@ -159,6 +161,7 @@ function readReviewRun(pocDir: string): ReviewRun {
     runManifest,
     threadMap,
     threadContext,
+    writerContext,
     scenes,
   }
 }
@@ -336,6 +339,10 @@ function renderRunProvenance(run: ReviewRun): string {
       <h3>Thread Context Preview</h3>
       ${run.threadContext ? renderThreadContext(run.threadContext) : `<p class="muted">No thread-context.json found. Run diagnostics:corpus-recreation-thread-context for this POC directory to preview compact scene writer context.</p>`}
     </article>
+    <article>
+      <h3>Writer Context Used</h3>
+      ${run.writerContext ? renderWriterContext(run.writerContext) : `<p class="muted">No writer-context.json found. This run either used baseline writer context or predates the opt-in writer-context evidence artifact.</p>`}
+    </article>
   </section>`
 }
 
@@ -398,6 +405,32 @@ function renderThreadContext(threadContext: CorpusThreadContextReport): string {
     </div>
     <details><summary>Context Responsibilities</summary>
       ${unorderedList(contexts.flatMap(context => context.currentResponsibilities.map(item => `${context.sceneId}: ${item}`)))}
+    </details>
+  </div>`
+}
+
+function renderWriterContext(writerContext: any): string {
+  const contexts = Array.isArray(writerContext?.contexts) ? writerContext.contexts : []
+  return `<div class="thread-context">
+    ${metric("Mode", String(writerContext?.mode ?? "unknown"))}
+    ${metric("Packets", numberOrDash(writerContext?.sceneCount ?? contexts.length))}
+    <div class="mini-table-wrap">
+      <table class="mini-table">
+        <thead><tr><th>Scene</th><th>Threads</th><th>Promises</th><th>Payoffs</th><th>Responsibilities</th><th>Future</th></tr></thead>
+        <tbody>
+          ${contexts.map((context: any) => `<tr>
+            <td>${escapeHtml(String(context.sceneId ?? ""))}</td>
+            <td>${escapeHtml((context.activeThreads ?? []).map((row: any) => row.threadId).filter(Boolean).join(", ") || "none")}</td>
+            <td>${escapeHtml((context.activePromises ?? []).map((row: any) => row.promiseId).filter(Boolean).join(", ") || "none")}</td>
+            <td>${escapeHtml((context.activePayoffs ?? []).map((row: any) => row.payoffId).filter(Boolean).join(", ") || "none")}</td>
+            <td>${escapeHtml(String((context.currentResponsibilities ?? []).length))}</td>
+            <td>${escapeHtml(String((context.futureImpactPreview ?? []).length))}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+    <details><summary>Prompt Responsibilities</summary>
+      ${unorderedList(contexts.flatMap((context: any) => (context.currentResponsibilities ?? []).map((item: any) => `${context.sceneId}: ${item.obligationId} ${item.requirementText}`)))}
     </details>
   </div>`
 }
@@ -863,6 +896,7 @@ function reviewInputRefs(pocDirs: string[]) {
       { path: join(resolved, "chapter-comparison.json"), role: "chapter-comparison" },
       { path: join(resolved, "thread-map.json"), role: "thread-map-json" },
       { path: join(resolved, "thread-context.json"), role: "thread-context-json" },
+      { path: join(resolved, "writer-context.json"), role: "writer-context-json" },
       { path: join(resolved, "semantic-review-live", "semantic-review.json"), role: "semantic-review-json" },
       { path: join(resolved, "prose-quality-live", "prose-review.json"), role: "prose-review-json" },
     ])

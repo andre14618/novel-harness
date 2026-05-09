@@ -143,6 +143,33 @@ describe("corpus-recreation-review", () => {
         ],
         threadMapIssues: [],
       })
+      writeJson(join(pocDir, "writer-context.json"), {
+        generatedAt: "2026-05-09T00:00:00.000Z",
+        mode: "thread-context-v1",
+        sceneCount: 1,
+        contexts: [
+          {
+            mode: "thread-context-v1",
+            sceneId: "analog-sc01",
+            activeThreads: [{ threadId: "thread-bell", label: "Bell Thread" }],
+            activePromises: [{ promiseId: "debt-bell", threadId: "thread-bell" }],
+            activePayoffs: [{ payoffId: "payoff-bell-rings", threadId: "thread-bell", promiseId: "debt-bell" }],
+            currentResponsibilities: [
+              {
+                obligationId: "obl-1",
+                sourceId: "world-bell",
+                threadId: "thread-bell",
+                promiseId: "debt-bell",
+                payoffId: "payoff-bell-rings",
+                requirementText: "Make the bell matter.",
+                materialityTest: "The bell changes the outcome.",
+              },
+            ],
+            priorMovements: [],
+            futureImpactPreview: [],
+          },
+        ],
+      })
       writeJson(join(pocDir, "plan-comparison.json"), {
         valuePolarity: { exactMatches: 1, expected: ["-"], ratio: 1 },
         miceThread: { exactMatches: 1, expected: ["M"], ratio: 1 },
@@ -214,6 +241,8 @@ describe("corpus-recreation-review", () => {
       expect(html).toContain("run-poc-1")
       expect(html).toContain("Thread Map")
       expect(html).toContain("Thread Context Preview")
+      expect(html).toContain("Writer Context Used")
+      expect(html).toContain("thread-context-v1")
       expect(html).toContain("thread-bell")
       expect(html).toContain("payoff:payoff-bell-rings")
       expect(html).toContain("obl-1 thread=thread-bell promise=debt-bell payoff=payoff-bell-rings")

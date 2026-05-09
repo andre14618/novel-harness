@@ -1021,6 +1021,13 @@ interface PreviousSceneAttempt {
   previousProse?: string
 }
 
+export interface SceneWriterThreadContextReport {
+  generatedAt: string
+  mode: WriterContextMode
+  sceneCount: number
+  contexts: Array<ReturnType<typeof sceneThreadContextForPrompt>>
+}
+
 export function sceneWriterUserPrompt(
   packet: RecreationPacket,
   plan: RecreationPlan,
@@ -1157,6 +1164,18 @@ function obligationSharesRef(obligation: RecreationPlan["obligations"][number], 
     || (obligation.promiseId && refs.has(obligation.promiseId))
     || (obligation.payoffId && refs.has(obligation.payoffId)),
   )
+}
+
+export function buildSceneWriterThreadContextReport(
+  packet: RecreationPacket,
+  plan: RecreationPlan,
+): SceneWriterThreadContextReport {
+  return {
+    generatedAt: packet.generatedAt,
+    mode: packet.diagnosticConfig?.writerContextMode ?? "baseline",
+    sceneCount: plan.scenes.length,
+    contexts: plan.scenes.map(scene => sceneThreadContextForPrompt(packet, plan, scene)),
+  }
 }
 
 async function writeChapterBySceneCalls(args: {
@@ -1400,6 +1419,7 @@ async function main(): Promise<void> {
   let planComparison: PlanComparison | null = null
   let chapter: ExampleChapter | null = null
   let chapterComparison: ChapterComparison | null = null
+  let writerContextReport: SceneWriterThreadContextReport | null = null
 
   if (args.live) {
     const rawPlan = await callDeepSeekJson({
@@ -1429,6 +1449,10 @@ async function main(): Promise<void> {
       throw new Error("--writer-context is only supported with --scene-calls")
     }
     if (args.sceneCalls) {
+      if (args.writerContextMode === "thread-context-v1") {
+        writerContextReport = buildSceneWriterThreadContextReport(packet, plan)
+        writeFileSync(join(outputDir, "writer-context.json"), `${JSON.stringify(writerContextReport, null, 2)}\n`)
+      }
       chapter = await writeChapterBySceneCalls({
         packet,
         plan,
@@ -1490,6 +1514,7 @@ async function main(): Promise<void> {
       { path: join(outputDir, "chapter.json"), role: "chapter-json" },
       { path: join(outputDir, "chapter.md"), role: "chapter-markdown" },
       { path: join(outputDir, "chapter-comparison.json"), role: "chapter-comparison" },
+      { path: join(outputDir, "writer-context.json"), role: "writer-context-json" },
       { path: join(outputDir, "report.md"), role: "report" },
     ]),
     discriminator: basename(outputDir),
@@ -1506,6 +1531,7 @@ async function main(): Promise<void> {
   console.log(`wrote ${join(outputDir, "report.md")}`)
   console.log(`wrote ${join(outputDir, RUN_MANIFEST_FILENAME)}`)
   if (plan) console.log(`wrote ${join(outputDir, "plan.json")}`)
+  if (writerContextReport) console.log(`wrote ${join(outputDir, "writer-context.json")}`)
   if (chapter) console.log(`wrote ${join(outputDir, "chapter.md")}`)
 }
 

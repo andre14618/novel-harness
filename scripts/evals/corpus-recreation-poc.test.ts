@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 
 import {
   buildRecreationPacket,
+  buildSceneWriterThreadContextReport,
   compareChapterToPlan,
   comparePlanToReference,
   ModelJsonParseError,
@@ -110,6 +111,7 @@ describe("corpus-recreation-poc", () => {
       writerContextMode: "thread-context-v1",
     })
     const context = sceneThreadContextForPrompt(packet, threadedPlan, threadedPlan.scenes[0]!)
+    const report = buildSceneWriterThreadContextReport(packet, threadedPlan)
 
     expect(baselinePrompt).not.toContain("Thread context packet")
     expect(contextPrompt).toContain("Thread context packet (diagnostic writer-context arm)")
@@ -122,6 +124,9 @@ describe("corpus-recreation-poc", () => {
         affectedSceneIds: ["analog-sc02"],
       }),
     ]))
+    expect(report.mode).toBe("thread-context-v1")
+    expect(report.sceneCount).toBe(threadedPlan.scenes.length)
+    expect(report.contexts[0]).toEqual(context)
   })
 
   test("does not infer pressure from seed word overlap", () => {

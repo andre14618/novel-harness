@@ -209,6 +209,8 @@ deterministic context packet preview exists as
 has an opt-in `--writer-context thread-context-v1` arm for scene-call drafting.
 The arm injects compact per-scene thread context only in the diagnostic POC;
 baseline prompts remain unchanged, and runtime writer context is not changed.
+Opt-in scene-call runs now persist `writer-context.json` with the exact
+per-scene thread packets used in writer prompts.
 
 ### Lane 5 - Scene Thread Semantic Review
 
@@ -255,7 +257,9 @@ Status 2026-05-09: first static evidence slice is implemented in
 `run-manifest.json`, `thread-map.json`, or `thread-context.json`, the static
 HTML review page now shows run/root/parent/variant provenance, thread movement
 rows by scene, impact preview refs, compact context previews, and thread-map
-issues. Missing artifacts are displayed explicitly instead of inferred.
+issues. When `writer-context.json` is present, the page also shows the exact
+thread packets used by the diagnostic writer-context arm. Missing artifacts
+are displayed explicitly instead of inferred.
 
 ### Lane 7 - Runtime Proposal Integration
 
