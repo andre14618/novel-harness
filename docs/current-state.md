@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-08
+updated: 2026-05-09
 role: canonical-current-truth
 archive: archive/current-state-2026-05-04-full.md
 ---
@@ -133,6 +133,7 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-08:
 - Active product focus: upstream concept/planning methodology. Use templates,
   chapter contracts, scene functions, and planner-quality evidence to improve
   plan shape before changing drafting, checking, or UI defaults.
+- Corpus structure recreation POC now has a passing scene-first local plan/write scaffold; see `docs/charters/corpus-structure-recreation-poc.md`.
 - First backend tracer exposes read-only planning targets and deterministic
   impact preview. Write tracers add `planning_edit` envelopes for chapter,
   beat, obligation, directive, character, world, and spine scalar fields, with

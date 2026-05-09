@@ -1,0 +1,211 @@
+import { describe, expect, test } from "bun:test"
+
+import {
+  buildRecreationPacket,
+  compareChapterToPlan,
+  comparePlanToReference,
+} from "./corpus-recreation-poc"
+
+describe("corpus-recreation-poc", () => {
+  test("builds a structural imitation packet from a reference chapter", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+    })
+
+    expect(packet.target.sceneCount).toBe(2)
+    expect(packet.target.beatCount).toBe(5)
+    expect(packet.target.chapterPattern.polaritySequence).toEqual(["-", "+"])
+    expect(packet.target.sceneBlueprints[0]!.sourceStructuralDigest).toBe("Source scene structural function.")
+    expect(packet.originalAnalogSeed.forbiddenSourceTerms).toContain("Drizzt")
+  })
+
+  test("compares plan structure against reference sequence and density", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+    })
+    const comparison = comparePlanToReference(plan(), packet)
+
+    expect(comparison.sceneCount.match).toBe(true)
+    expect(comparison.valuePolarity.ratio).toBe(1)
+    expect(comparison.miceThread.ratio).toBe(1)
+    expect(comparison.beatHintShape.actualTotal).toBe(5)
+    expect(comparison.issues).toEqual([])
+  })
+
+  test("flags forbidden source terms in generated chapter", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+    })
+    const comparison = compareChapterToPlan({
+      chapterTitle: "Analog",
+      scenes: [
+        { sceneId: "analog-sc01", prose: "Nara moves through the gate." },
+        { sceneId: "analog-sc02", prose: "Drizzt is not allowed here." },
+      ],
+      fullProse: `${"Nara moves through the gate. ".repeat(60)} Drizzt is not allowed here.`,
+    }, plan(), packet)
+
+    expect(comparison.sourceBoundary.forbiddenTermsPresent).toEqual(["Drizzt"])
+    expect(comparison.issues.some(issue => issue.includes("source terms"))).toBe(true)
+  })
+
+  test("reports per-scene prose minimums", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+    })
+    const comparison = compareChapterToPlan({
+      chapterTitle: "Analog",
+      scenes: [
+        { sceneId: "analog-sc01", prose: "Nara chooses the hard road. ".repeat(120) },
+        { sceneId: "analog-sc02", prose: "Nara pauses." },
+      ],
+      fullProse: "",
+    }, plan(), packet)
+
+    expect(comparison.sceneWordCounts[0]!.meetsMinimum).toBe(true)
+    expect(comparison.sceneWordCounts[1]!.meetsMinimum).toBe(false)
+    expect(comparison.issues.some(issue => issue.includes("scene prose below minimum"))).toBe(true)
+  })
+})
+
+function reference() {
+  return {
+    schemaVersion: "1.0",
+    generatedAt: "2026-05-09T00:00:00.000Z",
+    source: {
+      novel: "test",
+      book: "test_book",
+      scenesPath: "scenes",
+      beatsPath: "beats",
+      valueChargePath: null,
+      micePath: null,
+      mckeeGapPath: null,
+    },
+    mode: { includeSummaries: true },
+    aggregate: {
+      chapterCount: 1,
+      sceneCount: 2,
+      beatCount: 5,
+      wordCount: 1000,
+      medianScenesPerChapter: 2,
+      medianBeatsPerScene: 2.5,
+      medianWordsPerScene: 500,
+      medianWordsPerBeat: 100,
+      meanScenesPerChapter: 2,
+      meanBeatsPerScene: 2.5,
+      meanWordsPerScene: 500,
+      meanWordsPerBeat: 100,
+    },
+    chapters: [{
+      chapterLabel: "1",
+      chapterIndex: 1,
+      sceneCount: 2,
+      beatCount: 5,
+      wordCount: 1000,
+      averageBeatsPerScene: 2.5,
+      beatKindCounts: {},
+      boundarySignalCounts: {},
+      scenePolarityCounts: {},
+      micePrimaryCounts: {},
+      gapSizeCounts: {},
+      scenes: [
+        {
+          sceneId: "source-sc01",
+          chapterLabel: "1",
+          sceneOrdinal: 0,
+          wordCount: 600,
+          beatCount: 3,
+          beatKindCounts: { description: 1, action: 2 },
+          boundarySignalCounts: { scene_start: 1, stakes_recalibration: 2 },
+          gapSizeCounts: { medium: 2 },
+          valueShift: { valueIn: "+", valueOut: "-", lifeValue: "power-weakness", polarity: "-" },
+          mice: { primaryThread: "M", secondaryThread: null, opensThread: true, closesThread: false },
+          plotPointSummary: "Source scene structural function.",
+          beatSummaries: ["setup pressure", "turn pressure", "outcome pressure"],
+        },
+        {
+          sceneId: "source-sc02",
+          chapterLabel: "1",
+          sceneOrdinal: 1,
+          wordCount: 400,
+          beatCount: 2,
+          beatKindCounts: { dialogue: 2 },
+          boundarySignalCounts: { scene_start: 1, action_shift: 1 },
+          gapSizeCounts: { large: 1 },
+          valueShift: { valueIn: "-", valueOut: "+", lifeValue: "hope-despair", polarity: "+" },
+          mice: { primaryThread: "C", secondaryThread: null, opensThread: true, closesThread: false },
+        },
+      ],
+    }],
+  }
+}
+
+function plan() {
+  return {
+    chapterId: "analog-ch01",
+    title: "The First Gate",
+    targetWords: 1000,
+    chapterFunction: "Open the artifact pressure and force Nara into public risk.",
+    endpointOrHook: "Nara crosses the ward line knowing the bells may expose her.",
+    scenes: [
+      {
+        sceneId: "analog-sc01",
+        referenceSceneOrdinal: 0,
+        targetWords: 600,
+        structuralRole: "Establish pressure and reverse safety.",
+        povCharacterId: "char-nara-venn",
+        locationOrArena: "frontier road",
+        goal: "Nara wants quiet entry.",
+        opposition: "The key heats and Tovin watches.",
+        turningPoint: "The road opens toward danger.",
+        crisisChoice: "Hide the key or risk the gate.",
+        climaxAction: "Nara uses the key.",
+        outcome: "The key exposes danger.",
+        consequence: "The ward may reveal her.",
+        valueIn: "+",
+        valueOut: "-",
+        miceThread: "M",
+        beatHints: [
+          { kind: "description", boundarySignal: "scene_start", gapSize: "medium", purpose: "setup" },
+          { kind: "action", boundarySignal: "stakes_recalibration", gapSize: "medium", purpose: "turn" },
+          { kind: "action", boundarySignal: "stakes_recalibration", gapSize: "medium", purpose: "outcome" },
+        ],
+      },
+      {
+        sceneId: "analog-sc02",
+        referenceSceneOrdinal: 1,
+        targetWords: 400,
+        structuralRole: "Make a character choice visible.",
+        povCharacterId: "char-nara-venn",
+        locationOrArena: "gatehouse",
+        goal: "Nara wants entry.",
+        opposition: "Kael demands a name.",
+        turningPoint: "Mirel offers witness.",
+        crisisChoice: "Confess or lose entry.",
+        climaxAction: "Nara names the convoy.",
+        outcome: "The bell quiets.",
+        consequence: "Tovin has leverage.",
+        valueIn: "-",
+        valueOut: "+",
+        miceThread: "C",
+        beatHints: [
+          { kind: "dialogue", boundarySignal: "scene_start", gapSize: "large", purpose: "demand" },
+          { kind: "dialogue", boundarySignal: "action_shift", gapSize: "large", purpose: "choice" },
+        ],
+      },
+    ],
+    obligations: [],
+  }
+}

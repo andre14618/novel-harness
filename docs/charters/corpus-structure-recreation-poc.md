@@ -131,3 +131,65 @@ compressed corpus premise/context
 ```
 
 Only after that should the lane consider a prose POC.
+
+## Recreation POC Command
+
+Build the reference with summaries first so the planner sees the source
+chapter's structural functions, then translate those functions into the
+original analog seed:
+
+```bash
+bun run diagnostics:corpus-structure-reference -- \
+  --novel salvatore-icewind-dale \
+  --book crystal_shard \
+  --include-summaries \
+  --output-dir output/corpus-structure-reference/crystal_shard-with-summaries
+```
+
+Then run the plan-and-write POC:
+
+```bash
+bun run diagnostics:corpus-recreation-poc -- --live --write --scene-calls \
+  --reference output/corpus-structure-reference/crystal_shard-with-summaries/reference.json \
+  --chapter 1 \
+  --model deepseek-v4-flash \
+  --output-dir output/corpus-recreation-poc/crystal_shard-ch1-flash-scene-calls
+```
+
+Outputs:
+
+- `packet.json`: the structural imitation packet.
+- `plan.json`: the original analog chapter/scene plan.
+- `plan-comparison.json`: deterministic fit against the reference scaffold.
+- `chapter.md`: the generated original example chapter.
+- `chapter-comparison.json`: deterministic prose-shape checks.
+- `report.md`: compact operator review summary.
+
+Promotion requires operator review. A single imitative chapter is a baseline,
+not proof that runtime planning or writing should change.
+
+## First POC Evidence
+
+The first passing local run used scene-level writer calls rather than one
+chapter-level JSON writer call. Whole-chapter writing preserved scene count but
+compressed the prose too aggressively. Scene calls made the plan-to-prose
+contract observable per scene.
+
+Passing artifact:
+
+```text
+output/corpus-recreation-poc/crystal_shard-ch1-flash-scene-calls-r4/report.md
+```
+
+Result:
+
+- plan fit: 4/4 scenes, 4/4 polarity sequence, 4/4 MICE/thread sequence,
+  19/19 beat-hint shape;
+- prose fit: 4/4 scenes, 1583/1832 words, all scene minimums met;
+- source boundary: no forbidden source terms found;
+- conclusion: scaffold is sufficient for an operator to review an original
+  structural analog chapter beside the private reference.
+
+This supports a next diagnostic cohort, not a production promotion. The next
+question is whether multiple chapters and multiple source chapters still show
+the same scene-level plan/write stability.

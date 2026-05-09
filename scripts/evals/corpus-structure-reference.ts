@@ -116,7 +116,7 @@ interface ChapterReference {
   scenes: SceneReference[]
 }
 
-interface CorpusStructureReference {
+export interface CorpusStructureReference {
   schemaVersion: "1.0"
   generatedAt: string
   source: {
