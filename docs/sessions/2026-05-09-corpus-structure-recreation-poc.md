@@ -1259,3 +1259,7 @@ context lever. Compact character capsules improved expansion and preserved the
 planning/sequence evidence. It is still a two-chapter diagnostic, so the next
 step should be a larger fixed-plan A/B cohort before promoting the mode as a
 default.
+
+Follow-up: `thread-character-context-v1` is now the default writer context for
+the corpus recreation POC command. Older modes remain explicit override arms via
+`--writer-context baseline` and `--writer-context thread-context-v1`.

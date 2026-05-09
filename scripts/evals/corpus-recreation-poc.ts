@@ -533,7 +533,7 @@ function parseArgs(argv = process.argv.slice(2)): Args {
     typeof values["planner-contract-retry"] === "string" ? values["planner-contract-retry"] : "none",
   )
   const writerContextMode = parseWriterContextMode(
-    typeof values["writer-context"] === "string" ? values["writer-context"] : "baseline",
+    typeof values["writer-context"] === "string" ? values["writer-context"] : "thread-character-context-v1",
   )
   const writerExpansionMode = parseWriterExpansionMode(
     typeof values["writer-expansion"] === "string" ? values["writer-expansion"] : "none",

@@ -37,7 +37,7 @@ unless the user explicitly requests a disposable branch.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.
-- Corpus structure recreation is active: v3 planning survived ch1+ch2, and fixed-plan `thread-character-context-v1` improved expansion without semantic lows. Next run a larger fixed-plan A/B cohort before promotion.
+- Corpus structure recreation is active: v3 planning survived ch1+ch2; `thread-character-context-v1` is now the POC writer default after improving expansion without semantic lows.
 - Review `docs/method-packs/commercial-fantasy-adventure-v0.md` as the first
   general method-pack charter before implementing template definitions,
   fixtures, or planner prompt changes.
