@@ -126,6 +126,7 @@ const recreationScenePlanSchema = z.object({
   opposition: z.string().min(8),
   turningPoint: z.string().min(8),
   crisisChoice: z.string().min(8),
+  choiceAlternatives: z.array(z.string().min(3)).min(2),
   climaxAction: z.string().min(8),
   outcome: z.string().min(8),
   consequence: z.string().min(8),
@@ -203,6 +204,24 @@ interface PlanComparison {
     actualTotal: number
     ratio: number
   }
+  sceneContract: {
+    total: number
+    choiceAlternativeCount: number
+    declaredObligationCount: number
+    knownSourceIdCount: number
+    observableConsequenceCount: number
+    scenes: SceneContractDiagnostic[]
+  }
+  issues: string[]
+}
+
+interface SceneContractDiagnostic {
+  sceneId: string
+  hasChoiceAlternatives: boolean
+  hasDeclaredObligation: boolean
+  hasKnownSourceIds: boolean
+  hasObservableConsequence: boolean
+  unknownSourceIds: string[]
   issues: string[]
 }
 
@@ -445,6 +464,12 @@ export function comparePlanToReference(plan: RecreationPlan, packet: RecreationP
   if (actualBeatHints < Math.floor(expectedBeatHints * 0.6)) {
     issues.push(`beat hint shape is too thin: expected about ${expectedBeatHints}, got ${actualBeatHints}`)
   }
+  const sceneContract = buildSceneContractDiagnostics(plan, packet)
+  for (const scene of sceneContract.scenes) {
+    if (scene.issues.length > 0) {
+      issues.push(`scene contract weak for ${scene.sceneId}: ${scene.issues.join(", ")}`)
+    }
+  }
   return {
     sceneCount: {
       expected: expectedScenes.length,
@@ -468,6 +493,45 @@ export function comparePlanToReference(plan: RecreationPlan, packet: RecreationP
       actualTotal: actualBeatHints,
       ratio: round(actualBeatHints / Math.max(1, expectedBeatHints)),
     },
+    sceneContract,
+    issues,
+  }
+}
+
+function buildSceneContractDiagnostics(plan: RecreationPlan, packet: RecreationPacket): PlanComparison["sceneContract"] {
+  const scenes = plan.scenes.map(scene => evaluateSceneContract(scene, plan, packet))
+  return {
+    total: scenes.length,
+    choiceAlternativeCount: scenes.filter(scene => scene.hasChoiceAlternatives).length,
+    declaredObligationCount: scenes.filter(scene => scene.hasDeclaredObligation).length,
+    knownSourceIdCount: scenes.filter(scene => scene.hasKnownSourceIds).length,
+    observableConsequenceCount: scenes.filter(scene => scene.hasObservableConsequence).length,
+    scenes,
+  }
+}
+
+function evaluateSceneContract(scene: RecreationPlan["scenes"][number], plan: RecreationPlan, packet: RecreationPacket): SceneContractDiagnostic {
+  const issues: string[] = []
+  const obligations = plan.obligations.filter(obligation => obligation.sceneId === scene.sceneId)
+  const knownSourceIds = knownPressureSourceIds(packet)
+  const unknownSourceIds = obligations
+    .map(obligation => obligation.sourceId)
+    .filter(sourceId => !knownSourceIds.has(sourceId))
+  const hasChoiceAlternatives = scene.choiceAlternatives.length >= 2
+  const hasDeclaredObligation = obligations.length > 0
+  const hasKnownSourceIds = hasDeclaredObligation && unknownSourceIds.length === 0
+  const hasObservableConsequence = isObservableConsequence(scene.consequence, scene.outcome)
+  if (!hasChoiceAlternatives) issues.push("choiceAlternatives must declare at least two options")
+  if (!hasDeclaredObligation) issues.push("scene lacks explicit obligation sourceIds")
+  if (unknownSourceIds.length > 0) issues.push(`unknown obligation sourceIds: ${unknownSourceIds.join(", ")}`)
+  if (!hasObservableConsequence) issues.push("consequence is generic, internal-only, or indistinct from outcome")
+  return {
+    sceneId: scene.sceneId,
+    hasChoiceAlternatives,
+    hasDeclaredObligation,
+    hasKnownSourceIds,
+    hasObservableConsequence,
+    unknownSourceIds,
     issues,
   }
 }
@@ -538,6 +602,29 @@ function wordCount(text: string): number {
   return text.trim().split(/\s+/u).filter(Boolean).length
 }
 
+function isObservableConsequence(consequence: string, outcome: string): boolean {
+  const normalizedConsequence = normalizeForExactComparison(consequence)
+  const normalizedOutcome = normalizeForExactComparison(outcome)
+  if (wordCount(consequence) < 4) return false
+  if (normalizedConsequence === normalizedOutcome) return false
+  if (/^(nara )?(realizes|understands|knows|feels|wonders|decides|thinks)\b/iu.test(consequence.trim())) return false
+  if (/\b(things|situation|everything|something)\s+(changes|worsens|shifts)\b/iu.test(consequence)) return false
+  return true
+}
+
+function normalizeForExactComparison(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/gu, " ").trim()
+}
+
+function knownPressureSourceIds(packet: RecreationPacket): Set<string> {
+  return new Set([
+    packet.originalAnalogSeed.protagonist.characterId,
+    ...packet.originalAnalogSeed.supportingCharacters.map(character => character.characterId),
+    ...packet.originalAnalogSeed.worldFacts.map(fact => fact.worldFactId),
+    ...packet.originalAnalogSeed.storyDebts.map(debt => debt.storyDebtId),
+  ])
+}
+
 function minimumSceneWords(targetWords: number): number {
   return Math.max(120, Math.floor(targetWords * 0.7))
 }
@@ -587,6 +674,10 @@ Hard rules:
 - If sourceStructuralDigest or beatPurposeHints are present, translate their structural job into the original analog seed. Do not reuse their literal events.
 - Treat scenes as the plan/write/check unit.
 - Treat beat hints as internal annotations inside scenes, not separate writer calls.
+- Every scene needs a crisisChoice plus a choiceAlternatives array with explicit options tied to the protagonist's want, need, lie, or truth.
+- Every scene needs active pressure from a supporting character, world fact, or story debt. Declare that pressure with obligations whose sourceId exactly matches a provided characterId, worldFactId, or storyDebtId.
+- Outcome and consequence must be distinct. The consequence should be observable pressure caused by the scene turn, not only an internal realization.
+- Add obligations for scene-specific character/world/story-debt pressure that the writer must dramatize.
 - Output ONLY valid JSON matching this schema:
 {
   "plan": {
@@ -607,6 +698,7 @@ Hard rules:
         "opposition": "string",
         "turningPoint": "string",
         "crisisChoice": "string",
+        "choiceAlternatives": ["string", "string"],
         "climaxAction": "string",
         "outcome": "string",
         "consequence": "string",
@@ -645,6 +737,9 @@ Create one original analog chapter plan. Match the reference chapter's structura
 - similar MICE/thread sequence;
 - beatHints count roughly tracks targetBeatCount for each scene.
 - if sourceStructuralDigest/beatPurposeHints are present, map each source structural function to an original analog function.
+- each scene's choiceAlternatives should name concrete options and make Nara's oathmark/convoy/witness/escape pressure matter;
+- each scene should carry active relationship or world pressure when applicable, with obligations whose sourceId exactly matches the pressure the writer must dramatize;
+- each scene's consequence should be externally observable or create a future obligation/threat.
 
 Do not use source names or exact source events.`
 }
@@ -950,6 +1045,10 @@ export function renderRecreationReport(args: {
     lines.push(`- Polarity sequence match: ${args.planComparison.valuePolarity.exactMatches}/${args.planComparison.valuePolarity.expected.length} (${args.planComparison.valuePolarity.ratio})`)
     lines.push(`- MICE sequence match: ${args.planComparison.miceThread.exactMatches}/${args.planComparison.miceThread.expected.length} (${args.planComparison.miceThread.ratio})`)
     lines.push(`- Beat hint shape: ${args.planComparison.beatHintShape.actualTotal}/${args.planComparison.beatHintShape.expectedTotal} (${args.planComparison.beatHintShape.ratio})`)
+    lines.push(`- Scene contract choices: ${args.planComparison.sceneContract.choiceAlternativeCount}/${args.planComparison.sceneContract.total}`)
+    lines.push(`- Scenes with declared obligations: ${args.planComparison.sceneContract.declaredObligationCount}/${args.planComparison.sceneContract.total}`)
+    lines.push(`- Scenes with known obligation sourceIds: ${args.planComparison.sceneContract.knownSourceIdCount}/${args.planComparison.sceneContract.total}`)
+    lines.push(`- Observable consequences: ${args.planComparison.sceneContract.observableConsequenceCount}/${args.planComparison.sceneContract.total}`)
     if (args.planComparison.issues.length) {
       lines.push(`- Issues: ${args.planComparison.issues.join("; ")}`)
     } else {

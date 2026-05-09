@@ -189,8 +189,8 @@ export function buildSceneSemanticTasks(input: {
     const scene = input.plan.scenes[sceneIndex]!
     const prose = input.chapter.scenes.find(row => row.sceneId === scene.sceneId)?.prose ?? ""
     const obligations = input.plan.obligations.filter(row => row.sceneId === scene.sceneId)
-    const relevantWorldFacts = relevantWorldFactsForScene(input.packet, scene, prose, obligations)
-    const relevantCharacters = relevantCharactersForScene(input.packet, scene, prose)
+    const relevantWorldFacts = relevantWorldFactsForScene(input.packet, obligations)
+    const relevantCharacters = relevantCharactersForScene(input.packet, obligations)
 
     for (const dimension of input.dimensions) {
       const skipReason = applicabilitySkipReason(dimension, relevantWorldFacts.length, relevantCharacters.length)
@@ -384,56 +384,24 @@ function renderSceneSemanticExcerpt(input: {
 
 function relevantWorldFactsForScene(
   packet: CorpusReviewPacket,
-  scene: CorpusReviewScenePlan,
-  prose: string,
   obligations: CorpusReviewPlan["obligations"],
 ): CorpusReviewPacket["originalAnalogSeed"]["worldFacts"] {
-  const surface = normalizeSearchText([
-    scene.locationOrArena,
-    scene.goal,
-    scene.opposition,
-    scene.turningPoint,
-    scene.crisisChoice,
-    scene.climaxAction,
-    scene.outcome,
-    scene.consequence,
-    scene.beatHints.map(row => row.purpose).join(" "),
-    obligations.map(row => `${row.sourceId} ${row.requirementText}`).join(" "),
-    prose,
-  ].join(" "))
-  return packet.originalAnalogSeed.worldFacts.filter(fact => {
-    if (obligations.some(row => row.sourceId === fact.worldFactId)) return true
-    const terms = keywordTerms(`${fact.worldFactId} ${fact.fact} ${fact.operationalUse}`)
-    return terms.some(term => surface.includes(term))
-  })
+  const sourceIds = new Set(obligations.map(row => row.sourceId))
+  return packet.originalAnalogSeed.worldFacts.filter(fact => sourceIds.has(fact.worldFactId))
 }
 
 function relevantCharactersForScene(
   packet: CorpusReviewPacket,
-  scene: CorpusReviewScenePlan,
-  prose: string,
+  obligations: CorpusReviewPlan["obligations"],
 ): CorpusReviewPacket["originalAnalogSeed"]["supportingCharacters"] {
-  const surface = normalizeSearchText([
-    scene.goal,
-    scene.opposition,
-    scene.turningPoint,
-    scene.crisisChoice,
-    scene.climaxAction,
-    scene.outcome,
-    scene.consequence,
-    scene.beatHints.map(row => row.purpose).join(" "),
-    prose,
-  ].join(" "))
-  return packet.originalAnalogSeed.supportingCharacters.filter(character => {
-    const terms = keywordTerms(`${character.characterId} ${character.name} ${character.role} ${character.pressure}`)
-    return terms.some(term => surface.includes(term))
-  })
+  const sourceIds = new Set(obligations.map(row => row.sourceId))
+  return packet.originalAnalogSeed.supportingCharacters.filter(character => sourceIds.has(character.characterId))
 }
 
 function applicabilitySkipReason(dimension: Dimension, worldFactCount: number, characterCount: number): string | null {
-  if (dimension === "worldFactPressure" && worldFactCount === 0) return "no relevant world fact found for this scene"
-  if (dimension === "relationshipDelta" && characterCount === 0) return "no supporting character relationship pressure found for this scene"
-  if (dimension === "characterMateriality" && characterCount === 0) return "no required/supporting character found for this scene"
+  if (dimension === "worldFactPressure" && worldFactCount === 0) return "no world-fact sourceId obligation declared for this scene"
+  if (dimension === "relationshipDelta" && characterCount === 0) return "no supporting-character sourceId obligation declared for this scene"
+  if (dimension === "characterMateriality" && characterCount === 0) return "no supporting-character sourceId obligation declared for this scene"
   return null
 }
 
@@ -464,17 +432,6 @@ function summarizeSkips(skips: SceneSemanticSkip[]): Array<{ dimension: Dimensio
   return [...counts.values()].sort((a, b) => a.dimension.localeCompare(b.dimension) || a.reason.localeCompare(b.reason))
 }
 
-function keywordTerms(text: string): string[] {
-  return unique(normalizeSearchText(text)
-    .split(/\s+/u)
-    .filter(term => term.length >= 4)
-    .filter(term => !STOPWORDS.has(term)))
-}
-
-function normalizeSearchText(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9]+/gu, " ").trim()
-}
-
 function formatList(rows: string[]): string[] {
   return rows.length > 0 ? rows.map(row => `- ${row}`) : ["- none"]
 }
@@ -497,10 +454,6 @@ function countBy(values: string[]): Record<string, number> {
   const out: Record<string, number> = {}
   for (const value of values) out[value] = (out[value] ?? 0) + 1
   return out
-}
-
-function unique(values: string[]): string[] {
-  return [...new Set(values)]
 }
 
 function readJson<T>(path: string): T {
@@ -592,13 +545,6 @@ function positiveInt(value: string, flag: string): number {
 function defaultOutputDir(pocDir: string): string {
   return join(pocDir, "semantic-review")
 }
-
-const STOPWORDS = new Set([
-  "about", "after", "against", "also", "and", "because", "before", "being",
-  "but", "can", "city", "does", "fact", "from", "have", "into", "must",
-  "nara", "that", "their", "them", "then", "there", "this", "through",
-  "venn", "when", "where", "which", "with", "world",
-])
 
 async function main(): Promise<void> {
   const args = parseArgs()

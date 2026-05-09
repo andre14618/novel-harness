@@ -37,7 +37,65 @@ describe("corpus-recreation-poc", () => {
     expect(comparison.valuePolarity.ratio).toBe(1)
     expect(comparison.miceThread.ratio).toBe(1)
     expect(comparison.beatHintShape.actualTotal).toBe(5)
+    expect(comparison.sceneContract.choiceAlternativeCount).toBe(2)
+    expect(comparison.sceneContract.declaredObligationCount).toBe(2)
+    expect(comparison.sceneContract.knownSourceIdCount).toBe(2)
+    expect(comparison.sceneContract.observableConsequenceCount).toBe(2)
     expect(comparison.issues).toEqual([])
+  })
+
+  test("does not infer pressure from seed word overlap", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+    })
+    const planWithoutObligations = { ...plan(), obligations: [] }
+
+    const comparison = comparePlanToReference(planWithoutObligations, packet)
+
+    expect(comparison.sceneContract.declaredObligationCount).toBe(0)
+    expect(comparison.sceneContract.knownSourceIdCount).toBe(0)
+    expect(comparison.issues.some(issue => issue.includes("scene lacks explicit obligation sourceIds"))).toBe(true)
+  })
+
+  test("flags weak upstream scene contracts before prose generation", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+    })
+    const weakPlan = structuredClone(plan())
+    weakPlan.scenes[0] = {
+      ...weakPlan.scenes[0]!,
+      goal: "Nara waits for a chance.",
+      opposition: "The weather is difficult.",
+      turningPoint: "The path feels dangerous.",
+      crisisChoice: "Nara considers what to do next.",
+      choiceAlternatives: [],
+      climaxAction: "Nara keeps going.",
+      outcome: "The situation changes.",
+      consequence: "Nara realizes things changed.",
+      beatHints: [
+        { kind: "description", boundarySignal: "scene_start", gapSize: "medium", purpose: "Nara waits" },
+        { kind: "action", boundarySignal: "stakes_recalibration", gapSize: "medium", purpose: "danger rises" },
+        { kind: "action", boundarySignal: "stakes_recalibration", gapSize: "medium", purpose: "Nara continues" },
+      ],
+    }
+    weakPlan.obligations = weakPlan.obligations.filter(obligation => obligation.sceneId !== "analog-sc01")
+
+    const comparison = comparePlanToReference(weakPlan, packet)
+
+    expect(comparison.sceneContract.scenes[0]).toMatchObject({
+      hasChoiceAlternatives: false,
+      hasDeclaredObligation: false,
+      hasKnownSourceIds: false,
+      hasObservableConsequence: false,
+      unknownSourceIds: [],
+    })
+    expect(comparison.issues.some(issue => issue.includes("scene contract weak for analog-sc01"))).toBe(true)
   })
 
   test("flags forbidden source terms in generated chapter", () => {
@@ -177,7 +235,11 @@ function plan() {
         goal: "Nara wants quiet entry.",
         opposition: "The key heats and Tovin watches.",
         turningPoint: "The road opens toward danger.",
-        crisisChoice: "Hide the key or risk the gate.",
+        crisisChoice: "Hide the key for a clean escape or risk the gate to protect her oathmark.",
+        choiceAlternatives: [
+          "Hide the key for a clean escape",
+          "risk the gate to protect her oathmark",
+        ],
         climaxAction: "Nara uses the key.",
         outcome: "The key exposes danger.",
         consequence: "The ward may reveal her.",
@@ -200,10 +262,14 @@ function plan() {
         goal: "Nara wants entry.",
         opposition: "Kael demands a name.",
         turningPoint: "Mirel offers witness.",
-        crisisChoice: "Confess or lose entry.",
+        crisisChoice: "Confess the lost convoy before witnesses or lose entry.",
+        choiceAlternatives: [
+          "confess the lost convoy before witnesses",
+          "lose entry and preserve secrecy",
+        ],
         climaxAction: "Nara names the convoy.",
         outcome: "The bell quiets.",
-        consequence: "Tovin has leverage.",
+        consequence: "Tovin gains public leverage over her route.",
         valueIn: "-",
         valueOut: "+",
         miceThread: "C",
@@ -213,6 +279,19 @@ function plan() {
         ],
       },
     ],
-    obligations: [],
+    obligations: [
+      {
+        obligationId: "obl-key-heat",
+        sceneId: "analog-sc01",
+        sourceId: "world-sun-metal-key",
+        requirementText: "The sun-metal key must pressure Nara's choice at the gate.",
+      },
+      {
+        obligationId: "obl-tovin-leverage",
+        sceneId: "analog-sc02",
+        sourceId: "char-tovin-ash",
+        requirementText: "Tovin must gain leverage from Nara's public choice.",
+      },
+    ],
   }
 }

@@ -29,13 +29,13 @@ describe("corpus-recreation-semantic-review", () => {
         sceneId: "scene-b",
         sceneIndex: 1,
         dimension: "worldFactPressure",
-        reason: "no relevant world fact found for this scene",
+        reason: "no world-fact sourceId obligation declared for this scene",
       },
       {
         sceneId: "scene-b",
         sceneIndex: 1,
         dimension: "relationshipDelta",
-        reason: "no supporting character relationship pressure found for this scene",
+        reason: "no supporting-character sourceId obligation declared for this scene",
       },
     ])
     expect(built.tasks[0]!.excerpt).toContain("SCENE CONTRACT:")
@@ -189,6 +189,12 @@ function plan() {
         sourceId: "world-aurora-bells",
         requirementText: "The aurora bells expose Nara at the gate.",
       },
+      {
+        obligationId: "obl-tovin",
+        sceneId: "scene-a",
+        sourceId: "char-tovin-ash",
+        requirementText: "Tovin gains leverage from Nara's exposed lie.",
+      },
     ],
   }
 }
@@ -203,7 +209,7 @@ function chapter() {
       },
       {
         sceneId: "scene-b",
-        prose: "Nara wrapped her burned hand and walked on alone.",
+        prose: "Nara wrapped her burned hand and remembered Tovin Ash warning that the aurora bells would betray her.",
       },
     ],
   }

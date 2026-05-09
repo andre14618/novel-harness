@@ -286,12 +286,12 @@ function cohortVerdict(meanDelta: number | null, winRate: number | null, structu
     return { verdict: "HOLD", reason: "Method arm has structural/ID issues in more than 25% of cells." }
   }
   if (meanDelta >= 0.03 && winRate >= 0.67) {
-    return { verdict: "DIRECTIONAL-PASS", reason: "Method arm improves mean plan-contract score by at least 3 points and wins at least two-thirds of cells." }
+    return { verdict: "DIRECTIONAL-PASS", reason: "Method arm improves mean plan-contract score by at least 3 points and wins at least two-thirds of cells; this advances to semantic review, not production promotion." }
   }
   if (meanDelta < 0 && winRate < 0.5) {
     return { verdict: "NO-PROMOTION", reason: "Method arm underperforms the no-method control across the cohort." }
   }
-  return { verdict: "HOLD", reason: "Cohort ran, but method lift is too small or inconsistent for promotion." }
+  return { verdict: "HOLD", reason: "Cohort ran, but deterministic lift is too small or inconsistent for the next semantic review stage." }
 }
 
 function structuralIssueCount(dimensions: Record<string, { issues: string[] }>): number {

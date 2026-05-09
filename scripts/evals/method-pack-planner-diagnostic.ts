@@ -316,13 +316,13 @@ export function buildDiagnosticReport(
       reason = "Method-pack arm did not preserve the requested structure-slot map."
     } else if (totalRatioDelta >= 0.08) {
       verdict = "DIRECTIONAL-PASS"
-      reason = "Method-pack arm improved deterministic plan-contract score by at least 8 points without structural issues."
+      reason = "Method-pack arm improved deterministic plan-contract score by at least 8 points without structural issues; this is diagnostic lift, not semantic promotion evidence."
     } else if (totalRatioDelta < 0) {
       verdict = "NO-PROMOTION"
       reason = "Method-pack arm scored worse than the no-method control on this diagnostic."
     } else {
       verdict = "HOLD"
-      reason = "Method-pack arm ran, but the deterministic improvement is too small for promotion."
+      reason = "Method-pack arm ran, but the deterministic lift is too small or inconsistent for the next semantic review stage."
     }
   }
   return {

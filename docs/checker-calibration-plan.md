@@ -91,6 +91,14 @@ Unsafe deterministic examples:
 - blocking because a plan uses a different but valid structure.
 - treating previous-chapter character location as immutable without same-time
   evidence.
+- treating token overlap, keyword hits, or fuzzy normalization as proof that a
+  scene used a world fact, relationship, motivation, promise, or endpoint well.
+- using keyword/overlap heuristics to skip a semantic judge when the artifact
+  has explicit stable IDs saying the dimension is applicable.
+
+Heuristics may enumerate candidates, prioritize review, or produce warning-only
+signals. They do not satisfy semantic dimensions and must not suppress semantic
+review when exact IDs declare the obligation.
 
 Semantic checks require labels before promotion. They may run as warnings while
 we collect data.

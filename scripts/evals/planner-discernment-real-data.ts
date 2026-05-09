@@ -357,13 +357,8 @@ function applicabilitySkipReason(dimension: Dimension, excerpt: PlannerExcerpt):
   if (dimension !== "relationshipDelta") return null
   const otherRequiredCharacters = new Set(excerpt.requiredCharacterIds.filter(id => id !== excerpt.povCharacterId))
   if (otherRequiredCharacters.size === 0) return "scene does not require a non-POV character"
-  if (!RELATIONSHIP_PRESSURE_PATTERN.test(excerpt.text)) {
-    return "scene has multiple characters but no deterministic relationship-pressure signal"
-  }
   return null
 }
-
-const RELATIONSHIP_PRESSURE_PATTERN = /\b(ally|alliance|betray|betrayal|blackmail|debt|deal|distrust|friend|honor|intimacy|leverage|loyal|loyalty|owes?|partner|power|promise|rival|rivalry|suspicion|trust|warns?|watches|withholds?)\b/i
 
 function summarize(results: DiscernmentResult[]): ArmDimensionSummary[] {
   const groups = new Map<string, DiscernmentResult[]>()

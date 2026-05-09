@@ -231,3 +231,29 @@ calibration knob. It should strengthen the upstream scene contract so each
 planned scene carries a character-specific choice, a concrete relationship or
 world-pressure change when applicable, and a dramatized consequence before the
 writer sees it.
+
+## Exact-ID Correction
+
+During the next POC diagnostic slice, rejected a fuzzy deterministic shortcut
+that tried to infer active scene pressure from seed-word overlap. That violated
+the stable-ID norm already captured in `docs/lessons-learned.md`: deterministic
+contract checks must not turn text overlap into semantic proof.
+
+The corrected plan diagnostic checks explicit structure only:
+
+- `choiceAlternatives` is a declared field, not parsed from prose;
+- every scene must declare obligations if it wants deterministic pressure
+  evidence;
+- obligation `sourceId` values must exactly match known character, world-fact,
+  protagonist, or story-debt IDs;
+- semantic claims such as "the world fact mattered" or "the motivation was
+  character-specific" stay in the scene semantic review/operator layer.
+
+Follow-up scan found the same risk in two eval surfaces and corrected them:
+
+- `corpus-recreation-semantic-review` applicability now uses exact obligation
+  `sourceId`s only, not character/world keyword overlap in scene prose.
+- `planner-discernment-real-data` no longer suppresses `relationshipDelta`
+  judging because a relationship-keyword regex did not fire.
+- method-pack deterministic diagnostics now state that a structural lift only
+  advances to semantic review; it is not production promotion evidence.
