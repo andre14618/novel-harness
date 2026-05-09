@@ -24,9 +24,16 @@ describe("corpus-recreation-readiness", () => {
           outcome: "Nara gets through.",
           consequence: "The bells mark her passage.",
         }],
+        sceneTurns: [{
+          sceneTurnId: "turn-ch02-ward-crossing",
+          sceneId: "analog-ch02-sc01",
+          summary: "Nara crosses the ward and the bells expose the key's cost.",
+          turnType: "cost",
+        }],
         obligations: [{
           obligationId: "obl-bells",
           sceneId: "analog-ch02-sc01",
+          sceneTurnId: "turn-ch02-ward-crossing",
           sourceId: "world-aurora-bells",
           threadId: "thread-key-cost",
           promiseId: "debt-key-cost",
@@ -45,6 +52,7 @@ describe("corpus-recreation-readiness", () => {
             relevantWorldFactIds: ["world-aurora-bells"],
             relevantCharacterIds: [],
             obligationIds: ["obl-bells"],
+            sceneTurnIds: ["turn-ch02-ward-crossing"],
             threadIds: ["thread-key-cost"],
             promiseIds: ["debt-key-cost"],
             payoffIds: ["payoff-key-cost-exposure"],
@@ -80,10 +88,11 @@ describe("corpus-recreation-readiness", () => {
         sourceIds: {
           obligationIds: ["obl-bells"],
           worldFactIds: ["world-aurora-bells"],
+          sceneTurnIds: ["turn-ch02-ward-crossing"],
           threadIds: ["thread-key-cost"],
           promiseIds: ["debt-key-cost"],
           payoffIds: ["payoff-key-cost-exposure"],
-          sourceIds: ["world-aurora-bells", "thread-key-cost", "debt-key-cost", "payoff-key-cost-exposure"],
+          sourceIds: ["world-aurora-bells", "turn-ch02-ward-crossing", "thread-key-cost", "debt-key-cost", "payoff-key-cost-exposure"],
         },
         rewritePacket: {
           proposalCandidate: {
@@ -104,6 +113,7 @@ describe("corpus-recreation-readiness", () => {
       expect(readiness.drafts).toHaveLength(1)
       expect(readiness.drafts[0]!.target.ref).toBe("analog-ch02-sc01")
       expect(readiness.drafts[0]!.preserveIds.worldFactIds).toEqual(["world-aurora-bells"])
+      expect(readiness.drafts[0]!.preserveIds.sceneTurnIds).toEqual(["turn-ch02-ward-crossing"])
       expect(readiness.drafts[0]!.preserveIds.threadIds).toEqual(["thread-key-cost"])
       expect(readiness.drafts[0]!.preserveIds.promiseIds).toEqual(["debt-key-cost"])
       expect(readiness.drafts[0]!.preserveIds.payoffIds).toEqual(["payoff-key-cost-exposure"])
@@ -132,6 +142,7 @@ describe("corpus-recreation-readiness", () => {
         obligations: [{
           obligationId: "obl-tovin-leverage",
           sceneId: "analog-ch05-sc01",
+          sceneTurnId: "turn-ch05-tovin-pressure",
           sourceId: "char-tovin",
           threadId: "thread-tovin-leverage",
           promiseId: "debt-key-cost",
@@ -155,6 +166,7 @@ describe("corpus-recreation-readiness", () => {
             ],
             promiseThreadMismatchIds: ["obl-tovin-leverage:debt-key-cost"],
             payoffThreadMismatchIds: [],
+            sceneTurnIds: ["turn-ch05-tovin-pressure"],
             unknownThreadIds: [],
             unknownPromiseIds: [],
             unknownPayoffIds: [],
@@ -171,6 +183,7 @@ describe("corpus-recreation-readiness", () => {
         fixIntents: ["split_or_reroute_cross_thread_pressure"],
         sourceIds: {
           obligationIds: ["obl-tovin-leverage"],
+          sceneTurnIds: ["turn-ch05-tovin-pressure"],
           threadIds: ["thread-key-cost", "thread-tovin-leverage"],
           promiseIds: ["debt-key-cost"],
         },
@@ -190,9 +203,11 @@ describe("corpus-recreation-readiness", () => {
       })
       expect(readiness.drafts).toHaveLength(1)
       expect(readiness.drafts[0]!.preserveIds.threadIds).toEqual(["thread-key-cost", "thread-tovin-leverage"])
+      expect(readiness.drafts[0]!.preserveIds.sceneTurnIds).toEqual(["turn-ch05-tovin-pressure"])
       expect(readiness.drafts[0]!.preserveIds.promiseIds).toEqual(["debt-key-cost"])
       const rendered = renderCorpusRecreationReadinessAggregate(aggregate)
       expect(rendered).toContain("THREADREF-1")
+      expect(rendered).toContain("Preserve scene turns: turn-ch05-tovin-pressure")
       expect(rendered).toContain("Preserve promises: debt-key-cost")
       expect(rendered).toContain("split into separate obligations")
     } finally {

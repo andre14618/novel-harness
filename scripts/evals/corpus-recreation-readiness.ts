@@ -52,6 +52,7 @@ interface CorpusReadinessGroup {
     obligationIds: string[]
     characterIds: string[]
     worldFactIds: string[]
+    sceneTurnIds: string[]
     threadIds: string[]
     promiseIds: string[]
     payoffIds: string[]
@@ -192,6 +193,7 @@ export function renderCorpusRecreationReadinessAggregate(report: CorpusReadiness
     lines.push(`Preserve obligations: ${group.sourceIds.obligationIds.join(", ") || "none"}`)
     lines.push(`Preserve characters: ${group.sourceIds.characterIds.join(", ") || "none"}`)
     lines.push(`Preserve world facts: ${group.sourceIds.worldFactIds.join(", ") || "none"}`)
+    lines.push(`Preserve scene turns: ${group.sourceIds.sceneTurnIds.join(", ") || "none"}`)
     lines.push(`Preserve threads: ${group.sourceIds.threadIds.join(", ") || "none"}`)
     lines.push(`Preserve promises: ${group.sourceIds.promiseIds.join(", ") || "none"}`)
     lines.push(`Preserve payoffs: ${group.sourceIds.payoffIds.join(", ") || "none"}`)
@@ -309,6 +311,10 @@ function threadRefGroupsFromPlanComparison(args: {
         ...stringArray(diagnostic.unknownThreadIds),
         ...repairHints.expectedThreadIds,
         ...obligations.map(obligation => String(obligation.threadId ?? "")).filter(Boolean),
+      ],
+      sceneTurnIds: [
+        ...stringArray(diagnostic.sceneTurnIds),
+        ...obligations.map(obligation => String(obligation.sceneTurnId ?? "")).filter(Boolean),
       ],
       promiseIds: [
         ...stringArray(diagnostic.unknownPromiseIds),
@@ -428,7 +434,7 @@ function obligationsForScene(plan: any, sceneId: string): any[] {
 }
 
 function isThreadRefIssue(issue: string): boolean {
-  return /threadId|promiseId|payoffId/u.test(issue)
+  return /threadId|promiseId|payoffId|sceneTurnId/u.test(issue)
 }
 
 function sourceIdsFor(result: any, obligations: any[]): CorpusReadinessGroup["sourceIds"] {
@@ -438,6 +444,10 @@ function sourceIdsFor(result: any, obligations: any[]): CorpusReadinessGroup["so
   ])
   const characterIds = unique(stringArray(result.relevantCharacterIds))
   const worldFactIds = unique(stringArray(result.relevantWorldFactIds))
+  const sceneTurnIds = unique([
+    ...stringArray(result.sceneTurnIds),
+    ...obligations.map(obligation => String(obligation.sceneTurnId ?? "")).filter(Boolean),
+  ])
   const threadIds = unique([
     ...stringArray(result.threadIds),
     ...obligations.map(obligation => String(obligation.threadId ?? "")).filter(Boolean),
@@ -453,12 +463,13 @@ function sourceIdsFor(result: any, obligations: any[]): CorpusReadinessGroup["so
   const sourceIds = unique([
     ...characterIds,
     ...worldFactIds,
+    ...sceneTurnIds,
     ...threadIds,
     ...promiseIds,
     ...payoffIds,
     ...obligations.map(obligation => String(obligation.sourceId ?? "")).filter(Boolean),
   ])
-  return { obligationIds, characterIds, worldFactIds, threadIds, promiseIds, payoffIds, sourceIds }
+  return { obligationIds, characterIds, worldFactIds, sceneTurnIds, threadIds, promiseIds, payoffIds, sourceIds }
 }
 
 function rewriteGoalsFor(finding: CorpusReadinessFinding, scene: any): string[] {

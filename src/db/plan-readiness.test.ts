@@ -127,6 +127,7 @@ function draft(overrides: Partial<PlanReadinessItemDraft> = {}): PlanReadinessIt
       obligationIds: ["obl-1"],
       characterIds: ["char-hero", "char-rival"],
       worldFactIds: ["world-oath-road"],
+      sceneTurnIds: ["turn-choice-1"],
       threadIds: ["thread-main"],
       promiseIds: ["debt-main"],
       payoffIds: ["payoff-main"],

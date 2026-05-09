@@ -364,6 +364,7 @@ function aggregate() {
             obligationIds: ["obl-route-1"],
             characterIds: ["char-istra", "char-vey"],
             worldFactIds: ["world-oath-road"],
+            sceneTurnIds: ["turn-route-choice"],
             threadIds: ["thread-route"],
             promiseIds: ["debt-route"],
             payoffIds: ["payoff-route"],

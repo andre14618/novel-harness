@@ -196,6 +196,10 @@ graph-ready artifact seam: deterministic validation catches unknown,
 duplicate, and cross-scene turn refs, but the lane does not build a graph,
 change the DB, or change default writer behavior.
 
+Preservation update: Plan Readiness preserve packets now include
+`sceneTurnIds`, so manual review and future rewrite packets keep the parent
+turn grouping alongside obligation/thread/promise/payoff IDs.
+
 ### Lane 3 - Thread Map Diagnostics
 
 Produce a read-only thread map from a plan artifact.
