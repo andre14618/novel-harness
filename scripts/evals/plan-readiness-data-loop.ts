@@ -69,6 +69,7 @@ interface LoopAction {
   kind: "disposition" | "proposal"
   itemId: string
   label: string
+  targetKind: string
   targetRef: string
   status?: string
   operatorDisposition?: string
@@ -249,7 +250,7 @@ export function renderLoopReport(report: LoopReport): string {
       : action.proposalEnvelopeId
         ? ` proposal=${action.proposalEnvelopeId}${action.resolutionStatus ? ` resolution=${action.resolutionStatus}` : ""}`
         : ""
-    lines.push(`- ${action.kind}: ${action.label} ${action.targetRef} ${action.status ?? action.action ?? ""}${suffix}`.trim())
+    lines.push(`- ${action.kind}: ${action.label} ${action.targetKind}:${action.targetRef} ${action.status ?? action.action ?? ""}${suffix}`.trim())
   }
   lines.push("")
   lines.push("## Outcomes")
@@ -420,6 +421,7 @@ async function applySampleReviewActions(
       kind: "disposition",
       itemId: item.id,
       label: item.diagnosticLabel,
+      targetKind: item.target.kind,
       targetRef: item.target.ref,
       status: spec.status,
       operatorDisposition: spec.operatorDisposition,
@@ -455,6 +457,7 @@ async function applyPlannedReviewActions(
         kind: isProposalDecision(planAction.decision) ? "proposal" : "disposition",
         itemId: "(unmatched)",
         label: planAction.match.label ?? "(any-label)",
+        targetKind: planAction.match.targetKind ?? "(any-kind)",
         targetRef: planAction.match.targetRef ?? "(any-target)",
         status: isProposalDecision(planAction.decision) ? undefined : planAction.decision,
         action: isProposalDecision(planAction.decision) ? planAction.decision : undefined,
@@ -501,6 +504,7 @@ async function applyPlannedReviewActions(
       kind: "disposition",
       itemId: item.id,
       label: item.diagnosticLabel,
+      targetKind: item.target.kind,
       targetRef: item.target.ref,
       status: planAction.decision,
       operatorDisposition: operatorDispositionForDecision(planAction.decision),
@@ -534,6 +538,7 @@ async function createFieldReplaceProposal(
       kind: "proposal",
       itemId: item.id,
       label: item.diagnosticLabel,
+      targetKind: item.target.kind,
       targetRef: item.target.ref,
       action: "field_replace",
       error: "field_replace disposition action requires proposedValue",
@@ -564,6 +569,7 @@ async function createFieldReplaceProposal(
     kind: "proposal",
     itemId: item.id,
     label: item.diagnosticLabel,
+    targetKind: item.target.kind,
     targetRef: item.target.ref,
     action: "field_replace",
     proposalEnvelopeId: typeof envelopeId === "string" ? envelopeId : undefined,
@@ -594,6 +600,7 @@ async function createRemoveRequirementProposal(
       kind: "proposal",
       itemId: item.id,
       label: item.diagnosticLabel,
+      targetKind: item.target.kind,
       targetRef: item.target.ref,
       action: "beat_requirement_remove",
       error: "no removable requirement found",
@@ -615,6 +622,7 @@ async function createRemoveRequirementProposal(
     kind: "proposal",
     itemId: item.id,
     label: item.diagnosticLabel,
+    targetKind: item.target.kind,
     targetRef: item.target.ref,
     action: "beat_requirement_remove",
     proposalEnvelopeId: typeof envelopeId === "string" ? envelopeId : undefined,

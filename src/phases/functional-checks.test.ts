@@ -92,7 +92,8 @@ test("payoff-link issues carry durable beatId / factId / payoffBeatId on enriche
   // `FunctionalIssue` shape only exposed `beat_index`. Once the outline is
   // enriched (production read path always enriches), findings carry stable
   // `beatId`, `factId`, and `payoffBeatId` so downstream impact lookups can
-  // join to `beat_plan` / `world_fact` targets without parsing strings.
+  // join to scene-level targets (`scene_plan`, with legacy `beat_plan` for older
+  // rows) / `world_fact` without parsing strings.
   const outline = baseOutline({
     establishedFacts: [{ id: "cure", fact: "The bell tower hides the fever cure", category: "knowledge" }],
     scenes: [

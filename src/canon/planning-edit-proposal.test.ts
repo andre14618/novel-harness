@@ -366,7 +366,7 @@ describe("planning edit proposals", () => {
     }).success).toBe(false)
   })
 
-  test("beat character ref arrays validate as stable-id planning fields", () => {
+  test("scene-plan target fields validate as stable-id planning fields", () => {
     expect(planningEditTargetSchema.safeParse({
       kind: "scene_plan",
       ref: "beat-a",
@@ -377,6 +377,7 @@ describe("planning edit proposals", () => {
       ref: "beat-a",
       fieldPath: "affectedCharacterIds",
     }).success).toBe(true)
+    // Keep legacy alias for older payloads.
     expect(planningEditTargetSchema.safeParse({
       kind: "beat_plan",
       ref: "beat-a",
@@ -393,6 +394,8 @@ describe("planning edit proposals", () => {
   })
 
   test("structural action targets and proposed values validate deterministically", () => {
+    // Structural action contracts are intentionally still exercised with
+    // `beat_plan` to match existing route/action compatibility.
     expect(validatePlanningEditActionTarget("beat_replace", {
       kind: "beat_plan",
       ref: "beat-a",
@@ -534,6 +537,8 @@ describe("planning edit proposals", () => {
         proposedValue: "dialogue",
       },
     )).toBe(false)
+    // Alias mapping keeps `scene_plan` and `beat_plan` on the same underlying
+    // artifact for compatibility checks.
     expect(planningEditTargetsSameArtifact(
       {
         action: "field_replace",

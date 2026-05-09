@@ -275,7 +275,8 @@ describe("buildBeatCoverageProposalsFromLlm", () => {
     // `enrichOutlineIds` via `saveChapterOutline()`, so beat.beatId is
     // populated. The producer threads that durable ref into the proposal
     // payload's beatRef so downstream impact lookups can join findings to
-    // beat_plan targets without parsing positional `b<n>` strings.
+    // scene_plan targets (legacy `beat_plan` fallback) without parsing
+    // positional `b<n>` strings.
     const enriched = fixtureOutline()
     enrichOutlineIds(enriched)
     const expectedBeatId = enriched.scenes[1]!.beatId

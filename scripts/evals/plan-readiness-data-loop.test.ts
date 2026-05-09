@@ -52,6 +52,7 @@ describe("plan-readiness-data-loop", () => {
         kind: "proposal",
         itemId: "readiness-1",
         label: "REL-1",
+        targetKind: "scene_plan",
         targetRef: "sc-01-01",
         action: "field_replace",
         proposalEnvelopeId: "proposal-1",
@@ -82,6 +83,7 @@ describe("plan-readiness-data-loop", () => {
     })
 
     expect(rendered).toContain("Plan Readiness Data Loop")
+    expect(rendered).toContain("proposal: REL-1 scene_plan:sc-01-01 field_replace")
     expect(rendered).toContain("checkerObservations=1")
     expect(rendered).toContain("does not prove story-quality improvement")
   })

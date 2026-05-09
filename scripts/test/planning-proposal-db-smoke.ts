@@ -128,6 +128,42 @@ const cases: SmokeCase[] = [
     },
   },
   {
+    name: "scene-plan field replace apply lineage",
+    run: async (novelId) => {
+      const sceneId = "ch-001-ledger-test-beat-001-ledger-breaks"
+      const created = await expectJson(await invoke("POST", `/api/novel/${novelId}/planning-proposals`, {
+        target: {
+          kind: "scene_plan",
+          ref: sceneId,
+          fieldPath: "description",
+        },
+        previousValue: "Istra proves the ledger is forged and chooses to protect Wren.",
+        proposedValue: "Istra proves the forged ledger in public and decides whether to protect Wren.",
+        rationale: "Use scene-first naming for a normal field replacement.",
+      }))
+      assert.equal(created.status, 200)
+      assert.equal(created.body.envelope.payload.action, "field_replace")
+
+      const resolved = await expectJson(await invoke(
+        "POST",
+        `/api/novel/${novelId}/planning-proposals/${encodeURIComponent(created.body.envelope.id)}/resolve`,
+        { status: "approved", resolvedBy: "test" },
+      ))
+      assert.equal(resolved.status, 200)
+      assert.equal(resolved.body.ok, true)
+
+      const persisted = await getChapterOutline(novelId, 1)
+      assert.equal(persisted.scenes[0].description, "Istra proves the forged ledger in public and decides whether to protect Wren.")
+      const lineage = await listPlanningMutationLineageForRefs(novelId, [sceneId])
+      assert.ok(lineage.some((row) =>
+        row.targetKind === "scene_plan" &&
+        row.previousRef === sceneId &&
+        row.nextRef === sceneId &&
+        row.fieldPath === "description"
+      ))
+    },
+  },
+  {
     name: "stale precondition",
     run: async (novelId) => {
       const created = await expectJson(await invoke("POST", `/api/novel/${novelId}/planning-proposals`, {
