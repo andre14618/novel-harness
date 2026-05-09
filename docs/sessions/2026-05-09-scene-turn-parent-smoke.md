@@ -133,3 +133,45 @@ Conclusion: `thread-context-v1` was safe in this one-scene-call chapter sample,
 but it did not visibly beat baseline under the current automated judges. Treat
 it as still diagnostic/default-off until there is a larger paired sample or
 operator preference evidence.
+
+## Expanded Writer-Context Pair
+
+Ran the same baseline vs `thread-context-v1` scene-call write/review pair for
+chapters 1 and 5, reusing the already-validated v4 plans:
+
+```bash
+bun scripts/evals/corpus-recreation-poc.ts --plan-from output/corpus-recreation-poc/scene-turn-v4-smoke-ch1-20260509 --output-dir output/corpus-recreation-poc/scene-turn-v4-write-ch1-20260509 --live --write --scene-calls --model deepseek-v4-flash
+bun scripts/evals/corpus-recreation-poc.ts --plan-from output/corpus-recreation-poc/scene-turn-v4-smoke-ch1-20260509 --output-dir output/corpus-recreation-poc/scene-turn-v4-thread-context-write-ch1-20260509 --live --write --scene-calls --writer-context thread-context-v1 --model deepseek-v4-flash
+bun scripts/evals/corpus-recreation-poc.ts --plan-from output/corpus-recreation-poc/scene-turn-v4-smoke-ch5-20260509 --output-dir output/corpus-recreation-poc/scene-turn-v4-write-ch5-20260509 --live --write --scene-calls --model deepseek-v4-flash
+bun scripts/evals/corpus-recreation-poc.ts --plan-from output/corpus-recreation-poc/scene-turn-v4-smoke-ch5-20260509 --output-dir output/corpus-recreation-poc/scene-turn-v4-thread-context-write-ch5-20260509 --live --write --scene-calls --writer-context thread-context-v1 --model deepseek-v4-flash
+```
+
+Then ran semantic review, prose review, and static comparison pages:
+
+```bash
+bun scripts/evals/corpus-recreation-review.ts --poc-dir output/corpus-recreation-poc/scene-turn-v4-write-ch1-20260509 --poc-dir output/corpus-recreation-poc/scene-turn-v4-thread-context-write-ch1-20260509 --output output/corpus-recreation-poc/scene-turn-v4-ch1-baseline-vs-thread-context-20260509/review.html
+bun scripts/evals/corpus-recreation-review.ts --poc-dir output/corpus-recreation-poc/scene-turn-v4-write-ch5-20260509 --poc-dir output/corpus-recreation-poc/scene-turn-v4-thread-context-write-ch5-20260509 --output output/corpus-recreation-poc/scene-turn-v4-ch5-baseline-vs-thread-context-20260509/review.html
+```
+
+Results:
+
+- chapter 1 baseline: deterministic issues 0, word count 1069/1832, semantic
+  lows 1/21 (`motivationSpecificity` scene 1), prose operator-attention 0;
+- chapter 1 `thread-context-v1`: deterministic issues 0, word count 1135/1832,
+  semantic lows 0/21, prose operator-attention 0;
+- chapter 5 baseline: deterministic issues 0, word count 857/2255, semantic
+  lows 0/6, prose operator-attention 0;
+- chapter 5 `thread-context-v1`: deterministic issues 0, word count 754/2255,
+  semantic lows 0/6, prose operator-attention 0.
+
+Static review pages:
+
+- `output/corpus-recreation-poc/scene-turn-v4-ch1-baseline-vs-thread-context-20260509/review.html`
+- `output/corpus-recreation-poc/scene-turn-v4-ch5-baseline-vs-thread-context-20260509/review.html`
+
+Interpretation: the parent-child scene-turn shape remains clean across the
+paired prose samples. The thread-context arm is still not a promotion win: it
+improved one narrow chapter-1 motivation finding, tied prose review, and did
+not solve the broader under-expansion tendency. Keep it default-off and treat
+the useful promotion candidate as the ID lineage shape, not the current writer
+context packet.

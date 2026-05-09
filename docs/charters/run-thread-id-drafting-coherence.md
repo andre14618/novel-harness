@@ -86,6 +86,12 @@ can have multiple child obligations when one choice, reveal, cost, or reversal
 moves multiple story threads. Each child obligation still keeps exactly one
 `threadId` and any matching `promiseId`/`payoffId`.
 
+This is Option B: persist parent-child lineage now, derive a graph later. The
+repo does not need graph storage or traversal logic for the first slice. It
+only needs durable parent refs (`sceneTurnId`) and child refs
+(`obligationId`/`threadId`/`promiseId`/`payoffId`) that make a future graph
+mechanical to build without reinterpreting old artifacts.
+
 `obligationId` remains the local contract item a writer/checker can satisfy.
 Obligations can point to `threadId`, `promiseId`, and `payoffId`.
 
@@ -193,8 +199,8 @@ IDs preserved. This is a review surface, not an auto-rewrite.
 Option B follow-up: the corpus planner contract now supports additive
 `sceneTurns` and optional obligation `sceneTurnId` refs. This is only a
 graph-ready artifact seam: deterministic validation catches unknown,
-duplicate, and cross-scene turn refs, but the lane does not build a graph,
-change the DB, or change default writer behavior.
+duplicate, and cross-scene turn refs, but the lane does not build graph
+storage/traversal, change the DB, or change default writer behavior.
 
 Preservation update: Plan Readiness preserve packets now include
 `sceneTurnIds`, so manual review and future rewrite packets keep the parent
