@@ -8,13 +8,13 @@ date: 2026-05-06
 ## Decision
 
 Treat downstream calibration, hard caps, and `calibrated:packed` as diagnostic
-evidence, not the product direction for shaping novels. The next active lever
-is upstream: concept/planning should author a native chapter contract and a
-small set of complete story-turn beats before drafting starts.
+evidence, not the product direction for shaping novels. The production planner
+now authors a native chapter contract and a small set of complete story-turn
+beats before drafting starts.
 
-Ship this only as a default-off experiment until evidence proves it improves
-planning shape, downstream obligation mapping, drafting length, and semantic
-stability.
+This is the expected runtime path, not a side project. Legacy behavior remains
+available with `pipelineOverrides.nativePlanningContractV1=false` for rollback
+or controlled comparison.
 
 ## Rationale
 
@@ -31,7 +31,7 @@ obligations to those native beats rather than to micro-actions or packed lists.
 
 ## Initial Implementation
 
-`pipelineOverrides.nativePlanningContractV1=true` enables the first experiment:
+`pipeline.nativePlanningContractV1=true` is the production default:
 
 - `planning-plotter` context asks chapter purposes to state the upstream
   contract, not a hidden beat list.
@@ -39,8 +39,8 @@ obligations to those native beats rather than to micro-actions or packed lists.
   warns against micro-actions, transit-only beats, and packed bullet lists.
 - Planning enforcement retries over-fragmented chapters and rejects them if
   they still exceed the native budget. It does not slice or pack.
-- `scripts/test-planner-isolated.ts --native-planning-contract` can run
-  concept -> planning and report beat counts before drafting.
+- `pipelineOverrides.nativePlanningContractV1=false` restores the legacy
+  planner shape for disposable comparisons or emergency rollback.
 
 ## Evidence Gate
 
@@ -52,9 +52,9 @@ First compare legacy vs native-contract planning from concept/planning:
 - planning LLM call failures/truncation/headroom;
 - downstream drafting word ratio and semantic-gate signals on selected samples.
 
-Promotion requires a cohort showing better native plan shape without worse
-semantic stability. A passing planner-only smoke is not enough to make this a
-default.
+Runtime review should now measure the promoted path directly. Evidence should
+focus on whether the expected runtime improves coherent plans and draft quality,
+not on keeping a separate POC alive.
 
 ## 2026-05-06 Smoke
 
@@ -129,13 +129,20 @@ planning as a drafting-quality win.
 
 ## 2026-05-09 Character-Stake Context Hook
 
-The default-off native planning prompt now asks chapter contracts and native
+The production native planning prompt asks chapter contracts and native
 story-turn beats to surface the POV's personal stake when motive or choice is
 load-bearing. Beat objects may emit optional `povPersonalStake`, which the
-production writer-context capsules can pass through to drafting. This is not a
-new checker blocker and does not promote native planning by itself; it closes
-the data path needed to measure whether upstream character stakes improve
-drafting coherence.
+production writer-context capsules pass through to drafting. This is not a new
+checker blocker; it is context for writer coherence and telemetry.
+
+## 2026-05-09 Runtime Promotion
+
+Native planning moved from default-off diagnostic to production default because
+the net-positive pieces are infrastructure-aligned: upstream chapter contracts,
+story-turn granularity, stable IDs, character stakes, and downstream writer
+context are all part of the expected harness runtime. The remaining story-risk
+findings are now runtime quality signals to improve, not reasons to keep the
+main planner on the older micro-beat shape.
 
 ## Non-Goals
 

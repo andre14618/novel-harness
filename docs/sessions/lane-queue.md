@@ -17,11 +17,10 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Upstream native planning contract is directional hold after the controlled
-  3-chapter planner comparison and planner-quality diagnostic: better beat
-  budget, mapper pressure, and weak-turn count, but endpoint satisfaction and
-  listed-character materiality still need upstream work. Next choose whether to
-  revise concept/planning contracts or draft the controlled pair; see L088.
+- Native chapter contracts and story-turn planning are now the production
+  runtime default, with legacy rollback via seed override. Next gather direct
+  runtime drafting evidence and improve endpoint satisfaction plus listed-
+  character materiality in the main planner path; see L088.
 - Evaluate upstream structure-template scaffolds, including commercial
   chapter-function templates, as concept/planning diagnostics before touching
   drafting/checking/UI. Hold other layers steady unless the test explicitly
@@ -91,10 +90,9 @@ unless the user explicitly requests a disposable branch.
   Audits show zero dropped obligations and zero dropped payoffs across all
   12 cells, but is now diagnostic evidence only per L088. Record:
   `docs/sessions/2026-05-06-pickup-planner-shape-baseline.md`.
-- `nativePlanningContractV1` first slice shipped: default-off concept/planning
-  context guidance, over-fragmentation retry/reject enforcement, and
-  `test-planner-isolated` runner flag. Smoke on `phase-parity-smoke` produced
-  5 beats for 1500w with clean planning token headroom.
+- `nativePlanningContractV1` shipped and is now the production default:
+  concept/planning contract guidance, over-fragmentation retry/reject
+  enforcement, and legacy rollback with `nativePlanningContractV1=false`.
 - Controlled comparison on frozen `fantasy-system-heretic` concept produced
   legacy 24 beats vs native 18 beats. Native improved mapper headroom and
   avoided visible payoff-link sanitation, but still needs story-quality and

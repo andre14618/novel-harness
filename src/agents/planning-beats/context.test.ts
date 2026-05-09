@@ -55,7 +55,7 @@ test("planning beat context renders calibrated beat count guidance", () => {
   expect(context).not.toContain("100-140 words")
 })
 
-test("planning beat context renders default-off experiment cap guidance", () => {
+test("planning beat context renders explicit planning max override guidance", () => {
   const context = buildContext({
     targetChapter: chapter(1, 1500),
     allSkeletons: [chapter(1, 1500)],
@@ -103,11 +103,11 @@ test("planning beat context renders default-off experiment cap guidance", () => 
     },
   } as Parameters<typeof buildContext>[0])
 
-  expect(context).toContain("Planning max for this experiment: 4 beats")
+  expect(context).toContain("Planning max override: 4 beats")
   expect(context).toContain("Do not exceed this cap")
 })
 
-test("planning beat context renders native contract guidance without cap language", () => {
+test("planning beat context renders native contract guidance by default with explicit legacy override", () => {
   const context = buildContext({
     targetChapter: chapter(1, 1500),
     allSkeletons: [chapter(1, 1500)],
@@ -151,17 +151,63 @@ test("planning beat context renders native contract guidance without cap languag
       genre: "fantasy",
       premise: "A scribe hides a dangerous record",
       characters: [{ name: "Istra Venn", role: "protagonist", description: "A precise archivist" }],
-      pipelineOverrides: { nativePlanningContractV1: true },
+    },
+  } as Parameters<typeof buildContext>[0])
+  const legacy = buildContext({
+    targetChapter: chapter(1, 1500),
+    allSkeletons: [chapter(1, 1500)],
+    priorChapters: [],
+    worldBible: {
+      setting: "A test city",
+      timePeriod: "now",
+      geography: "streets and archives",
+      politicalStructure: "council",
+      technologyConstraints: "paper records",
+      socialCustoms: [],
+      sensoryPalette: "dust and ink",
+      rules: ["Records matter"],
+      locations: [{ name: "Archive", description: "A narrow archive" }],
+      culture: "archival",
+      history: "old records shaped the city",
+      systems: [],
+      cultures: [],
+    },
+    characters: [{
+      id: "char-istra-venn",
+      name: "Istra Venn",
+      role: "protagonist",
+      backstory: "",
+      traits: ["precise"],
+      speechPattern: "plain",
+      goals: "protect the archive",
+      fears: "losing the records",
+      relationships: [],
+      culturalBackground: [],
+      systemAwareness: [],
+      exampleLines: [],
+    }],
+    spine: {
+      acts: [],
+      centralConflict: "truth vs safety",
+      theme: "truth has a cost",
+      endingDirection: "hard-won clarity",
+    },
+    seed: {
+      genre: "fantasy",
+      premise: "A scribe hides a dangerous record",
+      characters: [{ name: "Istra Venn", role: "protagonist", description: "A precise archivist" }],
+      pipelineOverrides: { nativePlanningContractV1: false },
     },
   } as Parameters<typeof buildContext>[0])
 
-  expect(context).toContain("Native planning contract experiment")
+  expect(context).toContain("Native planning contract")
   expect(context).toContain("Author exactly 5 complete story-turn beats")
   expect(context).toContain("include povPersonalStake")
   expect(context).toContain("want, need, fear")
   expect(context).toContain("Do not emit micro-actions")
   expect(context).toContain("final beat must preserve the chapter endpoint/hook")
-  expect(context).not.toContain("Planning max for this experiment")
+  expect(context).not.toContain("Planning max override")
+  expect(legacy).not.toContain("Native planning contract")
 })
 
 test("planning beat context carries native-contract retry feedback", () => {

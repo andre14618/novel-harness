@@ -76,7 +76,7 @@ export function enforcePlanningOutput(
     }
     const policy = planningBeatCountPolicy(target, options.maxBeatsPerChapter)
     if (policy.effectiveMaxBeats !== null && ch.scenes.length > policy.effectiveMaxBeats) {
-      errors.push(`Chapter ${ch.chapterNumber}: ${ch.scenes.length} beats above experiment cap ${policy.effectiveMaxBeats} for ${target}w target`)
+      errors.push(`Chapter ${ch.chapterNumber}: ${ch.scenes.length} beats above planning max ${policy.effectiveMaxBeats} for ${target}w target`)
     }
     if (options.nativePlanningContractV1) {
       const assessment = assessBeatCountForTarget(target, ch.scenes.length)

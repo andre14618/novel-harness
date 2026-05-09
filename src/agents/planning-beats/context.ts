@@ -6,6 +6,7 @@ import type { ChapterOutline } from "../planning-plotter/schema"
 import { renderDirectivesForPlanner } from "../../schemas/planning-directives"
 import { resolveStructuralPriors, renderStructuralPriorsForPlanner } from "../../models/roles"
 import { planningBeatCountPolicy } from "../../harness/beat-counts"
+import { resolveNativePlanningContractV1 } from "../../config/pipeline"
 
 function renderSkeletonLine(sk: ChapterOutline): string {
   const chars = sk.charactersPresent?.length ? ` [${sk.charactersPresent.join(", ")}]` : ""
@@ -73,7 +74,7 @@ Characters present: ${(targetChapter.charactersPresent ?? []).join(", ")}
 
 Minimum beats required: ${beatPolicy.minRecommendedBeats} (current writer usually produces ~300-450 words per planned beat).
 ${renderBeatCapGuidance(beatPolicy)}
-${renderNativePlanningContractGuidance(beatPolicy, Boolean(seed.pipelineOverrides?.nativePlanningContractV1))}`
+${renderNativePlanningContractGuidance(beatPolicy, resolveNativePlanningContractV1(seed.pipelineOverrides))}`
 
   const directivesSection = seed.directives ? renderDirectivesForPlanner(seed.directives) : ""
   const priors = resolveStructuralPriors(seed.genre)
@@ -100,7 +101,7 @@ function renderBeatCapGuidance(policy: ReturnType<typeof planningBeatCountPolicy
     const floorNote = policy.capRaisedToFloor
       ? ` Configured cap ${policy.configuredMaxBeats} is below the calibrated floor, so ${policy.effectiveMaxBeats} is the effective cap.`
       : ""
-    return `Recommended: ${policy.recommendedBeats} beats. Planning max for this experiment: ${policy.effectiveMaxBeats} beats.${floorNote} Do not exceed this cap.`
+    return `Recommended: ${policy.recommendedBeats} beats. Planning max override: ${policy.effectiveMaxBeats} beats.${floorNote} Do not exceed this cap.`
   }
   return `Recommended: ${policy.recommendedBeats} beats. Do not exceed recommended by more than 1 unless the chapter has multiple distinct set pieces.`
 }
@@ -111,5 +112,5 @@ function renderNativePlanningContractGuidance(
 ): string {
   if (!enabled) return ""
   return `
-Native planning contract experiment: Author exactly ${policy.recommendedBeats} complete story-turn beats for this chapter. Each beat should be large enough to draft into roughly 300-450 words and must carry a concrete pressure, choice, reveal, reversal, or consequence. When the beat turns on the POV's motive or choice, include povPersonalStake naming the specific want, need, fear, lie, truth, wound, oath, shame, or relationship pressure that makes the action matter. Do not emit micro-actions, transit-only beats, or packed bullet lists. The final beat must preserve the chapter endpoint/hook named in the skeleton purpose.`
+Native planning contract: Author exactly ${policy.recommendedBeats} complete story-turn beats for this chapter. Each beat should be large enough to draft into roughly 300-450 words and must carry a concrete pressure, choice, reveal, reversal, or consequence. When the beat turns on the POV's motive or choice, include povPersonalStake naming the specific want, need, fear, lie, truth, wound, oath, shame, or relationship pressure that makes the action matter. Do not emit micro-actions, transit-only beats, or packed bullet lists. The final beat must preserve the chapter endpoint/hook named in the skeleton purpose.`
 }

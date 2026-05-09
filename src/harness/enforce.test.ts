@@ -71,7 +71,7 @@ test("planning enforcement accepts a compact 1500 word chapter at four beats", (
   expect(result.errors).toEqual([])
 })
 
-test("planning enforcement rejects outlines above the experiment cap", () => {
+test("planning enforcement rejects outlines above the planning max override", () => {
   const outline = chapter({
     targetWords: 1500,
     scenes: [
@@ -87,10 +87,10 @@ test("planning enforcement rejects outlines above the experiment cap", () => {
   const result = enforcePlanningOutput([outline], 1, [character("Istra Venn")], { maxBeatsPerChapter: 5 })
 
   expect(result.valid).toBe(false)
-  expect(result.errors).toEqual(["Chapter 1: 6 beats above experiment cap 5 for 1500w target"])
+  expect(result.errors).toEqual(["Chapter 1: 6 beats above planning max 5 for 1500w target"])
 })
 
-test("planning enforcement raises an experiment cap below the floor", () => {
+test("planning enforcement raises a planning max override below the floor", () => {
   const outline = chapter({
     targetWords: 2000,
     scenes: [

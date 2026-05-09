@@ -174,8 +174,8 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-08:
   Diagnostics UI expose risk drivers, candidate artifacts, action/proposal
   evidence, drift witnesses, writer expansion, checker evidence, and
   plan-assist lineage. Beat caps and `calibrated:packed` remain
-  diagnostic-only; L88 moves the active shape lever upstream to default-off
-  `nativePlanningContractV1` concept/planning tests with story-quality scoring.
+  diagnostic-only; L88 makes native chapter contracts and story-turn planning
+  the production default, with explicit legacy rollback via seed override.
 - Continuity findings do not open Drafting Plan-Assist Gates; fact-scoped
   blockers can optionally persist manual `editorial_flag` envelopes; see L84.
 - World fact roles are additive on `facts` and `canon_facts`; diagnostics

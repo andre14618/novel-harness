@@ -4,6 +4,7 @@ import type { CharacterProfile } from "../character-agent/schema"
 import type { StorySpine } from "../plotter/schema"
 import { renderDirectivesForPlanner } from "../../schemas/planning-directives"
 import { resolveStructuralPriors, renderStructuralPriorsForPlanner } from "../../models/roles"
+import { resolveNativePlanningContractV1 } from "../../config/pipeline"
 
 export function buildContext(
   worldBible: WorldBible,
@@ -83,9 +84,9 @@ ${spine.acts.map(a => `  Act ${a.number} — ${a.name}: ${a.summary} [${a.emotio
 
   const priors = resolveStructuralPriors(seed.genre)
   const structuralSection = priors ? renderStructuralPriorsForPlanner(priors) : ""
-  const nativeContractSection = seed.pipelineOverrides?.nativePlanningContractV1 ? `
+  const nativeContractSection = resolveNativePlanningContractV1(seed.pipelineOverrides) ? `
 
-UPSTREAM NATIVE PLANNING CONTRACT EXPERIMENT:
+UPSTREAM NATIVE PLANNING CONTRACT:
 For each chapter purpose, name the story function as a native chapter contract:
 the protagonist pressure, the irreversible change/reveal/choice, and the
 endpoint or hook that downstream beat planning must preserve. Include the

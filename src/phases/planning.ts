@@ -19,6 +19,7 @@ import { schema as stateRepairSchema, prompt as PLANNING_STATE_REPAIR_PROMPT, ty
 import { displayPhaseHeader, presentForApproval, formatChapterOutlines } from "../cli"
 import { emit } from "../events"
 import { log } from "../logger"
+import { pipeline, resolveNativePlanningContractV1 } from "../config/pipeline"
 import * as harness from "../harness"
 import { autogenPlannerProposalsAfterPlanning } from "../harness/planner-canon-proposals"
 import type { BeatObligationsContract, SceneBeat } from "../types"
@@ -44,8 +45,8 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   const characters = await getCharacters(novelId)
   const spine = await getStorySpine(novelId)
   const targetChapters = novel.seed.chapterCount ?? null
-  const planningMaxBeatsPerChapter = novel.seed.pipelineOverrides?.planningMaxBeatsPerChapter ?? null
-  const nativePlanningContractV1 = Boolean(novel.seed.pipelineOverrides?.nativePlanningContractV1)
+  const planningMaxBeatsPerChapter = novel.seed.pipelineOverrides?.planningMaxBeatsPerChapter ?? pipeline.planningMaxBeatsPerChapter
+  const nativePlanningContractV1 = resolveNativePlanningContractV1(novel.seed.pipelineOverrides)
 
   // ── Phase 1: chapter skeletons ──────────────────────────────────────
   const skeletonContext = buildPlanningContext(worldBible, characters, spine, novel.seed)
@@ -140,7 +141,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   }
 
   // Targeted retry: under-planned chapters always retry; native-contract
-  // experiments also retry over-fragmented chapters instead of slicing/packing.
+  // planning also retries over-fragmented chapters instead of slicing/packing.
   const retryIdx: Array<{ index: number; reason: string }> = []
   for (let i = 0; i < expanded.length; i++) {
     const ch = expanded[i]

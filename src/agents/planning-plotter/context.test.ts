@@ -2,20 +2,20 @@ import { expect, test } from "bun:test"
 
 import { buildContext } from "./context"
 
-test("planning plotter context renders native chapter contract guidance only when enabled", () => {
+test("planning plotter context renders native chapter contract guidance by default with explicit legacy override", () => {
   const base = buildContext(worldBible(), characters(), spine(), seed())
-  const native = buildContext(worldBible(), characters(), spine(), {
+  const legacy = buildContext(worldBible(), characters(), spine(), {
     ...seed(),
-    pipelineOverrides: { nativePlanningContractV1: true },
+    pipelineOverrides: { nativePlanningContractV1: false },
   })
 
-  expect(base).not.toContain("UPSTREAM NATIVE PLANNING CONTRACT EXPERIMENT")
-  expect(native).toContain("UPSTREAM NATIVE PLANNING CONTRACT EXPERIMENT")
-  expect(native).toContain("protagonist pressure")
-  expect(native).toContain("personal stake")
-  expect(native).toContain("want, need, fear")
-  expect(native).toContain("endpoint or hook")
-  expect(native).toContain("Do not hide a")
+  expect(base).toContain("UPSTREAM NATIVE PLANNING CONTRACT")
+  expect(base).toContain("protagonist pressure")
+  expect(base).toContain("personal stake")
+  expect(base).toContain("want, need, fear")
+  expect(base).toContain("endpoint or hook")
+  expect(base).toContain("Do not hide a")
+  expect(legacy).not.toContain("UPSTREAM NATIVE PLANNING CONTRACT")
 })
 
 function seed() {
