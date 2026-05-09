@@ -28,6 +28,7 @@ interface Args {
   referencePath: string
   chapterLabel: string
   outputDir: string
+  planFromDir: string | null
   live: boolean
   writeChapter: boolean
   sceneCalls: boolean
@@ -437,6 +438,7 @@ function parseArgs(argv = process.argv.slice(2)): Args {
     referencePath: typeof values.reference === "string" ? values.reference : DEFAULT_REFERENCE_PATH,
     chapterLabel: typeof values.chapter === "string" ? values.chapter : "1",
     outputDir: typeof values["output-dir"] === "string" ? values["output-dir"] : DEFAULT_OUTPUT_DIR,
+    planFromDir: typeof values["plan-from"] === "string" ? values["plan-from"] : null,
     live: values.live === true,
     writeChapter: values.write === true || values["write-chapter"] === true,
     sceneCalls: values["scene-calls"] === true || values["scene-writer"] === true,
@@ -1421,7 +1423,20 @@ async function main(): Promise<void> {
   let chapterComparison: ChapterComparison | null = null
   let writerContextReport: SceneWriterThreadContextReport | null = null
 
-  if (args.live) {
+  if (args.planFromDir) {
+    const sourcePlanPath = resolve(process.cwd(), args.planFromDir, "plan.json")
+    if (!existsSync(sourcePlanPath)) throw new Error(`--plan-from requires plan.json at ${sourcePlanPath}`)
+    const parsed = recreationPlanSchema.safeParse({ plan: JSON.parse(readFileSync(sourcePlanPath, "utf-8")) })
+    if (!parsed.success) {
+      throw new Error(`--plan-from plan invalid: ${parsed.error.issues.map(issue => `${issue.path.join(".")}: ${issue.message}`).join("; ")}`)
+    }
+    plan = parsed.data.plan
+    planComparison = comparePlanToReference(plan, packet, {
+      requireMaterialityTests: args.plannerVariant === "materiality-v1",
+    })
+    writeFileSync(join(outputDir, "plan.json"), `${JSON.stringify(plan, null, 2)}\n`)
+    writeFileSync(join(outputDir, "plan-comparison.json"), `${JSON.stringify(planComparison, null, 2)}\n`)
+  } else if (args.live) {
     const rawPlan = await callDeepSeekJson({
       model: args.model,
       thinking: args.thinking,
@@ -1444,6 +1459,7 @@ async function main(): Promise<void> {
   }
 
   if (args.writeChapter) {
+    if (!args.live) throw new Error("--write requires --live")
     if (!plan) throw new Error("--write requires --live so a plan exists")
     if (args.writerContextMode !== "baseline" && !args.sceneCalls) {
       throw new Error("--writer-context is only supported with --scene-calls")
@@ -1506,6 +1522,13 @@ async function main(): Promise<void> {
     },
     inputs: [
       artifactRef(referencePath, "corpus-structure-reference"),
+      ...existingArtifactRefs(args.planFromDir
+        ? [
+          { path: join(resolve(process.cwd(), args.planFromDir), "run-manifest.json"), role: "source-run-manifest" },
+          { path: join(resolve(process.cwd(), args.planFromDir), "plan.json"), role: "source-plan" },
+          { path: join(resolve(process.cwd(), args.planFromDir), "plan-comparison.json"), role: "source-plan-comparison" },
+        ]
+        : []),
     ],
     outputs: existingArtifactRefs([
       { path: join(outputDir, "packet.json"), role: "packet" },
@@ -1524,6 +1547,7 @@ async function main(): Promise<void> {
       writeChapter: args.writeChapter,
       sceneCalls: args.sceneCalls,
       writerContextMode: args.writerContextMode,
+      planFromDir: args.planFromDir,
       referencePath: args.referencePath,
     },
   }))

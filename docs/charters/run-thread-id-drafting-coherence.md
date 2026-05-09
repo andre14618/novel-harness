@@ -210,7 +210,9 @@ has an opt-in `--writer-context thread-context-v1` arm for scene-call drafting.
 The arm injects compact per-scene thread context only in the diagnostic POC;
 baseline prompts remain unchanged, and runtime writer context is not changed.
 Opt-in scene-call runs now persist `writer-context.json` with the exact
-per-scene thread packets used in writer prompts.
+per-scene thread packets used in writer prompts. The POC also supports
+`--plan-from <poc-dir>` so writer-context A/B runs can reuse the same validated
+plan and avoid planner-output confounds.
 
 ### Lane 5 - Scene Thread Semantic Review
 
