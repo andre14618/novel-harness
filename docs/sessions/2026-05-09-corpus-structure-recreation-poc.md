@@ -152,3 +152,19 @@ Findings:
 Next data step: run a small planned cohort over diverse chapter shapes and add
 operator/semantic review for story quality. Deterministic structure fit alone
 does not prove the analog chapter is compelling.
+
+## Beat/Semantic Conclusion
+
+Clarified decision in L092: existing semantic checks are real, but they were
+attached to the legacy beat-writing pipeline. They check beat event enactment,
+grounding, and chapter-plan drift; they were not proof that beat-sized chunks
+are the right future writing unit.
+
+For the next methodology slice:
+
+- scenes are the primary plan/write/check unit;
+- beats remain annotation, obligation, and traceability refs inside scenes;
+- adapt the existing narrow semantic judge/checker shape to scene contract plus
+  scene prose before inventing new checkers;
+- keep findings diagnostic/readiness-oriented until operator review and
+  downstream outcome data prove value.

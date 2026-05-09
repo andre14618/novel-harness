@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-07
+updated: 2026-05-09
 role: decision-index
 archive: decisions/full-log-2026-05-04.md
 ---
@@ -16,6 +16,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
+| L92 | 2026-05-09 | active | Scene is the next primary plan/write/check unit; beats remain annotation, obligation, and traceability granularity inside scenes while legacy beat checks are adapted upward where useful. | `docs/decisions/L092-scene-first-writing-beat-annotation.md` |
 | L91 | 2026-05-07 | active | Plan Readiness Review is the default checkpoint between planner diagnostics and drafting when diagnostics are available; items are conversational/manual and become changes only through `planning_edit` proposals. | `docs/decisions/L091-plan-readiness-review-default.md` |
 | L90 | 2026-05-07 | active | Active LLM calls use only DeepSeek V4 Flash or DeepSeek V4 Pro with per-role thinking level; legacy provider/model references are historical, not active routing permission. | `docs/decisions/L090-deepseek-only-active-model-policy.md` |
 | L89 | 2026-05-07 | active | Methodology experiments must name the optimized layer and isolate one layer at a time; current product focus is upstream concept/planning templates and plan quality, not broad UI/writer/checker changes. | `docs/decisions/L089-layer-scoped-methodology-experiments.md` |

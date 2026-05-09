@@ -28,7 +28,7 @@ unless the user explicitly requests a disposable branch.
   `docs/authoring-methodology-hypotheses.md`.
 - If pursuing scene-first methodology, treat `sceneId` as the plan/write/check
   unit and `obligationId`/`sourceId` as the traceability unit; do not preserve
-  beat-level adherence as the primary future contract by default.
+  beat-level adherence as the primary future contract by default. See L092.
 - Next docs/code slice should use `docs/planner-output-contract.md` as the
   target: template slot -> chapter contract -> scene contract -> obligations
   before writer/checker/UI changes.

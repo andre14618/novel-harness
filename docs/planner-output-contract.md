@@ -70,6 +70,25 @@ Under the scene-first method, checker adherence should be scene-scoped:
 Beat-index matching is legacy compatibility, not the future primary contract,
 unless the planner and writer are still operating at beat granularity.
 
+### Beat Annotation Boundary
+
+Existing semantic checks were built for a beat-writing pipeline, not for a
+complete beats-first story methodology. `adherence-events`,
+`halluc-ungrounded`, and `chapter-plan-checker` are useful semantic surfaces,
+but their current contracts assume legacy beat/chapter outline shapes.
+
+For the scene-first method:
+
+- `sceneId` is the writer/checker unit.
+- `beatId` can remain as an internal annotation ref inside a scene.
+- beat hints should preserve obligations, turns, source links, and audit
+  traceability.
+- scene-level semantic review should verify that the prose satisfies the
+  scene contract and covers required beat/obligation hints somewhere in the
+  scene, without forcing one prose chunk per beat.
+- new checkers should not be invented until the existing narrow LLM-judge
+  shape has been tried against scene contract plus scene prose.
+
 ### Operator
 
 The operator should eventually judge or adjust:

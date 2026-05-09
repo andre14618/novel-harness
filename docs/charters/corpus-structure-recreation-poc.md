@@ -193,3 +193,26 @@ Result:
 This supports a next diagnostic cohort, not a production promotion. The next
 question is whether multiple chapters and multiple source chapters still show
 the same scene-level plan/write stability.
+
+## Methodology Conclusion
+
+The POC supports a scene-first direction, not a return to beat-level writing.
+The corpus-derived beats are useful as annotation granularity: they capture
+turns, obligations, value movement, and source-linked structure inside scenes.
+They should not be promoted as the default writer-call unit just because they
+can be enumerated.
+
+Existing semantic checks are still relevant. The harness already has
+`adherence-events`, `halluc-ungrounded`, chapter-plan checking, and
+planner-discernment diagnostics. The conclusion is not that semantic checking
+is missing; it is that those checks currently target legacy beat/chapter
+surfaces. The next diagnostic should adapt the same narrow semantic-call shape
+to scene contract plus scene prose before creating new checkers.
+
+Initial scene semantic review should ask:
+
+- does the prose enact the scene goal, opposition, turn, outcome, and
+  consequence?
+- do required character/world/story obligations materially affect the scene?
+- do beat hints land somewhere in the scene without forcing beat-by-beat prose?
+- does the scene preserve structural function without copying source events?
