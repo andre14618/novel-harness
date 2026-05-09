@@ -836,3 +836,44 @@ single-scene chapter case. The remaining likely lever is a default-off
 writer-expansion diagnostic, not broader thread context. Any expansion arm
 should remain advisory/eval-only and should not turn production word counts
 back into blocking gates.
+
+## Default-Off Writer Expansion Arm
+
+Added explicit `--writer-expansion retry-short-scenes-v1` support to
+`diagnostics:corpus-recreation-poc`. This mode is off by default. When enabled
+for scene calls, a below-advisory-floor scene gets up to two additional attempts
+that receive the prior prose and ask for expansion through dramatized action,
+dialogue, interiority, and consequence. The best attempt is retained, and word
+count remains an advisory warning rather than a blocking gate.
+
+Fixed-plan chapter-5 smoke:
+
+```bash
+bun run diagnostics:corpus-recreation-poc -- \
+  --live --write --scene-calls \
+  --model deepseek-v4-flash \
+  --plan-from output/corpus-recreation-poc/crystal_shard-ch5-flash-causal-materiality-v2-scene-calls-r1 \
+  --writer-expansion retry-short-scenes-v1 \
+  --output-dir output/corpus-recreation-poc/crystal_shard-ch5-flash-causal-materiality-v2-expansion-v1-scene-calls-r1
+```
+
+Evidence:
+
+- `output/corpus-recreation-poc/ch5-causal-v2-writer-arms-r1.md`
+- `output/corpus-recreation-poc/ch5-causal-v2-writer-arms-review-r1.html`
+
+Result on the same v2 plan:
+
+- baseline v2: 896/2255 words, ratio 0.40;
+- `thread-context-v1`: 935/2255 words, ratio 0.41;
+- `retry-short-scenes-v1`: 1492/2255 words, ratio 0.66;
+- expansion removed the broad chapter word-band warning but still missed the
+  scene advisory floor by 86 words;
+- deterministic plan/character/thread checks stayed clean;
+- semantic and prose reviews stayed low-free;
+- semantic motive/promise/payoff stayed at level 2 for the expansion arm, so
+  the extra length did not automatically improve all story-quality dimensions.
+
+Interpretation: writer expansion is a more plausible fix for short prose than
+thread context on this single-scene case, but it needs a multi-chapter fixed-plan
+cohort before any promotion. Keep it diagnostic/default-off.

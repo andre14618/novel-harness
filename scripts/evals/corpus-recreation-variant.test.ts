@@ -12,4 +12,12 @@ describe("corpus-recreation-variant", () => {
     expect(corpusRecreationVariantLabel({ plannerVariant: "baseline", writerContextMode: "thread-context-v1" }))
       .toBe("baseline + thread-context-v1")
   })
+
+  test("adds non-default writer expansion to the visible label", () => {
+    expect(corpusRecreationVariantLabel({
+      plannerVariant: "causal-materiality-v2",
+      writerContextMode: "baseline",
+      writerExpansionMode: "retry-short-scenes-v1",
+    })).toBe("causal-materiality-v2 + retry-short-scenes-v1")
+  })
 })

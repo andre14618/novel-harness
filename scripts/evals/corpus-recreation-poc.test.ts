@@ -19,6 +19,7 @@ import {
   parseExampleSceneOutput,
   sceneThreadContextForPrompt,
   sceneWriterUserPrompt,
+  shouldRetryShortScene,
 } from "./corpus-recreation-poc"
 
 describe("corpus-recreation-poc", () => {
@@ -469,6 +470,37 @@ describe("corpus-recreation-poc", () => {
     expect(comparison.warnings.some(warning => warning.includes("scene prose below advisory floor"))).toBe(true)
   })
 
+  test("short-scene expansion retry is default-off and advisory", () => {
+    expect(shouldRetryShortScene({
+      writerExpansionMode: "none",
+      attempt: 1,
+      maxAttempts: 3,
+      actualWords: 100,
+      advisoryFloorWords: 400,
+    })).toBe(false)
+    expect(shouldRetryShortScene({
+      writerExpansionMode: "retry-short-scenes-v1",
+      attempt: 1,
+      maxAttempts: 3,
+      actualWords: 100,
+      advisoryFloorWords: 400,
+    })).toBe(true)
+    expect(shouldRetryShortScene({
+      writerExpansionMode: "retry-short-scenes-v1",
+      attempt: 3,
+      maxAttempts: 3,
+      actualWords: 100,
+      advisoryFloorWords: 400,
+    })).toBe(false)
+    expect(shouldRetryShortScene({
+      writerExpansionMode: "retry-short-scenes-v1",
+      attempt: 1,
+      maxAttempts: 3,
+      actualWords: 450,
+      advisoryFloorWords: 400,
+    })).toBe(false)
+  })
+
   test("wraps malformed model JSON as retryable parse evidence", () => {
     expect(() => parseJsonResponseContent("scene", "{\"sceneId\":\"x\""))
       .toThrow(ModelJsonParseError)
@@ -604,6 +636,8 @@ describe("corpus-recreation-poc", () => {
         outputDir,
         "--writer-context",
         "thread-context-v1",
+        "--writer-expansion",
+        "retry-short-scenes-v1",
       ], {
         cwd: process.cwd(),
         encoding: "utf8",
@@ -617,8 +651,12 @@ describe("corpus-recreation-poc", () => {
       expect(outputPacket.sourceReference.chapterLabel).toBe("source-packet-chapter")
       expect(outputPacket.diagnosticConfig.plannerVariant).toBe("materiality-v1")
       expect(outputPacket.diagnosticConfig.writerContextMode).toBe("thread-context-v1")
+      expect(outputPacket.diagnosticConfig.writerExpansionMode).toBe("retry-short-scenes-v1")
       expect(report).toContain("Reference: test_book chapter source-packet-chapter")
+      expect(report).toContain("Writer expansion: retry-short-scenes-v1")
+      expect(manifest.variantId).toBe("materiality-v1 + thread-context-v1 + retry-short-scenes-v1")
       expect(manifest.metadata.chapterLabel).toBe("source-packet-chapter")
+      expect(manifest.metadata.writerExpansionMode).toBe("retry-short-scenes-v1")
       expect(manifest.inputs.some((input: any) => input.role === "source-packet")).toBe(true)
     } finally {
       rmSync(root, { recursive: true, force: true })

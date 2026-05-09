@@ -38,6 +38,7 @@ interface ReviewRun {
   chapterLabel: string
   plannerVariant: string
   writerContextMode: string
+  writerExpansionMode: string
   variantLabel: string
   generatedAt: string
   target: any
@@ -161,6 +162,7 @@ function readReviewRun(pocDir: string): ReviewRun {
     chapterLabel: String(sourceReference.chapterLabel ?? target.chapterLabel ?? ""),
     plannerVariant: String(diagnosticConfig.plannerVariant ?? "baseline"),
     writerContextMode: String(diagnosticConfig.writerContextMode ?? "baseline"),
+    writerExpansionMode: String(diagnosticConfig.writerExpansionMode ?? "none"),
     variantLabel: corpusRecreationVariantLabel(diagnosticConfig),
     generatedAt: String(packet.generatedAt ?? ""),
     target,

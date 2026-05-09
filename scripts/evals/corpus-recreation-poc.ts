@@ -19,10 +19,12 @@ import {
   existingArtifactRefs,
   writeRunManifest,
 } from "./run-manifest"
+import { corpusRecreationVariantLabel } from "./corpus-recreation-variant"
 
 type ModelId = "deepseek-v4-flash" | "deepseek-v4-pro"
 type PlannerVariant = "baseline" | "materiality-v1" | "causal-materiality-v2"
 type WriterContextMode = "baseline" | "thread-context-v1"
+type WriterExpansionMode = "none" | "retry-short-scenes-v1"
 
 interface Args {
   referencePath: string
@@ -37,6 +39,7 @@ interface Args {
   maxTokens: number
   plannerVariant: PlannerVariant
   writerContextMode: WriterContextMode
+  writerExpansionMode: WriterExpansionMode
 }
 
 interface RecreationPacket {
@@ -59,6 +62,7 @@ interface RecreationPacket {
   diagnosticConfig?: {
     plannerVariant: PlannerVariant
     writerContextMode?: WriterContextMode
+    writerExpansionMode?: WriterExpansionMode
   }
 }
 
@@ -473,6 +477,9 @@ function parseArgs(argv = process.argv.slice(2)): Args {
   const writerContextMode = parseWriterContextMode(
     typeof values["writer-context"] === "string" ? values["writer-context"] : "baseline",
   )
+  const writerExpansionMode = parseWriterExpansionMode(
+    typeof values["writer-expansion"] === "string" ? values["writer-expansion"] : "none",
+  )
   return {
     referencePath: typeof values.reference === "string" ? values.reference : DEFAULT_REFERENCE_PATH,
     chapterLabel: typeof values.chapter === "string" ? values.chapter : "1",
@@ -486,6 +493,7 @@ function parseArgs(argv = process.argv.slice(2)): Args {
     maxTokens,
     plannerVariant,
     writerContextMode,
+    writerExpansionMode,
   }
 }
 
@@ -504,6 +512,11 @@ function parseWriterContextMode(value: string): WriterContextMode {
   throw new Error(`--writer-context must be baseline or thread-context-v1; got ${value}`)
 }
 
+function parseWriterExpansionMode(value: string): WriterExpansionMode {
+  if (value === "none" || value === "retry-short-scenes-v1") return value
+  throw new Error(`--writer-expansion must be none or retry-short-scenes-v1; got ${value}`)
+}
+
 function positiveInt(value: string, flag: string): number {
   const parsed = Number(value)
   if (!Number.isInteger(parsed) || parsed < 1) throw new Error(`${flag} must be a positive integer`)
@@ -517,6 +530,7 @@ function printHelp(): void {
     [--model deepseek-v4-flash|deepseek-v4-pro]
     [--planner-variant baseline|materiality-v1|causal-materiality-v2]
     [--writer-context baseline|thread-context-v1]
+    [--writer-expansion none|retry-short-scenes-v1]
     [--plan-from <poc-dir>]
 
 Examples:
@@ -537,6 +551,7 @@ export function buildRecreationPacket(args: {
   generatedAt: string
   plannerVariant?: PlannerVariant
   writerContextMode?: WriterContextMode
+  writerExpansionMode?: WriterExpansionMode
 }): RecreationPacket {
   const chapter = args.reference.chapters.find(row => row.chapterLabel === args.chapterLabel)
   if (!chapter) {
@@ -602,6 +617,7 @@ export function buildRecreationPacket(args: {
     diagnosticConfig: {
       plannerVariant: args.plannerVariant ?? "baseline",
       writerContextMode: args.writerContextMode ?? "baseline",
+      writerExpansionMode: args.writerExpansionMode ?? "none",
     },
   }
 }
@@ -1478,6 +1494,7 @@ async function writeChapterBySceneCalls(args: {
   model: ModelId
   maxTokens: number
   writerContextMode: WriterContextMode
+  writerExpansionMode: WriterExpansionMode
 }): Promise<ExampleChapter> {
   const scenes: ExampleScene[] = []
   for (const scene of args.plan.scenes) {
@@ -1516,6 +1533,21 @@ async function writeChapterBySceneCalls(args: {
         bestScene = parsedScene
         bestWordCount = actualWords
       }
+      if (shouldRetryShortScene({
+        writerExpansionMode: args.writerExpansionMode,
+        attempt,
+        maxAttempts: 3,
+        actualWords,
+        advisoryFloorWords: minimumSceneWords(scene.targetWords),
+      })) {
+        lastIssue = {
+          actualWords,
+          advisoryFloorWords: minimumSceneWords(scene.targetWords),
+          issue: "scene prose below advisory floor; expand the existing scene through dramatized action, dialogue, interiority, and consequence without padding",
+          previousProse: parsedScene.prose,
+        }
+        continue
+      }
       break
     }
     if (bestScene && (!parsedScene || wordCount(parsedScene.prose) < wordCount(bestScene.prose))) {
@@ -1529,6 +1561,18 @@ async function writeChapterBySceneCalls(args: {
     scenes,
     fullProse: scenes.map(scene => scene.prose).join("\n\n"),
   }
+}
+
+export function shouldRetryShortScene(args: {
+  writerExpansionMode: WriterExpansionMode
+  attempt: number
+  maxAttempts: number
+  actualWords: number
+  advisoryFloorWords: number
+}): boolean {
+  return args.writerExpansionMode === "retry-short-scenes-v1"
+    && args.attempt < args.maxAttempts
+    && args.actualWords < args.advisoryFloorWords
 }
 
 async function callDeepSeekJson(args: {
@@ -1681,6 +1725,7 @@ export function renderRecreationReport(args: {
   lines.push("Mode: original structural analog, not source prose/style imitation")
   lines.push(`Planner variant: ${args.packet.diagnosticConfig?.plannerVariant ?? "baseline"}`)
   lines.push(`Writer context: ${args.packet.diagnosticConfig?.writerContextMode ?? "baseline"}`)
+  lines.push(`Writer expansion: ${args.packet.diagnosticConfig?.writerExpansionMode ?? "none"}`)
   lines.push("")
   lines.push("## Target")
   lines.push("")
@@ -1757,6 +1802,7 @@ async function main(): Promise<void> {
     generatedAt: new Date().toISOString(),
     plannerVariant: args.plannerVariant,
     writerContextMode: args.writerContextMode,
+    writerExpansionMode: args.writerExpansionMode,
   })
 
   if (args.planFromDir) {
@@ -1769,6 +1815,7 @@ async function main(): Promise<void> {
         diagnosticConfig: {
           plannerVariant: sourcePacket.diagnosticConfig?.plannerVariant ?? args.plannerVariant,
           writerContextMode: args.writerContextMode,
+          writerExpansionMode: args.writerExpansionMode,
         },
       }
     }
@@ -1829,6 +1876,7 @@ async function main(): Promise<void> {
         model: args.model,
         maxTokens: args.maxTokens,
         writerContextMode: args.writerContextMode,
+        writerExpansionMode: args.writerExpansionMode,
       })
       chapterComparison = compareChapterToPlan(chapter, plan, packet)
     } else {
@@ -1864,7 +1912,7 @@ async function main(): Promise<void> {
     generatedAt: packet.generatedAt,
     laneId: "run-thread-id-drafting-coherence",
     phase: "corpus-recreation-poc",
-    variantId: packet.diagnosticConfig?.plannerVariant ?? args.plannerVariant,
+    variantId: corpusRecreationVariantLabel(packet.diagnosticConfig),
     command: {
       name: "diagnostics:corpus-recreation-poc",
       argv: process.argv.slice(2),
@@ -1902,6 +1950,7 @@ async function main(): Promise<void> {
       writeChapter: args.writeChapter,
       sceneCalls: args.sceneCalls,
       writerContextMode: args.writerContextMode,
+      writerExpansionMode: args.writerExpansionMode,
       plannerPromptVersion: PLANNER_PROMPT_VERSION,
       planFromDir: args.planFromDir,
       referencePath: args.referencePath,

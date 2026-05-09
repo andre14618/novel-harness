@@ -48,6 +48,7 @@ interface CorpusReviewPacket {
   diagnosticConfig?: {
     plannerVariant?: string
     writerContextMode?: string
+    writerExpansionMode?: string
   }
   originalAnalogSeed: {
     conceptId: string
@@ -682,6 +683,6 @@ function writeManifest(outputDir: string, report: CorpusSemanticReviewReport, ar
 function readOptionalVariantLabel(absPocDir: string): string | null {
   const packetPath = join(absPocDir, "packet.json")
   if (!existsSync(packetPath)) return null
-  const packet = JSON.parse(readFileSync(packetPath, "utf8")) as { diagnosticConfig?: { plannerVariant?: string; writerContextMode?: string } }
+  const packet = JSON.parse(readFileSync(packetPath, "utf8")) as { diagnosticConfig?: { plannerVariant?: string; writerContextMode?: string; writerExpansionMode?: string } }
   return corpusRecreationVariantLabel(packet.diagnosticConfig)
 }

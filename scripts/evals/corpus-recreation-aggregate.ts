@@ -46,6 +46,7 @@ export interface CorpusRecreationAggregateRow {
   book: string
   plannerVariant: string
   writerContextMode: string
+  writerExpansionMode: string
   expectedScenes: number | null
   actualScenes: number | null
   targetWords: number | null
@@ -112,6 +113,7 @@ export function renderCorpusRecreationAggregate(report: CorpusRecreationAggregat
       escapeCell(corpusRecreationVariantLabel({
         plannerVariant: row.plannerVariant,
         writerContextMode: row.writerContextMode,
+        writerExpansionMode: row.writerExpansionMode,
       })),
       formatScenes(row),
       formatWords(row),
@@ -190,6 +192,7 @@ function readPocRow(pocDir: string): CorpusRecreationAggregateRow {
     book: String(source.book ?? ""),
     plannerVariant: String(packet.diagnosticConfig?.plannerVariant ?? "baseline"),
     writerContextMode: String(packet.diagnosticConfig?.writerContextMode ?? "baseline"),
+    writerExpansionMode: String(packet.diagnosticConfig?.writerExpansionMode ?? "none"),
     expectedScenes: numberOrNull(planComparison.sceneCount?.expected),
     actualScenes: numberOrNull(planComparison.sceneCount?.actual ?? chapterComparison.sceneCount?.actual),
     targetWords: numberOrNull(chapterComparison.wordCount?.target),

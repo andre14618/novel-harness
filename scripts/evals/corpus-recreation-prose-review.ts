@@ -48,7 +48,7 @@ interface Packet {
       truth?: string
     }
   }
-  diagnosticConfig?: { plannerVariant?: string; writerContextMode?: string }
+  diagnosticConfig?: { plannerVariant?: string; writerContextMode?: string; writerExpansionMode?: string }
 }
 
 interface Plan {
@@ -129,6 +129,7 @@ export interface ProseReviewReport {
   }
   plannerVariant: string
   writerContextMode: string
+  writerExpansionMode: string
   variantLabel: string
   live: boolean
   model: ModelId
@@ -203,6 +204,7 @@ export async function buildCorpusRecreationProseReviewReport(
     },
     plannerVariant: packet.diagnosticConfig?.plannerVariant ?? "baseline",
     writerContextMode: packet.diagnosticConfig?.writerContextMode ?? "baseline",
+    writerExpansionMode: packet.diagnosticConfig?.writerExpansionMode ?? "none",
     variantLabel: corpusRecreationVariantLabel(packet.diagnosticConfig),
     live: args.live,
     model: args.model,
