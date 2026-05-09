@@ -802,3 +802,37 @@ operator review items. No code change was needed for that bridge. The remaining
 unresolved v2 question is not "can we surface the gaps"; it is whether the
 short prose is caused by the stronger planner contract, the scene writer's
 expansion behavior, or missing writer-context support.
+
+## Fixed-Plan Writer Context Smoke
+
+Held the v2 chapter-5 plan fixed and changed only the writer context arm:
+
+```bash
+bun run diagnostics:corpus-recreation-poc -- \
+  --live --write --scene-calls \
+  --model deepseek-v4-flash \
+  --plan-from output/corpus-recreation-poc/crystal_shard-ch5-flash-causal-materiality-v2-scene-calls-r1 \
+  --writer-context thread-context-v1 \
+  --output-dir output/corpus-recreation-poc/crystal_shard-ch5-flash-causal-materiality-v2-thread-context-v1-scene-calls-r1
+```
+
+Evidence:
+
+- `output/corpus-recreation-poc/ch5-causal-v2-baseline-vs-thread-context-r1.md`
+- `output/corpus-recreation-poc/ch5-causal-v2-baseline-vs-thread-context-review-r1.html`
+
+Result:
+
+- baseline v2: 896/2255 words, ratio 0.40;
+- `thread-context-v1`: 935/2255 words, ratio 0.41;
+- deterministic contract/character/thread checks stayed clean in both arms;
+- semantic review stayed low-free, but motive and promise/payoff dropped from
+  level 3 to level 2 in the context arm;
+- prose review stayed unchanged: level 2 dramatization, pacing, and voice;
+  level 3 payoff propulsion.
+
+Interpretation: thread context by itself is not the short-prose fix for the
+single-scene chapter case. The remaining likely lever is a default-off
+writer-expansion diagnostic, not broader thread context. Any expansion arm
+should remain advisory/eval-only and should not turn production word counts
+back into blocking gates.
