@@ -115,7 +115,10 @@ function readReviewRun(pocDir: string): ReviewRun {
   const planComparison = readOptionalJson(join(resolved, "plan-comparison.json")) ?? {}
   const chapter = readOptionalJson(join(resolved, "chapter.json"))
   const chapterComparison = readOptionalJson(join(resolved, "chapter-comparison.json"))
-  const semanticReview = readOptionalJson(join(resolved, "semantic-review-live", "semantic-review.json"))
+  const semanticReview = readFirstOptionalJson([
+    join(resolved, "semantic-review", "semantic-review.json"),
+    join(resolved, "semantic-review-live", "semantic-review.json"),
+  ])
   const proseQualityReview = readOptionalJson(join(resolved, "prose-quality-live", "prose-review.json"))
   const runManifest = readRunManifestIfExists(join(resolved, "run-manifest.json"))
   const threadMap = readOptionalJson(join(resolved, "thread-map.json")) as CorpusThreadMapReport | null
@@ -612,6 +615,14 @@ function readOptionalJson(path: string): any | null {
   return readJson(path)
 }
 
+function readFirstOptionalJson(paths: string[]): any | null {
+  for (const path of paths) {
+    const value = readOptionalJson(path)
+    if (value != null) return value
+  }
+  return null
+}
+
 function writeOutput(path: string, content: string): void {
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, content)
@@ -903,6 +914,7 @@ function reviewInputRefs(pocDirs: string[]) {
       { path: join(resolved, "thread-map.json"), role: "thread-map-json" },
       { path: join(resolved, "thread-context.json"), role: "thread-context-json" },
       { path: join(resolved, "writer-context.json"), role: "writer-context-json" },
+      { path: join(resolved, "semantic-review", "semantic-review.json"), role: "semantic-review-json" },
       { path: join(resolved, "semantic-review-live", "semantic-review.json"), role: "semantic-review-json" },
       { path: join(resolved, "prose-quality-live", "prose-review.json"), role: "prose-review-json" },
     ])

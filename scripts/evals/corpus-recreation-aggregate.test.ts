@@ -94,6 +94,42 @@ describe("corpus-recreation-aggregate", () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
+
+  test("reads the current semantic-review output directory", () => {
+    const root = mkdtempSync(join(tmpdir(), "corpus-recreation-aggregate-"))
+    try {
+      const pocDir = join(root, "poc-ch2")
+      writeJson(join(pocDir, "packet.json"), {
+        sourceReference: { book: "crystal_shard", chapterLabel: "2" },
+        diagnosticConfig: { plannerVariant: "baseline" },
+      })
+      writeJson(join(pocDir, "plan-comparison.json"), {
+        sceneCount: { expected: 1, actual: 1 },
+        sceneContract: { total: 1, choiceAlternativeCount: 1, declaredObligationCount: 1, knownSourceIdCount: 1, knownThreadRefCount: 1, observableConsequenceCount: 1 },
+        issues: [],
+      })
+      writeJson(join(pocDir, "chapter-comparison.json"), {
+        wordCount: { target: 1000, actual: 900, ratio: 0.9 },
+        sceneWordCounts: [],
+        sourceBoundary: { forbiddenTermsPresent: [] },
+        issues: [],
+        warnings: [],
+      })
+      writeJson(join(pocDir, "semantic-review/semantic-review.json"), {
+        taskCount: 1,
+        skipCount: 0,
+        summaries: [
+          { dimension: "threadProgression", count: 1, meanOrdinal: 2, lowCount: 0, labelCounts: { "THREAD-2": 1 } },
+        ],
+        results: [],
+      })
+
+      const rendered = renderCorpusRecreationAggregate(buildCorpusRecreationAggregate([pocDir], "2026-05-09T00:00:00.000Z"))
+      expect(rendered).toContain("1 tasks; threadProgression 2.00")
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
 })
 
 function writeJson(path: string, value: unknown): void {

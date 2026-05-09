@@ -366,7 +366,7 @@ function writeReviewFixture(path: string, opts: {
     issues: [],
     warnings: [],
   })
-  writeJson(join(path, "semantic-review-live/semantic-review.json"), {
+  writeJson(join(path, "semantic-review/semantic-review.json"), {
     results: [
       {
         sceneId: "analog-sc01",

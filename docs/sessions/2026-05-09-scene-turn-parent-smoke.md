@@ -168,6 +168,17 @@ Static review pages:
 
 - `output/corpus-recreation-poc/scene-turn-v4-ch1-baseline-vs-thread-context-20260509/review.html`
 - `output/corpus-recreation-poc/scene-turn-v4-ch5-baseline-vs-thread-context-20260509/review.html`
+- `output/corpus-recreation-poc/scene-turn-v4-ch2-baseline-vs-thread-context-20260509/review.html`
+
+Aggregate evidence:
+
+- `output/corpus-recreation-poc/scene-turn-v4-paired-writer-context-aggregate-20260509/aggregate.md`
+- 6 rows across chapters 1, 2, and 5;
+- deterministic issues: 0 in all rows;
+- semantic low findings: 1 total, only baseline chapter 1 scene 1
+  `motivationSpecificity`;
+- `thread-context-v1` did not improve word ratio, and was shorter than baseline
+  in chapters 2 and 5.
 
 Interpretation: the parent-child scene-turn shape remains clean across the
 paired prose samples. The thread-context arm is still not a promotion win: it
@@ -175,3 +186,8 @@ improved one narrow chapter-1 motivation finding, tied prose review, and did
 not solve the broader under-expansion tendency. Keep it default-off and treat
 the useful promotion candidate as the ID lineage shape, not the current writer
 context packet.
+
+Implementation note: the aggregate and static review readers now accept both
+the current `semantic-review/semantic-review.json` output path and the older
+`semantic-review-live/semantic-review.json` path. The earlier aggregate showed
+`not run` for semantic rows because it only checked the older path.

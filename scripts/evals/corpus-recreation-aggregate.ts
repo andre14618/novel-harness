@@ -152,7 +152,10 @@ function readPocRow(pocDir: string): CorpusRecreationAggregateRow {
   const packet = readOptionalJson(`${resolved}/packet.json`) ?? {}
   const planComparison = readOptionalJson(`${resolved}/plan-comparison.json`) ?? {}
   const chapterComparison = readOptionalJson(`${resolved}/chapter-comparison.json`) ?? {}
-  const semantic = readOptionalJson(`${resolved}/semantic-review-live/semantic-review.json`) ?? {}
+  const semantic = readFirstOptionalJson([
+    `${resolved}/semantic-review/semantic-review.json`,
+    `${resolved}/semantic-review-live/semantic-review.json`,
+  ]) ?? {}
   const source = packet.sourceReference ?? {}
   const sceneContract = planComparison.sceneContract ?? {}
   const semanticSummaries = Array.isArray(semantic.summaries) ? semantic.summaries.map(normalizeSummary) : []
@@ -250,6 +253,14 @@ function printHelp(): void {
 function readOptionalJson(path: string): any | null {
   if (!existsSync(path)) return null
   return JSON.parse(readFileSync(path, "utf8"))
+}
+
+function readFirstOptionalJson(paths: string[]): any | null {
+  for (const path of paths) {
+    const value = readOptionalJson(path)
+    if (value != null) return value
+  }
+  return null
 }
 
 function normalizeSummary(summary: any): DimensionSummary {
@@ -399,6 +410,7 @@ function aggregateInputRefs(pocDirs: string[]) {
       { path: `${resolved}/packet.json`, role: "packet" },
       { path: `${resolved}/plan-comparison.json`, role: "plan-comparison" },
       { path: `${resolved}/chapter-comparison.json`, role: "chapter-comparison" },
+      { path: `${resolved}/semantic-review/semantic-review.json`, role: "semantic-review-json" },
       { path: `${resolved}/semantic-review-live/semantic-review.json`, role: "semantic-review-json" },
     ])
   })
