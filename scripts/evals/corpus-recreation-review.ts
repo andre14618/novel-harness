@@ -1,0 +1,491 @@
+#!/usr/bin/env bun
+/**
+ * Build a static operator review page for corpus recreation POC artifacts.
+ *
+ * Review-only: reads ignored local output artifacts, writes one HTML file, and
+ * does not call an LLM, mutate plans, create proposals, or add blockers.
+ */
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { dirname, join, resolve } from "node:path"
+
+interface Args {
+  pocDirs: string[]
+  output: string | null
+}
+
+interface ReviewReport {
+  generatedAt: string
+  runs: ReviewRun[]
+}
+
+interface ReviewRun {
+  pocDir: string
+  sourceBook: string
+  chapterLabel: string
+  plannerVariant: string
+  generatedAt: string
+  target: any
+  plan: any
+  planComparison: any
+  chapter: any | null
+  chapterComparison: any | null
+  semanticReview: any | null
+  scenes: ReviewScene[]
+}
+
+interface ReviewScene {
+  sceneId: string
+  sceneIndex: number
+  referenceShape: any | null
+  planScene: any
+  obligations: any[]
+  planContract: any | null
+  prose: string
+  sceneWordCount: any | null
+  semanticResults: any[]
+}
+
+export function buildCorpusRecreationReview(
+  pocDirs: string[],
+  generatedAt = new Date().toISOString(),
+): ReviewReport {
+  if (pocDirs.length === 0) throw new Error("at least one --poc-dir or positional POC directory is required")
+  return {
+    generatedAt,
+    runs: pocDirs.map(readReviewRun),
+  }
+}
+
+export function renderCorpusRecreationReviewHtml(report: ReviewReport): string {
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Corpus Recreation Review</title>
+  <style>${CSS}</style>
+</head>
+<body>
+  <main>
+    <header class="page-header">
+      <div>
+        <h1>Corpus Recreation Review</h1>
+        <p class="muted">Generated ${escapeHtml(report.generatedAt)}. Static local artifact; no LLM calls, mutations, proposal creation, or promotion decisions.</p>
+      </div>
+      <div class="legend">
+        <span><strong>Reference shape</strong> = reconstructed structural signals</span>
+        <span><strong>Plan contract</strong> = generated scene obligations</span>
+        <span><strong>Prose</strong> = generated chapter output</span>
+        <span><strong>Review</strong> = deterministic warnings + semantic findings</span>
+      </div>
+    </header>
+    ${report.runs.map(renderRun).join("\n")}
+  </main>
+</body>
+</html>
+`
+}
+
+function readReviewRun(pocDir: string): ReviewRun {
+  const resolved = resolve(process.cwd(), pocDir)
+  const packet = readJson(join(resolved, "packet.json"))
+  const plan = readJson(join(resolved, "plan.json"))
+  const planComparison = readOptionalJson(join(resolved, "plan-comparison.json")) ?? {}
+  const chapter = readOptionalJson(join(resolved, "chapter.json"))
+  const chapterComparison = readOptionalJson(join(resolved, "chapter-comparison.json"))
+  const semanticReview = readOptionalJson(join(resolved, "semantic-review-live", "semantic-review.json"))
+  const target = packet.target ?? {}
+  const sourceReference = packet.sourceReference ?? {}
+  const targetBlueprints = Array.isArray(target.sceneBlueprints) ? target.sceneBlueprints : []
+  const planScenes = Array.isArray(plan.scenes) ? plan.scenes : []
+  const obligations = Array.isArray(plan.obligations) ? plan.obligations : []
+  const chapterScenes = Array.isArray(chapter?.scenes) ? chapter.scenes : []
+  const semanticResults = Array.isArray(semanticReview?.results) ? semanticReview.results : []
+  const contractScenes = Array.isArray(planComparison.sceneContract?.scenes) ? planComparison.sceneContract.scenes : []
+  const sceneWordCounts = Array.isArray(chapterComparison?.sceneWordCounts) ? chapterComparison.sceneWordCounts : []
+
+  const scenes = planScenes.map((scene: any, sceneIndex: number) => {
+    const referenceOrdinal = Number(scene.referenceSceneOrdinal ?? sceneIndex)
+    return {
+      sceneId: String(scene.sceneId ?? `scene-${sceneIndex + 1}`),
+      sceneIndex,
+      referenceShape: targetBlueprints.find((row: any) => Number(row.referenceSceneOrdinal) === referenceOrdinal) ?? targetBlueprints[sceneIndex] ?? null,
+      planScene: scene,
+      obligations: obligations.filter((row: any) => row?.sceneId === scene.sceneId),
+      planContract: contractScenes.find((row: any) => row?.sceneId === scene.sceneId) ?? null,
+      prose: String(chapterScenes.find((row: any) => row?.sceneId === scene.sceneId)?.prose ?? ""),
+      sceneWordCount: sceneWordCounts.find((row: any) => row?.sceneId === scene.sceneId) ?? null,
+      semanticResults: semanticResults.filter((row: any) => row?.sceneId === scene.sceneId),
+    }
+  })
+
+  return {
+    pocDir: resolved,
+    sourceBook: String(sourceReference.book ?? ""),
+    chapterLabel: String(sourceReference.chapterLabel ?? target.chapterLabel ?? ""),
+    plannerVariant: String(packet.diagnosticConfig?.plannerVariant ?? "baseline"),
+    generatedAt: String(packet.generatedAt ?? ""),
+    target,
+    plan,
+    planComparison,
+    chapter,
+    chapterComparison,
+    semanticReview,
+    scenes,
+  }
+}
+
+function renderRun(run: ReviewRun): string {
+  const semanticLowCount = run.scenes.reduce(
+    (sum, scene) => sum + scene.semanticResults.filter(result => Number(result.ordinal ?? 0) <= 1).length,
+    0,
+  )
+  return `<section class="run">
+    <div class="run-heading">
+      <div>
+        <h2>${escapeHtml(run.sourceBook || "unknown")} chapter ${escapeHtml(run.chapterLabel || "?")}</h2>
+        <p class="muted">${escapeHtml(run.pocDir)}</p>
+      </div>
+      <div class="badges">
+        ${badge("variant", run.plannerVariant)}
+        ${badge("target", `${numberOrDash(run.target?.targetWords)} words`)}
+        ${badge("scenes", `${run.scenes.length}/${numberOrDash(run.target?.sceneCount)}`)}
+        ${badge("semantic lows", String(semanticLowCount), semanticLowCount > 0 ? "warn" : "ok")}
+      </div>
+    </div>
+    ${renderRunSummary(run)}
+    <section class="method-note">
+      <h3>What Was Reconstructed From Existing Novel Analysis</h3>
+      <p>Only structural signals are used here: scene count, scene word size, annotation beat count, value polarity, MICE/thread cadence, beat kind counts, boundary-signal counts, gap-size counts, and optional private structural summaries when the reference was generated with summaries. This page is for review; it does not treat structural similarity as source leakage.</p>
+    </section>
+    ${run.scenes.map(scene => renderScene(scene)).join("\n")}
+  </section>`
+}
+
+function renderRunSummary(run: ReviewRun): string {
+  const planIssues = arrayOfStrings(run.planComparison?.issues)
+  const chapterIssues = arrayOfStrings(run.chapterComparison?.issues)
+  const chapterWarnings = arrayOfStrings(run.chapterComparison?.warnings)
+  const forbidden = arrayOfStrings(run.chapterComparison?.sourceBoundary?.forbiddenTermsPresent)
+  const wordCount = run.chapterComparison?.wordCount
+  return `<section class="summary-grid">
+    <div>
+      <h3>Plan Fit</h3>
+      ${metric("Polarity", sequenceFit(run.planComparison?.valuePolarity))}
+      ${metric("MICE", sequenceFit(run.planComparison?.miceThread))}
+      ${metric("Beat Hints", beatHintFit(run.planComparison?.beatHintShape))}
+      ${listBlock("Plan Issues", planIssues)}
+    </div>
+    <div>
+      <h3>Chapter Fit</h3>
+      ${metric("Words", wordCount ? `${wordCount.actual}/${wordCount.target} (${formatNumber(wordCount.ratio)})` : "not written")}
+      ${metric("Source Terms", forbidden.length ? forbidden.join(", ") : "none")}
+      ${listBlock("Chapter Issues", chapterIssues)}
+      ${listBlock("Warnings", chapterWarnings)}
+    </div>
+  </section>`
+}
+
+function renderScene(scene: ReviewScene): string {
+  const lows = scene.semanticResults.filter(result => Number(result.ordinal ?? 0) <= 1)
+  return `<section class="scene">
+    <div class="scene-header">
+      <h3>Scene ${scene.sceneIndex + 1}: ${escapeHtml(scene.sceneId)}</h3>
+      <div class="badges">
+        ${scene.sceneWordCount ? badge("words", `${scene.sceneWordCount.actual}/${scene.sceneWordCount.target}`, scene.sceneWordCount.meetsMinimum === false ? "warn" : "ok") : ""}
+        ${badge("semantic", lows.length ? `${lows.length} low` : `${scene.semanticResults.length} reviewed`, lows.length ? "warn" : "ok")}
+      </div>
+    </div>
+    <div class="scene-grid">
+      <article>
+        <h4>Reference Shape</h4>
+        ${renderReferenceShape(scene.referenceShape)}
+      </article>
+      <article>
+        <h4>Plan Contract</h4>
+        ${renderPlanContract(scene)}
+      </article>
+      <article class="prose-column">
+        <h4>Prose</h4>
+        ${scene.prose ? renderParagraphs(scene.prose) : `<p class="muted">No chapter prose found for this scene.</p>`}
+      </article>
+      <article>
+        <h4>Review</h4>
+        ${renderReview(scene)}
+      </article>
+    </div>
+  </section>`
+}
+
+function renderReferenceShape(shape: any | null): string {
+  if (!shape) return `<p class="muted">No reference shape found.</p>`
+  const beatHints = Array.isArray(shape.beatPurposeHints) ? shape.beatPurposeHints : []
+  return `${metric("Target Words", numberOrDash(shape.targetWords))}
+    ${metric("Annotation Beats", numberOrDash(shape.targetBeatCount))}
+    ${metric("Polarity", String(shape.polarity ?? "unknown"))}
+    ${metric("MICE", String(shape.micePrimaryThread ?? "unknown"))}
+    ${metric("Beat Kinds", compactCounts(shape.beatKindCounts))}
+    ${metric("Boundaries", compactCounts(shape.boundarySignalCounts))}
+    ${metric("Gaps", compactCounts(shape.gapSizeCounts))}
+    ${shape.sourceStructuralDigest ? `<details><summary>Private structural digest</summary><p>${escapeHtml(shape.sourceStructuralDigest)}</p></details>` : ""}
+    ${beatHints.length ? `<details><summary>Beat purpose hints (${beatHints.length})</summary>${orderedList(beatHints)}</details>` : ""}`
+}
+
+function renderPlanContract(scene: ReviewScene): string {
+  const plan = scene.planScene
+  const contractIssues = arrayOfStrings(scene.planContract?.issues)
+  return `${metric("Role", plan.structuralRole)}
+    ${metric("Goal", plan.goal)}
+    ${metric("Opposition", plan.opposition)}
+    ${metric("Turn", plan.turningPoint)}
+    ${metric("Choice", plan.crisisChoice)}
+    ${listBlock("Alternatives", arrayOfStrings(plan.choiceAlternatives))}
+    ${metric("Outcome", plan.outcome)}
+    ${metric("Consequence", plan.consequence)}
+    ${listBlock("Obligations", scene.obligations.map(formatObligation))}
+    ${listBlock("Contract Issues", contractIssues)}`
+}
+
+function renderReview(scene: ReviewScene): string {
+  if (scene.semanticResults.length === 0) {
+    return `<p class="muted">No semantic review found for this scene.</p>`
+  }
+  return scene.semanticResults
+    .map(result => {
+      const low = Number(result.ordinal ?? 0) <= 1
+      return `<div class="finding ${low ? "low" : ""}">
+        <div class="finding-title">
+          <span>${escapeHtml(String(result.dimension ?? ""))}</span>
+          ${badge(String(result.label ?? "unknown"), formatNumber(result.confidence), low ? "warn" : "ok")}
+        </div>
+        ${result.missingForNextLevel ? `<p>${escapeHtml(String(result.missingForNextLevel))}</p>` : `<p class="muted">No missing-for-next-level note.</p>`}
+      </div>`
+    })
+    .join("\n")
+}
+
+function parseArgs(argv = process.argv.slice(2)): Args {
+  const pocDirs: string[] = []
+  let output: string | null = null
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index]
+    if (arg === "--poc-dir") {
+      const value = argv[index + 1]
+      if (!value) throw new Error("--poc-dir requires a path")
+      pocDirs.push(value)
+      index += 1
+    } else if (arg === "--output") {
+      const value = argv[index + 1]
+      if (!value) throw new Error("--output requires a path")
+      output = value
+      index += 1
+    } else if (arg === "--help" || arg === "-h") {
+      printHelp()
+      process.exit(0)
+    } else if (arg.startsWith("--")) {
+      throw new Error(`unknown arg: ${arg}`)
+    } else {
+      pocDirs.push(arg)
+    }
+  }
+  return { pocDirs, output }
+}
+
+function printHelp(): void {
+  console.log(`Usage:
+  bun scripts/evals/corpus-recreation-review.ts --poc-dir <dir> [--poc-dir <dir> ...]
+  bun scripts/evals/corpus-recreation-review.ts <dir> --output output/review.html
+`)
+}
+
+function readJson(path: string): any {
+  return JSON.parse(readFileSync(path, "utf8"))
+}
+
+function readOptionalJson(path: string): any | null {
+  if (!existsSync(path)) return null
+  return readJson(path)
+}
+
+function writeOutput(path: string, content: string): void {
+  mkdirSync(dirname(path), { recursive: true })
+  writeFileSync(path, content)
+}
+
+function defaultOutputPath(pocDirs: string[]): string {
+  if (pocDirs.length === 1) return join(pocDirs[0]!, "review.html")
+  return "output/corpus-recreation-poc/review.html"
+}
+
+function metric(label: string, value: unknown): string {
+  return `<dl class="metric"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(String(value ?? "none"))}</dd></dl>`
+}
+
+function listBlock(label: string, values: string[]): string {
+  if (values.length === 0) return metric(label, "none")
+  return `<div class="list-block"><div class="list-label">${escapeHtml(label)}</div>${unorderedList(values)}</div>`
+}
+
+function orderedList(values: unknown[]): string {
+  return `<ol>${values.map(value => `<li>${escapeHtml(String(value))}</li>`).join("")}</ol>`
+}
+
+function unorderedList(values: unknown[]): string {
+  return `<ul>${values.map(value => `<li>${escapeHtml(String(value))}</li>`).join("")}</ul>`
+}
+
+function renderParagraphs(prose: string): string {
+  return prose
+    .split(/\n{2,}/u)
+    .map(paragraph => paragraph.trim())
+    .filter(Boolean)
+    .map(paragraph => `<p>${escapeHtml(paragraph)}</p>`)
+    .join("\n")
+}
+
+function badge(label: string, value: string, kind = ""): string {
+  return `<span class="badge ${escapeAttr(kind)}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></span>`
+}
+
+function formatObligation(obligation: any): string {
+  const pieces = [
+    obligation.obligationId,
+    obligation.sourceId ? `[${obligation.sourceId}]` : "",
+    obligation.requirementText,
+    obligation.materialityTest ? `Materiality: ${obligation.materialityTest}` : "",
+  ].filter(Boolean)
+  return pieces.join(" ")
+}
+
+function arrayOfStrings(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(row => String(row)) : []
+}
+
+function sequenceFit(value: any): string {
+  if (!value) return "not available"
+  return `${numberOrDash(value.exactMatches)}/${Array.isArray(value.expected) ? value.expected.length : "?"} (${formatNumber(value.ratio)})`
+}
+
+function beatHintFit(value: any): string {
+  if (!value) return "not available"
+  return `${numberOrDash(value.actualTotal)}/${numberOrDash(value.expectedTotal)} (${formatNumber(value.ratio)})`
+}
+
+function compactCounts(value: unknown): string {
+  if (!value || typeof value !== "object") return "none"
+  const entries = Object.entries(value as Record<string, unknown>)
+    .sort((a, b) => Number(b[1] ?? 0) - Number(a[1] ?? 0) || a[0].localeCompare(b[0]))
+  return entries.length ? entries.map(([key, count]) => `${key}:${count}`).join(", ") : "none"
+}
+
+function numberOrDash(value: unknown): string {
+  return typeof value === "number" && Number.isFinite(value) ? String(value) : "-"
+}
+
+function formatNumber(value: unknown): string {
+  return typeof value === "number" && Number.isFinite(value) ? value.toFixed(2) : "-"
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
+}
+
+function escapeAttr(value: string): string {
+  return value.replace(/[^a-z0-9_-]/giu, "")
+}
+
+const CSS = `
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f6f3ee;
+  color: #1e2428;
+}
+body { margin: 0; }
+main { max-width: 1780px; margin: 0 auto; padding: 28px; }
+h1, h2, h3, h4 { margin: 0; letter-spacing: 0; }
+p { line-height: 1.58; }
+.page-header, .run-heading, .scene-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+.page-header { margin-bottom: 26px; }
+.legend, .badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.legend span, .badge {
+  border: 1px solid #cfc6ba;
+  background: #fffdf9;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.badge { display: inline-flex; gap: 6px; align-items: center; }
+.badge.ok { border-color: #8ab39a; background: #edf7ef; }
+.badge.warn { border-color: #d4a044; background: #fff5d7; }
+.muted { color: #697176; }
+.run { margin: 0 0 28px; }
+.summary-grid, .scene-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.summary-grid { margin: 18px 0; }
+.summary-grid > div, .method-note, .scene article {
+  border: 1px solid #d8d0c5;
+  background: #fffdf9;
+  border-radius: 8px;
+  padding: 14px;
+}
+.method-note { margin-bottom: 18px; }
+.scene { margin: 18px 0 28px; }
+.scene-grid {
+  grid-template-columns: minmax(220px, 0.9fr) minmax(300px, 1.05fr) minmax(420px, 1.45fr) minmax(260px, 0.9fr);
+  margin-top: 10px;
+}
+.prose-column { max-height: 760px; overflow: auto; }
+.metric {
+  margin: 10px 0;
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 8px;
+}
+.metric dt, .list-label { color: #596166; font-weight: 700; font-size: 12px; text-transform: uppercase; }
+.metric dd { margin: 0; overflow-wrap: anywhere; }
+ul, ol { padding-left: 20px; }
+li { margin: 6px 0; }
+details { margin: 12px 0; }
+summary { cursor: pointer; font-weight: 700; color: #344047; }
+.finding { border-top: 1px solid #e4ddd5; padding-top: 10px; margin-top: 10px; }
+.finding:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+.finding.low { border-left: 4px solid #c47d28; padding-left: 10px; }
+.finding-title { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+@media (max-width: 1100px) {
+  main { padding: 18px; }
+  .page-header, .run-heading, .scene-header { display: block; }
+  .summary-grid, .scene-grid { grid-template-columns: 1fr; }
+}
+`
+
+if (import.meta.main) {
+  try {
+    const args = parseArgs()
+    const report = buildCorpusRecreationReview(args.pocDirs)
+    const output = args.output ?? defaultOutputPath(args.pocDirs)
+    writeOutput(output, renderCorpusRecreationReviewHtml(report))
+    console.log(`wrote ${resolve(process.cwd(), output)}`)
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    process.exit(1)
+  }
+}

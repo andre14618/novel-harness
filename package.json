@@ -43,6 +43,7 @@
     "diagnostics:corpus-recreation-semantic-review": "bun scripts/evals/corpus-recreation-semantic-review.ts",
     "diagnostics:corpus-recreation-aggregate": "bun scripts/evals/corpus-recreation-aggregate.ts",
     "diagnostics:corpus-recreation-readiness": "bun scripts/evals/corpus-recreation-readiness.ts",
+    "diagnostics:corpus-recreation-review": "bun scripts/evals/corpus-recreation-review.ts",
     "diagnostics:method-pack-planner-cohort": "bun scripts/evals/method-pack-planner-cohort.ts",
     "diagnostics:method-pack-planner-semantic-judge": "bun scripts/evals/method-pack-planner-semantic-judge.ts",
     "diagnostics:planner-discernment-calibration": "bun scripts/evals/planner-discernment-calibration.ts",

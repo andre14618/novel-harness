@@ -236,6 +236,22 @@ knobs. If the prose reads like summary despite acceptable word ratios, add a
 narrow scene-completeness semantic diagnostic rather than reintroducing hard
 word-count retry loops.
 
+## Static Review Artifact
+
+Use a static local HTML report for operator review before building a React
+surface:
+
+```bash
+bun run diagnostics:corpus-recreation-review -- \
+  --poc-dir output/corpus-recreation-poc/<run> \
+  --output output/corpus-recreation-poc/<run>/review.html
+```
+
+The report is read-only. It displays the private reference shape, generated
+scene contract, generated prose, deterministic issues/warnings, and semantic
+findings side by side. It does not call a model, create proposals, add gates,
+or promote a runtime method.
+
 ## Scene Semantic Review Diagnostic
 
 Use the default-off semantic review adapter after a plan/write POC run:

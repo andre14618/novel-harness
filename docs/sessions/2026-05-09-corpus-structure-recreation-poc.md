@@ -566,3 +566,38 @@ Current review threshold: start side-by-side review now. The useful packet is:
 If side-by-side review shows scenes are passing structure while reading like
 summary, add a narrow `scene completeness / dramatization` semantic diagnostic.
 Do not restore hard word-count retry loops as the first fix.
+
+## Static Side-By-Side Review
+
+Added `diagnostics:corpus-recreation-review`, a read-only static HTML report
+for operator review:
+
+```bash
+bun run diagnostics:corpus-recreation-review -- \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch1-flash-exact-id-scene-calls-r1 \
+  --output output/corpus-recreation-poc/crystal_shard-ch1-flash-exact-id-scene-calls-r1/review.html
+```
+
+Generated sample:
+
+```text
+output/corpus-recreation-poc/crystal_shard-ch1-flash-exact-id-scene-calls-r1/review.html
+```
+
+The page shows four columns per scene:
+
+- reference shape reconstructed from existing corpus analysis;
+- generated plan contract and obligations;
+- generated prose;
+- deterministic warnings plus semantic review findings.
+
+This is the right review layer for the current POC because it keeps the
+diagnostic evidence visible without adding new blockers, gates, proposals, UI
+routes, or LLM calls.
+
+Clarification: the current POC reconstructs structural signals from existing
+novel analysis, not prose or an expressive source outline. The source-derived
+inputs are scene count, scene word sizes, annotation beat counts, value
+polarity, MICE/thread cadence, beat kind counts, boundary-signal counts,
+gap-size counts, and optional private structural summaries when the reference
+is built with `--include-summaries`.

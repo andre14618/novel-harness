@@ -1,0 +1,125 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+
+import { describe, expect, test } from "bun:test"
+
+import {
+  buildCorpusRecreationReview,
+  renderCorpusRecreationReviewHtml,
+} from "./corpus-recreation-review"
+
+describe("corpus-recreation-review", () => {
+  test("renders plan, prose, reference shape, warnings, and semantic findings", () => {
+    const root = mkdtempSync(join(tmpdir(), "corpus-recreation-review-"))
+    try {
+      const pocDir = join(root, "poc")
+      writeJson(join(pocDir, "packet.json"), {
+        generatedAt: "2026-05-09T00:00:00.000Z",
+        sourceReference: { book: "crystal_shard", chapterLabel: "1" },
+        diagnosticConfig: { plannerVariant: "materiality-v1" },
+        target: {
+          targetWords: 1000,
+          sceneCount: 1,
+          sceneBlueprints: [
+            {
+              referenceSceneOrdinal: 0,
+              targetWords: 1000,
+              targetBeatCount: 4,
+              polarity: "-",
+              micePrimaryThread: "M",
+              beatKindCounts: { action: 2 },
+              boundarySignalCounts: { scene_start: 1 },
+              gapSizeCounts: { large: 1 },
+              sourceStructuralDigest: "private structural digest",
+              beatPurposeHints: ["hint one"],
+            },
+          ],
+        },
+      })
+      writeJson(join(pocDir, "plan.json"), {
+        chapterId: "analog-ch01",
+        title: "Test",
+        scenes: [
+          {
+            sceneId: "analog-sc01",
+            referenceSceneOrdinal: 0,
+            targetWords: 1000,
+            structuralRole: "Open the problem.",
+            goal: "Reach the gate.",
+            opposition: "The gate rejects her.",
+            turningPoint: "The bell rings.",
+            crisisChoice: "Enter or retreat?",
+            choiceAlternatives: ["enter", "retreat"],
+            outcome: "She enters.",
+            consequence: "The city marks her.",
+          },
+        ],
+        obligations: [
+          {
+            obligationId: "obl-1",
+            sceneId: "analog-sc01",
+            sourceId: "world-bell",
+            requirementText: "Make the bell matter.",
+            materialityTest: "The bell changes the outcome.",
+          },
+        ],
+      })
+      writeJson(join(pocDir, "plan-comparison.json"), {
+        valuePolarity: { exactMatches: 1, expected: ["-"], ratio: 1 },
+        miceThread: { exactMatches: 1, expected: ["M"], ratio: 1 },
+        beatHintShape: { actualTotal: 4, expectedTotal: 4, ratio: 1 },
+        sceneContract: {
+          scenes: [
+            { sceneId: "analog-sc01", issues: ["consequence weak"] },
+          ],
+        },
+        issues: ["scene contract weak for analog-sc01"],
+      })
+      writeJson(join(pocDir, "chapter.json"), {
+        chapterTitle: "Test",
+        scenes: [
+          { sceneId: "analog-sc01", prose: "She crossed the white road.\n\nThe bell rang and everyone turned." },
+        ],
+      })
+      writeJson(join(pocDir, "chapter-comparison.json"), {
+        wordCount: { target: 1000, actual: 10, ratio: 0.01 },
+        sceneWordCounts: [
+          { sceneId: "analog-sc01", target: 1000, actual: 10, meetsMinimum: false },
+        ],
+        sourceBoundary: { forbiddenTermsPresent: [] },
+        issues: [],
+        warnings: ["scene prose below advisory floor"],
+      })
+      writeJson(join(pocDir, "semantic-review-live/semantic-review.json"), {
+        results: [
+          {
+            sceneId: "analog-sc01",
+            dimension: "worldFactPressure",
+            label: "WFACT-1",
+            ordinal: 1,
+            confidence: 0.8,
+            missingForNextLevel: "World fact must change the available choices.",
+          },
+        ],
+      })
+
+      const report = buildCorpusRecreationReview([pocDir], "2026-05-09T00:00:00.000Z")
+      const html = renderCorpusRecreationReviewHtml(report)
+
+      expect(html).toContain("Reference shape")
+      expect(html).toContain("private structural digest")
+      expect(html).toContain("Make the bell matter.")
+      expect(html).toContain("scene prose below advisory floor")
+      expect(html).toContain("World fact must change the available choices.")
+      expect(html).toContain("structural similarity as source leakage")
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
+
+function writeJson(path: string, value: unknown): void {
+  mkdirSync(path.slice(0, path.lastIndexOf("/")), { recursive: true })
+  writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`)
+}
