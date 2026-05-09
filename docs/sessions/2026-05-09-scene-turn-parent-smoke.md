@@ -314,3 +314,33 @@ Interpretation: v6 proves the schema can carry local and affected character
 refs, but prompt-only compliance is not strong enough for drafting preflight.
 The next value-added step is a diagnostic/manual Plan Readiness repair surface
 for `requiredCharacterIds`/`affectedCharacterIds`, not a writer-context arm.
+
+## Character Ref Repair Surface
+
+Added `diagnostics:corpus-recreation-character-ref-repair`, a no-LLM/no-DB
+diagnostic that turns exact character-context gaps into manual
+`planning_edit`-shaped array replacement candidates. It does not mutate plans
+or auto-apply changes; every candidate is marked `safeToAutoApply: false`
+because the operator may decide the better fix is a character-source
+obligation or removing the implied dependency.
+
+Command:
+
+```bash
+bun scripts/evals/corpus-recreation-character-ref-repair.ts output/corpus-recreation-poc/character-ref-v6-cohort-ch1-20260509 output/corpus-recreation-poc/character-ref-v6-cohort-ch2-20260509 output/corpus-recreation-poc/character-ref-v6-cohort-ch5-20260509 output/corpus-recreation-poc/character-ref-v6-cohort-ch8-20260509 --output output/corpus-recreation-poc/character-ref-v6-cohort-20260509/character-ref-repair.md --json output/corpus-recreation-poc/character-ref-v6-cohort-20260509/character-ref-repair.json
+```
+
+Result:
+
+- repair candidates: 7;
+- proposed character-ref additions: 10;
+- `requiredCharacterIds` candidates: 6;
+- `affectedCharacterIds` candidates: 1;
+- manual-only leftovers: 0.
+
+Interpretation: the deterministic repair surface closes the exact-ID planning
+gap as a reviewable object, but it does not decide whether adding an ID is the
+best story/planning fix. The next useful step is either operator acceptance of
+these candidates through Plan Readiness, or a planner prompt/schema follow-up
+that reduces this candidate count in a fresh cohort without increasing context
+noise.

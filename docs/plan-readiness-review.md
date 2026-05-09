@@ -150,6 +150,24 @@ This adapter preserves exact obligation, character, and world-fact IDs and
 emits operator questions. It is a staging surface for review; it does not
 create proposals or mutate plans.
 
+Exact character-ref gaps can also be converted into concrete manual repair
+candidates without touching the DB:
+
+```bash
+bun run diagnostics:corpus-recreation-character-ref-repair -- \
+  --poc-dir output/corpus-recreation-poc/<run-a> \
+  --poc-dir output/corpus-recreation-poc/<run-b> \
+  --output output/corpus-recreation-poc/<repair>.md \
+  --json output/corpus-recreation-poc/<repair>.json
+```
+
+This repair adapter proposes `field_replace` values for
+`requiredCharacterIds` and `affectedCharacterIds` only when the existing
+character-context diagnostic has an exact durable character ID. Candidates are
+still manual and `safeToAutoApply: false`; the operator may choose a
+character-source obligation or removal of the implied dependency instead of
+adding the ID.
+
 ## Data Use
 
 Operator dispositions are first-class training and evaluation data, but not
