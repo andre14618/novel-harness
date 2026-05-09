@@ -160,14 +160,28 @@ describe("corpus-recreation-poc", () => {
       promiseId: "debt-oathmark",
       payoffId: "payoff-key-cost-exposure",
     }
+    badPlan.obligations.push({
+      obligationId: "obl-thread-mismatch",
+      sceneId: "analog-sc02",
+      sourceId: "char-tovin-ash",
+      threadId: "thread-tovin-leverage",
+      promiseId: "debt-oathmark",
+      payoffId: "payoff-oathmark-public-confession",
+      requirementText: "Tovin pressures Nara through a mismatched promise.",
+      materialityTest: "Tovin changes Nara's choices through leverage.",
+    })
 
     const comparison = comparePlanToReference(badPlan, packet)
 
     expect(comparison.sceneContract.knownThreadRefCount).toBe(0)
     expect(comparison.sceneContract.orphanPayoffRefCount).toBe(1)
+    expect(comparison.sceneContract.promiseThreadMismatchCount).toBe(1)
+    expect(comparison.sceneContract.payoffThreadMismatchCount).toBe(1)
     expect(comparison.issues.some(issue => issue.includes("obligations missing threadId: obl-key-heat"))).toBe(true)
     expect(comparison.issues.some(issue => issue.includes("unknown threadIds: thread-missing"))).toBe(true)
     expect(comparison.issues.some(issue => issue.includes("payoffIds do not belong to declared promiseId: payoff-key-cost-exposure"))).toBe(true)
+    expect(comparison.issues.some(issue => issue.includes("promiseIds belong to different threadId: obl-thread-mismatch:debt-oathmark"))).toBe(true)
+    expect(comparison.issues.some(issue => issue.includes("payoffIds belong to different threadId: obl-thread-mismatch:payoff-oathmark-public-confession"))).toBe(true)
   })
 
   test("flags weak upstream scene contracts before prose generation", () => {
@@ -204,6 +218,8 @@ describe("corpus-recreation-poc", () => {
       hasKnownSourceIds: false,
       hasObservableConsequence: false,
       unknownSourceIds: [],
+      promiseThreadMismatchIds: [],
+      payoffThreadMismatchIds: [],
     })
     expect(comparison.issues.some(issue => issue.includes("scene contract weak for analog-sc01"))).toBe(true)
   })

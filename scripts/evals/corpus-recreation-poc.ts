@@ -246,6 +246,8 @@ interface PlanComparison {
     knownPromiseRefCount: number
     knownPayoffRefCount: number
     orphanPayoffRefCount: number
+    promiseThreadMismatchCount: number
+    payoffThreadMismatchCount: number
     observableConsequenceCount: number
     materialityTestCount: number
     scenes: SceneContractDiagnostic[]
@@ -263,6 +265,8 @@ interface SceneContractDiagnostic {
   unknownPromiseIds: string[]
   unknownPayoffIds: string[]
   orphanPayoffIds: string[]
+  promiseThreadMismatchIds: string[]
+  payoffThreadMismatchIds: string[]
   hasObservableConsequence: boolean
   hasMaterialityTest: boolean
   unknownSourceIds: string[]
@@ -623,6 +627,8 @@ function buildSceneContractDiagnostics(
     knownPromiseRefCount: scenes.filter(scene => scene.unknownPromiseIds.length === 0).length,
     knownPayoffRefCount: scenes.filter(scene => scene.unknownPayoffIds.length === 0).length,
     orphanPayoffRefCount: scenes.reduce((sum, scene) => sum + scene.orphanPayoffIds.length, 0),
+    promiseThreadMismatchCount: scenes.reduce((sum, scene) => sum + scene.promiseThreadMismatchIds.length, 0),
+    payoffThreadMismatchCount: scenes.reduce((sum, scene) => sum + scene.payoffThreadMismatchIds.length, 0),
     observableConsequenceCount: scenes.filter(scene => scene.hasObservableConsequence).length,
     materialityTestCount: scenes.filter(scene => scene.hasMaterialityTest).length,
     scenes,
@@ -641,6 +647,7 @@ function evaluateSceneContract(
   const knownThreadIds = new Set(packet.originalAnalogSeed.storyThreads.map(thread => thread.threadId))
   const knownPromiseIds = new Set(packet.originalAnalogSeed.storyDebts.map(debt => debt.storyDebtId))
   const knownPayoffIds = new Set(packet.originalAnalogSeed.storyPayoffs.map(payoff => payoff.payoffId))
+  const promiseById = new Map(packet.originalAnalogSeed.storyDebts.map(debt => [debt.storyDebtId, debt]))
   const payoffById = new Map(packet.originalAnalogSeed.storyPayoffs.map(payoff => [payoff.payoffId, payoff]))
   const unknownSourceIds = obligations
     .map(obligation => obligation.sourceId)
@@ -667,6 +674,22 @@ function evaluateSceneContract(
       return !obligation.promiseId || Boolean(payoff && payoff.storyDebtId !== obligation.promiseId)
     })
     .map(obligation => obligation.payoffId!)
+  const promiseThreadMismatchIds = obligations
+    .filter(obligation => obligation.threadId && obligation.promiseId)
+    .filter(obligation => knownThreadIds.has(obligation.threadId!) && knownPromiseIds.has(obligation.promiseId!))
+    .filter(obligation => {
+      const promise = promiseById.get(obligation.promiseId!)
+      return Boolean(promise && promise.threadId !== obligation.threadId)
+    })
+    .map(obligation => `${obligation.obligationId}:${obligation.promiseId}`)
+  const payoffThreadMismatchIds = obligations
+    .filter(obligation => obligation.threadId && obligation.payoffId)
+    .filter(obligation => knownThreadIds.has(obligation.threadId!) && knownPayoffIds.has(obligation.payoffId!))
+    .filter(obligation => {
+      const payoff = payoffById.get(obligation.payoffId!)
+      return Boolean(payoff && payoff.threadId !== obligation.threadId)
+    })
+    .map(obligation => `${obligation.obligationId}:${obligation.payoffId}`)
   const hasChoiceAlternatives = scene.choiceAlternatives.length >= 2
   const hasDeclaredObligation = obligations.length > 0
   const hasKnownSourceIds = hasDeclaredObligation && unknownSourceIds.length === 0
@@ -676,6 +699,8 @@ function evaluateSceneContract(
     && unknownPromiseIds.length === 0
     && unknownPayoffIds.length === 0
     && orphanPayoffIds.length === 0
+    && promiseThreadMismatchIds.length === 0
+    && payoffThreadMismatchIds.length === 0
   const hasObservableConsequence = isObservableConsequence(scene.consequence, scene.outcome)
   const hasMaterialityTest = hasDeclaredObligation && obligations.every(obligation =>
     typeof obligation.materialityTest === "string" && obligation.materialityTest.trim().length >= 8
@@ -688,6 +713,8 @@ function evaluateSceneContract(
   if (unknownPromiseIds.length > 0) issues.push(`unknown promiseIds: ${unknownPromiseIds.join(", ")}`)
   if (unknownPayoffIds.length > 0) issues.push(`unknown payoffIds: ${unknownPayoffIds.join(", ")}`)
   if (orphanPayoffIds.length > 0) issues.push(`payoffIds do not belong to declared promiseId: ${orphanPayoffIds.join(", ")}`)
+  if (promiseThreadMismatchIds.length > 0) issues.push(`promiseIds belong to different threadId: ${promiseThreadMismatchIds.join(", ")}`)
+  if (payoffThreadMismatchIds.length > 0) issues.push(`payoffIds belong to different threadId: ${payoffThreadMismatchIds.join(", ")}`)
   if (!hasObservableConsequence) issues.push("consequence is generic, internal-only, or indistinct from outcome")
   if (opts.requireMaterialityTests && !hasMaterialityTest) {
     issues.push("each obligation needs a materialityTest for how it changes choice, cost, relationship state, outcome, or future pressure")
@@ -702,6 +729,8 @@ function evaluateSceneContract(
     unknownPromiseIds,
     unknownPayoffIds,
     orphanPayoffIds,
+    promiseThreadMismatchIds,
+    payoffThreadMismatchIds,
     hasObservableConsequence,
     hasMaterialityTest,
     unknownSourceIds,
