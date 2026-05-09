@@ -286,6 +286,14 @@ scene contract but lacks either `requiredCharacterIds` or a character-source
 obligation, because that character would otherwise miss a character card in a
 future context arm.
 
+Readiness follow-up: those deterministic character-context structural issues
+now flow into corpus readiness as manual `CHARACTERREF-1` candidates. The
+rewrite packet preserves scene, character, obligation, thread, promise, payoff,
+and scene-turn refs and asks whether the planner should add
+`requiredCharacterIds`, add a character-source obligation, or remove the implied
+character dependency. This is a Plan Readiness review surface only; it does not
+auto-rewrite or inject character packets into the writer.
+
 ### Lane 5 - Scene Thread Semantic Review
 
 Reuse the narrow semantic judge pattern: one scene, one dimension, anchored

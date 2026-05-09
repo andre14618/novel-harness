@@ -31,7 +31,7 @@ unless the user explicitly requests a disposable branch.
   unit and `obligationId`/`sourceId` as the traceability unit; do not preserve
   beat-level adherence as the primary future contract by default. See L092.
 - L093: `sceneTurnId` parents and character-context packets are graph-ready/readiness-preserved; v4 cleared
-  3-chapter planner smoke and ch1/2/5 paired writes stayed deterministic-clean. Treat Option B as lineage fields, not graph implementation.
+  3-chapter planner smoke and ch1/2/5 paired writes stayed deterministic-clean. Character-context gaps now surface as manual `CHARACTERREF-1` readiness questions. Treat Option B as lineage fields, not graph implementation.
   `thread-context-v1` remains safe-but-unpromoted; see
   `docs/sessions/2026-05-09-scene-turn-parent-smoke.md`.
 - Golden examples for that contract should come from authored craft/template

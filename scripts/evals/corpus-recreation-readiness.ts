@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 /**
- * Convert corpus recreation semantic lows and deterministic thread-ref issues
- * into Plan Readiness-compatible groups.
+ * Convert corpus recreation semantic lows, deterministic thread-ref issues,
+ * and deterministic character-ref closure issues into Plan
+ * Readiness-compatible groups.
  *
  * Diagnostic-only. It does not write to the DB, call an LLM, mutate plans, or
  * create proposals. The output shape can be consumed by the existing Plan
@@ -19,6 +20,10 @@ import {
 } from "./run-manifest"
 
 type Severity = "high" | "medium" | "low" | "info"
+type CorpusReadinessSourceAgent =
+  | "corpus-recreation-semantic-review"
+  | "corpus-recreation-plan-comparison"
+  | "corpus-recreation-character-context"
 
 interface Args {
   pocDirs: string[]
@@ -76,7 +81,7 @@ interface CorpusReadinessGroup {
       requiresProposedValue: true
       proposedValueStatus: "semantic_rewrite_required"
       safeToAutoApply: false
-      sourceAgent: "corpus-recreation-semantic-review" | "corpus-recreation-plan-comparison"
+      sourceAgent: CorpusReadinessSourceAgent
     }
   }
   excerpt: string
@@ -102,12 +107,15 @@ export function buildCorpusRecreationReadinessAggregate(
   const sourceReports: string[] = []
 
   for (const pocDir of pocDirs.map(dir => resolve(dir))) {
-    const semanticPath = `${pocDir}/semantic-review-live/semantic-review.json`
+    const semanticPath = firstExistingPath([
+      `${pocDir}/semantic-review/semantic-review.json`,
+      `${pocDir}/semantic-review-live/semantic-review.json`,
+    ])
     const planPath = `${pocDir}/plan.json`
     const packetPath = `${pocDir}/packet.json`
     const plan = existsSync(planPath) ? readJson(planPath) : {}
     const packet = existsSync(packetPath) ? readJson(packetPath) : {}
-    if (existsSync(semanticPath)) {
+    if (semanticPath) {
       const semantic = readJson(semanticPath)
       sourceReports.push(semanticPath)
 
@@ -146,6 +154,21 @@ export function buildCorpusRecreationReadinessAggregate(
         startIndex: groups.length + 1,
       })
       if (deterministicGroups.length > 0) sourceReports.push(planComparisonPath)
+      groups.push(...deterministicGroups)
+    }
+
+    const characterContextPath = `${pocDir}/character-context.json`
+    if (existsSync(characterContextPath)) {
+      const characterContext = readJson(characterContextPath)
+      const deterministicGroups = characterRefGroupsFromCharacterContext({
+        plan,
+        characterContext,
+        sourceReport: characterContextPath,
+        fixtureId: fixtureIdForCharacterContext(pocDir, characterContext, plan),
+        chapterId: String(plan.chapterId ?? characterContext.source?.chapterLabel ?? basename(pocDir)),
+        startIndex: groups.length + 1,
+      })
+      if (deterministicGroups.length > 0) sourceReports.push(characterContextPath)
       groups.push(...deterministicGroups)
     }
   }
@@ -427,6 +450,102 @@ function threadRefRepairHints(args: {
   return { hints: unique(hints), expectedThreadIds: unique(expectedThreadIds) }
 }
 
+function characterRefGroupsFromCharacterContext(args: {
+  plan: any
+  characterContext: any
+  sourceReport: string
+  fixtureId: string
+  chapterId: string
+  startIndex: number
+}): CorpusReadinessGroup[] {
+  const contexts = Array.isArray(args.characterContext?.contexts)
+    ? args.characterContext.contexts
+    : []
+  const groups: CorpusReadinessGroup[] = []
+  for (const context of contexts) {
+    const sceneId = String(context.sceneId ?? "")
+    const issues = stringArray(context.structuralIssues).filter(isCharacterRefIssue)
+    if (!sceneId || issues.length === 0) continue
+    const scene = Array.isArray(args.plan.scenes)
+      ? args.plan.scenes.find((candidate: any) => String(candidate.sceneId ?? "") === sceneId)
+      : null
+    const obligations = obligationsForScene(args.plan, sceneId)
+    const characterCards = Array.isArray(context.characterCards) ? context.characterCards : []
+    const characterIds = unique([
+      ...stringArray(context.activeCharacterIds),
+      ...[String(context.povCharacterId ?? "")].filter(Boolean),
+      ...issues.flatMap(characterIdsFromText),
+      ...obligations
+        .map(obligation => String(obligation.sourceId ?? ""))
+        .filter(sourceId => sourceId.startsWith("char-")),
+    ])
+    const sourceIds = sourceIdsFor({
+      relevantCharacterIds: characterIds,
+      obligationIds: characterCards.flatMap((card: any) => stringArray(card.sourceObligationIds)),
+      threadIds: characterCards.flatMap((card: any) => stringArray(card.activeThreadIds)),
+      promiseIds: characterCards.flatMap((card: any) => stringArray(card.activePromiseIds)),
+      payoffIds: characterCards.flatMap((card: any) => stringArray(card.activePayoffIds)),
+      sceneTurnIds: stringArray(context.sceneTurnIds),
+    }, obligations)
+    const finding: CorpusReadinessFinding = {
+      findingId: `${args.startIndex + groups.length}.1`,
+      sourceReport: args.sourceReport,
+      promptMode: "deterministic-character-context",
+      dimension: "characterRefClosure",
+      label: "CHARACTERREF-1",
+      severity: "medium",
+      fixIntent: "close_character_context_refs",
+      rationale: "Character context found scene characters that are not connected through durable planning refs.",
+      missingForNextLevel: issues.join("; "),
+      evidence: {
+        characterContextIssues: issues.join(" | "),
+        ...(sourceIds.characterIds.length > 0 ? { activeCharacterIds: sourceIds.characterIds.join(", ") } : {}),
+        ...(sourceIds.obligationIds.length > 0 ? { sourceObligationIds: sourceIds.obligationIds.join(", ") } : {}),
+      },
+    }
+    const rewriteGoals = [
+      "Close character refs before drafting: add requiredCharacterIds, add a character-source obligation, or remove the implied character dependency.",
+      ...issues,
+      ...(scene?.goal ? [`Preserve scene goal: ${scene.goal}`] : []),
+      ...(scene?.outcome ? [`Preserve scene outcome: ${scene.outcome}`] : []),
+      ...(scene?.consequence ? [`Make the consequence concrete: ${scene.consequence}`] : []),
+    ]
+    groups.push({
+      groupId: String(args.startIndex + groups.length).padStart(3, "0"),
+      fixtureId: args.fixtureId,
+      armId: "corpus-recreation:exact-id-scene",
+      methodPackEnabled: false,
+      unitType: "scene",
+      chapterId: args.chapterId,
+      sceneId,
+      sourceIds,
+      highestSeverity: finding.severity,
+      fixIntents: [finding.fixIntent],
+      dimensions: [finding.dimension],
+      findings: [finding],
+      rewritePacket: {
+        targetSummary: String(scene?.structuralRole ?? scene?.goal ?? sceneId),
+        rewriteGoals: unique(rewriteGoals.filter(Boolean)),
+        preserveIds: sourceIds,
+        proposalCandidate: {
+          action: "field_replace",
+          target: {
+            kind: "beat_plan",
+            ref: sceneId,
+            fieldPath: "description",
+          },
+          requiresProposedValue: true,
+          proposedValueStatus: "semantic_rewrite_required",
+          safeToAutoApply: false,
+          sourceAgent: "corpus-recreation-character-context",
+        },
+      },
+      excerpt: issues.join("\n"),
+    })
+  }
+  return groups
+}
+
 function obligationsForScene(plan: any, sceneId: string): any[] {
   return Array.isArray(plan.obligations)
     ? plan.obligations.filter((obligation: any) => String(obligation.sceneId ?? "") === sceneId)
@@ -435,6 +554,15 @@ function obligationsForScene(plan: any, sceneId: string): any[] {
 
 function isThreadRefIssue(issue: string): boolean {
   return /threadId|promiseId|payoffId|sceneTurnId/u.test(issue)
+}
+
+function isCharacterRefIssue(issue: string): boolean {
+  return /povCharacterId|requiredCharacterIds|unknown character sourceId|character .* named|character .* missing|no active character refs/u
+    .test(issue)
+}
+
+function characterIdsFromText(text: string): string[] {
+  return text.match(/\bchar-[A-Za-z0-9_-]+\b/gu) ?? []
 }
 
 function sourceIdsFor(result: any, obligations: any[]): CorpusReadinessGroup["sourceIds"] {
@@ -499,6 +627,9 @@ function operatorQuestionFor(group: CorpusReadinessGroup): string {
   if (finding.dimension === "threadRefConsistency") {
     return "Should this cross-thread pressure be split into separate obligations or rerouted to the promise/payoff thread before drafting?"
   }
+  if (finding.dimension === "characterRefClosure") {
+    return "Should the planner add requiredCharacterIds, add a character-source obligation, or remove the implied character dependency before drafting?"
+  }
   return "Is this diagnostic a real planning issue, false positive, acceptable choice, or deferred concern?"
 }
 
@@ -531,6 +662,16 @@ function fixtureIdFor(pocDir: string, semantic: any): string {
   const book = String(semantic.source?.book ?? "")
   const chapter = String(semantic.source?.chapterLabel ?? "")
   return [book, chapter].filter(Boolean).join(":") || basename(pocDir)
+}
+
+function fixtureIdForCharacterContext(pocDir: string, characterContext: any, plan: any): string {
+  const book = String(characterContext.source?.book ?? "")
+  const chapter = String(characterContext.source?.chapterLabel ?? plan.chapterId ?? "")
+  return [book, chapter].filter(Boolean).join(":") || basename(pocDir)
+}
+
+function firstExistingPath(paths: string[]): string | null {
+  return paths.find(path => existsSync(path)) ?? null
 }
 
 function readJson(path: string): any {
@@ -669,6 +810,9 @@ function readinessInputRefs(pocDirs: string[]) {
     return existingArtifactRefs([
       { path: `${resolved}/run-manifest.json`, role: "parent-run-manifest" },
       { path: `${resolved}/plan.json`, role: "plan" },
+      { path: `${resolved}/plan-comparison.json`, role: "plan-comparison-json" },
+      { path: `${resolved}/character-context.json`, role: "character-context-json" },
+      { path: `${resolved}/semantic-review/semantic-review.json`, role: "semantic-review-json" },
       { path: `${resolved}/semantic-review-live/semantic-review.json`, role: "semantic-review-json" },
     ])
   })

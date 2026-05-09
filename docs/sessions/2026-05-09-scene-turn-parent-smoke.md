@@ -202,3 +202,12 @@ the scene contract names a known character, but the plan did not link that
 character through `requiredCharacterIds` or a character-source obligation. The
 next planning-layer fix should make those IDs explicit before any
 character-context writer arm is promoted.
+
+Readiness follow-up: corpus readiness now also reads current
+`semantic-review/semantic-review.json` paths and `character-context.json`.
+Regenerating readiness for the six chapter 1/2/5 baseline plus
+`thread-context-v1` write dirs produced 9 manual candidates: 1 semantic
+`MOTIVE-1` group and 8 deterministic `CHARACTERREF-1` groups. The character
+groups duplicate across baseline/context arms because they come from the shared
+plan contract, not from writer behavior. Treat them as upstream planning
+review questions about explicit character refs before drafting.

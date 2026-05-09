@@ -214,6 +214,116 @@ describe("corpus-recreation-readiness", () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
+
+  test("turns deterministic character-context issues into readiness groups", () => {
+    const root = mkdtempSync(join(tmpdir(), "corpus-recreation-readiness-"))
+    try {
+      const pocDir = join(root, "poc-ch1")
+      writeJson(join(pocDir, "plan.json"), {
+        chapterId: "analog-ch01",
+        scenes: [{
+          sceneId: "analog-ch01-sc02",
+          structuralRole: "Force Nara to choose whether to trust Kael.",
+          goal: "Nara wants to hide the key's cost from Kael.",
+          outcome: "Kael realizes she is concealing something.",
+          consequence: "Their alliance starts with leverage instead of trust.",
+        }],
+        obligations: [{
+          obligationId: "obl-key-cost",
+          sceneId: "analog-ch01-sc02",
+          sceneTurnId: "turn-ch01-key-cost",
+          sourceId: "world-key-cost",
+          threadId: "thread-key-cost",
+          promiseId: "debt-key-cost",
+          payoffId: "payoff-key-cost-exposure",
+          requirementText: "The key's cost should pressure the choice.",
+        }],
+      })
+      writeJson(join(pocDir, "character-context.json"), {
+        source: { book: "crystal_shard", chapterLabel: "1" },
+        plannerVariant: "scene-turn-child-thread-v4",
+        sceneCount: 1,
+        contextCount: 1,
+        issueCount: 1,
+        contexts: [{
+          sceneId: "analog-ch01-sc02",
+          sceneIndex: 1,
+          povCharacterId: "char-nara",
+          sceneGoal: "Nara wants to hide the key's cost from Kael.",
+          sceneOutcome: "Kael realizes she is concealing something.",
+          sceneConsequence: "Their alliance starts with leverage instead of trust.",
+          activeCharacterIds: ["char-nara", "char-kael"],
+          characterCards: [
+            {
+              characterId: "char-nara",
+              sourceObligationIds: [],
+              activeThreadIds: ["thread-key-cost"],
+              activePromiseIds: ["debt-key-cost"],
+              activePayoffIds: ["payoff-key-cost-exposure"],
+            },
+            {
+              characterId: "char-kael",
+              sourceObligationIds: [],
+              activeThreadIds: ["thread-uneasy-alliance"],
+              activePromiseIds: [],
+              activePayoffIds: [],
+            },
+          ],
+          currentResponsibilities: [],
+          structuralIssues: [
+            "analog-ch01-sc02: character char-kael is named in scene contract but missing requiredCharacterIds/source obligation",
+          ],
+        }],
+      })
+
+      const aggregate = buildCorpusRecreationReadinessAggregate([pocDir], undefined, "2026-05-09T00:00:00.000Z")
+
+      expect(aggregate.groupCount).toBe(1)
+      expect(aggregate.groups[0]).toMatchObject({
+        fixtureId: "crystal_shard:1",
+        sceneId: "analog-ch01-sc02",
+        dimensions: ["characterRefClosure"],
+        fixIntents: ["close_character_context_refs"],
+        sourceIds: {
+          obligationIds: ["obl-key-cost"],
+          characterIds: ["char-nara", "char-kael"],
+          sceneTurnIds: ["turn-ch01-key-cost"],
+          threadIds: ["thread-key-cost", "thread-uneasy-alliance"],
+          promiseIds: ["debt-key-cost"],
+          payoffIds: ["payoff-key-cost-exposure"],
+        },
+        rewritePacket: {
+          proposalCandidate: {
+            sourceAgent: "corpus-recreation-character-context",
+            safeToAutoApply: false,
+          },
+        },
+      })
+      expect(aggregate.groups[0]!.findings[0]).toMatchObject({
+        label: "CHARACTERREF-1",
+        promptMode: "deterministic-character-context",
+        evidence: {
+          activeCharacterIds: "char-nara, char-kael",
+        },
+      })
+
+      const readiness = buildPlanReadinessDraftsFromAggregate({
+        novelId: "readiness-test",
+        aggregate,
+      })
+      expect(readiness.drafts).toHaveLength(1)
+      expect(readiness.drafts[0]!.preserveIds.characterIds).toEqual(["char-nara", "char-kael"])
+      expect(readiness.drafts[0]!.preserveIds.threadIds).toEqual(["thread-key-cost", "thread-uneasy-alliance"])
+      expect(readiness.drafts[0]!.preserveIds.sceneTurnIds).toEqual(["turn-ch01-key-cost"])
+
+      const rendered = renderCorpusRecreationReadinessAggregate(aggregate)
+      expect(rendered).toContain("CHARACTERREF-1")
+      expect(rendered).toContain("requiredCharacterIds")
+      expect(rendered).toContain("Preserve characters: char-nara, char-kael")
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
 })
 
 function writeJson(path: string, value: unknown): void {
