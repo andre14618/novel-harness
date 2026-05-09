@@ -1102,3 +1102,30 @@ Interpretation: sequence context is the first plan-level proof that the harness
 can carry parent story debt across chapters without reusing local payoff IDs as
 whole-sequence final payoffs. It is still plan-only; the next proof is drafting
 from this sequence-shaped plan and then broadening beyond two chapters.
+
+## Sequence Context Draft Smoke
+
+Drafted from the sequence-shaped ch1/ch2 plans with scene calls and
+`retry-short-scenes-v1`, then ran deterministic character/thread sidecars,
+semantic review, prose review, sequence audit, aggregate, and static review.
+
+Evidence:
+
+- `output/corpus-recreation-poc/sequence-context-v1-ch1-ch2-draft-audit-r1.md`
+- `output/corpus-recreation-poc/sequence-context-v1-ch1-ch2-draft-aggregate-r1.md`
+- `output/corpus-recreation-poc/sequence-context-v1-ch1-ch2-draft-review-r1.html`
+
+Result:
+
+- sequence audit stayed clean: 13 movements, 0 advisory findings;
+- ch1 drafted 1335/1832 words, ratio 0.73, with one scene-floor warning;
+- ch2 drafted 2569/3353 words, ratio 0.77, with no warnings;
+- both chapters were deterministic-clean for plan/chapter issues and
+  character-context packets;
+- prose review stayed low-free across 32 tasks;
+- semantic review had one low finding: ch1 scene 1 motivation specificity was
+  too tactical/external rather than personal to Nara.
+
+Interpretation: sequence-owned story-debt IDs survived into drafting. The next
+quality lever is not more ID plumbing; it is richer upstream character
+motivation pressure in early scenes, then a broader sequence run.
