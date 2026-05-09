@@ -1179,3 +1179,38 @@ not promotion proof yet: the sample is one chapter, the draft remains short in
 one large scene, and the repair pass is still needed to close some structural
 refs. The next proof should broaden to a multi-chapter sequence or pair it with
 writer-context character capsules while holding the planner variant fixed.
+
+## Motivation V3 Two-Chapter Sequence
+
+Ran chapter 2 with `causal-motivation-v3` using the repaired chapter 1 v3 run
+as `--sequence-context`, then repeated character-context, semantic review,
+prose review, sequence audit, aggregate, and static review.
+
+Evidence:
+
+- ch2 run:
+  `output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-motivation-v3-sequence-context-v1-expansion-v1-scene-calls-r1`;
+- sequence audit:
+  `output/corpus-recreation-poc/motivation-v3-ch1-ch2-sequence-audit-r1.md`;
+- aggregate:
+  `output/corpus-recreation-poc/motivation-v3-ch1-ch2-draft-aggregate-r1.md`;
+- static review:
+  `output/corpus-recreation-poc/motivation-v3-ch1-ch2-draft-review-r1.html`.
+
+Result:
+
+- ch2 reached deterministic-clean plan fit after one repair: 4/4 scenes,
+  4/4 POV personal stakes, 4/4 materiality-test coverage, 4/4 known thread
+  refs, and 0 plan issues;
+- ch2 drafted 2571/3353 words, ratio 0.77, with two advisory scene-floor
+  warnings and no hard chapter issues;
+- sequence audit across ch1+ch2 found 18 movements and 0 findings;
+- semantic review had 21 tasks, 3 applicability skips, and 0 lows; motivation
+  specificity was `MOTIVE-2` on three scenes and `MOTIVE-3` on one;
+- prose review stayed low-free with payoff propulsion mean 2.75.
+
+Interpretation: v3 now has two-chapter evidence for cleaner personal motivation
+and sequence continuity while holding writer/checker defaults steady. The
+remaining visible weakness is prose expansion on long scenes, so the next
+valuable slice is either a writer-context capsule A/B against fixed v3 plans or
+a narrower short-scene expansion repair, not another planner-ID change.
