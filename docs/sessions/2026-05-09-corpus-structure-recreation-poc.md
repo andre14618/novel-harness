@@ -168,3 +168,46 @@ For the next methodology slice:
   scene prose before inventing new checkers;
 - keep findings diagnostic/readiness-oriented until operator review and
   downstream outcome data prove value.
+
+## Scene Semantic Review Adapter
+
+Added `diagnostics:corpus-recreation-semantic-review`, a diagnostic-only
+semantic review surface for scene-first POC artifacts. It reuses the existing
+planner-discernment narrow judge shape against:
+
+- the scene contract;
+- relevant character/world facts;
+- scene obligations;
+- beat hints as internal annotations;
+- generated scene prose.
+
+Default dimensions are scene dramaturgy, motivation specificity, world-fact
+pressure, and relationship delta. Applicability gates skip relationship/world
+dimensions when the scene has no matching supporting character or world fact.
+Findings are evidence for operator review, not blockers or automatic rewrite
+triggers.
+
+Live command:
+
+```bash
+bun run diagnostics:corpus-recreation-semantic-review -- --live \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch1-flash-scene-calls-r4 \
+  --output-dir output/corpus-recreation-poc/crystal_shard-ch1-flash-scene-calls-r4/semantic-review-live \
+  --model deepseek-v4-flash \
+  --mode evidence-first \
+  --concurrency 4
+```
+
+Live result on the first passing chapter-1 scene-call POC:
+
+- 4 scenes, 16 semantic tasks, 0 applicability skips;
+- scene dramaturgy: mean 1.75, 3/4 at SCENE-2;
+- motivation specificity: mean 1.50, 2/4 at MOTIVE-2;
+- world-fact pressure: mean 1.75, 3/4 at WFACT-2;
+- relationship delta: mean 1.75, 3/4 at REL-2.
+
+Weaknesses clustered in scene 4 and scene 1 motivation: the judge found generic
+motivation, weak final-scene turn/consequence, and underused world/relationship
+pressure. That is useful as a diagnostic: the structure can recreate scene
+shape, but the prose still needs stronger character-specific choice pressure
+before this should influence production planner/writer changes.

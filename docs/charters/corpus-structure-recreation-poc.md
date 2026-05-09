@@ -216,3 +216,30 @@ Initial scene semantic review should ask:
 - do required character/world/story obligations materially affect the scene?
 - do beat hints land somewhere in the scene without forcing beat-by-beat prose?
 - does the scene preserve structural function without copying source events?
+
+## Scene Semantic Review Diagnostic
+
+Use the default-off semantic review adapter after a plan/write POC run:
+
+```bash
+bun run diagnostics:corpus-recreation-semantic-review -- --live \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch1-flash-scene-calls-r4 \
+  --output-dir output/corpus-recreation-poc/crystal_shard-ch1-flash-scene-calls-r4/semantic-review-live \
+  --model deepseek-v4-flash \
+  --mode evidence-first \
+  --concurrency 4
+```
+
+Purpose:
+
+- compare scene contract against scene prose at a scope small enough for a
+  cheap judge to show discernment;
+- surface weak scene choices, generic motivation, unused world pressure, and
+  missing relationship movement;
+- preserve beats as internal annotations and trace refs, not as the writer
+  call or checker unit;
+- feed operator discussion before changing planner prompts, writer prompts, or
+  production checkers.
+
+This diagnostic must not auto-rewrite, block, or promote a methodology by
+itself. Promotion still requires operator review plus downstream prose evidence.
