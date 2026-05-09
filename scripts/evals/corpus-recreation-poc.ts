@@ -256,6 +256,7 @@ interface ChapterComparison {
     forbiddenTermsPresent: string[]
   }
   issues: string[]
+  warnings: string[]
 }
 
 const DEFAULT_REFERENCE_PATH = "output/corpus-structure-reference/crystal_shard/reference.json"
@@ -584,6 +585,7 @@ export function compareChapterToPlan(chapter: ExampleChapter, plan: RecreationPl
   const forbiddenTermsPresent = packet.originalAnalogSeed.forbiddenSourceTerms
     .filter(term => new RegExp(`\\b${escapeRegExp(term)}\\b`, "iu").test(text))
   const issues: string[] = []
+  const warnings: string[] = []
   if (chapter.scenes.length !== plan.scenes.length) {
     issues.push(`scene count mismatch: expected ${plan.scenes.length}, got ${chapter.scenes.length}`)
   }
@@ -601,11 +603,11 @@ export function compareChapterToPlan(chapter: ExampleChapter, plan: RecreationPl
   })
   const ratio = words / Math.max(1, plan.targetWords)
   if (ratio < 0.65 || ratio > 1.45) {
-    issues.push(`word count outside broad POC band: ${words} words for target ${plan.targetWords}`)
+    warnings.push(`word count outside broad POC band: ${words} words for target ${plan.targetWords}`)
   }
   const thinScenes = sceneWordCounts.filter(scene => !scene.meetsMinimum)
   if (thinScenes.length > 0) {
-    issues.push(`scene prose below minimum: ${thinScenes.map(scene => `${scene.sceneId} ${scene.actual}/${scene.minimum}`).join(", ")}`)
+    warnings.push(`scene prose below advisory floor: ${thinScenes.map(scene => `${scene.sceneId} ${scene.actual}/${scene.minimum}`).join(", ")}`)
   }
   if (forbiddenTermsPresent.length > 0) {
     issues.push(`source terms appeared in generated chapter: ${forbiddenTermsPresent.join(", ")}`)
@@ -624,6 +626,7 @@ export function compareChapterToPlan(chapter: ExampleChapter, plan: RecreationPl
     },
     sourceBoundary: { forbiddenTermsPresent },
     issues,
+    warnings,
   }
 }
 
@@ -674,13 +677,13 @@ function minimumSceneWords(targetWords: number): number {
 function sceneDraftingTargets(plan: RecreationPlan): Array<{
   sceneId: string
   targetWords: number
-  minimumWords: number
+  advisoryFloorWords: number
   minimumParagraphs: number
 }> {
   return plan.scenes.map(scene => ({
     sceneId: scene.sceneId,
     targetWords: scene.targetWords,
-    minimumWords: minimumSceneWords(scene.targetWords),
+    advisoryFloorWords: minimumSceneWords(scene.targetWords),
     minimumParagraphs: minimumSceneParagraphs(scene.targetWords),
   }))
 }
@@ -804,7 +807,7 @@ Materiality-v1 diagnostic variant:
 function stableWriterPrompt(): string {
   return `You are a diagnostic fiction writer for Novel Harness.
 
-You write ORIGINAL prose from an original analog plan.
+You draft chapter prose from the provided scene plan.
 
 Hard rules:
 - Do not copy source prose, names, proper nouns, places, or exact events.
@@ -825,7 +828,7 @@ Hard rules:
 function writerUserPrompt(packet: RecreationPacket, plan: RecreationPlan): string {
   return `VOLATILE INPUT PACKET
 
-Original analog seed:
+Analog seed:
 ${JSON.stringify(packet.originalAnalogSeed, null, 2)}
 
 Plan to draft:
@@ -836,7 +839,7 @@ ${JSON.stringify(sceneDraftingTargets(plan), null, 2)}
 
 Task:
 Draft the example chapter from this plan. Aim for roughly ${plan.targetWords} words total.
-Each scene prose field must meet or exceed its minimumWords value and should land near its own targetWords value.
+Scene word targets are pacing budgets, not hard gates. Do not pad to hit a number, but avoid synopsis-level compression.
 Do not summarize the plan; dramatize each scene with concrete action, dialogue, physical setting, and interior pressure.
 Satisfy every scene's goal, opposition, turning point, crisis choice, climax action, outcome, and consequence.
 Use several paragraphs per scene when needed to reach the target. Expand through action, dialogue, observed world detail, and choices under pressure rather than explanation.
@@ -850,23 +853,23 @@ Previous draft comparison:
 ${JSON.stringify(comparison, null, 2)}
 
 Repair instruction:
-- If word count was too low, rewrite the full chapter and expand every under-minimum scene until it meets the scene drafting budget.
-- Expand by fully dramatizing each planned scene rather than adding exposition.
+- Repair only hard structural/source-boundary issues. Word count warnings alone should not cause a rewrite.
+- If the prose is synopsis-like, expand by fully dramatizing the planned scene rather than adding exposition.
 - Preserve the same sceneIds and scene order.
 - Do not add source names, source places, or exact source events.
-- Keep the chapter original to the analog seed.`
+- Stay within the analog seed and source-boundary rules.`
 }
 
 function stableSceneWriterPrompt(): string {
   return `You are a diagnostic fiction scene writer for Novel Harness.
 
-You write ONE complete original scene from an original analog scene plan.
+You draft one complete scene from the provided scene plan.
 
 Hard rules:
 - Do not copy source prose, names, proper nouns, places, or exact events.
 - Do not imitate a living author's prose style. Use only the structural plan's pacing and scene rhythm.
 - Write prose, not a synopsis. The scene should have concrete action, dialogue, physical setting, and interior pressure.
-- The minimumWords and targetWords values are validator-backed. Meet the minimumWords value.
+- The advisoryFloorWords and targetWords values are pacing guidance, not hard gates. Do not pad to a number.
 - Return JSON only. Use no markdown fences.
 - Output ONLY valid JSON matching this schema:
 {
@@ -877,7 +880,7 @@ Hard rules:
 
 interface PreviousSceneAttempt {
   actualWords: number
-  minimumWords: number
+  advisoryFloorWords: number
   issue: string
   previousProse?: string
 }
@@ -886,12 +889,12 @@ function sceneWriterUserPrompt(packet: RecreationPacket, plan: RecreationPlan, s
   const sceneTarget = {
     sceneId: scene.sceneId,
     targetWords: scene.targetWords,
-    minimumWords: minimumSceneWords(scene.targetWords),
+    advisoryFloorWords: minimumSceneWords(scene.targetWords),
     minimumParagraphs: minimumSceneParagraphs(scene.targetWords),
   }
   return `VOLATILE INPUT PACKET
 
-Original analog seed:
+Analog seed:
 ${JSON.stringify(packet.originalAnalogSeed, null, 2)}
 
 Chapter-level context:
@@ -910,20 +913,20 @@ ${JSON.stringify(scene, null, 2)}
 Scene drafting budget:
 ${JSON.stringify(sceneTarget, null, 2)}
 ${previous ? `
-Previous scene attempt failed deterministic validation:
+Previous scene attempt failed structural validation:
 ${JSON.stringify({
   actualWords: previous.actualWords,
-  minimumWords: previous.minimumWords,
+  advisoryFloorWords: previous.advisoryFloorWords,
   issue: previous.issue,
 }, null, 2)}
 ${previous.previousProse ? `
 Previous scene prose to expand:
 ${previous.previousProse}
 ` : ""}
-Return the complete expanded scene, not only additions. Preserve the same sceneId and expand through dramatized action/dialogue/choice until it meets minimumWords.
+Return the complete expanded scene, not only additions. Preserve the same sceneId and expand through dramatized action/dialogue/choice instead of summary.
 ` : ""}
 Task:
-Draft this one scene as complete original prose. Use at least the requested minimumParagraphs, and do not stop at a synopsis. Satisfy the goal, opposition, turningPoint, crisisChoice, climaxAction, outcome, consequence, and beatHints.`
+Draft this one scene as complete prose. The targetWords and advisoryFloorWords values are pacing guidance, not hard gates. Do not pad to a number, but do not stop at a synopsis. Satisfy the goal, opposition, turningPoint, crisisChoice, climaxAction, outcome, consequence, and beatHints.`
 }
 
 async function writeChapterBySceneCalls(args: {
@@ -954,7 +957,7 @@ async function writeChapterBySceneCalls(args: {
         if (error instanceof ModelJsonParseError && attempt < 3) {
           lastIssue = {
             actualWords: 0,
-            minimumWords: minimumSceneWords(scene.targetWords),
+            advisoryFloorWords: minimumSceneWords(scene.targetWords),
             issue: "previous scene attempt returned invalid JSON; rewrite as valid JSON with escaped quotes",
           }
           continue
@@ -963,18 +966,11 @@ async function writeChapterBySceneCalls(args: {
       }
       parsedScene = parseExampleSceneOutput(rawScene, scene.sceneId)
       const actualWords = wordCount(parsedScene.prose)
-      const minimumWords = minimumSceneWords(scene.targetWords)
       if (actualWords > bestWordCount) {
         bestScene = parsedScene
         bestWordCount = actualWords
       }
-      if (actualWords >= minimumWords) break
-      lastIssue = {
-        actualWords,
-        minimumWords,
-        issue: `scene below minimum: ${actualWords}/${minimumWords}`,
-        previousProse: parsedScene.prose,
-      }
+      break
     }
     if (bestScene && (!parsedScene || wordCount(parsedScene.prose) < wordCount(bestScene.prose))) {
       parsedScene = bestScene
@@ -1130,6 +1126,11 @@ export function renderRecreationReport(args: {
       lines.push(`- Issues: ${args.chapterComparison.issues.join("; ")}`)
     } else {
       lines.push("- Issues: none")
+    }
+    if (args.chapterComparison.warnings.length) {
+      lines.push(`- Warnings: ${args.chapterComparison.warnings.join("; ")}`)
+    } else {
+      lines.push("- Warnings: none")
     }
   }
   lines.push("")

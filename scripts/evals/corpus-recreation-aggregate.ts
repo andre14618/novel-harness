@@ -44,6 +44,7 @@ export interface CorpusRecreationAggregateRow {
   sceneMinimumFailures: number
   planIssueCount: number
   chapterIssueCount: number
+  chapterWarningCount: number
   forbiddenSourceTermCount: number
   contractTotal: number
   contractChoiceCount: number
@@ -83,8 +84,8 @@ export function renderCorpusRecreationAggregate(report: CorpusRecreationAggregat
   lines.push(`Generated: ${report.generatedAt}`)
   lines.push(`Rows: ${report.rowCount}`)
   lines.push("")
-  lines.push("| Chapter | Variant | Scenes | Words | Contract | Issues | Semantic |")
-  lines.push("| --- | --- | ---: | ---: | --- | --- | --- |")
+  lines.push("| Chapter | Variant | Scenes | Words | Contract | Issues | Warnings | Semantic |")
+  lines.push("| --- | --- | ---: | ---: | --- | --- | --- | --- |")
   for (const row of report.rows) {
     lines.push([
       `| ${escapeCell(row.chapterLabel || "?")}`,
@@ -93,6 +94,7 @@ export function renderCorpusRecreationAggregate(report: CorpusRecreationAggregat
       formatWords(row),
       escapeCell(formatContract(row)),
       escapeCell(formatIssues(row)),
+      escapeCell(formatWarnings(row)),
       `${escapeCell(formatSemantic(row))} |`,
     ].join(" | "))
   }
@@ -164,6 +166,7 @@ function readPocRow(pocDir: string): CorpusRecreationAggregateRow {
       : 0,
     planIssueCount: Array.isArray(planComparison.issues) ? planComparison.issues.length : 0,
     chapterIssueCount: Array.isArray(chapterComparison.issues) ? chapterComparison.issues.length : 0,
+    chapterWarningCount: Array.isArray(chapterComparison.warnings) ? chapterComparison.warnings.length : 0,
     forbiddenSourceTermCount: Array.isArray(chapterComparison.sourceBoundary?.forbiddenTermsPresent)
       ? chapterComparison.sourceBoundary.forbiddenTermsPresent.length
       : 0,
@@ -261,8 +264,14 @@ function formatIssues(row: CorpusRecreationAggregateRow): string {
   const parts: string[] = []
   if (row.planIssueCount) parts.push(`plan ${row.planIssueCount}`)
   if (row.chapterIssueCount) parts.push(`chapter ${row.chapterIssueCount}`)
-  if (row.sceneMinimumFailures) parts.push(`scene-min ${row.sceneMinimumFailures}`)
   if (row.forbiddenSourceTermCount) parts.push(`source-leak ${row.forbiddenSourceTermCount}`)
+  return parts.join("; ") || "none"
+}
+
+function formatWarnings(row: CorpusRecreationAggregateRow): string {
+  const parts: string[] = []
+  if (row.chapterWarningCount) parts.push(`chapter ${row.chapterWarningCount}`)
+  if (row.sceneMinimumFailures) parts.push(`scene-floor ${row.sceneMinimumFailures}`)
   return parts.join("; ") || "none"
 }
 

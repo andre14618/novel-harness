@@ -36,7 +36,8 @@ describe("corpus-recreation-aggregate", () => {
           { sceneId: "scene-b", meetsMinimum: false },
         ],
         sourceBoundary: { forbiddenTermsPresent: [] },
-        issues: ["scene prose below minimum for scene-b"],
+        issues: [],
+        warnings: ["scene prose below advisory floor for scene-b"],
       })
       writeJson(join(pocDir, "semantic-review-live/semantic-review.json"), {
         taskCount: 4,
@@ -66,7 +67,8 @@ describe("corpus-recreation-aggregate", () => {
         actualWords: 820,
         targetWords: 1000,
         planIssueCount: 1,
-        chapterIssueCount: 1,
+        chapterIssueCount: 0,
+        chapterWarningCount: 1,
         sceneMinimumFailures: 1,
         contractObservableConsequenceCount: 1,
         semanticTaskCount: 4,
@@ -77,6 +79,8 @@ describe("corpus-recreation-aggregate", () => {
       const rendered = renderCorpusRecreationAggregate(aggregate)
       expect(rendered).toContain("choices 2/2; ids 2/2; conseq 1/2")
       expect(rendered).toContain("| 1 | materiality-v1 |")
+      expect(rendered).toContain("Warnings")
+      expect(rendered).toContain("scene-floor 1")
       expect(rendered).toContain("4 tasks; low 1; skips 1")
       expect(rendered).toContain("scene-b worldFactPressure WFACT-1: world fact must change the outcome")
     } finally {

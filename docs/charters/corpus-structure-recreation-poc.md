@@ -217,6 +217,25 @@ Initial scene semantic review should ask:
 - do beat hints land somewhere in the scene without forcing beat-by-beat prose?
 - does the scene preserve structural function without copying source events?
 
+## Word Count And Source Boundary
+
+Scene and chapter word counts are pacing diagnostics, not hard approval gates,
+for this POC. A short scene should be reported as a warning so the operator can
+notice synopsis-level compression, but it should not force retries by itself.
+Retries should be reserved for malformed output, missing required structure, or
+source-boundary failures.
+
+`source leakage` means forbidden source terms, names, places, or exact source
+events appear in the generated analog artifact. It is not a synonym for "the
+scene has the same structural function." Structural imitation is the point of
+this diagnostic; literal copied source details remain hard failures.
+
+When side-by-side review is available, review the actual chapter next to the
+plan, deterministic comparison, and semantic review before adding more prompt
+knobs. If the prose reads like summary despite acceptable word ratios, add a
+narrow scene-completeness semantic diagnostic rather than reintroducing hard
+word-count retry loops.
+
 ## Scene Semantic Review Diagnostic
 
 Use the default-off semantic review adapter after a plan/write POC run:

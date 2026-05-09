@@ -525,3 +525,44 @@ mechanical or generic, especially around solo artifact-testing scenes. Next
 diagnostic should combine materiality with a stronger POV-motivation tradeoff
 requirement, or move to operator review of the materiality/readiness candidates
 before adding another prompt knob.
+
+## Word Count Policy Update
+
+Changed corpus-recreation prose sizing from hard retry pressure to advisory
+diagnostics:
+
+- scene and chapter word counts now report warnings, not deterministic issues;
+- scene-call writing no longer retries solely because a scene is below the
+  advisory floor;
+- malformed JSON and hard structural/source-boundary failures can still
+  trigger retry or failure paths;
+- aggregate reports separate deterministic `Issues` from `Warnings`.
+
+Reason: word count is a weak proxy for story quality. It can catch obvious
+synopsis-level compression, but forcing rewrites to hit a floor risks padding
+and can hide the real semantic question: whether the scene goal, opposition,
+choice, consequence, and material obligations actually happen in prose.
+
+Prompt cleanup: source-boundary rules stay in the hard rules, but the writer
+task no longer repeats "original prose" as a drafting instruction. That phrase
+was legal/source-boundary guardrail work and added noise to the actual writing
+task. The writer now gets a simpler instruction: draft chapter/scene prose
+from the provided plan while obeying source-boundary rules.
+
+Source leakage definition: forbidden source names, places, terms, or exact
+source events appearing in the generated analog artifact. It is not a failure
+for the artifact to share structural function, scene cadence, or promise
+movement with the reference; that is the diagnostic target.
+
+Current review threshold: start side-by-side review now. The useful packet is:
+
+- `plan.json` for the generated scene contract;
+- `chapter.md` for actual prose;
+- `chapter-comparison.json` for deterministic shape/source-boundary checks;
+- `semantic-review-live/semantic-review.json` for scene-level semantic
+  findings;
+- aggregate/readiness reports for cross-chapter comparison.
+
+If side-by-side review shows scenes are passing structure while reading like
+summary, add a narrow `scene completeness / dramatization` semantic diagnostic.
+Do not restore hard word-count retry loops as the first fix.

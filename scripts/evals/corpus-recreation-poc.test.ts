@@ -153,7 +153,7 @@ describe("corpus-recreation-poc", () => {
     expect(comparison.issues.some(issue => issue.includes("source terms"))).toBe(true)
   })
 
-  test("reports per-scene prose minimums", () => {
+  test("reports per-scene prose advisory floors as warnings", () => {
     const packet = buildRecreationPacket({
       reference: reference() as any,
       referencePath: "output/reference.json",
@@ -171,7 +171,8 @@ describe("corpus-recreation-poc", () => {
 
     expect(comparison.sceneWordCounts[0]!.meetsMinimum).toBe(true)
     expect(comparison.sceneWordCounts[1]!.meetsMinimum).toBe(false)
-    expect(comparison.issues.some(issue => issue.includes("scene prose below minimum"))).toBe(true)
+    expect(comparison.issues.some(issue => issue.includes("scene prose below"))).toBe(false)
+    expect(comparison.warnings.some(warning => warning.includes("scene prose below advisory floor"))).toBe(true)
   })
 
   test("wraps malformed model JSON as retryable parse evidence", () => {
