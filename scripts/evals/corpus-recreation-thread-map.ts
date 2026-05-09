@@ -45,9 +45,16 @@ interface SeedPayoff {
 interface POCPlan {
   chapterId?: string
   scenes?: Array<{ sceneId?: string; consequence?: string }>
+  sceneTurns?: Array<{
+    sceneTurnId?: string
+    sceneId?: string
+    summary?: string
+    turnType?: string
+  }>
   obligations?: Array<{
     obligationId?: string
     sceneId?: string
+    sceneTurnId?: string
     sourceId?: string
     threadId?: string
     promiseId?: string
@@ -74,6 +81,7 @@ export interface ThreadMovementRow {
   chapterLabel: string
   plannerVariant: string
   sceneId: string
+  sceneTurnId: string | null
   obligationId: string
   sourceId: string
   threadId: string | null
@@ -105,10 +113,23 @@ export interface PromiseSummary {
 }
 
 export interface ThreadImpactRow {
-  refKind: "thread" | "promise" | "payoff"
+  refKind: "thread" | "promise" | "payoff" | "sceneTurn"
   ref: string
   affectedSceneIds: string[]
   affectedObligationIds: string[]
+}
+
+export interface SceneTurnSummary {
+  sceneTurnId: string
+  sceneId: string
+  chapterId: string
+  summary: string
+  turnType: string
+  obligationIds: string[]
+  threadIds: string[]
+  promiseIds: string[]
+  payoffIds: string[]
+  issueCount: number
 }
 
 export interface SceneThreadSummary {
@@ -116,6 +137,7 @@ export interface SceneThreadSummary {
   chapterId: string
   consequence: string
   movementCount: number
+  sceneTurnIds: string[]
   threadIds: string[]
   promiseIds: string[]
   payoffIds: string[]
@@ -129,6 +151,7 @@ export interface CorpusThreadMapReport {
   issueCount: number
   horizonNoteCount: number
   scenes: SceneThreadSummary[]
+  sceneTurns: SceneTurnSummary[]
   threads: ThreadSummary[]
   promises: PromiseSummary[]
   impacts: ThreadImpactRow[]
@@ -154,6 +177,7 @@ export function buildCorpusRecreationThreadMap(
   const rows = artifacts.flatMap(buildMovementRows)
   const issues = [
     ...rows.flatMap(row => row.issues.map(issue => ({ code: issueCode(issue), ref: row.obligationId, detail: issue }))),
+    ...sceneTurnDefinitionIssues(artifacts),
     ...threadCoverageIssues(artifacts, rows),
   ]
   const horizonNotes = promiseHorizonNotes(artifacts, rows)
@@ -164,6 +188,7 @@ export function buildCorpusRecreationThreadMap(
     issueCount: issues.length,
     horizonNoteCount: horizonNotes.length,
     scenes: summarizeScenes(artifacts, rows, issues),
+    sceneTurns: summarizeSceneTurns(artifacts, rows),
     threads: summarizeThreads(artifacts, rows),
     promises: summarizePromises(artifacts, rows),
     impacts: buildImpacts(rows),
@@ -185,10 +210,22 @@ export function renderCorpusRecreationThreadMap(report: CorpusThreadMapReport): 
   lines.push("")
   lines.push("## Scenes")
   lines.push("")
-  lines.push("| Scene | Movements | Threads | Promises | Payoffs | Issues | Consequence |")
-  lines.push("| --- | ---: | --- | --- | --- | ---: | --- |")
+  lines.push("| Scene | Movements | Turns | Threads | Promises | Payoffs | Issues | Consequence |")
+  lines.push("| --- | ---: | --- | --- | --- | --- | ---: | --- |")
   for (const scene of report.scenes) {
-    lines.push(`| ${cell(scene.sceneId)} | ${scene.movementCount} | ${cell(scene.threadIds.join(", ") || "none")} | ${cell(scene.promiseIds.join(", ") || "none")} | ${cell(scene.payoffIds.join(", ") || "none")} | ${scene.issueCount} | ${cell(scene.consequence || "none")} |`)
+    lines.push(`| ${cell(scene.sceneId)} | ${scene.movementCount} | ${cell(scene.sceneTurnIds.join(", ") || "none")} | ${cell(scene.threadIds.join(", ") || "none")} | ${cell(scene.promiseIds.join(", ") || "none")} | ${cell(scene.payoffIds.join(", ") || "none")} | ${scene.issueCount} | ${cell(scene.consequence || "none")} |`)
+  }
+  lines.push("")
+  lines.push("## Scene Turns")
+  lines.push("")
+  if (report.sceneTurns.length === 0) {
+    lines.push("- none")
+  } else {
+    lines.push("| Turn | Scene | Type | Obligations | Threads | Promises | Payoffs | Issues | Summary |")
+    lines.push("| --- | --- | --- | --- | --- | --- | --- | ---: | --- |")
+    for (const turn of report.sceneTurns) {
+      lines.push(`| ${cell(turn.sceneTurnId)} | ${cell(turn.sceneId)} | ${cell(turn.turnType || "unknown")} | ${cell(turn.obligationIds.join(", ") || "none")} | ${cell(turn.threadIds.join(", ") || "none")} | ${cell(turn.promiseIds.join(", ") || "none")} | ${cell(turn.payoffIds.join(", ") || "none")} | ${turn.issueCount} | ${cell(turn.summary || "none")} |`)
+    }
   }
   lines.push("")
   lines.push("## Threads")
@@ -258,13 +295,20 @@ function buildMovementRows(artifact: POCArtifact): ThreadMovementRow[] {
   const knownThreads = new Set(artifact.threads.map(thread => thread.threadId))
   const promiseById = new Map(artifact.promises.map(promise => [promise.storyDebtId, promise]))
   const payoffById = new Map(artifact.payoffs.map(payoff => [payoff.payoffId, payoff]))
+  const sceneTurnById = new Map((artifact.plan.sceneTurns ?? []).map(turn => [String(turn.sceneTurnId ?? ""), turn]))
   return (artifact.plan.obligations ?? []).map(obligation => {
     const threadId = textOrNull(obligation.threadId)
     const promiseId = textOrNull(obligation.promiseId)
     const payoffId = textOrNull(obligation.payoffId)
+    const sceneTurnId = textOrNull(obligation.sceneTurnId)
+    const sceneTurn = sceneTurnId ? sceneTurnById.get(sceneTurnId) : null
     const sourceId = String(obligation.sourceId ?? "")
     const sourceDebt = promiseById.get(sourceId)
     const issues: string[] = []
+    if (sceneTurnId && !sceneTurn) issues.push(`unknown sceneTurnId ${sceneTurnId}`)
+    if (sceneTurn && String(sceneTurn.sceneId ?? "") !== String(obligation.sceneId ?? "")) {
+      issues.push(`sceneTurnId ${sceneTurnId} belongs to scene ${String(sceneTurn.sceneId ?? "")}, not ${String(obligation.sceneId ?? "")}`)
+    }
     if (!threadId) issues.push("missing threadId")
     else if (!knownThreads.has(threadId)) issues.push(`unknown threadId ${threadId}`)
     const promise = promiseId ? promiseById.get(promiseId) : null
@@ -290,6 +334,7 @@ function buildMovementRows(artifact: POCArtifact): ThreadMovementRow[] {
       chapterLabel: artifact.chapterLabel,
       plannerVariant: artifact.plannerVariant,
       sceneId: String(obligation.sceneId ?? ""),
+      sceneTurnId,
       obligationId: String(obligation.obligationId ?? ""),
       sourceId,
       threadId,
@@ -341,12 +386,32 @@ function summarizeScenes(
       chapterId: artifact.chapterId,
       consequence: String(scene.consequence ?? ""),
       movementCount: related.filter(row => row.movement !== "unrouted").length,
+      sceneTurnIds: unique(related.map(row => row.sceneTurnId).filter(Boolean) as string[]),
       threadIds: unique(related.map(row => row.threadId).filter(Boolean) as string[]),
       promiseIds: unique(related.map(row => row.promiseId).filter(Boolean) as string[]),
       payoffIds: unique(related.map(row => row.payoffId).filter(Boolean) as string[]),
       issueCount: sceneIssueCounts.get(`${artifact.pocDir}:${sceneId}`) ?? 0,
     }
   })).sort((a, b) => a.chapterId.localeCompare(b.chapterId) || a.sceneId.localeCompare(b.sceneId))
+}
+
+function summarizeSceneTurns(artifacts: POCArtifact[], rows: ThreadMovementRow[]): SceneTurnSummary[] {
+  return artifacts.flatMap(artifact => (artifact.plan.sceneTurns ?? []).map(turn => {
+    const sceneTurnId = String(turn.sceneTurnId ?? "")
+    const related = rows.filter(row => row.pocDir === artifact.pocDir && row.sceneTurnId === sceneTurnId)
+    return {
+      sceneTurnId,
+      sceneId: String(turn.sceneId ?? ""),
+      chapterId: artifact.chapterId,
+      summary: String(turn.summary ?? ""),
+      turnType: String(turn.turnType ?? ""),
+      obligationIds: unique(related.map(row => row.obligationId).filter(Boolean)),
+      threadIds: unique(related.map(row => row.threadId).filter(Boolean) as string[]),
+      promiseIds: unique(related.map(row => row.promiseId).filter(Boolean) as string[]),
+      payoffIds: unique(related.map(row => row.payoffId).filter(Boolean) as string[]),
+      issueCount: related.reduce((sum, row) => sum + row.issues.length, 0),
+    }
+  })).sort((a, b) => a.chapterId.localeCompare(b.chapterId) || a.sceneId.localeCompare(b.sceneId) || a.sceneTurnId.localeCompare(b.sceneTurnId))
 }
 
 function summarizeThreads(artifacts: POCArtifact[], rows: ThreadMovementRow[]): ThreadSummary[] {
@@ -391,6 +456,7 @@ function summarizePromises(artifacts: POCArtifact[], rows: ThreadMovementRow[]):
 function buildImpacts(rows: ThreadMovementRow[]): ThreadImpactRow[] {
   const byRef = new Map<string, ThreadImpactRow>()
   for (const row of rows) {
+    addImpact(byRef, "sceneTurn", row.sceneTurnId, row)
     addImpact(byRef, "thread", row.threadId, row)
     addImpact(byRef, "promise", row.promiseId, row)
     addImpact(byRef, "payoff", row.payoffId, row)
@@ -410,6 +476,38 @@ function addImpact(byRef: Map<string, ThreadImpactRow>, refKind: ThreadImpactRow
   current.affectedSceneIds = unique([...current.affectedSceneIds, row.sceneId].filter(Boolean))
   current.affectedObligationIds = unique([...current.affectedObligationIds, row.obligationId].filter(Boolean))
   byRef.set(key, current)
+}
+
+function sceneTurnDefinitionIssues(artifacts: POCArtifact[]): CorpusThreadMapReport["issues"] {
+  const issues: CorpusThreadMapReport["issues"] = []
+  for (const artifact of artifacts) {
+    const knownSceneIds = new Set((artifact.plan.scenes ?? []).map(scene => String(scene.sceneId ?? "")))
+    const seenTurnIds = new Set<string>()
+    const duplicateTurnIds = new Set<string>()
+    for (const turn of artifact.plan.sceneTurns ?? []) {
+      const sceneTurnId = String(turn.sceneTurnId ?? "")
+      const sceneId = String(turn.sceneId ?? "")
+      if (sceneTurnId) {
+        if (seenTurnIds.has(sceneTurnId)) duplicateTurnIds.add(sceneTurnId)
+        seenTurnIds.add(sceneTurnId)
+      }
+      if (sceneId && !knownSceneIds.has(sceneId)) {
+        issues.push({
+          code: "scene_turn_unknown_scene",
+          ref: sceneTurnId || "sceneTurn:missing-id",
+          detail: `sceneTurnId ${sceneTurnId || "(missing)"} points to unknown scene ${sceneId}`,
+        })
+      }
+    }
+    for (const sceneTurnId of [...duplicateTurnIds].sort()) {
+      issues.push({
+        code: "duplicate_scene_turn_id",
+        ref: sceneTurnId,
+        detail: `sceneTurnId ${sceneTurnId} is declared more than once`,
+      })
+    }
+  }
+  return issues
 }
 
 function promiseHorizonNotes(artifacts: POCArtifact[], rows: ThreadMovementRow[]): CorpusThreadMapReport["horizonNotes"] {
@@ -484,6 +582,8 @@ function issueCode(issue: string): string {
   if (issue.startsWith("unknown threadId")) return "unknown_thread_id"
   if (issue.startsWith("unknown promiseId")) return "unknown_promise_id"
   if (issue.startsWith("unknown payoffId")) return "unknown_payoff_id"
+  if (issue.startsWith("unknown sceneTurnId")) return "unknown_scene_turn_id"
+  if (issue.startsWith("sceneTurnId") && issue.includes("belongs to scene")) return "scene_turn_scene_mismatch"
   if (issue.includes("story debt but promiseId is missing")) return "story_debt_without_promise_ref"
   if (issue.includes("has no promiseId")) return "payoff_without_promise"
   if (issue.startsWith("promiseId") && issue.includes("belongs to thread")) return "promise_thread_mismatch"

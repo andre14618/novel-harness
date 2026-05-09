@@ -24,6 +24,7 @@ describe("corpus-recreation-thread-map", () => {
         expect.objectContaining({
           sceneId: "analog-sc01",
           movementCount: 2,
+          sceneTurnIds: ["turn-sc01-folio-reveal"],
           threadIds: ["thread-main"],
           promiseIds: ["debt-folio"],
           payoffIds: ["payoff-folio-seen"],
@@ -52,7 +53,24 @@ describe("corpus-recreation-thread-map", () => {
           payoffIds: ["payoff-folio-seen"],
         }),
       ]))
+      expect(report.sceneTurns).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          sceneTurnId: "turn-sc01-folio-reveal",
+          sceneId: "analog-sc01",
+          obligationIds: ["obl-open-folio", "obl-payoff-folio"],
+          threadIds: ["thread-main"],
+          promiseIds: ["debt-folio"],
+          payoffIds: ["payoff-folio-seen"],
+          issueCount: 0,
+        }),
+      ]))
       expect(report.impacts).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          refKind: "sceneTurn",
+          ref: "turn-sc01-folio-reveal",
+          affectedSceneIds: ["analog-sc01"],
+          affectedObligationIds: ["obl-open-folio", "obl-payoff-folio"],
+        }),
         expect.objectContaining({
           refKind: "thread",
           ref: "thread-main",
@@ -68,8 +86,10 @@ describe("corpus-recreation-thread-map", () => {
 
       const rendered = renderCorpusRecreationThreadMap(report)
       expect(rendered).toContain("## Scenes")
+      expect(rendered).toContain("## Scene Turns")
       expect(rendered).toContain("## Impact Preview")
       expect(rendered).toContain("## Horizon Notes")
+      expect(rendered).toContain("turn-sc01-folio-reveal")
       expect(rendered).toContain("thread-main")
       expect(rendered).toContain("payoff-folio-seen")
     } finally {
@@ -99,6 +119,22 @@ describe("corpus-recreation-thread-map", () => {
             threadId: "thread-unknown",
             requirementText: "Point to an unknown thread.",
           },
+          {
+            obligationId: "obl-wrong-turn-scene",
+            sceneId: "analog-sc02",
+            sceneTurnId: "turn-sc01-folio-reveal",
+            sourceId: "local-risk",
+            threadId: "thread-rel",
+            requirementText: "Point an obligation to a turn from another scene.",
+          },
+          {
+            obligationId: "obl-unknown-turn",
+            sceneId: "analog-sc02",
+            sceneTurnId: "turn-missing",
+            sourceId: "local-risk",
+            threadId: "thread-rel",
+            requirementText: "Point an obligation to an unknown turn.",
+          },
         ],
       })
 
@@ -110,11 +146,14 @@ describe("corpus-recreation-thread-map", () => {
       expect(codes).toContain("promise_thread_mismatch")
       expect(codes).toContain("payoff_promise_mismatch")
       expect(codes).toContain("unknown_thread_id")
+      expect(codes).toContain("scene_turn_scene_mismatch")
+      expect(codes).toContain("unknown_scene_turn_id")
       expect(report.rows.find(row => row.obligationId === "obl-unrouted-debt")?.movement).toBe("unrouted_story_debt")
 
       const rendered = renderCorpusRecreationThreadMap(report)
       expect(rendered).toContain("sourceId debt-trust is a story debt but promiseId is missing")
       expect(rendered).toContain("payoffId payoff-folio-seen belongs to debt-folio, not debt-trust")
+      expect(rendered).toContain("sceneTurnId turn-sc01-folio-reveal belongs to scene analog-sc01, not analog-sc02")
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
@@ -226,6 +265,7 @@ describe("corpus-recreation-thread-map", () => {
 function writeThreadMapFixture(path: string, opts: {
   extraObligations?: Array<Record<string, unknown>>
   extraPayoffs?: Array<Record<string, unknown>>
+  extraSceneTurns?: Array<Record<string, unknown>>
 } = {}): void {
   writeJson(join(path, "packet.json"), {
     sourceReference: { book: "crystal_shard", chapterLabel: "1" },
@@ -251,10 +291,20 @@ function writeThreadMapFixture(path: string, opts: {
       { sceneId: "analog-sc01", consequence: "Noor understands the folio is dangerous." },
       { sceneId: "analog-sc02", consequence: "Noor and Cassius leave with unresolved trust." },
     ],
+    sceneTurns: [
+      {
+        sceneTurnId: "turn-sc01-folio-reveal",
+        sceneId: "analog-sc01",
+        summary: "Noor opens the folio and learns it carries a dangerous prediction.",
+        turnType: "reveal",
+      },
+      ...(opts.extraSceneTurns ?? []),
+    ],
     obligations: [
       {
         obligationId: "obl-open-folio",
         sceneId: "analog-sc01",
+        sceneTurnId: "turn-sc01-folio-reveal",
         sourceId: "debt-folio",
         threadId: "thread-main",
         promiseId: "debt-folio",
@@ -264,6 +314,7 @@ function writeThreadMapFixture(path: string, opts: {
       {
         obligationId: "obl-payoff-folio",
         sceneId: "analog-sc01",
+        sceneTurnId: "turn-sc01-folio-reveal",
         sourceId: "payoff-folio-seen",
         threadId: "thread-main",
         promiseId: "debt-folio",

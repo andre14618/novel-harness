@@ -218,6 +218,10 @@ rows, scene summaries, impact-preview refs, structural issues, and a sidecar
 run manifest when an output artifact is written. It does not call an LLM,
 create proposals, mutate plans, or change writer context.
 
+Scene-turn update: the thread map also renders `sceneTurnId` groupings and
+impact refs when present, so a future graph can be built from the artifact
+without adding graph storage now.
+
 ### Lane 4 - Interleaved Writer Context Experiment
 
 Default-off only after Lanes 1-3.
