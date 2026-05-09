@@ -47,6 +47,7 @@ First candidate method pack:
 | H9 | Human oversight checkpoints | evaluation workflow | side-by-side rubric panel | medium |
 | H10 | Chapter-scope draft then revise | writer/reviser | only after H1-H3 evidence | later |
 | H11 | Corpus structure recreation | planning reference / diagnostics | chapter-scene reference comparison | high |
+| H12 | Run/thread ID interleaving | traceability / context engineering | deterministic run/thread map | high |
 
 ## H1 - Structure-Template Macro Planning
 
@@ -198,6 +199,30 @@ payoff obligation IDs, and status observations.
 Risk: a promise ledger can become over-engineered or intrusive. Mitigation:
 keep it planner-owned and diagnostic until a side-by-side plan comparison
 shows value.
+
+## H12 - Run/Thread ID Interleaving
+
+Hypothesis: drafting coherence improves when execution lineage and narrative
+thread/payoff refs travel together from concept through scene writing and
+review.
+
+First slice:
+
+- Add run manifests and deterministic validation to diagnostic artifacts.
+- Add `threadId`, `promiseId`, and `payoffId` refs to planner contracts before
+  changing writer prompts.
+- Produce a thread map that shows where story debts open, progress,
+  complicate, and pay off.
+
+Expected benefit: fewer stale comparisons, clearer downstream impact analysis,
+and writer context that is narrower but more relevant.
+
+Trace needs: `runId`, `rootRunId`, `parentRunId`, `variantId`, `sceneId`,
+`obligationId`, `threadId`, `promiseId`, `payoffId`, input/output artifact
+hashes, and review observation refs.
+
+Risk: over-building ledgers before proving value. Mitigation: deterministic
+diagnostics and static review first; writer-context changes stay default-off.
 
 ## H5 - Character Materiality And Motivation
 

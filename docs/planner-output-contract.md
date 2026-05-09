@@ -254,6 +254,7 @@ until measured against human side-by-side review.
 New methodology should preserve traceability through these refs:
 
 ```text
+rootRunId / runId / parentRunId / variantId
 templateId
 structureSlotId
 chapterId
@@ -262,13 +263,20 @@ obligationId
 sourceId
 characterId
 worldFactId
-promiseId / storyDebtId (future)
+threadId
+promiseId / storyDebtId
+payoffId
 draftSpanId (future or derived)
 ```
 
 `beatId` remains useful for legacy outlines and corpus-derived annotations, but
 it should not be the primary future assertion surface under scene-first
 planning.
+
+Run refs identify which execution produced or judged an artifact. Thread refs
+identify which narrative continuity vector a chapter, scene, or obligation is
+carrying. Promise/payoff refs are the traceable story-debt items inside those
+threads. See `docs/charters/run-thread-id-drafting-coherence.md`.
 
 ## Evidence Tiers For Planner Calls
 

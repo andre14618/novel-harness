@@ -8,6 +8,8 @@ unless the user explicitly requests a disposable branch.
 - Upstream planning methodology lane: narrow the active product question to
   concept/planning templates, chapter contracts, scene contracts, obligation
   traceability, and planner-quality diagnostics. See L089.
+- Run/thread coherence lane is next traceability foundation; prove manifests,
+  thread/payoff refs, maps, and static review before writer changes. See L093.
 - Visibility/interactivity foundation is at scope ceiling for now; additional
   UI work is lower priority unless a UI surface changes as part of a specific
   accepted slice.
@@ -29,9 +31,8 @@ unless the user explicitly requests a disposable branch.
 - If pursuing scene-first methodology, treat `sceneId` as the plan/write/check
   unit and `obligationId`/`sourceId` as the traceability unit; do not preserve
   beat-level adherence as the primary future contract by default. See L092.
-- Next docs/code slice should use `docs/planner-output-contract.md` as the
-  target: template slot -> chapter contract -> scene contract -> obligations
-  before writer/checker/UI changes.
+- Next docs/code slice should use `docs/planner-output-contract.md` plus L093:
+  run manifests, thread/payoff refs, maps, and static evidence first.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.

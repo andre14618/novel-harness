@@ -355,3 +355,16 @@ This asks the planner to attach `materialityTest` to each obligation: the
 specific choice, cost, constraint, relationship state, outcome, or future
 pressure that the exact source ID must change. Use it only as a diagnostic arm
 against a baseline run. It is not a runtime default.
+
+## Run/Thread Follow-Up
+
+Before adding more planner prompt variants, route the POC through L093:
+
+- emit run manifests for POC, semantic review, prose review, aggregate, and
+  static review artifacts;
+- add thread/payoff refs to scene obligations in the plan contract;
+- report where each thread opens, progresses, complicates, and pays off;
+- show those refs in the static side-by-side review page.
+
+This should make the next comparison about coherent story movement instead of
+only scene count, word ratio, or local prose quality.
