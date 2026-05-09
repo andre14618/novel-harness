@@ -1,3 +1,8 @@
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { spawnSync } from "node:child_process"
+
 import { describe, expect, test } from "bun:test"
 
 import {
@@ -399,7 +404,73 @@ describe("corpus-recreation-poc", () => {
       prose: "Nara chooses the hard road while the bells shake frost from the gatehouse stones.",
     }, "scene-a")).toThrow("scene output id mismatch")
   })
+
+  test("--plan-from reuses the source packet instead of default chapter packet", () => {
+    const root = mkdtempSync(join(tmpdir(), "corpus-recreation-plan-from-"))
+    try {
+      const referencePath = join(root, "reference.json")
+      const sourceDir = join(root, "source")
+      const outputDir = join(root, "output")
+      mkdirSync(sourceDir, { recursive: true })
+      writeJson(referencePath, reference())
+      const sourcePacket = buildRecreationPacket({
+        reference: reference() as any,
+        referencePath,
+        chapterLabel: "1",
+        generatedAt: "2026-05-09T00:00:00.000Z",
+        plannerVariant: "materiality-v1",
+      })
+      sourcePacket.sourceReference.chapterLabel = "source-packet-chapter"
+      sourcePacket.target.chapterLabel = "source-packet-chapter"
+      writeJson(join(sourceDir, "packet.json"), sourcePacket)
+      writeJson(join(sourceDir, "plan.json"), validParsedPlan())
+
+      const result = spawnSync(process.execPath, [
+        "scripts/evals/corpus-recreation-poc.ts",
+        "--reference",
+        referencePath,
+        "--plan-from",
+        sourceDir,
+        "--output-dir",
+        outputDir,
+        "--writer-context",
+        "thread-context-v1",
+      ], {
+        cwd: process.cwd(),
+        encoding: "utf8",
+      })
+
+      expect(result.status).toBe(0)
+      const outputPacket = JSON.parse(readFileSync(join(outputDir, "packet.json"), "utf8"))
+      const report = readFileSync(join(outputDir, "report.md"), "utf8")
+      const manifest = JSON.parse(readFileSync(join(outputDir, "run-manifest.json"), "utf8"))
+
+      expect(outputPacket.sourceReference.chapterLabel).toBe("source-packet-chapter")
+      expect(outputPacket.diagnosticConfig.plannerVariant).toBe("materiality-v1")
+      expect(outputPacket.diagnosticConfig.writerContextMode).toBe("thread-context-v1")
+      expect(report).toContain("Reference: test_book chapter source-packet-chapter")
+      expect(manifest.metadata.chapterLabel).toBe("source-packet-chapter")
+      expect(manifest.inputs.some((input: any) => input.role === "source-packet")).toBe(true)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
 })
+
+function validParsedPlan() {
+  return {
+    ...plan(),
+    scenes: plan().scenes.map(scene => ({
+      ...scene,
+      beatHints: scene.beatHints.map(beat => ({ ...beat, purpose: `${beat.purpose} purpose` })),
+    })),
+  }
+}
+
+function writeJson(path: string, value: unknown): void {
+  mkdirSync(path.slice(0, path.lastIndexOf("/")), { recursive: true })
+  writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`)
+}
 
 function reference() {
   return {

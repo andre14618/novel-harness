@@ -1548,7 +1548,7 @@ async function main(): Promise<void> {
   const referencePath = resolve(process.cwd(), args.referencePath)
   if (!existsSync(referencePath)) throw new Error(`reference not found: ${referencePath}`)
   const reference = JSON.parse(readFileSync(referencePath, "utf-8")) as CorpusStructureReference
-  const packet = buildRecreationPacket({
+  let packet = buildRecreationPacket({
     reference,
     referencePath: args.referencePath,
     chapterLabel: args.chapterLabel,
@@ -1556,6 +1556,21 @@ async function main(): Promise<void> {
     plannerVariant: args.plannerVariant,
     writerContextMode: args.writerContextMode,
   })
+
+  if (args.planFromDir) {
+    const sourcePacketPath = resolve(process.cwd(), args.planFromDir, "packet.json")
+    if (existsSync(sourcePacketPath)) {
+      const sourcePacket = JSON.parse(readFileSync(sourcePacketPath, "utf-8")) as RecreationPacket
+      packet = {
+        ...sourcePacket,
+        generatedAt: new Date().toISOString(),
+        diagnosticConfig: {
+          plannerVariant: sourcePacket.diagnosticConfig?.plannerVariant ?? args.plannerVariant,
+          writerContextMode: args.writerContextMode,
+        },
+      }
+    }
+  }
 
   const outputDir = resolve(process.cwd(), args.outputDir)
   mkdirSync(outputDir, { recursive: true })
@@ -1576,7 +1591,7 @@ async function main(): Promise<void> {
       throw new Error(`--plan-from plan invalid: ${error instanceof Error ? error.message : String(error)}`)
     }
     planComparison = comparePlanToReference(plan, packet, {
-      requireMaterialityTests: args.plannerVariant === "materiality-v1",
+      requireMaterialityTests: packet.diagnosticConfig?.plannerVariant === "materiality-v1",
     })
     writeFileSync(join(outputDir, "plan.json"), `${JSON.stringify(plan, null, 2)}\n`)
     writeFileSync(join(outputDir, "plan-comparison.json"), `${JSON.stringify(planComparison, null, 2)}\n`)
@@ -1592,7 +1607,7 @@ async function main(): Promise<void> {
     })
     plan = parseRecreationPlanOutput(rawPlan)
     planComparison = comparePlanToReference(plan, packet, {
-      requireMaterialityTests: args.plannerVariant === "materiality-v1",
+      requireMaterialityTests: packet.diagnosticConfig?.plannerVariant === "materiality-v1",
     })
     writeFileSync(join(outputDir, "plan.json"), `${JSON.stringify(plan, null, 2)}\n`)
     writeFileSync(join(outputDir, "plan-comparison.json"), `${JSON.stringify(planComparison, null, 2)}\n`)
@@ -1650,7 +1665,7 @@ async function main(): Promise<void> {
     generatedAt: packet.generatedAt,
     laneId: "run-thread-id-drafting-coherence",
     phase: "corpus-recreation-poc",
-    variantId: args.plannerVariant,
+    variantId: packet.diagnosticConfig?.plannerVariant ?? args.plannerVariant,
     command: {
       name: "diagnostics:corpus-recreation-poc",
       argv: process.argv.slice(2),
@@ -1665,6 +1680,7 @@ async function main(): Promise<void> {
       ...existingArtifactRefs(args.planFromDir
         ? [
           { path: join(resolve(process.cwd(), args.planFromDir), "run-manifest.json"), role: "source-run-manifest" },
+          { path: join(resolve(process.cwd(), args.planFromDir), "packet.json"), role: "source-packet" },
           { path: join(resolve(process.cwd(), args.planFromDir), "plan.json"), role: "source-plan" },
           { path: join(resolve(process.cwd(), args.planFromDir), "plan-comparison.json"), role: "source-plan-comparison" },
         ]
@@ -1682,7 +1698,7 @@ async function main(): Promise<void> {
     ]),
     discriminator: basename(outputDir),
     metadata: {
-      chapterLabel: args.chapterLabel,
+      chapterLabel: packet.sourceReference.chapterLabel,
       live: args.live,
       writeChapter: args.writeChapter,
       sceneCalls: args.sceneCalls,

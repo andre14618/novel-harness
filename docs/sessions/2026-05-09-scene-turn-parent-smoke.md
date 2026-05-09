@@ -78,3 +78,34 @@ Aggregate result:
 This is deterministic evidence only. It does not prove prose quality or semantic
 story quality, but it does clear the graph-ready parent/child ID shape for this
 small planner-only sample.
+
+## Prose POC
+
+An initial `--plan-from` scene-call draft exposed a replay bug: the command
+reused the source plan but rebuilt the packet from the default chapter, causing
+chapter 2 prose to be compared against chapter 1 target structure. The script
+now reuses `packet.json` from `--plan-from` when present and records that source
+packet in the run manifest.
+
+Corrected run:
+
+```bash
+bun scripts/evals/corpus-recreation-poc.ts --plan-from output/corpus-recreation-poc/scene-turn-v4-smoke-ch2b-20260509 --output-dir output/corpus-recreation-poc/scene-turn-v4-write-ch2b-20260509 --live --write --scene-calls --model deepseek-v4-flash
+bun scripts/evals/corpus-recreation-semantic-review.ts --poc-dir output/corpus-recreation-poc/scene-turn-v4-write-ch2b-20260509 --live --model deepseek-v4-flash
+bun scripts/evals/corpus-recreation-prose-review.ts --poc-dir output/corpus-recreation-poc/scene-turn-v4-write-ch2b-20260509 --live --model deepseek-v4-flash
+bun scripts/evals/corpus-recreation-review.ts --poc-dir output/corpus-recreation-poc/scene-turn-v4-write-ch2b-20260509 --output output/corpus-recreation-poc/scene-turn-v4-write-ch2b-20260509/review.html
+```
+
+Result:
+
+- correct source packet: crystal_shard chapter 2;
+- deterministic plan issues: 0;
+- chapter issues: 0;
+- forbidden source terms: 0;
+- word count: 2403/3353 (0.72), with advisory low-scene warnings only;
+- semantic review: 0 low-signal findings across 18 applicable tasks;
+- prose review: no operator-attention items; payoff propulsion labels were
+  `PAYOFF-3:4`.
+
+This is a useful prose proof point for the scene-turn parent shape, not a
+promotion decision by itself.
