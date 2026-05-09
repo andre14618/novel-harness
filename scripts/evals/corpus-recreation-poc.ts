@@ -479,6 +479,25 @@ function positiveInt(value: string, flag: string): number {
   return parsed
 }
 
+function printHelp(): void {
+  console.log(`Usage:
+  bun scripts/evals/corpus-recreation-poc.ts [--chapter <label>] [--output-dir <dir>]
+    [--live] [--write] [--scene-calls]
+    [--model deepseek-v4-flash|deepseek-v4-pro]
+    [--planner-variant baseline|materiality-v1]
+    [--writer-context baseline|thread-context-v1]
+    [--plan-from <poc-dir>]
+
+Examples:
+  bun run diagnostics:corpus-recreation-poc -- --chapter 2 --output-dir output/poc-ch2
+  bun run diagnostics:corpus-recreation-poc -- --chapter 2 --live --planner-variant materiality-v1
+`)
+}
+
+function wantsHelp(argv: string[]): boolean {
+  return argv.includes("--help") || argv.includes("-h")
+}
+
 export function buildRecreationPacket(args: {
   reference: CorpusStructureReference
   referencePath: string
@@ -1445,6 +1464,10 @@ export function renderRecreationReport(args: {
 }
 
 async function main(): Promise<void> {
+  if (wantsHelp(process.argv.slice(2))) {
+    printHelp()
+    return
+  }
   const args = parseArgs()
   const referencePath = resolve(process.cwd(), args.referencePath)
   if (!existsSync(referencePath)) throw new Error(`reference not found: ${referencePath}`)
