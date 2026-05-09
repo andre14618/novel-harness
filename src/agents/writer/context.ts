@@ -31,7 +31,12 @@ import {
 import { getContextTemplate, interpolate as tplInterp } from "../../db/context-templates"
 import type { StorySpine, NovelState, CharacterProfile } from "../../types"
 import type { WorldSystem } from "../../db/world-systems"
-import { buildChapterCharacterContextCapsules, renderCharacterContextCapsules } from "./character-context"
+import {
+  buildChapterCharacterContextCapsules,
+  renderCharacterContextCapsules,
+  summarizeCharacterContextCapsules,
+  type WriterCharacterContextTrace,
+} from "./character-context"
 import type { WriterContextMode } from "./context-mode"
 
 /** Attempt a DB lookup that may legitimately return no data (novel hasn't reached that stage yet).
@@ -54,7 +59,10 @@ async function tryGet<T>(fn: () => Promise<T>): Promise<T | null> {
 export async function buildContext(
   novelId: string,
   chapterNum: number,
-  opts: { writerContextMode?: WriterContextMode } = {},
+  opts: {
+    writerContextMode?: WriterContextMode
+    onCharacterContextTrace?: (trace: WriterCharacterContextTrace) => void
+  } = {},
 ): Promise<string> {
   const outline = await getChapterOutline(novelId, chapterNum)
   const allChars = await getCharacters(novelId)
@@ -89,7 +97,10 @@ export async function buildContext(
       allCharacters: allChars,
       characterStates,
     })
-    if (capsules) sections.push(renderCharacterContextCapsules(capsules))
+    if (capsules) {
+      opts.onCharacterContextTrace?.(summarizeCharacterContextCapsules(capsules))
+      sections.push(renderCharacterContextCapsules(capsules))
+    }
   }
 
   // ── DYNAMIC: Semantic retrieval or minimal fallback ─────────────────────

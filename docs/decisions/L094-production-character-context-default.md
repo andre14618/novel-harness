@@ -57,5 +57,8 @@ Fixed-plan corpus POC evidence compared `thread-context-v1` against
 - Legacy prompt shape remains available via `writerContextMode="legacy"`.
 - Byte-parity tests protect callers that do not opt in.
 - Variant clones can set `--writer-context-mode` for disposable A/B runs.
+- Production drafting emits `writer-context` trace events with mode, stage,
+  supplied character IDs, source obligation IDs, thread IDs, promise IDs, and
+  payoff IDs so downstream quality/outcome analysis does not infer context.
 - Future writer-quality changes should remain separate from this context
   upgrade unless they are measured as a distinct lane.

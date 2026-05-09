@@ -38,6 +38,7 @@ export type TraceEventType =
   | "adherence-deterministic"
   | "adherence-stage2-override"
   | "reference-resolution"
+  | "writer-context"
   | "state-extraction"
   | "gate-wait"
   | "gate-resolve"

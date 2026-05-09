@@ -41,7 +41,12 @@ import { getRelationshipBetween } from "../../db"
 import { resolveReferences, type ResolvedReferences } from "./reference-resolver"
 import { renderBeatContext } from "./beat-context-render"
 import { selectReaderInfoStateForBeat } from "./enriched-context"
-import { buildBeatCharacterContextCapsules, type WriterCharacterContextCapsules } from "./character-context"
+import {
+  buildBeatCharacterContextCapsules,
+  summarizeCharacterContextCapsules,
+  type WriterCharacterContextCapsules,
+  type WriterCharacterContextTrace,
+} from "./character-context"
 import type { WriterContextMode } from "./context-mode"
 import type { BeatObligationsContract, ChapterOutline, CharacterProfile, Fact, SceneBeat } from "../../types"
 
@@ -94,6 +99,7 @@ export interface BeatContextInput {
 export interface BeatContextResult {
   userPrompt: string
   targetWords: number
+  characterContextTrace?: WriterCharacterContextTrace | null
 }
 
 // ── Typed slots (D1) ─────────────────────────────────────────────────────
@@ -312,6 +318,9 @@ export async function buildBeatContext(input: BeatContextInput): Promise<BeatCon
   return {
     userPrompt: renderBeatContext(ctx, { compact: !!input.compactMode }),
     targetWords,
+    characterContextTrace: ctx.characterContextCapsules
+      ? summarizeCharacterContextCapsules(ctx.characterContextCapsules)
+      : null,
   }
 }
 

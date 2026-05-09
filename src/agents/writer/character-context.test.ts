@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test"
 
-import { buildBeatContext } from "./beat-context"
 import {
   buildBeatCharacterContextCapsules,
   renderCharacterContextCapsules,
+  summarizeCharacterContextCapsules,
 } from "./character-context"
 import type { ChapterOutline, CharacterProfile } from "../../types"
 
@@ -111,28 +111,15 @@ test("beat character capsules surface exact IDs, LTWN fields, stakes, and obliga
   expect(rendered).toContain("Truth: Truth needs witnesses.")
   expect(rendered).toContain("Source obligations: obl-noor-learns-cassius")
   expect(rendered).toContain("Active threads: thread-inquiry")
-})
-
-test("buildBeatContext keeps legacy prompt shape unless writerContextMode opts in", async () => {
-  const baseInput = {
-    novelId: "novel-test",
-    chapterNumber: 1,
-    beatIndex: 0,
-    outline: OUTLINE,
-    characters: CHARACTERS,
-    characterStates: [],
-    worldBible: { locations: [] },
-    compactMode: true,
-    preResolvedRefs: { context: "", lookupCount: 0, llmUsed: false },
-  }
-
-  const legacy = await buildBeatContext(baseInput)
-  expect(legacy.userPrompt).not.toContain("CHARACTER CONTEXT CAPSULES:")
-
-  const upgraded = await buildBeatContext({
-    ...baseInput,
-    writerContextMode: "thread-character-context-v1",
+  expect(summarizeCharacterContextCapsules(capsules!)).toMatchObject({
+    mode: "thread-character-context-v1",
+    scope: "beat",
+    chapterId: "ch-001-deep-stacks",
+    beatId: "beat-001-trust-choice",
+    povPersonalStakePresent: true,
+    characterIds: ["char-noor", "char-cassius"],
+    sourceObligationIds: ["obl-noor-learns-cassius", "obl-cassius-helps"],
+    activeThreadIds: ["thread-inquiry", "thread-relationship"],
+    activePromiseIds: ["debt-folio"],
   })
-  expect(upgraded.userPrompt).toContain("CHARACTER CONTEXT CAPSULES:")
-  expect(upgraded.userPrompt).toContain("POV character ID: char-noor")
 })

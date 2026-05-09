@@ -33,6 +33,22 @@ export interface WriterCharacterContextCapsules {
   missingCharacterIds: string[]
 }
 
+export interface WriterCharacterContextTrace {
+  mode: "thread-character-context-v1"
+  scope: "beat" | "chapter"
+  chapterId?: string
+  beatId?: string
+  beatNumber?: number
+  povCharacterId?: string
+  povPersonalStakePresent: boolean
+  characterIds: string[]
+  sourceObligationIds: string[]
+  activeThreadIds: string[]
+  activePromiseIds: string[]
+  activePayoffIds: string[]
+  missingCharacterIds: string[]
+}
+
 type ObligationItem = {
   text?: string
   obligationId?: string
@@ -153,6 +169,25 @@ export function renderCharacterContextCapsules(ctx: WriterCharacterContextCapsul
 
   return lines.join("\n")
 }
+
+export function summarizeCharacterContextCapsules(ctx: WriterCharacterContextCapsules): WriterCharacterContextTrace {
+  return {
+    mode: ctx.mode,
+    scope: ctx.scope,
+    ...(ctx.chapterId ? { chapterId: ctx.chapterId } : {}),
+    ...(ctx.beatId ? { beatId: ctx.beatId } : {}),
+    ...(ctx.beatNumber != null ? { beatNumber: ctx.beatNumber } : {}),
+    ...(ctx.povCharacterId ? { povCharacterId: ctx.povCharacterId } : {}),
+    povPersonalStakePresent: Boolean(ctx.povPersonalStake),
+    characterIds: ctx.cards.map(card => card.characterId),
+    sourceObligationIds: uniqueStrings(ctx.cards.flatMap(card => card.sourceObligationIds)),
+    activeThreadIds: uniqueStrings(ctx.cards.flatMap(card => card.activeThreadIds)),
+    activePromiseIds: uniqueStrings(ctx.cards.flatMap(card => card.activePromiseIds)),
+    activePayoffIds: uniqueStrings(ctx.cards.flatMap(card => card.activePayoffIds)),
+    missingCharacterIds: ctx.missingCharacterIds,
+  }
+}
+
 
 function selectBeatCharacterIds(args: {
   outline: ChapterOutline

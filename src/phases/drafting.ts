@@ -16,6 +16,7 @@ import { getTransport } from "../transport"
 import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CHAPTER_PLAN_CHECKER_PROMPT } from "../prompts"
 import { buildContext as buildWriterContext } from "../agents/writer/context"
 import { buildBeatContext } from "../agents/writer/beat-context"
+import type { WriterCharacterContextTrace } from "../agents/writer/character-context"
 import { resolveReferences } from "../agents/writer/reference-resolver"
 import {
   buildRetryPrompt,
@@ -120,6 +121,33 @@ export interface BeatLevelFallbackState {
 export function clearAbandonedBeatLevelState(state: BeatLevelFallbackState): void {
   state.beatProses.length = 0
   state.acceptedBeatCheckIssues.length = 0
+}
+
+async function traceWriterContextEvent(
+  novelId: string,
+  args: {
+    chapter: number
+    beatIndex?: number
+    path: "beat" | "chapter"
+    stage: "initial" | "beat-fallback" | "chapter" | "chapter-plan-rewrite" | "validation-rewrite" | "integrity-rewrite"
+    writerContextMode: string
+    targetWords?: number
+    characterContextTrace?: WriterCharacterContextTrace | null
+  },
+): Promise<void> {
+  await trace(novelId, {
+    eventType: "writer-context",
+    chapter: args.chapter,
+    beatIndex: args.beatIndex,
+    payload: {
+      path: args.path,
+      stage: args.stage,
+      writerContextMode: args.writerContextMode,
+      targetWords: args.targetWords ?? null,
+      hasCharacterContext: Boolean(args.characterContextTrace),
+      characterContext: args.characterContextTrace ?? null,
+    },
+  })
 }
 
 /** Drafting phase implementation. Kept exported for tests
@@ -346,6 +374,15 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               priorChapterFacts,
               writerContextMode: eff.writerContextMode,
             })
+            await traceWriterContextEvent(novelId, {
+              chapter: ch,
+              beatIndex: bi,
+              path: "beat",
+              stage: "initial",
+              writerContextMode: eff.writerContextMode,
+              targetWords: beatCtx.targetWords,
+              characterContextTrace: beatCtx.characterContextTrace,
+            })
 
             let beatProse: string | null = null
             const beatWriterModel = getModelForAgent("beat-writer")
@@ -492,7 +529,18 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             console.log("  Beat generation incomplete, falling back to chapter-level...")
             log(novelId, "info", `Beat fallback → chapter-level for chapter ${ch}`)
             clearAbandonedBeatLevelState({ beatProses, acceptedBeatCheckIssues })
-            const writerContext = await buildWriterContext(novelId, ch, { writerContextMode: eff.writerContextMode })
+            let chapterCharacterContextTrace: WriterCharacterContextTrace | null = null
+            const writerContext = await buildWriterContext(novelId, ch, {
+              writerContextMode: eff.writerContextMode,
+              onCharacterContextTrace: trace => { chapterCharacterContextTrace = trace },
+            })
+            await traceWriterContextEvent(novelId, {
+              chapter: ch,
+              path: "chapter",
+              stage: "beat-fallback",
+              writerContextMode: eff.writerContextMode,
+              characterContextTrace: chapterCharacterContextTrace,
+            })
             const draftResult = await callAgent({
               novelId, agentName: "writer",
               chapter: ch, attempt: attempts,
@@ -514,7 +562,18 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
         // ── Chapter-level generation (existing path) ────────────────────
         let writerContext: string
         try {
-          writerContext = await buildWriterContext(novelId, ch, { writerContextMode: eff.writerContextMode })
+          let chapterCharacterContextTrace: WriterCharacterContextTrace | null = null
+          writerContext = await buildWriterContext(novelId, ch, {
+            writerContextMode: eff.writerContextMode,
+            onCharacterContextTrace: trace => { chapterCharacterContextTrace = trace },
+          })
+          await traceWriterContextEvent(novelId, {
+            chapter: ch,
+            path: "chapter",
+            stage: "chapter",
+            writerContextMode: eff.writerContextMode,
+            characterContextTrace: chapterCharacterContextTrace,
+          })
         } catch (err) {
           log(novelId, "error", `Context assembly failed for chapter ${ch}: ${err}`)
           console.error(`  Error assembling context: ${err instanceof Error ? err.message : err}`)
@@ -712,6 +771,15 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 genre: novel.seed?.genre,
                 priorChapterFacts,
                 writerContextMode: eff.writerContextMode,
+              })
+              await traceWriterContextEvent(novelId, {
+                chapter: ch,
+                beatIndex: bi,
+                path: "beat",
+                stage: "chapter-plan-rewrite",
+                writerContextMode: eff.writerContextMode,
+                targetWords: beatCtx.targetWords,
+                characterContextTrace: beatCtx.characterContextTrace,
               })
               const priorProse = beatProses[bi]
               const retryContext = `\n\n--- TARGETED REWRITE (chapter-plan check) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nChapter-plan issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
@@ -1005,6 +1073,15 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               genre: novel.seed?.genre,
               priorChapterFacts,
               writerContextMode: eff.writerContextMode,
+            })
+            await traceWriterContextEvent(novelId, {
+              chapter: ch,
+              beatIndex: bi,
+              path: "beat",
+              stage: "validation-rewrite",
+              writerContextMode: eff.writerContextMode,
+              targetWords: beatCtx.targetWords,
+              characterContextTrace: beatCtx.characterContextTrace,
             })
             const priorProse = beatProses[bi]
             const retryContext = `\n\n--- TARGETED REWRITE (validation) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nValidation issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
@@ -1575,6 +1652,15 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   genre: novel.seed?.genre,
                   priorChapterFacts,
                   writerContextMode: eff.writerContextMode,
+                })
+                await traceWriterContextEvent(novelId, {
+                  chapter: ch,
+                  beatIndex: bi,
+                  path: "beat",
+                  stage: "integrity-rewrite",
+                  writerContextMode: eff.writerContextMode,
+                  targetWords: beatCtx.targetWords,
+                  characterContextTrace: beatCtx.characterContextTrace,
                 })
                 const priorProse = beatProses[bi]
                 const retryContext = `\n\n--- TARGETED REWRITE (chapter integrity check) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nIntegrity issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
