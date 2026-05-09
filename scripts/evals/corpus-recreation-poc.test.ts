@@ -8,6 +8,8 @@ import {
   parseJsonResponseContent,
   plannerUserPrompt,
   parseExampleSceneOutput,
+  sceneThreadContextForPrompt,
+  sceneWriterUserPrompt,
 } from "./corpus-recreation-poc"
 
 describe("corpus-recreation-poc", () => {
@@ -81,6 +83,45 @@ describe("corpus-recreation-poc", () => {
     expect(prompt).toContain("Materiality-v1 diagnostic variant")
     expect(prompt).toContain("changed choice, cost, constraint, relationship state, outcome, or future pressure")
     expect(prompt).toContain("\"plannerVariant\": \"materiality-v1\"")
+    expect(prompt).not.toContain("writerContextMode")
+  })
+
+  test("thread-context writer arm adds compact per-scene context without changing baseline prompt", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+      writerContextMode: "thread-context-v1",
+    })
+    const threadedPlan = structuredClone(plan())
+    threadedPlan.obligations.push({
+      obligationId: "obl-key-aftershock",
+      sceneId: "analog-sc02",
+      sourceId: "debt-key-cost",
+      threadId: "thread-key-cost",
+      promiseId: "debt-key-cost",
+      requirementText: "The key's public cost continues into the gatehouse scene.",
+      materialityTest: "The key cost changes Nara's next route.",
+    })
+
+    const baselinePrompt = sceneWriterUserPrompt(packet, threadedPlan, threadedPlan.scenes[0]!)
+    const contextPrompt = sceneWriterUserPrompt(packet, threadedPlan, threadedPlan.scenes[0]!, undefined, {
+      writerContextMode: "thread-context-v1",
+    })
+    const context = sceneThreadContextForPrompt(packet, threadedPlan, threadedPlan.scenes[0]!)
+
+    expect(baselinePrompt).not.toContain("Thread context packet")
+    expect(contextPrompt).toContain("Thread context packet (diagnostic writer-context arm)")
+    expect(contextPrompt).toContain("\"activeThreads\"")
+    expect(contextPrompt).toContain("\"thread-key-cost\"")
+    expect(context.futureImpactPreview).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        refKind: "thread",
+        ref: "thread-key-cost",
+        affectedSceneIds: ["analog-sc02"],
+      }),
+    ]))
   })
 
   test("does not infer pressure from seed word overlap", () => {

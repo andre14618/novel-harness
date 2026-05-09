@@ -201,12 +201,12 @@ Evidence gate: compare baseline vs interleaved context on the same scene plans.
 Promotion requires equal or better deterministic shape, better semantic thread
 landing, and no increase in source leakage or malformed output.
 
-Status 2026-05-09: writer behavior is still unchanged, but the deterministic
-context packet preview exists as `diagnostics:corpus-recreation-thread-context`.
-It emits one compact per-scene thread ledger with active obligations,
-promise/payoff refs, prior movement summaries, and future affected scene IDs.
-This is setup evidence for a later default-off writer experiment, not runtime
-context injection.
+Status 2026-05-09: production writer behavior is still unchanged. The
+deterministic context packet preview exists as
+`diagnostics:corpus-recreation-thread-context`, and the corpus recreation POC
+has an opt-in `--writer-context thread-context-v1` arm for scene-call drafting.
+The arm injects compact per-scene thread context only in the diagnostic POC;
+baseline prompts remain unchanged, and runtime writer context is not changed.
 
 ### Lane 5 - Scene Thread Semantic Review
 

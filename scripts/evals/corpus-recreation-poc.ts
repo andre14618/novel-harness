@@ -22,6 +22,7 @@ import {
 
 type ModelId = "deepseek-v4-flash" | "deepseek-v4-pro"
 type PlannerVariant = "baseline" | "materiality-v1"
+type WriterContextMode = "baseline" | "thread-context-v1"
 
 interface Args {
   referencePath: string
@@ -34,6 +35,7 @@ interface Args {
   thinking: boolean
   maxTokens: number
   plannerVariant: PlannerVariant
+  writerContextMode: WriterContextMode
 }
 
 interface RecreationPacket {
@@ -55,6 +57,7 @@ interface RecreationPacket {
   }
   diagnosticConfig?: {
     plannerVariant: PlannerVariant
+    writerContextMode?: WriterContextMode
   }
 }
 
@@ -427,6 +430,9 @@ function parseArgs(argv = process.argv.slice(2)): Args {
   const plannerVariant = parsePlannerVariant(
     typeof values["planner-variant"] === "string" ? values["planner-variant"] : "baseline",
   )
+  const writerContextMode = parseWriterContextMode(
+    typeof values["writer-context"] === "string" ? values["writer-context"] : "baseline",
+  )
   return {
     referencePath: typeof values.reference === "string" ? values.reference : DEFAULT_REFERENCE_PATH,
     chapterLabel: typeof values.chapter === "string" ? values.chapter : "1",
@@ -438,6 +444,7 @@ function parseArgs(argv = process.argv.slice(2)): Args {
     thinking,
     maxTokens,
     plannerVariant,
+    writerContextMode,
   }
 }
 
@@ -449,6 +456,11 @@ function parseModel(value: string): ModelId {
 function parsePlannerVariant(value: string): PlannerVariant {
   if (value === "baseline" || value === "materiality-v1") return value
   throw new Error(`--planner-variant must be baseline or materiality-v1; got ${value}`)
+}
+
+function parseWriterContextMode(value: string): WriterContextMode {
+  if (value === "baseline" || value === "thread-context-v1") return value
+  throw new Error(`--writer-context must be baseline or thread-context-v1; got ${value}`)
 }
 
 function positiveInt(value: string, flag: string): number {
@@ -463,6 +475,7 @@ export function buildRecreationPacket(args: {
   chapterLabel: string
   generatedAt: string
   plannerVariant?: PlannerVariant
+  writerContextMode?: WriterContextMode
 }): RecreationPacket {
   const chapter = args.reference.chapters.find(row => row.chapterLabel === args.chapterLabel)
   if (!chapter) {
@@ -527,6 +540,7 @@ export function buildRecreationPacket(args: {
     },
     diagnosticConfig: {
       plannerVariant: args.plannerVariant ?? "baseline",
+      writerContextMode: args.writerContextMode ?? "baseline",
     },
   }
 }
@@ -817,6 +831,10 @@ function round(value: number): number {
   return Math.round(value * 100) / 100
 }
 
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.filter(Boolean))].sort()
+}
+
 function escapeRegExp(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")
 }
@@ -886,7 +904,7 @@ Required evidence:
 ${JSON.stringify({
   originalAnalogSeed: packet.originalAnalogSeed,
   target: packet.target,
-  diagnosticConfig: packet.diagnosticConfig,
+  diagnosticConfig: { plannerVariant: packet.diagnosticConfig?.plannerVariant ?? "baseline" },
 }, null, 2)}
 
 Supporting evidence:
@@ -1003,13 +1021,25 @@ interface PreviousSceneAttempt {
   previousProse?: string
 }
 
-function sceneWriterUserPrompt(packet: RecreationPacket, plan: RecreationPlan, scene: RecreationPlan["scenes"][number], previous?: PreviousSceneAttempt): string {
+export function sceneWriterUserPrompt(
+  packet: RecreationPacket,
+  plan: RecreationPlan,
+  scene: RecreationPlan["scenes"][number],
+  previous?: PreviousSceneAttempt,
+  opts: { writerContextMode?: WriterContextMode } = {},
+): string {
   const sceneTarget = {
     sceneId: scene.sceneId,
     targetWords: scene.targetWords,
     advisoryFloorWords: minimumSceneWords(scene.targetWords),
     minimumParagraphs: minimumSceneParagraphs(scene.targetWords),
   }
+  const threadContextSection = opts.writerContextMode === "thread-context-v1"
+    ? `
+Thread context packet (diagnostic writer-context arm):
+${JSON.stringify(sceneThreadContextForPrompt(packet, plan, scene), null, 2)}
+`
+    : ""
   return `VOLATILE INPUT PACKET
 
 Analog seed:
@@ -1024,6 +1054,7 @@ ${JSON.stringify({
   totalScenes: plan.scenes.length,
   obligationsForScene: plan.obligations.filter(obligation => obligation.sceneId === scene.sceneId),
 }, null, 2)}
+${threadContextSection}
 
 Scene plan:
 ${JSON.stringify(scene, null, 2)}
@@ -1047,11 +1078,93 @@ Task:
 Draft this one scene as complete prose. The targetWords and advisoryFloorWords values are pacing guidance, not hard gates. Do not pad to a number, but do not stop at a synopsis. Satisfy the goal, opposition, turningPoint, crisisChoice, climaxAction, outcome, consequence, and beatHints.`
 }
 
+export function sceneThreadContextForPrompt(
+  packet: RecreationPacket,
+  plan: RecreationPlan,
+  scene: RecreationPlan["scenes"][number],
+) {
+  const obligations = plan.obligations.filter(obligation => obligation.sceneId === scene.sceneId)
+  const activeThreadIds = uniqueStrings(obligations.map(obligation => obligation.threadId).filter(Boolean) as string[])
+  const activePromiseIds = uniqueStrings(obligations.map(obligation => obligation.promiseId).filter(Boolean) as string[])
+  const activePayoffIds = uniqueStrings(obligations.map(obligation => obligation.payoffId).filter(Boolean) as string[])
+  const relevantRefs = new Set([...activeThreadIds, ...activePromiseIds, ...activePayoffIds])
+  const sceneIndex = plan.scenes.findIndex(row => row.sceneId === scene.sceneId)
+  const priorMovements = plan.scenes
+    .slice(0, Math.max(0, sceneIndex))
+    .flatMap(priorScene => {
+      const related = plan.obligations.filter(obligation => obligation.sceneId === priorScene.sceneId && obligationSharesRef(obligation, relevantRefs))
+      return related.length
+        ? [{
+          sceneId: priorScene.sceneId,
+          obligationIds: related.map(obligation => obligation.obligationId),
+          consequence: priorScene.consequence,
+        }]
+        : []
+    })
+  return {
+    mode: "thread-context-v1",
+    sceneId: scene.sceneId,
+    activeThreads: packet.originalAnalogSeed.storyThreads
+      .filter(thread => activeThreadIds.includes(thread.threadId))
+      .map(thread => ({ threadId: thread.threadId, label: thread.label, kind: thread.kind, description: thread.description })),
+    activePromises: packet.originalAnalogSeed.storyDebts
+      .filter(debt => activePromiseIds.includes(debt.storyDebtId))
+      .map(debt => ({ promiseId: debt.storyDebtId, threadId: debt.threadId, promiseText: debt.promiseText })),
+    activePayoffs: packet.originalAnalogSeed.storyPayoffs
+      .filter(payoff => activePayoffIds.includes(payoff.payoffId))
+      .map(payoff => ({ payoffId: payoff.payoffId, threadId: payoff.threadId, promiseId: payoff.storyDebtId, payoffText: payoff.payoffText })),
+    currentResponsibilities: obligations.map(obligation => ({
+      obligationId: obligation.obligationId,
+      sourceId: obligation.sourceId,
+      threadId: obligation.threadId ?? null,
+      promiseId: obligation.promiseId ?? null,
+      payoffId: obligation.payoffId ?? null,
+      requirementText: obligation.requirementText,
+      materialityTest: obligation.materialityTest ?? null,
+    })),
+    priorMovements,
+    futureImpactPreview: buildPromptFutureImpactPreview(plan, sceneIndex, relevantRefs),
+  }
+}
+
+function buildPromptFutureImpactPreview(
+  plan: RecreationPlan,
+  sceneIndex: number,
+  relevantRefs: Set<string>,
+): Array<{ refKind: "thread" | "promise" | "payoff"; ref: string; affectedSceneIds: string[] }> {
+  const byRef = new Map<string, { refKind: "thread" | "promise" | "payoff"; ref: string; affectedSceneIds: string[] }>()
+  for (const futureScene of plan.scenes.slice(sceneIndex + 1)) {
+    for (const obligation of plan.obligations.filter(row => row.sceneId === futureScene.sceneId)) {
+      for (const [refKind, ref] of [
+        ["thread", obligation.threadId],
+        ["promise", obligation.promiseId],
+        ["payoff", obligation.payoffId],
+      ] as Array<["thread" | "promise" | "payoff", string | undefined]>) {
+        if (!ref || !relevantRefs.has(ref)) continue
+        const key = `${refKind}:${ref}`
+        const current = byRef.get(key) ?? { refKind, ref, affectedSceneIds: [] }
+        current.affectedSceneIds = uniqueStrings([...current.affectedSceneIds, futureScene.sceneId])
+        byRef.set(key, current)
+      }
+    }
+  }
+  return [...byRef.values()].sort((a, b) => a.refKind.localeCompare(b.refKind) || a.ref.localeCompare(b.ref))
+}
+
+function obligationSharesRef(obligation: RecreationPlan["obligations"][number], refs: Set<string>): boolean {
+  return Boolean(
+    (obligation.threadId && refs.has(obligation.threadId))
+    || (obligation.promiseId && refs.has(obligation.promiseId))
+    || (obligation.payoffId && refs.has(obligation.payoffId)),
+  )
+}
+
 async function writeChapterBySceneCalls(args: {
   packet: RecreationPacket
   plan: RecreationPlan
   model: ModelId
   maxTokens: number
+  writerContextMode: WriterContextMode
 }): Promise<ExampleChapter> {
   const scenes: ExampleScene[] = []
   for (const scene of args.plan.scenes) {
@@ -1068,7 +1181,9 @@ async function writeChapterBySceneCalls(args: {
           temperature: 0.78,
           maxTokens: args.maxTokens,
           systemPrompt: stableSceneWriterPrompt(),
-          userPrompt: sceneWriterUserPrompt(args.packet, args.plan, scene, lastIssue),
+          userPrompt: sceneWriterUserPrompt(args.packet, args.plan, scene, lastIssue, {
+            writerContextMode: args.writerContextMode,
+          }),
           label: `scene-recreation-${scene.referenceSceneOrdinal + 1}-${attempt}`,
         })
       } catch (error) {
@@ -1205,6 +1320,7 @@ export function renderRecreationReport(args: {
   lines.push(`Reference: ${args.packet.sourceReference.book} chapter ${args.packet.sourceReference.chapterLabel}`)
   lines.push("Mode: original structural analog, not source prose/style imitation")
   lines.push(`Planner variant: ${args.packet.diagnosticConfig?.plannerVariant ?? "baseline"}`)
+  lines.push(`Writer context: ${args.packet.diagnosticConfig?.writerContextMode ?? "baseline"}`)
   lines.push("")
   lines.push("## Target")
   lines.push("")
@@ -1273,6 +1389,7 @@ async function main(): Promise<void> {
     chapterLabel: args.chapterLabel,
     generatedAt: new Date().toISOString(),
     plannerVariant: args.plannerVariant,
+    writerContextMode: args.writerContextMode,
   })
 
   const outputDir = resolve(process.cwd(), args.outputDir)
@@ -1308,12 +1425,16 @@ async function main(): Promise<void> {
 
   if (args.writeChapter) {
     if (!plan) throw new Error("--write requires --live so a plan exists")
+    if (args.writerContextMode !== "baseline" && !args.sceneCalls) {
+      throw new Error("--writer-context is only supported with --scene-calls")
+    }
     if (args.sceneCalls) {
       chapter = await writeChapterBySceneCalls({
         packet,
         plan,
         model: args.model,
         maxTokens: args.maxTokens,
+        writerContextMode: args.writerContextMode,
       })
       chapterComparison = compareChapterToPlan(chapter, plan, packet)
     } else {
@@ -1377,6 +1498,7 @@ async function main(): Promise<void> {
       live: args.live,
       writeChapter: args.writeChapter,
       sceneCalls: args.sceneCalls,
+      writerContextMode: args.writerContextMode,
       referencePath: args.referencePath,
     },
   }))
