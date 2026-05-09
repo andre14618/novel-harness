@@ -9,7 +9,12 @@
  *   bun scripts/test-planner-isolated.ts fantasy-healer
  *   bun scripts/test-planner-isolated.ts fantasy-healer,fantasy-archive,fantasy-cartographer,fantasy-cultivation-void
  *   bun scripts/test-planner-isolated.ts fantasy-healer --native-planning-contract
- *   bun scripts/test-planner-isolated.ts --novel <concept-done-novel-id> [--native-planning-contract]
+ *   bun scripts/test-planner-isolated.ts fantasy-healer --scene-plan-contract
+ *   bun scripts/test-planner-isolated.ts --novel <concept-done-novel-id> [--native-planning-contract] [--scene-plan-contract]
+ *
+ * L096 Slice 1: --scene-plan-contract sets `scenePlanContractV1=true`,
+ * exercising the causal-motivation-v3 planner prompt and the
+ * `enforceScenePlanContract` retry path.
  */
 import { initDB, createNovel } from "../src/db"
 import { setAutoMode, setResolverMode } from "../src/cli"
@@ -42,6 +47,7 @@ interface Args {
   seedNames: string[]
   novelId: string | null
   nativePlanningContract: boolean
+  scenePlanContract: boolean
 }
 
 interface PlannerIsolatedResult {
@@ -56,7 +62,7 @@ interface PlannerIsolatedResult {
 
 async function testSeed(
   seedName: string,
-  options: { nativePlanningContract: boolean },
+  options: { nativePlanningContract: boolean; scenePlanContract: boolean },
 ): Promise<PlannerIsolatedResult> {
   console.log(`\n━━━ ${seedName} ━━━`)
   const seed = await loadSeed(seedName)
@@ -64,6 +70,12 @@ async function testSeed(
     seed.pipelineOverrides = {
       ...(seed.pipelineOverrides ?? {}),
       nativePlanningContractV1: true,
+    }
+  }
+  if (options.scenePlanContract) {
+    seed.pipelineOverrides = {
+      ...(seed.pipelineOverrides ?? {}),
+      scenePlanContractV1: true,
     }
   }
   const novelId = `test-planner-${seedName}-${Date.now()}`
@@ -82,11 +94,12 @@ async function testSeed(
 
 async function testExistingConceptNovel(
   novelId: string,
-  options: { nativePlanningContract: boolean },
+  options: { nativePlanningContract: boolean; scenePlanContract: boolean },
 ): Promise<PlannerIsolatedResult> {
   console.log(`\n━━━ ${novelId} ━━━`)
   console.log(`  novel: ${novelId}`)
   await setNativePlanningContractOverride(novelId, options.nativePlanningContract)
+  await setScenePlanContractOverride(novelId, options.scenePlanContract)
   await initNovelRun(novelId)
   console.log(`  [1/1] planning phase...`)
   await runPlanningPhase(novelId)
@@ -158,6 +171,25 @@ async function setNativePlanningContractOverride(novelId: string, enabled: boole
   `
 }
 
+async function setScenePlanContractOverride(novelId: string, enabled: boolean): Promise<void> {
+  await db`
+    UPDATE novels
+    SET seed_json = jsonb_set(
+          jsonb_set(
+            COALESCE(seed_json, '{}'::jsonb),
+            '{pipelineOverrides}',
+            COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+            true
+          ),
+          '{pipelineOverrides,scenePlanContractV1}',
+          to_jsonb(${enabled}::boolean),
+          true
+        ),
+        updated_at = now()
+    WHERE id = ${novelId}
+  `
+}
+
 async function main() {
   setAutoMode(true)
   setResolverMode(getMode(true))
@@ -166,12 +198,16 @@ async function main() {
   if (args.nativePlanningContract) {
     console.log("  nativePlanningContractV1=true")
   }
+  if (args.scenePlanContract) {
+    console.log("  scenePlanContractV1=true")
+  }
 
   const results = []
   if (args.novelId) {
     try {
       results.push(await testExistingConceptNovel(args.novelId, {
         nativePlanningContract: args.nativePlanningContract,
+        scenePlanContract: args.scenePlanContract,
       }))
     } catch (err) {
       console.error(`✗ ${args.novelId}: ${err instanceof Error ? err.message : err}`)
@@ -180,7 +216,10 @@ async function main() {
   } else {
     for (const s of args.seedNames) {
       try {
-        results.push(await testSeed(s, { nativePlanningContract: args.nativePlanningContract }))
+        results.push(await testSeed(s, {
+          nativePlanningContract: args.nativePlanningContract,
+          scenePlanContract: args.scenePlanContract,
+        }))
       } catch (err) {
         console.error(`✗ ${s}: ${err instanceof Error ? err.message : err}`)
         results.push({ seedName: s, novelId: "", stats: [], chapters: 0, totalBeats: 0, beatCounts: [], error: String(err) })
@@ -226,10 +265,15 @@ function parseArgs(argv: string[]): Args {
   let seedArg: string | null = null
   let novelId: string | null = null
   let nativePlanningContract = false
+  let scenePlanContract = false
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!
     if (arg === "--native-planning-contract" || arg === "--native-planning-contract-v1") {
       nativePlanningContract = true
+      continue
+    }
+    if (arg === "--scene-plan-contract" || arg === "--scene-plan-contract-v1") {
+      scenePlanContract = true
       continue
     }
     if (arg === "--novel" || arg === "--novel-id") {
@@ -246,5 +290,6 @@ function parseArgs(argv: string[]): Args {
     seedNames: novelId ? [] : (seedArg ?? "fantasy-healer").split(",").map(s => s.trim()).filter(Boolean),
     novelId,
     nativePlanningContract,
+    scenePlanContract,
   }
 }
