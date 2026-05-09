@@ -133,7 +133,7 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-08:
 - Active product focus: upstream concept/planning methodology. Use templates,
   chapter contracts, scene functions, and planner-quality evidence to improve
   plan shape before changing drafting, checking, or UI defaults.
-- Corpus structure recreation POC now has a passing scene-first local plan/write scaffold; scene-first proposal/readiness emitters use `scene_plan`, with `beat_plan` retained as a legacy alias.
+- Corpus structure recreation POC now has a passing scene-first local plan/write scaffold; planning/readiness/traceability/data-loop evidence uses `scene_plan`, with `beat_plan` retained as a legacy alias/storage/action compatibility path.
 - Open local operator-review artifacts before handoff when possible; still report the path.
 - First backend tracer exposes read-only planning targets and deterministic
   impact preview. Write tracers add `planning_edit` envelopes for chapter,

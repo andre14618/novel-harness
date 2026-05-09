@@ -84,6 +84,13 @@ sequence, MICE/thread sequence, and beat-hint density. Prose expansion was the
 unstable surface, and scene-level calls with deterministic retry evidence were
 more useful than whole-chapter writing.
 
+Implementation evidence:
+
+- Commits `a8a36c8` and `2f44fbe` normalized public planning/readiness,
+  traceability, chapter-health, and data-loop target evidence to `scene_plan`,
+  while retaining `beat_plan` as a legacy alias/storage/action compatibility
+  path.
+
 ## Non-Goals
 
 - Do not remove legacy beat IDs or beat-level checker compatibility.
