@@ -78,6 +78,7 @@ interface CorpusReviewPlan {
     sceneId: string
     sourceId: string
     requirementText: string
+    materialityTest?: string
   }>
 }
 
@@ -372,7 +373,10 @@ function renderSceneSemanticExcerpt(input: {
     ...formatList(input.relevantWorldFacts.map(row => `${row.worldFactId}: ${row.fact}; operational use=${row.operationalUse}`)),
     "",
     "SCENE OBLIGATIONS:",
-    ...formatList(input.obligations.map(row => `${row.obligationId} (${row.sourceId}): ${row.requirementText}`)),
+    ...formatList(input.obligations.map(row => {
+      const materiality = row.materialityTest ? ` materialityTest=${row.materialityTest}` : ""
+      return `${row.obligationId} (${row.sourceId}): ${row.requirementText}${materiality}`
+    })),
     "",
     "BEAT HINTS AS INTERNAL ANNOTATIONS:",
     ...formatList(input.scene.beatHints.map((row, index) => `${index + 1}. ${row.kind}; ${row.boundarySignal}; ${row.gapSize}; ${row.purpose}`)),

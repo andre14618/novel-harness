@@ -6,6 +6,8 @@ import {
   comparePlanToReference,
   ModelJsonParseError,
   parseJsonResponseContent,
+  plannerUserPrompt,
+  parseExampleSceneOutput,
 } from "./corpus-recreation-poc"
 
 describe("corpus-recreation-poc", () => {
@@ -41,7 +43,40 @@ describe("corpus-recreation-poc", () => {
     expect(comparison.sceneContract.declaredObligationCount).toBe(2)
     expect(comparison.sceneContract.knownSourceIdCount).toBe(2)
     expect(comparison.sceneContract.observableConsequenceCount).toBe(2)
+    expect(comparison.sceneContract.materialityTestCount).toBe(2)
     expect(comparison.issues).toEqual([])
+  })
+
+  test("materiality-v1 requires obligation materiality tests", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+      plannerVariant: "materiality-v1",
+    })
+    const withoutMateriality = structuredClone(plan())
+    for (const obligation of withoutMateriality.obligations) delete (obligation as any).materialityTest
+
+    const comparison = comparePlanToReference(withoutMateriality, packet, { requireMaterialityTests: true })
+
+    expect(comparison.sceneContract.materialityTestCount).toBe(0)
+    expect(comparison.issues.some(issue => issue.includes("each obligation needs a materialityTest"))).toBe(true)
+  })
+
+  test("materiality-v1 prompt adds volatile materiality instructions", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+      plannerVariant: "materiality-v1",
+    })
+    const prompt = plannerUserPrompt(packet, "materiality-v1")
+
+    expect(prompt).toContain("Materiality-v1 diagnostic variant")
+    expect(prompt).toContain("changed choice, cost, constraint, relationship state, outcome, or future pressure")
+    expect(prompt).toContain("\"plannerVariant\": \"materiality-v1\"")
   })
 
   test("does not infer pressure from seed word overlap", () => {
@@ -142,6 +177,23 @@ describe("corpus-recreation-poc", () => {
   test("wraps malformed model JSON as retryable parse evidence", () => {
     expect(() => parseJsonResponseContent("scene", "{\"sceneId\":\"x\""))
       .toThrow(ModelJsonParseError)
+  })
+
+  test("scene parser strips harmless model echoes while enforcing scene id", () => {
+    const parsed = parseExampleSceneOutput({
+      sceneId: "scene-a",
+      prose: "Nara chooses the hard road while the bells shake frost from the gatehouse stones.",
+      minimumWords: 120,
+    }, "scene-a")
+
+    expect(parsed).toEqual({
+      sceneId: "scene-a",
+      prose: "Nara chooses the hard road while the bells shake frost from the gatehouse stones.",
+    })
+    expect(() => parseExampleSceneOutput({
+      sceneId: "scene-b",
+      prose: "Nara chooses the hard road while the bells shake frost from the gatehouse stones.",
+    }, "scene-a")).toThrow("scene output id mismatch")
   })
 })
 
@@ -285,12 +337,14 @@ function plan() {
         sceneId: "analog-sc01",
         sourceId: "world-sun-metal-key",
         requirementText: "The sun-metal key must pressure Nara's choice at the gate.",
+        materialityTest: "The key changes whether Nara can risk a clean escape or must face the gate.",
       },
       {
         obligationId: "obl-tovin-leverage",
         sceneId: "analog-sc02",
         sourceId: "char-tovin-ash",
         requirementText: "Tovin must gain leverage from Nara's public choice.",
+        materialityTest: "Tovin gains public leverage that changes Nara's available route.",
       },
     ],
   }

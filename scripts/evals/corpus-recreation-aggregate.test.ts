@@ -16,6 +16,7 @@ describe("corpus-recreation-aggregate", () => {
       const pocDir = join(root, "poc-ch1")
       writeJson(join(pocDir, "packet.json"), {
         sourceReference: { book: "crystal_shard", chapterLabel: "1" },
+        diagnosticConfig: { plannerVariant: "materiality-v1" },
       })
       writeJson(join(pocDir, "plan-comparison.json"), {
         sceneCount: { expected: 2, actual: 2 },
@@ -59,6 +60,7 @@ describe("corpus-recreation-aggregate", () => {
       const aggregate = buildCorpusRecreationAggregate([pocDir], "2026-05-09T00:00:00.000Z")
       expect(aggregate.rows[0]).toMatchObject({
         chapterLabel: "1",
+        plannerVariant: "materiality-v1",
         actualScenes: 2,
         expectedScenes: 2,
         actualWords: 820,
@@ -74,6 +76,7 @@ describe("corpus-recreation-aggregate", () => {
 
       const rendered = renderCorpusRecreationAggregate(aggregate)
       expect(rendered).toContain("choices 2/2; ids 2/2; conseq 1/2")
+      expect(rendered).toContain("| 1 | materiality-v1 |")
       expect(rendered).toContain("4 tasks; low 1; skips 1")
       expect(rendered).toContain("scene-b worldFactPressure WFACT-1: world fact must change the outcome")
     } finally {

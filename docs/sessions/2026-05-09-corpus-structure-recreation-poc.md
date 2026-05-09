@@ -417,3 +417,69 @@ This is the correct shape for the current lane: diagnostics produce review
 candidates, the operator decides disposition, and accepted changes can later
 become normal manual `planning_edit` proposals. The adapter intentionally does
 not create proposals or mutate plans.
+
+## Materiality-V1 Planner Variant
+
+Added a default-off planner variant:
+
+```bash
+--planner-variant materiality-v1
+```
+
+Change packet:
+
+- optimized layer: planner contract only;
+- exact change: each obligation may now carry `materialityTest`, and the
+  `materiality-v1` prompt asks the planner to state how the exact source ID
+  changes choice, cost, constraint, relationship state, outcome, or future
+  pressure;
+- held constant: scene writer, semantic review dimensions, source boundary,
+  and runtime defaults;
+- expected benefit: reduce cases where exact IDs are present but the world
+  fact or relationship does not materially affect prose;
+- evidence gate: chapter-2 before/after because baseline chapter 2 had three
+  semantic lows despite clean deterministic structure.
+
+Live command:
+
+```bash
+bun run diagnostics:corpus-recreation-poc -- --live --write --scene-calls \
+  --planner-variant materiality-v1 \
+  --reference output/corpus-structure-reference/crystal_shard-with-summaries/reference.json \
+  --chapter 2 \
+  --model deepseek-v4-flash \
+  --output-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-materiality-v1-scene-calls-r1
+```
+
+Then semantic review and aggregate:
+
+```bash
+bun run diagnostics:corpus-recreation-semantic-review -- --live \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-materiality-v1-scene-calls-r1 \
+  --output-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-materiality-v1-scene-calls-r1/semantic-review-live \
+  --model deepseek-v4-flash \
+  --mode evidence-first \
+  --concurrency 4
+
+bun run diagnostics:corpus-recreation-aggregate -- \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-exact-id-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-materiality-v1-scene-calls-r1 \
+  --output output/corpus-recreation-poc/ch2-materiality-v1-comparison-r1.md \
+  --json output/corpus-recreation-poc/ch2-materiality-v1-comparison-r1.json
+```
+
+Result:
+
+| Chapter | Variant | Shape | Words | Semantic |
+| --- | --- | --- | --- | --- |
+| 2 | baseline | 4/4 scenes, clean contract | 2584/3353 (0.77) | 13 tasks, 3 lows |
+| 2 | materiality-v1 | 4/4 scenes, 4/4 materiality tests | 2693/3353 (0.80) | 13 tasks, 0 lows |
+
+Readiness adapter output for materiality-v1 produced 0 groups, compared with
+3 groups for the baseline chapter-2 run.
+
+Caveat: materiality-v1 did not solve prose sizing. One scene stayed below its
+deterministic minimum after retries (`analog-ch02-sc03` 651/720). The variant
+is promising for obligation materiality, but it should not be promoted without
+a small multi-chapter sample and either better scene expansion or a separate
+word-shape fix.

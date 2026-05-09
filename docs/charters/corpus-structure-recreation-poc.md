@@ -272,3 +272,16 @@ bun run diagnostics:corpus-recreation-readiness -- \
 
 This preserves exact IDs and asks operator disposition questions. It should
 feed Plan Readiness Review, not automatic rewrites.
+
+## Materiality Variant
+
+The planner POC supports a default-off prompt variant:
+
+```bash
+--planner-variant materiality-v1
+```
+
+This asks the planner to attach `materialityTest` to each obligation: the
+specific choice, cost, constraint, relationship state, outcome, or future
+pressure that the exact source ID must change. Use it only as a diagnostic arm
+against a baseline run. It is not a runtime default.

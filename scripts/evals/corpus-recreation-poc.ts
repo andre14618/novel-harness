@@ -14,6 +14,7 @@ import { z } from "zod"
 import type { CorpusStructureReference } from "./corpus-structure-reference"
 
 type ModelId = "deepseek-v4-flash" | "deepseek-v4-pro"
+type PlannerVariant = "baseline" | "materiality-v1"
 
 interface Args {
   referencePath: string
@@ -25,6 +26,7 @@ interface Args {
   model: ModelId
   thinking: boolean
   maxTokens: number
+  plannerVariant: PlannerVariant
 }
 
 interface RecreationPacket {
@@ -43,6 +45,9 @@ interface RecreationPacket {
     required: string[]
     supporting: string[]
     inventory: string[]
+  }
+  diagnosticConfig?: {
+    plannerVariant: PlannerVariant
   }
 }
 
@@ -149,6 +154,7 @@ const recreationPlanSchema = z.object({
       sceneId: z.string().min(1),
       sourceId: z.string().min(1),
       requirementText: z.string().min(8),
+      materialityTest: z.string().min(8).optional(),
     })).default([]),
   }),
 }).strict()
@@ -165,7 +171,7 @@ const exampleChapterSchema = z.object({
 const exampleSceneSchema = z.object({
   sceneId: z.string().min(1),
   prose: z.string().min(50),
-}).strict()
+})
 
 type RecreationPlan = z.infer<typeof recreationPlanSchema>["plan"]
 type ExampleChapter = z.infer<typeof exampleChapterSchema>
@@ -210,6 +216,7 @@ interface PlanComparison {
     declaredObligationCount: number
     knownSourceIdCount: number
     observableConsequenceCount: number
+    materialityTestCount: number
     scenes: SceneContractDiagnostic[]
   }
   issues: string[]
@@ -221,6 +228,7 @@ interface SceneContractDiagnostic {
   hasDeclaredObligation: boolean
   hasKnownSourceIds: boolean
   hasObservableConsequence: boolean
+  hasMaterialityTest: boolean
   unknownSourceIds: string[]
   issues: string[]
 }
@@ -347,6 +355,9 @@ function parseArgs(argv = process.argv.slice(2)): Args {
   const maxTokens = typeof values["max-tokens"] === "string"
     ? positiveInt(values["max-tokens"], "--max-tokens")
     : (model === "deepseek-v4-pro" ? 24000 : 12000)
+  const plannerVariant = parsePlannerVariant(
+    typeof values["planner-variant"] === "string" ? values["planner-variant"] : "baseline",
+  )
   return {
     referencePath: typeof values.reference === "string" ? values.reference : DEFAULT_REFERENCE_PATH,
     chapterLabel: typeof values.chapter === "string" ? values.chapter : "1",
@@ -357,12 +368,18 @@ function parseArgs(argv = process.argv.slice(2)): Args {
     model,
     thinking,
     maxTokens,
+    plannerVariant,
   }
 }
 
 function parseModel(value: string): ModelId {
   if (value === "deepseek-v4-flash" || value === "deepseek-v4-pro") return value
   throw new Error(`--model must be deepseek-v4-flash or deepseek-v4-pro; got ${value}`)
+}
+
+function parsePlannerVariant(value: string): PlannerVariant {
+  if (value === "baseline" || value === "materiality-v1") return value
+  throw new Error(`--planner-variant must be baseline or materiality-v1; got ${value}`)
 }
 
 function positiveInt(value: string, flag: string): number {
@@ -376,6 +393,7 @@ export function buildRecreationPacket(args: {
   referencePath: string
   chapterLabel: string
   generatedAt: string
+  plannerVariant?: PlannerVariant
 }): RecreationPacket {
   const chapter = args.reference.chapters.find(row => row.chapterLabel === args.chapterLabel)
   if (!chapter) {
@@ -438,10 +456,17 @@ export function buildRecreationPacket(args: {
         "sourceReference novel/book/path",
       ],
     },
+    diagnosticConfig: {
+      plannerVariant: args.plannerVariant ?? "baseline",
+    },
   }
 }
 
-export function comparePlanToReference(plan: RecreationPlan, packet: RecreationPacket): PlanComparison {
+export function comparePlanToReference(
+  plan: RecreationPlan,
+  packet: RecreationPacket,
+  opts: { requireMaterialityTests?: boolean } = {},
+): PlanComparison {
   const expectedScenes = packet.target.sceneBlueprints
   const issues: string[] = []
   if (plan.scenes.length !== expectedScenes.length) {
@@ -464,7 +489,7 @@ export function comparePlanToReference(plan: RecreationPlan, packet: RecreationP
   if (actualBeatHints < Math.floor(expectedBeatHints * 0.6)) {
     issues.push(`beat hint shape is too thin: expected about ${expectedBeatHints}, got ${actualBeatHints}`)
   }
-  const sceneContract = buildSceneContractDiagnostics(plan, packet)
+  const sceneContract = buildSceneContractDiagnostics(plan, packet, opts)
   for (const scene of sceneContract.scenes) {
     if (scene.issues.length > 0) {
       issues.push(`scene contract weak for ${scene.sceneId}: ${scene.issues.join(", ")}`)
@@ -498,19 +523,29 @@ export function comparePlanToReference(plan: RecreationPlan, packet: RecreationP
   }
 }
 
-function buildSceneContractDiagnostics(plan: RecreationPlan, packet: RecreationPacket): PlanComparison["sceneContract"] {
-  const scenes = plan.scenes.map(scene => evaluateSceneContract(scene, plan, packet))
+function buildSceneContractDiagnostics(
+  plan: RecreationPlan,
+  packet: RecreationPacket,
+  opts: { requireMaterialityTests?: boolean },
+): PlanComparison["sceneContract"] {
+  const scenes = plan.scenes.map(scene => evaluateSceneContract(scene, plan, packet, opts))
   return {
     total: scenes.length,
     choiceAlternativeCount: scenes.filter(scene => scene.hasChoiceAlternatives).length,
     declaredObligationCount: scenes.filter(scene => scene.hasDeclaredObligation).length,
     knownSourceIdCount: scenes.filter(scene => scene.hasKnownSourceIds).length,
     observableConsequenceCount: scenes.filter(scene => scene.hasObservableConsequence).length,
+    materialityTestCount: scenes.filter(scene => scene.hasMaterialityTest).length,
     scenes,
   }
 }
 
-function evaluateSceneContract(scene: RecreationPlan["scenes"][number], plan: RecreationPlan, packet: RecreationPacket): SceneContractDiagnostic {
+function evaluateSceneContract(
+  scene: RecreationPlan["scenes"][number],
+  plan: RecreationPlan,
+  packet: RecreationPacket,
+  opts: { requireMaterialityTests?: boolean },
+): SceneContractDiagnostic {
   const issues: string[] = []
   const obligations = plan.obligations.filter(obligation => obligation.sceneId === scene.sceneId)
   const knownSourceIds = knownPressureSourceIds(packet)
@@ -521,16 +556,23 @@ function evaluateSceneContract(scene: RecreationPlan["scenes"][number], plan: Re
   const hasDeclaredObligation = obligations.length > 0
   const hasKnownSourceIds = hasDeclaredObligation && unknownSourceIds.length === 0
   const hasObservableConsequence = isObservableConsequence(scene.consequence, scene.outcome)
+  const hasMaterialityTest = hasDeclaredObligation && obligations.every(obligation =>
+    typeof obligation.materialityTest === "string" && obligation.materialityTest.trim().length >= 8
+  )
   if (!hasChoiceAlternatives) issues.push("choiceAlternatives must declare at least two options")
   if (!hasDeclaredObligation) issues.push("scene lacks explicit obligation sourceIds")
   if (unknownSourceIds.length > 0) issues.push(`unknown obligation sourceIds: ${unknownSourceIds.join(", ")}`)
   if (!hasObservableConsequence) issues.push("consequence is generic, internal-only, or indistinct from outcome")
+  if (opts.requireMaterialityTests && !hasMaterialityTest) {
+    issues.push("each obligation needs a materialityTest for how it changes choice, cost, relationship state, outcome, or future pressure")
+  }
   return {
     sceneId: scene.sceneId,
     hasChoiceAlternatives,
     hasDeclaredObligation,
     hasKnownSourceIds,
     hasObservableConsequence,
+    hasMaterialityTest,
     unknownSourceIds,
     issues,
   }
@@ -711,19 +753,20 @@ Hard rules:
       }
     ],
     "obligations": [
-      {"obligationId": "obl-...", "sceneId": "analog-ch01-sc01", "sourceId": "char/world/debt id", "requirementText": "string"}
+      {"obligationId": "obl-...", "sceneId": "analog-ch01-sc01", "sourceId": "char/world/debt id", "requirementText": "string", "materialityTest": "optional concrete story effect this obligation must change"}
     ]
   }
 }`
 }
 
-function plannerUserPrompt(packet: RecreationPacket): string {
+export function plannerUserPrompt(packet: RecreationPacket, variant: PlannerVariant = "baseline"): string {
   return `VOLATILE INPUT PACKET
 
 Required evidence:
 ${JSON.stringify({
   originalAnalogSeed: packet.originalAnalogSeed,
   target: packet.target,
+  diagnosticConfig: packet.diagnosticConfig,
 }, null, 2)}
 
 Supporting evidence:
@@ -740,8 +783,22 @@ Create one original analog chapter plan. Match the reference chapter's structura
 - each scene's choiceAlternatives should name concrete options and make Nara's oathmark/convoy/witness/escape pressure matter;
 - each scene should carry active relationship or world pressure when applicable, with obligations whose sourceId exactly matches the pressure the writer must dramatize;
 - each scene's consequence should be externally observable or create a future obligation/threat.
+${plannerVariantTail(variant)}
 
 Do not use source names or exact source events.`
+}
+
+function plannerVariantTail(variant: PlannerVariant): string {
+  if (variant !== "materiality-v1") return ""
+  return `
+Materiality-v1 diagnostic variant:
+- For every obligation, add materialityTest.
+- materialityTest must name the concrete story effect the writer must dramatize: changed choice, cost, constraint, relationship state, outcome, or future pressure.
+- Do not use vague tests like "the fact is mentioned" or "the relationship is shown".
+- A world fact is material only if it constrains options, changes the cost, forces a decision, creates a danger, blocks a route, or alters the outcome.
+- A supporting character is material only if they change leverage, trust, obligation, access, threat, allegiance, or the POV character's available choices.
+- A story debt is material only if it opens, narrows, escalates, or pays a concrete future obligation.
+- If a sourceId cannot be made material in the scene, choose a different exact sourceId that can affect the scene's choice/outcome.`
 }
 
 function stableWriterPrompt(): string {
@@ -904,14 +961,7 @@ async function writeChapterBySceneCalls(args: {
         }
         throw error
       }
-      const parsed = exampleSceneSchema.safeParse(rawScene)
-      if (!parsed.success) {
-        throw new Error(`scene output invalid: ${parsed.error.issues.map(issue => `${issue.path.join(".")}: ${issue.message}`).join("; ")}`)
-      }
-      parsedScene = parsed.data
-      if (parsedScene.sceneId !== scene.sceneId) {
-        throw new Error(`scene output id mismatch: expected ${scene.sceneId}, got ${parsedScene.sceneId}`)
-      }
+      parsedScene = parseExampleSceneOutput(rawScene, scene.sceneId)
       const actualWords = wordCount(parsedScene.prose)
       const minimumWords = minimumSceneWords(scene.targetWords)
       if (actualWords > bestWordCount) {
@@ -1008,6 +1058,17 @@ export function parseJsonResponseContent(label: string, content: string): unknow
   }
 }
 
+export function parseExampleSceneOutput(rawScene: unknown, expectedSceneId: string): ExampleScene {
+  const parsed = exampleSceneSchema.safeParse(rawScene)
+  if (!parsed.success) {
+    throw new Error(`scene output invalid: ${parsed.error.issues.map(issue => `${issue.path.join(".")}: ${issue.message}`).join("; ")}`)
+  }
+  if (parsed.data.sceneId !== expectedSceneId) {
+    throw new Error(`scene output id mismatch: expected ${expectedSceneId}, got ${parsed.data.sceneId}`)
+  }
+  return parsed.data
+}
+
 function extractJson(raw: string): string {
   const trimmed = raw.trim().replace(/^```(?:json)?\s*/u, "").replace(/\s*```$/u, "")
   const start = trimmed.indexOf("{")
@@ -1029,6 +1090,7 @@ export function renderRecreationReport(args: {
   lines.push(`Generated: ${args.packet.generatedAt}`)
   lines.push(`Reference: ${args.packet.sourceReference.book} chapter ${args.packet.sourceReference.chapterLabel}`)
   lines.push("Mode: original structural analog, not source prose/style imitation")
+  lines.push(`Planner variant: ${args.packet.diagnosticConfig?.plannerVariant ?? "baseline"}`)
   lines.push("")
   lines.push("## Target")
   lines.push("")
@@ -1049,6 +1111,7 @@ export function renderRecreationReport(args: {
     lines.push(`- Scenes with declared obligations: ${args.planComparison.sceneContract.declaredObligationCount}/${args.planComparison.sceneContract.total}`)
     lines.push(`- Scenes with known obligation sourceIds: ${args.planComparison.sceneContract.knownSourceIdCount}/${args.planComparison.sceneContract.total}`)
     lines.push(`- Observable consequences: ${args.planComparison.sceneContract.observableConsequenceCount}/${args.planComparison.sceneContract.total}`)
+    lines.push(`- Obligation materiality tests: ${args.planComparison.sceneContract.materialityTestCount}/${args.planComparison.sceneContract.total}`)
     if (args.planComparison.issues.length) {
       lines.push(`- Issues: ${args.planComparison.issues.join("; ")}`)
     } else {
@@ -1088,6 +1151,7 @@ async function main(): Promise<void> {
     referencePath: args.referencePath,
     chapterLabel: args.chapterLabel,
     generatedAt: new Date().toISOString(),
+    plannerVariant: args.plannerVariant,
   })
 
   const outputDir = resolve(process.cwd(), args.outputDir)
@@ -1106,7 +1170,7 @@ async function main(): Promise<void> {
       temperature: 0.35,
       maxTokens: args.maxTokens,
       systemPrompt: stablePlannerPrompt(),
-      userPrompt: plannerUserPrompt(packet),
+      userPrompt: plannerUserPrompt(packet, args.plannerVariant),
       label: "planner-recreation",
     })
     const parsed = recreationPlanSchema.safeParse(rawPlan)
@@ -1114,7 +1178,9 @@ async function main(): Promise<void> {
       throw new Error(`planner output invalid: ${parsed.error.issues.map(issue => `${issue.path.join(".")}: ${issue.message}`).join("; ")}`)
     }
     plan = parsed.data.plan
-    planComparison = comparePlanToReference(plan, packet)
+    planComparison = comparePlanToReference(plan, packet, {
+      requireMaterialityTests: args.plannerVariant === "materiality-v1",
+    })
     writeFileSync(join(outputDir, "plan.json"), `${JSON.stringify(plan, null, 2)}\n`)
     writeFileSync(join(outputDir, "plan-comparison.json"), `${JSON.stringify(planComparison, null, 2)}\n`)
   }
