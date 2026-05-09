@@ -18,6 +18,7 @@ import {
   writeRunManifest,
 } from "./run-manifest"
 import type { CorpusThreadMapReport } from "./corpus-recreation-thread-map"
+import type { CorpusThreadContextReport } from "./corpus-recreation-thread-context"
 
 interface Args {
   pocDirs: string[]
@@ -44,6 +45,7 @@ interface ReviewRun {
   proseQualityReview: any | null
   runManifest: RunManifest | null
   threadMap: CorpusThreadMapReport | null
+  threadContext: CorpusThreadContextReport | null
   scenes: ReviewScene[]
 }
 
@@ -113,6 +115,7 @@ function readReviewRun(pocDir: string): ReviewRun {
   const proseQualityReview = readOptionalJson(join(resolved, "prose-quality-live", "prose-review.json"))
   const runManifest = readRunManifestIfExists(join(resolved, "run-manifest.json"))
   const threadMap = readOptionalJson(join(resolved, "thread-map.json")) as CorpusThreadMapReport | null
+  const threadContext = readOptionalJson(join(resolved, "thread-context.json")) as CorpusThreadContextReport | null
   const target = packet.target ?? {}
   const sourceReference = packet.sourceReference ?? {}
   const targetBlueprints = Array.isArray(target.sceneBlueprints) ? target.sceneBlueprints : []
@@ -155,6 +158,7 @@ function readReviewRun(pocDir: string): ReviewRun {
     proseQualityReview,
     runManifest,
     threadMap,
+    threadContext,
     scenes,
   }
 }
@@ -301,6 +305,7 @@ function renderRun(run: ReviewRun): string {
         ${badge("variant", run.plannerVariant)}
         ${run.runManifest ? badge("run", shortRunId(run.runManifest.runId)) : badge("run", "missing", "warn")}
         ${run.threadMap ? badge("thread map", `${run.threadMap.rowCount} rows`, run.threadMap.issueCount > 0 ? "warn" : "ok") : badge("thread map", "missing", "warn")}
+        ${run.threadContext ? badge("thread context", `${run.threadContext.contextCount} scenes`, run.threadContext.issueCount > 0 ? "warn" : "ok") : badge("thread context", "missing", "warn")}
         ${badge("target", `${numberOrDash(run.target?.targetWords)} words`)}
         ${badge("scenes", `${run.scenes.length}/${numberOrDash(run.target?.sceneCount)}`)}
         ${badge("semantic lows", String(semanticLowCount), semanticLowCount > 0 ? "warn" : "ok")}
@@ -326,6 +331,10 @@ function renderRunProvenance(run: ReviewRun): string {
     <article>
       <h3>Thread Map</h3>
       ${run.threadMap ? renderThreadMap(run.threadMap) : `<p class="muted">No thread-map.json found. Run diagnostics:corpus-recreation-thread-map for this POC directory to add deterministic thread movement evidence.</p>`}
+    </article>
+    <article>
+      <h3>Thread Context Preview</h3>
+      ${run.threadContext ? renderThreadContext(run.threadContext) : `<p class="muted">No thread-context.json found. Run diagnostics:corpus-recreation-thread-context for this POC directory to preview compact scene writer context.</p>`}
     </article>
   </section>`
 }
@@ -364,6 +373,32 @@ function renderThreadMap(threadMap: CorpusThreadMapReport): string {
     </div>
     ${impacts.length ? `<details><summary>Impact Preview (${impacts.length})</summary>${unorderedList(impacts.map(impact => `${impact.refKind}:${impact.ref} -> scenes ${impact.affectedSceneIds.join(", ") || "none"}`))}</details>` : ""}
     ${issues.length ? `<details><summary>Thread Issues (${issues.length})</summary>${unorderedList(issues.map(issue => `${issue.code} ${issue.ref}: ${issue.detail}`))}</details>` : ""}
+  </div>`
+}
+
+function renderThreadContext(threadContext: CorpusThreadContextReport): string {
+  const contexts = Array.isArray(threadContext.contexts) ? threadContext.contexts : []
+  return `<div class="thread-context">
+    ${metric("Packets", numberOrDash(threadContext.contextCount))}
+    ${metric("Issues", numberOrDash(threadContext.issueCount))}
+    <div class="mini-table-wrap">
+      <table class="mini-table">
+        <thead><tr><th>Scene</th><th>Threads</th><th>Promises</th><th>Payoffs</th><th>Prior</th><th>Future</th></tr></thead>
+        <tbody>
+          ${contexts.map(context => `<tr>
+            <td>${escapeHtml(context.sceneId)}</td>
+            <td>${escapeHtml(context.activeThreadIds.join(", ") || "none")}</td>
+            <td>${escapeHtml(context.activePromiseIds.join(", ") || "none")}</td>
+            <td>${escapeHtml(context.activePayoffIds.join(", ") || "none")}</td>
+            <td>${escapeHtml(String(context.priorMovements.length))}</td>
+            <td>${escapeHtml(String(context.futureImpactPreview.length))}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+    <details><summary>Context Responsibilities</summary>
+      ${unorderedList(contexts.flatMap(context => context.currentResponsibilities.map(item => `${context.sceneId}: ${item}`)))}
+    </details>
   </div>`
 }
 
@@ -681,7 +716,7 @@ p { line-height: 1.58; }
 .summary-grid, .provenance-grid { margin: 18px 0; }
 .provenance-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 0.8fr) minmax(420px, 1.2fr);
+  grid-template-columns: minmax(260px, 0.7fr) minmax(360px, 1fr) minmax(360px, 1fr);
   gap: 12px;
 }
 .summary-grid > div, .provenance-grid article, .method-note, .scene article, .comparison-card, .comparison-reference {
@@ -827,6 +862,7 @@ function reviewInputRefs(pocDirs: string[]) {
       { path: join(resolved, "chapter.json"), role: "chapter-json" },
       { path: join(resolved, "chapter-comparison.json"), role: "chapter-comparison" },
       { path: join(resolved, "thread-map.json"), role: "thread-map-json" },
+      { path: join(resolved, "thread-context.json"), role: "thread-context-json" },
       { path: join(resolved, "semantic-review-live", "semantic-review.json"), role: "semantic-review-json" },
       { path: join(resolved, "prose-quality-live", "prose-review.json"), role: "prose-review-json" },
     ])

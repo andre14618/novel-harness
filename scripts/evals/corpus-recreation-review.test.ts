@@ -114,6 +114,35 @@ describe("corpus-recreation-review", () => {
         rows: [],
         issues: [],
       })
+      writeJson(join(pocDir, "thread-context.json"), {
+        generatedAt: "2026-05-09T00:00:00.000Z",
+        pocDir,
+        source: { book: "crystal_shard", chapterLabel: "1" },
+        plannerVariant: "materiality-v1",
+        sceneCount: 1,
+        contextCount: 1,
+        issueCount: 0,
+        contexts: [
+          {
+            sceneId: "analog-sc01",
+            sceneIndex: 0,
+            sceneGoal: "Reach the gate.",
+            sceneTurn: "The bell rings.",
+            sceneOutcome: "She enters.",
+            sceneConsequence: "The city marks her.",
+            activeThreadIds: ["thread-bell"],
+            activePromiseIds: ["debt-bell"],
+            activePayoffIds: ["payoff-bell-rings"],
+            requiredObligationIds: ["obl-1"],
+            currentResponsibilities: ["obl-1 thread=thread-bell promise=debt-bell payoff=payoff-bell-rings: Make the bell matter."],
+            ledger: [],
+            priorMovements: [],
+            futureImpactPreview: [],
+            structuralIssues: [],
+          },
+        ],
+        threadMapIssues: [],
+      })
       writeJson(join(pocDir, "plan-comparison.json"), {
         valuePolarity: { exactMatches: 1, expected: ["-"], ratio: 1 },
         miceThread: { exactMatches: 1, expected: ["M"], ratio: 1 },
@@ -184,8 +213,10 @@ describe("corpus-recreation-review", () => {
       expect(html).toContain("Run Provenance")
       expect(html).toContain("run-poc-1")
       expect(html).toContain("Thread Map")
+      expect(html).toContain("Thread Context Preview")
       expect(html).toContain("thread-bell")
       expect(html).toContain("payoff:payoff-bell-rings")
+      expect(html).toContain("obl-1 thread=thread-bell promise=debt-bell payoff=payoff-bell-rings")
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
