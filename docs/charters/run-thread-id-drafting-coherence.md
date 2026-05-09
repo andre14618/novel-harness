@@ -201,6 +201,13 @@ Evidence gate: compare baseline vs interleaved context on the same scene plans.
 Promotion requires equal or better deterministic shape, better semantic thread
 landing, and no increase in source leakage or malformed output.
 
+Status 2026-05-09: writer behavior is still unchanged, but the deterministic
+context packet preview exists as `diagnostics:corpus-recreation-thread-context`.
+It emits one compact per-scene thread ledger with active obligations,
+promise/payoff refs, prior movement summaries, and future affected scene IDs.
+This is setup evidence for a later default-off writer experiment, not runtime
+context injection.
+
 ### Lane 5 - Scene Thread Semantic Review
 
 Reuse the narrow semantic judge pattern: one scene, one dimension, anchored
