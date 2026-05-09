@@ -173,6 +173,12 @@ is not automatically an error; it is a horizon note unless the sampled chapter
 set was intended to pay it off. Horizon notes are computed across the provided
 POC dirs, so later sampled chapters can clear earlier setup notes.
 
+Multi-chapter smoke update: prompt-only thread-ref guidance did not fully solve
+cross-thread pressure. The planner still used relationship-thread obligations
+to point at key/oath promises from other threads. Next work should either repair
+that shape deterministically before drafting or surface it as Plan Readiness,
+not add more writer-context.
+
 ### Lane 3 - Thread Map Diagnostics
 
 Produce a read-only thread map from a plan artifact.
