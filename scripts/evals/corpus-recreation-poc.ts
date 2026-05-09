@@ -170,7 +170,7 @@ type RecreationPlan = z.infer<typeof recreationPlanSchema>["plan"]
 type ExampleChapter = z.infer<typeof exampleChapterSchema>
 type ExampleScene = z.infer<typeof exampleSceneSchema>
 
-class ModelJsonParseError extends Error {
+export class ModelJsonParseError extends Error {
   readonly snippet: string
 
   constructor(label: string, snippet: string, cause: unknown) {
@@ -893,14 +893,23 @@ async function callDeepSeekJson(args: {
     const cache = cachedTokens > 0 ? ` cache=${cachedTokens}` : ""
     console.log(`[LLM] ${args.label}: ${promptTokens}+${completionTokens}${cache}; finish=${finish ?? "unknown"}`)
     if (finish === "length") throw new Error(`${args.label} hit completion cap`)
-    const extracted = extractJson(content)
-    try {
-      return JSON.parse(extracted)
-    } catch (error) {
-      throw new ModelJsonParseError(args.label, extracted.slice(0, 1000), error)
-    }
+    return parseJsonResponseContent(args.label, content)
   } finally {
     clearTimeout(timer)
+  }
+}
+
+export function parseJsonResponseContent(label: string, content: string): unknown {
+  let extracted: string
+  try {
+    extracted = extractJson(content)
+  } catch (error) {
+    throw new ModelJsonParseError(label, content.slice(0, 1000), error)
+  }
+  try {
+    return JSON.parse(extracted)
+  } catch (error) {
+    throw new ModelJsonParseError(label, extracted.slice(0, 1000), error)
   }
 }
 

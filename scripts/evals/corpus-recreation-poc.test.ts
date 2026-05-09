@@ -4,6 +4,8 @@ import {
   buildRecreationPacket,
   compareChapterToPlan,
   comparePlanToReference,
+  ModelJsonParseError,
+  parseJsonResponseContent,
 } from "./corpus-recreation-poc"
 
 describe("corpus-recreation-poc", () => {
@@ -77,6 +79,11 @@ describe("corpus-recreation-poc", () => {
     expect(comparison.sceneWordCounts[0]!.meetsMinimum).toBe(true)
     expect(comparison.sceneWordCounts[1]!.meetsMinimum).toBe(false)
     expect(comparison.issues.some(issue => issue.includes("scene prose below minimum"))).toBe(true)
+  })
+
+  test("wraps malformed model JSON as retryable parse evidence", () => {
+    expect(() => parseJsonResponseContent("scene", "{\"sceneId\":\"x\""))
+      .toThrow(ModelJsonParseError)
   })
 })
 

@@ -123,3 +123,32 @@ Implementation note: the scene writer uses per-scene calls, deterministic
 scene word minimums, prior-prose expansion on retry, best-attempt retention,
 and a bounded retry for invalid JSON. This is diagnostic scaffolding only. It
 does not change production planner or writer routing.
+
+## Expanded Data
+
+Additional live runs tested three chapter shapes:
+
+| Chapter | Shape | Model | Plan Fit | Prose Fit | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 2 | 4 scenes / 3353w | Flash | pass | pass, 2874/3353 | normal medium chapter |
+| 5 | 1 scene / 2255w | Flash | pass | near miss, 1527/2255 | single long scene under minimum by 51w |
+| 5-r2 | 1 scene / 2255w | Flash | pass | pass, 2372/2255 | rerun suggests stochastic expansion miss |
+| 5-pro | 1 scene / 2255w | Pro | pass | pass, 3156/2255 | much slower and near upper prose band |
+| 8 | 7 scenes / 3621w | Flash | pass | near miss, 2786/3621 | one scene under minimum by 42w |
+| 8-r3 | 7 scenes / 3621w | Flash | pass | pass, 3081/3621 | rerun passed after malformed-output retry fix |
+
+Findings:
+
+- Plan-shape matching held across all sampled chapters: scene count, polarity,
+  MICE/thread sequence, and beat-hint density all matched.
+- Prose expansion is the main unstable surface. Scene calls usually recover,
+  but long scenes and high-scene-count chapters sometimes need retries.
+- Pro thinking is not an obvious default route here: it passed the single long
+  scene but was materially slower and expanded close to the upper word band.
+- One live chapter-8 rerun exposed truncated/malformed JSON without a closing
+  brace. The diagnostic now wraps extract/parse failures as retryable
+  `ModelJsonParseError` evidence.
+
+Next data step: run a small planned cohort over diverse chapter shapes and add
+operator/semantic review for story quality. Deterministic structure fit alone
+does not prove the analog chapter is compelling.
