@@ -1129,3 +1129,53 @@ Result:
 Interpretation: sequence-owned story-debt IDs survived into drafting. The next
 quality lever is not more ID plumbing; it is richer upstream character
 motivation pressure in early scenes, then a broader sequence run.
+
+## Upstream Character Motivation V3
+
+Added a default-off `causal-motivation-v3` planner variant for the corpus
+recreation POC. This does not promote a runtime harness default. It adds an
+optional scene field, `povPersonalStake`, and only requires it when the v3
+variant is active. The expected benefit is upstream: scenes should enter
+drafting with a named personal pressure behind the crisis choice, so the writer
+has something more specific than tactical survival/exposure pressure.
+
+The first v3 live pass improved semantic/prose signals but exposed a repair
+gap: the structural retry prompt did not clear a story-debt `promiseId` that
+had been copied onto a supporting-character/world thread. The repair instruction
+now explicitly tells the planner to split cross-thread pressure or remove
+promise/payoff refs from the child obligation that is only moving the
+supporting-character/world thread.
+
+Evidence:
+
+- focused tests:
+  `bun test scripts/evals/corpus-recreation-poc.test.ts`;
+- typecheck: `./node_modules/.bin/tsc --noEmit --pretty false`;
+- r1 exploratory run:
+  `output/corpus-recreation-poc/crystal_shard-ch1-flash-causal-motivation-v3-expansion-v1-scene-calls-r1`;
+- r2 repaired run:
+  `output/corpus-recreation-poc/crystal_shard-ch1-flash-causal-motivation-v3-expansion-v1-scene-calls-r2`;
+- comparison aggregate:
+  `output/corpus-recreation-poc/causal-v2-vs-motivation-v3-ch1-aggregate-r1.md`;
+- static review:
+  `output/corpus-recreation-poc/causal-v2-vs-motivation-v3-ch1-review-r1.html`.
+
+Result:
+
+- r2 plan fit was deterministic-clean after one structural retry: 4/4 scenes,
+  4/4 POV personal stakes, 4/4 materiality-test coverage, 4/4 known thread
+  refs, 0 character-ref issues, and 0 sceneTurn ref issues;
+- r2 draft fit had no hard chapter issues and one advisory scene-floor warning
+  on scene 3: 1278/1832 words overall, ratio 0.70;
+- semantic review had 21 tasks, 3 applicability skips, and 0 low-signal
+  findings; motivation specificity improved from the previous ch1 v2 run's
+  low finding to `MOTIVE-2` across all four scenes;
+- prose review stayed low-free across 16 tasks and payoff propulsion improved
+  from 2.25 mean in the v2 comparison row to 2.50 in v3.
+
+Interpretation: v3 is useful evidence that upstream personal-stake pressure can
+address motivation specificity without changing writer/checker defaults. It is
+not promotion proof yet: the sample is one chapter, the draft remains short in
+one large scene, and the repair pass is still needed to close some structural
+refs. The next proof should broaden to a multi-chapter sequence or pair it with
+writer-context character capsules while holding the planner variant fixed.

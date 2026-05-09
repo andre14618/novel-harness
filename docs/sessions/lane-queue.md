@@ -37,7 +37,7 @@ unless the user explicitly requests a disposable branch.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.
-- Corpus structure recreation is active: sequence-owned `payoffEventId`/`storyDebtStage` plus `--sequence-context` survived ch1+ch2 drafting with clean sequence audit and low-free prose review; semantic review found one ch1 motivation-specificity low. Next improve upstream character motivation pressure, then broaden beyond two chapters.
+- Corpus structure recreation is active: sequence IDs survived ch1+ch2 drafting; `causal-motivation-v3` cleared a ch1 motivation low with clean plan fit. Next broaden sequence or pair fixed v3 planning with character-context writer capsules.
 - Review `docs/method-packs/commercial-fantasy-adventure-v0.md` as the first
   general method-pack charter before implementing template definitions,
   fixtures, or planner prompt changes.

@@ -66,6 +66,7 @@ describe("corpus-recreation-poc", () => {
     expect(comparison.sceneContract.sceneTurnRefIssueCount).toBe(0)
     expect(comparison.sceneContract.characterRefClosureCount).toBe(2)
     expect(comparison.sceneContract.characterRefIssueCount).toBe(0)
+    expect(comparison.sceneContract.povPersonalStakeCount).toBe(2)
     expect(comparison.sceneContract.observableConsequenceCount).toBe(2)
     expect(comparison.sceneContract.materialityTestCount).toBe(2)
     expect(comparison.issues).toEqual([])
@@ -124,6 +125,33 @@ describe("corpus-recreation-poc", () => {
     expect(prompt).toContain("Each choiceAlternative should include a concrete tradeoff")
     expect(prompt).toContain("pressure -> choice -> irreversible external result -> future obligation/threat")
     expect(prompt).toContain("\"plannerVariant\": \"causal-materiality-v2\"")
+  })
+
+  test("causal-motivation-v3 requires scene-level POV personal stakes", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+      plannerVariant: "causal-motivation-v3",
+    })
+    const missingStake = structuredClone(plan())
+    delete (missingStake.scenes[0] as any).povPersonalStake
+    for (const obligation of missingStake.obligations) delete (obligation as any).materialityTest
+    const comparison = comparePlanToReference(missingStake, packet, {
+      requireMaterialityTests: true,
+      requirePovPersonalStake: true,
+    })
+    const prompt = plannerUserPrompt(packet, "causal-motivation-v3")
+
+    expect(comparison.sceneContract.povPersonalStakeCount).toBe(1)
+    expect(comparison.issues.some(issue => issue.includes("scene needs povPersonalStake"))).toBe(true)
+    expect(comparison.issues.some(issue => issue.includes("each obligation needs a materialityTest"))).toBe(true)
+    expect(prompt).toContain("Causal-motivation-v3 diagnostic variant")
+    expect(prompt).toContain("Include povPersonalStake on every scene")
+    expect(prompt).toContain("personal fear, wound, oath, need, lie, truth, shame, or relationship pressure")
+    expect(prompt).toContain("Do not let \"survive\", \"escape\", \"avoid exposure\", or \"find safety\" stand alone")
+    expect(prompt).toContain("\"plannerVariant\": \"causal-motivation-v3\"")
   })
 
   test("planner prompt requires internally consistent thread refs", () => {
@@ -370,6 +398,8 @@ describe("corpus-recreation-poc", () => {
     expect(retryPrompt).toContain("complete fresh JSON")
     expect(retryPrompt).toContain("Previous valid plan to minimally repair")
     expect(retryPrompt).toContain("requiredCharacterIds")
+    expect(retryPrompt).toContain("do not force the promise across threads")
+    expect(retryPrompt).toContain("split the pressure into separate obligations")
     expect(retryPrompt).toContain("scene contract weak for analog-sc01")
     expect(retryPrompt).toContain("\"sceneId\": \"analog-sc01\"")
   })
@@ -918,6 +948,7 @@ function plan() {
         targetWords: 600,
         structuralRole: "Establish pressure and reverse safety.",
         povCharacterId: "char-nara-venn",
+        povPersonalStake: "Nara's oathmark makes public exposure feel like proof she betrayed the lost convoy.",
         requiredCharacterIds: ["char-tovin-ash"],
         affectedCharacterIds: [],
         locationOrArena: "frontier road",
@@ -947,6 +978,7 @@ function plan() {
         targetWords: 400,
         structuralRole: "Make a character choice visible.",
         povCharacterId: "char-nara-venn",
+        povPersonalStake: "Nara's need to protect the convoy truth forces her to choose between confession and secrecy.",
         requiredCharacterIds: ["char-bellwarden-kael", "char-mirel-sorn"],
         affectedCharacterIds: ["char-tovin-ash"],
         locationOrArena: "gatehouse",

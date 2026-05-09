@@ -22,7 +22,7 @@ import {
 import { corpusRecreationVariantLabel } from "./corpus-recreation-variant"
 
 type ModelId = "deepseek-v4-flash" | "deepseek-v4-pro"
-type PlannerVariant = "baseline" | "materiality-v1" | "causal-materiality-v2"
+type PlannerVariant = "baseline" | "materiality-v1" | "causal-materiality-v2" | "causal-motivation-v3"
 type PlannerContractRetryMode = "none" | "structural-v1"
 type WriterContextMode = "baseline" | "thread-context-v1"
 type WriterExpansionMode = "none" | "retry-short-scenes-v1"
@@ -198,6 +198,7 @@ const recreationScenePlanSchema = z.object({
   targetWords: z.number().int().min(50),
   structuralRole: z.string().min(8),
   povCharacterId: z.string().min(1),
+  povPersonalStake: optionalModelStringSchema,
   requiredCharacterIds: z.array(z.string().min(1)).default([]),
   affectedCharacterIds: z.array(z.string().min(1)).default([]),
   locationOrArena: z.string().min(1),
@@ -258,7 +259,7 @@ type RecreationPlan = z.infer<typeof recreationPlanSchema>["plan"]
 type ExampleChapter = z.infer<typeof exampleChapterSchema>
 type ExampleScene = z.infer<typeof exampleSceneSchema>
 
-const PLANNER_PROMPT_VERSION = "scene-turn-child-thread-v7"
+const PLANNER_PROMPT_VERSION = "scene-turn-child-thread-v8"
 
 export class ModelJsonParseError extends Error {
   readonly snippet: string
@@ -309,6 +310,7 @@ interface PlanComparison {
     sceneTurnRefIssueCount: number
     characterRefClosureCount: number
     characterRefIssueCount: number
+    povPersonalStakeCount: number
     invalidSceneTurnSceneIds: string[]
     duplicateSceneTurnIds: string[]
     observableConsequenceCount: number
@@ -321,6 +323,7 @@ interface PlanComparison {
 interface SceneContractDiagnostic {
   sceneId: string
   hasChoiceAlternatives: boolean
+  hasPovPersonalStake: boolean
   hasDeclaredObligation: boolean
   hasKnownSourceIds: boolean
   hasKnownThreadRefs: boolean
@@ -560,8 +563,13 @@ function parseModel(value: string): ModelId {
 }
 
 function parsePlannerVariant(value: string): PlannerVariant {
-  if (value === "baseline" || value === "materiality-v1" || value === "causal-materiality-v2") return value
-  throw new Error(`--planner-variant must be baseline, materiality-v1, or causal-materiality-v2; got ${value}`)
+  if (
+    value === "baseline"
+    || value === "materiality-v1"
+    || value === "causal-materiality-v2"
+    || value === "causal-motivation-v3"
+  ) return value
+  throw new Error(`--planner-variant must be baseline, materiality-v1, causal-materiality-v2, or causal-motivation-v3; got ${value}`)
 }
 
 function parsePlannerContractRetryMode(value: string): PlannerContractRetryMode {
@@ -590,7 +598,7 @@ function printHelp(): void {
   bun scripts/evals/corpus-recreation-poc.ts [--chapter <label>] [--output-dir <dir>]
     [--live] [--write] [--scene-calls]
     [--model deepseek-v4-flash|deepseek-v4-pro]
-    [--planner-variant baseline|materiality-v1|causal-materiality-v2]
+    [--planner-variant baseline|materiality-v1|causal-materiality-v2|causal-motivation-v3]
     [--planner-contract-retry none|structural-v1]
     [--writer-context baseline|thread-context-v1]
     [--writer-expansion none|retry-short-scenes-v1]
@@ -601,6 +609,7 @@ Examples:
   bun run diagnostics:corpus-recreation-poc -- --chapter 2 --output-dir output/poc-ch2
   bun run diagnostics:corpus-recreation-poc -- --chapter 2 --live --planner-variant materiality-v1
   bun run diagnostics:corpus-recreation-poc -- --chapter 2 --live --planner-variant causal-materiality-v2
+  bun run diagnostics:corpus-recreation-poc -- --chapter 2 --live --planner-variant causal-motivation-v3
 `)
 }
 
@@ -736,7 +745,7 @@ function readSequenceContextChapter(pocDir: string): SequenceContext["priorChapt
 export function comparePlanToReference(
   plan: RecreationPlan,
   packet: RecreationPacket,
-  opts: { requireMaterialityTests?: boolean } = {},
+  opts: { requireMaterialityTests?: boolean; requirePovPersonalStake?: boolean } = {},
 ): PlanComparison {
   const expectedScenes = packet.target.sceneBlueprints
   const issues: string[] = []
@@ -803,7 +812,7 @@ export function comparePlanToReference(
 function buildSceneContractDiagnostics(
   plan: RecreationPlan,
   packet: RecreationPacket,
-  opts: { requireMaterialityTests?: boolean },
+  opts: { requireMaterialityTests?: boolean; requirePovPersonalStake?: boolean },
 ): PlanComparison["sceneContract"] {
   const scenes = plan.scenes.map(scene => evaluateSceneContract(scene, plan, packet, opts))
   const sceneTurns = plan.sceneTurns ?? []
@@ -841,6 +850,7 @@ function buildSceneContractDiagnostics(
       + scene.missingLocalCharacterIds.length
       + scene.missingAffectedCharacterIds.length, 0
     ),
+    povPersonalStakeCount: scenes.filter(scene => scene.hasPovPersonalStake).length,
     invalidSceneTurnSceneIds,
     duplicateSceneTurnIds,
     observableConsequenceCount: scenes.filter(scene => scene.hasObservableConsequence).length,
@@ -853,7 +863,7 @@ function evaluateSceneContract(
   scene: RecreationPlan["scenes"][number],
   plan: RecreationPlan,
   packet: RecreationPacket,
-  opts: { requireMaterialityTests?: boolean },
+  opts: { requireMaterialityTests?: boolean; requirePovPersonalStake?: boolean },
 ): SceneContractDiagnostic {
   const issues: string[] = []
   const obligations = plan.obligations.filter(obligation => obligation.sceneId === scene.sceneId)
@@ -865,6 +875,7 @@ function evaluateSceneContract(
   const promiseById = new Map(packet.originalAnalogSeed.storyDebts.map(debt => [debt.storyDebtId, debt]))
   const payoffById = new Map(packet.originalAnalogSeed.storyPayoffs.map(payoff => [payoff.payoffId, payoff]))
   const sceneTurnById = new Map((plan.sceneTurns ?? []).map(turn => [turn.sceneTurnId, turn]))
+  const hasPovPersonalStake = typeof scene.povPersonalStake === "string" && scene.povPersonalStake.trim().length >= 8
   const unknownSourceIds = obligations
     .map(obligation => obligation.sourceId)
     .filter(sourceId => !knownSourceIds.has(sourceId))
@@ -970,6 +981,9 @@ function evaluateSceneContract(
     typeof obligation.materialityTest === "string" && obligation.materialityTest.trim().length >= 8
   )
   if (!hasChoiceAlternatives) issues.push("choiceAlternatives must declare at least two options")
+  if (opts.requirePovPersonalStake && !hasPovPersonalStake) {
+    issues.push("scene needs povPersonalStake naming the personal fear, wound, oath, need, lie, or relationship pressure behind the crisisChoice")
+  }
   if (!hasDeclaredObligation) issues.push("scene lacks explicit obligation sourceIds")
   if (unknownSourceIds.length > 0) issues.push(`unknown obligation sourceIds: ${unknownSourceIds.join(", ")}`)
   if (missingThreadIds.length > 0) issues.push(`obligations missing threadId: ${missingThreadIds.join(", ")}`)
@@ -995,6 +1009,7 @@ function evaluateSceneContract(
   return {
     sceneId: scene.sceneId,
     hasChoiceAlternatives,
+    hasPovPersonalStake,
     hasDeclaredObligation,
     hasKnownSourceIds,
     hasKnownThreadRefs,
@@ -1262,6 +1277,7 @@ Hard rules:
         "targetWords": 400,
         "structuralRole": "string",
         "povCharacterId": "char-nara-venn",
+        "povPersonalStake": "optional string naming the personal pressure behind the crisis choice",
         "requiredCharacterIds": ["char-tovin-ash"],
         "affectedCharacterIds": ["char-bellwarden-kael"],
         "locationOrArena": "string",
@@ -1420,6 +1436,12 @@ Fix only the listed plan-contract issues in the previous plan:
   adding a character-source obligation when the character actively pressures the
   scene;
 - preserve thread, promise, payoff, and sceneTurn consistency;
+- if an obligation has a promiseId or payoffId whose owning thread does not
+  match the obligation threadId, do not force the promise across threads; either
+  split the pressure into separate obligations or remove promiseId/payoffId from
+  the child obligation that is only moving the supporting-character/world thread;
+- keep promiseId/payoffId only on the child obligation whose threadId matches
+  the provided storyDebt/payoff thread exactly;
 - keep word targets as pacing guidance only.
 
 Deterministic issues:
@@ -1431,6 +1453,21 @@ ${JSON.stringify({ plan: previousPlan }, null, 2)}`
 
 function plannerVariantTail(variant: PlannerVariant): string {
   if (variant === "baseline") return ""
+  if (variant === "causal-motivation-v3") {
+    return `
+Causal-motivation-v3 diagnostic variant:
+- Include povPersonalStake on every scene.
+- povPersonalStake must name the personal fear, wound, oath, need, lie, truth, shame, or relationship pressure that makes the crisisChoice matter to Nara.
+- For every obligation, add materialityTest.
+- materialityTest must name the concrete story effect the writer must dramatize: changed choice, cost, constraint, relationship state, outcome, or future pressure.
+- The scene goal, crisisChoice, choiceAlternatives, climaxAction, outcome, and consequence must all be caused by the povPersonalStake plus active external pressure.
+- Do not let "survive", "escape", "avoid exposure", or "find safety" stand alone as motivation; tie them to Nara's oathmark, lost convoy shame, public accountability, lie, need, or relationship risk.
+- Each choiceAlternative should include a concrete tradeoff: what Nara gains, what she risks, and which personal stake and thread pressure changes.
+- A world fact is material only if it constrains options, changes the cost, forces a decision, creates a danger, blocks a route, or alters the outcome.
+- A supporting character is material only if they change leverage, trust, obligation, access, threat, allegiance, or the POV character's available choices.
+- The turningPoint, climaxAction, outcome, and consequence should form one causal chain: personal pressure + external pressure -> choice -> irreversible external result -> future obligation/threat.
+- If a sourceId cannot be made material in the scene, choose a different exact sourceId that can affect the scene's choice/outcome.`
+  }
   if (variant === "causal-materiality-v2") {
     return `
 Causal-materiality-v2 diagnostic variant:
@@ -2062,6 +2099,7 @@ async function main(): Promise<void> {
     }
     planComparison = comparePlanToReference(plan, packet, {
       requireMaterialityTests: plannerVariantRequiresMaterialityTests(packet.diagnosticConfig?.plannerVariant),
+      requirePovPersonalStake: plannerVariantRequiresPovPersonalStake(packet.diagnosticConfig?.plannerVariant),
     })
     writeFileSync(join(outputDir, "plan.json"), `${JSON.stringify(plan, null, 2)}\n`)
     writeFileSync(join(outputDir, "plan-comparison.json"), `${JSON.stringify(planComparison, null, 2)}\n`)
@@ -2081,6 +2119,7 @@ async function main(): Promise<void> {
       })
       planComparison = comparePlanToReference(plan, packet, {
         requireMaterialityTests: plannerVariantRequiresMaterialityTests(packet.diagnosticConfig?.plannerVariant),
+        requirePovPersonalStake: plannerVariantRequiresPovPersonalStake(packet.diagnosticConfig?.plannerVariant),
       })
       const contractIssues = planContractRetryIssues(planComparison)
       const retried = shouldRetryPlannerContract({
@@ -2220,7 +2259,11 @@ async function main(): Promise<void> {
 }
 
 function plannerVariantRequiresMaterialityTests(variant: PlannerVariant | undefined): boolean {
-  return variant === "materiality-v1" || variant === "causal-materiality-v2"
+  return variant === "materiality-v1" || variant === "causal-materiality-v2" || variant === "causal-motivation-v3"
+}
+
+function plannerVariantRequiresPovPersonalStake(variant: PlannerVariant | undefined): boolean {
+  return variant === "causal-motivation-v3"
 }
 
 if (import.meta.main) await main()
