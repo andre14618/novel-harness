@@ -133,6 +133,21 @@ the exact draft-hash observer path, and writes JSON/Markdown evidence under
 observer plumbing; it does not prove story quality until a real draft/checker
 or operator-labeled outcome is attached.
 
+Corpus recreation semantic lows can be converted into the same review-group
+shape without touching the DB:
+
+```bash
+bun run diagnostics:corpus-recreation-readiness -- \
+  --poc-dir output/corpus-recreation-poc/<run-a> \
+  --poc-dir output/corpus-recreation-poc/<run-b> \
+  --output output/corpus-recreation-poc/<readiness>.md \
+  --json output/corpus-recreation-poc/<readiness>.json
+```
+
+This adapter preserves exact obligation, character, and world-fact IDs and
+emits operator questions. It is a staging surface for review; it does not
+create proposals or mutate plans.
+
 ## Data Use
 
 Operator dispositions are first-class training and evaluation data, but not

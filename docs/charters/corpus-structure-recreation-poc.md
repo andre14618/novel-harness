@@ -260,3 +260,15 @@ bun run diagnostics:corpus-recreation-aggregate -- \
 The aggregate joins deterministic plan/prose checks with semantic review
 summaries. Use it to decide what needs operator review or another controlled
 sample. Do not treat it as production promotion proof.
+
+Low semantic findings can be converted into manual review candidates:
+
+```bash
+bun run diagnostics:corpus-recreation-readiness -- \
+  --poc-dir output/corpus-recreation-poc/<run-a> \
+  --output output/corpus-recreation-poc/<readiness>.md \
+  --json output/corpus-recreation-poc/<readiness>.json
+```
+
+This preserves exact IDs and asks operator disposition questions. It should
+feed Plan Readiness Review, not automatic rewrites.

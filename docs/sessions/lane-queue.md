@@ -35,7 +35,7 @@ unless the user explicitly requests a disposable branch.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.
-- Corpus structure recreation is active: exact-ID scene-call samples across chapters 1, 2, 5, and 8 held deterministic scene/ID/source-boundary shape. Semantic review found low-signal obligation materiality in chapter 2 despite clean deterministic structure, so the next planner-quality lever is semantic plan-readiness review of obligation materiality before broader planner mimicry or runtime changes.
+- Corpus structure recreation is active: exact-ID scene-call samples across chapters 1, 2, 5, and 8 held deterministic scene/ID/source-boundary shape. Semantic review found low-signal obligation materiality in chapter 2 despite clean deterministic structure, and `diagnostics:corpus-recreation-readiness` now turns those lows into manual Plan Readiness-compatible review groups. Next lever is operator disposition or a planner prompt variant that explicitly improves obligation materiality.
 - Review `docs/method-packs/commercial-fantasy-adventure-v0.md` as the first
   general method-pack charter before implementing template definitions,
   fixtures, or planner prompt changes.

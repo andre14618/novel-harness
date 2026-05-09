@@ -386,3 +386,34 @@ Findings:
   semantic lows;
 - therefore the next planner-quality lever should be semantic plan-readiness
   review of obligation materiality, not more deterministic structure scoring.
+
+## Readiness Candidate Bridge
+
+Added `diagnostics:corpus-recreation-readiness`, a no-LLM/no-DB adapter that
+turns low scene semantic findings into Plan Readiness-compatible groups. This
+keeps the next step conversational/manual:
+
+```bash
+bun run diagnostics:corpus-recreation-readiness -- \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch1-flash-exact-id-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-exact-id-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch5-flash-exact-id-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch8-flash-exact-id-scene-calls-r1 \
+  --output output/corpus-recreation-poc/exact-id-scene-calls-readiness-r1.md \
+  --json output/corpus-recreation-poc/exact-id-scene-calls-readiness-r1.json
+```
+
+Output:
+
+- 3 groups / 3 findings, all from chapter 2;
+- each group targets the scene as `beat_plan:<sceneId>:description` for
+  compatibility with the current readiness bridge;
+- each group preserves exact obligation IDs plus exact character/world IDs;
+- each group asks an operator question, for example whether a world fact should
+  actively constrain choice/outcome or whether background presence is
+  acceptable.
+
+This is the correct shape for the current lane: diagnostics produce review
+candidates, the operator decides disposition, and accepted changes can later
+become normal manual `planning_edit` proposals. The adapter intentionally does
+not create proposals or mutate plans.
