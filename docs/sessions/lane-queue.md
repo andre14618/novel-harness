@@ -30,10 +30,9 @@ unless the user explicitly requests a disposable branch.
 - If pursuing scene-first methodology, treat `sceneId` as the plan/write/check
   unit and `obligationId`/`sourceId` as the traceability unit; do not preserve
   beat-level adherence as the primary future contract by default. See L092.
-- L093 three-chapter smoke still found 3 relationship-pressure cross-thread
-  promise mismatches; `THREADREF-1` routes to manual readiness, and additive
-  `sceneTurnId` parents now make multi-thread turns graph-ready without a graph. See
-  `docs/sessions/2026-05-09-thread-map-multichapter-smoke.md`.
+- L093: `sceneTurnId` parents are graph-ready and readiness-preserved; smoke
+  passed turn-ref validation but still found cross-thread child obligations.
+  See `docs/sessions/2026-05-09-scene-turn-parent-smoke.md`.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.
