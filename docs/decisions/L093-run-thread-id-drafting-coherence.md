@@ -8,14 +8,24 @@ role: decision-record
 
 ## Decision
 
-Make durable run lineage and narrative thread/payoff IDs the next traceability
-foundation for authoring methodology work.
+Extend the existing run/stable-ref traceability foundation into an end-to-end
+run lineage plus narrative thread/payoff coherence contract.
 
 Before changing production writer behavior, diagnostics should prove that the
 harness can carry these refs from concept/planning through scene contracts,
 prose artifacts, semantic review, and planning/revision proposals.
 
 ## Rationale
+
+Novel Harness already has important traceability pieces: DB-backed novel run
+IDs, `llm_calls` telemetry, stable `chapterId`/`beatId`/`sourceId`/
+`obligationId` refs, planning mutation lineage, proposal impact contexts,
+chapter traceability routes, and early `promiseId`/`storyDebtId` method-pack
+fixtures.
+
+The gap is not "no IDs." The gap is that these IDs are not yet normalized into
+one execution/story trace that can explain a plan variant, a scene draft, a
+semantic finding, and a downstream stale-impact preview together.
 
 Scene-first writing improves the generation unit, but coherence still depends
 on whether the right story obligations travel through the whole pipeline. A
@@ -40,8 +50,10 @@ scene, not a broad dump of all novel state.
 
 ## Implications
 
-- `runId`, `rootRunId`, `parentRunId`, `variantId`, artifact refs, and artifact
-  hashes should become standard diagnostic metadata.
+- Existing `runId`/stable-ref surfaces should be reused wherever possible
+  instead of duplicated.
+- `rootRunId`, `parentRunId`, `variantId`, artifact refs, and artifact hashes
+  should become standard diagnostic metadata where current outputs lack them.
 - `threadId`, `promiseId`, and `payoffId` should be added to planner contracts
   as traceability refs before production prompt changes.
 - `sceneId` remains the primary plan/write/check unit under L92.

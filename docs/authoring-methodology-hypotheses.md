@@ -202,13 +202,14 @@ shows value.
 
 ## H12 - Run/Thread ID Interleaving
 
-Hypothesis: drafting coherence improves when execution lineage and narrative
-thread/payoff refs travel together from concept through scene writing and
-review.
+Hypothesis: drafting coherence improves when the repo's existing run/stable-ref
+traceability is extended so execution lineage and narrative thread/payoff refs
+travel together from concept through scene writing and review.
 
 First slice:
 
-- Add run manifests and deterministic validation to diagnostic artifacts.
+- Normalize run manifests and deterministic validation in diagnostic
+  artifacts, reusing existing run IDs where present.
 - Add `threadId`, `promiseId`, and `payoffId` refs to planner contracts before
   changing writer prompts.
 - Produce a thread map that shows where story debts open, progress,

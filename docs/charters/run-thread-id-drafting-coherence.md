@@ -22,8 +22,9 @@ traceable back to the exact plan contract it is judging.
 
 - Optimized layer: upstream concept/planning traceability and drafting context
   engineering.
-- Exact change: define run lineage IDs and narrative thread/payoff IDs as
-  first-class refs before changing writer behavior.
+- Exact change: extend existing run/stable-ref traceability into normalized
+  run manifests and narrative thread/payoff refs before changing writer
+  behavior.
 - Held constant: production writer, checker severity policy, proposal policy,
   and UI defaults until trace completeness is proven.
 - Expected benefit: clearer story debt propagation, fewer dropped payoffs, less
@@ -35,6 +36,29 @@ traceable back to the exact plan contract it is judging.
   scenes.
 - Evidence gate: no runtime drafting default changes until run/thread refs are
   complete, validated, and visible in local diagnostic artifacts.
+
+## Existing Foundation
+
+This lane does not start from zero. The repo already has:
+
+- DB-backed `runId` for novel runs and logged LLM calls;
+- experiment/eval artifact `runId` and `variantId` surfaces in some
+  diagnostics;
+- stable `chapterId`, `beatId`, `sourceId`, `characterId`, and `obligationId`
+  refs in enriched outlines and checker/proposal evidence;
+- planning mutation lineage and proposal impact contexts;
+- chapter health and traceability routes that join outline refs to
+  writer/checker/event evidence;
+- early `promiseId`/`storyDebtId` refs in method-pack fixtures and docs.
+
+The new work is to normalize and connect those pieces:
+
+- add `rootRunId`, `parentRunId`, artifact hashes, and prompt/model metadata
+  where diagnostic artifacts lack them;
+- distinguish execution lineage from narrative thread lineage;
+- add `threadId` and `payoffId` beside existing promise/story-debt refs;
+- produce deterministic maps that show thread movement and downstream stale
+  impact across scenes.
 
 ## Terms
 
@@ -90,7 +114,9 @@ which downstream story obligations were affected.
 
 ### Lane 1 - Run Manifest Baseline
 
-Add read-only run manifests to local diagnostics before changing generation.
+Normalize read-only run manifests in local diagnostics before changing
+generation. Reuse existing run IDs when present; add missing parent/root,
+variant, and artifact-hash metadata around them.
 
 Minimum fields:
 
