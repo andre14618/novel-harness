@@ -877,3 +877,36 @@ Result on the same v2 plan:
 Interpretation: writer expansion is a more plausible fix for short prose than
 thread context on this single-scene case, but it needs a multi-chapter fixed-plan
 cohort before any promotion. Keep it diagnostic/default-off.
+
+## Fixed-Plan Writer Expansion Cohort
+
+Held the `causal-materiality-v2` plans fixed for chapters 1, 2, 5, and 8, then
+changed only the writer arm from no expansion to
+`--writer-expansion retry-short-scenes-v1`.
+
+Evidence:
+
+- `output/corpus-recreation-poc/causal-v2-baseline-vs-expansion-v1-aggregate-r1.md`
+- `output/corpus-recreation-poc/causal-v2-baseline-vs-expansion-v1-review-r1.html`
+
+Result:
+
+- baseline v2 total: 6604/11061 generated words, ratio 0.60;
+- expansion total: 8817/11061 generated words, ratio 0.80;
+- chapter ratios improved: ch1 0.65 -> 0.90, ch2 0.65 -> 0.78,
+  ch5 0.40 -> 0.66, ch8 0.64 -> 0.84;
+- scene-floor misses dropped from 9 to 2;
+- broad chapter word-band warnings dropped from all 4 chapters to 2 chapters;
+- deterministic scene/choice/thread/consequence contracts stayed intact;
+- semantic reviews stayed low-free across 85 tasks;
+- prose reviews stayed low-free across 64 tasks;
+- plan-side deterministic issues were unchanged in chapters 1 and 8;
+- character-context linkage gaps were unchanged at 8 issues.
+
+Interpretation: the default-off writer expansion retry is useful for the
+short-prose symptom and did not damage the current semantic/prose triage signals
+in this cohort. It should not be promoted as a planner fix: it does not repair
+plan-side structural issues, character-context linkage, or causal materiality
+upstream. The next higher-value slice is to use Plan Readiness for the exact
+character-context gaps, or revise the planner contract so fewer such gaps are
+created before drafting.
