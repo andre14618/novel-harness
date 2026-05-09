@@ -170,7 +170,8 @@ map with promise progress/payoff rows.
 Status update: the thread map now separates counted structural issues from
 future-horizon notes. An active promise without a payoff in the current report
 is not automatically an error; it is a horizon note unless the sampled chapter
-was intended to pay it off.
+set was intended to pay it off. Horizon notes are computed across the provided
+POC dirs, so later sampled chapters can clear earlier setup notes.
 
 ### Lane 3 - Thread Map Diagnostics
 

@@ -50,9 +50,10 @@ Thread-map output:
 - Movement rows increased to 6.
 - After the horizon-classification slice, thread-map issues are `0` and
   horizon notes are `4`. Opened promises with no local payoff now render as
-  `open_promise_no_local_payoff` / `planned_payoff_not_local` notes instead of
-  counted issues. That keeps the report honest for chapter-1 setup chapters
-  while still showing which payoffs must land later.
+  `open_promise_no_report_payoff` / `planned_payoff_not_in_report` notes
+  instead of counted issues. Horizon notes are evaluated across all provided POC
+  dirs, so a later sampled chapter can clear an earlier setup note by landing
+  the payoff.
 
 Manifest validation passed:
 

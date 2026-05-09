@@ -414,29 +414,30 @@ function addImpact(byRef: Map<string, ThreadImpactRow>, refKind: ThreadImpactRow
 
 function promiseHorizonNotes(artifacts: POCArtifact[], rows: ThreadMovementRow[]): CorpusThreadMapReport["horizonNotes"] {
   const notes: CorpusThreadMapReport["horizonNotes"] = []
+  const payoffDefs = new Map<string, SeedPayoff>()
   for (const artifact of artifacts) {
-    for (const promise of artifact.promises) {
-      const movementRows = rows.filter(row => row.pocDir === artifact.pocDir && row.promiseId === promise.storyDebtId)
-      if (movementRows.length === 0) continue
-      const payoffRows = movementRows.filter(row => row.payoffId)
-      if (payoffRows.length === 0) {
-        notes.push({
-          code: "open_promise_no_local_payoff",
-          ref: promise.storyDebtId,
-          detail: `promiseId ${promise.storyDebtId} has movement in this report but no local payoff`,
-        })
-      }
+    for (const payoff of artifact.payoffs) payoffDefs.set(payoff.payoffId, payoff)
+  }
+  const activePromiseIds = unique(rows.map(row => row.promiseId).filter(Boolean) as string[])
+  for (const promiseId of activePromiseIds) {
+    const payoffRows = rows.filter(row => row.promiseId === promiseId && row.payoffId)
+    if (payoffRows.length === 0) {
+      notes.push({
+        code: "open_promise_no_report_payoff",
+        ref: promiseId,
+        detail: `promiseId ${promiseId} has movement in this report but no payoff row across the provided POC dirs`,
+      })
     }
-    for (const payoff of artifact.payoffs) {
-      const promiseIsActive = rows.some(row => row.pocDir === artifact.pocDir && row.promiseId === payoff.storyDebtId)
-      const payoffIsLocal = rows.some(row => row.pocDir === artifact.pocDir && row.payoffId === payoff.payoffId)
-      if (promiseIsActive && !payoffIsLocal) {
-        notes.push({
-          code: "planned_payoff_not_local",
-          ref: payoff.payoffId,
-          detail: `payoffId ${payoff.payoffId} is not landed in this report; treat as future-horizon unless this chapter was intended to pay it off`,
-        })
-      }
+  }
+  for (const payoff of [...payoffDefs.values()].sort((a, b) => a.payoffId.localeCompare(b.payoffId))) {
+    const promiseIsActive = rows.some(row => row.promiseId === payoff.storyDebtId)
+    const payoffIsInReport = rows.some(row => row.payoffId === payoff.payoffId)
+    if (promiseIsActive && !payoffIsInReport) {
+      notes.push({
+        code: "planned_payoff_not_in_report",
+        ref: payoff.payoffId,
+        detail: `payoffId ${payoff.payoffId} is not landed across the provided POC dirs; treat as future-horizon unless this sample was intended to pay it off`,
+      })
     }
   }
   return notes

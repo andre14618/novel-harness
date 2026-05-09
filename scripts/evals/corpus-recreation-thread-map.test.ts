@@ -152,15 +152,71 @@ describe("corpus-recreation-thread-map", () => {
       expect(report.issues.map(issue => issue.code)).not.toContain("payoff_without_scene")
       expect(report.horizonNotes).toEqual(expect.arrayContaining([
         expect.objectContaining({
-          code: "open_promise_no_local_payoff",
+          code: "open_promise_no_report_payoff",
           ref: "debt-trust",
         }),
         expect.objectContaining({
-          code: "planned_payoff_not_local",
+          code: "planned_payoff_not_in_report",
           ref: "payoff-trust-earned",
         }),
       ]))
       expect(renderCorpusRecreationThreadMap(report)).toContain("treat as future-horizon")
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  test("resolves horizon notes when a later POC dir lands the payoff", () => {
+    const root = mkdtempSync(join(tmpdir(), "corpus-recreation-thread-map-"))
+    try {
+      const chapterOne = join(root, "chapter-one")
+      const chapterTwo = join(root, "chapter-two")
+      const trustPayoff = {
+        payoffId: "payoff-trust-earned",
+        storyDebtId: "debt-trust",
+        threadId: "thread-rel",
+        payoffText: "Noor and Cassius earn trust later.",
+      }
+      writeThreadMapFixture(chapterOne, {
+        extraPayoffs: [trustPayoff],
+        extraObligations: [
+          {
+            obligationId: "obl-progress-trust",
+            sceneId: "analog-sc02",
+            sourceId: "debt-trust",
+            threadId: "thread-rel",
+            promiseId: "debt-trust",
+            requirementText: "Progress the trust promise but leave it unresolved.",
+          },
+        ],
+      })
+      writeThreadMapFixture(chapterTwo, {
+        extraPayoffs: [trustPayoff],
+        extraObligations: [
+          {
+            obligationId: "obl-payoff-trust",
+            sceneId: "analog-sc02",
+            sourceId: "payoff-trust-earned",
+            threadId: "thread-rel",
+            promiseId: "debt-trust",
+            payoffId: "payoff-trust-earned",
+            requirementText: "Land the trust payoff in the later sample.",
+          },
+        ],
+      })
+
+      const report = buildCorpusRecreationThreadMap([chapterOne, chapterTwo], "2026-05-09T00:00:00.000Z")
+      const horizonRefs = report.horizonNotes.map(note => note.ref)
+
+      expect(horizonRefs).not.toContain("debt-trust")
+      expect(horizonRefs).not.toContain("payoff-trust-earned")
+      expect(report.impacts).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          refKind: "payoff",
+          ref: "payoff-trust-earned",
+          affectedSceneIds: ["analog-sc02"],
+        }),
+      ]))
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
