@@ -44,6 +44,7 @@
     "diagnostics:corpus-recreation-semantic-review": "bun scripts/evals/corpus-recreation-semantic-review.ts",
     "diagnostics:corpus-recreation-aggregate": "bun scripts/evals/corpus-recreation-aggregate.ts",
     "diagnostics:corpus-recreation-character-context": "bun scripts/evals/corpus-recreation-character-context.ts",
+    "diagnostics:corpus-recreation-character-ref-cohort": "bun scripts/evals/corpus-recreation-character-ref-cohort.ts",
     "diagnostics:corpus-recreation-readiness": "bun scripts/evals/corpus-recreation-readiness.ts",
     "diagnostics:corpus-recreation-review": "bun scripts/evals/corpus-recreation-review.ts",
     "diagnostics:corpus-recreation-thread-context": "bun scripts/evals/corpus-recreation-thread-context.ts",

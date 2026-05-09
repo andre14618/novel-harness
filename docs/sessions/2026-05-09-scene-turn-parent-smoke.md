@@ -280,3 +280,37 @@ compliance is not solved. In this smoke the planner used
 consequence-only `Tovin` ref and left one beat-hint `Mirel` mention without
 local required/source context. Keep these as Plan Readiness questions before
 drafting rather than adding writer context volume.
+
+## Planner-Only V6 Character-Ref Cohort
+
+Ran fresh planner-only v6 cells for chapters 1, 2, 5, and 8, then ran
+character-context, readiness, and the deterministic character-ref cohort
+classifier:
+
+```bash
+bun scripts/evals/corpus-recreation-poc.ts --chapter 1 --output-dir output/corpus-recreation-poc/character-ref-v6-cohort-ch1-20260509 --live --model deepseek-v4-flash
+bun scripts/evals/corpus-recreation-poc.ts --chapter 2 --output-dir output/corpus-recreation-poc/character-ref-v6-cohort-ch2-20260509 --live --model deepseek-v4-flash
+bun scripts/evals/corpus-recreation-poc.ts --chapter 5 --output-dir output/corpus-recreation-poc/character-ref-v6-cohort-ch5-20260509 --live --model deepseek-v4-flash
+bun scripts/evals/corpus-recreation-poc.ts --chapter 8 --output-dir output/corpus-recreation-poc/character-ref-v6-cohort-ch8-20260509 --live --model deepseek-v4-flash
+bun scripts/evals/corpus-recreation-character-ref-cohort.ts output/corpus-recreation-poc/character-ref-v6-cohort-ch1-20260509 output/corpus-recreation-poc/character-ref-v6-cohort-ch2-20260509 output/corpus-recreation-poc/character-ref-v6-cohort-ch5-20260509 output/corpus-recreation-poc/character-ref-v6-cohort-ch8-20260509 --output output/corpus-recreation-poc/character-ref-v6-cohort-20260509/character-ref-cohort.md --json output/corpus-recreation-poc/character-ref-v6-cohort-20260509/character-ref-cohort.json
+```
+
+Result:
+
+- scenes: 16;
+- obligations: 27;
+- declared-obligation scenes: 15/16;
+- known source-id scenes: 15/16;
+- known thread-ref scenes: 15/16;
+- scene-turn ref issues: 0;
+- character refs closed: 9/16;
+- required character refs emitted: 18;
+- affected character refs emitted: 12;
+- readiness groups: 7;
+- classifier buckets: 9 `missing_local_required_or_source`, 1
+  `missing_affected_ref`.
+
+Interpretation: v6 proves the schema can carry local and affected character
+refs, but prompt-only compliance is not strong enough for drafting preflight.
+The next value-added step is a diagnostic/manual Plan Readiness repair surface
+for `requiredCharacterIds`/`affectedCharacterIds`, not a writer-context arm.
