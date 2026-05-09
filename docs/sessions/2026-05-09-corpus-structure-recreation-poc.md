@@ -483,3 +483,45 @@ deterministic minimum after retries (`analog-ch02-sc03` 651/720). The variant
 is promising for obligation materiality, but it should not be promoted without
 a small multi-chapter sample and either better scene expansion or a separate
 word-shape fix.
+
+## Materiality-V1 Multi-Chapter Follow-Up
+
+Ran the same materiality-v1 plan/write/semantic path on chapters 1, 5, and 8,
+then aggregated baseline vs materiality-v1 for chapters 1, 2, 5, and 8:
+
+```bash
+bun run diagnostics:corpus-recreation-aggregate -- \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch1-flash-exact-id-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-exact-id-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch5-flash-exact-id-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch8-flash-exact-id-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch1-flash-materiality-v1-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-materiality-v1-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch5-flash-materiality-v1-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch8-flash-materiality-v1-scene-calls-r1 \
+  --output output/corpus-recreation-poc/exact-id-vs-materiality-v1-aggregate-r1.md \
+  --json output/corpus-recreation-poc/exact-id-vs-materiality-v1-aggregate-r1.json
+```
+
+Aggregate summary:
+
+| Chapter | Baseline semantic lows | Materiality-v1 semantic lows | Word-ratio movement |
+| --- | ---: | ---: | --- |
+| 1 | 0 | 2 | 0.86 -> 0.75 |
+| 2 | 3 | 0 | 0.77 -> 0.80 |
+| 5 | 0 | 0 | 0.88 -> 0.71 |
+| 8 | 0 | 0 | 0.87 -> 0.91 |
+
+Readiness candidates for materiality-v1:
+
+- 2 groups / 2 findings, both chapter 1 scene 4;
+- motivation specificity regressed to `MOTIVE-1`;
+- world-fact pressure regressed to `WFACT-1`.
+
+Decision: materiality-v1 is `HOLD`. It is directionally useful for the chapter
+2 obligation-materiality failure, but not robust enough to promote. It appears
+to improve explicit obligation contracts while sometimes making scenes more
+mechanical or generic, especially around solo artifact-testing scenes. Next
+diagnostic should combine materiality with a stronger POV-motivation tradeoff
+requirement, or move to operator review of the materiality/readiness candidates
+before adding another prompt knob.
