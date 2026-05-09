@@ -114,6 +114,16 @@ describe("buildChapterHealthReport", () => {
         timestamp: "2026-05-05T00:00:00.000Z",
         payload: { passed: false },
       }, {
+        id: 23,
+        chapterNumber: 1,
+        beatIndex: 0,
+        eventType: "writer-context",
+        timestamp: "2026-05-05T00:00:02.000Z",
+        payload: {
+          writerContextMode: "thread-character-context-v1",
+          characterContext: { characterIds: ["char-istra"], sourceObligationIds: ["obl-ledger"] },
+        },
+      }, {
         id: 22,
         chapterNumber: 1,
         beatIndex: null,
@@ -160,8 +170,12 @@ describe("buildChapterHealthReport", () => {
     ]))
     expect(chapter.trace.latestEvents.map(event => event.eventType)).toEqual([
       "validation-check",
+      "writer-context",
       "plan-check-drift-witness",
     ])
+    expect(chapter.trace.latestEvents[1].payload).toMatchObject({
+      writerContextMode: "thread-character-context-v1",
+    })
     expect(chapter.trace.checkerCalls[0].nerPrepass?.andGateDecision).toBe("pass")
     expect(chapter.proposals.envelopes[0].id).toBe("editorial-flag:1")
     expect(chapter.proposals.checkerObservations[0].id).toBe("obs-1")
