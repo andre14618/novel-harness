@@ -32,9 +32,9 @@ unless the user explicitly requests a disposable branch.
 - L093 runtime refs are additive: directives can declare story
   threads/debts/payoffs; state-mapper obligations and writer-context telemetry
   carry active `threadId`/`promiseId`/`payoffId` without blocking semantics.
-  Remaining work is deterministic ref validation, semantic payoff review, and
-  proposal/stale-impact integration. Treat Option B as lineage fields, not
-  graph implementation.
+  Deterministic mapper ref validation is warning-only. Remaining work is
+  semantic payoff review plus proposal/stale-impact integration. Treat Option B
+  as lineage fields, not graph implementation.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.

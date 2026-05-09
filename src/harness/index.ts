@@ -24,5 +24,6 @@ import * as beatObligations from "./beat-obligations"
 import * as beatCounts from "./beat-counts"
 import * as beatPacking from "./beat-packing"
 import * as factRoles from "./fact-roles"
+import * as storyRefs from "./story-refs"
 
-export { experiments, context, embeddings, graph, novels, deterministic, registry, enforce, adapters, charters, experimentFamilies, chapterRevisions, beatObligations, beatCounts, beatPacking, factRoles }
+export { experiments, context, embeddings, graph, novels, deterministic, registry, enforce, adapters, charters, experimentFamilies, chapterRevisions, beatObligations, beatCounts, beatPacking, factRoles, storyRefs }

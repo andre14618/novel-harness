@@ -160,8 +160,8 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-08:
 - Chapter-outline saves now persist enriched stable IDs for chapters, beats,
   source items, characters, and obligations; checker findings carry additive
   stable refs on the current high-value surfaces before broader traceability UI.
-- Planning directives now carry optional story thread/debt/payoff refs; mapper
-  and writer-context telemetry surface active refs without blocking semantics.
+- Planning directives carry optional story thread/debt/payoff refs; mapper logs
+  warning-only ref validation and writer telemetry surfaces active refs.
 - Plan-assist `edit-plan` and `override` remain direct manual-gate actions, but
   drafting now records `planning_mutation_lineage` sourced from
   `chapter_exhaustions` and preserves chapter IDs across replacement outlines.

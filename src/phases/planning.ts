@@ -554,7 +554,11 @@ async function mapChapterState(
       }
     }
     const validation = harness.beatObligations.validateBeatObligationCoverage(outline)
-    logStateMapperTelemetry(novelId, outline, mapping, validation.summary, attempt)
+    const storyRefValidation = harness.storyRefs.validateOutlineStoryRefs(outline, seed.directives)
+    for (const issue of storyRefValidation.issues.slice(0, 8)) {
+      log(novelId, "warn", `Planning state mapper ch${outline.chapterNumber} story-ref warning: ${harness.storyRefs.formatStoryRefIssue(issue)}`)
+    }
+    logStateMapperTelemetry(novelId, outline, mapping, validation.summary, attempt, storyRefValidation.summary)
     emit(novelId, { type: "progress", data: { step: "planning-state-mapper", status: "complete", chapter: skeleton.chapterNumber, attempt, valid: validation.valid } })
     return outline
   } catch (err) {
@@ -678,10 +682,14 @@ function logStateMapperTelemetry(
   mapping: PlanningStateMapperOutput,
   summary: ReturnType<typeof harness.beatObligations.validateBeatObligationCoverage>["summary"],
   attempt: number,
+  storyRefSummary?: ReturnType<typeof harness.storyRefs.validateOutlineStoryRefs>["summary"],
 ): void {
   const validMappings = (mapping.beatMappings ?? [])
     .filter(m => Number.isInteger(m.beatIndex) && m.beatIndex >= 0 && m.beatIndex < outline.scenes.length)
   const mappedBeatCount = new Set(validMappings.map(m => m.beatIndex)).size
   const ignoredMappingCount = (mapping.beatMappings ?? []).length - validMappings.length
-  log(novelId, "info", `Planning state mapper ch${outline.chapterNumber} attempt=${attempt}: mappedBeats=${mappedBeatCount}/${outline.scenes.length} ignoredMappings=${ignoredMappingCount} facts=${summary.factCount} orphanFacts=${summary.orphanFacts} knowledge=${summary.knowledgeCount} orphanKnowledge=${summary.orphanKnowledgeChanges} state=${summary.stateChangeCount} orphanState=${summary.orphanStateChanges} overloadedBeats=${summary.overloadedBeats}`)
+  const storyRefs = storyRefSummary
+    ? ` storyRefs=${storyRefSummary.threadRefCount}/${storyRefSummary.promiseRefCount}/${storyRefSummary.payoffRefCount} storyRefIssues=${storyRefSummary.issueCount}`
+    : ""
+  log(novelId, "info", `Planning state mapper ch${outline.chapterNumber} attempt=${attempt}: mappedBeats=${mappedBeatCount}/${outline.scenes.length} ignoredMappings=${ignoredMappingCount} facts=${summary.factCount} orphanFacts=${summary.orphanFacts} knowledge=${summary.knowledgeCount} orphanKnowledge=${summary.orphanKnowledgeChanges} state=${summary.stateChangeCount} orphanState=${summary.orphanStateChanges} overloadedBeats=${summary.overloadedBeats}${storyRefs}`)
 }

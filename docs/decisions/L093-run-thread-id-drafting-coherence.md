@@ -94,8 +94,9 @@ Production directives now accept `storyThreads`, `storyDebts`, and
 agents to preserve them. `planning-state-mapper` can attach exact
 `threadId`/`promiseId`/`payoffId` refs and `storyDebtStage` to obligations.
 Writer context now shows active refs at the beat/chapter context level and
-emits them in `writer-context` telemetry. No checker blocker or automatic graph
-mutation was added.
+emits them in `writer-context` telemetry. A deterministic validator logs
+warning-only mapper issues for unknown or mismatched thread/promise/payoff
+refs. No checker blocker or automatic graph mutation was added.
 
 ## Detail
 
