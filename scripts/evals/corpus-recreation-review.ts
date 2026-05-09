@@ -80,6 +80,7 @@ export function renderCorpusRecreationReviewHtml(report: ReviewReport): string {
         <span><strong>Review</strong> = deterministic warnings + semantic findings</span>
       </div>
     </header>
+    ${report.runs.length > 1 ? renderComparison(report.runs) : ""}
     ${report.runs.map(renderRun).join("\n")}
   </main>
 </body>
@@ -134,6 +135,123 @@ function readReviewRun(pocDir: string): ReviewRun {
     semanticReview,
     scenes,
   }
+}
+
+function renderComparison(runs: ReviewRun[]): string {
+  const keys = comparisonSceneKeys(runs)
+  return `<section class="comparison">
+    <div class="run-heading">
+      <div>
+        <h2>Side-By-Side Variant Comparison</h2>
+        <p class="muted">Scene-index aligned comparison for choosing which plan/prose variant is stronger. This section is display-only.</p>
+      </div>
+      <div class="badges">
+        ${badge("runs", String(runs.length))}
+        ${badge("scenes", String(keys.length))}
+      </div>
+    </div>
+    ${keys.map(key => renderComparisonScene(key, runs)).join("\n")}
+  </section>`
+}
+
+function comparisonSceneKeys(runs: ReviewRun[]): string[] {
+  const keys = new Set<string>()
+  for (const run of runs) {
+    for (const scene of run.scenes) {
+      keys.add(comparisonSceneKey(run, scene.sceneIndex))
+    }
+  }
+  return [...keys].sort(compareSceneKeys)
+}
+
+function comparisonSceneKey(run: ReviewRun, sceneIndex: number): string {
+  return `${run.sourceBook}\t${run.chapterLabel}\t${sceneIndex}`
+}
+
+function compareSceneKeys(a: string, b: string): number {
+  const [aBook = "", aChapter = "", aScene = "0"] = a.split("\t")
+  const [bBook = "", bChapter = "", bScene = "0"] = b.split("\t")
+  return aBook.localeCompare(bBook)
+    || compareMaybeNumber(aChapter, bChapter)
+    || Number(aScene) - Number(bScene)
+}
+
+function compareMaybeNumber(a: string, b: string): number {
+  const aNumber = Number(a)
+  const bNumber = Number(b)
+  if (Number.isFinite(aNumber) && Number.isFinite(bNumber)) return aNumber - bNumber
+  return a.localeCompare(b)
+}
+
+function renderComparisonScene(key: string, runs: ReviewRun[]): string {
+  const [book = "", chapterLabel = "", sceneIndexRaw = "0"] = key.split("\t")
+  const sceneIndex = Number(sceneIndexRaw)
+  const firstScene = runs
+    .map(run => run.scenes.find(scene => comparisonSceneKey(run, scene.sceneIndex) === key))
+    .find((scene): scene is ReviewScene => Boolean(scene))
+  return `<section class="comparison-scene">
+    <div class="scene-header">
+      <h3>${escapeHtml(book || "unknown")} chapter ${escapeHtml(chapterLabel || "?")} scene ${sceneIndex + 1}</h3>
+      <div class="badges">${firstScene ? badge("reference beats", numberOrDash(firstScene.referenceShape?.targetBeatCount)) : ""}</div>
+    </div>
+    ${firstScene ? `<div class="comparison-reference">${renderReferenceShapeBrief(firstScene.referenceShape)}</div>` : ""}
+    <div class="comparison-grid">
+      ${runs.map(run => renderComparisonCard(run, run.scenes.find(scene => comparisonSceneKey(run, scene.sceneIndex) === key) ?? null)).join("\n")}
+    </div>
+  </section>`
+}
+
+function renderComparisonCard(run: ReviewRun, scene: ReviewScene | null): string {
+  if (!scene) {
+    return `<article class="comparison-card">
+      <h4>${escapeHtml(runLabel(run))}</h4>
+      <p class="muted">No aligned scene in this run.</p>
+    </article>`
+  }
+  const lows = scene.semanticResults.filter(result => Number(result.ordinal ?? 0) <= 1)
+  return `<article class="comparison-card">
+    <div class="comparison-card-header">
+      <h4>${escapeHtml(runLabel(run))}</h4>
+      <div class="badges">
+        ${scene.sceneWordCount ? badge("words", `${scene.sceneWordCount.actual}/${scene.sceneWordCount.target}`, scene.sceneWordCount.meetsMinimum === false ? "warn" : "ok") : ""}
+        ${badge("lows", String(lows.length), lows.length ? "warn" : "ok")}
+      </div>
+    </div>
+    <div class="compare-block">
+      <h5>Plan</h5>
+      ${metric("Role", scene.planScene.structuralRole)}
+      ${metric("Choice", scene.planScene.crisisChoice)}
+      ${metric("Outcome", scene.planScene.outcome)}
+      ${metric("Consequence", scene.planScene.consequence)}
+      ${listBlock("Obligations", scene.obligations.map(formatObligation))}
+      ${listBlock("Contract Issues", arrayOfStrings(scene.planContract?.issues))}
+    </div>
+    <div class="compare-block prose-compare">
+      <h5>Prose</h5>
+      ${scene.prose ? renderParagraphs(scene.prose) : `<p class="muted">No prose found.</p>`}
+    </div>
+    <div class="compare-block">
+      <h5>Review</h5>
+      ${renderReview(scene)}
+    </div>
+  </article>`
+}
+
+function renderReferenceShapeBrief(shape: any | null): string {
+  if (!shape) return `<p class="muted">No reference shape found.</p>`
+  return `<div class="brief-grid">
+    ${metric("Target Words", numberOrDash(shape.targetWords))}
+    ${metric("Annotation Beats", numberOrDash(shape.targetBeatCount))}
+    ${metric("Polarity", String(shape.polarity ?? "unknown"))}
+    ${metric("MICE", String(shape.micePrimaryThread ?? "unknown"))}
+    ${metric("Beat Kinds", compactCounts(shape.beatKindCounts))}
+    ${metric("Gaps", compactCounts(shape.gapSizeCounts))}
+  </div>`
+}
+
+function runLabel(run: ReviewRun): string {
+  const dir = run.pocDir.split(/[\\/]/u).filter(Boolean).at(-1) ?? run.plannerVariant
+  return `${run.plannerVariant} - ${dir}`
 }
 
 function renderRun(run: ReviewRun): string {
@@ -410,6 +528,7 @@ const CSS = `
 body { margin: 0; }
 main { max-width: 1780px; margin: 0 auto; padding: 28px; }
 h1, h2, h3, h4 { margin: 0; letter-spacing: 0; }
+h5 { margin: 0 0 8px; font-size: 13px; letter-spacing: 0; text-transform: uppercase; color: #596166; }
 p { line-height: 1.58; }
 .page-header, .run-heading, .scene-header {
   display: flex;
@@ -441,13 +560,51 @@ p { line-height: 1.58; }
   gap: 12px;
 }
 .summary-grid { margin: 18px 0; }
-.summary-grid > div, .method-note, .scene article {
+.summary-grid > div, .method-note, .scene article, .comparison-card, .comparison-reference {
   border: 1px solid #d8d0c5;
   background: #fffdf9;
   border-radius: 8px;
   padding: 14px;
 }
 .method-note { margin-bottom: 18px; }
+.comparison {
+  margin: 0 0 34px;
+  border-bottom: 2px solid #d8d0c5;
+  padding-bottom: 24px;
+}
+.comparison-scene { margin: 18px 0 28px; }
+.comparison-reference { margin: 10px 0; }
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.comparison-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.compare-block {
+  border-top: 1px solid #e4ddd5;
+  padding-top: 12px;
+  margin-top: 12px;
+}
+.compare-block:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+.prose-compare {
+  max-height: 430px;
+  overflow: auto;
+}
+.brief-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 4px 12px;
+}
 .scene { margin: 18px 0 28px; }
 .scene-grid {
   grid-template-columns: minmax(220px, 0.9fr) minmax(300px, 1.05fr) minmax(420px, 1.45fr) minmax(260px, 0.9fr);
@@ -472,8 +629,8 @@ summary { cursor: pointer; font-weight: 700; color: #344047; }
 .finding-title { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 @media (max-width: 1100px) {
   main { padding: 18px; }
-  .page-header, .run-heading, .scene-header { display: block; }
-  .summary-grid, .scene-grid { grid-template-columns: 1fr; }
+  .page-header, .run-heading, .scene-header, .comparison-card-header { display: block; }
+  .summary-grid, .scene-grid, .comparison-grid { grid-template-columns: 1fr; }
 }
 `
 

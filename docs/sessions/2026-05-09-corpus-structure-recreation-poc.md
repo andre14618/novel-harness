@@ -595,6 +595,10 @@ This is the right review layer for the current POC because it keeps the
 diagnostic evidence visible without adding new blockers, gates, proposals, UI
 routes, or LLM calls.
 
+Follow-up: the review page now accepts multiple `--poc-dir` values and renders
+a scene-index aligned comparison section. Use this for baseline-vs-variant
+review before adding another planner knob.
+
 Clarification: the current POC reconstructs structural signals from existing
 novel analysis, not prose or an expressive source outline. The source-derived
 inputs are scene count, scene word sizes, annotation beat counts, value

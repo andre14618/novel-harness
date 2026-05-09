@@ -252,6 +252,16 @@ scene contract, generated prose, deterministic issues/warnings, and semantic
 findings side by side. It does not call a model, create proposals, add gates,
 or promote a runtime method.
 
+Pass multiple `--poc-dir` values to render a scene-index aligned comparison
+section for choosing which plan/prose variant is stronger:
+
+```bash
+bun run diagnostics:corpus-recreation-review -- \
+  --poc-dir output/corpus-recreation-poc/<baseline-run> \
+  --poc-dir output/corpus-recreation-poc/<variant-run> \
+  --output output/corpus-recreation-poc/<comparison>.html
+```
+
 When a review artifact is generated for the operator, open it locally before
 handoff and also report the path.
 

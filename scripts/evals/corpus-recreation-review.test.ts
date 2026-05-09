@@ -117,9 +117,130 @@ describe("corpus-recreation-review", () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
+
+  test("renders multiple POC runs as scene-aligned comparison columns", () => {
+    const root = mkdtempSync(join(tmpdir(), "corpus-recreation-review-"))
+    try {
+      const baseline = join(root, "baseline")
+      const materiality = join(root, "materiality")
+      writeReviewFixture(baseline, {
+        variant: "baseline",
+        prose: "The bell rang in the distance, but she kept moving.",
+        label: "WFACT-1",
+        ordinal: 1,
+        note: "The bell is present but does not alter the choice.",
+      })
+      writeReviewFixture(materiality, {
+        variant: "materiality-v1",
+        prose: "The bell rang and sealed the road behind her, forcing her to enter.",
+        label: "WFACT-2",
+        ordinal: 2,
+        note: "The bell changes the available route.",
+      })
+
+      const report = buildCorpusRecreationReview([baseline, materiality], "2026-05-09T00:00:00.000Z")
+      const html = renderCorpusRecreationReviewHtml(report)
+
+      expect(html).toContain("Side-By-Side Variant Comparison")
+      expect(html).toContain("baseline - baseline")
+      expect(html).toContain("materiality-v1 - materiality")
+      expect(html).toContain("The bell is present but does not alter the choice.")
+      expect(html).toContain("The bell changes the available route.")
+      expect(html).toContain("Reference shape")
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
 })
 
 function writeJson(path: string, value: unknown): void {
   mkdirSync(path.slice(0, path.lastIndexOf("/")), { recursive: true })
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`)
+}
+
+function writeReviewFixture(path: string, opts: {
+  variant: string
+  prose: string
+  label: string
+  ordinal: number
+  note: string
+}): void {
+  writeJson(join(path, "packet.json"), {
+    generatedAt: "2026-05-09T00:00:00.000Z",
+    sourceReference: { book: "crystal_shard", chapterLabel: "1" },
+    diagnosticConfig: { plannerVariant: opts.variant },
+    target: {
+      targetWords: 1000,
+      sceneCount: 1,
+      sceneBlueprints: [
+        {
+          referenceSceneOrdinal: 0,
+          targetWords: 1000,
+          targetBeatCount: 4,
+          polarity: "-",
+          micePrimaryThread: "M",
+          beatKindCounts: { action: 2 },
+          boundarySignalCounts: { scene_start: 1 },
+          gapSizeCounts: { large: 1 },
+        },
+      ],
+    },
+  })
+  writeJson(join(path, "plan.json"), {
+    chapterId: "analog-ch01",
+    title: "Test",
+    scenes: [
+      {
+        sceneId: "analog-sc01",
+        referenceSceneOrdinal: 0,
+        targetWords: 1000,
+        structuralRole: "Open the problem.",
+        goal: "Reach the gate.",
+        opposition: "The gate rejects her.",
+        turningPoint: "The bell rings.",
+        crisisChoice: "Enter or retreat?",
+        choiceAlternatives: ["enter", "retreat"],
+        outcome: "She enters.",
+        consequence: "The city marks her.",
+      },
+    ],
+    obligations: [
+      {
+        obligationId: "obl-1",
+        sceneId: "analog-sc01",
+        sourceId: "world-bell",
+        requirementText: "Make the bell matter.",
+      },
+    ],
+  })
+  writeJson(join(path, "plan-comparison.json"), {
+    valuePolarity: { exactMatches: 1, expected: ["-"], ratio: 1 },
+    miceThread: { exactMatches: 1, expected: ["M"], ratio: 1 },
+    beatHintShape: { actualTotal: 4, expectedTotal: 4, ratio: 1 },
+    sceneContract: { scenes: [{ sceneId: "analog-sc01", issues: [] }] },
+    issues: [],
+  })
+  writeJson(join(path, "chapter.json"), {
+    chapterTitle: "Test",
+    scenes: [{ sceneId: "analog-sc01", prose: opts.prose }],
+  })
+  writeJson(join(path, "chapter-comparison.json"), {
+    wordCount: { target: 1000, actual: 10, ratio: 0.01 },
+    sceneWordCounts: [{ sceneId: "analog-sc01", target: 1000, actual: 10, meetsMinimum: false }],
+    sourceBoundary: { forbiddenTermsPresent: [] },
+    issues: [],
+    warnings: [],
+  })
+  writeJson(join(path, "semantic-review-live/semantic-review.json"), {
+    results: [
+      {
+        sceneId: "analog-sc01",
+        dimension: "worldFactPressure",
+        label: opts.label,
+        ordinal: opts.ordinal,
+        confidence: 0.8,
+        missingForNextLevel: opts.note,
+      },
+    ],
+  })
 }
