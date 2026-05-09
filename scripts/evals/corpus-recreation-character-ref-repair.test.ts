@@ -8,6 +8,7 @@ import {
   buildCharacterRefRepairReport,
   renderCharacterRefRepairReport,
 } from "./corpus-recreation-character-ref-repair"
+import { buildPlanReadinessDraftsFromAggregate } from "../../src/harness/plan-readiness"
 
 describe("corpus-recreation-character-ref-repair", () => {
   test("builds manual field-replace candidates for required and affected refs", () => {
@@ -64,6 +65,9 @@ describe("corpus-recreation-character-ref-repair", () => {
       const report = buildCharacterRefRepairReport([pocDir], "2026-05-09T00:00:00.000Z")
 
       expect(report.totals.candidateCount).toBe(2)
+      expect(report.groupCount).toBe(2)
+      expect(report.findingCount).toBe(2)
+      expect(report.labels).toEqual(["CHARACTERREF-1"])
       expect(report.totals.proposedCharacterRefAdditions).toBe(3)
       expect(report.totals.byField.requiredCharacterIds).toBe(1)
       expect(report.totals.byField.affectedCharacterIds).toBe(1)
@@ -101,11 +105,39 @@ describe("corpus-recreation-character-ref-repair", () => {
       expect(report.dispositionPlanDraft.actions[0]).toMatchObject({
         decision: "field_replace",
         approve: false,
+        match: {
+          targetFieldPath: "affectedCharacterIds",
+        },
       })
       expect(report.manualFindings[0]).toMatchObject({
         kind: "unknown_required_character",
         characterIds: ["char-ghost"],
       })
+
+      const readiness = buildPlanReadinessDraftsFromAggregate({
+        novelId: "novel-character-ref-repair",
+        aggregate: report,
+        targetVersions: new Map([
+          ["beat_plan:analog-ch01-sc01", "hash-sc01"],
+          ["beat_plan:analog-ch01-sc02", "hash-sc02"],
+        ]),
+        importedByKind: "test",
+      })
+      expect(readiness.skipped).toEqual([])
+      expect(readiness.drafts.map(draft => draft.target)).toEqual([
+        {
+          kind: "beat_plan",
+          ref: "analog-ch01-sc01",
+          fieldPath: "affectedCharacterIds",
+        },
+        {
+          kind: "beat_plan",
+          ref: "analog-ch01-sc02",
+          fieldPath: "requiredCharacterIds",
+        },
+      ])
+      expect(readiness.drafts[0]!.diagnosticLabel).toBe("CHARACTERREF-1")
+      expect(readiness.drafts[0]!.fixIntent).toBe("close_character_context_refs")
 
       const rendered = renderCharacterRefRepairReport(report)
       expect(rendered).toContain("Character Ref Repair Candidates")

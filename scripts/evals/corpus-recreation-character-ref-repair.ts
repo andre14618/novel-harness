@@ -79,6 +79,7 @@ interface CharacterRefRepairCandidate {
       label: "CHARACTERREF-1"
       targetRef: string
       targetKind: "beat_plan"
+      targetFieldPath: RepairFieldPath
     }
     decision: "field_replace"
     proposedValue: string[]
@@ -101,7 +102,12 @@ interface CharacterRefManualFinding {
 
 export interface CharacterRefRepairReport {
   generatedAt: string
+  sourceReports: string[]
+  labels: ["CHARACTERREF-1"]
   pocDirCount: number
+  groupCount: number
+  findingCount: number
+  groups: CharacterRefReadinessGroup[]
   candidates: CharacterRefRepairCandidate[]
   manualFindings: CharacterRefManualFinding[]
   dispositionPlanDraft: {
@@ -114,6 +120,39 @@ export interface CharacterRefRepairReport {
     byField: Record<RepairFieldPath, number>
     byIssueKind: Record<CharacterRefRepairIssueKind, number>
   }
+}
+
+interface CharacterRefReadinessGroup {
+  groupId: string
+  fixtureId: string
+  armId: "corpus-recreation:exact-id-scene"
+  methodPackEnabled: false
+  unitType: "scene"
+  chapterId: string
+  sceneId: string
+  sourceIds: PreserveIds
+  highestSeverity: "medium"
+  fixIntents: ["close_character_context_refs"]
+  dimensions: ["characterRefClosure"]
+  findings: Array<{
+    findingId: string
+    sourceReport: string
+    promptMode: "deterministic-character-ref-repair"
+    dimension: "characterRefClosure"
+    label: "CHARACTERREF-1"
+    severity: "medium"
+    fixIntent: "close_character_context_refs"
+    rationale: string
+    missingForNextLevel: string
+    evidence: Record<string, string>
+  }>
+  rewritePacket: {
+    targetSummary: string
+    rewriteGoals: string[]
+    preserveIds: PreserveIds
+    proposalCandidate: CharacterRefRepairCandidate["proposalCandidate"]
+  }
+  excerpt: string
 }
 
 const ISSUE_KINDS: CharacterRefRepairIssueKind[] = [
@@ -135,11 +174,14 @@ export function buildCharacterRefRepairReport(
 ): CharacterRefRepairReport {
   const draftCandidates: Array<Omit<CharacterRefRepairCandidate, "candidateId">> = []
   const manualFindings: Array<Omit<CharacterRefManualFinding, "findingId">> = []
+  const sourceReports: string[] = []
 
   for (const pocDir of pocDirs.map(dir => resolve(dir))) {
     const plan = readOptionalJson(`${pocDir}/plan.json`) ?? {}
     const packet = readOptionalJson(`${pocDir}/packet.json`) ?? {}
-    const characterContext = readOptionalJson(`${pocDir}/character-context.json`) ?? {}
+    const characterContextPath = `${pocDir}/character-context.json`
+    const characterContext = readOptionalJson(characterContextPath) ?? {}
+    if (existsSync(characterContextPath)) sourceReports.push(characterContextPath)
     const chapterId = String(plan.chapterId ?? characterContext.source?.chapterLabel ?? packet.sourceReference?.chapterLabel ?? basename(pocDir))
     const pending = new Map<string, PendingRepair>()
     const contexts = Array.isArray(characterContext.contexts) ? characterContext.contexts : []
@@ -238,6 +280,7 @@ export function buildCharacterRefRepairReport(
             label: "CHARACTERREF-1",
             targetRef: repair.sceneId,
             targetKind: "beat_plan",
+            targetFieldPath: repair.fieldPath,
           },
           decision: "field_replace",
           proposedValue,
@@ -274,7 +317,12 @@ export function buildCharacterRefRepairReport(
 
   return {
     generatedAt,
+    sourceReports: unique(sourceReports),
+    labels: ["CHARACTERREF-1"],
     pocDirCount: pocDirs.length,
+    groupCount: candidates.length,
+    findingCount: candidates.length,
+    groups: candidates.map(candidateToReadinessGroup),
     candidates,
     manualFindings: findings,
     dispositionPlanDraft: {
@@ -364,6 +412,53 @@ export function renderCharacterRefRepairReport(report: CharacterRefRepairReport)
   lines.push("- `requiredCharacterIds` candidates are local writer-context refs; `affectedCharacterIds` candidates are downstream/offstage impact refs.")
   lines.push("- Every candidate remains manual because adding an ID may be the wrong answer if the better fix is a character-source obligation or removing the implied character dependency.")
   return `${lines.join("\n")}\n`
+}
+
+function candidateToReadinessGroup(candidate: CharacterRefRepairCandidate): CharacterRefReadinessGroup {
+  const sourceReport = `${candidate.pocDir}/character-context.json`
+  const missingForNextLevel = candidate.sourceIssues.join("; ")
+  return {
+    groupId: candidate.candidateId,
+    fixtureId: candidate.chapterId,
+    armId: "corpus-recreation:exact-id-scene",
+    methodPackEnabled: false,
+    unitType: "scene",
+    chapterId: candidate.chapterId,
+    sceneId: candidate.sceneId,
+    sourceIds: candidate.preserveIds,
+    highestSeverity: "medium",
+    fixIntents: ["close_character_context_refs"],
+    dimensions: ["characterRefClosure"],
+    findings: [{
+      findingId: `${candidate.candidateId}.1`,
+      sourceReport,
+      promptMode: "deterministic-character-ref-repair",
+      dimension: "characterRefClosure",
+      label: "CHARACTERREF-1",
+      severity: "medium",
+      fixIntent: "close_character_context_refs",
+      rationale: candidate.rationale,
+      missingForNextLevel,
+      evidence: {
+        fieldPath: candidate.fieldPath,
+        characterIdsToAdd: candidate.characterIdsToAdd.join(", "),
+        currentValue: JSON.stringify(candidate.currentValue),
+        proposedValue: JSON.stringify(candidate.proposedValue),
+        sourceIssues: missingForNextLevel,
+      },
+    }],
+    rewritePacket: {
+      targetSummary: `${candidate.fieldPath} on ${candidate.sceneId}`,
+      rewriteGoals: [
+        candidate.rationale,
+        candidate.operatorQuestion,
+        ...candidate.sourceIssues,
+      ],
+      preserveIds: candidate.preserveIds,
+      proposalCandidate: candidate.proposalCandidate,
+    },
+    excerpt: missingForNextLevel,
+  }
 }
 
 interface PendingRepair {

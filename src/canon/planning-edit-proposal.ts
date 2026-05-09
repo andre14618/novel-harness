@@ -34,6 +34,8 @@ export type ChapterOutlinePlanningEditField =
 export const ALLOWED_BEAT_PLAN_FIELD_PATHS = [
   "description",
   "kind",
+  "requiredCharacterIds",
+  "affectedCharacterIds",
 ] as const
 
 export type BeatPlanPlanningEditField =
@@ -639,6 +641,9 @@ export function validatePlanningEditValue(
     return typeof value === "string" && (BEAT_KINDS as readonly string[]).includes(value)
       ? null
       : `kind must be one of: ${BEAT_KINDS.join(", ")}`
+  }
+  if (fieldPath === "requiredCharacterIds" || fieldPath === "affectedCharacterIds") {
+    return validateStableIdOrder(fieldPath, value, { allowEmpty: true })
   }
   if (fieldPath === "sourceKind") {
     return typeof value === "string" && (OBLIGATION_SOURCE_KINDS as readonly string[]).includes(value)

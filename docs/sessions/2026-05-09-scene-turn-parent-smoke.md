@@ -324,6 +324,12 @@ or auto-apply changes; every candidate is marked `safeToAutoApply: false`
 because the operator may decide the better fix is a character-source
 obligation or removing the implied dependency.
 
+Follow-up: the repair JSON now includes normal Plan Readiness `groups[]` for
+those candidates, and beat-plan `field_replace` proposals support
+`requiredCharacterIds` and `affectedCharacterIds`. Accepted candidates can now
+flow through the existing manual Plan Readiness import, proposal creation,
+stale-precondition, approval, diff, and lineage path.
+
 Command:
 
 ```bash
@@ -337,6 +343,7 @@ Result:
 - `requiredCharacterIds` candidates: 6;
 - `affectedCharacterIds` candidates: 1;
 - manual-only leftovers: 0.
+- importable readiness groups: 7.
 
 Interpretation: the deterministic repair surface closes the exact-ID planning
 gap as a reviewable object, but it does not decide whether adding an ID is the

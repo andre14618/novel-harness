@@ -168,6 +168,13 @@ still manual and `safeToAutoApply: false`; the operator may choose a
 character-source obligation or removal of the implied dependency instead of
 adding the ID.
 
+The repair JSON is also importable by the normal Plan Readiness importer: it
+includes `groups[]` with `CHARACTERREF-1` findings and
+`proposalCandidate.target.fieldPath` set to `requiredCharacterIds` or
+`affectedCharacterIds`. Accepted candidates therefore become ordinary manual
+`planning_edit` proposals and use the same stale-precondition, approval, diff,
+and lineage paths as other planning edits.
+
 ## Data Use
 
 Operator dispositions are first-class training and evaluation data, but not

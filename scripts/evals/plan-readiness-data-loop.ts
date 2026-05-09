@@ -90,6 +90,7 @@ interface DispositionPlanAction {
     dimension?: string
     targetRef?: string
     targetKind?: "chapter_outline" | "beat_plan"
+    targetFieldPath?: string
   }
   decision: "field_replace" | "beat_requirement_remove" | "not_applicable" | "accepted_as_is" | "deferred" | "fixed"
   proposedValue?: unknown
@@ -838,6 +839,7 @@ function findPlannedItem(
     if (match.dimension && item.dimension !== match.dimension) return false
     if (match.targetRef && item.target.ref !== match.targetRef) return false
     if (match.targetKind && item.target.kind !== match.targetKind) return false
+    if (match.targetFieldPath && item.target.fieldPath !== match.targetFieldPath) return false
     return true
   })
   return candidates[0] ?? null

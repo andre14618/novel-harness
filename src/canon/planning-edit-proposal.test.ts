@@ -366,6 +366,27 @@ describe("planning edit proposals", () => {
     }).success).toBe(false)
   })
 
+  test("beat character ref arrays validate as stable-id planning fields", () => {
+    expect(planningEditTargetSchema.safeParse({
+      kind: "beat_plan",
+      ref: "beat-a",
+      fieldPath: "requiredCharacterIds",
+    }).success).toBe(true)
+    expect(planningEditTargetSchema.safeParse({
+      kind: "beat_plan",
+      ref: "beat-a",
+      fieldPath: "affectedCharacterIds",
+    }).success).toBe(true)
+    expect(validatePlanningEditValue("requiredCharacterIds", ["char-istra", "char-vey"]))
+      .toBeNull()
+    expect(validatePlanningEditValue("affectedCharacterIds", []))
+      .toBeNull()
+    expect(validatePlanningEditValue("requiredCharacterIds", ["char-istra", "char-istra"]))
+      .toMatch(/duplicate/)
+    expect(validatePlanningEditValue("affectedCharacterIds", ["Char Istra"]))
+      .toMatch(/stable-ID/)
+  })
+
   test("structural action targets and proposed values validate deterministically", () => {
     expect(validatePlanningEditActionTarget("beat_replace", {
       kind: "beat_plan",

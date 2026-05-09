@@ -2,7 +2,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:te
 
 import db, { migrate } from "../db/connection"
 import { createNovel } from "../db/novels"
-import { saveChapterOutline } from "../db/outlines"
+import { getChapterOutline, saveChapterOutline } from "../db/outlines"
 import { dbReachable } from "../db/test-helpers"
 import { deletePlanReadinessItemsForNovel } from "../db/plan-readiness"
 import { deleteEnvelopesForNovel, listPlanningEditEnvelopes } from "../db/proposal-envelopes"
@@ -219,6 +219,56 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
     expect(created.body.proposal.diff.after.value.requiredCharacterIds).toEqual(["char-istra"])
   })
 
+  test("creates and applies a character-ref field planning_edit from readiness", async () => {
+    const imported = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/import`,
+      {
+        aggregate: characterRefAggregate("requiredCharacterIds"),
+        importedByKind: "test",
+        importedByRef: "character-ref-route-test",
+      },
+    ))
+    const itemId = imported.body.items[0].id
+    expect(imported.body.items[0].target).toMatchObject({
+      kind: "beat_plan",
+      ref: "beat-route-1",
+      fieldPath: "requiredCharacterIds",
+    })
+
+    const created = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/${itemId}/create-planning-proposal`,
+      {
+        proposedValue: ["char-istra", "char-vey", "char-kael"],
+        operatorNote: "Add the local character ref before drafting.",
+      },
+    ))
+
+    expect(created.status).toBe(200)
+    expect(created.body.proposal.envelope.target).toMatchObject({
+      kind: "beat_plan",
+      ref: "beat-route-1",
+      fieldPath: "requiredCharacterIds",
+    })
+    expect(created.body.proposal.diff.before.value).toEqual(["char-istra", "char-vey"])
+    expect(created.body.proposal.diff.after.value).toEqual(["char-istra", "char-vey", "char-kael"])
+
+    const approved = await resolvePlanningProposal(novelId, created.body.proposal.envelope.id, {
+      status: "approved",
+      resolvedBy: "test",
+      operatorNote: "Approve character ref bridge test.",
+    })
+    expect(approved.status).toBe(200)
+
+    const saved = await getChapterOutline(novelId, 1)
+    expect((saved.scenes![0] as any).requiredCharacterIds).toEqual([
+      "char-istra",
+      "char-vey",
+      "char-kael",
+    ])
+  })
+
   test("does not create a proposal when the readiness target is stale", async () => {
     const imported = await expectJson(await invoke(
       "POST",
@@ -392,6 +442,69 @@ function aggregate() {
           },
         ],
         excerpt: "Scene: beat-route-1",
+      },
+    ],
+  }
+}
+
+function characterRefAggregate(fieldPath: "requiredCharacterIds" | "affectedCharacterIds") {
+  return {
+    sourceReports: ["/tmp/character-context.json"],
+    labels: ["CHARACTERREF-1"],
+    groups: [
+      {
+        groupId: "001",
+        fixtureId: "route-fixture",
+        armId: "corpus-recreation:exact-id-scene",
+        methodPackEnabled: false,
+        unitType: "scene",
+        chapterId: "ch-route-1",
+        sceneId: "beat-route-1",
+        sourceIds: {
+          obligationIds: ["obl-route-1"],
+          characterIds: ["char-istra", "char-vey", "char-kael"],
+          worldFactIds: ["world-oath-road"],
+          sceneTurnIds: ["turn-route-choice"],
+          threadIds: ["thread-route"],
+          promiseIds: ["debt-route"],
+          payoffIds: ["payoff-route"],
+          sourceIds: ["char-istra", "char-vey", "char-kael"],
+        },
+        rewritePacket: {
+          preserveIds: {
+            obligationIds: ["obl-route-1"],
+            characterIds: ["char-istra", "char-vey", "char-kael"],
+            worldFactIds: ["world-oath-road"],
+            sceneTurnIds: ["turn-route-choice"],
+            threadIds: ["thread-route"],
+            promiseIds: ["debt-route"],
+            payoffIds: ["payoff-route"],
+            sourceIds: ["char-istra", "char-vey", "char-kael"],
+          },
+          proposalCandidate: {
+            action: "field_replace",
+            target: {
+              kind: "beat_plan",
+              ref: "beat-route-1",
+              fieldPath,
+            },
+          },
+        },
+        findings: [
+          {
+            findingId: "001.1",
+            sourceReport: "/tmp/character-context.json",
+            promptMode: "deterministic-character-ref-repair",
+            dimension: "characterRefClosure",
+            label: "CHARACTERREF-1",
+            severity: "medium",
+            fixIntent: "close_character_context_refs",
+            rationale: "The scene names char-kael but the durable character refs are incomplete.",
+            missingForNextLevel: "add char-kael to the correct character ref field",
+            evidence: { characterIdsToAdd: "char-kael", fieldPath },
+          },
+        ],
+        excerpt: "character char-kael is named in scene contract but missing requiredCharacterIds/source obligation",
       },
     ],
   }
