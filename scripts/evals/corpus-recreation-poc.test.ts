@@ -7,6 +7,7 @@ import { describe, expect, test } from "bun:test"
 
 import {
   buildRecreationPacket,
+  buildSequenceContextFromPocDirs,
   buildSceneWriterThreadContextReport,
   compareChapterToPlan,
   comparePlanToReference,
@@ -146,6 +147,55 @@ describe("corpus-recreation-poc", () => {
     expect(prompt).toContain("requiredCharacterIds")
     expect(prompt).toContain("affectedCharacterIds")
     expect(prompt).toContain("any named non-POV provided character")
+  })
+
+  test("planner prompt can carry compact prior-chapter sequence context", () => {
+    const root = mkdtempSync(join(tmpdir(), "corpus-recreation-sequence-context-"))
+    try {
+      const priorDir = join(root, "prior")
+      mkdirSync(priorDir, { recursive: true })
+      writeFileSync(join(priorDir, "packet.json"), `${JSON.stringify({
+        sourceReference: { chapterLabel: "1" },
+      }, null, 2)}\n`)
+      const priorPlan = plan()
+      for (const scene of priorPlan.scenes) {
+        for (const hint of scene.beatHints) hint.purpose = `${hint.purpose} structural purpose`
+      }
+      writeFileSync(join(priorDir, "plan.json"), `${JSON.stringify({
+        ...priorPlan,
+        obligations: [
+          {
+            obligationId: "obl-final",
+            sceneId: "analog-sc02",
+            sourceId: "debt-key-cost",
+            threadId: "thread-key-cost",
+            promiseId: "debt-key-cost",
+            payoffId: "payoff-key-cost-exposure",
+            payoffEventId: "payoff-event-ch01-key-final",
+            storyDebtStage: "final_payoff",
+            requirementText: "The key cost lands publicly.",
+          },
+        ],
+      }, null, 2)}\n`)
+
+      const sequenceContext = buildSequenceContextFromPocDirs([priorDir])
+      const packet = buildRecreationPacket({
+        reference: reference() as any,
+        referencePath: "output/reference.json",
+        chapterLabel: "1",
+        generatedAt: "2026-05-09T00:00:00.000Z",
+        sequenceContext,
+      })
+      const prompt = plannerUserPrompt(packet)
+
+      expect(sequenceContext.priorChapters[0]!.finalPayoffEventIds).toEqual(["payoff-event-ch01-key-final"])
+      expect(sequenceContext.priorChapters[0]!.finalPayoffPromiseIds).toEqual(["debt-key-cost"])
+      expect(prompt).toContain("sequenceContext")
+      expect(prompt).toContain("do not reuse prior payoffEventIds")
+      expect(prompt).toContain("payoff-event-ch01-key-final")
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
   })
 
   test("scene turn refs group parent turns while preserving single-thread obligations", () => {

@@ -42,6 +42,7 @@ interface Args {
   plannerContractRetryMode: PlannerContractRetryMode
   writerContextMode: WriterContextMode
   writerExpansionMode: WriterExpansionMode
+  sequenceContextDirs: string[]
 }
 
 interface RecreationPacket {
@@ -67,6 +68,29 @@ interface RecreationPacket {
     writerContextMode?: WriterContextMode
     writerExpansionMode?: WriterExpansionMode
   }
+  sequenceContext?: SequenceContext
+}
+
+interface SequenceContext {
+  sourceDirs: string[]
+  priorChapters: Array<{
+    chapterLabel: string
+    chapterId: string | null
+    sceneIds: string[]
+    storyDebtMovements: Array<{
+      sceneId: string
+      obligationId: string
+      threadId: string | null
+      promiseId: string | null
+      payoffId: string | null
+      payoffEventId: string | null
+      storyDebtStage: string | null
+      requirementText: string
+    }>
+    finalPayoffEventIds: string[]
+    openPromiseIds: string[]
+    finalPayoffPromiseIds: string[]
+  }>
 }
 
 interface OriginalAnalogSeed {
@@ -473,17 +497,25 @@ const ORIGINAL_ANALOG_SEED: OriginalAnalogSeed = {
 }
 
 function parseArgs(argv = process.argv.slice(2)): Args {
-  const values: Record<string, string | true> = {}
+  const values: Record<string, string | true | string[]> = {}
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!
     if (!arg.startsWith("--")) continue
     const eq = arg.indexOf("=")
+    const key = eq >= 0 ? arg.slice(2, eq) : arg.slice(2)
+    const value = eq >= 0
+      ? arg.slice(eq + 1)
+      : (i + 1 < argv.length && !argv[i + 1]!.startsWith("--") ? argv[++i]! : true)
+    if (key === "sequence-context") {
+      values[key] = [...(Array.isArray(values[key]) ? values[key] as string[] : []), String(value)]
+      continue
+    }
     if (eq >= 0) {
-      values[arg.slice(2, eq)] = arg.slice(eq + 1)
-    } else if (i + 1 < argv.length && !argv[i + 1]!.startsWith("--")) {
-      values[arg.slice(2)] = argv[++i]!
+      values[key] = String(value)
+    } else if (value !== true) {
+      values[key] = String(value)
     } else {
-      values[arg.slice(2)] = true
+      values[key] = true
     }
   }
   const model = parseModel(typeof values.model === "string" ? values.model : "deepseek-v4-flash")
@@ -518,6 +550,7 @@ function parseArgs(argv = process.argv.slice(2)): Args {
     plannerContractRetryMode,
     writerContextMode,
     writerExpansionMode,
+    sequenceContextDirs: Array.isArray(values["sequence-context"]) ? values["sequence-context"] as string[] : [],
   }
 }
 
@@ -561,6 +594,7 @@ function printHelp(): void {
     [--planner-contract-retry none|structural-v1]
     [--writer-context baseline|thread-context-v1]
     [--writer-expansion none|retry-short-scenes-v1]
+    [--sequence-context <prior-poc-dir>]
     [--plan-from <poc-dir>]
 
 Examples:
@@ -583,6 +617,7 @@ export function buildRecreationPacket(args: {
   plannerContractRetryMode?: PlannerContractRetryMode
   writerContextMode?: WriterContextMode
   writerExpansionMode?: WriterExpansionMode
+  sequenceContext?: SequenceContext
 }): RecreationPacket {
   const chapter = args.reference.chapters.find(row => row.chapterLabel === args.chapterLabel)
   if (!chapter) {
@@ -651,6 +686,50 @@ export function buildRecreationPacket(args: {
       writerContextMode: args.writerContextMode ?? "baseline",
       writerExpansionMode: args.writerExpansionMode ?? "none",
     },
+    sequenceContext: args.sequenceContext,
+  }
+}
+
+export function buildSequenceContextFromPocDirs(pocDirs: string[]): SequenceContext {
+  return {
+    sourceDirs: pocDirs,
+    priorChapters: pocDirs.map(readSequenceContextChapter),
+  }
+}
+
+function readSequenceContextChapter(pocDir: string): SequenceContext["priorChapters"][number] {
+  const resolved = resolve(process.cwd(), pocDir)
+  const packet = JSON.parse(readFileSync(join(resolved, "packet.json"), "utf-8")) as RecreationPacket
+  const plan = parseRecreationPlanOutput({ plan: JSON.parse(readFileSync(join(resolved, "plan.json"), "utf-8")) })
+  const movements = plan.obligations
+    .filter(obligation => obligation.promiseId || obligation.payoffId || obligation.payoffEventId || obligation.storyDebtStage)
+    .map(obligation => ({
+      sceneId: obligation.sceneId,
+      obligationId: obligation.obligationId,
+      threadId: obligation.threadId ?? null,
+      promiseId: obligation.promiseId ?? null,
+      payoffId: obligation.payoffId ?? null,
+      payoffEventId: obligation.payoffEventId ?? null,
+      storyDebtStage: obligation.storyDebtStage ?? null,
+      requirementText: obligation.requirementText,
+    }))
+  return {
+    chapterLabel: packet.sourceReference?.chapterLabel ?? plan.chapterId,
+    chapterId: plan.chapterId ?? null,
+    sceneIds: plan.scenes.map(scene => scene.sceneId),
+    storyDebtMovements: movements,
+    finalPayoffEventIds: uniqueStrings(movements
+      .filter(movement => movement.storyDebtStage === "final_payoff")
+      .map(movement => movement.payoffEventId)
+      .filter((value): value is string => Boolean(value))),
+    openPromiseIds: uniqueStrings(movements
+      .filter(movement => movement.promiseId && movement.storyDebtStage !== "final_payoff")
+      .map(movement => movement.promiseId)
+      .filter((value): value is string => Boolean(value))),
+    finalPayoffPromiseIds: uniqueStrings(movements
+      .filter(movement => movement.promiseId && movement.storyDebtStage === "final_payoff")
+      .map(movement => movement.promiseId)
+      .filter((value): value is string => Boolean(value))),
   }
 }
 
@@ -1219,6 +1298,7 @@ Required evidence:
 ${JSON.stringify({
   originalAnalogSeed: packet.originalAnalogSeed,
   target: packet.target,
+  sequenceContext: packet.sequenceContext ?? null,
   diagnosticConfig: {
     plannerVariant: packet.diagnosticConfig?.plannerVariant ?? "baseline",
     plannerContractRetryMode: packet.diagnosticConfig?.plannerContractRetryMode ?? "none",
@@ -1240,6 +1320,7 @@ Create one original analog chapter plan. Match the reference chapter's structura
 - each scene should carry active relationship or world pressure when applicable, with obligations whose sourceId exactly matches the pressure the writer must dramatize;
 - each scene should include requiredCharacterIds for any named non-POV provided character who is locally present, opposing, pressuring, speaking, or otherwise needed as writer context and is not already represented by a character-source obligation;
 - each scene should include affectedCharacterIds for any named non-POV provided character who appears only in the consequence/future-pressure line and is not already represented by requiredCharacterIds or a character-source obligation;
+- if sequenceContext is present, treat it as prior-chapter truth: preserve parent promiseId/threadId continuity, do not reuse prior payoffEventIds, do not mark a promise as final_payoff after it already has a prior final_payoff, and use aftermath/escalation for later pressure caused by a prior final payoff;
 - every obligation should carry threadId, and story-debt/payoff obligations should also carry promiseId and payoffId when applicable;
 - payoffId is the provided parent payoff category; add a unique payoffEventId for each concrete local payoff event and storyDebtStage for every story-debt movement;
 - use final_payoff only when the scene truly resolves the parent story debt for the sequence; otherwise use partial_payoff, aftermath, or escalation for local landings;
@@ -1927,6 +2008,9 @@ async function main(): Promise<void> {
   const referencePath = resolve(process.cwd(), args.referencePath)
   if (!existsSync(referencePath)) throw new Error(`reference not found: ${referencePath}`)
   const reference = JSON.parse(readFileSync(referencePath, "utf-8")) as CorpusStructureReference
+  const sequenceContext = args.sequenceContextDirs.length > 0
+    ? buildSequenceContextFromPocDirs(args.sequenceContextDirs)
+    : undefined
   let packet = buildRecreationPacket({
     reference,
     referencePath: args.referencePath,
@@ -1936,6 +2020,7 @@ async function main(): Promise<void> {
     plannerContractRetryMode: args.plannerContractRetryMode,
     writerContextMode: args.writerContextMode,
     writerExpansionMode: args.writerExpansionMode,
+    sequenceContext,
   })
 
   if (args.planFromDir) {
@@ -1951,6 +2036,7 @@ async function main(): Promise<void> {
           writerContextMode: args.writerContextMode,
           writerExpansionMode: args.writerExpansionMode,
         },
+        sequenceContext,
       }
     }
   }
@@ -2092,6 +2178,11 @@ async function main(): Promise<void> {
           { path: join(resolve(process.cwd(), args.planFromDir), "plan-comparison.json"), role: "source-plan-comparison" },
         ]
         : []),
+      ...existingArtifactRefs(args.sequenceContextDirs.flatMap(dir => [
+        { path: join(resolve(process.cwd(), dir), "run-manifest.json"), role: "sequence-context-run-manifest" },
+        { path: join(resolve(process.cwd(), dir), "packet.json"), role: "sequence-context-packet" },
+        { path: join(resolve(process.cwd(), dir), "plan.json"), role: "sequence-context-plan" },
+      ])),
     ],
     outputs: existingArtifactRefs([
       { path: join(outputDir, "packet.json"), role: "packet" },
@@ -2115,6 +2206,7 @@ async function main(): Promise<void> {
       writerExpansionMode: args.writerExpansionMode,
       plannerPromptVersion: PLANNER_PROMPT_VERSION,
       planFromDir: args.planFromDir,
+      sequenceContextDirs: args.sequenceContextDirs,
       referencePath: args.referencePath,
     },
   }))

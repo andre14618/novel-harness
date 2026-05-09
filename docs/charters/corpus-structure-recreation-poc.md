@@ -208,6 +208,20 @@ Deterministic plan checks reject `payoffId`/`payoffEventId` on non-payoff
 stages and require `payoffEventId` on explicit payoff stages. This keeps the
 contract graph-ready without making sequence findings drafting blockers.
 
+Later chapters can receive prior chapter context with:
+
+```bash
+bun run diagnostics:corpus-recreation-poc -- \
+  --chapter 2 \
+  --sequence-context output/corpus-recreation-poc/<chapter-1-dir> \
+  --live --planner-variant causal-materiality-v2 \
+  --planner-contract-retry structural-v1
+```
+
+The context is compact: prior scene IDs plus thread/promise/payoff movements,
+not prose. Its purpose is to let the planner preserve parent story debts while
+choosing new child payoff events.
+
 ## First POC Evidence
 
 The first passing local run used scene-level writer calls rather than one

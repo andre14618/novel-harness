@@ -1072,3 +1072,33 @@ from child payoff events. The next real proof should plan a multi-chapter or
 short-story sequence where the planner decides which local landings are
 `partial_payoff`, which are `final_payoff`, and which later rows are
 `aftermath` or `escalation`.
+
+## Sequence Context Smoke
+
+Added `--sequence-context <prior-poc-dir>` to
+`diagnostics:corpus-recreation-poc`. The planner receives compact prior chapter
+scene IDs plus thread/promise/payoff movements, not prose, so a later chapter
+can preserve parent story-debt continuity while choosing new child payoff
+events.
+
+Evidence:
+
+- ch1 prior plan:
+  `output/corpus-recreation-poc/crystal_shard-ch1-flash-causal-materiality-v2-sequence-ids-v1-plan-r2`;
+- ch2 sequence-context plan:
+  `output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-materiality-v2-sequence-context-v1-plan-r1`;
+- sequence audit:
+  `output/corpus-recreation-poc/sequence-context-v1-ch1-ch2-audit-r1.md`.
+
+Result:
+
+- ch2 plan used 5 obligations, 4 `storyDebtStage` refs, 2 parent payoff refs,
+  and 2 unique `payoffEventId` refs;
+- the payoff stages were `partial_payoff`, not `final_payoff`;
+- deterministic plan fit was clean after contract retry;
+- the ch1+ch2 sequence audit found 0 advisory findings.
+
+Interpretation: sequence context is the first plan-level proof that the harness
+can carry parent story debt across chapters without reusing local payoff IDs as
+whole-sequence final payoffs. It is still plan-only; the next proof is drafting
+from this sequence-shaped plan and then broadening beyond two chapters.
