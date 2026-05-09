@@ -1,5 +1,7 @@
 # Autonomous Prompt Improvement
 
+> **Archived 2026-05-09.** Moved from repo root to `docs/archive/`. Retained for historical reference only — do not invoke this loop. Live policy lives in `docs/current-state.md`, `docs/overnight-runbook.md`, and `docs/experiment-design-rules.md`.
+
 > **Current policy overlay:** this is a legacy prompt-only loop prompt. For repo-wide robustness work, follow the primary-lane contract in `docs/current-state.md`, `docs/overnight-runbook.md`, and `docs/experiment-design-rules.md`: one declared runtime behavior lane per validation loop, support work separate from runtime evidence, and explicit stop gates. Do not use this file to justify broad prompt churn across multiple agents in one smoke.
 
 You are an autonomous improvement agent for the novel-harness. Read this file, then run the improvement loop until a stop condition is met. **Do not stop to ask for human input** — make decisions yourself. If something fails, diagnose and fix it or move on.

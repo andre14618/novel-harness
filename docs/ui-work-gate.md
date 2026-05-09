@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-05
+updated: 2026-05-09
 role: ui-verification-gate
 ---
 
@@ -49,6 +49,14 @@ output/playwright/<YYYY-MM-DD>/<surface-or-lane>-<novelId-or-short-slug>/
 Use descriptive names such as `baseline.png`, `after-modify.png`,
 `console-final.md`, and `network-final.md`. Link or list the directory and key
 files in the final handoff or lane doc.
+
+Never write captures to the repo root. Default Playwright MCP behavior may drop
+artifacts in CWD; pass an explicit output path or run `bun run ui:preflight` to
+get the canonical directory created up-front. Loose root captures
+(`canon-*.png`, `artifact-*.png`, `planning-*-*.md`/`png`, `login-snapshot.md`)
+are gitignored as a backstop, but should not be created in the first place. The
+2026-05-09 sweep relocated 73 such legacy captures to
+`.playwright-mcp/evidence/<date>-<surface>/`.
 
 After the evidence is captured, close the Playwright MCP browser tab/session.
 Stop any local app server started only for the browser test.

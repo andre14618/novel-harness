@@ -8,7 +8,11 @@ gated-on: docs/charters/world-bible-architecture.md §0a engineering lane landin
 
 # Repo Cleanup Proposal — 2026-05-03
 
-Phase-1 read-only cleanup catalog. Categorizes untracked clutter, retired-subsystem code, and stale docs. **Nothing in this proposal has been moved or deleted yet.** Execution waits on the world-bible §0a engineering lane.
+Phase-1 read-only cleanup catalog. Categorizes untracked clutter, retired-subsystem code, and stale docs. **Nothing in this proposal has been moved or deleted yet, except the items noted inline below.** Execution waits on the world-bible §0a engineering lane.
+
+**2026-05-09 partial execution** — independent of §0a, two root-hygiene items were resolved:
+- `program.md` archived to `docs/archive/program.md` (see `## Other`).
+- 73 loose Playwright UI Work-Gate evidence captures (`artifact-*.png`, `canon-*.png`, `login-snapshot.md`, `planning-studio-*`, `planning-modified-*`) relocated to `.playwright-mcp/evidence/<date>-<surface>/` per-session subfolders. All were already gitignored; this is disk-organization only. Canonical evidence storage for new captures remains `output/playwright/<YYYY-MM-DD>/<surface>-<slug>/` per `docs/how-to/playwright-mcp-browser-testing.md`.
 
 ## Summary
 
@@ -152,7 +156,7 @@ Subdirectory survey (high-level only — execution-phase audit can deepen):
 
 ## Other
 
-- `program.md` (7.4 KB) at repo root — not yet audited; check whether it's a live operational doc or a one-shot artifact. Couldn't verify; flagging as keep-load-bearing pending owner confirmation.
+- ~~`program.md` (7.4 KB) at repo root~~ — **moved to `docs/archive/program.md` (2026-05-09).** Self-labeled legacy autonomous-prompt-improvement loop, superseded by `docs/current-state.md`, `overnight-runbook.md`, and `experiment-design-rules.md`. Archived; no longer at root.
 - `CONTEXT.md` at repo root — referenced from skill `improve-codebase-architecture`. Keep-load-bearing.
 - `.DS_Store` at repo root — macOS metadata; gitignored. Not under cleanup scope.
 - `output/`, `finetune-data/` at repo root — gitignored runtime artifacts; not under cleanup scope.
