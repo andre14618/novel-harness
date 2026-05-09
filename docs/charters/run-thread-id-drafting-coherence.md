@@ -176,6 +176,13 @@ The map should answer:
 Evidence gate: static reports and JSON output are enough for operator review;
 do not build a React surface until the report proves useful.
 
+Status 2026-05-09: first deterministic diagnostic is implemented as
+`diagnostics:corpus-recreation-thread-map`. It reads corpus recreation POC
+`packet.json` and `plan.json` artifacts, emits thread/promise/payoff movement
+rows, scene summaries, impact-preview refs, structural issues, and a sidecar
+run manifest when an output artifact is written. It does not call an LLM,
+create proposals, mutate plans, or change writer context.
+
 ### Lane 4 - Interleaved Writer Context Experiment
 
 Default-off only after Lanes 1-3.
