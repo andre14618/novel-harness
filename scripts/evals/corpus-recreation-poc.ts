@@ -1191,6 +1191,22 @@ Malformed-output snippet for debugging only:
 ${error.snippet.slice(0, 1200)}`
 }
 
+export function plannerSchemaRetryPrompt(
+  packet: RecreationPacket,
+  variant: PlannerVariant,
+  issueSummary: string,
+): string {
+  return `${plannerUserPrompt(packet, variant)}
+
+RETRY INSTRUCTION:
+The previous planner attempt returned JSON that failed schema validation.
+Return a complete fresh JSON object matching the schema. Do not continue or
+patch the previous output. Fix every listed schema issue.
+
+Schema issues:
+${issueSummary.slice(0, 1200)}`
+}
+
 function plannerVariantTail(variant: PlannerVariant): string {
   if (variant === "baseline") return ""
   if (variant === "causal-materiality-v2") {
@@ -1570,17 +1586,17 @@ async function callDeepSeekJson(args: {
   }
 }
 
-async function callPlannerJsonWithRetry(args: {
+async function callPlannerPlanWithRetry(args: {
   packet: RecreationPacket
   variant: PlannerVariant
   model: ModelId
   thinking: boolean
   maxTokens: number
-}): Promise<unknown> {
+}): Promise<RecreationPlan> {
   let userPrompt = plannerUserPrompt(args.packet, args.variant)
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      return await callDeepSeekJson({
+      const rawPlan = await callDeepSeekJson({
         model: args.model,
         thinking: args.thinking,
         temperature: 0.35,
@@ -1589,15 +1605,24 @@ async function callPlannerJsonWithRetry(args: {
         userPrompt,
         label: `planner-recreation-${attempt}`,
       })
+      return parseRecreationPlanOutput(rawPlan)
     } catch (error) {
       if (error instanceof ModelJsonParseError && attempt < 2) {
         userPrompt = plannerRetryPrompt(args.packet, args.variant, error)
+        continue
+      }
+      if (isPlannerSchemaValidationError(error) && attempt < 2) {
+        userPrompt = plannerSchemaRetryPrompt(args.packet, args.variant, error.message)
         continue
       }
       throw error
     }
   }
   throw new Error("planner retry loop exhausted without output")
+}
+
+function isPlannerSchemaValidationError(error: unknown): error is Error {
+  return error instanceof Error && error.message.startsWith("planner output invalid:")
 }
 
 export function parseJsonResponseContent(label: string, content: string): unknown {
@@ -1773,14 +1798,13 @@ async function main(): Promise<void> {
     writeFileSync(join(outputDir, "plan.json"), `${JSON.stringify(plan, null, 2)}\n`)
     writeFileSync(join(outputDir, "plan-comparison.json"), `${JSON.stringify(planComparison, null, 2)}\n`)
   } else if (args.live) {
-    const rawPlan = await callPlannerJsonWithRetry({
+    plan = await callPlannerPlanWithRetry({
       packet,
       variant: args.plannerVariant,
       model: args.model,
       thinking: args.thinking,
       maxTokens: args.maxTokens,
     })
-    plan = parseRecreationPlanOutput(rawPlan)
     planComparison = comparePlanToReference(plan, packet, {
       requireMaterialityTests: plannerVariantRequiresMaterialityTests(packet.diagnosticConfig?.plannerVariant),
     })

@@ -722,3 +722,53 @@ inputs are scene count, scene word sizes, annotation beat counts, value
 polarity, MICE/thread cadence, beat kind counts, boundary-signal counts,
 gap-size counts, and optional private structural summaries when the reference
 is built with `--include-summaries`.
+
+## Causal Materiality v2 Cohort
+
+Added a default-off diagnostic planner variant,
+`--planner-variant causal-materiality-v2`, to test whether the planner can
+carry materiality through the scene contract without changing the production
+writer/checkers. The variant keeps the same schema and asks the planner to make
+the protagonist's motive causal, give each choice alternative a gain/risk, make
+world facts constrain options or outcomes, and make supporting characters
+change leverage/trust/obligation/access/threat/allegiance/available choices.
+
+Implementation guard: the live planner call now has a bounded second attempt
+for malformed JSON and for schema-validity failures. The retry asks for a fresh
+complete JSON object and includes the validator issue, rather than patching a
+partial model response.
+
+Evidence artifacts:
+
+- `output/corpus-recreation-poc/crystal_shard-ch1-flash-causal-materiality-v2-scene-calls-r2/`
+- `output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-materiality-v2-scene-calls-r2/`
+- `output/corpus-recreation-poc/crystal_shard-ch5-flash-causal-materiality-v2-scene-calls-r1/`
+- `output/corpus-recreation-poc/crystal_shard-ch8-flash-causal-materiality-v2-scene-calls-r1/`
+- `output/corpus-recreation-poc/exact-id-vs-materiality-v1-vs-causal-v2-aggregate-r1.md`
+- `output/corpus-recreation-poc/causal-materiality-v2-thread-map-r1.md`
+- `output/corpus-recreation-poc/exact-id-vs-materiality-v1-vs-causal-v2-review-r1.html`
+
+Result across chapters 1, 2, 5, and 8:
+
+- deterministic scene fit held: all sampled chapters matched reference scene
+  count and required choice IDs;
+- thread refs became complete: v2 had `knownThreadRefCount == contractTotal`
+  in every sampled chapter, while baseline/materiality-v1 had no thread refs in
+  this cohort shape;
+- cross-chapter thread map had 29 movement rows, 0 issues, and 0 horizon notes;
+- semantic review ran 85 tasks with 0 low labels;
+- prose review ran 64 tasks with 0 low labels;
+- character-context linkage still found 8 issues: named local characters in
+  chapters 1 and 8 were sometimes present in the scene contract without a
+  required-character or source-obligation link;
+- prose was too short for analog recreation: 6604 generated words against
+  11061 target words, mean ratio 0.585, with chapter/scene-floor warnings.
+
+Interpretation: v2 is a useful diagnostic improvement over the previous
+materiality prompt because it preserves thread IDs and clears the low semantic
+labels in this sample. It is still `HOLD`, not a production promotion, because
+the stronger causal contract appears to compress prose and the character-link
+surface still needs planner/readiness repair. The next value-added slice is to
+turn those exact character-link and underspecified-scene gaps into Plan
+Readiness items, or to test a writer expansion/context arm while holding the v2
+planner contract fixed.

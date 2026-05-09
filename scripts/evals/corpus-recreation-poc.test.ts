@@ -14,6 +14,7 @@ import {
   parseJsonResponseContent,
   plannerUserPrompt,
   plannerRetryPrompt,
+  plannerSchemaRetryPrompt,
   parseRecreationPlanOutput,
   parseExampleSceneOutput,
   sceneThreadContextForPrompt,
@@ -492,6 +493,26 @@ describe("corpus-recreation-poc", () => {
     expect(retryPrompt).toContain("Do not continue or")
     expect(retryPrompt).toContain("causal-materiality-v2")
     expect(retryPrompt).toContain("{\"plan\":")
+  })
+
+  test("planner schema retry prompt carries validator issues back to the planner", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+      plannerVariant: "causal-materiality-v2",
+    })
+    const retryPrompt = plannerSchemaRetryPrompt(
+      packet,
+      "causal-materiality-v2",
+      "planner output invalid: plan.scenes.3.choiceAlternatives: Array must contain at least 2 element(s)",
+    )
+
+    expect(retryPrompt).toContain("failed schema validation")
+    expect(retryPrompt).toContain("Fix every listed schema issue")
+    expect(retryPrompt).toContain("choiceAlternatives")
+    expect(retryPrompt).toContain("causal-materiality-v2")
   })
 
   test("normalizes null and empty optional planner refs from model JSON", () => {
