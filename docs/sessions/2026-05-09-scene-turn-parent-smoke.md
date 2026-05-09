@@ -56,3 +56,25 @@ refs. After normalization, the rerun at
 - 0 plan comparison issues;
 - thread map issues: 0;
 - readiness groups: 0.
+
+## Three-Chapter Check
+
+Ran planner-only v4 smokes for chapters 1, 2, and 5, then aggregated them:
+
+```bash
+bun scripts/evals/corpus-recreation-thread-map.ts output/corpus-recreation-poc/scene-turn-v4-smoke-ch1-20260509 output/corpus-recreation-poc/scene-turn-v4-smoke-ch2b-20260509 output/corpus-recreation-poc/scene-turn-v4-smoke-ch5-20260509 --output output/corpus-recreation-poc/scene-turn-v4-smoke-3ch-20260509/thread-map.md --json output/corpus-recreation-poc/scene-turn-v4-smoke-3ch-20260509/thread-map.json
+bun scripts/evals/corpus-recreation-readiness.ts output/corpus-recreation-poc/scene-turn-v4-smoke-ch1-20260509 output/corpus-recreation-poc/scene-turn-v4-smoke-ch2b-20260509 output/corpus-recreation-poc/scene-turn-v4-smoke-ch5-20260509 --output output/corpus-recreation-poc/scene-turn-v4-smoke-3ch-20260509/readiness.md --json output/corpus-recreation-poc/scene-turn-v4-smoke-3ch-20260509/readiness.json
+```
+
+Aggregate result:
+
+- 3 POC dirs;
+- 16 movement rows;
+- 11 scene-turn rows;
+- 0 thread-map issues;
+- 0 horizon notes;
+- 0 readiness groups.
+
+This is deterministic evidence only. It does not prove prose quality or semantic
+story quality, but it does clear the graph-ready parent/child ID shape for this
+small planner-only sample.
