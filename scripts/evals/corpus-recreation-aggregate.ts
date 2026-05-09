@@ -43,6 +43,7 @@ export interface CorpusRecreationAggregateRow {
   chapterLabel: string
   book: string
   plannerVariant: string
+  writerContextMode: string
   expectedScenes: number | null
   actualScenes: number | null
   targetWords: number | null
@@ -98,7 +99,7 @@ export function renderCorpusRecreationAggregate(report: CorpusRecreationAggregat
   for (const row of report.rows) {
     lines.push([
       `| ${escapeCell(row.chapterLabel || "?")}`,
-      escapeCell(row.plannerVariant),
+      escapeCell(formatVariant(row)),
       formatScenes(row),
       formatWords(row),
       escapeCell(formatContract(row)),
@@ -165,6 +166,7 @@ function readPocRow(pocDir: string): CorpusRecreationAggregateRow {
     chapterLabel: String(source.chapterLabel ?? ""),
     book: String(source.book ?? ""),
     plannerVariant: String(packet.diagnosticConfig?.plannerVariant ?? "baseline"),
+    writerContextMode: String(packet.diagnosticConfig?.writerContextMode ?? "baseline"),
     expectedScenes: numberOrNull(planComparison.sceneCount?.expected),
     actualScenes: numberOrNull(planComparison.sceneCount?.actual ?? chapterComparison.sceneCount?.actual),
     targetWords: numberOrNull(chapterComparison.wordCount?.target),
@@ -255,6 +257,12 @@ function normalizeSummary(summary: any): DimensionSummary {
 function formatScenes(row: CorpusRecreationAggregateRow): string {
   if (row.expectedScenes === null || row.actualScenes === null) return "?"
   return `${row.actualScenes}/${row.expectedScenes}`
+}
+
+function formatVariant(row: CorpusRecreationAggregateRow): string {
+  return row.writerContextMode && row.writerContextMode !== "baseline"
+    ? `${row.plannerVariant} + ${row.writerContextMode}`
+    : row.plannerVariant
 }
 
 function formatWords(row: CorpusRecreationAggregateRow): string {

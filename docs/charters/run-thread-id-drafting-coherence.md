@@ -259,7 +259,9 @@ HTML review page now shows run/root/parent/variant provenance, thread movement
 rows by scene, impact preview refs, compact context previews, and thread-map
 issues. When `writer-context.json` is present, the page also shows the exact
 thread packets used by the diagnostic writer-context arm. Missing artifacts
-are displayed explicitly instead of inferred.
+are displayed explicitly instead of inferred. Aggregate rows distinguish
+planner variants from writer-context arms so baseline/planner labels do not
+hide context experiments.
 
 ### Lane 7 - Runtime Proposal Integration
 
