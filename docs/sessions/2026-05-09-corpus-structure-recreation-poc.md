@@ -979,3 +979,33 @@ contract retry repairs upstream plan/ID/character-context defects; writer
 expansion repairs the short-prose symptom. The combined arm is the current best
 POC shape, but the evidence is still limited to two drafted chapters and should
 remain diagnostic until broadened.
+
+## Four-Chapter Combined Arm
+
+Broadened the combined default-off arm to chapters 1, 2, 5, and 8, then
+compared baseline `causal-materiality-v2`, expansion-only, and contract-retry
++ expansion.
+
+Evidence:
+
+- `output/corpus-recreation-poc/causal-v2-expansion-vs-contract-expansion-4ch-r1.md`
+- `output/corpus-recreation-poc/causal-v2-expansion-vs-contract-expansion-4ch-review-r1.html`
+
+Result:
+
+- baseline v2: 6604/11061 words, ratio 0.60; plan issues remained in ch1/ch8;
+- expansion-only: 8817/11061 words, ratio 0.80; plan and character-context
+  gaps remained in ch1/ch8;
+- contract retry + expansion: 8765/11061 words, ratio 0.79; plan issues 0/4,
+  character-context issues 0/4, thread maps clean;
+- combined arm warnings remained only in ch2 and ch5, both scene-floor
+  advisory misses rather than structural failures;
+- combined arm stayed semantic low-free across 85 tasks and prose low-free
+  across 64 tasks.
+
+Interpretation: the broadened evidence supports keeping the pair as the current
+best diagnostic POC shape. Contract retry is adding upstream cleanliness rather
+than merely shortening prose; writer expansion carries the length repair. This
+is still not a production-default change: the next proof should test a fresh
+multi-chapter run or a full short-story/chapter sequence where downstream
+payoffs can land across chapter boundaries.
