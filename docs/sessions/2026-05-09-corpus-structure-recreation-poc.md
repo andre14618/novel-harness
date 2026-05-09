@@ -1214,3 +1214,48 @@ and sequence continuity while holding writer/checker defaults steady. The
 remaining visible weakness is prose expansion on long scenes, so the next
 valuable slice is either a writer-context capsule A/B against fixed v3 plans or
 a narrower short-scene expansion repair, not another planner-ID change.
+
+## Thread Plus Character Writer Context A/B
+
+Added a default-off `thread-character-context-v1` writer context mode to the
+corpus recreation POC. It reuses the existing thread context packet and adds
+compact exact-ID character cards for the scene's POV, required characters, and
+character-source obligations. This holds the planner fixed and tests whether
+focused character capsules help the scene writer expand and dramatize without
+changing plan IDs or semantic checker behavior.
+
+Evidence:
+
+- focused tests:
+  `bun test scripts/evals/corpus-recreation-poc.test.ts`;
+- typecheck: `./node_modules/.bin/tsc --noEmit --pretty false`;
+- fixed-plan ch1 arm:
+  `output/corpus-recreation-poc/crystal_shard-ch1-flash-causal-motivation-v3-thread-character-context-v1-expansion-v1-scene-calls-r1`;
+- fixed-plan ch2 arm:
+  `output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-motivation-v3-thread-character-context-v1-expansion-v1-scene-calls-r1`;
+- comparison aggregate:
+  `output/corpus-recreation-poc/motivation-v3-thread-vs-thread-character-context-aggregate-r1.md`;
+- static review:
+  `output/corpus-recreation-poc/motivation-v3-thread-vs-thread-character-context-review-r1.html`;
+- sequence audit:
+  `output/corpus-recreation-poc/motivation-v3-thread-character-context-ch1-ch2-sequence-audit-r1.md`.
+
+Result:
+
+- ch1 improved from 1278/1832 words (0.70) with one scene-floor warning to
+  1720/1832 (0.94) with no warnings;
+- ch2 improved from 2571/3353 words (0.77) with two scene-floor warnings to
+  2962/3353 (0.88) with one near-miss floor warning;
+- plan contracts stayed clean because the plans were reused via `--plan-from`;
+- semantic review stayed low-free on both chapters; ch2 relationship delta
+  improved from 2.00 to 2.50 and thread progression from 2.25 to 2.50;
+- prose review stayed low-free; ch1 payoff propulsion improved from 2.50 to
+  2.75 and ch2 stayed 2.75;
+- sequence audit across the thread-character runs stayed clean: 18 movements,
+  0 findings.
+
+Interpretation: this is the strongest current evidence for a near-term writer
+context lever. Compact character capsules improved expansion and preserved the
+planning/sequence evidence. It is still a two-chapter diagnostic, so the next
+step should be a larger fixed-plan A/B cohort before promoting the mode as a
+default.

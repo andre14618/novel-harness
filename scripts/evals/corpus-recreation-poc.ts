@@ -24,7 +24,7 @@ import { corpusRecreationVariantLabel } from "./corpus-recreation-variant"
 type ModelId = "deepseek-v4-flash" | "deepseek-v4-pro"
 type PlannerVariant = "baseline" | "materiality-v1" | "causal-materiality-v2" | "causal-motivation-v3"
 type PlannerContractRetryMode = "none" | "structural-v1"
-type WriterContextMode = "baseline" | "thread-context-v1"
+type WriterContextMode = "baseline" | "thread-context-v1" | "thread-character-context-v1"
 type WriterExpansionMode = "none" | "retry-short-scenes-v1"
 
 interface Args {
@@ -578,8 +578,8 @@ function parsePlannerContractRetryMode(value: string): PlannerContractRetryMode 
 }
 
 function parseWriterContextMode(value: string): WriterContextMode {
-  if (value === "baseline" || value === "thread-context-v1") return value
-  throw new Error(`--writer-context must be baseline or thread-context-v1; got ${value}`)
+  if (value === "baseline" || value === "thread-context-v1" || value === "thread-character-context-v1") return value
+  throw new Error(`--writer-context must be baseline, thread-context-v1, or thread-character-context-v1; got ${value}`)
 }
 
 function parseWriterExpansionMode(value: string): WriterExpansionMode {
@@ -600,7 +600,7 @@ function printHelp(): void {
     [--model deepseek-v4-flash|deepseek-v4-pro]
     [--planner-variant baseline|materiality-v1|causal-materiality-v2|causal-motivation-v3]
     [--planner-contract-retry none|structural-v1]
-    [--writer-context baseline|thread-context-v1]
+    [--writer-context baseline|thread-context-v1|thread-character-context-v1]
     [--writer-expansion none|retry-short-scenes-v1]
     [--sequence-context <prior-poc-dir>]
     [--plan-from <poc-dir>]
@@ -1577,7 +1577,7 @@ export interface SceneWriterThreadContextReport {
   generatedAt: string
   mode: WriterContextMode
   sceneCount: number
-  contexts: Array<ReturnType<typeof sceneThreadContextForPrompt>>
+  contexts: Array<ReturnType<typeof sceneWriterContextForPrompt>>
 }
 
 export function sceneWriterUserPrompt(
@@ -1593,10 +1593,14 @@ export function sceneWriterUserPrompt(
     advisoryFloorWords: minimumSceneWords(scene.targetWords),
     minimumParagraphs: minimumSceneParagraphs(scene.targetWords),
   }
-  const threadContextSection = opts.writerContextMode === "thread-context-v1"
+  const writerContextMode = opts.writerContextMode ?? "baseline"
+  const writerContextLabel = writerContextMode === "thread-context-v1"
+    ? "Thread context packet"
+    : "Writer context packet"
+  const writerContextSection = writerContextMode !== "baseline"
     ? `
-Thread context packet (diagnostic writer-context arm):
-${JSON.stringify(sceneThreadContextForPrompt(packet, plan, scene), null, 2)}
+${writerContextLabel} (diagnostic writer-context arm):
+${JSON.stringify(sceneWriterContextForPrompt(packet, plan, scene, writerContextMode), null, 2)}
 `
     : ""
   return `VOLATILE INPUT PACKET
@@ -1613,7 +1617,7 @@ ${JSON.stringify({
   totalScenes: plan.scenes.length,
   obligationsForScene: plan.obligations.filter(obligation => obligation.sceneId === scene.sceneId),
 }, null, 2)}
-${threadContextSection}
+${writerContextSection}
 
 Scene plan:
 ${JSON.stringify(scene, null, 2)}
@@ -1635,6 +1639,24 @@ Return the complete expanded scene, not only additions. Preserve the same sceneI
 ` : ""}
 Task:
 Draft this one scene as complete prose. The targetWords and advisoryFloorWords values are pacing guidance, not hard gates. Do not pad to a number, but do not stop at a synopsis. Satisfy the goal, opposition, turningPoint, crisisChoice, climaxAction, outcome, consequence, and beatHints.`
+}
+
+export function sceneWriterContextForPrompt(
+  packet: RecreationPacket,
+  plan: RecreationPlan,
+  scene: RecreationPlan["scenes"][number],
+  mode: WriterContextMode = "thread-context-v1",
+) {
+  const base = writerContextIncludesThread(mode)
+    ? sceneThreadContextForPrompt(packet, plan, scene)
+    : { mode, sceneId: scene.sceneId }
+  return {
+    ...base,
+    mode,
+    ...(writerContextIncludesCharacters(mode)
+      ? { characterContext: sceneCharacterContextForPrompt(packet, plan, scene) }
+      : {}),
+  }
 }
 
 export function sceneThreadContextForPrompt(
@@ -1689,6 +1711,97 @@ export function sceneThreadContextForPrompt(
   }
 }
 
+export function sceneCharacterContextForPrompt(
+  packet: RecreationPacket,
+  plan: RecreationPlan,
+  scene: RecreationPlan["scenes"][number],
+) {
+  const obligations = plan.obligations.filter(obligation => obligation.sceneId === scene.sceneId)
+  const characters = seedCharacterRegistry(packet)
+  const povCharacterId = scene.povCharacterId
+  const requiredCharacterIds = uniqueStrings(scene.requiredCharacterIds ?? [])
+  const affectedCharacterIds = uniqueStrings(scene.affectedCharacterIds ?? [])
+  const characterSourceIds = uniqueStrings(obligations
+    .map(obligation => obligation.sourceId)
+    .filter(sourceId => characters.has(sourceId)))
+  const activeCharacterIds = uniqueStrings([
+    povCharacterId,
+    ...requiredCharacterIds,
+    ...characterSourceIds,
+  ])
+  const cards = activeCharacterIds
+    .map(characterId => {
+      const character = characters.get(characterId)
+      if (!character) return null
+      const sourceObligations = obligations.filter(obligation => obligation.sourceId === characterId)
+      return {
+        characterId,
+        name: character.name ?? characterId,
+        role: character.role ?? (characterId === povCharacterId ? "pov" : "supporting"),
+        sceneRole: characterId === povCharacterId ? "pov" : "supporting",
+        want: character.want ?? null,
+        need: character.need ?? null,
+        lie: character.lie ?? null,
+        truth: character.truth ?? null,
+        pressure: character.pressure ?? null,
+        sourceObligationIds: sourceObligations.map(obligation => obligation.obligationId),
+        activeThreadIds: uniqueStrings(sourceObligations.map(obligation => obligation.threadId).filter(Boolean) as string[]),
+        activePromiseIds: uniqueStrings(sourceObligations.map(obligation => obligation.promiseId).filter(Boolean) as string[]),
+        activePayoffIds: uniqueStrings(sourceObligations.map(obligation => obligation.payoffId).filter(Boolean) as string[]),
+      }
+    })
+    .filter((card): card is NonNullable<typeof card> => Boolean(card))
+  return {
+    mode: "character-context-v1",
+    sceneId: scene.sceneId,
+    povCharacterId,
+    povPersonalStake: scene.povPersonalStake ?? null,
+    sceneGoal: scene.goal,
+    sceneOpposition: scene.opposition,
+    sceneChoice: scene.crisisChoice,
+    sceneOutcome: scene.outcome,
+    sceneConsequence: scene.consequence,
+    activeCharacterIds,
+    affectedCharacterIds,
+    characterCards: cards,
+    missingCharacterIds: activeCharacterIds.filter(characterId => !characters.has(characterId)),
+  }
+}
+
+function seedCharacterRegistry(packet: RecreationPacket): Map<string, {
+  name?: string
+  role?: string
+  pressure?: string
+  want?: string
+  need?: string
+  lie?: string
+  truth?: string
+}> {
+  return new Map([
+    [packet.originalAnalogSeed.protagonist.characterId, {
+      name: packet.originalAnalogSeed.protagonist.name,
+      role: "protagonist",
+      want: packet.originalAnalogSeed.protagonist.want,
+      need: packet.originalAnalogSeed.protagonist.need,
+      lie: packet.originalAnalogSeed.protagonist.lie,
+      truth: packet.originalAnalogSeed.protagonist.truth,
+    }],
+    ...packet.originalAnalogSeed.supportingCharacters.map(character => [character.characterId, {
+      name: character.name,
+      role: character.role,
+      pressure: character.pressure,
+    }] as const),
+  ])
+}
+
+function writerContextIncludesThread(mode: WriterContextMode): boolean {
+  return mode === "thread-context-v1" || mode === "thread-character-context-v1"
+}
+
+function writerContextIncludesCharacters(mode: WriterContextMode): boolean {
+  return mode === "thread-character-context-v1"
+}
+
 function buildPromptFutureImpactPreview(
   plan: RecreationPlan,
   sceneIndex: number,
@@ -1725,11 +1838,12 @@ export function buildSceneWriterThreadContextReport(
   packet: RecreationPacket,
   plan: RecreationPlan,
 ): SceneWriterThreadContextReport {
+  const mode = packet.diagnosticConfig?.writerContextMode ?? "baseline"
   return {
     generatedAt: packet.generatedAt,
-    mode: packet.diagnosticConfig?.writerContextMode ?? "baseline",
+    mode,
     sceneCount: plan.scenes.length,
-    contexts: plan.scenes.map(scene => sceneThreadContextForPrompt(packet, plan, scene)),
+    contexts: plan.scenes.map(scene => sceneWriterContextForPrompt(packet, plan, scene, mode)),
   }
 }
 
@@ -2151,7 +2265,7 @@ async function main(): Promise<void> {
       throw new Error("--writer-context is only supported with --scene-calls")
     }
     if (args.sceneCalls) {
-      if (args.writerContextMode === "thread-context-v1") {
+      if (args.writerContextMode !== "baseline") {
         writerContextReport = buildSceneWriterThreadContextReport(packet, plan)
         writeFileSync(join(outputDir, "writer-context.json"), `${JSON.stringify(writerContextReport, null, 2)}\n`)
       }

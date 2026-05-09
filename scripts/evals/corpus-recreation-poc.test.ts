@@ -20,7 +20,9 @@ import {
   plannerSchemaRetryPrompt,
   parseRecreationPlanOutput,
   parseExampleSceneOutput,
+  sceneCharacterContextForPrompt,
   sceneThreadContextForPrompt,
+  sceneWriterContextForPrompt,
   sceneWriterUserPrompt,
   shouldRetryPlannerContract,
   shouldRetryShortScene,
@@ -307,6 +309,34 @@ describe("corpus-recreation-poc", () => {
     expect(report.mode).toBe("thread-context-v1")
     expect(report.sceneCount).toBe(threadedPlan.scenes.length)
     expect(report.contexts[0]).toEqual(context)
+  })
+
+  test("thread-character writer arm adds exact-ID character capsules", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+      writerContextMode: "thread-character-context-v1",
+    })
+    const threadedPlan = structuredClone(plan())
+    const prompt = sceneWriterUserPrompt(packet, threadedPlan, threadedPlan.scenes[0]!, undefined, {
+      writerContextMode: "thread-character-context-v1",
+    })
+    const characterContext = sceneCharacterContextForPrompt(packet, threadedPlan, threadedPlan.scenes[0]!)
+    const writerContext = sceneWriterContextForPrompt(packet, threadedPlan, threadedPlan.scenes[0]!, "thread-character-context-v1")
+    const report = buildSceneWriterThreadContextReport(packet, threadedPlan)
+
+    expect(prompt).toContain("Writer context packet (diagnostic writer-context arm)")
+    expect(prompt).toContain("\"characterContext\"")
+    expect(prompt).toContain("Nara Venn")
+    expect(prompt).toContain("Tovin Ash")
+    expect(characterContext.characterCards.map(card => card.characterId)).toEqual(["char-nara-venn", "char-tovin-ash"])
+    expect(characterContext.povPersonalStake).toContain("oathmark")
+    expect(writerContext.characterContext).toEqual(characterContext)
+    expect(writerContext.activeThreads.map(thread => thread.threadId)).toContain("thread-key-cost")
+    expect(report.mode).toBe("thread-character-context-v1")
+    expect(report.contexts[0]).toEqual(writerContext)
   })
 
   test("does not infer pressure from seed word overlap", () => {
