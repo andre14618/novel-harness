@@ -20,4 +20,13 @@ describe("corpus-recreation-variant", () => {
       writerExpansionMode: "retry-short-scenes-v1",
     })).toBe("causal-materiality-v2 + retry-short-scenes-v1")
   })
+
+  test("adds non-default planner contract retry to the visible label", () => {
+    expect(corpusRecreationVariantLabel({
+      plannerVariant: "causal-materiality-v2",
+      plannerContractRetryMode: "structural-v1",
+      writerContextMode: "baseline",
+      writerExpansionMode: "none",
+    })).toBe("causal-materiality-v2 + planner-contract-structural-v1")
+  })
 })

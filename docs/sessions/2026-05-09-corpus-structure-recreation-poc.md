@@ -910,3 +910,40 @@ plan-side structural issues, character-context linkage, or causal materiality
 upstream. The next higher-value slice is to use Plan Readiness for the exact
 character-context gaps, or revise the planner contract so fewer such gaps are
 created before drafting.
+
+## Planner Contract Retry Smoke
+
+Added default-off `--planner-contract-retry structural-v1` to the POC planner.
+This is a diagnostic-only upstream repair attempt: after valid planner JSON, the
+tool compares the plan deterministically and gives the planner one extra attempt
+only when hard plan-contract issues remain.
+
+First smoke result: giving only the issue list was too noisy. Ch1 improved some
+refs but introduced a new missing-obligation issue, proving the retry needed the
+previous plan.
+
+Follow-up fix: the retry prompt now includes the previous valid plan and asks
+for a minimal full-plan rewrite.
+
+Evidence:
+
+- `output/corpus-recreation-poc/causal-v2-baseline-vs-contract-retry-v1-plan-r1.md`
+- `output/corpus-recreation-poc/causal-v2-baseline-vs-contract-retry-v1-plan-review-r1.html`
+- `output/corpus-recreation-poc/crystal_shard-ch1-flash-causal-materiality-v2-contract-retry-v1-minimal-r1/planner-contract-retry.json`
+- `output/corpus-recreation-poc/crystal_shard-ch8-flash-causal-materiality-v2-contract-retry-v1-minimal-r1/planner-contract-retry.json`
+
+Result:
+
+- ch1 baseline v2 had 2 plan issues and 3 character-context issues; minimal
+  contract retry ended with 0 plan issues, 0 character-context issues, and a
+  clean thread map;
+- ch8 baseline v2 had 4 plan issues and 5 character-context issues; minimal
+  contract retry ended with 0 plan issues, 0 character-context issues, and a
+  clean thread map;
+- both smokes used two planner attempts; the retry prompt had prefix-cache hits;
+- no prose was drafted from these repaired plans yet, so this is not promotion
+  evidence for story quality or final output.
+
+Interpretation: upstream plan-contract retry is a stronger next hypothesis than
+manual character-ref cleanup for new plans. It should remain default-off until
+the repaired plans are drafted and judged for semantic/prose quality.

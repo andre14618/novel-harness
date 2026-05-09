@@ -23,6 +23,7 @@ import { corpusRecreationVariantLabel } from "./corpus-recreation-variant"
 
 type ModelId = "deepseek-v4-flash" | "deepseek-v4-pro"
 type PlannerVariant = "baseline" | "materiality-v1" | "causal-materiality-v2"
+type PlannerContractRetryMode = "none" | "structural-v1"
 type WriterContextMode = "baseline" | "thread-context-v1"
 type WriterExpansionMode = "none" | "retry-short-scenes-v1"
 
@@ -38,6 +39,7 @@ interface Args {
   thinking: boolean
   maxTokens: number
   plannerVariant: PlannerVariant
+  plannerContractRetryMode: PlannerContractRetryMode
   writerContextMode: WriterContextMode
   writerExpansionMode: WriterExpansionMode
 }
@@ -61,6 +63,7 @@ interface RecreationPacket {
   }
   diagnosticConfig?: {
     plannerVariant: PlannerVariant
+    plannerContractRetryMode?: PlannerContractRetryMode
     writerContextMode?: WriterContextMode
     writerExpansionMode?: WriterExpansionMode
   }
@@ -338,6 +341,16 @@ interface ChapterComparison {
   warnings: string[]
 }
 
+interface PlannerContractRetryAudit {
+  mode: PlannerContractRetryMode
+  attempts: Array<{
+    attempt: number
+    retried: boolean
+    issueCount: number
+    issues: string[]
+  }>
+}
+
 const DEFAULT_REFERENCE_PATH = "output/corpus-structure-reference/crystal_shard/reference.json"
 const DEFAULT_OUTPUT_DIR = "output/corpus-recreation-poc/crystal_shard-ch1"
 
@@ -474,6 +487,9 @@ function parseArgs(argv = process.argv.slice(2)): Args {
   const plannerVariant = parsePlannerVariant(
     typeof values["planner-variant"] === "string" ? values["planner-variant"] : "baseline",
   )
+  const plannerContractRetryMode = parsePlannerContractRetryMode(
+    typeof values["planner-contract-retry"] === "string" ? values["planner-contract-retry"] : "none",
+  )
   const writerContextMode = parseWriterContextMode(
     typeof values["writer-context"] === "string" ? values["writer-context"] : "baseline",
   )
@@ -492,6 +508,7 @@ function parseArgs(argv = process.argv.slice(2)): Args {
     thinking,
     maxTokens,
     plannerVariant,
+    plannerContractRetryMode,
     writerContextMode,
     writerExpansionMode,
   }
@@ -505,6 +522,11 @@ function parseModel(value: string): ModelId {
 function parsePlannerVariant(value: string): PlannerVariant {
   if (value === "baseline" || value === "materiality-v1" || value === "causal-materiality-v2") return value
   throw new Error(`--planner-variant must be baseline, materiality-v1, or causal-materiality-v2; got ${value}`)
+}
+
+function parsePlannerContractRetryMode(value: string): PlannerContractRetryMode {
+  if (value === "none" || value === "structural-v1") return value
+  throw new Error(`--planner-contract-retry must be none or structural-v1; got ${value}`)
 }
 
 function parseWriterContextMode(value: string): WriterContextMode {
@@ -529,6 +551,7 @@ function printHelp(): void {
     [--live] [--write] [--scene-calls]
     [--model deepseek-v4-flash|deepseek-v4-pro]
     [--planner-variant baseline|materiality-v1|causal-materiality-v2]
+    [--planner-contract-retry none|structural-v1]
     [--writer-context baseline|thread-context-v1]
     [--writer-expansion none|retry-short-scenes-v1]
     [--plan-from <poc-dir>]
@@ -550,6 +573,7 @@ export function buildRecreationPacket(args: {
   chapterLabel: string
   generatedAt: string
   plannerVariant?: PlannerVariant
+  plannerContractRetryMode?: PlannerContractRetryMode
   writerContextMode?: WriterContextMode
   writerExpansionMode?: WriterExpansionMode
 }): RecreationPacket {
@@ -616,6 +640,7 @@ export function buildRecreationPacket(args: {
     },
     diagnosticConfig: {
       plannerVariant: args.plannerVariant ?? "baseline",
+      plannerContractRetryMode: args.plannerContractRetryMode ?? "none",
       writerContextMode: args.writerContextMode ?? "baseline",
       writerExpansionMode: args.writerExpansionMode ?? "none",
     },
@@ -1162,7 +1187,10 @@ Required evidence:
 ${JSON.stringify({
   originalAnalogSeed: packet.originalAnalogSeed,
   target: packet.target,
-  diagnosticConfig: { plannerVariant: packet.diagnosticConfig?.plannerVariant ?? "baseline" },
+  diagnosticConfig: {
+    plannerVariant: packet.diagnosticConfig?.plannerVariant ?? "baseline",
+    plannerContractRetryMode: packet.diagnosticConfig?.plannerContractRetryMode ?? "none",
+  },
 }, null, 2)}
 
 Supporting evidence:
@@ -1195,7 +1223,11 @@ export function plannerRetryPrompt(
   variant: PlannerVariant,
   error: ModelJsonParseError,
 ): string {
-  return `${plannerUserPrompt(packet, variant)}
+  return plannerJsonRetryPromptFromBase(plannerUserPrompt(packet, variant), error)
+}
+
+function plannerJsonRetryPromptFromBase(basePrompt: string, error: ModelJsonParseError): string {
+  return `${basePrompt}
 
 RETRY INSTRUCTION:
 The previous planner attempt returned malformed JSON and could not be parsed.
@@ -1212,7 +1244,11 @@ export function plannerSchemaRetryPrompt(
   variant: PlannerVariant,
   issueSummary: string,
 ): string {
-  return `${plannerUserPrompt(packet, variant)}
+  return plannerSchemaRetryPromptFromBase(plannerUserPrompt(packet, variant), issueSummary)
+}
+
+function plannerSchemaRetryPromptFromBase(basePrompt: string, issueSummary: string): string {
+  return `${basePrompt}
 
 RETRY INSTRUCTION:
 The previous planner attempt returned JSON that failed schema validation.
@@ -1221,6 +1257,60 @@ patch the previous output. Fix every listed schema issue.
 
 Schema issues:
 ${issueSummary.slice(0, 1200)}`
+}
+
+export function planContractRetryIssues(comparison: PlanComparison): string[] {
+  return comparison.issues.filter(issue =>
+    issue.startsWith("scene count mismatch")
+    || issue.startsWith("less than half")
+    || issue.startsWith("beat hint shape")
+    || issue.startsWith("sceneTurns point")
+    || issue.startsWith("duplicate sceneTurnIds")
+    || issue.startsWith("scene contract weak")
+  )
+}
+
+export function shouldRetryPlannerContract(args: {
+  plannerContractRetryMode: PlannerContractRetryMode
+  attempt: number
+  maxAttempts: number
+  comparison: PlanComparison
+}): boolean {
+  return args.plannerContractRetryMode === "structural-v1"
+    && args.attempt < args.maxAttempts
+    && planContractRetryIssues(args.comparison).length > 0
+}
+
+export function plannerContractRetryPrompt(
+  packet: RecreationPacket,
+  variant: PlannerVariant,
+  comparison: PlanComparison,
+  previousPlan: RecreationPlan,
+): string {
+  return `${plannerUserPrompt(packet, variant)}
+
+CONTRACT REPAIR INSTRUCTION:
+The previous planner attempt returned valid JSON, but deterministic plan checks
+found structural contract issues. Return a complete fresh JSON object matching
+the same schema. Preserve the previous plan wherever it is not directly involved
+in a listed issue.
+
+Fix only the listed plan-contract issues in the previous plan:
+- preserve the same original analog seed, source-boundary rules, scene ids, and
+  reference scene order unless the diagnostic explicitly names a scene-count or
+  sequence mismatch;
+- close exact character refs by adding requiredCharacterIds for local scene
+  participants, adding affectedCharacterIds for downstream/offstage impact, or
+  adding a character-source obligation when the character actively pressures the
+  scene;
+- preserve thread, promise, payoff, and sceneTurn consistency;
+- keep word targets as pacing guidance only.
+
+Deterministic issues:
+${planContractRetryIssues(comparison).map(issue => `- ${issue}`).join("\n").slice(0, 3000)}
+
+Previous valid plan to minimally repair:
+${JSON.stringify({ plan: previousPlan }, null, 2)}`
 }
 
 function plannerVariantTail(variant: PlannerVariant): string {
@@ -1636,8 +1726,12 @@ async function callPlannerPlanWithRetry(args: {
   model: ModelId
   thinking: boolean
   maxTokens: number
+  initialUserPrompt?: string
+  labelPrefix?: string
 }): Promise<RecreationPlan> {
-  let userPrompt = plannerUserPrompt(args.packet, args.variant)
+  const basePrompt = args.initialUserPrompt ?? plannerUserPrompt(args.packet, args.variant)
+  let userPrompt = basePrompt
+  const labelPrefix = args.labelPrefix ?? "planner-recreation"
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const rawPlan = await callDeepSeekJson({
@@ -1647,16 +1741,16 @@ async function callPlannerPlanWithRetry(args: {
         maxTokens: args.maxTokens,
         systemPrompt: stablePlannerPrompt(),
         userPrompt,
-        label: `planner-recreation-${attempt}`,
+        label: `${labelPrefix}-${attempt}`,
       })
       return parseRecreationPlanOutput(rawPlan)
     } catch (error) {
       if (error instanceof ModelJsonParseError && attempt < 2) {
-        userPrompt = plannerRetryPrompt(args.packet, args.variant, error)
+        userPrompt = plannerJsonRetryPromptFromBase(basePrompt, error)
         continue
       }
       if (isPlannerSchemaValidationError(error) && attempt < 2) {
-        userPrompt = plannerSchemaRetryPrompt(args.packet, args.variant, error.message)
+        userPrompt = plannerSchemaRetryPromptFromBase(basePrompt, error.message)
         continue
       }
       throw error
@@ -1724,6 +1818,7 @@ export function renderRecreationReport(args: {
   lines.push(`Reference: ${args.packet.sourceReference.book} chapter ${args.packet.sourceReference.chapterLabel}`)
   lines.push("Mode: original structural analog, not source prose/style imitation")
   lines.push(`Planner variant: ${args.packet.diagnosticConfig?.plannerVariant ?? "baseline"}`)
+  lines.push(`Planner contract retry: ${args.packet.diagnosticConfig?.plannerContractRetryMode ?? "none"}`)
   lines.push(`Writer context: ${args.packet.diagnosticConfig?.writerContextMode ?? "baseline"}`)
   lines.push(`Writer expansion: ${args.packet.diagnosticConfig?.writerExpansionMode ?? "none"}`)
   lines.push("")
@@ -1801,6 +1896,7 @@ async function main(): Promise<void> {
     chapterLabel: args.chapterLabel,
     generatedAt: new Date().toISOString(),
     plannerVariant: args.plannerVariant,
+    plannerContractRetryMode: args.plannerContractRetryMode,
     writerContextMode: args.writerContextMode,
     writerExpansionMode: args.writerExpansionMode,
   })
@@ -1814,6 +1910,7 @@ async function main(): Promise<void> {
         generatedAt: new Date().toISOString(),
         diagnosticConfig: {
           plannerVariant: sourcePacket.diagnosticConfig?.plannerVariant ?? args.plannerVariant,
+          plannerContractRetryMode: sourcePacket.diagnosticConfig?.plannerContractRetryMode ?? "none",
           writerContextMode: args.writerContextMode,
           writerExpansionMode: args.writerExpansionMode,
         },
@@ -1830,6 +1927,7 @@ async function main(): Promise<void> {
   let chapter: ExampleChapter | null = null
   let chapterComparison: ChapterComparison | null = null
   let writerContextReport: SceneWriterThreadContextReport | null = null
+  let plannerContractRetryAudit: PlannerContractRetryAudit | null = null
 
   if (args.planFromDir) {
     const sourcePlanPath = resolve(process.cwd(), args.planFromDir, "plan.json")
@@ -1845,18 +1943,43 @@ async function main(): Promise<void> {
     writeFileSync(join(outputDir, "plan.json"), `${JSON.stringify(plan, null, 2)}\n`)
     writeFileSync(join(outputDir, "plan-comparison.json"), `${JSON.stringify(planComparison, null, 2)}\n`)
   } else if (args.live) {
-    plan = await callPlannerPlanWithRetry({
-      packet,
-      variant: args.plannerVariant,
-      model: args.model,
-      thinking: args.thinking,
-      maxTokens: args.maxTokens,
-    })
-    planComparison = comparePlanToReference(plan, packet, {
-      requireMaterialityTests: plannerVariantRequiresMaterialityTests(packet.diagnosticConfig?.plannerVariant),
-    })
+    plannerContractRetryAudit = { mode: args.plannerContractRetryMode, attempts: [] }
+    let plannerPrompt: string | undefined
+    const maxContractAttempts = args.plannerContractRetryMode === "structural-v1" ? 2 : 1
+    for (let attempt = 1; attempt <= maxContractAttempts; attempt++) {
+      plan = await callPlannerPlanWithRetry({
+        packet,
+        variant: args.plannerVariant,
+        model: args.model,
+        thinking: args.thinking,
+        maxTokens: args.maxTokens,
+        initialUserPrompt: plannerPrompt,
+        labelPrefix: attempt === 1 ? "planner-recreation" : "planner-contract-repair",
+      })
+      planComparison = comparePlanToReference(plan, packet, {
+        requireMaterialityTests: plannerVariantRequiresMaterialityTests(packet.diagnosticConfig?.plannerVariant),
+      })
+      const contractIssues = planContractRetryIssues(planComparison)
+      const retried = shouldRetryPlannerContract({
+        plannerContractRetryMode: args.plannerContractRetryMode,
+        attempt,
+        maxAttempts: maxContractAttempts,
+        comparison: planComparison,
+      })
+      plannerContractRetryAudit.attempts.push({
+        attempt,
+        retried,
+        issueCount: contractIssues.length,
+        issues: contractIssues,
+      })
+      if (!retried) break
+      plannerPrompt = plannerContractRetryPrompt(packet, args.plannerVariant, planComparison, plan)
+    }
     writeFileSync(join(outputDir, "plan.json"), `${JSON.stringify(plan, null, 2)}\n`)
     writeFileSync(join(outputDir, "plan-comparison.json"), `${JSON.stringify(planComparison, null, 2)}\n`)
+    if (args.plannerContractRetryMode !== "none") {
+      writeFileSync(join(outputDir, "planner-contract-retry.json"), `${JSON.stringify(plannerContractRetryAudit, null, 2)}\n`)
+    }
   }
 
   if (args.writeChapter) {
@@ -1937,6 +2060,7 @@ async function main(): Promise<void> {
       { path: join(outputDir, "packet.json"), role: "packet" },
       { path: join(outputDir, "plan.json"), role: "plan" },
       { path: join(outputDir, "plan-comparison.json"), role: "plan-comparison" },
+      { path: join(outputDir, "planner-contract-retry.json"), role: "planner-contract-retry-json" },
       { path: join(outputDir, "chapter.json"), role: "chapter-json" },
       { path: join(outputDir, "chapter.md"), role: "chapter-markdown" },
       { path: join(outputDir, "chapter-comparison.json"), role: "chapter-comparison" },
@@ -1949,6 +2073,7 @@ async function main(): Promise<void> {
       live: args.live,
       writeChapter: args.writeChapter,
       sceneCalls: args.sceneCalls,
+      plannerContractRetryMode: args.plannerContractRetryMode,
       writerContextMode: args.writerContextMode,
       writerExpansionMode: args.writerExpansionMode,
       plannerPromptVersion: PLANNER_PROMPT_VERSION,
@@ -1960,6 +2085,7 @@ async function main(): Promise<void> {
   console.log(`wrote ${join(outputDir, "report.md")}`)
   console.log(`wrote ${join(outputDir, RUN_MANIFEST_FILENAME)}`)
   if (plan) console.log(`wrote ${join(outputDir, "plan.json")}`)
+  if (plannerContractRetryAudit && args.plannerContractRetryMode !== "none") console.log(`wrote ${join(outputDir, "planner-contract-retry.json")}`)
   if (writerContextReport) console.log(`wrote ${join(outputDir, "writer-context.json")}`)
   if (chapter) console.log(`wrote ${join(outputDir, "chapter.md")}`)
 }

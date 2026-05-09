@@ -365,6 +365,22 @@ causal chain.
 Use these only as diagnostic arms against a baseline run. They are not runtime
 defaults.
 
+## Planner Contract Retry
+
+The planner POC also supports a default-off structural retry:
+
+```bash
+--planner-contract-retry structural-v1
+```
+
+This runs deterministic plan-contract checks after a valid planner response. If
+hard structural issues remain, the planner receives the previous valid plan plus
+the exact issue list and gets one minimal full-plan rewrite attempt.
+
+Use this to test whether upstream repair reduces Plan Readiness load before
+drafting. It is not an auto-repair path and should stay diagnostic until a
+cohort proves downstream value.
+
 ## Run/Thread Follow-Up
 
 Before adding more planner prompt variants, route the POC through L093:

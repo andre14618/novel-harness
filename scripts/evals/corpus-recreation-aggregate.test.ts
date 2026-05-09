@@ -16,7 +16,7 @@ describe("corpus-recreation-aggregate", () => {
       const pocDir = join(root, "poc-ch1")
       writeJson(join(pocDir, "packet.json"), {
         sourceReference: { book: "crystal_shard", chapterLabel: "1" },
-        diagnosticConfig: { plannerVariant: "materiality-v1", writerContextMode: "thread-context-v1" },
+        diagnosticConfig: { plannerVariant: "materiality-v1", plannerContractRetryMode: "structural-v1", writerContextMode: "thread-context-v1" },
       })
       writeJson(join(pocDir, "plan-comparison.json"), {
         sceneCount: { expected: 2, actual: 2 },
@@ -77,6 +77,7 @@ describe("corpus-recreation-aggregate", () => {
       expect(aggregate.rows[0]).toMatchObject({
         chapterLabel: "1",
         plannerVariant: "materiality-v1",
+        plannerContractRetryMode: "structural-v1",
         writerContextMode: "thread-context-v1",
         actualScenes: 2,
         expectedScenes: 2,
@@ -101,7 +102,7 @@ describe("corpus-recreation-aggregate", () => {
 
       const rendered = renderCorpusRecreationAggregate(aggregate)
       expect(rendered).toContain("choices 2/2; ids 2/2; threads 2/2; thread-ref-mismatch p1/y1; conseq 1/2")
-      expect(rendered).toContain("| 1 | materiality-v1 + thread-context-v1 |")
+      expect(rendered).toContain("| 1 | materiality-v1 + planner-contract-structural-v1 + thread-context-v1 |")
       expect(rendered).toContain("Warnings")
       expect(rendered).toContain("scene-floor 1")
       expect(rendered).toContain("4 tasks; low 1; skips 1")

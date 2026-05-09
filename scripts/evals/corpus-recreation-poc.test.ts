@@ -12,6 +12,8 @@ import {
   comparePlanToReference,
   ModelJsonParseError,
   parseJsonResponseContent,
+  planContractRetryIssues,
+  plannerContractRetryPrompt,
   plannerUserPrompt,
   plannerRetryPrompt,
   plannerSchemaRetryPrompt,
@@ -19,6 +21,7 @@ import {
   parseExampleSceneOutput,
   sceneThreadContextForPrompt,
   sceneWriterUserPrompt,
+  shouldRetryPlannerContract,
   shouldRetryShortScene,
 } from "./corpus-recreation-poc"
 
@@ -266,6 +269,56 @@ describe("corpus-recreation-poc", () => {
     expect(comparison.issues.some(issue =>
       issue.includes("local named characters missing requiredCharacterIds/source obligation: char-tovin-ash")
     )).toBe(true)
+  })
+
+  test("planner contract retry is default-off and scopes repair to deterministic structural issues", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+      plannerVariant: "causal-materiality-v2",
+      plannerContractRetryMode: "structural-v1",
+    })
+    const missingCharacterRefs = structuredClone(plan())
+    missingCharacterRefs.scenes[0] = {
+      ...missingCharacterRefs.scenes[0]!,
+      requiredCharacterIds: [],
+      opposition: "Tovin watches from the ward post.",
+    }
+    missingCharacterRefs.obligations = missingCharacterRefs.obligations.filter(obligation =>
+      !(obligation.sceneId === "analog-sc01" && obligation.sourceId === "char-tovin-ash")
+    )
+
+    const comparison = comparePlanToReference(missingCharacterRefs, packet, { requireMaterialityTests: true })
+    const retryIssues = planContractRetryIssues(comparison)
+    const retryPrompt = plannerContractRetryPrompt(packet, "causal-materiality-v2", comparison, missingCharacterRefs)
+
+    expect(retryIssues.some(issue => issue.includes("scene contract weak for analog-sc01"))).toBe(true)
+    expect(shouldRetryPlannerContract({
+      plannerContractRetryMode: "none",
+      attempt: 1,
+      maxAttempts: 2,
+      comparison,
+    })).toBe(false)
+    expect(shouldRetryPlannerContract({
+      plannerContractRetryMode: "structural-v1",
+      attempt: 1,
+      maxAttempts: 2,
+      comparison,
+    })).toBe(true)
+    expect(shouldRetryPlannerContract({
+      plannerContractRetryMode: "structural-v1",
+      attempt: 2,
+      maxAttempts: 2,
+      comparison,
+    })).toBe(false)
+    expect(retryPrompt).toContain("CONTRACT REPAIR INSTRUCTION")
+    expect(retryPrompt).toContain("complete fresh JSON")
+    expect(retryPrompt).toContain("Previous valid plan to minimally repair")
+    expect(retryPrompt).toContain("requiredCharacterIds")
+    expect(retryPrompt).toContain("scene contract weak for analog-sc01")
+    expect(retryPrompt).toContain("\"sceneId\": \"analog-sc01\"")
   })
 
   test("uses affectedCharacterIds for consequence-only character impact refs", () => {
@@ -650,12 +703,15 @@ describe("corpus-recreation-poc", () => {
 
       expect(outputPacket.sourceReference.chapterLabel).toBe("source-packet-chapter")
       expect(outputPacket.diagnosticConfig.plannerVariant).toBe("materiality-v1")
+      expect(outputPacket.diagnosticConfig.plannerContractRetryMode).toBe("none")
       expect(outputPacket.diagnosticConfig.writerContextMode).toBe("thread-context-v1")
       expect(outputPacket.diagnosticConfig.writerExpansionMode).toBe("retry-short-scenes-v1")
       expect(report).toContain("Reference: test_book chapter source-packet-chapter")
+      expect(report).toContain("Planner contract retry: none")
       expect(report).toContain("Writer expansion: retry-short-scenes-v1")
       expect(manifest.variantId).toBe("materiality-v1 + thread-context-v1 + retry-short-scenes-v1")
       expect(manifest.metadata.chapterLabel).toBe("source-packet-chapter")
+      expect(manifest.metadata.plannerContractRetryMode).toBe("none")
       expect(manifest.metadata.writerExpansionMode).toBe("retry-short-scenes-v1")
       expect(manifest.inputs.some((input: any) => input.role === "source-packet")).toBe(true)
     } finally {
