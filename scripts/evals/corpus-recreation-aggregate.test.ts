@@ -27,6 +27,8 @@ describe("corpus-recreation-aggregate", () => {
           knownSourceIdCount: 2,
           knownThreadRefCount: 2,
           orphanPayoffRefCount: 0,
+          promiseThreadMismatchCount: 1,
+          payoffThreadMismatchCount: 1,
           observableConsequenceCount: 1,
         },
         issues: ["scene contract weak for scene-b"],
@@ -74,13 +76,15 @@ describe("corpus-recreation-aggregate", () => {
         chapterWarningCount: 1,
         sceneMinimumFailures: 1,
         contractObservableConsequenceCount: 1,
+        contractPromiseThreadMismatchCount: 1,
+        contractPayoffThreadMismatchCount: 1,
         semanticTaskCount: 4,
         semanticSkipCount: 1,
         semanticLowCount: 1,
       })
 
       const rendered = renderCorpusRecreationAggregate(aggregate)
-      expect(rendered).toContain("choices 2/2; ids 2/2; threads 2/2; conseq 1/2")
+      expect(rendered).toContain("choices 2/2; ids 2/2; threads 2/2; thread-ref-mismatch p1/y1; conseq 1/2")
       expect(rendered).toContain("| 1 | materiality-v1 + thread-context-v1 |")
       expect(rendered).toContain("Warnings")
       expect(rendered).toContain("scene-floor 1")

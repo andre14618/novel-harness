@@ -219,7 +219,8 @@ First controlled smoke on 2026-05-09 did not support promotion: baseline beat
 prose review tied, and the context arm drafted shorter prose. See
 `docs/sessions/2026-05-09-writer-context-ab-smoke.md`.
 Follow-up deterministic plan comparison now surfaces promise/payoff refs that
-belong to a different thread before writer-context tests run.
+belong to a different thread before writer-context tests run; aggregate reports
+surface those mismatch counts in the contract column.
 
 ### Lane 5 - Scene Thread Semantic Review
 

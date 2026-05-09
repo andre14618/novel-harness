@@ -61,6 +61,8 @@ export interface CorpusRecreationAggregateRow {
   contractKnownSourceIdCount: number
   contractKnownThreadRefCount: number
   contractOrphanPayoffRefCount: number
+  contractPromiseThreadMismatchCount: number
+  contractPayoffThreadMismatchCount: number
   contractObservableConsequenceCount: number
   semanticTaskCount: number
   semanticSkipCount: number
@@ -191,6 +193,8 @@ function readPocRow(pocDir: string): CorpusRecreationAggregateRow {
     contractKnownSourceIdCount: numberOrZero(sceneContract.knownSourceIdCount),
     contractKnownThreadRefCount: numberOrZero(sceneContract.knownThreadRefCount),
     contractOrphanPayoffRefCount: numberOrZero(sceneContract.orphanPayoffRefCount),
+    contractPromiseThreadMismatchCount: numberOrZero(sceneContract.promiseThreadMismatchCount),
+    contractPayoffThreadMismatchCount: numberOrZero(sceneContract.payoffThreadMismatchCount),
     contractObservableConsequenceCount: numberOrZero(sceneContract.observableConsequenceCount),
     semanticTaskCount: numberOrZero(semantic.taskCount),
     semanticSkipCount: numberOrZero(semantic.skipCount),
@@ -275,6 +279,9 @@ function formatContract(row: CorpusRecreationAggregateRow): string {
     `ids ${row.contractKnownSourceIdCount}/${row.contractTotal}`,
     `threads ${row.contractKnownThreadRefCount}/${row.contractTotal}`,
     ...(row.contractOrphanPayoffRefCount ? [`payoff-orphans ${row.contractOrphanPayoffRefCount}`] : []),
+    ...(row.contractPromiseThreadMismatchCount || row.contractPayoffThreadMismatchCount
+      ? [`thread-ref-mismatch p${row.contractPromiseThreadMismatchCount}/y${row.contractPayoffThreadMismatchCount}`]
+      : []),
     `conseq ${row.contractObservableConsequenceCount}/${row.contractTotal}`,
   ].join("; ")
 }
