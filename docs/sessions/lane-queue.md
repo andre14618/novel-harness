@@ -37,7 +37,7 @@ unless the user explicitly requests a disposable branch.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.
-- Corpus structure recreation is active: exact-ID scene-call samples across chapters 1, 2, 5, and 8 held deterministic scene/ID/source-boundary shape. `causal-materiality-v2` is the current best planner diagnostic but shortened prose and left 8 character-context gaps; default-off `retry-short-scenes-v1` improved fixed-plan prose length from 6604/11061 to 8817/11061 while staying semantic/prose low-free. Default-off `--planner-contract-retry structural-v1` now retries valid-but-weak plans with the prior plan plus exact deterministic issue list; ch1/ch8 plan-only smoke closed plan issues and character-ref gaps to 0, with clean thread maps. Next: draft/semantic-test contract-retry plans before promotion, or use Plan Readiness for exact gaps in existing plans.
+- Corpus structure recreation is active: `causal-materiality-v2` is the current best planner diagnostic; contract retry cleaned ch1/ch8 plan/character gaps, writer expansion fixed short-prose warnings, and the combined drafted arm was deterministic-clean and semantic/prose low-free at 0.76/0.77 word ratios. Next broaden the combined arm or move exact gaps through Plan Readiness before promotion.
 - Review `docs/method-packs/commercial-fantasy-adventure-v0.md` as the first
   general method-pack charter before implementing template definitions,
   fixtures, or planner prompt changes.

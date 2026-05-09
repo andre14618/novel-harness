@@ -947,3 +947,35 @@ Result:
 Interpretation: upstream plan-contract retry is a stronger next hypothesis than
 manual character-ref cleanup for new plans. It should remain default-off until
 the repaired plans are drafted and judged for semantic/prose quality.
+
+## Planner Contract Retry + Writer Expansion Factorial
+
+Drafted the repaired ch1/ch8 plans and compared four held-shape arms:
+
+- `causal-materiality-v2`;
+- `causal-materiality-v2 + retry-short-scenes-v1`;
+- `causal-materiality-v2 + planner-contract-structural-v1`;
+- `causal-materiality-v2 + planner-contract-structural-v1 + retry-short-scenes-v1`.
+
+Evidence:
+
+- `output/corpus-recreation-poc/causal-v2-contract-retry-expansion-factorial-r1.md`
+- `output/corpus-recreation-poc/causal-v2-contract-retry-expansion-factorial-review-r1.html`
+
+Result:
+
+- ch1 combined arm: 1393/1832 words, ratio 0.76; no deterministic issues,
+  no warnings, clean character-context packets, clean thread map;
+- ch8 combined arm: 2796/3621 words, ratio 0.77; no deterministic issues,
+  no warnings, clean character-context packets, clean thread map;
+- contract retry without expansion cleaned plan/character/thread issues but
+  stayed short at 0.63 ratio for both chapters;
+- expansion without contract retry improved word ratios to 0.90 and 0.84 but
+  preserved the baseline plan and character-context gaps;
+- semantic and prose reviews stayed low-free in both combined cells.
+
+Interpretation: the two default-off diagnostics are orthogonal. Planner
+contract retry repairs upstream plan/ID/character-context defects; writer
+expansion repairs the short-prose symptom. The combined arm is the current best
+POC shape, but the evidence is still limited to two drafted chapters and should
+remain diagnostic until broadened.
