@@ -107,3 +107,57 @@ test("renderBeatContext omits readerInfoState section when slot is null", () => 
   const rendered = renderBeatContext(ctx, { compact: false })
   expect(rendered).not.toContain("READER-INFO STATE:")
 })
+
+test("renderBeatContext emits character context capsules when supplied", () => {
+  const ctx: BeatContext = {
+    beatSpec: {
+      beatNumber: 1,
+      totalBeats: 1,
+      pov: "Noor",
+      setting: "Deep Stacks",
+      kind: "dialogue",
+      description: "Noor chooses whether to trust Cassius.",
+      charactersPresent: ["Noor", "Cassius"],
+      seeds: [],
+      payoffsDue: [],
+      obligations: {
+        mustEstablish: [], mustPayOff: [], mustTransferKnowledge: [],
+        mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [],
+      },
+    },
+    transitionBridge: null,
+    landingTarget: null,
+    characterSnapshots: [],
+    characterContextCapsules: {
+      mode: "thread-character-context-v1",
+      scope: "beat",
+      chapterId: "ch-001-deep-stacks",
+      beatId: "beat-001-trust-choice",
+      beatNumber: 1,
+      povCharacterId: "char-noor",
+      povPersonalStake: "Noor's need to be useful conflicts with her fear of being erased.",
+      cards: [{
+        characterId: "char-noor",
+        name: "Noor",
+        role: "protagonist",
+        sceneRole: "pov",
+        want: "Preserve the folio's truth.",
+        need: "Trust someone else with danger.",
+        sourceObligationIds: ["obl-trust-choice"],
+        activeThreadIds: ["thread-inquiry"],
+        activePromiseIds: ["debt-folio"],
+        activePayoffIds: [],
+      }],
+      missingCharacterIds: [],
+    },
+    resolvedReferencesText: "RESOLVED REFERENCES:\n- folio",
+    readerInfoState: null,
+    setting: null,
+  }
+
+  const rendered = renderBeatContext(ctx, { compact: false })
+  expect(rendered).toContain("CHARACTER CONTEXT CAPSULES:")
+  expect(rendered).toContain("POV personal stake: Noor's need to be useful")
+  expect(rendered).toContain("- Noor [char-noor] (pov; protagonist)")
+  expect(rendered.indexOf("CHARACTER CONTEXT CAPSULES:")).toBeLessThan(rendered.indexOf("RESOLVED REFERENCES:"))
+})

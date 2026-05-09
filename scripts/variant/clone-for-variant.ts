@@ -80,6 +80,7 @@ interface Args {
   target: string
   targetPhase: TargetPhase
   factRoleContextPolicy: "legacy" | "role-aware" | null
+  writerContextMode: "legacy" | "thread-character-context-v1" | null
 }
 
 function parseArgs(): Args {
@@ -88,6 +89,7 @@ function parseArgs(): Args {
   let target: string | null = null
   let targetPhase: TargetPhase = "drafting"
   let factRoleContextPolicy: Args["factRoleContextPolicy"] = null
+  let writerContextMode: Args["writerContextMode"] = null
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--source") source = args[++i] ?? null
     else if (args[i] === "--target") target = args[++i] ?? null
@@ -105,13 +107,21 @@ function parseArgs(): Args {
         process.exit(1)
       }
       factRoleContextPolicy = val
+    } else if (args[i] === "--writer-context-mode") {
+      const val = args[++i] ?? null
+      if (val !== "legacy" && val !== "thread-character-context-v1") {
+        console.error(`--writer-context-mode must be 'legacy' or 'thread-character-context-v1', got '${val}'`)
+        process.exit(1)
+      }
+      writerContextMode = val
     }
   }
   if (!source || !target) {
     console.error(
       "Usage: bun scripts/variant/clone-for-variant.ts \\\n" +
       "         --source <id> --target <id> [--target-phase drafting|concept-done] " +
-      "[--fact-role-context-policy legacy|role-aware]"
+      "[--fact-role-context-policy legacy|role-aware] " +
+      "[--writer-context-mode legacy|thread-character-context-v1]"
     )
     process.exit(1)
   }
@@ -119,7 +129,7 @@ function parseArgs(): Args {
     console.error("--source and --target must differ.")
     process.exit(1)
   }
-  return { source, target, targetPhase, factRoleContextPolicy }
+  return { source, target, targetPhase, factRoleContextPolicy, writerContextMode }
 }
 
 /** Tables cloned in BOTH modes (concept-side state + per-novel config). */
@@ -164,7 +174,7 @@ const CONCEPT_DONE_MUST_BE_ABSENT = [
 ] as const
 
 async function main() {
-  const { source, target, targetPhase, factRoleContextPolicy } = parseArgs()
+  const { source, target, targetPhase, factRoleContextPolicy, writerContextMode } = parseArgs()
 
   // Pre-flight: target must not exist, source must exist.
   const [{ exists: targetExists } = { exists: false }] = await db`
@@ -207,6 +217,24 @@ async function main() {
               ),
               '{pipelineOverrides,factRoleContextPolicy}',
               to_jsonb(${factRoleContextPolicy}::text),
+              true
+            ),
+            updated_at = now()
+        WHERE id = ${target}
+      `
+    }
+    if (writerContextMode) {
+      await tx`
+        UPDATE novels
+        SET seed_json = jsonb_set(
+              jsonb_set(
+                seed_json,
+                '{pipelineOverrides}',
+                COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+                true
+              ),
+              '{pipelineOverrides,writerContextMode}',
+              to_jsonb(${writerContextMode}::text),
               true
             ),
             updated_at = now()
@@ -401,6 +429,9 @@ async function main() {
   console.log(`\n  Cloned ${source} → ${target} (phase='${targetNovelPhase}', current_chapter=1)`)
   if (factRoleContextPolicy) {
     console.log(`  factRoleContextPolicy=${factRoleContextPolicy}`)
+  }
+  if (writerContextMode) {
+    console.log(`  writerContextMode=${writerContextMode}`)
   }
 }
 

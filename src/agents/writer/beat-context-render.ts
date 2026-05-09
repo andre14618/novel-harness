@@ -24,6 +24,7 @@
  */
 
 import type { BeatContext, BeatSpec, CharacterSnapshot, SettingBlock } from "./beat-context"
+import { renderCharacterContextCapsules } from "./character-context"
 
 export function renderBeatContext(ctx: BeatContext, opts: { compact: boolean }): string {
   const sections: string[] = []
@@ -48,6 +49,10 @@ export function renderBeatContext(ctx: BeatContext, opts: { compact: boolean }):
     } else {
       sections.push(`CHARACTERS:\n${renderCharactersFull(ctx.characterSnapshots)}`)
     }
+  }
+
+  if (ctx.characterContextCapsules) {
+    sections.push(renderCharacterContextCapsules(ctx.characterContextCapsules))
   }
 
   // ── 5. Resolved references ────────────────────────────────────────────

@@ -104,8 +104,11 @@ export function effectivePipeline(seed: SeedInput): typeof pipeline {
     continuityEditorialFlagProposals:
       o.continuityEditorialFlagProposals ?? pipeline.continuityEditorialFlagProposals,
     factRoleContextPolicy: o.factRoleContextPolicy ?? pipeline.factRoleContextPolicy,
+    writerContextMode: o.writerContextMode ?? pipeline.writerContextMode,
     planningMaxBeatsPerChapter:
       o.planningMaxBeatsPerChapter ?? pipeline.planningMaxBeatsPerChapter,
+    nativePlanningContractV1:
+      o.nativePlanningContractV1 ?? pipeline.nativePlanningContractV1,
   }
 }
 
@@ -165,6 +168,9 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
   }
   if (eff.factRoleContextPolicy !== pipeline.factRoleContextPolicy) {
     log(novelId, "info", `Drafting: pipelineOverrides applied — factRoleContextPolicy=${eff.factRoleContextPolicy}`)
+  }
+  if (eff.writerContextMode !== pipeline.writerContextMode) {
+    log(novelId, "info", `Drafting: pipelineOverrides applied — writerContextMode=${eff.writerContextMode}`)
   }
 
   console.log(`  Drafting ${totalChapters} chapters (approved chapters will be skipped)\n`)
@@ -338,6 +344,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               preResolvedRefs: preResolvedRefs[bi],
               genre: novel.seed?.genre,
               priorChapterFacts,
+              writerContextMode: eff.writerContextMode,
             })
 
             let beatProse: string | null = null
@@ -485,7 +492,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             console.log("  Beat generation incomplete, falling back to chapter-level...")
             log(novelId, "info", `Beat fallback → chapter-level for chapter ${ch}`)
             clearAbandonedBeatLevelState({ beatProses, acceptedBeatCheckIssues })
-            const writerContext = await buildWriterContext(novelId, ch)
+            const writerContext = await buildWriterContext(novelId, ch, { writerContextMode: eff.writerContextMode })
             const draftResult = await callAgent({
               novelId, agentName: "writer",
               chapter: ch, attempt: attempts,
@@ -507,7 +514,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
         // ── Chapter-level generation (existing path) ────────────────────
         let writerContext: string
         try {
-          writerContext = await buildWriterContext(novelId, ch)
+          writerContext = await buildWriterContext(novelId, ch, { writerContextMode: eff.writerContextMode })
         } catch (err) {
           log(novelId, "error", `Context assembly failed for chapter ${ch}: ${err}`)
           console.error(`  Error assembling context: ${err instanceof Error ? err.message : err}`)
@@ -704,6 +711,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 preResolvedRefs: preResolved,
                 genre: novel.seed?.genre,
                 priorChapterFacts,
+                writerContextMode: eff.writerContextMode,
               })
               const priorProse = beatProses[bi]
               const retryContext = `\n\n--- TARGETED REWRITE (chapter-plan check) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nChapter-plan issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
@@ -996,6 +1004,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               preResolvedRefs: preResolved,
               genre: novel.seed?.genre,
               priorChapterFacts,
+              writerContextMode: eff.writerContextMode,
             })
             const priorProse = beatProses[bi]
             const retryContext = `\n\n--- TARGETED REWRITE (validation) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nValidation issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
@@ -1565,6 +1574,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   preResolvedRefs: preResolved,
                   genre: novel.seed?.genre,
                   priorChapterFacts,
+                  writerContextMode: eff.writerContextMode,
                 })
                 const priorProse = beatProses[bi]
                 const retryContext = `\n\n--- TARGETED REWRITE (chapter integrity check) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nIntegrity issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`

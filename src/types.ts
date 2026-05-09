@@ -28,6 +28,7 @@ export interface SeedInput {
     editorialBeatCoverageProposals?: boolean
     continuityEditorialFlagProposals?: boolean
     factRoleContextPolicy?: import("./harness/fact-roles").FactRoleContextPolicy
+    writerContextMode?: import("./agents/writer/context-mode").WriterContextMode
     planningMaxBeatsPerChapter?: number | null
     nativePlanningContractV1?: boolean
   }

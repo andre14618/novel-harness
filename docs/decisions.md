@@ -16,6 +16,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
+| L94 | 2026-05-09 | active | Production drafting defaults to exact-ID character context capsules after fixed-plan POC evidence improved expansion without semantic/prose regressions. | `docs/decisions/L094-production-character-context-default.md` |
 | L93 | 2026-05-09 | active | Extend existing run/stable-ref traceability into run lineage and narrative thread/payoff coherence; prove refs and static review before writer changes. | `docs/decisions/L093-run-thread-id-drafting-coherence.md` |
 | L92 | 2026-05-09 | active | Scene is the next primary plan/write/check unit; beats remain annotation, obligation, and traceability granularity inside scenes while legacy beat checks are adapted upward where useful. | `docs/decisions/L092-scene-first-writing-beat-annotation.md` |
 | L91 | 2026-05-07 | active | Plan Readiness Review is the default checkpoint between planner diagnostics and drafting when diagnostics are available; items are conversational/manual and become changes only through `planning_edit` proposals. | `docs/decisions/L091-plan-readiness-review-default.md` |

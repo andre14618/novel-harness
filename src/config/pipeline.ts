@@ -1,4 +1,5 @@
 import type { FactRoleContextPolicy } from "../harness/fact-roles"
+import { DEFAULT_WRITER_CONTEXT_MODE, type WriterContextMode } from "../agents/writer/context-mode"
 
 export const pipeline = {
   // Drafting
@@ -49,6 +50,12 @@ export const pipeline = {
   // all loaded facts. Per-novel `role-aware` drops hidden facts from writer
   // context and sends only operational facts to continuity blocking checks.
   factRoleContextPolicy: "legacy" as FactRoleContextPolicy,
+
+  // Production writer-context mode. Default-on because fixed-plan POC evidence
+  // showed exact-ID character capsules improved scene expansion and reduced
+  // floor warnings without adding semantic/prose regressions. Override to
+  // "legacy" per seed when isolating old prompt shape.
+  writerContextMode: DEFAULT_WRITER_CONTEXT_MODE as WriterContextMode,
 
   // Diagnostic/A-B planning shape lever. Default null leaves planner behavior
   // unchanged. Per-novel overrides cap generated planning beats before state

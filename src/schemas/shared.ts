@@ -116,6 +116,9 @@ export const MICE_CLOSES_THREADS = ["M", "I", "C", "E"] as const
 
 export const sceneBeatSchema = z.object({
   description: z.string(),
+  // Optional planner-authored personal pressure behind the scene/beat choice.
+  // It is advisory context for the writer, not a checker blocker.
+  povPersonalStake: z.coerce.string().optional(),
   characters: z.array(z.string()).default([]),
   kind: z.enum(BEAT_KINDS).default("action").catch("action"),
   // Stable beat ID assigned by harness/ids.ts after planning-beats expansion;

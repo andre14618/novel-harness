@@ -31,6 +31,8 @@ import {
 import { getContextTemplate, interpolate as tplInterp } from "../../db/context-templates"
 import type { StorySpine, NovelState, CharacterProfile } from "../../types"
 import type { WorldSystem } from "../../db/world-systems"
+import { buildChapterCharacterContextCapsules, renderCharacterContextCapsules } from "./character-context"
+import type { WriterContextMode } from "./context-mode"
 
 /** Attempt a DB lookup that may legitimately return no data (novel hasn't reached that stage yet).
  *  Only catches "not found" style errors. Real errors (connection, schema) propagate. */
@@ -49,7 +51,11 @@ async function tryGet<T>(fn: () => Promise<T>): Promise<T | null> {
   }
 }
 
-export async function buildContext(novelId: string, chapterNum: number): Promise<string> {
+export async function buildContext(
+  novelId: string,
+  chapterNum: number,
+  opts: { writerContextMode?: WriterContextMode } = {},
+): Promise<string> {
   const outline = await getChapterOutline(novelId, chapterNum)
   const allChars = await getCharacters(novelId)
   const worldBible = await getWorldBible(novelId)
@@ -75,6 +81,16 @@ export async function buildContext(novelId: string, chapterNum: number): Promise
 
   // ── FIXED: Character Profiles + Relationship Arcs ──────────────────────
   sections.push(await formatCharacterProfiles(novelId, povChar, relevantChars, chapterNum))
+  if (opts.writerContextMode === "thread-character-context-v1") {
+    const characterStates = await tryGet(() => getCharacterStatesAtChapter(novelId, chapterNum)) ?? []
+    const capsules = buildChapterCharacterContextCapsules({
+      outline,
+      relevantCharacters: relevantChars,
+      allCharacters: allChars,
+      characterStates,
+    })
+    if (capsules) sections.push(renderCharacterContextCapsules(capsules))
+  }
 
   // ── DYNAMIC: Semantic retrieval or minimal fallback ─────────────────────
   const embedsReady = await hasEmbeddings(novelId)

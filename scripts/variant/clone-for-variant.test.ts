@@ -25,3 +25,9 @@ test("variant clone can set factRoleContextPolicy on target seed pipelineOverrid
   expect(SOURCE).toContain("'{pipelineOverrides,factRoleContextPolicy}'")
   expect(SOURCE).toContain("to_jsonb(${factRoleContextPolicy}::text)")
 })
+
+test("variant clone can set writerContextMode on target seed pipelineOverrides", () => {
+  expect(SOURCE).toContain("--writer-context-mode")
+  expect(SOURCE).toContain("'{pipelineOverrides,writerContextMode}'")
+  expect(SOURCE).toContain("to_jsonb(${writerContextMode}::text)")
+})

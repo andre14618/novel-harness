@@ -41,6 +41,8 @@ import { getRelationshipBetween } from "../../db"
 import { resolveReferences, type ResolvedReferences } from "./reference-resolver"
 import { renderBeatContext } from "./beat-context-render"
 import { selectReaderInfoStateForBeat } from "./enriched-context"
+import { buildBeatCharacterContextCapsules, type WriterCharacterContextCapsules } from "./character-context"
+import type { WriterContextMode } from "./context-mode"
 import type { BeatObligationsContract, ChapterOutline, CharacterProfile, Fact, SceneBeat } from "../../types"
 
 // ── exampleLines conditioning presets ────────────────────────────────────
@@ -84,6 +86,9 @@ export interface BeatContextInput {
    *  also gates on `chapterNumber > 1`, so passing facts for chapter 1
    *  has no effect (they belong to chapter 1's plan, not prior state). */
   priorChapterFacts?: Fact[]
+  /** Optional production context upgrade. Omitted means legacy prompt shape,
+   *  preserving byte-parity tests and offline eval callers. */
+  writerContextMode?: WriterContextMode
 }
 
 export interface BeatContextResult {
@@ -172,6 +177,7 @@ export interface BeatContext {
    *  …` section. Null when chapterNumber === 1 (nothing prior), when no
    *  prior facts were passed, or when the renderer found no signal. */
   readerInfoState: string | null
+  characterContextCapsules?: WriterCharacterContextCapsules | null
   /** Setting payload — null when section is suppressed (not beat 0 AND no
    *  location-change heuristic fire) OR no matching world-bible location. */
   setting: SettingBlock | null
@@ -277,6 +283,9 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
   const readerInfoState = selectReaderInfoStateForBeat(
     chapterNumber, input.priorChapterFacts, outline, beat, characters, characterStates,
   )
+  const characterContextCapsules = input.writerContextMode === "thread-character-context-v1"
+    ? buildBeatCharacterContextCapsules({ outline, beat, beatIndex, characters, characterStates })
+    : null
 
   return {
     beatSpec,
@@ -285,6 +294,7 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
     characterSnapshots,
     resolvedReferencesText,
     readerInfoState,
+    characterContextCapsules,
     setting,
   }
 }
