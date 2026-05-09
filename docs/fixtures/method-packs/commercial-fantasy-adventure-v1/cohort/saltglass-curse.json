@@ -1,0 +1,141 @@
+{
+  "diagnosticId": "cfa-v1-cohort-saltglass-curse",
+  "methodPackId": "commercial-fantasy-adventure-v1",
+  "templateId": "commercial-24-flex-v1",
+  "targetSlots": [
+    {
+      "structureSlotId": "CFA-01",
+      "structureJob": "Pressure baseline",
+      "planningTest": "Show what the protagonist wants, lacks, or cannot tolerate before the story changes."
+    },
+    {
+      "structureSlotId": "CFA-04",
+      "structureJob": "Invitation to danger",
+      "planningTest": "Present the concrete path into the story problem."
+    },
+    {
+      "structureSlotId": "CFA-06",
+      "structureJob": "First irreversible step",
+      "planningTest": "End the opening with a choice or consequence that prevents easy retreat."
+    },
+    {
+      "structureSlotId": "CFA-11",
+      "structureJob": "Major reversal",
+      "planningTest": "Reveal information or opposition that changes what the protagonist thinks the story is."
+    },
+    {
+      "structureSlotId": "CFA-17",
+      "structureJob": "Forced truth",
+      "planningTest": "Confront the protagonist with the flaw, false belief, or missing knowledge."
+    },
+    {
+      "structureSlotId": "CFA-22",
+      "structureJob": "Defining choice",
+      "planningTest": "Make victory depend on a meaningful choice, not only force or luck."
+    }
+  ],
+  "concept": {
+    "genreProfileId": "general-commercial-fantasy-adventure",
+    "premise": "Neris Kael, a tide-priest who can read memories trapped in saltglass, learns that her island's protective curse is built from stolen names. To save the fleet from a coming ghost tide, she must break the curse without freeing the admiral who created it.",
+    "readerPromise": "A sea-haunted fantasy adventure about memory, guilt, and whether protection built on theft deserves to survive.",
+    "centralConflict": "Neris needs the saltglass ward to protect the islands, while Admiral Corven's loyalists need the same ward to keep his crimes buried.",
+    "protagonist": {
+      "characterId": "char-neris-kael",
+      "name": "Neris Kael",
+      "desire": "become the ward's official keeper and protect the harbor fleet",
+      "fear": "learning that her own family benefited from the stolen names",
+      "flaw": "she treats confession as enough and avoids making reparations that cost power"
+    },
+    "characters": [
+      {
+        "characterId": "char-lio-mar",
+        "name": "Lio Mar",
+        "role": "supporting",
+        "materiality": "A wreck diver who lost a sibling to the ward and demands action instead of rituals."
+      },
+      {
+        "characterId": "char-vela-sorn",
+        "name": "Vela Sorn",
+        "role": "supporting",
+        "materiality": "The harbor captain needs the ward intact tonight but knows which ships carried stolen prisoners."
+      },
+      {
+        "characterId": "char-admiral-corven",
+        "name": "Admiral Corven",
+        "role": "antagonist",
+        "materiality": "A dead admiral whose preserved command can still redirect the ghost tide through saltglass orders."
+      }
+    ],
+    "worldFacts": [
+      {
+        "worldFactId": "world-saltglass-memory",
+        "fact": "Saltglass stores the final true name spoken over seawater and replays it when struck by moonlight."
+      },
+      {
+        "worldFactId": "world-ghost-tide",
+        "fact": "The ghost tide returns every ninth year and follows any ship whose dead are unnamed."
+      },
+      {
+        "worldFactId": "world-ward-bargain",
+        "fact": "The harbor ward protects named citizens by redirecting danger toward people whose names were stolen."
+      }
+    ],
+    "storyPromise": {
+      "promiseId": "promise-break-ward",
+      "text": "If Neris uncovers the stolen names, she can redirect the ghost tide but must decide who loses protection."
+    },
+    "constraints": [
+      "Produce planning contracts only, not prose.",
+      "Use scene contracts as the generation and adherence unit.",
+      "Make character and world obligations materially affect choices, costs, or consequences.",
+      "Keep the diagnostic to six chapter-contract units.",
+      "Preserve the Snowflake-lite strategy packet in chapter and scene contracts.",
+      "Route storyDebtId values into obligations and scene requiredSourceIds."
+    ],
+    "strategyPacket": {
+      "strategyPacketId": "strategy-saltglass-curse-v1",
+      "logline": "A tide-priest breaks a protective curse built from stolen names.",
+      "paragraphSummary": "Neris wants to become keeper of the harbor ward before the ghost tide returns. Saltglass memories reveal the ward protects citizens by redirecting danger toward stolen-name victims. Lio demands reparations while Vela needs the ward intact for tonight's fleet. Admiral Corven's preserved command can still redirect the tide and protect his crimes. Neris must break the theft-backed bargain without freeing Corven's command.",
+      "majorReversals": [
+        "The protective ward survives by redirecting danger toward unnamed victims.",
+        "Neris's family may have benefited from the stolen-name bargain.",
+        "Breaking the ward can free Admiral Corven's preserved command."
+      ],
+      "endingDirection": "Neris names the stolen dead, redirects the ghost tide away from victims, and limits the ward's power.",
+      "readerPromise": "A sea-haunted adventure where memory, guilt, and reparations decide what protection deserves to survive.",
+      "protagonistWant": "become the ward's official keeper and protect the harbor fleet",
+      "protagonistNeed": "make reparations that cost power instead of treating confession as enough",
+      "protagonistLie": "naming guilt is enough to repair stolen protection",
+      "protagonistTruth": "protection built on theft must give power back",
+      "antagonistPressure": "Admiral Corven's preserved command can redirect the ghost tide through saltglass orders.",
+      "worldPressureRule": "Saltglass stores true names, and the ghost tide follows ships whose dead remain unnamed."
+    },
+    "storyDebts": [
+      {
+        "storyDebtId": "debt-break-ward",
+        "promiseText": "Neris can redirect the ghost tide if she uncovers the stolen names.",
+        "openedBySlotId": "CFA-01",
+        "expectedProgressSlotIds": [
+          "CFA-04",
+          "CFA-06",
+          "CFA-11",
+          "CFA-17"
+        ],
+        "expectedPayoffSlotId": "CFA-22",
+        "payoffPolicy": "Pay off when Neris names victims and changes who the ward protects."
+      },
+      {
+        "storyDebtId": "debt-reparation-cost",
+        "promiseText": "Neris must learn whether confession without cost is empty.",
+        "openedBySlotId": "CFA-01",
+        "expectedProgressSlotIds": [
+          "CFA-04",
+          "CFA-11",
+          "CFA-17"
+        ],
+        "expectedPayoffSlotId": "CFA-22",
+        "payoffPolicy": "Pay off when Neris gives up ward power to repair stolen-name harm."
+      }
+    ]
+  }
+}

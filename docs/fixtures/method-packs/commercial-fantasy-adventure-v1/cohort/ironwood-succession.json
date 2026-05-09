@@ -1,0 +1,141 @@
+{
+  "diagnosticId": "cfa-v1-cohort-ironwood-succession",
+  "methodPackId": "commercial-fantasy-adventure-v1",
+  "templateId": "commercial-24-flex-v1",
+  "targetSlots": [
+    {
+      "structureSlotId": "CFA-01",
+      "structureJob": "Pressure baseline",
+      "planningTest": "Show what the protagonist wants, lacks, or cannot tolerate before the story changes."
+    },
+    {
+      "structureSlotId": "CFA-04",
+      "structureJob": "Invitation to danger",
+      "planningTest": "Present the concrete path into the story problem."
+    },
+    {
+      "structureSlotId": "CFA-06",
+      "structureJob": "First irreversible step",
+      "planningTest": "End the opening with a choice or consequence that prevents easy retreat."
+    },
+    {
+      "structureSlotId": "CFA-11",
+      "structureJob": "Major reversal",
+      "planningTest": "Reveal information or opposition that changes what the protagonist thinks the story is."
+    },
+    {
+      "structureSlotId": "CFA-17",
+      "structureJob": "Forced truth",
+      "planningTest": "Confront the protagonist with the flaw, false belief, or missing knowledge."
+    },
+    {
+      "structureSlotId": "CFA-22",
+      "structureJob": "Defining choice",
+      "planningTest": "Make victory depend on a meaningful choice, not only force or luck."
+    }
+  ],
+  "concept": {
+    "genreProfileId": "general-commercial-fantasy-adventure",
+    "premise": "Rowan Ash, a royal forester who can hear the Ironwood crown roots, learns that the succession trial is poisoning the forest's future kings. To prevent a civil war, he must prove the chosen heir is feeding on a forbidden root before the forest crowns her.",
+    "readerPromise": "A forest-court fantasy adventure about inheritance, duty, and whether a kingdom should obey a living crown.",
+    "centralConflict": "Rowan needs the Ironwood's judgment respected, while Princess Elayne bends that judgment through poison and court law.",
+    "protagonist": {
+      "characterId": "char-rowan-ash",
+      "name": "Rowan Ash",
+      "desire": "serve as crown forester without entering noble politics",
+      "fear": "the forest choosing a ruler who will punish his family for speaking",
+      "flaw": "he treats neutrality as honor even when silence helps the corrupt"
+    },
+    "characters": [
+      {
+        "characterId": "char-lena-moss",
+        "name": "Lena Moss",
+        "role": "supporting",
+        "materiality": "A hedge healer who can identify root poison but belongs to a banned rural order."
+      },
+      {
+        "characterId": "char-prince-calen",
+        "name": "Prince Calen",
+        "role": "supporting",
+        "materiality": "The losing heir may be honest or merely desperate enough to use Rowan."
+      },
+      {
+        "characterId": "char-princess-elayne",
+        "name": "Princess Elayne",
+        "role": "antagonist",
+        "materiality": "The favored heir controls court witnesses and can make forest dissent look like treason."
+      }
+    ],
+    "worldFacts": [
+      {
+        "worldFactId": "world-crown-roots",
+        "fact": "Ironwood crown roots bind to the next ruler and reveal lies by tightening around the speaker's shadow."
+      },
+      {
+        "worldFactId": "world-root-poison",
+        "fact": "Forbidden ghostroot makes the Ironwood hear a false future but leaves silver veins in nearby leaves."
+      },
+      {
+        "worldFactId": "world-succession-law",
+        "fact": "Court law says anyone who challenges a forest coronation must offer their own bloodline as collateral."
+      }
+    ],
+    "storyPromise": {
+      "promiseId": "promise-true-heir",
+      "text": "If Rowan proves the coronation is poisoned, he can stop the wrong heir but must choose whether neutrality is betrayal."
+    },
+    "constraints": [
+      "Produce planning contracts only, not prose.",
+      "Use scene contracts as the generation and adherence unit.",
+      "Make character and world obligations materially affect choices, costs, or consequences.",
+      "Keep the diagnostic to six chapter-contract units.",
+      "Preserve the Snowflake-lite strategy packet in chapter and scene contracts.",
+      "Route storyDebtId values into obligations and scene requiredSourceIds."
+    ],
+    "strategyPacket": {
+      "strategyPacketId": "strategy-ironwood-succession-v1",
+      "logline": "A neutral forester must prove a living crown is being poisoned.",
+      "paragraphSummary": "Rowan wants to serve the Ironwood without entering noble politics. Silver-veined leaves suggest the favored heir is feeding ghostroot to the crown roots. Lena can prove poison, but helping her makes Rowan complicit with a banned rural order. Princess Elayne turns court law against anyone challenging the forest. Rowan must risk his bloodline and reject neutrality to stop a poisoned coronation.",
+      "majorReversals": [
+        "The Ironwood's chosen future may be a ghostroot hallucination.",
+        "Court law requires Rowan's bloodline as collateral for challenging the crown.",
+        "Neutral silence protects the poisoning more than the forest."
+      ],
+      "endingDirection": "Rowan offers his bloodline as collateral, exposes ghostroot, and rejects neutrality.",
+      "readerPromise": "A forest-court adventure where duty, succession, and living roots test whether silence is betrayal.",
+      "protagonistWant": "serve as crown forester without entering noble politics",
+      "protagonistNeed": "accept that neutrality becomes complicity when truth is poisoned",
+      "protagonistLie": "silence can remain honorable in a corrupt succession",
+      "protagonistTruth": "protecting the forest requires public risk",
+      "antagonistPressure": "Princess Elayne controls court witnesses and can brand forest dissent as treason.",
+      "worldPressureRule": "Crown roots reveal lies through shadows, while ghostroot makes them hear false futures."
+    },
+    "storyDebts": [
+      {
+        "storyDebtId": "debt-true-heir",
+        "promiseText": "Rowan can stop the wrong heir if he proves the coronation is poisoned.",
+        "openedBySlotId": "CFA-01",
+        "expectedProgressSlotIds": [
+          "CFA-04",
+          "CFA-06",
+          "CFA-11",
+          "CFA-17"
+        ],
+        "expectedPayoffSlotId": "CFA-22",
+        "payoffPolicy": "Pay off when Rowan proves ghostroot poisoning in public succession law."
+      },
+      {
+        "storyDebtId": "debt-neutrality-betrayal",
+        "promiseText": "Rowan must decide whether neutrality is honor or betrayal.",
+        "openedBySlotId": "CFA-01",
+        "expectedProgressSlotIds": [
+          "CFA-04",
+          "CFA-11",
+          "CFA-17"
+        ],
+        "expectedPayoffSlotId": "CFA-22",
+        "payoffPolicy": "Pay off when Rowan risks his own bloodline instead of staying silent."
+      }
+    ]
+  }
+}

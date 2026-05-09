@@ -1,0 +1,141 @@
+{
+  "diagnosticId": "cfa-v1-cohort-ember-library-heist",
+  "methodPackId": "commercial-fantasy-adventure-v1",
+  "templateId": "commercial-24-flex-v1",
+  "targetSlots": [
+    {
+      "structureSlotId": "CFA-01",
+      "structureJob": "Pressure baseline",
+      "planningTest": "Show what the protagonist wants, lacks, or cannot tolerate before the story changes."
+    },
+    {
+      "structureSlotId": "CFA-04",
+      "structureJob": "Invitation to danger",
+      "planningTest": "Present the concrete path into the story problem."
+    },
+    {
+      "structureSlotId": "CFA-06",
+      "structureJob": "First irreversible step",
+      "planningTest": "End the opening with a choice or consequence that prevents easy retreat."
+    },
+    {
+      "structureSlotId": "CFA-11",
+      "structureJob": "Major reversal",
+      "planningTest": "Reveal information or opposition that changes what the protagonist thinks the story is."
+    },
+    {
+      "structureSlotId": "CFA-17",
+      "structureJob": "Forced truth",
+      "planningTest": "Confront the protagonist with the flaw, false belief, or missing knowledge."
+    },
+    {
+      "structureSlotId": "CFA-22",
+      "structureJob": "Defining choice",
+      "planningTest": "Make victory depend on a meaningful choice, not only force or luck."
+    }
+  ],
+  "concept": {
+    "genreProfileId": "general-commercial-fantasy-adventure",
+    "premise": "Orin Vale, a failed apprentice archivist, steals a fireproof index from the Ember Library and discovers that every banned book is a sleeping witness. To clear his sister's treason charge, he must wake the right witness before the library burns its own memories.",
+    "readerPromise": "A library-heist fantasy adventure about forbidden knowledge, family loyalty, and the danger of waking truths that remember you.",
+    "centralConflict": "Orin needs forbidden testimony to save his sister, while the Archivist Council protects the library by destroying witnesses that implicate them.",
+    "protagonist": {
+      "characterId": "char-orin-vale",
+      "name": "Orin Vale",
+      "desire": "restore his apprentice rank and save his condemned sister",
+      "fear": "proving his sister guilty after risking everything for her",
+      "flaw": "he hides behind clever thefts instead of asking people to trust him"
+    },
+    "characters": [
+      {
+        "characterId": "char-sable-reed",
+        "name": "Sable Reed",
+        "role": "supporting",
+        "materiality": "A rival index thief who knows the library's secret routes and charges painful favors."
+      },
+      {
+        "characterId": "char-mira-vale",
+        "name": "Mira Vale",
+        "role": "supporting",
+        "materiality": "Orin's accused sister knows which banned book was planted but refuses to name her informant."
+      },
+      {
+        "characterId": "char-warden-cass",
+        "name": "Warden Cass",
+        "role": "antagonist",
+        "materiality": "The council's fire warden can burn memories, records, and rooms before testimony wakes."
+      }
+    ],
+    "worldFacts": [
+      {
+        "worldFactId": "world-ember-index",
+        "fact": "An ember index points to banned books only when the seeker names the person they are willing to betray."
+      },
+      {
+        "worldFactId": "world-sleeping-books",
+        "fact": "Banned books sleep as witnesses and wake speaking in the voice of their last honest reader."
+      },
+      {
+        "worldFactId": "world-memory-fire",
+        "fact": "Library fire burns remembered events before it burns paper, removing evidence from witnesses and suspects."
+      }
+    ],
+    "storyPromise": {
+      "promiseId": "promise-wake-witness",
+      "text": "If Orin wakes the right book, he can prove who framed Mira but may erase someone else's innocence."
+    },
+    "constraints": [
+      "Produce planning contracts only, not prose.",
+      "Use scene contracts as the generation and adherence unit.",
+      "Make character and world obligations materially affect choices, costs, or consequences.",
+      "Keep the diagnostic to six chapter-contract units.",
+      "Preserve the Snowflake-lite strategy packet in chapter and scene contracts.",
+      "Route storyDebtId values into obligations and scene requiredSourceIds."
+    ],
+    "strategyPacket": {
+      "strategyPacketId": "strategy-ember-library-heist-v1",
+      "logline": "A failed archivist wakes forbidden books to clear his condemned sister.",
+      "paragraphSummary": "Orin wants his apprentice rank restored and his sister Mira saved. An ember index points to banned books only when Orin names someone he will betray. Sable can guide the heist if Orin pays in painful favors. Warden Cass burns memories before witnesses can wake. Orin must wake the right book and accept that saving Mira may expose someone else's innocence to fire.",
+      "majorReversals": [
+        "The index demands a named betrayal before it reveals a witness.",
+        "The right book may prove Mira's innocence by endangering another innocent person.",
+        "Cass can burn the memory of the crime before testimony becomes usable."
+      ],
+      "endingDirection": "Orin wakes the witness, exposes the planted book, and chooses public testimony over private theft.",
+      "readerPromise": "A forbidden-library heist where loyalty, betrayal, and living testimony decide a treason case.",
+      "protagonistWant": "restore his apprentice rank and save his condemned sister",
+      "protagonistNeed": "ask for trust instead of hiding behind clever thefts",
+      "protagonistLie": "the right theft can solve what honest trust cannot",
+      "protagonistTruth": "truth needs witnesses willing to risk being named",
+      "antagonistPressure": "Warden Cass can burn memories, rooms, and records before testimony wakes.",
+      "worldPressureRule": "Ember indexes demand betrayal names and memory fire erases events before paper."
+    },
+    "storyDebts": [
+      {
+        "storyDebtId": "debt-wake-witness",
+        "promiseText": "Orin can prove who framed Mira if he wakes the right banned book.",
+        "openedBySlotId": "CFA-01",
+        "expectedProgressSlotIds": [
+          "CFA-04",
+          "CFA-06",
+          "CFA-11",
+          "CFA-17"
+        ],
+        "expectedPayoffSlotId": "CFA-22",
+        "payoffPolicy": "Pay off through awakened testimony that costs Orin a named betrayal."
+      },
+      {
+        "storyDebtId": "debt-trust-over-theft",
+        "promiseText": "Orin must learn whether trust can do what theft cannot.",
+        "openedBySlotId": "CFA-01",
+        "expectedProgressSlotIds": [
+          "CFA-04",
+          "CFA-11",
+          "CFA-17"
+        ],
+        "expectedPayoffSlotId": "CFA-22",
+        "payoffPolicy": "Pay off when Orin asks allies to testify instead of stealing alone."
+      }
+    ]
+  }
+}

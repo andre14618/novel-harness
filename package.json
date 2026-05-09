@@ -37,6 +37,7 @@
     "diagnostics:semantic-gate-cohort-matrix": "bun scripts/evals/semantic-gate-cohort-matrix.ts",
     "diagnostics:writer-expansion": "bun scripts/analysis/writer-expansion-report.ts",
     "diagnostics:method-pack-planner": "bun scripts/evals/method-pack-planner-diagnostic.ts",
+    "diagnostics:build-cfa-v1-fixtures": "bun scripts/evals/build-cfa-v1-cohort-fixtures.ts",
     "diagnostics:method-pack-planner-cohort": "bun scripts/evals/method-pack-planner-cohort.ts",
     "diagnostics:method-pack-planner-semantic-judge": "bun scripts/evals/method-pack-planner-semantic-judge.ts",
     "diagnostics:planner-discernment-calibration": "bun scripts/evals/planner-discernment-calibration.ts",

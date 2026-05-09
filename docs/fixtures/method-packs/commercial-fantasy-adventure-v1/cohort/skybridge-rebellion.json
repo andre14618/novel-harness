@@ -1,0 +1,141 @@
+{
+  "diagnosticId": "cfa-v1-cohort-skybridge-rebellion",
+  "methodPackId": "commercial-fantasy-adventure-v1",
+  "templateId": "commercial-24-flex-v1",
+  "targetSlots": [
+    {
+      "structureSlotId": "CFA-01",
+      "structureJob": "Pressure baseline",
+      "planningTest": "Show what the protagonist wants, lacks, or cannot tolerate before the story changes."
+    },
+    {
+      "structureSlotId": "CFA-04",
+      "structureJob": "Invitation to danger",
+      "planningTest": "Present the concrete path into the story problem."
+    },
+    {
+      "structureSlotId": "CFA-06",
+      "structureJob": "First irreversible step",
+      "planningTest": "End the opening with a choice or consequence that prevents easy retreat."
+    },
+    {
+      "structureSlotId": "CFA-11",
+      "structureJob": "Major reversal",
+      "planningTest": "Reveal information or opposition that changes what the protagonist thinks the story is."
+    },
+    {
+      "structureSlotId": "CFA-17",
+      "structureJob": "Forced truth",
+      "planningTest": "Confront the protagonist with the flaw, false belief, or missing knowledge."
+    },
+    {
+      "structureSlotId": "CFA-22",
+      "structureJob": "Defining choice",
+      "planningTest": "Make victory depend on a meaningful choice, not only force or luck."
+    }
+  ],
+  "concept": {
+    "genreProfileId": "general-commercial-fantasy-adventure",
+    "premise": "Talia Ren, a maintenance climber on the capital's skybridges, discovers that the emperor's floating roads are being drained to keep one palace aloft. To save the lower districts, she must turn a forbidden repair crew into a rebellion before the bridges fall.",
+    "readerPromise": "A vertical-city fantasy adventure about loyalty, sabotage, and choosing who gets to stand above everyone else.",
+    "centralConflict": "Talia wants to keep the bridges standing, while Regent Voss hides the collapse and criminalizes anyone who exposes the stolen liftstone supply.",
+    "protagonist": {
+      "characterId": "char-talia-ren",
+      "name": "Talia Ren",
+      "desire": "earn a master rigger license and protect her bridge crew",
+      "fear": "causing another fall because she missed a structural warning",
+      "flaw": "she fixes dangerous systems quietly instead of confronting the people who profit from them"
+    },
+    "characters": [
+      {
+        "characterId": "char-bren-soll",
+        "name": "Bren Soll",
+        "role": "supporting",
+        "materiality": "Talia's reckless rope partner sees sabotage opportunities before she accepts political stakes."
+      },
+      {
+        "characterId": "char-mina-orr",
+        "name": "Mina Orr",
+        "role": "supporting",
+        "materiality": "A palace engineer with access to liftstone ledgers but a family held in the upper city."
+      },
+      {
+        "characterId": "char-regent-voss",
+        "name": "Regent Voss",
+        "role": "antagonist",
+        "materiality": "The regent controls bridge licenses and can condemn entire crews as gravity traitors."
+      }
+    ],
+    "worldFacts": [
+      {
+        "worldFactId": "world-liftstone-fatigue",
+        "fact": "Liftstone cracks glow blue before failing, but palace law requires inspectors to paint over visible fatigue marks."
+      },
+      {
+        "worldFactId": "world-tether-oaths",
+        "fact": "Skybridge crews swear tether oaths that make abandonment physically painful during a fall."
+      },
+      {
+        "worldFactId": "world-cloud-tax",
+        "fact": "Only upper-city nobles may legally own replacement liftstone; lower districts must buy repair rights by auction."
+      }
+    ],
+    "storyPromise": {
+      "promiseId": "promise-bridge-collapse",
+      "text": "If Talia proves the palace is stealing liftstone, she can save the lower bridges but must decide whether repair is enough."
+    },
+    "constraints": [
+      "Produce planning contracts only, not prose.",
+      "Use scene contracts as the generation and adherence unit.",
+      "Make character and world obligations materially affect choices, costs, or consequences.",
+      "Keep the diagnostic to six chapter-contract units.",
+      "Preserve the Snowflake-lite strategy packet in chapter and scene contracts.",
+      "Route storyDebtId values into obligations and scene requiredSourceIds."
+    ],
+    "strategyPacket": {
+      "strategyPacketId": "strategy-skybridge-rebellion-v1",
+      "logline": "A bridge climber turns forbidden repairs into a vertical-city rebellion.",
+      "paragraphSummary": "Talia wants a master rigger license and her crew safe. Liftstone fatigue marks show the lower bridges are being drained to keep one palace aloft. Bren sees sabotage before Talia accepts that repair is political. Mina can expose ledgers, but her family is held in the upper city. Talia must turn a repair crew into public rebellion before the bridges fall.",
+      "majorReversals": [
+        "The bridge failures are engineered to keep the palace aloft.",
+        "Repairing quietly protects Regent Voss's theft.",
+        "The crew's tether oaths turn abandonment during collapse into physical pain."
+      ],
+      "endingDirection": "Talia exposes the stolen liftstone, saves lower bridges, and chooses rebellion over quiet repair.",
+      "readerPromise": "A vertical-city adventure where repair, sabotage, and loyalty decide who gets to stand above others.",
+      "protagonistWant": "earn a master rigger license and protect her bridge crew",
+      "protagonistNeed": "confront the rulers who profit from dangerous systems",
+      "protagonistLie": "quiet repair can fix an unjust structure",
+      "protagonistTruth": "some systems must be exposed before they can be repaired",
+      "antagonistPressure": "Regent Voss controls licenses and can condemn crews as gravity traitors.",
+      "worldPressureRule": "Liftstone fatigue is hidden by law, and tether oaths make abandonment physically painful."
+    },
+    "storyDebts": [
+      {
+        "storyDebtId": "debt-bridge-collapse",
+        "promiseText": "Talia can save the lower bridges if she proves the palace is stealing liftstone.",
+        "openedBySlotId": "CFA-01",
+        "expectedProgressSlotIds": [
+          "CFA-04",
+          "CFA-06",
+          "CFA-11",
+          "CFA-17"
+        ],
+        "expectedPayoffSlotId": "CFA-22",
+        "payoffPolicy": "Pay off when Talia exposes the liftstone theft and stops quiet collapse."
+      },
+      {
+        "storyDebtId": "debt-repair-to-rebellion",
+        "promiseText": "Talia must learn whether repair is enough when the structure is corrupt.",
+        "openedBySlotId": "CFA-01",
+        "expectedProgressSlotIds": [
+          "CFA-04",
+          "CFA-11",
+          "CFA-17"
+        ],
+        "expectedPayoffSlotId": "CFA-22",
+        "payoffPolicy": "Pay off when Talia turns repair work into public rebellion."
+      }
+    ]
+  }
+}

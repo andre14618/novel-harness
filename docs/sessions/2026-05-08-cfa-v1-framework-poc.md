@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-08
+updated: 2026-05-09
 role: session-record
 lane: upstream-planning-methodology
 ---
@@ -121,7 +121,7 @@ Interpretation:
   review/readiness findings rather than treating the aggregate deterministic
   score as the promotion signal.
 
-## Next Step
+## Single-Concept Readiness Diagnostic
 
 Semantic/readiness diagnostic command:
 
@@ -153,3 +153,138 @@ Interpretation:
 - The current single-concept run is useful smoke evidence only. Next either run
   3-6 concepts for sample size or sharpen sensors before prose POC; do not
   promote runtime behavior from this result.
+
+## Six-Concept Cohort Fixtures
+
+Added a deterministic fixture builder:
+
+```bash
+bun run diagnostics:build-cfa-v1-fixtures
+```
+
+The builder reads the existing CFA v0 cohort concepts and writes six CFA v1
+diagnostic fixtures under:
+
+```text
+docs/fixtures/method-packs/commercial-fantasy-adventure-v1/cohort/
+```
+
+Each v1 fixture adds an authored Snowflake-lite `strategyPacket`, two
+`storyDebts`, and explicit constraints requiring the planner to route strategy
+and story-debt IDs into chapter obligations and scene required sources. This is
+diagnostic input only; it does not change production planning behavior.
+
+## Six-Concept Planner Cohort
+
+Command:
+
+```bash
+bun run diagnostics:method-pack-planner-cohort -- --live \
+  --fixture-dir docs/fixtures/method-packs/commercial-fantasy-adventure-v1/cohort \
+  --replicates 1 \
+  --concurrency 4 \
+  --scenes-per-chapter 2 \
+  --obligations-per-chapter 2 \
+  --output-dir output/method-pack-diagnostics/2026-05-08-cfa-v1-cohort-r1/cohort
+```
+
+Artifacts:
+
+- `output/method-pack-diagnostics/2026-05-08-cfa-v1-cohort-r1/cohort/cohort-report.md`
+- `output/method-pack-diagnostics/2026-05-08-cfa-v1-cohort-r1/cohort/cohort-report.json`
+
+Result:
+
+| Measure | Result |
+| --- | ---: |
+| Fixtures | 6 |
+| Paired cells | 6 |
+| Planner calls | 12 |
+| Aggregate verdict | `HOLD` |
+| Mean delta | +0.2 points |
+| Median delta | -0.2 points |
+| Win rate | 50% |
+| Method structural issue rate | 0% |
+
+Deterministic dimension movement:
+
+| Dimension | Control | CFA v1 | Direction |
+| --- | ---: | ---: | --- |
+| Character materiality | 72% | 81% | improved |
+| World relevance | 47% | 58% | improved |
+| Character arc pressure | 94% | 86% | regressed |
+| Story debt traceability | 75% | 94% | improved |
+| Endpoint landing | 53% | 44% | regressed |
+
+Per-concept outcomes:
+
+| Concept | Verdict | Delta |
+| --- | --- | ---: |
+| desert-clockwork-pilgrimage | `NO-PROMOTION` | -0.9 |
+| ember-library-heist | `NO-PROMOTION` | -0.5 |
+| ironwood-succession | `HOLD` | +0.1 |
+| mapmaker-erased-province | `NO-PROMOTION` | -0.4 |
+| saltglass-curse | `HOLD` | +1.7 |
+| skybridge-rebellion | `HOLD` | +1.2 |
+
+Interpretation:
+
+- CFA v1 improved traceability and made characters/world facts more visible in
+  the generated plan contracts.
+- It did not yet improve the part that matters before prose: each chapter
+  ending must land as a concrete action or consequence that drives the next
+  chapter.
+- It also softened some arc pressure. Adding strategy/story debt is not enough
+  if want/need/lie/truth stop shaping scene choices.
+- This is not promotion evidence. Do not draft a prose POC from this arm until
+  v1 is revised and rerun.
+
+## Six-Concept Readiness Labels
+
+Command:
+
+```bash
+bun run diagnostics:planner-discernment-real-data -- --live \
+  --cohort-dir output/method-pack-diagnostics/2026-05-08-cfa-v1-cohort-r1/cohort \
+  --model deepseek-v4-flash \
+  --no-thinking \
+  --concurrency 12 \
+  --max-tokens 1400 \
+  --mode evidence-first \
+  --dimension characterMateriality \
+  --dimension worldFactPressure \
+  --dimension endpointLanding \
+  --output-dir output/method-pack-diagnostics/2026-05-08-cfa-v1-cohort-r1/discernment
+```
+
+Artifacts:
+
+- `output/method-pack-diagnostics/2026-05-08-cfa-v1-cohort-r1/discernment/planner-discernment-real-data-report.md`
+- `output/method-pack-diagnostics/2026-05-08-cfa-v1-cohort-r1/discernment/planner-discernment-real-data-report.json`
+
+Result:
+
+| Dimension | Control | CFA v1 | Delta |
+| --- | ---: | ---: | ---: |
+| Character materiality | 2.00 | 2.04 | +0.04 |
+| World fact pressure | 1.98 | 1.98 | +0.00 |
+| Endpoint landing | 2.17 | 2.28 | +0.11 |
+
+The readiness labels mostly saturated, but the examples are useful:
+
+- weak world pressure means the world rule is referenced without changing the
+  available action, outcome, or cost;
+- weak endpoint landing means the chapter ends on a stated decision or mood
+  instead of a concrete action/consequence that creates propulsion.
+
+## Cohort Decision
+
+Hold CFA v1. The next valuable slice is a method-pack revision that targets:
+
+- endpoint landing as a concrete final action plus consequence;
+- world rules as active constraints on scene options or outcomes;
+- arc pressure that keeps want/need/lie/truth visible in choices rather than
+  treating them as background metadata.
+
+Only after that revised planner arm beats the current six-concept baseline
+should the lane move to chapter or short-story prose generation.
