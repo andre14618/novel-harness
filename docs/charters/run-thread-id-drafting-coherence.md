@@ -214,6 +214,11 @@ per-scene thread packets used in writer prompts. The POC also supports
 `--plan-from <poc-dir>` so writer-context A/B runs can reuse the same validated
 plan and avoid planner-output confounds.
 
+First controlled smoke on 2026-05-09 did not support promotion: baseline beat
+`thread-context-v1` on semantic thread progression and motivation specificity,
+prose review tied, and the context arm drafted shorter prose. See
+`docs/sessions/2026-05-09-writer-context-ab-smoke.md`.
+
 ### Lane 5 - Scene Thread Semantic Review
 
 Reuse the narrow semantic judge pattern: one scene, one dimension, anchored

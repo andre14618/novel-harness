@@ -30,8 +30,8 @@ unless the user explicitly requests a disposable branch.
 - If pursuing scene-first methodology, treat `sceneId` as the plan/write/check
   unit and `obligationId`/`sourceId` as the traceability unit; do not preserve
   beat-level adherence as the primary future contract by default. See L092.
-- Next docs/code slice should use `docs/planner-output-contract.md` plus L093:
-  run manifests, thread/payoff refs, maps, and static evidence first.
+- Next L093 slice: tighten planner thread/promise/payoff consistency before
+  more writer-context testing; first controlled smoke did not promote context.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.
