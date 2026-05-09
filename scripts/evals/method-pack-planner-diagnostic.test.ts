@@ -41,6 +41,19 @@ describe("method-pack-planner-diagnostic", () => {
     expect(score.dimensions.idCompleteness.issues.join("\n")).toContain("missing-obligation")
   })
 
+  test("scores v1 framework fields without applying them to v0 fixtures", () => {
+    const method = strongV1Plan("test:commercial-fantasy-adventure-v1")
+    const score = scorePlan(method, fixtureV1, true)
+
+    expect(score.dimensions.strategyConservation.ratio).toBeGreaterThanOrEqual(0.8)
+    expect(score.dimensions.storyGridSceneContract.ratio).toBe(1)
+    expect(score.dimensions.characterArcPressure.ratio).toBe(1)
+    expect(score.dimensions.storyDebtTraceability.ratio).toBe(1)
+
+    const v0Score = scorePlan(strongPlan("test:commercial-fantasy-adventure-v0"), fixture, true)
+    expect(v0Score.dimensions.storyGridSceneContract.possible).toBe(0)
+  })
+
   test("normalizes common live-output aliases before scoring", () => {
     const normalized = normalizePlannerContractPlan({
       plan: {
@@ -73,6 +86,8 @@ describe("method-pack-planner-diagnostic", () => {
     expect(normalized.chapters[0]!.chapterId).toBe("ch-01-cfa-01")
     expect(normalized.chapters[0]!.endpointOrHook).toContain("truthful route")
     expect(normalized.chapters[0]!.scenes[0]!.turnOrValueShift).toContain("true-ink burns")
+    expect(normalized.chapters[0]!.scenes[0]!.opposition).toContain("Ashren")
+    expect(normalized.chapters[0]!.scenes[0]!.turningPoint).toContain("true-ink burns")
     expect(normalized.chapters[0]!.obligations[0]!.sourceKind).toBe("world")
   })
 })
@@ -106,7 +121,45 @@ const fixture: PlannerDiagnosticFixture = {
       { worldFactId: "world-true-ink", fact: "ink burns omissions" },
     ],
     storyPromise: { promiseId: "promise-erased-province", text: "find the erased province" },
+    storyDebts: [],
     constraints: ["contracts only"],
+  },
+}
+
+const fixtureV1: PlannerDiagnosticFixture = {
+  ...fixture,
+  diagnosticId: "test-diagnostic-v1",
+  methodPackId: "commercial-fantasy-adventure-v1",
+  templateId: "commercial-24-flex-v1",
+  concept: {
+    ...fixture.concept,
+    strategyPacket: {
+      strategyPacketId: "strategy-mapmaker-v1",
+      logline: "A disgraced cartographer maps a hidden road that punishes lies.",
+      paragraphSummary: "Mara wants her charter restored but discovers official maps erase a province. The living road punishes false destinations and forces her to rely on Sena. Ashren offers safety if she hides the omission. Mara must publish the true road and sacrifice sanctioned status. She proves truth matters more than obedience.",
+      majorReversals: [
+        "The official map is safe because it is a legal lie.",
+        "Ashren can restore Mara's charter only if she hides the province.",
+      ],
+      endingDirection: "Mara publishes the true road and sacrifices sanctioned status.",
+      readerPromise: "A map adventure where truth, trust, and hidden roads decide survival.",
+      protagonistWant: "restore her cartographer charter",
+      protagonistNeed: "trust people outside sanctioned law",
+      protagonistLie: "measurements are safer than people",
+      protagonistTruth: "truthful maps require trusted witnesses",
+      antagonistPressure: "Ashren weaponizes charter law to make true maps criminal.",
+      worldPressureRule: "living roads punish false destinations and omissions.",
+    },
+    storyDebts: [
+      {
+        storyDebtId: "debt-erased-province",
+        promiseText: "Mara can reveal whether the erased province still exists.",
+        openedBySlotId: "CFA-01",
+        expectedProgressSlotIds: ["CFA-04"],
+        expectedPayoffSlotId: "CFA-22",
+        payoffPolicy: "pay off through a truthful public map.",
+      },
+    ],
   },
 }
 
@@ -139,8 +192,15 @@ function weakPlan(armId: string, methodPackId: string | null, templateId: string
             locationOrArena: "road",
             goal: "start",
             conflict: "trouble",
+            opposition: "",
             turnOrValueShift: "change",
+            turningPoint: "",
+            crisisChoice: "",
+            climaxAction: "",
             outcome: "Mara keeps going",
+            resolution: "",
+            valueIn: "",
+            valueOut: "",
             consequence: "next",
             requiredObligationIds: [],
             requiredSourceIds: [],
@@ -151,6 +211,34 @@ function weakPlan(armId: string, methodPackId: string | null, templateId: string
       },
     ],
   }
+}
+
+function strongV1Plan(armId: string): PlannerContractPlan {
+  const plan = strongPlan(armId)
+  plan.methodPackId = "commercial-fantasy-adventure-v1"
+  plan.templateId = "commercial-24-flex-v1"
+  for (const chapter of plan.chapters) {
+    chapter.requiredStoryDebtWork = "Mara advances debt-erased-province by proving the erased province exists through a true public map."
+    chapter.protagonistPressure = "Mara wants her charter but needs to trust Sena because measurements are safer than people is failing."
+    chapter.requiredCharacterWork = "Mara must choose trust over isolated measurement and turn truthful witnesses into action."
+    chapter.obligations[0]!.sourceId = "debt-erased-province"
+    chapter.obligations[0]!.sourceKind = "story_debt"
+    chapter.obligations[0]!.requirementText = "Mara must reveal whether the erased province exists through a truthful map."
+    chapter.scenes[0]!.requiredSourceIds = ["debt-erased-province"]
+    chapter.scenes[0]!.goal = "Mara tries to restore her charter without trusting anyone beyond measurements."
+    chapter.scenes[0]!.conflict = "Ashren criminalizes true maps while Sena demands trust outside sanctioned law."
+    chapter.scenes[0]!.opposition = "Ashren weaponizes charter law and the living road punishes false destinations."
+    chapter.scenes[0]!.turnOrValueShift = "The legal map is revealed as a lie that hides the province."
+    chapter.scenes[0]!.turningPoint = "The true-ink burns over the erased province and exposes the legal lie."
+    chapter.scenes[0]!.crisisChoice = "Keep the restored charter or trust Sena and publish the true road."
+    chapter.scenes[0]!.climaxAction = "Mara publishes the true road with Sena as witness despite Ashren's offer."
+    chapter.scenes[0]!.outcome = "Mara sacrifices sanctioned status and proves the erased province still exists."
+    chapter.scenes[0]!.resolution = "The public map makes hidden villages legally visible and exposes Ashren's lie."
+    chapter.scenes[0]!.valueIn = "obedient legal safety"
+    chapter.scenes[0]!.valueOut = "truthful public exposure"
+    chapter.scenes[0]!.consequence = "Mara loses sanctioned status but gains trusted witnesses and the true road."
+  }
+  return plan
 }
 
 function strongPlan(armId: string): PlannerContractPlan {
@@ -213,8 +301,15 @@ function scene(sceneId: string, chapterId: string, slotId: string): PlannerContr
     locationOrArena: "border road",
     goal: "Mara tries to prove the map was altered without trusting anyone.",
     conflict: "Sena demands trust while Ashren's charter law threatens punishment.",
+    opposition: "Sena demands trust while Ashren's charter law threatens punishment.",
     turnOrValueShift: "The true-ink burns, revealing that official safety depends on a lie.",
+    turningPoint: "The true-ink burns, revealing that official safety depends on a lie.",
+    crisisChoice: "Mara can stay legally safe or trust Sena's illegal route.",
+    climaxAction: "Mara chooses the dangerous truthful route.",
     outcome: "Mara chooses the dangerous truthful route.",
+    resolution: "The route becomes visible but makes Mara punishable.",
+    valueIn: "legal safety",
+    valueOut: "truthful danger",
     consequence: "The choice exposes her to Ashren but advances the erased-province promise.",
     requiredObligationIds: [],
     requiredSourceIds: [],

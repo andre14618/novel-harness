@@ -12,7 +12,7 @@ import { dirname, resolve } from "node:path"
 import { z } from "zod"
 
 const coveragePolicySchema = z.enum(["must_satisfy", "should_surface", "forbid", "optional"])
-const sourceKindSchema = z.enum(["character", "world", "structure", "story_promise", "concept"])
+const sourceKindSchema = z.enum(["character", "world", "structure", "story_promise", "story_debt", "concept"])
 
 const targetSlotSchema = z.object({
   structureSlotId: z.string(),
@@ -31,6 +31,30 @@ const worldFactSchema = z.object({
   worldFactId: z.string(),
   fact: z.string(),
 })
+
+const strategyPacketSchema = z.object({
+  strategyPacketId: z.string(),
+  logline: z.string(),
+  paragraphSummary: z.string(),
+  majorReversals: z.array(z.string()).default([]),
+  endingDirection: z.string(),
+  readerPromise: z.string(),
+  protagonistWant: z.string(),
+  protagonistNeed: z.string(),
+  protagonistLie: z.string(),
+  protagonistTruth: z.string(),
+  antagonistPressure: z.string(),
+  worldPressureRule: z.string(),
+}).partial().passthrough()
+
+const storyDebtSchema = z.object({
+  storyDebtId: z.string(),
+  promiseText: z.string(),
+  openedBySlotId: z.string().optional(),
+  expectedProgressSlotIds: z.array(z.string()).default([]),
+  expectedPayoffSlotId: z.string().optional(),
+  payoffPolicy: z.string().optional(),
+}).passthrough()
 
 const fixtureSchema = z.object({
   diagnosticId: z.string(),
@@ -55,6 +79,8 @@ const fixtureSchema = z.object({
       promiseId: z.string(),
       text: z.string(),
     }),
+    strategyPacket: strategyPacketSchema.optional(),
+    storyDebts: z.array(storyDebtSchema).default([]),
     constraints: z.array(z.string()),
   }),
   arms: z.array(z.object({
@@ -84,8 +110,15 @@ const sceneContractSchema = z.object({
   locationOrArena: z.string(),
   goal: z.string(),
   conflict: z.string(),
+  opposition: z.string().default(""),
   turnOrValueShift: z.string(),
+  turningPoint: z.string().default(""),
+  crisisChoice: z.string().default(""),
+  climaxAction: z.string().default(""),
   outcome: z.string(),
+  resolution: z.string().default(""),
+  valueIn: z.string().default(""),
+  valueOut: z.string().default(""),
   consequence: z.string(),
   requiredObligationIds: z.array(z.string()).default([]),
   requiredSourceIds: z.array(z.string()).default([]),
@@ -182,7 +215,10 @@ const DEFAULT_OBLIGATIONS_PER_CHAPTER = 2
 const ACTION_TERMS = [
   "choose", "choice", "cost", "force", "forces", "risk", "refuse", "reveal",
   "betray", "sacrifice", "confront", "expose", "protect", "escape", "commit",
-  "decide", "threaten", "punish", "change", "break",
+  "decide", "threaten", "punish", "change", "break", "burn", "burns",
+  "burning", "forbid", "forbids", "forbidden", "criminal", "crime",
+  "enforce", "enforces", "shift", "shifts", "stable", "stabilize", "block",
+  "blocks", "constraint", "constrain", "complicate", "complicates",
 ]
 
 const GENERIC_TERMS = new Set(["none", "n/a", "tbd", "unknown", "same", "generic"])
@@ -206,6 +242,10 @@ export function scorePlan(
     characterMateriality: characterMateriality(plan, fixture),
     worldRelevance: worldRelevance(plan, fixture),
     obligationClarity: obligationClarity(plan),
+    strategyConservation: strategyConservation(plan, fixture),
+    storyGridSceneContract: storyGridSceneContract(plan, fixture),
+    characterArcPressure: characterArcPressure(plan, fixture),
+    storyDebtTraceability: storyDebtTraceability(plan, fixture),
     endpointLanding: endpointLanding(plan),
     overfragmentation: overfragmentation(plan),
     idCompleteness: idCompleteness(plan, fixture),
@@ -380,7 +420,7 @@ function sceneContractComplete(plan: PlannerContractPlan): DimensionScore {
     for (const scene of chapter.scenes) {
       for (const field of fields) {
         possible++
-        if (meaningful(scene[field])) passed++
+        if (meaningfulSceneField(scene[field])) passed++
         else issues.push(`${scene.sceneId}.${field} is missing or generic`)
       }
     }
@@ -438,6 +478,151 @@ function obligationClarity(plan: PlannerContractPlan): DimensionScore {
   return dimension(passed, possible, issues)
 }
 
+function strategyConservation(plan: PlannerContractPlan, fixture: PlannerDiagnosticFixture): DimensionScore {
+  const strategy = fixture.concept.strategyPacket
+  if (!isFrameworkV1Fixture(fixture) || !strategy) {
+    return { passed: 0, possible: 0, ratio: null, issues: ["not applicable for non-v1 fixture"] }
+  }
+  const planText = planContractText(plan)
+  const checks = [
+    {
+      label: "readerPromise",
+      text: strategy.readerPromise || fixture.concept.readerPromise,
+      floor: 0.18,
+    },
+    {
+      label: "endingDirection",
+      text: strategy.endingDirection,
+      floor: 0.16,
+    },
+    {
+      label: "antagonistPressure",
+      text: strategy.antagonistPressure,
+      floor: 0.16,
+    },
+    {
+      label: "worldPressureRule",
+      text: strategy.worldPressureRule,
+      floor: 0.16,
+    },
+    ...((strategy.majorReversals ?? []).map((text, index) => ({
+      label: `majorReversals[${index}]`,
+      text,
+      floor: 0.14,
+    }))),
+  ].filter(check => meaningful(check.text ?? ""))
+
+  const issues: string[] = []
+  let passed = 0
+  for (const check of checks) {
+    const overlap = tokenOverlapRatio(check.text ?? "", planText)
+    if (overlap >= check.floor) passed++
+    else issues.push(`${check.label} is not visibly conserved in plan text`)
+  }
+  return dimension(passed, checks.length, issues)
+}
+
+function storyGridSceneContract(plan: PlannerContractPlan, fixture: PlannerDiagnosticFixture): DimensionScore {
+  if (!isFrameworkV1Fixture(fixture)) {
+    return { passed: 0, possible: 0, ratio: null, issues: ["not applicable for non-v1 fixture"] }
+  }
+  const fields = [
+    "goal",
+    "opposition",
+    "turningPoint",
+    "crisisChoice",
+    "climaxAction",
+    "resolution",
+    "valueIn",
+    "valueOut",
+    "consequence",
+  ] as const
+  const issues: string[] = []
+  let passed = 0
+  let possible = 0
+  for (const chapter of plan.chapters) {
+    for (const scene of chapter.scenes) {
+      for (const field of fields) {
+        possible++
+        if (field === "valueIn" || field === "valueOut"
+          ? meaningfulValueLabel(scene[field])
+          : meaningfulSceneField(scene[field])
+        ) passed++
+        else issues.push(`${scene.sceneId}.${field} is missing or generic`)
+      }
+      possible++
+      if (
+        meaningfulValueLabel(scene.valueIn)
+        && meaningfulValueLabel(scene.valueOut)
+        && !semanticSameShallow(scene.valueIn, scene.valueOut)
+      ) passed++
+      else issues.push(`${scene.sceneId}.valueIn/valueOut do not show a visible value shift`)
+    }
+  }
+  return dimension(passed, possible, issues)
+}
+
+function characterArcPressure(plan: PlannerContractPlan, fixture: PlannerDiagnosticFixture): DimensionScore {
+  const strategy = fixture.concept.strategyPacket
+  if (!isFrameworkV1Fixture(fixture) || !strategy) {
+    return { passed: 0, possible: 0, ratio: null, issues: ["not applicable for non-v1 fixture"] }
+  }
+  const want = strategy.protagonistWant || fixture.concept.protagonist.desire
+  const need = strategy.protagonistNeed
+  const lie = strategy.protagonistLie || fixture.concept.protagonist.flaw
+  const truth = strategy.protagonistTruth
+  const issues: string[] = []
+  let passed = 0
+  let possible = 0
+  for (const chapter of plan.chapters) {
+    const text = chapterContractText(chapter)
+    const wantOrNeed = Math.max(tokenOverlapRatio(want, text), tokenOverlapRatio(need ?? "", text))
+    const lieOrTruth = Math.max(tokenOverlapRatio(lie, text), tokenOverlapRatio(truth ?? "", text))
+    const hasCharacterRef = chapter.scenes.some(scene =>
+      scene.requiredCharacterIds.includes(fixture.concept.protagonist.characterId)
+      || scene.requiredCharacterIds.some(id => fixture.concept.characters.some(c => c.characterId === id))
+    )
+    possible++
+    if (hasCharacterRef && wantOrNeed >= 0.14 && lieOrTruth >= 0.12) passed++
+    else issues.push(`${chapter.chapterId} does not visibly pressure want/need and lie/truth through character refs`)
+  }
+  return dimension(passed, possible, issues)
+}
+
+function storyDebtTraceability(plan: PlannerContractPlan, fixture: PlannerDiagnosticFixture): DimensionScore {
+  if (!isFrameworkV1Fixture(fixture) || fixture.concept.storyDebts.length === 0) {
+    return { passed: 0, possible: 0, ratio: null, issues: ["not applicable for non-v1 fixture"] }
+  }
+  const debtIds = new Set(fixture.concept.storyDebts.map(debt => debt.storyDebtId))
+  const issues: string[] = []
+  let passed = 0
+  let possible = 0
+  for (const debt of fixture.concept.storyDebts) {
+    const linkedChapters = plan.chapters.filter(chapter =>
+      chapter.obligations.some(obligation => obligation.sourceId === debt.storyDebtId)
+      || chapter.scenes.some(scene => scene.requiredSourceIds.includes(debt.storyDebtId))
+      || tokenOverlapRatio(debt.promiseText, chapter.requiredStoryDebtWork) >= 0.18
+    )
+    possible++
+    if (linkedChapters.length > 0) passed++
+    else issues.push(`${debt.storyDebtId} is not linked from any chapter obligation or scene source`)
+  }
+  for (const chapter of plan.chapters) {
+    const sceneSourceIds = new Set(chapter.scenes.flatMap(scene => scene.requiredSourceIds))
+    const debtObligationIds = new Set(chapter.obligations
+      .filter(obligation => debtIds.has(obligation.sourceId))
+      .map(obligation => obligation.obligationId))
+    if (debtObligationIds.size === 0) continue
+    possible++
+    const hasSceneLink = [...debtObligationIds].some(obligationId =>
+      chapter.scenes.some(scene => scene.requiredObligationIds.includes(obligationId))
+    ) || [...sceneSourceIds].some(sourceId => debtIds.has(sourceId))
+    if (hasSceneLink) passed++
+    else issues.push(`${chapter.chapterId} has story-debt obligations not routed into scenes`)
+  }
+  return dimension(passed, possible, issues)
+}
+
 function endpointLanding(plan: PlannerContractPlan): DimensionScore {
   const issues: string[] = []
   let passed = 0
@@ -469,6 +654,14 @@ function idCompleteness(plan: PlannerContractPlan, fixture: PlannerDiagnosticFix
   ])
   const knownWorldIds = new Set(fixture.concept.worldFacts.map(fact => fact.worldFactId))
   const knownStructureIds = new Set(fixture.targetSlots.map(slot => slot.structureSlotId))
+  const knownStoryDebtIds = new Set(fixture.concept.storyDebts.map(debt => debt.storyDebtId))
+  const knownSourceIds = new Set([
+    fixture.concept.storyPromise.promiseId,
+    ...knownCharacterIds,
+    ...knownWorldIds,
+    ...knownStructureIds,
+    ...knownStoryDebtIds,
+  ])
   const seenChapterIds = new Set<string>()
   const seenSceneIds = new Set<string>()
   let passed = 0
@@ -494,6 +687,7 @@ function idCompleteness(plan: PlannerContractPlan, fixture: PlannerDiagnosticFix
     for (const obligation of chapter.obligations) {
       check(Boolean(obligation.obligationId), `${chapter.chapterId} obligation missing obligationId`)
       check(Boolean(obligation.sourceId), `${obligation.obligationId} missing sourceId`)
+      check(knownSourceIds.has(obligation.sourceId), `${obligation.obligationId} unknown sourceId ${obligation.sourceId}`)
       for (const characterId of obligation.linkedCharacterIds) {
         check(knownCharacterIds.has(characterId), `${obligation.obligationId} unknown linkedCharacterId ${characterId}`)
       }
@@ -582,8 +776,15 @@ function normalizeSceneContract(
     locationOrArena: stringValue(source.locationOrArena) || stringValue(source.location) || stringValue(source.arena) || "",
     goal: stringValue(source.goal),
     conflict: stringValue(source.conflict),
+    opposition: stringValue(source.opposition) || stringValue(source.conflict),
     turnOrValueShift: stringValue(source.turnOrValueShift) || stringValue(source.turn) || stringValue(source.valueShift) || "",
+    turningPoint: stringValue(source.turningPoint) || stringValue(source.turn) || stringValue(source.valueShift) || "",
+    crisisChoice: stringValue(source.crisisChoice) || stringValue(source.crisis) || "",
+    climaxAction: stringValue(source.climaxAction) || stringValue(source.climax) || "",
     outcome: stringValue(source.outcome),
+    resolution: stringValue(source.resolution) || stringValue(source.outcome),
+    valueIn: stringValue(source.valueIn) || stringValue(source.startingValue) || "",
+    valueOut: stringValue(source.valueOut) || stringValue(source.endingValue) || "",
     consequence: stringValue(source.consequence),
     requiredObligationIds: stringArray(source.requiredObligationIds, defaultObligationIds),
     requiredSourceIds: stringArray(source.requiredSourceIds, defaultSourceIds),
@@ -635,6 +836,7 @@ function inferSourceKind(sourceId: string, fixture: PlannerDiagnosticFixture): z
   if (fixture.concept.worldFacts.some(fact => fact.worldFactId === sourceId)) return "world"
   if (fixture.targetSlots.some(slot => slot.structureSlotId === sourceId)) return "structure"
   if (fixture.concept.storyPromise.promiseId === sourceId) return "story_promise"
+  if (fixture.concept.storyDebts.some(debt => debt.storyDebtId === sourceId)) return "story_debt"
   return "concept"
 }
 
@@ -674,9 +876,26 @@ function meaningful(text: string): boolean {
   return contentTokens(text).length >= 3 && text.trim().length >= 16
 }
 
+function meaningfulSceneField(text: string): boolean {
+  const normalized = text.trim().toLowerCase()
+  if (!normalized || GENERIC_TERMS.has(normalized)) return false
+  return contentTokens(text).length >= 2 && text.trim().length >= 10
+}
+
+function meaningfulValueLabel(text: string): boolean {
+  const normalized = text.trim().toLowerCase()
+  if (!normalized || GENERIC_TERMS.has(normalized)) return false
+  return contentTokens(text).length >= 1 && text.trim().length >= 4
+}
+
 function hasActionPressure(text: string): boolean {
   const tokens = new Set(contentTokens(text))
-  return ACTION_TERMS.some(term => tokens.has(term))
+  const stems = new Set([...tokens].map(stemToken))
+  return ACTION_TERMS.some(term => tokens.has(term) || stems.has(stemToken(term)))
+}
+
+function stemToken(token: string): string {
+  return token.replace(/(ing|ed|es|s)$/u, "")
 }
 
 function tokenOverlapRatio(a: string, b: string): number {
@@ -685,6 +904,59 @@ function tokenOverlapRatio(a: string, b: string): number {
   const right = new Set(contentTokens(b))
   const matched = left.filter(token => right.has(token))
   return matched.length / left.length
+}
+
+function semanticSameShallow(a: string, b: string): boolean {
+  const left = new Set(contentTokens(a))
+  const right = new Set(contentTokens(b))
+  if (left.size === 0 || right.size === 0) return true
+  const overlap = [...left].filter(token => right.has(token)).length
+  const smaller = Math.min(left.size, right.size)
+  return overlap / smaller >= 0.8
+}
+
+function isFrameworkV1Fixture(fixture: PlannerDiagnosticFixture): boolean {
+  return fixture.methodPackId.includes("-v1")
+    || fixture.templateId.includes("-v1")
+    || Boolean(fixture.concept.strategyPacket)
+    || fixture.concept.storyDebts.length > 0
+}
+
+function planContractText(plan: PlannerContractPlan): string {
+  return [
+    plan.methodPackId ?? "",
+    plan.templateId ?? "",
+    ...plan.chapters.map(chapterContractText),
+  ].join("\n")
+}
+
+function chapterContractText(chapter: PlannerContractPlan["chapters"][number]): string {
+  return [
+    chapter.chapterFunction,
+    chapter.protagonistPressure,
+    chapter.centralConflict,
+    chapter.irreversibleChange,
+    chapter.endpointOrHook,
+    chapter.requiredCharacterWork,
+    chapter.requiredWorldWork,
+    chapter.requiredStoryDebtWork,
+    ...chapter.obligations.map(obligation => obligation.requirementText),
+    ...chapter.scenes.map(scene => [
+      scene.sceneFunction,
+      scene.goal,
+      scene.conflict,
+      scene.opposition,
+      scene.turnOrValueShift,
+      scene.turningPoint,
+      scene.crisisChoice,
+      scene.climaxAction,
+      scene.outcome,
+      scene.resolution,
+      scene.valueIn,
+      scene.valueOut,
+      scene.consequence,
+    ].join(" ")),
+  ].join(" ")
 }
 
 function contentTokens(text: string): string[] {
@@ -795,8 +1067,8 @@ export async function runLiveArms(fixture: PlannerDiagnosticFixture, options: Li
       maxTokens: options.maxTokens ?? 14000,
     },
     {
-      armId: "test:commercial-fantasy-adventure-v0:flash",
-      label: "Commercial fantasy/adventure V0 / DeepSeek V4 Flash",
+      armId: `test:${fixture.methodPackId}:flash`,
+      label: `${fixture.methodPackId} / DeepSeek V4 Flash`,
       methodPackEnabled: true,
       agentName: "method-pack-planner-diagnostic",
       thinking: false,
@@ -818,8 +1090,8 @@ export async function runLiveArms(fixture: PlannerDiagnosticFixture, options: Li
         maxTokens: 32000,
       },
       {
-        armId: "test:commercial-fantasy-adventure-v0:pro",
-        label: "Commercial fantasy/adventure V0 / DeepSeek V4 Pro",
+        armId: `test:${fixture.methodPackId}:pro`,
+        label: `${fixture.methodPackId} / DeepSeek V4 Pro`,
         methodPackEnabled: true,
         agentName: "method-pack-planner-diagnostic-pro",
         thinking: true,
@@ -1002,6 +1274,16 @@ Create a freeform six-part upstream plan from the same frozen concept. Use struc
 
 function liveShapeReminder(options: { scenesPerChapter: number; obligationsPerChapter: number }, fixture: PlannerDiagnosticFixture): string {
   const protagonistId = fixture.concept.protagonist.characterId
+  const v1SceneFields = isFrameworkV1Fixture(fixture)
+    ? `
+          "opposition": "...",
+          "turningPoint": "...",
+          "crisisChoice": "...",
+          "climaxAction": "...",
+          "resolution": "...",
+          "valueIn": "...",
+          "valueOut": "...",`
+    : ""
   return `
 
 Hard diagnostic limits for this fixture only:
@@ -1013,6 +1295,7 @@ Hard diagnostic limits for this fixture only:
 - put obligations only in chapter.obligations;
 - every scene.requiredObligationIds value must reference a chapter obligationId;
 - every scene.requiredSourceIds value must reference a chapter obligation sourceId.
+- sourceKind must be one of character, world, structure, story_promise, story_debt, concept.
 
 Required top-level JSON shape:
 {
@@ -1053,6 +1336,7 @@ Required top-level JSON shape:
           "locationOrArena": "...",
           "goal": "...",
           "conflict": "...",
+${v1SceneFields}
           "turnOrValueShift": "...",
           "outcome": "...",
           "consequence": "...",

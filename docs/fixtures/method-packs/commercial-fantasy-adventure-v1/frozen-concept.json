@@ -1,0 +1,132 @@
+{
+  "diagnosticId": "cfa-v1-mapmaker-erased-province",
+  "methodPackId": "commercial-fantasy-adventure-v1",
+  "templateId": "commercial-24-flex-v1",
+  "targetSlots": [
+    {
+      "structureSlotId": "CFA-01",
+      "structureJob": "Pressure baseline",
+      "planningTest": "Show what the protagonist wants, lacks, or cannot tolerate before the story changes."
+    },
+    {
+      "structureSlotId": "CFA-04",
+      "structureJob": "Invitation to danger",
+      "planningTest": "Present the concrete path into the story problem."
+    },
+    {
+      "structureSlotId": "CFA-06",
+      "structureJob": "First irreversible step",
+      "planningTest": "End the opening with a choice or consequence that prevents easy retreat."
+    },
+    {
+      "structureSlotId": "CFA-11",
+      "structureJob": "Major reversal",
+      "planningTest": "Reveal information or opposition that changes what the protagonist thinks the story is."
+    },
+    {
+      "structureSlotId": "CFA-17",
+      "structureJob": "Forced truth",
+      "planningTest": "Confront the protagonist with the flaw, false belief, or missing knowledge."
+    },
+    {
+      "structureSlotId": "CFA-22",
+      "structureJob": "Defining choice",
+      "planningTest": "Make victory depend on a meaningful choice, not only force or luck."
+    }
+  ],
+  "concept": {
+    "genreProfileId": "general-commercial-fantasy-adventure",
+    "premise": "Mara Vey, a disgraced border cartographer, learns that the Crown Survey has erased an entire mountain province from official maps. To restore her charter and save the stranded villages, she must map a forbidden road that rearranges itself around lies.",
+    "readerPromise": "A map-driven fantasy adventure about truth, loyalty, and the cost of drawing a path powerful people want hidden.",
+    "centralConflict": "Mara needs truthful maps to expose the Crown Survey, while Lord Ashren controls legal mapmaking and weaponizes a world where roads punish false vows.",
+    "strategyPacket": {
+      "strategyPacketId": "strategy-mapmaker-erased-province-v1",
+      "logline": "A disgraced cartographer maps a hidden road that punishes lies.",
+      "paragraphSummary": "Mara Vey wants her Crown Survey charter restored after a failed expedition ruined her name. A true-ink omission reveals that an entire province has been erased from official maps. A living road forces Mara to state a truthful destination and trust Sena's illegal routes. Lord Ashren offers to restore Mara if she hides the omission and abandons the villages. Mara must publish the true road with witnesses, sacrificing sanctioned status to make the hidden province legally visible.",
+      "majorReversals": [
+        "The official map is safe only because it is a legal lie.",
+        "Ashren can restore Mara's charter if she helps keep the province erased.",
+        "The living road will stabilize only when Mara trusts another witness with the truth."
+      ],
+      "endingDirection": "Mara publishes the true road with witnesses, loses sanctioned status, and makes the hidden province legally visible.",
+      "readerPromise": "A map-driven fantasy adventure where truth, trust, and living roads decide whether hidden villages survive.",
+      "protagonistWant": "restore her cartographer charter and prove her last expedition was sabotaged",
+      "protagonistNeed": "trust people outside sanctioned law enough to make truth public",
+      "protagonistLie": "measurements are safer than people",
+      "protagonistTruth": "truthful maps require trusted witnesses",
+      "antagonistPressure": "Lord Ashren weaponizes charter law to make truthful unauthorized maps criminal.",
+      "worldPressureRule": "Living roads punish false destinations, and true-ink burns omissions from maps."
+    },
+    "protagonist": {
+      "characterId": "char-mara-vey",
+      "name": "Mara Vey",
+      "desire": "restore her cartographer charter and prove her last expedition was sabotaged",
+      "fear": "being used again by institutions that reward her obedience and punish her truth",
+      "flaw": "she trusts measurements more than people and withholds plans until it is too late"
+    },
+    "characters": [
+      {
+        "characterId": "char-ilyan-tor",
+        "name": "Ilyan Tor",
+        "role": "supporting",
+        "materiality": "Mara's former apprentice now works for the Crown Survey and can either expose or protect her."
+      },
+      {
+        "characterId": "char-sena-vale",
+        "name": "Sena Vale",
+        "role": "supporting",
+        "materiality": "A river smuggler who knows unofficial routes and forces Mara to rely on someone outside sanctioned law."
+      },
+      {
+        "characterId": "char-lord-ashren",
+        "name": "Lord Ashren",
+        "role": "antagonist",
+        "materiality": "The Survey minister who profits from erased borders and can make unauthorized maps a capital crime."
+      }
+    ],
+    "worldFacts": [
+      {
+        "worldFactId": "world-living-roads",
+        "fact": "The old roads shift around oathbreakers and become stable only when travelers state a true destination."
+      },
+      {
+        "worldFactId": "world-true-ink",
+        "fact": "Cartographer's true-ink records accurate paths but burns through paper when the mapmaker knowingly omits a settlement."
+      },
+      {
+        "worldFactId": "world-charter-law",
+        "fact": "The border city forbids unauthorized maps; only Crown Survey charters make a route legally real."
+      }
+    ],
+    "storyPromise": {
+      "promiseId": "promise-erased-province",
+      "text": "If Mara follows the hidden road, she can reveal whether the erased province still exists and whether the Crown abandoned its people."
+    },
+    "storyDebts": [
+      {
+        "storyDebtId": "debt-erased-province",
+        "promiseText": "Mara can reveal whether the erased province still exists and whether the Crown abandoned its people.",
+        "openedBySlotId": "CFA-01",
+        "expectedProgressSlotIds": ["CFA-04", "CFA-06", "CFA-11", "CFA-17"],
+        "expectedPayoffSlotId": "CFA-22",
+        "payoffPolicy": "Pay off through a public true map that costs Mara sanctioned status."
+      },
+      {
+        "storyDebtId": "debt-trust-witness",
+        "promiseText": "Mara must learn whether trusting witnesses is safer than private measurement.",
+        "openedBySlotId": "CFA-01",
+        "expectedProgressSlotIds": ["CFA-04", "CFA-11", "CFA-17"],
+        "expectedPayoffSlotId": "CFA-22",
+        "payoffPolicy": "Pay off when Mara chooses public witnesses over isolated expertise."
+      }
+    ],
+    "constraints": [
+      "Produce planning contracts only, not prose.",
+      "Use scene contracts as the generation and adherence unit.",
+      "Make character and world obligations materially affect choices, costs, or consequences.",
+      "Preserve the Snowflake-lite strategy packet in chapter and scene contracts.",
+      "Route storyDebtId values into obligations and scene requiredSourceIds.",
+      "Keep the diagnostic to six chapter-contract units."
+    ]
+  }
+}
