@@ -772,3 +772,33 @@ surface still needs planner/readiness repair. The next value-added slice is to
 turn those exact character-link and underspecified-scene gaps into Plan
 Readiness items, or to test a writer expansion/context arm while holding the v2
 planner contract fixed.
+
+## Causal Materiality v2 Readiness Bridge
+
+Ran the existing no-LLM/no-DB Plan Readiness adapter over the four v2 cohort
+artifacts:
+
+```bash
+bun run diagnostics:corpus-recreation-readiness -- \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch1-flash-causal-materiality-v2-scene-calls-r2 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-materiality-v2-scene-calls-r2 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch5-flash-causal-materiality-v2-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch8-flash-causal-materiality-v2-scene-calls-r1 \
+  --output output/corpus-recreation-poc/causal-materiality-v2-readiness-r1.md \
+  --json output/corpus-recreation-poc/causal-materiality-v2-readiness-r1.json
+```
+
+Result:
+
+- 6 manual `CHARACTERREF-1` readiness groups;
+- 6 findings covering the 8 character-context linkage issues;
+- grouped targets: ch1 scene 2, ch1 scene 4, ch8 scenes 1, 4, 5, and 6;
+- each group preserves the relevant character IDs plus any obligation,
+  scene-turn, thread, promise, and payoff refs already present;
+- no semantic lows were converted because v2 had no low semantic labels.
+
+Interpretation: the exact character-link gaps are already convertible into
+operator review items. No code change was needed for that bridge. The remaining
+unresolved v2 question is not "can we surface the gaps"; it is whether the
+short prose is caused by the stronger planner contract, the scene writer's
+expansion behavior, or missing writer-context support.
