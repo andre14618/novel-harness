@@ -95,6 +95,11 @@ mechanical to build without reinterpreting old artifacts.
 `obligationId` remains the local contract item a writer/checker can satisfy.
 Obligations can point to `threadId`, `promiseId`, and `payoffId`.
 
+`characterId` remains the character-bible identity ref. Character context
+packets should preserve `characterId` beside scene, thread, promise, payoff,
+and obligation refs so voice, motivation, pressure, and relationship context
+can be routed to the writer without broad bible dumps.
+
 `sceneId` is the primary plan/write/check unit under L92. `beatId` remains an
 annotation or legacy compatibility ref inside scenes.
 
@@ -268,6 +273,18 @@ prose review tied, and the context arm drafted shorter prose. See
 Follow-up deterministic plan comparison now surfaces promise/payoff refs that
 belong to a different thread before writer-context tests run; aggregate reports
 surface those mismatch counts in the contract column.
+
+Character-context extension: `diagnostics:corpus-recreation-character-context`
+now builds deterministic per-scene character packets from existing POC
+`packet.json` + `plan.json` artifacts. The packets preserve POV/supporting
+`characterId`s, want/need/lie/truth, supporting-character pressure, optional
+voice anchors, source obligation IDs, and active thread/promise/payoff refs.
+They are read-only evidence and are not injected into writer prompts. The
+static review page and aggregate report surface the packet counts and structural
+issues. Exact-name detection flags a scene that names a known character in the
+scene contract but lacks either `requiredCharacterIds` or a character-source
+obligation, because that character would otherwise miss a character card in a
+future context arm.
 
 ### Lane 5 - Scene Thread Semantic Review
 

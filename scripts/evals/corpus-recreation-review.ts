@@ -19,6 +19,7 @@ import {
 } from "./run-manifest"
 import type { CorpusThreadMapReport } from "./corpus-recreation-thread-map"
 import type { CorpusThreadContextReport } from "./corpus-recreation-thread-context"
+import type { CorpusCharacterContextReport } from "./corpus-recreation-character-context"
 import { corpusRecreationVariantLabel } from "./corpus-recreation-variant"
 
 interface Args {
@@ -49,6 +50,7 @@ interface ReviewRun {
   runManifest: RunManifest | null
   threadMap: CorpusThreadMapReport | null
   threadContext: CorpusThreadContextReport | null
+  characterContext: CorpusCharacterContextReport | null
   writerContext: any | null
   scenes: ReviewScene[]
 }
@@ -123,6 +125,7 @@ function readReviewRun(pocDir: string): ReviewRun {
   const runManifest = readRunManifestIfExists(join(resolved, "run-manifest.json"))
   const threadMap = readOptionalJson(join(resolved, "thread-map.json")) as CorpusThreadMapReport | null
   const threadContext = readOptionalJson(join(resolved, "thread-context.json")) as CorpusThreadContextReport | null
+  const characterContext = readOptionalJson(join(resolved, "character-context.json")) as CorpusCharacterContextReport | null
   const writerContext = readOptionalJson(join(resolved, "writer-context.json"))
   const target = packet.target ?? {}
   const diagnosticConfig = packet.diagnosticConfig ?? {}
@@ -170,6 +173,7 @@ function readReviewRun(pocDir: string): ReviewRun {
     runManifest,
     threadMap,
     threadContext,
+    characterContext,
     writerContext,
     scenes,
   }
@@ -318,6 +322,7 @@ function renderRun(run: ReviewRun): string {
         ${run.runManifest ? badge("run", shortRunId(run.runManifest.runId)) : badge("run", "missing", "warn")}
         ${run.threadMap ? badge("thread map", `${run.threadMap.rowCount} rows`, run.threadMap.issueCount > 0 ? "warn" : "ok") : badge("thread map", "missing", "warn")}
         ${run.threadContext ? badge("thread context", `${run.threadContext.contextCount} scenes`, run.threadContext.issueCount > 0 ? "warn" : "ok") : badge("thread context", "missing", "warn")}
+        ${run.characterContext ? badge("character context", `${run.characterContext.contextCount} scenes`, run.characterContext.issueCount > 0 ? "warn" : "ok") : badge("character context", "missing", "warn")}
         ${badge("target", `${numberOrDash(run.target?.targetWords)} words`)}
         ${badge("scenes", `${run.scenes.length}/${numberOrDash(run.target?.sceneCount)}`)}
         ${badge("semantic lows", String(semanticLowCount), semanticLowCount > 0 ? "warn" : "ok")}
@@ -347,6 +352,10 @@ function renderRunProvenance(run: ReviewRun): string {
     <article>
       <h3>Thread Context Preview</h3>
       ${run.threadContext ? renderThreadContext(run.threadContext) : `<p class="muted">No thread-context.json found. Run diagnostics:corpus-recreation-thread-context for this POC directory to preview compact scene writer context.</p>`}
+    </article>
+    <article>
+      <h3>Character Context Preview</h3>
+      ${run.characterContext ? renderCharacterContext(run.characterContext) : `<p class="muted">No character-context.json found. Run diagnostics:corpus-recreation-character-context for this POC directory to preview compact character-bible context.</p>`}
     </article>
     <article>
       <h3>Writer Context Used</h3>
@@ -415,6 +424,42 @@ function renderThreadContext(threadContext: CorpusThreadContextReport): string {
     <details><summary>Context Responsibilities</summary>
       ${unorderedList(contexts.flatMap(context => context.currentResponsibilities.map(item => `${context.sceneId}: ${item}`)))}
     </details>
+  </div>`
+}
+
+function renderCharacterContext(characterContext: CorpusCharacterContextReport): string {
+  const contexts = Array.isArray(characterContext.contexts) ? characterContext.contexts : []
+  return `<div class="thread-context">
+    ${metric("Packets", numberOrDash(characterContext.contextCount))}
+    ${metric("Issues", numberOrDash(characterContext.issueCount))}
+    <div class="mini-table-wrap">
+      <table class="mini-table">
+        <thead><tr><th>Scene</th><th>POV</th><th>Characters</th><th>Cards</th><th>Issues</th></tr></thead>
+        <tbody>
+          ${contexts.map(context => `<tr>
+            <td>${escapeHtml(context.sceneId)}</td>
+            <td>${escapeHtml(context.povCharacterId ?? "none")}</td>
+            <td>${escapeHtml(context.activeCharacterIds.join(", ") || "none")}</td>
+            <td>${escapeHtml(String(context.characterCards.length))}</td>
+            <td>${escapeHtml(String(context.structuralIssues.length))}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+    <details><summary>Character Cards</summary>
+      ${unorderedList(contexts.flatMap(context => context.characterCards.map(card => {
+        const refs = [
+          card.want ? `want=${card.want}` : "",
+          card.need ? `need=${card.need}` : "",
+          card.pressure ? `pressure=${card.pressure}` : "",
+          card.sourceObligationIds.length ? `obligations=${card.sourceObligationIds.join(",")}` : "",
+        ].filter(Boolean).join("; ")
+        return `${context.sceneId}: ${card.characterId} (${card.sceneRole}) ${card.name}${refs ? ` - ${refs}` : ""}`
+      })))}
+    </details>
+    ${contexts.some(context => context.structuralIssues.length > 0)
+      ? `<details><summary>Character Context Issues</summary>${unorderedList(contexts.flatMap(context => context.structuralIssues))}</details>`
+      : ""}
   </div>`
 }
 
@@ -913,6 +958,7 @@ function reviewInputRefs(pocDirs: string[]) {
       { path: join(resolved, "chapter-comparison.json"), role: "chapter-comparison" },
       { path: join(resolved, "thread-map.json"), role: "thread-map-json" },
       { path: join(resolved, "thread-context.json"), role: "thread-context-json" },
+      { path: join(resolved, "character-context.json"), role: "character-context-json" },
       { path: join(resolved, "writer-context.json"), role: "writer-context-json" },
       { path: join(resolved, "semantic-review", "semantic-review.json"), role: "semantic-review-json" },
       { path: join(resolved, "semantic-review-live", "semantic-review.json"), role: "semantic-review-json" },

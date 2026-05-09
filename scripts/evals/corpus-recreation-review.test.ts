@@ -121,7 +121,7 @@ describe("corpus-recreation-review", () => {
         plannerVariant: "materiality-v1",
         sceneCount: 1,
         contextCount: 1,
-        issueCount: 0,
+        issueCount: 1,
         contexts: [
           {
             sceneId: "analog-sc01",
@@ -142,6 +142,66 @@ describe("corpus-recreation-review", () => {
           },
         ],
         threadMapIssues: [],
+      })
+      writeJson(join(pocDir, "character-context.json"), {
+        generatedAt: "2026-05-09T00:00:00.000Z",
+        pocDir,
+        source: { book: "crystal_shard", chapterLabel: "1" },
+        plannerVariant: "materiality-v1",
+        sceneCount: 1,
+        contextCount: 1,
+        issueCount: 0,
+        contexts: [
+          {
+            sceneId: "analog-sc01",
+            sceneIndex: 0,
+            povCharacterId: "char-mara",
+            sceneGoal: "Reach the gate.",
+            sceneOpposition: "The gate rejects her.",
+            sceneChoice: "Enter or retreat?",
+            sceneOutcome: "She enters.",
+            sceneConsequence: "The city marks her.",
+            activeCharacterIds: ["char-mara", "char-bellkeeper"],
+            characterCards: [
+              {
+                characterId: "char-mara",
+                name: "Mara",
+                role: "cartographer",
+                sceneRole: "pov",
+                want: "restore her map",
+                need: "trust witnesses",
+                lie: "private proof is enough",
+                truth: "public proof requires allies",
+                pressure: null,
+                speechPattern: null,
+                voiceAnchors: [],
+                sourceObligationIds: [],
+                activeThreadIds: [],
+                activePromiseIds: [],
+                activePayoffIds: [],
+              },
+              {
+                characterId: "char-bellkeeper",
+                name: "Bellkeeper",
+                role: "gate official",
+                sceneRole: "supporting",
+                want: null,
+                need: null,
+                lie: null,
+                truth: null,
+                pressure: "Can bar Mara from the city.",
+                speechPattern: null,
+                voiceAnchors: [],
+                sourceObligationIds: ["obl-1"],
+                activeThreadIds: ["thread-bell"],
+                activePromiseIds: ["debt-bell"],
+                activePayoffIds: ["payoff-bell-rings"],
+              },
+            ],
+            currentResponsibilities: ["obl-1 source=world-bell thread=thread-bell: Make the bell matter."],
+            structuralIssues: ["analog-sc01: character char-bellkeeper is named in scene contract but missing requiredCharacterIds/source obligation"],
+          },
+        ],
       })
       writeJson(join(pocDir, "writer-context.json"), {
         generatedAt: "2026-05-09T00:00:00.000Z",
@@ -241,6 +301,11 @@ describe("corpus-recreation-review", () => {
       expect(html).toContain("run-poc-1")
       expect(html).toContain("Thread Map")
       expect(html).toContain("Thread Context Preview")
+      expect(html).toContain("Character Context Preview")
+      expect(html).toContain("char-mara")
+      expect(html).toContain("trust witnesses")
+      expect(html).toContain("Character Context Issues")
+      expect(html).toContain("missing requiredCharacterIds")
       expect(html).toContain("Writer Context Used")
       expect(html).toContain("materiality-v1 + thread-context-v1")
       expect(html).toContain("thread-context-v1")

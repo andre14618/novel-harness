@@ -74,6 +74,8 @@ export interface CorpusRecreationAggregateRow {
   proseLowCount: number
   proseReviewCount: number
   proseSummaries: DimensionSummary[]
+  characterContextCount: number
+  characterContextIssueCount: number
 }
 
 export interface CorpusRecreationAggregateReport {
@@ -102,8 +104,8 @@ export function renderCorpusRecreationAggregate(report: CorpusRecreationAggregat
   lines.push(`Generated: ${report.generatedAt}`)
   lines.push(`Rows: ${report.rowCount}`)
   lines.push("")
-  lines.push("| Chapter | Variant | Scenes | Words | Contract | Issues | Warnings | Semantic | Prose |")
-  lines.push("| --- | --- | ---: | ---: | --- | --- | --- | --- | --- |")
+  lines.push("| Chapter | Variant | Scenes | Words | Contract | Issues | Warnings | Character Ctx | Semantic | Prose |")
+  lines.push("| --- | --- | ---: | ---: | --- | --- | --- | --- | --- | --- |")
   for (const row of report.rows) {
     lines.push([
       `| ${escapeCell(row.chapterLabel || "?")}`,
@@ -116,6 +118,7 @@ export function renderCorpusRecreationAggregate(report: CorpusRecreationAggregat
       escapeCell(formatContract(row)),
       escapeCell(formatIssues(row)),
       escapeCell(formatWarnings(row)),
+      escapeCell(formatCharacterContext(row)),
       escapeCell(formatSemantic(row)),
       `${escapeCell(formatProse(row))} |`,
     ].join(" | "))
@@ -147,6 +150,7 @@ export function renderCorpusRecreationAggregate(report: CorpusRecreationAggregat
   lines.push("## Interpretation Boundary")
   lines.push("")
   lines.push("- Deterministic contract/prose rows show structure, IDs, consequences, word shape, and source-boundary checks.")
+  lines.push("- Character-context rows show whether named characters are linked to required/source refs before writer-context experiments.")
   lines.push("- Semantic rows show diagnostic judge output for applicable exact-ID dimensions.")
   lines.push("- Prose rows show advisory prose-quality triage and operator-attention counts.")
   lines.push("- This aggregate is evidence for operator review and cohort design; it is not production promotion proof.")
@@ -164,6 +168,7 @@ function readPocRow(pocDir: string): CorpusRecreationAggregateRow {
     `${resolved}/semantic-review-live/semantic-review.json`,
   ]) ?? {}
   const prose = readOptionalJson(`${resolved}/prose-quality-live/prose-review.json`) ?? {}
+  const characterContext = readOptionalJson(`${resolved}/character-context.json`) ?? {}
   const source = packet.sourceReference ?? {}
   const sceneContract = planComparison.sceneContract ?? {}
   const semanticSummaries = Array.isArray(semantic.summaries) ? semantic.summaries.map(normalizeSummary) : []
@@ -217,6 +222,8 @@ function readPocRow(pocDir: string): CorpusRecreationAggregateRow {
     proseLowCount: proseSummaries.reduce((sum, summary) => sum + summary.lowCount, 0),
     proseReviewCount: proseSummaries.reduce((sum, summary) => sum + summary.reviewCount, 0),
     proseSummaries,
+    characterContextCount: numberOrZero(characterContext.contextCount),
+    characterContextIssueCount: numberOrZero(characterContext.issueCount),
   }
 }
 
@@ -324,6 +331,13 @@ function formatWarnings(row: CorpusRecreationAggregateRow): string {
   if (row.chapterWarningCount) parts.push(`chapter ${row.chapterWarningCount}`)
   if (row.sceneMinimumFailures) parts.push(`scene-floor ${row.sceneMinimumFailures}`)
   return parts.join("; ") || "none"
+}
+
+function formatCharacterContext(row: CorpusRecreationAggregateRow): string {
+  if (!row.characterContextCount) return "not run"
+  return row.characterContextIssueCount
+    ? `${row.characterContextCount} packets; issues ${row.characterContextIssueCount}`
+    : `${row.characterContextCount} packets; clean`
 }
 
 function formatSemantic(row: CorpusRecreationAggregateRow): string {
@@ -438,6 +452,7 @@ function aggregateInputRefs(pocDirs: string[]) {
       { path: `${resolved}/packet.json`, role: "packet" },
       { path: `${resolved}/plan-comparison.json`, role: "plan-comparison" },
       { path: `${resolved}/chapter-comparison.json`, role: "chapter-comparison" },
+      { path: `${resolved}/character-context.json`, role: "character-context-json" },
       { path: `${resolved}/semantic-review/semantic-review.json`, role: "semantic-review-json" },
       { path: `${resolved}/semantic-review-live/semantic-review.json`, role: "semantic-review-json" },
       { path: `${resolved}/prose-quality-live/prose-review.json`, role: "prose-review-json" },

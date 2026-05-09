@@ -175,6 +175,8 @@ Aggregate evidence:
 - `output/corpus-recreation-poc/scene-turn-v4-paired-writer-context-aggregate-20260509/aggregate.md`
 - 6 rows across chapters 1, 2, and 5;
 - deterministic issues: 0 in all rows;
+- character-context structural issues: chapter 1 has 2 per arm; chapter 2 has
+  4 per arm; chapter 5 has 0 per arm;
 - semantic low findings: 1 total, only baseline chapter 1 scene 1
   `motivationSpecificity`;
 - prose operator-attention findings: 0 in all rows;
@@ -192,3 +194,11 @@ Implementation note: the aggregate and static review readers now accept both
 the current `semantic-review/semantic-review.json` output path and the older
 `semantic-review-live/semantic-review.json` path. The earlier aggregate showed
 `not run` for semantic rows because it only checked the older path.
+
+Character-context note: `diagnostics:corpus-recreation-character-context`
+creates read-only character packets from the same POC artifacts. It does not
+change writer prompts. The new structural issues are exact-ID context gaps:
+the scene contract names a known character, but the plan did not link that
+character through `requiredCharacterIds` or a character-source obligation. The
+next planning-layer fix should make those IDs explicit before any
+character-context writer arm is promoted.
