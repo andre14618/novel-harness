@@ -63,6 +63,15 @@ export const beatObligationItemSchema = z.preprocess(
     sourceId: z.coerce.string().optional(),
     sourceKind: z.enum(["fact", "knowledge", "state", "payoff", "avoid"]).optional(),
     characterId: z.coerce.string().optional(),
+    threadId: z.coerce.string().optional(),
+    promiseId: z.coerce.string().optional(),
+    payoffId: z.coerce.string().optional(),
+    payoffEventId: z.coerce.string().optional(),
+    storyDebtStage: z.enum(["open", "progress", "partial_payoff", "final_payoff", "aftermath"]).optional(),
+    sceneTurnId: z.coerce.string().optional(),
+    structureSlotId: z.coerce.string().optional(),
+    worldFactId: z.coerce.string().optional(),
+    affectedCharacterIds: z.array(z.coerce.string()).optional().catch([]),
   }).passthrough(),
 ).catch({ text: "" })
 

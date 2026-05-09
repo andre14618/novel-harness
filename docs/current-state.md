@@ -160,6 +160,8 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-08:
 - Chapter-outline saves now persist enriched stable IDs for chapters, beats,
   source items, characters, and obligations; checker findings carry additive
   stable refs on the current high-value surfaces before broader traceability UI.
+- Planning directives now carry optional story thread/debt/payoff refs; mapper
+  and writer-context telemetry surface active refs without blocking semantics.
 - Plan-assist `edit-plan` and `override` remain direct manual-gate actions, but
   drafting now records `planning_mutation_lineage` sourced from
   `chapter_exhaustions` and preserves chapter IDs across replacement outlines.
@@ -170,12 +172,11 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-08:
   changing the legacy `beat_index` contract.
 - Beat-level LLM telemetry now persists `llm_calls.beat_id` for beat writer,
   targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
-- Semantic-gate diagnostics, accelerated cohorts, planner-quality reports, and
-  Diagnostics UI expose risk drivers, candidate artifacts, action/proposal
-  evidence, drift witnesses, writer expansion, checker evidence, and
-  plan-assist lineage. Beat caps and `calibrated:packed` remain
-  diagnostic-only; L88 makes native chapter contracts and story-turn planning
-  the production default, with explicit legacy rollback via seed override.
+- Semantic-gate diagnostics and Diagnostics UI expose risk drivers, candidate
+  artifacts, action/proposal evidence, drift witnesses, writer expansion,
+  checker evidence, and plan-assist lineage. Beat caps and `calibrated:packed`
+  remain diagnostic-only; L88 makes native chapter contracts/story-turn
+  planning the production default with explicit legacy rollback.
 - Continuity findings do not open Drafting Plan-Assist Gates; fact-scoped
   blockers can optionally persist manual `editorial_flag` envelopes; see L84.
 - World fact roles are additive on `facts` and `canon_facts`; diagnostics

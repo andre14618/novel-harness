@@ -11,9 +11,10 @@ role: decision-record
 Extend the existing run/stable-ref traceability foundation into an end-to-end
 run lineage plus narrative thread/payoff coherence contract.
 
-Before changing production writer behavior, diagnostics should prove that the
-harness can carry these refs from concept/planning through scene contracts,
-prose artifacts, semantic review, and planning/revision proposals.
+Initial runtime integration should be additive: carry author-declared
+`threadId`, `promiseId`, and `payoffId` through planner directives,
+state-mapper obligations, writer context, and telemetry without making thread
+semantics blocking.
 
 ## Rationale
 
@@ -54,8 +55,9 @@ scene, not a broad dump of all novel state.
   instead of duplicated.
 - `rootRunId`, `parentRunId`, `variantId`, artifact refs, and artifact hashes
   should become standard diagnostic metadata where current outputs lack them.
-- `threadId`, `promiseId`, and `payoffId` should be added to planner contracts
-  as traceability refs before production prompt changes.
+- `threadId`, `promiseId`, and `payoffId` are runtime traceability refs:
+  planner directives may declare them, the state mapper attaches them to
+  relevant obligations, and writer context/telemetry surfaces active refs.
 - `sceneId` remains the primary plan/write/check unit under L92.
 - `obligationId` remains the local satisfaction unit and can reference
   thread/payoff refs.
@@ -73,18 +75,27 @@ scene, not a broad dump of all novel state.
 3. Produce deterministic thread maps and impact previews.
 4. Add static review visibility for run and thread comparisons.
 5. Add advisory scene-level thread semantic review.
-6. Run a default-off interleaved writer-context experiment.
+6. Add advisory semantic review for thread progress/payoff landing.
 7. Integrate proven refs into planning proposals and runtime stale-marking.
 
 ## Evidence Gate
 
-No production writer-context change should promote until:
+Thread refs are promoted as additive visibility/context infrastructure, not as
+creative policy. Blocking or rewrite behavior still requires:
 
-- run/thread refs are complete on the compared artifacts;
-- deterministic validators pass;
-- semantic review shows thread/payoff landing improves or at least does not
-  regress;
-- operator side-by-side review can explain why the variant is more coherent.
+- deterministic validators for missing/unknown/mismatched refs;
+- semantic review showing thread/payoff landing improves or does not regress;
+- operator side-by-side review explaining why the variant is more coherent.
+
+## 2026-05-09 Runtime Integration
+
+Production directives now accept `storyThreads`, `storyDebts`, and
+`storyPayoffs`; the planner prompt renders stable IDs and tells downstream
+agents to preserve them. `planning-state-mapper` can attach exact
+`threadId`/`promiseId`/`payoffId` refs and `storyDebtStage` to obligations.
+Writer context now shows active refs at the beat/chapter context level and
+emits them in `writer-context` telemetry. No checker blocker or automatic graph
+mutation was added.
 
 ## Detail
 

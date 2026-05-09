@@ -21,6 +21,38 @@ test("planning-state-mapper context carries beat indexes without asking for rewr
   expect(context).toContain("Map Chapter 1's end-of-chapter state")
 })
 
+test("planning-state-mapper context carries runtime story refs from directives", () => {
+  const context = buildContext({
+    targetChapter: chapter(),
+    allSkeletons: [chapter()],
+    priorChapters: [],
+    scenes: [beat({ description: "Istra discovers the plague ledger was altered.", characters: ["Istra"] })],
+    worldBible: worldBible(),
+    characters: [character()],
+    spine: storySpine(),
+    seed: {
+      ...seed(),
+      directives: {
+        lockedCharacters: [],
+        requiredBeats: [],
+        forbidden: [],
+        tonalAnchors: [],
+        structuralConstraints: { povRotation: "", pacing: "" },
+        storyThreads: [{ threadId: "thread-ledger-truth", label: "Ledger truth", description: "Istra tracks who falsified the plague ledger.", kind: "" }],
+        storyDebts: [{ storyDebtId: "debt-ledger-betrayal", threadId: "thread-ledger-truth", promiseText: "The altered ledger points to a civic betrayal.", payoffPolicy: "" }],
+        storyPayoffs: [{ payoffId: "payoff-ledger-betrayal-proved", storyDebtId: "debt-ledger-betrayal", threadId: "thread-ledger-truth", payoffText: "Istra proves who falsified the plague ledger." }],
+        rawNotes: "",
+      },
+    },
+  })
+
+  expect(context).toContain("STORY THREADS")
+  expect(context).toContain("threadId=thread-ledger-truth")
+  expect(context).toContain("promiseId=debt-ledger-betrayal")
+  expect(context).toContain("payoffId=payoff-ledger-betrayal-proved")
+  expect(context).toContain("STORY REF RULE")
+})
+
 function chapter(): ChapterOutline {
   return {
     chapterNumber: 1,

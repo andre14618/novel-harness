@@ -17,7 +17,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
 | L94 | 2026-05-09 | active | Production drafting defaults to exact-ID character context capsules after fixed-plan POC evidence improved expansion without semantic/prose regressions. | `docs/decisions/L094-production-character-context-default.md` |
-| L93 | 2026-05-09 | active | Extend existing run/stable-ref traceability into run lineage and narrative thread/payoff coherence; prove refs and static review before writer changes. | `docs/decisions/L093-run-thread-id-drafting-coherence.md` |
+| L93 | 2026-05-09 | active | Extend stable-ref traceability into runtime thread/payoff refs: directives, state-mapper obligations, writer context, and telemetry carry IDs without making thread semantics blocking. | `docs/decisions/L093-run-thread-id-drafting-coherence.md` |
 | L92 | 2026-05-09 | active | Scene is the next primary plan/write/check unit; beats remain annotation, obligation, and traceability granularity inside scenes while legacy beat checks are adapted upward where useful. | `docs/decisions/L092-scene-first-writing-beat-annotation.md` |
 | L91 | 2026-05-07 | active | Plan Readiness Review is the default checkpoint between planner diagnostics and drafting when diagnostics are available; items are conversational/manual and become changes only through `planning_edit` proposals. | `docs/decisions/L091-plan-readiness-review-default.md` |
 | L90 | 2026-05-07 | active | Active LLM calls use only DeepSeek V4 Flash or DeepSeek V4 Pro with per-role thinking level; legacy provider/model references are historical, not active routing permission. | `docs/decisions/L090-deepseek-only-active-model-policy.md` |

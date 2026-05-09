@@ -66,7 +66,13 @@ const OUTLINE: ChapterOutline = {
     kind: "dialogue",
     requiredPayoffs: [],
     obligations: {
-      mustEstablish: [],
+      mustEstablish: [{
+        text: "The folio's red marginalia predicts a succession crime.",
+        obligationId: "obl-folio-promise",
+        threadId: "thread-inquiry",
+        promiseId: "debt-folio",
+        payoffId: "payoff-folio-prediction",
+      } as any],
       mustPayOff: [],
       mustTransferKnowledge: [{
         text: "Noor learns Cassius has survived the library's tests.",
@@ -110,6 +116,9 @@ test("beat character capsules surface exact IDs, LTWN fields, stakes, and obliga
   expect(rendered).toContain("Lie: Truth can be preserved alone.")
   expect(rendered).toContain("Truth: Truth needs witnesses.")
   expect(rendered).toContain("Source obligations: obl-noor-learns-cassius")
+  expect(rendered).toContain("Active thread refs: thread-inquiry, thread-relationship")
+  expect(rendered).toContain("Active promise refs: debt-folio")
+  expect(rendered).toContain("Active payoff refs: payoff-folio-prediction")
   expect(rendered).toContain("Active threads: thread-inquiry")
   expect(summarizeCharacterContextCapsules(capsules!)).toMatchObject({
     mode: "thread-character-context-v1",
@@ -120,6 +129,42 @@ test("beat character capsules surface exact IDs, LTWN fields, stakes, and obliga
     characterIds: ["char-noor", "char-cassius"],
     sourceObligationIds: ["obl-noor-learns-cassius", "obl-cassius-helps"],
     activeThreadIds: ["thread-inquiry", "thread-relationship"],
+    activePromiseIds: ["debt-folio"],
+    activePayoffIds: ["payoff-folio-prediction"],
+  })
+})
+
+test("beat character capsules keep story refs even without character cards", () => {
+  const beat = {
+    ...OUTLINE.scenes[0]!,
+    characters: [],
+    povPersonalStake: undefined,
+    obligations: {
+      mustEstablish: [{
+        text: "The folio promise moves forward.",
+        obligationId: "obl-folio-thread",
+        threadId: "thread-inquiry",
+        promiseId: "debt-folio",
+      } as any],
+      mustPayOff: [],
+      mustTransferKnowledge: [],
+      mustShowStateChange: [],
+      mustNotReveal: [],
+      allowedNewEntities: [],
+    },
+  }
+
+  const capsules = buildBeatCharacterContextCapsules({
+    outline: { ...OUTLINE, povCharacter: "", povCharacterId: undefined, charactersPresentIds: [] },
+    beat,
+    beatIndex: 0,
+    characters: CHARACTERS,
+    characterStates: [],
+  })
+
+  expect(capsules?.cards).toEqual([])
+  expect(summarizeCharacterContextCapsules(capsules!)).toMatchObject({
+    activeThreadIds: ["thread-inquiry"],
     activePromiseIds: ["debt-folio"],
   })
 })

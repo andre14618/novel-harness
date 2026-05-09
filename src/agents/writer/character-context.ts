@@ -29,6 +29,9 @@ export interface WriterCharacterContextCapsules {
   beatNumber?: number
   povCharacterId?: string
   povPersonalStake?: string
+  activeThreadIds: string[]
+  activePromiseIds: string[]
+  activePayoffIds: string[]
   cards: WriterCharacterContextCard[]
   missingCharacterIds: string[]
 }
@@ -70,6 +73,7 @@ export function buildBeatCharacterContextCapsules(args: {
   const { outline, beat, beatIndex, characters, characterStates } = args
   const obligations = collectBeatObligations(beat)
   const selected = selectBeatCharacterIds({ outline, beat, obligations, characters })
+  const activeRefs = collectActiveStoryRefs(obligations)
   const cards = selected.ids
     .map(characterId => {
       const character = characters.find(c => c.id === characterId)
@@ -83,7 +87,7 @@ export function buildBeatCharacterContextCapsules(args: {
     .filter((card): card is WriterCharacterContextCard => Boolean(card))
 
   const povPersonalStake = cleanString(beat.povPersonalStake)
-  if (cards.length === 0 && !povPersonalStake) return null
+  if (cards.length === 0 && !povPersonalStake && !hasActiveStoryRefs(activeRefs)) return null
 
   return {
     mode: "thread-character-context-v1",
@@ -93,6 +97,7 @@ export function buildBeatCharacterContextCapsules(args: {
     beatNumber: beatIndex + 1,
     ...(outline.povCharacterId ? { povCharacterId: outline.povCharacterId } : {}),
     ...(povPersonalStake ? { povPersonalStake } : {}),
+    ...activeRefs,
     cards,
     missingCharacterIds: selected.missingCharacterIds,
   }
@@ -106,6 +111,7 @@ export function buildChapterCharacterContextCapsules(args: {
 }): WriterCharacterContextCapsules | null {
   const { outline, relevantCharacters, allCharacters, characterStates } = args
   const obligations = outline.scenes.flatMap(collectBeatObligations)
+  const activeRefs = collectActiveStoryRefs(obligations)
   const selectedIds = uniqueStrings([
     outline.povCharacterId ?? "",
     ...outline.charactersPresentIds,
@@ -125,13 +131,14 @@ export function buildChapterCharacterContextCapsules(args: {
     })
     .filter((card): card is WriterCharacterContextCard => Boolean(card))
 
-  if (cards.length === 0) return null
+  if (cards.length === 0 && !hasActiveStoryRefs(activeRefs)) return null
 
   return {
     mode: "thread-character-context-v1",
     scope: "chapter",
     ...(outline.chapterId ? { chapterId: outline.chapterId } : {}),
     ...(outline.povCharacterId ? { povCharacterId: outline.povCharacterId } : {}),
+    ...activeRefs,
     cards,
     missingCharacterIds,
   }
@@ -139,6 +146,9 @@ export function buildChapterCharacterContextCapsules(args: {
 
 export function renderCharacterContextCapsules(ctx: WriterCharacterContextCapsules): string {
   const lines = ["CHARACTER CONTEXT CAPSULES:"]
+  const activeThreadIds = ctx.activeThreadIds ?? []
+  const activePromiseIds = ctx.activePromiseIds ?? []
+  const activePayoffIds = ctx.activePayoffIds ?? []
   lines.push(`Mode: ${ctx.mode}`)
   lines.push(`Scope: ${ctx.scope}`)
   if (ctx.chapterId) lines.push(`Chapter ID: ${ctx.chapterId}`)
@@ -146,6 +156,9 @@ export function renderCharacterContextCapsules(ctx: WriterCharacterContextCapsul
   if (ctx.beatNumber != null) lines.push(`Beat number: ${ctx.beatNumber}`)
   if (ctx.povCharacterId) lines.push(`POV character ID: ${ctx.povCharacterId}`)
   if (ctx.povPersonalStake) lines.push(`POV personal stake: ${ctx.povPersonalStake}`)
+  if (activeThreadIds.length > 0) lines.push(`Active thread refs: ${activeThreadIds.join(", ")}`)
+  if (activePromiseIds.length > 0) lines.push(`Active promise refs: ${activePromiseIds.join(", ")}`)
+  if (activePayoffIds.length > 0) lines.push(`Active payoff refs: ${activePayoffIds.join(", ")}`)
   if (ctx.missingCharacterIds.length > 0) lines.push(`Missing character IDs: ${ctx.missingCharacterIds.join(", ")}`)
 
   for (const card of ctx.cards) {
@@ -171,6 +184,9 @@ export function renderCharacterContextCapsules(ctx: WriterCharacterContextCapsul
 }
 
 export function summarizeCharacterContextCapsules(ctx: WriterCharacterContextCapsules): WriterCharacterContextTrace {
+  const activeThreadIds = ctx.activeThreadIds ?? []
+  const activePromiseIds = ctx.activePromiseIds ?? []
+  const activePayoffIds = ctx.activePayoffIds ?? []
   return {
     mode: ctx.mode,
     scope: ctx.scope,
@@ -181,9 +197,9 @@ export function summarizeCharacterContextCapsules(ctx: WriterCharacterContextCap
     povPersonalStakePresent: Boolean(ctx.povPersonalStake),
     characterIds: ctx.cards.map(card => card.characterId),
     sourceObligationIds: uniqueStrings(ctx.cards.flatMap(card => card.sourceObligationIds)),
-    activeThreadIds: uniqueStrings(ctx.cards.flatMap(card => card.activeThreadIds)),
-    activePromiseIds: uniqueStrings(ctx.cards.flatMap(card => card.activePromiseIds)),
-    activePayoffIds: uniqueStrings(ctx.cards.flatMap(card => card.activePayoffIds)),
+    activeThreadIds: uniqueStrings([...activeThreadIds, ...ctx.cards.flatMap(card => card.activeThreadIds)]),
+    activePromiseIds: uniqueStrings([...activePromiseIds, ...ctx.cards.flatMap(card => card.activePromiseIds)]),
+    activePayoffIds: uniqueStrings([...activePayoffIds, ...ctx.cards.flatMap(card => card.activePayoffIds)]),
     missingCharacterIds: ctx.missingCharacterIds,
   }
 }
@@ -275,6 +291,22 @@ function collectBeatObligations(beat: SceneBeat): ObligationItem[] {
     ...obligations.mustShowStateChange,
     ...obligations.mustNotReveal,
   ] as ObligationItem[]
+}
+
+function collectActiveStoryRefs(obligations: ObligationItem[]): {
+  activeThreadIds: string[]
+  activePromiseIds: string[]
+  activePayoffIds: string[]
+} {
+  return {
+    activeThreadIds: compactUniqueStrings(obligations.map(o => cleanString(o.threadId))),
+    activePromiseIds: compactUniqueStrings(obligations.map(o => cleanString(o.promiseId))),
+    activePayoffIds: compactUniqueStrings(obligations.map(o => cleanString(o.payoffId))),
+  }
+}
+
+function hasActiveStoryRefs(refs: { activeThreadIds: string[]; activePromiseIds: string[]; activePayoffIds: string[] }): boolean {
+  return refs.activeThreadIds.length > 0 || refs.activePromiseIds.length > 0 || refs.activePayoffIds.length > 0
 }
 
 function cleanString(value: unknown): string | undefined {

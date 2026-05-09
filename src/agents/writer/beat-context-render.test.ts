@@ -136,6 +136,9 @@ test("renderBeatContext emits character context capsules when supplied", () => {
       beatNumber: 1,
       povCharacterId: "char-noor",
       povPersonalStake: "Noor's need to be useful conflicts with her fear of being erased.",
+      activeThreadIds: ["thread-inquiry"],
+      activePromiseIds: ["debt-folio"],
+      activePayoffIds: [],
       cards: [{
         characterId: "char-noor",
         name: "Noor",

@@ -23,13 +23,27 @@ test("sceneBeatSchema accepts planner-authored beat obligations", () => {
     description: "Calla deciphers Davan's inscription.",
     characters: ["Calla", "Davan"],
     obligations: {
-      mustEstablish: [{ id: "old-script", text: "Davan bears the Old Tongue" }],
+      mustEstablish: [{
+        id: "old-script",
+        text: "Davan bears the Old Tongue",
+        threadId: "thread-old-tongue",
+        promiseId: "debt-old-tongue",
+        sceneTurnId: "turn-script-reveal",
+        affectedCharacterIds: ["char-davan"],
+      }],
       mustTransferKnowledge: [{ characterName: "Calla", text: "Calla learns the script predates the empire" }],
       allowedNewEntities: ["Old Tongue"],
     },
   })
 
-  expect(beat.obligations.mustEstablish[0]).toEqual({ id: "old-script", text: "Davan bears the Old Tongue" })
+  expect(beat.obligations.mustEstablish[0]).toMatchObject({
+    id: "old-script",
+    text: "Davan bears the Old Tongue",
+    threadId: "thread-old-tongue",
+    promiseId: "debt-old-tongue",
+    sceneTurnId: "turn-script-reveal",
+    affectedCharacterIds: ["char-davan"],
+  })
   expect(beat.obligations.mustTransferKnowledge[0]).toEqual({ characterName: "Calla", text: "Calla learns the script predates the empire" })
   expect(beat.obligations.mustPayOff).toEqual([])
   expect(beat.obligations.allowedNewEntities).toEqual(["Old Tongue"])

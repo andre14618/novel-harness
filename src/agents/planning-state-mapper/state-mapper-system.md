@@ -42,6 +42,9 @@ Respond with ONLY valid JSON in this exact structure:
             "obligationId": "obl-001-the-trial-beat-004-fact-001-temple-archive-pre-war-records",
             "sourceId": "fact-temple-archive-pre-war-records",
             "sourceKind": "fact",
+            "threadId": "thread-archive-truth",
+            "promiseId": "debt-archive-betrayal",
+            "storyDebtStage": "progress",
             "text": "The archive beneath the temple contains pre-war records"
           }
         ],
@@ -53,6 +56,8 @@ Respond with ONLY valid JSON in this exact structure:
             "sourceKind": "knowledge",
             "characterId": "char-character-a",
             "characterName": "Character A",
+            "threadId": "thread-archive-truth",
+            "promiseId": "debt-archive-betrayal",
             "text": "Character A learns Davan betrayed the order"
           }
         ],
@@ -90,6 +95,9 @@ Respond with ONLY valid JSON in this exact structure:
 - Every obligation item must include `sourceId` referencing the upstream chapter-level item it makes writer-visible (`establishedFacts[].id`, `knowledgeChanges[].id`, or `characterStateChanges[].id`).
 - Every obligation item must include `sourceKind` ∈ {"fact", "knowledge", "state", "payoff"}.
 - For `mustTransferKnowledge` and `mustShowStateChange`, also include `characterId` matching the upstream item's `characterId`.
+- When author directives list story threads, debts, or payoff targets, copy the exact `threadId`, `promiseId`, and `payoffId` onto the relevant obligation item. Use `promiseId` for the story debt ID. Use `payoffId` only when the obligation lands a payoff, not for ordinary progress.
+- If a story debt is being moved rather than paid off, set `storyDebtStage` to `"open"` or `"progress"`. If it lands partly or fully, set `"partial_payoff"` or `"final_payoff"` and include the matching `payoffId` when one was provided.
+- Do not invent thread, promise, payoff, or scene-turn IDs. If the input does not provide a matching ref, omit the ref field.
 - Beat indexes are numbers, never labels like `later`, `final`, or `climax`.
 
 ## Chapter-Level State

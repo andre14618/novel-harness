@@ -70,15 +70,51 @@ export const structuralConstraintsSchema = z.object({
 })
 export type StructuralConstraints = z.infer<typeof structuralConstraintsSchema>
 
+export const storyThreadDirectiveSchema = z.object({
+  threadId: z.coerce.string().optional(),
+  label: z.string(),
+  description: z.string().default(""),
+  kind: z.string().default(""),
+})
+export type StoryThreadDirective = z.infer<typeof storyThreadDirectiveSchema>
+
+export const storyDebtDirectiveSchema = z.object({
+  storyDebtId: z.coerce.string().optional(),
+  threadId: z.coerce.string().optional(),
+  promiseText: z.string(),
+  openedByChapter: coerceOptionalNumber,
+  expectedPayoffChapter: coerceOptionalNumber,
+  payoffPolicy: z.string().default(""),
+})
+export type StoryDebtDirective = z.infer<typeof storyDebtDirectiveSchema>
+
+export const storyPayoffDirectiveSchema = z.object({
+  payoffId: z.coerce.string().optional(),
+  storyDebtId: z.coerce.string().optional(),
+  threadId: z.coerce.string().optional(),
+  payoffText: z.string(),
+  targetChapter: coerceOptionalNumber,
+})
+export type StoryPayoffDirective = z.infer<typeof storyPayoffDirectiveSchema>
+
 export const planningDirectivesSchema = z.object({
   lockedCharacters: z.array(lockedCharacterSchema).default([]),
   requiredBeats: z.array(requiredBeatSchema).default([]),
   forbidden: z.array(z.string()).default([]),
   tonalAnchors: z.array(z.string()).default([]),
   structuralConstraints: structuralConstraintsSchema.default({}),
+  storyThreads: z.array(storyThreadDirectiveSchema).default([]),
+  storyDebts: z.array(storyDebtDirectiveSchema).default([]),
+  storyPayoffs: z.array(storyPayoffDirectiveSchema).default([]),
   rawNotes: z.string().default(""),
 })
 export type PlanningDirectives = z.infer<typeof planningDirectivesSchema>
+
+export interface NormalizedPlanningDirectiveRefs {
+  storyThreads: Array<StoryThreadDirective & { threadId: string }>
+  storyDebts: Array<StoryDebtDirective & { storyDebtId: string; threadId: string }>
+  storyPayoffs: Array<StoryPayoffDirective & { payoffId: string; storyDebtId: string; threadId: string }>
+}
 
 export const directorTurnSchema = z.object({
   assistantMessage: z.string(),
@@ -98,11 +134,46 @@ export const emptyDirectives: PlanningDirectives = {
     povRotation: "",
     pacing: "",
   },
+  storyThreads: [],
+  storyDebts: [],
+  storyPayoffs: [],
   rawNotes: "",
+}
+
+export function normalizePlanningDirectiveRefs(d: PlanningDirectives): NormalizedPlanningDirectiveRefs {
+  const threadIds = new Set<string>()
+  const storyThreads = d.storyThreads.map((thread, index) => {
+    const threadId = directiveId("thread", thread.threadId || thread.label || thread.description, index, threadIds)
+    return { ...thread, threadId }
+  })
+  const fallbackThreadId = storyThreads.length === 1 ? storyThreads[0]!.threadId : ""
+  const debtIds = new Set<string>()
+  const storyDebts = d.storyDebts.map((debt, index) => {
+    const storyDebtId = directiveId("debt", debt.storyDebtId || debt.promiseText, index, debtIds)
+    const threadId = debt.threadId || fallbackThreadId
+      ? normalizeReferenceId("thread", debt.threadId || fallbackThreadId)
+      : directiveId("thread", debt.promiseText, index, threadIds)
+    return { ...debt, storyDebtId, threadId }
+  })
+  const debtById = new Map(storyDebts.map(debt => [debt.storyDebtId, debt]))
+  const payoffIds = new Set<string>()
+  const storyPayoffs = d.storyPayoffs.map((payoff, index) => {
+    const storyDebtId = payoff.storyDebtId
+      ? normalizeReferenceId("debt", payoff.storyDebtId)
+      : storyDebts[index]?.storyDebtId ?? directiveId("debt", payoff.payoffText, index, debtIds)
+    const debt = debtById.get(storyDebtId)
+    const threadId = payoff.threadId || debt?.threadId || fallbackThreadId
+      ? normalizeReferenceId("thread", payoff.threadId || debt?.threadId || fallbackThreadId)
+      : directiveId("thread", payoff.payoffText, index, threadIds)
+    const payoffId = directiveId("payoff", payoff.payoffId || payoff.payoffText, index, payoffIds)
+    return { ...payoff, payoffId, storyDebtId, threadId }
+  })
+  return { storyThreads, storyDebts, storyPayoffs }
 }
 
 export function renderDirectivesForPlanner(d: PlanningDirectives): string {
   const sections: string[] = []
+  const refs = normalizePlanningDirectiveRefs(d)
 
   if (d.lockedCharacters.length) {
     sections.push(
@@ -145,6 +216,8 @@ export function renderDirectivesForPlanner(d: PlanningDirectives): string {
   if (sc.targetWordsPerChapter) scParts.push(`Target words/chapter: ${sc.targetWordsPerChapter}`)
   if (scParts.length) sections.push(`STRUCTURAL CONSTRAINTS:\n${scParts.map(p => `- ${p}`).join("\n")}`)
 
+  sections.push(...renderStoryThreadSections(refs))
+
   if (d.rawNotes.trim()) sections.push(`AUTHOR NOTES:\n${d.rawNotes.trim()}`)
 
   if (!sections.length) return ""
@@ -158,6 +231,7 @@ export function renderDirectivesForPlanner(d: PlanningDirectives): string {
  */
 export function renderDirectivesForConcept(d: PlanningDirectives): string {
   const sections: string[] = []
+  const refs = normalizePlanningDirectiveRefs(d)
 
   if (d.lockedCharacters.length) {
     sections.push(
@@ -187,6 +261,8 @@ export function renderDirectivesForConcept(d: PlanningDirectives): string {
   if (sc.pacing) scParts.push(`Pacing: ${sc.pacing}`)
   if (scParts.length) sections.push(`STRUCTURAL CONSTRAINTS:\n${scParts.map(p => `- ${p}`).join("\n")}`)
 
+  sections.push(...renderStoryThreadSections(refs))
+
   if (d.rawNotes.trim()) sections.push(`AUTHOR NOTES:\n${d.rawNotes.trim()}`)
 
   if (!sections.length) return ""
@@ -199,10 +275,93 @@ export function isEmpty(d: PlanningDirectives): boolean {
     d.requiredBeats.length === 0 &&
     d.forbidden.length === 0 &&
     d.tonalAnchors.length === 0 &&
+    d.storyThreads.length === 0 &&
+    d.storyDebts.length === 0 &&
+    d.storyPayoffs.length === 0 &&
     !d.structuralConstraints.chapterCount &&
     !d.structuralConstraints.povRotation &&
     !d.structuralConstraints.pacing &&
     !d.structuralConstraints.targetWordsPerChapter &&
     !d.rawNotes.trim()
   )
+}
+
+function renderStoryThreadSections(refs: NormalizedPlanningDirectiveRefs): string[] {
+  const sections: string[] = []
+  if (refs.storyThreads.length) {
+    sections.push(
+      `STORY THREADS (preserve exact IDs in downstream obligations):\n${
+        refs.storyThreads.map(t => {
+          const parts = [`- threadId=${t.threadId}: ${t.label}`]
+          if (t.kind) parts.push(`  Kind: ${t.kind}`)
+          if (t.description) parts.push(`  Description: ${t.description}`)
+          return parts.join("\n")
+        }).join("\n")
+      }`,
+    )
+  }
+  if (refs.storyDebts.length) {
+    sections.push(
+      `STORY DEBTS / PROMISES (use storyDebtId as obligation promiseId):\n${
+        refs.storyDebts.map(d => {
+          const parts = [`- promiseId=${d.storyDebtId} threadId=${d.threadId}: ${d.promiseText}`]
+          if (d.openedByChapter) parts.push(`  Opens by chapter: ${d.openedByChapter}`)
+          if (d.expectedPayoffChapter) parts.push(`  Expected payoff chapter: ${d.expectedPayoffChapter}`)
+          if (d.payoffPolicy) parts.push(`  Payoff policy: ${d.payoffPolicy}`)
+          return parts.join("\n")
+        }).join("\n")
+      }`,
+    )
+  }
+  if (refs.storyPayoffs.length) {
+    sections.push(
+      `STORY PAYOFF TARGETS (use payoffId only when the payoff lands):\n${
+        refs.storyPayoffs.map(p => {
+          const parts = [`- payoffId=${p.payoffId} promiseId=${p.storyDebtId} threadId=${p.threadId}: ${p.payoffText}`]
+          if (p.targetChapter) parts.push(`  Target chapter: ${p.targetChapter}`)
+          return parts.join("\n")
+        }).join("\n")
+      }`,
+    )
+  }
+  if (sections.length) {
+    sections.push("STORY REF RULE: preserve threadId, promiseId, and payoffId exactly. Do not invent new story refs when none apply.")
+  }
+  return sections
+}
+
+function directiveId(prefix: string, raw: string | undefined, index: number, seen: Set<string>): string {
+  const base = normalizeReferenceId(prefix, raw || `${prefix}-${index + 1}`)
+  if (!seen.has(base)) {
+    seen.add(base)
+    return base
+  }
+  for (let suffix = 2; suffix < 1000; suffix++) {
+    const candidate = `${base}-${suffix}`
+    if (!seen.has(candidate)) {
+      seen.add(candidate)
+      return candidate
+    }
+  }
+  const fallback = `${base}-${index + 1}`
+  seen.add(fallback)
+  return fallback
+}
+
+function normalizeReferenceId(prefix: string, raw: string | undefined): string {
+  const slug = directiveSlugify(raw || prefix) || prefix
+  return slug.startsWith(`${prefix}-`) ? slug : `${prefix}-${slug}`
+}
+
+function directiveSlugify(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 8)
+    .join("-")
 }

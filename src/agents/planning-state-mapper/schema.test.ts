@@ -18,7 +18,13 @@ test("planningStateMapperSchema normalizes aliases and optional mapper fields", 
         beatIndex: 1,
         obligations: {
           mustEstablish: [{ id: "archive-key", text: "The archive key opens the sealed vault" }],
-          mustTransferKnowledge: ["Istra learns Aldric falsified the plague ledgers"],
+          mustTransferKnowledge: [{
+            text: "Istra learns Aldric falsified the plague ledgers",
+            threadId: "thread-ledger-truth",
+            promiseId: "debt-ledger-betrayal",
+            payoffId: "payoff-ledger-betrayal-proved",
+            storyDebtStage: "final_payoff",
+          }],
         },
         requiredPayoffs: [{ fact_id: "archive-key", payoff_beat: "later" }],
       },
@@ -29,5 +35,11 @@ test("planningStateMapperSchema normalizes aliases and optional mapper fields", 
   expect(parsed.characterStateChanges[0].name).toBe("Istra")
   expect(parsed.knowledgeChanges[0].source).toBe("witnessed")
   expect(parsed.beatMappings[0].obligations.mustTransferKnowledge[0].text).toBe("Istra learns Aldric falsified the plague ledgers")
+  expect(parsed.beatMappings[0].obligations.mustTransferKnowledge[0]).toMatchObject({
+    threadId: "thread-ledger-truth",
+    promiseId: "debt-ledger-betrayal",
+    payoffId: "payoff-ledger-betrayal-proved",
+    storyDebtStage: "final_payoff",
+  })
   expect(parsed.beatMappings[0].requiredPayoffs).toEqual([])
 })
