@@ -235,6 +235,13 @@ The report should show:
 Evidence gate: operator can inspect why one variant is more coherent without
 reading every scene from scratch.
 
+Status 2026-05-09: first static evidence slice is implemented in
+`diagnostics:corpus-recreation-review`. When POC directories contain
+`run-manifest.json` or `thread-map.json`, the static HTML review page now shows
+run/root/parent/variant provenance, thread movement rows by scene, impact
+preview refs, and thread-map issues. Missing artifacts are displayed explicitly
+instead of inferred.
+
 ### Lane 7 - Runtime Proposal Integration
 
 Only after the diagnostic lanes prove value.

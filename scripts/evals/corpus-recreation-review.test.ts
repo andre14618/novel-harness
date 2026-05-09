@@ -37,6 +37,22 @@ describe("corpus-recreation-review", () => {
           ],
         },
       })
+      writeJson(join(pocDir, "run-manifest.json"), {
+        schemaVersion: "1.0",
+        generatedAt: "2026-05-09T00:00:00.000Z",
+        laneId: "run-thread-id-drafting-coherence",
+        phase: "corpus-recreation-poc",
+        runId: "run-poc-1",
+        rootRunId: "root-run-1",
+        parentRunId: null,
+        variantId: "materiality-v1",
+        command: { name: "diagnostics:corpus-recreation-poc", argv: ["--planner-variant", "materiality-v1"] },
+        model: { provider: "deepseek", model: "deepseek-v4-flash" },
+        inputs: [],
+        outputs: [],
+        relatedRunIds: [],
+        metadata: {},
+      })
       writeJson(join(pocDir, "plan.json"), {
         chapterId: "analog-ch01",
         title: "Test",
@@ -67,6 +83,36 @@ describe("corpus-recreation-review", () => {
             materialityTest: "The bell changes the outcome.",
           },
         ],
+      })
+      writeJson(join(pocDir, "thread-map.json"), {
+        generatedAt: "2026-05-09T00:00:00.000Z",
+        pocDirs: [pocDir],
+        rowCount: 1,
+        issueCount: 0,
+        scenes: [
+          {
+            sceneId: "analog-sc01",
+            chapterId: "analog-ch01",
+            consequence: "The city marks her.",
+            movementCount: 1,
+            threadIds: ["thread-bell"],
+            promiseIds: ["debt-bell"],
+            payoffIds: ["payoff-bell-rings"],
+            issueCount: 0,
+          },
+        ],
+        threads: [],
+        promises: [],
+        impacts: [
+          {
+            refKind: "payoff",
+            ref: "payoff-bell-rings",
+            affectedSceneIds: ["analog-sc01"],
+            affectedObligationIds: ["obl-1"],
+          },
+        ],
+        rows: [],
+        issues: [],
       })
       writeJson(join(pocDir, "plan-comparison.json"), {
         valuePolarity: { exactMatches: 1, expected: ["-"], ratio: 1 },
@@ -135,6 +181,11 @@ describe("corpus-recreation-review", () => {
       expect(html).toContain("commercialPacing")
       expect(html).toContain("The scene reads rushed.")
       expect(html).toContain("structural similarity as source leakage")
+      expect(html).toContain("Run Provenance")
+      expect(html).toContain("run-poc-1")
+      expect(html).toContain("Thread Map")
+      expect(html).toContain("thread-bell")
+      expect(html).toContain("payoff:payoff-bell-rings")
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

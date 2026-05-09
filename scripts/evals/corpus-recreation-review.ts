@@ -13,8 +13,11 @@ import {
   existingArtifactRefs,
   manifestPathForSidecar,
   parentManifestForPocDir,
+  readRunManifestIfExists,
+  type RunManifest,
   writeRunManifest,
 } from "./run-manifest"
+import type { CorpusThreadMapReport } from "./corpus-recreation-thread-map"
 
 interface Args {
   pocDirs: string[]
@@ -39,6 +42,8 @@ interface ReviewRun {
   chapterComparison: any | null
   semanticReview: any | null
   proseQualityReview: any | null
+  runManifest: RunManifest | null
+  threadMap: CorpusThreadMapReport | null
   scenes: ReviewScene[]
 }
 
@@ -106,6 +111,8 @@ function readReviewRun(pocDir: string): ReviewRun {
   const chapterComparison = readOptionalJson(join(resolved, "chapter-comparison.json"))
   const semanticReview = readOptionalJson(join(resolved, "semantic-review-live", "semantic-review.json"))
   const proseQualityReview = readOptionalJson(join(resolved, "prose-quality-live", "prose-review.json"))
+  const runManifest = readRunManifestIfExists(join(resolved, "run-manifest.json"))
+  const threadMap = readOptionalJson(join(resolved, "thread-map.json")) as CorpusThreadMapReport | null
   const target = packet.target ?? {}
   const sourceReference = packet.sourceReference ?? {}
   const targetBlueprints = Array.isArray(target.sceneBlueprints) ? target.sceneBlueprints : []
@@ -146,6 +153,8 @@ function readReviewRun(pocDir: string): ReviewRun {
     chapterComparison,
     semanticReview,
     proseQualityReview,
+    runManifest,
+    threadMap,
     scenes,
   }
 }
@@ -290,6 +299,8 @@ function renderRun(run: ReviewRun): string {
       </div>
       <div class="badges">
         ${badge("variant", run.plannerVariant)}
+        ${run.runManifest ? badge("run", shortRunId(run.runManifest.runId)) : badge("run", "missing", "warn")}
+        ${run.threadMap ? badge("thread map", `${run.threadMap.rowCount} rows`, run.threadMap.issueCount > 0 ? "warn" : "ok") : badge("thread map", "missing", "warn")}
         ${badge("target", `${numberOrDash(run.target?.targetWords)} words`)}
         ${badge("scenes", `${run.scenes.length}/${numberOrDash(run.target?.sceneCount)}`)}
         ${badge("semantic lows", String(semanticLowCount), semanticLowCount > 0 ? "warn" : "ok")}
@@ -297,12 +308,63 @@ function renderRun(run: ReviewRun): string {
       </div>
     </div>
     ${renderRunSummary(run)}
+    ${renderRunProvenance(run)}
     <section class="method-note">
       <h3>What Was Reconstructed From Existing Novel Analysis</h3>
       <p>Only structural signals are used here: scene count, scene word size, annotation beat count, value polarity, MICE/thread cadence, beat kind counts, boundary-signal counts, gap-size counts, and optional private structural summaries when the reference was generated with summaries. This page is for review; it does not treat structural similarity as source leakage.</p>
     </section>
     ${run.scenes.map(scene => renderScene(scene)).join("\n")}
   </section>`
+}
+
+function renderRunProvenance(run: ReviewRun): string {
+  return `<section class="provenance-grid">
+    <article>
+      <h3>Run Provenance</h3>
+      ${run.runManifest ? renderManifest(run.runManifest) : `<p class="muted">No run-manifest.json found in this POC directory.</p>`}
+    </article>
+    <article>
+      <h3>Thread Map</h3>
+      ${run.threadMap ? renderThreadMap(run.threadMap) : `<p class="muted">No thread-map.json found. Run diagnostics:corpus-recreation-thread-map for this POC directory to add deterministic thread movement evidence.</p>`}
+    </article>
+  </section>`
+}
+
+function renderManifest(manifest: RunManifest): string {
+  return `${metric("Run ID", manifest.runId)}
+    ${metric("Root Run", manifest.rootRunId)}
+    ${metric("Parent Run", manifest.parentRunId ?? "none")}
+    ${metric("Phase", manifest.phase)}
+    ${metric("Variant", manifest.variantId)}
+    ${metric("Command", `${manifest.command.name} ${manifest.command.argv.join(" ")}`.trim())}
+    ${metric("Inputs", String(manifest.inputs.length))}
+    ${metric("Outputs", String(manifest.outputs.length))}`
+}
+
+function renderThreadMap(threadMap: CorpusThreadMapReport): string {
+  const scenes = Array.isArray(threadMap.scenes) ? threadMap.scenes : []
+  const impacts = Array.isArray(threadMap.impacts) ? threadMap.impacts : []
+  const issues = Array.isArray(threadMap.issues) ? threadMap.issues : []
+  return `<div class="thread-map">
+    ${metric("Rows", numberOrDash(threadMap.rowCount))}
+    ${metric("Issues", numberOrDash(threadMap.issueCount))}
+    <div class="mini-table-wrap">
+      <table class="mini-table">
+        <thead><tr><th>Scene</th><th>Threads</th><th>Promises</th><th>Payoffs</th><th>Issues</th></tr></thead>
+        <tbody>
+          ${scenes.map(scene => `<tr>
+            <td>${escapeHtml(scene.sceneId)}</td>
+            <td>${escapeHtml(scene.threadIds.join(", ") || "none")}</td>
+            <td>${escapeHtml(scene.promiseIds.join(", ") || "none")}</td>
+            <td>${escapeHtml(scene.payoffIds.join(", ") || "none")}</td>
+            <td>${escapeHtml(String(scene.issueCount))}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+    ${impacts.length ? `<details><summary>Impact Preview (${impacts.length})</summary>${unorderedList(impacts.map(impact => `${impact.refKind}:${impact.ref} -> scenes ${impact.affectedSceneIds.join(", ") || "none"}`))}</details>` : ""}
+    ${issues.length ? `<details><summary>Thread Issues (${issues.length})</summary>${unorderedList(issues.map(issue => `${issue.code} ${issue.ref}: ${issue.detail}`))}</details>` : ""}
+  </div>`
 }
 
 function renderRunSummary(run: ReviewRun): string {
@@ -558,6 +620,10 @@ function formatNumber(value: unknown): string {
   return typeof value === "number" && Number.isFinite(value) ? value.toFixed(2) : "-"
 }
 
+function shortRunId(value: string): string {
+  return value.length > 16 ? `${value.slice(0, 7)}...${value.slice(-6)}` : value
+}
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -612,8 +678,13 @@ p { line-height: 1.58; }
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
-.summary-grid { margin: 18px 0; }
-.summary-grid > div, .method-note, .scene article, .comparison-card, .comparison-reference {
+.summary-grid, .provenance-grid { margin: 18px 0; }
+.provenance-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.8fr) minmax(420px, 1.2fr);
+  gap: 12px;
+}
+.summary-grid > div, .provenance-grid article, .method-note, .scene article, .comparison-card, .comparison-reference {
   border: 1px solid #d8d0c5;
   background: #fffdf9;
   border-radius: 8px;
@@ -658,6 +729,23 @@ p { line-height: 1.58; }
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 4px 12px;
 }
+.mini-table-wrap { overflow-x: auto; }
+.mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.mini-table th, .mini-table td {
+  border-top: 1px solid #e4ddd5;
+  padding: 7px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+.mini-table th {
+  color: #596166;
+  font-size: 12px;
+  text-transform: uppercase;
+}
 .scene { margin: 18px 0 28px; }
 .scene-grid {
   grid-template-columns: minmax(220px, 0.9fr) minmax(300px, 1.05fr) minmax(420px, 1.45fr) minmax(260px, 0.9fr);
@@ -683,7 +771,7 @@ summary { cursor: pointer; font-weight: 700; color: #344047; }
 @media (max-width: 1100px) {
   main { padding: 18px; }
   .page-header, .run-heading, .scene-header, .comparison-card-header { display: block; }
-  .summary-grid, .scene-grid, .comparison-grid { grid-template-columns: 1fr; }
+  .summary-grid, .provenance-grid, .scene-grid, .comparison-grid { grid-template-columns: 1fr; }
 }
 `
 
@@ -738,6 +826,7 @@ function reviewInputRefs(pocDirs: string[]) {
       { path: join(resolved, "plan-comparison.json"), role: "plan-comparison" },
       { path: join(resolved, "chapter.json"), role: "chapter-json" },
       { path: join(resolved, "chapter-comparison.json"), role: "chapter-comparison" },
+      { path: join(resolved, "thread-map.json"), role: "thread-map-json" },
       { path: join(resolved, "semantic-review-live", "semantic-review.json"), role: "semantic-review-json" },
       { path: join(resolved, "prose-quality-live", "prose-review.json"), role: "prose-review-json" },
     ])
