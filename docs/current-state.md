@@ -134,6 +134,7 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-08:
   chapter contracts, scene functions, and planner-quality evidence to improve
   plan shape before changing drafting, checking, or UI defaults.
 - Corpus structure recreation POC now has a passing scene-first local plan/write scaffold; see `docs/charters/corpus-structure-recreation-poc.md`.
+- Open local operator-review artifacts before handoff when possible; still report the path.
 - First backend tracer exposes read-only planning targets and deterministic
   impact preview. Write tracers add `planning_edit` envelopes for chapter,
   beat, obligation, directive, character, world, and spine scalar fields, with
@@ -295,6 +296,4 @@ dedicated fixture re-recording commit before replay can be treated as green.
 
 ## Browser Preflight
 
-Use `docs/how-to/playwright-mcp-browser-testing.md` for agent-run UI evidence.
-If Playwright MCP is unavailable in the active session, report that browser
-preflight is blocked rather than substituting code inspection for screenshots.
+Use `docs/how-to/playwright-mcp-browser-testing.md`; if Playwright MCP is unavailable, report browser preflight blocked instead of substituting code inspection.
