@@ -265,6 +265,28 @@ bun run diagnostics:corpus-recreation-review -- \
 When a review artifact is generated for the operator, open it locally before
 handoff and also report the path.
 
+## AI Prose Pre-Review
+
+Use the prose pre-review diagnostic before asking the operator to read scenes:
+
+```bash
+bun run diagnostics:corpus-recreation-prose-review -- --live \
+  --poc-dir output/corpus-recreation-poc/<run> \
+  --model deepseek-v4-flash \
+  --concurrency 4
+```
+
+The diagnostic judges one scene and one dimension per call:
+
+- `dramatization`: prose plays as scene rather than synopsis;
+- `commercialPacing`: clarity, rhythm, escalation, and exposition control;
+- `povVoice`: character-specific lens, motive, and interior pressure;
+- `payoffPropulsion`: turn, consequence, and next-page pull.
+
+Outputs land in `<run>/prose-quality-live/` and are automatically displayed by
+the static review page. These labels are advisory triage signals, not hard
+blockers or promotion proof.
+
 ## Scene Semantic Review Diagnostic
 
 Use the default-off semantic review adapter after a plan/write POC run:

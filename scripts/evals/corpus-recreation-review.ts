@@ -31,6 +31,7 @@ interface ReviewRun {
   chapter: any | null
   chapterComparison: any | null
   semanticReview: any | null
+  proseQualityReview: any | null
   scenes: ReviewScene[]
 }
 
@@ -44,6 +45,7 @@ interface ReviewScene {
   prose: string
   sceneWordCount: any | null
   semanticResults: any[]
+  proseQualityResults: any[]
 }
 
 export function buildCorpusRecreationReview(
@@ -96,6 +98,7 @@ function readReviewRun(pocDir: string): ReviewRun {
   const chapter = readOptionalJson(join(resolved, "chapter.json"))
   const chapterComparison = readOptionalJson(join(resolved, "chapter-comparison.json"))
   const semanticReview = readOptionalJson(join(resolved, "semantic-review-live", "semantic-review.json"))
+  const proseQualityReview = readOptionalJson(join(resolved, "prose-quality-live", "prose-review.json"))
   const target = packet.target ?? {}
   const sourceReference = packet.sourceReference ?? {}
   const targetBlueprints = Array.isArray(target.sceneBlueprints) ? target.sceneBlueprints : []
@@ -103,6 +106,7 @@ function readReviewRun(pocDir: string): ReviewRun {
   const obligations = Array.isArray(plan.obligations) ? plan.obligations : []
   const chapterScenes = Array.isArray(chapter?.scenes) ? chapter.scenes : []
   const semanticResults = Array.isArray(semanticReview?.results) ? semanticReview.results : []
+  const proseQualityResults = Array.isArray(proseQualityReview?.results) ? proseQualityReview.results : []
   const contractScenes = Array.isArray(planComparison.sceneContract?.scenes) ? planComparison.sceneContract.scenes : []
   const sceneWordCounts = Array.isArray(chapterComparison?.sceneWordCounts) ? chapterComparison.sceneWordCounts : []
 
@@ -118,6 +122,7 @@ function readReviewRun(pocDir: string): ReviewRun {
       prose: String(chapterScenes.find((row: any) => row?.sceneId === scene.sceneId)?.prose ?? ""),
       sceneWordCount: sceneWordCounts.find((row: any) => row?.sceneId === scene.sceneId) ?? null,
       semanticResults: semanticResults.filter((row: any) => row?.sceneId === scene.sceneId),
+      proseQualityResults: proseQualityResults.filter((row: any) => row?.sceneId === scene.sceneId),
     }
   })
 
@@ -133,6 +138,7 @@ function readReviewRun(pocDir: string): ReviewRun {
     chapter,
     chapterComparison,
     semanticReview,
+    proseQualityReview,
     scenes,
   }
 }
@@ -209,12 +215,14 @@ function renderComparisonCard(run: ReviewRun, scene: ReviewScene | null): string
     </article>`
   }
   const lows = scene.semanticResults.filter(result => Number(result.ordinal ?? 0) <= 1)
+  const proseAttention = scene.proseQualityResults.filter(isProseAttention)
   return `<article class="comparison-card">
     <div class="comparison-card-header">
       <h4>${escapeHtml(runLabel(run))}</h4>
       <div class="badges">
         ${scene.sceneWordCount ? badge("words", `${scene.sceneWordCount.actual}/${scene.sceneWordCount.target}`, scene.sceneWordCount.meetsMinimum === false ? "warn" : "ok") : ""}
         ${badge("lows", String(lows.length), lows.length ? "warn" : "ok")}
+        ${badge("prose review", String(proseAttention.length), proseAttention.length ? "warn" : "ok")}
       </div>
     </div>
     <div class="compare-block">
@@ -231,7 +239,11 @@ function renderComparisonCard(run: ReviewRun, scene: ReviewScene | null): string
       ${scene.prose ? renderParagraphs(scene.prose) : `<p class="muted">No prose found.</p>`}
     </div>
     <div class="compare-block">
-      <h5>Review</h5>
+      <h5>AI Pre-Review</h5>
+      ${renderProseQuality(scene)}
+    </div>
+    <div class="compare-block">
+      <h5>Semantic Review</h5>
       ${renderReview(scene)}
     </div>
   </article>`
@@ -259,6 +271,10 @@ function renderRun(run: ReviewRun): string {
     (sum, scene) => sum + scene.semanticResults.filter(result => Number(result.ordinal ?? 0) <= 1).length,
     0,
   )
+  const proseReviewCount = run.scenes.reduce(
+    (sum, scene) => sum + scene.proseQualityResults.filter(isProseAttention).length,
+    0,
+  )
   return `<section class="run">
     <div class="run-heading">
       <div>
@@ -270,6 +286,7 @@ function renderRun(run: ReviewRun): string {
         ${badge("target", `${numberOrDash(run.target?.targetWords)} words`)}
         ${badge("scenes", `${run.scenes.length}/${numberOrDash(run.target?.sceneCount)}`)}
         ${badge("semantic lows", String(semanticLowCount), semanticLowCount > 0 ? "warn" : "ok")}
+        ${badge("prose review", String(proseReviewCount), proseReviewCount > 0 ? "warn" : "ok")}
       </div>
     </div>
     ${renderRunSummary(run)}
@@ -307,12 +324,14 @@ function renderRunSummary(run: ReviewRun): string {
 
 function renderScene(scene: ReviewScene): string {
   const lows = scene.semanticResults.filter(result => Number(result.ordinal ?? 0) <= 1)
+  const proseAttention = scene.proseQualityResults.filter(isProseAttention)
   return `<section class="scene">
     <div class="scene-header">
       <h3>Scene ${scene.sceneIndex + 1}: ${escapeHtml(scene.sceneId)}</h3>
       <div class="badges">
         ${scene.sceneWordCount ? badge("words", `${scene.sceneWordCount.actual}/${scene.sceneWordCount.target}`, scene.sceneWordCount.meetsMinimum === false ? "warn" : "ok") : ""}
         ${badge("semantic", lows.length ? `${lows.length} low` : `${scene.semanticResults.length} reviewed`, lows.length ? "warn" : "ok")}
+        ${badge("prose", proseAttention.length ? `${proseAttention.length} review` : `${scene.proseQualityResults.length} reviewed`, proseAttention.length ? "warn" : "ok")}
       </div>
     </div>
     <div class="scene-grid">
@@ -330,6 +349,7 @@ function renderScene(scene: ReviewScene): string {
       </article>
       <article>
         <h4>Review</h4>
+        ${renderProseQuality(scene)}
         ${renderReview(scene)}
       </article>
     </div>
@@ -381,6 +401,29 @@ function renderReview(scene: ReviewScene): string {
       </div>`
     })
     .join("\n")
+}
+
+function renderProseQuality(scene: ReviewScene): string {
+  if (scene.proseQualityResults.length === 0) {
+    return `<p class="muted">No AI prose pre-review found for this scene.</p>`
+  }
+  return `<div class="prose-quality">
+    ${scene.proseQualityResults.map(result => {
+      const review = isProseAttention(result)
+      return `<div class="finding ${review ? "low" : ""}">
+        <div class="finding-title">
+          <span>${escapeHtml(String(result.dimension ?? ""))}</span>
+          ${badge(String(result.label ?? "unknown"), String(result.attention ?? "skip"), review ? "warn" : "ok")}
+        </div>
+        ${result.output?.weakness ? `<p>${escapeHtml(String(result.output.weakness))}</p>` : ""}
+        ${result.output?.missingForNextLevel ? `<p class="muted">${escapeHtml(String(result.output.missingForNextLevel))}</p>` : ""}
+      </div>`
+    }).join("\n")}
+  </div>`
+}
+
+function isProseAttention(result: any): boolean {
+  return result?.attention === "review" || Number(result?.ordinal ?? 0) <= 1
 }
 
 function parseArgs(argv = process.argv.slice(2)): Args {

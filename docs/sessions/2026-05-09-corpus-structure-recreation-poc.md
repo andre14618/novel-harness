@@ -599,6 +599,36 @@ Follow-up: the review page now accepts multiple `--poc-dir` values and renders
 a scene-index aligned comparison section. Use this for baseline-vs-variant
 review before adding another planner knob.
 
+## AI Prose Pre-Review
+
+Added `diagnostics:corpus-recreation-prose-review`, a diagnostic-only LLM
+pre-review surface for generated scene prose. It uses one scene plus one narrow
+dimension per call and writes advisory JSON/Markdown to:
+
+```text
+<poc-dir>/prose-quality-live/prose-review.{json,md}
+```
+
+Dimensions:
+
+- `dramatization`;
+- `commercialPacing`;
+- `povVoice`;
+- `payoffPropulsion`.
+
+This is intended to reduce operator reading load by surfacing likely review
+points and variant disagreements before handoff. It does not block, rewrite,
+mutate plans, create proposals, or promote a runtime behavior.
+
+Live chapter-2 baseline vs materiality-v1 pre-review:
+
+- baseline: all scenes scored level 2 for dramatization, pacing, POV voice,
+  and payoff propulsion;
+- materiality-v1: level 2 for dramatization, pacing, and POV voice, but level
+  3 for payoff propulsion across all four scenes;
+- operator-attention queue was empty for both, so this is a preference signal
+  rather than a failure signal.
+
 Clarification: the current POC reconstructs structural signals from existing
 novel analysis, not prose or an expressive source outline. The source-derived
 inputs are scene count, scene word sizes, annotation beat counts, value

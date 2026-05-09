@@ -103,6 +103,21 @@ describe("corpus-recreation-review", () => {
           },
         ],
       })
+      writeJson(join(pocDir, "prose-quality-live/prose-review.json"), {
+        results: [
+          {
+            sceneId: "analog-sc01",
+            dimension: "commercialPacing",
+            label: "PACE-1",
+            ordinal: 1,
+            attention: "review",
+            output: {
+              weakness: "The scene reads rushed.",
+              missingForNextLevel: "Needs more escalation through the turn.",
+            },
+          },
+        ],
+      })
 
       const report = buildCorpusRecreationReview([pocDir], "2026-05-09T00:00:00.000Z")
       const html = renderCorpusRecreationReviewHtml(report)
@@ -112,6 +127,8 @@ describe("corpus-recreation-review", () => {
       expect(html).toContain("Make the bell matter.")
       expect(html).toContain("scene prose below advisory floor")
       expect(html).toContain("World fact must change the available choices.")
+      expect(html).toContain("commercialPacing")
+      expect(html).toContain("The scene reads rushed.")
       expect(html).toContain("structural similarity as source leakage")
     } finally {
       rmSync(root, { recursive: true, force: true })
@@ -240,6 +257,21 @@ function writeReviewFixture(path: string, opts: {
         ordinal: opts.ordinal,
         confidence: 0.8,
         missingForNextLevel: opts.note,
+      },
+    ],
+  })
+  writeJson(join(path, "prose-quality-live/prose-review.json"), {
+    results: [
+      {
+        sceneId: "analog-sc01",
+        dimension: "dramatization",
+        label: opts.ordinal <= 1 ? "DRAMA-1" : "DRAMA-2",
+        ordinal: opts.ordinal,
+        attention: opts.ordinal <= 1 ? "review" : "skip",
+        output: {
+          weakness: opts.note,
+          missingForNextLevel: opts.note,
+        },
       },
     ],
   })
