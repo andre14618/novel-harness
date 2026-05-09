@@ -31,9 +31,9 @@ unless the user explicitly requests a disposable branch.
   unit and `obligationId`/`sourceId` as the traceability unit; do not preserve
   beat-level adherence as the primary future contract by default. See L092.
 - Latest L093 planner-thread repair cleared the measured mismatch in a fresh
-  smoke; see `docs/sessions/2026-05-09-planner-thread-ref-smoke.md`. Next
-  clarify chapter-local vs future-horizon payoff expectations before more
-  writer-context testing.
+  smoke, and the thread map now separates counted issues from future-horizon
+  notes; see `docs/sessions/2026-05-09-planner-thread-ref-smoke.md`. Next gather
+  multi-chapter thread-map evidence before more writer-context testing.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.

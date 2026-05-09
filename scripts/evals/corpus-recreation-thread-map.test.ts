@@ -19,6 +19,7 @@ describe("corpus-recreation-thread-map", () => {
       const report = buildCorpusRecreationThreadMap([pocDir], "2026-05-09T00:00:00.000Z")
 
       expect(report.rowCount).toBe(4)
+      expect(report.horizonNoteCount).toBe(0)
       expect(report.scenes).toEqual(expect.arrayContaining([
         expect.objectContaining({
           sceneId: "analog-sc01",
@@ -68,6 +69,7 @@ describe("corpus-recreation-thread-map", () => {
       const rendered = renderCorpusRecreationThreadMap(report)
       expect(rendered).toContain("## Scenes")
       expect(rendered).toContain("## Impact Preview")
+      expect(rendered).toContain("## Horizon Notes")
       expect(rendered).toContain("thread-main")
       expect(rendered).toContain("payoff-folio-seen")
     } finally {
@@ -117,10 +119,57 @@ describe("corpus-recreation-thread-map", () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
+
+  test("treats active promises without local payoff as horizon notes, not issues", () => {
+    const root = mkdtempSync(join(tmpdir(), "corpus-recreation-thread-map-"))
+    try {
+      const pocDir = join(root, "poc")
+      writeThreadMapFixture(pocDir, {
+        extraPayoffs: [
+          {
+            payoffId: "payoff-trust-earned",
+            storyDebtId: "debt-trust",
+            threadId: "thread-rel",
+            payoffText: "Noor and Cassius earn trust later.",
+          },
+        ],
+        extraObligations: [
+          {
+            obligationId: "obl-progress-trust",
+            sceneId: "analog-sc02",
+            sourceId: "debt-trust",
+            threadId: "thread-rel",
+            promiseId: "debt-trust",
+            requirementText: "Progress the trust promise but leave it unresolved.",
+          },
+        ],
+      })
+
+      const report = buildCorpusRecreationThreadMap([pocDir], "2026-05-09T00:00:00.000Z")
+
+      expect(report.issueCount).toBeGreaterThan(0)
+      expect(report.issues.map(issue => issue.code)).not.toContain("promise_without_payoff")
+      expect(report.issues.map(issue => issue.code)).not.toContain("payoff_without_scene")
+      expect(report.horizonNotes).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          code: "open_promise_no_local_payoff",
+          ref: "debt-trust",
+        }),
+        expect.objectContaining({
+          code: "planned_payoff_not_local",
+          ref: "payoff-trust-earned",
+        }),
+      ]))
+      expect(renderCorpusRecreationThreadMap(report)).toContain("treat as future-horizon")
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
 })
 
 function writeThreadMapFixture(path: string, opts: {
   extraObligations?: Array<Record<string, unknown>>
+  extraPayoffs?: Array<Record<string, unknown>>
 } = {}): void {
   writeJson(join(path, "packet.json"), {
     sourceReference: { book: "crystal_shard", chapterLabel: "1" },
@@ -136,6 +185,7 @@ function writeThreadMapFixture(path: string, opts: {
       ],
       storyPayoffs: [
         { payoffId: "payoff-folio-seen", storyDebtId: "debt-folio", threadId: "thread-main", payoffText: "Noor sees what the folio predicts." },
+        ...(opts.extraPayoffs ?? []),
       ],
     },
   })

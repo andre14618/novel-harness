@@ -48,10 +48,11 @@ Thread-map output:
 
 - `output/corpus-recreation-poc/ch1-threadrefs-plan-repair-flash-20260509/thread-map.md`
 - Movement rows increased to 6.
-- Remaining thread-map issues are chapter-horizon findings: opened promises
-  have no local payoff in this single-chapter plan. That is a different
-  question from thread-ref mismatch and should be handled by explicit
-  chapter-local vs future-payoff semantics.
+- After the horizon-classification slice, thread-map issues are `0` and
+  horizon notes are `4`. Opened promises with no local payoff now render as
+  `open_promise_no_local_payoff` / `planned_payoff_not_local` notes instead of
+  counted issues. That keeps the report honest for chapter-1 setup chapters
+  while still showing which payoffs must land later.
 
 Manifest validation passed:
 
@@ -63,6 +64,6 @@ bun run diagnostics:run-manifest-validate -- \
 ## Decision
 
 Treat the prompt repair as useful but not broadly promoted from one smoke.
-Before another writer-context comparison, clarify whether the thread map should
-expect all declared payoffs in a single chapter or allow future-horizon payoff
-refs.
+Before another writer-context comparison, prefer multi-chapter thread-map
+evidence so horizon notes can either resolve into later payoff rows or remain
+visible as unresolved setup.

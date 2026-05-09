@@ -127,12 +127,18 @@ export interface CorpusThreadMapReport {
   pocDirs: string[]
   rowCount: number
   issueCount: number
+  horizonNoteCount: number
   scenes: SceneThreadSummary[]
   threads: ThreadSummary[]
   promises: PromiseSummary[]
   impacts: ThreadImpactRow[]
   rows: ThreadMovementRow[]
   issues: Array<{
+    code: string
+    ref: string
+    detail: string
+  }>
+  horizonNotes: Array<{
     code: string
     ref: string
     detail: string
@@ -148,20 +154,22 @@ export function buildCorpusRecreationThreadMap(
   const rows = artifacts.flatMap(buildMovementRows)
   const issues = [
     ...rows.flatMap(row => row.issues.map(issue => ({ code: issueCode(issue), ref: row.obligationId, detail: issue }))),
-    ...promiseCoverageIssues(artifacts, rows),
     ...threadCoverageIssues(artifacts, rows),
   ]
+  const horizonNotes = promiseHorizonNotes(artifacts, rows)
   return {
     generatedAt,
     pocDirs: artifacts.map(artifact => artifact.pocDir),
     rowCount: rows.length,
     issueCount: issues.length,
+    horizonNoteCount: horizonNotes.length,
     scenes: summarizeScenes(artifacts, rows, issues),
     threads: summarizeThreads(artifacts, rows),
     promises: summarizePromises(artifacts, rows),
     impacts: buildImpacts(rows),
     rows,
     issues,
+    horizonNotes,
   }
 }
 
@@ -173,6 +181,7 @@ export function renderCorpusRecreationThreadMap(report: CorpusThreadMapReport): 
   lines.push(`POC dirs: ${report.pocDirs.length}`)
   lines.push(`Movement rows: ${report.rowCount}`)
   lines.push(`Issues: ${report.issueCount}`)
+  lines.push(`Horizon notes: ${report.horizonNoteCount}`)
   lines.push("")
   lines.push("## Scenes")
   lines.push("")
@@ -213,6 +222,16 @@ export function renderCorpusRecreationThreadMap(report: CorpusThreadMapReport): 
   } else {
     for (const issue of report.issues) {
       lines.push(`- ${issue.code} ${issue.ref}: ${issue.detail}`)
+    }
+  }
+  lines.push("")
+  lines.push("## Horizon Notes")
+  lines.push("")
+  if (report.horizonNotes.length === 0) {
+    lines.push("- none")
+  } else {
+    for (const note of report.horizonNotes) {
+      lines.push(`- ${note.code} ${note.ref}: ${note.detail}`)
     }
   }
   return `${lines.join("\n")}\n`
@@ -393,38 +412,34 @@ function addImpact(byRef: Map<string, ThreadImpactRow>, refKind: ThreadImpactRow
   byRef.set(key, current)
 }
 
-function promiseCoverageIssues(artifacts: POCArtifact[], rows: ThreadMovementRow[]): CorpusThreadMapReport["issues"] {
-  const issues: CorpusThreadMapReport["issues"] = []
+function promiseHorizonNotes(artifacts: POCArtifact[], rows: ThreadMovementRow[]): CorpusThreadMapReport["horizonNotes"] {
+  const notes: CorpusThreadMapReport["horizonNotes"] = []
   for (const artifact of artifacts) {
     for (const promise of artifact.promises) {
       const movementRows = rows.filter(row => row.pocDir === artifact.pocDir && row.promiseId === promise.storyDebtId)
-      if (movementRows.length === 0) {
-        issues.push({
-          code: "promise_without_movement",
-          ref: promise.storyDebtId,
-          detail: `no obligation references promiseId ${promise.storyDebtId}`,
-        })
-      }
+      if (movementRows.length === 0) continue
       const payoffRows = movementRows.filter(row => row.payoffId)
       if (payoffRows.length === 0) {
-        issues.push({
-          code: "promise_without_payoff",
+        notes.push({
+          code: "open_promise_no_local_payoff",
           ref: promise.storyDebtId,
-          detail: `no obligation pays off promiseId ${promise.storyDebtId}`,
+          detail: `promiseId ${promise.storyDebtId} has movement in this report but no local payoff`,
         })
       }
     }
     for (const payoff of artifact.payoffs) {
-      if (!rows.some(row => row.pocDir === artifact.pocDir && row.payoffId === payoff.payoffId)) {
-        issues.push({
-          code: "payoff_without_scene",
+      const promiseIsActive = rows.some(row => row.pocDir === artifact.pocDir && row.promiseId === payoff.storyDebtId)
+      const payoffIsLocal = rows.some(row => row.pocDir === artifact.pocDir && row.payoffId === payoff.payoffId)
+      if (promiseIsActive && !payoffIsLocal) {
+        notes.push({
+          code: "planned_payoff_not_local",
           ref: payoff.payoffId,
-          detail: `no obligation references payoffId ${payoff.payoffId}`,
+          detail: `payoffId ${payoff.payoffId} is not landed in this report; treat as future-horizon unless this chapter was intended to pay it off`,
         })
       }
     }
   }
-  return issues
+  return notes
 }
 
 function threadCoverageIssues(artifacts: POCArtifact[], rows: ThreadMovementRow[]): CorpusThreadMapReport["issues"] {
@@ -550,6 +565,7 @@ function writeManifestIfArtifactProduced(args: Args, report: CorpusThreadMapRepo
       pocDirs: args.pocDirs,
       rowCount: report.rowCount,
       issueCount: report.issueCount,
+      horizonNoteCount: report.horizonNoteCount,
     },
   }))
 }

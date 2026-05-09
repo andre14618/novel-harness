@@ -167,6 +167,11 @@ shows the mismatch rate falls. Review, aggregate, semantic, and readiness
 artifacts surface these refs. Remaining Lane 2/3 work: emit a dedicated thread
 map with promise progress/payoff rows.
 
+Status update: the thread map now separates counted structural issues from
+future-horizon notes. An active promise without a payoff in the current report
+is not automatically an error; it is a horizon note unless the sampled chapter
+was intended to pay it off.
+
 ### Lane 3 - Thread Map Diagnostics
 
 Produce a read-only thread map from a plan artifact.
