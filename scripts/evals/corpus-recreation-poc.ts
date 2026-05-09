@@ -8,10 +8,17 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
-import { join, resolve } from "node:path"
+import { basename, join, resolve } from "node:path"
 import { z } from "zod"
 
 import type { CorpusStructureReference } from "./corpus-structure-reference"
+import {
+  RUN_MANIFEST_FILENAME,
+  artifactRef,
+  buildRunManifest,
+  existingArtifactRefs,
+  writeRunManifest,
+} from "./run-manifest"
 
 type ModelId = "deepseek-v4-flash" | "deepseek-v4-pro"
 type PlannerVariant = "baseline" | "materiality-v1"
@@ -1225,8 +1232,44 @@ async function main(): Promise<void> {
 
   const report = renderRecreationReport({ packet, plan, planComparison, chapter, chapterComparison })
   writeFileSync(join(outputDir, "report.md"), report)
+  writeRunManifest(join(outputDir, RUN_MANIFEST_FILENAME), buildRunManifest({
+    generatedAt: packet.generatedAt,
+    laneId: "run-thread-id-drafting-coherence",
+    phase: "corpus-recreation-poc",
+    variantId: args.plannerVariant,
+    command: {
+      name: "diagnostics:corpus-recreation-poc",
+      argv: process.argv.slice(2),
+    },
+    model: {
+      provider: "deepseek",
+      model: args.model,
+      thinking: args.thinking,
+    },
+    inputs: [
+      artifactRef(referencePath, "corpus-structure-reference"),
+    ],
+    outputs: existingArtifactRefs([
+      { path: join(outputDir, "packet.json"), role: "packet" },
+      { path: join(outputDir, "plan.json"), role: "plan" },
+      { path: join(outputDir, "plan-comparison.json"), role: "plan-comparison" },
+      { path: join(outputDir, "chapter.json"), role: "chapter-json" },
+      { path: join(outputDir, "chapter.md"), role: "chapter-markdown" },
+      { path: join(outputDir, "chapter-comparison.json"), role: "chapter-comparison" },
+      { path: join(outputDir, "report.md"), role: "report" },
+    ]),
+    discriminator: basename(outputDir),
+    metadata: {
+      chapterLabel: args.chapterLabel,
+      live: args.live,
+      writeChapter: args.writeChapter,
+      sceneCalls: args.sceneCalls,
+      referencePath: args.referencePath,
+    },
+  }))
   console.log(`wrote ${join(outputDir, "packet.json")}`)
   console.log(`wrote ${join(outputDir, "report.md")}`)
+  console.log(`wrote ${join(outputDir, RUN_MANIFEST_FILENAME)}`)
   if (plan) console.log(`wrote ${join(outputDir, "plan.json")}`)
   if (chapter) console.log(`wrote ${join(outputDir, "chapter.md")}`)
 }

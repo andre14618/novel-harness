@@ -9,6 +9,13 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { basename, dirname, resolve } from "node:path"
+import {
+  buildRunManifest,
+  existingArtifactRefs,
+  manifestPathForSidecar,
+  parentManifestForPocDir,
+  writeRunManifest,
+} from "./run-manifest"
 
 type Severity = "high" | "medium" | "low" | "info"
 
@@ -402,9 +409,54 @@ if (import.meta.main) {
     const rendered = renderCorpusRecreationReadinessAggregate(report)
     if (args.output) writeOutput(args.output, rendered)
     if (args.json) writeOutput(args.json, `${JSON.stringify(report, null, 2)}\n`)
+    writeManifestIfArtifactProduced(args, report)
     console.log(rendered)
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))
     process.exit(1)
   }
+}
+
+function writeManifestIfArtifactProduced(args: Args, report: CorpusReadinessAggregate): void {
+  const primaryOutput = args.json ?? args.output
+  if (!primaryOutput) return
+  const parentManifests = args.pocDirs
+    .map(dir => parentManifestForPocDir(dir))
+    .filter((manifest): manifest is NonNullable<typeof manifest> => Boolean(manifest))
+  writeRunManifest(manifestPathForSidecar(primaryOutput), buildRunManifest({
+    generatedAt: report.generatedAt,
+    laneId: "run-thread-id-drafting-coherence",
+    phase: "corpus-recreation-readiness",
+    variantId: "readiness",
+    parentRunId: parentManifests.length === 1 ? parentManifests[0]!.runId : null,
+    rootRunId: parentManifests.length === 1 ? parentManifests[0]!.rootRunId : null,
+    command: {
+      name: "diagnostics:corpus-recreation-readiness",
+      argv: process.argv.slice(2),
+    },
+    inputs: readinessInputRefs(args.pocDirs),
+    outputs: existingArtifactRefs([
+      ...(args.output ? [{ path: args.output, role: "readiness-markdown" }] : []),
+      ...(args.json ? [{ path: args.json, role: "readiness-json" }] : []),
+    ]),
+    relatedRunIds: parentManifests.map(manifest => manifest.runId),
+    discriminator: `groups-${report.groupCount}`,
+    metadata: {
+      pocDirs: args.pocDirs,
+      labels: args.labels,
+      groupCount: report.groupCount,
+      findingCount: report.findingCount,
+    },
+  }))
+}
+
+function readinessInputRefs(pocDirs: string[]) {
+  return pocDirs.flatMap(dir => {
+    const resolved = resolve(dir)
+    return existingArtifactRefs([
+      { path: `${resolved}/run-manifest.json`, role: "parent-run-manifest" },
+      { path: `${resolved}/plan.json`, role: "plan" },
+      { path: `${resolved}/semantic-review-live/semantic-review.json`, role: "semantic-review-json" },
+    ])
+  })
 }

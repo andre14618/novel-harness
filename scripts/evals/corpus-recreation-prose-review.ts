@@ -9,6 +9,14 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join, resolve } from "node:path"
+import {
+  RUN_MANIFEST_FILENAME,
+  artifactRef,
+  buildRunManifest,
+  existingArtifactRefs,
+  parentManifestForPocDir,
+  writeRunManifest,
+} from "./run-manifest"
 
 type ModelId = "deepseek-v4-flash" | "deepseek-v4-pro"
 type ProseDimension = "dramatization" | "commercialPacing" | "povVoice" | "payoffPropulsion"
@@ -601,6 +609,46 @@ function writeReport(outputDir: string, report: ProseReviewReport): void {
   writeFileSync(join(outputDir, "prose-review.md"), renderProseReviewReport(report))
 }
 
+function writeManifest(outputDir: string, report: ProseReviewReport, args: Args): void {
+  const absPocDir = resolve(process.cwd(), args.pocDir)
+  const parent = parentManifestForPocDir(args.pocDir)
+  writeRunManifest(join(outputDir, RUN_MANIFEST_FILENAME), buildRunManifest({
+    generatedAt: report.generatedAt,
+    laneId: "run-thread-id-drafting-coherence",
+    phase: "corpus-recreation-prose-review",
+    variantId: report.plannerVariant,
+    parentRunId: parent?.runId ?? null,
+    rootRunId: parent?.rootRunId ?? null,
+    command: {
+      name: "diagnostics:corpus-recreation-prose-review",
+      argv: process.argv.slice(2),
+    },
+    model: {
+      provider: "deepseek",
+      model: args.model,
+      thinking: args.thinking,
+    },
+    inputs: existingArtifactRefs([
+      { path: join(absPocDir, RUN_MANIFEST_FILENAME), role: "parent-run-manifest" },
+      { path: join(absPocDir, "packet.json"), role: "packet" },
+      { path: join(absPocDir, "plan.json"), role: "plan" },
+      { path: join(absPocDir, "chapter.json"), role: "chapter-json" },
+    ]),
+    outputs: [
+      artifactRef(join(outputDir, "prose-review.json"), "prose-review-json"),
+      artifactRef(join(outputDir, "prose-review.md"), "prose-review-markdown"),
+    ],
+    relatedRunIds: parent ? [parent.runId] : [],
+    discriminator: `${report.source.book ?? "unknown"}-${report.source.chapterLabel ?? "unknown"}-${report.plannerVariant}`,
+    metadata: {
+      pocDir: args.pocDir,
+      live: args.live,
+      dimensions: args.dimensions,
+      resultCount: report.resultCount,
+    },
+  }))
+}
+
 function outputDirFor(args: Args): string {
   return args.outputDir ?? join(args.pocDir, "prose-quality-live")
 }
@@ -632,6 +680,7 @@ if (import.meta.main) {
     const report = await buildCorpusRecreationProseReviewReport(args)
     const outputDir = outputDirFor(args)
     writeReport(outputDir, report)
+    writeManifest(outputDir, report, args)
     console.log(renderProseReviewReport(report))
     console.log(`wrote ${resolve(process.cwd(), outputDir)}`)
   } catch (error) {

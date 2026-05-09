@@ -9,6 +9,13 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
+import {
+  buildRunManifest,
+  existingArtifactRefs,
+  manifestPathForSidecar,
+  parentManifestForPocDir,
+  writeRunManifest,
+} from "./run-manifest"
 
 interface Args {
   pocDirs: string[]
@@ -326,9 +333,54 @@ if (import.meta.main) {
     const rendered = renderCorpusRecreationAggregate(report)
     if (args.output) writeOutput(args.output, rendered)
     if (args.json) writeOutput(args.json, `${JSON.stringify(report, null, 2)}\n`)
+    writeManifestIfArtifactProduced(args, report)
     console.log(rendered)
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))
     process.exit(1)
   }
+}
+
+function writeManifestIfArtifactProduced(args: Args, report: CorpusRecreationAggregateReport): void {
+  const primaryOutput = args.json ?? args.output
+  if (!primaryOutput) return
+  const parentManifests = args.pocDirs
+    .map(dir => parentManifestForPocDir(dir))
+    .filter((manifest): manifest is NonNullable<typeof manifest> => Boolean(manifest))
+  writeRunManifest(manifestPathForSidecar(primaryOutput), buildRunManifest({
+    generatedAt: report.generatedAt,
+    laneId: "run-thread-id-drafting-coherence",
+    phase: "corpus-recreation-aggregate",
+    variantId: "aggregate",
+    parentRunId: parentManifests.length === 1 ? parentManifests[0]!.runId : null,
+    rootRunId: parentManifests.length === 1 ? parentManifests[0]!.rootRunId : null,
+    command: {
+      name: "diagnostics:corpus-recreation-aggregate",
+      argv: process.argv.slice(2),
+    },
+    inputs: aggregateInputRefs(args.pocDirs),
+    outputs: existingArtifactRefs([
+      ...(args.output ? [{ path: args.output, role: "aggregate-markdown" }] : []),
+      ...(args.json ? [{ path: args.json, role: "aggregate-json" }] : []),
+    ]),
+    relatedRunIds: parentManifests.map(manifest => manifest.runId),
+    discriminator: `rows-${report.rowCount}`,
+    metadata: {
+      pocDirs: args.pocDirs,
+      rowCount: report.rowCount,
+    },
+  }))
+}
+
+function aggregateInputRefs(pocDirs: string[]) {
+  return pocDirs.flatMap(dir => {
+    const resolved = resolve(dir)
+    return existingArtifactRefs([
+      { path: `${resolved}/run-manifest.json`, role: "parent-run-manifest" },
+      { path: `${resolved}/packet.json`, role: "packet" },
+      { path: `${resolved}/plan-comparison.json`, role: "plan-comparison" },
+      { path: `${resolved}/chapter-comparison.json`, role: "chapter-comparison" },
+      { path: `${resolved}/semantic-review-live/semantic-review.json`, role: "semantic-review-json" },
+    ])
+  })
 }

@@ -8,6 +8,13 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
+import {
+  buildRunManifest,
+  existingArtifactRefs,
+  manifestPathForSidecar,
+  parentManifestForPocDir,
+  writeRunManifest,
+} from "./run-manifest"
 
 interface Args {
   pocDirs: string[]
@@ -683,9 +690,53 @@ if (import.meta.main) {
     const report = buildCorpusRecreationReview(args.pocDirs)
     const output = args.output ?? defaultOutputPath(args.pocDirs)
     writeOutput(output, renderCorpusRecreationReviewHtml(report))
+    writeManifest(output, args, report)
     console.log(`wrote ${resolve(process.cwd(), output)}`)
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))
     process.exit(1)
   }
+}
+
+function writeManifest(output: string, args: Args, report: ReviewReport): void {
+  const parentManifests = args.pocDirs
+    .map(dir => parentManifestForPocDir(dir))
+    .filter((manifest): manifest is NonNullable<typeof manifest> => Boolean(manifest))
+  writeRunManifest(manifestPathForSidecar(output), buildRunManifest({
+    generatedAt: report.generatedAt,
+    laneId: "run-thread-id-drafting-coherence",
+    phase: "corpus-recreation-review",
+    variantId: report.runs.length > 1 ? "comparison" : report.runs[0]?.plannerVariant ?? "review",
+    parentRunId: parentManifests.length === 1 ? parentManifests[0]!.runId : null,
+    rootRunId: parentManifests.length === 1 ? parentManifests[0]!.rootRunId : null,
+    command: {
+      name: "diagnostics:corpus-recreation-review",
+      argv: process.argv.slice(2),
+    },
+    inputs: reviewInputRefs(args.pocDirs),
+    outputs: existingArtifactRefs([{ path: output, role: "review-html" }]),
+    relatedRunIds: parentManifests.map(manifest => manifest.runId),
+    discriminator: report.runs.map(run => run.plannerVariant).join("-vs-") || "review",
+    metadata: {
+      pocDirs: args.pocDirs,
+      runCount: report.runs.length,
+      sceneCount: report.runs.reduce((sum, run) => sum + run.scenes.length, 0),
+    },
+  }))
+}
+
+function reviewInputRefs(pocDirs: string[]) {
+  return pocDirs.flatMap(dir => {
+    const resolved = resolve(dir)
+    return existingArtifactRefs([
+      { path: join(resolved, "run-manifest.json"), role: "parent-run-manifest" },
+      { path: join(resolved, "packet.json"), role: "packet" },
+      { path: join(resolved, "plan.json"), role: "plan" },
+      { path: join(resolved, "plan-comparison.json"), role: "plan-comparison" },
+      { path: join(resolved, "chapter.json"), role: "chapter-json" },
+      { path: join(resolved, "chapter-comparison.json"), role: "chapter-comparison" },
+      { path: join(resolved, "semantic-review-live", "semantic-review.json"), role: "semantic-review-json" },
+      { path: join(resolved, "prose-quality-live", "prose-review.json"), role: "prose-review-json" },
+    ])
+  })
 }

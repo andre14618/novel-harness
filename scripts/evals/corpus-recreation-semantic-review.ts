@@ -15,6 +15,14 @@ import {
   type JudgeOutput,
   type PromptMode,
 } from "./planner-discernment-calibration"
+import {
+  RUN_MANIFEST_FILENAME,
+  artifactRef,
+  buildRunManifest,
+  existingArtifactRefs,
+  parentManifestForPocDir,
+  writeRunManifest,
+} from "./run-manifest"
 
 type ModelId = "deepseek-v4-flash" | "deepseek-v4-pro"
 
@@ -557,9 +565,59 @@ async function main(): Promise<void> {
   mkdirSync(outputDir, { recursive: true })
   writeFileSync(join(outputDir, "semantic-review.json"), `${JSON.stringify(report, null, 2)}\n`)
   writeFileSync(join(outputDir, "semantic-review.md"), renderCorpusSemanticReviewReport(report))
+  writeManifest(outputDir, report, args)
   console.log(args.json ? JSON.stringify(report, null, 2) : renderCorpusSemanticReviewReport(report))
   console.log(`wrote ${join(outputDir, "semantic-review.json")}`)
   console.log(`wrote ${join(outputDir, "semantic-review.md")}`)
 }
 
 if (import.meta.main) await main()
+
+function writeManifest(outputDir: string, report: CorpusSemanticReviewReport, args: Args): void {
+  const absPocDir = resolve(process.cwd(), args.pocDir)
+  const parent = parentManifestForPocDir(args.pocDir)
+  writeRunManifest(join(outputDir, RUN_MANIFEST_FILENAME), buildRunManifest({
+    generatedAt: report.generatedAt,
+    laneId: "run-thread-id-drafting-coherence",
+    phase: "corpus-recreation-semantic-review",
+    variantId: String(readOptionalPlannerVariant(absPocDir) ?? "baseline"),
+    parentRunId: parent?.runId ?? null,
+    rootRunId: parent?.rootRunId ?? null,
+    command: {
+      name: "diagnostics:corpus-recreation-semantic-review",
+      argv: process.argv.slice(2),
+    },
+    model: {
+      provider: "deepseek",
+      model: args.model,
+      thinking: args.thinking,
+    },
+    inputs: existingArtifactRefs([
+      { path: join(absPocDir, RUN_MANIFEST_FILENAME), role: "parent-run-manifest" },
+      { path: join(absPocDir, "packet.json"), role: "packet" },
+      { path: join(absPocDir, "plan.json"), role: "plan" },
+      { path: join(absPocDir, "chapter.json"), role: "chapter-json" },
+    ]),
+    outputs: [
+      artifactRef(join(outputDir, "semantic-review.json"), "semantic-review-json"),
+      artifactRef(join(outputDir, "semantic-review.md"), "semantic-review-markdown"),
+    ],
+    relatedRunIds: parent ? [parent.runId] : [],
+    discriminator: `${report.source.book ?? "unknown"}-${report.source.chapterLabel ?? "unknown"}`,
+    metadata: {
+      pocDir: args.pocDir,
+      live: args.live,
+      promptMode: args.promptMode,
+      dimensions: args.dimensions,
+      taskCount: report.taskCount,
+      skipCount: report.skipCount,
+    },
+  }))
+}
+
+function readOptionalPlannerVariant(absPocDir: string): string | null {
+  const packetPath = join(absPocDir, "packet.json")
+  if (!existsSync(packetPath)) return null
+  const packet = JSON.parse(readFileSync(packetPath, "utf8")) as { diagnosticConfig?: { plannerVariant?: string } }
+  return packet.diagnosticConfig?.plannerVariant ?? null
+}
