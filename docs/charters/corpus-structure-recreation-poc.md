@@ -345,16 +345,25 @@ feed Plan Readiness Review, not automatic rewrites.
 
 ## Materiality Variant
 
-The planner POC supports a default-off prompt variant:
+The planner POC supports default-off prompt variants:
 
 ```bash
 --planner-variant materiality-v1
+--planner-variant causal-materiality-v2
 ```
 
-This asks the planner to attach `materialityTest` to each obligation: the
-specific choice, cost, constraint, relationship state, outcome, or future
-pressure that the exact source ID must change. Use it only as a diagnostic arm
-against a baseline run. It is not a runtime default.
+`materiality-v1` asks the planner to attach `materialityTest` to each
+obligation: the specific choice, cost, constraint, relationship state, outcome,
+or future pressure that the exact source ID must change.
+
+`causal-materiality-v2` keeps the same JSON schema but also asks for stronger
+POV motivation tradeoffs: each choice alternative should name what Nara gains,
+what she risks, and which witness/oathmark/convoy pressure changes. It also
+requires the turning point, climax action, outcome, and consequence to form a
+causal chain.
+
+Use these only as diagnostic arms against a baseline run. They are not runtime
+defaults.
 
 ## Run/Thread Follow-Up
 

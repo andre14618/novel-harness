@@ -526,6 +526,13 @@ diagnostic should combine materiality with a stronger POV-motivation tradeoff
 requirement, or move to operator review of the materiality/readiness candidates
 before adding another prompt knob.
 
+Implementation follow-up: added default-off `--planner-variant
+causal-materiality-v2`. It keeps the existing scene-plan schema, still requires
+`materialityTest`, and adds prompt-only pressure for motive-caused choices,
+explicit tradeoffs, operational world pressure, and causal
+pressure/choice/result/consequence chains. This is diagnostic-only; no writer,
+checker, proposal, or runtime default changed.
+
 ## Word Count Policy Update
 
 Changed corpus-recreation prose sizing from hard retry pressure to advisory

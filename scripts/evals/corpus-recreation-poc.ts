@@ -21,7 +21,7 @@ import {
 } from "./run-manifest"
 
 type ModelId = "deepseek-v4-flash" | "deepseek-v4-pro"
-type PlannerVariant = "baseline" | "materiality-v1"
+type PlannerVariant = "baseline" | "materiality-v1" | "causal-materiality-v2"
 type WriterContextMode = "baseline" | "thread-context-v1"
 
 interface Args {
@@ -220,7 +220,7 @@ type RecreationPlan = z.infer<typeof recreationPlanSchema>["plan"]
 type ExampleChapter = z.infer<typeof exampleChapterSchema>
 type ExampleScene = z.infer<typeof exampleSceneSchema>
 
-const PLANNER_PROMPT_VERSION = "scene-turn-child-thread-v6"
+const PLANNER_PROMPT_VERSION = "scene-turn-child-thread-v7"
 
 export class ModelJsonParseError extends Error {
   readonly snippet: string
@@ -495,8 +495,8 @@ function parseModel(value: string): ModelId {
 }
 
 function parsePlannerVariant(value: string): PlannerVariant {
-  if (value === "baseline" || value === "materiality-v1") return value
-  throw new Error(`--planner-variant must be baseline or materiality-v1; got ${value}`)
+  if (value === "baseline" || value === "materiality-v1" || value === "causal-materiality-v2") return value
+  throw new Error(`--planner-variant must be baseline, materiality-v1, or causal-materiality-v2; got ${value}`)
 }
 
 function parseWriterContextMode(value: string): WriterContextMode {
@@ -515,13 +515,14 @@ function printHelp(): void {
   bun scripts/evals/corpus-recreation-poc.ts [--chapter <label>] [--output-dir <dir>]
     [--live] [--write] [--scene-calls]
     [--model deepseek-v4-flash|deepseek-v4-pro]
-    [--planner-variant baseline|materiality-v1]
+    [--planner-variant baseline|materiality-v1|causal-materiality-v2]
     [--writer-context baseline|thread-context-v1]
     [--plan-from <poc-dir>]
 
 Examples:
   bun run diagnostics:corpus-recreation-poc -- --chapter 2 --output-dir output/poc-ch2
   bun run diagnostics:corpus-recreation-poc -- --chapter 2 --live --planner-variant materiality-v1
+  bun run diagnostics:corpus-recreation-poc -- --chapter 2 --live --planner-variant causal-materiality-v2
 `)
 }
 
@@ -1174,7 +1175,20 @@ Do not use source names or exact source events.`
 }
 
 function plannerVariantTail(variant: PlannerVariant): string {
-  if (variant !== "materiality-v1") return ""
+  if (variant === "baseline") return ""
+  if (variant === "causal-materiality-v2") {
+    return `
+Causal-materiality-v2 diagnostic variant:
+- Keep the same JSON schema. Do not add fields.
+- For every obligation, add materialityTest.
+- materialityTest must name the concrete story effect the writer must dramatize: changed choice, cost, constraint, relationship state, outcome, or future pressure.
+- Make Nara's motive causal in each scene: her want, need, lie, or truth should force the crisisChoice, not merely decorate it.
+- Each choiceAlternative should include a concrete tradeoff: what Nara gains, what she risks, and which witness/oathmark/convoy pressure changes.
+- A world fact is material only if it constrains options, changes the cost, forces a decision, creates a danger, blocks a route, or alters the outcome.
+- A supporting character is material only if they change leverage, trust, obligation, access, threat, allegiance, or the POV character's available choices.
+- The turningPoint, climaxAction, outcome, and consequence should form one causal chain: pressure -> choice -> irreversible external result -> future obligation/threat.
+- If a sourceId cannot be made material in the scene, choose a different exact sourceId that can affect the scene's choice/outcome.`
+  }
   return `
 Materiality-v1 diagnostic variant:
 - For every obligation, add materialityTest.
@@ -1707,7 +1721,7 @@ async function main(): Promise<void> {
       throw new Error(`--plan-from plan invalid: ${error instanceof Error ? error.message : String(error)}`)
     }
     planComparison = comparePlanToReference(plan, packet, {
-      requireMaterialityTests: packet.diagnosticConfig?.plannerVariant === "materiality-v1",
+      requireMaterialityTests: plannerVariantRequiresMaterialityTests(packet.diagnosticConfig?.plannerVariant),
     })
     writeFileSync(join(outputDir, "plan.json"), `${JSON.stringify(plan, null, 2)}\n`)
     writeFileSync(join(outputDir, "plan-comparison.json"), `${JSON.stringify(planComparison, null, 2)}\n`)
@@ -1723,7 +1737,7 @@ async function main(): Promise<void> {
     })
     plan = parseRecreationPlanOutput(rawPlan)
     planComparison = comparePlanToReference(plan, packet, {
-      requireMaterialityTests: packet.diagnosticConfig?.plannerVariant === "materiality-v1",
+      requireMaterialityTests: plannerVariantRequiresMaterialityTests(packet.diagnosticConfig?.plannerVariant),
     })
     writeFileSync(join(outputDir, "plan.json"), `${JSON.stringify(plan, null, 2)}\n`)
     writeFileSync(join(outputDir, "plan-comparison.json"), `${JSON.stringify(planComparison, null, 2)}\n`)
@@ -1830,6 +1844,10 @@ async function main(): Promise<void> {
   if (plan) console.log(`wrote ${join(outputDir, "plan.json")}`)
   if (writerContextReport) console.log(`wrote ${join(outputDir, "writer-context.json")}`)
   if (chapter) console.log(`wrote ${join(outputDir, "chapter.md")}`)
+}
+
+function plannerVariantRequiresMaterialityTests(variant: PlannerVariant | undefined): boolean {
+  return variant === "materiality-v1" || variant === "causal-materiality-v2"
 }
 
 if (import.meta.main) await main()

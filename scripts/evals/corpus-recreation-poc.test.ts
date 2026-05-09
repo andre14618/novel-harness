@@ -97,6 +97,28 @@ describe("corpus-recreation-poc", () => {
     expect(prompt).not.toContain("writerContextMode")
   })
 
+  test("causal-materiality-v2 keeps schema stable while adding motivation tradeoff guidance", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+      plannerVariant: "causal-materiality-v2",
+    })
+    const withoutMateriality = structuredClone(plan())
+    for (const obligation of withoutMateriality.obligations) delete (obligation as any).materialityTest
+    const comparison = comparePlanToReference(withoutMateriality, packet, { requireMaterialityTests: true })
+    const prompt = plannerUserPrompt(packet, "causal-materiality-v2")
+
+    expect(comparison.issues.some(issue => issue.includes("each obligation needs a materialityTest"))).toBe(true)
+    expect(prompt).toContain("Causal-materiality-v2 diagnostic variant")
+    expect(prompt).toContain("Keep the same JSON schema. Do not add fields.")
+    expect(prompt).toContain("Make Nara's motive causal in each scene")
+    expect(prompt).toContain("Each choiceAlternative should include a concrete tradeoff")
+    expect(prompt).toContain("pressure -> choice -> irreversible external result -> future obligation/threat")
+    expect(prompt).toContain("\"plannerVariant\": \"causal-materiality-v2\"")
+  })
+
   test("planner prompt requires internally consistent thread refs", () => {
     const packet = buildRecreationPacket({
       reference: reference() as any,
