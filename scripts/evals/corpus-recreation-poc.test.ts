@@ -13,6 +13,7 @@ import {
   ModelJsonParseError,
   parseJsonResponseContent,
   plannerUserPrompt,
+  plannerRetryPrompt,
   parseRecreationPlanOutput,
   parseExampleSceneOutput,
   sceneThreadContextForPrompt,
@@ -470,6 +471,27 @@ describe("corpus-recreation-poc", () => {
   test("wraps malformed model JSON as retryable parse evidence", () => {
     expect(() => parseJsonResponseContent("scene", "{\"sceneId\":\"x\""))
       .toThrow(ModelJsonParseError)
+  })
+
+  test("planner retry prompt asks for a complete fresh JSON object", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+      plannerVariant: "causal-materiality-v2",
+    })
+    const retryPrompt = plannerRetryPrompt(
+      packet,
+      "causal-materiality-v2",
+      new ModelJsonParseError("planner", "{\"plan\":", new Error("Expected '}'")),
+    )
+
+    expect(retryPrompt).toContain("The previous planner attempt returned malformed JSON")
+    expect(retryPrompt).toContain("Return a complete fresh JSON object")
+    expect(retryPrompt).toContain("Do not continue or")
+    expect(retryPrompt).toContain("causal-materiality-v2")
+    expect(retryPrompt).toContain("{\"plan\":")
   })
 
   test("normalizes null and empty optional planner refs from model JSON", () => {

@@ -1174,6 +1174,23 @@ ${plannerVariantTail(variant)}
 Do not use source names or exact source events.`
 }
 
+export function plannerRetryPrompt(
+  packet: RecreationPacket,
+  variant: PlannerVariant,
+  error: ModelJsonParseError,
+): string {
+  return `${plannerUserPrompt(packet, variant)}
+
+RETRY INSTRUCTION:
+The previous planner attempt returned malformed JSON and could not be parsed.
+Return a complete fresh JSON object matching the schema. Do not continue or
+patch the previous output. Escape quotes inside strings. Do not include
+markdown fences.
+
+Malformed-output snippet for debugging only:
+${error.snippet.slice(0, 1200)}`
+}
+
 function plannerVariantTail(variant: PlannerVariant): string {
   if (variant === "baseline") return ""
   if (variant === "causal-materiality-v2") {
@@ -1553,6 +1570,36 @@ async function callDeepSeekJson(args: {
   }
 }
 
+async function callPlannerJsonWithRetry(args: {
+  packet: RecreationPacket
+  variant: PlannerVariant
+  model: ModelId
+  thinking: boolean
+  maxTokens: number
+}): Promise<unknown> {
+  let userPrompt = plannerUserPrompt(args.packet, args.variant)
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      return await callDeepSeekJson({
+        model: args.model,
+        thinking: args.thinking,
+        temperature: 0.35,
+        maxTokens: args.maxTokens,
+        systemPrompt: stablePlannerPrompt(),
+        userPrompt,
+        label: `planner-recreation-${attempt}`,
+      })
+    } catch (error) {
+      if (error instanceof ModelJsonParseError && attempt < 2) {
+        userPrompt = plannerRetryPrompt(args.packet, args.variant, error)
+        continue
+      }
+      throw error
+    }
+  }
+  throw new Error("planner retry loop exhausted without output")
+}
+
 export function parseJsonResponseContent(label: string, content: string): unknown {
   let extracted: string
   try {
@@ -1726,14 +1773,12 @@ async function main(): Promise<void> {
     writeFileSync(join(outputDir, "plan.json"), `${JSON.stringify(plan, null, 2)}\n`)
     writeFileSync(join(outputDir, "plan-comparison.json"), `${JSON.stringify(planComparison, null, 2)}\n`)
   } else if (args.live) {
-    const rawPlan = await callDeepSeekJson({
+    const rawPlan = await callPlannerJsonWithRetry({
+      packet,
+      variant: args.plannerVariant,
       model: args.model,
       thinking: args.thinking,
-      temperature: 0.35,
       maxTokens: args.maxTokens,
-      systemPrompt: stablePlannerPrompt(),
-      userPrompt: plannerUserPrompt(packet, args.plannerVariant),
-      label: "planner-recreation",
     })
     plan = parseRecreationPlanOutput(rawPlan)
     planComparison = comparePlanToReference(plan, packet, {

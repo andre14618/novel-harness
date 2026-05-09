@@ -533,6 +533,86 @@ explicit tradeoffs, operational world pressure, and causal
 pressure/choice/result/consequence chains. This is diagnostic-only; no writer,
 checker, proposal, or runtime default changed.
 
+## Causal-Materiality-V2 Chapter 2 Smoke
+
+First live smoke:
+
+```bash
+bun run diagnostics:corpus-recreation-poc -- --chapter 2 --live --write \
+  --scene-calls --planner-variant causal-materiality-v2 \
+  --model deepseek-v4-flash \
+  --output-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-materiality-v2-scene-calls-r1
+```
+
+Result: failed before plan validation because the planner returned malformed
+JSON despite `response_format: json_object`. This was an infrastructure
+failure, not a semantic quality result. The POC runner now retries one malformed
+planner JSON response with an instruction to return a complete fresh JSON
+object.
+
+Rerun:
+
+```bash
+bun run diagnostics:corpus-recreation-poc -- --chapter 2 --live --write \
+  --scene-calls --planner-variant causal-materiality-v2 \
+  --model deepseek-v4-flash \
+  --output-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-materiality-v2-scene-calls-r2
+bun run diagnostics:corpus-recreation-character-context -- \
+  output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-materiality-v2-scene-calls-r2
+bun run diagnostics:corpus-recreation-thread-map -- \
+  output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-materiality-v2-scene-calls-r2 \
+  --output output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-materiality-v2-scene-calls-r2/thread-map.md \
+  --json output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-materiality-v2-scene-calls-r2/thread-map.json
+bun run diagnostics:corpus-recreation-semantic-review -- \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-materiality-v2-scene-calls-r2 \
+  --live --model deepseek-v4-flash --concurrency 4 \
+  --output-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-materiality-v2-scene-calls-r2/semantic-review-live \
+  --json
+bun run diagnostics:corpus-recreation-prose-review -- \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-materiality-v2-scene-calls-r2 \
+  --live --model deepseek-v4-flash --concurrency 4 \
+  --output-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-materiality-v2-scene-calls-r2/prose-quality-live \
+  --json
+```
+
+Aggregate:
+
+```bash
+bun run diagnostics:corpus-recreation-aggregate -- \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-exact-id-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-materiality-v1-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-materiality-v2-scene-calls-r2 \
+  --output output/corpus-recreation-poc/ch2-baseline-materiality-v1-causal-v2-aggregate-r3.md \
+  --json output/corpus-recreation-poc/ch2-baseline-materiality-v1-causal-v2-aggregate-r3.json
+bun run diagnostics:corpus-recreation-review -- \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-exact-id-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-materiality-v1-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-causal-materiality-v2-scene-calls-r2 \
+  --output output/corpus-recreation-poc/ch2-baseline-materiality-v1-causal-v2-review-r1.html
+```
+
+Findings:
+
+- deterministic plan fit was clean: 4/4 scenes, 29/29 beat hints, 4/4 choices,
+  4/4 known thread refs, 4 scene turns, 8 scene-turn refs, 0 issues;
+- character-context diagnostic was clean: 4 packets, 0 structural issues;
+- thread map had 8 movement rows, 0 issues, and two future-horizon notes for
+  the unpaid key-cost promise/payoff;
+- semantic review had 23 tasks, 1 applicability skip, and 0 lows:
+  motivation 2.50, promise-payoff 2.25, relationship 2.50, scene 2.25,
+  thread progression 2.25, world 2.00;
+- prose review had 16 tasks, 0 lows: drama 2.00, pacing 2.00, voice 2.00,
+  payoff propulsion 2.75;
+- prose was shorter than target: 2187/3353 words, with two advisory
+  scene-floor warnings. This is not a blocker under the current word-count
+  policy but should be watched for synopsis-like compression.
+
+Interpretation: v2 is a better chapter-2 diagnostic result than baseline and
+materiality-v1 on thread refs, character-context closure, semantic lows, and
+payoff-propulsion pre-review. It is still a single chapter smoke, not promotion
+evidence. Next data step is a small multi-chapter cohort on chapters 1, 2, 5,
+and 8, holding writer/checker behavior constant.
+
 ## Word Count Policy Update
 
 Changed corpus-recreation prose sizing from hard retry pressure to advisory
