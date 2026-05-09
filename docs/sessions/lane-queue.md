@@ -35,7 +35,7 @@ unless the user explicitly requests a disposable branch.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.
-- Corpus structure recreation is active: chapter-1 structural analog plan/write POC passed with scene calls, and the exact-ID planner-only smoke passed the scene-contract shape. Next evidence step is exact-ID scene-call writing plus scene semantic review before broader planner mimicry or runtime changes.
+- Corpus structure recreation is active: chapter-1 structural analog plan/write POC passed with scene calls, and the exact-ID scene-call artifact passed prose shape plus semantic review. Next evidence step is operator review or a small exact-ID multi-chapter sample to test whether weak planned consequences predict prose weakness before broader planner mimicry or runtime changes.
 - Review `docs/method-packs/commercial-fantasy-adventure-v0.md` as the first
   general method-pack charter before implementing template definitions,
   fixtures, or planner prompt changes.

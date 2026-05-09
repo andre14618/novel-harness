@@ -286,3 +286,56 @@ prove prose quality or semantic value. The next useful evidence step is to run
 the same exact-ID artifact through scene-call writing plus scene semantic
 review, then compare whether the declared choices and obligations actually
 matter in prose.
+
+## Exact-ID Scene Write + Semantic Review
+
+Ran the next evidence step as a fresh exact-ID scene-call plan/write artifact:
+
+```bash
+bun run diagnostics:corpus-recreation-poc -- --live --write --scene-calls \
+  --reference output/corpus-structure-reference/crystal_shard-with-summaries/reference.json \
+  --chapter 1 \
+  --model deepseek-v4-flash \
+  --output-dir output/corpus-recreation-poc/crystal_shard-ch1-flash-exact-id-scene-calls-r1
+```
+
+Result:
+
+- plan shape still fit the reference: 4/4 scenes, 4/4 polarity sequence, 4/4
+  MICE/thread sequence, 19/19 beat-hint shape;
+- contract checks found a useful weakness: only 2/4 scenes had observable
+  consequences; scenes 2 and 4 used consequences that were generic,
+  internal-only, or indistinct from outcome;
+- chapter shape passed: 4/4 scenes, 1571/1832 words, every scene met its
+  deterministic minimum, and no forbidden source terms appeared;
+- two scene writer calls required expansion retries, so scene-call writing is
+  still the right diagnostic path for observing per-scene sizing.
+
+Then ran exact-ID semantic review:
+
+```bash
+bun run diagnostics:corpus-recreation-semantic-review -- --live \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch1-flash-exact-id-scene-calls-r1 \
+  --output-dir output/corpus-recreation-poc/crystal_shard-ch1-flash-exact-id-scene-calls-r1/semantic-review-live \
+  --model deepseek-v4-flash \
+  --mode evidence-first \
+  --concurrency 4
+```
+
+Result:
+
+- 12 applicable semantic tasks and 4 exact-ID applicability skips;
+- all applicable dimensions landed at level 2 with no low-signal findings:
+  scene dramaturgy, motivation specificity, relationship delta, and world-fact
+  pressure;
+- skips were based on missing exact supporting-character or world-fact
+  obligation IDs, not keyword overlap.
+
+Interpretation: deterministic contract checks and semantic review are seeing
+different useful layers. The deterministic layer caught weak planned
+consequence wording before prose. The semantic layer judged the generated prose
+adequate on the currently sampled dimensions, while preserving exact-ID
+applicability boundaries. Next useful improvement is not another hard
+structure metric; it is either operator review of the generated chapter or a
+small exact-ID multi-chapter sample to see whether weak planned consequences
+predict prose weakness at larger N.
