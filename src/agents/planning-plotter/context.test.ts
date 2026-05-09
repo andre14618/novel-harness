@@ -12,6 +12,8 @@ test("planning plotter context renders native chapter contract guidance only whe
   expect(base).not.toContain("UPSTREAM NATIVE PLANNING CONTRACT EXPERIMENT")
   expect(native).toContain("UPSTREAM NATIVE PLANNING CONTRACT EXPERIMENT")
   expect(native).toContain("protagonist pressure")
+  expect(native).toContain("personal stake")
+  expect(native).toContain("want, need, fear")
   expect(native).toContain("endpoint or hook")
   expect(native).toContain("Do not hide a")
 })

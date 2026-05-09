@@ -157,6 +157,8 @@ test("planning beat context renders native contract guidance without cap languag
 
   expect(context).toContain("Native planning contract experiment")
   expect(context).toContain("Author exactly 5 complete story-turn beats")
+  expect(context).toContain("include povPersonalStake")
+  expect(context).toContain("want, need, fear")
   expect(context).toContain("Do not emit micro-actions")
   expect(context).toContain("final beat must preserve the chapter endpoint/hook")
   expect(context).not.toContain("Planning max for this experiment")

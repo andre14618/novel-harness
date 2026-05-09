@@ -88,9 +88,11 @@ ${spine.acts.map(a => `  Act ${a.number} — ${a.name}: ${a.summary} [${a.emotio
 UPSTREAM NATIVE PLANNING CONTRACT EXPERIMENT:
 For each chapter purpose, name the story function as a native chapter contract:
 the protagonist pressure, the irreversible change/reveal/choice, and the
-endpoint or hook that downstream beat planning must preserve. Do not hide a
-beat list inside the purpose. The downstream beat pass will author a small
-number of complete story-turn beats from this contract.` : ""
+endpoint or hook that downstream beat planning must preserve. Include the
+personal stake behind the pressure when it matters: want, need, fear, lie,
+truth, wound, oath, shame, or relationship pressure. Do not hide a beat list
+inside the purpose. The downstream beat pass will author a small number of
+complete story-turn beats from this contract.` : ""
 
   return `Genre: ${seed.genre}
 Premise: ${seed.premise}

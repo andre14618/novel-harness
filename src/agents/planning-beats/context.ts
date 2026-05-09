@@ -111,5 +111,5 @@ function renderNativePlanningContractGuidance(
 ): string {
   if (!enabled) return ""
   return `
-Native planning contract experiment: Author exactly ${policy.recommendedBeats} complete story-turn beats for this chapter. Each beat should be large enough to draft into roughly 300-450 words and must carry a concrete pressure, choice, reveal, reversal, or consequence. Do not emit micro-actions, transit-only beats, or packed bullet lists. The final beat must preserve the chapter endpoint/hook named in the skeleton purpose.`
+Native planning contract experiment: Author exactly ${policy.recommendedBeats} complete story-turn beats for this chapter. Each beat should be large enough to draft into roughly 300-450 words and must carry a concrete pressure, choice, reveal, reversal, or consequence. When the beat turns on the POV's motive or choice, include povPersonalStake naming the specific want, need, fear, lie, truth, wound, oath, shame, or relationship pressure that makes the action matter. Do not emit micro-actions, transit-only beats, or packed bullet lists. The final beat must preserve the chapter endpoint/hook named in the skeleton purpose.`
 }

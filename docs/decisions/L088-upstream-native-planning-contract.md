@@ -127,6 +127,16 @@ do not land cleanly in the final beat. The next upstream work should target
 chapter contract satisfaction and character materiality before treating native
 planning as a drafting-quality win.
 
+## 2026-05-09 Character-Stake Context Hook
+
+The default-off native planning prompt now asks chapter contracts and native
+story-turn beats to surface the POV's personal stake when motive or choice is
+load-bearing. Beat objects may emit optional `povPersonalStake`, which the
+production writer-context capsules can pass through to drafting. This is not a
+new checker blocker and does not promote native planning by itself; it closes
+the data path needed to measure whether upstream character stakes improve
+drafting coherence.
+
 ## Non-Goals
 
 - Do not promote `calibrated:packed`.
