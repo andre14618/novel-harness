@@ -32,8 +32,8 @@ unless the user explicitly requests a disposable branch.
   beat-level adherence as the primary future contract by default. See L092.
 - L093 three-chapter smoke still found 3 relationship-pressure cross-thread
   promise mismatches; deterministic `THREADREF-1` issues now route to manual
-  readiness with thread/promise/payoff IDs. Next: repair packet or operator
-  labels first. See `docs/sessions/2026-05-09-thread-map-multichapter-smoke.md`.
+  readiness with repair hints. Next: gather labels or test applying packets. See
+  `docs/sessions/2026-05-09-thread-map-multichapter-smoke.md`.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.

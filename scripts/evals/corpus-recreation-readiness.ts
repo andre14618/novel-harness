@@ -103,7 +103,9 @@ export function buildCorpusRecreationReadinessAggregate(
   for (const pocDir of pocDirs.map(dir => resolve(dir))) {
     const semanticPath = `${pocDir}/semantic-review-live/semantic-review.json`
     const planPath = `${pocDir}/plan.json`
+    const packetPath = `${pocDir}/packet.json`
     const plan = existsSync(planPath) ? readJson(planPath) : {}
+    const packet = existsSync(packetPath) ? readJson(packetPath) : {}
     if (existsSync(semanticPath)) {
       const semantic = readJson(semanticPath)
       sourceReports.push(semanticPath)
@@ -135,6 +137,7 @@ export function buildCorpusRecreationReadinessAggregate(
       const planComparison = readJson(planComparisonPath)
       const deterministicGroups = threadRefGroupsFromPlanComparison({
         plan,
+        packet,
         planComparison,
         sourceReport: planComparisonPath,
         fixtureId: String(plan.chapterId ?? basename(pocDir)),
@@ -277,6 +280,7 @@ function toGroup(args: {
 
 function threadRefGroupsFromPlanComparison(args: {
   plan: any
+  packet: any
   planComparison: any
   sourceReport: string
   fixtureId: string
@@ -295,9 +299,15 @@ function threadRefGroupsFromPlanComparison(args: {
       ? args.plan.scenes.find((candidate: any) => String(candidate.sceneId ?? "") === sceneId)
       : null
     const obligations = obligationsForScene(args.plan, sceneId)
+    const repairHints = threadRefRepairHints({
+      packet: args.packet,
+      promiseThreadMismatchIds: stringArray(diagnostic.promiseThreadMismatchIds),
+      payoffThreadMismatchIds: stringArray(diagnostic.payoffThreadMismatchIds),
+    })
     const sourceIds = sourceIdsFor({
       threadIds: [
         ...stringArray(diagnostic.unknownThreadIds),
+        ...repairHints.expectedThreadIds,
         ...obligations.map(obligation => String(obligation.threadId ?? "")).filter(Boolean),
       ],
       promiseIds: [
@@ -327,10 +337,12 @@ function threadRefGroupsFromPlanComparison(args: {
       evidence: {
         threadRefIssues: issues.join(" | "),
         ...(mismatchRefs.length > 0 ? { mismatchRefs: mismatchRefs.join(", ") } : {}),
+        ...(repairHints.hints.length > 0 ? { repairHints: repairHints.hints.join(" | ") } : {}),
       },
     }
     const rewriteGoals = [
       "Split cross-thread pressure into separate obligations, or reroute the promise/payoff obligation to the promise's threadId.",
+      ...repairHints.hints,
       ...(scene?.goal ? [`Preserve scene goal: ${scene.goal}`] : []),
       ...(scene?.outcome ? [`Preserve scene outcome: ${scene.outcome}`] : []),
       ...(scene?.consequence ? [`Make the consequence concrete: ${scene.consequence}`] : []),
@@ -369,6 +381,44 @@ function threadRefGroupsFromPlanComparison(args: {
     })
   }
   return groups
+}
+
+function threadRefRepairHints(args: {
+  packet: any
+  promiseThreadMismatchIds: string[]
+  payoffThreadMismatchIds: string[]
+}): { hints: string[]; expectedThreadIds: string[] } {
+  const seed = args.packet?.originalAnalogSeed ?? {}
+  const promiseById = new Map(
+    (Array.isArray(seed.storyDebts) ? seed.storyDebts : [])
+      .map((promise: any) => [String(promise.storyDebtId ?? ""), String(promise.threadId ?? "")] as const)
+      .filter(([promiseId, threadId]) => promiseId && threadId),
+  )
+  const payoffById = new Map(
+    (Array.isArray(seed.storyPayoffs) ? seed.storyPayoffs : [])
+      .map((payoff: any) => [String(payoff.payoffId ?? ""), {
+        threadId: String(payoff.threadId ?? ""),
+        promiseId: String(payoff.storyDebtId ?? ""),
+      }] as const)
+      .filter(([payoffId, payoff]) => payoffId && payoff.threadId),
+  )
+  const hints: string[] = []
+  const expectedThreadIds: string[] = []
+  for (const ref of args.promiseThreadMismatchIds) {
+    const [obligationId, promiseId] = ref.split(":")
+    const expectedThreadId = promiseById.get(promiseId ?? "")
+    if (!obligationId || !promiseId || !expectedThreadId) continue
+    expectedThreadIds.push(expectedThreadId)
+    hints.push(`${obligationId}: promiseId ${promiseId} belongs to ${expectedThreadId}; split relationship pressure from promise progress or reroute the promise obligation to ${expectedThreadId}.`)
+  }
+  for (const ref of args.payoffThreadMismatchIds) {
+    const [obligationId, payoffId] = ref.split(":")
+    const payoff = payoffById.get(payoffId ?? "")
+    if (!obligationId || !payoffId || !payoff) continue
+    expectedThreadIds.push(payoff.threadId)
+    hints.push(`${obligationId}: payoffId ${payoffId} belongs to ${payoff.threadId} and promise ${payoff.promiseId}; split relationship pressure from payoff landing or reroute the payoff obligation to ${payoff.threadId}.`)
+  }
+  return { hints: unique(hints), expectedThreadIds: unique(expectedThreadIds) }
 }
 
 function obligationsForScene(plan: any, sceneId: string): any[] {

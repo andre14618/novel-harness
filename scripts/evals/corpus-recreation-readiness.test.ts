@@ -138,6 +138,14 @@ describe("corpus-recreation-readiness", () => {
           requirementText: "Tovin pressures Nara through the key's cost.",
         }],
       })
+      writeJson(join(pocDir, "packet.json"), {
+        originalAnalogSeed: {
+          storyDebts: [
+            { storyDebtId: "debt-key-cost", threadId: "thread-key-cost" },
+          ],
+          storyPayoffs: [],
+        },
+      })
       writeJson(join(pocDir, "plan-comparison.json"), {
         sceneContract: {
           scenes: [{
@@ -163,7 +171,7 @@ describe("corpus-recreation-readiness", () => {
         fixIntents: ["split_or_reroute_cross_thread_pressure"],
         sourceIds: {
           obligationIds: ["obl-tovin-leverage"],
-          threadIds: ["thread-tovin-leverage"],
+          threadIds: ["thread-key-cost", "thread-tovin-leverage"],
           promiseIds: ["debt-key-cost"],
         },
       })
@@ -172,6 +180,7 @@ describe("corpus-recreation-readiness", () => {
         promptMode: "deterministic-plan-comparison",
         evidence: {
           mismatchRefs: "obl-tovin-leverage:debt-key-cost",
+          repairHints: "obl-tovin-leverage: promiseId debt-key-cost belongs to thread-key-cost; split relationship pressure from promise progress or reroute the promise obligation to thread-key-cost.",
         },
       })
 
@@ -180,7 +189,7 @@ describe("corpus-recreation-readiness", () => {
         aggregate,
       })
       expect(readiness.drafts).toHaveLength(1)
-      expect(readiness.drafts[0]!.preserveIds.threadIds).toEqual(["thread-tovin-leverage"])
+      expect(readiness.drafts[0]!.preserveIds.threadIds).toEqual(["thread-key-cost", "thread-tovin-leverage"])
       expect(readiness.drafts[0]!.preserveIds.promiseIds).toEqual(["debt-key-cost"])
       const rendered = renderCorpusRecreationReadinessAggregate(aggregate)
       expect(rendered).toContain("THREADREF-1")

@@ -72,6 +72,11 @@ Readiness candidates. The readiness bridge also preserves `threadIds`,
 `promiseIds`, and `payoffIds` alongside obligation, character, world, and source
 IDs.
 
+The readiness packet now includes deterministic repair hints for each mismatch:
+the mismatched obligation id, the promise/payoff id, and the expected thread id
+from the seed packet. These hints are advisory rewrite goals only; they do not
+change the plan.
+
 Output:
 
 - `output/corpus-recreation-poc/threadrefs-plan-repair-flash-20260509-readiness/readiness.md`
