@@ -144,7 +144,10 @@ const beatHintSchema = z.object({
   purpose: z.string().min(8),
 })
 
-const optionalModelStringSchema = z.string().min(1).nullish().transform(value => value ?? undefined)
+const optionalModelStringSchema = z.preprocess(
+  value => value === "" ? undefined : value,
+  z.string().min(1).nullish(),
+).transform(value => value ?? undefined)
 
 const recreationSceneTurnSchema = z.object({
   sceneTurnId: z.string().min(1),
@@ -215,7 +218,7 @@ type RecreationPlan = z.infer<typeof recreationPlanSchema>["plan"]
 type ExampleChapter = z.infer<typeof exampleChapterSchema>
 type ExampleScene = z.infer<typeof exampleSceneSchema>
 
-const PLANNER_PROMPT_VERSION = "scene-turn-parents-v3"
+const PLANNER_PROMPT_VERSION = "scene-turn-child-thread-v4"
 
 export class ModelJsonParseError extends Error {
   readonly snippet: string
@@ -976,6 +979,7 @@ Hard rules:
 - When an obligation includes payoffId, its threadId must match that payoff's threadId, and its promiseId must match that payoff's storyDebtId.
 - Use sceneTurns to name causal story turns inside scenes. A sceneTurn is the parent event, choice, reveal, reversal, cost, relationship shift, setup, or payoff that can cause one or more obligations.
 - When one scene turn moves multiple threads, create one sceneTurn and multiple child obligations sharing sceneTurnId. Each child obligation still has exactly one threadId, and any promiseId/payoffId must belong to that same thread.
+- Do not copy a promiseId or payoffId onto a sibling child obligation just because the same sceneTurn caused it. A shared confession can create one character-arc promise obligation and one relationship-leverage obligation with the same sceneTurnId; the relationship child must leave promiseId/payoffId empty unless that relationship thread has its own provided story debt/payoff.
 - If a scene action creates pressure across two threads, split it into separate obligations instead of attaching one thread's promise or payoff to another threadId.
 - Outcome and consequence must be distinct. The consequence should be observable pressure caused by the scene turn, not only an internal realization.
 - Add obligations for scene-specific character/world/story-debt pressure that the writer must dramatize.
@@ -1046,6 +1050,7 @@ Create one original analog chapter plan. Match the reference chapter's structura
 - each scene should carry active relationship or world pressure when applicable, with obligations whose sourceId exactly matches the pressure the writer must dramatize;
 - every obligation should carry threadId, and story-debt/payoff obligations should also carry promiseId and payoffId when applicable;
 - create sceneTurns for causal choices/reveals/costs that produce obligations, and attach obligations to them with sceneTurnId when useful;
+- when sibling obligations share a sceneTurnId, keep each child's promiseId/payoffId inside that child's own thread only;
 - keep thread refs internally consistent: promiseId must use its story debt threadId, payoffId must use its payoff threadId and matching promiseId, and cross-thread pressure should be split into separate obligations;
 - each scene's consequence should be externally observable or create a future obligation/threat.
 ${plannerVariantTail(variant)}

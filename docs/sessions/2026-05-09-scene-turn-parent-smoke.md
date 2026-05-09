@@ -35,3 +35,24 @@ The next value-added planner slice should explicitly teach or repair this
 pattern: when one scene turn affects relationship leverage and an oath/key
 promise, keep the shared `sceneTurnId` but split child obligations so each child
 uses only refs from its own thread.
+
+## Follow-Up
+
+Implemented prompt version `scene-turn-child-thread-v4`:
+
+- Added an explicit sibling-child rule: a shared `sceneTurnId` does not license
+  copying a promise/payoff ref onto another thread's child obligation.
+- Added deterministic parser normalization for empty optional ref strings,
+  matching the existing `null` normalization path.
+
+First v4 smoke parse-failed because the model emitted empty strings for optional
+refs. After normalization, the rerun at
+`output/corpus-recreation-poc/scene-turn-v4-smoke-ch2b-20260509` passed:
+
+- 4 `sceneTurns`;
+- 4 obligation-level scene-turn refs;
+- 0 scene-turn ref issues;
+- 4/4 scenes with known thread refs;
+- 0 plan comparison issues;
+- thread map issues: 0;
+- readiness groups: 0.

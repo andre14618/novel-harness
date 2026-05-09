@@ -104,6 +104,7 @@ describe("corpus-recreation-poc", () => {
     expect(prompt).toContain("cross-thread pressure should be split into separate obligations")
     expect(prompt).toContain("create sceneTurns for causal choices/reveals/costs")
     expect(prompt).toContain("attach obligations to them with sceneTurnId")
+    expect(prompt).toContain("keep each child's promiseId/payoffId inside that child's own thread only")
   })
 
   test("scene turn refs group parent turns while preserving single-thread obligations", () => {
@@ -340,7 +341,7 @@ describe("corpus-recreation-poc", () => {
       .toThrow(ModelJsonParseError)
   })
 
-  test("normalizes null optional planner refs from model JSON", () => {
+  test("normalizes null and empty optional planner refs from model JSON", () => {
     const validPlan = {
       ...plan(),
       scenes: plan().scenes.map(scene => ({
@@ -358,10 +359,10 @@ describe("corpus-recreation-poc", () => {
             sceneTurnId: null,
             sourceId: "char-tovin-ash",
             threadId: "thread-tovin-leverage",
-            promiseId: null,
+            promiseId: "",
             payoffId: null,
             requirementText: "Tovin presses Nara without opening a named story debt.",
-            materialityTest: null,
+            materialityTest: "",
           },
         ],
       },
