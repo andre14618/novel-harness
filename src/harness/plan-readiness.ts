@@ -32,6 +32,9 @@ export interface PlanReadinessPreserveIds {
   obligationIds: string[]
   characterIds: string[]
   worldFactIds: string[]
+  threadIds: string[]
+  promiseIds: string[]
+  payoffIds: string[]
   sourceIds: string[]
 }
 
@@ -245,6 +248,9 @@ function normalizePreserveIds(raw: unknown): PlanReadinessPreserveIds {
     obligationIds: stringArray(record?.obligationIds),
     characterIds: stringArray(record?.characterIds),
     worldFactIds: stringArray(record?.worldFactIds),
+    threadIds: stringArray(record?.threadIds),
+    promiseIds: stringArray(record?.promiseIds),
+    payoffIds: stringArray(record?.payoffIds),
     sourceIds: stringArray(record?.sourceIds),
   }
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 /**
- * Convert corpus recreation semantic lows into Plan Readiness-compatible groups.
+ * Convert corpus recreation semantic lows and deterministic thread-ref issues
+ * into Plan Readiness-compatible groups.
  *
  * Diagnostic-only. It does not write to the DB, call an LLM, mutate plans, or
  * create proposals. The output shape can be consumed by the existing Plan
@@ -74,7 +75,7 @@ interface CorpusReadinessGroup {
       requiresProposedValue: true
       proposedValueStatus: "semantic_rewrite_required"
       safeToAutoApply: false
-      sourceAgent: "corpus-recreation-semantic-review"
+      sourceAgent: "corpus-recreation-semantic-review" | "corpus-recreation-plan-comparison"
     }
   }
   excerpt: string
@@ -102,32 +103,46 @@ export function buildCorpusRecreationReadinessAggregate(
   for (const pocDir of pocDirs.map(dir => resolve(dir))) {
     const semanticPath = `${pocDir}/semantic-review-live/semantic-review.json`
     const planPath = `${pocDir}/plan.json`
-    if (!existsSync(semanticPath)) continue
-    const semantic = readJson(semanticPath)
     const plan = existsSync(planPath) ? readJson(planPath) : {}
-    sourceReports.push(semanticPath)
+    if (existsSync(semanticPath)) {
+      const semantic = readJson(semanticPath)
+      sourceReports.push(semanticPath)
 
-    const results = Array.isArray(semantic.results) ? semantic.results : []
-    for (const result of results) {
-      const label = String(result.label ?? "")
-      if (!labels.includes(label)) continue
-      const sceneId = String(result.sceneId ?? "")
-      if (!sceneId) continue
-      const scene = Array.isArray(plan.scenes)
-        ? plan.scenes.find((candidate: any) => String(candidate.sceneId ?? "") === sceneId)
-        : null
-      const obligations = Array.isArray(plan.obligations)
-        ? plan.obligations.filter((obligation: any) => String(obligation.sceneId ?? "") === sceneId)
-        : []
-      groups.push(toGroup({
-        result,
-        scene,
-        obligations,
-        sourceReport: semanticPath,
-        fixtureId: fixtureIdFor(pocDir, semantic),
-        chapterId: String(plan.chapterId ?? semantic.source?.chapterLabel ?? ""),
-        index: groups.length + 1,
-      }))
+      const results = Array.isArray(semantic.results) ? semantic.results : []
+      for (const result of results) {
+        const label = String(result.label ?? "")
+        if (!labels.includes(label)) continue
+        const sceneId = String(result.sceneId ?? "")
+        if (!sceneId) continue
+        const scene = Array.isArray(plan.scenes)
+          ? plan.scenes.find((candidate: any) => String(candidate.sceneId ?? "") === sceneId)
+          : null
+        const obligations = obligationsForScene(plan, sceneId)
+        groups.push(toGroup({
+          result,
+          scene,
+          obligations,
+          sourceReport: semanticPath,
+          fixtureId: fixtureIdFor(pocDir, semantic),
+          chapterId: String(plan.chapterId ?? semantic.source?.chapterLabel ?? ""),
+          index: groups.length + 1,
+        }))
+      }
+    }
+
+    const planComparisonPath = `${pocDir}/plan-comparison.json`
+    if (existsSync(planComparisonPath)) {
+      const planComparison = readJson(planComparisonPath)
+      const deterministicGroups = threadRefGroupsFromPlanComparison({
+        plan,
+        planComparison,
+        sourceReport: planComparisonPath,
+        fixtureId: String(plan.chapterId ?? basename(pocDir)),
+        chapterId: String(plan.chapterId ?? basename(pocDir)),
+        startIndex: groups.length + 1,
+      })
+      if (deterministicGroups.length > 0) sourceReports.push(planComparisonPath)
+      groups.push(...deterministicGroups)
     }
   }
 
@@ -161,7 +176,7 @@ export function renderCorpusRecreationReadinessAggregate(report: CorpusReadiness
   lines.push(`Generated: ${report.generatedAt}`)
   lines.push(`Groups: ${report.groupCount}`)
   lines.push(`Findings: ${report.findingCount}`)
-  lines.push(`Labels: ${report.labels.join(", ")}`)
+  lines.push(`Labels: ${renderedLabels(report).join(", ")}`)
   lines.push("")
   lines.push("These are manual Plan Readiness candidates. They do not auto-mutate the plan.")
   lines.push("")
@@ -175,6 +190,7 @@ export function renderCorpusRecreationReadinessAggregate(report: CorpusReadiness
     lines.push(`Preserve characters: ${group.sourceIds.characterIds.join(", ") || "none"}`)
     lines.push(`Preserve world facts: ${group.sourceIds.worldFactIds.join(", ") || "none"}`)
     lines.push(`Preserve threads: ${group.sourceIds.threadIds.join(", ") || "none"}`)
+    lines.push(`Preserve promises: ${group.sourceIds.promiseIds.join(", ") || "none"}`)
     lines.push(`Preserve payoffs: ${group.sourceIds.payoffIds.join(", ") || "none"}`)
     lines.push("")
     lines.push("Operator question:")
@@ -190,6 +206,13 @@ export function renderCorpusRecreationReadinessAggregate(report: CorpusReadiness
     lines.push("")
   }
   return `${lines.join("\n")}\n`
+}
+
+function renderedLabels(report: CorpusReadinessAggregate): string[] {
+  return unique([
+    ...report.labels,
+    ...report.groups.flatMap(group => group.findings.map(finding => finding.label)),
+  ])
 }
 
 function toGroup(args: {
@@ -252,6 +275,112 @@ function toGroup(args: {
   }
 }
 
+function threadRefGroupsFromPlanComparison(args: {
+  plan: any
+  planComparison: any
+  sourceReport: string
+  fixtureId: string
+  chapterId: string
+  startIndex: number
+}): CorpusReadinessGroup[] {
+  const sceneDiagnostics = Array.isArray(args.planComparison?.sceneContract?.scenes)
+    ? args.planComparison.sceneContract.scenes
+    : []
+  const groups: CorpusReadinessGroup[] = []
+  for (const diagnostic of sceneDiagnostics) {
+    const sceneId = String(diagnostic.sceneId ?? "")
+    const issues = stringArray(diagnostic.issues).filter(isThreadRefIssue)
+    if (!sceneId || issues.length === 0) continue
+    const scene = Array.isArray(args.plan.scenes)
+      ? args.plan.scenes.find((candidate: any) => String(candidate.sceneId ?? "") === sceneId)
+      : null
+    const obligations = obligationsForScene(args.plan, sceneId)
+    const sourceIds = sourceIdsFor({
+      threadIds: [
+        ...stringArray(diagnostic.unknownThreadIds),
+        ...obligations.map(obligation => String(obligation.threadId ?? "")).filter(Boolean),
+      ],
+      promiseIds: [
+        ...stringArray(diagnostic.unknownPromiseIds),
+        ...obligations.map(obligation => String(obligation.promiseId ?? "")).filter(Boolean),
+      ],
+      payoffIds: [
+        ...stringArray(diagnostic.unknownPayoffIds),
+        ...obligations.map(obligation => String(obligation.payoffId ?? "")).filter(Boolean),
+      ],
+      obligationIds: obligations.map(obligation => String(obligation.obligationId ?? "")).filter(Boolean),
+    }, obligations)
+    const mismatchRefs = unique([
+      ...stringArray(diagnostic.promiseThreadMismatchIds),
+      ...stringArray(diagnostic.payoffThreadMismatchIds),
+    ])
+    const finding: CorpusReadinessFinding = {
+      findingId: `${args.startIndex + groups.length}.1`,
+      sourceReport: args.sourceReport,
+      promptMode: "deterministic-plan-comparison",
+      dimension: "threadRefConsistency",
+      label: "THREADREF-1",
+      severity: "medium",
+      fixIntent: "split_or_reroute_cross_thread_pressure",
+      rationale: "Plan comparison found thread/promise/payoff refs that cross narrative threads.",
+      missingForNextLevel: issues.join("; "),
+      evidence: {
+        threadRefIssues: issues.join(" | "),
+        ...(mismatchRefs.length > 0 ? { mismatchRefs: mismatchRefs.join(", ") } : {}),
+      },
+    }
+    const rewriteGoals = [
+      "Split cross-thread pressure into separate obligations, or reroute the promise/payoff obligation to the promise's threadId.",
+      ...(scene?.goal ? [`Preserve scene goal: ${scene.goal}`] : []),
+      ...(scene?.outcome ? [`Preserve scene outcome: ${scene.outcome}`] : []),
+      ...(scene?.consequence ? [`Make the consequence concrete: ${scene.consequence}`] : []),
+    ]
+    groups.push({
+      groupId: String(args.startIndex + groups.length).padStart(3, "0"),
+      fixtureId: args.fixtureId,
+      armId: "corpus-recreation:exact-id-scene",
+      methodPackEnabled: false,
+      unitType: "scene",
+      chapterId: args.chapterId,
+      sceneId,
+      sourceIds,
+      highestSeverity: finding.severity,
+      fixIntents: [finding.fixIntent],
+      dimensions: [finding.dimension],
+      findings: [finding],
+      rewritePacket: {
+        targetSummary: String(scene?.structuralRole ?? scene?.goal ?? sceneId),
+        rewriteGoals: unique(rewriteGoals.filter(Boolean)),
+        preserveIds: sourceIds,
+        proposalCandidate: {
+          action: "field_replace",
+          target: {
+            kind: "beat_plan",
+            ref: sceneId,
+            fieldPath: "description",
+          },
+          requiresProposedValue: true,
+          proposedValueStatus: "semantic_rewrite_required",
+          safeToAutoApply: false,
+          sourceAgent: "corpus-recreation-plan-comparison",
+        },
+      },
+      excerpt: issues.join("\n"),
+    })
+  }
+  return groups
+}
+
+function obligationsForScene(plan: any, sceneId: string): any[] {
+  return Array.isArray(plan.obligations)
+    ? plan.obligations.filter((obligation: any) => String(obligation.sceneId ?? "") === sceneId)
+    : []
+}
+
+function isThreadRefIssue(issue: string): boolean {
+  return /threadId|promiseId|payoffId/u.test(issue)
+}
+
 function sourceIdsFor(result: any, obligations: any[]): CorpusReadinessGroup["sourceIds"] {
   const obligationIds = unique([
     ...stringArray(result.obligationIds),
@@ -305,6 +434,9 @@ function operatorQuestionFor(group: CorpusReadinessGroup): string {
   }
   if (finding.dimension === "sceneDramaturgy") {
     return "Should the scene contract strengthen goal, opposition, turn, outcome, or consequence before drafting?"
+  }
+  if (finding.dimension === "threadRefConsistency") {
+    return "Should this cross-thread pressure be split into separate obligations or rerouted to the promise/payoff thread before drafting?"
   }
   return "Is this diagnostic a real planning issue, false positive, acceptable choice, or deferred concern?"
 }

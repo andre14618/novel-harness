@@ -104,10 +104,88 @@ describe("corpus-recreation-readiness", () => {
       expect(readiness.drafts).toHaveLength(1)
       expect(readiness.drafts[0]!.target.ref).toBe("analog-ch02-sc01")
       expect(readiness.drafts[0]!.preserveIds.worldFactIds).toEqual(["world-aurora-bells"])
+      expect(readiness.drafts[0]!.preserveIds.threadIds).toEqual(["thread-key-cost"])
+      expect(readiness.drafts[0]!.preserveIds.promiseIds).toEqual(["debt-key-cost"])
+      expect(readiness.drafts[0]!.preserveIds.payoffIds).toEqual(["payoff-key-cost-exposure"])
 
       const rendered = renderCorpusRecreationReadinessAggregate(aggregate)
       expect(rendered).toContain("Should this world fact actively constrain choice/outcome here")
       expect(rendered).toContain("WFACT-1 worldFactPressure")
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  test("turns deterministic thread-ref plan comparison issues into readiness groups", () => {
+    const root = mkdtempSync(join(tmpdir(), "corpus-recreation-readiness-"))
+    try {
+      const pocDir = join(root, "poc-ch5")
+      writeJson(join(pocDir, "plan.json"), {
+        chapterId: "analog-ch05",
+        scenes: [{
+          sceneId: "analog-ch05-sc01",
+          structuralRole: "Pressure Nara with Tovin's leverage.",
+          goal: "Nara wants a clean pass.",
+          outcome: "Nara gains only temporary passage.",
+          consequence: "Tovin now has leverage.",
+        }],
+        obligations: [{
+          obligationId: "obl-tovin-leverage",
+          sceneId: "analog-ch05-sc01",
+          sourceId: "char-tovin",
+          threadId: "thread-tovin-leverage",
+          promiseId: "debt-key-cost",
+          requirementText: "Tovin pressures Nara through the key's cost.",
+        }],
+      })
+      writeJson(join(pocDir, "plan-comparison.json"), {
+        sceneContract: {
+          scenes: [{
+            sceneId: "analog-ch05-sc01",
+            issues: [
+              "promiseIds belong to different threadId: obl-tovin-leverage:debt-key-cost",
+            ],
+            promiseThreadMismatchIds: ["obl-tovin-leverage:debt-key-cost"],
+            payoffThreadMismatchIds: [],
+            unknownThreadIds: [],
+            unknownPromiseIds: [],
+            unknownPayoffIds: [],
+          }],
+        },
+      })
+
+      const aggregate = buildCorpusRecreationReadinessAggregate([pocDir], undefined, "2026-05-09T00:00:00.000Z")
+
+      expect(aggregate.groupCount).toBe(1)
+      expect(aggregate.groups[0]).toMatchObject({
+        sceneId: "analog-ch05-sc01",
+        dimensions: ["threadRefConsistency"],
+        fixIntents: ["split_or_reroute_cross_thread_pressure"],
+        sourceIds: {
+          obligationIds: ["obl-tovin-leverage"],
+          threadIds: ["thread-tovin-leverage"],
+          promiseIds: ["debt-key-cost"],
+        },
+      })
+      expect(aggregate.groups[0]!.findings[0]).toMatchObject({
+        label: "THREADREF-1",
+        promptMode: "deterministic-plan-comparison",
+        evidence: {
+          mismatchRefs: "obl-tovin-leverage:debt-key-cost",
+        },
+      })
+
+      const readiness = buildPlanReadinessDraftsFromAggregate({
+        novelId: "readiness-test",
+        aggregate,
+      })
+      expect(readiness.drafts).toHaveLength(1)
+      expect(readiness.drafts[0]!.preserveIds.threadIds).toEqual(["thread-tovin-leverage"])
+      expect(readiness.drafts[0]!.preserveIds.promiseIds).toEqual(["debt-key-cost"])
+      const rendered = renderCorpusRecreationReadinessAggregate(aggregate)
+      expect(rendered).toContain("THREADREF-1")
+      expect(rendered).toContain("Preserve promises: debt-key-cost")
+      expect(rendered).toContain("split into separate obligations")
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

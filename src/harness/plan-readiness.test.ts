@@ -34,6 +34,9 @@ describe("plan readiness aggregate import", () => {
       obligationIds: ["obl-1"],
       characterIds: ["char-hero", "char-rival"],
       worldFactIds: ["world-oath-road"],
+      threadIds: ["thread-main"],
+      promiseIds: ["debt-main"],
+      payoffIds: ["payoff-main"],
       sourceIds: [],
     })
     expect(first.importedByKind).toBe("test")
@@ -90,6 +93,9 @@ function aggregate() {
             obligationIds: ["obl-1"],
             characterIds: ["char-hero", "char-rival"],
             worldFactIds: ["world-oath-road"],
+            threadIds: ["thread-main"],
+            promiseIds: ["debt-main"],
+            payoffIds: ["payoff-main"],
           },
           proposalCandidate: {
             target: {

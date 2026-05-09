@@ -43,7 +43,8 @@ Persisted readiness items should capture:
 - `diagnosticLabel`: for example `REL-1`, `MATERIAL-1`, `WFACT-1`
 - `dimension`
 - `fixIntent`
-- `preserveIds`: obligation, character, world-fact, and source IDs
+- `preserveIds`: obligation, character, world-fact, thread, promise, payoff,
+  and source IDs
 - `explanation` and `missingForNextLevel`
 - `status`: `open`, `accepted_as_is`, `not_applicable`, `deferred`,
   `proposal_created`, `fixed`, or `stale`
@@ -62,6 +63,7 @@ Use the current calibrated scene diagnostics first:
 - `worldFactPressure`
 - `motivationSpecificity`
 - `stakesValueShift`
+- `threadRefConsistency` for deterministic thread/promise/payoff ref issues
 
 Applicability comes before quality. Do not ask the operator to label a
 relationship issue for a scene that is not relationship-oriented, or a world

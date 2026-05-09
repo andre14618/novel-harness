@@ -280,6 +280,9 @@ export function rowToPlanReadinessItem(row: PlanReadinessItemRow): PlanReadiness
     obligationIds: [],
     characterIds: [],
     worldFactIds: [],
+    threadIds: [],
+    promiseIds: [],
+    payoffIds: [],
     sourceIds: [],
   })
   return {

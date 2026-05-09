@@ -30,10 +30,10 @@ unless the user explicitly requests a disposable branch.
 - If pursuing scene-first methodology, treat `sceneId` as the plan/write/check
   unit and `obligationId`/`sourceId` as the traceability unit; do not preserve
   beat-level adherence as the primary future contract by default. See L092.
-- L093 planner-thread repair cleared the first single-chapter smoke, but a
-  three-chapter smoke still found 3 relationship-pressure cross-thread promise
-  mismatches. Next: planner repair or Plan Readiness routing before more
-  writer-context tests. See `docs/sessions/2026-05-09-thread-map-multichapter-smoke.md`.
+- L093 three-chapter smoke still found 3 relationship-pressure cross-thread
+  promise mismatches; deterministic `THREADREF-1` issues now route to manual
+  readiness with thread/promise/payoff IDs. Next: repair packet or operator
+  labels first. See `docs/sessions/2026-05-09-thread-map-multichapter-smoke.md`.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.

@@ -179,6 +179,10 @@ to point at key/oath promises from other threads. Next work should either repair
 that shape deterministically before drafting or surface it as Plan Readiness,
 not add more writer-context.
 
+Follow-up: deterministic `threadRefConsistency` issues now flow into the corpus
+readiness aggregate as manual `THREADREF-1` candidates with thread/promise/payoff
+IDs preserved. This is a review surface, not an auto-rewrite.
+
 ### Lane 3 - Thread Map Diagnostics
 
 Produce a read-only thread map from a plan artifact.

@@ -63,3 +63,27 @@ surface that makes cross-thread pressure explicit:
 - surface a Plan Readiness item before drafting.
 
 Do not promote the prompt repair as sufficient from the single-chapter pass.
+
+## Follow-Up Slice
+
+`diagnostics:corpus-recreation-readiness` now turns deterministic
+`threadRefConsistency` findings from `plan-comparison.json` into manual Plan
+Readiness candidates. The readiness bridge also preserves `threadIds`,
+`promiseIds`, and `payoffIds` alongside obligation, character, world, and source
+IDs.
+
+Output:
+
+- `output/corpus-recreation-poc/threadrefs-plan-repair-flash-20260509-readiness/readiness.md`
+- `output/corpus-recreation-poc/threadrefs-plan-repair-flash-20260509-readiness/readiness.json`
+
+Result:
+
+- groups: `2`
+- findings: `2`
+- label: `THREADREF-1`
+- manifest validation: pass across 5 manifests
+
+This keeps the next action manual: an operator or approved planning-edit agent
+can split/reroute the cross-thread pressure before drafting, but the diagnostic
+does not auto-mutate the plan.
