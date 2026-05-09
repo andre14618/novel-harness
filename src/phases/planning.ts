@@ -19,7 +19,7 @@ import { schema as stateRepairSchema, prompt as PLANNING_STATE_REPAIR_PROMPT, ty
 import { displayPhaseHeader, presentForApproval, formatChapterOutlines } from "../cli"
 import { emit } from "../events"
 import { log } from "../logger"
-import { pipeline, resolveNativePlanningContractV1 } from "../config/pipeline"
+import { pipeline, resolveNativePlanningContractV1, resolveScenePlanContractV1 } from "../config/pipeline"
 import * as harness from "../harness"
 import { autogenPlannerProposalsAfterPlanning } from "../harness/planner-canon-proposals"
 import type { BeatObligationsContract, SceneBeat } from "../types"
@@ -47,6 +47,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   const targetChapters = novel.seed.chapterCount ?? null
   const planningMaxBeatsPerChapter = novel.seed.pipelineOverrides?.planningMaxBeatsPerChapter ?? pipeline.planningMaxBeatsPerChapter
   const nativePlanningContractV1 = resolveNativePlanningContractV1(novel.seed.pipelineOverrides)
+  const scenePlanContractV1 = resolveScenePlanContractV1(novel.seed.pipelineOverrides)
 
   // ── Phase 1: chapter skeletons ──────────────────────────────────────
   const skeletonContext = buildPlanningContext(worldBible, characters, spine, novel.seed)
@@ -219,6 +220,54 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
     throw new Error(`Planning obligation coverage failed after mapper retries: ${remainingCoverageErrors.join("; ")}`)
   }
   emit(novelId, { type: "progress", data: { step: "planning-obligations", status: "complete", chapters: chapters.length } })
+
+  // L096 Slice 1: scene plan contract enforcement, gated by
+  // `scenePlanContractV1`. Runs after obligation coverage clears so the
+  // mapper-emitted obligations are present for the materiality / payoff-stage
+  // checks. On failure, runs ONE structural-v1 retry of `expandChapter` per
+  // failing chapter with the validator output as retry feedback. Mirrors POC
+  // `corpus-recreation-poc.ts:plannerContractRetryMode = "structural-v1"`.
+  if (scenePlanContractV1) {
+    emit(novelId, { type: "progress", data: { step: "planning-scene-contract", status: "running", chapters: chapters.length } })
+    const sceneContractOptions = {
+      requireMaterialityTests: true,
+      requirePovPersonalStake: true,
+    }
+    const failingIdxs: number[] = []
+    for (let i = 0; i < chapters.length; i++) {
+      const result = harness.enforce.enforceScenePlanContract(chapters[i], sceneContractOptions)
+      if (!result.valid) {
+        const summary = result.errors.slice(0, 3).join("; ")
+        log(novelId, "warn", `Ch ${chapters[i].chapterNumber}: scene plan contract failed: ${summary}`)
+        failingIdxs.push(i)
+      }
+    }
+    if (failingIdxs.length > 0) {
+      emit(novelId, { type: "progress", data: { step: "planning-scene-contract", status: "retrying", chapters: failingIdxs.length } })
+      const retries = failingIdxs.map(idx => {
+        const failing = chapters[idx]
+        const result = harness.enforce.enforceScenePlanContract(failing, sceneContractOptions)
+        const feedback = `Scene plan contract failures (fix all):\n${result.errors.map(e => `- ${e}`).join("\n")}\n\nFix by emitting the missing scene-contract fields (goal/opposition/turningPoint/crisisChoice/choiceAlternatives/outcome/consequence/povPersonalStake) and ensuring obligations carry materialityTest plus consistent payoff-stage refs.`
+        return expandChapter(novelId, skeletons![idx], skeletons!, worldBible, characters, spine, novel.seed, 2, feedback)
+          .then(full => { chapters[idx] = full })
+          .catch(err => log(novelId, "error", `Ch ${failing.chapterNumber} scene-contract retry failed: ${err instanceof Error ? err.message : err}`))
+      })
+      await Promise.all(retries)
+
+      const stillFailing: string[] = []
+      for (const idx of failingIdxs) {
+        const result = harness.enforce.enforceScenePlanContract(chapters[idx], sceneContractOptions)
+        if (!result.valid) {
+          stillFailing.push(`Ch ${chapters[idx].chapterNumber}: ${result.errors.slice(0, 5).join("; ")}`)
+        }
+      }
+      if (stillFailing.length > 0) {
+        throw new Error(`Scene plan contract failed after structural-v1 retry: ${stillFailing.join(" | ")}`)
+      }
+    }
+    log(novelId, "info", `Scene plan contract clean for ${chapters.length} chapters`)
+    emit(novelId, { type: "progress", data: { step: "planning-scene-contract", status: "complete", chapters: chapters.length } })
+  }
 
   for (const outline of chapters) {
     const obligationPlan = harness.beatObligations.deriveBeatObligations(outline)

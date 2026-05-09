@@ -2,6 +2,63 @@ import { expect, test } from "bun:test"
 
 import { buildContext } from "./context"
 
+test("planning beat context omits scene plan contract guidance when flag is off", () => {
+  const context = buildContext({
+    targetChapter: chapter(1, 1500),
+    allSkeletons: [chapter(1, 1500)],
+    priorChapters: [],
+    worldBible: {
+      setting: "A test city", timePeriod: "now", geography: "g", politicalStructure: "p",
+      technologyConstraints: "t", socialCustoms: [], sensoryPalette: "s",
+      rules: ["r"], locations: [{ name: "L", description: "d" }],
+      culture: "c", history: "h", systems: [], cultures: [],
+    },
+    characters: [{
+      id: "char-x", name: "X", role: "protagonist", backstory: "", traits: [],
+      speechPattern: "plain", goals: "g", fears: "f",
+      relationships: [], culturalBackground: [], systemAwareness: [], exampleLines: [],
+    }],
+    spine: { acts: [], centralConflict: "c", theme: "t", endingDirection: "e" },
+    seed: { genre: "fantasy", premise: "p", characters: [{ name: "X", role: "protagonist", description: "d" }] },
+  } as Parameters<typeof buildContext>[0])
+
+  expect(context).not.toContain("Scene plan contract (scenePlanContractV1)")
+  expect(context).not.toContain("choiceAlternatives")
+})
+
+test("planning beat context renders scene plan contract guidance when flag is on", () => {
+  const context = buildContext({
+    targetChapter: chapter(1, 1500),
+    allSkeletons: [chapter(1, 1500)],
+    priorChapters: [],
+    worldBible: {
+      setting: "A test city", timePeriod: "now", geography: "g", politicalStructure: "p",
+      technologyConstraints: "t", socialCustoms: [], sensoryPalette: "s",
+      rules: ["r"], locations: [{ name: "L", description: "d" }],
+      culture: "c", history: "h", systems: [], cultures: [],
+    },
+    characters: [{
+      id: "char-x", name: "X", role: "protagonist", backstory: "", traits: [],
+      speechPattern: "plain", goals: "g", fears: "f",
+      relationships: [], culturalBackground: [], systemAwareness: [], exampleLines: [],
+    }],
+    spine: { acts: [], centralConflict: "c", theme: "t", endingDirection: "e" },
+    seed: {
+      genre: "fantasy",
+      premise: "p",
+      characters: [{ name: "X", role: "protagonist", description: "d" }],
+      pipelineOverrides: { scenePlanContractV1: true },
+    },
+  } as Parameters<typeof buildContext>[0])
+
+  expect(context).toContain("Scene plan contract (scenePlanContractV1)")
+  expect(context).toContain("choiceAlternatives")
+  expect(context).toContain("povPersonalStake")
+  expect(context).toContain("crisisChoice")
+  expect(context).toContain("Causal-motivation-v3 expectations")
+  expect(context).toContain("must NOT simply restate the outcome")
+})
+
 test("planning beat context renders calibrated beat count guidance", () => {
   const context = buildContext({
     targetChapter: chapter(1, 1500),

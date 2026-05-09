@@ -3,6 +3,41 @@ import { expect, test } from "bun:test"
 import { buildContext } from "./context"
 import type { ChapterOutline, CharacterProfile, SceneBeat, SeedInput, StorySpine, WorldBible } from "../../types"
 
+test("planning-state-mapper context omits scene plan contract guidance when flag is off", () => {
+  const context = buildContext({
+    targetChapter: chapter(),
+    allSkeletons: [chapter()],
+    priorChapters: [],
+    scenes: [beat({ description: "Istra discovers the plague ledger was altered.", characters: ["Istra"] })],
+    worldBible: worldBible(),
+    characters: [character()],
+    spine: storySpine(),
+    seed: seed(),
+  })
+
+  expect(context).not.toContain("SCENE PLAN CONTRACT (scenePlanContractV1)")
+  expect(context).not.toContain("materialityTest")
+})
+
+test("planning-state-mapper context renders scene plan contract guidance when flag is on", () => {
+  const context = buildContext({
+    targetChapter: chapter(),
+    allSkeletons: [chapter()],
+    priorChapters: [],
+    scenes: [beat({ description: "Istra discovers the plague ledger was altered.", characters: ["Istra"] })],
+    worldBible: worldBible(),
+    characters: [character()],
+    spine: storySpine(),
+    seed: { ...seed(), pipelineOverrides: { scenePlanContractV1: true } },
+  })
+
+  expect(context).toContain("SCENE PLAN CONTRACT (scenePlanContractV1)")
+  expect(context).toContain("materialityTest")
+  expect(context).toContain("complicate")
+  expect(context).toContain("escalation")
+  expect(context).toContain("payoffEventId")
+})
+
 test("planning-state-mapper context carries beat indexes without asking for rewrites", () => {
   const context = buildContext({
     targetChapter: chapter(),

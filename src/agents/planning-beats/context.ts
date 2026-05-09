@@ -6,7 +6,7 @@ import type { ChapterOutline } from "../planning-plotter/schema"
 import { renderDirectivesForPlanner } from "../../schemas/planning-directives"
 import { resolveStructuralPriors, renderStructuralPriorsForPlanner } from "../../models/roles"
 import { planningBeatCountPolicy } from "../../harness/beat-counts"
-import { resolveNativePlanningContractV1 } from "../../config/pipeline"
+import { resolveNativePlanningContractV1, resolveScenePlanContractV1 } from "../../config/pipeline"
 
 function renderSkeletonLine(sk: ChapterOutline): string {
   const chars = sk.charactersPresent?.length ? ` [${sk.charactersPresent.join(", ")}]` : ""
@@ -74,7 +74,7 @@ Characters present: ${(targetChapter.charactersPresent ?? []).join(", ")}
 
 Minimum beats required: ${beatPolicy.minRecommendedBeats} (current writer usually produces ~300-450 words per planned beat).
 ${renderBeatCapGuidance(beatPolicy)}
-${renderNativePlanningContractGuidance(beatPolicy, resolveNativePlanningContractV1(seed.pipelineOverrides))}`
+${renderNativePlanningContractGuidance(beatPolicy, resolveNativePlanningContractV1(seed.pipelineOverrides))}${renderScenePlanContractGuidance(resolveScenePlanContractV1(seed.pipelineOverrides))}`
 
   const directivesSection = seed.directives ? renderDirectivesForPlanner(seed.directives) : ""
   const priors = resolveStructuralPriors(seed.genre)
@@ -113,4 +113,38 @@ function renderNativePlanningContractGuidance(
   if (!enabled) return ""
   return `
 Native planning contract: Author exactly ${policy.recommendedBeats} complete story-turn beats for this chapter. Each beat should be large enough to draft into roughly 300-450 words and must carry a concrete pressure, choice, reveal, reversal, or consequence. When the beat turns on the POV's motive or choice, include povPersonalStake naming the specific want, need, fear, lie, truth, wound, oath, shame, or relationship pressure that makes the action matter. Do not emit micro-actions, transit-only beats, or packed bullet lists. The final beat must preserve the chapter endpoint/hook named in the skeleton purpose.`
+}
+
+// L096 Slice 1: scene plan contract guidance, gated by `scenePlanContractV1`.
+// Source: POC `corpus-recreation-poc.ts` causal-motivation-v3 prompt language
+// (lines 1234-1307 / 1454-1493). Treat each beat-list entry as a scene
+// contract: declare the dramatic shape the writer must satisfy, with explicit
+// choice alternatives and an externally observable consequence. Default off;
+// when off this function emits an empty string and the planner sees the
+// existing native-planning prompt unchanged.
+function renderScenePlanContractGuidance(enabled: boolean): string {
+  if (!enabled) return ""
+  return `
+
+Scene plan contract (scenePlanContractV1):
+Each entry in "scenes" is a scene contract — a complete dramatic unit, not a micro-beat. For every entry, ALSO emit these optional scene-contract fields:
+- "goal": the protagonist's concrete scene-level goal in this entry.
+- "opposition": who or what opposes the goal in this entry.
+- "turningPoint": the moment the entry's dominant value flips or the protagonist commits.
+- "crisisChoice": the specific choice the protagonist must make at the turning point.
+- "choiceAlternatives": an array of at least TWO concrete options the protagonist could take, each tied to a want, need, lie, truth, fear, oath, or relationship pressure.
+- "outcome": what actually happens at the end of the entry as a result of the crisis choice.
+- "consequence": the externally observable downstream pressure or change the outcome creates. The consequence must NOT simply restate the outcome; it must be observable in dialogue, action, body language, world state, or relationship state. Internal-only realisation is not a consequence.
+- "valueIn" and "valueOut": the dominant value at the start and end of the entry (e.g. "compliance" → "rupture", "ignorance" → "knowledge").
+- "povPersonalStake": the personal pressure behind the crisis choice — the specific want, need, fear, lie, truth, wound, oath, shame, or relationship pressure that makes the choice matter to this POV.
+- "beatHints" (optional): an array of internal annotation beats inside the scene. Each hint declares "kind" (action|dialogue|interiority|description), "boundarySignal", "gapSize", and "purpose". Beat hints are annotation only; the writer does not see them as separate calls.
+- "targetWords" (optional): per-entry word target. Default falls back to chapter target divided by entry count.
+
+Causal-motivation-v3 expectations:
+- The crisis choice must be motive-caused, not arbitrary. The povPersonalStake and choiceAlternatives must show why this protagonist (not a generic protagonist) is forced to choose under this pressure.
+- Choice alternatives must each carry a concrete tradeoff: gain vs cost, want vs need, oath vs survival, etc.
+- World facts and supporting characters are operational pressure, not background. If a world fact or character is named in the entry, it must constrain the choice or alter the outcome.
+- The consequence must create future pressure (a new obligation, threat, debt, or relationship shift) that the next entry or chapter can build on.
+
+If you cannot honour these fields for a given entry, omit the optional fields rather than emitting placeholder text. Empty string consequences and one-option choiceAlternatives are validator failures.`
 }
