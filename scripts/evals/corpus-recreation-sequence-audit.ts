@@ -39,6 +39,8 @@ interface Plan {
     threadId?: string
     promiseId?: string
     payoffId?: string
+    payoffEventId?: string
+    storyDebtStage?: string
     sourceId?: string
     requirementText?: string
   }>
@@ -54,12 +56,14 @@ export interface SequenceMovement {
   threadId: string | null
   promiseId: string | null
   payoffId: string | null
+  payoffEventId: string | null
+  storyDebtStage: string | null
   sourceId: string | null
   movement: "thread" | "promise_progress" | "promise_payoff"
 }
 
 export interface SequenceFinding {
-  code: "payoff_id_reused_across_chapters" | "promise_continues_after_payoff"
+  code: "payoff_id_reused_without_event_id" | "payoff_event_id_reused_across_chapters" | "promise_continues_after_final_payoff"
   severity: "advisory"
   ref: string
   chapterLabels: string[]
@@ -73,13 +77,15 @@ export interface SequencePromiseSummary {
   progressSceneIds: string[]
   payoffSceneIds: string[]
   payoffIds: string[]
+  payoffEventIds: string[]
   firstProgress: string | null
-  firstPayoff: string | null
-  progressAfterFirstPayoff: string[]
+  firstFinalPayoff: string | null
+  progressAfterFinalPayoff: string[]
 }
 
 export interface SequencePayoffSummary {
   payoffId: string
+  payoffEventIds: string[]
   promiseIds: string[]
   threadIds: string[]
   chapterLabels: string[]
@@ -109,8 +115,8 @@ export function buildCorpusRecreationSequenceAudit(
   const promises = summarizePromises(movements)
   const payoffs = summarizePayoffs(movements)
   const findings = [
-    ...findReusedPayoffs(payoffs),
-    ...findPromiseProgressAfterPayoff(promises),
+    ...findPayoffEventIssues(payoffs),
+    ...findPromiseProgressAfterFinalPayoff(promises),
   ].sort((a, b) => a.code.localeCompare(b.code) || a.ref.localeCompare(b.ref))
 
   return {
@@ -155,8 +161,8 @@ export function renderCorpusRecreationSequenceAudit(report: CorpusRecreationSequ
   lines.push("")
   lines.push("## Promises")
   lines.push("")
-  lines.push("| Promise | Threads | Progress Scenes | Payoff Scenes | Payoffs | Progress After First Payoff |")
-  lines.push("| --- | --- | --- | --- | --- | --- |")
+  lines.push("| Promise | Threads | Progress Scenes | Payoff Scenes | Payoffs | Payoff Events | Progress After Final Payoff |")
+  lines.push("| --- | --- | --- | --- | --- | --- | --- |")
   for (const promise of report.promises) {
     lines.push([
       `| ${cell(promise.promiseId)}`,
@@ -164,18 +170,20 @@ export function renderCorpusRecreationSequenceAudit(report: CorpusRecreationSequ
       cell(promise.progressSceneIds.join(", ") || "none"),
       cell(promise.payoffSceneIds.join(", ") || "none"),
       cell(promise.payoffIds.join(", ") || "none"),
-      `${cell(promise.progressAfterFirstPayoff.join(", ") || "none")} |`,
+      cell(promise.payoffEventIds.join(", ") || "none"),
+      `${cell(promise.progressAfterFinalPayoff.join(", ") || "none")} |`,
     ].join(" | "))
   }
 
   lines.push("")
   lines.push("## Payoffs")
   lines.push("")
-  lines.push("| Payoff | Promises | Threads | Chapters | Scenes |")
-  lines.push("| --- | --- | --- | --- | --- |")
+  lines.push("| Payoff | Payoff Events | Promises | Threads | Chapters | Scenes |")
+  lines.push("| --- | --- | --- | --- | --- | --- |")
   for (const payoff of report.payoffs) {
     lines.push([
       `| ${cell(payoff.payoffId)}`,
+      cell(payoff.payoffEventIds.join(", ") || "none"),
       cell(payoff.promiseIds.join(", ") || "none"),
       cell(payoff.threadIds.join(", ") || "none"),
       cell(payoff.chapterLabels.join(", ") || "none"),
@@ -187,8 +195,8 @@ export function renderCorpusRecreationSequenceAudit(report: CorpusRecreationSequ
   lines.push("## Interpretation Boundary")
   lines.push("")
   lines.push("- This audit is advisory sequence evidence, not a blocker.")
-  lines.push("- Reused payoff IDs may be valid if they are intentionally parent IDs, but distinct payoff events should usually use child payoff IDs linked to the parent story debt.")
-  lines.push("- Progress after payoff often means the planner is reusing a local chapter contract as if it were a sequence contract.")
+  lines.push("- Parent payoffId values may repeat when distinct local payoffEventId values distinguish the concrete payoff events.")
+  lines.push("- Progress after final_payoff often means the planner is reusing a local chapter contract as if it were a sequence contract.")
   return `${lines.join("\n")}\n`
 }
 
@@ -208,6 +216,8 @@ function readPocRun(pocDir: string, inputOrder: number): { movements: SequenceMo
     const sceneId = textOrNull(obligation.sceneId) ?? `unknown-scene-${index + 1}`
     const promiseId = textOrNull(obligation.promiseId)
     const payoffId = textOrNull(obligation.payoffId)
+    const payoffEventId = textOrNull(obligation.payoffEventId)
+    const storyDebtStage = textOrNull(obligation.storyDebtStage)
     const threadId = textOrNull(obligation.threadId)
     if (!threadId && !promiseId && !payoffId) continue
     movements.push({
@@ -220,8 +230,10 @@ function readPocRun(pocDir: string, inputOrder: number): { movements: SequenceMo
       threadId,
       promiseId,
       payoffId,
+      payoffEventId,
+      storyDebtStage,
       sourceId: textOrNull(obligation.sourceId),
-      movement: payoffId ? "promise_payoff" : promiseId ? "promise_progress" : "thread",
+      movement: payoffId || isPayoffStage(storyDebtStage) ? "promise_payoff" : promiseId ? "promise_progress" : "thread",
     })
   }
   return { movements }
@@ -232,10 +244,11 @@ function summarizePromises(movements: SequenceMovement[]): SequencePromiseSummar
   return [...groups.entries()].map(([promiseId, rows]) => {
     const orderedRows = [...rows].sort(compareMovements)
     const payoffRows = orderedRows.filter(row => row.payoffId)
-    const firstPayoff = payoffRows[0] ?? null
-    const progressAfterFirstPayoff = firstPayoff
+    const finalPayoffRows = payoffRows.filter(isFinalPayoff)
+    const firstFinalPayoff = finalPayoffRows[0] ?? null
+    const progressAfterFinalPayoff = firstFinalPayoff
       ? orderedRows
-        .filter(row => !row.payoffId && compareMovements(row, firstPayoff) > 0)
+        .filter(row => !row.payoffId && compareMovements(row, firstFinalPayoff) > 0)
         .map(formatSceneRef)
       : []
     return {
@@ -244,9 +257,10 @@ function summarizePromises(movements: SequenceMovement[]): SequencePromiseSummar
       progressSceneIds: unique(orderedRows.filter(row => !row.payoffId).map(formatSceneRef)),
       payoffSceneIds: unique(payoffRows.map(formatSceneRef)),
       payoffIds: unique(payoffRows.map(row => row.payoffId).filter(isString)),
+      payoffEventIds: unique(payoffRows.map(row => row.payoffEventId).filter(isString)),
       firstProgress: orderedRows.find(row => !row.payoffId) ? formatSceneRef(orderedRows.find(row => !row.payoffId)!) : null,
-      firstPayoff: firstPayoff ? formatSceneRef(firstPayoff) : null,
-      progressAfterFirstPayoff,
+      firstFinalPayoff: firstFinalPayoff ? formatSceneRef(firstFinalPayoff) : null,
+      progressAfterFinalPayoff,
     }
   }).sort((a, b) => a.promiseId.localeCompare(b.promiseId))
 }
@@ -255,6 +269,7 @@ function summarizePayoffs(movements: SequenceMovement[]): SequencePayoffSummary[
   const groups = groupBy(movements.filter(row => row.payoffId), row => row.payoffId!)
   return [...groups.entries()].map(([payoffId, rows]) => ({
     payoffId,
+    payoffEventIds: unique(rows.map(row => row.payoffEventId).filter(isString)),
     promiseIds: unique(rows.map(row => row.promiseId).filter(isString)),
     threadIds: unique(rows.map(row => row.threadId).filter(isString)),
     chapterLabels: unique(rows.map(row => row.chapterLabel)),
@@ -262,30 +277,52 @@ function summarizePayoffs(movements: SequenceMovement[]): SequencePayoffSummary[
   })).sort((a, b) => a.payoffId.localeCompare(b.payoffId))
 }
 
-function findReusedPayoffs(payoffs: SequencePayoffSummary[]): SequenceFinding[] {
-  return payoffs
-    .filter(payoff => payoff.chapterLabels.length > 1)
-    .map(payoff => ({
-      code: "payoff_id_reused_across_chapters" as const,
+function findPayoffEventIssues(payoffs: SequencePayoffSummary[]): SequenceFinding[] {
+  const findings: SequenceFinding[] = []
+  for (const payoff of payoffs) {
+    if (payoff.chapterLabels.length <= 1) continue
+    if (payoff.payoffEventIds.length === 0) {
+      findings.push({
+        code: "payoff_id_reused_without_event_id",
+        severity: "advisory",
+        ref: payoff.payoffId,
+        chapterLabels: payoff.chapterLabels,
+        sceneIds: payoff.sceneIds,
+        message: `parent payoffId ${payoff.payoffId} appears in multiple chapters without child payoffEventId refs.`,
+      })
+    } else if (payoff.payoffEventIds.length < payoff.sceneIds.length) {
+      findings.push({
+        code: "payoff_event_id_reused_across_chapters",
+        severity: "advisory",
+        ref: payoff.payoffId,
+        chapterLabels: payoff.chapterLabels,
+        sceneIds: payoff.sceneIds,
+        message: `payoffId ${payoff.payoffId} has fewer child payoffEventIds than payoff scenes; each concrete payoff event should have a unique child id.`,
+      })
+    }
+  }
+  return findings
+}
+
+function findPromiseProgressAfterFinalPayoff(promises: SequencePromiseSummary[]): SequenceFinding[] {
+  return promises
+    .filter(promise => promise.progressAfterFinalPayoff.length > 0)
+    .map(promise => ({
+      code: "promise_continues_after_final_payoff" as const,
       severity: "advisory" as const,
-      ref: payoff.payoffId,
-      chapterLabels: payoff.chapterLabels,
-      sceneIds: payoff.sceneIds,
-      message: `payoffId ${payoff.payoffId} resolves in multiple chapters; use child payoff IDs when these are distinct payoff events.`,
+      ref: promise.promiseId,
+      chapterLabels: unique(promise.progressAfterFinalPayoff.map(ref => ref.split("/")[0] ?? ref)),
+      sceneIds: promise.progressAfterFinalPayoff,
+      message: `promiseId ${promise.promiseId} has progress after final payoff ${promise.firstFinalPayoff}; use a child promise/payoff chain or mark later rows as aftermath/escalation.`,
     }))
 }
 
-function findPromiseProgressAfterPayoff(promises: SequencePromiseSummary[]): SequenceFinding[] {
-  return promises
-    .filter(promise => promise.progressAfterFirstPayoff.length > 0)
-    .map(promise => ({
-      code: "promise_continues_after_payoff" as const,
-      severity: "advisory" as const,
-      ref: promise.promiseId,
-      chapterLabels: unique(promise.progressAfterFirstPayoff.map(ref => ref.split("/")[0] ?? ref)),
-      sceneIds: promise.progressAfterFirstPayoff,
-      message: `promiseId ${promise.promiseId} has progress after first payoff ${promise.firstPayoff}; use a child promise/payoff chain or mark later rows as aftermath.`,
-    }))
+function isPayoffStage(stage: string | null): boolean {
+  return stage === "partial_payoff" || stage === "final_payoff"
+}
+
+function isFinalPayoff(row: SequenceMovement): boolean {
+  return row.storyDebtStage ? row.storyDebtStage === "final_payoff" : Boolean(row.payoffId)
 }
 
 function compareMovements(a: SequenceMovement, b: SequenceMovement): number {

@@ -174,7 +174,8 @@ Per-chapter plan/write success does not prove cross-chapter coherence. Before
 promotion, run a sequence audit over the planned/drafted chapter set and check:
 
 - parent story-debt IDs are not reused as separate final payoff events;
-- distinct payoff moments have child payoff IDs linked to the parent debt;
+- distinct payoff moments have child `payoffEventId` values linked to the
+  parent `payoffId`/story debt;
 - later progress after a payoff is explicitly marked as aftermath,
   escalation, or a new child debt;
 - thread IDs remain stable across chapters without pretending every local
@@ -193,6 +194,19 @@ bun run diagnostics:corpus-recreation-sequence-audit -- \
 This audit is deterministic and advisory. Findings should inform the next
 planner contract or Plan Readiness pass; they should not become drafting
 blockers by themselves.
+
+The diagnostic POC plan schema now supports graph-ready story-debt fields on
+obligations:
+
+- `promiseId`: parent story debt;
+- `payoffId`: parent/canonical payoff category from the seed;
+- `payoffEventId`: unique concrete child payoff event;
+- `storyDebtStage`: `open`, `progress`, `complicate`, `partial_payoff`,
+  `final_payoff`, `aftermath`, or `escalation`.
+
+Deterministic plan checks reject `payoffId`/`payoffEventId` on non-payoff
+stages and require `payoffEventId` on explicit payoff stages. This keeps the
+contract graph-ready without making sequence findings drafting blockers.
 
 ## First POC Evidence
 

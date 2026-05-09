@@ -136,6 +136,9 @@ describe("corpus-recreation-poc", () => {
 
     expect(prompt).toContain("promiseId must use its story debt threadId")
     expect(prompt).toContain("payoffId must use its payoff threadId and matching promiseId")
+    expect(prompt).toContain("payoffId is the provided parent payoff category")
+    expect(prompt).toContain("unique payoffEventId")
+    expect(prompt).toContain("use final_payoff only when the scene truly resolves the parent story debt")
     expect(prompt).toContain("cross-thread pressure should be split into separate obligations")
     expect(prompt).toContain("create sceneTurns for causal choices/reveals/costs")
     expect(prompt).toContain("attach obligations to them with sceneTurnId")
@@ -439,6 +442,49 @@ describe("corpus-recreation-poc", () => {
     expect(comparison.issues.some(issue => issue.includes("promiseIds belong to different threadId: obl-thread-mismatch:debt-oathmark"))).toBe(true)
     expect(comparison.issues.some(issue => issue.includes("payoffIds belong to different threadId: obl-thread-mismatch:payoff-oathmark-public-confession"))).toBe(true)
     expect(comparison.issues.some(issue => issue.includes("sceneTurnIds point to different scene: obl-thread-mismatch:turn-sc01-key-heat->analog-sc01"))).toBe(true)
+  })
+
+  test("flags inconsistent story-debt stage and payoff-event refs deterministically", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+    })
+    const badPlan = structuredClone(plan())
+    badPlan.obligations[0] = {
+      ...badPlan.obligations[0]!,
+      storyDebtStage: "progress",
+      payoffEventId: "payoff-event-progress-should-not-exist",
+    }
+    badPlan.obligations.push({
+      obligationId: "obl-missing-event",
+      sceneId: "analog-sc02",
+      sourceId: "debt-oathmark",
+      threadId: "thread-oathmark-public-accountability",
+      promiseId: "debt-oathmark",
+      payoffId: "payoff-oathmark-public-confession",
+      storyDebtStage: "partial_payoff",
+      requirementText: "Nara partially lands the public confession debt.",
+      materialityTest: "The partial confession changes Kael's pressure.",
+    })
+    badPlan.obligations.push({
+      obligationId: "obl-event-without-payoff",
+      sceneId: "analog-sc02",
+      sourceId: "debt-oathmark",
+      threadId: "thread-oathmark-public-accountability",
+      promiseId: "debt-oathmark",
+      payoffEventId: "payoff-event-without-parent",
+      requirementText: "Nara creates a dangling event id.",
+      materialityTest: "The dangling event id should be rejected.",
+    })
+
+    const comparison = comparePlanToReference(badPlan, packet)
+
+    expect(comparison.sceneContract.knownThreadRefCount).toBe(0)
+    expect(comparison.issues.some(issue => issue.includes("non-payoff storyDebtStage rows carry payoff refs: obl-key-heat:progress"))).toBe(true)
+    expect(comparison.issues.some(issue => issue.includes("payoff storyDebtStage rows missing payoffEventId: obl-missing-event"))).toBe(true)
+    expect(comparison.issues.some(issue => issue.includes("payoffEventId rows missing payoffId: obl-event-without-payoff"))).toBe(true)
   })
 
   test("flags weak upstream scene contracts before prose generation", () => {

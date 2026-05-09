@@ -1035,3 +1035,40 @@ Interpretation: the per-chapter combined arm is not enough to prove sequence
 coherence. The planner needs a sequence-owned story-debt model where a parent
 thread/promise can have child progress/payoff IDs, or later rows are marked as
 aftermath/escalation rather than reusing the same final payoff ID.
+
+## Sequence-Owned Story Debt Fields
+
+Added graph-ready optional fields to the corpus recreation POC obligation
+contract:
+
+- `payoffEventId`: unique concrete child payoff event;
+- `storyDebtStage`: `open`, `progress`, `complicate`, `partial_payoff`,
+  `final_payoff`, `aftermath`, or `escalation`.
+
+The deterministic plan checker now rejects payoff refs on non-payoff stages,
+requires `payoffEventId` on explicit payoff stages, and rejects dangling
+`payoffEventId` without parent `payoffId`.
+
+Evidence:
+
+- focused tests: `bun test scripts/evals/corpus-recreation-sequence-audit.test.ts scripts/evals/corpus-recreation-poc.test.ts`;
+- typecheck: `./node_modules/.bin/tsc --noEmit`;
+- old four-chapter sequence audit refreshed as
+  `output/corpus-recreation-poc/causal-v2-contract-expansion-4ch-sequence-audit-r2.md`;
+- fresh ch1 plan-only smoke:
+  `output/corpus-recreation-poc/crystal_shard-ch1-flash-causal-materiality-v2-sequence-ids-v1-plan-r2`.
+
+Result:
+
+- old four-chapter outputs still show 4 advisory sequence findings, now phrased
+  as missing child `payoffEventId` and progress after implicit final payoff;
+- fresh ch1 plan-only smoke produced 8 obligations, 4 `storyDebtStage` refs,
+  0 payoff refs, and 0 plan issues after contract retry;
+- the smoke stayed plan-only, so it is not prose or sequence promotion
+  evidence.
+
+Interpretation: the contract can now represent parent story debts separately
+from child payoff events. The next real proof should plan a multi-chapter or
+short-story sequence where the planner decides which local landings are
+`partial_payoff`, which are `final_payoff`, and which later rows are
+`aftermath` or `escalation`.

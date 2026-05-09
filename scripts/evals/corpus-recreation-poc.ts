@@ -156,6 +156,11 @@ const optionalModelStringSchema = z.preprocess(
   z.string().min(1).nullish(),
 ).transform(value => value ?? undefined)
 
+const storyDebtStageSchema = z.preprocess(
+  value => value === "" ? undefined : value,
+  z.enum(["open", "progress", "complicate", "partial_payoff", "final_payoff", "aftermath", "escalation"]).nullish(),
+).transform(value => value ?? undefined)
+
 const recreationSceneTurnSchema = z.object({
   sceneTurnId: z.string().min(1),
   sceneId: z.string().min(1),
@@ -203,6 +208,8 @@ const recreationPlanSchema = z.object({
       threadId: optionalModelStringSchema,
       promiseId: optionalModelStringSchema,
       payoffId: optionalModelStringSchema,
+      payoffEventId: optionalModelStringSchema,
+      storyDebtStage: storyDebtStageSchema,
       requirementText: z.string().min(8),
       materialityTest: optionalModelStringSchema,
     })).default([]),
@@ -844,6 +851,17 @@ function evaluateSceneContract(
       return Boolean(payoff && payoff.threadId !== obligation.threadId)
     })
     .map(obligation => `${obligation.obligationId}:${obligation.payoffId}`)
+  const nonPayoffStagePayoffRefs = obligations
+    .filter(obligation => obligation.payoffId || obligation.payoffEventId)
+    .filter(obligation => obligation.storyDebtStage && !isPayoffDebtStage(obligation.storyDebtStage))
+    .map(obligation => `${obligation.obligationId}:${obligation.storyDebtStage}`)
+  const payoffStageMissingEventIds = obligations
+    .filter(obligation => obligation.payoffId && obligation.storyDebtStage && isPayoffDebtStage(obligation.storyDebtStage))
+    .filter(obligation => !obligation.payoffEventId)
+    .map(obligation => obligation.obligationId)
+  const eventIdsWithoutPayoffs = obligations
+    .filter(obligation => obligation.payoffEventId && !obligation.payoffId)
+    .map(obligation => obligation.obligationId)
   const sceneTurnIds = uniqueStrings(obligations
     .map(obligation => obligation.sceneTurnId)
     .filter((sceneTurnId): sceneTurnId is string => Boolean(sceneTurnId)))
@@ -865,6 +883,9 @@ function evaluateSceneContract(
     && orphanPayoffIds.length === 0
     && promiseThreadMismatchIds.length === 0
     && payoffThreadMismatchIds.length === 0
+    && nonPayoffStagePayoffRefs.length === 0
+    && payoffStageMissingEventIds.length === 0
+    && eventIdsWithoutPayoffs.length === 0
   const hasObservableConsequence = isObservableConsequence(scene.consequence, scene.outcome)
   const hasMaterialityTest = hasDeclaredObligation && obligations.every(obligation =>
     typeof obligation.materialityTest === "string" && obligation.materialityTest.trim().length >= 8
@@ -883,6 +904,9 @@ function evaluateSceneContract(
   if (orphanPayoffIds.length > 0) issues.push(`payoffIds do not belong to declared promiseId: ${orphanPayoffIds.join(", ")}`)
   if (promiseThreadMismatchIds.length > 0) issues.push(`promiseIds belong to different threadId: ${promiseThreadMismatchIds.join(", ")}`)
   if (payoffThreadMismatchIds.length > 0) issues.push(`payoffIds belong to different threadId: ${payoffThreadMismatchIds.join(", ")}`)
+  if (nonPayoffStagePayoffRefs.length > 0) issues.push(`non-payoff storyDebtStage rows carry payoff refs: ${nonPayoffStagePayoffRefs.join(", ")}`)
+  if (payoffStageMissingEventIds.length > 0) issues.push(`payoff storyDebtStage rows missing payoffEventId: ${payoffStageMissingEventIds.join(", ")}`)
+  if (eventIdsWithoutPayoffs.length > 0) issues.push(`payoffEventId rows missing payoffId: ${eventIdsWithoutPayoffs.join(", ")}`)
   if (unknownSceneTurnIds.length > 0) issues.push(`unknown sceneTurnIds: ${unknownSceneTurnIds.join(", ")}`)
   if (crossSceneTurnIds.length > 0) issues.push(`sceneTurnIds point to different scene: ${crossSceneTurnIds.join(", ")}`)
   if (!hasObservableConsequence) issues.push("consequence is generic, internal-only, or indistinct from outcome")
@@ -994,6 +1018,10 @@ function isObservableConsequence(consequence: string, outcome: string): boolean 
   if (/^(nara )?(realizes|understands|knows|feels|wonders|decides|thinks)\b/iu.test(consequence.trim())) return false
   if (/\b(things|situation|everything|something)\s+(changes|worsens|shifts)\b/iu.test(consequence)) return false
   return true
+}
+
+function isPayoffDebtStage(stage: string): boolean {
+  return stage === "partial_payoff" || stage === "final_payoff"
 }
 
 function normalizeForExactComparison(text: string): string {
@@ -1128,6 +1156,10 @@ Hard rules:
 - Every obligation needs threadId. Use threadId to name the narrative continuity vector being moved.
 - Use promiseId when an obligation opens, progresses, complicates, or pays a story debt. promiseId must match a provided storyDebtId.
 - Use payoffId when an obligation lands or partially lands a planned payoff. payoffId must match a provided payoffId and belong to the same promiseId/storyDebtId.
+- payoffId is the parent/canonical payoff category. When a concrete scene lands a payoff, also add a unique payoffEventId for that local payoff event, for example "payoff-event-ch02-key-cost-wall-scar".
+- Use storyDebtStage for story-debt obligations: open, progress, complicate, partial_payoff, final_payoff, aftermath, or escalation.
+- Use final_payoff only when this scene truly resolves the parent story debt for the sequence. Use partial_payoff, aftermath, or escalation for local chapter landings that should not close the parent debt.
+- Do not set payoffId or payoffEventId on open, progress, or complicate rows. Only partial_payoff and final_payoff rows can carry payoffId/payoffEventId.
 - When an obligation includes promiseId, its threadId must match that story debt's threadId.
 - When an obligation includes payoffId, its threadId must match that payoff's threadId, and its promiseId must match that payoff's storyDebtId.
 - Use sceneTurns to name causal story turns inside scenes. A sceneTurn is the parent event, choice, reveal, reversal, cost, relationship shift, setup, or payoff that can cause one or more obligations.
@@ -1174,7 +1206,7 @@ Hard rules:
       {"sceneTurnId": "turn-...", "sceneId": "analog-ch01-sc01", "summary": "string", "turnType": "choice|reveal|reversal|cost|relationship_shift|payoff|setup"}
     ],
     "obligations": [
-      {"obligationId": "obl-...", "sceneId": "analog-ch01-sc01", "sceneTurnId": "optional sceneTurnId", "sourceId": "char/world/debt id", "threadId": "thread-...", "promiseId": "optional storyDebtId", "payoffId": "optional payoffId", "requirementText": "string", "materialityTest": "optional concrete story effect this obligation must change"}
+      {"obligationId": "obl-...", "sceneId": "analog-ch01-sc01", "sceneTurnId": "optional sceneTurnId", "sourceId": "char/world/debt id", "threadId": "thread-...", "promiseId": "optional storyDebtId", "payoffId": "optional parent payoffId", "payoffEventId": "optional unique local payoff event id", "storyDebtStage": "optional open|progress|complicate|partial_payoff|final_payoff|aftermath|escalation", "requirementText": "string", "materialityTest": "optional concrete story effect this obligation must change"}
     ]
   }
 }`
@@ -1209,6 +1241,9 @@ Create one original analog chapter plan. Match the reference chapter's structura
 - each scene should include requiredCharacterIds for any named non-POV provided character who is locally present, opposing, pressuring, speaking, or otherwise needed as writer context and is not already represented by a character-source obligation;
 - each scene should include affectedCharacterIds for any named non-POV provided character who appears only in the consequence/future-pressure line and is not already represented by requiredCharacterIds or a character-source obligation;
 - every obligation should carry threadId, and story-debt/payoff obligations should also carry promiseId and payoffId when applicable;
+- payoffId is the provided parent payoff category; add a unique payoffEventId for each concrete local payoff event and storyDebtStage for every story-debt movement;
+- use final_payoff only when the scene truly resolves the parent story debt for the sequence; otherwise use partial_payoff, aftermath, or escalation for local landings;
+- do not set payoffId or payoffEventId on open, progress, or complicate storyDebtStage rows;
 - create sceneTurns for causal choices/reveals/costs that produce obligations, and attach obligations to them with sceneTurnId when useful;
 - when sibling obligations share a sceneTurnId, keep each child's promiseId/payoffId inside that child's own thread only;
 - keep thread refs internally consistent: promiseId must use its story debt threadId, payoffId must use its payoff threadId and matching promiseId, and cross-thread pressure should be split into separate obligations;
@@ -1526,6 +1561,8 @@ export function sceneThreadContextForPrompt(
       threadId: obligation.threadId ?? null,
       promiseId: obligation.promiseId ?? null,
       payoffId: obligation.payoffId ?? null,
+      payoffEventId: obligation.payoffEventId ?? null,
+      storyDebtStage: obligation.storyDebtStage ?? null,
       requirementText: obligation.requirementText,
       materialityTest: obligation.materialityTest ?? null,
     })),

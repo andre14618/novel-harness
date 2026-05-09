@@ -37,7 +37,7 @@ unless the user explicitly requests a disposable branch.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.
-- Corpus structure recreation is active: the 4-chapter combined arm removed plan/character gaps and matched expansion-only length effect, but the new sequence audit found repeated payoff IDs and promise progress after payoff. Next move story debt to sequence-owned parent/child IDs before production-default promotion.
+- Corpus structure recreation is active: the 4-chapter combined arm removed plan/character gaps and matched expansion-only length effect, but sequence audit exposed local payoff reuse. POC obligations now have `payoffEventId`/`storyDebtStage` checks; next prove them in a multi-chapter or short-story sequence before promotion.
 - Review `docs/method-packs/commercial-fantasy-adventure-v0.md` as the first
   general method-pack charter before implementing template definitions,
   fixtures, or planner prompt changes.
