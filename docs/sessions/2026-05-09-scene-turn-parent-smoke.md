@@ -109,3 +109,27 @@ Result:
 
 This is a useful prose proof point for the scene-turn parent shape, not a
 promotion decision by itself.
+
+## Thread-Context Arm
+
+Ran the default-off writer-context arm on the same clean chapter 2 plan:
+
+```bash
+bun scripts/evals/corpus-recreation-poc.ts --plan-from output/corpus-recreation-poc/scene-turn-v4-smoke-ch2b-20260509 --output-dir output/corpus-recreation-poc/scene-turn-v4-thread-context-write-ch2-20260509 --live --write --scene-calls --writer-context thread-context-v1 --model deepseek-v4-flash
+bun scripts/evals/corpus-recreation-semantic-review.ts --poc-dir output/corpus-recreation-poc/scene-turn-v4-thread-context-write-ch2-20260509 --live --model deepseek-v4-flash
+bun scripts/evals/corpus-recreation-prose-review.ts --poc-dir output/corpus-recreation-poc/scene-turn-v4-thread-context-write-ch2-20260509 --live --model deepseek-v4-flash
+bun scripts/evals/corpus-recreation-review.ts --poc-dir output/corpus-recreation-poc/scene-turn-v4-write-ch2b-20260509 --poc-dir output/corpus-recreation-poc/scene-turn-v4-thread-context-write-ch2-20260509 --output output/corpus-recreation-poc/scene-turn-v4-ch2-baseline-vs-thread-context-20260509/review.html
+```
+
+Result:
+
+- deterministic plan/chapter issues: 0;
+- word count: 2366/3353 (0.71), similar to baseline 2403/3353 (0.72);
+- semantic review: same summary as baseline, 0 low-signal findings;
+- prose review: same summary as baseline, no operator-attention items;
+- writer-context packet includes `sceneTurnId` in current responsibilities.
+
+Conclusion: `thread-context-v1` was safe in this one-scene-call chapter sample,
+but it did not visibly beat baseline under the current automated judges. Treat
+it as still diagnostic/default-off until there is a larger paired sample or
+operator preference evidence.
