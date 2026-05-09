@@ -111,6 +111,8 @@ interface AggregateFindingLike {
   evidence?: unknown
 }
 
+type CandidateAction = "field_replace" | "beat_requirement_remove"
+
 export function buildPlanReadinessDraftsFromAggregate(
   args: BuildReadinessDraftsArgs,
 ): BuildReadinessDraftsResult {
@@ -138,6 +140,9 @@ export function buildPlanReadinessDraftsFromAggregate(
       : "diagnostic_excerpt"
     const preserveIds = normalizePreserveIds(
       (asRecord(group.rewritePacket)?.preserveIds ?? group.sourceIds),
+    )
+    const proposalCandidate = normalizeProposalCandidate(
+      asRecord(asRecord(group.rewritePacket)?.proposalCandidate),
     )
     const findings = Array.isArray(group.findings) ? group.findings as AggregateFindingLike[] : []
     if (findings.length === 0) {
@@ -196,6 +201,7 @@ export function buildPlanReadinessDraftsFromAggregate(
           sceneId: stringValue(group.sceneId),
           promptMode: stringValue(finding.promptMode),
           sourceHashKind,
+          ...(proposalCandidate ? { proposalCandidate } : {}),
         },
       })
     }
@@ -236,6 +242,41 @@ function extractTarget(group: AggregateGroupLike): PlanReadinessTarget | null {
   const ref = stringValue(rawTarget?.ref)
   if ((kind !== "chapter_outline" && kind !== "scene_plan" && kind !== "beat_plan") || !ref) return null
   const fieldPath = stringValue(rawTarget?.fieldPath)
+  return {
+    kind,
+    ref,
+    ...(fieldPath ? { fieldPath } : {}),
+  }
+}
+
+function normalizeProposalCandidate(raw: Record<string, unknown> | null): Record<string, unknown> | null {
+  if (!raw) return null
+  const action = normalizeCandidateAction(raw.action)
+  const target = normalizeCandidateTarget(asRecord(raw.target))
+  const out: Record<string, unknown> = {
+    ...(action ? { action } : {}),
+    ...(target ? { target } : {}),
+  }
+  if (hasOwn(raw, "proposedValue")) out.proposedValue = raw.proposedValue
+  if (hasOwn(raw, "requiresProposedValue")) out.requiresProposedValue = Boolean(raw.requiresProposedValue)
+  if (hasOwn(raw, "safeToAutoApply")) out.safeToAutoApply = Boolean(raw.safeToAutoApply)
+  const proposedValueStatus = stringValue(raw.proposedValueStatus)
+  if (proposedValueStatus) out.proposedValueStatus = proposedValueStatus
+  const sourceAgent = stringValue(raw.sourceAgent)
+  if (sourceAgent) out.sourceAgent = sourceAgent
+  return Object.keys(out).length > 0 ? out : null
+}
+
+function normalizeCandidateAction(value: unknown): CandidateAction | null {
+  return value === "field_replace" || value === "beat_requirement_remove" ? value : null
+}
+
+function normalizeCandidateTarget(raw: Record<string, unknown> | null): PlanReadinessTarget | null {
+  if (!raw) return null
+  const kind = stringValue(raw.kind)
+  const ref = stringValue(raw.ref)
+  if ((kind !== "chapter_outline" && kind !== "scene_plan" && kind !== "beat_plan") || !ref) return null
+  const fieldPath = stringValue(raw.fieldPath)
   return {
     kind,
     ref,
@@ -297,4 +338,8 @@ function stringValue(value: unknown): string {
 
 function unique(values: string[]): string[] {
   return [...new Set(values)]
+}
+
+function hasOwn(value: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key)
 }

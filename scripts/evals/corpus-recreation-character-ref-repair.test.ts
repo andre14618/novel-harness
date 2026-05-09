@@ -83,6 +83,7 @@ describe("corpus-recreation-character-ref-repair", () => {
       })
       expect(affectedCandidate?.proposalCandidate).toMatchObject({
         action: "field_replace",
+        proposedValue: ["char-tovin"],
         requiresProposedValue: false,
         proposedValueStatus: "deterministic_candidate_available",
         safeToAutoApply: false,
@@ -138,6 +139,15 @@ describe("corpus-recreation-character-ref-repair", () => {
       ])
       expect(readiness.drafts[0]!.diagnosticLabel).toBe("CHARACTERREF-1")
       expect(readiness.drafts[0]!.fixIntent).toBe("close_character_context_refs")
+      expect(readiness.drafts[0]!.metadata.proposalCandidate).toMatchObject({
+        action: "field_replace",
+        proposedValue: ["char-tovin"],
+        target: {
+          kind: "scene_plan",
+          ref: "analog-ch01-sc01",
+          fieldPath: "affectedCharacterIds",
+        },
+      })
 
       const rendered = renderCharacterRefRepairReport(report)
       expect(rendered).toContain("Character Ref Repair Candidates")

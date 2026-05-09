@@ -549,6 +549,7 @@ async function handleResolvePlanningProposal(
             previousValue: targetState.previousValue,
             proposedValue: payloadToApply.proposedValue,
             resolutionStatus: body.status,
+            ...readinessLineageMetadata(envelope.evidence),
             ...applied.metadata,
           },
         },
@@ -1201,6 +1202,14 @@ function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
 }
 
+function stringValue(value: unknown): string {
+  return typeof value === "string" ? value : value == null ? "" : String(value)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+}
+
 function reorderListKey(value: unknown): ObligationListKey | null {
   return readObligationReorder(value)?.listKey ?? null
 }
@@ -1700,6 +1709,30 @@ function affectedRefsFromImpactPreview(
     ...(impact.location !== undefined ? { location: impact.location } : {}),
     ...(impact.metadata !== undefined ? { metadata: impact.metadata } : {}),
   }))
+}
+
+function readinessLineageMetadata(evidence: readonly ProposalEvidence[]): Record<string, unknown> {
+  for (const item of evidence) {
+    if (item.kind !== "structured" || !item.ref?.startsWith("plan_readiness_items:")) continue
+    try {
+      const parsed = JSON.parse(item.text)
+      if (!isRecord(parsed)) continue
+      const metadata: Record<string, unknown> = {
+        readinessItemId: stringValue(parsed.readinessItemId),
+        readinessDiagnosticLabel: stringValue(parsed.diagnosticLabel),
+        readinessFixIntent: stringValue(parsed.fixIntent),
+      }
+      if (isRecord(parsed.preserveIds)) metadata.readinessPreserveIds = parsed.preserveIds
+      if (isRecord(parsed.evidence)) metadata.readinessEvidence = parsed.evidence
+      return Object.fromEntries(Object.entries(metadata).filter(([, value]) => {
+        if (typeof value === "string") return value.length > 0
+        return value !== undefined && value !== null
+      }))
+    } catch {
+      return {}
+    }
+  }
+  return {}
 }
 
 function planningLineageId(

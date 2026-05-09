@@ -48,11 +48,14 @@ const dispositionBodySchema = z
   })
 
 const createPlanningProposalBodySchema = z.object({
-  action: z.enum(["field_replace", "beat_requirement_remove"]).optional().default("field_replace"),
+  action: z.enum(["field_replace", "beat_requirement_remove"]).optional(),
   proposedValue: z.unknown().optional(),
+  useCandidate: z.boolean().optional().default(false),
   operatorNote: z.string().nullable().optional(),
   rationale: z.string().optional(),
 })
+
+type ReadinessProposalAction = "field_replace" | "beat_requirement_remove"
 
 export async function handlePlanReadinessRoute(
   req: Request,
@@ -242,7 +245,11 @@ async function handleCreatePlanningProposalFromReadiness(
   let body: z.infer<typeof createPlanningProposalBodySchema>
   try {
     const raw = await req.json()
-    if (!hasOwn(raw, "proposedValue")) {
+    const useCandidateRequested = raw !== null &&
+      typeof raw === "object" &&
+      !Array.isArray(raw) &&
+      (raw as { useCandidate?: unknown }).useCandidate === true
+    if (!hasOwn(raw, "proposedValue") && !useCandidateRequested) {
       return Response.json(
         {
           ok: false,
@@ -283,8 +290,39 @@ async function handleCreatePlanningProposalFromReadiness(
         { status: 409 },
       )
     }
+    const candidate = readinessProposalCandidate(item)
+    const effectiveAction = body.action ?? candidate?.action ?? "field_replace"
+    const effectiveProposedValue = hasOwn(body, "proposedValue")
+      ? body.proposedValue
+      : body.useCandidate && candidate && hasOwn(candidate, "proposedValue")
+        ? candidate.proposedValue
+        : undefined
+    if (effectiveProposedValue === undefined) {
+      return Response.json(
+        {
+          ok: false,
+          error: "proposedValue is required to create a planning proposal from readiness review",
+          readinessItemId: item.id,
+          candidateAvailable: Boolean(candidate),
+        },
+        { status: 400 },
+      )
+    }
+    if (body.useCandidate && candidate?.target && !sameReadinessTarget(candidate.target, item.target)) {
+      return Response.json(
+        {
+          ok: false,
+          error: "readiness proposal candidate target does not match item target",
+          readinessItemId: item.id,
+          target: item.target,
+          candidateTarget: candidate.target,
+        },
+        { status: 409 },
+      )
+    }
+
     if (
-      body.action === "beat_requirement_remove" &&
+      effectiveAction === "beat_requirement_remove" &&
       item.target.kind !== "beat_plan" &&
       item.target.kind !== "scene_plan"
     ) {
@@ -327,13 +365,13 @@ async function handleCreatePlanningProposalFromReadiness(
     }
 
     const createUrl = new URL(`http://localhost/api/novel/${encodeURIComponent(novelId)}/planning-proposals`)
-    const proposalTarget = body.action === "beat_requirement_remove"
+    const proposalTarget = effectiveAction === "beat_requirement_remove"
       ? { kind: item.target.kind as "scene_plan" | "beat_plan", ref: item.target.ref, fieldPath: "requirements" as const }
       : item.target
     const planningBody = {
-      action: body.action,
+      action: effectiveAction,
       target: proposalTarget,
-      proposedValue: body.proposedValue,
+      proposedValue: effectiveProposedValue,
       rationale: body.rationale ?? readinessProposalRationale(item, body.operatorNote ?? null),
       source: {
         agent: "plan-readiness-review",
@@ -476,6 +514,48 @@ function readinessProposalEvidence(item: PlanReadinessItem, operatorNote: string
       }),
     },
   ]
+}
+
+function readinessProposalCandidate(item: PlanReadinessItem): {
+  action?: ReadinessProposalAction
+  target?: { kind: PlanReadinessTargetKind; ref: string; fieldPath?: string }
+  proposedValue?: unknown
+} | null {
+  const raw = item.metadata.proposalCandidate
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null
+  const record = raw as Record<string, unknown>
+  const action = record.action === "field_replace" || record.action === "beat_requirement_remove"
+    ? record.action
+    : undefined
+  const target = normalizeCandidateTarget(record.target)
+  return {
+    ...(action ? { action } : {}),
+    ...(target ? { target } : {}),
+    ...(hasOwn(record, "proposedValue") ? { proposedValue: record.proposedValue } : {}),
+  }
+}
+
+function normalizeCandidateTarget(raw: unknown): { kind: PlanReadinessTargetKind; ref: string; fieldPath?: string } | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined
+  const record = raw as Record<string, unknown>
+  const kind = record.kind
+  const ref = record.ref
+  const fieldPath = record.fieldPath
+  if ((kind !== "chapter_outline" && kind !== "scene_plan" && kind !== "beat_plan") || typeof ref !== "string" || !ref) {
+    return undefined
+  }
+  return {
+    kind,
+    ref,
+    ...(typeof fieldPath === "string" && fieldPath.length > 0 ? { fieldPath } : {}),
+  }
+}
+
+function sameReadinessTarget(
+  a: { kind: PlanReadinessTargetKind; ref: string; fieldPath?: string },
+  b: { kind: PlanReadinessTargetKind; ref: string; fieldPath?: string },
+): boolean {
+  return a.kind === b.kind && a.ref === b.ref && (a.fieldPath ?? "") === (b.fieldPath ?? "")
 }
 
 function hasOwn(value: unknown, key: string): boolean {

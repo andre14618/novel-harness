@@ -6,7 +6,10 @@ import { getChapterOutline, saveChapterOutline } from "../db/outlines"
 import { dbReachable } from "../db/test-helpers"
 import { deletePlanReadinessItemsForNovel } from "../db/plan-readiness"
 import { deleteEnvelopesForNovel, listPlanningEditEnvelopes } from "../db/proposal-envelopes"
-import { deletePlanningMutationLineageForNovel } from "../db/planning-mutation-lineage"
+import {
+  deletePlanningMutationLineageForNovel,
+  findPlanningMutationLineageByProposal,
+} from "../db/planning-mutation-lineage"
 import { handlePlanReadinessRoute } from "./plan-readiness-routes"
 import { handlePlanningProposalRoute } from "./planning-proposal-routes"
 import type { ChapterOutline, SceneBeat } from "../types"
@@ -235,12 +238,16 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
       ref: "beat-route-1",
       fieldPath: "requiredCharacterIds",
     })
+    expect(imported.body.items[0].metadata.proposalCandidate).toMatchObject({
+      action: "field_replace",
+      proposedValue: ["char-istra", "char-vey", "char-kael"],
+    })
 
     const created = await expectJson(await invoke(
       "POST",
       `/api/novel/${novelId}/plan-readiness/${itemId}/create-planning-proposal`,
       {
-        proposedValue: ["char-istra", "char-vey", "char-kael"],
+        useCandidate: true,
         operatorNote: "Add the local character ref before drafting.",
       },
     ))
@@ -267,6 +274,14 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
       "char-vey",
       "char-kael",
     ])
+    const lineage = await findPlanningMutationLineageByProposal(created.body.proposal.envelope.id)
+    expect(lineage?.metadata.readinessPreserveIds).toMatchObject({
+      characterIds: ["char-istra", "char-vey", "char-kael"],
+      sceneTurnIds: ["turn-route-choice"],
+      threadIds: ["thread-route"],
+      promiseIds: ["debt-route"],
+      payoffIds: ["payoff-route"],
+    })
   })
 
   test("does not create a proposal when the readiness target is stale", async () => {
@@ -488,6 +503,11 @@ function characterRefAggregate(fieldPath: "requiredCharacterIds" | "affectedChar
               ref: "beat-route-1",
               fieldPath,
             },
+            proposedValue: ["char-istra", "char-vey", "char-kael"],
+            requiresProposedValue: false,
+            proposedValueStatus: "deterministic_candidate_available",
+            safeToAutoApply: false,
+            sourceAgent: "route-test",
           },
         },
         findings: [

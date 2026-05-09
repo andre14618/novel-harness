@@ -69,6 +69,7 @@ interface CharacterRefRepairCandidate {
       ref: string
       fieldPath: RepairFieldPath
     }
+    proposedValue: string[]
     requiresProposedValue: false
     proposedValueStatus: "deterministic_candidate_available"
     safeToAutoApply: false
@@ -266,10 +267,11 @@ export function buildCharacterRefRepairReport(
         proposalCandidate: {
           action: "field_replace",
           target: {
-          kind: "scene_plan",
+            kind: "scene_plan",
             ref: repair.sceneId,
             fieldPath: repair.fieldPath,
           },
+          proposedValue,
           requiresProposedValue: false,
           proposedValueStatus: "deterministic_candidate_available",
           safeToAutoApply: false,
