@@ -339,3 +339,50 @@ applicability boundaries. Next useful improvement is not another hard
 structure metric; it is either operator review of the generated chapter or a
 small exact-ID multi-chapter sample to see whether weak planned consequences
 predict prose weakness at larger N.
+
+## Exact-ID Multi-Chapter Sample
+
+Ran exact-ID scene-call plan/write plus exact-ID semantic review for chapters
+2, 5, and 8, then added a local deterministic aggregate helper:
+
+```bash
+bun run diagnostics:corpus-recreation-aggregate -- \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch1-flash-exact-id-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch2-flash-exact-id-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch5-flash-exact-id-scene-calls-r1 \
+  --poc-dir output/corpus-recreation-poc/crystal_shard-ch8-flash-exact-id-scene-calls-r1 \
+  --output output/corpus-recreation-poc/exact-id-scene-calls-aggregate-r1.md \
+  --json output/corpus-recreation-poc/exact-id-scene-calls-aggregate-r1.json
+```
+
+Aggregate:
+
+| Chapter | Shape | Words | Contract | Semantic |
+| --- | --- | --- | --- | --- |
+| 1 | 4/4 scenes | 1571/1832 (0.86) | choices/IDs 4/4, consequences 2/4 | 12 tasks, 0 low, 4 skips |
+| 2 | 4/4 scenes | 2584/3353 (0.77) | choices/IDs/consequences 4/4 | 13 tasks, 3 low, 3 skips |
+| 5 | 1/1 scene | 1974/2255 (0.88) | choices/IDs/consequences 1/1 | 4 tasks, 0 low |
+| 8 | 7/7 scenes | 3159/3621 (0.87) | choices/IDs/consequences 7/7 | 22 tasks, 0 low, 6 skips |
+
+Chapter 2 low findings:
+
+- scene 1 world-fact pressure: the world fact was present but did not actively
+  constrain choice or alter the outcome;
+- scene 2 relationship delta: interaction did not concretely change trust,
+  obligation, or relationship state;
+- scene 3 world-fact pressure: the key did not actively constrain options,
+  create cost, or change outcome.
+
+Findings:
+
+- exact-ID planning shape is stable across sampled chapter shapes, including a
+  one-scene long chapter and a seven-scene chapter;
+- prose shape is consistently under target but above deterministic minimums,
+  suggesting scene-call retries are adequate for diagnostics but not enough to
+  declare production word-control solved;
+- weak deterministic consequence wording did not reliably predict semantic
+  low-signal findings at this small N: chapter 1 had consequence warnings but
+  no semantic lows; chapter 2 had a clean deterministic contract but three
+  semantic lows;
+- therefore the next planner-quality lever should be semantic plan-readiness
+  review of obligation materiality, not more deterministic structure scoring.

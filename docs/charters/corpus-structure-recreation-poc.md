@@ -243,3 +243,20 @@ Purpose:
 
 This diagnostic must not auto-rewrite, block, or promote a methodology by
 itself. Promotion still requires operator review plus downstream prose evidence.
+
+## Aggregate Diagnostic
+
+When multiple local POC runs exist, aggregate them instead of hand-reading each
+report:
+
+```bash
+bun run diagnostics:corpus-recreation-aggregate -- \
+  --poc-dir output/corpus-recreation-poc/<run-a> \
+  --poc-dir output/corpus-recreation-poc/<run-b> \
+  --output output/corpus-recreation-poc/<aggregate>.md \
+  --json output/corpus-recreation-poc/<aggregate>.json
+```
+
+The aggregate joins deterministic plan/prose checks with semantic review
+summaries. Use it to decide what needs operator review or another controlled
+sample. Do not treat it as production promotion proof.
