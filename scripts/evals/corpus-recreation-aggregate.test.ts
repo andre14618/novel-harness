@@ -61,6 +61,13 @@ describe("corpus-recreation-aggregate", () => {
           },
         ],
       })
+      writeJson(join(pocDir, "prose-quality-live/prose-review.json"), {
+        resultCount: 4,
+        summaries: [
+          { dimension: "dramatization", count: 2, meanOrdinal: 2, lowCount: 0, reviewCount: 0, labelCounts: { "DRAMA-2": 2 } },
+          { dimension: "commercialPacing", count: 2, meanOrdinal: 1.5, lowCount: 1, reviewCount: 1, labelCounts: { "PACE-1": 1, "PACE-2": 1 } },
+        ],
+      })
 
       const aggregate = buildCorpusRecreationAggregate([pocDir], "2026-05-09T00:00:00.000Z")
       expect(aggregate.rows[0]).toMatchObject({
@@ -81,6 +88,9 @@ describe("corpus-recreation-aggregate", () => {
         semanticTaskCount: 4,
         semanticSkipCount: 1,
         semanticLowCount: 1,
+        proseTaskCount: 4,
+        proseLowCount: 1,
+        proseReviewCount: 1,
       })
 
       const rendered = renderCorpusRecreationAggregate(aggregate)
@@ -89,6 +99,7 @@ describe("corpus-recreation-aggregate", () => {
       expect(rendered).toContain("Warnings")
       expect(rendered).toContain("scene-floor 1")
       expect(rendered).toContain("4 tasks; low 1; skips 1")
+      expect(rendered).toContain("4 tasks; low 1; review 1; drama 2.00, pace 1.50")
       expect(rendered).toContain("scene-b worldFactPressure WFACT-1: world fact must change the outcome")
     } finally {
       rmSync(root, { recursive: true, force: true })

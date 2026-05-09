@@ -3,8 +3,8 @@
  * Aggregate corpus recreation POC artifacts.
  *
  * Diagnostic-only. Reads ignored local output dirs and joins deterministic
- * plan/prose checks with scene semantic review summaries. It does not call an
- * LLM, mutate plans, or promote runtime behavior.
+ * plan/prose checks with scene semantic/prose review summaries. It does not
+ * call an LLM, mutate plans, or promote runtime behavior.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
@@ -29,6 +29,7 @@ interface DimensionSummary {
   count: number
   meanOrdinal: number
   lowCount: number
+  reviewCount: number
   labelCounts: Record<string, number>
 }
 
@@ -69,6 +70,10 @@ export interface CorpusRecreationAggregateRow {
   semanticLowCount: number
   semanticSummaries: DimensionSummary[]
   lowFindings: LowFinding[]
+  proseTaskCount: number
+  proseLowCount: number
+  proseReviewCount: number
+  proseSummaries: DimensionSummary[]
 }
 
 export interface CorpusRecreationAggregateReport {
@@ -97,8 +102,8 @@ export function renderCorpusRecreationAggregate(report: CorpusRecreationAggregat
   lines.push(`Generated: ${report.generatedAt}`)
   lines.push(`Rows: ${report.rowCount}`)
   lines.push("")
-  lines.push("| Chapter | Variant | Scenes | Words | Contract | Issues | Warnings | Semantic |")
-  lines.push("| --- | --- | ---: | ---: | --- | --- | --- | --- |")
+  lines.push("| Chapter | Variant | Scenes | Words | Contract | Issues | Warnings | Semantic | Prose |")
+  lines.push("| --- | --- | ---: | ---: | --- | --- | --- | --- | --- |")
   for (const row of report.rows) {
     lines.push([
       `| ${escapeCell(row.chapterLabel || "?")}`,
@@ -111,7 +116,8 @@ export function renderCorpusRecreationAggregate(report: CorpusRecreationAggregat
       escapeCell(formatContract(row)),
       escapeCell(formatIssues(row)),
       escapeCell(formatWarnings(row)),
-      `${escapeCell(formatSemantic(row))} |`,
+      escapeCell(formatSemantic(row)),
+      `${escapeCell(formatProse(row))} |`,
     ].join(" | "))
   }
 
@@ -142,6 +148,7 @@ export function renderCorpusRecreationAggregate(report: CorpusRecreationAggregat
   lines.push("")
   lines.push("- Deterministic contract/prose rows show structure, IDs, consequences, word shape, and source-boundary checks.")
   lines.push("- Semantic rows show diagnostic judge output for applicable exact-ID dimensions.")
+  lines.push("- Prose rows show advisory prose-quality triage and operator-attention counts.")
   lines.push("- This aggregate is evidence for operator review and cohort design; it is not production promotion proof.")
 
   return `${lines.join("\n")}\n`
@@ -156,9 +163,11 @@ function readPocRow(pocDir: string): CorpusRecreationAggregateRow {
     `${resolved}/semantic-review/semantic-review.json`,
     `${resolved}/semantic-review-live/semantic-review.json`,
   ]) ?? {}
+  const prose = readOptionalJson(`${resolved}/prose-quality-live/prose-review.json`) ?? {}
   const source = packet.sourceReference ?? {}
   const sceneContract = planComparison.sceneContract ?? {}
   const semanticSummaries = Array.isArray(semantic.summaries) ? semantic.summaries.map(normalizeSummary) : []
+  const proseSummaries = Array.isArray(prose.summaries) ? prose.summaries.map(normalizeSummary) : []
   const lowFindings = Array.isArray(semantic.results)
     ? semantic.results
       .filter((result: any) => Number(result.ordinal ?? 0) <= 1)
@@ -204,6 +213,10 @@ function readPocRow(pocDir: string): CorpusRecreationAggregateRow {
     semanticLowCount: semanticSummaries.reduce((sum, summary) => sum + summary.lowCount, 0),
     semanticSummaries,
     lowFindings,
+    proseTaskCount: numberOrZero(prose.resultCount),
+    proseLowCount: proseSummaries.reduce((sum, summary) => sum + summary.lowCount, 0),
+    proseReviewCount: proseSummaries.reduce((sum, summary) => sum + summary.reviewCount, 0),
+    proseSummaries,
   }
 }
 
@@ -269,6 +282,7 @@ function normalizeSummary(summary: any): DimensionSummary {
     count: numberOrZero(summary.count),
     meanOrdinal: numberOrZero(summary.meanOrdinal),
     lowCount: numberOrZero(summary.lowCount),
+    reviewCount: numberOrZero(summary.reviewCount),
     labelCounts: typeof summary.labelCounts === "object" && summary.labelCounts !== null ? summary.labelCounts : {},
   }
 }
@@ -322,10 +336,24 @@ function formatSemantic(row: CorpusRecreationAggregateRow): string {
   return `${row.semanticTaskCount} tasks${low}${skips}${means ? `; ${means}` : ""}`
 }
 
+function formatProse(row: CorpusRecreationAggregateRow): string {
+  if (!row.proseTaskCount) return "not run"
+  const means = row.proseSummaries
+    .map(summary => `${abbr(summary.dimension)} ${summary.meanOrdinal.toFixed(2)}`)
+    .join(", ")
+  const low = row.proseLowCount ? `; low ${row.proseLowCount}` : ""
+  const review = row.proseReviewCount ? `; review ${row.proseReviewCount}` : ""
+  return `${row.proseTaskCount} tasks${low}${review}${means ? `; ${means}` : ""}`
+}
+
 function abbr(dimension: string): string {
   const map: Record<string, string> = {
+    commercialPacing: "pace",
+    dramatization: "drama",
     sceneDramaturgy: "scene",
     motivationSpecificity: "motive",
+    payoffPropulsion: "payoff",
+    povVoice: "voice",
     worldFactPressure: "world",
     relationshipDelta: "rel",
   }
@@ -412,6 +440,7 @@ function aggregateInputRefs(pocDirs: string[]) {
       { path: `${resolved}/chapter-comparison.json`, role: "chapter-comparison" },
       { path: `${resolved}/semantic-review/semantic-review.json`, role: "semantic-review-json" },
       { path: `${resolved}/semantic-review-live/semantic-review.json`, role: "semantic-review-json" },
+      { path: `${resolved}/prose-quality-live/prose-review.json`, role: "prose-review-json" },
     ])
   })
 }

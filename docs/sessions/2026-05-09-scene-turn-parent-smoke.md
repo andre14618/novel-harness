@@ -177,6 +177,7 @@ Aggregate evidence:
 - deterministic issues: 0 in all rows;
 - semantic low findings: 1 total, only baseline chapter 1 scene 1
   `motivationSpecificity`;
+- prose operator-attention findings: 0 in all rows;
 - `thread-context-v1` did not improve word ratio, and was shorter than baseline
   in chapters 2 and 5.
 
