@@ -24,6 +24,18 @@ export const actSchema = z.object({
 export const BEAT_KINDS = ["action", "dialogue", "interiority", "description"] as const
 export type BeatKind = typeof BEAT_KINDS[number]
 
+// L095 Slice 0: optional beat-hint shape inside a scene contract. Beats
+// remain annotation/traceability granularity inside a scene under the scene
+// contract methodology (see L092). Always optional in zod; the planner only
+// emits this array when `scenePlanContractV1` is on (Slice 1).
+export const beatHintSchema = z.object({
+  kind: z.coerce.string().optional(),
+  boundarySignal: z.coerce.string().optional(),
+  gapSize: z.coerce.string().optional(),
+  purpose: z.coerce.string().optional(),
+}).passthrough()
+export type BeatHint = z.infer<typeof beatHintSchema>
+
 // Planner-Phase-2 V1a addition: structured payoff link. `fact_id` references
 // the stable id of an establishedFact declared on the chapter. `payoff_beat`
 // is the beat index (0-based within the chapter) that realizes the payoff —
@@ -67,13 +79,28 @@ export const beatObligationItemSchema = z.preprocess(
     promiseId: z.coerce.string().optional(),
     payoffId: z.coerce.string().optional(),
     payoffEventId: z.coerce.string().optional(),
-    storyDebtStage: z.enum(["open", "progress", "partial_payoff", "final_payoff", "aftermath"]).optional(),
+    // L095 Slice 0: enum widened additively from 5 to 7 values to admit the
+    // POC's `complicate` and `escalation` stages alongside the existing
+    // production set. All values remain optional; the planner only emits the
+    // new values when `scenePlanContractV1` is on (Slice 1). Existing rows
+    // round-trip unchanged.
+    storyDebtStage: z.enum([
+      "open", "progress", "complicate", "partial_payoff", "final_payoff", "aftermath", "escalation",
+    ]).optional(),
     sceneTurnId: z.coerce.string().optional(),
     structureSlotId: z.coerce.string().optional(),
     worldFactId: z.coerce.string().optional(),
     affectedCharacterIds: z.array(z.coerce.string()).optional().catch([]),
+    // L095 Slice 0: optional planner-authored declaration of how this exact
+    // source ID materially changes choice, cost, constraint, relationship
+    // state, outcome, or future pressure. Always optional in zod; required-
+    // when-flag-on logic lives in `enforceScenePlanContract`. Round-trips
+    // unchanged with legacy obligation rows.
+    materialityTest: z.coerce.string().optional(),
   }).passthrough(),
 ).catch({ text: "" })
+
+export type BeatObligationItem = z.infer<typeof beatObligationItemSchema>
 
 export const beatObligationsSchema = z.object({
   mustEstablish: z.array(beatObligationItemSchema).default([]).catch([]),
@@ -215,6 +242,30 @@ export const sceneBeatSchema = z.object({
   // field was redundant and created checker penalties the writer was
   // never instructed about. If emotional arc matters for a beat, the
   // planner should encode it in the description text.
+  //
+  // ── L095 Slice 0: optional scene-contract fields ────────────────────────
+  // Always optional in zod regardless of `scenePlanContractV1` flag state.
+  // Required-when-flag-on logic lives in `enforceScenePlanContract`, never
+  // in this schema. Legacy outlines round-trip unchanged because every
+  // field is `.optional()`. Sourced from POC `recreationScenePlanSchema`
+  // (`scripts/evals/corpus-recreation-poc.ts:195-217`); the entry in
+  // `outline.scenes[]` carries scene semantics under the v1 flag without
+  // renaming `SceneBeat`/`scenes` per L092 non-goals.
+  goal: z.coerce.string().optional(),
+  opposition: z.coerce.string().optional(),
+  turningPoint: z.coerce.string().optional(),
+  crisisChoice: z.coerce.string().optional(),
+  choiceAlternatives: z.array(z.coerce.string()).optional().catch([]),
+  outcome: z.coerce.string().optional(),
+  consequence: z.coerce.string().optional(),
+  valueIn: z.coerce.string().optional(),
+  valueOut: z.coerce.string().optional(),
+  beatHints: z.array(beatHintSchema).optional().catch([]),
+  // Optional per-entry word target. When absent, drafting falls back to the
+  // chapter-level `outline.targetWords / scenes.length` derivation. When
+  // present, Slice 2's `retry-short-scenes-v1` expansion uses it as the
+  // advisory floor source.
+  targetWords: z.number().int().nonnegative().optional(),
 })
 export type SceneBeat = z.infer<typeof sceneBeatSchema>
 

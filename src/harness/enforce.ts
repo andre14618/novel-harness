@@ -8,7 +8,8 @@
  * Principle: code owns structure, LLM owns creativity.
  */
 
-import type { CharacterProfile, ChapterOutline } from "../types"
+import type { CharacterProfile, ChapterOutline, SceneBeat } from "../types"
+import type { BeatObligationItem } from "../schemas/shared"
 import { assessBeatCountForTarget, minimumBeatCountForTarget, planningBeatCountPolicy } from "./beat-counts"
 
 // ── Planning Phase ────────────────────────────────────────────────────────
@@ -138,6 +139,154 @@ function sanitizePayoffLinks(ch: ChapterOutline, warnings: string[]): void {
 
     if (kept.length !== original.length) beat.requiredPayoffs = kept
   }
+}
+
+// ── Scene Plan Contract (L095 Slice 0) ────────────────────────────────────
+//
+// Pure structural validators ported from POC `assessSceneContract`
+// (`scripts/evals/corpus-recreation-poc.ts:748-1034`). These are presence
+// checks: they prove the planner filled the field, they cannot prove the
+// field has narrative value. Do not call this from any phase in Slice 0;
+// Slice 1 wires it into `runPlanningPhase` after `enforcePlanningOutput`.
+
+export interface ScenePlanContractEnforcementOptions {
+  /**
+   * When true, every obligation across every scene must declare a
+   * `materialityTest` of at least 8 characters. Off-flag this is skipped.
+   */
+  requireMaterialityTests?: boolean
+  /**
+   * When true, every scene must declare a `povPersonalStake` of at least 8
+   * characters. Off-flag this is skipped.
+   */
+  requirePovPersonalStake?: boolean
+}
+
+export interface ScenePlanContractEnforcement {
+  valid: boolean
+  errors: string[]
+}
+
+const PAYOFF_DEBT_STAGES = new Set(["partial_payoff", "final_payoff"])
+
+/**
+ * Validate a chapter outline against the scene plan contract. Pure function;
+ * no IO. Returns `{valid: true, errors: []}` for legacy outlines that lack
+ * the new fields entirely (every check uses optional access). Use this only
+ * after `enforcePlanningOutput` has cleared structural beat-count rules so
+ * scene-level errors are surfaced against a well-formed beat list.
+ *
+ * Reuses `BeatObligationItem` from `src/schemas/shared.ts` for typing the
+ * collected obligation list.
+ */
+export function enforceScenePlanContract(
+  ch: ChapterOutline,
+  options: ScenePlanContractEnforcementOptions = {},
+): ScenePlanContractEnforcement {
+  const errors: string[] = []
+  const requireMaterialityTests = options.requireMaterialityTests ?? false
+  const requirePovPersonalStake = options.requirePovPersonalStake ?? false
+
+  const scenes = ch.scenes ?? []
+  for (let i = 0; i < scenes.length; i++) {
+    const scene = scenes[i]
+    const sceneRef = scene.beatId ?? `ch${ch.chapterNumber}-entry-${i + 1}`
+
+    // (1) choiceAlternatives must declare at least two options.
+    const alts = scene.choiceAlternatives ?? []
+    if (alts.length < 2) {
+      errors.push(
+        `Scene ${sceneRef}: choiceAlternatives must declare at least two options (got ${alts.length})`,
+      )
+    }
+
+    // (2) povPersonalStake (when required by flag).
+    if (requirePovPersonalStake) {
+      const stake = (scene.povPersonalStake ?? "").trim()
+      if (stake.length < 8) {
+        errors.push(
+          `Scene ${sceneRef}: povPersonalStake must name the personal pressure behind crisisChoice (≥8 chars)`,
+        )
+      }
+    }
+
+    // (3) Each scene must declare at least one obligation with an exact
+    //     sourceId (matches POC `hasDeclaredObligation`/`hasKnownSourceIds`
+    //     intent at the structural level — known-source resolution against a
+    //     registry stays in existing harness validators).
+    const allObligations = collectSceneObligations(scene)
+    const sourcedObligations = allObligations.filter(o => {
+      const sid = (o.sourceId ?? "").trim()
+      return sid.length > 0
+    })
+    if (sourcedObligations.length === 0) {
+      errors.push(
+        `Scene ${sceneRef}: must declare at least one obligation with an exact sourceId`,
+      )
+    }
+
+    // (4) Observable consequence: when both fields are present, the
+    //     consequence must not simply restate the outcome.
+    const outcome = (scene.outcome ?? "").trim()
+    const consequence = (scene.consequence ?? "").trim()
+    if (outcome.length > 0 && consequence.length > 0 && outcome === consequence) {
+      errors.push(
+        `Scene ${sceneRef}: consequence must differ from outcome (consequence is the observable downstream effect, not a restatement)`,
+      )
+    }
+
+    // (5) materialityTest on every obligation (when required by flag).
+    if (requireMaterialityTests) {
+      for (const o of allObligations) {
+        const mt = (o.materialityTest ?? "").trim()
+        if (mt.length < 8) {
+          errors.push(
+            `Scene ${sceneRef} obligation ${o.obligationId ?? "(no id)"}: materialityTest must declare how the source ID changes choice/cost/relationship/outcome (≥8 chars)`,
+          )
+        }
+      }
+    }
+
+    // (6) Payoff-stage / payoffEventId / payoffId consistency. Mirrors POC
+    //     `corpus-recreation-poc.ts:945-1002`. Always enforced when any
+    //     payoff-shaped fields are present, regardless of flag.
+    for (const o of allObligations) {
+      const stage = o.storyDebtStage
+      const hasPayoffRef = Boolean((o.payoffId ?? "").trim())
+      const hasPayoffEventId = Boolean((o.payoffEventId ?? "").trim())
+      if (stage && !PAYOFF_DEBT_STAGES.has(stage) && hasPayoffRef) {
+        errors.push(
+          `Scene ${sceneRef} obligation ${o.obligationId ?? "(no id)"}: non-payoff storyDebtStage "${stage}" carries payoffId (only partial_payoff/final_payoff stages should)`,
+        )
+      }
+      if (stage && PAYOFF_DEBT_STAGES.has(stage) && !hasPayoffEventId) {
+        errors.push(
+          `Scene ${sceneRef} obligation ${o.obligationId ?? "(no id)"}: payoff stage "${stage}" missing payoffEventId (each concrete payoff event must have a unique child id)`,
+        )
+      }
+      if (hasPayoffEventId && !hasPayoffRef) {
+        errors.push(
+          `Scene ${sceneRef} obligation ${o.obligationId ?? "(no id)"}: payoffEventId set without parent payoffId`,
+        )
+      }
+    }
+  }
+
+  return { valid: errors.length === 0, errors }
+}
+
+function collectSceneObligations(scene: SceneBeat): BeatObligationItem[] {
+  const list: BeatObligationItem[] = []
+  const o = scene.obligations
+  if (!o) return list
+  const keys = [
+    "mustEstablish", "mustPayOff", "mustTransferKnowledge", "mustShowStateChange", "mustNotReveal",
+  ] as const
+  for (const key of keys) {
+    const items = o[key] as BeatObligationItem[] | undefined
+    if (items && items.length > 0) list.push(...items)
+  }
+  return list
 }
 
 /**

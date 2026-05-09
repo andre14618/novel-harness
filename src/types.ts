@@ -31,6 +31,12 @@ export interface SeedInput {
     writerContextMode?: import("./agents/writer/context-mode").WriterContextMode
     planningMaxBeatsPerChapter?: number | null
     nativePlanningContractV1?: boolean
+    /**
+     * L095 Slice 0: scene-contract substrate flag. Default-off in Slice 0.
+     * Slice 1 wires the `causal-motivation-v3` planner prompt and
+     * `enforceScenePlanContract` under this flag.
+     */
+    scenePlanContractV1?: boolean
   }
 }
 

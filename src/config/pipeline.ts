@@ -70,6 +70,13 @@ export const pipeline = {
   // legacy comparisons or rollback.
   nativePlanningContractV1: true,
 
+  // L095 Slice 0: scene-contract substrate flag. Default off — Slice 0 only
+  // adds optional schema fields, the `enforceScenePlanContract` helper, and
+  // this resolver. No prompt or behavior change. Slice 1 wires the
+  // `causal-motivation-v3` prompt and enforcement under this flag; later
+  // slices flip the default to true after evidence gates clear.
+  scenePlanContractV1: false,
+
   // State management
   embeddings: false,          // skip embedding step (beat path uses deterministic DB lookups)
 
@@ -101,4 +108,10 @@ export function resolveNativePlanningContractV1(
   overrides: { nativePlanningContractV1?: boolean } | undefined,
 ): boolean {
   return overrides?.nativePlanningContractV1 ?? pipeline.nativePlanningContractV1
+}
+
+export function resolveScenePlanContractV1(
+  overrides: { scenePlanContractV1?: boolean } | undefined,
+): boolean {
+  return overrides?.scenePlanContractV1 ?? pipeline.scenePlanContractV1
 }
