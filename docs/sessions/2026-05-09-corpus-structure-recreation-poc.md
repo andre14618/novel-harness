@@ -1009,3 +1009,29 @@ than merely shortening prose; writer expansion carries the length repair. This
 is still not a production-default change: the next proof should test a fresh
 multi-chapter run or a full short-story/chapter sequence where downstream
 payoffs can land across chapter boundaries.
+
+## Sequence Audit
+
+Added `diagnostics:corpus-recreation-sequence-audit`, a deterministic
+cross-chapter audit for POC dirs. It flags sequence-level ID patterns that
+per-chapter plan/thread checks cannot see.
+
+Evidence:
+
+- `output/corpus-recreation-poc/causal-v2-contract-expansion-4ch-sequence-audit-r1.md`
+
+Result on the four combined chapters:
+
+- 37 thread/promise/payoff movements;
+- 4 advisory sequence findings;
+- `payoff-key-cost-exposure` was reused as a resolved payoff in chapters 1, 2,
+  5, and 8;
+- `payoff-oathmark-public-confession` was reused as a resolved payoff in
+  chapters 2, 5, and 8;
+- `debt-key-cost` had progress rows after first payoff;
+- `debt-oathmark` had progress rows after first payoff.
+
+Interpretation: the per-chapter combined arm is not enough to prove sequence
+coherence. The planner needs a sequence-owned story-debt model where a parent
+thread/promise can have child progress/payoff IDs, or later rows are marked as
+aftermath/escalation rather than reusing the same final payoff ID.

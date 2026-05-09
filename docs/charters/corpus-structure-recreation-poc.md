@@ -168,6 +168,32 @@ Outputs:
 Promotion requires operator review. A single imitative chapter is a baseline,
 not proof that runtime planning or writing should change.
 
+## Sequence Proof Boundary
+
+Per-chapter plan/write success does not prove cross-chapter coherence. Before
+promotion, run a sequence audit over the planned/drafted chapter set and check:
+
+- parent story-debt IDs are not reused as separate final payoff events;
+- distinct payoff moments have child payoff IDs linked to the parent debt;
+- later progress after a payoff is explicitly marked as aftermath,
+  escalation, or a new child debt;
+- thread IDs remain stable across chapters without pretending every local
+  chapter payoff is the whole-sequence resolution.
+
+Current command shape:
+
+```bash
+bun run diagnostics:corpus-recreation-sequence-audit -- \
+  --poc-dir output/corpus-recreation-poc/<chapter-1-dir> \
+  --poc-dir output/corpus-recreation-poc/<chapter-2-dir> \
+  --output output/corpus-recreation-poc/<sequence-audit>.md \
+  --json output/corpus-recreation-poc/<sequence-audit>.json
+```
+
+This audit is deterministic and advisory. Findings should inform the next
+planner contract or Plan Readiness pass; they should not become drafting
+blockers by themselves.
+
 ## First POC Evidence
 
 The first passing local run used scene-level writer calls rather than one
