@@ -257,3 +257,32 @@ Follow-up scan found the same risk in two eval surfaces and corrected them:
   judging because a relationship-keyword regex did not fire.
 - method-pack deterministic diagnostics now state that a structural lift only
   advances to semantic review; it is not production promotion evidence.
+
+## Exact-ID Planner Smoke
+
+After the correction, reran the planner-only chapter-1 POC with no prose
+generation:
+
+```bash
+bun run diagnostics:corpus-recreation-poc -- --live \
+  --reference output/corpus-structure-reference/crystal_shard-with-summaries/reference.json \
+  --chapter 1 \
+  --model deepseek-v4-flash \
+  --output-dir output/corpus-recreation-poc/crystal_shard-ch1-flash-exact-id-r1
+```
+
+Result:
+
+- plan fit: 4/4 scenes, 4/4 polarity sequence, 4/4 MICE/thread sequence,
+  19/19 beat-hint shape;
+- contract fit: 4/4 scenes had explicit `choiceAlternatives`, declared
+  obligations, known obligation `sourceId`s, and observable consequences;
+- issues: none in deterministic structure/contract comparison;
+- cost shape: one DeepSeek V4 Flash planner call, 3795 input tokens and 2809
+  output tokens.
+
+Interpretation: the exact-ID schema is viable for planner output. This does not
+prove prose quality or semantic value. The next useful evidence step is to run
+the same exact-ID artifact through scene-call writing plus scene semantic
+review, then compare whether the declared choices and obligations actually
+matter in prose.
