@@ -150,7 +150,7 @@ export function renderCorpusRecreationAggregate(report: CorpusRecreationAggregat
   lines.push("## Interpretation Boundary")
   lines.push("")
   lines.push("- Deterministic contract/prose rows show structure, IDs, consequences, word shape, and source-boundary checks.")
-  lines.push("- Character-context rows show whether named characters are linked to required/source refs before writer-context experiments.")
+  lines.push("- Character-context rows show whether named characters are linked to required/source refs or downstream affected refs before writer-context experiments.")
   lines.push("- Semantic rows show diagnostic judge output for applicable exact-ID dimensions.")
   lines.push("- Prose rows show advisory prose-quality triage and operator-attention counts.")
   lines.push("- This aggregate is evidence for operator review and cohort design; it is not production promotion proof.")

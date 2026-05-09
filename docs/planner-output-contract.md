@@ -198,10 +198,18 @@ Candidate fields:
 - `requiredObligationIds`
 - `requiredSourceIds`
 - `requiredCharacterIds`
+- `affectedCharacterIds`
 - `requiredWorldFactIds`
 
 Evidence question: can the scene be written as one coherent dramatic unit, and
 can the checker evaluate it without relying on beat-index matching?
+
+`requiredCharacterIds` are local writer-context refs: characters physically
+present, actively opposing, speaking, or otherwise needed to draft the scene.
+`affectedCharacterIds` are downstream lineage refs: characters named only in a
+consequence or future-pressure line. They should support impact preview and
+staleness reasoning without forcing offstage character cards into the writer
+prompt.
 
 ### Obligation Contract
 

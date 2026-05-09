@@ -434,12 +434,13 @@ function renderCharacterContext(characterContext: CorpusCharacterContextReport):
     ${metric("Issues", numberOrDash(characterContext.issueCount))}
     <div class="mini-table-wrap">
       <table class="mini-table">
-        <thead><tr><th>Scene</th><th>POV</th><th>Characters</th><th>Cards</th><th>Issues</th></tr></thead>
+        <thead><tr><th>Scene</th><th>POV</th><th>Active</th><th>Affected</th><th>Cards</th><th>Issues</th></tr></thead>
         <tbody>
           ${contexts.map(context => `<tr>
             <td>${escapeHtml(context.sceneId)}</td>
             <td>${escapeHtml(context.povCharacterId ?? "none")}</td>
             <td>${escapeHtml(context.activeCharacterIds.join(", ") || "none")}</td>
+            <td>${escapeHtml((context.affectedCharacterIds ?? []).join(", ") || "none")}</td>
             <td>${escapeHtml(String(context.characterCards.length))}</td>
             <td>${escapeHtml(String(context.structuralIssues.length))}</td>
           </tr>`).join("")}

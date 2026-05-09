@@ -473,6 +473,7 @@ function characterRefGroupsFromCharacterContext(args: {
     const characterCards = Array.isArray(context.characterCards) ? context.characterCards : []
     const characterIds = unique([
       ...stringArray(context.activeCharacterIds),
+      ...stringArray(context.affectedCharacterIds),
       ...[String(context.povCharacterId ?? "")].filter(Boolean),
       ...issues.flatMap(characterIdsFromText),
       ...obligations
@@ -499,12 +500,14 @@ function characterRefGroupsFromCharacterContext(args: {
       missingForNextLevel: issues.join("; "),
       evidence: {
         characterContextIssues: issues.join(" | "),
-        ...(sourceIds.characterIds.length > 0 ? { activeCharacterIds: sourceIds.characterIds.join(", ") } : {}),
+        ...(sourceIds.characterIds.length > 0 ? { characterIds: sourceIds.characterIds.join(", ") } : {}),
+        ...(stringArray(context.activeCharacterIds).length > 0 ? { activeCharacterIds: stringArray(context.activeCharacterIds).join(", ") } : {}),
+        ...(stringArray(context.affectedCharacterIds).length > 0 ? { affectedCharacterIds: stringArray(context.affectedCharacterIds).join(", ") } : {}),
         ...(sourceIds.obligationIds.length > 0 ? { sourceObligationIds: sourceIds.obligationIds.join(", ") } : {}),
       },
     }
     const rewriteGoals = [
-      "Close character refs before drafting: add requiredCharacterIds, add a character-source obligation, or remove the implied character dependency.",
+      "Close character refs before drafting: add requiredCharacterIds for local participants, affectedCharacterIds for downstream/offstage impact, a character-source obligation for active pressure, or remove the implied character dependency.",
       ...issues,
       ...(scene?.goal ? [`Preserve scene goal: ${scene.goal}`] : []),
       ...(scene?.outcome ? [`Preserve scene outcome: ${scene.outcome}`] : []),
@@ -557,7 +560,7 @@ function isThreadRefIssue(issue: string): boolean {
 }
 
 function isCharacterRefIssue(issue: string): boolean {
-  return /povCharacterId|requiredCharacterIds|unknown character sourceId|character .* named|character .* missing|no active character refs/u
+  return /povCharacterId|requiredCharacterIds|affectedCharacterIds|unknown character sourceId|unknown requiredCharacterId|unknown affectedCharacterId|character .* named|character .* missing|no active character refs/u
     .test(issue)
 }
 
@@ -628,7 +631,7 @@ function operatorQuestionFor(group: CorpusReadinessGroup): string {
     return "Should this cross-thread pressure be split into separate obligations or rerouted to the promise/payoff thread before drafting?"
   }
   if (finding.dimension === "characterRefClosure") {
-    return "Should the planner add requiredCharacterIds, add a character-source obligation, or remove the implied character dependency before drafting?"
+    return "Should the planner add requiredCharacterIds, add affectedCharacterIds, add a character-source obligation, or remove the implied character dependency before drafting?"
   }
   return "Is this diagnostic a real planning issue, false positive, acceptable choice, or deferred concern?"
 }

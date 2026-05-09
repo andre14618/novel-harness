@@ -23,6 +23,7 @@ describe("corpus-recreation-character-context", () => {
       expect(report.contextCount).toBe(2)
       expect(report.issueCount).toBe(0)
       expect(sceneOne.activeCharacterIds).toEqual(["char-nara", "char-tovin"])
+      expect(sceneOne.affectedCharacterIds).toEqual([])
       expect(sceneOne.characterCards).toEqual(expect.arrayContaining([
         expect.objectContaining({
           characterId: "char-nara",
@@ -92,11 +93,52 @@ describe("corpus-recreation-character-context", () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
+
+  test("keeps consequence-only affected characters out of active writer cards", () => {
+    const root = mkdtempSync(join(tmpdir(), "corpus-recreation-character-context-"))
+    try {
+      const pocDir = join(root, "poc")
+      writeCharacterContextFixture(pocDir, {
+        consequenceAffectedCharacter: true,
+      })
+
+      const report = buildCorpusRecreationCharacterContext(pocDir, "2026-05-09T00:00:00.000Z")
+      const sceneOne = report.contexts[0]!
+
+      expect(report.issueCount).toBe(0)
+      expect(sceneOne.activeCharacterIds).toEqual(["char-nara"])
+      expect(sceneOne.affectedCharacterIds).toEqual(["char-tovin"])
+      expect(sceneOne.characterCards.map(card => card.characterId)).toEqual(["char-nara"])
+      expect(renderCorpusRecreationCharacterContext(report)).toContain("Affected characters: char-tovin")
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  test("treats beat-hint character names as local writer context refs", () => {
+    const root = mkdtempSync(join(tmpdir(), "corpus-recreation-character-context-"))
+    try {
+      const pocDir = join(root, "poc")
+      writeCharacterContextFixture(pocDir, {
+        beatHintOnlyCharacter: true,
+      })
+
+      const report = buildCorpusRecreationCharacterContext(pocDir, "2026-05-09T00:00:00.000Z")
+      const sceneOne = report.contexts[0]!
+
+      expect(sceneOne.activeCharacterIds).toContain("char-tovin")
+      expect(sceneOne.structuralIssues.join("\n")).toContain("character char-tovin is named in scene contract but missing requiredCharacterIds/source obligation")
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
 })
 
 function writeCharacterContextFixture(path: string, opts: {
   badObligation?: Record<string, unknown>
   omitMirelObligation?: boolean
+  consequenceAffectedCharacter?: boolean
+  beatHintOnlyCharacter?: boolean
 } = {}): void {
   writeJson(join(path, "packet.json"), {
     sourceReference: { book: "crystal_shard", chapterLabel: "1" },
@@ -138,11 +180,13 @@ function writeCharacterContextFixture(path: string, opts: {
         sceneId: "analog-sc01",
         povCharacterId: "char-nara",
         goal: "Reach the clerk before curfew.",
-        opposition: "Tovin blocks her with a writ.",
+        opposition: (opts.consequenceAffectedCharacter || opts.beatHintOnlyCharacter) ? "The clerk is about to close the office." : "Tovin blocks her with a writ.",
         crisisChoice: "Refuse him or sign.",
         outcome: "She signs.",
-        consequence: "Tovin gains leverage.",
-        requiredCharacterIds: ["char-tovin"],
+        consequence: opts.consequenceAffectedCharacter ? "Tovin can use the delay against her later." : "Tovin gains leverage.",
+        requiredCharacterIds: (opts.consequenceAffectedCharacter || opts.beatHintOnlyCharacter) ? [] : ["char-tovin"],
+        affectedCharacterIds: opts.consequenceAffectedCharacter ? ["char-tovin"] : [],
+        beatHints: opts.beatHintOnlyCharacter ? [{ purpose: "Tovin watches for her signature from the corridor." }] : [],
       },
       {
         sceneId: "analog-sc02",
@@ -155,13 +199,13 @@ function writeCharacterContextFixture(path: string, opts: {
       },
     ],
     obligations: [
-      {
+      ...((opts.consequenceAffectedCharacter || opts.beatHintOnlyCharacter) ? [] : [{
         obligationId: "obl-tovin-pressure",
         sceneId: "analog-sc01",
         sourceId: "char-tovin",
         threadId: "thread-tovin",
         requirementText: "Tovin uses the writ to force Nara's signature.",
-      },
+      }]),
       ...(opts.omitMirelObligation ? [] : [{
         obligationId: "obl-mirel-truth",
         sceneId: "analog-sc02",

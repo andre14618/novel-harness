@@ -287,20 +287,24 @@ obligation, because that character would otherwise miss a character card in a
 future context arm.
 
 Upstream contract extension: the corpus recreation planner schema now includes
-scene-level `requiredCharacterIds`, and plan comparison reports character-ref
-closure before prose generation. Exact-name detection is deliberately narrow:
-it does not treat unchosen alternatives or lower-case role/title mentions as
-scene participant refs. The purpose is not to infer character materiality; it
-is to catch durable-ID gaps when the plan itself names a supporting character
-that the future writer context would otherwise omit.
+scene-level `requiredCharacterIds` and `affectedCharacterIds`, and plan
+comparison reports character-ref closure before prose generation.
+`requiredCharacterIds` are local writer-context refs; `affectedCharacterIds`
+are downstream/offstage impact refs. Exact-name detection is deliberately
+narrow: it does not treat unchosen alternatives or lower-case role/title
+mentions as scene participant refs. The purpose is not to infer character
+materiality; it is to catch durable-ID gaps when the plan itself names a
+supporting character that future writer context or impact preview would
+otherwise omit.
 
 Readiness follow-up: those deterministic character-context structural issues
 now flow into corpus readiness as manual `CHARACTERREF-1` candidates. The
 rewrite packet preserves scene, character, obligation, thread, promise, payoff,
 and scene-turn refs and asks whether the planner should add
-`requiredCharacterIds`, add a character-source obligation, or remove the implied
-character dependency. This is a Plan Readiness review surface only; it does not
-auto-rewrite or inject character packets into the writer.
+`requiredCharacterIds`, add `affectedCharacterIds`, add a character-source
+obligation, or remove the implied character dependency. This is a Plan
+Readiness review surface only; it does not auto-rewrite or inject character
+packets into the writer.
 
 ### Lane 5 - Scene Thread Semantic Review
 

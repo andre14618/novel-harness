@@ -245,3 +245,38 @@ contract but does not fully solve character-ref closure from prompt alone. Keep
 the deterministic warning/readiness path; future planner prompt work should
 decide whether a character named only in a consequence is required local
 context, future-impact context, or just a textual mention.
+
+## Affected Character Ref Slice
+
+Implemented planner prompt/schema version `scene-turn-child-thread-v6`:
+
+- scene plans now carry both `requiredCharacterIds` and
+  `affectedCharacterIds`;
+- local character mentions must close through `requiredCharacterIds` or a
+  character-source obligation;
+- consequence-only/offstage character mentions can close through
+  `affectedCharacterIds`;
+- character-context packets preserve affected refs separately and do not turn
+  them into active writer cards.
+
+Evidence:
+
+```bash
+bun scripts/evals/corpus-recreation-poc.ts --chapter 1 --output-dir output/corpus-recreation-poc/character-ref-v6-smoke-ch1-20260509 --live --model deepseek-v4-flash
+bun scripts/evals/corpus-recreation-character-context.ts output/corpus-recreation-poc/character-ref-v6-smoke-ch1-20260509
+bun scripts/evals/corpus-recreation-readiness.ts output/corpus-recreation-poc/character-ref-v6-smoke-ch1-20260509 --output output/corpus-recreation-poc/character-ref-v6-smoke-ch1-20260509/readiness.md --json output/corpus-recreation-poc/character-ref-v6-smoke-ch1-20260509/readiness.json
+```
+
+Result:
+
+- live planner emitted valid v6 plan with `affectedCharacterIds`;
+- plan comparison: character refs closed `2/4`, with 2 issues;
+- character-context structural issues: 2;
+- readiness groups: 2 manual `CHARACTERREF-1` groups.
+
+Interpretation: the schema now supports the right distinction, but prompt-only
+compliance is not solved. In this smoke the planner used
+`affectedCharacterIds` for some future-pressure refs but missed one
+consequence-only `Tovin` ref and left one beat-hint `Mirel` mention without
+local required/source context. Keep these as Plan Readiness questions before
+drafting rather than adding writer context volume.

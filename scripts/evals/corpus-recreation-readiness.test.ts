@@ -253,6 +253,7 @@ describe("corpus-recreation-readiness", () => {
           sceneOutcome: "Kael realizes she is concealing something.",
           sceneConsequence: "Their alliance starts with leverage instead of trust.",
           activeCharacterIds: ["char-nara", "char-kael"],
+          affectedCharacterIds: ["char-tovin"],
           characterCards: [
             {
               characterId: "char-nara",
@@ -286,7 +287,7 @@ describe("corpus-recreation-readiness", () => {
         fixIntents: ["close_character_context_refs"],
         sourceIds: {
           obligationIds: ["obl-key-cost"],
-          characterIds: ["char-nara", "char-kael"],
+          characterIds: ["char-nara", "char-kael", "char-tovin"],
           sceneTurnIds: ["turn-ch01-key-cost"],
           threadIds: ["thread-key-cost", "thread-uneasy-alliance"],
           promiseIds: ["debt-key-cost"],
@@ -303,7 +304,9 @@ describe("corpus-recreation-readiness", () => {
         label: "CHARACTERREF-1",
         promptMode: "deterministic-character-context",
         evidence: {
+          characterIds: "char-nara, char-kael, char-tovin",
           activeCharacterIds: "char-nara, char-kael",
+          affectedCharacterIds: "char-tovin",
         },
       })
 
@@ -312,14 +315,15 @@ describe("corpus-recreation-readiness", () => {
         aggregate,
       })
       expect(readiness.drafts).toHaveLength(1)
-      expect(readiness.drafts[0]!.preserveIds.characterIds).toEqual(["char-nara", "char-kael"])
+      expect(readiness.drafts[0]!.preserveIds.characterIds).toEqual(["char-nara", "char-kael", "char-tovin"])
       expect(readiness.drafts[0]!.preserveIds.threadIds).toEqual(["thread-key-cost", "thread-uneasy-alliance"])
       expect(readiness.drafts[0]!.preserveIds.sceneTurnIds).toEqual(["turn-ch01-key-cost"])
 
       const rendered = renderCorpusRecreationReadinessAggregate(aggregate)
       expect(rendered).toContain("CHARACTERREF-1")
       expect(rendered).toContain("requiredCharacterIds")
-      expect(rendered).toContain("Preserve characters: char-nara, char-kael")
+      expect(rendered).toContain("affectedCharacterIds")
+      expect(rendered).toContain("Preserve characters: char-nara, char-kael, char-tovin")
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

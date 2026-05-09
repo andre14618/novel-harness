@@ -163,6 +163,7 @@ const recreationScenePlanSchema = z.object({
   structuralRole: z.string().min(8),
   povCharacterId: z.string().min(1),
   requiredCharacterIds: z.array(z.string().min(1)).default([]),
+  affectedCharacterIds: z.array(z.string().min(1)).default([]),
   locationOrArena: z.string().min(1),
   goal: z.string().min(8),
   opposition: z.string().min(8),
@@ -219,7 +220,7 @@ type RecreationPlan = z.infer<typeof recreationPlanSchema>["plan"]
 type ExampleChapter = z.infer<typeof exampleChapterSchema>
 type ExampleScene = z.infer<typeof exampleSceneSchema>
 
-const PLANNER_PROMPT_VERSION = "scene-turn-child-thread-v5"
+const PLANNER_PROMPT_VERSION = "scene-turn-child-thread-v6"
 
 export class ModelJsonParseError extends Error {
   readonly snippet: string
@@ -292,7 +293,11 @@ interface SceneContractDiagnostic {
   promiseThreadMismatchIds: string[]
   payoffThreadMismatchIds: string[]
   requiredCharacterIds: string[]
+  affectedCharacterIds: string[]
   unknownRequiredCharacterIds: string[]
+  unknownAffectedCharacterIds: string[]
+  missingLocalCharacterIds: string[]
+  missingAffectedCharacterIds: string[]
   missingNamedCharacterIds: string[]
   sceneTurnIds: string[]
   unknownSceneTurnIds: string[]
@@ -696,10 +701,17 @@ function buildSceneContractDiagnostics(
       + duplicateSceneTurnIds.length
       + scenes.reduce((sum, scene) => sum + scene.unknownSceneTurnIds.length + scene.crossSceneTurnIds.length, 0),
     characterRefClosureCount: scenes.filter(scene =>
-      scene.unknownRequiredCharacterIds.length === 0 && scene.missingNamedCharacterIds.length === 0
+      scene.unknownRequiredCharacterIds.length === 0
+      && scene.unknownAffectedCharacterIds.length === 0
+      && scene.missingLocalCharacterIds.length === 0
+      && scene.missingAffectedCharacterIds.length === 0
     ).length,
     characterRefIssueCount: scenes.reduce((sum, scene) =>
-      sum + scene.unknownRequiredCharacterIds.length + scene.missingNamedCharacterIds.length, 0
+      sum
+      + scene.unknownRequiredCharacterIds.length
+      + scene.unknownAffectedCharacterIds.length
+      + scene.missingLocalCharacterIds.length
+      + scene.missingAffectedCharacterIds.length, 0
     ),
     invalidSceneTurnSceneIds,
     duplicateSceneTurnIds,
@@ -744,13 +756,29 @@ function evaluateSceneContract(
     .filter((payoffId): payoffId is string => Boolean(payoffId))
     .filter(payoffId => !knownPayoffIds.has(payoffId))
   const requiredCharacterIds = uniqueStrings(scene.requiredCharacterIds ?? [])
+  const affectedCharacterIds = uniqueStrings(scene.affectedCharacterIds ?? [])
   const unknownRequiredCharacterIds = requiredCharacterIds.filter(characterId => !knownCharacterIds.has(characterId))
+  const unknownAffectedCharacterIds = affectedCharacterIds.filter(characterId => !knownCharacterIds.has(characterId))
   const characterSourceIds = obligations
     .map(obligation => obligation.sourceId)
     .filter(sourceId => knownCharacterIds.has(sourceId))
-  const missingNamedCharacterIds = charactersNamedInSceneContract(scene, packet)
+  const localNamedCharacterIds = charactersNamedInLocalSceneContract(scene, packet)
+  const affectedNamedCharacterIds = charactersNamedInText(scene.consequence, packet)
+    .filter(characterId => !localNamedCharacterIds.includes(characterId))
+  const missingLocalCharacterIds = localNamedCharacterIds
     .filter(characterId => characterId !== scene.povCharacterId)
     .filter(characterId => !requiredCharacterIds.includes(characterId) && !characterSourceIds.includes(characterId))
+  const missingAffectedCharacterIds = affectedNamedCharacterIds
+    .filter(characterId => characterId !== scene.povCharacterId)
+    .filter(characterId =>
+      !affectedCharacterIds.includes(characterId)
+      && !requiredCharacterIds.includes(characterId)
+      && !characterSourceIds.includes(characterId)
+    )
+  const missingNamedCharacterIds = uniqueStrings([
+    ...missingLocalCharacterIds,
+    ...missingAffectedCharacterIds,
+  ])
   const orphanPayoffIds = obligations
     .filter(obligation => obligation.payoffId)
     .filter(obligation => {
@@ -807,7 +835,9 @@ function evaluateSceneContract(
   if (unknownPromiseIds.length > 0) issues.push(`unknown promiseIds: ${unknownPromiseIds.join(", ")}`)
   if (unknownPayoffIds.length > 0) issues.push(`unknown payoffIds: ${unknownPayoffIds.join(", ")}`)
   if (unknownRequiredCharacterIds.length > 0) issues.push(`unknown requiredCharacterIds: ${unknownRequiredCharacterIds.join(", ")}`)
-  if (missingNamedCharacterIds.length > 0) issues.push(`named characters missing requiredCharacterIds/source obligation: ${missingNamedCharacterIds.join(", ")}`)
+  if (unknownAffectedCharacterIds.length > 0) issues.push(`unknown affectedCharacterIds: ${unknownAffectedCharacterIds.join(", ")}`)
+  if (missingLocalCharacterIds.length > 0) issues.push(`local named characters missing requiredCharacterIds/source obligation: ${missingLocalCharacterIds.join(", ")}`)
+  if (missingAffectedCharacterIds.length > 0) issues.push(`consequence characters missing affectedCharacterIds/requiredCharacterIds/source obligation: ${missingAffectedCharacterIds.join(", ")}`)
   if (orphanPayoffIds.length > 0) issues.push(`payoffIds do not belong to declared promiseId: ${orphanPayoffIds.join(", ")}`)
   if (promiseThreadMismatchIds.length > 0) issues.push(`promiseIds belong to different threadId: ${promiseThreadMismatchIds.join(", ")}`)
   if (payoffThreadMismatchIds.length > 0) issues.push(`payoffIds belong to different threadId: ${payoffThreadMismatchIds.join(", ")}`)
@@ -830,7 +860,11 @@ function evaluateSceneContract(
     promiseThreadMismatchIds,
     payoffThreadMismatchIds,
     requiredCharacterIds,
+    affectedCharacterIds,
     unknownRequiredCharacterIds,
+    unknownAffectedCharacterIds,
+    missingLocalCharacterIds,
+    missingAffectedCharacterIds,
     missingNamedCharacterIds,
     sceneTurnIds,
     unknownSceneTurnIds,
@@ -940,7 +974,7 @@ function knownSeedCharacterIds(packet: RecreationPacket): Set<string> {
   ])
 }
 
-function charactersNamedInSceneContract(
+function charactersNamedInLocalSceneContract(
   scene: RecreationPlan["scenes"][number],
   packet: RecreationPacket,
 ): string[] {
@@ -952,7 +986,6 @@ function charactersNamedInSceneContract(
     scene.crisisChoice,
     scene.climaxAction,
     scene.outcome,
-    scene.consequence,
     ...scene.beatHints.map(beat => beat.purpose),
   ].join("\n")
   const named: string[] = []
@@ -961,6 +994,17 @@ function charactersNamedInSceneContract(
     ...packet.originalAnalogSeed.supportingCharacters,
   ]) {
     if (characterNameAppears(searchable, character.name)) named.push(character.characterId)
+  }
+  return uniqueStrings(named)
+}
+
+function charactersNamedInText(text: string, packet: RecreationPacket): string[] {
+  const named: string[] = []
+  for (const character of [
+    packet.originalAnalogSeed.protagonist,
+    ...packet.originalAnalogSeed.supportingCharacters,
+  ]) {
+    if (characterNameAppears(text, character.name)) named.push(character.characterId)
   }
   return uniqueStrings(named)
 }
@@ -1038,6 +1082,7 @@ Hard rules:
 - Every scene needs a crisisChoice plus a choiceAlternatives array with explicit options tied to the protagonist's want, need, lie, or truth.
 - Every scene needs active pressure from a supporting character, world fact, or story debt. Declare that pressure with obligations whose sourceId exactly matches a provided characterId, worldFactId, or storyDebtId.
 - Every scene needs requiredCharacterIds for any non-POV provided character named in the scene contract, unless that character already has a character-source obligation in that scene.
+- Use affectedCharacterIds for provided characters named only as downstream consequence or future pressure, not local scene participants.
 - Every obligation needs threadId. Use threadId to name the narrative continuity vector being moved.
 - Use promiseId when an obligation opens, progresses, complicates, or pays a story debt. promiseId must match a provided storyDebtId.
 - Use payoffId when an obligation lands or partially lands a planned payoff. payoffId must match a provided payoffId and belong to the same promiseId/storyDebtId.
@@ -1065,6 +1110,7 @@ Hard rules:
         "structuralRole": "string",
         "povCharacterId": "char-nara-venn",
         "requiredCharacterIds": ["char-tovin-ash"],
+        "affectedCharacterIds": ["char-bellwarden-kael"],
         "locationOrArena": "string",
         "goal": "string",
         "opposition": "string",
@@ -1115,7 +1161,8 @@ Create one original analog chapter plan. Match the reference chapter's structura
 - if sourceStructuralDigest/beatPurposeHints are present, map each source structural function to an original analog function.
 - each scene's choiceAlternatives should name concrete options and make Nara's oathmark/convoy/witness/escape pressure matter;
 - each scene should carry active relationship or world pressure when applicable, with obligations whose sourceId exactly matches the pressure the writer must dramatize;
-- each scene should include requiredCharacterIds for any named non-POV provided character not already represented by a character-source obligation;
+- each scene should include requiredCharacterIds for any named non-POV provided character who is locally present, opposing, pressuring, speaking, or otherwise needed as writer context and is not already represented by a character-source obligation;
+- each scene should include affectedCharacterIds for any named non-POV provided character who appears only in the consequence/future-pressure line and is not already represented by requiredCharacterIds or a character-source obligation;
 - every obligation should carry threadId, and story-debt/payoff obligations should also carry promiseId and payoffId when applicable;
 - create sceneTurns for causal choices/reveals/costs that produce obligations, and attach obligations to them with sceneTurnId when useful;
 - when sibling obligations share a sceneTurnId, keep each child's promiseId/payoffId inside that child's own thread only;

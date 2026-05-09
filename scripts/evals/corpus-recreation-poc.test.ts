@@ -113,6 +113,7 @@ describe("corpus-recreation-poc", () => {
     expect(prompt).toContain("attach obligations to them with sceneTurnId")
     expect(prompt).toContain("keep each child's promiseId/payoffId inside that child's own thread only")
     expect(prompt).toContain("requiredCharacterIds")
+    expect(prompt).toContain("affectedCharacterIds")
     expect(prompt).toContain("any named non-POV provided character")
   })
 
@@ -236,9 +237,57 @@ describe("corpus-recreation-poc", () => {
 
     expect(comparison.sceneContract.characterRefClosureCount).toBe(1)
     expect(comparison.sceneContract.characterRefIssueCount).toBe(1)
-    expect(comparison.sceneContract.scenes[0]!.missingNamedCharacterIds).toEqual(["char-tovin-ash"])
+    expect(comparison.sceneContract.scenes[0]!.missingLocalCharacterIds).toEqual(["char-tovin-ash"])
     expect(comparison.issues.some(issue =>
-      issue.includes("named characters missing requiredCharacterIds/source obligation: char-tovin-ash")
+      issue.includes("local named characters missing requiredCharacterIds/source obligation: char-tovin-ash")
+    )).toBe(true)
+  })
+
+  test("uses affectedCharacterIds for consequence-only character impact refs", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+    })
+    const futureImpactPlan = structuredClone(plan())
+    futureImpactPlan.scenes[0] = {
+      ...futureImpactPlan.scenes[0]!,
+      requiredCharacterIds: [],
+      affectedCharacterIds: ["char-tovin-ash"],
+      opposition: "The key heats against Nara's ribs.",
+      consequence: "Tovin will be able to use this delay against her later.",
+    }
+
+    const comparison = comparePlanToReference(futureImpactPlan, packet)
+
+    expect(comparison.sceneContract.scenes[0]!.affectedCharacterIds).toEqual(["char-tovin-ash"])
+    expect(comparison.sceneContract.scenes[0]!.missingAffectedCharacterIds).toEqual([])
+    expect(comparison.sceneContract.characterRefIssueCount).toBe(0)
+  })
+
+  test("flags consequence-only character refs without affectedCharacterIds", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+    })
+    const missingFutureImpactPlan = structuredClone(plan())
+    missingFutureImpactPlan.scenes[0] = {
+      ...missingFutureImpactPlan.scenes[0]!,
+      requiredCharacterIds: [],
+      affectedCharacterIds: [],
+      opposition: "The key heats against Nara's ribs.",
+      consequence: "Tovin will be able to use this delay against her later.",
+    }
+
+    const comparison = comparePlanToReference(missingFutureImpactPlan, packet)
+
+    expect(comparison.sceneContract.scenes[0]!.missingAffectedCharacterIds).toEqual(["char-tovin-ash"])
+    expect(comparison.sceneContract.characterRefIssueCount).toBe(1)
+    expect(comparison.issues.some(issue =>
+      issue.includes("consequence characters missing affectedCharacterIds/requiredCharacterIds/source obligation: char-tovin-ash")
     )).toBe(true)
   })
 
@@ -615,6 +664,7 @@ function plan() {
         structuralRole: "Establish pressure and reverse safety.",
         povCharacterId: "char-nara-venn",
         requiredCharacterIds: ["char-tovin-ash"],
+        affectedCharacterIds: [],
         locationOrArena: "frontier road",
         goal: "Nara wants quiet entry.",
         opposition: "The key heats and Tovin watches.",
@@ -643,6 +693,7 @@ function plan() {
         structuralRole: "Make a character choice visible.",
         povCharacterId: "char-nara-venn",
         requiredCharacterIds: ["char-bellwarden-kael", "char-mirel-sorn"],
+        affectedCharacterIds: ["char-tovin-ash"],
         locationOrArena: "gatehouse",
         goal: "Nara wants entry.",
         opposition: "Kael demands a name.",

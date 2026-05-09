@@ -147,6 +147,7 @@ scene should state:
 - `requiredObligationIds`
 - `requiredSourceIds`
 - `requiredCharacterIds`
+- `affectedCharacterIds`
 - `requiredWorldFactIds`
 
 Target scene count is flexible. As a starting diagnostic shape, expect one to

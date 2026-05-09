@@ -58,13 +58,20 @@ interface POCPlan {
   title?: string
   scenes?: Array<{
     sceneId?: string
+    structuralRole?: string
     povCharacterId?: string
+    turningPoint?: string
     goal?: string
     opposition?: string
     crisisChoice?: string
+    climaxAction?: string
     outcome?: string
     consequence?: string
     requiredCharacterIds?: string[]
+    affectedCharacterIds?: string[]
+    beatHints?: Array<{
+      purpose?: string
+    }>
   }>
   obligations?: Array<{
     obligationId?: string
@@ -106,6 +113,7 @@ export interface SceneCharacterContextPacket {
   sceneOutcome: string
   sceneConsequence: string
   activeCharacterIds: string[]
+  affectedCharacterIds: string[]
   characterCards: CharacterContextCard[]
   currentResponsibilities: string[]
   structuralIssues: string[]
@@ -189,6 +197,7 @@ export function renderCorpusRecreationCharacterContext(report: CorpusCharacterCo
     lines.push(`Outcome: ${context.sceneOutcome || "none"}`)
     lines.push(`Consequence: ${context.sceneConsequence || "none"}`)
     lines.push(`Active characters: ${context.activeCharacterIds.join(", ") || "none"}`)
+    lines.push(`Affected characters: ${context.affectedCharacterIds.join(", ") || "none"}`)
     lines.push("")
     lines.push("Character cards:")
     for (const card of context.characterCards) {
@@ -229,27 +238,48 @@ function buildSceneCharacterContext(input: {
   const characterSourceIds = obligations
     .map(row => cleanString(row.sourceId))
     .filter((sourceId): sourceId is string => Boolean(sourceId && input.characters.has(sourceId)))
-  const requiredCharacterIds = (input.scene.requiredCharacterIds ?? []).filter(id => input.characters.has(id))
-  const namedCharacterIds = charactersNamedInScene(input.scene, input.characters)
+  const rawRequiredCharacterIds = input.scene.requiredCharacterIds ?? []
+  const rawAffectedCharacterIds = input.scene.affectedCharacterIds ?? []
+  const requiredCharacterIds = rawRequiredCharacterIds.filter(id => input.characters.has(id))
+  const affectedCharacterIds = rawAffectedCharacterIds.filter(id => input.characters.has(id))
+  const localNamedCharacterIds = charactersNamedInLocalScene(input.scene, input.characters)
+  const consequenceNamedCharacterIds = charactersNamedInText(String(input.scene.consequence ?? ""), input.characters)
+    .filter(characterId => !localNamedCharacterIds.includes(characterId))
   const activeCharacterIds = unique([
     ...(povCharacterId ? [povCharacterId] : []),
     ...requiredCharacterIds,
     ...characterSourceIds,
-    ...namedCharacterIds,
+    ...localNamedCharacterIds,
   ])
   const structuralIssues: string[] = []
   if (!povCharacterId) structuralIssues.push(`${input.sceneId}: missing povCharacterId`)
   if (povCharacterId && !input.characters.has(povCharacterId)) structuralIssues.push(`${input.sceneId}: unknown povCharacterId ${povCharacterId}`)
+  for (const characterId of rawRequiredCharacterIds) {
+    if (!input.characters.has(characterId)) structuralIssues.push(`${input.sceneId}: unknown requiredCharacterId ${characterId}`)
+  }
+  for (const characterId of rawAffectedCharacterIds) {
+    if (!input.characters.has(characterId)) structuralIssues.push(`${input.sceneId}: unknown affectedCharacterId ${characterId}`)
+  }
   for (const row of obligations) {
     const sourceId = cleanString(row.sourceId)
     if (sourceId?.startsWith("char-") && !input.characters.has(sourceId)) {
       structuralIssues.push(`${input.sceneId}: ${row.obligationId ?? "obligation"} unknown character sourceId ${sourceId}`)
     }
   }
-  for (const characterId of namedCharacterIds) {
+  for (const characterId of localNamedCharacterIds) {
     if (characterId === povCharacterId) continue
     if (!requiredCharacterIds.includes(characterId) && !characterSourceIds.includes(characterId)) {
       structuralIssues.push(`${input.sceneId}: character ${characterId} is named in scene contract but missing requiredCharacterIds/source obligation`)
+    }
+  }
+  for (const characterId of consequenceNamedCharacterIds) {
+    if (characterId === povCharacterId) continue
+    if (
+      !affectedCharacterIds.includes(characterId)
+      && !requiredCharacterIds.includes(characterId)
+      && !characterSourceIds.includes(characterId)
+    ) {
+      structuralIssues.push(`${input.sceneId}: character ${characterId} is named in consequence but missing affectedCharacterIds/requiredCharacterIds/source obligation`)
     }
   }
   if (activeCharacterIds.length === 0) structuralIssues.push(`${input.sceneId}: no active character refs`)
@@ -264,6 +294,7 @@ function buildSceneCharacterContext(input: {
     sceneOutcome: String(input.scene.outcome ?? ""),
     sceneConsequence: String(input.scene.consequence ?? ""),
     activeCharacterIds,
+    affectedCharacterIds,
     characterCards: activeCharacterIds
       .map(characterId => buildCharacterCard(characterId, input.characters, obligations, povCharacterId))
       .filter((card): card is CharacterContextCard => Boolean(card)),
@@ -317,17 +348,27 @@ function characterRegistry(packet: Packet): Map<string, SeedCharacter> {
   return out
 }
 
-function charactersNamedInScene(
+function charactersNamedInLocalScene(
   scene: NonNullable<POCPlan["scenes"]>[number],
   characters: Map<string, SeedCharacter>,
 ): string[] {
   const text = [
+    scene.structuralRole,
     scene.goal,
     scene.opposition,
+    scene.turningPoint,
     scene.crisisChoice,
+    scene.climaxAction,
     scene.outcome,
-    scene.consequence,
+    ...(scene.beatHints ?? []).map(beat => beat.purpose),
   ].filter(Boolean).join("\n")
+  return charactersNamedInText(text, characters)
+}
+
+function charactersNamedInText(
+  text: string,
+  characters: Map<string, SeedCharacter>,
+): string[] {
   const found: string[] = []
   for (const [characterId, character] of characters) {
     const name = cleanString(character.name)
