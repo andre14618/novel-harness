@@ -327,7 +327,7 @@ function charactersNamedInScene(
     scene.crisisChoice,
     scene.outcome,
     scene.consequence,
-  ].filter(Boolean).join("\n").toLowerCase()
+  ].filter(Boolean).join("\n")
   const found: string[] = []
   for (const [characterId, character] of characters) {
     const name = cleanString(character.name)
@@ -337,11 +337,10 @@ function charactersNamedInScene(
   return found
 }
 
-function characterNameAppears(lowerText: string, name: string): boolean {
-  const lowerName = name.toLowerCase()
-  if (lowerText.includes(lowerName)) return true
-  const parts = lowerName.split(/\s+/u).filter(Boolean)
-  return parts.some(part => new RegExp(`\\b${escapeRegExp(part)}\\b`, "u").test(lowerText))
+function characterNameAppears(text: string, name: string): boolean {
+  if (new RegExp(`\\b${escapeRegExp(name)}\\b`, "iu").test(text)) return true
+  const parts = name.split(/\s+/u).map(part => part.trim()).filter(part => part.length >= 3)
+  return parts.some(part => new RegExp(`\\b${escapeRegExp(part)}\\b`, "u").test(text))
 }
 
 function escapeRegExp(value: string): string {

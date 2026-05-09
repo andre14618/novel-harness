@@ -57,6 +57,8 @@ describe("corpus-recreation-poc", () => {
     expect(comparison.sceneContract.orphanPayoffRefCount).toBe(0)
     expect(comparison.sceneContract.sceneTurnCount).toBe(0)
     expect(comparison.sceneContract.sceneTurnRefIssueCount).toBe(0)
+    expect(comparison.sceneContract.characterRefClosureCount).toBe(2)
+    expect(comparison.sceneContract.characterRefIssueCount).toBe(0)
     expect(comparison.sceneContract.observableConsequenceCount).toBe(2)
     expect(comparison.sceneContract.materialityTestCount).toBe(2)
     expect(comparison.issues).toEqual([])
@@ -110,6 +112,8 @@ describe("corpus-recreation-poc", () => {
     expect(prompt).toContain("create sceneTurns for causal choices/reveals/costs")
     expect(prompt).toContain("attach obligations to them with sceneTurnId")
     expect(prompt).toContain("keep each child's promiseId/payoffId inside that child's own thread only")
+    expect(prompt).toContain("requiredCharacterIds")
+    expect(prompt).toContain("any named non-POV provided character")
   })
 
   test("scene turn refs group parent turns while preserving single-thread obligations", () => {
@@ -209,6 +213,57 @@ describe("corpus-recreation-poc", () => {
     expect(comparison.sceneContract.declaredObligationCount).toBe(0)
     expect(comparison.sceneContract.knownSourceIdCount).toBe(0)
     expect(comparison.issues.some(issue => issue.includes("scene lacks explicit obligation sourceIds"))).toBe(true)
+  })
+
+  test("flags named supporting characters that lack durable scene refs", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+    })
+    const missingCharacterRefs = structuredClone(plan())
+    missingCharacterRefs.scenes[0] = {
+      ...missingCharacterRefs.scenes[0]!,
+      requiredCharacterIds: [],
+      opposition: "Tovin watches from the ward post.",
+    }
+    missingCharacterRefs.obligations = missingCharacterRefs.obligations.filter(obligation =>
+      !(obligation.sceneId === "analog-sc01" && obligation.sourceId === "char-tovin-ash")
+    )
+
+    const comparison = comparePlanToReference(missingCharacterRefs, packet)
+
+    expect(comparison.sceneContract.characterRefClosureCount).toBe(1)
+    expect(comparison.sceneContract.characterRefIssueCount).toBe(1)
+    expect(comparison.sceneContract.scenes[0]!.missingNamedCharacterIds).toEqual(["char-tovin-ash"])
+    expect(comparison.issues.some(issue =>
+      issue.includes("named characters missing requiredCharacterIds/source obligation: char-tovin-ash")
+    )).toBe(true)
+  })
+
+  test("does not treat unchosen alternatives or lowercase role titles as character refs", () => {
+    const packet = buildRecreationPacket({
+      reference: reference() as any,
+      referencePath: "output/reference.json",
+      chapterLabel: "1",
+      generatedAt: "2026-05-09T00:00:00.000Z",
+    })
+    const softMentionPlan = structuredClone(plan())
+    softMentionPlan.scenes[0] = {
+      ...softMentionPlan.scenes[0]!,
+      requiredCharacterIds: [],
+      opposition: "The bellwarden's tower is distant and dark.",
+      choiceAlternatives: [
+        "Wait outside the gate",
+        "Try to find Mirel later",
+      ],
+    }
+
+    const comparison = comparePlanToReference(softMentionPlan, packet)
+
+    expect(comparison.sceneContract.scenes[0]!.missingNamedCharacterIds).toEqual([])
+    expect(comparison.sceneContract.characterRefIssueCount).toBe(0)
   })
 
   test("flags missing or mismatched thread and payoff refs deterministically", () => {
@@ -559,6 +614,7 @@ function plan() {
         targetWords: 600,
         structuralRole: "Establish pressure and reverse safety.",
         povCharacterId: "char-nara-venn",
+        requiredCharacterIds: ["char-tovin-ash"],
         locationOrArena: "frontier road",
         goal: "Nara wants quiet entry.",
         opposition: "The key heats and Tovin watches.",
@@ -586,6 +642,7 @@ function plan() {
         targetWords: 400,
         structuralRole: "Make a character choice visible.",
         povCharacterId: "char-nara-venn",
+        requiredCharacterIds: ["char-bellwarden-kael", "char-mirel-sorn"],
         locationOrArena: "gatehouse",
         goal: "Nara wants entry.",
         opposition: "Kael demands a name.",

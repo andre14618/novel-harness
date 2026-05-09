@@ -286,6 +286,14 @@ scene contract but lacks either `requiredCharacterIds` or a character-source
 obligation, because that character would otherwise miss a character card in a
 future context arm.
 
+Upstream contract extension: the corpus recreation planner schema now includes
+scene-level `requiredCharacterIds`, and plan comparison reports character-ref
+closure before prose generation. Exact-name detection is deliberately narrow:
+it does not treat unchosen alternatives or lower-case role/title mentions as
+scene participant refs. The purpose is not to infer character materiality; it
+is to catch durable-ID gaps when the plan itself names a supporting character
+that the future writer context would otherwise omit.
+
 Readiness follow-up: those deterministic character-context structural issues
 now flow into corpus readiness as manual `CHARACTERREF-1` candidates. The
 rewrite packet preserves scene, character, obligation, thread, promise, payoff,

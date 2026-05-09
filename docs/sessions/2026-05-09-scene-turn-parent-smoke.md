@@ -211,3 +211,37 @@ Regenerating readiness for the six chapter 1/2/5 baseline plus
 groups duplicate across baseline/context arms because they come from the shared
 plan contract, not from writer behavior. Treat them as upstream planning
 review questions about explicit character refs before drafting.
+
+## Character Ref Contract Slice
+
+Implemented planner prompt/schema version `scene-turn-child-thread-v5`:
+
+- scene plans now carry `requiredCharacterIds`;
+- plan comparison reports `characterRefClosureCount` and
+  `characterRefIssueCount`;
+- exact-name detection excludes unchosen alternatives and lower-case role/title
+  mentions so the deterministic flag stays about obvious durable-ID gaps, not
+  semantic materiality.
+
+Evidence:
+
+```bash
+bun scripts/evals/corpus-recreation-poc.ts --chapter 1 --output-dir output/corpus-recreation-poc/character-ref-v5-smoke-ch1-20260509 --live --model deepseek-v4-flash
+bun scripts/evals/corpus-recreation-poc.ts --plan-from output/corpus-recreation-poc/character-ref-v5-smoke-ch1-20260509 --output-dir output/corpus-recreation-poc/character-ref-v5-smoke-ch1-recheck-20260509
+bun scripts/evals/corpus-recreation-character-context.ts output/corpus-recreation-poc/character-ref-v5-smoke-ch1-recheck-20260509
+bun scripts/evals/corpus-recreation-readiness.ts output/corpus-recreation-poc/character-ref-v5-smoke-ch1-recheck-20260509 --output output/corpus-recreation-poc/character-ref-v5-smoke-ch1-recheck-20260509/readiness.md --json output/corpus-recreation-poc/character-ref-v5-smoke-ch1-recheck-20260509/readiness.json
+```
+
+Result:
+
+- live planner emitted valid v5 plan with `requiredCharacterIds`;
+- refined deterministic recheck: character refs closed `3/4`, with 1 issue;
+- character-context structural issues: 1;
+- readiness groups: 1 manual `CHARACTERREF-1` for
+  `analog-ch01-sc04`/`char-tovin-ash`.
+
+Interpretation: explicit `requiredCharacterIds` materially improves the planner
+contract but does not fully solve character-ref closure from prompt alone. Keep
+the deterministic warning/readiness path; future planner prompt work should
+decide whether a character named only in a consequence is required local
+context, future-impact context, or just a textual mention.
