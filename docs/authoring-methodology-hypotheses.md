@@ -46,6 +46,7 @@ First candidate method pack:
 | H8 | Genre/market strategy profiles | concept/planning template | genre-fit planner diagnostic | medium |
 | H9 | Human oversight checkpoints | evaluation workflow | side-by-side rubric panel | medium |
 | H10 | Chapter-scope draft then revise | writer/reviser | only after H1-H3 evidence | later |
+| H11 | Corpus structure recreation | planning reference / diagnostics | chapter-scene reference comparison | high |
 
 ## H1 - Structure-Template Macro Planning
 
@@ -333,10 +334,38 @@ Expected benefit: more coherent prose flow across the chapter.
 
 Risk: hardest attribution and largest blast radius. Keep later.
 
+## H11 - Corpus Structure Recreation
+
+Hypothesis: the harness can learn useful planner granularity by attempting to
+recreate the structural shape of a proven corpus novel from compressed
+premise/context, while keeping prose/style imitation out of scope.
+
+First slice:
+
+- Build a local reference scaffold from existing corpus scene, beat, value,
+  MICE/thread, and gap annotations.
+- Keep detailed plot summaries in ignored `output/` artifacts only.
+- Compare planner outputs against the reference at chapter and scene
+  granularity before any prose generation.
+
+Expected benefit: a concrete answer to what the planner should be planning:
+chapter functions, scene contracts, promise movement, character pressure,
+world constraints, and endpoint propulsion.
+
+Trace needs: `chapterId`, future `sceneId`, source/corpus scene refs,
+value-shift refs, MICE/thread refs, promise/story-debt refs, and side-by-side
+operator review evidence. Corpus `beatId`s are annotation refs, not the future
+primary writing/checking unit.
+
+Risk: overfitting to one author or copying expressive plot/prose. Mitigation:
+use this as a structural reference POC, not a runtime template; commit only
+schemas, metrics, and conclusions, not detailed source-derived outlines.
+
 ## Recommended Sequence
 
 1. **Hypothesis charter:** choose one upstream method to test: structure
-   template H1, scene-contract projection H2, or chapter-contract scoring H3.
+   template H1, scene-contract projection H2, chapter-contract scoring H3, or
+   corpus structure recreation H11.
 2. **Planner contract target:** choose an authored craft/template exemplar
    rather than deriving the target from existing harness outlines.
 3. **Diagnostic-only implementation:** add template/scene/contract

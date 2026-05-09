@@ -37,11 +37,15 @@ Useful existing repo assets:
   causal momentum, promise progress, scene dramaturgy, relationship delta,
   motivation specificity, and stakes/value shift.
 
-The Salvatore corpus is not a sufficient golden structure source for this
-shift. It was decomposed into short beats for an earlier small-model workflow,
-so it can inform distributions later but should not define the new planner
-contract. Golden examples should come from authored craft templates, operator
-judgment, and prose-level POC outcomes.
+The original Salvatore beat corpus is not a sufficient golden structure source
+by itself. It was decomposed into short beats for an earlier small-model
+workflow, so its beat size should not define the writer interface. A separate
+corpus-structure recreation POC is useful, though: use the local Stage 6
+scene/value/MICE/promise annotations to build a chapter/scene reference target,
+then ask whether the planner can recreate comparable structural granularity
+from compressed premise/context. Golden examples should come from authored
+craft templates, corpus-derived scene/function references, operator judgment,
+and prose-level POC outcomes.
 
 ## External Source Refresh
 
@@ -305,4 +309,3 @@ Build `commercial-fantasy-adventure-v1` as a diagnostic-only method pack:
 - add a draft-from-plan smoke on 1-2 concepts after the planner output is
   inspectable;
 - document results in a session record before changing production defaults.
-

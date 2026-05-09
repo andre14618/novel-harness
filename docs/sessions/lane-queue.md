@@ -35,6 +35,7 @@ unless the user explicitly requests a disposable branch.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.
+- Corpus structure recreation is active: use `docs/charters/corpus-structure-recreation-poc.md` and `diagnostics:corpus-structure-reference` before planner mimicry.
 - Review `docs/method-packs/commercial-fantasy-adventure-v0.md` as the first
   general method-pack charter before implementing template definitions,
   fixtures, or planner prompt changes.
@@ -115,6 +116,4 @@ unless the user explicitly requests a disposable branch.
 - External CI for `policy:promotion-guard` is on hold indefinitely. Keep the
   local guard as the supported path unless the user reopens a concrete CI need.
 
-Closed history:
-`docs/sessions/archive/lane-queue-2026-05-04-full.md`,
-`docs/sessions/archive/lane-queue-2026-05-06-recent-closed.md`.
+Closed history: `docs/sessions/archive/`.

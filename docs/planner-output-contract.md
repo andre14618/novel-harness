@@ -268,15 +268,17 @@ or diagnostic summaries exist.
 
 Do this before writing or checker changes:
 
-1. Choose an authored craft/template exemplar as the target shape. Examples:
-   a commercial 24-chapter structure, romance obligatory beats,
-   pulp-quarter structure, LitRPG/progression strategy, or corpus-derived
-   scene/function distributions.
+1. Choose an authored craft/template or corpus-structure exemplar as the target
+   shape. Examples: a commercial 24-chapter structure, romance obligatory
+   beats, pulp-quarter structure, LitRPG/progression strategy, or a local
+   corpus-reference recreation POC at chapter/scene granularity.
    First candidate pack: `docs/method-packs/commercial-fantasy-adventure-v0.md`.
 2. Translate that exemplar into template slots, chapter-contract expectations,
    scene-contract expectations, and obligation requirements.
 3. Create a small diagnostic fixture from the exemplar. This is not a legacy
-   harness outline and does not need to come from an existing novel row.
+   harness outline and does not need to come from an existing novel row. If the
+   exemplar is corpus-derived, keep source-derived detailed summaries in
+   ignored local artifacts and commit only schemas, metrics, and conclusions.
 4. Score the fixture with the planner rubric to make sure the rubric rewards
    the intended method.
 5. Ask the native planner to produce this contract shape on a frozen concept
@@ -303,8 +305,8 @@ Only after that should the harness test:
 - Do not promote promise ledgers, scene-turn checks, or micro-tension checks as
   blockers without A/B evidence.
 - Do not infer that Salvatore's small corpus beat size is the production writer
-  call size; use corpus beats as annotation/trace granularity unless a
-  beat-first experiment explicitly proves value.
+  call size; use corpus beats as annotation/trace granularity inside
+  scene-level structure unless a beat-first experiment explicitly proves value.
 - Do not define the future harness method by projecting from existing
   beat-shaped outlines. Existing outlines are diagnostic/baseline artifacts,
   not golden examples.
