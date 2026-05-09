@@ -8,8 +8,7 @@ unless the user explicitly requests a disposable branch.
 - Upstream planning methodology lane: narrow the active product question to
   concept/planning templates, chapter contracts, scene contracts, obligation
   traceability, and planner-quality diagnostics. See L089.
-- Run/thread coherence lane extends existing traceability; manifests, refs,
-  thread maps, static evidence, advisory review, and opt-in context arm are in.
+- Run/thread coherence: manifests, validation, refs, thread maps, static evidence, advisory review, and opt-in context arm are in.
 - Visibility/interactivity foundation is at scope ceiling for now; additional
   UI work is lower priority unless a UI surface changes as part of a specific
   accepted slice.

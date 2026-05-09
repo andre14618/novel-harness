@@ -47,6 +47,7 @@
     "diagnostics:corpus-recreation-review": "bun scripts/evals/corpus-recreation-review.ts",
     "diagnostics:corpus-recreation-thread-context": "bun scripts/evals/corpus-recreation-thread-context.ts",
     "diagnostics:corpus-recreation-thread-map": "bun scripts/evals/corpus-recreation-thread-map.ts",
+    "diagnostics:run-manifest-validate": "bun scripts/evals/run-manifest-validate.ts",
     "diagnostics:method-pack-planner-cohort": "bun scripts/evals/method-pack-planner-cohort.ts",
     "diagnostics:method-pack-planner-semantic-judge": "bun scripts/evals/method-pack-planner-semantic-judge.ts",
     "diagnostics:planner-discernment-calibration": "bun scripts/evals/planner-discernment-calibration.ts",

@@ -135,8 +135,10 @@ links, duplicate run IDs, and mismatched artifact hashes.
 Status 2026-05-09: first slice implemented for corpus recreation diagnostics.
 `diagnostics:corpus-recreation-poc`, prose review, semantic review, aggregate,
 readiness, and static review now write run manifests or sidecar manifests with
-input/output hashes. This is diagnostic metadata only; it does not change
-planning, writing, judging, proposal behavior, or UI.
+input/output hashes. `diagnostics:run-manifest-validate` verifies manifest
+schema, duplicate run IDs, optional parent-link completeness, and on-disk
+artifact hash/byte freshness. This is diagnostic metadata only; it does not
+change planning, writing, judging, proposal behavior, or UI.
 
 ### Lane 2 - Thread/Payoff Contract Schema
 

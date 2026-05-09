@@ -33,6 +33,17 @@ export interface RunManifest {
   metadata: Record<string, unknown>
 }
 
+export interface RunManifestSetEntry {
+  manifest: RunManifest
+  path?: string
+}
+
+export interface ValidateRunManifestSetOptions {
+  cwd?: string
+  strictParentLinks?: boolean
+  verifyArtifacts?: boolean
+}
+
 export interface BuildRunManifestInput {
   generatedAt: string
   laneId: string
@@ -165,6 +176,74 @@ export function validateRunManifest(manifest: RunManifest): string[] {
   return errors
 }
 
+export function validateRunManifestArtifacts(manifest: RunManifest, cwd = process.cwd()): string[] {
+  const errors: string[] = []
+  for (const collectionName of ["inputs", "outputs"] as const) {
+    for (const artifact of manifest[collectionName] ?? []) {
+      if (!artifact?.path) continue
+      const absolute = resolve(cwd, artifact.path)
+      if (!existsSync(absolute)) {
+        errors.push(`${collectionName} ${artifact.path} missing file`)
+        continue
+      }
+      const data = readFileSync(absolute)
+      const actualBytes = statSync(absolute).size
+      const actualSha256 = createHash("sha256").update(data).digest("hex")
+      if (actualBytes !== artifact.bytes) {
+        errors.push(`${collectionName} ${artifact.path} bytes mismatch: expected ${artifact.bytes}, got ${actualBytes}`)
+      }
+      if (actualSha256 !== artifact.sha256) {
+        errors.push(`${collectionName} ${artifact.path} sha256 mismatch: expected ${artifact.sha256}, got ${actualSha256}`)
+      }
+    }
+  }
+  return errors
+}
+
+export function validateRunManifestSet(
+  entries: RunManifestSetEntry[],
+  opts: ValidateRunManifestSetOptions = {},
+): string[] {
+  const cwd = opts.cwd ?? process.cwd()
+  const errors: string[] = []
+  const byRunId = new Map<string, RunManifestSetEntry[]>()
+
+  for (const entry of entries) {
+    const label = manifestEntryLabel(entry)
+    for (const error of validateRunManifest(entry.manifest)) errors.push(`${label}: ${error}`)
+    if (opts.verifyArtifacts !== false) {
+      for (const error of validateRunManifestArtifacts(entry.manifest, cwd)) errors.push(`${label}: ${error}`)
+    }
+    const rows = byRunId.get(entry.manifest.runId) ?? []
+    rows.push(entry)
+    byRunId.set(entry.manifest.runId, rows)
+  }
+
+  for (const [runId, rows] of byRunId) {
+    if (rows.length > 1) {
+      errors.push(`duplicate runId ${runId}: ${rows.map(manifestEntryLabel).join(", ")}`)
+    }
+  }
+
+  for (const entry of entries) {
+    const parentRunId = entry.manifest.parentRunId
+    if (!parentRunId) continue
+    const parents = byRunId.get(parentRunId) ?? []
+    if (parents.length === 0) {
+      if (opts.strictParentLinks) {
+        errors.push(`${manifestEntryLabel(entry)}: parentRunId ${parentRunId} not found in manifest set`)
+      }
+      continue
+    }
+    const parent = parents[0]!.manifest
+    if (entry.manifest.rootRunId !== parent.rootRunId) {
+      errors.push(`${manifestEntryLabel(entry)}: rootRunId ${entry.manifest.rootRunId} does not match parent rootRunId ${parent.rootRunId}`)
+    }
+  }
+
+  return errors
+}
+
 export function parentManifestForPocDir(pocDir: string, cwd = process.cwd()): RunManifest | null {
   return readRunManifestIfExists(resolve(cwd, pocDir, RUN_MANIFEST_FILENAME), cwd)
 }
@@ -190,4 +269,8 @@ function timestampToken(value: string): string {
 
 function uniqueStrings(values: string[]): string[] {
   return [...new Set(values.filter(value => typeof value === "string" && value.trim() !== ""))]
+}
+
+function manifestEntryLabel(entry: RunManifestSetEntry): string {
+  return entry.path ?? entry.manifest.runId
 }
