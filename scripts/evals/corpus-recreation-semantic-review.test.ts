@@ -66,6 +66,7 @@ describe("corpus-recreation-semantic-review", () => {
       generatedAt: "2026-05-09T00:00:00.000Z",
       pocDir: "output/poc",
       source: { book: "crystal_shard", chapterLabel: "1" },
+      variantLabel: "baseline + thread-context-v1",
       live: false,
       model: "deepseek-v4-flash",
       thinking: false,
@@ -110,6 +111,7 @@ describe("corpus-recreation-semantic-review", () => {
     const rendered = renderCorpusSemanticReviewReport(report)
 
     expect(rendered).toContain("Corpus Recreation Semantic Review")
+    expect(rendered).toContain("Variant: baseline + thread-context-v1")
     expect(rendered).toContain("scene-a sceneDramaturgy SCENE-1: needs outcome")
   })
 })

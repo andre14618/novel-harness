@@ -17,7 +17,7 @@ describe("corpus-recreation-review", () => {
       writeJson(join(pocDir, "packet.json"), {
         generatedAt: "2026-05-09T00:00:00.000Z",
         sourceReference: { book: "crystal_shard", chapterLabel: "1" },
-        diagnosticConfig: { plannerVariant: "materiality-v1" },
+        diagnosticConfig: { plannerVariant: "materiality-v1", writerContextMode: "thread-context-v1" },
         target: {
           targetWords: 1000,
           sceneCount: 1,
@@ -242,6 +242,7 @@ describe("corpus-recreation-review", () => {
       expect(html).toContain("Thread Map")
       expect(html).toContain("Thread Context Preview")
       expect(html).toContain("Writer Context Used")
+      expect(html).toContain("materiality-v1 + thread-context-v1")
       expect(html).toContain("thread-context-v1")
       expect(html).toContain("thread-bell")
       expect(html).toContain("payoff:payoff-bell-rings")

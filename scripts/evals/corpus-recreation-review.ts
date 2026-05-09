@@ -19,6 +19,7 @@ import {
 } from "./run-manifest"
 import type { CorpusThreadMapReport } from "./corpus-recreation-thread-map"
 import type { CorpusThreadContextReport } from "./corpus-recreation-thread-context"
+import { corpusRecreationVariantLabel } from "./corpus-recreation-variant"
 
 interface Args {
   pocDirs: string[]
@@ -35,6 +36,8 @@ interface ReviewRun {
   sourceBook: string
   chapterLabel: string
   plannerVariant: string
+  writerContextMode: string
+  variantLabel: string
   generatedAt: string
   target: any
   plan: any
@@ -119,6 +122,7 @@ function readReviewRun(pocDir: string): ReviewRun {
   const threadContext = readOptionalJson(join(resolved, "thread-context.json")) as CorpusThreadContextReport | null
   const writerContext = readOptionalJson(join(resolved, "writer-context.json"))
   const target = packet.target ?? {}
+  const diagnosticConfig = packet.diagnosticConfig ?? {}
   const sourceReference = packet.sourceReference ?? {}
   const targetBlueprints = Array.isArray(target.sceneBlueprints) ? target.sceneBlueprints : []
   const planScenes = Array.isArray(plan.scenes) ? plan.scenes : []
@@ -149,7 +153,9 @@ function readReviewRun(pocDir: string): ReviewRun {
     pocDir: resolved,
     sourceBook: String(sourceReference.book ?? ""),
     chapterLabel: String(sourceReference.chapterLabel ?? target.chapterLabel ?? ""),
-    plannerVariant: String(packet.diagnosticConfig?.plannerVariant ?? "baseline"),
+    plannerVariant: String(diagnosticConfig.plannerVariant ?? "baseline"),
+    writerContextMode: String(diagnosticConfig.writerContextMode ?? "baseline"),
+    variantLabel: corpusRecreationVariantLabel(diagnosticConfig),
     generatedAt: String(packet.generatedAt ?? ""),
     target,
     plan,
@@ -285,8 +291,8 @@ function renderReferenceShapeBrief(shape: any | null): string {
 }
 
 function runLabel(run: ReviewRun): string {
-  const dir = run.pocDir.split(/[\\/]/u).filter(Boolean).at(-1) ?? run.plannerVariant
-  return `${run.plannerVariant} - ${dir}`
+  const dir = run.pocDir.split(/[\\/]/u).filter(Boolean).at(-1) ?? run.variantLabel
+  return `${run.variantLabel} - ${dir}`
 }
 
 function renderRun(run: ReviewRun): string {
@@ -305,7 +311,7 @@ function renderRun(run: ReviewRun): string {
         <p class="muted">${escapeHtml(run.pocDir)}</p>
       </div>
       <div class="badges">
-        ${badge("variant", run.plannerVariant)}
+        ${badge("variant", run.variantLabel)}
         ${run.runManifest ? badge("run", shortRunId(run.runManifest.runId)) : badge("run", "missing", "warn")}
         ${run.threadMap ? badge("thread map", `${run.threadMap.rowCount} rows`, run.threadMap.issueCount > 0 ? "warn" : "ok") : badge("thread map", "missing", "warn")}
         ${run.threadContext ? badge("thread context", `${run.threadContext.contextCount} scenes`, run.threadContext.issueCount > 0 ? "warn" : "ok") : badge("thread context", "missing", "warn")}
@@ -865,7 +871,7 @@ function writeManifest(output: string, args: Args, report: ReviewReport): void {
     generatedAt: report.generatedAt,
     laneId: "run-thread-id-drafting-coherence",
     phase: "corpus-recreation-review",
-    variantId: report.runs.length > 1 ? "comparison" : report.runs[0]?.plannerVariant ?? "review",
+    variantId: report.runs.length > 1 ? "comparison" : report.runs[0]?.variantLabel ?? "review",
     parentRunId: parentManifests.length === 1 ? parentManifests[0]!.runId : null,
     rootRunId: parentManifests.length === 1 ? parentManifests[0]!.rootRunId : null,
     command: {
@@ -875,7 +881,7 @@ function writeManifest(output: string, args: Args, report: ReviewReport): void {
     inputs: reviewInputRefs(args.pocDirs),
     outputs: existingArtifactRefs([{ path: output, role: "review-html" }]),
     relatedRunIds: parentManifests.map(manifest => manifest.runId),
-    discriminator: report.runs.map(run => run.plannerVariant).join("-vs-") || "review",
+    discriminator: report.runs.map(run => run.variantLabel).join("-vs-") || "review",
     metadata: {
       pocDirs: args.pocDirs,
       runCount: report.runs.length,

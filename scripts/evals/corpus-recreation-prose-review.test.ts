@@ -50,12 +50,14 @@ describe("corpus-recreation-prose-review", () => {
       }, "2026-05-09T00:00:00.000Z")
 
       expect(report.resultCount).toBe(2)
+      expect(report.variantLabel).toBe("baseline + thread-context-v1")
       expect(report.summaries).toHaveLength(2)
       expect(report.summaries[0]!.meanOrdinal).toBe(2)
       expect(report.operatorAttention).toEqual([])
 
       const rendered = renderProseReviewReport(report)
       expect(rendered).toContain("Corpus Recreation Prose Review")
+      expect(rendered).toContain("Variant: baseline + thread-context-v1")
       expect(rendered).toContain("dramatization")
       expect(rendered).toContain("DRAMA-2:1")
     } finally {
@@ -73,7 +75,7 @@ function writeFixture(root: string): void {
 function packetFixture() {
   return {
     sourceReference: { book: "crystal_shard", chapterLabel: "1" },
-    diagnosticConfig: { plannerVariant: "baseline" },
+    diagnosticConfig: { plannerVariant: "baseline", writerContextMode: "thread-context-v1" },
     originalAnalogSeed: {
       genreLane: "commercial fantasy adventure",
       premise: "A courier carries a dangerous key.",

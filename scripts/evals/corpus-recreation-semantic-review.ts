@@ -23,6 +23,7 @@ import {
   parentManifestForPocDir,
   writeRunManifest,
 } from "./run-manifest"
+import { corpusRecreationVariantLabel } from "./corpus-recreation-variant"
 
 type ModelId = "deepseek-v4-flash" | "deepseek-v4-pro"
 
@@ -43,6 +44,10 @@ interface CorpusReviewPacket {
   sourceReference?: {
     book?: string
     chapterLabel?: string
+  }
+  diagnosticConfig?: {
+    plannerVariant?: string
+    writerContextMode?: string
   }
   originalAnalogSeed: {
     conceptId: string
@@ -174,6 +179,7 @@ export interface CorpusSemanticReviewReport {
     book: string | null
     chapterLabel: string | null
   }
+  variantLabel: string
   live: boolean
   model: ModelId
   thinking: boolean
@@ -299,6 +305,7 @@ export async function buildCorpusSemanticReviewReport(args: Args, generatedAt = 
       book: packet.sourceReference?.book ?? null,
       chapterLabel: packet.sourceReference?.chapterLabel ?? null,
     },
+    variantLabel: corpusRecreationVariantLabel(packet.diagnosticConfig),
     live: args.live,
     model: args.model,
     thinking: args.thinking,
@@ -320,6 +327,7 @@ export function renderCorpusSemanticReviewReport(report: CorpusSemanticReviewRep
   lines.push(`Generated: ${report.generatedAt}`)
   lines.push(`POC: ${report.pocDir}`)
   lines.push(`Source: ${report.source.book ?? "unknown"} chapter ${report.source.chapterLabel ?? "unknown"}`)
+  lines.push(`Variant: ${report.variantLabel}`)
   lines.push(`Mode: ${report.live ? "live" : "dry"}; model=${report.model}; thinking=${report.thinking}; promptMode=${report.promptMode}`)
   lines.push("")
   lines.push("## Summary")
@@ -636,7 +644,7 @@ function writeManifest(outputDir: string, report: CorpusSemanticReviewReport, ar
     generatedAt: report.generatedAt,
     laneId: "run-thread-id-drafting-coherence",
     phase: "corpus-recreation-semantic-review",
-    variantId: String(readOptionalPlannerVariant(absPocDir) ?? "baseline"),
+    variantId: readOptionalVariantLabel(absPocDir) ?? "baseline",
     parentRunId: parent?.runId ?? null,
     rootRunId: parent?.rootRunId ?? null,
     command: {
@@ -671,9 +679,9 @@ function writeManifest(outputDir: string, report: CorpusSemanticReviewReport, ar
   }))
 }
 
-function readOptionalPlannerVariant(absPocDir: string): string | null {
+function readOptionalVariantLabel(absPocDir: string): string | null {
   const packetPath = join(absPocDir, "packet.json")
   if (!existsSync(packetPath)) return null
-  const packet = JSON.parse(readFileSync(packetPath, "utf8")) as { diagnosticConfig?: { plannerVariant?: string } }
-  return packet.diagnosticConfig?.plannerVariant ?? null
+  const packet = JSON.parse(readFileSync(packetPath, "utf8")) as { diagnosticConfig?: { plannerVariant?: string; writerContextMode?: string } }
+  return corpusRecreationVariantLabel(packet.diagnosticConfig)
 }

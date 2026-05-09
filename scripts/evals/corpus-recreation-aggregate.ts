@@ -16,6 +16,7 @@ import {
   parentManifestForPocDir,
   writeRunManifest,
 } from "./run-manifest"
+import { corpusRecreationVariantLabel } from "./corpus-recreation-variant"
 
 interface Args {
   pocDirs: string[]
@@ -99,7 +100,10 @@ export function renderCorpusRecreationAggregate(report: CorpusRecreationAggregat
   for (const row of report.rows) {
     lines.push([
       `| ${escapeCell(row.chapterLabel || "?")}`,
-      escapeCell(formatVariant(row)),
+      escapeCell(corpusRecreationVariantLabel({
+        plannerVariant: row.plannerVariant,
+        writerContextMode: row.writerContextMode,
+      })),
       formatScenes(row),
       formatWords(row),
       escapeCell(formatContract(row)),
@@ -257,12 +261,6 @@ function normalizeSummary(summary: any): DimensionSummary {
 function formatScenes(row: CorpusRecreationAggregateRow): string {
   if (row.expectedScenes === null || row.actualScenes === null) return "?"
   return `${row.actualScenes}/${row.expectedScenes}`
-}
-
-function formatVariant(row: CorpusRecreationAggregateRow): string {
-  return row.writerContextMode && row.writerContextMode !== "baseline"
-    ? `${row.plannerVariant} + ${row.writerContextMode}`
-    : row.plannerVariant
 }
 
 function formatWords(row: CorpusRecreationAggregateRow): string {

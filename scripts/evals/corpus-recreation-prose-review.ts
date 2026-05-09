@@ -17,6 +17,7 @@ import {
   parentManifestForPocDir,
   writeRunManifest,
 } from "./run-manifest"
+import { corpusRecreationVariantLabel } from "./corpus-recreation-variant"
 
 type ModelId = "deepseek-v4-flash" | "deepseek-v4-pro"
 type ProseDimension = "dramatization" | "commercialPacing" | "povVoice" | "payoffPropulsion"
@@ -47,7 +48,7 @@ interface Packet {
       truth?: string
     }
   }
-  diagnosticConfig?: { plannerVariant?: string }
+  diagnosticConfig?: { plannerVariant?: string; writerContextMode?: string }
 }
 
 interface Plan {
@@ -127,6 +128,8 @@ export interface ProseReviewReport {
     chapterLabel: string | null
   }
   plannerVariant: string
+  writerContextMode: string
+  variantLabel: string
   live: boolean
   model: ModelId
   thinking: boolean
@@ -199,6 +202,8 @@ export async function buildCorpusRecreationProseReviewReport(
       chapterLabel: packet.sourceReference?.chapterLabel ?? null,
     },
     plannerVariant: packet.diagnosticConfig?.plannerVariant ?? "baseline",
+    writerContextMode: packet.diagnosticConfig?.writerContextMode ?? "baseline",
+    variantLabel: corpusRecreationVariantLabel(packet.diagnosticConfig),
     live: args.live,
     model: args.model,
     thinking: args.thinking,
@@ -251,7 +256,7 @@ export function renderProseReviewReport(report: ProseReviewReport): string {
   lines.push(`Generated: ${report.generatedAt}`)
   lines.push(`POC dir: ${report.pocDir}`)
   lines.push(`Source: ${report.source.book ?? "unknown"} chapter ${report.source.chapterLabel ?? "?"}`)
-  lines.push(`Variant: ${report.plannerVariant}`)
+  lines.push(`Variant: ${report.variantLabel}`)
   lines.push(`Model: ${report.model}; live=${report.live}; thinking=${report.thinking}`)
   lines.push("")
   lines.push("## Summary")
@@ -619,7 +624,7 @@ function writeManifest(outputDir: string, report: ProseReviewReport, args: Args)
     generatedAt: report.generatedAt,
     laneId: "run-thread-id-drafting-coherence",
     phase: "corpus-recreation-prose-review",
-    variantId: report.plannerVariant,
+    variantId: report.variantLabel,
     parentRunId: parent?.runId ?? null,
     rootRunId: parent?.rootRunId ?? null,
     command: {
@@ -642,7 +647,7 @@ function writeManifest(outputDir: string, report: ProseReviewReport, args: Args)
       artifactRef(join(outputDir, "prose-review.md"), "prose-review-markdown"),
     ],
     relatedRunIds: parent ? [parent.runId] : [],
-    discriminator: `${report.source.book ?? "unknown"}-${report.source.chapterLabel ?? "unknown"}-${report.plannerVariant}`,
+    discriminator: `${report.source.book ?? "unknown"}-${report.source.chapterLabel ?? "unknown"}-${report.variantLabel}`,
     metadata: {
       pocDir: args.pocDir,
       live: args.live,

@@ -1,0 +1,15 @@
+import { describe, expect, test } from "bun:test"
+
+import { corpusRecreationVariantLabel } from "./corpus-recreation-variant"
+
+describe("corpus-recreation-variant", () => {
+  test("keeps baseline writer context out of the visible label", () => {
+    expect(corpusRecreationVariantLabel({ plannerVariant: "materiality-v1", writerContextMode: "baseline" })).toBe("materiality-v1")
+    expect(corpusRecreationVariantLabel({ plannerVariant: "materiality-v1" })).toBe("materiality-v1")
+  })
+
+  test("adds non-baseline writer context to the visible label", () => {
+    expect(corpusRecreationVariantLabel({ plannerVariant: "baseline", writerContextMode: "thread-context-v1" }))
+      .toBe("baseline + thread-context-v1")
+  })
+})
