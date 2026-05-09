@@ -39,7 +39,7 @@ they tag corpus beats by file offset, not novel artifacts.
 | `src/validation.ts` | `outline`, draft | legacy strings still render `Scene beat ${i+1}`; `findings[]` now carries `beatIndex` and `beatId` for validation-mode beat keyword checks | `findings[]` carries `chapterNumber` and optional `chapterId` on all findings | n/a | **Improved 2026-05-05** — additive structured findings with chapter/beat refs; legacy blocker/warning strings preserved |
 | `src/canon/recall-validation.ts` | canon fixtures | n/a (not beat-scoped) | n/a | uses namespaced `RelevantId` (`fact:` / `entity:` / `state:` / `promise:`) | Already canonical |
 | `src/canon/planner-canon-delta.ts` | enriched `outline`s | reports carry `beatId` per obligation | implicit | reports carry `factId`, `characterId`, `obligationId`, `sourceId` | Already canonical |
-| `src/harness/planning-targets.ts` | persisted artifacts | `beat_plan` ref = `beatId`; `beat_obligation` ref = `obligationId` | `chapter_outline` ref = `chapterId` | `world_fact`, `character`, `world_system`, `culture` keyed by ID | Already canonical |
+| `src/harness/planning-targets.ts` | persisted artifacts | public `scene_plan` ref = stored `beatId`/scene ID; legacy `beat_plan` remains an alias; `beat_obligation` ref = `obligationId` | `chapter_outline` ref = `chapterId` | `world_fact`, `character`, `world_system`, `culture` keyed by ID | Already canonical |
 
 ## Notes On The 2026-05-04 Mechanical Fixes
 

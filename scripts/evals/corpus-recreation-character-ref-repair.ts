@@ -65,7 +65,7 @@ interface CharacterRefRepairCandidate {
   proposalCandidate: {
     action: "field_replace"
     target: {
-      kind: "beat_plan"
+      kind: "scene_plan"
       ref: string
       fieldPath: RepairFieldPath
     }
@@ -78,7 +78,7 @@ interface CharacterRefRepairCandidate {
     match: {
       label: "CHARACTERREF-1"
       targetRef: string
-      targetKind: "beat_plan"
+      targetKind: "scene_plan"
       targetFieldPath: RepairFieldPath
     }
     decision: "field_replace"
@@ -266,7 +266,7 @@ export function buildCharacterRefRepairReport(
         proposalCandidate: {
           action: "field_replace",
           target: {
-            kind: "beat_plan",
+          kind: "scene_plan",
             ref: repair.sceneId,
             fieldPath: repair.fieldPath,
           },
@@ -279,7 +279,7 @@ export function buildCharacterRefRepairReport(
           match: {
             label: "CHARACTERREF-1",
             targetRef: repair.sceneId,
-            targetKind: "beat_plan",
+            targetKind: "scene_plan",
             targetFieldPath: repair.fieldPath,
           },
           decision: "field_replace",
@@ -370,7 +370,7 @@ export function renderCharacterRefRepairReport(report: CharacterRefRepairReport)
     for (const candidate of report.candidates) {
       lines.push(`### ${candidate.candidateId} ${candidate.chapterId}/${candidate.sceneId}`)
       lines.push("")
-      lines.push(`Target: beat_plan:${candidate.sceneId}:${candidate.fieldPath}`)
+      lines.push(`Target: scene_plan:${candidate.sceneId}:${candidate.fieldPath}`)
       lines.push(`Add: ${candidate.characterIdsToAdd.join(", ")}`)
       lines.push(`Current: ${JSON.stringify(candidate.currentValue)}`)
       lines.push(`Proposed: ${JSON.stringify(candidate.proposedValue)}`)

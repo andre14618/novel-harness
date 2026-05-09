@@ -283,11 +283,15 @@ async function handleCreatePlanningProposalFromReadiness(
         { status: 409 },
       )
     }
-    if (body.action === "beat_requirement_remove" && item.target.kind !== "beat_plan") {
+    if (
+      body.action === "beat_requirement_remove" &&
+      item.target.kind !== "beat_plan" &&
+      item.target.kind !== "scene_plan"
+    ) {
       return Response.json(
         {
           ok: false,
-          error: "beat_requirement_remove readiness proposals require a beat_plan target",
+          error: "beat_requirement_remove readiness proposals require a scene_plan or beat_plan target",
           readinessItemId: item.id,
           target: item.target,
         },
@@ -324,7 +328,7 @@ async function handleCreatePlanningProposalFromReadiness(
 
     const createUrl = new URL(`http://localhost/api/novel/${encodeURIComponent(novelId)}/planning-proposals`)
     const proposalTarget = body.action === "beat_requirement_remove"
-      ? { kind: "beat_plan" as const, ref: item.target.ref, fieldPath: "requirements" as const }
+      ? { kind: item.target.kind as "scene_plan" | "beat_plan", ref: item.target.ref, fieldPath: "requirements" as const }
       : item.target
     const planningBody = {
       action: body.action,
@@ -394,6 +398,12 @@ async function loadReadinessTargetVersions(novelId: string): Promise<Map<string,
   for (const target of map.targets) {
     if (target.kind === "chapter_outline" || target.kind === "beat_plan") {
       out.set(readinessTargetKey({ kind: target.kind, ref: target.ref }), target.currentVersion)
+      if (target.kind === "beat_plan") {
+        out.set(readinessTargetKey({ kind: "scene_plan", ref: target.ref }), target.currentVersion)
+      }
+    } else if (target.kind === "scene_plan") {
+      out.set(readinessTargetKey({ kind: target.kind, ref: target.ref }), target.currentVersion)
+      out.set(readinessTargetKey({ kind: "beat_plan", ref: target.ref }), target.currentVersion)
     }
   }
   return out
@@ -405,7 +415,7 @@ function targetVersionsForStaleness(
   const out: Array<{ targetKind: PlanReadinessTargetKind; targetRef: string; sourceHash: string }> = []
   for (const [key, sourceHash] of targetVersions.entries()) {
     const [targetKind, ...rest] = key.split(":")
-    if (targetKind !== "chapter_outline" && targetKind !== "beat_plan") continue
+    if (targetKind !== "chapter_outline" && targetKind !== "scene_plan" && targetKind !== "beat_plan") continue
     out.push({ targetKind, targetRef: rest.join(":"), sourceHash })
   }
   return out

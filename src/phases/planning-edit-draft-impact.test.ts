@@ -49,7 +49,7 @@ describe.skipIf(!reachable)("planning edit draft impact capture", () => {
       sourceTable: "proposal_envelopes",
       actorKind: "test",
       source: "plan-readiness-review",
-      targetKind: "beat_plan",
+      targetKind: "scene_plan",
       previousRef: "beat-route-1",
       nextRef: "beat-route-1",
       fieldPath: "requirements",

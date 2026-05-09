@@ -19,7 +19,7 @@ export type StructuralPlanningLineageOperation =
   | "obligation_replace"
 
 export interface StructuralPlanningMutationLineageDraft {
-  targetKind: "beat_plan" | "beat_obligation"
+  targetKind: "scene_plan" | "beat_obligation"
   previousRef: string
   nextRef: string
   fieldPath: string
@@ -113,19 +113,19 @@ function buildBeatReorderDraft(
   nextOutline: ChapterOutline,
 ): StructuralPlanningMutationLineageDraft {
   return {
-    targetKind: "beat_plan",
+    targetKind: "scene_plan",
     previousRef: previous.beatId,
     nextRef: next.beatId,
     fieldPath: "scenes",
     previousVersion: structuralLocationVersion({
-      targetKind: "beat_plan",
+      targetKind: "scene_plan",
       ref: previous.beatId,
       chapterId: previousOutline.chapterId,
       chapterNumber: previousOutline.chapterNumber,
       index: previous.index,
     }),
     nextVersion: structuralLocationVersion({
-      targetKind: "beat_plan",
+      targetKind: "scene_plan",
       ref: next.beatId,
       chapterId: nextOutline.chapterId,
       chapterNumber: nextOutline.chapterNumber,
@@ -150,7 +150,7 @@ function buildBeatReplaceDraft(
   nextOutline: ChapterOutline,
 ): StructuralPlanningMutationLineageDraft {
   return {
-    targetKind: "beat_plan",
+    targetKind: "scene_plan",
     previousRef: previous.beatId,
     nextRef: next.beatId,
     fieldPath: "scenes",

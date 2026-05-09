@@ -184,7 +184,7 @@ describe.skipIf(!reachable)("handlePlanningProposalRoute (DB-backed)", () => {
       {
         action: "beat_requirement_remove",
         target: {
-          kind: "beat_plan",
+          kind: "scene_plan",
           ref: "beat-route-1",
           fieldPath: "requirements",
         },
@@ -223,7 +223,7 @@ describe.skipIf(!reachable)("handlePlanningProposalRoute (DB-backed)", () => {
       {
         action: "beat_requirement_remove",
         target: {
-          kind: "beat_plan",
+          kind: "scene_plan",
           ref: "beat-route-1",
           fieldPath: "requirements",
         },
@@ -242,7 +242,7 @@ describe.skipIf(!reachable)("handlePlanningProposalRoute (DB-backed)", () => {
       {
         action: "beat_requirement_remove",
         target: {
-          kind: "beat_plan",
+          kind: "scene_plan",
           ref: "beat-route-1",
           fieldPath: "requirements",
         },

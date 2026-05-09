@@ -211,7 +211,7 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
     expect(created.body.ok).toBe(true)
     expect(created.body.proposal.envelope.payload.action).toBe("beat_requirement_remove")
     expect(created.body.proposal.envelope.target).toMatchObject({
-      kind: "beat_plan",
+      kind: "scene_plan",
       ref: "beat-route-1",
       fieldPath: "requirements",
     })
@@ -231,7 +231,7 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
     ))
     const itemId = imported.body.items[0].id
     expect(imported.body.items[0].target).toMatchObject({
-      kind: "beat_plan",
+      kind: "scene_plan",
       ref: "beat-route-1",
       fieldPath: "requiredCharacterIds",
     })
@@ -247,7 +247,7 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
 
     expect(created.status).toBe(200)
     expect(created.body.proposal.envelope.target).toMatchObject({
-      kind: "beat_plan",
+      kind: "scene_plan",
       ref: "beat-route-1",
       fieldPath: "requiredCharacterIds",
     })
@@ -421,7 +421,7 @@ function aggregate() {
           },
           proposalCandidate: {
             target: {
-              kind: "beat_plan",
+              kind: "scene_plan",
               ref: "beat-route-1",
               fieldPath: "description",
             },
@@ -484,7 +484,7 @@ function characterRefAggregate(fieldPath: "requiredCharacterIds" | "affectedChar
           proposalCandidate: {
             action: "field_replace",
             target: {
-              kind: "beat_plan",
+              kind: "scene_plan",
               ref: "beat-route-1",
               fieldPath,
             },

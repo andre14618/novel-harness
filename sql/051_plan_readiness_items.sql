@@ -7,7 +7,7 @@
 CREATE TABLE IF NOT EXISTS plan_readiness_items (
   id TEXT PRIMARY KEY,
   novel_id TEXT NOT NULL,
-  target_kind TEXT NOT NULL CHECK (target_kind IN ('chapter_outline', 'beat_plan')),
+  target_kind TEXT NOT NULL CHECK (target_kind IN ('chapter_outline', 'scene_plan', 'beat_plan')),
   target_ref TEXT NOT NULL,
   target_field_path TEXT,
   source_hash TEXT NOT NULL,

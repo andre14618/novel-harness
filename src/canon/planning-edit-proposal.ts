@@ -159,6 +159,11 @@ export const planningEditTargetSchema = z.discriminatedUnion("kind", [
     fieldPath: chapterOutlinePlanningEditFieldSchema,
   }),
   z.object({
+    kind: z.literal("scene_plan"),
+    ref: z.string().min(1),
+    fieldPath: beatPlanPlanningEditFieldSchema,
+  }),
+  z.object({
     kind: z.literal("beat_plan"),
     ref: z.string().min(1),
     fieldPath: beatPlanPlanningEditFieldSchema,
@@ -197,7 +202,7 @@ export const beatObligationReorderPlanningEditTargetSchema = z.object({
 })
 
 export const beatRequirementRemovePlanningEditTargetSchema = z.object({
-  kind: z.literal("beat_plan"),
+  kind: z.enum(["scene_plan", "beat_plan"]),
   ref: z.string().min(1),
   fieldPath: z.literal("requirements"),
 })
@@ -451,9 +456,16 @@ export function planningEditTargetsSameArtifact(
 ): boolean {
   return (
     a.action === b.action &&
-    a.target.kind === b.target.kind &&
+    planningEditTargetKindsSameArtifact(a.target.kind, b.target.kind) &&
     a.target.ref === b.target.ref &&
     (a.target.fieldPath ?? "") === (b.target.fieldPath ?? "")
+  )
+}
+
+function planningEditTargetKindsSameArtifact(a: string, b: string): boolean {
+  return (
+    a === b ||
+    ((a === "scene_plan" || a === "beat_plan") && (b === "scene_plan" || b === "beat_plan"))
   )
 }
 
@@ -488,7 +500,7 @@ export function validatePlanningEditActionTarget(
   }
   return beatRequirementRemovePlanningEditTargetSchema.safeParse(target).success
     ? null
-    : "beat_requirement_remove requires target kind=beat_plan fieldPath=requirements"
+    : "beat_requirement_remove requires target kind=scene_plan or beat_plan fieldPath=requirements"
 }
 
 export function validatePlanningEditProposedValue(

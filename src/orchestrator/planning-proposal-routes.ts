@@ -162,6 +162,7 @@ const OBLIGATION_LIST_KEYS = [
 type ObligationListKey = (typeof OBLIGATION_LIST_KEYS)[number]
 type EditableSourceKind = "fact" | "knowledge" | "state" | "payoff"
 type SceneBeatInOutline = NonNullable<ChapterOutline["scenes"]>[number]
+type ScenePlanTargetKind = "scene_plan" | "beat_plan"
 
 interface ObligationSourceLink {
   sourceId: string
@@ -729,7 +730,7 @@ async function loadPlanningEditTargetState(
       previousValue: readChapterOutlineField(outline, target.fieldPath as ChapterOutlinePlanningEditField),
     }
   }
-  if (target.kind === "beat_plan") {
+  if (isScenePlanTargetKind(target.kind)) {
     const stored = await getChapterOutlineByBeatId(novelId, target.ref, opts)
     if (!stored) return null
     const outline = normalizeChapterOutlineForPersistence(stored.outline)
@@ -802,7 +803,7 @@ function applyPlanningEditField(
     ;(next as Record<string, unknown>)[target.fieldPath as ChapterOutlinePlanningEditField] = value
     return normalizeChapterOutlineForPersistence(next)
   }
-  if (target.kind === "beat_plan") {
+  if (isScenePlanTargetKind(target.kind)) {
     const beat = findBeat(next, target.ref)
     if (!beat) return normalizeChapterOutlineForPersistence(next)
     ;(beat as Record<string, unknown>)[target.fieldPath as BeatPlanPlanningEditField] = value
@@ -877,6 +878,10 @@ function applyPlanningStructuralEdit(
     return normalizeChapterOutlineForPersistence(next)
   }
   return next
+}
+
+function isScenePlanTargetKind(kind: string): kind is ScenePlanTargetKind {
+  return kind === "scene_plan" || kind === "beat_plan"
 }
 
 async function applyResolvedPlanningEdit(args: {

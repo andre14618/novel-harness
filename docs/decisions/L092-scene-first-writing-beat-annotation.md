@@ -48,6 +48,9 @@ level.
 
 - New planning experiments should prefer chapter contracts and scene contracts
   before prose.
+- New proposal/readiness surfaces should name scene-level planning targets as
+  `scene_plan`. Legacy `beat_plan` remains a storage/API compatibility alias
+  for already-persisted outlines and older proposal envelopes.
 - A scene contract should name goal/objective, opposition, turning point or
   value shift, crisis/choice, outcome, consequence, and required obligation
   refs.
@@ -84,6 +87,8 @@ more useful than whole-chapter writing.
 ## Non-Goals
 
 - Do not remove legacy beat IDs or beat-level checker compatibility.
+- Do not rename persisted `beatId`, `SceneBeat`, `ChapterOutline.scenes`, or
+  structural action names in the same slice as the public target alias.
 - Do not promote corpus-recreation POC behavior into production runtime yet.
 - Do not use corpus structural fit as proof of story quality.
 - Do not overfit new checkers before testing the existing semantic judge

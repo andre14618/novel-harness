@@ -11,7 +11,7 @@ describe("plan readiness aggregate import", () => {
       novelId: "novel-1",
       aggregate: aggregate(),
       targetVersions: {
-        "beat_plan:scn-001-01": "a".repeat(64),
+        "scene_plan:scn-001-01": "a".repeat(64),
       },
       importedByKind: "test",
       importedByRef: "unit",
@@ -24,7 +24,7 @@ describe("plan readiness aggregate import", () => {
     const first = result.drafts[0]!
     expect(first.id).toMatch(/^readiness-[0-9a-f]{32}$/)
     expect(first.target).toEqual({
-      kind: "beat_plan",
+      kind: "scene_plan",
       ref: "scn-001-01",
       fieldPath: "description",
     })
@@ -69,6 +69,7 @@ describe("plan readiness aggregate import", () => {
 
   test("formats target keys for target-version lookup", () => {
     expect(readinessTargetKey({ kind: "chapter_outline", ref: "ch-001" })).toBe("chapter_outline:ch-001")
+    expect(readinessTargetKey({ kind: "scene_plan", ref: "scn-001-01" })).toBe("scene_plan:scn-001-01")
   })
 })
 
@@ -101,7 +102,7 @@ function aggregate() {
           },
           proposalCandidate: {
             target: {
-              kind: "beat_plan",
+              kind: "scene_plan",
               ref: "scn-001-01",
               fieldPath: "description",
             },

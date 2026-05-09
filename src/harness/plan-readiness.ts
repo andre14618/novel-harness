@@ -24,7 +24,7 @@ export const PLAN_READINESS_IMPORTER_KINDS = ["human", "agent", "script", "test"
 export type PlanReadinessStatus = (typeof PLAN_READINESS_STATUSES)[number]
 export type PlanReadinessOperatorDisposition = (typeof PLAN_READINESS_OPERATOR_DISPOSITIONS)[number]
 export type PlanReadinessImporterKind = (typeof PLAN_READINESS_IMPORTER_KINDS)[number]
-export type PlanReadinessTargetKind = "chapter_outline" | "beat_plan"
+export type PlanReadinessTargetKind = "chapter_outline" | "scene_plan" | "beat_plan"
 export type PlanReadinessSourceHashKind = "target_current_version" | "diagnostic_excerpt"
 export type PlanReadinessSeverity = "high" | "medium" | "low" | "info"
 
@@ -234,7 +234,7 @@ function extractTarget(group: AggregateGroupLike): PlanReadinessTarget | null {
   const rawTarget = asRecord(candidate?.target)
   const kind = stringValue(rawTarget?.kind)
   const ref = stringValue(rawTarget?.ref)
-  if ((kind !== "chapter_outline" && kind !== "beat_plan") || !ref) return null
+  if ((kind !== "chapter_outline" && kind !== "scene_plan" && kind !== "beat_plan") || !ref) return null
   const fieldPath = stringValue(rawTarget?.fieldPath)
   return {
     kind,

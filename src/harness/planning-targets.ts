@@ -39,6 +39,7 @@ export const PLANNING_TARGET_KINDS = [
   "character",
   "story_spine",
   "chapter_outline",
+  "scene_plan",
   "beat_plan",
   "beat_obligation",
 ] as const
@@ -176,10 +177,19 @@ export async function previewPlanningImpact(
   }
 
   const targetRefs = impactTargetRefs(target)
-  const relatedProposalEnvelopes = await listProposalEnvelopeTargetSummaries(novelId, {
-    kind: target.kind,
-    ref: target.ref,
-  })
+  const relatedProposalEnvelopes = []
+  const seenProposalIds = new Set<string>()
+  for (const kind of planningTargetKindAliasesForLookup(requested.kind)) {
+    const summaries = await listProposalEnvelopeTargetSummaries(novelId, {
+      kind,
+      ref: target.ref,
+    })
+    for (const summary of summaries) {
+      if (seenProposalIds.has(summary.id)) continue
+      seenProposalIds.add(summary.id)
+      relatedProposalEnvelopes.push(summary)
+    }
+  }
   const relatedResolutionImpacts = await listProposalResolutionImpactsByTargetRefs(novelId, targetRefs)
   const relatedMutationLineage = await listPlanningMutationLineageForRefs(novelId, targetRefs)
 
@@ -429,9 +439,9 @@ export function buildPlanningTargetMap(artifacts: PlanningArtifacts): PlanningTa
     for (let beatIndex = 0; beatIndex < (outline.scenes ?? []).length; beatIndex++) {
       const beat = outline.scenes[beatIndex]
       const beatTarget: PlanningTarget = {
-        kind: "beat_plan",
+        kind: "scene_plan",
         ref: beat.beatId ?? `${outlineTarget.ref}-beat-${beatIndex + 1}`,
-        label: `Chapter ${outline.chapterNumber}, beat ${beatIndex + 1}`,
+        label: `Chapter ${outline.chapterNumber}, scene ${beatIndex + 1}`,
         fieldPaths: objectFieldPaths(beat).filter((path) => path !== "beatId"),
         currentVersion: stableHash(beat),
         inSnapshot: true,
@@ -463,7 +473,7 @@ export function buildPlanningTargetMap(artifacts: PlanningArtifacts): PlanningTa
         const obligationTarget: PlanningTarget = {
           kind: "beat_obligation",
           ref: obligationId,
-          label: `Chapter ${outline.chapterNumber}, beat ${beatIndex + 1} ${key}`,
+          label: `Chapter ${outline.chapterNumber}, scene ${beatIndex + 1} ${key}`,
           fieldPaths: ["text", "sourceId", "sourceKind", "characterId", "sourceLink"],
           currentVersion: stableHash(item),
           inSnapshot: true,
@@ -474,7 +484,7 @@ export function buildPlanningTargetMap(artifacts: PlanningArtifacts): PlanningTa
             beatId: beat.beatId,
           },
           upstreamRefs: [
-            { kind: "beat_plan", ref: beatTarget.ref },
+            { kind: "scene_plan", ref: beatTarget.ref },
             ...sourceRefForObligation(item),
           ],
           validationFindings: [],
@@ -536,9 +546,9 @@ function buildDeterministicImpacts(
   }
 
   for (const candidate of targetMap.targets) {
-    if (candidate.kind === target.kind && candidate.ref === target.ref) continue
+    if (planningTargetRefsSameArtifact(candidate, target)) continue
     const referenced = candidate.upstreamRefs.some(
-      (ref) => ref.kind === target.kind && ref.ref === target.ref,
+      (ref) => planningTargetRefsSameArtifact(ref, target),
     )
     if (!referenced) continue
     impacts.push({
@@ -559,6 +569,8 @@ function impactKindForCandidate(kind: PlanningTargetKind): PlanningImpactKind {
       return "chapter_reference"
     case "beat_plan":
       return "beat_reference"
+    case "scene_plan":
+      return "beat_reference"
     case "beat_obligation":
       return "obligation_reference"
     default:
@@ -570,11 +582,43 @@ function findTarget(
   targets: readonly PlanningTarget[],
   requested: PlanningTargetRef,
 ): PlanningTarget | null {
-  return targets.find((target) =>
-    target.kind === requested.kind &&
-    target.ref === requested.ref &&
-    (requested.fieldPath === undefined || target.fieldPaths.includes(requested.fieldPath))
+  const target = targets.find((candidate) =>
+    planningTargetKindsSameArtifact(candidate.kind, requested.kind) &&
+    candidate.ref === requested.ref &&
+    (requested.fieldPath === undefined || candidate.fieldPaths.includes(requested.fieldPath))
   ) ?? null
+  if (!target) return null
+  if (requested.kind === "scene_plan" && target.kind === "beat_plan") {
+    return {
+      ...target,
+      kind: "scene_plan",
+      label: target.label.replace(/\bbeat\b/iu, "scene"),
+      upstreamRefs: target.upstreamRefs.map((ref) =>
+        ref.kind === "beat_plan" && ref.ref === target.ref
+          ? { ...ref, kind: "scene_plan" as const }
+          : ref
+      ),
+    }
+  }
+  return target
+}
+
+function planningTargetRefsSameArtifact(
+  a: Pick<PlanningTargetRef, "kind" | "ref">,
+  b: Pick<PlanningTargetRef, "kind" | "ref">,
+): boolean {
+  return planningTargetKindsSameArtifact(a.kind, b.kind) && a.ref === b.ref
+}
+
+function planningTargetKindsSameArtifact(a: string, b: string): boolean {
+  return a === b ||
+    ((a === "scene_plan" || a === "beat_plan") && (b === "scene_plan" || b === "beat_plan"))
+}
+
+function planningTargetKindAliasesForLookup(kind: string): string[] {
+  if (kind === "scene_plan") return ["scene_plan", "beat_plan"]
+  if (kind === "beat_plan") return ["beat_plan", "scene_plan"]
+  return [kind]
 }
 
 function compareTargets(a: PlanningTarget, b: PlanningTarget): number {
@@ -712,6 +756,10 @@ function impactTargetRefs(target: PlanningTarget): string[] {
       return [target.ref, "world_bible"]
     case "story_spine":
       return [target.ref, "story_spine"]
+    case "scene_plan":
+      return [target.ref, `scene_plan:${target.ref}`, `beat_plan:${target.ref}`]
+    case "beat_plan":
+      return [target.ref, `beat_plan:${target.ref}`, `scene_plan:${target.ref}`]
     default:
       return [target.ref, `${target.kind}:${target.ref}`]
   }

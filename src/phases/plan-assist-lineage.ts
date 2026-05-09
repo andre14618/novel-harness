@@ -169,7 +169,7 @@ function outlineBeatRefs(outline: ChapterOutline, reason: string): PlanningMutat
   return (outline.scenes ?? [])
     .map((beat) => beat.beatId)
     .filter((ref): ref is string => typeof ref === "string" && ref.length > 0)
-    .map((ref) => ({ kind: "beat_plan", ref, reason }))
+    .map((ref) => ({ kind: "scene_plan", ref, reason }))
 }
 
 function beatIds(outline: ChapterOutline): string[] {

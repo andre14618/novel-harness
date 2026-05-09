@@ -92,7 +92,7 @@ describe.skipIf(!reachable)("handlePlanningTargetRoute (DB-backed)", () => {
         `story_spine:${novelId}`,
         "character:char-istra",
         "chapter_outline:ch-001-ledger-test",
-        "beat_plan:ch-001-ledger-test-beat-001-ledger-breaks",
+        "scene_plan:ch-001-ledger-test-beat-001-ledger-breaks",
         "beat_obligation:obl-ledger-fact",
         "world_fact:fact-ledger-forgery",
         "planning_directive:tonalAnchors",
@@ -110,6 +110,17 @@ describe.skipIf(!reachable)("handlePlanningTargetRoute (DB-backed)", () => {
     expect(body.target.kind).toBe("character")
     expect(body.target.ref).toBe("char-istra")
     expect(body.target.currentVersion).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  test("GET /planning-targets/:kind/:ref accepts legacy beat_plan alias", async () => {
+    const { status, body } = await expectJson(
+      await invoke("GET", `/api/novel/${novelId}/planning-targets/beat_plan/ch-001-ledger-test-beat-001-ledger-breaks`),
+    )
+
+    expect(status).toBe(200)
+    expect(body.ok).toBe(true)
+    expect(body.target.kind).toBe("scene_plan")
+    expect(body.target.ref).toBe("ch-001-ledger-test-beat-001-ledger-breaks")
   })
 
   test("POST /planning-impact/preview returns deterministic downstream references", async () => {

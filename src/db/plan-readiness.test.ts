@@ -96,7 +96,7 @@ describe.skipIf(!reachable)("plan readiness persistence", () => {
     })
 
     const stale = await markStalePlanReadinessItems(novelId, [{
-      targetKind: "beat_plan",
+      targetKind: "scene_plan",
       targetRef: "scn-001-01",
       sourceHash: "b".repeat(64),
     }])
@@ -111,7 +111,7 @@ function draft(overrides: Partial<PlanReadinessItemDraft> = {}): PlanReadinessIt
     id: "readiness-test",
     novelId,
     target: {
-      kind: "beat_plan",
+      kind: "scene_plan",
       ref: "scn-001-01",
       fieldPath: "description",
     },

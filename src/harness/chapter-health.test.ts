@@ -34,7 +34,7 @@ describe("buildChapterHealthReport", () => {
     }))
     expect(beatFinding?.refs).toEqual(expect.arrayContaining([
       { kind: "chapter_outline", ref: "ch-001-ledger-test" },
-      { kind: "beat_plan", ref: "beat-ledger-verdict" },
+      { kind: "scene_plan", ref: "beat-ledger-verdict" },
     ]))
     expect(beatFinding?.stableSource).toEqual(expect.objectContaining({
       kind: "computed",

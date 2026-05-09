@@ -58,7 +58,7 @@ describe("buildPlanningTargetMap", () => {
         "character:char-istra",
         "story_spine:target-map-test",
         "chapter_outline:ch-001-ledger-test",
-        "beat_plan:ch-001-ledger-test-beat-001-ledger-breaks",
+        "scene_plan:ch-001-ledger-test-beat-001-ledger-breaks",
         "beat_obligation:obl-ledger-fact",
         "world_fact:fact-ledger-forgery",
         "world_system:system-bells",
@@ -69,7 +69,7 @@ describe("buildPlanningTargetMap", () => {
     )
 
     const beat = map.targets.find((target) =>
-      target.kind === "beat_plan" &&
+      target.kind === "scene_plan" &&
       target.ref === "ch-001-ledger-test-beat-001-ledger-breaks"
     )
     expect(beat?.upstreamRefs).toEqual(

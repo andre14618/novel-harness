@@ -37,7 +37,7 @@ that the review was bypassed.
 Persisted readiness items should capture:
 
 - `novelId`
-- `targetKind`: `chapter_outline` or `beat_plan`
+- `targetKind`: `chapter_outline`, `scene_plan`, or legacy `beat_plan`
 - `targetRef`: durable chapter or scene ID
 - `sourceHash`: current target hash used for staleness
 - `diagnosticLabel`: for example `REL-1`, `MATERIAL-1`, `WFACT-1`
@@ -100,8 +100,9 @@ Current bridge route:
 This route creates a manual `planning_edit` proposal only for open/deferred
 items, only when the readiness target hash is current, and only when the
 operator supplies a replacement value. It supports replacement-value edits and
-`beat_requirement_remove` edits for exact `requiredCharacterIds` /
-`requiredWorldFactIds` removal from a beat contract.
+  `beat_requirement_remove` edits for exact `requiredCharacterIds` /
+  `requiredWorldFactIds` removal from a scene contract. The structural action
+  name is legacy; new readiness inputs should use `scene_plan` targets.
 
 Current attribution route:
 

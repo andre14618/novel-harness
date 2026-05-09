@@ -92,7 +92,7 @@ describe("plan-assist planning lineage", () => {
         planAssistKind: "plan-check-exhausted",
       },
     })
-    expect(lineage.affectedDownstreamRefs.map((ref) => ref.kind)).toContain("beat_plan")
+    expect(lineage.affectedDownstreamRefs.map((ref) => ref.kind)).toContain("scene_plan")
   })
 
   test("builds chapter_exhaustions-sourced lineage for override", () => {

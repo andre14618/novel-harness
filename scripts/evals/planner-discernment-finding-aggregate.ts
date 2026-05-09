@@ -37,7 +37,7 @@ interface SourceIds {
 interface ProposalCandidate {
   action: "field_replace"
   target: {
-    kind: "beat_plan" | "chapter_outline"
+    kind: "scene_plan" | "beat_plan" | "chapter_outline"
     ref: string
     fieldPath: "description" | "purpose"
   }
@@ -245,7 +245,7 @@ function proposalCandidateFor(sceneId: string | null, chapterId: string): Propos
   if (sceneId) {
     return {
       action: "field_replace",
-      target: { kind: "beat_plan", ref: sceneId, fieldPath: "description" },
+      target: { kind: "scene_plan", ref: sceneId, fieldPath: "description" },
       requiresProposedValue: true,
       proposedValueStatus: "semantic_rewrite_required",
       safeToAutoApply: false,

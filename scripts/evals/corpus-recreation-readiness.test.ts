@@ -97,7 +97,7 @@ describe("corpus-recreation-readiness", () => {
         rewritePacket: {
           proposalCandidate: {
             target: {
-              kind: "beat_plan",
+              kind: "scene_plan",
               ref: "analog-ch02-sc01",
               fieldPath: "description",
             },
@@ -111,6 +111,7 @@ describe("corpus-recreation-readiness", () => {
         aggregate,
       })
       expect(readiness.drafts).toHaveLength(1)
+      expect(readiness.drafts[0]!.target.kind).toBe("scene_plan")
       expect(readiness.drafts[0]!.target.ref).toBe("analog-ch02-sc01")
       expect(readiness.drafts[0]!.preserveIds.worldFactIds).toEqual(["world-aurora-bells"])
       expect(readiness.drafts[0]!.preserveIds.sceneTurnIds).toEqual(["turn-ch02-ward-crossing"])
@@ -119,6 +120,7 @@ describe("corpus-recreation-readiness", () => {
       expect(readiness.drafts[0]!.preserveIds.payoffIds).toEqual(["payoff-key-cost-exposure"])
 
       const rendered = renderCorpusRecreationReadinessAggregate(aggregate)
+      expect(rendered).toContain("Target: scene_plan:analog-ch02-sc01:description")
       expect(rendered).toContain("Should this world fact actively constrain choice/outcome here")
       expect(rendered).toContain("WFACT-1 worldFactPressure")
     } finally {

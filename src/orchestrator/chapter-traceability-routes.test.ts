@@ -111,7 +111,7 @@ describe.skipIf(!reachable)("handleChapterTraceabilityRoute (DB-backed)", () => 
     expect(body.beats[0].beatId).toBe("beat-ledger-verdict")
     expect(body.beats[0].llmCalls[0].linkEvidence).toBe("beat_id")
     expect(body.beats[0].traceEvents[0].refs).toEqual(expect.arrayContaining([
-      { kind: "beat_plan", ref: "beat-ledger-verdict" },
+      { kind: "scene_plan", ref: "beat-ledger-verdict" },
       { kind: "beat_obligation", ref: "obl-ledger-fact" },
     ]))
   })

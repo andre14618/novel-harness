@@ -372,7 +372,7 @@ The finding aggregate is the first deterministic bridge from diagnostics toward
 plan rewrite. It groups selected labels by planning target and emits a
 rewrite packet:
 
-- target: scene `beat_plan.description` when `sceneId` exists, otherwise
+- target: scene `scene_plan.description` when `sceneId` exists, otherwise
   chapter `chapter_outline.purpose`;
 - fix intents: deterministic routing such as material-character pressure,
   operational-world-fact pressure, relationship delta, motivation sharpening,

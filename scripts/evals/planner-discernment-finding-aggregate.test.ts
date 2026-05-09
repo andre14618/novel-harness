@@ -31,7 +31,7 @@ describe("planner-discernment-finding-aggregate", () => {
     expect(sceneGroup!.sourceIds.characterIds).toEqual(["char-hero", "char-rival"])
     expect(sceneGroup!.sourceIds.worldFactIds).toEqual(["world-oath-road"])
     expect(sceneGroup!.rewritePacket.proposalCandidate).toMatchObject({
-      target: { kind: "beat_plan", ref: "scn-001-01", fieldPath: "description" },
+      target: { kind: "scene_plan", ref: "scn-001-01", fieldPath: "description" },
       requiresProposedValue: true,
       proposedValueStatus: "semantic_rewrite_required",
       safeToAutoApply: false,

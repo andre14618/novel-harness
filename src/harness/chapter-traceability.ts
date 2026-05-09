@@ -314,10 +314,7 @@ export function buildChapterTraceabilityReport(
   const sourceRegistryBase = buildSourceRegistry(outline)
   const sourceKeys = new Set(sourceRegistryBase.map((item) => sourceKey(item.kind, item.ref)))
   const sourceKindById = new Map(sourceRegistryBase.map((item) => [item.ref, item.kind]))
-  const targetLabels = new Map(args.targetMap.targets.map((target) => [
-    `${target.kind}:${target.ref}`,
-    target.label,
-  ]))
+  const targetLabels = buildTargetLabelMap(args.targetMap.targets)
   const evidenceIndex = buildEvidenceIndex(args)
   const chapterEvidence = evidenceForRefs(chapterEvidenceRefs(chapterRef, outline.chapterNumber, targetLabels), evidenceIndex)
   const sourceRegistry = sourceRegistryBase.map((item) => ({
@@ -332,13 +329,13 @@ export function buildChapterTraceabilityReport(
     const beatId = beat.beatId
     const refs = [
       ref("chapter_outline", chapterRef, targetLabels),
-      ...(beatId ? [ref("beat_plan", beatId, targetLabels)] : []),
+      ...(beatId ? [ref("scene_plan", beatId, targetLabels)] : []),
     ]
     const obligations = collectTraceableObligations(beat, sourceKeys, targetLabels, evidenceIndex)
     const llmCalls = callsForBeat(callsByBeat, beatIndex, beatId).map((call) => mapCall(call, sourceKindById))
     const traceEvents = eventsForBeat(eventsByBeat, beatIndex, beatId).map((event) => mapEvent(event, sourceKindById))
     const proposalEvidence = evidenceForRefs(
-      beatId ? [ref("beat_plan", beatId, targetLabels)] : [],
+      beatId ? [ref("scene_plan", beatId, targetLabels)] : [],
       evidenceIndex,
     )
 
@@ -616,7 +613,7 @@ function collectReportEvidenceRefs(outlineInput: ChapterOutline): ChapterTraceab
     refs.push({ kind: item.kind, ref: item.ref })
   }
   for (const beat of outline.scenes ?? []) {
-    if (beat.beatId) refs.push({ kind: "beat_plan", ref: beat.beatId })
+    if (beat.beatId) refs.push({ kind: "scene_plan", ref: beat.beatId })
     forEachObligation(beat.obligations, (item) => {
       refs.push(...obligationEvidenceRefs(item))
     })
@@ -672,7 +669,7 @@ function buildEvidenceIndex(args: BuildChapterTraceabilityReportArgs): EvidenceI
       ? proposal.targetRefs
       : [{ kind: proposal.targetKind, ref: proposal.targetRef }]
     for (const target of dedupeRefs(refs)) {
-      addGrouped(proposalEnvelopesByRef, [refKey(target)], proposal)
+      addGrouped(proposalEnvelopesByRef, traceabilityRefKeysWithAliases(target), proposal)
     }
   }
 
@@ -689,9 +686,9 @@ function buildEvidenceIndex(args: BuildChapterTraceabilityReportArgs): EvidenceI
   const mutationLineageByRef = new Map<string, ChapterTraceabilityMutationLineageInput[]>()
   for (const lineage of args.mutationLineage ?? []) {
     const keys = [
-      `${lineage.targetKind}:${lineage.previousRef}`,
-      `${lineage.targetKind}:${lineage.nextRef}`,
-      ...(lineage.affectedDownstreamRefs ?? []).map(refKey),
+      ...traceabilityRefKeysWithAliases({ kind: lineage.targetKind, ref: lineage.previousRef }),
+      ...traceabilityRefKeysWithAliases({ kind: lineage.targetKind, ref: lineage.nextRef }),
+      ...(lineage.affectedDownstreamRefs ?? []).flatMap(traceabilityRefKeysWithAliases),
     ]
     addGrouped(mutationLineageByRef, [...new Set(keys)], lineage)
   }
@@ -981,7 +978,7 @@ function refsFromMeta(
   const value = meta as Record<string, unknown>
   const refs: ChapterTraceabilityRef[] = []
   if (typeof value.chapterId === "string") refs.push({ kind: "chapter_outline", ref: value.chapterId })
-  if (typeof value.beatId === "string") refs.push({ kind: "beat_plan", ref: value.beatId })
+  if (typeof value.beatId === "string") refs.push({ kind: "scene_plan", ref: value.beatId })
   for (const id of stringArray(value.obligationIds)) refs.push({ kind: "beat_obligation", ref: id })
   for (const id of stringArray(value.sourceIds)) {
     refs.push({ kind: "source", ref: id })
@@ -1015,8 +1012,8 @@ function proposalRefsFromPayload(payload: unknown): ChapterTraceabilityRef[] {
   const refs: ChapterTraceabilityRef[] = []
   addChapterPayloadRef(refs, readString(root.chapterRef))
   addChapterPayloadRef(refs, readString(target?.chapterRef))
-  addPayloadRef(refs, "beat_plan", readString(root.beatRef))
-  addPayloadRef(refs, "beat_plan", readString(target?.beatRef))
+  addPayloadRef(refs, "scene_plan", readString(root.beatRef))
+  addPayloadRef(refs, "scene_plan", readString(target?.beatRef))
   addPayloadRef(refs, "beat_obligation", readString(root.obligationId))
   addPayloadRef(refs, "beat_obligation", readString(target?.obligationId))
   addPayloadRef(refs, "character", readString(root.characterId))
@@ -1168,8 +1165,24 @@ function ref(
   return { kind, ref: value, ...(labels?.get(`${kind}:${value}`) ? { label: labels.get(`${kind}:${value}`) } : {}) }
 }
 
+function buildTargetLabelMap(targets: PlanningTargetMap["targets"]): Map<string, string> {
+  const labels = new Map<string, string>()
+  for (const target of targets) {
+    labels.set(`${target.kind}:${target.ref}`, target.label)
+    if (target.kind === "scene_plan") labels.set(`beat_plan:${target.ref}`, target.label)
+    if (target.kind === "beat_plan") labels.set(`scene_plan:${target.ref}`, target.label.replace(/\bbeat\b/iu, "scene"))
+  }
+  return labels
+}
+
 function refKey(item: Pick<ChapterTraceabilityRef, "kind" | "ref">): string {
   return `${item.kind}:${item.ref}`
+}
+
+function traceabilityRefKeysWithAliases(item: Pick<ChapterTraceabilityRef, "kind" | "ref">): string[] {
+  if (item.kind === "scene_plan") return [`scene_plan:${item.ref}`, `beat_plan:${item.ref}`]
+  if (item.kind === "beat_plan") return [`beat_plan:${item.ref}`, `scene_plan:${item.ref}`]
+  return [refKey(item)]
 }
 
 function sourceKey(kind: string, value: string): string {

@@ -74,7 +74,7 @@ interface CorpusReadinessGroup {
     proposalCandidate: {
       action: "field_replace"
       target: {
-        kind: "beat_plan"
+        kind: "scene_plan"
         ref: string
         fieldPath: "description"
       }
@@ -210,7 +210,7 @@ export function renderCorpusRecreationReadinessAggregate(report: CorpusReadiness
   for (const group of report.groups) {
     lines.push(`## ${group.groupId} ${group.highestSeverity.toUpperCase()} ${group.chapterId}/${group.sceneId}`)
     lines.push("")
-    lines.push(`Target: beat_plan:${group.sceneId}:description`)
+    lines.push(`Target: scene_plan:${group.sceneId}:description`)
     lines.push(`Dimensions: ${group.dimensions.join(", ")}`)
     lines.push(`Fix intents: ${group.fixIntents.join(", ")}`)
     lines.push(`Preserve obligations: ${group.sourceIds.obligationIds.join(", ") || "none"}`)
@@ -289,7 +289,7 @@ function toGroup(args: {
       proposalCandidate: {
         action: "field_replace",
         target: {
-          kind: "beat_plan",
+          kind: "scene_plan",
           ref: sceneId,
           fieldPath: "description",
         },
@@ -396,7 +396,7 @@ function threadRefGroupsFromPlanComparison(args: {
         proposalCandidate: {
           action: "field_replace",
           target: {
-            kind: "beat_plan",
+            kind: "scene_plan",
             ref: sceneId,
             fieldPath: "description",
           },
@@ -533,7 +533,7 @@ function characterRefGroupsFromCharacterContext(args: {
         proposalCandidate: {
           action: "field_replace",
           target: {
-            kind: "beat_plan",
+            kind: "scene_plan",
             ref: sceneId,
             fieldPath: "description",
           },

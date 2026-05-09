@@ -39,7 +39,7 @@ describe.skipIf(!reachable)("planning mutation lineage", () => {
       changedAt: "2026-05-04T12:00:00.000Z",
       reason: "test change",
       affectedDownstreamRefs: [{
-        kind: "beat_plan",
+        kind: "scene_plan",
         ref: "beat-1",
         reason: "chapter references beat",
       }],
@@ -68,7 +68,7 @@ describe.skipIf(!reachable)("planning mutation lineage", () => {
       actorKind: "human",
       previousRef: "ch-001-old",
       nextRef: "ch-001-new",
-      affectedDownstreamRefs: [{ kind: "beat_plan", ref: "beat-1", reason: "chapter references beat" }],
+      affectedDownstreamRefs: [{ kind: "scene_plan", ref: "beat-1", reason: "chapter references beat" }],
       metadata: { previousValue: "old", proposedValue: "new" },
     })
 

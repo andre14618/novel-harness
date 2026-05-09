@@ -69,7 +69,7 @@ Current kinds:
 - `editorial_flag`: review item for a likely draft issue.
 - `canon_update`: proposed Canon substrate update.
 - `planning_edit`: proposed planning artifact edit for scalar
-  chapter/beat/obligation/directive/character/world/spine fields, plus
+  chapter/scene/legacy-beat/obligation/directive/character/world/spine fields, plus
   structural beat and beat-obligation replace/reorder actions. Planning edits
   remain manual by default.
 
@@ -133,7 +133,7 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-08:
 - Active product focus: upstream concept/planning methodology. Use templates,
   chapter contracts, scene functions, and planner-quality evidence to improve
   plan shape before changing drafting, checking, or UI defaults.
-- Corpus structure recreation POC now has a passing scene-first local plan/write scaffold; see `docs/charters/corpus-structure-recreation-poc.md`.
+- Corpus structure recreation POC now has a passing scene-first local plan/write scaffold; scene-first proposal/readiness emitters use `scene_plan`, with `beat_plan` retained as a legacy alias.
 - Open local operator-review artifacts before handoff when possible; still report the path.
 - First backend tracer exposes read-only planning targets and deterministic
   impact preview. Write tracers add `planning_edit` envelopes for chapter,

@@ -70,11 +70,11 @@ describe("planning edit proposals", () => {
     expect(a.payload.impactPreview?.impacts[0]?.target.ref).toBe("ch-001-ledger-test")
   })
 
-  test("builds beat-plan envelopes with beat target refs", () => {
+  test("builds scene-plan envelopes with scene target refs", () => {
     const env = buildPlanningEditEnvelope({
       novelId: "novel-plan-edit",
       target: {
-        kind: "beat_plan",
+        kind: "scene_plan",
         ref: "ch-001-ledger-test-beat-001-ledger-breaks",
         fieldPath: "description",
         currentVersion: "c".repeat(64),
@@ -87,7 +87,7 @@ describe("planning edit proposals", () => {
     })
 
     expect(env.kind).toBe("planning_edit")
-    expect(env.target.kind).toBe("beat_plan")
+    expect(env.target.kind).toBe("scene_plan")
     expect(env.target.ref).toBe("ch-001-ledger-test-beat-001-ledger-breaks")
     expect(env.target.fieldPath).toBe("description")
     expect(env.precondition.hash).toBe("c".repeat(64))
@@ -267,7 +267,7 @@ describe("planning edit proposals", () => {
       novelId: "novel-plan-edit",
       action: "beat_requirement_remove",
       target: {
-        kind: "beat_plan",
+        kind: "scene_plan",
         ref: "beat-oath-road",
         fieldPath: "requirements",
         currentVersion: "5".repeat(64),
@@ -287,9 +287,9 @@ describe("planning edit proposals", () => {
 
     expect(env.kind).toBe("planning_edit")
     expect(env.payload.action).toBe("beat_requirement_remove")
-    expect(env.target.kind).toBe("beat_plan")
+    expect(env.target.kind).toBe("scene_plan")
     expect(env.target.fieldPath).toBe("requirements")
-    expect(env.summary).toBe("Update beat_plan beat-oath-road: requirements")
+    expect(env.summary).toBe("Update scene_plan beat-oath-road: requirements")
   })
 
   test("targetWords is valid only as a positive integer", () => {
@@ -368,14 +368,19 @@ describe("planning edit proposals", () => {
 
   test("beat character ref arrays validate as stable-id planning fields", () => {
     expect(planningEditTargetSchema.safeParse({
-      kind: "beat_plan",
+      kind: "scene_plan",
       ref: "beat-a",
       fieldPath: "requiredCharacterIds",
     }).success).toBe(true)
     expect(planningEditTargetSchema.safeParse({
-      kind: "beat_plan",
+      kind: "scene_plan",
       ref: "beat-a",
       fieldPath: "affectedCharacterIds",
+    }).success).toBe(true)
+    expect(planningEditTargetSchema.safeParse({
+      kind: "beat_plan",
+      ref: "beat-a",
+      fieldPath: "requiredCharacterIds",
     }).success).toBe(true)
     expect(validatePlanningEditValue("requiredCharacterIds", ["char-istra", "char-vey"]))
       .toBeNull()
@@ -430,7 +435,7 @@ describe("planning edit proposals", () => {
       order: ["obl-b", "obl-a"],
     })).toBeNull()
     expect(validatePlanningEditActionTarget("beat_requirement_remove", {
-      kind: "beat_plan",
+      kind: "scene_plan",
       ref: "beat-a",
       fieldPath: "requirements",
     })).toBeNull()
@@ -440,7 +445,7 @@ describe("planning edit proposals", () => {
       fieldPath: "description",
     })).toMatch(/fieldPath=requirements/)
     expect(validatePlanningEditProposedValue("beat_requirement_remove", {
-      kind: "beat_plan",
+      kind: "scene_plan",
       ref: "beat-a",
       fieldPath: "requirements",
     }, {
@@ -511,7 +516,7 @@ describe("planning edit proposals", () => {
       {
         action: "field_replace",
         target: {
-          kind: "beat_plan",
+          kind: "scene_plan",
           ref: "beat-1",
           fieldPath: "description",
         },
@@ -529,6 +534,28 @@ describe("planning edit proposals", () => {
         proposedValue: "dialogue",
       },
     )).toBe(false)
+    expect(planningEditTargetsSameArtifact(
+      {
+        action: "field_replace",
+        target: {
+          kind: "scene_plan",
+          ref: "beat-1",
+          fieldPath: "description",
+        },
+        previousValue: "old",
+        proposedValue: "new",
+      },
+      {
+        action: "field_replace",
+        target: {
+          kind: "beat_plan",
+          ref: "beat-1",
+          fieldPath: "description",
+        },
+        previousValue: "old",
+        proposedValue: "newer",
+      },
+    )).toBe(true)
     expect(planningEditTargetsSameArtifact(
       {
         action: "field_replace",

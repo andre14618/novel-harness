@@ -657,7 +657,7 @@ function refsForChapterAndBeat(
     { kind: "chapter", ref: `chapter:${chapterNumber}` },
   ]
   if (chapterId) refs.push({ kind: "chapter_outline", ref: chapterId })
-  if (beatId) refs.push({ kind: "beat_plan", ref: beatId })
+  if (beatId) refs.push({ kind: "scene_plan", ref: beatId })
   return refs
 }
 

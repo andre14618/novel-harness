@@ -52,7 +52,7 @@ export async function handlePlanningTargetRoute(
     try {
       const map = await loadPlanningTargetMap(novelId)
       const target = map.targets.find((candidate) =>
-        candidate.kind === parsedKind.data && candidate.ref === ref
+        planningTargetKindsSameArtifact(candidate.kind, parsedKind.data) && candidate.ref === ref
       )
       if (!target) {
         return Response.json(
@@ -106,6 +106,13 @@ export async function handlePlanningTargetRoute(
   }
 
   return null
+}
+
+function planningTargetKindsSameArtifact(a: string, b: string): boolean {
+  return (
+    a === b ||
+    ((a === "scene_plan" || a === "beat_plan") && (b === "scene_plan" || b === "beat_plan"))
+  )
 }
 
 function planningTargetErrorResponse(err: unknown, prefix: string): Response {

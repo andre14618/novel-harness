@@ -87,7 +87,7 @@ describe("corpus-recreation-character-ref-repair", () => {
         proposedValueStatus: "deterministic_candidate_available",
         safeToAutoApply: false,
         target: {
-          kind: "beat_plan",
+          kind: "scene_plan",
           ref: "analog-ch01-sc01",
           fieldPath: "affectedCharacterIds",
         },
@@ -118,20 +118,20 @@ describe("corpus-recreation-character-ref-repair", () => {
         novelId: "novel-character-ref-repair",
         aggregate: report,
         targetVersions: new Map([
-          ["beat_plan:analog-ch01-sc01", "hash-sc01"],
-          ["beat_plan:analog-ch01-sc02", "hash-sc02"],
+          ["scene_plan:analog-ch01-sc01", "hash-sc01"],
+          ["scene_plan:analog-ch01-sc02", "hash-sc02"],
         ]),
         importedByKind: "test",
       })
       expect(readiness.skipped).toEqual([])
       expect(readiness.drafts.map(draft => draft.target)).toEqual([
         {
-          kind: "beat_plan",
+          kind: "scene_plan",
           ref: "analog-ch01-sc01",
           fieldPath: "affectedCharacterIds",
         },
         {
-          kind: "beat_plan",
+          kind: "scene_plan",
           ref: "analog-ch01-sc02",
           fieldPath: "requiredCharacterIds",
         },

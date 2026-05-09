@@ -48,6 +48,7 @@ export interface ProposalTargetRef {
     | "character"
     | "story_spine"
     | "chapter_outline"
+    | "scene_plan"
     | "beat_plan"
     | "beat_obligation"
     | "canon_fact"

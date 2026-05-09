@@ -129,14 +129,16 @@ Initial 2026-05-04 audit result:
   instead of relying on later read paths to synthesize chapter/beat/obligation
   refs.
 - First mutation tracer bullets now exist for scalar chapter-outline,
-  beat-plan, beat-obligation text/source-link edits, planning-directive
+  scene-plan/legacy beat-plan, beat-obligation text/source-link edits, planning-directive
   style/voice edits, character-bible scalar edits, and world/spine scalar
-  edits: `planning_edit` proposal envelopes target `chapter_outline`,
-  `beat_plan`, `beat_obligation`, `planning_directive`, `character`,
+  edits: new `planning_edit` proposal envelopes target `chapter_outline`,
+  `scene_plan`, `beat_obligation`, `planning_directive`, `character`,
   `world_bible`, or `story_spine` refs,
   approvals/rejections/modifications use stale preconditions, and approved
   changes write durable mutation lineage with affected refs from impact
   preview.
+  New scene-first surfaces should use `scene_plan`; `beat_plan` is retained as
+  a compatibility alias for older envelopes and persisted outline internals.
 
 Detailed coverage table per checker / proposal-producer surface lives in
 `docs/stable-id-checker-coverage.md`. The 2026-05-04 mechanical pass threaded
@@ -163,7 +165,7 @@ Candidate targets:
 - `character:<characterId>`
 - `story_spine:singleton`
 - `chapter_outline:<chapterId>`
-- `beat_plan:<beatId>`
+- `scene_plan:<sceneId>` or legacy `beat_plan:<beatId>`
 - `beat_obligation:<obligationId>`
 - `canon_fact:<factId>`
 - `prose_span:<chapterRef>#<spanRef>`
@@ -256,7 +258,7 @@ Acceptance criteria:
 
 Status 2026-05-04: first low-risk write slices implemented for
 `chapter_outline` scalar field replacements on `title`, `purpose`, `setting`,
-and `targetWords`; `beat_plan` scalar field replacements on `description` and
+and `targetWords`; `scene_plan`/legacy `beat_plan` scalar field replacements on `description` and
 `kind`; and `beat_obligation` replacements for `text`, `sourceId`,
 `sourceKind`, `characterId`, and atomic `sourceLink`; plus
 `planning_directive` replacements for style/voice fields `rawNotes` and

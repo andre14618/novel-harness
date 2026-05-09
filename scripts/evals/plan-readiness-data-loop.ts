@@ -89,7 +89,7 @@ interface DispositionPlanAction {
     label?: string
     dimension?: string
     targetRef?: string
-    targetKind?: "chapter_outline" | "beat_plan"
+    targetKind?: "chapter_outline" | "scene_plan" | "beat_plan"
     targetFieldPath?: string
   }
   decision: "field_replace" | "beat_requirement_remove" | "not_applicable" | "accepted_as_is" | "deferred" | "fixed"
@@ -380,7 +380,7 @@ async function applySampleReviewActions(
   const removeItem = items.find(item =>
     item.status === "open" &&
     !consumed.has(item.id) &&
-    item.target.kind === "beat_plan" &&
+    (item.target.kind === "scene_plan" || item.target.kind === "beat_plan") &&
     removableRequirementForItem(item, outlines) !== null
   )
   if (removeItem) {
@@ -716,7 +716,9 @@ function removableRequirementForItem(
   item: PlanReadinessItem,
   outlines: readonly ChapterOutline[],
 ): { requiredCharacterIds: string[]; requiredWorldFactIds: string[] } | null {
-  const beat = item.target.kind === "beat_plan" ? findBeat(outlines, item.target.ref) : null
+  const beat = item.target.kind === "scene_plan" || item.target.kind === "beat_plan"
+    ? findBeat(outlines, item.target.ref)
+    : null
   if (!beat) return null
   const requiredCharacterIds = [...((beat as any).requiredCharacterIds ?? [])].map(String)
   const requiredWorldFactIds = [...((beat as any).requiredWorldFactIds ?? [])].map(String)

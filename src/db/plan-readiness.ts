@@ -246,26 +246,34 @@ export async function markStalePlanReadinessItems(
 ): Promise<{ staleCount: number; staleIds: string[] }> {
   const staleIds: string[] = []
   for (const target of targetVersions) {
-    const rows = (await executor`
-      UPDATE plan_readiness_items
-      SET status = 'stale',
-          updated_at = now(),
-          metadata = metadata || ${{
-            stale: {
-              reason: "target_hash_changed",
-              currentSourceHash: target.sourceHash,
-            },
-          }}
-      WHERE novel_id = ${novelId}
-        AND target_kind = ${target.targetKind}
-        AND target_ref = ${target.targetRef}
-        AND status IN ('open', 'deferred')
-        AND source_hash <> ${target.sourceHash}
-      RETURNING id
-    `) as Array<{ id: string }>
-    staleIds.push(...rows.map(row => row.id))
+    for (const targetKind of planReadinessTargetKindAliases(target.targetKind)) {
+      const rows = (await executor`
+        UPDATE plan_readiness_items
+        SET status = 'stale',
+            updated_at = now(),
+            metadata = metadata || ${{
+              stale: {
+                reason: "target_hash_changed",
+                currentSourceHash: target.sourceHash,
+              },
+            }}
+        WHERE novel_id = ${novelId}
+          AND target_kind = ${targetKind}
+          AND target_ref = ${target.targetRef}
+          AND status IN ('open', 'deferred')
+          AND source_hash <> ${target.sourceHash}
+        RETURNING id
+      `) as Array<{ id: string }>
+      staleIds.push(...rows.map(row => row.id))
+    }
   }
   return { staleCount: staleIds.length, staleIds }
+}
+
+function planReadinessTargetKindAliases(kind: PlanReadinessTargetKind): PlanReadinessTargetKind[] {
+  if (kind === "scene_plan") return ["scene_plan", "beat_plan"]
+  if (kind === "beat_plan") return ["beat_plan", "scene_plan"]
+  return [kind]
 }
 
 export async function deletePlanReadinessItemsForNovel(

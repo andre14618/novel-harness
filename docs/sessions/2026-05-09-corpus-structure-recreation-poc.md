@@ -406,8 +406,8 @@ bun run diagnostics:corpus-recreation-readiness -- \
 Output:
 
 - 3 groups / 3 findings, all from chapter 2;
-- each group targets the scene as `beat_plan:<sceneId>:description` for
-  compatibility with the current readiness bridge;
+- each group now targets the scene as `scene_plan:<sceneId>:description`;
+  `beat_plan` remains a legacy compatibility alias for older rows and envelopes;
 - each group preserves exact obligation IDs plus exact character/world IDs;
 - each group asks an operator question, for example whether a world fact should
   actively constrain choice/outcome or whether background presence is

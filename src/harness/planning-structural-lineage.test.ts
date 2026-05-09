@@ -22,7 +22,7 @@ describe("collectStructuralPlanningMutationLineage", () => {
       "beat_reorder",
     ])
     expect(drafts[0]).toMatchObject({
-      targetKind: "beat_plan",
+      targetKind: "scene_plan",
       previousRef: "beat-a",
       nextRef: "beat-a",
       fieldPath: "scenes",
@@ -33,7 +33,7 @@ describe("collectStructuralPlanningMutationLineage", () => {
       },
     })
     expect(drafts[0]!.previousVersion).not.toBe(drafts[0]!.nextVersion)
-    expect(drafts.every((draft) => draft.targetKind === "beat_plan")).toBe(true)
+    expect(drafts.every((draft) => draft.targetKind === "scene_plan")).toBe(true)
   })
 
   test("records beat replacement only when old and new ids supersede the same slot", () => {
@@ -50,7 +50,7 @@ describe("collectStructuralPlanningMutationLineage", () => {
 
     expect(drafts).toHaveLength(1)
     expect(drafts[0]).toMatchObject({
-      targetKind: "beat_plan",
+      targetKind: "scene_plan",
       previousRef: "beat-b",
       nextRef: "beat-c",
       fieldPath: "scenes",

@@ -109,7 +109,7 @@ describe("buildChapterTraceabilityReport", () => {
     const beat = report.beats[0]
     expect(beat.refs).toEqual(expect.arrayContaining([
       { kind: "chapter_outline", ref: "ch-001-ledger-test", label: "Chapter 1: Ledger Test" },
-      { kind: "beat_plan", ref: "beat-ledger-verdict", label: "Chapter 1, beat 1" },
+      { kind: "scene_plan", ref: "beat-ledger-verdict", label: "Chapter 1, scene 1" },
     ]))
     expect(beat.upstreamTargets).toEqual(expect.arrayContaining([
       { kind: "chapter_outline", ref: "ch-001-ledger-test" },
@@ -129,7 +129,7 @@ describe("buildChapterTraceabilityReport", () => {
     ]))
     expect(beat.traceEvents[0].linkEvidence).toBe("payload_beat_id")
     expect(beat.traceEvents[0].refs).toEqual(expect.arrayContaining([
-      { kind: "beat_plan", ref: "beat-ledger-verdict" },
+      { kind: "scene_plan", ref: "beat-ledger-verdict" },
       { kind: "beat_obligation", ref: "obl-ledger-fact" },
       { kind: "world_fact", ref: "fact-ledger-forgery" },
     ]))
@@ -198,6 +198,7 @@ describe("buildChapterTraceabilityReport", () => {
         planningSnapshotHash: "a".repeat(64),
       }),
       proposalEnvelopes: [
+        // Legacy envelopes still link into the new scene_plan evidence bucket.
         {
           id: "planning-edit:beat",
           kind: "planning_edit",
@@ -257,7 +258,7 @@ describe("buildChapterTraceabilityReport", () => {
     })
 
     const beat = report.beats[0]
-    expect(beat.proposalEvidence[0].target).toEqual({ kind: "beat_plan", ref: "beat-ledger-verdict", label: "Chapter 1, beat 1" })
+    expect(beat.proposalEvidence[0].target).toEqual({ kind: "scene_plan", ref: "beat-ledger-verdict", label: "Chapter 1, scene 1" })
     expect(beat.proposalEvidence[0].proposalEnvelopes.map((item) => item.id)).toEqual([
       "planning-edit:beat",
     ])
