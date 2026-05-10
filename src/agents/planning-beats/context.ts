@@ -146,5 +146,40 @@ Causal-motivation-v3 expectations:
 - World facts and supporting characters are operational pressure, not background. If a world fact or character is named in the entry, it must constrain the choice or alter the outcome.
 - The consequence must create future pressure (a new obligation, threat, debt, or relationship shift) that the next entry or chapter can build on.
 
-If you cannot honour these fields for a given entry, omit the optional fields rather than emitting placeholder text. Empty string consequences and one-option choiceAlternatives are validator failures.`
+If you cannot honour these fields for a given entry, omit the optional fields rather than emitting placeholder text. Empty string consequences and one-option choiceAlternatives are validator failures.
+
+Worked example of a complete scene-contract entry (do not copy literal content; copy the SHAPE):
+
+\`\`\`json
+{
+  "description": "Calla confronts Orvath in the empty archive.",
+  "characters": ["Calla", "Orvath"],
+  "kind": "dialogue",
+  "goal": "Force Orvath to confess his deal with the empire.",
+  "opposition": "Orvath holds Davan's safety as leverage and will use it.",
+  "turningPoint": "Calla realises she has been the leverage all along.",
+  "crisisChoice": "Trade the script for Davan's safety, or burn it and force a public reckoning.",
+  "choiceAlternatives": [
+    "Hand the script over and accept Orvath's protection — preserves Davan but cements the empire's grip.",
+    "Burn the script and force Orvath into a public reckoning — costs Davan but breaks the leverage."
+  ],
+  "outcome": "Calla burns the script.",
+  "consequence": "Davan is publicly exiled and the empire begins hunting Calla.",
+  "valueIn": "compliance",
+  "valueOut": "rupture",
+  "povPersonalStake": "Calla cannot let Davan be reduced to leverage again — she carries the oath she swore at her mother's grave.",
+  "valueShifted": true,
+  "gapPresent": true,
+  "lifeValueAxes": ["ethics", "relational"],
+  "miceCloses": ["I"]
+}
+\`\`\`
+
+Compliance rules (validator will fail without these — fix every line before returning):
+
+1. If you write a non-empty crisisChoice on an entry, that entry MUST be a real scene with at least one supporting-character / world-fact / story-debt obligation grounding the choice. If the entry is transit/establishment with no grounded crisis, leave crisisChoice empty (omit the field).
+2. choiceAlternatives MUST be a non-empty array of at least TWO entries when the field is present. Every option is a complete sentence describing a concrete action and its tradeoff.
+3. consequence MUST describe externally observable downstream pressure that is different from outcome. "Calla burns the script" + "Calla burns the script" is invalid; "Calla burns the script" + "Davan is publicly exiled" is valid.
+4. povPersonalStake MUST name the specific personal pressure (oath, fear, wound, lie, truth, relationship debt) — generic motives like "do the right thing" or "survive" will be rejected.
+5. valueIn and valueOut should be short value labels (one or two words) describing the polarity of the dominant value at the start and end of the entry.`
 }

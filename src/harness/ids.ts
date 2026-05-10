@@ -205,6 +205,9 @@ export function enrichOutlineIds(outline: ChapterOutline): EnrichmentReport {
   return { chapterId: cId, beatIds, obligationLinkFailures: failures }
 }
 
+// L096 Slice 1.5: payoff stages that require a unique child event id.
+const PAYOFF_DEBT_STAGES_REQUIRING_EVENT_ID = new Set(["partial_payoff", "final_payoff"])
+
 function enrichObligationList(
   beat: SceneBeat,
   bId: string,
@@ -237,6 +240,31 @@ function enrichObligationList(
     // Always assign an obligationId.
     if (!item.obligationId || !ID_RE.test(item.obligationId)) {
       item.obligationId = obligationIdGen(bId, kindShort(kind), sourceId ?? "", i)
+    }
+
+    // L096 Slice 1.5: deterministic payoffEventId mint when an obligation
+    // declares a payoff stage and a parent payoffId but the LLM didn't emit
+    // a unique child event id. Mints `evt-<obligationId-tail>` so the
+    // generated event id is deterministic, unique within the obligation
+    // scope, and round-trips stably across reruns. Keeps the ID-as-code
+    // invariant (`harness/ids.ts` header: "IDs are produced by code, not
+    // the LLM") rather than relying on prompt-fidelity for a structural
+    // ref. Skips when the obligation is not on a payoff stage or has no
+    // parent payoffId — those cases are validator errors, not mint cases.
+    const stage = typeof item.storyDebtStage === "string" ? item.storyDebtStage : undefined
+    const payoffId = typeof item.payoffId === "string" && item.payoffId.trim().length > 0
+      ? item.payoffId.trim()
+      : undefined
+    const existingEventId = typeof item.payoffEventId === "string" && ID_RE.test(item.payoffEventId)
+      ? item.payoffEventId
+      : undefined
+    if (
+      stage
+      && PAYOFF_DEBT_STAGES_REQUIRING_EVENT_ID.has(stage)
+      && payoffId
+      && !existingEventId
+    ) {
+      item.payoffEventId = `evt-${item.obligationId.replace(/^obl-/, "")}`
     }
   }
 }

@@ -145,6 +145,119 @@ test("ID-propagation baseline: scene-contract outline parses with every ID class
   expect(payoff.storyDebtStage).toBe("final_payoff")
 })
 
+test("L096 Slice 1.5: enrichOutlineIds mints payoffEventId for payoff stages with parent payoffId", () => {
+  const outline = chapterOutlineSchema.parse({
+    chapterId: "ch-001-trial",
+    chapterNumber: 1,
+    title: "Trial",
+    purpose: "Trial purpose.",
+    setting: "Trial setting.",
+    povCharacter: "Calla",
+    charactersPresent: ["Calla"],
+    targetWords: 1500,
+    establishedFacts: [],
+    characterStateChanges: [],
+    knowledgeChanges: [],
+    scenes: [
+      {
+        description: "Calla resolves the script ledger payoff.",
+        characters: ["Calla"],
+        beatId: "ch-001-trial-beat-001-resolve-script",
+        obligations: {
+          mustEstablish: [],
+          mustPayOff: [
+            {
+              text: "The script burns publicly.",
+              sourceId: "payoff-script-burn",
+              sourceKind: "payoff",
+              obligationId: "obl-trial-beat-001-payoff-001-script-burn",
+              payoffId: "payoff-script-burn",
+              storyDebtStage: "final_payoff",
+            },
+            {
+              text: "The empire's leverage chain breaks.",
+              sourceId: "payoff-leverage-break",
+              sourceKind: "payoff",
+              obligationId: "obl-trial-beat-001-payoff-002-leverage-break",
+              payoffId: "payoff-leverage-break",
+              storyDebtStage: "partial_payoff",
+              payoffEventId: "evt-existing-leverage-event",
+            },
+            {
+              text: "Continuing progress on a story debt.",
+              sourceId: "payoff-progress",
+              sourceKind: "payoff",
+              obligationId: "obl-trial-beat-001-payoff-003-progress",
+              payoffId: "payoff-progress",
+              storyDebtStage: "progress",
+            },
+          ],
+          mustTransferKnowledge: [],
+          mustShowStateChange: [],
+          mustNotReveal: [],
+          allowedNewEntities: [],
+        },
+      },
+    ],
+  })
+
+  enrichOutlineIds(outline)
+
+  const obligations = outline.scenes[0].obligations.mustPayOff as Array<Record<string, unknown>>
+
+  // Final payoff with parent payoffId but missing event id → minted
+  // deterministically as `evt-<obligationId-tail>`.
+  expect(obligations[0].payoffEventId).toBe("evt-trial-beat-001-payoff-001-script-burn")
+
+  // Partial payoff with existing payoffEventId → preserved verbatim.
+  expect(obligations[1].payoffEventId).toBe("evt-existing-leverage-event")
+
+  // Progress stage (not a payoff stage) → no mint, payoffEventId remains
+  // undefined.
+  expect(obligations[2].payoffEventId).toBeUndefined()
+})
+
+test("L096 Slice 1.5: payoffEventId mint is idempotent across reruns", () => {
+  const outline = chapterOutlineSchema.parse({
+    chapterId: "ch-002-payoff",
+    chapterNumber: 2,
+    title: "Payoff",
+    purpose: "Payoff.",
+    setting: "Setting.",
+    povCharacter: "Calla",
+    charactersPresent: ["Calla"],
+    targetWords: 1500,
+    establishedFacts: [],
+    characterStateChanges: [],
+    knowledgeChanges: [],
+    scenes: [{
+      description: "Calla pays the debt.",
+      characters: ["Calla"],
+      beatId: "ch-002-payoff-beat-001-pay-debt",
+      obligations: {
+        mustEstablish: [],
+        mustPayOff: [{
+          text: "The debt is paid.",
+          sourceId: "payoff-debt",
+          sourceKind: "payoff",
+          obligationId: "obl-payoff-beat-001-payoff-001-debt",
+          payoffId: "payoff-debt",
+          storyDebtStage: "final_payoff",
+        }],
+        mustTransferKnowledge: [], mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [],
+      },
+    }],
+  })
+
+  enrichOutlineIds(outline)
+  const firstId = (outline.scenes[0].obligations.mustPayOff[0] as Record<string, unknown>).payoffEventId
+  expect(firstId).toBe("evt-payoff-beat-001-payoff-001-debt")
+
+  enrichOutlineIds(outline)
+  const secondId = (outline.scenes[0].obligations.mustPayOff[0] as Record<string, unknown>).payoffEventId
+  expect(secondId).toBe(firstId)
+})
+
 test("ID-propagation baseline: enrichOutlineIds preserves every well-formed ID", () => {
   const outline = chapterOutlineSchema.parse(FIXTURE)
   const report = enrichOutlineIds(outline)
