@@ -353,7 +353,11 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       if (pipeline.beatLevelWriting && outline.scenes.length > 0) {
         // ── Beat-level generation ───────────────────────────────────────
         try {
-          console.log(`  Writing ${outline.scenes.length} beats...`)
+          // outline.scenes[] entries are scenes per L092 / L095. The legacy
+          // "beat" terminology survives in BeatSpec / beat-writer agent name
+          // pending the full rename slice; user-facing output uses the
+          // current durable noun.
+          console.log(`  Writing ${outline.scenes.length} scenes...`)
           emit(novelId, { type: "progress", data: { step: "beat-writer", chapter: ch, attempt: attempts, status: "running" } })
 
           const characters = await getCharacters(novelId)
@@ -639,7 +643,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
 
             beatProses.push(beatProse)
             const beatWords = beatProse.split(/\s+/).filter(Boolean).length
-            console.log(`    Beat ${bi + 1}/${outline.scenes.length}: ${beatWords}w`)
+            console.log(`    Scene ${bi + 1}/${outline.scenes.length}: ${beatWords}w`)
             emit(novelId, { type: "progress", data: { step: "beat-writer", chapter: ch, beat: bi, totalBeats: outline.scenes.length, status: "complete" } })
           }
 

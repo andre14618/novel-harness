@@ -85,19 +85,98 @@ remains the durable provenance record (source novel id, central run id,
 experiment id, captured-at timestamp, captured-against commit) so a
 future loader extension can rehydrate from it cleanly.
 
+### Hang-resistant operator commands (recommended)
+
+The chapter-level checker settle loops (plan-check, continuity,
+validation, halluc-ungrounded routing, integrity / validation reviser)
+can hang on slow API calls and block writer-arm evidence collection
+even when the writer arm itself ran fine. Two knobs make writer-arm
+A/B/C/C runs resistant to that failure shape:
+
+- `--writer-only` sets the per-novel `draftCaptureModeV1` pipeline
+  override on every arm. Drafting saves + approves each chapter
+  immediately after the writer assembles its prose; checker settle
+  loops are skipped. Use this when the experiment cares only about
+  writer prose differences across arms; run any checker diagnostics
+  post-hoc on the saved drafts.
+- `--per-arm-timeout-ms <N>` caps per-arm wallclock. On timeout the
+  runner collects whatever `chapter_drafts` did finish, records the
+  timeout as the arm's error, and proceeds to the next arm.
+
+Example commands (P4 directly via clone-for-variant):
+
+```bash
+# P4 baseline vs id-suppress, writer-only, 30-min per-arm cap
+bun scripts/test-drafting-isolated.ts \
+  --source novel-1778411555121 \
+  --target-prefix "p4-b1-$(date +%s)" \
+  --writer-arms baseline,id-suppress \
+  --writer-only \
+  --per-arm-timeout-ms 1800000
+
+# P4 baseline vs contract-render-only (only meaningful when the source
+# plan has scene-contract fields populated; novel-1778411555121 has
+# scenePlanContractV1=false, so the prompts are identical there)
+bun scripts/test-drafting-isolated.ts \
+  --source <novel-id-with-scenePlanContractV1=true> \
+  --target-prefix "p4-b3b-$(date +%s)" \
+  --writer-arms baseline,contract-render-only \
+  --writer-only \
+  --per-arm-timeout-ms 1800000
+
+# Four-arm smoke (B1 + B3 Arm B + B3 Arm C, all hang-resistant)
+bun scripts/test-drafting-isolated.ts \
+  --source novel-1778411555121 \
+  --target-prefix "four-arm-$(date +%s)" \
+  --writer-arms baseline,id-suppress,contract-render-only,scene-call-v1 \
+  --writer-only \
+  --per-arm-timeout-ms 1800000
+```
+
+Without `--writer-only`, every arm runs the full chapter-level checker
+settle loops; useful when the experiment wants the realistic
+production-shape pipeline. With `--writer-only` the experiment reduces
+to writer-arm prose differences only.
+
 ### Writer arms (used by `test-drafting-isolated.ts --writer-arms`)
 
-| Arm | Description | Flag deltas vs production |
-|---|---|---|
-| `baseline` | Current production writer. | none — preserves all four flags at production defaults. |
-| `id-suppress` | adjusted-B1 ablation. Cluster-1 raw-ID lines suppressed in the prose-writer prompt; trace metadata, DB rows, telemetry, and audit logs unaffected. | `writerPromptIdRendering="suppress"` |
-| `contract-render-only` | adjusted-B3 Arm B preparation. Renders the SCENE CONTRACT block when populated, without enabling scene-call writer. No effect when the planner has authored no scene-contract field. | `forceRenderSceneContractWhenAvailable=true` |
-| `scene-call-v1` | adjusted-B3 Arm C / L097 Slice 2. Full scene-call writer + retry-short-scenes-v1 expansion. | `sceneCallWriterV1=true` + `writerExpansionMode="retry-short-scenes-v1"` |
+The harness is migrating from the legacy beat-shaped writer to the
+scene-first writer. `scene-call-v1` is the direction; `baseline` is the
+legacy control retained for git history and rollback only — it is
+**not** the future and should not be optimized as if it were. See
+`docs/sessions/2026-05-10-scene-migration-plan.md` for the slice
+ordering of the full rename + default flip.
 
-The first three arms are all beat-shaped writer calls. Differences between
-them isolate ablation effects (id-suppress), contract-rendering effects
-(contract-render-only), and the architecture shift (scene-call-v1) per
-the adjusted-B1/B3 split in `docs/research/user-adjusted-backlog-2026-05-10.md`.
+| Arm | Posture | Description | Flag deltas vs production default |
+|---|---|---|---|
+| `scene-call-v1` | **Direction.** | Scene-first writer — calls the writer once per `outline.scenes[]` entry, surfaces planner-authored scene-contract fields (goal/opposition/turningPoint/crisisChoice/...) as a SCENE CONTRACT block, runs `retry-short-scenes-v1` expansion when output undershoots the advisory floor. Per L092/L095/L097. | `sceneCallWriterV1=true` + `writerExpansionMode="retry-short-scenes-v1"` |
+| `contract-render-only` | Intermediate. | Legacy writer call shape with the SCENE CONTRACT block rendered when populated. Lets us isolate "does the contract text help?" from "does the scene-call architecture help?" before the rename completes. No effect when the planner has authored no scene-contract field. | `forceRenderSceneContractWhenAvailable=true` |
+| `baseline` | **Legacy control — archived as historical.** | Current production writer (legacy beat-shaped prompt template, no SCENE CONTRACT block). Preserved for git rollback evidence and as a baseline ratio for the cohort that produced `novel-1778411555121`. Was never validated to production-quality bar; do not treat as a target. | none |
+| `id-suppress` | Cross-cutting hygiene ablation. | adjusted-B1 — Cluster-1 raw-ID lines suppressed in the prose-writer prompt; trace metadata, DB rows, telemetry, and audit logs unaffected. Combinable with any arm via a follow-up override. | `writerPromptIdRendering="suppress"` |
+
+Active evidence direction (post 2026-05-10 strategic call): the next
+fixed-plan A/B should compare **`baseline` vs `scene-call-v1`**, with
+`contract-render-only` optional as a sub-decomposition lever. id-suppress
+is auxiliary and does not need to be on the critical path.
+
+Recommended hang-resistant scene-direction smoke:
+
+```bash
+bun scripts/test-drafting-isolated.ts \
+  --source <novel-id-with-scenePlanContractV1=true planning> \
+  --target-prefix "scene-first-$(date +%s)" \
+  --writer-arms baseline,scene-call-v1 \
+  --writer-only \
+  --per-arm-timeout-ms 1800000
+```
+
+`scene-call-v1` only differs from `baseline` when the planner has
+authored scene-contract fields (`scenePlanContractV1=true`). On
+`novel-1778411555121` (planned with `scenePlanContractV1=false`), both
+arms produce near-identical prompts; to exercise the scene-first arm
+meaningfully, plan a P1/P2/P3 fixture with
+`bun scripts/test-planner-isolated.ts --from-fixture <path> --scene-plan-contract`
+and use the resulting novel-id as `--source`.
 
 ## Constraints honored
 

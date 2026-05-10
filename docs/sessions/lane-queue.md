@@ -15,6 +15,18 @@ unless the user explicitly requests a disposable branch.
   design (4 profiles for adjusted-B2;
   `docs/research/scene-write-fixture-design-2026-05-10.md`). Decision
   record for the writer-prompt ID question: L099.
+- **Strategic direction (2026-05-10): scene-first migration.** Beats
+  are not the future. The legacy beat-shaped writer was never
+  validated to a production-quality bar and is no longer treated as a
+  control to optimize. Scene is the durable plan/write/check unit (per
+  L092/L095). The migration plan is in
+  `docs/sessions/2026-05-10-scene-migration-plan.md` (S0–S7 slices).
+  S0 (user-facing log + docs cleanup) shipped this commit. S1 (default
+  flip + scenePlanContractV1 calibration) is the next major slice;
+  needs a decision record (L100) and replay-fixture re-record. The
+  bounded-loop work below is auxiliary infrastructure for the S0/S1
+  evidence path — adjusted-B1/B3/B5 references remain valid as flag
+  and runner names but are no longer the primary direction.
 - **Adjusted-B1/B2/B3 prep all shipped (default-off).** The scene-first
   evidence lane is runnable end-to-end on LXC.
   - **B1 flag (`writerPromptIdRendering`, commit `62e5c8c`):** default
@@ -62,21 +74,20 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: drive the first real evidence run. Recommended
-  cheapest path is the P4-direct route: `bun scripts/test-drafting-isolated.ts
-  --source novel-1778411555121 --target-prefix p4-$(date +%s) --writer-arms
-  baseline,id-suppress,contract-render-only,scene-call-v1`. P4 holds
-  planner output fixed across arms (no replan), so any per-arm delta
-  is attributable to the writer-side change. For P1/P2/P3 evidence,
-  use the `--from-fixture` planner runner first to mint a planning-done
-  novel, then `test-drafting-isolated`. After B1 evidence lands, sequence
-  is adjusted-B3 verdict → adjusted-B4 (judges as diagnostic only) →
-  adjusted-B5 (promotion decision). At least one fixture used in
-  adjusted-B1 must declare real `threadId`/`promiseId`/`payoffId` refs so
-  the ID-ablation arms are not trivially equal on lineage. Endpoint-
-  landing semantic review and remaining telemetry cleanup (`beatId` only
-  for real beat hints, legacy beat-shaped entries, or beat-specific
-  compatibility) are deferred to post-B5.
+- Next session start: scene-first migration S1 (default flip). The
+  prerequisite calibration is closing L096's `scenePlanContractV1`
+  prompt-fidelity gaps (crisisChoice→sourced-obligation, payoffEventId
+  compliance) on a P1/P2/P3 fixture. Once the planner emits
+  scene-contract fields cleanly, flip `pipeline.sceneCallWriterV1` and
+  `pipeline.writerExpansionMode` defaults, add the `legacyBeatWriter`
+  rollback flag, re-record replay parity fixtures, and ship a decision
+  record (L100). Sequence per
+  `docs/sessions/2026-05-10-scene-migration-plan.md`. The B1
+  ID-rendering ablation is auxiliary; do not bundle B1 evidence with
+  scene-first evidence. Endpoint-landing semantic review and
+  remaining telemetry cleanup (`beatId` only for real beat hints,
+  legacy beat-shaped entries, or beat-specific compatibility) are
+  deferred to post-S2.
 - Open follow-ups (NOT on the critical path): richer P4 fixture
   hydration (load-frozen-plan currently writes only novels +
   chapter_outlines; clone-for-variant carries the full state today, so
