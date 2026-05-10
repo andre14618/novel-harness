@@ -83,7 +83,8 @@ Use deeper docs only when linked by the context pack or needed by code.
 - L106 production writer-brief integration exists behind default-off
   `writerDraftingBriefMode="scene-budget-v1"`: it renders a compact
   writer-facing brief from production `BeatContext` slots and records prompt
-  payload telemetry on `writer-context` trace events.
+  payload telemetry on `writer-context` trace events; use
+  `diagnostics:writer-context` to audit context-surface coverage after runs.
 - Production drafting defaults to exact-ID character context capsules
   (`thread-character-context-v1`). See L094.
 - Native chapter contracts and story-turn planning are the production planning

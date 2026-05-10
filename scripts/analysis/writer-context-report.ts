@@ -1,0 +1,442 @@
+#!/usr/bin/env bun
+/**
+ * Read-only production report for writer-context telemetry.
+ *
+ * This surfaces the context data captured by production drafting runs:
+ * character/world/story context coverage, scene-contract coverage, and
+ * writer-drafting-brief prompt-size telemetry.
+ */
+
+import db from "../../src/db/connection"
+
+export interface WriterContextEventRow {
+  id: number
+  chapter: number | null
+  beat_index: number | null
+  payload: unknown
+  timestamp: string | null
+}
+
+export interface WriterContextEventSummary {
+  id: number
+  chapter: number | null
+  beatIndex: number | null
+  path: string
+  stage: string
+  writerContextMode: string
+  writerPromptIdRendering: string
+  targetWords: number | null
+  hasCharacterContext: boolean
+  surfaces: {
+    character: boolean
+    characterProfiles: boolean
+    characterSnapshots: boolean
+    characterContextCapsules: boolean
+    sceneContract: boolean
+    obligations: boolean
+    world: boolean
+    worldBible: boolean
+    setting: boolean
+    story: boolean
+    readerInfoState: boolean
+    resolvedReferences: boolean
+    draftingBrief: boolean
+  }
+  draftingBrief: {
+    mode: string
+    selectedPromptChars: number
+    fullContextPromptChars: number
+    charsRatio: number
+    charsDelta: number
+    sections: {
+      sceneContract: boolean
+      obligations: boolean
+      characterSnapshots: boolean
+      characterContextCapsules: boolean
+      resolvedReferences: boolean
+      readerInfoState: boolean
+      setting: boolean
+    }
+    counts: {
+      characters: number
+      obligations: number
+      sceneContractFields: number
+    }
+  } | null
+  missingCharacterIds: number
+}
+
+export interface WriterContextTelemetryReport {
+  novelId: string | null
+  events: WriterContextEventSummary[]
+  totals: {
+    events: number
+    beatEvents: number
+    chapterEvents: number
+    targetWords: number
+    withCharacterContext: number
+    withCharacterProfiles: number
+    withCharacterSnapshots: number
+    withCharacterContextCapsules: number
+    withSceneContract: number
+    withObligations: number
+    withWorldContext: number
+    withWorldBible: number
+    withSetting: number
+    withStoryContext: number
+    withReaderInfoState: number
+    withResolvedReferences: number
+    withDraftingBriefTrace: number
+    draftingBriefEnabledEvents: number
+    avgDraftingBriefCharsRatio: number | null
+    avgSelectedPromptChars: number | null
+    avgFullContextPromptChars: number | null
+    totalDraftingBriefCharsDelta: number
+    missingCharacterIds: number
+  }
+  byPath: Record<string, number>
+  byStage: Record<string, number>
+  byWriterContextMode: Record<string, number>
+  byDraftingBriefMode: Record<string, number>
+}
+
+interface Args {
+  novelId: string | null
+  json: boolean
+}
+
+export function buildWriterContextTelemetryReport(
+  rows: readonly WriterContextEventRow[],
+  novelId: string | null = null,
+): WriterContextTelemetryReport {
+  const events = [...rows]
+    .sort((a, b) => a.id - b.id)
+    .map(normalizeWriterContextEvent)
+  const draftingBriefEvents = events.flatMap(event => event.draftingBrief ? [event.draftingBrief] : [])
+  const enabledDraftingBriefEvents = draftingBriefEvents.filter(event => event.mode !== "off")
+
+  return {
+    novelId,
+    events,
+    totals: {
+      events: events.length,
+      beatEvents: events.filter(event => event.path === "beat").length,
+      chapterEvents: events.filter(event => event.path === "chapter").length,
+      targetWords: events.reduce((sum, event) => sum + (event.targetWords ?? 0), 0),
+      withCharacterContext: events.filter(event => event.surfaces.character).length,
+      withCharacterProfiles: events.filter(event => event.surfaces.characterProfiles).length,
+      withCharacterSnapshots: events.filter(event => event.surfaces.characterSnapshots).length,
+      withCharacterContextCapsules: events.filter(event => event.surfaces.characterContextCapsules).length,
+      withSceneContract: events.filter(event => event.surfaces.sceneContract).length,
+      withObligations: events.filter(event => event.surfaces.obligations).length,
+      withWorldContext: events.filter(event => event.surfaces.world).length,
+      withWorldBible: events.filter(event => event.surfaces.worldBible).length,
+      withSetting: events.filter(event => event.surfaces.setting).length,
+      withStoryContext: events.filter(event => event.surfaces.story).length,
+      withReaderInfoState: events.filter(event => event.surfaces.readerInfoState).length,
+      withResolvedReferences: events.filter(event => event.surfaces.resolvedReferences).length,
+      withDraftingBriefTrace: draftingBriefEvents.length,
+      draftingBriefEnabledEvents: enabledDraftingBriefEvents.length,
+      avgDraftingBriefCharsRatio: average(enabledDraftingBriefEvents.map(event => event.charsRatio)),
+      avgSelectedPromptChars: average(enabledDraftingBriefEvents.map(event => event.selectedPromptChars)),
+      avgFullContextPromptChars: average(enabledDraftingBriefEvents.map(event => event.fullContextPromptChars)),
+      totalDraftingBriefCharsDelta: enabledDraftingBriefEvents.reduce((sum, event) => sum + event.charsDelta, 0),
+      missingCharacterIds: events.reduce((sum, event) => sum + event.missingCharacterIds, 0),
+    },
+    byPath: countBy(events, event => event.path),
+    byStage: countBy(events, event => event.stage),
+    byWriterContextMode: countBy(events, event => event.writerContextMode),
+    byDraftingBriefMode: countBy(draftingBriefEvents, event => event.mode),
+  }
+}
+
+export function renderWriterContextTelemetryReport(report: WriterContextTelemetryReport): string {
+  const lines: string[] = []
+  lines.push(`Writer context telemetry${report.novelId ? ` for ${report.novelId}` : ""}`)
+  lines.push(
+    `Events: total=${report.totals.events}, beat=${report.totals.beatEvents}, chapter=${report.totals.chapterEvents}; ` +
+      `targetWords=${report.totals.targetWords}`,
+  )
+  lines.push(
+    `Context surfaces: character=${formatCoverage(report.totals.withCharacterContext, report.totals.events)} ` +
+      `(profiles=${report.totals.withCharacterProfiles}, snapshots=${report.totals.withCharacterSnapshots}, capsules=${report.totals.withCharacterContextCapsules}), ` +
+      `sceneContract=${formatCoverage(report.totals.withSceneContract, report.totals.events)}, ` +
+      `obligations=${formatCoverage(report.totals.withObligations, report.totals.events)}, ` +
+      `world=${formatCoverage(report.totals.withWorldContext, report.totals.events)} ` +
+      `(bible=${report.totals.withWorldBible}, setting=${report.totals.withSetting}), ` +
+      `story=${formatCoverage(report.totals.withStoryContext, report.totals.events)}, ` +
+      `readerInfo=${formatCoverage(report.totals.withReaderInfoState, report.totals.events)}, ` +
+      `refs=${formatCoverage(report.totals.withResolvedReferences, report.totals.events)}, ` +
+      `missingCharacterIds=${report.totals.missingCharacterIds}`,
+  )
+  lines.push(
+    `Drafting brief: traced=${formatCoverage(report.totals.withDraftingBriefTrace, report.totals.events)}, ` +
+      `enabled=${formatCoverage(report.totals.draftingBriefEnabledEvents, report.totals.events)}, ` +
+      `modes=${formatRecord(report.byDraftingBriefMode)}, ` +
+      `avgChars=${formatNullable(report.totals.avgSelectedPromptChars, 0)}/${formatNullable(report.totals.avgFullContextPromptChars, 0)}, ` +
+      `avgRatio=${formatNullable(report.totals.avgDraftingBriefCharsRatio, 3)}, ` +
+      `delta=${report.totals.totalDraftingBriefCharsDelta}`,
+  )
+  lines.push(`Stages: ${formatRecord(report.byStage)}`)
+  lines.push(`Writer context modes: ${formatRecord(report.byWriterContextMode)}`)
+
+  if (report.events.length === 0) {
+    lines.push("No writer-context events found.")
+    return lines.join("\n")
+  }
+
+  for (const event of report.events) {
+    const surfaces = [
+      event.surfaces.character ? "char" : null,
+      event.surfaces.sceneContract ? "scene" : null,
+      event.surfaces.obligations ? "obligations" : null,
+      event.surfaces.world ? "world" : null,
+      event.surfaces.story ? "story" : null,
+      event.surfaces.readerInfoState ? "reader" : null,
+      event.surfaces.resolvedReferences ? "refs" : null,
+    ].filter(Boolean).join(",") || "none"
+    const brief = event.draftingBrief
+      ? `${event.draftingBrief.mode} ${event.draftingBrief.selectedPromptChars}/${event.draftingBrief.fullContextPromptChars} (${event.draftingBrief.charsRatio.toFixed(3)})`
+      : "none"
+    lines.push(
+      `- #${event.id} ch${event.chapter ?? "?"}` +
+        `${event.beatIndex == null ? "" : ` beat${event.beatIndex + 1}`} ` +
+        `${event.path}/${event.stage}: surfaces=${surfaces}; target=${event.targetWords ?? "?"}; brief=${brief}`,
+    )
+  }
+
+  return lines.join("\n")
+}
+
+function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextEventSummary {
+  const payload = readRecord(row.payload)
+  const contextSurface = readRecord(payload.contextSurface)
+  const surfaces = readRecord(contextSurface.surfaces)
+  const counts = readRecord(contextSurface.counts)
+  const characterContext = readRecord(payload.characterContext)
+  const draftingBrief = readDraftingBrief(payload.draftingBrief)
+  const path = readString(payload.path) ?? "unknown"
+  const stage = readString(payload.stage) ?? "unknown"
+  const writerContextMode = readString(payload.writerContextMode) ?? "unknown"
+  const writerPromptIdRendering = readString(payload.writerPromptIdRendering) ?? "raw"
+  const hasCharacterProfiles = readBoolean(surfaces.characterProfiles)
+  const hasCharacterSnapshots = readBoolean(surfaces.characterSnapshots)
+    || Boolean(draftingBrief?.sections.characterSnapshots)
+  const hasCharacterContextCapsules = readBoolean(surfaces.characterContextCapsules)
+    || Boolean(draftingBrief?.sections.characterContextCapsules)
+    || readArray(characterContext.characterIds).length > 0
+  const hasCharacterContext = readBoolean(payload.hasCharacterContext)
+    || hasCharacterProfiles
+    || hasCharacterSnapshots
+    || hasCharacterContextCapsules
+    || positiveNumber(draftingBrief?.counts.characters)
+  const targetWords = readFiniteNumber(payload.targetWords)
+  const hasObligations = positiveNumber(counts.obligations)
+    || Boolean(draftingBrief?.sections.obligations)
+    || positiveNumber(draftingBrief?.counts.obligations)
+  const hasWorldBible = readBoolean(surfaces.worldBible)
+  const hasSetting = readBoolean(surfaces.setting) || Boolean(draftingBrief?.sections.setting)
+  const story = readBoolean(surfaces.storySpine)
+    || positiveNumber(counts.activeThreadIds)
+    || positiveNumber(counts.activePromiseIds)
+    || positiveNumber(counts.activePayoffIds)
+    || positiveArray(characterContext.activeThreadIds)
+    || positiveArray(characterContext.activePromiseIds)
+    || positiveArray(characterContext.activePayoffIds)
+    || hasObligations
+  const hasSceneContract = readBoolean(surfaces.sceneContract)
+    || Boolean(draftingBrief?.sections.sceneContract)
+    || positiveNumber(draftingBrief?.counts.sceneContractFields)
+
+  return {
+    id: Number(row.id),
+    chapter: row.chapter == null ? null : Number(row.chapter),
+    beatIndex: row.beat_index == null ? null : Number(row.beat_index),
+    path,
+    stage,
+    writerContextMode,
+    writerPromptIdRendering,
+    targetWords,
+    hasCharacterContext,
+    surfaces: {
+      character: hasCharacterContext,
+      characterProfiles: hasCharacterProfiles,
+      characterSnapshots: hasCharacterSnapshots,
+      characterContextCapsules: hasCharacterContextCapsules,
+      sceneContract: hasSceneContract,
+      obligations: hasObligations,
+      world: hasWorldBible || hasSetting,
+      worldBible: hasWorldBible,
+      setting: hasSetting,
+      story,
+      readerInfoState: readBoolean(surfaces.readerInfoState) || Boolean(draftingBrief?.sections.readerInfoState),
+      resolvedReferences: readBoolean(surfaces.resolvedReferences) || Boolean(draftingBrief?.sections.resolvedReferences),
+      draftingBrief: draftingBrief !== null,
+    },
+    draftingBrief,
+    missingCharacterIds: readFiniteNumber(counts.missingCharacterIds) ?? readArray(characterContext.missingCharacterIds).length,
+  }
+}
+
+function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingBrief"] {
+  const row = readRecord(value)
+  const mode = readString(row.mode)
+  const selectedPromptChars = readFiniteNumber(row.selectedPromptChars)
+  const fullContextPromptChars = readFiniteNumber(row.fullContextPromptChars)
+  const charsRatio = readFiniteNumber(row.charsRatio)
+  const charsDelta = readFiniteNumber(row.charsDelta)
+  if (!mode || selectedPromptChars === null || fullContextPromptChars === null || charsRatio === null || charsDelta === null) {
+    return null
+  }
+  const sections = readRecord(row.sections)
+  const counts = readRecord(row.counts)
+  return {
+    mode,
+    selectedPromptChars,
+    fullContextPromptChars,
+    charsRatio,
+    charsDelta,
+    sections: {
+      sceneContract: readBoolean(sections.sceneContract),
+      obligations: readBoolean(sections.obligations),
+      characterSnapshots: readBoolean(sections.characterSnapshots),
+      characterContextCapsules: readBoolean(sections.characterContextCapsules),
+      resolvedReferences: readBoolean(sections.resolvedReferences),
+      readerInfoState: readBoolean(sections.readerInfoState),
+      setting: readBoolean(sections.setting),
+    },
+    counts: {
+      characters: readFiniteNumber(counts.characters) ?? 0,
+      obligations: readFiniteNumber(counts.obligations) ?? 0,
+      sceneContractFields: readFiniteNumber(counts.sceneContractFields) ?? 0,
+    },
+  }
+}
+
+function countBy<T>(items: readonly T[], keyFn: (item: T) => string): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const item of items) {
+    const key = keyFn(item)
+    out[key] = (out[key] ?? 0) + 1
+  }
+  return out
+}
+
+function average(values: readonly number[]): number | null {
+  const clean = values.filter(value => Number.isFinite(value))
+  if (clean.length === 0) return null
+  return clean.reduce((sum, value) => sum + value, 0) / clean.length
+}
+
+function readRecord(value: unknown): Record<string, unknown> {
+  if (typeof value === "string") {
+    try {
+      return readRecord(JSON.parse(value))
+    } catch {
+      return {}
+    }
+  }
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value : null
+}
+
+function readBoolean(value: unknown): boolean {
+  return value === true
+}
+
+function readFiniteNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null
+}
+
+function positiveNumber(value: unknown): boolean {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+}
+
+function readArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+function positiveArray(value: unknown): boolean {
+  return readArray(value).length > 0
+}
+
+function formatCoverage(count: number, total: number): string {
+  return `${count}/${total}`
+}
+
+function formatRecord(record: Record<string, number>): string {
+  const entries = Object.entries(record).sort(([a], [b]) => a.localeCompare(b))
+  return entries.length > 0
+    ? entries.map(([key, value]) => `${key}=${value}`).join(", ")
+    : "none"
+}
+
+function formatNullable(value: number | null, digits: number): string {
+  return value === null ? "?" : value.toFixed(digits)
+}
+
+function parseArgs(argv: string[]): Args {
+  let novelId: string | null = null
+  let json = false
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]
+    if (arg === "--novel") {
+      const value = argv[++i]
+      if (!value) throw new Error("--novel requires a value")
+      novelId = value
+    } else if (arg === "--json") {
+      json = true
+    } else {
+      throw new Error(`unknown arg: ${arg}`)
+    }
+  }
+  return { novelId, json }
+}
+
+async function loadRows(novelId: string): Promise<WriterContextEventRow[]> {
+  const rows = await db<Array<{
+    id: number
+    chapter: number | null
+    beat_index: number | null
+    payload: unknown
+    timestamp: string
+  }>>`
+    SELECT id, chapter, beat_index, payload, timestamp
+    FROM pipeline_events
+    WHERE novel_id = ${novelId}
+      AND event_type = 'writer-context'
+    ORDER BY id
+  `
+  return rows
+}
+
+async function main(argv: string[]): Promise<number> {
+  let args: Args
+  try {
+    args = parseArgs(argv)
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : String(err))
+    console.error("usage: bun scripts/analysis/writer-context-report.ts --novel <novelId> [--json]")
+    return 2
+  }
+
+  if (!args.novelId) {
+    console.error("usage: bun scripts/analysis/writer-context-report.ts --novel <novelId> [--json]")
+    return 2
+  }
+
+  const rows = await loadRows(args.novelId)
+  const report = buildWriterContextTelemetryReport(rows, args.novelId)
+  console.log(args.json ? JSON.stringify(report, null, 2) : renderWriterContextTelemetryReport(report))
+  await db.end().catch(() => {})
+  return 0
+}
+
+if (import.meta.main) {
+  process.exit(await main(process.argv.slice(2)))
+}

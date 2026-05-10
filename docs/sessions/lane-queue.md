@@ -104,7 +104,9 @@ unless the user explicitly requests a disposable branch.
   (Character Profiles/Snapshots, World Bible/setting, Story Spine,
   reader-info state, refs, obligations, and scene contracts), render a small
   writer brief with endpoint-critical fields, trace IDs, and per-scene budgets,
-  and collect payload + prose-semantic telemetry. Promotion remains blocked
+  and collect payload + prose-semantic telemetry. Run
+  `bun run diagnostics:writer-context -- --novel <id>` on the resulting novel
+  to audit coverage and prompt-shape telemetry. Promotion remains blocked
   until a comparable artifact reaches <=1.5x target with 3/3/3 endpoints,
   complete scene IDs, diagnostics, traces, and review artifacts. See L103-L106.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.

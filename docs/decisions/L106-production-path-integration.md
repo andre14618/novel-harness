@@ -56,6 +56,12 @@ Scene-first runtime flags remain default-off until a production decision flips
 them, but the next implementation lane should exercise production code and
 production telemetry rather than a separate POC workflow.
 
+The first production integration slices add a default-off writer drafting brief
+and a production `writer-context` telemetry report. The report is an evidence
+artifact for real drafting runs: it audits Character Profiles/Snapshots/context
+capsules, World Bible/setting, Story Spine, reader-info state, refs,
+obligations, scene contracts, drafting-brief mode, and prompt-size deltas.
+
 ## Evidence And Verification
 
 Production-path integration needs:
