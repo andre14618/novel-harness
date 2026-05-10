@@ -431,39 +431,39 @@ export function renderSceneCheckerParityReport(report: SceneCheckerParityReport)
 }
 
 async function loadChapterRows(novelId: string, chapterFilter: number[] | null): Promise<ChapterRow[]> {
-  const filter = chapterFilter && chapterFilter.length > 0 ? chapterFilter : null
-  const rows = filter
-    ? await db`
-        SELECT co.chapter_number, co.outline_json, cd.prose, cd.word_count
-        FROM chapter_outlines co
-        JOIN LATERAL (
-          SELECT prose, word_count FROM chapter_drafts
-          WHERE novel_id = co.novel_id AND chapter_number = co.chapter_number
-          ORDER BY version DESC
-          LIMIT 1
-        ) cd ON true
-        WHERE co.novel_id = ${novelId}
-          AND co.chapter_number = ANY(${filter})
-        ORDER BY co.chapter_number ASC
-      ` as Array<{ chapter_number: number; outline_json: ChapterOutline; prose: string; word_count: number }>
-    : await db`
-        SELECT co.chapter_number, co.outline_json, cd.prose, cd.word_count
-        FROM chapter_outlines co
-        JOIN LATERAL (
-          SELECT prose, word_count FROM chapter_drafts
-          WHERE novel_id = co.novel_id AND chapter_number = co.chapter_number
-          ORDER BY version DESC
-          LIMIT 1
-        ) cd ON true
-        WHERE co.novel_id = ${novelId}
-        ORDER BY co.chapter_number ASC
-      ` as Array<{ chapter_number: number; outline_json: ChapterOutline; prose: string; word_count: number }>
-  return rows.map(row => ({
-    chapterNumber: row.chapter_number,
-    outline: row.outline_json,
-    prose: row.prose,
-    wordCount: row.word_count,
-  }))
+  const draftRows = await db`
+    SELECT chapter_number, prose, word_count, version
+    FROM chapter_drafts
+    WHERE novel_id = ${novelId}
+    ORDER BY chapter_number ASC, version DESC
+  ` as Array<{ chapter_number: number; prose: string; word_count: number; version: number }>
+  const latestDraftByChapter = new Map<number, { prose: string; wordCount: number }>()
+  for (const row of draftRows) {
+    if (latestDraftByChapter.has(row.chapter_number)) continue
+    latestDraftByChapter.set(row.chapter_number, { prose: row.prose, wordCount: row.word_count })
+  }
+
+  const outlineRows = await db`
+    SELECT chapter_number, outline_json
+    FROM chapter_outlines
+    WHERE novel_id = ${novelId}
+    ORDER BY chapter_number ASC
+  ` as Array<{ chapter_number: number; outline_json: ChapterOutline }>
+
+  const filterSet = chapterFilter && chapterFilter.length > 0 ? new Set(chapterFilter) : null
+  const out: ChapterRow[] = []
+  for (const row of outlineRows) {
+    if (filterSet && !filterSet.has(row.chapter_number)) continue
+    const draft = latestDraftByChapter.get(row.chapter_number)
+    if (!draft) continue
+    out.push({
+      chapterNumber: row.chapter_number,
+      outline: row.outline_json,
+      prose: draft.prose,
+      wordCount: draft.wordCount,
+    })
+  }
+  return out
 }
 
 function formatList(rows: string[]): string[] {
