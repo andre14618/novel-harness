@@ -24,14 +24,16 @@ unless the user explicitly requests a disposable branch.
   prose-semantic rows 8 with lows 0/errors 0, and writer-brief telemetry 12/12;
   no Plan-Assist gate fired on that attempt. Corrected per-scene-prose
   scene-semantic replay on the same artifact kept sceneDramaturgy 10/10 SCENE-3
-  and reduced endpointLanding lows from 4/10 to 1/10. Live `allow-entities`
-  replay evidence remains open, and promotion remains blocked by the remaining
-  endpoint/turn weakness. Scene-semantic replay now writes readiness sidecars;
-  `--persist` imports open review items unless `--no-readiness-import` is set.
-  Planner-quality diagnostics can also import deterministic endpoint/scene-turn
-  readiness items before drafting, and `diagnostics:plan-readiness-apply`
-  applies explicit operator plans to real production readiness queues. See
-  L106.
+  and reduced endpointLanding lows from 4/10 to 1/10. Plan Readiness operator
+  actions then created and approved two planning edits, but the fixed-plan
+  rerun `p1-ready-brief-1778451217-drafting-brief-v1` stayed length-safe
+  (4029/3000 = 1.34x) with 0 prose-semantic lows but regressed to
+  endpointLanding lows 6/10, one sceneDramaturgy low, and a
+  personal-vs-sovereign-debt continuity blocker. Live `allow-entities` replay
+  evidence remains open; promotion is blocked by endpoint/turn plus
+  plan-consistency quality. Scene-semantic replay writes readiness sidecars,
+  planner-quality diagnostics imports readiness, and
+  `diagnostics:plan-readiness-apply` applies operator plans. See L106.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -115,11 +117,10 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: use `diagnostics:plan-readiness-apply` to mark the
-  superseded whole-chapter scene-semantic lows as review noise, create explicit
-  proposals only for the remaining coherent endpoint/turn readiness items on
-  `p1-allow-brief-1778447459`, then rerun the fixed-plan `drafting-brief-v1`
-  arm with `--scene-semantic-review`.
+- Next session start: convert `p1-ready-brief-1778451217-drafting-brief-v1`
+  evidence into Plan Readiness items, prioritizing the personal-vs-sovereign
+  contradiction and scene-local endpoint landing for ch1 scenes 1-4, ch2 scene
+  1, and ch2 scene 4. Do not treat word count or prose-semantic as the blocker.
   Only force/replay the original Plan-Assist `allow-entities` blocker if live
   branch evidence becomes load-bearing. Promotion remains blocked until a
   comparable artifact reaches <=1.5x target with endpointLanding clean,

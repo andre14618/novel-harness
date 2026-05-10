@@ -120,11 +120,13 @@ baseline 2.45x / contract-render-only 2.41x to 1.37x with scene contracts
 at 1.39x and 1.38x with 0/8 prose-semantic lows, plan checks passed, no
 checker blockers, and writer-brief telemetry 12/12. Corrected per-scene-prose
 scene-semantic replay found sceneDramaturgy clean (10/10 SCENE-3) and reduced
-endpointLanding lows to 1/10, so promotion remains blocked on the remaining
-upstream endpoint/turn weakness rather than deterministic prose compaction.
-The new Plan-Assist
-`allow-entities` action is implemented/tested but still needs live gate replay
-evidence before it counts as exercised. See L103-L106.
+endpointLanding lows to 1/10 on that artifact. The follow-up readiness edit
+rerun (`p1-ready-brief-1778451217-drafting-brief-v1`) stayed length-safe
+(4029/3000 = 1.34x) with 0 prose-semantic lows but regressed to
+endpointLanding lows 6/10, one sceneDramaturgy low, and a personal-vs-sovereign
+debt continuity blocker. Promotion remains blocked on upstream endpoint/turn
+and plan-consistency quality, not deterministic prose compaction. Plan-Assist
+`allow-entities` still needs live gate replay evidence. See L103-L106.
 
 ## Authoring Gates
 

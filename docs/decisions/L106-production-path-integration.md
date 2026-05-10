@@ -135,6 +135,17 @@ and calls the normal Plan Readiness routes for dispositions or manual
 `planning_edit` proposal creation. It replaces the disposable data-loop as the
 forward operating path for real novels.
 
+The first production-path operator loop on `p1-allow-brief-1778447459`
+dispositioned superseded whole-chapter semantic lows, created two manual
+planning edits, approved them through the normal planning-proposal route, and
+reran `drafting-brief-v1` as `p1-ready-brief-1778451217-drafting-brief-v1`.
+The rerun stayed length-safe (4029/3000 = 1.34x) with 0 prose-semantic lows,
+but scene-semantic replay regressed to endpointLanding lows 6/10 and one
+sceneDramaturgy low. It also surfaced a continuity blocker around personal
+versus sovereign debt. Treat this as evidence that the next production-path
+work is plan consistency plus scene-local endpoint landing, not prose
+compaction.
+
 ## Evidence And Verification
 
 Production-path integration needs:
