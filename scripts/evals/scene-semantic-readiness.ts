@@ -280,7 +280,8 @@ function toFinding(args: {
 
 function sourceIdsFor(result: SceneSemanticReplayResult): SceneSemanticReadinessSourceIds {
   const characterIds = stringArray(result.relevantCharacterIds)
-  const worldFactIds = stringArray(result.relevantWorldFactIds)
+  const rawWorldFactIds = stringArray(result.relevantWorldFactIds)
+  const worldFactIds = rawWorldFactIds.filter(isPlausibleWorldFactId)
   const sceneTurnIds = stringArray(result.sceneTurnIds)
   const threadIds = stringArray(result.threadIds)
   const promiseIds = stringArray(result.promiseIds)
@@ -288,7 +289,7 @@ function sourceIdsFor(result: SceneSemanticReplayResult): SceneSemanticReadiness
   const sourceIds = unique([
     ...stringArray(result.sourceIds),
     ...characterIds,
-    ...worldFactIds,
+    ...rawWorldFactIds,
     ...sceneTurnIds,
     ...threadIds,
     ...promiseIds,
@@ -304,6 +305,11 @@ function sourceIdsFor(result: SceneSemanticReplayResult): SceneSemanticReadiness
     payoffIds,
     sourceIds,
   }
+}
+
+function isPlausibleWorldFactId(id: string): boolean {
+  if (/^(fact|world)-/u.test(id)) return true
+  return !/^(know|state|char|thread|debt|payoff|turn|obl)-/u.test(id)
 }
 
 function rewriteGoalsFor(finding: SceneSemanticReadinessFinding): string[] {

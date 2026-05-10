@@ -68,7 +68,10 @@ describe("scene-semantic-review task building", () => {
             text: "Ledger discovered hidden under glass.", worldFactId: "fact-ledger",
           }],
           mustPayOff: [],
-          mustTransferKnowledge: [],
+          mustTransferKnowledge: [{
+            obligationId: "obl-know", sourceId: "know-mira-ledger-cost", sourceKind: "knowledge",
+            text: "Mira learns what the ledger cost.",
+          }],
           mustShowStateChange: [],
           mustNotReveal: [],
           allowedNewEntities: [],
@@ -92,6 +95,8 @@ describe("scene-semantic-review task building", () => {
     expect(result.tasks[0]?.sceneId).toBe("ch3-s1")
     expect(result.tasks[0]?.legacyBeatId).toBe("ch3-b1")
     expect(result.tasks[0]?.relevantWorldFactIds).toContain("fact-ledger")
+    expect(result.tasks[0]?.relevantWorldFactIds).not.toContain("know-mira-ledger-cost")
+    expect(result.tasks[0]?.sourceIds).toContain("know-mira-ledger-cost")
   })
 
   test("records applicability skips for inapplicable dimensions", () => {

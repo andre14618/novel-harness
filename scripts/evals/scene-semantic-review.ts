@@ -219,7 +219,7 @@ export function buildSceneSemanticReplayTasks(input: {
 
       const obligationIds = obligations.map(o => o.obligationId).filter(Boolean) as string[]
       const characterIds = uniq(obligations.map(o => o.characterId).filter(Boolean) as string[])
-      const worldFactIds = uniq(obligations.map(o => o.worldFactId ?? o.sourceId).filter(Boolean) as string[])
+      const worldFactIds = uniq(obligations.map(worldFactIdForObligation).filter(Boolean) as string[])
       const sceneTurnIds = uniq(obligations.map(o => o.sceneTurnId).filter(Boolean) as string[])
       const threadIds = uniq(obligations.map(o => o.threadId).filter(Boolean) as string[])
       const promiseIds = uniq(obligations.map(o => o.promiseId).filter(Boolean) as string[])
@@ -313,6 +313,14 @@ function renderSceneExcerpt(input: {
     "CHAPTER PROSE (judge against this scene's contract — chapter is single string in production storage):",
     chapter.prose,
   ].join("\n")
+}
+
+function worldFactIdForObligation(obligation: ReturnType<typeof flattenObligations>[number]): string | undefined {
+  if (obligation.worldFactId) return obligation.worldFactId
+  if (!obligation.sourceId) return undefined
+  if (obligation.sourceKind === "fact") return obligation.sourceId
+  if (/^(fact|world)-/u.test(obligation.sourceId)) return obligation.sourceId
+  return undefined
 }
 
 export async function buildSceneSemanticReplayReport(args: SceneSemanticReviewArgs, generatedAt = new Date().toISOString()): Promise<SceneSemanticReplayReport> {

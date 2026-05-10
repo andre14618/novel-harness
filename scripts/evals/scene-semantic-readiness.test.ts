@@ -62,6 +62,8 @@ describe("scene-semantic-readiness", () => {
       promiseIds: ["debt-key"],
       payoffIds: ["payoff-key"],
     })
+    expect(readiness.drafts[0]!.preserveIds.worldFactIds).not.toContain("know-key-cost")
+    expect(readiness.drafts[0]!.preserveIds.sourceIds).toContain("know-key-cost")
     expect(readiness.drafts[0]!.metadata.proposalCandidate).toMatchObject({
       sourceAgent: "production-scene-semantic-review",
       safeToAutoApply: false,
@@ -136,12 +138,12 @@ function row(
     excerpt: "CHAPTER 1\nSCENE scn-001-01\nCHAPTER PROSE ...",
     obligationIds: ["obl-endpoint"],
     relevantCharacterIds: ["char-nara"],
-    relevantWorldFactIds: ["world-key"],
+    relevantWorldFactIds: ["world-key", "know-key-cost"],
     sceneTurnIds: ["turn-choice"],
     threadIds: ["thread-key"],
     promiseIds: ["debt-key"],
     payoffIds: ["payoff-key"],
-    sourceIds: ["world-key", "char-nara"],
+    sourceIds: ["world-key", "char-nara", "know-key-cost"],
     label,
     ordinal,
     confidence: 0.81,
