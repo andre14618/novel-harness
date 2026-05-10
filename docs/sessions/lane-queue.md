@@ -43,9 +43,17 @@ unless the user explicitly requests a disposable branch.
     question, pick a fixture where writers undershoot AND bypass/pre-resolve
     plan-assist gates so both arms can complete the full 10 chapters. Until
     then, `sceneCallWriterV1` and `writerExpansionMode` stay default-off.
-  - Slice 3.5 (deferred): port narrow scene-semantic LLM judge to
-    `scripts/evals/scene-semantic-review.ts` (replay-only) + build
-    `scene-checker-parity-panel.ts` (agreement matrix). Diagnostic only.
+  - Slice 3.5 (scripts shipped 2026-05-10): both
+    `scripts/evals/scene-semantic-review.ts` and
+    `scripts/evals/scene-checker-parity-panel.ts` shipped with unit tests
+    + LXC dry-run sanity. Live evidence run requires a fixture with
+    populated thread/promise/payoff refs AND scene-contract fields; the
+    L096 advisory novel doesn't satisfy that shape (most scenes have no
+    refs declared, so applicability skips dominate and gates fall back
+    to none-declared = true). Live N≥20 run is a separate scope; ship
+    it against a properly-shaped persisted novel before any scene-
+    satisfaction promotion proposal. Both scripts are diagnostic-only;
+    L092 + L098 keep the no-blocker-promotion non-goal in place.
 - Upstream planning methodology lane: narrow the active product question to
   concept/planning templates, chapter contracts, scene contracts, obligation
   traceability, and planner-quality diagnostics. See L089.

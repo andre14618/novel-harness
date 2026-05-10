@@ -79,3 +79,24 @@ This decision retires L092's "do not promote corpus-recreation POC behavior into
 - **Slice 3.5 (the diagnostic surface):** build `scripts/evals/scene-semantic-review.ts` (narrow LLM judge against persisted drafts) and `scripts/evals/scene-checker-parity-panel.ts` (paired-replay agreement matrix). Run on N≥20 persisted production drafts. Use the resulting evidence to decide whether to expose findings to operator review surfaces — still diagnostic, not blocking.
 - **Slice 4 (eventually):** if Slice 3.5 evidence is positive, propose promoting scene-satisfaction findings to settle-loop input via a separate decision (L099 or later). Promotion to blocker remains the highest-bar step in the lane.
 - **Slice 2.5 (parallel):** build `test-drafting-isolated.ts` and run the deferred Slice 2 fixed-plan A/B for `sceneCallWriterV1` + `writerExpansionMode` evidence.
+
+## 2026-05-10 Amendment — Slice 3.5 Scripts Shipped
+
+Both Slice 3.5 deliverables shipped (commits `575e418`, `6530dbf`):
+
+1. **`scripts/evals/scene-semantic-review.ts`** — production-replay port of the POC narrow scene-semantic judge. Reads outlines + drafts from the DB, runs the existing `judgePlanningExcerpt` rubric per scene per dimension (six default dimensions: `sceneDramaturgy`, `threadProgression`, `promisePayoff`, `motivationSpecificity`, `worldFactPressure`, `relationshipDelta`), preserves POC applicability skips by exact ID. Optional `--persist` writes one `eval_briefs` + one `eval_results` row per task under `set_name='scene-semantic-review:<date>'`. Replay-only — never inline calls.
+
+2. **`scripts/evals/scene-checker-parity-panel.ts`** — paired-replay harness that runs the same chapter prose through both today's `chapter-plan-checker` and a narrow per-scene satisfaction prompt with four boolean gates (goalPursued, crisisChoiceMade, outcomeLanded, obligationsCovered). Per scene it classifies agreement as `both-flagged` / `both-clean` / `beat-only` / `scene-only` and emits an agreement matrix to `output/scene-checker-parity/<date>-<novel>/`.
+
+Both scripts default to dry mode for testing; `--live` makes the LLM calls. Unit tests cover the testable pure functions (applicability skips, task building, agreement classification, prompt rendering): 16 tests, 38 expects passing. LXC dry runs against `ab-2026-05-10-baseline` confirmed end-to-end DB → report → file write paths.
+
+The actual N≥20 evidence run is **not** part of this commit. The L096-derived A/B novel that exists on LXC has only one fully-drafted chapter and lacks declared `threadId` / `promiseId` / `payoffId` obligations on most scenes (the L096 advisory novel's planner output does not exercise those refs), so applicability skips dominate. To produce useful diagnostic evidence the panel needs:
+
+- A persisted novel with ≥20 chapter drafts that ran under `nativePlanningContractV1=true` so obligation refs are populated.
+- Either `scenePlanContractV1=true` planning or post-hoc obligation enrichment, since most production novels today don't carry scene-contract fields like `goal` / `crisisChoice` / `outcome` (the new prompt's narrow gates fall back to "none declared" without them, which the prompt accepts as a true-by-default).
+
+The wiring is in place; the live evidence run is a separate scope and should be authored against a fixture that satisfies both conditions.
+
+## Status
+
+L098 + Slice 3.5 wiring is shipped. L092's "do not promote scene-satisfaction to blocker" non-goal remains in place. Promotion to default-on `sceneSatisfactionCheckerV1` or to a blocker requires a separate decision after live parity evidence on a properly-shaped fixture.
