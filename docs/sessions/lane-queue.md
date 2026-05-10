@@ -26,9 +26,9 @@ unless the user explicitly requests a disposable branch.
   artifact found sceneDramaturgy 10/10 SCENE-3 but endpointLanding mean 2.20
   with 4 lows (all ch1). Live `allow-entities` replay evidence remains open,
   and promotion remains blocked by endpoint/turn quality. The
-  `test-drafting-isolated` runner now has opt-in `--scene-semantic-review`
-  telemetry so future fixed-plan arms can carry endpointLanding/sceneDramaturgy
-  summaries without a sidecar POC runner. See L106.
+  `test-drafting-isolated --scene-semantic-review` now writes telemetry and
+  Plan Readiness sidecars so fixed-plan arms carry endpoint/scene-turn review
+  inputs without a sidecar POC runner. See L106.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -120,7 +120,7 @@ unless the user explicitly requests a disposable branch.
 - Next session start: target the ch1 endpointLanding lows from
   `p1-allow-brief-1778447459` at the upstream plan/scene-contract layer, while
   keeping `drafting-brief-v1` as the measured production writer surface and
-  running `test-drafting-isolated --scene-semantic-review` on fixed-plan arms.
+  running `test-drafting-isolated --scene-semantic-review` on fixed-plan arms; use generated `scene-semantic-readiness` sidecars as the review queue.
   Only force/replay the original Plan-Assist `allow-entities` blocker if live
   branch evidence becomes load-bearing. Promotion remains blocked until a
   comparable artifact reaches <=1.5x target with endpointLanding clean,

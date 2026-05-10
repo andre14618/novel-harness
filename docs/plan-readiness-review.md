@@ -151,6 +151,23 @@ This adapter preserves exact obligation, character, and world-fact IDs and
 emits operator questions. It is a staging surface for review; it does not
 create proposals or mutate plans.
 
+Production scene-semantic replay writes the same review-group shape by default
+beside each replay report:
+
+```bash
+bun run diagnostics:scene-semantic-readiness -- \
+  --report output/scene-semantic-review/<run>/scene-semantic-review.json \
+  --output output/scene-semantic-review/<run>/scene-semantic-readiness.md \
+  --json output/scene-semantic-review/<run>/scene-semantic-readiness.json
+```
+
+`scripts/evals/scene-semantic-review.ts` and
+`test-drafting-isolated --scene-semantic-review` already write those sidecars
+automatically. The adapter captures low semantic rows as manual scene-plan
+readiness candidates and preserves exact scene, obligation, character,
+world-fact, scene-turn, thread, promise, payoff, and source IDs when present.
+It does not create proposals or mutate plans.
+
 Exact character-ref gaps can also be converted into concrete manual repair
 candidates without touching the DB:
 

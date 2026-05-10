@@ -44,6 +44,10 @@ import {
   type JudgeOutput,
   type PromptMode,
 } from "./planner-discernment-calibration"
+import {
+  buildSceneSemanticReadinessAggregate,
+  renderSceneSemanticReadinessAggregate,
+} from "./scene-semantic-readiness"
 
 type ModelId = "deepseek-v4-flash" | "deepseek-v4-pro"
 
@@ -83,6 +87,11 @@ export interface SceneSemanticReplayTask {
   obligationIds: string[]
   relevantCharacterIds: string[]
   relevantWorldFactIds: string[]
+  sceneTurnIds: string[]
+  threadIds: string[]
+  promiseIds: string[]
+  payoffIds: string[]
+  sourceIds: string[]
 }
 
 export interface SceneSemanticReplaySkip {
@@ -158,6 +167,7 @@ function flattenObligations(scene: SceneBeat): Array<{
   threadId?: string
   promiseId?: string
   payoffId?: string
+  sceneTurnId?: string
   text: string
   materialityTest?: string
 }> {
@@ -177,6 +187,7 @@ function flattenObligations(scene: SceneBeat): Array<{
         threadId: typeof item.threadId === "string" ? item.threadId : undefined,
         promiseId: typeof item.promiseId === "string" ? item.promiseId : undefined,
         payoffId: typeof item.payoffId === "string" ? item.payoffId : undefined,
+        sceneTurnId: typeof item.sceneTurnId === "string" ? item.sceneTurnId : undefined,
         text: typeof item.text === "string" ? item.text : "",
         materialityTest: typeof item.materialityTest === "string" ? item.materialityTest : undefined,
       })
@@ -209,6 +220,11 @@ export function buildSceneSemanticReplayTasks(input: {
       const obligationIds = obligations.map(o => o.obligationId).filter(Boolean) as string[]
       const characterIds = uniq(obligations.map(o => o.characterId).filter(Boolean) as string[])
       const worldFactIds = uniq(obligations.map(o => o.worldFactId ?? o.sourceId).filter(Boolean) as string[])
+      const sceneTurnIds = uniq(obligations.map(o => o.sceneTurnId).filter(Boolean) as string[])
+      const threadIds = uniq(obligations.map(o => o.threadId).filter(Boolean) as string[])
+      const promiseIds = uniq(obligations.map(o => o.promiseId).filter(Boolean) as string[])
+      const payoffIds = uniq(obligations.map(o => o.payoffId).filter(Boolean) as string[])
+      const sourceIds = uniq(obligations.map(o => o.sourceId).filter(Boolean) as string[])
 
       for (const dimension of input.dimensions) {
         const skipReason = applicabilitySkipReason(dimension, {
@@ -233,6 +249,11 @@ export function buildSceneSemanticReplayTasks(input: {
           obligationIds,
           relevantCharacterIds: characterIds,
           relevantWorldFactIds: worldFactIds,
+          sceneTurnIds,
+          threadIds,
+          promiseIds,
+          payoffIds,
+          sourceIds,
         })
       }
     }
@@ -453,6 +474,11 @@ export async function persistSceneSemanticReplayReport(report: SceneSemanticRepl
       obligationIds: task.obligationIds,
       relevantCharacterIds: task.relevantCharacterIds,
       relevantWorldFactIds: task.relevantWorldFactIds,
+      sceneTurnIds: task.sceneTurnIds,
+      threadIds: task.threadIds,
+      promiseIds: task.promiseIds,
+      payoffIds: task.payoffIds,
+      sourceIds: task.sourceIds,
     }
     await db`
       INSERT INTO eval_briefs (set_name, beat_id, brief_json, notes)
@@ -674,9 +700,18 @@ async function main(): Promise<void> {
   const report = await buildSceneSemanticReplayReport(args)
 
   const outputDir = resolve(process.cwd(), args.outputDir ?? `output/scene-semantic-review/${args.setName.replace(/[:]/g, "-")}-${args.novelId}`)
+  const reviewJsonPath = join(outputDir, "scene-semantic-review.json")
+  const readinessJsonPath = join(outputDir, "scene-semantic-readiness.json")
+  const readinessMarkdownPath = join(outputDir, "scene-semantic-readiness.md")
   mkdirSync(outputDir, { recursive: true })
-  writeFileSync(join(outputDir, "scene-semantic-review.json"), `${JSON.stringify(report, null, 2)}\n`)
+  writeFileSync(reviewJsonPath, `${JSON.stringify(report, null, 2)}\n`)
   writeFileSync(join(outputDir, "scene-semantic-review.md"), renderSceneSemanticReplayReport(report))
+  const readiness = buildSceneSemanticReadinessAggregate([{
+    report,
+    sourceReport: reviewJsonPath,
+  }])
+  writeFileSync(readinessJsonPath, `${JSON.stringify(readiness, null, 2)}\n`)
+  writeFileSync(readinessMarkdownPath, renderSceneSemanticReadinessAggregate(readiness))
 
   if (args.persist) {
     const persisted = await persistSceneSemanticReplayReport(report)
@@ -684,8 +719,10 @@ async function main(): Promise<void> {
   }
 
   console.log(args.json ? JSON.stringify(report, null, 2) : renderSceneSemanticReplayReport(report))
-  console.log(`wrote ${join(outputDir, "scene-semantic-review.json")}`)
+  console.log(`wrote ${reviewJsonPath}`)
   console.log(`wrote ${join(outputDir, "scene-semantic-review.md")}`)
+  console.log(`wrote ${readinessJsonPath}`)
+  console.log(`wrote ${readinessMarkdownPath}`)
   process.exit(0)
 }
 

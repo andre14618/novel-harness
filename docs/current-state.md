@@ -61,8 +61,9 @@ Use deeper docs only when linked by the context pack or needed by code.
   references are historical unless a current decision reopens them. See L90.
 - Evidence-generation flows should collect prose-semantic telemetry by default
   where wired. The drafting-isolated harness can also collect opt-in
-  scene-semantic replay telemetry for endpoint/scene-turn dimensions. Semantic
-  telemetry is advisory/fail-open data, not a drafting or promotion gate.
+  scene-semantic replay telemetry plus Plan Readiness candidate sidecars for
+  endpoint/scene-turn dimensions. Semantic telemetry is advisory/fail-open
+  data, not a drafting or promotion gate.
 
 ## Authoring Direction
 
@@ -88,7 +89,8 @@ Use deeper docs only when linked by the context pack or needed by code.
   payload telemetry on `writer-context` trace events; use
   `diagnostics:writer-context` to audit context-surface coverage after runs.
   Fixed-plan drafting evidence can add `--scene-semantic-review` to capture
-  endpointLanding/sceneDramaturgy replay artifacts per arm.
+  endpointLanding/sceneDramaturgy replay artifacts and readiness candidates
+  per arm.
 - Production drafting defaults to exact-ID character context capsules
   (`thread-character-context-v1`). See L094.
 - Native chapter contracts and story-turn planning are the production planning

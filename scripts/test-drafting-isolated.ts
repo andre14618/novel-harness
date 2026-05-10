@@ -92,6 +92,10 @@ import {
   renderSceneSemanticReplayReport,
   type SceneSemanticReplayReport,
 } from "./evals/scene-semantic-review"
+import {
+  buildSceneSemanticReadinessAggregate,
+  renderSceneSemanticReadinessAggregate,
+} from "./evals/scene-semantic-readiness"
 import type { Dimension } from "./evals/planner-discernment-calibration"
 
 interface Args {
@@ -657,8 +661,15 @@ async function maybeRunSceneSemanticReview(
 
 function writeSceneSemanticArtifacts(report: SceneSemanticReplayReport, outputDir: string): void {
   mkdirSync(outputDir, { recursive: true })
-  writeFileSync(join(outputDir, "scene-semantic-review.json"), `${JSON.stringify(report, null, 2)}\n`)
+  const reviewJsonPath = join(outputDir, "scene-semantic-review.json")
+  writeFileSync(reviewJsonPath, `${JSON.stringify(report, null, 2)}\n`)
   writeFileSync(join(outputDir, "scene-semantic-review.md"), renderSceneSemanticReplayReport(report))
+  const readiness = buildSceneSemanticReadinessAggregate([{
+    report,
+    sourceReport: reviewJsonPath,
+  }])
+  writeFileSync(join(outputDir, "scene-semantic-readiness.json"), `${JSON.stringify(readiness, null, 2)}\n`)
+  writeFileSync(join(outputDir, "scene-semantic-readiness.md"), renderSceneSemanticReadinessAggregate(readiness))
 }
 
 export function sceneSemanticSummary(
