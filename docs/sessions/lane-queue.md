@@ -5,6 +5,27 @@ unless the user explicitly requests a disposable branch.
 
 ## Active
 
+- Scene-first runtime promotion lane (2026-05-09): four-slice incremental
+  promotion of POC scene-contract methodology into production. Plan:
+  `/Users/andre/.claude/plans/velvet-riding-cascade.md`. Session contract:
+  `docs/sessions/2026-05-09-scene-first-runtime-promotion.md`.
+  - Slice 0 (L095): substrate shipped — optional scene-contract schema fields,
+    seven-value `storyDebtStage` enum, `scenePlanContractV1` flag,
+    `enforceScenePlanContract` helper. Default-off; byte-parity preserved.
+  - Slice 1 (L096): planner behavior wiring shipped — causal-motivation-v3
+    prompt under flag, state-mapper materiality + wider stage values,
+    structural-v1 retry. Default-off.
+  - Slice 1.5 (L096 amendment): validator demoted to advisory mode after
+    three LXC smokes showed DeepSeek V4 Flash can't reliably comply with the
+    multi-field contract on production-shape novels. Validator still runs
+    and logs findings; planning never throws. Promotion to blocking mode is
+    contingent on a model upgrade or contract simplification — deferred
+    indefinitely.
+  - Slice 2 (next, L097): writer scene-context rendering + retry-short-scenes-v1
+    expansion. Operates on planner output as-is; does not require flag-on
+    planner.
+  - Slice 3 (L098): scene-satisfaction LLM diagnostic + parity panel.
+    Diagnostic only.
 - Upstream planning methodology lane: narrow the active product question to
   concept/planning templates, chapter contracts, scene contracts, obligation
   traceability, and planner-quality diagnostics. See L089.
