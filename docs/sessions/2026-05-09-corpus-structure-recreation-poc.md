@@ -1263,3 +1263,9 @@ default.
 Follow-up: `thread-character-context-v1` is now the default writer context for
 the corpus recreation POC command. Older modes remain explicit override arms via
 `--writer-context baseline` and `--writer-context thread-context-v1`.
+
+L106 update: new corpus-recreation POC output now requires
+`--allow-disposable-poc`. The earlier commands in this session record are
+historical evidence commands; production-path work should use the absorbed
+writer-context/readiness telemetry and review commands unless an operator
+explicitly requests another disposable corpus recreation artifact.

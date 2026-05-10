@@ -158,11 +158,11 @@ unless the user explicitly requests a disposable branch.
 - Golden examples for that contract should come from authored craft/template
   structures or corpus-derived distributions, not existing beat-shaped harness
   outlines. Legacy outlines are baseline/migration evidence only.
-- Corpus structure recreation is active: v3 planning survived ch1+ch2; `thread-character-context-v1` is now the production writer-context default after POC expansion gains without semantic lows. See L094.
+- Corpus structure recreation is historical evidence now: v3 planning survived ch1+ch2; `thread-character-context-v1` is the production writer-context default after POC expansion gains without semantic lows. New `diagnostics:corpus-recreation-poc` runs require an explicit disposable flag. See L094/L106.
 - Review `docs/method-packs/commercial-fantasy-adventure-v0.md` as the first
   general method-pack charter before implementing template definitions,
   fixtures, or planner prompt changes.
-- Apply frameworks via `docs/research/writing-frameworks/framework-application-plan.md`; next is diagnostic-only CFA v1 plus framework-to-prose POC.
+- Apply frameworks via `docs/research/writing-frameworks/framework-application-plan.md`; next is diagnostic-only CFA v1 plus framework-to-prose diagnostics through production-path evidence where possible.
 - Method-pack Flash cohort completed at N=18 paired cells and is `HOLD`:
   slot fit/IDs held, but character materiality, world relevance, and endpoint
   landing did not improve over no-method control. Pro-thinking timed out in

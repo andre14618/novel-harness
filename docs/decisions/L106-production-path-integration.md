@@ -154,6 +154,14 @@ The historical `poc/scene-first-novella` runner now requires
 production drafting/semantic/readiness commands. Capture-only repair remains
 available for existing artifacts.
 
+The historical `diagnostics:corpus-recreation-poc` generator now also requires
+`--allow-disposable-poc` before writing new output. Its artifacts remain useful
+for corpus-method evidence and downstream artifact-analysis commands, but new
+corpus recreation generation is an explicit disposable experiment, not the
+main production lane. The production lessons already absorbed from that lane
+include exact-ID character context defaults and the writer-context/readiness
+telemetry path.
+
 The first production-path operator loop on `p1-allow-brief-1778447459`
 dispositioned superseded whole-chapter semantic lows, created two manual
 planning edits, approved them through the normal planning-proposal route, and

@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process"
 import { describe, expect, test } from "bun:test"
 
 import {
+  assertDisposablePocAllowed,
   buildRecreationPacket,
   buildSequenceContextFromPocDirs,
   buildSceneWriterThreadContextReport,
@@ -20,6 +21,7 @@ import {
   plannerSchemaRetryPrompt,
   parseRecreationPlanOutput,
   parseExampleSceneOutput,
+  parseArgs,
   sceneCharacterContextForPrompt,
   sceneThreadContextForPrompt,
   sceneWriterContextForPrompt,
@@ -29,6 +31,12 @@ import {
 } from "./corpus-recreation-poc"
 
 describe("corpus-recreation-poc", () => {
+  test("requires explicit disposable POC acknowledgement for output-producing runs", () => {
+    expect(() => assertDisposablePocAllowed(parseArgs(["--chapter", "2"]))).toThrow(/historical\/disposable/)
+    expect(() => assertDisposablePocAllowed(parseArgs(["--allow-disposable-poc", "--chapter", "2"]))).not.toThrow()
+    expect(() => assertDisposablePocAllowed(parseArgs(["--allow-disposable-corpus-poc", "--chapter", "2"]))).not.toThrow()
+  })
+
   test("builds a structural imitation packet from a reference chapter", () => {
     const packet = buildRecreationPacket({
       reference: reference() as any,
@@ -837,6 +845,7 @@ describe("corpus-recreation-poc", () => {
 
       const result = spawnSync(process.execPath, [
         "scripts/evals/corpus-recreation-poc.ts",
+        "--allow-disposable-poc",
         "--reference",
         referencePath,
         "--plan-from",

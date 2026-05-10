@@ -32,6 +32,7 @@ interface Args {
   chapterLabel: string
   outputDir: string
   planFromDir: string | null
+  allowDisposablePoc: boolean
   live: boolean
   writeChapter: boolean
   sceneCalls: boolean
@@ -499,7 +500,7 @@ const ORIGINAL_ANALOG_SEED: OriginalAnalogSeed = {
   ],
 }
 
-function parseArgs(argv = process.argv.slice(2)): Args {
+export function parseArgs(argv = process.argv.slice(2)): Args {
   const values: Record<string, string | true | string[]> = {}
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!
@@ -543,6 +544,7 @@ function parseArgs(argv = process.argv.slice(2)): Args {
     chapterLabel: typeof values.chapter === "string" ? values.chapter : "1",
     outputDir: typeof values["output-dir"] === "string" ? values["output-dir"] : DEFAULT_OUTPUT_DIR,
     planFromDir: typeof values["plan-from"] === "string" ? values["plan-from"] : null,
+    allowDisposablePoc: values["allow-disposable-poc"] === true || values["allow-disposable-corpus-poc"] === true,
     live: values.live === true,
     writeChapter: values.write === true || values["write-chapter"] === true,
     sceneCalls: values["scene-calls"] === true || values["scene-writer"] === true,
@@ -596,6 +598,7 @@ function positiveInt(value: string, flag: string): number {
 function printHelp(): void {
   console.log(`Usage:
   bun scripts/evals/corpus-recreation-poc.ts [--chapter <label>] [--output-dir <dir>]
+    --allow-disposable-poc
     [--live] [--write] [--scene-calls]
     [--model deepseek-v4-flash|deepseek-v4-pro]
     [--planner-variant baseline|materiality-v1|causal-materiality-v2|causal-motivation-v3]
@@ -606,15 +609,24 @@ function printHelp(): void {
     [--plan-from <poc-dir>]
 
 Examples:
-  bun run diagnostics:corpus-recreation-poc -- --chapter 2 --output-dir output/poc-ch2
-  bun run diagnostics:corpus-recreation-poc -- --chapter 2 --live --planner-variant materiality-v1
-  bun run diagnostics:corpus-recreation-poc -- --chapter 2 --live --planner-variant causal-materiality-v2
-  bun run diagnostics:corpus-recreation-poc -- --chapter 2 --live --planner-variant causal-motivation-v3
+  bun run diagnostics:corpus-recreation-poc -- --allow-disposable-poc --chapter 2 --output-dir output/poc-ch2
+  bun run diagnostics:corpus-recreation-poc -- --allow-disposable-poc --chapter 2 --live --planner-variant materiality-v1
+  bun run diagnostics:corpus-recreation-poc -- --allow-disposable-poc --chapter 2 --live --planner-variant causal-materiality-v2
+  bun run diagnostics:corpus-recreation-poc -- --allow-disposable-poc --chapter 2 --live --planner-variant causal-motivation-v3
 `)
 }
 
 function wantsHelp(argv: string[]): boolean {
   return argv.includes("--help") || argv.includes("-h")
+}
+
+export function assertDisposablePocAllowed(args: { allowDisposablePoc: boolean }): void {
+  if (args.allowDisposablePoc) return
+  throw new Error([
+    "diagnostics:corpus-recreation-poc is historical/disposable under L106 and is not the default production path.",
+    "Use production drafting, scene-semantic review, Plan Readiness import/review/apply, or corpus artifact analysis commands for mainline work.",
+    "Pass --allow-disposable-poc only when intentionally creating a disposable corpus-recreation POC artifact.",
+  ].join(" "))
 }
 
 export function buildRecreationPacket(args: {
@@ -2156,6 +2168,7 @@ async function main(): Promise<void> {
     return
   }
   const args = parseArgs()
+  assertDisposablePocAllowed(args)
   const referencePath = resolve(process.cwd(), args.referencePath)
   if (!existsSync(referencePath)) throw new Error(`reference not found: ${referencePath}`)
   const reference = JSON.parse(readFileSync(referencePath, "utf-8")) as CorpusStructureReference
