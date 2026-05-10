@@ -23,7 +23,7 @@
  * resolved-references text) is identical across compact and full modes.
  */
 
-import type { BeatContext, BeatSpec, CharacterSnapshot, SettingBlock } from "./beat-context"
+import type { BeatContext, BeatSpec, CharacterSnapshot, SceneContractBlock, SettingBlock } from "./beat-context"
 import { renderCharacterContextCapsules } from "./character-context"
 
 export function renderBeatContext(ctx: BeatContext, opts: { compact: boolean }): string {
@@ -31,6 +31,14 @@ export function renderBeatContext(ctx: BeatContext, opts: { compact: boolean }):
 
   // ── 1. Beat spec ──────────────────────────────────────────────────────
   sections.push(renderBeatSpec(ctx.beatSpec))
+
+  // ── 1b. Scene contract (L097 Slice 2) ─────────────────────────────────
+  // Rendered when sceneCallWriterV1 is on AND the entry has at least one
+  // scene-contract field populated. Off-flag the slot is null and this
+  // section is suppressed — preserves byte-parity for legacy outlines.
+  if (ctx.sceneContract) {
+    sections.push(renderSceneContract(ctx.sceneContract))
+  }
 
   // ── 2. Transition bridge ──────────────────────────────────────────────
   if (ctx.transitionBridge) {
@@ -106,6 +114,36 @@ function renderBeatSpec(spec: BeatSpec): string {
   const obligationLines = renderObligationLines(spec.obligations)
   if (obligationLines) lines.push("", "BEAT OBLIGATIONS:", obligationLines)
 
+  return lines.join("\n")
+}
+
+// ── Scene contract (L097 Slice 2) ───────────────────────────────────────
+// Renders the planner-emitted scene-contract fields as a "SCENE CONTRACT"
+// block the writer consumes alongside the beat description. The block is
+// purely additive — it never replaces or contradicts the beat spec; it
+// adds the dramatic shape the writer must satisfy (goal, opposition,
+// turning point, crisis choice + alternatives, outcome, consequence,
+// POV personal stake, value polarity).
+function renderSceneContract(scene: SceneContractBlock): string {
+  const lines: string[] = ["SCENE CONTRACT (write the dramatic shape; do not just narrate the beat description):"]
+  if (scene.goal) lines.push(`Goal: ${scene.goal}`)
+  if (scene.opposition) lines.push(`Opposition: ${scene.opposition}`)
+  if (scene.turningPoint) lines.push(`Turning point: ${scene.turningPoint}`)
+  if (scene.crisisChoice) lines.push(`Crisis choice: ${scene.crisisChoice}`)
+  if (scene.choiceAlternatives.length > 0) {
+    lines.push("Choice alternatives the protagonist weighs:")
+    for (const alt of scene.choiceAlternatives) {
+      lines.push(`  - ${alt}`)
+    }
+  }
+  if (scene.outcome) lines.push(`Outcome (what happens): ${scene.outcome}`)
+  if (scene.consequence) lines.push(`Consequence (observable downstream pressure — different from outcome): ${scene.consequence}`)
+  if (scene.povPersonalStake) lines.push(`POV personal stake: ${scene.povPersonalStake}`)
+  if (scene.valueIn || scene.valueOut) {
+    const inVal = scene.valueIn ?? "?"
+    const outVal = scene.valueOut ?? "?"
+    lines.push(`Value polarity: ${inVal} → ${outVal}`)
+  }
   return lines.join("\n")
 }
 

@@ -94,6 +94,10 @@ export interface BeatContextInput {
   /** Optional production context upgrade. Omitted means legacy prompt shape,
    *  preserving byte-parity tests and offline eval callers. */
   writerContextMode?: WriterContextMode
+  /** L097 Slice 2: when true and the entry has scene-contract fields,
+   *  surface them as a SCENE CONTRACT block in the writer prompt. Off
+   *  preserves byte-parity. */
+  sceneCallWriterV1?: boolean
 }
 
 export interface BeatContextResult {
@@ -187,6 +191,31 @@ export interface BeatContext {
   /** Setting payload — null when section is suppressed (not beat 0 AND no
    *  location-change heuristic fire) OR no matching world-bible location. */
   setting: SettingBlock | null
+  /** L097 Slice 2: scene-contract block populated when sceneCallWriterV1
+   *  is on AND the entry has at least one scene-contract field. Null
+   *  when the flag is off OR the planner emitted no scene-contract fields
+   *  (legacy plans, off-flag plans, transit/establishment beats).
+   *  Optional in the type so legacy test fixtures and offline callers
+   *  don't have to thread the slot through; absence is rendered the same
+   *  as null (no SCENE CONTRACT section). */
+  sceneContract?: SceneContractBlock | null
+}
+
+export interface SceneContractBlock {
+  goal?: string
+  opposition?: string
+  turningPoint?: string
+  crisisChoice?: string
+  choiceAlternatives: string[]
+  outcome?: string
+  consequence?: string
+  povPersonalStake?: string
+  valueIn?: string
+  valueOut?: string
+  /** Per-entry word target advisory derived from the scene contract.
+   *  Drafting expansion-retry uses this when present; falls back to
+   *  `targetWords` (chapter total / entry count) otherwise. */
+  targetWords?: number
 }
 
 // ── Slot builder (D1) ────────────────────────────────────────────────────
@@ -293,6 +322,10 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
     ? buildBeatCharacterContextCapsules({ outline, beat, beatIndex, characters, characterStates })
     : null
 
+  const sceneContract = input.sceneCallWriterV1
+    ? buildSceneContractBlock(beat)
+    : null
+
   return {
     beatSpec,
     transitionBridge,
@@ -302,7 +335,53 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
     readerInfoState,
     characterContextCapsules,
     setting,
+    sceneContract,
   }
+}
+
+// L097 Slice 2: extract scene-contract fields from the entry. Returns null
+// when none of the scene-contract fields are populated — this preserves
+// off-flag byte parity for legacy outlines that ride through with the flag
+// on (no contract block rendered when the planner emitted no scene fields).
+function buildSceneContractBlock(beat: SceneBeat): SceneContractBlock | null {
+  const goal = clean(beat.goal)
+  const opposition = clean(beat.opposition)
+  const turningPoint = clean(beat.turningPoint)
+  const crisisChoice = clean(beat.crisisChoice)
+  const outcome = clean(beat.outcome)
+  const consequence = clean(beat.consequence)
+  const povPersonalStake = clean(beat.povPersonalStake)
+  const valueIn = clean(beat.valueIn)
+  const valueOut = clean(beat.valueOut)
+  const choiceAlternatives = (beat.choiceAlternatives ?? [])
+    .map(s => (typeof s === "string" ? s.trim() : ""))
+    .filter(s => s.length > 0)
+  const targetWords = typeof beat.targetWords === "number" && beat.targetWords > 0 ? beat.targetWords : undefined
+
+  const hasAny = Boolean(
+    goal || opposition || turningPoint || crisisChoice || outcome || consequence
+    || povPersonalStake || valueIn || valueOut || choiceAlternatives.length > 0,
+  )
+  if (!hasAny) return null
+
+  const block: SceneContractBlock = { choiceAlternatives }
+  if (goal) block.goal = goal
+  if (opposition) block.opposition = opposition
+  if (turningPoint) block.turningPoint = turningPoint
+  if (crisisChoice) block.crisisChoice = crisisChoice
+  if (outcome) block.outcome = outcome
+  if (consequence) block.consequence = consequence
+  if (povPersonalStake) block.povPersonalStake = povPersonalStake
+  if (valueIn) block.valueIn = valueIn
+  if (valueOut) block.valueOut = valueOut
+  if (targetWords !== undefined) block.targetWords = targetWords
+  return block
+}
+
+function clean(value: string | undefined | null): string | undefined {
+  if (typeof value !== "string") return undefined
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : undefined
 }
 
 function resolveConditioningOverride(): "fixed" | "rotation" | undefined {
@@ -314,7 +393,11 @@ function resolveConditioningOverride(): "fixed" | "rotation" | undefined {
 
 export async function buildBeatContext(input: BeatContextInput): Promise<BeatContextResult> {
   const ctx = await buildBeatContextSlots(input)
-  const targetWords = Math.round(input.outline.targetWords / Math.max(input.outline.scenes.length, 1))
+  // L097 Slice 2: prefer per-entry scene-contract targetWords when present;
+  // falls back to the chapter-divided default. Off-flag (sceneContract === null)
+  // the legacy chapter-divided behaviour is preserved.
+  const targetWords = ctx.sceneContract?.targetWords
+    ?? Math.round(input.outline.targetWords / Math.max(input.outline.scenes.length, 1))
   return {
     userPrompt: renderBeatContext(ctx, { compact: !!input.compactMode }),
     targetWords,

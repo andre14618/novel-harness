@@ -20,6 +20,7 @@ import type { WriterCharacterContextTrace } from "../agents/writer/character-con
 import { resolveReferences } from "../agents/writer/reference-resolver"
 import {
   buildRetryPrompt,
+  buildExpansionPrompt,
   formatChapterIntegrityRetryContext,
   formatChapterUngroundedRetryContext,
   extractUngroundedEntitiesFromDescriptions,
@@ -45,7 +46,7 @@ import { trace } from "../trace"
 import { savePlannedState } from "../planned-state"
 import { diffPlanAgainstState, type PriorCharacterState } from "../state-diff"
 import { assertDraftableSnapshot } from "../canon/planning-snapshot"
-import { pipeline } from "../config/pipeline"
+import { pipeline, resolveSceneCallWriterV1, resolveWriterExpansionMode } from "../config/pipeline"
 import type { SeedInput } from "../types"
 import {
   selectContinuityFactsForPolicy,
@@ -363,6 +364,13 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             payload: { beats: outline.scenes.length, totalLookups, llmUsedCount },
           })
 
+          // L097 Slice 2: scene-call writer rendering + retry-short-scenes-v1.
+          // Resolved once per chapter; threaded into each per-entry build so
+          // the writer prompt surfaces scene-contract fields and the
+          // expansion-retry path is gated consistently across the loop.
+          const sceneCallWriterV1 = resolveSceneCallWriterV1(novel.seed.pipelineOverrides)
+          const writerExpansionMode = resolveWriterExpansionMode(novel.seed.pipelineOverrides)
+
           beatProses = []
           for (let bi = 0; bi < outline.scenes.length; bi++) {
             const beatCtx = await buildBeatContext({
@@ -373,6 +381,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               genre: novel.seed?.genre,
               priorChapterFacts,
               writerContextMode: eff.writerContextMode,
+              sceneCallWriterV1,
             })
             await traceWriterContextEvent(novelId, {
               chapter: ch,
@@ -496,6 +505,109 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             if (!beatProse) {
               log(novelId, "warn", `Beat ${bi + 1} failed after retries, falling back to chapter-level`)
               break
+            }
+
+            // L097 Slice 2: scene-call writer expansion-retry path.
+            // Gated on sceneCallWriterV1 + writerExpansionMode === "retry-
+            // short-scenes-v1". Runs AFTER the checker-retry loop accepts
+            // beatProse — so expansion never replaces a checker-required
+            // rewrite, only adds attempts when prose passes checks but
+            // came in below the advisory floor (70% of targetWords, min
+            // 120w). Best-attempt retention: across the original accepted
+            // prose plus up to 3 expansion attempts, the highest-word-
+            // count attempt is kept. Word count remains advisory; this
+            // path adds attempts but never converts the floor into a
+            // hard gate.
+            if (sceneCallWriterV1 && writerExpansionMode === "retry-short-scenes-v1") {
+              const targetWords = beatCtx.targetWords
+              const advisoryFloor = Math.max(120, Math.round(targetWords * 0.7))
+              let bestProse = beatProse
+              let bestWordCount = beatProse.split(/\s+/).filter(Boolean).length
+              const startWordCount = bestWordCount
+              if (bestWordCount < advisoryFloor) {
+                const MAX_EXPANSION_ATTEMPTS = 3
+                let priorProse = beatProse
+                for (let exp = 1; exp <= MAX_EXPANSION_ATTEMPTS; exp++) {
+                  const { userPrompt: expansionPrompt } = buildExpansionPrompt({
+                    beatContext: beatCtx,
+                    systemPrompt: beatSystemPrompt,
+                    priorProse,
+                    actualWords: bestWordCount,
+                    advisoryFloor,
+                    attempt: exp,
+                  })
+                  const resolvedExpansionPrompt =
+                    expansionPrompt
+                    + formatChapterIntegrityRetryContext(priorIntegrityIssues)
+                    + formatChapterUngroundedRetryContext(priorUngroundedEntities)
+                  try {
+                    const response = await executeAndLog(
+                      {
+                        systemPrompt: beatSystemPrompt,
+                        userPrompt: resolvedExpansionPrompt,
+                        model: beatWriterModel?.model ?? "deepseek-v4-flash",
+                        provider: beatWriterModel?.provider ?? "deepseek",
+                        temperature: beatWriterModel?.temperature ?? 0.8,
+                        maxTokens: beatWriterModel?.maxTokens ?? 4000,
+                        responseFormat: { type: "text" },
+                      },
+                      novelId,
+                      "beat-writer",
+                      {
+                        chapter: ch,
+                        beatIndex: bi,
+                        beatId: beatSpec.beatId,
+                        // Tag expansion attempts with attempt numbers above the
+                        // checker-retry range so cost/quality analysis can split
+                        // expansion calls from checker-driven retries.
+                        attempt: pipeline.maxBeatRetries + 1 + exp,
+                      },
+                      {
+                        stream: true,
+                        meta: {
+                          ...beatStableIdTraceMeta(outline, beatSpec),
+                          expansion: true,
+                          expansionAttempt: exp,
+                          advisoryFloor,
+                          startWords: startWordCount,
+                        },
+                      },
+                    )
+                    const expandedProse = response.content?.trim()
+                    if (!expandedProse || expandedProse.length < 50) continue
+                    const expandedWords = expandedProse.split(/\s+/).filter(Boolean).length
+                    if (expandedWords > bestWordCount) {
+                      bestProse = expandedProse
+                      bestWordCount = expandedWords
+                    }
+                    priorProse = expandedProse
+                    if (bestWordCount >= advisoryFloor) break
+                  } catch (err) {
+                    log(novelId, "warn", `Beat ${bi + 1} expansion ${exp} failed: ${err instanceof Error ? err.message : err}`)
+                  }
+                }
+                if (bestWordCount > startWordCount) {
+                  log(
+                    novelId,
+                    "info",
+                    `Beat ${bi + 1} expansion: ${startWordCount} → ${bestWordCount} words (advisory floor ${advisoryFloor})`,
+                  )
+                  await trace(novelId, {
+                    eventType: "writer-expansion",
+                    chapter: ch,
+                    beatIndex: bi,
+                    payload: {
+                      beatId: beatSpec.beatId,
+                      startWords: startWordCount,
+                      bestWords: bestWordCount,
+                      advisoryFloor,
+                      targetWords,
+                      retainedAttempt: bestProse === beatProse ? "initial" : "expansion",
+                    },
+                  })
+                  beatProse = bestProse
+                }
+              }
             }
 
             beatProses.push(beatProse)

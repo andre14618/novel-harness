@@ -77,6 +77,25 @@ export const pipeline = {
   // slices flip the default to true after evidence gates clear.
   scenePlanContractV1: false,
 
+  // L097 Slice 2: scene-call writer rendering flag. Default off. When on
+  // AND the entry has scene-contract fields populated by the planner
+  // (Slice 1), the writer prompt surfaces the scene contract (goal,
+  // crisisChoice, choiceAlternatives, outcome, consequence,
+  // povPersonalStake, valueIn, valueOut). Off-flag the writer prompt is
+  // byte-identical to today's beat-shaped prompt.
+  sceneCallWriterV1: false,
+
+  // L097 Slice 2: writer expansion mode. "off" = legacy behaviour (writer
+  // is called once per entry, retries only on checker failure).
+  // "retry-short-scenes-v1" = under sceneCallWriterV1, after the per-entry
+  // writer call completes, run up to 3 expansion retries when the produced
+  // word count is below the advisory floor (70% of target, min 120w).
+  // Best-attempt retention: the highest-word-count attempt is kept even
+  // if the final attempt undershoots. Word count remains advisory; the
+  // expansion path adds attempts but never converts word count into a hard
+  // gate.
+  writerExpansionMode: "off" as "off" | "retry-short-scenes-v1",
+
   // State management
   embeddings: false,          // skip embedding step (beat path uses deterministic DB lookups)
 
@@ -114,4 +133,16 @@ export function resolveScenePlanContractV1(
   overrides: { scenePlanContractV1?: boolean } | undefined,
 ): boolean {
   return overrides?.scenePlanContractV1 ?? pipeline.scenePlanContractV1
+}
+
+export function resolveSceneCallWriterV1(
+  overrides: { sceneCallWriterV1?: boolean } | undefined,
+): boolean {
+  return overrides?.sceneCallWriterV1 ?? pipeline.sceneCallWriterV1
+}
+
+export function resolveWriterExpansionMode(
+  overrides: { writerExpansionMode?: "off" | "retry-short-scenes-v1" } | undefined,
+): "off" | "retry-short-scenes-v1" {
+  return overrides?.writerExpansionMode ?? pipeline.writerExpansionMode
 }

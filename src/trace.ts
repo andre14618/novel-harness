@@ -39,6 +39,7 @@ export type TraceEventType =
   | "adherence-stage2-override"
   | "reference-resolution"
   | "writer-context"
+  | "writer-expansion"
   | "state-extraction"
   | "gate-wait"
   | "gate-resolve"

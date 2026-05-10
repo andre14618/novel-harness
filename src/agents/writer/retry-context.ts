@@ -94,6 +94,55 @@ export function buildRetryPrompt(input: RetryPromptInput): RetryPromptOutput {
   }
 }
 
+// L097 Slice 2: expansion-retry prompt for retry-short-scenes-v1.
+//
+// When sceneCallWriterV1 is on and the writer's accepted prose comes in
+// below the advisory floor (70% of target, min 120w), drafting runs up to
+// three expansion attempts. Each attempt receives the prior best-attempt
+// prose plus an instruction to expand through dramatized action, dialogue,
+// interiority, and consequence — without padding or restating. Sourced
+// from POC `corpus-recreation-poc.ts:1902-1907` ("expand the existing
+// scene through dramatized action, dialogue, interiority, and consequence
+// without padding"). Word count remains advisory; the expansion path
+// adds attempts but never converts the floor into a hard gate.
+
+const EXPANSION_PRIOR_PROSE_CHAR_LIMIT = 8000
+
+export interface ExpansionPromptInput {
+  /** Output of buildBeatContext for this beat. */
+  beatContext: BeatContextResult
+  /** The system prompt string (BEAT_WRITER_PROMPT). */
+  systemPrompt: string
+  /** The best-attempt prose so far that came in under the advisory floor. */
+  priorProse: string
+  /** Word count of priorProse. */
+  actualWords: number
+  /** Advisory floor (70% of targetWords, min 120). */
+  advisoryFloor: number
+  /** 1-based expansion attempt number (1, 2, or 3). */
+  attempt: number
+}
+
+export interface ExpansionPromptOutput {
+  systemPrompt: string
+  userPrompt: string
+}
+
+export function buildExpansionPrompt(input: ExpansionPromptInput): ExpansionPromptOutput {
+  const { beatContext, systemPrompt, priorProse, actualWords, advisoryFloor, attempt } = input
+  const expansionContext =
+    `\n\n--- SCENE EXPANSION (attempt ${attempt}) ---\n`
+    + `Your previous prose for this entry came in at ${actualWords} words; the advisory floor is ${advisoryFloor} words. `
+    + `The shape is right — do NOT rewrite or restart. Expand the existing scene through dramatized action, dialogue, interiority, and consequence without padding. `
+    + `Keep the same goal, opposition, turning point, crisis choice, outcome, and consequence; do not change them. `
+    + `Add the missing pressure: more concrete action beats, more dialogue, more interiority that reveals choice pressure, more observable consequence on the page.\n\n`
+    + `Previous prose (treat as the starting frame; rewrite expanding it):\n---\n${priorProse.slice(0, EXPANSION_PRIOR_PROSE_CHAR_LIMIT)}\n---`
+  return {
+    systemPrompt,
+    userPrompt: beatContext.userPrompt + expansionContext,
+  }
+}
+
 /**
  * Format chapter-level prose-integrity issues from a prior chapter-attempt
  * into a context block to append to every beat's userPrompt in the next

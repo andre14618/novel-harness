@@ -80,7 +80,11 @@ mock.module("../config/pipeline", () => ({
     defaultTargetWords: 500,
     minWords: 300,
     tonalPass: false,
+    sceneCallWriterV1: false,
+    writerExpansionMode: "off",
   },
+  resolveSceneCallWriterV1: () => false,
+  resolveWriterExpansionMode: () => "off",
 }))
 
 mock.module("../logger", () => ({

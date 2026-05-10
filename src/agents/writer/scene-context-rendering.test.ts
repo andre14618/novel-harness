@@ -1,0 +1,167 @@
+/**
+ * L097 Slice 2: scene-contract rendering tests.
+ *
+ * Covers (a) SceneContractBlock construction from a scene-shape entry,
+ * (b) byte-shape of the SCENE CONTRACT prompt block, (c) buildExpansionPrompt
+ * shape for retry-short-scenes-v1.
+ *
+ * The byte-parity test for legacy outlines (sceneCallWriterV1 off) lives
+ * in `tests/beat-context-parity.test.ts`; this file tests the on-flag
+ * surface in isolation.
+ */
+
+import { describe, expect, it } from "bun:test"
+
+import type { BeatContext, BeatContextResult } from "./beat-context"
+import { renderBeatContext } from "./beat-context-render"
+import { buildExpansionPrompt } from "./retry-context"
+
+function baseCtx(overrides: Partial<BeatContext> = {}): BeatContext {
+  return {
+    beatSpec: {
+      beatNumber: 1,
+      totalBeats: 5,
+      pov: "Calla",
+      setting: "Imperial Archive",
+      kind: "dialogue",
+      description: "Calla confronts Orvath.",
+      charactersPresent: ["Calla", "Orvath"],
+      seeds: [],
+      payoffsDue: [],
+      obligations: {
+        mustEstablish: [],
+        mustPayOff: [],
+        mustTransferKnowledge: [],
+        mustShowStateChange: [],
+        mustNotReveal: [],
+        allowedNewEntities: [],
+      },
+    },
+    transitionBridge: null,
+    landingTarget: null,
+    characterSnapshots: [],
+    resolvedReferencesText: null,
+    readerInfoState: null,
+    setting: null,
+    sceneContract: null,
+    ...overrides,
+  }
+}
+
+describe("renderBeatContext + scene contract", () => {
+  it("omits the SCENE CONTRACT block when sceneContract is null", () => {
+    const out = renderBeatContext(baseCtx(), { compact: false })
+    expect(out).not.toContain("SCENE CONTRACT")
+  })
+
+  it("renders the SCENE CONTRACT block when sceneContract is populated", () => {
+    const out = renderBeatContext(
+      baseCtx({
+        sceneContract: {
+          goal: "Force Orvath to confess his deal with the empire.",
+          opposition: "Orvath holds Davan's safety as leverage.",
+          turningPoint: "Calla realises she is the leverage.",
+          crisisChoice: "Trade the script or burn it.",
+          choiceAlternatives: [
+            "Hand the script over and accept Orvath's protection.",
+            "Burn the script and force a public reckoning.",
+          ],
+          outcome: "Calla burns the script.",
+          consequence: "Davan is exiled and the empire begins hunting Calla.",
+          povPersonalStake: "Calla cannot let Davan be reduced to leverage again.",
+          valueIn: "compliance",
+          valueOut: "rupture",
+        },
+      }),
+      { compact: false },
+    )
+
+    expect(out).toContain("SCENE CONTRACT")
+    expect(out).toContain("Goal: Force Orvath to confess his deal with the empire.")
+    expect(out).toContain("Crisis choice: Trade the script or burn it.")
+    expect(out).toContain("Choice alternatives the protagonist weighs:")
+    expect(out).toContain("- Hand the script over and accept Orvath's protection.")
+    expect(out).toContain("- Burn the script and force a public reckoning.")
+    expect(out).toContain("Outcome (what happens): Calla burns the script.")
+    expect(out).toContain("Consequence (observable downstream pressure — different from outcome): Davan is exiled and the empire begins hunting Calla.")
+    expect(out).toContain("POV personal stake: Calla cannot let Davan be reduced to leverage again.")
+    expect(out).toContain("Value polarity: compliance → rupture")
+  })
+
+  it("omits empty fields and renders value polarity with ? for missing sides", () => {
+    const out = renderBeatContext(
+      baseCtx({
+        sceneContract: {
+          choiceAlternatives: ["Stay silent.", "Speak up."],
+          valueIn: "compliance",
+          // valueOut omitted intentionally
+        },
+      }),
+      { compact: false },
+    )
+
+    expect(out).toContain("SCENE CONTRACT")
+    expect(out).toContain("Value polarity: compliance → ?")
+    expect(out).not.toContain("Goal:")
+    expect(out).not.toContain("Opposition:")
+  })
+
+  it("places SCENE CONTRACT immediately after BEAT spec and before transition bridge", () => {
+    const out = renderBeatContext(
+      baseCtx({
+        sceneContract: { choiceAlternatives: ["A", "B"], goal: "G" },
+        transitionBridge: "Prior beat closing line.",
+      }),
+      { compact: false },
+    )
+
+    const beatIdx = out.indexOf("BEAT 1 of 5")
+    const sceneIdx = out.indexOf("SCENE CONTRACT")
+    const bridgeIdx = out.indexOf("TRANSITION BRIDGE")
+    expect(beatIdx).toBeGreaterThanOrEqual(0)
+    expect(sceneIdx).toBeGreaterThan(beatIdx)
+    expect(bridgeIdx).toBeGreaterThan(sceneIdx)
+  })
+})
+
+describe("buildExpansionPrompt", () => {
+  function ctxResult(userPrompt: string): BeatContextResult {
+    return { userPrompt, targetWords: 600 }
+  }
+
+  it("appends an expansion suffix that names the prior word count and floor", () => {
+    const out = buildExpansionPrompt({
+      beatContext: ctxResult("BASE PROMPT"),
+      systemPrompt: "SYS",
+      priorProse: "Short prose.",
+      actualWords: 320,
+      advisoryFloor: 420,
+      attempt: 2,
+    })
+
+    expect(out.systemPrompt).toBe("SYS")
+    expect(out.userPrompt.startsWith("BASE PROMPT")).toBe(true)
+    expect(out.userPrompt).toContain("--- SCENE EXPANSION (attempt 2) ---")
+    expect(out.userPrompt).toContain("came in at 320 words")
+    expect(out.userPrompt).toContain("the advisory floor is 420 words")
+    expect(out.userPrompt).toContain("dramatized action, dialogue, interiority, and consequence without padding")
+    expect(out.userPrompt).toContain("Short prose.")
+  })
+
+  it("truncates the prior prose to 8000 chars in the expansion suffix", () => {
+    const long = "x".repeat(8500)
+    const out = buildExpansionPrompt({
+      beatContext: ctxResult("BASE PROMPT"),
+      systemPrompt: "SYS",
+      priorProse: long,
+      actualWords: 1200,
+      advisoryFloor: 1500,
+      attempt: 1,
+    })
+
+    // 8000-char cap on the prior-prose excerpt; the surrounding wrapper
+    // adds fixed bytes — assert the embedded sample length is bounded.
+    const embedded = out.userPrompt.split("---")[3] ?? ""
+    expect(embedded.length).toBeLessThanOrEqual(8100)
+  })
+})

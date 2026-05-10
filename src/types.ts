@@ -37,6 +37,17 @@ export interface SeedInput {
      * `enforceScenePlanContract` under this flag.
      */
     scenePlanContractV1?: boolean
+    /**
+     * L097 Slice 2: scene-call writer rendering flag. Default-off. When on,
+     * the writer prompt surfaces scene-contract fields per entry.
+     */
+    sceneCallWriterV1?: boolean
+    /**
+     * L097 Slice 2: writer expansion mode. "off" preserves legacy
+     * single-call-per-entry retry behaviour. "retry-short-scenes-v1" adds
+     * expansion retries when word count is below the advisory floor.
+     */
+    writerExpansionMode?: "off" | "retry-short-scenes-v1"
   }
 }
 
