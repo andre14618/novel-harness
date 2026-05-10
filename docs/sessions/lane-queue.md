@@ -21,11 +21,13 @@ unless the user explicitly requests a disposable branch.
     and logs findings; planning never throws. Promotion to blocking mode is
     contingent on a model upgrade or contract simplification — deferred
     indefinitely.
-  - Slice 2 (next, L097): writer scene-context rendering + retry-short-scenes-v1
-    expansion. Operates on planner output as-is; does not require flag-on
-    planner.
-  - Slice 3 (L098): scene-satisfaction LLM diagnostic + parity panel.
-    Diagnostic only.
+  - Slice 2 (L097): writer scene-context rendering + retry-short-scenes-v1
+    expansion shipped behind `sceneCallWriterV1=false` +
+    `writerExpansionMode="off"`. Wiring validated by unit tests + byte-parity
+    replay; LXC drafting fixed-plan A/B explicitly deferred until a
+    `test-drafting-isolated` harness is built (Slice 2.5 backlog).
+  - Slice 3 (next, L098): scene-satisfaction LLM diagnostic + parity panel.
+    Diagnostic only; does not depend on Slice 2 evidence.
 - Upstream planning methodology lane: narrow the active product question to
   concept/planning templates, chapter contracts, scene contracts, obligation
   traceability, and planner-quality diagnostics. See L089.
