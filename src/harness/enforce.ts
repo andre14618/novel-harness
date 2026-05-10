@@ -210,19 +210,26 @@ export function enforceScenePlanContract(
       }
     }
 
-    // (3) Each scene must declare at least one obligation with an exact
-    //     sourceId (matches POC `hasDeclaredObligation`/`hasKnownSourceIds`
-    //     intent at the structural level — known-source resolution against a
-    //     registry stays in existing harness validators).
+    // (3) Scenes that declare a `crisisChoice` are being treated as full
+    //     scene contracts and must have at least one obligation with an exact
+    //     sourceId — that's what makes the choice operationally pressured by
+    //     a known character/world/story-debt source. Entries without a
+    //     crisisChoice are transit/establishment beats in the production
+    //     mixed-granularity reality and are exempt from this check. Mirrors
+    //     POC `hasDeclaredObligation` intent while accommodating production
+    //     beats that haven't fully migrated to scene-shape.
     const allObligations = collectSceneObligations(scene)
-    const sourcedObligations = allObligations.filter(o => {
-      const sid = (o.sourceId ?? "").trim()
-      return sid.length > 0
-    })
-    if (sourcedObligations.length === 0) {
-      errors.push(
-        `Scene ${sceneRef}: must declare at least one obligation with an exact sourceId`,
-      )
+    const declaresCrisis = (scene.crisisChoice ?? "").trim().length > 0
+    if (declaresCrisis) {
+      const sourcedObligations = allObligations.filter(o => {
+        const sid = (o.sourceId ?? "").trim()
+        return sid.length > 0
+      })
+      if (sourcedObligations.length === 0) {
+        errors.push(
+          `Scene ${sceneRef}: declares a crisisChoice but no obligation with an exact sourceId — declared scene contracts must point at a known character/world/story-debt source`,
+        )
+      }
     }
 
     // (4) Observable consequence: when both fields are present, the
@@ -235,13 +242,20 @@ export function enforceScenePlanContract(
       )
     }
 
-    // (5) materialityTest on every obligation (when required by flag).
+    // (5) materialityTest on every source-grounded obligation (when
+    //     required by flag). `mustNotReveal` items are skipped: they have no
+    //     upstream `sourceId` by design (per `harness/ids.ts:194`) — they
+    //     are avoidance constraints, not source-grounded materials. There is
+    //     no "concrete story effect this obligation must change" to declare
+    //     for an avoidance; the materiality is the avoidance itself.
     if (requireMaterialityTests) {
       for (const o of allObligations) {
+        const sid = (o.sourceId ?? "").trim()
+        if (sid.length === 0) continue
         const mt = (o.materialityTest ?? "").trim()
         if (mt.length < 8) {
           errors.push(
-            `Scene ${sceneRef} obligation ${o.obligationId ?? "(no id)"}: materialityTest must declare how the source ID changes choice/cost/relationship/outcome (≥8 chars)`,
+            `Scene ${sceneRef} obligation ${o.obligationId ?? "(no id)"} (sourceId=${sid}): materialityTest must declare how the source ID changes choice/cost/relationship/outcome (≥8 chars)`,
           )
         }
       }

@@ -24,6 +24,7 @@ const FILLED_SCENE = {
   characters: ["Calla", "Orvath"],
   beatId: "ch-001-test-beat-001-confront",
   goal: "Force Orvath to confess his deal with the empire.",
+  crisisChoice: "Trade the script for Davan's safety, or burn it.",
   outcome: "Calla burns the script.",
   consequence: "Davan is exiled and the empire begins hunting Calla.",
   povPersonalStake: "Calla cannot let Davan be reduced to leverage again.",
@@ -66,6 +67,70 @@ test("enforceScenePlanContract returns valid for legacy outlines without new fie
   expect(result.errors[0]).toContain("choiceAlternatives must declare at least two options")
 })
 
+test("enforceScenePlanContract exempts entries without crisisChoice from sourced-obligation check", () => {
+  // A transit/establishment beat: declares choiceAlternatives≥2 (still required)
+  // but has no crisisChoice and no obligations. Should pass.
+  const transitScene = {
+    description: "Calla rides into Thornwall village at dusk.",
+    characters: ["Calla"],
+    beatId: "ch-001-test-beat-001-arrive-thornwall",
+    choiceAlternatives: ["Stop at the inn first.", "Ride straight to the surveyor's cottage."],
+    outcome: "Calla dismounts at the village square.",
+    consequence: "Villagers note the unfamiliar rider.",
+    obligations: {
+      mustEstablish: [], mustPayOff: [], mustTransferKnowledge: [],
+      mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [],
+    },
+  }
+  const result = enforceScenePlanContract(chapter([transitScene]))
+
+  expect(result.valid).toBe(true)
+})
+
+test("enforceScenePlanContract still requires sourced obligation when crisisChoice is declared", () => {
+  const sceneWithCrisis = {
+    ...FILLED_SCENE,
+    obligations: {
+      mustEstablish: [], mustPayOff: [], mustTransferKnowledge: [],
+      mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [],
+    },
+  }
+  const result = enforceScenePlanContract(chapter([sceneWithCrisis]))
+
+  expect(result.valid).toBe(false)
+  expect(result.errors.some(e => e.includes("declares a crisisChoice but no obligation"))).toBe(true)
+})
+
+test("enforceScenePlanContract skips mustNotReveal items in materialityTest check", () => {
+  // Scene has a sourced mustEstablish obligation WITH materialityTest plus
+  // a mustNotReveal item WITHOUT materialityTest. Should pass: mustNotReveal
+  // has no sourceId by design and is exempt from the check.
+  const scene = {
+    ...FILLED_SCENE,
+    obligations: {
+      mustEstablish: [{
+        text: "Orvath holds the ledger.",
+        sourceId: "fact-ledger",
+        obligationId: "obl-1",
+        materialityTest: "Ledger gives Orvath leverage Calla cannot ignore.",
+      }],
+      mustPayOff: [],
+      mustTransferKnowledge: [],
+      mustShowStateChange: [],
+      mustNotReveal: [{
+        text: "Do not reveal Davan's location to Orvath.",
+        obligationId: "obl-2-avoid",
+      }],
+      allowedNewEntities: [],
+    },
+  }
+  const result = enforceScenePlanContract(chapter([scene]), {
+    requireMaterialityTests: true,
+  })
+
+  expect(result.valid).toBe(true)
+})
+
 test("enforceScenePlanContract passes a fully filled scene contract", () => {
   const result = enforceScenePlanContract(chapter([FILLED_SCENE]), {
     requireMaterialityTests: true,
@@ -104,7 +169,7 @@ test("enforceScenePlanContract skips povPersonalStake when not flagged", () => {
   expect(result.errors.some(e => e.includes("povPersonalStake"))).toBe(false)
 })
 
-test("enforceScenePlanContract requires at least one obligation with sourceId", () => {
+test("enforceScenePlanContract requires sourced obligation when entry has crisisChoice", () => {
   const scene = {
     ...FILLED_SCENE,
     obligations: {
@@ -115,7 +180,7 @@ test("enforceScenePlanContract requires at least one obligation with sourceId", 
   const result = enforceScenePlanContract(chapter([scene]))
 
   expect(result.valid).toBe(false)
-  expect(result.errors.some(e => e.includes("at least one obligation with an exact sourceId"))).toBe(true)
+  expect(result.errors.some(e => e.includes("declares a crisisChoice but no obligation"))).toBe(true)
 })
 
 test("enforceScenePlanContract requires consequence to differ from outcome", () => {
