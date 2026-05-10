@@ -84,8 +84,42 @@ export interface ProseSemanticReport {
     labelCounts: Record<string, number>
   }>
   saturationNotes: string[]
+  telemetry: ProseSemanticTelemetry
   advisoryRecommendation: string
   results: ProseSemanticResult[]
+}
+
+export interface ProseSemanticTelemetry {
+  lowRows: number
+  errorRows: number
+  highConfidenceLowRows: number
+  saturatedDimensions: ProseSemanticDimension[]
+  lowVarianceDimensions: ProseSemanticDimension[]
+  dimensionMeans: Partial<Record<ProseSemanticDimension, number>>
+  wordShape: {
+    chaptersWithTargets: number
+    meanWordRatio: number | null
+    overTargetChapters: number
+    severeOverTargetChapters: number
+    underTargetChapters: number
+  }
+  chapterSummaries: Array<{
+    chapterNumber: number
+    draftVersion: number | null
+    draftStatus: string | null
+    targetWords: number | null
+    proseWords: number
+    wordRatio: number | null
+    labels: Partial<Record<ProseSemanticDimension, string>>
+    ordinals: Partial<Record<ProseSemanticDimension, number>>
+    lowDimensions: ProseSemanticDimension[]
+    errorDimensions: ProseSemanticDimension[]
+  }>
+  harnessGuidance: {
+    lengthSignal: "not_falsified_as_padding" | "compression_candidate" | "incomplete" | "inconclusive"
+    qualityRisk: "low" | "mixed" | "incomplete"
+    nextProbe: string
+  }
 }
 
 const DEFAULT_DIMENSIONS: ProseSemanticDimension[] = [
@@ -393,6 +427,7 @@ export async function buildProseSemanticReport(
     resultCount: results.length,
     summaries,
     saturationNotes: saturationNotes(input.dimensions, results),
+    telemetry: buildTelemetry(input.dimensions, summaries, results),
     advisoryRecommendation: advisoryRecommendation(summaries, results),
     results,
   }
@@ -529,6 +564,111 @@ function saturationNotes(dimensions: ProseSemanticDimension[], results: ProseSem
   return notes
 }
 
+function buildTelemetry(
+  dimensions: ProseSemanticDimension[],
+  summaries: ProseSemanticReport["summaries"],
+  results: ProseSemanticResult[],
+): ProseSemanticTelemetry {
+  const lowRows = results.filter(row => !row.error && row.ordinal <= 1).length
+  const errorRows = results.filter(row => row.error).length
+  const highConfidenceLowRows = results.filter(row => !row.error && row.ordinal <= 1 && row.confidence >= 0.75).length
+  const saturatedDimensions: ProseSemanticDimension[] = []
+  const lowVarianceDimensions: ProseSemanticDimension[] = []
+  for (const dimension of dimensions) {
+    const rows = results.filter(row => row.dimension === dimension && !row.error)
+    if (rows.length < 4) continue
+    const labels = new Set(rows.map(row => row.label))
+    if (labels.size === 1) {
+      saturatedDimensions.push(dimension)
+      continue
+    }
+    const ordinals = new Set(rows.map(row => row.ordinal))
+    if (ordinals.size === 2 && Math.max(...ordinals) - Math.min(...ordinals) === 1) {
+      const majority = mostCommonLabel(rows.map(row => row.label))
+      if (majority.count / rows.length >= 0.8) lowVarianceDimensions.push(dimension)
+    }
+  }
+
+  const dimensionMeans = Object.fromEntries(
+    summaries.map(summary => [summary.dimension, summary.meanOrdinal]),
+  ) as Partial<Record<ProseSemanticDimension, number>>
+  const chapterSummaries = buildChapterSummaries(results)
+  const ratios = chapterSummaries.map(row => row.wordRatio).filter((value): value is number => value !== null)
+  const wordShape = {
+    chaptersWithTargets: ratios.length,
+    meanWordRatio: ratios.length > 0 ? round(mean(ratios)) : null,
+    overTargetChapters: ratios.filter(value => value > 1.25).length,
+    severeOverTargetChapters: ratios.filter(value => value > 1.5).length,
+    underTargetChapters: ratios.filter(value => value < 0.75).length,
+  }
+  return {
+    lowRows,
+    errorRows,
+    highConfidenceLowRows,
+    saturatedDimensions,
+    lowVarianceDimensions,
+    dimensionMeans,
+    wordShape,
+    chapterSummaries,
+    harnessGuidance: harnessGuidance({
+      errorRows,
+      lowRows,
+      earnedMean: dimensionMeans.earnedLength ?? null,
+      severeOverTargetChapters: wordShape.severeOverTargetChapters,
+      saturatedDimensions,
+      lowVarianceDimensions,
+    }),
+  }
+}
+
+function buildChapterSummaries(results: ProseSemanticResult[]): ProseSemanticTelemetry["chapterSummaries"] {
+  const byChapter = new Map<number, ProseSemanticTelemetry["chapterSummaries"][number]>()
+  for (const row of results) {
+    const current = byChapter.get(row.chapterNumber) ?? {
+      chapterNumber: row.chapterNumber,
+      draftVersion: row.draftVersion,
+      draftStatus: row.draftStatus,
+      targetWords: row.targetWords,
+      proseWords: row.proseWords,
+      wordRatio: row.wordRatio,
+      labels: {},
+      ordinals: {},
+      lowDimensions: [],
+      errorDimensions: [],
+    }
+    current.labels[row.dimension] = row.label
+    current.ordinals[row.dimension] = row.ordinal
+    if (row.error) current.errorDimensions.push(row.dimension)
+    else if (row.ordinal <= 1) current.lowDimensions.push(row.dimension)
+    byChapter.set(row.chapterNumber, current)
+  }
+  return [...byChapter.values()].sort((a, b) => a.chapterNumber - b.chapterNumber)
+}
+
+function harnessGuidance(input: {
+  errorRows: number
+  lowRows: number
+  earnedMean: number | null
+  severeOverTargetChapters: number
+  saturatedDimensions: readonly ProseSemanticDimension[]
+  lowVarianceDimensions: readonly ProseSemanticDimension[]
+}): ProseSemanticTelemetry["harnessGuidance"] {
+  const qualityRisk = input.errorRows > 0 ? "incomplete" : input.lowRows > 0 ? "mixed" : "low"
+  let lengthSignal: ProseSemanticTelemetry["harnessGuidance"]["lengthSignal"] = "inconclusive"
+  if (input.errorRows > 0) lengthSignal = "incomplete"
+  else if (input.earnedMean !== null && input.earnedMean < 2 && input.severeOverTargetChapters > 0) lengthSignal = "compression_candidate"
+  else if (input.earnedMean !== null && input.earnedMean >= 2) lengthSignal = "not_falsified_as_padding"
+
+  const flat = [...input.saturatedDimensions, ...input.lowVarianceDimensions]
+  const nextProbe = flat.length > 0
+    ? `Refine or calibrate low-variance dimensions before treating ${flat.join(", ")} as optimization targets.`
+    : lengthSignal === "compression_candidate"
+      ? "Compare planner scope and scene-contract load against low earned-length rows."
+      : "Use this run as comparative telemetry; do not convert advisory labels into gates."
+
+  return { lengthSignal, qualityRisk, nextProbe }
+}
+
 function advisoryRecommendation(
   summaries: ProseSemanticReport["summaries"],
   results: ProseSemanticResult[],
@@ -602,6 +742,13 @@ export function renderProseSemanticReport(report: ProseSemanticReport): string {
   }
   lines.push("")
   lines.push(`Recommendation: ${report.advisoryRecommendation}`)
+  lines.push("")
+  lines.push("## Telemetry")
+  lines.push("")
+  lines.push(`- Rows: total=${report.resultCount}, low=${report.telemetry.lowRows}, high-confidence-low=${report.telemetry.highConfidenceLowRows}, errors=${report.telemetry.errorRows}`)
+  lines.push(`- Word shape: chaptersWithTargets=${report.telemetry.wordShape.chaptersWithTargets}, meanRatio=${report.telemetry.wordShape.meanWordRatio === null ? "?" : report.telemetry.wordShape.meanWordRatio.toFixed(2)}, overTarget=${report.telemetry.wordShape.overTargetChapters}, severeOverTarget=${report.telemetry.wordShape.severeOverTargetChapters}, underTarget=${report.telemetry.wordShape.underTargetChapters}`)
+  lines.push(`- Harness guidance: lengthSignal=${report.telemetry.harnessGuidance.lengthSignal}, qualityRisk=${report.telemetry.harnessGuidance.qualityRisk}`)
+  lines.push(`- Next probe: ${report.telemetry.harnessGuidance.nextProbe}`)
 
   if (report.saturationNotes.length > 0) {
     lines.push("")
@@ -656,6 +803,7 @@ export async function traceProseSemanticSummary(report: ProseSemanticReport, out
       errorRows: report.results.filter(row => row.error).length,
       summaries: report.summaries,
       saturationNotes: report.saturationNotes,
+      telemetry: report.telemetry,
       outputDir,
     },
   })

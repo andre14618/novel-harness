@@ -45,9 +45,9 @@ describe("test-drafting-isolated parseArgs", () => {
     expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--writer-only"]).writerOnly).toBe(true)
   })
 
-  test("--prose-semantic-eval is opt-in and can dry-run", () => {
+  test("prose semantic eval is default-on, can dry-run, and can opt out", () => {
     const defaults = parseArgs(["--source", "n", "--target-prefix", "ab"])
-    expect(defaults.proseSemanticEval).toBe(false)
+    expect(defaults.proseSemanticEval).toBe(true)
     expect(defaults.proseSemanticDryRun).toBe(false)
 
     const live = parseArgs(["--source", "n", "--target-prefix", "ab", "--prose-semantic-eval", "--prose-semantic-concurrency", "2"])
@@ -58,6 +58,10 @@ describe("test-drafting-isolated parseArgs", () => {
     const dry = parseArgs(["--source", "n", "--target-prefix", "ab", "--prose-semantic-dry-run"])
     expect(dry.proseSemanticEval).toBe(true)
     expect(dry.proseSemanticDryRun).toBe(true)
+
+    const disabled = parseArgs(["--source", "n", "--target-prefix", "ab", "--no-prose-semantic-eval"])
+    expect(disabled.proseSemanticEval).toBe(false)
+    expect(disabled.proseSemanticDryRun).toBe(false)
   })
 
   test("--prose-semantic-concurrency rejects non-positive / non-numeric values", () => {

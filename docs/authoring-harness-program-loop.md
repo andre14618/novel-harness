@@ -32,6 +32,8 @@ Current methodology work optimizes one layer at a time:
   `diagnostics:prose-semantic`, `diagnostics:plan-drift`, `diagnostics:checker-warnings`,
   `diagnostics:plan-assist-lineage`, `diagnostics:semantic-gate-matrix`,
   `diagnostics:semantic-gate-cohort-matrix`, replay, and live A/B summaries.
+  Evidence-generating A/B flows should capture prose-semantic telemetry by
+  default and treat it as advisory data, not a gate.
 - Proposal and interactivity infrastructure:
   Planning Studio, proposal diffs, stale impact preview, structural edits,
   artifact preview edits, and mutation lineage.

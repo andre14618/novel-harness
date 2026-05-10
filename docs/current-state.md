@@ -58,6 +58,8 @@ Use deeper docs only when linked by the context pack or needed by code.
   `ORCHESTRATOR_AUTH_ENABLED=1` to restore orchestrator API/UI auth.
 - Active LLM calls use DeepSeek V4 Flash or DeepSeek V4 Pro only. Legacy model
   references are historical unless a current decision reopens them. See L90.
+- Evidence-generation flows should collect prose-semantic telemetry by default
+  where wired; it is advisory/fail-open data, not a drafting or promotion gate.
 
 ## Authoring Direction
 
