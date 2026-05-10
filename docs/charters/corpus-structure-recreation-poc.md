@@ -130,9 +130,12 @@ compressed corpus premise/context
   -> operator side-by-side review
 ```
 
-Only after that should the lane consider a prose POC.
+Only after that should the lane consider a disposable prose artifact.
 
-## Recreation POC Command
+## Disposable Recreation Command
+
+Under L106 this generator is historical/disposable, not the production path.
+New output-producing runs require `--allow-disposable-poc`.
 
 Build the reference with summaries first so the planner sees the source
 chapter's structural functions, then translate those functions into the
@@ -146,10 +149,11 @@ bun run diagnostics:corpus-structure-reference -- \
   --output-dir output/corpus-structure-reference/crystal_shard-with-summaries
 ```
 
-Then run the plan-and-write POC:
+Then run the plan-and-write disposable artifact:
 
 ```bash
-bun run diagnostics:corpus-recreation-poc -- --live --write --scene-calls \
+bun run diagnostics:corpus-recreation-poc -- --allow-disposable-poc \
+  --live --write --scene-calls \
   --reference output/corpus-structure-reference/crystal_shard-with-summaries/reference.json \
   --chapter 1 \
   --model deepseek-v4-flash \
@@ -212,6 +216,7 @@ Later chapters can receive prior chapter context with:
 
 ```bash
 bun run diagnostics:corpus-recreation-poc -- \
+  --allow-disposable-poc \
   --chapter 2 \
   --sequence-context output/corpus-recreation-poc/<chapter-1-dir> \
   --live --planner-variant causal-materiality-v2 \
@@ -399,7 +404,7 @@ feed Plan Readiness Review, not automatic rewrites.
 
 ## Materiality Variant
 
-The planner POC supports default-off prompt variants:
+The disposable recreation command supports default-off prompt variants:
 
 ```bash
 --planner-variant materiality-v1
@@ -421,7 +426,7 @@ defaults.
 
 ## Planner Contract Retry
 
-The planner POC also supports a default-off structural retry:
+The disposable recreation command also supports a default-off structural retry:
 
 ```bash
 --planner-contract-retry structural-v1
@@ -437,7 +442,7 @@ cohort proves downstream value.
 
 ## Run/Thread Follow-Up
 
-Before adding more planner prompt variants, route the POC through L093:
+Before adding more planner prompt variants, route the artifact set through L093:
 
 - emit run manifests for POC, semantic review, prose review, aggregate, and
   static review artifacts;
