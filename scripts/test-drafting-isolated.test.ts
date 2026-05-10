@@ -1,12 +1,16 @@
 import { expect, test, describe } from "bun:test"
 import {
+  buildDraftingIsolatedRunReport,
+  draftingIsolatedDeltas,
   parseArgs,
   flagsForArm,
+  renderDraftingIsolatedRunReport,
   WRITER_ARM_NAMES,
   summarizeDraftingBriefTelemetry,
   sceneSemanticSummary,
   sourceDraftingIsolationIssue,
 } from "./test-drafting-isolated"
+import type { ArmResult, Args } from "./test-drafting-isolated"
 import type { SceneSemanticReplayReport } from "./evals/scene-semantic-review"
 
 describe("test-drafting-isolated parseArgs", () => {
@@ -130,6 +134,11 @@ describe("test-drafting-isolated parseArgs", () => {
     expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--per-arm-timeout-ms", "60000"]).perArmTimeoutMs).toBe(60000)
   })
 
+  test("--report-dir defaults to automatic output and can be overridden", () => {
+    expect(parseArgs(["--source", "n", "--target-prefix", "ab"]).reportDir).toBeNull()
+    expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--report-dir", "output/custom"]).reportDir).toBe("output/custom")
+  })
+
   test("--per-arm-timeout-ms rejects non-positive / non-numeric values", () => {
     expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--per-arm-timeout-ms", "0"])).toThrow(/positive integer/)
     expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--per-arm-timeout-ms", "-1"])).toThrow(/positive integer/)
@@ -177,6 +186,89 @@ describe("sourceDraftingIsolationIssue", () => {
       outlineCount: 2,
       draftCount: 0,
     })).toMatch(/current_chapter is 2/)
+  })
+})
+
+describe("drafting isolated report", () => {
+  test("buildDraftingIsolatedRunReport preserves source hygiene and telemetry summaries", () => {
+    const report = buildDraftingIsolatedRunReport({
+      generatedAt: "2026-05-10T00:00:00.000Z",
+      args: args(),
+      sourceAssessment: {
+        clean: true,
+        issue: null,
+        guidance: null,
+        state: {
+          phase: "drafting",
+          currentChapter: 1,
+          outlineCount: 2,
+          draftCount: 0,
+        },
+      },
+      results: [
+        armResult({ arm: "baseline", novelId: "ab-baseline", totalWords: 3000, meanRatio: 1 }),
+        armResult({
+          arm: "scene-call-v1",
+          novelId: "ab-scene-call-v1",
+          totalWords: 3300,
+          meanRatio: 1.12,
+          expansionEvents: 2,
+          proseSemantic: {
+            outputDir: "output/prose",
+            resultCount: 4,
+            lowRows: 0,
+            errorRows: 0,
+            saturationNotes: [],
+            lengthSignal: "ok",
+            qualityRisk: "low",
+            recommendation: "keep",
+          },
+          sceneSemantic: {
+            outputDir: "output/scene",
+            taskCount: 4,
+            skipCount: 0,
+            lowRows: 1,
+            errorRows: 0,
+            dimensions: [],
+            recommendation: "review",
+          },
+        }),
+      ],
+    })
+
+    expect(report.v).toBe("drafting-isolated-report-v1")
+    expect(report.summary.cleanSource).toBe(true)
+    expect(report.summary.totalWordsByArm["scene-call-v1"]).toBe(3300)
+    expect(report.summary.proseSemanticLowRowsByArm["scene-call-v1"]).toBe(0)
+    expect(report.summary.sceneSemanticLowRowsByArm["scene-call-v1"]).toBe(1)
+    expect(report.deltas[0]).toMatchObject({
+      arm: "scene-call-v1",
+      baselineArm: "baseline",
+      expansionEvents: 2,
+      error: null,
+      pocMagnitude: "improvement",
+    })
+    expect(report.deltas[0]?.meanRatioDelta).toBeCloseTo(0.12, 6)
+
+    const rendered = renderDraftingIsolatedRunReport(report)
+    expect(rendered).toContain("Clean source: yes")
+    expect(rendered).toContain("sceneSemantic tasks=4 lows=1")
+  })
+
+  test("draftingIsolatedDeltas reports failed arms and skips when baseline failed", () => {
+    expect(draftingIsolatedDeltas([
+      armResult({ arm: "baseline", error: "failed" }),
+      armResult({ arm: "scene-call-v1" }),
+    ])).toEqual([])
+
+    expect(draftingIsolatedDeltas([
+      armResult({ arm: "baseline", meanRatio: 1 }),
+      armResult({ arm: "scene-call-v1", meanRatio: 1.01, error: "timeout" }),
+    ])[0]).toMatchObject({
+      arm: "scene-call-v1",
+      error: "timeout",
+      pocMagnitude: "failed",
+    })
   })
 })
 
@@ -353,5 +445,48 @@ function resultRow(dimension: "endpointLanding" | "sceneDramaturgy", label: stri
       missingForNextLevel: "",
       gates: {},
     },
+  }
+}
+
+function args(overrides: Partial<Args> = {}): Args {
+  return {
+    source: "source",
+    targetPrefix: "ab",
+    arms: ["baseline", "scene-call-v1"],
+    writerOnly: false,
+    proseSemanticEval: true,
+    proseSemanticDryRun: false,
+    proseSemanticConcurrency: 4,
+    sceneSemanticReview: true,
+    sceneSemanticLive: true,
+    sceneSemanticConcurrency: 4,
+    sceneSemanticMaxTokens: 1400,
+    sceneSemanticDimensions: ["endpointLanding", "sceneDramaturgy"],
+    allowDraftedSource: false,
+    perArmTimeoutMs: null,
+    reportDir: null,
+    ...overrides,
+  }
+}
+
+function armResult(overrides: Partial<ArmResult> = {}): ArmResult {
+  return {
+    arm: "baseline",
+    novelId: "novel",
+    chapters: [],
+    totalWords: 3000,
+    totalTarget: 3000,
+    meanRatio: 1,
+    expansionEvents: 0,
+    draftingBrief: {
+      events: 0,
+      enabledEvents: 0,
+      modes: {},
+      avgCharsRatio: null,
+      avgSelectedPromptChars: null,
+      avgFullContextPromptChars: null,
+      totalCharsDelta: 0,
+    },
+    ...overrides,
   }
 }

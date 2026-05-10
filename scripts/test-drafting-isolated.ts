@@ -54,6 +54,7 @@
  *     [--scene-semantic-review]                                  # opt into endpoint/scene replay telemetry
  *     [--allow-drafted-source]                                   # explicitly allow cloning a source that already has drafts
  *     [--per-arm-timeout-ms 1800000]                             # 30-minute per-arm wallclock cap
+ *     [--report-dir output/drafting-isolated/<prefix>]           # override durable run report directory
  *
  * Each arm becomes a clone novel id `<target-prefix>-<arm>`. Arms run
  * sequentially (parallel runs would race on shared DB resources).
@@ -103,6 +104,7 @@ import {
   formatSourceDraftingIsolationAssessment,
   loadSourceDraftingIsolationState,
   sourceDraftingIsolationIssue,
+  type SourceDraftingIsolationAssessment,
   type SourceDraftingIsolationState,
 } from "../src/harness/drafting-source"
 
@@ -111,7 +113,7 @@ export {
   type SourceDraftingIsolationState,
 }
 
-interface Args {
+export interface Args {
   source: string
   targetPrefix: string
   arms: ArmName[]
@@ -145,6 +147,7 @@ interface Args {
    *  transport timeouts fire; subsequent arms run in fresh clones, so
    *  there is no cross-arm DB contention. */
   perArmTimeoutMs: number | null
+  reportDir: string | null
 }
 
 export const WRITER_ARM_NAMES = [
@@ -158,7 +161,7 @@ export const WRITER_ARM_NAMES = [
 
 export type ArmName = typeof WRITER_ARM_NAMES[number]
 
-interface ArmResult {
+export interface ArmResult {
   arm: ArmName
   novelId: string
   chapters: Array<{ chapter: number; words: number; targetWords: number; ratio: number }>
@@ -179,6 +182,49 @@ interface ArmResult {
   }
   sceneSemantic?: SceneSemanticTelemetrySummary
   error?: string
+}
+
+export interface DraftingIsolatedDelta {
+  arm: ArmName
+  baselineArm: ArmName
+  meanRatioDelta: number
+  expansionEvents: number
+  error: string | null
+  pocMagnitude: "not_applicable" | "improvement" | "partial" | "insufficient" | "failed"
+}
+
+export interface DraftingIsolatedRunReport {
+  v: "drafting-isolated-report-v1"
+  generatedAt: string
+  source: string
+  targetPrefix: string
+  sourceAssessment: SourceDraftingIsolationAssessment
+  options: {
+    arms: ArmName[]
+    writerOnly: boolean
+    proseSemanticEval: boolean
+    proseSemanticDryRun: boolean
+    proseSemanticConcurrency: number
+    sceneSemanticReview: boolean
+    sceneSemanticLive: boolean
+    sceneSemanticConcurrency: number
+    sceneSemanticMaxTokens: number
+    sceneSemanticDimensions: Dimension[]
+    allowDraftedSource: boolean
+    perArmTimeoutMs: number | null
+  }
+  summary: {
+    armCount: number
+    completedArms: number
+    errorArms: number
+    cleanSource: boolean
+    totalWordsByArm: Record<string, number>
+    meanRatioByArm: Record<string, number>
+    proseSemanticLowRowsByArm: Record<string, number | null>
+    sceneSemanticLowRowsByArm: Record<string, number | null>
+  }
+  results: ArmResult[]
+  deltas: DraftingIsolatedDelta[]
 }
 
 export interface DraftingBriefTelemetrySummary {
@@ -221,7 +267,10 @@ function emptyDraftingBriefTelemetry(): DraftingBriefTelemetrySummary {
   }
 }
 
-async function ensureSourceExists(source: string, opts: { allowDraftedSource: boolean }): Promise<void> {
+async function ensureSourceExists(
+  source: string,
+  opts: { allowDraftedSource: boolean },
+): Promise<SourceDraftingIsolationAssessment> {
   const state = await loadSourceDraftingIsolationState(source, db)
   if (!state) throw new Error(`Source novel ${source} not found`)
   const assessment = assessSourceDraftingIsolation(state)
@@ -231,6 +280,7 @@ async function ensureSourceExists(source: string, opts: { allowDraftedSource: bo
   if (assessment.issue) {
     console.warn(`WARNING: ${formatSourceDraftingIsolationAssessment(assessment)}; proceeding because --allow-drafted-source was set.`)
   }
+  return assessment
 }
 
 function runCloneSubprocess(source: string, target: string): Promise<void> {
@@ -718,6 +768,7 @@ export function parseArgs(argv: string[]): Args {
   const sceneSemanticDimensions: Dimension[] = []
   let allowDraftedSource = false
   let perArmTimeoutMs: number | null = null
+  let reportDir: string | null = null
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!
     if (a === "--source") { source = argv[++i] ?? null; continue }
@@ -774,6 +825,7 @@ export function parseArgs(argv: string[]): Args {
       perArmTimeoutMs = parsed
       continue
     }
+    if (a === "--report-dir") { reportDir = argv[++i] ?? null; continue }
     throw new Error(`unknown arg: ${a}`)
   }
   if (!source) throw new Error("--source <planning-done-novel-id> is required")
@@ -801,6 +853,7 @@ export function parseArgs(argv: string[]): Args {
     sceneSemanticDimensions: sceneSemanticDimensions.length > 0 ? sceneSemanticDimensions : DEFAULT_SCENE_SEMANTIC_DIMENSIONS,
     allowDraftedSource,
     perArmTimeoutMs,
+    reportDir,
   }
 }
 
@@ -839,7 +892,7 @@ async function main() {
     console.log(`per-arm timeout: ${args.perArmTimeoutMs}ms (a hung arm will not block the next arm; partial chapter_drafts are still collected)`)
   }
 
-  await ensureSourceExists(args.source, { allowDraftedSource: args.allowDraftedSource })
+  const sourceAssessment = await ensureSourceExists(args.source, { allowDraftedSource: args.allowDraftedSource })
 
   const results: ArmResult[] = []
   for (const arm of args.arms) {
@@ -916,7 +969,130 @@ async function main() {
     }
   }
 
+  const report = buildDraftingIsolatedRunReport({
+    args,
+    results,
+    sourceAssessment,
+  })
+  const reportDir = args.reportDir ?? `output/drafting-isolated/${args.targetPrefix}`
+  writeDraftingIsolatedRunReport(report, reportDir)
+  console.log(`\nreport: ${reportDir}/drafting-isolated-report.json`)
+
   process.exit(0)
+}
+
+export function buildDraftingIsolatedRunReport(input: {
+  args: Args
+  results: ArmResult[]
+  sourceAssessment: SourceDraftingIsolationAssessment
+  generatedAt?: string
+}): DraftingIsolatedRunReport {
+  const results = input.results
+  const deltas = draftingIsolatedDeltas(results)
+  return {
+    v: "drafting-isolated-report-v1",
+    generatedAt: input.generatedAt ?? new Date().toISOString(),
+    source: input.args.source,
+    targetPrefix: input.args.targetPrefix,
+    sourceAssessment: input.sourceAssessment,
+    options: {
+      arms: input.args.arms,
+      writerOnly: input.args.writerOnly,
+      proseSemanticEval: input.args.proseSemanticEval,
+      proseSemanticDryRun: input.args.proseSemanticDryRun,
+      proseSemanticConcurrency: input.args.proseSemanticConcurrency,
+      sceneSemanticReview: input.args.sceneSemanticReview,
+      sceneSemanticLive: input.args.sceneSemanticLive,
+      sceneSemanticConcurrency: input.args.sceneSemanticConcurrency,
+      sceneSemanticMaxTokens: input.args.sceneSemanticMaxTokens,
+      sceneSemanticDimensions: input.args.sceneSemanticDimensions,
+      allowDraftedSource: input.args.allowDraftedSource,
+      perArmTimeoutMs: input.args.perArmTimeoutMs,
+    },
+    summary: {
+      armCount: results.length,
+      completedArms: results.filter(result => !result.error).length,
+      errorArms: results.filter(result => Boolean(result.error)).length,
+      cleanSource: input.sourceAssessment.clean,
+      totalWordsByArm: Object.fromEntries(results.map(result => [result.arm, result.totalWords])),
+      meanRatioByArm: Object.fromEntries(results.map(result => [result.arm, result.meanRatio])),
+      proseSemanticLowRowsByArm: Object.fromEntries(results.map(result => [result.arm, result.proseSemantic?.lowRows ?? null])),
+      sceneSemanticLowRowsByArm: Object.fromEntries(results.map(result => [result.arm, result.sceneSemantic?.lowRows ?? null])),
+    },
+    results,
+    deltas,
+  }
+}
+
+export function draftingIsolatedDeltas(results: readonly ArmResult[]): DraftingIsolatedDelta[] {
+  const baseline = results.find(result => result.arm === "baseline")
+  if (!baseline || baseline.error) return []
+  return results
+    .filter(result => result.arm !== "baseline")
+    .map(result => {
+      const meanRatioDelta = result.meanRatio - baseline.meanRatio
+      return {
+        arm: result.arm,
+        baselineArm: "baseline",
+        meanRatioDelta,
+        expansionEvents: result.expansionEvents,
+        error: result.error ?? null,
+        pocMagnitude: result.error
+          ? "failed"
+          : result.arm !== "scene-call-v1"
+            ? "not_applicable"
+            : meanRatioDelta >= 0.10
+              ? "improvement"
+              : meanRatioDelta >= 0.05
+                ? "partial"
+                : "insufficient",
+      }
+    })
+}
+
+export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunReport): string {
+  const lines: string[] = []
+  lines.push("# Drafting Isolated Report")
+  lines.push("")
+  lines.push(`Generated: ${report.generatedAt}`)
+  lines.push(`Source: ${report.source}`)
+  lines.push(`Target prefix: ${report.targetPrefix}`)
+  lines.push(`Clean source: ${report.summary.cleanSource ? "yes" : "no"}`)
+  if (report.sourceAssessment.issue) lines.push(`Source issue: ${report.sourceAssessment.issue}`)
+  lines.push("")
+  lines.push("## Summary")
+  lines.push(`- arms: ${report.summary.armCount}`)
+  lines.push(`- completed arms: ${report.summary.completedArms}`)
+  lines.push(`- error arms: ${report.summary.errorArms}`)
+  lines.push(`- writer-only: ${report.options.writerOnly}`)
+  lines.push(`- prose semantic eval: ${report.options.proseSemanticEval ? "enabled" : "disabled"}`)
+  lines.push(`- scene semantic replay: ${report.options.sceneSemanticReview ? "enabled" : "disabled"}`)
+  lines.push("")
+  lines.push("## Arms")
+  for (const result of report.results) {
+    lines.push(`- ${result.arm}: novel=${result.novelId} words=${result.totalWords}/${result.totalTarget} meanRatio=${result.meanRatio.toFixed(3)}${result.error ? ` error=${result.error}` : ""}`)
+    if (result.proseSemantic) {
+      lines.push(`  proseSemantic rows=${result.proseSemantic.resultCount} lows=${result.proseSemantic.lowRows} errors=${result.proseSemantic.errorRows} report=${result.proseSemantic.outputDir || "(not written)"}`)
+    }
+    if (result.sceneSemantic) {
+      lines.push(`  sceneSemantic tasks=${result.sceneSemantic.taskCount} lows=${result.sceneSemantic.lowRows} errors=${result.sceneSemantic.errorRows} report=${result.sceneSemantic.outputDir || "(not written)"}`)
+    }
+  }
+  if (report.deltas.length > 0) {
+    lines.push("")
+    lines.push("## Deltas")
+    for (const delta of report.deltas) {
+      const sign = delta.meanRatioDelta >= 0 ? "+" : ""
+      lines.push(`- ${delta.arm} vs ${delta.baselineArm}: ${sign}${delta.meanRatioDelta.toFixed(3)} expansionEvents=${delta.expansionEvents} verdict=${delta.pocMagnitude}${delta.error ? ` error=${delta.error}` : ""}`)
+    }
+  }
+  return `${lines.join("\n")}\n`
+}
+
+function writeDraftingIsolatedRunReport(report: DraftingIsolatedRunReport, reportDir: string): void {
+  mkdirSync(reportDir, { recursive: true })
+  writeFileSync(join(reportDir, "drafting-isolated-report.json"), `${JSON.stringify(report, null, 2)}\n`)
+  writeFileSync(join(reportDir, "drafting-isolated-report.md"), renderDraftingIsolatedRunReport(report))
 }
 
 function formatDraftingBriefTelemetry(summary: DraftingBriefTelemetrySummary): string {

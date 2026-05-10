@@ -113,6 +113,12 @@ artifacts, and prints per-dimension low counts. This preserves the calibrated
 POC judge shape as fail-open production evidence without making it a drafting
 gate or adding another POC runner.
 
+The same harness now writes a durable top-level report under
+`output/drafting-isolated/<target-prefix>/` by default. That report records
+Drafting Evidence Source hygiene, run knobs, per-arm word/semantic telemetry,
+and baseline deltas so production-path evidence does not depend on console
+memory or scattered sidecars.
+
 Scene-semantic replay now also writes `scene-semantic-readiness.{json,md}`
 sidecars. These convert low semantic rows into the existing Plan Readiness
 aggregate shape with exact scene, obligation, character, world-fact,
