@@ -13,7 +13,9 @@ unless the user explicitly requests a disposable branch.
   declared refs AND scene-contract fields. Promotion of any flag stays gated.
 - Upstream planning methodology lane: narrow the active product question to
   concept/planning templates, chapter contracts, scene contracts, obligation
-  traceability, and planner-quality diagnostics. See L089.
+  traceability, and planner-quality diagnostics. Direct runtime evidence slice
+  completed 2026-05-10; see
+  `docs/sessions/2026-05-10-runtime-drafting-evidence.md`. See L089.
 - Run/thread coherence: manifests, validation, refs, thread maps, static evidence, advisory review, opt-in context arm, and scene-plan evidence naming are in.
 - Visibility/interactivity foundation is at scope ceiling for now; additional
   UI work is lower priority unless a UI surface changes as part of a specific
@@ -23,12 +25,13 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: write the L87 change packet, then run direct drafting
-  evidence against current main runtime with scene IDs, thread/payoff refs,
-  character-context capsules, and native chapter contracts held together. Judge
-  endpoint satisfaction, listed-character materiality, scene obligation
-  coverage, and thread/payoff continuity before choosing concept/planning,
-  writer context, checker review, or UI as the next layer.
+- Next session start: use the 2026-05-10 runtime evidence to choose a narrow
+  implementation slice. Preferred order: (1) fixture or prompt path that emits
+  real `threadId`/`promiseId`/`payoffId` refs so lineage can be tested; (2)
+  planner-frozen default-writer vs scene-call-writer A/B where word expansion
+  is visible; (3) endpoint-landing semantic review; (4) remaining telemetry
+  cleanup so `beatId` appears only for real beat hints, legacy beat-shaped
+  entries, or beat-specific compatibility.
 - Native chapter contracts and story-turn planning are now the production
   runtime default, with legacy rollback via seed override. Next gather direct
   runtime drafting evidence and improve endpoint satisfaction plus listed-
@@ -93,10 +96,6 @@ unless the user explicitly requests a disposable branch.
 - Treat mechanically repairable prose syntax as a deterministic repair surface
   before Drafting retries or Plan-Assist Gates; keep semantic/content changes
   in Settle Loops, Reviser paths, or proposal/manual review.
-- Before the next implementation slice, write the L87 change packet so phase,
-  optimized layer, exact change, expected benefit, downstream projection, and
-  evidence gate are explicit.
-
 ## Recently Closed
 
 - Scene-first runtime promotion lane (2026-05-09/10): see Active section + retrospective.
