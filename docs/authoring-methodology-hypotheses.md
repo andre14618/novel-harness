@@ -27,6 +27,18 @@ Prefer upstream diagnostic evidence before drafting changes. Do not use UI
 work, checker strictness, or broad writer rewrites as substitutes for plan
 quality evidence.
 
+Semantic judges are diagnostic and falsifier-first, not runtime blockers.
+A judge is a way to refute a hypothesis cheaply, or to attach a
+quality-shape signal to an A/B; it is not a gate that fails a draft. New
+LLM-backed runtime blockers require an oracle-calibrated current-surface
+panel and an explicit decision record. See L099 and the operator-adjusted
+backlog at `docs/research/user-adjusted-backlog-2026-05-10.md`.
+
+Traceability IDs are mandatory across system state, DB rows, telemetry,
+checker findings, proposal targets, eval artifacts, and audit logs. Whether
+raw IDs are visible inside a particular LLM prompt is a separate, narrower
+question evaluated per render site. See L099.
+
 Planner method target: `docs/planner-output-contract.md`.
 
 First candidate method pack:
@@ -132,12 +144,25 @@ First slice:
   required obligations/source refs, and whether current beat-shaped outlines
   can be lifted into scene contracts without losing traceability.
 
+Production scene contracts must be **planner-authored** fields (an LLM call
+produces the contract as a structured output, or a human authors it).
+Deterministic code may validate the *presence* and *shape* of a scene
+contract; it must not author its content. Heuristic field population such
+as "goal from leading verb-noun" or "turningPoint from final clause" is
+acceptable only as a diagnostic fallback to surface gaps, never as the
+production authoring path.
+
 Second slice, only if the projection looks coherent:
 
 - Default-off A/B writer arm where the writer drafts one scene from a scene
   contract and obligation/source checklist.
 - Validate scene-contract satisfaction and obligation coverage across the
   whole scene. Ordering can differ if causality still works.
+- The scene-contract A/B test should include three arms when feasible:
+  current beat-shaped writer (no contract); beat-shaped writer with
+  contract rendered; scene-call writer with contract. Otherwise the
+  contract-rendering effect is confounded with the architecture shift.
+  See `docs/research/user-adjusted-backlog-2026-05-10.md` adjusted-B3.
 
 Expected benefit: more natural pacing, fewer stitching artifacts, better prose
 rhythm, and fewer over-expanded beat mini-scenes.

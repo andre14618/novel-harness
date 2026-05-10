@@ -53,6 +53,7 @@ explicitly requests a branch or a disposable experiment needs one. Use rollback 
   needs a new explicit decision.
 - Local UI auth is bypassed by default for the foreseeable browser-testing
   lane. Set `ORCHESTRATOR_AUTH_ENABLED=1` to restore orchestrator API/UI auth.
+- Traceability IDs are mandatory across state/DB/telemetry/checkers/proposals/evals/audit; raw-ID visibility inside LLM prompts is a narrower per-site question (L099).
 
 ## Proposal Model
 

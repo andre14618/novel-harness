@@ -5,12 +5,26 @@ unless the user explicitly requests a disposable branch.
 
 ## Active
 
+- **Scene-level plan/write lane (operator-adjusted, 2026-05-10).** Operational
+  plan is `docs/research/user-adjusted-backlog-2026-05-10.md` (B1–B5).
+  Inputs: seven Opus deep-dive artifacts at `docs/research/opus-*.md`.
+  Audits landed: ID rendering (29 sites, 4 in Cluster 1 ablation surface;
+  `docs/research/id-rendering-audit-2026-05-10.md`); structure-* namespace
+  (corpus-only confirmed, 12-file move proposal pending operator decision;
+  `docs/research/structure-agents-namespace-audit-2026-05-10.md`); fixture
+  design (4 profiles for adjusted-B2;
+  `docs/research/scene-write-fixture-design-2026-05-10.md`). Decision
+  record for the writer-prompt ID question: L099. **Next concrete slice is
+  building the mixed fixture per the design doc before opening adjusted-B3.**
+  Adjusted-B1 (writer-prompt ID ablation) and adjusted-B3 (scene-contract
+  A/B/C with planner-authored contracts) both wait on that fixture.
 - Scene-first runtime promotion lane CLOSED (2026-05-09/10). All four slices
   + 2.5 + 3.5 shipped default-off. Retrospective:
   `docs/sessions/2026-05-09-scene-first-runtime-promotion.md`. Open follow-ups
-  outside this lane: (a) Slice 2.5 redo needs a writer-undershoots fixture +
-  pre-resolved entities; (b) Slice 3.5 live N≥20 panel needs a fixture with
-  declared refs AND scene-contract fields. Promotion of any flag stays gated.
+  now sequenced into the operator-adjusted lane above: Slice 2.5 redo and
+  Slice 3.5 live N≥20 panel both depend on the adjusted-B2 mixed fixture
+  set (P1 over-target primary, plus undershoot, pre-resolved, real-runtime-
+  derived). Promotion of any flag stays gated.
 - Upstream planning methodology lane: narrow the active product question to
   concept/planning templates, chapter contracts, scene contracts, obligation
   traceability, and planner-quality diagnostics. Direct runtime evidence slice
@@ -25,13 +39,16 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: use the 2026-05-10 runtime evidence to choose a narrow
-  implementation slice. Preferred order: (1) fixture or prompt path that emits
-  real `threadId`/`promiseId`/`payoffId` refs so lineage can be tested; (2)
-  planner-frozen default-writer vs scene-call-writer A/B where word expansion
-  is visible; (3) endpoint-landing semantic review; (4) remaining telemetry
-  cleanup so `beatId` appears only for real beat hints, legacy beat-shaped
-  entries, or beat-specific compatibility.
+- Next session start: open adjusted-B2 (build the mixed fixture set per
+  `docs/research/scene-write-fixture-design-2026-05-10.md`). At least one
+  fixture must declare real `threadId`/`promiseId`/`payoffId` refs so the
+  adjusted-B1 and adjusted-B3 arms are not trivially equal on lineage. Once
+  the fixture exists, sequencing is adjusted-B1 (writer-prompt ID ablation,
+  Cluster-1 sites only) → adjusted-B3 (scene-contract A/B/C with planner-
+  authored contracts) → adjusted-B4 (judges as diagnostic only) → adjusted-
+  B5 (promotion decision). Endpoint-landing semantic review and remaining
+  telemetry cleanup (`beatId` only for real beat hints, legacy beat-shaped
+  entries, or beat-specific compatibility) are deferred to post-B5.
 - Native chapter contracts and story-turn planning are now the production
   runtime default, with legacy rollback via seed override. Next gather direct
   runtime drafting evidence and improve endpoint satisfaction plus listed-
