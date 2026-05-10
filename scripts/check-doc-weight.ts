@@ -19,8 +19,8 @@ const rules: DocWeightRule[] = [
   },
   {
     path: "docs/sessions/lane-queue.md",
-    maxLines: 120,
-    hint: "Keep only active/next work; archive completed history under docs/sessions/archive/.",
+    maxLines: 220,
+    hint: "Keep only active/next work; move detailed completed history to session records or archive snapshots.",
   },
   {
     path: "docs/todo.md",

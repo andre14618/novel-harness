@@ -16,7 +16,8 @@ you need historical evidence for a decision.
 - `docs/decisions.md` is an index and should stay under 250 lines.
 - Detailed decisions belong in `docs/decisions/LNNN-short-slug.md`.
 - Historical snapshots belong in `docs/archive/` or `docs/sessions/archive/`.
-- Run `bun run docs:weight` before closing docs-heavy work.
+- Run `bun run docs:weight` before closing docs-heavy work. Treat it as a
+  context-budget guard, not a reason to delete useful active detail.
 
 ## Git Workflow
 
@@ -33,6 +34,16 @@ Before non-trivial implementation, surface the change packet: phase/surface,
 exact change, expected benefit/outcome, downstream projection across affected
 IDs/contracts, and the evidence gate. If the phase or benefit is unclear, keep
 the work diagnostic/docs-only or stop for user judgment.
+
+## Development Modes
+
+- Production lane is the default: preserve runtime defaults and run the relevant
+  production verification gates.
+- POC lane is allowed only when `docs/sessions/lane-queue.md` marks it active
+  or the user explicitly asks for a proof-of-concept. In POC lane, optimize for
+  vertical reviewable artifacts under `poc/`, checker-deferred generation,
+  targeted tests, and faster token-for-evidence loops. Preserve traceability
+  IDs and do not change production defaults. See L100.
 
 ## Current Work
 

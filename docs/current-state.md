@@ -54,6 +54,7 @@ explicitly requests a branch or a disposable experiment needs one. Use rollback 
 - Local UI auth is bypassed by default for the foreseeable browser-testing
   lane. Set `ORCHESTRATOR_AUTH_ENABLED=1` to restore orchestrator API/UI auth.
 - Traceability IDs are mandatory across state/DB/telemetry/checkers/proposals/evals/audit; raw-ID visibility inside LLM prompts is a narrower per-site question (L099).
+- POC lanes may trade tokens for fast vertical evidence under `poc/`, with checker-deferred generation and targeted verification, but no production-default changes (L100).
 
 ## Proposal Model
 
@@ -135,12 +136,10 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-08:
   chapter contracts, scene functions, and planner-quality evidence to improve
   plan shape before changing drafting, checking, or UI defaults.
 - Corpus structure recreation POC now has a passing scene-first local plan/write scaffold; production drafting defaults to exact-ID character context capsules per L094.
-- Scene-first runtime promotion lane shipped 2026-05-09/10: four flag-gated
-  slices (L095-L098), all default-off. L096 validator advisory after V4 Flash
-  compliance ceiling. Diagnostic harnesses: `scripts/test-drafting-isolated.ts`,
-  `scripts/evals/scene-semantic-review.ts`, `scripts/evals/scene-checker-parity-panel.ts`.
-  Slice 2.5 A/B inconclusive (wrong fixture profile); Slice 3.5 live N≥20 deferred.
-  L092 no-blocker-promotion non-goal stands. Retrospective:
+- Scene-first runtime promotion lane shipped 2026-05-09/10: L095-L098 are
+  default-off; V4 Flash compliance made L096 advisory. Harnesses:
+  `scripts/test-drafting-isolated.ts`, `scripts/evals/scene-semantic-review.ts`,
+  and `scripts/evals/scene-checker-parity-panel.ts`. Retrospective:
   `docs/sessions/2026-05-09-scene-first-runtime-promotion.md`.
 - Open local operator-review artifacts before handoff when possible; still report the path.
 - First backend tracer exposes read-only planning targets and deterministic
@@ -298,4 +297,4 @@ dedicated fixture re-recording commit before replay can be treated as green.
 
 ## Browser Preflight
 
-Use `docs/how-to/playwright-mcp-browser-testing.md`; if Playwright MCP is unavailable, report browser preflight blocked instead of substituting code inspection.
+Use `docs/how-to/playwright-mcp-browser-testing.md`; if MCP is unavailable, report browser preflight blocked.

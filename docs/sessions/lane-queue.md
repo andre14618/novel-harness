@@ -5,6 +5,12 @@ unless the user explicitly requests a disposable branch.
 
 ## Active
 
+- **POC acceleration lane is authorized (L100).** When the user asks for faster
+  progress or proof-of-concept work, agents should build vertical reviewable
+  artifacts under `poc/`, defer blocking checkers, use targeted verification,
+  spend cheap model calls for evidence, and preserve trace IDs without changing
+  production defaults. POC success must later be promoted through a production
+  change packet before defaults change.
 - **Scene-level plan/write lane (operator-adjusted, 2026-05-10).** Operational
   plan is `docs/research/user-adjusted-backlog-2026-05-10.md` (B1–B5).
   Inputs: seven Opus deep-dive artifacts at `docs/research/opus-*.md`.
@@ -21,12 +27,10 @@ unless the user explicitly requests a disposable branch.
   control to optimize. Scene is the durable plan/write/check unit (per
   L092/L095). The migration plan is in
   `docs/sessions/2026-05-10-scene-migration-plan.md` (S0–S7 slices).
-  S0 (user-facing log + docs cleanup) shipped this commit. S1 (default
-  flip + scenePlanContractV1 calibration) is the next major slice;
-  needs a decision record (L100) and replay-fixture re-record. The
-  bounded-loop work below is auxiliary infrastructure for the S0/S1
-  evidence path — adjusted-B1/B3/B5 references remain valid as flag
-  and runner names but are no longer the primary direction.
+  S0 (user-facing log + docs cleanup) shipped. S1 (default flip +
+  scenePlanContractV1 calibration) is now a later production slice,
+  deferred behind the L100 POC artifact; it will need its own
+  production-default decision record and replay-fixture re-record.
 - **Adjusted-B1/B2/B3 prep all shipped (default-off).** The scene-first
   evidence lane is runnable end-to-end on LXC.
   - **B1 flag (`writerPromptIdRendering`, commit `62e5c8c`):** default
@@ -74,20 +78,17 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: scene-first migration S1 (default flip). The
-  prerequisite calibration is closing L096's `scenePlanContractV1`
-  prompt-fidelity gaps (crisisChoice→sourced-obligation, payoffEventId
-  compliance) on a P1/P2/P3 fixture. Once the planner emits
-  scene-contract fields cleanly, flip `pipeline.sceneCallWriterV1` and
-  `pipeline.writerExpansionMode` defaults, add the `legacyBeatWriter`
-  rollback flag, re-record replay parity fixtures, and ship a decision
-  record (L100). Sequence per
-  `docs/sessions/2026-05-10-scene-migration-plan.md`. The B1
-  ID-rendering ablation is auxiliary; do not bundle B1 evidence with
-  scene-first evidence. Endpoint-landing semantic review and
-  remaining telemetry cleanup (`beatId` only for real beat hints,
-  legacy beat-shaped entries, or beat-specific compatibility) are
-  deferred to post-S2.
+- Next session start: use L100 POC mode to build the scene-first novella
+  vertical artifact before any production default flip. Target:
+  `poc/scene-first-novella/` runner using P3 first, producing a 3-chapter
+  output directory with scene contracts, prose, trace metadata, post-hoc
+  diagnostics, and static HTML. Skip proposal/UI/Plan-Assist/blocking checker
+  hardening unless the POC directly tests it.
+- Production scene-first migration S1 is deferred until the POC yields
+  reader-visible evidence. When reopened, close L096's
+  `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,
+  and ship a new production-default decision record. Sequence per
+  `docs/sessions/2026-05-10-scene-migration-plan.md`.
 - Open follow-ups (NOT on the critical path): richer P4 fixture
   hydration (load-frozen-plan currently writes only novels +
   chapter_outlines; clone-for-variant carries the full state today, so
