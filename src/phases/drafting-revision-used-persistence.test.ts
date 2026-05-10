@@ -52,9 +52,13 @@ mock.module("../config/pipeline", () => ({
     tonalPass: false,
     sceneCallWriterV1: false,
     writerExpansionMode: "off",
+    forceRenderSceneContractWhenAvailable: false,
+    writerPromptIdRendering: "raw",
   },
   resolveSceneCallWriterV1: () => false,
   resolveWriterExpansionMode: () => "off",
+  resolveForceRenderSceneContractWhenAvailable: () => false,
+  resolveWriterPromptIdRendering: () => "raw",
 }))
 
 mock.module("../logger", () => ({

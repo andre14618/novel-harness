@@ -1,24 +1,44 @@
 /**
- * Drafting-isolated A/B harness — L097 Slice 2.5 evidence support.
+ * Drafting-isolated A/B harness — L097 Slice 2.5 + adjusted-B1/B3 lane.
  *
- * Takes a planning-done source novel id, clones it twice (control + treatment)
- * via `scripts/variant/clone-for-variant.ts`, sets writer flags differently
- * on each clone via UPDATE on seed_json.pipelineOverrides, runs
- * `runDraftingPhase` on both, and prints a per-chapter word-count
- * comparison.
+ * Takes a planning-done source novel id, clones it once per requested
+ * writer arm via `scripts/variant/clone-for-variant.ts`, sets per-arm
+ * pipelineOverrides via UPDATE on seed_json, runs `runDraftingPhase` on
+ * each clone, and prints a per-chapter word-count comparison plus pairwise
+ * deltas. The plan never changes between arms — clones inherit the same
+ * chapter_outlines.
  *
- * Designed for the L097 Slice 2 deferred-evidence question: does
- * `sceneCallWriterV1` + `writerExpansionMode="retry-short-scenes-v1"`
- * produce the POC's 0.60 → 0.79 word-ratio improvement on production
- * planner output? The plan does NOT change between arms — both clones
- * inherit the same chapter_outlines from the source. Only the writer
- * flags differ.
+ * Arms:
+ *   baseline           — current production writer (sceneCallWriterV1=false,
+ *                        writerExpansionMode="off",
+ *                        writerPromptIdRendering="raw")
+ *   id-suppress        — adjusted-B1 ablation: same writer as baseline, but
+ *                        Cluster-1 raw-ID lines suppressed in the
+ *                        prose-writer prompt (writerPromptIdRendering=
+ *                        "suppress"). Trace metadata, DB rows, telemetry,
+ *                        checker findings, proposals, evals, and audit
+ *                        logs are unaffected — the flag is render-only.
+ *                        See docs/decisions/L099-writer-prompt-id-rendering.md.
+ *   contract-render-only — adjusted-B3 Arm B preparation: render the
+ *                        SCENE CONTRACT block whenever the planner has
+ *                        populated scene-contract fields, without
+ *                        switching to scene-call writer mode. Requires
+ *                        the new `forceRenderSceneContractWhenAvailable`
+ *                        pipeline override (default-off). When the
+ *                        underlying plan has no scene-contract fields
+ *                        (the common production case while
+ *                        scenePlanContractV1 stays default-off), the
+ *                        rendered prompt remains byte-identical to
+ *                        baseline.
+ *   scene-call-v1      — L097 Slice 2: scene-call writer + retry-short-
+ *                        scenes-v1 expansion path. The full B3 Arm C.
  *
  * Usage:
  *   bun scripts/test-drafting-isolated.ts \
  *     --source <planning-done-novel-id> \
- *     --target-prefix <prefix>           # e.g. "ab-1778378900"
- *     [--writer-arms baseline,scene-call-v1]   # default: both arms
+ *     --target-prefix <prefix>                                   # e.g. "ab-1778378900"
+ *     [--writer-arms baseline,id-suppress,contract-render-only,scene-call-v1]
+ *                                                                # default: baseline,scene-call-v1
  *
  * Each arm becomes a clone novel id `<target-prefix>-<arm>`. Arms run
  * sequentially (parallel runs would race on shared DB resources).
@@ -37,7 +57,14 @@ interface Args {
   arms: ArmName[]
 }
 
-type ArmName = "baseline" | "scene-call-v1"
+export const WRITER_ARM_NAMES = [
+  "baseline",
+  "id-suppress",
+  "contract-render-only",
+  "scene-call-v1",
+] as const
+
+export type ArmName = typeof WRITER_ARM_NAMES[number]
 
 interface ArmResult {
   arm: ArmName
@@ -88,25 +115,81 @@ function runCloneSubprocess(source: string, target: string): Promise<void> {
   })
 }
 
+interface ArmFlags {
+  sceneCallWriterV1: boolean
+  writerExpansionMode: "off" | "retry-short-scenes-v1"
+  forceRenderSceneContractWhenAvailable: boolean
+  writerPromptIdRendering: "raw" | "suppress"
+}
+
+export function flagsForArm(arm: ArmName): ArmFlags {
+  switch (arm) {
+    case "baseline":
+      return {
+        sceneCallWriterV1: false,
+        writerExpansionMode: "off",
+        forceRenderSceneContractWhenAvailable: false,
+        writerPromptIdRendering: "raw",
+      }
+    case "id-suppress":
+      // adjusted-B1 ablation: same writer + plan path as baseline; only the
+      // prose-writer prompt's Cluster-1 raw-ID lines are suppressed.
+      return {
+        sceneCallWriterV1: false,
+        writerExpansionMode: "off",
+        forceRenderSceneContractWhenAvailable: false,
+        writerPromptIdRendering: "suppress",
+      }
+    case "contract-render-only":
+      // adjusted-B3 Arm B preparation: render the scene contract block
+      // when populated, but keep the beat-shaped writer call unit. No
+      // expansion-retry path. ID rendering stays raw so this arm is a
+      // pure isolation of "contract rendering effect."
+      return {
+        sceneCallWriterV1: false,
+        writerExpansionMode: "off",
+        forceRenderSceneContractWhenAvailable: true,
+        writerPromptIdRendering: "raw",
+      }
+    case "scene-call-v1":
+      // L097 Slice 2: scene-call writer + expansion-retry. The full B3 Arm C.
+      return {
+        sceneCallWriterV1: true,
+        writerExpansionMode: "retry-short-scenes-v1",
+        forceRenderSceneContractWhenAvailable: false, // implied by sceneCallWriterV1=true
+        writerPromptIdRendering: "raw",
+      }
+  }
+}
+
 async function setWriterFlags(novelId: string, arm: ArmName): Promise<void> {
-  const sceneCallWriterV1 = arm === "scene-call-v1"
-  const writerExpansionMode = arm === "scene-call-v1" ? "retry-short-scenes-v1" : "off"
+  const flags = flagsForArm(arm)
   await db`
     UPDATE novels
     SET seed_json = jsonb_set(
           jsonb_set(
             jsonb_set(
-              COALESCE(seed_json, '{}'::jsonb),
-              '{pipelineOverrides}',
-              COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+              jsonb_set(
+                jsonb_set(
+                  COALESCE(seed_json, '{}'::jsonb),
+                  '{pipelineOverrides}',
+                  COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+                  true
+                ),
+                '{pipelineOverrides,sceneCallWriterV1}',
+                to_jsonb(${flags.sceneCallWriterV1}::boolean),
+                true
+              ),
+              '{pipelineOverrides,writerExpansionMode}',
+              to_jsonb(${flags.writerExpansionMode}::text),
               true
             ),
-            '{pipelineOverrides,sceneCallWriterV1}',
-            to_jsonb(${sceneCallWriterV1}::boolean),
+            '{pipelineOverrides,forceRenderSceneContractWhenAvailable}',
+            to_jsonb(${flags.forceRenderSceneContractWhenAvailable}::boolean),
             true
           ),
-          '{pipelineOverrides,writerExpansionMode}',
-          to_jsonb(${writerExpansionMode}::text),
+          '{pipelineOverrides,writerPromptIdRendering}',
+          to_jsonb(${flags.writerPromptIdRendering}::text),
           true
         ),
         updated_at = now()
@@ -191,7 +274,7 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string): Promi
   return { arm, novelId, ...collected }
 }
 
-function parseArgs(argv: string[]): Args {
+export function parseArgs(argv: string[]): Args {
   let source: string | null = null
   let targetPrefix: string | null = null
   let armsRaw: string | null = null
@@ -207,10 +290,11 @@ function parseArgs(argv: string[]): Args {
   const arms: ArmName[] = (armsRaw ?? "baseline,scene-call-v1")
     .split(",").map(s => s.trim()).filter(Boolean) as ArmName[]
   for (const arm of arms) {
-    if (arm !== "baseline" && arm !== "scene-call-v1") {
-      throw new Error(`--writer-arms entries must be baseline or scene-call-v1; got ${arm}`)
+    if (!WRITER_ARM_NAMES.includes(arm)) {
+      throw new Error(`--writer-arms entries must be one of ${WRITER_ARM_NAMES.join(", ")}; got ${arm}`)
     }
   }
+  if (arms.length === 0) throw new Error("--writer-arms produced an empty arm list")
   return { source, targetPrefix, arms }
 }
 
@@ -247,25 +331,33 @@ async function main() {
   }
 
   const baseline = results.find(r => r.arm === "baseline")
-  const sceneCall = results.find(r => r.arm === "scene-call-v1")
-  if (baseline && sceneCall && !baseline.error && !sceneCall.error) {
-    console.log(`\n━━━━━━━━━━ A/B DELTA ━━━━━━━━━━`)
-    const delta = sceneCall.meanRatio - baseline.meanRatio
-    console.log(`  mean ratio delta (scene-call − baseline): ${delta >= 0 ? "+" : ""}${delta.toFixed(3)}`)
-    console.log(`  expansion events fired in scene-call arm: ${sceneCall.expansionEvents}`)
-    if (delta >= 0.10) {
-      console.log(`  ✓ POC-magnitude improvement (≥0.10)`)
-    } else if (delta >= 0.05) {
-      console.log(`  ⚠ partial improvement (≥0.05 but <0.10) — sub-POC magnitude`)
-    } else {
-      console.log(`  ✗ insufficient improvement (<0.05) — does not match POC evidence`)
+  if (baseline && !baseline.error) {
+    console.log(`\n━━━━━━━━━━ DELTAS vs baseline ━━━━━━━━━━`)
+    for (const r of results) {
+      if (r.arm === "baseline") continue
+      if (r.error) {
+        console.log(`  ${r.arm}: FAILED — ${r.error}`)
+        continue
+      }
+      const delta = r.meanRatio - baseline.meanRatio
+      const sign = delta >= 0 ? "+" : ""
+      console.log(`  ${r.arm} − baseline: ${sign}${delta.toFixed(3)} (expansion events: ${r.expansionEvents})`)
+      if (r.arm === "scene-call-v1") {
+        // L097 POC magnitude check applies only to the scene-call-v1 arm
+        // (the original POC compared baseline vs scene-call+expansion).
+        if (delta >= 0.10) console.log(`    ✓ POC-magnitude improvement (≥0.10)`)
+        else if (delta >= 0.05) console.log(`    ⚠ partial improvement (≥0.05 but <0.10) — sub-POC magnitude`)
+        else console.log(`    ✗ insufficient improvement (<0.05) — does not match POC evidence`)
+      }
     }
   }
 
   process.exit(0)
 }
 
-main().catch(err => {
-  console.error(err instanceof Error ? err.stack : err)
-  process.exit(1)
-})
+if (import.meta.main) {
+  main().catch(err => {
+    console.error(err instanceof Error ? err.stack : err)
+    process.exit(1)
+  })
+}

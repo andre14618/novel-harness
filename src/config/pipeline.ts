@@ -102,6 +102,21 @@ export const pipeline = {
   // byte-identical to today's beat-shaped prompt.
   sceneCallWriterV1: false,
 
+  // adjusted-B3 Arm B preparation: render the SCENE CONTRACT block when
+  // the planner has populated scene-contract fields, without switching
+  // to scene-call writer mode. Default off. When this flag is true and
+  // sceneCallWriterV1 is false, the writer keeps its beat-shaped call
+  // unit but the SCENE CONTRACT section is rendered if any
+  // scene-contract field is populated. Off-flag (both flags false) the
+  // prompt is byte-identical to legacy. When sceneCallWriterV1=true,
+  // this flag is redundant — scene-call mode already implies the
+  // contract render. Decoupling lets adjusted-B3 isolate "contract
+  // rendering effect" (Arm B) from "scene-call writer architecture
+  // shift" (Arm C). The flag does NOT cause deterministic field
+  // population — when no field is set on the entry, no SCENE CONTRACT
+  // section emits.
+  forceRenderSceneContractWhenAvailable: false,
+
   // L097 Slice 2: writer expansion mode. "off" = legacy behaviour (writer
   // is called once per entry, retries only on checker failure).
   // "retry-short-scenes-v1" = under sceneCallWriterV1, after the per-entry
@@ -164,6 +179,12 @@ export function resolveSceneCallWriterV1(
   overrides: { sceneCallWriterV1?: boolean } | undefined,
 ): boolean {
   return overrides?.sceneCallWriterV1 ?? pipeline.sceneCallWriterV1
+}
+
+export function resolveForceRenderSceneContractWhenAvailable(
+  overrides: { forceRenderSceneContractWhenAvailable?: boolean } | undefined,
+): boolean {
+  return overrides?.forceRenderSceneContractWhenAvailable ?? pipeline.forceRenderSceneContractWhenAvailable
 }
 
 export function resolveWriterExpansionMode(

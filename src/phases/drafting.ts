@@ -46,7 +46,12 @@ import { trace } from "../trace"
 import { savePlannedState } from "../planned-state"
 import { diffPlanAgainstState, type PriorCharacterState } from "../state-diff"
 import { assertDraftableSnapshot } from "../canon/planning-snapshot"
-import { pipeline, resolveSceneCallWriterV1, resolveWriterExpansionMode } from "../config/pipeline"
+import {
+  pipeline,
+  resolveSceneCallWriterV1,
+  resolveWriterExpansionMode,
+  resolveForceRenderSceneContractWhenAvailable,
+} from "../config/pipeline"
 import type { SeedInput } from "../types"
 import {
   selectContinuityFactsForPolicy,
@@ -329,6 +334,8 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       let pendingExhaustion: PlanAssistGatePayload | null = null
       const sceneCallWriterV1 = resolveSceneCallWriterV1(novel.seed.pipelineOverrides)
       const writerExpansionMode = resolveWriterExpansionMode(novel.seed.pipelineOverrides)
+      const forceRenderSceneContractWhenAvailable =
+        resolveForceRenderSceneContractWhenAvailable(novel.seed.pipelineOverrides)
 
       // 1-2. Context assembly + writer (beat-level or chapter-level)
       let prose: string
@@ -393,6 +400,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               writerContextMode: eff.writerContextMode,
               writerPromptIdRendering: eff.writerPromptIdRendering,
               sceneCallWriterV1,
+              forceRenderSceneContractWhenAvailable,
             })
             await traceWriterContextEvent(novelId, {
               chapter: ch,
@@ -876,6 +884,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 writerContextMode: eff.writerContextMode,
                 writerPromptIdRendering: eff.writerPromptIdRendering,
                 sceneCallWriterV1,
+                forceRenderSceneContractWhenAvailable,
               })
               await traceWriterContextEvent(novelId, {
                 chapter: ch,
@@ -1181,6 +1190,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               writerContextMode: eff.writerContextMode,
               writerPromptIdRendering: eff.writerPromptIdRendering,
               sceneCallWriterV1,
+              forceRenderSceneContractWhenAvailable,
             })
             await traceWriterContextEvent(novelId, {
               chapter: ch,
@@ -1763,6 +1773,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   writerContextMode: eff.writerContextMode,
                   writerPromptIdRendering: eff.writerPromptIdRendering,
                   sceneCallWriterV1,
+                  forceRenderSceneContractWhenAvailable,
                 })
                 await traceWriterContextEvent(novelId, {
                   chapter: ch,

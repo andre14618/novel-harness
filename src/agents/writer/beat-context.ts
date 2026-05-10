@@ -98,6 +98,12 @@ export interface BeatContextInput {
    *  surface them as a SCENE CONTRACT block in the writer prompt. Off
    *  preserves byte-parity. */
   sceneCallWriterV1?: boolean
+  /** adjusted-B3 Arm B preparation: render the SCENE CONTRACT block
+   *  when scene-contract fields are populated, without switching to
+   *  scene-call writer mode. Default-off. Decouples the contract render
+   *  from the architecture shift so adjusted-B3 can A/B them
+   *  separately. Off preserves byte-parity for legacy outlines. */
+  forceRenderSceneContractWhenAvailable?: boolean
   /** L099 / adjusted-B1: writer-prompt ID rendering ablation lever.
    *  Defaults to "raw" (legacy behaviour). When set to "suppress", the
    *  Cluster-1 raw-ID lines are omitted from the rendered prompt; trace
@@ -329,7 +335,17 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
     ? buildBeatCharacterContextCapsules({ outline, beat, beatIndex, characters, characterStates })
     : null
 
-  const sceneContract = input.sceneCallWriterV1
+  // SCENE CONTRACT block emits when either:
+  //   - sceneCallWriterV1 is on (L097 Slice 2 — full scene-call writer), or
+  //   - forceRenderSceneContractWhenAvailable is on (adjusted-B3 Arm B —
+  //     beat-shaped writer with the contract rendered).
+  // buildSceneContractBlock returns null when no scene-contract field is
+  // set on the entry, so off-flag plans (the production case while
+  // scenePlanContractV1 stays default-off) emit no SCENE CONTRACT
+  // section regardless.
+  const renderSceneContractFlagOn =
+    Boolean(input.sceneCallWriterV1) || Boolean(input.forceRenderSceneContractWhenAvailable)
+  const sceneContract = renderSceneContractFlagOn
     ? buildSceneContractBlock(beat)
     : null
 

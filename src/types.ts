@@ -43,6 +43,15 @@ export interface SeedInput {
      */
     sceneCallWriterV1?: boolean
     /**
+     * adjusted-B3 Arm B preparation: render the SCENE CONTRACT block when
+     * the planner has populated scene-contract fields, without enabling
+     * scene-call writer mode. Default-off. Works with the legacy
+     * beat-shaped writer call unit. Has no effect when no scene-contract
+     * field is set on the entry, and is redundant when
+     * sceneCallWriterV1=true.
+     */
+    forceRenderSceneContractWhenAvailable?: boolean
+    /**
      * L097 Slice 2: writer expansion mode. "off" preserves legacy
      * single-call-per-entry retry behaviour. "retry-short-scenes-v1" adds
      * expansion retries when word count is below the advisory floor.
