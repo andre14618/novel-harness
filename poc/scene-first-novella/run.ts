@@ -47,6 +47,158 @@ interface Args {
   captureOnly: boolean
 }
 
+interface SceneContractCoverage {
+  totalScenes: number
+  anyContractFieldScenes: number
+  coreContractFieldScenes: number
+  crisisChoiceScenes: number
+  choiceAlternativesScenes: number
+  anyFieldRate: number
+  coreFieldRate: number
+  crisisChoiceRate: number
+  choiceAlternativesRate: number
+}
+
+interface TraceabilityCoverage {
+  scenesWithSceneId: number
+  scenesWithBeatId: number
+  obligationIds: number
+  sourceIds: number
+  characterIds: number
+  threadIds: number
+  promiseIds: number
+  payoffIds: number
+}
+
+interface ChapterArtifactStats {
+  chapterNumber: number
+  title: string
+  targetWords: number
+  proseWordCount: number
+  sceneCount: number
+  traceEvents: number
+  llmCalls: number
+  writerCalls: number
+  promptTokens: number
+  completionTokens: number
+  cost: number
+}
+
+function nonEmpty(value: unknown): boolean {
+  return typeof value === "string" ? value.trim().length > 0 : value != null
+}
+
+function sceneContractCoverageFromScenes(scenes: any[]): SceneContractCoverage {
+  let anyContractFieldScenes = 0
+  let coreContractFieldScenes = 0
+  let crisisChoiceScenes = 0
+  let choiceAlternativesScenes = 0
+  for (const scene of scenes) {
+    const hasGoal = nonEmpty(scene?.goal)
+    const hasOpposition = nonEmpty(scene?.opposition)
+    const hasTurningPoint = nonEmpty(scene?.turningPoint)
+    const hasOutcome = nonEmpty(scene?.outcome)
+    const hasConsequence = nonEmpty(scene?.consequence)
+    const hasValueIn = nonEmpty(scene?.valueIn)
+    const hasValueOut = nonEmpty(scene?.valueOut)
+    const hasStake = nonEmpty(scene?.povPersonalStake)
+    const hasCrisisChoice = nonEmpty(scene?.crisisChoice)
+    const hasChoiceAlternatives = Array.isArray(scene?.choiceAlternatives) && scene.choiceAlternatives.length >= 2
+    if (
+      hasGoal || hasOpposition || hasTurningPoint || hasOutcome || hasConsequence ||
+      hasValueIn || hasValueOut || hasStake || hasCrisisChoice || hasChoiceAlternatives
+    ) {
+      anyContractFieldScenes++
+    }
+    if (
+      hasGoal && hasOpposition && hasTurningPoint && hasOutcome && hasConsequence &&
+      hasValueIn && hasValueOut && hasStake
+    ) {
+      coreContractFieldScenes++
+    }
+    if (hasCrisisChoice) crisisChoiceScenes++
+    if (hasChoiceAlternatives) choiceAlternativesScenes++
+  }
+  const totalScenes = scenes.length
+  return {
+    totalScenes,
+    anyContractFieldScenes,
+    coreContractFieldScenes,
+    crisisChoiceScenes,
+    choiceAlternativesScenes,
+    anyFieldRate: totalScenes > 0 ? anyContractFieldScenes / totalScenes : 0,
+    coreFieldRate: totalScenes > 0 ? coreContractFieldScenes / totalScenes : 0,
+    crisisChoiceRate: totalScenes > 0 ? crisisChoiceScenes / totalScenes : 0,
+    choiceAlternativesRate: totalScenes > 0 ? choiceAlternativesScenes / totalScenes : 0,
+  }
+}
+
+function mergeCoverage(a: SceneContractCoverage, b: SceneContractCoverage): SceneContractCoverage {
+  const totalScenes = a.totalScenes + b.totalScenes
+  const anyContractFieldScenes = a.anyContractFieldScenes + b.anyContractFieldScenes
+  const coreContractFieldScenes = a.coreContractFieldScenes + b.coreContractFieldScenes
+  const crisisChoiceScenes = a.crisisChoiceScenes + b.crisisChoiceScenes
+  const choiceAlternativesScenes = a.choiceAlternativesScenes + b.choiceAlternativesScenes
+  return {
+    totalScenes,
+    anyContractFieldScenes,
+    coreContractFieldScenes,
+    crisisChoiceScenes,
+    choiceAlternativesScenes,
+    anyFieldRate: totalScenes > 0 ? anyContractFieldScenes / totalScenes : 0,
+    coreFieldRate: totalScenes > 0 ? coreContractFieldScenes / totalScenes : 0,
+    crisisChoiceRate: totalScenes > 0 ? crisisChoiceScenes / totalScenes : 0,
+    choiceAlternativesRate: totalScenes > 0 ? choiceAlternativesScenes / totalScenes : 0,
+  }
+}
+
+function collectTraceabilityCoverage(scenes: any[]): TraceabilityCoverage {
+  const coverage: TraceabilityCoverage = {
+    scenesWithSceneId: 0,
+    scenesWithBeatId: 0,
+    obligationIds: 0,
+    sourceIds: 0,
+    characterIds: 0,
+    threadIds: 0,
+    promiseIds: 0,
+    payoffIds: 0,
+  }
+  const visit = (value: unknown): void => {
+    if (!value || typeof value !== "object") return
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item)
+      return
+    }
+    const object = value as Record<string, unknown>
+    if (typeof object.obligationId === "string" && object.obligationId) coverage.obligationIds++
+    if (typeof object.sourceId === "string" && object.sourceId) coverage.sourceIds++
+    if (typeof object.characterId === "string" && object.characterId) coverage.characterIds++
+    if (typeof object.threadId === "string" && object.threadId) coverage.threadIds++
+    if (typeof object.promiseId === "string" && object.promiseId) coverage.promiseIds++
+    if (typeof object.payoffId === "string" && object.payoffId) coverage.payoffIds++
+    for (const child of Object.values(object)) visit(child)
+  }
+  for (const scene of scenes) {
+    if (typeof scene?.sceneId === "string" && scene.sceneId) coverage.scenesWithSceneId++
+    if (typeof scene?.beatId === "string" && scene.beatId) coverage.scenesWithBeatId++
+    visit(scene)
+  }
+  return coverage
+}
+
+function mergeTraceabilityCoverage(a: TraceabilityCoverage, b: TraceabilityCoverage): TraceabilityCoverage {
+  return {
+    scenesWithSceneId: a.scenesWithSceneId + b.scenesWithSceneId,
+    scenesWithBeatId: a.scenesWithBeatId + b.scenesWithBeatId,
+    obligationIds: a.obligationIds + b.obligationIds,
+    sourceIds: a.sourceIds + b.sourceIds,
+    characterIds: a.characterIds + b.characterIds,
+    threadIds: a.threadIds + b.threadIds,
+    promiseIds: a.promiseIds + b.promiseIds,
+    payoffIds: a.payoffIds + b.payoffIds,
+  }
+}
+
 function parseArgs(argv: string[]): Args {
   let fixturePath = DEFAULT_FIXTURE
   let chapters = 3
@@ -78,9 +230,10 @@ async function captureChapterArtifacts(
   novelId: string,
   outputDir: string,
   chapterCount: number,
-): Promise<{ savedChapters: number[]; missingChapters: number[] }> {
+): Promise<{ savedChapters: number[]; missingChapters: number[]; chapterStats: ChapterArtifactStats[] }> {
   const saved: number[] = []
   const missing: number[] = []
+  const chapterStats: ChapterArtifactStats[] = []
   for (let ch = 1; ch <= chapterCount; ch++) {
     const outline = await getChapterOutline(novelId, ch).catch(() => null)
     if (!outline) {
@@ -124,6 +277,7 @@ async function captureChapterArtifacts(
       setting: outline.setting,
       purpose: outline.purpose,
       targetWords: outline.targetWords,
+      proseWordCount: wordCount,
       scenes: (outline.scenes ?? []).map((s: any, idx: number) => ({
         sceneIndex: idx,
         sceneId: s.sceneId ?? null,
@@ -206,9 +360,22 @@ async function captureChapterArtifacts(
       "utf8",
     )
 
+    chapterStats.push({
+      chapterNumber: ch,
+      title: outline.title,
+      targetWords: outline.targetWords,
+      proseWordCount: wordCount,
+      sceneCount: (outline.scenes ?? []).length,
+      traceEvents: traceEvents.length,
+      llmCalls: llmCalls.length,
+      writerCalls: llmCalls.filter(c => c.agent === "beat-writer").length,
+      promptTokens: llmCalls.reduce((sum, c) => sum + (c.prompt_tokens ?? 0), 0),
+      completionTokens: llmCalls.reduce((sum, c) => sum + (c.completion_tokens ?? 0), 0),
+      cost: llmCalls.reduce((sum, c) => sum + Number(c.cost ?? 0), 0),
+    })
     saved.push(ch)
   }
-  return { savedChapters: saved, missingChapters: missing }
+  return { savedChapters: saved, missingChapters: missing, chapterStats }
 }
 
 async function main(): Promise<void> {
@@ -284,22 +451,24 @@ async function main(): Promise<void> {
     WHERE novel_id = ${args.runId}
     ORDER BY chapter_number ASC
   ` as Array<{ chapter_number: number; outline_json: unknown }>
-  let totalScenes = 0
-  let scenesWithAnyField = 0
+  let sceneContractCoverage: SceneContractCoverage = sceneContractCoverageFromScenes([])
+  let traceabilityCoverage: TraceabilityCoverage = collectTraceabilityCoverage([])
   for (const row of planCheck) {
     const outline = typeof row.outline_json === "string" ? JSON.parse(row.outline_json) : row.outline_json
-    for (const s of (outline as any)?.scenes ?? []) {
-      totalScenes++
-      if (s?.goal || s?.opposition || s?.turningPoint || s?.crisisChoice || s?.outcome || s?.povPersonalStake) {
-        scenesWithAnyField++
-      }
-    }
+    const scenes = (outline as any)?.scenes ?? []
+    sceneContractCoverage = mergeCoverage(sceneContractCoverage, sceneContractCoverageFromScenes(scenes))
+    traceabilityCoverage = mergeTraceabilityCoverage(traceabilityCoverage, collectTraceabilityCoverage(scenes))
   }
-  console.log(`\nplanner output: ${planCheck.length} chapters, ${totalScenes} scenes; ${scenesWithAnyField}/${totalScenes} scenes have at least one scene-contract field populated.`)
-  if (!args.captureOnly && totalScenes === 0) {
+  console.log(
+    `\nplanner output: ${planCheck.length} chapters, ${sceneContractCoverage.totalScenes} scenes; ` +
+    `${sceneContractCoverage.anyContractFieldScenes}/${sceneContractCoverage.totalScenes} scenes have any scene-contract field, ` +
+    `${sceneContractCoverage.coreContractFieldScenes}/${sceneContractCoverage.totalScenes} have core contract fields, ` +
+    `${sceneContractCoverage.choiceAlternativesScenes}/${sceneContractCoverage.totalScenes} declare >=2 choice alternatives.`,
+  )
+  if (!args.captureOnly && sceneContractCoverage.totalScenes === 0) {
     throw new Error(`planner produced no scenes; aborting before drafting (would burn tokens with no upside)`)
   }
-  if (scenesWithAnyField === 0) {
+  if (sceneContractCoverage.anyContractFieldScenes === 0) {
     console.warn(`WARNING: planner populated 0 scene-contract fields. The scene-call writer prompt will degrade to legacy-shaped (header only). Continuing anyway — POC discipline says collect the artifact and decide post-hoc.`)
   }
 
@@ -311,13 +480,18 @@ async function main(): Promise<void> {
   }
 
   console.log("\n━━━ capturing artifacts ━━━")
-  const { savedChapters, missingChapters } = await captureChapterArtifacts(args.runId, outputDir, args.chapters)
+  const { savedChapters, missingChapters, chapterStats } = await captureChapterArtifacts(args.runId, outputDir, args.chapters)
   console.log(`saved chapters: [${savedChapters.join(", ")}]`)
   if (missingChapters.length > 0) {
     console.log(`missing chapters: [${missingChapters.join(", ")}] (no chapter_outlines row)`)
   }
 
   // Final summary written for downstream tools.
+  const totalProseWords = chapterStats.reduce((sum, ch) => sum + ch.proseWordCount, 0)
+  const totalTargetWords = chapterStats.reduce((sum, ch) => sum + ch.targetWords, 0)
+  const totalPromptTokens = chapterStats.reduce((sum, ch) => sum + ch.promptTokens, 0)
+  const totalCompletionTokens = chapterStats.reduce((sum, ch) => sum + ch.completionTokens, 0)
+  const totalCost = chapterStats.reduce((sum, ch) => sum + ch.cost, 0)
   await writeFile(
     join(outputDir, "run-summary.json"),
     JSON.stringify({
@@ -327,7 +501,31 @@ async function main(): Promise<void> {
       chaptersRequested: args.chapters,
       chaptersSaved: savedChapters,
       chaptersMissing: missingChapters,
-      plannerSceneContractFieldRate: totalScenes > 0 ? scenesWithAnyField / totalScenes : 0,
+      // Backwards-compatible alias. Means "any scene-contract field", not
+      // "every possible contract field."
+      plannerSceneContractFieldRate: sceneContractCoverage.anyFieldRate,
+      sceneContractCoverage,
+      traceabilityCoverage,
+      wordCounts: {
+        chapters: chapterStats.map(ch => ({
+          chapterNumber: ch.chapterNumber,
+          title: ch.title,
+          proseWords: ch.proseWordCount,
+          targetWords: ch.targetWords,
+          ratio: ch.targetWords > 0 ? ch.proseWordCount / ch.targetWords : null,
+        })),
+        totalProseWords,
+        totalTargetWords,
+        ratio: totalTargetWords > 0 ? totalProseWords / totalTargetWords : null,
+      },
+      llmUsage: {
+        calls: chapterStats.reduce((sum, ch) => sum + ch.llmCalls, 0),
+        writerCalls: chapterStats.reduce((sum, ch) => sum + ch.writerCalls, 0),
+        promptTokens: totalPromptTokens,
+        completionTokens: totalCompletionTokens,
+        cost: totalCost,
+      },
+      chapterStats,
       draftingResultKind: draftingResult.kind,
       pipelineOverrides: seed.pipelineOverrides,
       capturedAt: new Date().toISOString(),

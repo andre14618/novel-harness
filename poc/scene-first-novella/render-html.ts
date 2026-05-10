@@ -40,6 +40,23 @@ interface ChapterBundle {
   diagnostics: any | null
 }
 
+interface ReviewStats {
+  totalScenes: number
+  anyContractFieldScenes: number
+  coreContractFieldScenes: number
+  choiceAlternativeScenes: number
+  sceneIds: number
+  beatIds: number
+  obligationIds: number
+  sourceIds: number
+  characterIds: number
+  threadIds: number
+  promiseIds: number
+  payoffIds: number
+  proseWords: number
+  targetWords: number
+}
+
 async function loadChapter(runDir: string, ch: number): Promise<ChapterBundle | null> {
   const proseFile = Bun.file(join(runDir, `chapter-${ch}.md`))
   const contractFile = Bun.file(join(runDir, `chapter-${ch}.scene-contracts.json`))
@@ -71,6 +88,93 @@ function paragraphs(prose: string): string {
     .filter(Boolean)
     .map(p => `<p>${htmlEscape(p).replace(/\n/g, "<br/>")}</p>`)
     .join("\n")
+}
+
+function markdownWordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length
+}
+
+function headerWordCount(prose: string): number | null {
+  const match = prose.match(/^\*Word count:\s*(\d+)\s*\(target\s*\d+\)\*/m)
+  return match ? Number.parseInt(match[1]!, 10) : null
+}
+
+export function proseWordCount(ch: ChapterBundle): number {
+  return ch.contracts.proseWordCount ?? headerWordCount(ch.prose) ?? markdownWordCount(ch.prose)
+}
+
+function nonEmpty(value: unknown): boolean {
+  return typeof value === "string" ? value.trim().length > 0 : value != null
+}
+
+function countIds(value: unknown, stats: ReviewStats): void {
+  if (!value || typeof value !== "object") return
+  if (Array.isArray(value)) {
+    for (const item of value) countIds(item, stats)
+    return
+  }
+  const object = value as Record<string, unknown>
+  if (typeof object.obligationId === "string" && object.obligationId) stats.obligationIds++
+  if (typeof object.sourceId === "string" && object.sourceId) stats.sourceIds++
+  if (typeof object.characterId === "string" && object.characterId) stats.characterIds++
+  if (typeof object.threadId === "string" && object.threadId) stats.threadIds++
+  if (typeof object.promiseId === "string" && object.promiseId) stats.promiseIds++
+  if (typeof object.payoffId === "string" && object.payoffId) stats.payoffIds++
+  for (const child of Object.values(object)) countIds(child, stats)
+}
+
+export function computeReviewStats(chapters: ChapterBundle[]): ReviewStats {
+  const stats: ReviewStats = {
+    totalScenes: 0,
+    anyContractFieldScenes: 0,
+    coreContractFieldScenes: 0,
+    choiceAlternativeScenes: 0,
+    sceneIds: 0,
+    beatIds: 0,
+    obligationIds: 0,
+    sourceIds: 0,
+    characterIds: 0,
+    threadIds: 0,
+    promiseIds: 0,
+    payoffIds: 0,
+    proseWords: 0,
+    targetWords: 0,
+  }
+  for (const ch of chapters) {
+    stats.proseWords += proseWordCount(ch)
+    stats.targetWords += Number(ch.contracts.targetWords ?? 0)
+    for (const scene of ch.contracts.scenes ?? []) {
+      stats.totalScenes++
+      if (scene.sceneId) stats.sceneIds++
+      if (scene.beatId) stats.beatIds++
+      const c = scene.contract ?? {}
+      const hasGoal = nonEmpty(c.goal)
+      const hasOpposition = nonEmpty(c.opposition)
+      const hasTurningPoint = nonEmpty(c.turningPoint)
+      const hasOutcome = nonEmpty(c.outcome)
+      const hasConsequence = nonEmpty(c.consequence)
+      const hasValueIn = nonEmpty(c.valueIn)
+      const hasValueOut = nonEmpty(c.valueOut)
+      const hasStake = nonEmpty(scene.povPersonalStake)
+      const hasCrisisChoice = nonEmpty(c.crisisChoice)
+      const hasAlternatives = Array.isArray(c.choiceAlternatives) && c.choiceAlternatives.length >= 2
+      if (
+        hasGoal || hasOpposition || hasTurningPoint || hasOutcome || hasConsequence ||
+        hasValueIn || hasValueOut || hasStake || hasCrisisChoice || hasAlternatives
+      ) {
+        stats.anyContractFieldScenes++
+      }
+      if (
+        hasGoal && hasOpposition && hasTurningPoint && hasOutcome && hasConsequence &&
+        hasValueIn && hasValueOut && hasStake
+      ) {
+        stats.coreContractFieldScenes++
+      }
+      if (hasAlternatives) stats.choiceAlternativeScenes++
+      countIds(scene, stats)
+    }
+  }
+  return stats
 }
 
 function badge(label: string, value: unknown, scoreLike?: boolean): string {
@@ -192,7 +296,8 @@ function renderScene(ch: ChapterBundle, scene: any, sceneIdx: number): string {
 
 function renderChapter(ch: ChapterBundle): string {
   const proseHtml = paragraphs(ch.prose)
-  const wordCount = ch.prose.split(/\s+/).filter(Boolean).length
+  const wordCount = proseWordCount(ch)
+  const mdWordCount = markdownWordCount(ch.prose)
   const target = ch.contracts.targetWords ?? 0
   const ratio = target > 0 ? (wordCount / target).toFixed(2) : "n/a"
   const ratioCls = typeof target === "number" && target > 0
@@ -216,7 +321,8 @@ function renderChapter(ch: ChapterBundle): string {
       <div class="chapter-meta">
         <span class="meta-item"><strong>POV:</strong> ${htmlEscape(ch.contracts.povCharacter ?? "?")}</span>
         <span class="meta-item"><strong>Setting:</strong> ${htmlEscape(ch.contracts.setting ?? "?")}</span>
-        <span class="meta-item"><strong>Words:</strong> ${wordCount} / ${target} <span class="badge ${ratioCls}">×${ratio}</span></span>
+        <span class="meta-item"><strong>Prose words:</strong> ${wordCount} / ${target} <span class="badge ${ratioCls}">×${ratio}</span></span>
+        ${mdWordCount !== wordCount ? `<span class="meta-item muted small">markdown file words incl. header: ${mdWordCount}</span>` : ""}
         <span class="meta-item"><strong>Writer calls:</strong> ${writerCalls}</span>
         <span class="meta-item muted small">total LLM calls: ${llmTotal} · trace events: ${eventCount}</span>
       </div>
@@ -238,12 +344,16 @@ function renderChapter(ch: ChapterBundle): string {
 }
 
 function renderHtml(runId: string, runSummary: any | null, chapters: ChapterBundle[]): string {
+  const reviewStats = computeReviewStats(chapters)
+  const wordRatio = reviewStats.targetWords > 0 ? (reviewStats.proseWords / reviewStats.targetWords).toFixed(2) : "n/a"
   const summaryRow = runSummary
     ? `<div class="run-summary">
         <span><strong>Profile:</strong> ${htmlEscape(runSummary.profile ?? "?")}</span>
         <span><strong>Fixture:</strong> <code>${htmlEscape(runSummary.fixturePath ?? "?")}</code></span>
         <span><strong>Chapters saved:</strong> ${(runSummary.chaptersSaved ?? []).length}/${runSummary.chaptersRequested}</span>
-        <span><strong>Planner contract field rate:</strong> ${((runSummary.plannerSceneContractFieldRate ?? 0) * 100).toFixed(0)}%</span>
+        <span><strong>Prose words:</strong> ${reviewStats.proseWords}/${reviewStats.targetWords} (×${wordRatio})</span>
+        <span><strong>Contract coverage:</strong> any ${reviewStats.anyContractFieldScenes}/${reviewStats.totalScenes} · core ${reviewStats.coreContractFieldScenes}/${reviewStats.totalScenes} · choices ${reviewStats.choiceAlternativeScenes}/${reviewStats.totalScenes}</span>
+        <span><strong>Trace IDs:</strong> scene ${reviewStats.sceneIds}/${reviewStats.totalScenes} · obl ${reviewStats.obligationIds} · src ${reviewStats.sourceIds} · thread ${reviewStats.threadIds} · promise ${reviewStats.promiseIds}</span>
         <span><strong>Drafting:</strong> ${htmlEscape(runSummary.draftingResultKind ?? "?")}</span>
       </div>`
     : ""

@@ -13,17 +13,21 @@ This packet runs under [L100 — POC acceleration lane](../../docs/decisions/L10
   (`scenePlanContractV1`, `sceneCallWriterV1`, `writerExpansionMode`,
   `draftCaptureModeV1`) is set on a single novel via
   `seed.pipelineOverrides`. Other novels in the database are unaffected.
-- **Traceability IDs are preserved** end-to-end. Per L099, the open
+- **Traceability IDs are preserved in the review artifacts.** Per L099, the open
   ablation question is whether raw IDs render in the prose-writer prompt;
-  obligation/source/thread/promise/payoff IDs remain in scene contracts,
-  trace events, and the rendered HTML.
+  obligation/source/thread/promise/payoff IDs remain in scene contracts and the
+  rendered HTML when present. Trace files preserve runtime-emitted scene IDs,
+  LLM-call metadata, and event payloads; they do not imply that every
+  obligation/source/character ID is repeated on every trace event.
 - **Chapter-level checker settle loops are skipped** in this POC via
   `draftCaptureModeV1=true` so prose collection survives checker hangs.
   Diagnostics run post-hoc as standalone V4 Flash judges.
 - **Stop conditions** for this POC: production defaults would change,
   traceability IDs would be lost, or the planner produces unusable scene
   contracts (zero populated fields across all scenes — runner warns and
-  continues).
+  continues). `plannerSceneContractFieldRate` in `run-summary.json` is the
+  backwards-compatible any-field rate; use `sceneContractCoverage` for precise
+  core-field and choice-field counts.
 
 ## Run sequence
 
@@ -49,13 +53,19 @@ bun poc/scene-first-novella/diagnostics.ts \
 #    a browser; no server, no React, no Playwright.
 bun poc/scene-first-novella/render-html.ts \
   --run-dir poc/scene-first-novella/output/<runId>
+
+# Optional repair path: re-capture artifacts for an already-finished novel
+# after fixing capture/render code. Requires the DB row to still exist.
+bun poc/scene-first-novella/run.ts \
+  --capture-only \
+  --run-id <existingNovelId>
 ```
 
 The resulting `poc/scene-first-novella/output/<runId>/` contains:
 
 ```
 seed.json                         resolved seed + fixture path
-run-summary.json                  profile, planner field rate, drafting kind
+run-summary.json                  profile, coverage, traceability, usage stats
 chapter-N.md                      prose + header
 chapter-N.scene-contracts.json    full outline_json row
 chapter-N.trace.json              pipeline_events + llm_calls metadata
