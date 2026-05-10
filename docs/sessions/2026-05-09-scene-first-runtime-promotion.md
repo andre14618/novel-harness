@@ -113,3 +113,16 @@ Schema (`src/schemas/shared.ts`, `src/agents/chapter-plan-checker/schema.ts`), p
 ## Lane Closed
 
 The lane is at a clean stopping point. The substrate, planner, writer, and checker layers all carry the scene-first surface; the empirical evidence to flip flags default-on is the next-tier work and is captured as separate scopes in `docs/sessions/lane-queue.md`.
+
+## Post-Review Fixes
+
+Codex review after closeout found two integration gaps and corrected them:
+
+- `sceneCallWriterV1` now carries through targeted plan-check, validation, and
+  integrity rewrites, not only initial per-entry writer calls.
+- Future chapter-plan deviations with `obligationIds` now route to the matching
+  `outline.scenes[]` entry before falling back to legacy beat-0 routing.
+
+The review also corrected docs/comments that implied a production inline
+`sceneSatisfactionCheckerV1` prompt switch or a current `sceneId` field. The
+runtime remains default-off and evidence-gated.

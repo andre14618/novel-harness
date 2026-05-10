@@ -171,10 +171,13 @@ const PAYOFF_DEBT_STAGES = new Set(["partial_payoff", "final_payoff"])
 
 /**
  * Validate a chapter outline against the scene plan contract. Pure function;
- * no IO. Returns `{valid: true, errors: []}` for legacy outlines that lack
- * the new fields entirely (every check uses optional access). Use this only
- * after `enforcePlanningOutput` has cleared structural beat-count rules so
- * scene-level errors are surfaced against a well-formed beat list.
+ * no IO. This is a scene-contract validator, not a legacy-outline validator:
+ * it reports missing `choiceAlternatives` even on old beat-shaped entries.
+ * Runtime planning therefore calls it only under `scenePlanContractV1` and,
+ * after L096 calibration, treats failures as advisory signal rather than as
+ * phase blockers. Use this only after `enforcePlanningOutput` has cleared
+ * structural beat-count rules so scene-level errors are surfaced against a
+ * well-formed entry list.
  *
  * Reuses `BeatObligationItem` from `src/schemas/shared.ts` for typing the
  * collected obligation list.

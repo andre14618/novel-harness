@@ -47,7 +47,7 @@ const FILLED_SCENE = {
   },
 }
 
-test("enforceScenePlanContract returns valid for legacy outlines without new fields", () => {
+test("enforceScenePlanContract reports missing contract fields on legacy-shaped entries", () => {
   const result = enforceScenePlanContract(chapter([
     {
       description: "Calla finds the script.",
@@ -59,10 +59,9 @@ test("enforceScenePlanContract returns valid for legacy outlines without new fie
     },
   ]), { requireMaterialityTests: false, requirePovPersonalStake: false })
 
-  // The default-options path still requires choiceAlternatives ≥2 — so a
-  // legacy outline without choiceAlternatives is reported. This is the
-  // intended structural floor; legacy outlines simply must not have the
-  // new fields turn into "false present" by accident.
+  // The helper is called only when scenePlanContractV1 is active. It is
+  // intentionally stricter than legacy outlines so missing contract fields
+  // produce advisory calibration signal.
   expect(result.valid).toBe(false)
   expect(result.errors[0]).toContain("choiceAlternatives must declare at least two options")
 })

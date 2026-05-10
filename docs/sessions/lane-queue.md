@@ -32,9 +32,11 @@ unless the user explicitly requests a disposable branch.
   drafting/checking/UI. Hold other layers steady unless the test explicitly
   measures downstream projection. Candidate hypotheses are collected in
   `docs/authoring-methodology-hypotheses.md`.
-- If pursuing scene-first methodology, treat `sceneId` as the plan/write/check
-  unit and `obligationId`/`sourceId` as the traceability unit; do not preserve
-  beat-level adherence as the primary future contract by default. See L092.
+- If pursuing scene-first methodology, treat each `outline.scenes[]` entry as
+  the plan/write/check unit. Today its durable ID is still `beatId`; adding or
+  renaming to `sceneId` is a separate migration decision. Use
+  `obligationId`/`sourceId` as the traceability unit; do not preserve
+  beat-level adherence as the primary future contract by default. See L092/L095.
 - L093 runtime refs are additive: directives can declare story
   threads/debts/payoffs; state-mapper obligations and writer-context telemetry
   carry active `threadId`/`promiseId`/`payoffId` without blocking semantics.

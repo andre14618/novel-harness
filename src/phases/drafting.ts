@@ -86,6 +86,7 @@ import {
 import { buildPlanCheckDriftWitnessPayload } from "./plan-check-drift-witness"
 import { recordReviserAcceptedLineage } from "./reviser-lineage"
 import { recordPlanningEditDraftImpactsForChapter } from "./planning-edit-draft-impact"
+import { routeChapterPlanDeviations } from "./chapter-plan-routing"
 
 /**
  * Merge per-novel `seed.pipelineOverrides` onto the module-level pipeline
@@ -316,6 +317,8 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       // the end of the attempt so every cause aggregates into one decision
       // point for the user. Null = no gate needed this attempt.
       let pendingExhaustion: PlanAssistGatePayload | null = null
+      const sceneCallWriterV1 = resolveSceneCallWriterV1(novel.seed.pipelineOverrides)
+      const writerExpansionMode = resolveWriterExpansionMode(novel.seed.pipelineOverrides)
 
       // 1-2. Context assembly + writer (beat-level or chapter-level)
       let prose: string
@@ -368,9 +371,6 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           // Resolved once per chapter; threaded into each per-entry build so
           // the writer prompt surfaces scene-contract fields and the
           // expansion-retry path is gated consistently across the loop.
-          const sceneCallWriterV1 = resolveSceneCallWriterV1(novel.seed.pipelineOverrides)
-          const writerExpansionMode = resolveWriterExpansionMode(novel.seed.pipelineOverrides)
-
           beatProses = []
           for (let bi = 0; bi < outline.scenes.length; bi++) {
             const beatCtx = await buildBeatContext({
@@ -834,34 +834,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             route: r => {
               const devs = r.deviations ?? []
               devs.forEach(d => console.log(`    DEVIATION (beat ${d.beat_index ?? "chapter-level"}): ${d.description}`))
-              const perBeat = new Map<number, string[]>()
-              const addTo = (idx: number, desc: string) => {
-                if (idx < 0 || idx >= outline.scenes.length) return
-                const list = perBeat.get(idx) ?? []
-                list.push(desc)
-                perBeat.set(idx, list)
-              }
-              for (const d of devs) {
-                if (d.beat_index != null) addTo(d.beat_index, d.description)
-              }
-              const hasChapterLevel = devs.some(d => d.beat_index == null)
-              if (hasChapterLevel || (r.setting_match && !r.setting_match.matches)) {
-                if (r.setting_match && !r.setting_match.matches) {
-                  addTo(0, `Chapter setting mismatch — planned "${r.setting_match.planned}" but prose observed "${r.setting_match.observed}"`)
-                }
-              }
-              if (r.emotional_arc_correct === false) {
-                const lastN = outline.scenes.length >= 12 ? 3 : 2
-                for (let i = outline.scenes.length - lastN; i < outline.scenes.length; i++) {
-                  addTo(i, "Emotional arc reversed from plan — the closing beats should land the planned emotion direction, not invert it")
-                }
-              }
-              for (const d of devs) {
-                if (d.beat_index == null && r.setting_match?.matches !== false && r.emotional_arc_correct !== false) {
-                  addTo(0, d.description)
-                }
-              }
-              return perBeat
+              return routeChapterPlanDeviations(r, outline)
             },
             rewriteBeat: async (bi, issueDescriptions) => {
               const beatWriterModel = getModelForAgent("beat-writer")
@@ -883,6 +856,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 genre: novel.seed?.genre,
                 priorChapterFacts,
                 writerContextMode: eff.writerContextMode,
+                sceneCallWriterV1,
               })
               await traceWriterContextEvent(novelId, {
                 chapter: ch,
@@ -1185,6 +1159,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               genre: novel.seed?.genre,
               priorChapterFacts,
               writerContextMode: eff.writerContextMode,
+              sceneCallWriterV1,
             })
             await traceWriterContextEvent(novelId, {
               chapter: ch,
@@ -1764,6 +1739,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   genre: novel.seed?.genre,
                   priorChapterFacts,
                   writerContextMode: eff.writerContextMode,
+                  sceneCallWriterV1,
                 })
                 await traceWriterContextEvent(novelId, {
                   chapter: ch,

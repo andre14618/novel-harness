@@ -3,7 +3,7 @@
  * Production-replay narrow scene-semantic LLM judge — L098 Slice 3.5
  * deliverable. Diagnostic-only, replay-only.
  *
- * Reads a persisted novel's outlines + approved drafts from the production DB
+ * Reads a persisted novel's outlines + latest persisted drafts from the production DB
  * and runs the existing `judgePlanningExcerpt` narrow rubric (POC ancestor:
  * `scripts/evals/corpus-recreation-semantic-review.ts`) per scene per
  * dimension. Never makes inline drafting calls and never writes back to the

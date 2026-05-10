@@ -96,13 +96,12 @@ export const pipeline = {
   // gate.
   writerExpansionMode: "off" as "off" | "retry-short-scenes-v1",
 
-  // L098 Slice 3: scene-satisfaction checker flag. Default off. When on,
-  // the chapter-plan-checker prompt asks scene-satisfaction questions
-  // per entry (did the scene satisfy its declared goal/turn/choice/
-  // consequence and cover its required obligations?) and finding shape
-  // includes optional `obligationIds`. Default routing remains beat-keyed;
-  // the new fields are additive. Promotion to blocker is contingent on
-  // parity-panel evidence per L092 standards.
+  // L098 Slice 3: reserved scene-satisfaction checker flag. Default off.
+  // Current production runtime does not consume this flag yet; shipped code
+  // only adds the additive `obligationIds` finding surface and deterministic
+  // obligation-aware routing helpers. Scene-satisfaction LLM judging lives in
+  // replay-only diagnostic scripts until parity evidence supports a separate
+  // promotion decision.
   sceneSatisfactionCheckerV1: false,
 
   // State management

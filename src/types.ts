@@ -49,10 +49,10 @@ export interface SeedInput {
      */
     writerExpansionMode?: "off" | "retry-short-scenes-v1"
     /**
-     * L098 Slice 3: scene-satisfaction checker flag. Default-off. When on,
-     * chapter-plan-checker prompt asks scene-satisfaction questions and
-     * findings carry optional `obligationIds`. Diagnostic only; default
-     * routing remains beat-keyed.
+     * L098 Slice 3: reserved scene-satisfaction checker flag. Default-off.
+     * Production does not currently switch the inline checker prompt with
+     * this flag; replay diagnostics use the scene-satisfaction shape while
+     * runtime routing accepts optional `obligationIds`.
      */
     sceneSatisfactionCheckerV1?: boolean
   }

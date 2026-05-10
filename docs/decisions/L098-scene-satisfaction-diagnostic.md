@@ -97,6 +97,15 @@ The actual N≥20 evidence run is **not** part of this commit. The L096-derived 
 
 The wiring is in place; the live evidence run is a separate scope and should be authored against a fixture that satisfies both conditions.
 
+## 2026-05-10 Post-Review Fix
+
+Codex review found that `ValidationFinding.obligationIds` routed correctly,
+but `ChapterPlanDeviation.obligationIds` did not yet have a shared settle-loop
+router. A small `routeChapterPlanDeviations` helper now routes future
+chapter-plan / scene-satisfaction deviations by exact `obligationId` before
+falling back to legacy chapter-level beat 0 routing. The existing validation
+helper remains shared by both paths.
+
 ## Status
 
 L098 + Slice 3.5 wiring is shipped. L092's "do not promote scene-satisfaction to blocker" non-goal remains in place. Promotion to default-on `sceneSatisfactionCheckerV1` or to a blocker requires a separate decision after live parity evidence on a properly-shaped fixture.

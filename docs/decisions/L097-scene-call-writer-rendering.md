@@ -104,3 +104,11 @@ Two follow-up paths to actually answer the deferred question:
 2. **Bypass plan-assist or pre-resolve the halluc entities.** The `setAutoMode(true)` setting does not auto-resolve plan-assist gates; the run still bails. To produce 10-chapter A/B data on either fixture profile, the fixture's hallucinated entities must be pre-resolved (concept update or proposal closure) or the harness must run with a configuration that auto-passes plan-assist gates.
 
 Without either, the Slice 2.5 harness exists but the empirical question — does L097's wiring reproduce POC's 0.60 → 0.79 word-ratio gain on production planner output — remains open. The flags stay default-off; per-novel opt-in via `pipelineOverrides` is still the supported path for evaluation. Promotion to default-on remains gated on a successful A/B that engages the expansion path on a sub-1.0-ratio fixture.
+
+## 2026-05-10 Post-Review Fix
+
+Codex review found that initial per-entry writing threaded `sceneCallWriterV1`
+into `buildBeatContext`, but targeted rewrite paths rebuilt the writer context
+without that flag. Under opt-in scene-call mode, plan-check, validation, and
+integrity rewrites now preserve the same scene-contract prompt surface as the
+initial writer call. This does not change off-flag byte shape.

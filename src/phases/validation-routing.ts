@@ -63,10 +63,11 @@ function routeValidationFindings(
 }
 
 // L098 Slice 3: locate the entry whose obligations include any of the
-// listed obligationIds. Used by validation-routing when a scene-satisfaction
-// finding has no beatIndex but carries exact obligation refs. Returns
-// null when no entry matches — caller falls through to legacy routing.
-function findEntryByObligationIds(outline: ChapterOutline, obligationIds: string[]): number | null {
+// listed obligationIds. Used by validation and chapter-plan routing when a
+// scene-satisfaction finding has no beatIndex but carries exact obligation
+// refs. Returns null when no entry matches — caller falls through to legacy
+// routing.
+export function findEntryByObligationIds(outline: ChapterOutline, obligationIds: string[]): number | null {
   if (obligationIds.length === 0) return null
   const targets = new Set(obligationIds)
   const scenes = outline.scenes ?? []
