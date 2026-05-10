@@ -63,6 +63,7 @@
     "diagnostics:planner-discernment-finding-aggregate": "bun scripts/evals/planner-discernment-finding-aggregate.ts",
     "diagnostics:plan-readiness-data-loop": "bun scripts/evals/plan-readiness-data-loop.ts",
     "diagnostics:plan-readiness-apply": "bun scripts/analysis/plan-readiness-apply.ts",
+    "diagnostics:plan-readiness-review-plan": "bun scripts/analysis/plan-readiness-review-plan.ts",
     "diagnostics:plan-readiness-import": "bun scripts/analysis/plan-readiness-import.ts",
     "diagnostics:checker-readiness": "bun scripts/analysis/checker-readiness-report.ts",
     "diagnostics:continuity-grayzone-extract": "bun scripts/analysis/continuity-grayzone-extract.ts",

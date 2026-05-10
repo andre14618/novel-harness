@@ -142,6 +142,11 @@ also be converted with `diagnostics:checker-readiness`; blocker-severity
 findings import unless polarity is explicitly positive, while warnings remain
 opt-in. Both commands create only open manual review items.
 
+`diagnostics:plan-readiness-review-plan` now turns those open items into a
+Markdown review packet and an apply-compatible JSON scaffold. The generated
+actions default to `deferred` and must be edited with operator judgment before
+non-dry-run apply.
+
 The first production-path operator loop on `p1-allow-brief-1778447459`
 dispositioned superseded whole-chapter semantic lows, created two manual
 planning edits, approved them through the normal planning-proposal route, and
@@ -156,7 +161,9 @@ compaction.
 That rerun evidence has now been imported into the production Plan Readiness
 queue: seven scene-semantic items from the replay sidecar plus one
 `CONTINUITY-BLOCKER` from checker evidence. All eight are open review items;
-none created proposals or mutated plans during import.
+none created proposals or mutated plans during import. A review-plan scaffold
+for those eight items was generated and dry-ran through
+`diagnostics:plan-readiness-apply` with 8/8 matches and 0 errors.
 
 ## Evidence And Verification
 

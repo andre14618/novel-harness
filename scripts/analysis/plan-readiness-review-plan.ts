@@ -1,0 +1,305 @@
+#!/usr/bin/env bun
+/**
+ * Build an explicit operator-plan scaffold from existing Plan Readiness items.
+ * The scaffold is meant to be reviewed and edited before
+ * diagnostics:plan-readiness-apply mutates readiness state or creates proposals.
+ */
+
+import { mkdirSync, writeFileSync } from "node:fs"
+import { dirname, resolve } from "node:path"
+import type { PlanReadinessItem } from "../../src/db/plan-readiness"
+import {
+  PLAN_READINESS_STATUSES,
+  type PlanReadinessStatus,
+} from "../../src/harness/plan-readiness"
+import type {
+  PlanReadinessActionPlan,
+  PlanReadinessApplyDecision,
+} from "./plan-readiness-apply"
+
+type StatusFilter = PlanReadinessStatus | "all"
+
+const DEFAULT_NOTE = "Generated default. Replace with an operator judgment before non-dry-run apply."
+
+export interface PlanReadinessReviewPlanArgs {
+  novelId: string
+  outputPath: string | null
+  jsonPath: string | null
+  status: StatusFilter
+  limit: number
+  defaultDecision: PlanReadinessApplyDecision
+}
+
+export interface PlanReadinessReviewPlanReport {
+  generatedAt: string
+  novelId: string
+  status: StatusFilter
+  defaultDecision: PlanReadinessApplyDecision
+  itemCount: number
+  summary: {
+    byStatus: Record<string, number>
+    byLabel: Record<string, number>
+    byDimension: Record<string, number>
+    byTargetKind: Record<string, number>
+  }
+  plan: PlanReadinessActionPlan
+  items: Array<{
+    id: string
+    status: string
+    severity: string
+    label: string
+    dimension: string
+    target: string
+    explanation: string
+    missingForNextLevel: string | null
+    evidence: Record<string, string>
+    preserveIds: PlanReadinessItem["preserveIds"]
+    proposalCandidate: unknown
+  }>
+}
+
+export function parseArgs(argv = process.argv.slice(2)): PlanReadinessReviewPlanArgs {
+  let novelId = ""
+  let outputPath: string | null = null
+  let jsonPath: string | null = null
+  let status: StatusFilter = "open"
+  let limit = 200
+  let defaultDecision: PlanReadinessApplyDecision = "deferred"
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]
+    if (arg === "--novel") {
+      novelId = requireValue(argv[++i], "--novel")
+    } else if (arg === "--output") {
+      outputPath = requireValue(argv[++i], "--output")
+    } else if (arg === "--json") {
+      jsonPath = requireValue(argv[++i], "--json")
+    } else if (arg === "--status") {
+      status = statusValue(requireValue(argv[++i], "--status"))
+    } else if (arg === "--limit") {
+      limit = positiveInt(requireValue(argv[++i], "--limit"), "--limit")
+    } else if (arg === "--default-decision") {
+      defaultDecision = defaultDecisionValue(requireValue(argv[++i], "--default-decision"))
+    } else {
+      throw new Error(`unknown arg: ${arg}`)
+    }
+  }
+
+  if (!novelId) throw new Error("--novel is required")
+  return { novelId, outputPath, jsonPath, status, limit, defaultDecision }
+}
+
+export function buildReviewPlanReport(input: {
+  novelId: string
+  items: readonly PlanReadinessItem[]
+  status: StatusFilter
+  defaultDecision?: PlanReadinessApplyDecision
+  generatedAt?: string
+}): PlanReadinessReviewPlanReport {
+  const defaultDecision = input.defaultDecision ?? "deferred"
+  const items = [...input.items].sort(compareReadinessItems)
+  const plan: PlanReadinessActionPlan = {
+    actions: items.map(item => ({
+      match: {
+        itemId: item.id,
+        label: item.diagnosticLabel,
+        dimension: item.dimension,
+        targetKind: item.target.kind,
+        targetRef: item.target.ref,
+        ...(item.target.fieldPath ? { targetFieldPath: item.target.fieldPath } : {}),
+      },
+      decision: defaultDecision,
+      operatorNote: DEFAULT_NOTE,
+    })),
+  }
+
+  return {
+    generatedAt: input.generatedAt ?? new Date().toISOString(),
+    novelId: input.novelId,
+    status: input.status,
+    defaultDecision,
+    itemCount: items.length,
+    summary: {
+      byStatus: countBy(items, item => item.status),
+      byLabel: countBy(items, item => item.diagnosticLabel),
+      byDimension: countBy(items, item => item.dimension),
+      byTargetKind: countBy(items, item => item.target.kind),
+    },
+    plan,
+    items: items.map(item => ({
+      id: item.id,
+      status: item.status,
+      severity: item.severity,
+      label: item.diagnosticLabel,
+      dimension: item.dimension,
+      target: formatTarget(item),
+      explanation: item.explanation,
+      missingForNextLevel: item.missingForNextLevel,
+      evidence: item.evidence,
+      preserveIds: item.preserveIds,
+      proposalCandidate: item.metadata.proposalCandidate ?? null,
+    })),
+  }
+}
+
+export function renderReviewPlanReport(report: PlanReadinessReviewPlanReport): string {
+  const lines: string[] = []
+  lines.push("# Plan Readiness Review Plan")
+  lines.push("")
+  lines.push(`Generated: ${report.generatedAt}`)
+  lines.push(`Novel: ${report.novelId}`)
+  lines.push(`Status filter: ${report.status}`)
+  lines.push(`Default decision: ${report.defaultDecision}`)
+  lines.push(`Items: ${report.itemCount}`)
+  lines.push("")
+  lines.push("## Summary")
+  lines.push(`- by label: ${formatCounts(report.summary.byLabel)}`)
+  lines.push(`- by dimension: ${formatCounts(report.summary.byDimension)}`)
+  lines.push(`- by target kind: ${formatCounts(report.summary.byTargetKind)}`)
+  lines.push("")
+  lines.push("## Operator Plan")
+  lines.push("")
+  lines.push(`Review and edit the JSON plan before running \`diagnostics:plan-readiness-apply\` without \`--dry-run\`.`)
+  lines.push("")
+  for (const item of report.items) {
+    lines.push(`### ${item.label} ${item.target}`)
+    lines.push("")
+    lines.push(`- item: ${item.id}`)
+    lines.push(`- status: ${item.status}`)
+    lines.push(`- severity: ${item.severity}`)
+    lines.push(`- dimension: ${item.dimension}`)
+    lines.push(`- explanation: ${item.explanation}`)
+    if (item.missingForNextLevel) lines.push(`- missing: ${item.missingForNextLevel}`)
+    const evidenceLines = Object.entries(item.evidence)
+      .filter(([, value]) => value.length > 0)
+      .slice(0, 8)
+      .map(([key, value]) => `${key}=${value}`)
+    if (evidenceLines.length > 0) lines.push(`- evidence: ${evidenceLines.join("; ")}`)
+    const preserve = formatPreserveIds(item.preserveIds)
+    if (preserve) lines.push(`- preserve IDs: ${preserve}`)
+    if (item.proposalCandidate) lines.push("- proposal candidate: available in JSON")
+    lines.push("")
+  }
+  return `${lines.join("\n")}\n`
+}
+
+async function run(args: PlanReadinessReviewPlanArgs): Promise<PlanReadinessReviewPlanReport> {
+  const { listPlanReadinessItems } = await import("../../src/db/plan-readiness")
+  const items = await listPlanReadinessItems(args.novelId, {
+    status: args.status,
+    limit: args.limit,
+  })
+  return buildReviewPlanReport({
+    novelId: args.novelId,
+    items,
+    status: args.status,
+    defaultDecision: args.defaultDecision,
+  })
+}
+
+function compareReadinessItems(a: PlanReadinessItem, b: PlanReadinessItem): number {
+  return severityRank(b.severity) - severityRank(a.severity) ||
+    a.target.kind.localeCompare(b.target.kind) ||
+    a.target.ref.localeCompare(b.target.ref) ||
+    a.dimension.localeCompare(b.dimension) ||
+    a.diagnosticLabel.localeCompare(b.diagnosticLabel) ||
+    a.id.localeCompare(b.id)
+}
+
+function severityRank(severity: string): number {
+  if (severity === "high") return 4
+  if (severity === "medium") return 3
+  if (severity === "low") return 2
+  return 1
+}
+
+function countBy<T>(items: readonly T[], key: (item: T) => string): Record<string, number> {
+  const counts: Record<string, number> = {}
+  for (const item of items) counts[key(item)] = (counts[key(item)] ?? 0) + 1
+  return Object.fromEntries(Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)))
+}
+
+function formatCounts(counts: Record<string, number>): string {
+  const entries = Object.entries(counts)
+  return entries.length === 0 ? "(none)" : entries.map(([key, count]) => `${key}: ${count}`).join(", ")
+}
+
+function formatTarget(item: PlanReadinessItem): string {
+  return `${item.target.kind}:${item.target.ref}${item.target.fieldPath ? `:${item.target.fieldPath}` : ""}`
+}
+
+function formatPreserveIds(preserveIds: PlanReadinessItem["preserveIds"]): string {
+  return Object.entries(preserveIds)
+    .filter(([, ids]) => Array.isArray(ids) && ids.length > 0)
+    .map(([key, ids]) => `${key}=${(ids as string[]).join(",")}`)
+    .join("; ")
+}
+
+function statusValue(raw: string): StatusFilter {
+  if (raw === "all" || (PLAN_READINESS_STATUSES as readonly string[]).includes(raw)) {
+    return raw as StatusFilter
+  }
+  throw new Error(`--status must be all or one of ${PLAN_READINESS_STATUSES.join(", ")}`)
+}
+
+function defaultDecisionValue(raw: string): PlanReadinessApplyDecision {
+  if (
+    raw === "accepted_as_is" ||
+    raw === "not_applicable" ||
+    raw === "deferred" ||
+    raw === "fixed"
+  ) {
+    return raw
+  }
+  throw new Error("--default-decision must be accepted_as_is, not_applicable, deferred, or fixed")
+}
+
+function positiveInt(raw: string, flag: string): number {
+  const n = Number(raw)
+  if (!Number.isInteger(n) || n <= 0) throw new Error(`${flag} must be a positive integer`)
+  return n
+}
+
+function requireValue(value: string | undefined, flag: string): string {
+  if (!value) throw new Error(`${flag} requires a value`)
+  return value
+}
+
+function writeOutput(path: string, content: string): void {
+  const abs = resolve(path)
+  mkdirSync(dirname(abs), { recursive: true })
+  writeFileSync(abs, content)
+}
+
+async function closeDb(): Promise<void> {
+  const { default: db } = await import("../../src/db/connection")
+  await db.end().catch(() => {})
+}
+
+async function main(): Promise<number> {
+  let args: PlanReadinessReviewPlanArgs
+  try {
+    args = parseArgs()
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : String(err))
+    console.error("usage: bun scripts/analysis/plan-readiness-review-plan.ts --novel <novelId> [--output <report.md>] [--json <plan.json>] [--status <open|deferred|all>] [--limit <n>] [--default-decision <status>]")
+    return 2
+  }
+
+  try {
+    const report = await run(args)
+    if (args.outputPath) writeOutput(args.outputPath, renderReviewPlanReport(report))
+    if (args.jsonPath) writeOutput(args.jsonPath, `${JSON.stringify(report.plan, null, 2)}\n`)
+    console.log(renderReviewPlanReport(report))
+    return 0
+  } catch (err) {
+    console.error(err instanceof Error ? err.stack : String(err))
+    return 1
+  } finally {
+    await closeDb()
+  }
+}
+
+if (import.meta.main) {
+  process.exit(await main())
+}

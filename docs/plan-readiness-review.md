@@ -217,6 +217,18 @@ items only; they do not create proposals or mutate plans.
 Production readiness items can be acted on with an explicit operator plan:
 
 ```bash
+bun run diagnostics:plan-readiness-review-plan -- \
+  --novel <novelId> \
+  --output output/plan-readiness/<novelId>-review.md \
+  --json output/plan-readiness/<novelId>-review-plan.json
+```
+
+This command emits a Markdown review packet and an apply-compatible JSON
+scaffold from current readiness items. The scaffold defaults to `deferred` with
+a generated note so it is safe to dry-run, but it should be edited with real
+operator judgments before non-dry-run apply.
+
+```bash
 bun run diagnostics:plan-readiness-apply -- \
   --novel <novelId> \
   --plan docs/fixtures/evals/<operator-readiness-plan>.json \
@@ -298,6 +310,8 @@ Done:
   `output/method-pack-diagnostics/2026-05-08-plan-readiness-data-loop-mapmaker-disposition-v0/`.
 - production import commands for existing readiness sidecars and checker
   blocker evidence, preserving manual review semantics.
+- production review-plan scaffold generation before apply, with dry-run
+  compatibility against the existing route.
 
 Next:
 

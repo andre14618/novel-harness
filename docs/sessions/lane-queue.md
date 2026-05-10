@@ -34,7 +34,7 @@ unless the user explicitly requests a disposable branch.
   plan-consistency quality. Scene-semantic replay writes readiness sidecars,
   planner-quality diagnostics imports readiness, and
   existing readiness sidecars/checker blockers now import through production
-  commands before `diagnostics:plan-readiness-apply` applies operator plans. See L106.
+  commands before a generated review plan feeds `diagnostics:plan-readiness-apply`. See L106.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -118,13 +118,12 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: disposition the 8 open Plan Readiness items imported for
-  `p1-ready-brief-1778451217-drafting-brief-v1` (1 CONTINUITY-BLOCKER, 1
-  ENDPOINT-0, 5 ENDPOINT-1, 1 SCENE-1), apply only operator-approved planning
-  edits, and rerun a comparable production artifact. Do not treat word count or
-  prose-semantic as the blocker. Promotion remains blocked until a comparable
-  artifact reaches <=1.5x target with endpointLanding clean, complete scene IDs,
-  diagnostics, traces, and review artifacts. See L103-L106.
+- Next session start: edit the generated review-plan JSON for the 8 open
+  `p1-ready-brief-1778451217-drafting-brief-v1` readiness items with real
+  operator judgments, apply only approved planning edits, and rerun a comparable
+  production artifact. Do not treat word count or prose-semantic as the blocker.
+  Promotion remains blocked until endpointLanding is clean with complete scene
+  IDs, diagnostics, traces, and review artifacts. See L103-L106.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,
