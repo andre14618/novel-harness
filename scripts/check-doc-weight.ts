@@ -9,8 +9,9 @@ interface DocWeightRule {
 const rules: DocWeightRule[] = [
   {
     path: "docs/current-state.md",
-    maxLines: 300,
-    hint: "Move historical detail to docs/archive/ and keep only live truth here.",
+    maxLines: 180,
+    hint:
+      "Keep only live truth here; move active detail to docs/reference/ and history to docs/archive/.",
   },
   {
     path: "docs/decisions.md",

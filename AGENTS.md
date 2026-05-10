@@ -12,8 +12,11 @@ you need historical evidence for a decision.
 
 ## Documentation Discipline
 
-- `docs/current-state.md` is live truth and should stay under 300 lines.
+- `docs/current-state.md` is live truth and should stay near 150 lines, with a
+  hard docs-weight limit of 180 lines.
 - `docs/decisions.md` is an index and should stay under 250 lines.
+- `docs/reference/` holds active details that are too large for the context
+  pack. Load a reference doc only when the task touches that surface.
 - Detailed decisions belong in `docs/decisions/LNNN-short-slug.md`.
 - Historical snapshots belong in `docs/archive/` or `docs/sessions/archive/`.
 - Run `bun run docs:weight` before closing docs-heavy work. Treat it as a
