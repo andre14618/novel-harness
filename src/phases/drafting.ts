@@ -17,6 +17,7 @@ import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CHAPTER_PLAN_CHECKER_PROMPT } 
 import { buildContext as buildWriterContext } from "../agents/writer/context"
 import { buildBeatContext } from "../agents/writer/beat-context"
 import type { WriterCharacterContextTrace } from "../agents/writer/character-context"
+import type { WriterContextSurfaceTrace } from "../agents/writer/context-surface"
 import { resolveReferences } from "../agents/writer/reference-resolver"
 import {
   buildRetryPrompt,
@@ -148,6 +149,7 @@ async function traceWriterContextEvent(
     writerPromptIdRendering?: string
     targetWords?: number
     characterContextTrace?: WriterCharacterContextTrace | null
+    contextSurfaceTrace?: WriterContextSurfaceTrace | null
   },
 ): Promise<void> {
   await trace(novelId, {
@@ -162,6 +164,7 @@ async function traceWriterContextEvent(
       targetWords: args.targetWords ?? null,
       hasCharacterContext: Boolean(args.characterContextTrace),
       characterContext: args.characterContextTrace ?? null,
+      contextSurface: args.contextSurfaceTrace ?? null,
     },
   })
 }
@@ -420,6 +423,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               writerPromptIdRendering: eff.writerPromptIdRendering,
               targetWords: beatCtx.targetWords,
               characterContextTrace: beatCtx.characterContextTrace,
+              contextSurfaceTrace: beatCtx.contextSurfaceTrace,
             })
 
             let beatProse: string | null = null
@@ -673,10 +677,12 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             log(novelId, "info", `Beat fallback → chapter-level for chapter ${ch}`)
             clearAbandonedBeatLevelState({ beatProses, acceptedBeatCheckIssues })
             let chapterCharacterContextTrace: WriterCharacterContextTrace | null = null
+            let chapterContextSurfaceTrace: WriterContextSurfaceTrace | null = null
             const writerContext = await buildWriterContext(novelId, ch, {
               writerContextMode: eff.writerContextMode,
               writerPromptIdRendering: eff.writerPromptIdRendering,
               onCharacterContextTrace: trace => { chapterCharacterContextTrace = trace },
+              onContextSurfaceTrace: trace => { chapterContextSurfaceTrace = trace },
             })
             await traceWriterContextEvent(novelId, {
               chapter: ch,
@@ -685,6 +691,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               writerContextMode: eff.writerContextMode,
               writerPromptIdRendering: eff.writerPromptIdRendering,
               characterContextTrace: chapterCharacterContextTrace,
+              contextSurfaceTrace: chapterContextSurfaceTrace,
             })
             const draftResult = await callAgent({
               novelId, agentName: "writer",
@@ -708,10 +715,12 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
         let writerContext: string
         try {
           let chapterCharacterContextTrace: WriterCharacterContextTrace | null = null
+          let chapterContextSurfaceTrace: WriterContextSurfaceTrace | null = null
           writerContext = await buildWriterContext(novelId, ch, {
             writerContextMode: eff.writerContextMode,
             writerPromptIdRendering: eff.writerPromptIdRendering,
             onCharacterContextTrace: trace => { chapterCharacterContextTrace = trace },
+            onContextSurfaceTrace: trace => { chapterContextSurfaceTrace = trace },
           })
           await traceWriterContextEvent(novelId, {
             chapter: ch,
@@ -720,6 +729,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             writerContextMode: eff.writerContextMode,
             writerPromptIdRendering: eff.writerPromptIdRendering,
             characterContextTrace: chapterCharacterContextTrace,
+            contextSurfaceTrace: chapterContextSurfaceTrace,
           })
         } catch (err) {
           log(novelId, "error", `Context assembly failed for chapter ${ch}: ${err}`)
@@ -929,6 +939,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 writerPromptIdRendering: eff.writerPromptIdRendering,
                 targetWords: beatCtx.targetWords,
                 characterContextTrace: beatCtx.characterContextTrace,
+                contextSurfaceTrace: beatCtx.contextSurfaceTrace,
               })
               const priorProse = beatProses[bi]
               const retryContext = `\n\n--- TARGETED REWRITE (chapter-plan check) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nChapter-plan issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
@@ -1235,6 +1246,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               writerPromptIdRendering: eff.writerPromptIdRendering,
               targetWords: beatCtx.targetWords,
               characterContextTrace: beatCtx.characterContextTrace,
+              contextSurfaceTrace: beatCtx.contextSurfaceTrace,
             })
             const priorProse = beatProses[bi]
             const retryContext = `\n\n--- TARGETED REWRITE (validation) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nValidation issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
@@ -1818,6 +1830,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   writerPromptIdRendering: eff.writerPromptIdRendering,
                   targetWords: beatCtx.targetWords,
                   characterContextTrace: beatCtx.characterContextTrace,
+                  contextSurfaceTrace: beatCtx.contextSurfaceTrace,
                 })
                 const priorProse = beatProses[bi]
                 const retryContext = `\n\n--- TARGETED REWRITE (chapter integrity check) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nIntegrity issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`

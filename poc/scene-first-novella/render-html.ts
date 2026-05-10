@@ -89,6 +89,13 @@ interface RuntimeStats {
   llmCalls: number
   writerCalls: number
   writerExpansionEvents: number
+  writerContextEvents: number
+  contextSurfaceEvents: number
+  contextWithCharacterContext: number
+  contextWithSceneContract: number
+  contextWithWorldBible: number
+  contextWithStorySpine: number
+  contextWithReaderInfoState: number
 }
 
 interface ReviewSummary {
@@ -334,6 +341,13 @@ export function computeRuntimeStats(chapters: ChapterBundle[]): RuntimeStats {
   let llmCalls = 0
   let writerCalls = 0
   let writerExpansionEvents = 0
+  let writerContextEvents = 0
+  let contextSurfaceEvents = 0
+  let contextWithCharacterContext = 0
+  let contextWithSceneContract = 0
+  let contextWithWorldBible = 0
+  let contextWithStorySpine = 0
+  let contextWithReaderInfoState = 0
 
   for (const ch of chapters) {
     const events = Array.isArray(ch.trace?.events) ? ch.trace.events : []
@@ -344,9 +358,35 @@ export function computeRuntimeStats(chapters: ChapterBundle[]): RuntimeStats {
       ? ch.trace.counts.writerCalls
       : calls.filter((c: any) => c?.agent === "beat-writer").length
     writerExpansionEvents += events.filter((e: any) => e?.eventType === "writer-expansion").length
+    for (const event of events.filter((e: any) => e?.eventType === "writer-context")) {
+      writerContextEvents++
+      const payload = event?.payload ?? {}
+      const surface = payload?.contextSurface
+      const surfaces = surface?.surfaces ?? {}
+      if (surface) contextSurfaceEvents++
+      if (payload?.hasCharacterContext || surfaces.characterContextCapsules || surfaces.characterSnapshots || surfaces.characterProfiles) {
+        contextWithCharacterContext++
+      }
+      if (surfaces.sceneContract) contextWithSceneContract++
+      if (surfaces.worldBible || surfaces.setting) contextWithWorldBible++
+      if (surfaces.storySpine) contextWithStorySpine++
+      if (surfaces.readerInfoState) contextWithReaderInfoState++
+    }
   }
 
-  return { traceEvents, llmCalls, writerCalls, writerExpansionEvents }
+  return {
+    traceEvents,
+    llmCalls,
+    writerCalls,
+    writerExpansionEvents,
+    writerContextEvents,
+    contextSurfaceEvents,
+    contextWithCharacterContext,
+    contextWithSceneContract,
+    contextWithWorldBible,
+    contextWithStorySpine,
+    contextWithReaderInfoState,
+  }
 }
 
 function round(value: number): number {
@@ -384,6 +424,7 @@ export function buildReviewSummary(runId: string, runSummary: any | null, chapte
     `Traceability surfaced in contracts: ${plural(reviewStats.obligationIds, "obligation ID")}, ${plural(reviewStats.sourceIds, "source ID")}, ${plural(reviewStats.characterIds, "character ID")}, ${plural(reviewStats.threadIds, "thread ID")}, ${plural(reviewStats.promiseIds, "promise ID")}, ${plural(reviewStats.payoffIds, "payoff ID")}.`,
     `Obligation load: ${otc.loadBearing} load-bearing obligations (${obligationDensity == null ? "n/a" : obligationDensity.toFixed(2)} per scene): establish ${otc.mustEstablish}, pay off ${otc.mustPayOff}, transfer knowledge ${otc.mustTransferKnowledge}, state change ${otc.mustShowStateChange}, not reveal ${otc.mustNotReveal}; allowed-new-entity hints ${otc.allowedNewEntities}.`,
     `Runtime trace: ${runtimeStats.traceEvents} trace events, ${runtimeStats.llmCalls} LLM calls, ${runtimeStats.writerCalls} writer calls, ${runtimeStats.writerExpansionEvents} writer-expansion events.`,
+    `Writer-context surface: ${runtimeStats.writerContextEvents} context event(s); character context on ${runtimeStats.contextWithCharacterContext}, scene contracts on ${runtimeStats.contextWithSceneContract}, world/setting context on ${runtimeStats.contextWithWorldBible}, story spine on ${runtimeStats.contextWithStorySpine}, reader-info state on ${runtimeStats.contextWithReaderInfoState}.`,
     `Post-hoc diagnostics: endpoint scores ${diagnosticStats.endpointScores.join(", ") || "none"} (${diagnosticStats.endpointJudged}/${chapters.length} chapters, ${diagnosticStats.endpointErrors} errors); scene dramaturgy ${diagnosticStats.sceneDramaturgyJudged}/${reviewStats.totalScenes} judged with ${diagnosticStats.sceneDramaturgyErrors} errors; character agency ${diagnosticStats.characterAgencyJudged}/${reviewStats.totalScenes} judged with ${diagnosticStats.characterAgencyErrors} errors.`,
     `Runtime posture: production defaults stayed untouched; the POC used ${overrides}.`,
   ]
@@ -598,6 +639,7 @@ function renderHtml(runId: string, runSummary: any | null, chapters: ChapterBund
         <span><strong>Contract coverage:</strong> any ${reviewStats.anyContractFieldScenes}/${reviewStats.totalScenes} · core ${reviewStats.coreContractFieldScenes}/${reviewStats.totalScenes} · choices ${reviewStats.choiceAlternativeScenes}/${reviewStats.totalScenes}</span>
         <span><strong>Contract payload:</strong> ${reviewStats.sceneContractPayloadChars} chars · ${reviewStats.choiceAlternativeCount} alternatives</span>
         <span><strong>Trace IDs:</strong> scene ${reviewStats.sceneIds}/${reviewStats.totalScenes} · obl ${reviewStats.obligationIds} · src ${reviewStats.sourceIds} · thread ${reviewStats.threadIds} · promise ${reviewStats.promiseIds}</span>
+        <span><strong>Context surface:</strong> char ${reviewSummary.runtimeStats.contextWithCharacterContext}/${reviewSummary.runtimeStats.writerContextEvents} · scene ${reviewSummary.runtimeStats.contextWithSceneContract}/${reviewSummary.runtimeStats.writerContextEvents} · world ${reviewSummary.runtimeStats.contextWithWorldBible}/${reviewSummary.runtimeStats.writerContextEvents}</span>
         <span><strong>Drafting:</strong> ${htmlEscape(runSummary.draftingResultKind ?? "?")}</span>
       </div>`
     : ""

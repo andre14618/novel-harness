@@ -9,13 +9,27 @@ function chapter(overrides: Record<string, unknown> = {}) {
       events: [
         { eventType: "writer-start" },
         { eventType: "writer-expansion" },
+        {
+          eventType: "writer-context",
+          payload: {
+            hasCharacterContext: true,
+            contextSurface: {
+              surfaces: {
+                characterContextCapsules: true,
+                sceneContract: true,
+                setting: true,
+                readerInfoState: true,
+              },
+            },
+          },
+        },
       ],
       llmCalls: [
         { agent: "beat-writer" },
         { agent: "diagnostic" },
       ],
       counts: {
-        events: 2,
+        events: 3,
         llmCalls: 2,
         writerCalls: 1,
       },
@@ -143,10 +157,16 @@ test("computes diagnostic coverage from optional post-hoc judge files", () => {
 test("computes runtime trace coverage including writer expansion events", () => {
   const stats = computeRuntimeStats([chapter()])
 
-  expect(stats.traceEvents).toBe(2)
+  expect(stats.traceEvents).toBe(3)
   expect(stats.llmCalls).toBe(2)
   expect(stats.writerCalls).toBe(1)
   expect(stats.writerExpansionEvents).toBe(1)
+  expect(stats.writerContextEvents).toBe(1)
+  expect(stats.contextSurfaceEvents).toBe(1)
+  expect(stats.contextWithCharacterContext).toBe(1)
+  expect(stats.contextWithSceneContract).toBe(1)
+  expect(stats.contextWithWorldBible).toBe(1)
+  expect(stats.contextWithReaderInfoState).toBe(1)
 })
 
 test("builds reader-visible findings with L102 planner-scope framing", () => {
@@ -170,8 +190,10 @@ test("builds reader-visible findings with L102 planner-scope framing", () => {
   expect(markdown).toContain("planner-scope scene/chapter-load finding")
   expect(markdown).toContain("scene-contract payload 56 chars")
   expect(markdown).toContain("Obligation load: 3 load-bearing obligations")
-  expect(markdown).toContain("Runtime trace: 2 trace events")
+  expect(markdown).toContain("Runtime trace: 3 trace events")
   expect(markdown).toContain("1 writer-expansion events")
+  expect(markdown).toContain("Writer-context surface: 1 context event")
+  expect(markdown).toContain("character context on 1")
   expect(markdown).toContain("production defaults stayed untouched")
   expect(markdown).toContain("review-summary.json")
 })

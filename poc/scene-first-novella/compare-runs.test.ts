@@ -54,6 +54,10 @@ function summary(overrides: Record<string, any> = {}) {
       llmCalls: 30,
       writerCalls: 18,
       writerExpansionEvents: 0,
+      writerContextEvents: 18,
+      contextWithCharacterContext: 18,
+      contextWithSceneContract: 11,
+      contextWithWorldBible: 18,
       ...(overrides.runtimeStats ?? {}),
     },
     findings: overrides.findings ?? [],
@@ -101,6 +105,8 @@ test("builds directional verdicts for improved POC variants", () => {
   expect(markdown).toContain("Scene-contract payload chars")
   expect(markdown).toContain("Obligation type counts")
   expect(markdown).toContain("Writer-expansion events")
+  expect(markdown).toContain("Writer context surface")
+  expect(markdown).toContain("char 18/18")
   expect(markdown).toContain("Supported: tighter scene count")
   expect(markdown).toContain("Needs another POC loop before promotion")
 })

@@ -47,6 +47,7 @@ import {
   type WriterCharacterContextCapsules,
   type WriterCharacterContextTrace,
 } from "./character-context"
+import { summarizeBeatContextSurface, type WriterContextSurfaceTrace } from "./context-surface"
 import type { WriterContextMode, WriterPromptIdRendering } from "./context-mode"
 import type { BeatObligationsContract, ChapterOutline, CharacterProfile, Fact, SceneBeat } from "../../types"
 
@@ -117,6 +118,7 @@ export interface BeatContextResult {
   userPrompt: string
   targetWords: number
   characterContextTrace?: WriterCharacterContextTrace | null
+  contextSurfaceTrace?: WriterContextSurfaceTrace
 }
 
 // ── Typed slots (D1) ─────────────────────────────────────────────────────
@@ -430,6 +432,7 @@ export async function buildBeatContext(input: BeatContextInput): Promise<BeatCon
     characterContextTrace: ctx.characterContextCapsules
       ? summarizeCharacterContextCapsules(ctx.characterContextCapsules)
       : null,
+    contextSurfaceTrace: summarizeBeatContextSurface(ctx),
   }
 }
 

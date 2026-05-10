@@ -63,6 +63,10 @@ interface ReviewSummary {
     llmCalls: number
     writerCalls: number
     writerExpansionEvents: number
+    writerContextEvents?: number
+    contextWithCharacterContext?: number
+    contextWithSceneContract?: number
+    contextWithWorldBible?: number
   }
   findings: string[]
 }
@@ -165,6 +169,16 @@ function writerExpansionEvents(summary: ReviewSummary): number | null {
   return typeof summary.runtimeStats?.writerExpansionEvents === "number"
     ? summary.runtimeStats.writerExpansionEvents
     : null
+}
+
+function formatContextSurface(summary: ReviewSummary): string {
+  const total = summary.runtimeStats?.writerContextEvents
+  if (typeof total !== "number") return "n/a"
+  return [
+    `char ${summary.runtimeStats?.contextWithCharacterContext ?? 0}/${total}`,
+    `scene ${summary.runtimeStats?.contextWithSceneContract ?? 0}/${total}`,
+    `world ${summary.runtimeStats?.contextWithWorldBible ?? 0}/${total}`,
+  ].join(" / ")
 }
 
 function sceneContractPayloadChars(summary: ReviewSummary): number | null {
@@ -271,6 +285,7 @@ export function renderComparisonMarkdown(comparison: Comparison): string {
     `| Obligations / scene | ${fmtNumber(baselineOps)} | ${fmtNumber(variantOps)} | ${fmtSigned(deltas.obligationsPerSceneDelta)} |`,
     `| Obligation type counts | ${formatTypeCounts(baseline)} | ${formatTypeCounts(variant)} |  |`,
     `| Writer-expansion events | ${writerExpansionEvents(baseline) ?? "n/a"} | ${writerExpansionEvents(variant) ?? "n/a"} |  |`,
+    `| Writer context surface | ${formatContextSurface(baseline)} | ${formatContextSurface(variant)} |  |`,
     `| Chapter-1 endpoint score | ${firstEndpoint(baseline) ?? "n/a"} | ${firstEndpoint(variant) ?? "n/a"} | ${fmtSigned(deltas.chapterOneEndpointDelta, 0)} |`,
     `| Endpoint scores | ${baseline.diagnosticStats.endpointScores.join(", ")} | ${variant.diagnosticStats.endpointScores.join(", ")} |  |`,
     `| Scene diagnostics judged | ${baseline.diagnosticStats.sceneDramaturgyJudged}/${baseline.reviewStats.totalScenes} | ${variant.diagnosticStats.sceneDramaturgyJudged}/${variant.reviewStats.totalScenes} |  |`,

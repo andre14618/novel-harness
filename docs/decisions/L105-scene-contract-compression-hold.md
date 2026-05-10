@@ -11,10 +11,12 @@ Do not promote simple scene-contract payload clipping or auxiliary-tag removal
 to production defaults.
 
 The next scene-first evidence lane should target writer-context shaping: keep
-full planner-authored scene contracts in storage and review artifacts, but
-render a smaller writer-facing drafting brief that preserves endpoint-critical
-fields, trace IDs, obligations, and explicit per-scene word budgets. Prose
-semantic telemetry remains default-on where wired and advisory only.
+full planner-authored scene contracts and the production writer context surface
+in storage and review artifacts, but render a smaller writer-facing drafting
+brief that preserves endpoint-critical fields, Character Profiles/Snapshots,
+World Bible/setting, Story Spine, reader-info state, trace IDs, obligations,
+and explicit per-scene word budgets. Prose semantic telemetry remains
+default-on where wired and advisory only.
 
 ## Evidence
 
@@ -56,5 +58,7 @@ Artifacts:
   compression-opportunity dimension, but it is not the primary production-path
   change.
 - The next POC should introduce a separate writer brief renderer with payload
-  telemetry and a promotion gate of `<=1.5x`, endpoints `3/3/3`, 9/9 scene IDs,
-  complete diagnostics/traces, and advisory prose-semantic reports.
+  telemetry and a writer-context surface manifest so character/world/story
+  context cannot silently fall out of evidence reports. Promotion gate:
+  `<=1.5x`, endpoints `3/3/3`, 9/9 scene IDs, complete diagnostics/traces, and
+  advisory prose-semantic reports.

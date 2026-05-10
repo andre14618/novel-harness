@@ -14,6 +14,7 @@ import { describe, expect, it } from "bun:test"
 
 import type { BeatContext, BeatContextResult } from "./beat-context"
 import { renderBeatContext } from "./beat-context-render"
+import { summarizeBeatContextSurface } from "./context-surface"
 import { buildExpansionPrompt } from "./retry-context"
 
 function baseCtx(overrides: Partial<BeatContext> = {}): BeatContext {
@@ -121,6 +122,61 @@ describe("renderBeatContext + scene contract", () => {
     expect(beatIdx).toBeGreaterThanOrEqual(0)
     expect(sceneIdx).toBeGreaterThan(beatIdx)
     expect(bridgeIdx).toBeGreaterThan(sceneIdx)
+  })
+
+  it("summarizes the full writer context surface, not only scene contracts", () => {
+    const surface = summarizeBeatContextSurface(baseCtx({
+      sceneContract: {
+        goal: "Force Orvath to confess.",
+        crisisChoice: "Trade the script or burn it.",
+        choiceAlternatives: ["Trade.", "Burn."],
+      },
+      characterSnapshots: [{
+        name: "Calla",
+        exampleLines: ["No."],
+        voice: "Precise and wary.",
+      }],
+      characterContextCapsules: {
+        mode: "thread-character-context-v1",
+        scope: "beat",
+        chapterId: "ch-1",
+        beatId: "scene-1",
+        beatNumber: 1,
+        povCharacterId: "char-calla",
+        povPersonalStake: "Calla cannot let Davan be reduced to leverage again.",
+        activeThreadIds: ["thread-reckoning"],
+        activePromiseIds: ["promise-script"],
+        activePayoffIds: [],
+        cards: [{
+          characterId: "char-calla",
+          name: "Calla",
+          role: "protagonist",
+          sceneRole: "pov",
+          voice: "Precise and wary.",
+          sourceObligationIds: ["obl-choice"],
+          activeThreadIds: ["thread-reckoning"],
+          activePromiseIds: ["promise-script"],
+          activePayoffIds: [],
+        }],
+        missingCharacterIds: [],
+      },
+      resolvedReferencesText: "RESOLVED REFERENCES:\n- script",
+      readerInfoState: "READER-INFO STATE:\nReader already knows the script is dangerous.",
+      setting: { name: "Imperial Archive", sensoryDetails: "ink and stone" },
+    }))
+
+    expect(surface.surfaces.sceneContract).toBe(true)
+    expect(surface.surfaces.characterProfiles).toBe(true)
+    expect(surface.surfaces.characterSnapshots).toBe(true)
+    expect(surface.surfaces.characterContextCapsules).toBe(true)
+    expect(surface.surfaces.worldBible).toBe(true)
+    expect(surface.surfaces.setting).toBe(true)
+    expect(surface.surfaces.resolvedReferences).toBe(true)
+    expect(surface.surfaces.readerInfoState).toBe(true)
+    expect(surface.counts.characterContextCards).toBe(1)
+    expect(surface.counts.sceneContractFields).toBe(3)
+    expect(surface.counts.choiceAlternatives).toBe(2)
+    expect(surface.counts.activeThreadIds).toBe(1)
   })
 })
 

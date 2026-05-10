@@ -37,6 +37,7 @@ import {
   summarizeCharacterContextCapsules,
   type WriterCharacterContextTrace,
 } from "./character-context"
+import type { WriterContextSurfaceTrace } from "./context-surface"
 import type { WriterContextMode, WriterPromptIdRendering } from "./context-mode"
 
 /** Attempt a DB lookup that may legitimately return no data (novel hasn't reached that stage yet).
@@ -65,6 +66,7 @@ export async function buildContext(
      *  Cluster-1 raw-ID lines in the rendered character context. */
     writerPromptIdRendering?: WriterPromptIdRendering
     onCharacterContextTrace?: (trace: WriterCharacterContextTrace) => void
+    onContextSurfaceTrace?: (trace: WriterContextSurfaceTrace) => void
   } = {},
 ): Promise<string> {
   const outline = await getChapterOutline(novelId, chapterNum)
@@ -82,16 +84,23 @@ export async function buildContext(
   const sections: string[] = []
 
   // ── FIXED: Scene Setup ──────────────────────────────────────────────���──
-  sections.push(formatSceneSetup(outline))
+  const sceneSetupSection = formatSceneSetup(outline)
+  sections.push(sceneSetupSection)
 
   // ── FIXED: POV World View ──────────────────────────────────────────────
+  let povWorldViewPresent = false
   if (povChar) {
     const pov = await formatPOVWorldView(novelId, povChar, cultures)
-    if (pov) sections.push(pov)
+    if (pov) {
+      sections.push(pov)
+      povWorldViewPresent = true
+    }
   }
 
   // ── FIXED: Character Profiles + Relationship Arcs ──────────────────────
-  sections.push(await formatCharacterProfiles(novelId, povChar, relevantChars, chapterNum))
+  const characterProfilesSection = await formatCharacterProfiles(novelId, povChar, relevantChars, chapterNum)
+  sections.push(characterProfilesSection)
+  let characterContextTrace: WriterCharacterContextTrace | null = null
   if (opts.writerContextMode === "thread-character-context-v1") {
     const characterStates = await tryGet(() => getCharacterStatesAtChapter(novelId, chapterNum)) ?? []
     const capsules = buildChapterCharacterContextCapsules({
@@ -101,7 +110,8 @@ export async function buildContext(
       characterStates,
     })
     if (capsules) {
-      opts.onCharacterContextTrace?.(summarizeCharacterContextCapsules(capsules))
+      characterContextTrace = summarizeCharacterContextCapsules(capsules)
+      opts.onCharacterContextTrace?.(characterContextTrace)
       sections.push(renderCharacterContextCapsules(capsules, { idRendering: opts.writerPromptIdRendering }))
     }
   }
@@ -125,9 +135,48 @@ export async function buildContext(
   }
 
   // ── FIXED: Craft Reminders ─────────────────────────────────────────────
-  sections.push(formatCraftReminders(povChar, relevantChars))
+  const craftReminders = formatCraftReminders(povChar, relevantChars)
+  sections.push(craftReminders)
+
+  opts.onContextSurfaceTrace?.({
+    path: "chapter",
+    surfaces: {
+      sceneSetup: Boolean(sceneSetupSection),
+      characterProfiles: relevantChars.length > 0,
+      characterContextCapsules: Boolean(characterContextTrace),
+      worldBible: Boolean(worldBible),
+      storySpine: Boolean(storySpine),
+      povWorldView: povWorldViewPresent,
+      craftReminders: Boolean(craftReminders),
+      semanticRetrieval: embedsReady,
+      minimalFallback: !embedsReady,
+    },
+    counts: {
+      characterProfiles: relevantChars.length,
+      characterContextCards: characterContextTrace?.characterIds.length ?? 0,
+      obligations: outline.scenes?.reduce((sum: number, scene: any) => sum + countSceneObligations(scene), 0) ?? 0,
+      activeThreadIds: characterContextTrace?.activeThreadIds.length ?? 0,
+      activePromiseIds: characterContextTrace?.activePromiseIds.length ?? 0,
+      activePayoffIds: characterContextTrace?.activePayoffIds.length ?? 0,
+      missingCharacterIds: characterContextTrace?.missingCharacterIds.length ?? 0,
+    },
+  })
 
   return sections.filter(Boolean).join("\n\n")
+}
+
+function countSceneObligations(scene: any): number {
+  const obligations = scene?.obligations ?? {}
+  return countArray(obligations.mustEstablish)
+    + countArray(obligations.mustPayOff)
+    + countArray(obligations.mustTransferKnowledge)
+    + countArray(obligations.mustShowStateChange)
+    + countArray(obligations.mustNotReveal)
+    + countArray(obligations.allowedNewEntities)
+}
+
+function countArray(value: unknown): number {
+  return Array.isArray(value) ? value.length : 0
 }
 
 // ── Dynamic Context (semantic retrieval) ──────────────────────────────────

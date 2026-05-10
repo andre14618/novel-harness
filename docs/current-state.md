@@ -99,7 +99,10 @@ preserving scene-contract compression: conservative clipping held 3/3/3
 endpoints but worsened to 2.07x, while aggressive endpoint-core shortened to
 1.78x but regressed endpoints/core coverage. Keep scene-first runtime flags
 default-off; next evidence should target a separate writer-facing drafting
-brief with per-scene budgets, not more payload clipping. See L103-L105.
+brief with per-scene budgets as a view over the full writer context surface
+(Character Profiles/Snapshots, World Bible/setting, Story Spine, reader-info
+state, refs, obligations, and scene contracts), not more payload clipping. See
+L103-L105.
 
 ## Authoring Gates
 
