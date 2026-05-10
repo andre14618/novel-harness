@@ -101,14 +101,12 @@ Use deeper docs only when linked by the context pack or needed by code.
 The active lane is in `docs/sessions/lane-queue.md`.
 
 As of 2026-05-10, L105 keeps scene-first promotion on hold after endpoint-
-preserving scene-contract compression: conservative clipping held 3/3/3
-endpoints but worsened to 2.07x, while aggressive endpoint-core shortened to
-1.78x but regressed endpoints/core coverage. Keep scene-first runtime flags
-default-off; next evidence should exercise `writerDraftingBriefMode` through
-the production drafting path, preserving the full writer context surface
-(Character Profiles/Snapshots, World Bible/setting, Story Spine, reader-info
-state, refs, obligations, and scene contracts) in storage/review while testing
-the smaller writer-facing brief. See L103-L106.
+preserving scene-contract compression. The first production `drafting-brief-v1`
+P4 smoke hit 3666/3300 words = 1.10x with 0/8 prose-semantic lows and
+`writer-context` telemetry intact for character profiles/snapshots/capsules,
+but that source had no scene contracts or resolved refs. Keep scene-first
+runtime flags default-off; next evidence should use a `scenePlanContractV1=true`
+source and audit with `diagnostics:writer-context`. See L103-L106.
 
 ## Authoring Gates
 

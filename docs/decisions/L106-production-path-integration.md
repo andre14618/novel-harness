@@ -62,6 +62,12 @@ artifact for real drafting runs: it audits Character Profiles/Snapshots/context
 capsules, World Bible/setting, Story Spine, reader-info state, refs,
 obligations, scene contracts, drafting-brief mode, and prompt-size deltas.
 
+Initial P4 smoke evidence (`p4-brief-1778445285-drafting-brief-v1`) supports
+continuing this lane: 3666/3300 words = 1.10x, prose-semantic rows=8 with
+0 lows and 0 errors, and drafting-brief telemetry on 11/11 writer-context
+events. It is not a promotion result because the source plan had
+sceneContract=0/11 and refs=0/11 in the telemetry report.
+
 ## Evidence And Verification
 
 Production-path integration needs:

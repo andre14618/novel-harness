@@ -10,6 +10,16 @@ unless the user explicitly requests a disposable branch.
   artifacts. Use historical `poc/` outputs as evidence/fixtures, but do not add
   another long-lived POC runner, prompt branch, mapper, checker, or review
   format when the same question can be tested through the production path.
+- **First production writer-brief smoke completed (2026-05-10).**
+  `test-drafting-isolated --writer-arms drafting-brief-v1 --writer-only`
+  on P4 source `novel-1778411555121` produced
+  `p4-brief-1778445285-drafting-brief-v1`: 3666/3300 words = 1.10x
+  (ch1 1469/1500, ch2 2197/1800), prose-semantic rows=8/lows=0/errors=0.
+  `diagnostics:writer-context` showed drafting-brief telemetry 11/11,
+  character profiles/snapshots/capsules 11/11, obligations/story 10/11,
+  world 3/11, reader-info 6/11, scene contracts 0/11, refs 0/11, avg prompt
+  chars 6527/6701 = 0.975. Treat as promising production-path telemetry and
+  budget-framing evidence, not scene-contract/endpoint promotion evidence.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -98,17 +108,14 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: run the new `writerDraftingBriefMode="scene-budget-v1"`
-  arm through the production drafting path, not another POC-only branch.
-  Preserve full planner contracts and the production writer context surface in storage/review
-  (Character Profiles/Snapshots, World Bible/setting, Story Spine,
-  reader-info state, refs, obligations, and scene contracts), render a small
-  writer brief with endpoint-critical fields, trace IDs, and per-scene budgets,
-  and collect payload + prose-semantic telemetry. Run
-  `bun run diagnostics:writer-context -- --novel <id>` on the resulting novel
-  to audit coverage and prompt-shape telemetry. Promotion remains blocked
-  until a comparable artifact reaches <=1.5x target with 3/3/3 endpoints,
-  complete scene IDs, diagnostics, traces, and review artifacts. See L103-L106.
+- Next session start: run `drafting-brief-v1` on a source with
+  `scenePlanContractV1=true`, then compare against baseline or
+  `contract-render-only` with `diagnostics:writer-context`,
+  `diagnostics:writer-expansion`, and prose-semantic telemetry. The P4 smoke
+  did not exercise scene contracts or resolved refs, so promotion remains
+  blocked until a comparable artifact reaches <=1.5x target with 3/3/3
+  endpoints, complete scene IDs, diagnostics, traces, and review artifacts.
+  See L103-L106.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,
