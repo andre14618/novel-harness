@@ -1,0 +1,58 @@
+{
+  "fixture_metadata": {
+    "profile": "P3-pre-resolved",
+    "expected_baseline_ratio": "0.9-1.1",
+    "expected_baseline_failures": [],
+    "scene_contract_population_target": "6+ of 9 fields per scene",
+    "notes": "Adjusted-B2 P3. Same conceit as P1 (debt-binder) but with the casting gap closed: every officer/clerk/foreman/witness the planner could plausibly need is pre-named with role and material function. P3 tests whether contract-rendering arms have somewhere to land when nothing is fighting them — i.e., it is the clean-attribution profile. Right-sized to 6 named characters per fixture-design Q4 recommendation."
+  },
+  "concept": {
+    "premise": "A debt-binder is summoned to the Treasury when sovereign default looms. She can move financial ruin between people — not absolve it, transfer it. The crown's chief auditor, dying of a slow ledger collapse, has prepared a foreman of the debtor's prison as the legal target of the transfer. The protagonist must decide before the Council vote whether to accept the proffered target, refuse and let the chancellor die, or propose a third path the auditor has not yet considered.",
+    "genre": "epic-fantasy",
+    "chapterCount": 2,
+    "characters": [
+      {
+        "name": "Maren Ailish",
+        "role": "protagonist",
+        "description": "Crown debt-binder, mid-20s. Counting-house trained. Discovered her ability four months ago. Hates the war-loans but believes the families are owed honest accounting. Every transfer leaves a phantom interest accruing in her own credit. WANT: to be left alone with a clean ledger. NEED: to learn that some debts cannot be made fair by transfer. LIE: 'the math will balance if I am careful enough.' TRUTH: 'the people in the columns are not numbers and the column itself is the cruelty.'"
+      },
+      {
+        "name": "Chancellor Halric",
+        "role": "antagonist",
+        "description": "The dying chancellor. Sixty-two. Legendary auditor. Built the war-loan program on personal guarantees. Not corrupt — genuinely believes the loans save more than they ruin. His ruin is a slow ledger collapse, certain by spring. PRESSURE: he has prepared the legal paperwork; the foreman is named, the witnesses are arranged, the chamber is cleared."
+      },
+      {
+        "name": "Sergeant Tovin",
+        "role": "supporting",
+        "description": "Treasury escort. Twenty-one. Treats Maren like a person. Lost his cousin to debtor's prison. MATERIALITY: provides Maren with the only honest description she gets of what the foreman has actually done; the moral weight of the transfer is his to deliver."
+      },
+      {
+        "name": "Captain Reyna Holst",
+        "role": "supporting",
+        "description": "Captain of the Counting-House Watch. Forty-one. Career officer, not political. Reluctantly enforcing the transfer order because the chancellor outranks her conscience. MATERIALITY: she is the procedural obstacle and the procedural ally; whether she escorts Maren into the prison wing depends on what Maren says first."
+      },
+      {
+        "name": "Head Clerk Ovis Drane",
+        "role": "supporting",
+        "description": "Head clerk of the Foreclosure Bench. Fifty-eight. Has watched the program from the inside for nine years. Quietly horrified. MATERIALITY: holds the ledger that names which families have already lost what; can hand Maren the evidence the chancellor has been hiding from her, but only if Maren asks the question correctly."
+      },
+      {
+        "name": "Foreman Karth Velo",
+        "role": "supporting",
+        "description": "Senior foreman of the debtor's prison. Forty-six. Has run the wing for twelve years. Prepared as the legal target of the transfer. MATERIALITY: he is not a monster; he has a wife and three children; he has taken bribes from prisoners' families that he then used to feed those families. The transfer would ruin all of them. Maren must meet him before deciding."
+      }
+    ]
+  },
+  "pre_resolved_entities": {
+    "officers_named_in_seed": [
+      "Captain Reyna Holst (Counting-House Watch)",
+      "Head Clerk Ovis Drane (Foreclosure Bench)",
+      "Foreman Karth Velo (debtor's prison wing)"
+    ],
+    "casting_gaps_intentional": []
+  },
+  "scene_contract_target": {
+    "fields_populated": ["goal", "opposition", "turningPoint", "crisisChoice", "outcome", "consequence", "povPersonalStake", "valueIn", "valueOut"],
+    "fields_null": []
+  }
+}

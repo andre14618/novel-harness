@@ -1,0 +1,19 @@
+{
+  "fixture_metadata": {
+    "profile": "P4-real-runtime",
+    "expected_baseline_ratio": "1.89-3.03",
+    "expected_baseline_failures": [
+      "ch1 ratio approx 1.89x; ch2 ratio approx 3.03x",
+      "halluc-ungrounded retries on writer-coined officers; baseline observed 11",
+      "stage-2 adherence rescues; baseline observed 5/11",
+      "ch2 plan deviation flagged by chapter-plan-checker"
+    ],
+    "scene_contract_population_target": "0 of 9 fields populated (substrate captured before scenePlanContractV1=true was a runtime path)",
+    "source_novel_id": "novel-1778411555121",
+    "captured_at": null,
+    "captured_against_commit": null,
+    "pipeline_overrides_at_capture": null,
+    "notes": "STUB. The outline rows for ch1+ch2 of novel-1778411555121 must be captured from the LXC DB before this fixture can be hydrated. See README.md in this directory for the capture procedure. The loader rejects this fixture while is_stub is true."
+  },
+  "is_stub": true
+}

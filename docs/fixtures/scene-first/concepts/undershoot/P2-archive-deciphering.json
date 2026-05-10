@@ -1,0 +1,39 @@
+{
+  "fixture_metadata": {
+    "profile": "P2-undershoot",
+    "expected_baseline_ratio": "<=0.85",
+    "expected_baseline_failures": [
+      "underproduction in both chapters",
+      "0 halluc-ungrounded retries (clean roster)",
+      "writer-expansion events expected to fire under expansion mode"
+    ],
+    "scene_contract_population_target": "7+ of 9 fields per scene",
+    "notes": "Adjusted-B2 P2. Concept deliberately produces thin drafts: low-action contemplative archival work, sparse cast, single static location, aggressive 2000-word target. If Arm A on this fixture does not undershoot, the fixture failed at its job and needs re-authoring. P2 is the only profile that exercises retry-short-scenes-v1 (Slice 2.5 fired 0 expansion events on the wrong fixture profile)."
+  },
+  "concept": {
+    "premise": "An archive-warden is sealed inside the Hall of Stilled Records during a civic emergency and ordered to decipher a single contested document — a manumission that may have been forged thirty years ago — before the Council reconvenes at dawn. The document's authenticity decides whether a long-dead servant was truly free, and whether the family who profited from her labor owes restitution. The archive's emergency seals trap the warden alone with a junior scribe she has known for one week.",
+    "genre": "literary-fantasy",
+    "chapterCount": 2,
+    "characters": [
+      {
+        "name": "Doryn Vesh",
+        "role": "protagonist",
+        "description": "Archive-warden, late forties. Twenty-two years in the Hall, the longest tenure since the rebuilding. Reads handwriting the way most people read faces. Childless by choice, married to the work. Suspects the document is forged but cannot articulate why; the suspicion lives in her hands before her mind. Slow, thorough, refuses to be hurried even by emergency seals."
+      },
+      {
+        "name": "Junior Scribe Pell",
+        "role": "supporting",
+        "description": "Newly assigned scribe, twenty-three. One week of orientation. Eager to be useful, terrified of being in the way. Carries a small portable inkwell that he treats as his one personal possession. Has never been alone with a senior warden for more than a routine handoff. Watches Doryn closely; tries not to be noticed watching."
+      }
+    ],
+    "targetWordsPerChapter": 2000
+  },
+  "pre_resolved_entities": {
+    "officers_named_in_seed": "n/a",
+    "casting_gaps_intentional": []
+  },
+  "scene_contract_target": {
+    "fields_populated": "all 9",
+    "fields_null": []
+  }
+}

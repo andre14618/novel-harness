@@ -1,0 +1,51 @@
+{
+  "fixture_metadata": {
+    "profile": "P1-over-target",
+    "expected_baseline_ratio": ">=1.5",
+    "expected_baseline_failures": [
+      "halluc-ungrounded retries on writer-coined officers >= 5",
+      "stage-2 adherence rescues >= 2",
+      "cross-chapter motif repetition observable in operator side-by-side",
+      "endpoint-landing weak on at least one chapter"
+    ],
+    "scene_contract_population_target": "approx 4 of 9 fields per scene; remainder null is part of the test",
+    "derived_from": "structural twin of novel-1778411555121 (2026-05-10 evidence run); central conceit altered from wound-transfer to debt-transfer to avoid identity with fantasy-healer",
+    "casting_gap_intentional": true,
+    "notes": "Adjusted-B2 P1. The conceit is a pressure system whose every deployment invites further dramatization (debt-by-debt re-dramatization is structurally analogous to wound-by-wound). The casting gap is deliberate so the writer is forced to coin officer/clerk/witness names, reproducing the halluc-ungrounded retry profile observed in chapter 1 and chapter 2 of the live evidence run."
+  },
+  "concept": {
+    "premise": "A debt-binder discovers she can move financial ruin between people — not absolve it, transfer it. The crown wants her to move sovereign default onto the families of dead soldiers. A dying chancellor offers her a choice: move his ruin onto a debtor's prison foreman and save the treasury, or refuse and watch the city's grain supply collapse.",
+    "genre": "epic-fantasy",
+    "chapterCount": 2,
+    "characters": [
+      {
+        "name": "Maren Ailish",
+        "role": "protagonist",
+        "description": "Crown debt-binder, mid-20s. Found her ability four months ago when a creditor's curse refused to settle on the named debtor and slid sideways into the witness. Counting-house trained, mathematically blunt, hates the war-loans but believes the families are owed honest accounting. Every transfer leaves a phantom interest accruing in her own credit — small, steady, not yet ruinous."
+      },
+      {
+        "name": "Sergeant Tovin",
+        "role": "supporting",
+        "description": "Treasury escort assigned to Maren after the riots. Twenty-one, lied about his birth-village to enlist into the city watch. Quiet, watchful, has seen too much foreclosure. The only person who treats Maren like a person instead of an instrument. Lost his cousin to debtor's prison the previous winter."
+      },
+      {
+        "name": "Chancellor Halric",
+        "role": "antagonist",
+        "description": "The dying chancellor. Sixty-two, legendary auditor, built the war-loan program on personal guarantees. Not corrupt — genuinely believes the loans will save more families than they ruin. His ruin is a slow ledger collapse, certain by spring. He has had seven days to think about the math of one foreman's life versus a hundred thousand stomachs."
+      }
+    ]
+  },
+  "pre_resolved_entities": {
+    "officers_named_in_seed": [],
+    "casting_gaps_intentional": [
+      "captain-of-the-counting-house-watch",
+      "head-clerk-of-the-foreclosure-bench",
+      "quartermaster-of-the-prison-grain-store",
+      "senior-debtor-prison-foreman-target-of-transfer"
+    ]
+  },
+  "scene_contract_target": {
+    "fields_populated": ["goal", "valueIn", "valueOut", "povPersonalStake"],
+    "fields_null": ["opposition", "turningPoint", "crisisChoice", "outcome", "consequence"]
+  }
+}
