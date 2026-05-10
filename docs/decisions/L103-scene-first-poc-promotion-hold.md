@@ -1,6 +1,7 @@
 ---
 status: active
 date: 2026-05-10
+amended_by: L106
 ---
 
 # L103: Scene-First POC Promotion Hold
@@ -62,8 +63,8 @@ Findings:
 ## Implications
 
 - Keep scene-first runtime flags default-off.
-- Treat the next POC as planner/state-mapper calibration, not writer numeric
-  forcing.
+- Treat the next production-path integration slice as planner/state-mapper
+  calibration, not writer numeric forcing or another POC-only workflow.
 - Promotion evidence should require a comparable artifact at <=1.5x words,
   all endpoints scored 3, complete scene IDs/diagnostics, and a demonstrated
   obligation-density cap that the planner/state mapper actually follows.

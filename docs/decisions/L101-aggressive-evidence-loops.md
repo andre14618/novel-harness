@@ -2,9 +2,14 @@
 status: active
 date: 2026-05-10
 role: decision-record
+amended_by: L106
 ---
 
 # L101: Aggressive Evidence Loops
+
+Amended 2026-05-10 by L106: aggressive loops now target production-path
+integration by default. Use POC-only substrates only for explicit disposable
+experiments.
 
 ## Decision
 
@@ -19,9 +24,10 @@ The desired unit of progress is a reviewable artifact plus evidence:
 - token/cost/latency/run statistics where available;
 - a clear next action or promotion/no-go recommendation.
 
-This amends L100 by making the POC lane more aggressive: spend model calls and
-engineering-agent effort to gather evidence faster, provided traceability and
-production-default boundaries remain intact.
+This originally amended L100 by making evidence loops more aggressive. After
+L106, that aggression should gather evidence through production-path
+integration by default, provided traceability and production-default boundaries
+remain intact.
 
 ## Loop Contract
 

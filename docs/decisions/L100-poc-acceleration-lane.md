@@ -1,10 +1,15 @@
 ---
-status: active
+status: superseded
 date: 2026-05-10
 role: decision-record
+superseded_by: L106
 ---
 
 # L100: POC Acceleration Lane
+
+Superseded 2026-05-10 by L106. Keep this record as historical guidance for
+explicit disposable experiments only; the active lane posture is now production
+path integration.
 
 ## Decision
 

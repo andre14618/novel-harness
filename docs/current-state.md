@@ -36,10 +36,11 @@ Use deeper docs only when linked by the context pack or needed by code.
   a custom autonomous coding supervisor.
 - Production lane is the default: preserve runtime defaults, make coherent
   atomic commits, and run targeted verification for changed behavior.
-- POC lane is active when the lane queue says so or the user explicitly asks
-  for proof-of-concept speed. In POC mode, build vertical reviewable artifacts
-  under `poc/`, defer blocking checkers, spend cheap model calls for evidence,
-  preserve trace IDs, and do not change production defaults. See L100.
+- Production path integration is the active posture: absorb validated POC
+  learnings into production modules, telemetry, tests, and review artifacts
+  instead of extending parallel POC workflows. See L106.
+- POC work is reserved for explicit disposable experiments; historical POC
+  artifacts remain evidence and fixtures, not the forward operating lane.
 - When accelerating, use goal-driven evidence loops and parallel agents where
   write scopes are separable; continue until a real stop condition. See L101.
 
@@ -98,11 +99,11 @@ As of 2026-05-10, L105 keeps scene-first promotion on hold after endpoint-
 preserving scene-contract compression: conservative clipping held 3/3/3
 endpoints but worsened to 2.07x, while aggressive endpoint-core shortened to
 1.78x but regressed endpoints/core coverage. Keep scene-first runtime flags
-default-off; next evidence should target a separate writer-facing drafting
+default-off; next evidence should target a production writer-facing drafting
 brief with per-scene budgets as a view over the full writer context surface
 (Character Profiles/Snapshots, World Bible/setting, Story Spine, reader-info
 state, refs, obligations, and scene contracts), not more payload clipping. See
-L103-L105.
+L103-L106.
 
 ## Authoring Gates
 

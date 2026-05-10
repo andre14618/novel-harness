@@ -1,6 +1,7 @@
 ---
 status: active
 date: 2026-05-10
+amended_by: L106
 ---
 
 # L104: Scene-First Load-Control POC Hold
@@ -13,9 +14,10 @@ defaults. Keep `scenePlanContractV1`, `sceneCallWriterV1`, and
 
 The parallel POC batch confirms that obligation load is a real lever, but
 obligation reduction alone does not yet satisfy the promotion gate. The next
-POC should target endpoint-preserving scene-contract compression before
-drafting: reduce the amount of story work each scene contract asks for while
-holding 9 scenes, complete traceability, and 3/3/3 endpoints.
+production-path integration slice should target endpoint-preserving
+scene-contract compression before drafting: reduce the amount of story work
+each scene contract asks for while holding 9 scenes, complete traceability, and
+3/3/3 endpoints.
 
 ## Evidence
 

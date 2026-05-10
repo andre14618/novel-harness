@@ -1,6 +1,7 @@
 ---
 status: active
 date: 2026-05-10
+amended_by: L106
 ---
 
 # L105: Scene-Contract Compression Hold
@@ -57,8 +58,9 @@ Artifacts:
 - Rubric calibration is useful as a sidecar, especially a future
   compression-opportunity dimension, but it is not the primary production-path
   change.
-- The next POC should introduce a separate writer brief renderer with payload
-  telemetry and a writer-context surface manifest so character/world/story
-  context cannot silently fall out of evidence reports. Promotion gate:
+- The next production-path integration slice should introduce a writer brief
+  renderer with payload telemetry and a writer-context surface manifest so
+  character/world/story context cannot silently fall out of evidence reports.
+  Promotion gate:
   `<=1.5x`, endpoints `3/3/3`, 9/9 scene IDs, complete diagnostics/traces, and
   advisory prose-semantic reports.

@@ -5,19 +5,17 @@ unless the user explicitly requests a disposable branch.
 
 ## Active
 
-- **POC acceleration lane is authorized (L100).** When the user asks for faster
-  progress or proof-of-concept work, agents should build vertical reviewable
-  artifacts under `poc/`, defer blocking checkers, use targeted verification,
-  spend cheap model calls for evidence, and preserve trace IDs without changing
-  production defaults. POC success must later be promoted through a production
-  change packet before defaults change.
-- **Aggressive evidence loops are authorized (L101).** Replace day-based
-  timelines with goal queues and stop conditions. Use DeepSeek spend for POC
-  sweeps, semantic diagnostics, and statistics; use the best available coding
-  or research harness off the runtime path; parallelize independent write
-  scopes; keep going until blocked by production-default risk, traceability
-  loss, repeated same-fingerprint failure, unavailable environment, or explicit
-  operator decision.
+- **Production path integration lane is active (L106).** Validated POC learnings
+  should move into production modules, controls, telemetry, tests, and review
+  artifacts. Use historical `poc/` outputs as evidence/fixtures, but do not add
+  another long-lived POC runner, prompt branch, mapper, checker, or review
+  format when the same question can be tested through the production path.
+- **Aggressive evidence loops remain authorized (L101, amended by L106).**
+  Replace day-based timelines with goal queues and stop conditions. Use
+  DeepSeek spend for production-path sweeps, semantic diagnostics, and
+  statistics; parallelize independent write scopes; keep going until blocked by
+  production-default risk, traceability loss, repeated same-fingerprint failure,
+  unavailable environment, or explicit operator decision.
 - **Scene-level plan/write lane (operator-adjusted, 2026-05-10).** Operational
   plan is `docs/research/user-adjusted-backlog-2026-05-10.md` (B1–B5).
   Inputs: seven Opus deep-dive artifacts at `docs/research/opus-*.md`.
@@ -36,7 +34,7 @@ unless the user explicitly requests a disposable branch.
   `docs/sessions/2026-05-10-scene-migration-plan.md` (S0–S7 slices).
   S0 (user-facing log + docs cleanup) shipped. S1 (default flip +
   scenePlanContractV1 calibration) is now a later production slice,
-  deferred behind the L100 POC artifact; it will need its own
+  deferred behind production-path integration evidence; it will need its own
   production-default decision record and replay-fixture re-record.
 - **Scene-first novella POC promotion hold (L103).** P3 baseline,
   tight-scope, density-cap, and fixed-plan expansion A/B artifacts landed under
@@ -44,13 +42,15 @@ unless the user explicitly requests a disposable branch.
   endpoint/hook fit, and lower obligation density as real levers, but best run
   remains 1.90x target and expansion retry recorded zero events. Keep
   `scenePlanContractV1`, `sceneCallWriterV1`, and `writerExpansionMode`
-  default-off; next POC should target planner/state-mapper obligation load.
+  default-off; next production-path slice should target planner/state-mapper
+  obligation load.
 - **Load-control POC promotion hold (L104).** Parallel arms tested prompt-only
   hard cap, deterministic chapter-budget compaction, and minimal state mapping.
   Best length was prompt-only at 6456/3900 = 1.66x with 8 obligations, but
   endpoints regressed to 2/2/3. Endpoint-complete arms stayed at 2.16x
   (compactor) and 1.89x (mapper-min v3). Do not promote load-control defaults;
-  next POC should compress scene-contract payload while preserving endpoints.
+  next production-path slice should compress scene-contract payload while
+  preserving endpoints.
 - **Adjusted-B1/B2/B3 prep all shipped (default-off).** The scene-first
   evidence lane is runnable end-to-end on LXC.
   - **B1 flag (`writerPromptIdRendering`, commit `62e5c8c`):** default
@@ -98,15 +98,15 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: continue L100 POC mode only if testing a writer-facing
-  drafting brief, not further scene-contract payload clipping. Preserve full
-  planner contracts and the production writer context surface in storage/review
+- Next session start: implement the writer-facing drafting brief through the
+  production drafting path, not another POC-only branch. Preserve full planner
+  contracts and the production writer context surface in storage/review
   (Character Profiles/Snapshots, World Bible/setting, Story Spine,
   reader-info state, refs, obligations, and scene contracts), render a small
   writer brief with endpoint-critical fields, trace IDs, and per-scene budgets,
-  and collect payload + prose-semantic telemetry. Promotion remains blocked until a
-  comparable artifact reaches <=1.5x target with 3/3/3 endpoints, complete
-  scene IDs, diagnostics, traces, and review artifacts. See L103-L105.
+  and collect payload + prose-semantic telemetry. Promotion remains blocked
+  until a comparable artifact reaches <=1.5x target with 3/3/3 endpoints,
+  complete scene IDs, diagnostics, traces, and review artifacts. See L103-L106.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,
