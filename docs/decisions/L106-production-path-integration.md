@@ -167,6 +167,12 @@ The `eval:fact-role-context-live-ab` runner now requires
 Fact-role-aware context remains an A/B-only hold under L82; new evidence must be
 deliberately disposable and cannot be mistaken for a production path.
 
+The semantic-gate baseline/matrix/cohort runners now require explicit
+disposable flags for live clone-producing runs:
+`--allow-disposable-baseline`, `--allow-disposable-matrix`, or
+`--allow-disposable-cohort`. Matrix/cohort children propagate the narrower
+child flags automatically. Summary-only cohort aggregation remains read-only.
+
 The first production-path operator loop on `p1-allow-brief-1778447459`
 dispositioned superseded whole-chapter semantic lows, created two manual
 planning edits, approved them through the normal planning-proposal route, and

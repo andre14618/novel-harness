@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 
 import type { SemanticGateBaselineReport } from "./semantic-gate-baseline"
 import {
+  assertDisposableMatrixAllowed,
   buildMatrixReport,
   buildVariantAssessment,
   parseArgs,
@@ -18,6 +19,7 @@ describe("semantic-gate-matrix parseArgs", () => {
     expect(args.source).toBe("fixture-novel")
     expect(args.chapters).toBe(2)
     expect(args.parallel).toBe(2)
+    expect(args.allowDisposableMatrix).toBe(false)
     expect(args.childTimeoutMinutes).toBe(30)
     expect(args.outputBase).toContain("output/evals/semantic-gate-matrix/fixture-novel-")
     expect(args.variants.map(variant => ({
@@ -32,8 +34,18 @@ describe("semantic-gate-matrix parseArgs", () => {
     ])
   })
 
+  test("requires explicit disposable matrix acknowledgement", () => {
+    expect(() => assertDisposableMatrixAllowed(parseArgs(["--source", "fixture-novel"])))
+      .toThrow(/disposable clone matrix/)
+    expect(() => assertDisposableMatrixAllowed(parseArgs(["--allow-disposable-matrix", "--source", "fixture-novel"])))
+      .not.toThrow()
+    expect(() => assertDisposableMatrixAllowed(parseArgs(["--allow-disposable-eval", "--source", "fixture-novel"])))
+      .not.toThrow()
+  })
+
   test("parses labelled variants and source outline control", () => {
     const args = parseArgs([
+      "--allow-disposable-matrix",
       "--source=fixture-novel",
       "--chapters", "3",
       "--parallel", "4",
@@ -46,6 +58,7 @@ describe("semantic-gate-matrix parseArgs", () => {
 
     expect(args.chapters).toBe(3)
     expect(args.parallel).toBe(4)
+    expect(args.allowDisposableMatrix).toBe(true)
     expect(args.childTimeoutMinutes).toBe(14)
     expect(args.keepNovels).toBe(true)
     expect(args.continuityEditorialFlagProposals).toBe(true)

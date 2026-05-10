@@ -58,6 +58,7 @@ export interface Args {
   source: string
   chapters: number
   outputBase: string
+  allowDisposableBaseline: boolean
   keepNovel: boolean
   target: string | null
   maxBeatsPerChapter: number | null
@@ -227,6 +228,7 @@ export function parseArgs(argv: string[]): Args {
     source,
     chapters,
     outputBase: isAbsolute(rawOutput) ? rawOutput : resolve(process.cwd(), rawOutput),
+    allowDisposableBaseline: boolOpt(map["allow-disposable-baseline"]) || boolOpt(map["allow-disposable-eval"]),
     keepNovel: boolOpt(map["keep-novel"]),
     target: stringOpt(map.target) ?? null,
     maxBeatsPerChapter: optionalPositiveInt(map["max-beats-per-chapter"], "--max-beats-per-chapter"),
@@ -235,6 +237,15 @@ export function parseArgs(argv: string[]): Args {
       boolOpt(map["continuity-editorial-flags"] ?? map["continuity-editorial-flag-proposals"]),
     timeoutMinutes: positiveInt(map["timeout-minutes"], "--timeout-minutes", 30),
   }
+}
+
+export function assertDisposableBaselineAllowed(args: { allowDisposableBaseline: boolean }): void {
+  if (args.allowDisposableBaseline) return
+  throw new Error([
+    "diagnostics:semantic-gate-baseline is a disposable clone runner under L86/L88/L106, not the production path.",
+    "It may cap or pack clone outlines before drafting for diagnostic evidence.",
+    "Pass --allow-disposable-baseline only when intentionally creating disposable semantic-gate evidence.",
+  ].join(" "))
 }
 
 export function capOutlineBeats<T extends { scenes?: unknown[] }>(outline: T, maxBeats: number): T {
@@ -428,10 +439,11 @@ async function main(argv: string[]): Promise<number> {
   let args: Args
   try {
     args = parseArgs(argv)
+    assertDisposableBaselineAllowed(args)
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err))
     console.error(
-      "usage: bun scripts/evals/semantic-gate-baseline.ts --source <drafting-source-novel-id> " +
+      "usage: bun scripts/evals/semantic-gate-baseline.ts --allow-disposable-baseline --source <drafting-source-novel-id> " +
         "[--chapters 2] [--max-beats-per-chapter 5] [--pack-strategy calibrated-packed] " +
         "[--timeout-minutes 30] [--output-base output/evals/...] [--keep-novel] " +
         "[--continuity-editorial-flag-proposals]",

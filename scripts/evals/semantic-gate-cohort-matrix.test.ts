@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 
 import type { MatrixVariantResult, SemanticGateMatrixReport } from "./semantic-gate-matrix"
 import {
+  assertDisposableCohortAllowed,
   buildCohortReport,
   candidateSourcesFromReportJson,
   cohortChaptersFor,
@@ -13,6 +14,7 @@ import {
 describe("semantic-gate-cohort-matrix parseArgs", () => {
   test("accepts repeated sources, variants, and replicate controls", () => {
     const args = parseArgs([
+      "--allow-disposable-cohort",
       "--source", "novel-a",
       "--source=novel-b",
       "--chapters", "3",
@@ -32,6 +34,7 @@ describe("semantic-gate-cohort-matrix parseArgs", () => {
     expect(args.replicates).toBe(2)
     expect(args.parallelSources).toBe(4)
     expect(args.parallelVariants).toBe(3)
+    expect(args.allowDisposableCohort).toBe(true)
     expect(args.childTimeoutMinutes).toBe(16)
     expect(args.keepNovels).toBe(true)
     expect(args.continuityEditorialFlagProposals).toBe(true)
@@ -43,9 +46,22 @@ describe("semantic-gate-cohort-matrix parseArgs", () => {
     const args = parseArgs(["--summary", "output/evals/semantic-gate-matrix/run/summary.json"])
 
     expect(args.sources).toEqual([])
+    expect(args.allowDisposableCohort).toBe(false)
     expect(args.summaries[0]).toContain("output/evals/semantic-gate-matrix/run/summary.json")
     expect(args.candidateReports).toEqual([])
     expect(args.variantSpecs).toEqual(["beats=4", "beats=5", "beats=6"])
+  })
+
+  test("requires explicit disposable cohort acknowledgement for live sources only", () => {
+    const liveArgs = parseArgs(["--source", "novel-a"])
+    const summaryArgs = parseArgs(["--summary", "output/evals/semantic-gate-matrix/run/summary.json"])
+
+    expect(() => assertDisposableCohortAllowed(liveArgs, 1)).toThrow(/live mode is disposable/)
+    expect(() => assertDisposableCohortAllowed(summaryArgs, 0)).not.toThrow()
+    expect(() => assertDisposableCohortAllowed(parseArgs(["--allow-disposable-cohort", "--source", "novel-a"]), 1))
+      .not.toThrow()
+    expect(() => assertDisposableCohortAllowed(parseArgs(["--allow-disposable-eval", "--source", "novel-a"]), 1))
+      .not.toThrow()
   })
 
   test("accepts candidate reports as source input", () => {

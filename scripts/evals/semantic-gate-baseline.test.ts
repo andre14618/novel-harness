@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
 import {
+  assertDisposableBaselineAllowed,
   buildBaselineTerminalSummary,
   capOutlineBeats,
   extractPlanAssistGateLogEvidence,
@@ -16,6 +17,7 @@ describe("semantic-gate-baseline", () => {
 
     expect(args.source).toBe("fantasy-system-heretic")
     expect(args.chapters).toBe(2)
+    expect(args.allowDisposableBaseline).toBe(false)
     expect(args.keepNovel).toBe(false)
     expect(args.target).toBeNull()
     expect(args.maxBeatsPerChapter).toBeNull()
@@ -24,8 +26,18 @@ describe("semantic-gate-baseline", () => {
     expect(args.outputBase).toContain("output/evals/semantic-gate-baseline")
   })
 
+  test("requires explicit disposable baseline acknowledgement", () => {
+    expect(() => assertDisposableBaselineAllowed(parseArgs(["--source", "source-novel"])))
+      .toThrow(/disposable clone runner/)
+    expect(() => assertDisposableBaselineAllowed(parseArgs(["--allow-disposable-baseline", "--source", "source-novel"])))
+      .not.toThrow()
+    expect(() => assertDisposableBaselineAllowed(parseArgs(["--allow-disposable-eval", "--source", "source-novel"])))
+      .not.toThrow()
+  })
+
   test("parseArgs accepts scoped cap, explicit target, and kept disposable novel", () => {
     const args = parseArgs([
+      "--allow-disposable-baseline",
       "--source", "source-novel",
       "--chapters", "3",
       "--max-beats-per-chapter", "5",
@@ -37,6 +49,7 @@ describe("semantic-gate-baseline", () => {
     ])
 
     expect(args.chapters).toBe(3)
+    expect(args.allowDisposableBaseline).toBe(true)
     expect(args.maxBeatsPerChapter).toBe(5)
     expect(args.target).toBe("target-novel")
     expect(args.keepNovel).toBe(true)

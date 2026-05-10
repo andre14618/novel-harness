@@ -67,6 +67,7 @@ jq '{totals, candidates: [.candidates[] | select(.phase != "concept" and .chapte
 
 ```bash
 bun run diagnostics:semantic-gate-cohort-matrix -- \
+  --allow-disposable-cohort \
   --candidate-report output/evals/semantic-gate-candidates/<run-id>-drafted-top10.json \
   --candidate-limit 10 \
   --chapters 1 \
@@ -113,3 +114,7 @@ concept/planning: author native chapter contracts and story-turn beats, then
 score endpoint landing, character materiality, obligation health, drafting
 word ratio, and semantic-gate behavior. Do not use hard caps or
 `calibrated:packed` as runtime defaults.
+
+Under L106, live semantic-gate baseline/matrix/cohort commands require explicit
+disposable flags before they create cloned novels. Summary-only cohort
+aggregation remains read-only and does not need the flag.

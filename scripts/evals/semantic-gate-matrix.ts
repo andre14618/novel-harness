@@ -21,6 +21,7 @@ export interface Args {
   outputBase: string
   variants: MatrixVariant[]
   parallel: number
+  allowDisposableMatrix: boolean
   keepNovels: boolean
   continuityEditorialFlagProposals: boolean
   childTimeoutMinutes: number
@@ -147,11 +148,21 @@ export function parseArgs(argv: string[]): Args {
     outputBase: isAbsolute(rawOutput) ? rawOutput : resolve(process.cwd(), rawOutput),
     variants,
     parallel,
+    allowDisposableMatrix: boolOpt(lastValue(map["allow-disposable-matrix"])) || boolOpt(lastValue(map["allow-disposable-eval"])),
     keepNovels: boolOpt(lastValue(map["keep-novels"])),
     continuityEditorialFlagProposals:
       boolOpt(lastValue(map["continuity-editorial-flags"]) ?? lastValue(map["continuity-editorial-flag-proposals"])),
     childTimeoutMinutes: positiveInt(lastValue(map["child-timeout-minutes"]), "--child-timeout-minutes", 30),
   }
+}
+
+export function assertDisposableMatrixAllowed(args: { allowDisposableMatrix: boolean }): void {
+  if (args.allowDisposableMatrix) return
+  throw new Error([
+    "diagnostics:semantic-gate-matrix is a disposable clone matrix under L86/L88/L106, not the production path.",
+    "It launches disposable semantic-gate baseline children for diagnostic evidence.",
+    "Pass --allow-disposable-matrix only when intentionally creating disposable semantic-gate matrix evidence.",
+  ].join(" "))
 }
 
 export function parseVariantSpec(value: string | true, index = 0): MatrixVariant {
@@ -411,6 +422,7 @@ async function runVariant(args: Args, variant: MatrixVariant, index: number): Pr
   const command = [
     "scripts/evals/semantic-gate-baseline.ts",
     "--source", args.source,
+    "--allow-disposable-baseline",
     "--chapters", String(args.chapters),
     "--output-base", variantOutputBase,
     "--target", targetNovelId,
@@ -495,10 +507,11 @@ async function main(argv: string[]): Promise<number> {
   let args: Args
   try {
     args = parseArgs(argv)
+    assertDisposableMatrixAllowed(args)
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err))
     console.error(
-      "usage: bun scripts/evals/semantic-gate-matrix.ts --source <novel> " +
+      "usage: bun scripts/evals/semantic-gate-matrix.ts --allow-disposable-matrix --source <novel> " +
         "[--chapters 2] [--variant beats=4] [--variant beats=5] [--variant source] " +
         "[--parallel 2] [--child-timeout-minutes 30] [--output-base output/evals/...] [--keep-novels]",
     )
@@ -512,6 +525,7 @@ async function main(argv: string[]): Promise<number> {
     chapters: args.chapters,
     parallel: args.parallel,
     variants: args.variants,
+    allowDisposableMatrix: args.allowDisposableMatrix,
     keepNovels: args.keepNovels,
     continuityEditorialFlagProposals: args.continuityEditorialFlagProposals,
     childTimeoutMinutes: args.childTimeoutMinutes,

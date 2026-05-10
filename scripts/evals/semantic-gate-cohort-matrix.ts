@@ -37,6 +37,7 @@ export interface Args {
   replicates: number
   parallelSources: number
   parallelVariants: number
+  allowDisposableCohort: boolean
   keepNovels: boolean
   continuityEditorialFlagProposals: boolean
   childTimeoutMinutes: number
@@ -154,11 +155,25 @@ export function parseArgs(argv: string[]): Args {
     replicates: positiveInt(lastValue(map.replicates), "--replicates", 1),
     parallelSources: positiveInt(lastValue(map["parallel-sources"]), "--parallel-sources", 2),
     parallelVariants: positiveInt(lastValue(map["parallel-variants"]), "--parallel-variants", 2),
+    allowDisposableCohort:
+      boolOpt(lastValue(map["allow-disposable-cohort"])) || boolOpt(lastValue(map["allow-disposable-eval"])),
     keepNovels: boolOpt(lastValue(map["keep-novels"])),
     continuityEditorialFlagProposals:
       boolOpt(lastValue(map["continuity-editorial-flags"]) ?? lastValue(map["continuity-editorial-flag-proposals"])),
     childTimeoutMinutes: positiveInt(lastValue(map["child-timeout-minutes"]), "--child-timeout-minutes", 30),
   }
+}
+
+export function assertDisposableCohortAllowed(
+  args: { allowDisposableCohort: boolean },
+  liveSourceCount: number,
+): void {
+  if (liveSourceCount === 0 || args.allowDisposableCohort) return
+  throw new Error([
+    "diagnostics:semantic-gate-cohort-matrix live mode is disposable under L86/L88/L106, not the production path.",
+    "It launches semantic-gate matrix children that create disposable clones.",
+    "Pass --allow-disposable-cohort only when intentionally creating disposable semantic-gate cohort evidence.",
+  ].join(" "))
 }
 
 export function buildCohortReport(input: {
@@ -335,7 +350,8 @@ async function main(argv: string[]): Promise<number> {
     console.error(
       "usage: bun scripts/evals/semantic-gate-cohort-matrix.ts " +
         "[--source <novel> ...] [--summary <matrix-summary.json> ...] [--candidate-report <json> ...] " +
-        "[--chapters 2] [--replicates 1] [--variant beats=4] [--parallel-sources 2] [--parallel-variants 2]",
+        "[--allow-disposable-cohort] [--chapters 2] [--replicates 1] [--variant beats=4] " +
+        "[--parallel-sources 2] [--parallel-variants 2]",
     )
     return 2
   }
@@ -354,12 +370,19 @@ async function main(argv: string[]): Promise<number> {
     variantSpecs: args.variantSpecs,
     variants: args.variants,
     keepNovels: args.keepNovels,
+    allowDisposableCohort: args.allowDisposableCohort,
     continuityEditorialFlagProposals: args.continuityEditorialFlagProposals,
     childTimeoutMinutes: args.childTimeoutMinutes,
   }, null, 2))
 
   const candidateSources = loadCandidateSources(args.candidateReports, args.candidateLimit)
   const liveSources = uniqueStrings([...args.sources, ...candidateSources])
+  try {
+    assertDisposableCohortAllowed(args, liveSources.length)
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : String(err))
+    return 2
+  }
   const summaryRuns = args.summaries.map(path => loadSummaryRun(path))
   const liveRuns = liveSources.length > 0
     ? await runLiveMatrices({ ...args, sources: liveSources })
@@ -400,6 +423,7 @@ async function runMatrixChild(args: Args, source: string, replicate: number): Pr
   const command = [
     "scripts/evals/semantic-gate-matrix.ts",
     "--source", source,
+    "--allow-disposable-matrix",
     "--chapters", String(args.chapters),
     "--output-base", outputBase,
     "--parallel", String(args.parallelVariants),

@@ -79,6 +79,8 @@ A calibrated planner-shape pass should:
 - Historical A/B variants included `calibrated-packed` against
   `control:source`, `capped4`, and `capped5`; keep those results as diagnostic
   evidence, not a runtime roadmap.
+- Under L106, live semantic-gate baseline/matrix/cohort commands require
+  explicit disposable flags before they create cloned novels.
 - Downstream packing should not be promoted as the active product lever.
 - Richer character/world/plot work should now be evaluated through upstream
   concept/planning contracts, planner-quality scoring, and downstream drafting
