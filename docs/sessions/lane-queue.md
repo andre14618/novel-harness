@@ -23,6 +23,12 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
+- Next session start: write the L87 change packet, then run direct drafting
+  evidence against current main runtime with scene IDs, thread/payoff refs,
+  character-context capsules, and native chapter contracts held together. Judge
+  endpoint satisfaction, listed-character materiality, scene obligation
+  coverage, and thread/payoff continuity before choosing concept/planning,
+  writer context, checker review, or UI as the next layer.
 - Native chapter contracts and story-turn planning are now the production
   runtime default, with legacy rollback via seed override. Next gather direct
   runtime drafting evidence and improve endpoint satisfaction plus listed-
