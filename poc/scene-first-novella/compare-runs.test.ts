@@ -20,6 +20,15 @@ function summary(overrides: Record<string, any> = {}) {
       threadIds: 7,
       promiseIds: 7,
       payoffIds: 0,
+      obligationTypeCounts: {
+        mustEstablish: 18,
+        mustPayOff: 0,
+        mustTransferKnowledge: 14,
+        mustShowStateChange: 8,
+        mustNotReveal: 0,
+        allowedNewEntities: 2,
+        loadBearing: 40,
+      },
       proseWords: 17817,
       targetWords: 5300,
       ...(overrides.reviewStats ?? {}),
@@ -53,6 +62,15 @@ test("builds directional verdicts for improved POC variants", () => {
       sceneIds: 9,
       obligationIds: 15,
       sourceIds: 15,
+      obligationTypeCounts: {
+        mustEstablish: 7,
+        mustPayOff: 0,
+        mustTransferKnowledge: 5,
+        mustShowStateChange: 3,
+        mustNotReveal: 0,
+        allowedNewEntities: 1,
+        loadBearing: 15,
+      },
       proseWords: 7200,
       targetWords: 3900,
     },
@@ -69,6 +87,7 @@ test("builds directional verdicts for improved POC variants", () => {
   expect(comparison.deltas.totalScenesDelta).toBe(-9)
   expect(comparison.deltas.chapterOneEndpointDelta).toBe(1)
   expect(markdown).toContain("Word overshoot is mainly a planner-scope problem")
+  expect(markdown).toContain("Obligation type counts")
   expect(markdown).toContain("Supported: tighter scene count")
   expect(markdown).toContain("Needs another POC loop before promotion")
 })
@@ -85,6 +104,15 @@ test("marks fully successful variants as production-change candidates", () => {
         sceneIds: 9,
         obligationIds: 14,
         sourceIds: 14,
+        obligationTypeCounts: {
+          mustEstablish: 6,
+          mustPayOff: 0,
+          mustTransferKnowledge: 5,
+          mustShowStateChange: 3,
+          mustNotReveal: 0,
+          allowedNewEntities: 0,
+          loadBearing: 14,
+        },
         proseWords: 5700,
         targetWords: 3900,
       },
@@ -97,4 +125,55 @@ test("marks fully successful variants as production-change candidates", () => {
   )
 
   expect(comparison.promotionVerdict).toContain("Candidate for a production change packet")
+})
+
+test("labels density-only comparisons when scene count is unchanged", () => {
+  const comparison = buildComparison(
+    summary({
+      runId: "tight",
+      reviewStats: {
+        totalScenes: 9,
+        sceneIds: 9,
+        obligationIds: 27,
+        obligationTypeCounts: {
+          mustEstablish: 13,
+          mustPayOff: 0,
+          mustTransferKnowledge: 9,
+          mustShowStateChange: 5,
+          mustNotReveal: 0,
+          allowedNewEntities: 3,
+          loadBearing: 27,
+        },
+        proseWords: 8772,
+        targetWords: 3900,
+      },
+    }),
+    summary({
+      runId: "density-cap",
+      reviewStats: {
+        totalScenes: 9,
+        sceneIds: 9,
+        obligationIds: 11,
+        obligationTypeCounts: {
+          mustEstablish: 5,
+          mustPayOff: 0,
+          mustTransferKnowledge: 4,
+          mustShowStateChange: 2,
+          mustNotReveal: 0,
+          allowedNewEntities: 0,
+          loadBearing: 11,
+        },
+        proseWords: 6500,
+        targetWords: 3900,
+      },
+      diagnosticStats: {
+        endpointScores: [3, 3, 3],
+        sceneDramaturgyJudged: 9,
+        characterAgencyJudged: 9,
+      },
+    }),
+  )
+
+  expect(comparison.hypothesisVerdicts[0]).toContain("Density isolation")
+  expect(comparison.hypothesisVerdicts[1]).toContain("Supported: obligation density fell")
 })

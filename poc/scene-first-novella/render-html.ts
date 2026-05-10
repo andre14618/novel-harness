@@ -53,8 +53,19 @@ interface ReviewStats {
   threadIds: number
   promiseIds: number
   payoffIds: number
+  obligationTypeCounts: ObligationTypeCounts
   proseWords: number
   targetWords: number
+}
+
+interface ObligationTypeCounts {
+  mustEstablish: number
+  mustPayOff: number
+  mustTransferKnowledge: number
+  mustShowStateChange: number
+  mustNotReveal: number
+  allowedNewEntities: number
+  loadBearing: number
 }
 
 interface DiagnosticStats {
@@ -148,6 +159,34 @@ function countIds(value: unknown, stats: ReviewStats): void {
   for (const child of Object.values(object)) countIds(child, stats)
 }
 
+function emptyObligationTypeCounts(): ObligationTypeCounts {
+  return {
+    mustEstablish: 0,
+    mustPayOff: 0,
+    mustTransferKnowledge: 0,
+    mustShowStateChange: 0,
+    mustNotReveal: 0,
+    allowedNewEntities: 0,
+    loadBearing: 0,
+  }
+}
+
+function addArrayCount(counts: ObligationTypeCounts, key: keyof Omit<ObligationTypeCounts, "loadBearing">, value: unknown): void {
+  const count = Array.isArray(value) ? value.length : 0
+  counts[key] += count
+  if (key !== "allowedNewEntities") counts.loadBearing += count
+}
+
+function countObligationTypes(scene: any, counts: ObligationTypeCounts): void {
+  const obligations = scene?.obligations ?? {}
+  addArrayCount(counts, "mustEstablish", obligations.mustEstablish)
+  addArrayCount(counts, "mustPayOff", obligations.mustPayOff)
+  addArrayCount(counts, "mustTransferKnowledge", obligations.mustTransferKnowledge)
+  addArrayCount(counts, "mustShowStateChange", obligations.mustShowStateChange)
+  addArrayCount(counts, "mustNotReveal", obligations.mustNotReveal)
+  addArrayCount(counts, "allowedNewEntities", obligations.allowedNewEntities)
+}
+
 export function computeReviewStats(chapters: ChapterBundle[]): ReviewStats {
   const stats: ReviewStats = {
     totalScenes: 0,
@@ -162,6 +201,7 @@ export function computeReviewStats(chapters: ChapterBundle[]): ReviewStats {
     threadIds: 0,
     promiseIds: 0,
     payoffIds: 0,
+    obligationTypeCounts: emptyObligationTypeCounts(),
     proseWords: 0,
     targetWords: 0,
   }
@@ -196,6 +236,7 @@ export function computeReviewStats(chapters: ChapterBundle[]): ReviewStats {
         stats.coreContractFieldScenes++
       }
       if (hasAlternatives) stats.choiceAlternativeScenes++
+      countObligationTypes(scene, stats.obligationTypeCounts)
       countIds(scene, stats)
     }
   }
@@ -264,10 +305,16 @@ function plural(value: number, singular: string, pluralForm = `${singular}s`): s
   return `${value} ${value === 1 ? singular : pluralForm}`
 }
 
+function obligationsPerScene(stats: ReviewStats): number | null {
+  return stats.totalScenes > 0 ? stats.obligationTypeCounts.loadBearing / stats.totalScenes : null
+}
+
 export function buildReviewSummary(runId: string, runSummary: any | null, chapters: ChapterBundle[]): ReviewSummary {
   const reviewStats = computeReviewStats(chapters)
   const diagnosticStats = computeDiagnosticStats(chapters)
   const wordRatio = reviewStats.targetWords > 0 ? reviewStats.proseWords / reviewStats.targetWords : null
+  const obligationDensity = obligationsPerScene(reviewStats)
+  const otc = reviewStats.obligationTypeCounts
   const chaptersRequested = typeof runSummary?.chaptersRequested === "number" ? runSummary.chaptersRequested : null
   const overrides = runSummary?.pipelineOverrides && typeof runSummary.pipelineOverrides === "object"
     ? Object.entries(runSummary.pipelineOverrides).map(([k, v]) => `${k}=${String(v)}`).join(", ")
@@ -278,6 +325,7 @@ export function buildReviewSummary(runId: string, runSummary: any | null, chapte
     `Word-count finding (L102): prose totals ${reviewStats.proseWords}/${reviewStats.targetWords} target words (${formatRatio(wordRatio)}). Treat this as a planner-scope scene/chapter-load finding before trying writer numeric forcing.`,
     `Scene-contract coverage: core fields on ${reviewStats.coreContractFieldScenes}/${reviewStats.totalScenes} scenes; choice alternatives on ${reviewStats.choiceAlternativeScenes}/${reviewStats.totalScenes}; scene IDs on ${reviewStats.sceneIds}/${reviewStats.totalScenes}; legacy beat IDs on ${reviewStats.beatIds}/${reviewStats.totalScenes}.`,
     `Traceability surfaced in contracts: ${plural(reviewStats.obligationIds, "obligation ID")}, ${plural(reviewStats.sourceIds, "source ID")}, ${plural(reviewStats.characterIds, "character ID")}, ${plural(reviewStats.threadIds, "thread ID")}, ${plural(reviewStats.promiseIds, "promise ID")}, ${plural(reviewStats.payoffIds, "payoff ID")}.`,
+    `Obligation load: ${otc.loadBearing} load-bearing obligations (${obligationDensity == null ? "n/a" : obligationDensity.toFixed(2)} per scene): establish ${otc.mustEstablish}, pay off ${otc.mustPayOff}, transfer knowledge ${otc.mustTransferKnowledge}, state change ${otc.mustShowStateChange}, not reveal ${otc.mustNotReveal}; allowed-new-entity hints ${otc.allowedNewEntities}.`,
     `Post-hoc diagnostics: endpoint scores ${diagnosticStats.endpointScores.join(", ") || "none"} (${diagnosticStats.endpointJudged}/${chapters.length} chapters, ${diagnosticStats.endpointErrors} errors); scene dramaturgy ${diagnosticStats.sceneDramaturgyJudged}/${reviewStats.totalScenes} judged with ${diagnosticStats.sceneDramaturgyErrors} errors; character agency ${diagnosticStats.characterAgencyJudged}/${reviewStats.totalScenes} judged with ${diagnosticStats.characterAgencyErrors} errors.`,
     `Runtime posture: production defaults stayed untouched; the POC used ${overrides}.`,
   ]

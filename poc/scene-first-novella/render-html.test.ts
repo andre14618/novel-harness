@@ -36,6 +36,9 @@ function chapter(overrides: Record<string, unknown> = {}) {
                 promiseId: "promise-1",
               },
             ],
+            mustTransferKnowledge: [{ text: "knowledge", obligationId: "obl-2" }],
+            mustShowStateChange: [{ text: "state", obligationId: "obl-3" }],
+            allowedNewEntities: [{ name: "new entity" }],
           },
         },
       ],
@@ -63,12 +66,21 @@ test("computes precise scene-contract and traceability coverage", () => {
   expect(stats.choiceAlternativeScenes).toBe(0)
   expect(stats.sceneIds).toBe(1)
   expect(stats.beatIds).toBe(0)
-  expect(stats.obligationIds).toBe(1)
+  expect(stats.obligationIds).toBe(3)
   expect(stats.sourceIds).toBe(1)
   expect(stats.characterIds).toBe(1)
   expect(stats.threadIds).toBe(1)
   expect(stats.promiseIds).toBe(1)
   expect(stats.payoffIds).toBe(0)
+  expect(stats.obligationTypeCounts).toEqual({
+    mustEstablish: 1,
+    mustPayOff: 0,
+    mustTransferKnowledge: 1,
+    mustShowStateChange: 1,
+    mustNotReveal: 0,
+    allowedNewEntities: 1,
+    loadBearing: 3,
+  })
   expect(stats.proseWords).toBe(123)
   expect(stats.targetWords).toBe(200)
 })
@@ -131,6 +143,7 @@ test("builds reader-visible findings with L102 planner-scope framing", () => {
   expect(markdown).toContain("P3-pre-resolved")
   expect(markdown).toContain("Word-count finding (L102)")
   expect(markdown).toContain("planner-scope scene/chapter-load finding")
+  expect(markdown).toContain("Obligation load: 3 load-bearing obligations")
   expect(markdown).toContain("production defaults stayed untouched")
   expect(markdown).toContain("review-summary.json")
 })

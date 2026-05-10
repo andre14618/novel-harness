@@ -39,6 +39,7 @@ interface ReviewSummary {
     threadIds: number
     promiseIds: number
     payoffIds: number
+    obligationTypeCounts?: ObligationTypeCounts
     proseWords: number
     targetWords: number
   }
@@ -56,6 +57,16 @@ interface ReviewSummary {
     characterAgencyAverage: number | null
   }
   findings: string[]
+}
+
+interface ObligationTypeCounts {
+  mustEstablish: number
+  mustPayOff: number
+  mustTransferKnowledge: number
+  mustShowStateChange: number
+  mustNotReveal: number
+  allowedNewEntities: number
+  loadBearing: number
 }
 
 interface Comparison {
@@ -97,9 +108,21 @@ function ratio(summary: ReviewSummary): number | null {
   return target > 0 ? summary.reviewStats.proseWords / target : null
 }
 
+function obligationTypeCounts(summary: ReviewSummary): ObligationTypeCounts {
+  return summary.reviewStats.obligationTypeCounts ?? {
+    mustEstablish: 0,
+    mustPayOff: 0,
+    mustTransferKnowledge: 0,
+    mustShowStateChange: 0,
+    mustNotReveal: 0,
+    allowedNewEntities: 0,
+    loadBearing: summary.reviewStats.obligationIds,
+  }
+}
+
 function obligationsPerScene(summary: ReviewSummary): number | null {
   const scenes = summary.reviewStats.totalScenes
-  return scenes > 0 ? summary.reviewStats.obligationIds / scenes : null
+  return scenes > 0 ? obligationTypeCounts(summary).loadBearing / scenes : null
 }
 
 function fmtNumber(value: number | null, digits = 2): string {
@@ -118,6 +141,18 @@ function firstEndpoint(summary: ReviewSummary): number | null {
     : null
 }
 
+function formatTypeCounts(summary: ReviewSummary): string {
+  const counts = obligationTypeCounts(summary)
+  return [
+    `est ${counts.mustEstablish}`,
+    `pay ${counts.mustPayOff}`,
+    `know ${counts.mustTransferKnowledge}`,
+    `state ${counts.mustShowStateChange}`,
+    `hide ${counts.mustNotReveal}`,
+    `new ${counts.allowedNewEntities}`,
+  ].join(" / ")
+}
+
 export function buildComparison(baseline: ReviewSummary, variant: ReviewSummary): Comparison {
   const baselineRatio = ratio(baseline)
   const variantRatio = ratio(variant)
@@ -133,9 +168,12 @@ export function buildComparison(baseline: ReviewSummary, variant: ReviewSummary)
   const ratioImprovedMaterially = wordRatioDelta !== null && wordRatioDelta <= -0.5
   const endpointNotWorse = chapterOneEndpointDelta === null || chapterOneEndpointDelta >= 0
   const obligationDensityLower = obligationsPerSceneDelta !== null && obligationsPerSceneDelta < 0
+  const sceneCountStable = baseline.reviewStats.totalScenes === variant.reviewStats.totalScenes
 
   const hypothesisVerdicts = [
-    ratioImprovedMaterially && sceneDrop > 0
+    sceneCountStable
+      ? `Density isolation: scene count stayed fixed at ${variant.reviewStats.totalScenes}, so word-ratio movement is not explained by another scene-count drop.`
+      : ratioImprovedMaterially && sceneDrop > 0
       ? `Supported: tighter scene count correlated with a lower word ratio (${fmtNumber(baselineRatio)} -> ${fmtNumber(variantRatio)}) across ${baseline.reviewStats.totalScenes} -> ${variant.reviewStats.totalScenes} scenes.`
       : `Not yet supported: tighter scene count did not materially reduce word ratio (${fmtNumber(baselineRatio)} -> ${fmtNumber(variantRatio)}) or scene count did not fall.`,
     obligationDensityLower
@@ -204,6 +242,7 @@ export function renderComparisonMarkdown(comparison: Comparison): string {
     `| Prose / target words | ${baseline.reviewStats.proseWords}/${baseline.reviewStats.targetWords} | ${variant.reviewStats.proseWords}/${variant.reviewStats.targetWords} | ${variant.reviewStats.proseWords - baseline.reviewStats.proseWords} words |`,
     `| Scene contracts | ${baseline.reviewStats.totalScenes} | ${variant.reviewStats.totalScenes} | ${fmtSigned(deltas.totalScenesDelta, 0)} |`,
     `| Obligations / scene | ${fmtNumber(baselineOps)} | ${fmtNumber(variantOps)} | ${fmtSigned(deltas.obligationsPerSceneDelta)} |`,
+    `| Obligation type counts | ${formatTypeCounts(baseline)} | ${formatTypeCounts(variant)} |  |`,
     `| Chapter-1 endpoint score | ${firstEndpoint(baseline) ?? "n/a"} | ${firstEndpoint(variant) ?? "n/a"} | ${fmtSigned(deltas.chapterOneEndpointDelta, 0)} |`,
     `| Endpoint scores | ${baseline.diagnosticStats.endpointScores.join(", ")} | ${variant.diagnosticStats.endpointScores.join(", ")} |  |`,
     `| Scene diagnostics judged | ${baseline.diagnosticStats.sceneDramaturgyJudged}/${baseline.reviewStats.totalScenes} | ${variant.diagnosticStats.sceneDramaturgyJudged}/${variant.reviewStats.totalScenes} |  |`,

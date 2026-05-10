@@ -115,6 +115,9 @@ profiles live under `docs/fixtures/scene-first/concepts/`:
 - `pre-resolved/P3-debt-binder-tight-scope.json` — follow-up scope-control
   variant for testing scene count, obligation density, endpoint/hook fit, and
   chapter split control against the completed P3 baseline
+- `pre-resolved/P3-debt-binder-density-cap.json` — density-isolation variant
+  that holds the tight-scope 9-scene shape steady while testing lower
+  obligation load
 - `frozen-plan/novel-1778411555121-ch1-ch2/` — captured real plan (P4)
 
 See `docs/fixtures/scene-first/README.md` for the full design rationale and
