@@ -72,15 +72,23 @@ export interface PlanAssistGatePayload {
   }
 }
 
+export interface PlanAssistAllowedEntityPatch {
+  beatIndex: number
+  entities: string[]
+}
+
 /**
  * Discriminated decision shape. `edit-plan` carries a replacement outline
  * (validated server-side). `override` skips plan-check for remaining
- * attempts of this chapter — step 3 will persist this durably. `abort`
+ * attempts of this chapter — step 3 will persist this durably.
+ * `allow-entities` appends reviewed walk-on/lore terms to the affected
+ * scenes' `allowedNewEntities` lists and restarts the attempt. `abort`
  * stops the chapter and propagates the bail out to the run.
  */
 export type PlanAssistDecision =
   | { action: "edit-plan"; outline: ChapterOutline; exhaustionId?: number | null }
   | { action: "override"; exhaustionId?: number | null }
+  | { action: "allow-entities"; patches: PlanAssistAllowedEntityPatch[]; exhaustionId?: number | null }
   | { action: "abort"; exhaustionId?: number | null }
 
 interface PendingPlanAssistGate {
@@ -230,7 +238,11 @@ export function resolvePlanAssist(
         novelId,
         chapter,
         decision: decision.action,
-        decisionDetails: decision.action === "edit-plan" ? decision.outline : null,
+        decisionDetails: decision.action === "edit-plan"
+          ? decision.outline
+          : decision.action === "allow-entities"
+            ? { patches: decision.patches }
+            : null,
       })
       if (typeof resolvedId === "number" && resolvedId > 0) exhaustionId = resolvedId
     } catch (err) {

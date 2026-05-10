@@ -5,7 +5,7 @@ import { parseJsonbArray, parseJsonbObject } from "./jsonb"
 // back-reference cycle — gates.ts imports these DB helpers as values.
 export type ExhaustionKind = "plan-check-exhausted" | "reviser-rejected" | "integrity-exhausted"
 export type ExhaustionResolverMode = "auto" | "cli" | "web"
-export type ExhaustionDecision = "edit-plan" | "override" | "abort" | "orphaned"
+export type ExhaustionDecision = "edit-plan" | "override" | "allow-entities" | "abort" | "orphaned"
 
 // ─── Orphan handling ─────────────────────────────────────────────────────────
 // Detection: `listOrphanedExhaustions` is run once at orchestrator startup

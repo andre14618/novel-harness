@@ -99,6 +99,20 @@ test("web mode — override decision roundtrips cleanly", async () => {
   expect(result.action).toBe("override")
 })
 
+test("web mode — allow-entities decision roundtrips cleanly", async () => {
+  const payload = makePayload("web-novel-allow", 6)
+  const promise = requestPlanAssist(payload, "web")
+  resolvePlanAssist("web-novel-allow", 6, {
+    action: "allow-entities",
+    patches: [{ beatIndex: 0, entities: ["Tomas Vogler", "Harvest"] }],
+  })
+  const result = await promise
+  expect(result).toEqual({
+    action: "allow-entities",
+    patches: [{ beatIndex: 0, entities: ["Tomas Vogler", "Harvest"] }],
+  })
+})
+
 test("web mode — abort decision roundtrips cleanly", async () => {
   const payload = makePayload("web-novel-3", 4)
   const promise = requestPlanAssist(payload, "web")

@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import type { ChapterOutline } from "../types"
 import type { PlanAssistGatePayload } from "../gates"
 import {
+  buildPlanAssistAllowedEntitiesLineage,
   buildPlanAssistOutlineLineage,
   buildPlanAssistOverrideLineage,
   normalizePlanAssistReplacementOutline,
@@ -121,5 +122,63 @@ describe("plan-assist planning lineage", () => {
         nextValue: true,
       },
     })
+  })
+
+  test("builds chapter_exhaustions-sourced lineage for allowed entities", () => {
+    const previous = outline()
+    const next = outline({
+      scenes: [{
+        beatId: "ch-001-existing-beat-001-open-door",
+        sceneId: "scene-001-open-door",
+        description: "Ari opens the door",
+        kind: "setup",
+        characters: ["Ari"],
+        obligations: {
+          mustEstablish: [],
+          mustPayOff: [],
+          mustTransferKnowledge: [],
+          mustShowStateChange: [],
+          mustNotReveal: [],
+          allowedNewEntities: ["Tomas Vogler"],
+        },
+      } as any],
+    })
+
+    const lineage = buildPlanAssistAllowedEntitiesLineage({
+      novelId: "novel-1",
+      chapter: 1,
+      payload: payload(),
+      exhaustionId: 44,
+      previousOutline: previous,
+      nextOutline: next,
+      applied: [{
+        beatIndex: 0,
+        sceneId: "scene-001-open-door",
+        beatId: "ch-001-existing-beat-001-open-door",
+        addedEntities: ["Tomas Vogler"],
+      }],
+      changedAt: "2026-05-05T12:00:00.000Z",
+    })
+
+    expect(lineage).toMatchObject({
+      proposalId: "44",
+      proposalKind: "planning_edit",
+      sourceTable: "chapter_exhaustions",
+      targetKind: "chapter_outline",
+      fieldPath: "scenes[].obligations.allowedNewEntities",
+      metadata: {
+        decision: "allow-entities",
+        patches: [{
+          beatIndex: 0,
+          sceneId: "scene-001-open-door",
+          beatId: "ch-001-existing-beat-001-open-door",
+          addedEntities: ["Tomas Vogler"],
+        }],
+      },
+    })
+    expect(lineage.affectedDownstreamRefs.map(ref => ref.ref)).toEqual([
+      "scene-001-open-door",
+      "ch-001-existing-beat-001-open-door",
+    ])
   })
 })

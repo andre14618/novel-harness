@@ -83,6 +83,13 @@ pending Plan-Assist gate for two halluc-ungrounded findings. That makes the
 next integration blocker checker/entity review handling, not prompt length
 control.
 
+Plan-Assist now has an `allow-entities` decision for that blocker class. It
+appends reviewed walk-on/lore terms to the affected scene's
+`obligations.allowedNewEntities`, persists the chapter outline, records
+planning lineage against the `chapter_exhaustions` row, and restarts the
+attempt. Halluc-ungrounded remains a blocker by default; only reviewed entities
+enter the grounded surface.
+
 ## Evidence And Verification
 
 Production-path integration needs:

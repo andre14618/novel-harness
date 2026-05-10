@@ -28,6 +28,18 @@ export interface PlanAssistOverrideLineageInput extends PlanAssistLineageBase {
   reason?: string | null
 }
 
+export interface PlanAssistAllowedEntitiesLineageInput extends PlanAssistLineageBase {
+  previousOutline: ChapterOutline
+  nextOutline: ChapterOutline
+  applied: Array<{
+    beatIndex: number
+    sceneId?: string
+    beatId?: string
+    addedEntities: string[]
+  }>
+  reason?: string | null
+}
+
 export function normalizePlanAssistReplacementOutline(
   previousOutline: ChapterOutline,
   replacementOutline: ChapterOutline,
@@ -119,6 +131,56 @@ export function buildPlanAssistOverrideLineage(input: PlanAssistOverrideLineageI
   }
 }
 
+export function buildPlanAssistAllowedEntitiesLineage(input: PlanAssistAllowedEntitiesLineageInput) {
+  const previousOutline = normalizeChapterOutlineForPersistence(input.previousOutline)
+  const nextOutline = normalizeChapterOutlineForPersistence(input.nextOutline)
+  const previousVersion = stableHash(previousOutline)
+  const nextVersion = stableHash(nextOutline)
+  const sourceId = planAssistSourceId(input, "allow-entities", previousVersion, nextVersion)
+  const changedAt = input.changedAt ?? new Date().toISOString()
+  const chapterRef = nextOutline.chapterId ?? previousOutline.chapterId ?? `chapter:${input.chapter}`
+  const affectedDownstreamRefs = input.applied
+    .flatMap(patch => [patch.sceneId, patch.beatId])
+    .filter((ref): ref is string => typeof ref === "string" && ref.length > 0)
+    .map((ref): PlanningMutationAffectedRef => ({
+      kind: "scene_plan",
+      ref,
+      reason: "allowed new entity changed by plan-assist review",
+    }))
+
+  return {
+    id: planAssistLineageId(sourceId, "allowedNewEntities", previousVersion, nextVersion),
+    proposalId: sourceId,
+    proposalKind: "planning_edit" as const,
+    novelId: input.novelId,
+    sourceTable: "chapter_exhaustions" as const,
+    actorKind: "human",
+    source: `plan-assist:${input.payload.kind}`,
+    targetKind: "chapter_outline",
+    previousRef: chapterRef,
+    nextRef: chapterRef,
+    fieldPath: "scenes[].obligations.allowedNewEntities",
+    previousVersion,
+    nextVersion,
+    changedAt,
+    reason: input.reason ?? "operator allowed new entities at plan-assist gate",
+    affectedDownstreamRefs,
+    metadata: {
+      decision: "allow-entities",
+      chapter: input.chapter,
+      attempt: input.payload.attempt,
+      planAssistKind: input.payload.kind,
+      unresolvedDeviationCount: input.payload.unresolvedDeviations.length,
+      patches: input.applied.map(patch => ({
+        beatIndex: patch.beatIndex,
+        sceneId: patch.sceneId ?? null,
+        beatId: patch.beatId ?? null,
+        addedEntities: patch.addedEntities,
+      })),
+    },
+  }
+}
+
 export async function recordPlanAssistOutlineLineage(
   input: PlanAssistOutlineLineageInput,
 ): Promise<void> {
@@ -131,9 +193,15 @@ export async function recordPlanAssistOverrideLineage(
   await recordPlanningMutationLineage(buildPlanAssistOverrideLineage(input))
 }
 
+export async function recordPlanAssistAllowedEntitiesLineage(
+  input: PlanAssistAllowedEntitiesLineageInput,
+): Promise<void> {
+  await recordPlanningMutationLineage(buildPlanAssistAllowedEntitiesLineage(input))
+}
+
 function planAssistSourceId(
   input: PlanAssistLineageBase,
-  decision: "edit-plan" | "override",
+  decision: "edit-plan" | "override" | "allow-entities",
   previousVersion: string,
   nextVersion: string,
 ): string {

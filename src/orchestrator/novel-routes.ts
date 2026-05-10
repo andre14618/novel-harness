@@ -74,6 +74,13 @@ function captureRunError(novelId: string, err: unknown): void {
 const planAssistDecisionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("edit-plan"), outline: chapterOutlineSchema }),
   z.object({ action: z.literal("override") }),
+  z.object({
+    action: z.literal("allow-entities"),
+    patches: z.array(z.object({
+      beatIndex: z.number().int().nonnegative(),
+      entities: z.array(z.string().trim().min(1)).min(1),
+    })).min(1),
+  }),
   z.object({ action: z.literal("abort") }),
 ])
 

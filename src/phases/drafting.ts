@@ -88,10 +88,12 @@ import {
 } from "./proposal-persistence"
 import { routeValidationBlockers } from "./validation-routing"
 import {
+  recordPlanAssistAllowedEntitiesLineage,
   normalizePlanAssistReplacementOutline,
   recordPlanAssistOutlineLineage,
   recordPlanAssistOverrideLineage,
 } from "./plan-assist-lineage"
+import { applyAllowedEntityPatchesToOutline } from "./plan-assist-allow-entities"
 import { buildPlanCheckDriftWitnessPayload } from "./plan-check-drift-witness"
 import { recordReviserAcceptedLineage } from "./reviser-lineage"
 import { recordPlanningEditDraftImpactsForChapter } from "./planning-edit-draft-impact"
@@ -1574,6 +1576,25 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           })
           log(novelId, "info", `Chapter ${ch} plan-check overridden via plan-assist gate`)
           console.log(`  [PLAN-ASSIST] override persisted, restarting attempt with checks skipped`)
+        } else if (decision.action === "allow-entities") {
+          const previousOutline = outline
+          const allowed = applyAllowedEntityPatchesToOutline(previousOutline, decision.patches)
+          outline = allowed.outline
+          await saveChapterOutline(novelId, outline)
+          await recordPlanAssistAllowedEntitiesLineage({
+            novelId,
+            chapter: ch,
+            payload: pendingExhaustion,
+            exhaustionId: decision.exhaustionId,
+            previousOutline,
+            nextOutline: outline,
+            applied: allowed.applied.filter(patch => patch.addedEntities.length > 0),
+          }).catch((err) => {
+            log(novelId, "warn", `Plan-assist allowed-entity lineage failed: ${err instanceof Error ? err.message : err}`)
+          })
+          const added = allowed.applied.flatMap(patch => patch.addedEntities)
+          log(novelId, "info", `Chapter ${ch} allowed new entities via plan-assist gate: ${added.join(", ") || "none added"}`)
+          console.log(`  [PLAN-ASSIST] allowed ${added.length} new entit${added.length === 1 ? "y" : "ies"}, restarting attempt with updated plan`)
         } else {
           // Abort — stop this chapter. Novel stays in "drafting" phase so
           // the user can resume after manual intervention.
@@ -1993,6 +2014,25 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             })
             log(novelId, "info", `Chapter ${ch} plan-check overridden via integrity-exhaustion gate`)
             console.log(`  [PLAN-ASSIST] plan-check override persisted; resume will skip strict checks`)
+          } else if (decision.action === "allow-entities") {
+            const previousOutline = outline
+            const allowed = applyAllowedEntityPatchesToOutline(previousOutline, decision.patches)
+            outline = allowed.outline
+            await saveChapterOutline(novelId, outline)
+            await recordPlanAssistAllowedEntitiesLineage({
+              novelId,
+              chapter: ch,
+              payload: integrityExhaustionPayload,
+              exhaustionId: decision.exhaustionId,
+              previousOutline,
+              nextOutline: outline,
+              applied: allowed.applied.filter(patch => patch.addedEntities.length > 0),
+            }).catch((err) => {
+              log(novelId, "warn", `Integrity-exhaustion allowed-entity lineage failed: ${err instanceof Error ? err.message : err}`)
+            })
+            const added = allowed.applied.flatMap(patch => patch.addedEntities)
+            log(novelId, "info", `Chapter ${ch} allowed new entities via integrity-exhaustion gate: ${added.join(", ") || "none added"}`)
+            console.log(`  [PLAN-ASSIST] allowed ${added.length} new entit${added.length === 1 ? "y" : "ies"}; chapter will retry from updated plan`)
           } else {
             log(novelId, "warn", `Chapter ${ch} aborted by user at integrity-exhaustion gate`)
             console.log(`  [PLAN-ASSIST] chapter aborted by user at integrity-exhaustion gate.`)

@@ -17,7 +17,8 @@ unless the user explicitly requests a disposable branch.
   brief telemetry preserved scene contracts 10/10 and character
   profiles/snapshots/capsules 10/10. Full-path P1 brief smoke then drafted ch1
   at 1885/1500 and passed plan + continuity, but paused at a pending
-  Plan-Assist gate for two halluc-ungrounded findings. See L106 for details.
+  Plan-Assist gate for two halluc-ungrounded findings. `allow-entities` is now
+  the production review action for sanctioned walk-on/lore terms. See L106.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -106,13 +107,11 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: resolve the full-path blocker before more prompt-shape
-  work: either pre-resolve/allow fixture-specific named debtor/calendar terms
-  or route checker-blocked coined entities through the existing plan-assist
-  review path, then rerun `drafting-brief-v1` through full production gates.
-  Promotion remains blocked until a comparable artifact reaches <=1.5x target
-  with 3/3/3 endpoints, complete scene IDs, diagnostics, traces, and review
-  artifacts. See L103-L106.
+- Next session start: exercise Plan-Assist `allow-entities` on the P1 blocker
+  (`Tomas Vogler`, `Harvest`) and rerun `drafting-brief-v1` through full
+  production gates. Promotion remains blocked until a comparable artifact
+  reaches <=1.5x target with 3/3/3 endpoints, complete scene IDs, diagnostics,
+  traces, and review artifacts. See L103-L106.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,

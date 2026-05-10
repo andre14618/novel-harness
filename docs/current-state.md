@@ -106,8 +106,8 @@ lows; P1 with `scenePlanContractV1=true` cut a paired writer-only run from
 baseline 2.45x / contract-render-only 2.41x to 1.37x with scene contracts
 10/10 and 0/8 lows. A full-path P1 brief smoke then paused on a
 halluc-ungrounded Plan-Assist gate after chapter 1. Keep defaults off until
-full production/checker and endpoint-quality artifacts confirm the signal. See
-L103-L106.
+the new Plan-Assist `allow-entities` review action is exercised through full
+production/checker and endpoint-quality artifacts. See L103-L106.
 
 ## Authoring Gates
 
