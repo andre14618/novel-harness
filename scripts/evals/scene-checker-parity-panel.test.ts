@@ -11,6 +11,7 @@ function makeScene(overrides: Partial<SceneBeat & Record<string, unknown>> = {})
     description: "Mira finds the ledger.",
     characters: ["Mira"],
     kind: "action",
+    sceneId: "ch3-s1",
     beatId: "ch3-b1",
     requiredPayoffs: [],
     obligations: {
@@ -109,6 +110,8 @@ describe("buildScenePrompt", () => {
     const outline = makeOutline([scene])
     const prompt = buildScenePrompt({ outline, scene, sceneIndex: 0, prose: "Renn confronted the steward." })
     expect(prompt).toContain("CHAPTER 3")
+    expect(prompt).toContain("Scene id: ch3-s1")
+    expect(prompt).toContain("Legacy/beat-specific beat id: ch3-b1")
     expect(prompt).toContain("Goal: win the council vote")
     expect(prompt).toContain("obligationId=obl-renn-01")
     expect(prompt).toContain("Renn confronted the steward.")

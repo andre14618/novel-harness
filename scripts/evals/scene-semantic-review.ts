@@ -75,7 +75,8 @@ export interface SceneSemanticReplayTask {
   taskId: string
   chapterNumber: number
   sceneIndex: number
-  beatId: string
+  sceneId: string
+  legacyBeatId?: string
   dimension: Dimension
   promptMode: PromptMode
   excerpt: string
@@ -87,7 +88,8 @@ export interface SceneSemanticReplayTask {
 export interface SceneSemanticReplaySkip {
   chapterNumber: number
   sceneIndex: number
-  beatId: string
+  sceneId: string
+  legacyBeatId?: string
   dimension: Dimension
   reason: string
 }
@@ -195,7 +197,8 @@ export function buildSceneSemanticReplayTasks(input: {
     const scenes = chapter.outline.scenes ?? []
     for (let sceneIndex = 0; sceneIndex < scenes.length; sceneIndex++) {
       const scene = scenes[sceneIndex]!
-      const beatId = scene.beatId ?? `ch${chapter.chapterNumber}-scene${sceneIndex + 1}`
+      const sceneId = scene.sceneId ?? scene.beatId ?? `ch${chapter.chapterNumber}-scene${sceneIndex + 1}`
+      const legacyBeatId = scene.beatId
       const obligations = flattenObligations(scene)
 
       const worldFactCount = obligations.filter(o => o.worldFactId || o.sourceKind === "fact").length
@@ -215,14 +218,15 @@ export function buildSceneSemanticReplayTasks(input: {
           promiseOrPayoffRefCount,
         })
         if (skipReason) {
-          skips.push({ chapterNumber: chapter.chapterNumber, sceneIndex, beatId, dimension, reason: skipReason })
+          skips.push({ chapterNumber: chapter.chapterNumber, sceneIndex, sceneId, ...(legacyBeatId ? { legacyBeatId } : {}), dimension, reason: skipReason })
           continue
         }
         tasks.push({
-          taskId: `ch${chapter.chapterNumber}-${beatId}-${dimension}`,
+          taskId: `ch${chapter.chapterNumber}-${sceneId}-${dimension}`,
           chapterNumber: chapter.chapterNumber,
           sceneIndex,
-          beatId,
+          sceneId,
+          ...(legacyBeatId ? { legacyBeatId } : {}),
           dimension,
           promptMode: input.promptMode,
           excerpt: renderSceneExcerpt({ chapter, sceneIndex, scene, obligations }),
@@ -244,6 +248,7 @@ function renderSceneExcerpt(input: {
 }): string {
   const { chapter, sceneIndex, scene } = input
   const totalScenes = chapter.outline.scenes?.length ?? 0
+  const sceneId = scene.sceneId ?? scene.beatId ?? `ch${chapter.chapterNumber}-scene${sceneIndex + 1}`
   const valueShift = scene.valueIn || scene.valueOut
     ? `${scene.valueIn ?? ""} -> ${scene.valueOut ?? ""}`
     : "(none declared)"
@@ -255,7 +260,8 @@ function renderSceneExcerpt(input: {
     `Target words: ${chapter.outline.targetWords ?? "(unspecified)"}; actual words: ${chapter.wordCount}`,
     "",
     `SCENE ${sceneIndex + 1} of ${totalScenes} CONTRACT:`,
-    `Beat id: ${scene.beatId ?? "(unset)"}`,
+    `Scene id: ${sceneId}`,
+    ...(scene.beatId ? [`Legacy/beat-specific beat id: ${scene.beatId}`] : []),
     `Description: ${scene.description ?? "(none)"}`,
     `Goal: ${(scene as Record<string, unknown>).goal ?? "(none declared)"}`,
     `Opposition: ${(scene as Record<string, unknown>).opposition ?? "(none declared)"}`,
@@ -371,7 +377,7 @@ export function renderSceneSemanticReplayReport(report: SceneSemanticReplayRepor
     lines.push("- none")
   } else {
     for (const row of lowRows) {
-      lines.push(`- ch${row.chapterNumber} ${row.beatId} ${row.dimension} ${row.label}: ${row.missingForNextLevel || "no next-level note"}`)
+      lines.push(`- ch${row.chapterNumber} ${row.sceneId} ${row.dimension} ${row.label}: ${row.missingForNextLevel || "no next-level note"}`)
     }
   }
   if (report.skips.length > 0) {
@@ -440,7 +446,8 @@ export async function persistSceneSemanticReplayReport(report: SceneSemanticRepl
       novelId: report.novelId,
       chapterNumber: task.chapterNumber,
       sceneIndex: task.sceneIndex,
-      beatId: task.beatId,
+      sceneId: task.sceneId,
+      ...(task.legacyBeatId ? { legacyBeatId: task.legacyBeatId } : {}),
       dimension: task.dimension,
       promptMode: task.promptMode,
       obligationIds: task.obligationIds,

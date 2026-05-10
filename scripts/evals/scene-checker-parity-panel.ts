@@ -101,7 +101,8 @@ Rules:
 interface SceneParityRow {
   chapterNumber: number
   sceneIndex: number
-  beatId: string
+  sceneId: string
+  legacyBeatId?: string
   beatShapeFlagged: boolean
   beatShapeDeviationCount: number
   sceneShapeFlagged: boolean
@@ -165,13 +166,15 @@ export function buildScenePrompt(input: {
   const totalScenes = outline.scenes?.length ?? 0
   const obligations = flattenObligationsForPrompt(scene)
   const sceneAny = scene as Record<string, unknown>
+  const sceneId = scene.sceneId ?? scene.beatId ?? `ch${outline.chapterNumber}-scene${sceneIndex + 1}`
   return [
     `CHAPTER ${outline.chapterNumber}: ${outline.title ?? ""}`,
     `POV: ${outline.povCharacter ?? "(unspecified)"}`,
     `Setting: ${outline.setting ?? "(unspecified)"}`,
     "",
     `SCENE ${sceneIndex + 1} of ${totalScenes} CONTRACT (this is the only scene under review):`,
-    `Beat id: ${scene.beatId ?? "(unset)"}`,
+    `Scene id: ${sceneId}`,
+    ...(scene.beatId ? [`Legacy/beat-specific beat id: ${scene.beatId}`] : []),
     `Description: ${scene.description ?? "(none)"}`,
     `Goal: ${sceneAny.goal ?? "(none declared)"}`,
     `Opposition: ${sceneAny.opposition ?? "(none declared)"}`,
@@ -282,11 +285,13 @@ async function runSceneShape(novelId: string, chapter: ChapterRow, sceneIndex: n
 function summarizeBeatDeviationsForScene(
   deviations: ChapterPlanCheckResult["deviations"],
   sceneIndex: number,
+  sceneId: string | undefined,
   beatId: string | undefined,
 ): string[] {
   const out: string[] = []
   for (const dev of deviations) {
     if (dev.beat_index === sceneIndex) { out.push(dev.description); continue }
+    if (sceneId && dev.sceneId === sceneId) { out.push(dev.description); continue }
     if (beatId && dev.beatId === beatId) { out.push(dev.description); continue }
   }
   return out
@@ -312,7 +317,8 @@ async function reviewChapter(novelId: string, chapter: ChapterRow, args: Args): 
   let sceneShapeErrorAggregate: string | null = null
 
   const tasks = scenes.map((scene, sceneIndex) => async () => {
-    const beatSummaries = summarizeBeatDeviationsForScene(beatDeviations, sceneIndex, scene.beatId)
+    const sceneId = scene.sceneId ?? scene.beatId ?? `ch${chapter.chapterNumber}-scene${sceneIndex + 1}`
+    const beatSummaries = summarizeBeatDeviationsForScene(beatDeviations, sceneIndex, scene.sceneId, scene.beatId)
     const beatFlagged = beatSummaries.length > 0
     const sceneOutcome = await runSceneShape(novelId, chapter, sceneIndex, args.live)
     if (sceneOutcome.error) sceneShapeErrorAggregate = (sceneShapeErrorAggregate ?? "") + `\n[scene ${sceneIndex}] ${sceneOutcome.error}`
@@ -321,7 +327,8 @@ async function reviewChapter(novelId: string, chapter: ChapterRow, args: Args): 
     return {
       chapterNumber: chapter.chapterNumber,
       sceneIndex,
-      beatId: scene.beatId ?? `ch${chapter.chapterNumber}-scene${sceneIndex + 1}`,
+      sceneId,
+      ...(scene.beatId ? { legacyBeatId: scene.beatId } : {}),
       beatShapeFlagged: beatFlagged,
       beatShapeDeviationCount: beatSummaries.length,
       sceneShapeFlagged: sceneFlagged,
@@ -390,7 +397,7 @@ export function renderSceneCheckerParityReport(report: SceneCheckerParityReport)
     if (chapter.beatShapeError) lines.push(`- Beat-shape error: ${chapter.beatShapeError}`)
     if (chapter.sceneShapeError) lines.push(`- Scene-shape error(s): ${chapter.sceneShapeError}`)
     for (const row of chapter.sceneRows) {
-      lines.push(`  - scene ${row.sceneIndex + 1} (${row.beatId}) [${row.agreement}]: beat=${row.beatShapeFlagged ? row.beatShapeDeviationCount + " deviation(s)" : "clean"}; scene=${row.sceneShapeFlagged ? "failed " + row.sceneShapeFailedGates.join(",") : "all gates pass"}`)
+      lines.push(`  - scene ${row.sceneIndex + 1} (${row.sceneId}) [${row.agreement}]: beat=${row.beatShapeFlagged ? row.beatShapeDeviationCount + " deviation(s)" : "clean"}; scene=${row.sceneShapeFlagged ? "failed " + row.sceneShapeFailedGates.join(",") : "all gates pass"}`)
     }
     lines.push("")
   }
@@ -402,7 +409,7 @@ export function renderSceneCheckerParityReport(report: SceneCheckerParityReport)
     lines.push("These are scenes where the new scene-shape prompt flagged an issue the existing beat-level checker missed. Per L092 this is the disagreement class to scrutinize before any promotion.")
     lines.push("")
     for (const row of sceneOnly) {
-      lines.push(`- ch${row.chapterNumber} ${row.beatId}: failed gates ${row.sceneShapeFailedGates.join(",")}`)
+      lines.push(`- ch${row.chapterNumber} ${row.sceneId}: failed gates ${row.sceneShapeFailedGates.join(",")}`)
       if (row.sceneShapeEvidence) {
         for (const gate of row.sceneShapeFailedGates) {
           const evidence = (row.sceneShapeEvidence as Record<string, { result: boolean; evidence: string }>)[gate]
@@ -418,7 +425,7 @@ export function renderSceneCheckerParityReport(report: SceneCheckerParityReport)
     lines.push("## Beat-Only Disagreements")
     lines.push("")
     for (const row of beatOnly) {
-      lines.push(`- ch${row.chapterNumber} ${row.beatId}: ${row.beatShapeDeviationSummaries.join("; ")}`)
+      lines.push(`- ch${row.chapterNumber} ${row.sceneId}: ${row.beatShapeDeviationSummaries.join("; ")}`)
     }
     lines.push("")
   }
