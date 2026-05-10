@@ -38,6 +38,13 @@ unless the user explicitly requests a disposable branch.
   scenePlanContractV1 calibration) is now a later production slice,
   deferred behind the L100 POC artifact; it will need its own
   production-default decision record and replay-fixture re-record.
+- **Scene-first novella POC promotion hold (L103).** P3 baseline,
+  tight-scope, density-cap, and fixed-plan expansion A/B artifacts landed under
+  `poc/scene-first-novella/output/`. Evidence supports scene-count control,
+  endpoint/hook fit, and lower obligation density as real levers, but best run
+  remains 1.90x target and expansion retry recorded zero events. Keep
+  `scenePlanContractV1`, `sceneCallWriterV1`, and `writerExpansionMode`
+  default-off; next POC should target planner/state-mapper obligation load.
 - **Adjusted-B1/B2/B3 prep all shipped (default-off).** The scene-first
   evidence lane is runnable end-to-end on LXC.
   - **B1 flag (`writerPromptIdRendering`, commit `62e5c8c`):** default
@@ -85,17 +92,13 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: use L100 POC mode to build the scene-first novella
-  vertical artifact before any production default flip. Target:
-  `poc/scene-first-novella/` runner using P3 first, producing a 3-chapter
-  output directory with scene contracts, prose, trace metadata, post-hoc
-  diagnostics, and static HTML. Skip proposal/UI/Plan-Assist/blocking checker
-  hardening unless the POC directly tests it. Treat the 3x word overshoot as a
-  planner-scope finding first: inspect whether chapter purposes and scene
-  contracts ask for too much story, not whether the writer can be forced to hit
-  a numeric quota. See L102.
-- Production scene-first migration S1 is deferred until the POC yields
-  reader-visible evidence. When reopened, close L096's
+- Next session start: continue L100 POC mode only if testing planner/state-
+  mapper obligation-load control directly. Hold scene count at 9 and endpoints
+  at 3/3/3, then reduce load toward one obligation per scene before drafting.
+  Promotion remains blocked until a comparable artifact reaches <=1.5x target
+  with complete scene IDs, diagnostics, traces, and review artifacts. See L103.
+- Production scene-first migration S1 is deferred by the L103 promotion hold.
+  When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,
   and ship a new production-default decision record. Sequence per
   `docs/sessions/2026-05-10-scene-migration-plan.md`.
