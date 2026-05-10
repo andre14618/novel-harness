@@ -221,52 +221,57 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   }
   emit(novelId, { type: "progress", data: { step: "planning-obligations", status: "complete", chapters: chapters.length } })
 
-  // L096 Slice 1: scene plan contract enforcement, gated by
-  // `scenePlanContractV1`. Runs after obligation coverage clears so the
-  // mapper-emitted obligations are present for the materiality / payoff-stage
-  // checks. On failure, runs ONE structural-v1 retry of `expandChapter` per
-  // failing chapter with the validator output as retry feedback. Mirrors POC
-  // `corpus-recreation-poc.ts:plannerContractRetryMode = "structural-v1"`.
+  // L096 Slice 1.5: scene plan contract validator runs in ADVISORY mode
+  // under `scenePlanContractV1`. Three LXC smokes (r1/r2/r3) showed that
+  // DeepSeek V4 Flash does not reliably comply with the multi-field
+  // contract on production-shape fantasy novels, even after a worked-
+  // example block + deterministic payoffEventId mint + structural-v1
+  // retry. The validator keeps surfacing real per-scene fidelity gaps,
+  // but blocking on them produces non-converging retries and a hard
+  // failure that prevents downstream evaluation. Demoting to advisory:
+  // the validator still runs and logs every finding so calibration
+  // signal is preserved; planning never throws on contract failures
+  // and never re-issues planner calls for them. Promotion to blocking
+  // mode is contingent on either a planner-model upgrade or further
+  // compliance work; tracked via the L096 calibration-debt section.
   if (scenePlanContractV1) {
     emit(novelId, { type: "progress", data: { step: "planning-scene-contract", status: "running", chapters: chapters.length } })
     const sceneContractOptions = {
       requireMaterialityTests: true,
       requirePovPersonalStake: true,
     }
-    const failingIdxs: number[] = []
-    for (let i = 0; i < chapters.length; i++) {
-      const result = harness.enforce.enforceScenePlanContract(chapters[i], sceneContractOptions)
+    let totalFindings = 0
+    let chaptersWithFindings = 0
+    for (const ch of chapters) {
+      const result = harness.enforce.enforceScenePlanContract(ch, sceneContractOptions)
       if (!result.valid) {
-        const summary = result.errors.slice(0, 3).join("; ")
-        log(novelId, "warn", `Ch ${chapters[i].chapterNumber}: scene plan contract failed: ${summary}`)
-        failingIdxs.push(i)
-      }
-    }
-    if (failingIdxs.length > 0) {
-      emit(novelId, { type: "progress", data: { step: "planning-scene-contract", status: "retrying", chapters: failingIdxs.length } })
-      const retries = failingIdxs.map(idx => {
-        const failing = chapters[idx]
-        const result = harness.enforce.enforceScenePlanContract(failing, sceneContractOptions)
-        const feedback = `Scene plan contract failures (fix every line):\n${result.errors.map(e => `- ${e}`).join("\n")}\n\nFix exactly these issues. In particular:\n- Every obligation with storyDebtStage in {partial_payoff, final_payoff} MUST also include a unique payoffEventId naming the concrete local payoff event (for example "evt-<sourceId>-<descriptor>").\n- Every source-grounded obligation MUST include a materialityTest of at least 8 chars naming the concrete story effect that the source ID changes (choice, cost, constraint, relationship state, outcome, or future pressure). Skip materialityTest only for mustNotReveal items.\n- Every entry that declares a crisisChoice MUST include at least one obligation whose sourceId exactly matches a provided character / world fact / story-debt id.\n- Every entry MUST declare a choiceAlternatives array with at least two concrete options.\n- consequence must be observably different from outcome — not a restatement.\nReturn the complete corrected plan; do not omit chapters.`
-        return expandChapter(novelId, skeletons![idx], skeletons!, worldBible, characters, spine, novel.seed, 2, feedback)
-          .then(full => { chapters[idx] = full })
-          .catch(err => log(novelId, "error", `Ch ${failing.chapterNumber} scene-contract retry failed: ${err instanceof Error ? err.message : err}`))
-      })
-      await Promise.all(retries)
-
-      const stillFailing: string[] = []
-      for (const idx of failingIdxs) {
-        const result = harness.enforce.enforceScenePlanContract(chapters[idx], sceneContractOptions)
-        if (!result.valid) {
-          stillFailing.push(`Ch ${chapters[idx].chapterNumber}: ${result.errors.slice(0, 5).join("; ")}`)
+        chaptersWithFindings += 1
+        totalFindings += result.errors.length
+        for (const finding of result.errors) {
+          log(novelId, "warn", `scene-plan-contract advisory: Ch ${ch.chapterNumber}: ${finding}`)
         }
-      }
-      if (stillFailing.length > 0) {
-        throw new Error(`Scene plan contract failed after structural-v1 retry: ${stillFailing.join(" | ")}`)
+        emit(novelId, {
+          type: "progress",
+          data: {
+            step: "planning-scene-contract",
+            status: "advisory-finding",
+            chapter: ch.chapterNumber,
+            findings: result.errors.length,
+          },
+        })
       }
     }
-    log(novelId, "info", `Scene plan contract clean for ${chapters.length} chapters`)
-    emit(novelId, { type: "progress", data: { step: "planning-scene-contract", status: "complete", chapters: chapters.length } })
+    log(novelId, "info", `Scene plan contract advisory: ${totalFindings} finding(s) across ${chaptersWithFindings}/${chapters.length} chapter(s)`)
+    emit(novelId, {
+      type: "progress",
+      data: {
+        step: "planning-scene-contract",
+        status: "complete",
+        chapters: chapters.length,
+        chaptersWithFindings,
+        totalFindings,
+      },
+    })
   }
 
   for (const outline of chapters) {

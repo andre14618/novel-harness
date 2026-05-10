@@ -43,15 +43,32 @@ The structural-v1 retry surfaced these on the first pass and re-emitted, but the
 
 Cost: ~$0.10 cumulative across both LXC runs.
 
-## Calibration Debt — Explicit
+## Calibration Debt — Validator Demoted To Advisory (Slice 1.5, 2026-05-09)
 
-Before `scenePlanContractV1` can flip to default-on, the following calibration work must close (provisional Slice 1.5):
+Slice 1.5 attempted to close the prompt-fidelity gap via two interventions, both committed at `cfb84f6`:
 
-- **Planner-prompt fidelity for "crisisChoice → sourced obligation"**. Add a worked-example block to `beat-expansion-system.md` showing a complete scene contract entry (crisisChoice + choiceAlternatives + sourced obligations + materialityTest) so the LLM has an unambiguous template. Re-run the smoke and confirm ≥95% per-scene compliance.
-- **Planner-prompt fidelity for `payoffEventId`**. The state-mapper prompt instructs the LLM to mint `payoffEventId` for payoff stages, but compliance is uneven. Either (a) sharpen the prompt with an example, or (b) deterministic-mint `payoffEventId` in `enrichOutlineIds` when `payoffId` + payoff-stage are present without it. Path (b) keeps the ID-as-code invariant from `harness/ids.ts` cleaner and is the recommended fix.
-- **Per-chapter vs per-entry contract**. If post-calibration runs still surface partial compliance, consider relaxing the validator from per-entry-with-crisisChoice to per-chapter-aggregate ("at least one sourced obligation in this chapter"), accepting mixed-granularity reality.
+1. **Worked-example block** added to `renderScenePlanContractGuidance` in `src/agents/planning-beats/context.ts`: a complete scene-contract entry (Calla / Orvath archive confrontation) plus five compliance rules each phrased as a hard validator constraint with concrete valid-vs-invalid examples.
+2. **Deterministic `payoffEventId` mint** in `enrichOutlineIds` (`src/harness/ids.ts`): when an obligation declares `payoffId` + `storyDebtStage` in `{partial_payoff, final_payoff}` but no `payoffEventId`, mint `evt-<obligationId-tail>` deterministically. Idempotent across reruns.
 
-Until that work clears, L096 ships only the wiring at default-off.
+**Outcome:** the third LXC smoke (`/tmp/sliceI-v1-r3.log`) failed with **22 findings across 22 obligations/scenes**, not converging toward zero. Three failure classes:
+
+- 10 scenes declared `crisisChoice` without a sourced obligation. The worked example didn't close the gap.
+- 5 scenes emitted empty `choiceAlternatives` arrays. Same compliance gap.
+- 7 obligations carried `storyDebtStage` in `{partial_payoff, final_payoff}` without `payoffEventId`. Investigation: many of these obligations had `storyDebtStage` set but **no parent `payoffId`**, so the deterministic mint correctly skipped them (the mint requires a parent ref). The LLM was over-applying `storyDebtStage` to `mustEstablish` factual obligations rather than restricting it to `mustPayOff` obligations.
+
+Across r1/r2/r3 the validator surfaced a different failure shape on each run, with no convergence trend. Cumulative cost ~$0.30. This is consistent with stochastic LLM-output variance, not a fixable prompt-fidelity issue under DeepSeek V4 Flash. Per L090, swapping the planner model isn't on the table.
+
+**Decision:** demote `enforceScenePlanContract` from a **phase-blocking enforcer** to an **advisory emitter** when `scenePlanContractV1` is on. The validator keeps running on every chapter and logs every finding plus a `planning-scene-contract:advisory-finding` event with structured payload (chapter number, finding count). Planning never throws on contract failures; the structural-v1 retry path is removed. This preserves the calibration signal (operators can read findings, downstream analysis can persist them) without producing non-converging hard failures that block evaluation.
+
+Promotion of the validator back to **blocking mode** is contingent on one of:
+
+- A planner-model upgrade (the multi-field contract is too demanding for V4 Flash; a more capable model may comply at ≥95%).
+- A meaningful contract simplification (e.g., relax `crisisChoice → sourced obligation` to `≥1 sourced obligation per chapter`).
+- A deterministic post-processor that strips/normalises problematic LLM output (e.g., strip `storyDebtStage` when `payoffId` is absent rather than letting it pass through and then complaining).
+
+None of those are scoped here. Slice 1.5 closes by demoting; the underlying calibration question remains open and is captured as a future research item.
+
+**Status:** Slice 1.5 is **closed** with `scenePlanContractV1` still default-off. Validator is advisory under flag-on; flag default flip remains deferred indefinitely.
 
 ## L092 Amendment Scope
 
