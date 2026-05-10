@@ -49,10 +49,17 @@ bun poc/scene-first-novella/run.ts \
 bun poc/scene-first-novella/diagnostics.ts \
   --run-dir poc/scene-first-novella/output/<runId>
 
-# 3) Static HTML review page. Single index.html in the run dir. Open with
-#    a browser; no server, no React, no Playwright.
+# 3) Static HTML review page plus closure notes. Writes index.html,
+#    review-summary.json, and findings.md in the run dir. Open the HTML
+#    with a browser; no server or React build step.
 bun poc/scene-first-novella/render-html.ts \
   --run-dir poc/scene-first-novella/output/<runId>
+
+# Optional evidence-loop comparison against the completed baseline P3 run.
+bun poc/scene-first-novella/compare-runs.ts \
+  --baseline poc/scene-first-novella/output/poc-scene-first-1778423752 \
+  --variant poc/scene-first-novella/output/<runId> \
+  --out poc/scene-first-novella/output/<runId>/comparison.md
 
 # Optional repair path: re-capture artifacts for an already-finished novel
 # after fixing capture/render code. Requires the DB row to still exist.
@@ -70,6 +77,9 @@ chapter-N.md                      prose + header
 chapter-N.scene-contracts.json    full outline_json row
 chapter-N.trace.json              pipeline_events + llm_calls metadata
 chapter-N.diagnostics.json        endpointLanding + per-scene judges
+review-summary.json               aggregate review stats + finding bullets
+findings.md                       concise reader-visible POC findings
+comparison.md                     optional baseline-vs-variant report
 index.html                        static review page
 ```
 
@@ -102,6 +112,9 @@ profiles live under `docs/fixtures/scene-first/concepts/`:
 - `over-target/P1-fantasy-debt-binder.json` — the 1.0× baseline
 - `undershoot/P2-archive-deciphering.json` — exploratory shape, fewer fixed roles
 - `pre-resolved/P3-debt-binder-resolved.json` — POC default (this packet)
+- `pre-resolved/P3-debt-binder-tight-scope.json` — follow-up scope-control
+  variant for testing scene count, obligation density, endpoint/hook fit, and
+  chapter split control against the completed P3 baseline
 - `frozen-plan/novel-1778411555121-ch1-ch2/` — captured real plan (P4)
 
 See `docs/fixtures/scene-first/README.md` for the full design rationale and

@@ -1,0 +1,140 @@
+{
+  "fixture_metadata": {
+    "profile": "P3-pre-resolved",
+    "expected_baseline_ratio": "diagnostic target: materially below the completed P3 POC ratio of 3.36x",
+    "expected_baseline_failures": [],
+    "scene_contract_population_target": "core fields on every scene; no more than 3 scenes per chapter",
+    "notes": "P3 tight-scope follow-up for the scene-first novella POC. Same clean-attribution debt-binder conceit and named cast as P3, but with POC-only planning directives that test whether tighter chapter split, lower scene count, and lower obligation density reduce prose expansion while preserving endpoint landing. This fixture is not a production default change."
+  },
+  "concept": {
+    "premise": "A debt-binder is summoned to the Treasury when sovereign default looms. She can move financial ruin between people, but she cannot absolve it; she can only transfer it. The crown's chief auditor, dying of a slow ledger collapse, has prepared a foreman of the debtor's prison as the legal target of the transfer. The protagonist must decide before the Council vote whether to accept the proffered target, refuse and let the chancellor die, or propose a third path the auditor has not considered.",
+    "genre": "epic-fantasy",
+    "chapterCount": 3,
+    "characters": [
+      {
+        "name": "Maren Ailish",
+        "role": "protagonist",
+        "description": "Crown debt-binder, mid-20s. Counting-house trained. Discovered her ability four months ago. Hates the war-loans but believes the families are owed honest accounting. Every transfer leaves a phantom interest accruing in her own credit. WANT: to be left alone with a clean ledger. NEED: to learn that some debts cannot be made fair by transfer. LIE: 'the math will balance if I am careful enough.' TRUTH: 'the people in the columns are not numbers and the column itself is the cruelty.'"
+      },
+      {
+        "name": "Chancellor Halric",
+        "role": "antagonist",
+        "description": "The dying chancellor. Sixty-two. Legendary auditor. Built the war-loan program on personal guarantees. Not corrupt; he believes the loans save more than they ruin. His ruin is a slow ledger collapse, certain by spring. PRESSURE: he has prepared the legal paperwork; the foreman is named, the witnesses are arranged, the chamber is cleared."
+      },
+      {
+        "name": "Sergeant Tovin",
+        "role": "supporting",
+        "description": "Treasury escort. Twenty-one. Treats Maren like a person. Lost his cousin to debtor's prison. MATERIALITY: provides Maren with the only honest description she gets of what the foreman has actually done; the moral weight of the transfer is his to deliver."
+      },
+      {
+        "name": "Captain Reyna Holst",
+        "role": "supporting",
+        "description": "Captain of the Counting-House Watch. Forty-one. Career officer, not political. Reluctantly enforcing the transfer order because the chancellor outranks her conscience. MATERIALITY: she is the procedural obstacle and the procedural ally; whether she escorts Maren into the prison wing depends on what Maren says first."
+      },
+      {
+        "name": "Head Clerk Ovis Drane",
+        "role": "supporting",
+        "description": "Head clerk of the Foreclosure Bench. Fifty-eight. Has watched the program from the inside for nine years. Quietly horrified. MATERIALITY: holds the ledger that names which families have already lost what; can hand Maren the evidence the chancellor has been hiding from her, but only if Maren asks the question correctly."
+      },
+      {
+        "name": "Foreman Karth Velo",
+        "role": "supporting",
+        "description": "Senior foreman of the debtor's prison. Forty-six. Has run the wing for twelve years. Prepared as the legal target of the transfer. MATERIALITY: he is not a monster; he has a wife and three children; he has taken bribes from prisoners' families that he then used to feed those families. The transfer would ruin all of them. Maren must meet him before deciding."
+      }
+    ],
+    "directives": {
+      "lockedCharacters": [],
+      "requiredBeats": [
+        {
+          "chapter": 1,
+          "description": "Halric reveals the terminal ledger collapse and the prepared transfer to Karth Velo; Maren refuses to answer in the room and chooses to meet Velo before the Council vote.",
+          "mustInclude": ["Halric", "Maren", "Karth Velo named as target", "Council vote deadline"]
+        },
+        {
+          "chapter": 2,
+          "description": "Maren meets Velo and learns enough from Tovin or Drane to make the legal target morally unstable.",
+          "mustInclude": ["Karth Velo on page", "one concrete family or prisoner consequence", "Drane or Tovin evidence"]
+        },
+        {
+          "chapter": 3,
+          "description": "At the Council vote, Maren names a third path that transfers accountability to the system rather than hiding the ruin inside Velo.",
+          "mustInclude": ["Council vote", "Maren's public choice", "Halric forced to answer"]
+        }
+      ],
+      "forbidden": [
+        "Do not add a separate hidden-asset investigation that postpones Maren's decision beyond the three chapters.",
+        "Do not introduce new named officers, clerks, witnesses, prisoners, or relatives unless one of the six seed characters cannot plausibly carry the scene.",
+        "Do not spend a full scene on travel, architectural description, or procedural setup unless it directly changes Maren's choice."
+      ],
+      "tonalAnchors": [
+        "compressed moral pressure",
+        "ledger magic as immediate consequence",
+        "each chapter ends on a choice or public pressure, not a loose clue"
+      ],
+      "structuralConstraints": {
+        "chapterCount": 3,
+        "povRotation": "Maren Ailish remains the sole POV.",
+        "pacing": "Three compact chapters, each with three load-bearing scenes maximum.",
+        "targetWordsPerChapter": 1300
+      },
+      "storyThreads": [
+        {
+          "threadId": "thread-debt-transfer",
+          "label": "Debt transfer target",
+          "description": "Whether Maren will transfer Halric's ruin to Velo or expose the cruelty in the ledger system.",
+          "kind": "central"
+        }
+      ],
+      "storyDebts": [
+        {
+          "storyDebtId": "debt-velo-targeted",
+          "threadId": "thread-debt-transfer",
+          "promiseText": "Velo is the prepared legal target and must become a real person before Maren decides.",
+          "openedByChapter": 1,
+          "expectedPayoffChapter": 2,
+          "payoffPolicy": "Pay off by putting Velo on page and making the transfer cost concrete."
+        },
+        {
+          "storyDebtId": "debt-third-path",
+          "threadId": "thread-debt-transfer",
+          "promiseText": "Maren must find a third path before the Council vote.",
+          "openedByChapter": 1,
+          "expectedPayoffChapter": 3,
+          "payoffPolicy": "Pay off with an on-page public choice at the Council."
+        }
+      ],
+      "storyPayoffs": [
+        {
+          "payoffId": "payoff-velo-humanized",
+          "storyDebtId": "debt-velo-targeted",
+          "threadId": "thread-debt-transfer",
+          "payoffText": "Maren meets Velo and can no longer treat him as a line item.",
+          "targetChapter": 2
+        },
+        {
+          "payoffId": "payoff-third-path-council",
+          "storyDebtId": "debt-third-path",
+          "threadId": "thread-debt-transfer",
+          "payoffText": "Maren proposes the third path at the Council vote and accepts the cost of refusing the hidden transfer.",
+          "targetChapter": 3
+        }
+      ],
+      "rawNotes": "This is a scope-control experiment. Plan exactly three chapters. Keep each chapter to at most three scene contracts. Each scene contract should carry one protagonist goal, one opposition source, one turn, one outcome, and at most two load-bearing obligations. If a scene needs more than two obligations, split the story across chapters or drop secondary material. Chapter 1 endpoint: Maren chooses to meet Velo before deciding; do not also require her to discover the whole third path. Chapter 2 endpoint: Velo becomes morally concrete and Maren obtains one piece of actionable evidence. Chapter 3 endpoint: Council vote and Maren's third-path choice. Treat target words as scope signal, not a writer quota."
+    },
+    "pipelineOverrides": {
+      "planningMaxBeatsPerChapter": 3
+    }
+  },
+  "pre_resolved_entities": {
+    "officers_named_in_seed": [
+      "Captain Reyna Holst (Counting-House Watch)",
+      "Head Clerk Ovis Drane (Foreclosure Bench)",
+      "Foreman Karth Velo (debtor's prison wing)"
+    ],
+    "casting_gaps_intentional": []
+  },
+  "scene_contract_target": {
+    "fields_populated": ["goal", "opposition", "turningPoint", "crisisChoice", "outcome", "consequence", "povPersonalStake", "valueIn", "valueOut"],
+    "fields_null": []
+  }
+}

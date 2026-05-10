@@ -16,7 +16,7 @@
  *     --run-dir poc/scene-first-novella/output/poc-scene-first-<ts>
  */
 
-import { readFile, writeFile } from "node:fs/promises"
+import { writeFile } from "node:fs/promises"
 import { join } from "node:path"
 
 interface Args { runDir: string }
@@ -55,6 +55,31 @@ interface ReviewStats {
   payoffIds: number
   proseWords: number
   targetWords: number
+}
+
+interface DiagnosticStats {
+  endpointJudged: number
+  endpointErrors: number
+  endpointScores: number[]
+  sceneDramaturgyJudged: number
+  sceneDramaturgyErrors: number
+  sceneValueShiftAverage: number | null
+  conflictVisibleScenes: number
+  decisionOrRevelationScenes: number
+  characterAgencyJudged: number
+  characterAgencyErrors: number
+  characterAgencyAverage: number | null
+}
+
+interface ReviewSummary {
+  runId: string
+  profile: string | null
+  fixturePath: string | null
+  chaptersRendered: number
+  chaptersRequested: number | null
+  reviewStats: ReviewStats
+  diagnosticStats: DiagnosticStats
+  findings: string[]
 }
 
 async function loadChapter(runDir: string, ch: number): Promise<ChapterBundle | null> {
@@ -175,6 +200,109 @@ export function computeReviewStats(chapters: ChapterBundle[]): ReviewStats {
     }
   }
   return stats
+}
+
+export function computeDiagnosticStats(chapters: ChapterBundle[]): DiagnosticStats {
+  const endpointScores: number[] = []
+  let endpointErrors = 0
+  let sceneDramaturgyJudged = 0
+  let sceneDramaturgyErrors = 0
+  let sceneValueShiftTotal = 0
+  let conflictVisibleScenes = 0
+  let decisionOrRevelationScenes = 0
+  let characterAgencyJudged = 0
+  let characterAgencyErrors = 0
+  let characterAgencyTotal = 0
+
+  for (const ch of chapters) {
+    if (typeof ch.diagnostics?.endpointLanding?.arrived === "number") {
+      endpointScores.push(ch.diagnostics.endpointLanding.arrived)
+    }
+    if (ch.diagnostics?.endpointLandingError) endpointErrors++
+
+    for (const scene of ch.diagnostics?.scenes ?? []) {
+      if (typeof scene.sceneDramaturgy?.value_shift === "number") {
+        sceneDramaturgyJudged++
+        sceneValueShiftTotal += scene.sceneDramaturgy.value_shift
+        if (scene.sceneDramaturgy.conflict_visible === true) conflictVisibleScenes++
+        if (scene.sceneDramaturgy.decision_or_revelation === true) decisionOrRevelationScenes++
+      }
+      if (scene.sceneDramaturgyError) sceneDramaturgyErrors++
+
+      if (typeof scene.characterAgency?.agency === "number") {
+        characterAgencyJudged++
+        characterAgencyTotal += scene.characterAgency.agency
+      }
+      if (scene.characterAgencyError) characterAgencyErrors++
+    }
+  }
+
+  return {
+    endpointJudged: endpointScores.length,
+    endpointErrors,
+    endpointScores,
+    sceneDramaturgyJudged,
+    sceneDramaturgyErrors,
+    sceneValueShiftAverage: sceneDramaturgyJudged > 0 ? round(sceneValueShiftTotal / sceneDramaturgyJudged) : null,
+    conflictVisibleScenes,
+    decisionOrRevelationScenes,
+    characterAgencyJudged,
+    characterAgencyErrors,
+    characterAgencyAverage: characterAgencyJudged > 0 ? round(characterAgencyTotal / characterAgencyJudged) : null,
+  }
+}
+
+function round(value: number): number {
+  return Number(value.toFixed(2))
+}
+
+function formatRatio(value: number | null): string {
+  return value == null ? "n/a" : `x${value.toFixed(2)}`
+}
+
+function plural(value: number, singular: string, pluralForm = `${singular}s`): string {
+  return `${value} ${value === 1 ? singular : pluralForm}`
+}
+
+export function buildReviewSummary(runId: string, runSummary: any | null, chapters: ChapterBundle[]): ReviewSummary {
+  const reviewStats = computeReviewStats(chapters)
+  const diagnosticStats = computeDiagnosticStats(chapters)
+  const wordRatio = reviewStats.targetWords > 0 ? reviewStats.proseWords / reviewStats.targetWords : null
+  const chaptersRequested = typeof runSummary?.chaptersRequested === "number" ? runSummary.chaptersRequested : null
+  const overrides = runSummary?.pipelineOverrides && typeof runSummary.pipelineOverrides === "object"
+    ? Object.entries(runSummary.pipelineOverrides).map(([k, v]) => `${k}=${String(v)}`).join(", ")
+    : "per-novel POC overrides recorded in seed.json"
+
+  const findings = [
+    `Artifact scope: ${runSummary?.profile ?? "unknown profile"} rendered ${chapters.length}/${chaptersRequested ?? chapters.length} chapters with ${reviewStats.totalScenes} scene contracts.`,
+    `Word-count finding (L102): prose totals ${reviewStats.proseWords}/${reviewStats.targetWords} target words (${formatRatio(wordRatio)}). Treat this as a planner-scope scene/chapter-load finding before trying writer numeric forcing.`,
+    `Scene-contract coverage: core fields on ${reviewStats.coreContractFieldScenes}/${reviewStats.totalScenes} scenes; choice alternatives on ${reviewStats.choiceAlternativeScenes}/${reviewStats.totalScenes}; scene IDs on ${reviewStats.sceneIds}/${reviewStats.totalScenes}; legacy beat IDs on ${reviewStats.beatIds}/${reviewStats.totalScenes}.`,
+    `Traceability surfaced in contracts: ${plural(reviewStats.obligationIds, "obligation ID")}, ${plural(reviewStats.sourceIds, "source ID")}, ${plural(reviewStats.characterIds, "character ID")}, ${plural(reviewStats.threadIds, "thread ID")}, ${plural(reviewStats.promiseIds, "promise ID")}, ${plural(reviewStats.payoffIds, "payoff ID")}.`,
+    `Post-hoc diagnostics: endpoint scores ${diagnosticStats.endpointScores.join(", ") || "none"} (${diagnosticStats.endpointJudged}/${chapters.length} chapters, ${diagnosticStats.endpointErrors} errors); scene dramaturgy ${diagnosticStats.sceneDramaturgyJudged}/${reviewStats.totalScenes} judged with ${diagnosticStats.sceneDramaturgyErrors} errors; character agency ${diagnosticStats.characterAgencyJudged}/${reviewStats.totalScenes} judged with ${diagnosticStats.characterAgencyErrors} errors.`,
+    `Runtime posture: production defaults stayed untouched; the POC used ${overrides}.`,
+  ]
+
+  return {
+    runId,
+    profile: runSummary?.profile ?? null,
+    fixturePath: runSummary?.fixturePath ?? null,
+    chaptersRendered: chapters.length,
+    chaptersRequested,
+    reviewStats,
+    diagnosticStats,
+    findings,
+  }
+}
+
+export function buildFindingsMarkdown(summary: ReviewSummary): string {
+  return [
+    `# Scene-First Novella POC Findings: ${summary.runId}`,
+    "",
+    ...summary.findings.map(line => `- ${line}`),
+    "",
+    "Reader review starts with `index.html`; machine-readable aggregates are in `review-summary.json`.",
+    "",
+  ].join("\n")
 }
 
 function badge(label: string, value: unknown, scoreLike?: boolean): string {
@@ -343,8 +471,16 @@ function renderChapter(ch: ChapterBundle): string {
   </section>`
 }
 
-function renderHtml(runId: string, runSummary: any | null, chapters: ChapterBundle[]): string {
-  const reviewStats = computeReviewStats(chapters)
+function renderFindingsPanel(summary: ReviewSummary): string {
+  const items = summary.findings.map(line => `<li>${htmlEscape(line)}</li>`).join("")
+  return `<section class="findings">
+    <h2>POC Findings</h2>
+    <ul>${items}</ul>
+  </section>`
+}
+
+function renderHtml(runId: string, runSummary: any | null, chapters: ChapterBundle[], reviewSummary: ReviewSummary): string {
+  const reviewStats = reviewSummary.reviewStats
   const wordRatio = reviewStats.targetWords > 0 ? (reviewStats.proseWords / reviewStats.targetWords).toFixed(2) : "n/a"
   const summaryRow = runSummary
     ? `<div class="run-summary">
@@ -361,6 +497,7 @@ function renderHtml(runId: string, runSummary: any | null, chapters: ChapterBund
     `<li><a href="#chapter-${c.chapterNumber}">Chapter ${c.chapterNumber}: ${htmlEscape(c.contracts.title ?? "")}</a></li>`,
   ).join("")
   const chapterSections = chapters.map(renderChapter).join("\n")
+  const findingsPanel = renderFindingsPanel(reviewSummary)
 
   return `<!doctype html>
 <html lang="en">
@@ -368,6 +505,7 @@ function renderHtml(runId: string, runSummary: any | null, chapters: ChapterBund
   <meta charset="utf-8" />
   <title>Scene-First Novella POC — ${htmlEscape(runId)}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:," />
   <style>
     :root {
       --fg: #1d1d1f;
@@ -392,6 +530,10 @@ function renderHtml(runId: string, runSummary: any | null, chapters: ChapterBund
     nav.toc a { color: var(--accent); text-decoration: none; }
     nav.toc a:hover { text-decoration: underline; }
     main { padding: 24px 32px; max-width: 1600px; margin: 0 auto; }
+    section.findings { margin: 0 0 24px 0; padding: 18px 22px; background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 6px; }
+    section.findings h2 { margin: 0 0 8px 0; font-size: 17px; }
+    section.findings ul { margin: 0; padding-left: 20px; }
+    section.findings li { margin-bottom: 6px; }
     section.chapter { margin: 0 0 56px 0; padding: 24px; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; }
     section.chapter h2 { margin: 0 0 6px 0; font-size: 22px; }
     .chapter-meta { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
@@ -443,6 +585,7 @@ function renderHtml(runId: string, runSummary: any | null, chapters: ChapterBund
     <ol>${tocItems}</ol>
   </nav>
   <main>
+    ${findingsPanel}
     ${chapterSections}
   </main>
   <footer class="page">
@@ -469,10 +612,14 @@ async function main(): Promise<void> {
   const summaryFile = Bun.file(join(args.runDir, "run-summary.json"))
   const runSummary = await summaryFile.exists() ? await summaryFile.json() : null
 
-  const html = renderHtml(runId, runSummary, chapters)
+  const reviewSummary = buildReviewSummary(runId, runSummary, chapters)
+  const html = renderHtml(runId, runSummary, chapters, reviewSummary)
   const outPath = join(args.runDir, "index.html")
   await writeFile(outPath, html, "utf8")
+  await writeFile(join(args.runDir, "review-summary.json"), JSON.stringify(reviewSummary, null, 2), "utf8")
+  await writeFile(join(args.runDir, "findings.md"), buildFindingsMarkdown(reviewSummary), "utf8")
   console.log(`✓ HTML rendered: ${outPath} (${chapters.length} chapters, ${html.length} bytes)`)
+  console.log(`  wrote review summary + findings.md`)
   console.log(`  open in browser: file://${outPath.startsWith("/") ? outPath : `${process.cwd()}/${outPath}`}`)
   process.exit(0)
 }
