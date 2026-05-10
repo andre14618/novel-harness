@@ -68,6 +68,15 @@ continuing this lane: 3666/3300 words = 1.10x, prose-semantic rows=8 with
 events. It is not a promotion result because the source plan had
 sceneContract=0/11 and refs=0/11 in the telemetry report.
 
+Contract-bearing P1 smoke evidence (`p1-contract-1778445814`) strengthens the
+signal. On the same `scenePlanContractV1=true` source, baseline drafted
+7335/3000 words = 2.45x, `contract-render-only` drafted 7238/3000 = 2.41x,
+and `drafting-brief-v1` drafted 4115/3000 = 1.37x. All three arms had
+prose-semantic rows=8 with 0 lows and 0 errors; the brief arm traced scene
+contracts on 10/10 writer-context events. This supports production brief
+framing over simply adding more full-context contract text, but it remains
+writer-only evidence until checked by full production/endpoint gates.
+
 ## Evidence And Verification
 
 Production-path integration needs:

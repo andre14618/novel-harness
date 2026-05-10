@@ -20,6 +20,17 @@ unless the user explicitly requests a disposable branch.
   world 3/11, reader-info 6/11, scene contracts 0/11, refs 0/11, avg prompt
   chars 6527/6701 = 0.975. Treat as promising production-path telemetry and
   budget-framing evidence, not scene-contract/endpoint promotion evidence.
+- **Contract-bearing writer-brief smoke completed (2026-05-10).**
+  P1 fixture source `fixture-P1-fantasy-debt-binder-1778445572848` planned
+  with `scenePlanContractV1=true`; paired writer-only drafting under
+  `p1-contract-1778445814` yielded baseline 7335/3000 = 2.45x,
+  `contract-render-only` 7238/3000 = 2.41x, and `drafting-brief-v1`
+  4115/3000 = 1.37x. Prose-semantic rows were 8/lows=0/errors=0 for each
+  arm. Writer-context report on the brief arm: drafting-brief telemetry 10/10,
+  scene contracts 10/10, character profiles/snapshots/capsules 10/10,
+  obligations/story 8/10, world 2/10, refs 0/10, avg prompt chars
+  6504/6919 = 0.940. This supports brief framing over full contract rendering;
+  it is still writer-only evidence, not a default-flip artifact.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -108,14 +119,12 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: run `drafting-brief-v1` on a source with
-  `scenePlanContractV1=true`, then compare against baseline or
-  `contract-render-only` with `diagnostics:writer-context`,
-  `diagnostics:writer-expansion`, and prose-semantic telemetry. The P4 smoke
-  did not exercise scene contracts or resolved refs, so promotion remains
-  blocked until a comparable artifact reaches <=1.5x target with 3/3/3
-  endpoints, complete scene IDs, diagnostics, traces, and review artifacts.
-  See L103-L106.
+- Next session start: convert the P1 `drafting-brief-v1` signal into a
+  promotion-grade artifact: run the brief arm through the full production
+  drafting/checker path or add an endpoint-quality diagnostic over the saved
+  writer-only drafts. Promotion remains blocked until a comparable artifact
+  reaches <=1.5x target with 3/3/3 endpoints, complete scene IDs, diagnostics,
+  traces, and review artifacts. See L103-L106.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,

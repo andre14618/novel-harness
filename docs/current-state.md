@@ -100,13 +100,12 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 The active lane is in `docs/sessions/lane-queue.md`.
 
-As of 2026-05-10, L105 keeps scene-first promotion on hold after endpoint-
-preserving scene-contract compression. The first production `drafting-brief-v1`
-P4 smoke hit 3666/3300 words = 1.10x with 0/8 prose-semantic lows and
-`writer-context` telemetry intact for character profiles/snapshots/capsules,
-but that source had no scene contracts or resolved refs. Keep scene-first
-runtime flags default-off; next evidence should use a `scenePlanContractV1=true`
-source and audit with `diagnostics:writer-context`. See L103-L106.
+As of 2026-05-10, L105 keeps scene-first promotion on hold, but production
+`drafting-brief-v1` evidence is promising. P4 hit 1.10x with 0/8 prose-semantic
+lows; P1 with `scenePlanContractV1=true` cut a paired writer-only run from
+baseline 2.45x / contract-render-only 2.41x to 1.37x with scene contracts
+10/10 and 0/8 lows. Keep defaults off until a full production/checker and
+endpoint-quality artifact confirms the signal. See L103-L106.
 
 ## Authoring Gates
 
