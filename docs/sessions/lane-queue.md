@@ -33,7 +33,9 @@ unless the user explicitly requests a disposable branch.
   exercised deterministic duplicate-integrity repair; ch2 cleared duplicate
   fragments through L70b settle. Live `allow-entities` replay remains open;
   promotion is blocked by residual endpoint landing plus review-artifact
-  completeness. See L106.
+  completeness. A later loop4 rerun from drafted loop3 copied generated state
+  and is negative/contaminated evidence; `test-drafting-isolated` now rejects
+  drafted sources unless `--allow-drafted-source` is explicit. See L106.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -117,12 +119,11 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: inspect the 2 endpointLanding lows from
-  `p1-ready-loop3-1778454964-drafting-brief-v1` and either import/apply them
-  through Plan Readiness if plan-authored or keep them diagnostic if
-  writer-local. Continue seeking live `allow-entities` replay only when that
-  blocker reproduces. Do not reopen POC branching or treat prose length as the
-  blocker. See L103-L106.
+- Next session start: if testing endpoint fixes again, apply them to a clean
+  pre-drafting source, not a completed drafted clone. Loop4 from drafted loop3
+  should be treated as a contamination lesson, not promotion evidence. Continue
+  seeking live `allow-entities` replay only when that blocker reproduces. Do
+  not reopen POC branching or treat prose length as the blocker. See L103-L106.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,

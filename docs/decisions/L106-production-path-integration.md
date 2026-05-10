@@ -210,6 +210,21 @@ before drafting retries or Plan-Assist exhaustion. Chapter 1 used this
 deterministic repair and approved; chapter 2 still used the existing L70b
 per-beat integrity settle for non-exact duplicate fragments.
 
+A follow-up operator pass imported the two remaining endpointLanding lows from
+`p1-ready-loop3-1778454964-drafting-brief-v1`, created and approved two
+additional `planning_edit` proposals, and reran as `p1-ready-loop4-1778455655`.
+That rerun is negative and not comparable promotion evidence: it cloned from a
+completed drafted artifact, so generated draft facts/states leaked into the
+new source state. It also worsened length (4375/3000 = 1.46x) and
+endpointLanding lows (3/10). Treat this as evidence-hygiene signal rather than
+as proof that the two endpoint edits should be promoted or repeated blindly.
+
+To prevent this failure mode from recurring, `test-drafting-isolated` now
+rejects sources that already have `chapter_drafts`, terminal phases, or
+advanced `current_chapter` values unless the operator explicitly passes
+`--allow-drafted-source`. Clean production evidence should start from a
+pre-drafting source; contaminated replay is an explicit investigation mode.
+
 ## Evidence And Verification
 
 Production-path integration needs:

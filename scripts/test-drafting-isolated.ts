@@ -52,6 +52,7 @@
  *     [--writer-only]                                            # set draftCaptureModeV1=true on every arm
  *     [--no-prose-semantic-eval]                                 # opt out of default advisory prose telemetry
  *     [--scene-semantic-review]                                  # opt into endpoint/scene replay telemetry
+ *     [--allow-drafted-source]                                   # explicitly allow cloning a source that already has drafts
  *     [--per-arm-timeout-ms 1800000]                             # 30-minute per-arm wallclock cap
  *
  * Each arm becomes a clone novel id `<target-prefix>-<arm>`. Arms run
@@ -121,6 +122,10 @@ interface Args {
   sceneSemanticConcurrency: number
   sceneSemanticMaxTokens: number
   sceneSemanticDimensions: Dimension[]
+  /** Default false. Drafting-isolated evidence should start from a planning-
+   *  done source, not a completed draft artifact with generated facts/states.
+   *  This escape hatch is for deliberate contamination/replay investigations. */
+  allowDraftedSource: boolean
   /** Optional per-arm wallclock timeout in milliseconds. When the
    *  drafting promise for an arm doesn't resolve in time, the runner
    *  records a timeout result and proceeds to the next arm. The
@@ -192,6 +197,13 @@ export interface SceneSemanticTelemetrySummary {
 
 const DEFAULT_SCENE_SEMANTIC_DIMENSIONS: Dimension[] = ["endpointLanding", "sceneDramaturgy"]
 
+export interface SourceDraftingIsolationState {
+  phase: string | null
+  currentChapter: number | null
+  outlineCount: number
+  draftCount: number
+}
+
 function emptyDraftingBriefTelemetry(): DraftingBriefTelemetrySummary {
   return {
     events: 0,
@@ -204,11 +216,11 @@ function emptyDraftingBriefTelemetry(): DraftingBriefTelemetrySummary {
   }
 }
 
-async function ensureSourceExists(source: string): Promise<void> {
-  const [{ exists } = { exists: false }] = await db`
-    SELECT EXISTS (SELECT 1 FROM novels WHERE id = ${source}) AS exists
-  ` as any
-  if (!exists) throw new Error(`Source novel ${source} not found`)
+async function ensureSourceExists(source: string, opts: { allowDraftedSource: boolean }): Promise<void> {
+  const [novelRow] = await db`
+    SELECT phase, current_chapter FROM novels WHERE id = ${source}
+  ` as Array<{ phase: string | null; current_chapter: number | null }>
+  if (!novelRow) throw new Error(`Source novel ${source} not found`)
   // Drafting reads chapter_outlines from the source; reject sources that
   // have no plan yet. Phase string is permissive — `test-planner-isolated`
   // leaves novels at phase='concept' but with chapter_outlines populated;
@@ -219,6 +231,38 @@ async function ensureSourceExists(source: string): Promise<void> {
   if ((outline_count ?? 0) === 0) {
     throw new Error(`Source novel ${source} has no chapter_outlines; planning must complete before this script can run drafting`)
   }
+  const [{ draft_count } = { draft_count: 0 }] = await db`
+    SELECT COUNT(*)::int AS draft_count FROM chapter_drafts WHERE novel_id = ${source}
+  ` as any
+  const isolationIssue = sourceDraftingIsolationIssue({
+    phase: novelRow.phase,
+    currentChapter: novelRow.current_chapter,
+    outlineCount: outline_count ?? 0,
+    draftCount: draft_count ?? 0,
+  })
+  if (isolationIssue && !opts.allowDraftedSource) {
+    throw new Error(
+      `${isolationIssue}. Use a clean planning/drafting source, or pass --allow-drafted-source to intentionally clone generated draft state.`,
+    )
+  }
+  if (isolationIssue) {
+    console.warn(`WARNING: ${isolationIssue}; proceeding because --allow-drafted-source was set.`)
+  }
+}
+
+export function sourceDraftingIsolationIssue(state: SourceDraftingIsolationState): string | null {
+  if (state.outlineCount <= 0) return "source has no chapter_outlines"
+  if ((state.draftCount ?? 0) > 0) {
+    return `source already has ${state.draftCount} chapter_drafts and is not a clean planning source`
+  }
+  const phase = state.phase ?? ""
+  if (phase === "complete" || phase === "failed" || phase === "aborted") {
+    return `source phase is ${phase}, not a clean planning/drafting source`
+  }
+  if ((state.currentChapter ?? 1) > 1) {
+    return `source current_chapter is ${state.currentChapter}, not chapter 1`
+  }
+  return null
 }
 
 function runCloneSubprocess(source: string, target: string): Promise<void> {
@@ -704,6 +748,7 @@ export function parseArgs(argv: string[]): Args {
   let sceneSemanticConcurrency = 4
   let sceneSemanticMaxTokens = 1400
   const sceneSemanticDimensions: Dimension[] = []
+  let allowDraftedSource = false
   let perArmTimeoutMs: number | null = null
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!
@@ -726,6 +771,7 @@ export function parseArgs(argv: string[]): Args {
     if (a === "--scene-semantic-review") { sceneSemanticReview = true; sceneSemanticLive = true; continue }
     if (a === "--scene-semantic-dry-run") { sceneSemanticReview = true; sceneSemanticLive = false; continue }
     if (a === "--no-scene-semantic-review") { sceneSemanticReview = false; continue }
+    if (a === "--allow-drafted-source") { allowDraftedSource = true; continue }
     if (a === "--scene-semantic-dimension") {
       sceneSemanticReview = true
       sceneSemanticDimensions.push(parseSceneSemanticDimension(argv[++i] ?? ""))
@@ -785,6 +831,7 @@ export function parseArgs(argv: string[]): Args {
     sceneSemanticConcurrency,
     sceneSemanticMaxTokens,
     sceneSemanticDimensions: sceneSemanticDimensions.length > 0 ? sceneSemanticDimensions : DEFAULT_SCENE_SEMANTIC_DIMENSIONS,
+    allowDraftedSource,
     perArmTimeoutMs,
   }
 }
@@ -817,11 +864,14 @@ async function main() {
   if (args.sceneSemanticReview) {
     console.log(`scene semantic replay: enabled${args.sceneSemanticLive ? "" : " (dry-run)"}, dimensions=${args.sceneSemanticDimensions.join(",")}, concurrency=${args.sceneSemanticConcurrency}`)
   }
+  if (args.allowDraftedSource) {
+    console.log(`allow drafted source: true (source may include generated draft state)`)
+  }
   if (args.perArmTimeoutMs != null) {
     console.log(`per-arm timeout: ${args.perArmTimeoutMs}ms (a hung arm will not block the next arm; partial chapter_drafts are still collected)`)
   }
 
-  await ensureSourceExists(args.source)
+  await ensureSourceExists(args.source, { allowDraftedSource: args.allowDraftedSource })
 
   const results: ArmResult[] = []
   for (const arm of args.arms) {
