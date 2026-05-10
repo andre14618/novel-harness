@@ -11,10 +11,19 @@
  *   bun scripts/test-planner-isolated.ts fantasy-healer --native-planning-contract
  *   bun scripts/test-planner-isolated.ts fantasy-healer --scene-plan-contract
  *   bun scripts/test-planner-isolated.ts --novel <concept-done-novel-id> [--native-planning-contract] [--scene-plan-contract]
+ *   bun scripts/test-planner-isolated.ts --from-fixture docs/fixtures/scene-first/concepts/over-target/P1-fantasy-debt-binder.json
  *
  * L096 Slice 1: --scene-plan-contract sets `scenePlanContractV1=true`,
  * exercising the causal-motivation-v3 planner prompt and the
  * `enforceScenePlanContract` retry path.
+ *
+ * adjusted-B2: --from-fixture loads a P1/P2/P3 concept fixture from
+ * docs/fixtures/scene-first/concepts/<profile>/, creates a novel with
+ * the fixture's concept block as seed, runs concept + planning. Resulting
+ * novel-id is printed so the operator can chain into
+ * scripts/test-drafting-isolated.ts. The fixture path takes a single
+ * fixture; comma-separated multi-fixture mode is intentionally NOT
+ * supported (one explicit fixture per planner run).
  */
 import { initDB, createNovel } from "../src/db"
 import { setAutoMode, setResolverMode } from "../src/cli"
@@ -24,12 +33,30 @@ import { runPlanningPhase } from "../src/phases/planning"
 import { initNovelRun } from "../src/logger"
 import type { SeedInput } from "../src/types"
 import db from "../src/db/connection"
+import { parseConceptFixture } from "./fixture/scene-first-fixture-schema"
 
 async function loadSeed(name: string): Promise<SeedInput> {
   const path = new URL(`../src/seeds/${name}.json`, import.meta.url).pathname
   const file = Bun.file(path)
   if (!await file.exists()) throw new Error(`Seed not found: src/seeds/${name}.json`)
   return file.json() as Promise<SeedInput>
+}
+
+async function loadFixtureConcept(fixturePath: string): Promise<{ seed: SeedInput; profile: string; metadataNotes?: string }> {
+  const file = Bun.file(fixturePath)
+  if (!await file.exists()) throw new Error(`Fixture not found: ${fixturePath}`)
+  const json = await file.json()
+  const fixture = parseConceptFixture(json, fixturePath)
+  return {
+    seed: fixture.concept,
+    profile: fixture.fixture_metadata.profile,
+    metadataNotes: fixture.fixture_metadata.notes,
+  }
+}
+
+function fixtureSlugFromPath(fixturePath: string): string {
+  const basename = fixturePath.split("/").pop() ?? fixturePath
+  return basename.replace(/\.json$/i, "")
 }
 
 interface CallStat {
@@ -46,6 +73,7 @@ interface CallStat {
 interface Args {
   seedNames: string[]
   novelId: string | null
+  fixturePath: string | null
   nativePlanningContract: boolean
   scenePlanContract: boolean
 }
@@ -90,6 +118,39 @@ async function testSeed(
   await runPlanningPhase(novelId)
 
   return collectPlannerResult(seedName, novelId)
+}
+
+async function testFromFixture(
+  fixturePath: string,
+  options: { nativePlanningContract: boolean; scenePlanContract: boolean },
+): Promise<PlannerIsolatedResult> {
+  const { seed: fixtureSeed, profile, metadataNotes } = await loadFixtureConcept(fixturePath)
+  const seed: SeedInput = { ...fixtureSeed }
+  if (options.nativePlanningContract) {
+    seed.pipelineOverrides = {
+      ...(seed.pipelineOverrides ?? {}),
+      nativePlanningContractV1: true,
+    }
+  }
+  if (options.scenePlanContract) {
+    seed.pipelineOverrides = {
+      ...(seed.pipelineOverrides ?? {}),
+      scenePlanContractV1: true,
+    }
+  }
+  const slug = fixtureSlugFromPath(fixturePath)
+  const novelId = `fixture-${slug}-${Date.now()}`
+  console.log(`\n━━━ ${profile} ← ${fixturePath} ━━━`)
+  if (metadataNotes) console.log(`  notes: ${metadataNotes}`)
+  await initDB(novelId)
+  await createNovel(novelId, seed)
+  await initNovelRun(novelId)
+  console.log(`  novel: ${novelId}`)
+  console.log(`  [1/2] concept phase...`)
+  await runConceptPhase(novelId, seed)
+  console.log(`  [2/2] planning phase...`)
+  await runPlanningPhase(novelId)
+  return collectPlannerResult(slug, novelId)
 }
 
 async function testExistingConceptNovel(
@@ -203,7 +264,17 @@ async function main() {
   }
 
   const results = []
-  if (args.novelId) {
+  if (args.fixturePath) {
+    try {
+      results.push(await testFromFixture(args.fixturePath, {
+        nativePlanningContract: args.nativePlanningContract,
+        scenePlanContract: args.scenePlanContract,
+      }))
+    } catch (err) {
+      console.error(`✗ ${args.fixturePath}: ${err instanceof Error ? err.message : err}`)
+      results.push({ seedName: args.fixturePath, novelId: "", stats: [], chapters: 0, totalBeats: 0, beatCounts: [], error: String(err) })
+    }
+  } else if (args.novelId) {
     try {
       results.push(await testExistingConceptNovel(args.novelId, {
         nativePlanningContract: args.nativePlanningContract,
@@ -259,11 +330,12 @@ async function main() {
   process.exit(0)
 }
 
-main()
+if (import.meta.main) main()
 
-function parseArgs(argv: string[]): Args {
+export function parseArgs(argv: string[]): Args {
   let seedArg: string | null = null
   let novelId: string | null = null
+  let fixturePath: string | null = null
   let nativePlanningContract = false
   let scenePlanContract = false
   for (let i = 0; i < argv.length; i++) {
@@ -281,14 +353,23 @@ function parseArgs(argv: string[]): Args {
       if (!novelId) throw new Error(`${arg} requires a value`)
       continue
     }
+    if (arg === "--from-fixture") {
+      fixturePath = argv[++i] ?? null
+      if (!fixturePath) throw new Error(`${arg} requires a path`)
+      continue
+    }
     if (arg.startsWith("--")) throw new Error(`unknown arg: ${arg}`)
     if (seedArg !== null) throw new Error(`unexpected extra seed arg: ${arg}`)
     seedArg = arg
   }
-  if (novelId && seedArg) throw new Error("pass either a seed name or --novel, not both")
+  const sources = [Boolean(novelId), Boolean(seedArg), Boolean(fixturePath)].filter(Boolean).length
+  if (sources > 1) {
+    throw new Error("pass exactly one of: a seed name (positional), --novel <id>, or --from-fixture <path>")
+  }
   return {
-    seedNames: novelId ? [] : (seedArg ?? "fantasy-healer").split(",").map(s => s.trim()).filter(Boolean),
+    seedNames: (novelId || fixturePath) ? [] : (seedArg ?? "fantasy-healer").split(",").map(s => s.trim()).filter(Boolean),
     novelId,
+    fixturePath,
     nativePlanningContract,
     scenePlanContract,
   }
