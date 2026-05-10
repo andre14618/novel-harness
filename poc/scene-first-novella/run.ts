@@ -44,26 +44,33 @@ interface Args {
   fixturePath: string
   chapters: number
   runId: string
+  captureOnly: boolean
 }
 
 function parseArgs(argv: string[]): Args {
   let fixturePath = DEFAULT_FIXTURE
   let chapters = 3
   let runId: string | null = null
+  let captureOnly = false
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!
     if (a === "--fixture") { fixturePath = argv[++i] ?? fixturePath; continue }
     if (a === "--chapters") { chapters = Number.parseInt(argv[++i] ?? "3", 10); continue }
     if (a === "--run-id") { runId = argv[++i] ?? null; continue }
+    if (a === "--capture-only") { captureOnly = true; continue }
     throw new Error(`unknown arg: ${a}`)
   }
   if (!Number.isFinite(chapters) || chapters < 1) {
     throw new Error(`--chapters must be a positive integer; got ${chapters}`)
   }
+  if (captureOnly && !runId) {
+    throw new Error(`--capture-only requires --run-id <existing-novel-id>`)
+  }
   return {
     fixturePath,
     chapters,
     runId: runId ?? `poc-scene-first-${Date.now()}`,
+    captureOnly,
   }
 }
 
@@ -87,10 +94,10 @@ async function captureChapterArtifacts(
     const latest = approved ?? await getLatestChapterDraft(novelId, ch).catch(() => null)
 
     const traceEvents = await db`
-      SELECT event_type, chapter, beat_index, payload, ts
+      SELECT event_type, chapter, beat_index, payload, "timestamp" AS ts
       FROM pipeline_events
       WHERE novel_id = ${novelId} AND chapter = ${ch}
-      ORDER BY ts ASC
+      ORDER BY "timestamp" ASC
     ` as Array<{ event_type: string; chapter: number; beat_index: number | null; payload: unknown; ts: string }>
 
     const llmCalls = await db`
@@ -251,15 +258,20 @@ async function main(): Promise<void> {
   )
 
   await initDB(args.runId)
-  await createNovel(args.runId, seed)
-  await initNovelRun(args.runId)
-  console.log(`novel created: ${args.runId}\n`)
+  if (args.captureOnly) {
+    await initNovelRun(args.runId)
+    console.log(`capture-only mode: skipping concept/planning/drafting; targeting existing novel ${args.runId}\n`)
+  } else {
+    await createNovel(args.runId, seed)
+    await initNovelRun(args.runId)
+    console.log(`novel created: ${args.runId}\n`)
 
-  console.log("━━━ concept phase ━━━")
-  await runConceptPhase(args.runId, seed)
+    console.log("━━━ concept phase ━━━")
+    await runConceptPhase(args.runId, seed)
 
-  console.log("\n━━━ planning phase ━━━")
-  await runPlanningPhase(args.runId)
+    console.log("\n━━━ planning phase ━━━")
+    await runPlanningPhase(args.runId)
+  }
 
   // Sanity check: are any scene-contract fields populated? POC runs are
   // allowed to continue even if the planner under-populates (per the
@@ -284,16 +296,19 @@ async function main(): Promise<void> {
     }
   }
   console.log(`\nplanner output: ${planCheck.length} chapters, ${totalScenes} scenes; ${scenesWithAnyField}/${totalScenes} scenes have at least one scene-contract field populated.`)
-  if (totalScenes === 0) {
+  if (!args.captureOnly && totalScenes === 0) {
     throw new Error(`planner produced no scenes; aborting before drafting (would burn tokens with no upside)`)
   }
   if (scenesWithAnyField === 0) {
     console.warn(`WARNING: planner populated 0 scene-contract fields. The scene-call writer prompt will degrade to legacy-shaped (header only). Continuing anyway — POC discipline says collect the artifact and decide post-hoc.`)
   }
 
-  console.log("\n━━━ drafting phase (draft-capture mode) ━━━")
-  const draftingResult = await runDraftingPhase(args.runId)
-  console.log(`drafting kind: ${draftingResult.kind}`)
+  let draftingResult: { kind: string } = { kind: "capture-only" }
+  if (!args.captureOnly) {
+    console.log("\n━━━ drafting phase (draft-capture mode) ━━━")
+    draftingResult = await runDraftingPhase(args.runId)
+    console.log(`drafting kind: ${draftingResult.kind}`)
+  }
 
   console.log("\n━━━ capturing artifacts ━━━")
   const { savedChapters, missingChapters } = await captureChapterArtifacts(args.runId, outputDir, args.chapters)
