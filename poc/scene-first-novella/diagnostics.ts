@@ -87,7 +87,15 @@ Score 0-3:
 
 Be strict on 3. Most chapters that "address the endpoint" actually score 1 or 2. Only score 3 when the prose unambiguously stages the endpoint.
 
-Respond as JSON conforming to the schema. Quote prose in the evidence field; do not paraphrase.`
+Respond with EXACTLY this JSON shape (and no other top-level fields):
+{
+  "declared_endpoint": "<one-sentence restatement of the planner endpoint>",
+  "arrived": <integer 0|1|2|3>,
+  "evidence": "<one direct quote (≤30 words) from the chapter prose, OR 'no evidence found' if 0>",
+  "reasoning": "<≤2 sentences justifying the score against the declared endpoint>"
+}
+
+All four fields are required. "evidence" must be a STRING, not an object. Quote prose verbatim; do not paraphrase.`
 
 const SCENE_DRAMATURGY_SYSTEM = `You are a craft diagnostic judge for individual scenes inside a chapter. The chapter prose is concatenated; you are given the planner's description of one scene and must locate the matching span in the prose, then assess its dramatic completeness.
 
@@ -98,7 +106,16 @@ Three binary-leaning signals:
 
 Most "OK" scenes score value_shift=1 or 2, conflict_visible=true, decision_or_revelation=false. Reserve value_shift=3 for scenes whose ending materially changes the protagonist's situation.
 
-Respond as JSON conforming to the schema. Quote prose in the evidence field.`
+Respond with EXACTLY this JSON shape (and no other top-level fields):
+{
+  "prose_span_summary": "<≤30 words naming which prose span you read as 'this scene'>",
+  "value_shift": <integer 0|1|2|3>,
+  "conflict_visible": <boolean true|false>,
+  "decision_or_revelation": <boolean true|false>,
+  "evidence": "<one direct quote (≤30 words) supporting the strongest of the three signals>"
+}
+
+All five fields are required. "evidence" must be a STRING, not an object. Quote prose verbatim; do not paraphrase.`
 
 const CHARACTER_AGENCY_SYSTEM = `You are a craft diagnostic judge for character agency at scene granularity. Given a chapter's prose and one scene's planner description, locate the matching span and assess whether the POV protagonist actually drives the scene's events.
 
@@ -110,7 +127,15 @@ Score 0-3:
 
 A scene with strong protagonist interiority (ruminating, observing, recalling) but no on-page choice or action scores 1 at most. Agency is what shows up in the prose, not what the protagonist could feel.
 
-Respond as JSON conforming to the schema. Quote prose in the evidence field.`
+Respond with EXACTLY this JSON shape (and no other top-level fields):
+{
+  "protagonist_name": "<the POV character's name as the prose presents them>",
+  "agency": <integer 0|1|2|3>,
+  "named_choice_or_action": "<name the most agency-bearing choice or action, OR 'none' if 0>",
+  "evidence": "<one direct quote (≤30 words) supporting the agency assessment>"
+}
+
+All four fields are required. "evidence" must be a STRING, not an object. Quote prose verbatim; do not paraphrase.`
 
 // ── Diagnostic helpers ──────────────────────────────────────────────────
 
