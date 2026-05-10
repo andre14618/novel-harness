@@ -114,8 +114,8 @@ unless the user explicitly requests a disposable branch.
 - Visibility/interactivity foundation is at scope ceiling for now; additional
   UI work is lower priority unless a UI surface changes as part of a specific
   accepted slice.
-- Fact roles remain A/B-only; do not wire writer/checker policy without new
-  evidence.
+- Fact roles remain A/B-only; live runs require `--allow-disposable-ab`, and
+  writer/checker policy must not be wired without new evidence.
 
 ## Next
 

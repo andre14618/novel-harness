@@ -55,6 +55,8 @@ clone-only five-beat cap.
   another live role-policy promotion attempt.
 - Live A/B reports should include terminal gate evidence and an explicit
   promotion verdict so "mechanism worked" is not confused with "promote."
+- The live A/B runner is disposable evidence only and now requires
+  `--allow-disposable-ab` before it creates cloned legacy/role-aware novels.
 
 ## Related
 

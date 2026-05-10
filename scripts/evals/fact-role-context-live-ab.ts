@@ -29,6 +29,7 @@ export interface Args {
   source: string
   chapters: number
   outputBase: string
+  allowDisposableAb: boolean
   keepNovels: boolean
   injectFixture: string | null
   maxBeatsPerChapter: number | null
@@ -234,12 +235,22 @@ export function parseArgs(argv: string[]): Args {
     source,
     chapters,
     outputBase: isAbsolute(rawOutput) ? rawOutput : resolve(process.cwd(), rawOutput),
+    allowDisposableAb: boolOpt(map["allow-disposable-ab"]) || boolOpt(map["allow-disposable-eval"]),
     keepNovels: boolOpt(map["keep-novels"]),
     injectFixture: stringOpt(map["inject-fixture"]) ?? null,
     maxBeatsPerChapter: optionalPositiveInt(map["max-beats-per-chapter"], "--max-beats-per-chapter"),
     allowNoRoleDelta: boolOpt(map["allow-no-role-delta"]),
     allowSingleChapter: boolOpt(map["allow-single-chapter"]),
   }
+}
+
+export function assertDisposableAbAllowed(args: { allowDisposableAb: boolean }): void {
+  if (args.allowDisposableAb) return
+  throw new Error([
+    "eval:fact-role-context-live-ab is a disposable live A/B runner under L82/L106, not the production path.",
+    "It clones novels and runs legacy versus role-aware experimental arms.",
+    "Pass --allow-disposable-ab only when intentionally creating disposable fact-role A/B evidence.",
+  ].join(" "))
 }
 
 export function capOutlineBeatsForEval<T extends { scenes?: unknown[] }>(outline: T, maxBeats: number): T {
@@ -468,9 +479,10 @@ async function main(argv: string[]): Promise<number> {
   let args: Args
   try {
     args = parseArgs(argv)
+    assertDisposableAbAllowed(args)
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err))
-    console.error("usage: bun scripts/evals/fact-role-context-live-ab.ts --source <drafting-source-novel-id> [--chapters 2] [--inject-fixture tests/role-context-policy-fixtures/reference-hidden-basic.json] [--output-base output/evals/... ] [--keep-novels]")
+    console.error("usage: bun scripts/evals/fact-role-context-live-ab.ts --allow-disposable-ab --source <drafting-source-novel-id> [--chapters 2] [--inject-fixture tests/role-context-policy-fixtures/reference-hidden-basic.json] [--output-base output/evals/... ] [--keep-novels]")
     return 2
   }
 

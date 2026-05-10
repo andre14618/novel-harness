@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
 import {
+  assertDisposableAbAllowed,
   buildArmTerminalSummary,
   buildLiveAbDelta,
   buildLiveAbVerdict,
@@ -195,15 +196,23 @@ Unresolved issues (1):
     expect(args.source).toBe("source-novel")
     expect(args.chapters).toBe(2)
     expect(args.outputBase).toContain("output/evals/fact-role-context-live-ab")
+    expect(args.allowDisposableAb).toBe(false)
     expect(args.keepNovels).toBe(false)
     expect(args.injectFixture).toBeNull()
     expect(args.maxBeatsPerChapter).toBeNull()
   })
 
+  test("requires explicit disposable A/B acknowledgement", () => {
+    expect(() => assertDisposableAbAllowed(parseArgs(["--source", "source-novel"]))).toThrow(/disposable live A\/B/)
+    expect(() => assertDisposableAbAllowed(parseArgs(["--allow-disposable-ab", "--source", "source-novel"]))).not.toThrow()
+    expect(() => assertDisposableAbAllowed(parseArgs(["--allow-disposable-eval", "--source", "source-novel"]))).not.toThrow()
+  })
+
   test("parseArgs accepts bounded clone outline beat cap", () => {
-    const args = parseArgs(["--source", "source-novel", "--max-beats-per-chapter", "5"])
+    const args = parseArgs(["--allow-disposable-ab", "--source", "source-novel", "--max-beats-per-chapter", "5"])
 
     expect(args.maxBeatsPerChapter).toBe(5)
+    expect(args.allowDisposableAb).toBe(true)
   })
 
   test("capOutlineBeatsForEval trims disposable clone scenes without mutating source object", () => {

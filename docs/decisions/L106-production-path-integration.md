@@ -162,6 +162,11 @@ main production lane. The production lessons already absorbed from that lane
 include exact-ID character context defaults and the writer-context/readiness
 telemetry path.
 
+The `eval:fact-role-context-live-ab` runner now requires
+`--allow-disposable-ab` before cloning novels into legacy and role-aware arms.
+Fact-role-aware context remains an A/B-only hold under L82; new evidence must be
+deliberately disposable and cannot be mistaken for a production path.
+
 The first production-path operator loop on `p1-allow-brief-1778447459`
 dispositioned superseded whole-chapter semantic lows, created two manual
 planning edits, approved them through the normal planning-proposal route, and
