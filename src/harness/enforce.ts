@@ -10,7 +10,7 @@
 
 import type { CharacterProfile, ChapterOutline, SceneBeat } from "../types"
 import type { BeatObligationItem } from "../schemas/shared"
-import { assessBeatCountForTarget, minimumBeatCountForTarget, planningBeatCountPolicy } from "./beat-counts"
+import { assessBeatCountForTarget, planningBeatCountPolicy } from "./beat-counts"
 
 // ── Planning Phase ────────────────────────────────────────────────────────
 
@@ -24,6 +24,7 @@ export interface PlanningEnforcement {
 export interface PlanningEnforcementOptions {
   maxBeatsPerChapter?: number | null
   nativePlanningContractV1?: boolean
+  scenePlanContractV1?: boolean
 }
 
 /**
@@ -64,29 +65,45 @@ export function enforcePlanningOutput(
     }
   }
 
-  // Enforce every chapter has at least one scene beat + meets beat-count floor
+  // Enforce every chapter has at least one plan entry. Legacy/native beat
+  // plans still use the calibrated count floor as a hard structural guard;
+  // scene-contract plans keep word-derived count guidance advisory per L102.
   for (const ch of chapters) {
+    const scenePlanContractV1 = options.scenePlanContractV1 ?? false
     if (!ch.scenes || ch.scenes.length === 0) {
-      errors.push(`Chapter ${ch.chapterNumber} has no scene beats`)
+      errors.push(`Chapter ${ch.chapterNumber} has no ${scenePlanContractV1 ? "scene contracts" : "scene beats"}`)
       continue
     }
     const target = ch.targetWords ?? 1000
-    const floor = minimumBeatCountForTarget(target)
-    if (ch.scenes.length < floor) {
-      errors.push(`Chapter ${ch.chapterNumber}: ${ch.scenes.length} beats below floor ${floor} for ${target}w target`)
-    }
     const policy = planningBeatCountPolicy(target, options.maxBeatsPerChapter)
-    if (policy.effectiveMaxBeats !== null && ch.scenes.length > policy.effectiveMaxBeats) {
-      errors.push(`Chapter ${ch.chapterNumber}: ${ch.scenes.length} beats above planning max ${policy.effectiveMaxBeats} for ${target}w target`)
+    const assessment = assessBeatCountForTarget(target, ch.scenes.length)
+    const effectiveMaxEntries = scenePlanContractV1
+      ? normalizeExplicitEntryMax(options.maxBeatsPerChapter)
+      : policy.effectiveMaxBeats
+    if (!scenePlanContractV1 && ch.scenes.length < assessment.minRecommendedBeats) {
+      errors.push(`Chapter ${ch.chapterNumber}: ${ch.scenes.length} beats below floor ${assessment.minRecommendedBeats} for ${target}w target`)
+    } else if (scenePlanContractV1 && assessment.underPlanned) {
+      warnings.push(
+        `Chapter ${ch.chapterNumber}: ${ch.scenes.length} scene contracts below rough scope guide ` +
+          `${assessment.minRecommendedBeats} for ${target}w target`,
+      )
     }
-    if (options.nativePlanningContractV1) {
-      const assessment = assessBeatCountForTarget(target, ch.scenes.length)
+    if (effectiveMaxEntries !== null && ch.scenes.length > effectiveMaxEntries) {
+      const unit = scenePlanContractV1 ? "scene contracts" : "beats"
+      errors.push(`Chapter ${ch.chapterNumber}: ${ch.scenes.length} ${unit} above planning max ${effectiveMaxEntries} for ${target}w target`)
+    }
+    if (options.nativePlanningContractV1 && !scenePlanContractV1) {
       if (assessment.overPlanned) {
         errors.push(
           `Chapter ${ch.chapterNumber}: ${ch.scenes.length} beats above native planning budget ` +
             `${assessment.recommendedBeats}+1 for ${target}w target`,
         )
       }
+    } else if (scenePlanContractV1 && assessment.overPlanned) {
+      warnings.push(
+        `Chapter ${ch.chapterNumber}: ${ch.scenes.length} scene contracts above rough scope guide ` +
+          `${assessment.recommendedBeats}+1 for ${target}w target`,
+      )
     }
   }
 
@@ -102,6 +119,12 @@ export function enforcePlanningOutput(
   for (const ch of chapters) sanitizePayoffLinks(ch, warnings)
 
   return { valid: errors.length === 0, chapters, errors, warnings }
+}
+
+function normalizeExplicitEntryMax(value: number | null | undefined): number | null {
+  if (typeof value !== "number") return null
+  if (!Number.isInteger(value) || value <= 0) return null
+  return value
 }
 
 function sanitizePayoffLinks(ch: ChapterOutline, warnings: string[]): void {

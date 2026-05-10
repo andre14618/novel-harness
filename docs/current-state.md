@@ -63,6 +63,10 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 - Current product focus is upstream concept/planning methodology and
   scene-first drafting evidence, not broad UI or autonomy expansion.
+- Planning should scope the story ask before drafting: scene count, scene
+  load, obligation density, endpoint/hook fit, and chapter split decisions.
+  Word counts are telemetry and rough chapter-size signals, not the primary
+  prose-control mechanism. See L102.
 - Scene is the future plan/write/check unit. Beats remain annotations,
   obligations, legacy compatibility, or internal hints; `beatId` should be used
   only for real beat-specific records. See L092/L095.

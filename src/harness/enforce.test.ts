@@ -54,6 +54,25 @@ test("planning enforcement uses calibrated beat count floor", () => {
   expect(result.errors).toEqual(["Chapter 1: 3 beats below floor 4 for 1500w target"])
 })
 
+test("scene contract planning treats word-derived count floor as advisory", () => {
+  const outline = chapter({
+    targetWords: 1500,
+    scenes: [
+      beat({ description: "Istra finds the missing dose." }),
+      beat({ description: "Wren accepts the cost." }),
+    ],
+  })
+
+  const result = enforcePlanningOutput([outline], 1, [character("Istra Venn")], {
+    nativePlanningContractV1: true,
+    scenePlanContractV1: true,
+  })
+
+  expect(result.valid).toBe(true)
+  expect(result.errors).toEqual([])
+  expect(result.warnings).toContain("Chapter 1: 2 scene contracts below rough scope guide 4 for 1500w target")
+})
+
 test("planning enforcement accepts a compact 1500 word chapter at four beats", () => {
   const outline = chapter({
     targetWords: 1500,
@@ -132,6 +151,30 @@ test("planning enforcement rejects over-fragmented native contract outlines with
   expect(native.errors).toEqual([
     "Chapter 1: 7 beats above native planning budget 5+1 for 1500w target",
   ])
+})
+
+test("scene contract planning treats word-derived overage as advisory", () => {
+  const outline = chapter({
+    targetWords: 1500,
+    scenes: [
+      beat({ description: "Istra finds the missing dose." }),
+      beat({ description: "Wren refuses the treatment." }),
+      beat({ description: "Istra proves the danger." }),
+      beat({ description: "Wren accepts the cost." }),
+      beat({ description: "The council arrives." }),
+      beat({ description: "Istra locks the ward." }),
+      beat({ description: "Wren names the price." }),
+    ],
+  })
+
+  const result = enforcePlanningOutput([outline], 1, [character("Istra Venn")], {
+    nativePlanningContractV1: true,
+    scenePlanContractV1: true,
+  })
+
+  expect(result.valid).toBe(true)
+  expect(result.errors).toEqual([])
+  expect(result.warnings).toContain("Chapter 1: 7 scene contracts above rough scope guide 5+1 for 1500w target")
 })
 
 function chapter(overrides: Partial<ChapterOutline> = {}): ChapterOutline {

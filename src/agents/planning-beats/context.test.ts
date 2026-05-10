@@ -57,6 +57,9 @@ test("planning beat context renders scene plan contract guidance when flag is on
   expect(context).toContain("crisisChoice")
   expect(context).toContain("Causal-motivation-v3 expectations")
   expect(context).toContain("must NOT simply restate the outcome")
+  expect(context).toContain("Recommended scene contracts for this chapter size: around 5")
+  expect(context).toContain("Do not rely on per-scene word targets")
+  expect(context).not.toContain("minimum structural floor")
 })
 
 test("planning beat context renders calibrated beat count guidance", () => {
@@ -106,9 +109,10 @@ test("planning beat context renders calibrated beat count guidance", () => {
     },
   } as Parameters<typeof buildContext>[0])
 
-  expect(context).toContain("Minimum beats required: 4")
-  expect(context).toContain("Recommended: 5 beats")
-  expect(context).toContain("~300-450 words per planned beat")
+  expect(context).toContain("Target words are a rough chapter-size signal")
+  expect(context).toContain("Recommended story-turn entries for this chapter size: 5")
+  expect(context).toContain("minimum structural floor: 4")
+  expect(context).toContain("Scope by content load")
   expect(context).not.toContain("100-140 words")
 })
 
@@ -160,8 +164,8 @@ test("planning beat context renders explicit planning max override guidance", ()
     },
   } as Parameters<typeof buildContext>[0])
 
-  expect(context).toContain("Planning max override: 4 beats")
-  expect(context).toContain("Do not exceed this cap")
+  expect(context).toContain("Planning max override: 4 entries")
+  expect(context).toContain("Do not exceed this explicit cap")
 })
 
 test("planning beat context renders native contract guidance by default with explicit legacy override", () => {
@@ -258,11 +262,11 @@ test("planning beat context renders native contract guidance by default with exp
   } as Parameters<typeof buildContext>[0])
 
   expect(context).toContain("Native planning contract")
-  expect(context).toContain("Author exactly 5 complete story-turn beats")
+  expect(context).toContain("Author about 5 complete story-turn entries")
   expect(context).toContain("include povPersonalStake")
   expect(context).toContain("want, need, fear")
   expect(context).toContain("Do not emit micro-actions")
-  expect(context).toContain("final beat must preserve the chapter endpoint/hook")
+  expect(context).toContain("final entry must preserve the chapter endpoint/hook")
   expect(context).not.toContain("Planning max override")
   expect(legacy).not.toContain("Native planning contract")
 })

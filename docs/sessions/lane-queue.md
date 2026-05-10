@@ -90,7 +90,10 @@ unless the user explicitly requests a disposable branch.
   `poc/scene-first-novella/` runner using P3 first, producing a 3-chapter
   output directory with scene contracts, prose, trace metadata, post-hoc
   diagnostics, and static HTML. Skip proposal/UI/Plan-Assist/blocking checker
-  hardening unless the POC directly tests it.
+  hardening unless the POC directly tests it. Treat the 3x word overshoot as a
+  planner-scope finding first: inspect whether chapter purposes and scene
+  contracts ask for too much story, not whether the writer can be forced to hit
+  a numeric quota. See L102.
 - Production scene-first migration S1 is deferred until the POC yields
   reader-visible evidence. When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,

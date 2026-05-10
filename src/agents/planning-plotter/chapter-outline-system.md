@@ -20,10 +20,11 @@ Do NOT include `scenes`, `establishedFacts`, `characterStateChanges`, or `knowle
 Guidelines:
 - Produce exactly the requested number of chapters (the user message will tell you).
 - `purpose` is 1-2 sentences describing the chapter's story function (setup, complication, reversal, climax, etc.). Do NOT enumerate beats inside `purpose`.
-- `targetWords`: 800-1500 for short stories, 1500-3000 for longer novels. Pick per chapter based on its dramatic weight.
+- `targetWords`: 800-1500 for short stories, 1500-3000 for longer novels. Treat this as a chapter-size signal, not a writer quota. Pick it based on dramatic weight and keep the chapter purpose sized to match.
 - `povCharacter` must be a named character from the character list. Protagonist should hold POV for most chapters; rotate only when a different perspective is load-bearing.
 - `charactersPresent` lists ALL named characters who appear in the chapter, even briefly.
 - Every chapter must advance the plot AND develop at least one character.
+- Scope the ask correctly. A short chapter should usually center on one load-bearing development plus a hook. If a purpose needs multiple set pieces, investigations, confrontations, or major reveals, either allocate more chapters or make the chapter visibly larger. Do not hide an oversized chapter inside a small target.
 
 Structural requirements across the whole arc:
 - STASIS = DEATH: the opening chapter must establish why the protagonist's current situation is unsustainable.
