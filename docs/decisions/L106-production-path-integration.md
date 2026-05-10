@@ -234,6 +234,15 @@ surface the same clean-source assessment as advisory telemetry. Clean
 production evidence should start from a pre-drafting source; contaminated
 replay is an explicit investigation mode.
 
+`diagnostics:planning-edit-replay` now provides the bridge from a drafted
+evidence artifact back to a clean Drafting Evidence Source. It reads approved
+`planning_edit` envelopes from source Novel artifacts, recreates equivalent
+manual planning proposals on the clean target Novel through the normal
+planning-proposal route, and can optionally approve them with
+`resolvedBy=script`. This keeps projected fixes in production proposal and
+lineage records instead of relying on direct DB mutation or POC-only replay
+scripts.
+
 ## Evidence And Verification
 
 Production-path integration needs:
