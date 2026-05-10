@@ -1,12 +1,32 @@
 import { describe, expect, test } from "bun:test"
 
 import {
+  assertDisposableDataLoopAllowed,
   filterAggregateForCellArm,
   outlinesFromPlannerContractPlan,
+  parseArgs,
   renderLoopReport,
 } from "./plan-readiness-data-loop"
 
 describe("plan-readiness-data-loop", () => {
+  test("parseArgs requires explicit disposable data-loop acknowledgement", () => {
+    const baseArgs = [
+      "--cell", "cell.json",
+      "--report", "report.json",
+    ]
+
+    expect(parseArgs(baseArgs)).toMatchObject({
+      cellPath: "cell.json",
+      reports: ["report.json"],
+      allowDisposableDataLoop: false,
+    })
+    expect(() => assertDisposableDataLoopAllowed(parseArgs(baseArgs))).toThrow(/disposable bridge smoke/)
+    expect(() => assertDisposableDataLoopAllowed(parseArgs([
+      "--allow-disposable-data-loop",
+      ...baseArgs,
+    ]))).not.toThrow()
+  })
+
   test("converts scene-first planner contracts into matching outline targets", () => {
     const outlines = outlinesFromPlannerContractPlan(plan() as any)
 

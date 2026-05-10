@@ -116,10 +116,11 @@ approves a chapter affected by a proposal-backed planning edit, the harness
 records a draft impact keyed by exact draft hash; validation can then attach
 checker observations to that planning edit without timing-based inference.
 
-Current diagnostic command:
+Historical disposable bridge smoke:
 
 ```bash
 bun run diagnostics:plan-readiness-data-loop -- \
+  --allow-disposable-data-loop \
   --cell <method-pack-cohort-cell.json> \
   --report <planner-discernment-real-data-report.json> \
   --arm <arm-id> \
@@ -127,14 +128,14 @@ bun run diagnostics:plan-readiness-data-loop -- \
   --observe-downstream clear
 ```
 
-This command builds a disposable DB novel from a matched scene-first planner
-cell, imports selected discernment findings, records explicit or sample
-dispositions, creates replacement/remove-requirement planning proposals,
-optionally approves them, records diagnostic draft/checker observations through
-the exact draft-hash observer path, and writes JSON/Markdown evidence under
-`output/method-pack-diagnostics/`. It proves the readiness bridge, lineage, and
-observer plumbing; it does not prove story quality until a real draft/checker
-or operator-labeled outcome is attached.
+This command remains available for deliberate disposable bridge smoke tests. It
+builds a disposable DB novel from a matched scene-first planner cell, imports
+selected discernment findings, records explicit or sample dispositions, creates
+replacement/remove-requirement planning proposals, optionally approves them,
+records diagnostic draft/checker observations through the exact draft-hash
+observer path, and writes JSON/Markdown evidence under
+`output/method-pack-diagnostics/`. It is not the production operating path for
+real novels; production work should use the import/review/apply commands below.
 
 Production planner-quality diagnostics can also feed upstream readiness review
 before drafting:
@@ -315,9 +316,9 @@ Done:
 
 Next:
 
-1. Use the data-loop command with real operator-selected dispositions instead
-   of fixture dispositions, then attach real draft/checker or operator-labeled
-   downstream outcomes.
+1. Use production readiness import/review/apply with real operator-selected
+   dispositions, then attach real draft/checker or operator-labeled downstream
+   outcomes.
 2. Add a minimal Planning Studio review panel only after the data contract is
    stable; UI work then requires Playwright evidence.
 

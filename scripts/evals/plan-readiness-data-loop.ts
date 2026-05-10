@@ -6,6 +6,8 @@
  * findings, records sample operator dispositions, creates normal manual
  * planning_edit proposals, optionally approves them, and writes an outcome
  * report. It does not draft prose, call LLMs, or promote runtime behavior.
+ * Under L106 it is a disposable bridge smoke, not the production operating
+ * path for real novels.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
@@ -52,6 +54,7 @@ interface Args {
   dispositionPath: string | null
   downstreamObservation: "none" | "clear" | "fired"
   json: boolean
+  allowDisposableDataLoop: boolean
 }
 
 interface MethodPackCell {
@@ -867,7 +870,7 @@ function operatorDispositionForDecision(decision: DispositionPlanAction["decisio
   return "real_issue"
 }
 
-function parseArgs(argv: string[]): Args {
+export function parseArgs(argv: string[]): Args {
   const reports: string[] = []
   const labels: string[] = []
   let cellPath = ""
@@ -879,6 +882,7 @@ function parseArgs(argv: string[]): Args {
   let dispositionPath: string | null = null
   let downstreamObservation: Args["downstreamObservation"] = "none"
   let json = false
+  let allowDisposableDataLoop = false
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!
@@ -902,6 +906,7 @@ function parseArgs(argv: string[]): Args {
     else if (arg.startsWith("--observe-downstream=")) downstreamObservation = parseDownstreamObservation(arg.slice("--observe-downstream=".length))
     else if (arg === "--no-approve") approveProposals = false
     else if (arg === "--json") json = true
+    else if (arg === "--allow-disposable-data-loop") allowDisposableDataLoop = true
     else throw new Error(`unknown arg: ${arg}`)
   }
 
@@ -919,7 +924,17 @@ function parseArgs(argv: string[]): Args {
     dispositionPath,
     downstreamObservation,
     json,
+    allowDisposableDataLoop,
   }
+}
+
+export function assertDisposableDataLoopAllowed(args: Args): void {
+  if (args.allowDisposableDataLoop) return
+  throw new Error([
+    "diagnostics:plan-readiness-data-loop is a disposable bridge smoke under L106, not the production path for real novels.",
+    "For production readiness work, import diagnostics, generate a review plan, then apply an operator-edited plan with diagnostics:plan-readiness-apply.",
+    "Pass --allow-disposable-data-loop only when intentionally exercising disposable planner data.",
+  ].join(" "))
 }
 
 function defaultOutputDir(cellPath: string): string {
@@ -972,11 +987,12 @@ async function main(argv: string[]): Promise<number> {
     args = parseArgs(argv)
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err))
-    console.error("usage: bun scripts/evals/plan-readiness-data-loop.ts --cell <method-pack-cell.json> --report <real-data-report.json> [--report <json> ...] [--arm <armId>] [--label <LABEL> ...] [--limit <n>] [--output-dir <dir>] [--novel-id <id>] [--dispositions <plan.json>] [--observe-downstream none|clear|fired] [--no-approve] [--json]")
+    console.error("usage: bun scripts/evals/plan-readiness-data-loop.ts --allow-disposable-data-loop --cell <method-pack-cell.json> --report <real-data-report.json> [--report <json> ...] [--arm <armId>] [--label <LABEL> ...] [--limit <n>] [--output-dir <dir>] [--novel-id <id>] [--dispositions <plan.json>] [--observe-downstream none|clear|fired] [--no-approve] [--json]")
     return 2
   }
 
   try {
+    assertDisposableDataLoopAllowed(args)
     const report = await runLoop(args)
     const outputDir = args.outputDir ?? defaultOutputDir(args.cellPath)
     writeReportFiles(report, outputDir)

@@ -133,7 +133,9 @@ Existing production readiness items can now be acted on through
 `diagnostics:plan-readiness-apply`, which consumes an explicit operator plan
 and calls the normal Plan Readiness routes for dispositions or manual
 `planning_edit` proposal creation. It replaces the disposable data-loop as the
-forward operating path for real novels.
+forward operating path for real novels. The data-loop now requires
+`--allow-disposable-data-loop` and is reserved for deliberate bridge smoke
+tests on disposable planner data.
 
 Existing Plan Readiness-compatible JSON sidecars can be imported directly with
 `diagnostics:plan-readiness-import`, so production review can reuse evaluator
