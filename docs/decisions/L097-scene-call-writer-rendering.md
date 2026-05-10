@@ -85,3 +85,22 @@ Other L092 non-goals unchanged:
 
 - Slice 2.5 (deferred evidence): build `test-drafting-isolated.ts` that takes a planning-done novel id and runs only drafting with `sceneCallWriterV1` + `writerExpansionMode` controllable. Then run a fixed-plan A/B against an existing planning-done novel from the L096 smoke runs. If results match POC's 0.60 → 0.79 ratio gain with no regression, propose flipping `sceneCallWriterV1` to default-on in a separate decision.
 - Slice 3 (L098): scene-satisfaction LLM diagnostic + scene-keyed checker fields + parity panel. Diagnostic only; does not depend on Slice 2 evidence.
+
+## 2026-05-10 Amendment — Slice 2.5 Harness Shipped, A/B Inconclusive on Tested Fixture
+
+Slice 2.5 deliverable shipped: `scripts/test-drafting-isolated.ts` clones a planning-done source novel twice (control + treatment), sets writer flags differently on each clone via `seed_json.pipelineOverrides`, runs `runDraftingPhase` on both arms sequentially, and prints a per-chapter word-ratio comparison. The harness itself is end-to-end correct (clone subprocess, flag-set, drafting runner, ratio collection, expansion-event count).
+
+First production A/B run on `test-planner-fantasy-cartographer-1778375271479` (10-chapter L096 r4 advisory plan, target prefix `ab-2026-05-10`) produced **inconclusive evidence**:
+
+- **Baseline arm:** 5/10 chapters drafted before bailing on a halluc-ungrounded plan-assist gate (chapter 6, "Guild cartographer" entity ungrounded). Per-chapter word ratios: ch1 1.81, ch2 2.14, ch3 2.38, ch4 2.42, ch5 2.27. Mean ratio **2.204** — every chapter overshot target by 80-140%.
+- **Treatment arm:** 0/10 chapters drafted; bailed at chapter 1 on the same halluc-ungrounded entity. Mean ratio not measurable.
+- **Writer-expansion events fired across both arms:** 0.
+
+The result is structurally informative but does not test the L097 hypothesis. The expansion path L097 ships only fires when `actualWords < advisoryFloor` (70% of target). Baseline ratios at 2.0×+ over target mean the expansion path would never trigger on this fixture even with both flags on. The POC's 0.60 → 0.79 ratio gain was measured on a fixture where writers undershot; this production fixture has the opposite ratio profile.
+
+Two follow-up paths to actually answer the deferred question:
+
+1. **Pick a fixture where writers undershoot.** The fixture must produce sub-1.0 baseline ratios for the expansion path to engage. Candidates: a fixture with deliberately compact target words (e.g., target 800-1000 per chapter where writer naturally produces 600-700), or a non-fantasy fixture where DeepSeek writes shorter prose. The L096 advisory novels all produce over-target prose; they're the wrong shape for this test.
+2. **Bypass plan-assist or pre-resolve the halluc entities.** The `setAutoMode(true)` setting does not auto-resolve plan-assist gates; the run still bails. To produce 10-chapter A/B data on either fixture profile, the fixture's hallucinated entities must be pre-resolved (concept update or proposal closure) or the harness must run with a configuration that auto-passes plan-assist gates.
+
+Without either, the Slice 2.5 harness exists but the empirical question — does L097's wiring reproduce POC's 0.60 → 0.79 word-ratio gain on production planner output — remains open. The flags stay default-off; per-novel opt-in via `pipelineOverrides` is still the supported path for evaluation. Promotion to default-on remains gated on a successful A/B that engages the expansion path on a sub-1.0-ratio fixture.

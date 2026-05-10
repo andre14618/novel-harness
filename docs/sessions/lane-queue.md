@@ -31,8 +31,18 @@ unless the user explicitly requests a disposable branch.
     `sceneSatisfactionCheckerV1` flag, obligation-aware validation-routing
     helper that closes a silent-no-op routing bug. LLM judge + parity
     panel deferred to Slice 3.5 backlog.
-  - Slice 2.5 (deferred): build `test-drafting-isolated.ts` + run fixed-plan
-    A/B for `sceneCallWriterV1` + `writerExpansionMode` evidence.
+  - Slice 2.5 (harness shipped, A/B inconclusive 2026-05-10):
+    `scripts/test-drafting-isolated.ts` clones planning-done source twice and
+    runs drafting on both arms with different writer flags. First run on
+    `test-planner-fantasy-cartographer-1778375271479` produced no usable A/B —
+    baseline arm drafted 5/10 chapters at mean ratio 2.20 (over-target across
+    the board), treatment arm bailed at ch1 on a halluc-ungrounded plan-assist
+    gate. Zero `writer-expansion` events fired in either arm because the L097
+    expansion path only triggers when `actualWords < advisoryFloor` (70% of
+    target) and this fixture overshoots. To actually answer the deferred
+    question, pick a fixture where writers undershoot AND bypass/pre-resolve
+    plan-assist gates so both arms can complete the full 10 chapters. Until
+    then, `sceneCallWriterV1` and `writerExpansionMode` stay default-off.
   - Slice 3.5 (deferred): port narrow scene-semantic LLM judge to
     `scripts/evals/scene-semantic-review.ts` (replay-only) + build
     `scene-checker-parity-panel.ts` (agreement matrix). Diagnostic only.
