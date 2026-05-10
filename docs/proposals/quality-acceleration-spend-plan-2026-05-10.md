@@ -1,329 +1,340 @@
 ---
 status: proposal
 date: 2026-05-10
+reviewed: 2026-05-10
 role: spend-plan
-inputs: external-session-tier-list (no repo access)
+scope: POC acceleration, engineering throughput, quality evidence
 ---
 
 # Quality Acceleration Spend Plan
 
-External response to "how do we trade subscription / API spend directly for
-faster, higher-quality artifacts in this harness." This document does two
-things:
+This proposal answers a narrow question: how should Novel Harness spend more
+tokens, model calls, and engineering-agent time to get to better writing
+functionality faster?
 
-1. Pushes back, item by item, on the external tier list. Several Tier 1
-   items don't apply or are explicitly retired in this repo. Several Tier 2
-   items already exist as standing rules.
-2. Codifies the spend levers that actually move quality given current state
-   (L100 POC lane, scene-first migration in flight, DeepSeek-only runtime,
-   subagent-heavy engineering).
+The answer is not "buy more infrastructure." The answer is:
 
-The goal is **dollars → throughput → reader-visible artifact**, not
-"infrastructure that compounds for twelve months." The repo is closer to a
-near-production POC than a greenfield system; spending order is different.
+1. Generate more reader-visible artifacts per day.
+2. Compare more alternatives side-by-side.
+3. Use narrow diagnostic judges to reduce how much prose the operator must
+   read manually.
+4. Parallelize engineering work by ownership.
+5. Promote only the slices whose artifacts prove value.
 
----
+This plan is subordinate to L090 and L100:
 
-## Why the external take needs adjustment
+- Runtime model policy remains DeepSeek V4 Flash / DeepSeek V4 Pro only.
+- POC work may move quickly under `poc/`, but production defaults do not change
+  without a production decision and verification gate.
+- Traceability IDs stay mandatory in state, DB, telemetry, diagnostics, audit,
+  and artifacts.
 
-The external session was working blind. Before going line-by-line, the four
-load-bearing assumptions it baked in:
+## Review Verdict
 
-| External assumption | Actual state |
-| --- | --- |
-| Anthropic Claude is the runtime LLM | **DeepSeek V4 Flash is the runtime.** L090 caps runtime to DeepSeek V4 Flash / V4 Pro only. Anthropic Claude appears in the engineering loop (subagents, reviews) but never on the per-chapter critical path. Tier-1 "Anthropic prompt cache optimization" therefore doesn't apply to chapter cost. |
-| Voice LoRA / Writer Pack training is the next step | **Voice LoRA / Writer Pack is retired** (CLAUDE.md Strategic Constraints; L090; memory: project_fine_tune_free_direction). New writer/checker fine-tunes are not the default path. Spending here would re-open a closed lane. |
-| Calibrated eval infrastructure needs to be built | **It exists** — `eval_briefs` + `eval_results` tables, `provenance-report.ts` CLI, full adapter lineage (memory: project_eval_infrastructure). The gap is *which* judges get calibrated, not whether infra exists. |
-| "K=3 sweeps" need to be introduced | **Already mandatory** — `docs/experiment-design-rules.md` §2 (baseline ladder + production-model anchor + third-anchor when cheap). Calling it out as a Tier-2 item would be re-stating standing policy. |
+The original spend memo had the right instinct but needed tightening:
 
-These four corrections collapse roughly half the original tier list into
-"already there" or "explicitly chosen against." That isn't a criticism of
-the external session — it's the cost of advising without source access.
+- It relied on private "memory:" references that another harness cannot load.
+- It mixed runtime model policy with engineering-agent usage.
+- It included precise-looking cost estimates that can go stale and should be
+  replaced by actual token/cost telemetry from each run.
+- It was still too cautious for the user's stated goal: buy acceleration now.
+- It spent too much space rebutting an external tier list instead of giving
+  coding agents a clear execution loop.
 
-The repo's current critical path (per `docs/sessions/lane-queue.md`):
+This revision keeps the useful direction and turns it into operational rules.
 
-- L100 POC acceleration lane is the primary frame: build vertical
-  reviewable artifacts under `poc/`, defer blocking checkers, spend cheap
-  model calls on evidence, **don't change production defaults**.
-- Production scene-first migration S1 is **deferred until the POC yields
-  reader-visible evidence**. Reader-visible evidence is the unlock; nothing
-  else.
-- The active artifact (running on LXC at the moment this doc lands) is
-  `poc/scene-first-novella/` — concept → planning → drafting → diagnostics
-  → static HTML, default-off scene-first flags, P3 fixture.
+## Core Principle
 
-A spend plan that ignores this state would buy infra for a system that
-doesn't need it yet.
+Spend is justified when it increases one of these:
 
----
+- **Artifact throughput:** more complete chapters/scenes/static review pages.
+- **Comparison power:** more arms over the same input, with traceable deltas.
+- **Judgment quality:** fewer operator-read pages before a useful decision.
+- **Engineering parallelism:** independent slices completed at the same time.
+- **Promotion confidence:** clearer evidence for or against a production change.
 
-## Item-by-item review
+Spend is not justified when it creates:
 
-### Tier 1 — infrastructure that compounds
+- generic infrastructure before a reader-visible artifact needs it;
+- new production defaults before POC evidence;
+- broad semantic judges without calibration;
+- UI polish before the writing/planning question is settled;
+- custom autonomous coding infrastructure inside this repo.
 
-| External item | Verdict | Note |
+## Proposed Spend Posture
+
+These are proposed operating caps for the active POC lane. They should be
+written into the lane queue or a decision record before being treated as
+standing authorization.
+
+| Spend class | Proposed default | Rule |
 | --- | --- | --- |
-| Anthropic prompt caching optimization | **Reject for runtime; partial yes for engineering.** Runtime is DeepSeek V4 Flash, which already exposes implicit cache hit tokens (`prompt_cache_hit_tokens`, tracked in `src/transport.ts`). Howard primer cache hit was historically ~94%. Where Anthropic *does* fire is the engineering loop — Claude Code subagents, Codex reviews. Default subagent traffic already exploits Anthropic prompt cache via the harness; explicit optimization is a small marginal lever and not Tier 1. |
-| Batch API for non-time-sensitive work | **Conditional yes for subagent/eval work; no for runtime.** DeepSeek doesn't expose a 50%-off batch endpoint the way Anthropic does, so this doesn't help per-chapter cost. Where it helps: large Sonnet teacher labeling runs and bulk research/eval shaped as Anthropic batch jobs. Concrete: any future >100-prompt judge labeling round. Not the bottleneck right now. |
-| Voice LoRA / Writer Pack training | **Reject.** Retired direction (CLAUDE.md Strategic Constraints; memory: project_fine_tune_free_direction; L090). Re-opening would require a new decision record and explicit re-authorization. The strategic bet is fine-tune-free + deterministic guards + scoped V4 Flash calls. |
-| Calibrated eval infrastructure | **Already exists; redirect the spend.** The infra is built. The actual open question is *which* judges to calibrate. Memory `feedback_dont_calibrate_noisy_llm_checkers` rules out chasing TP/FP panels for noisy LLM continuity / hallucination / grayzone checkers — that's the wrong direction. The right calibration target is the narrow, evidence-first judges in `docs/research/opus-semantic-judge-plan.md` (endpoint-landing, scene-dramaturgy, character-agency). Spend goes there, not generic per-checker P/R. |
+| Routine POC run | proceed without stopping | Use when it produces a reviewable artifact or diagnostic report. |
+| Full fixture/arm sweep | proceed if the command, inputs, and expected artifact are named | Record output path and actual usage. |
+| Engineering subagents | use aggressively when write scopes are separable | Assign ownership; avoid duplicate edits. |
+| Strong review/adjudication agents | use at coherent stop gates | Prefer review of artifacts, diffs, and promotion choices. |
+| Large one-off research/eval batch | require a named question and stop gate | Do not run broad research without a decision it can change. |
+| Production default flip | never spend-through | Requires production change packet, decision record, and verification. |
 
-### Tier 2 — experimentation parallelism
+Replace dollar guesses with observed data wherever possible:
 
-| External item | Verdict | Note |
-| --- | --- | --- |
-| K=3 sweeps on every claim | **Already mandatory.** `docs/experiment-design-rules.md` §2 + CLAUDE.md primary-lane rule. No new spend; no new policy. |
-| Multi-arm primary-lane experiments | **Already mandatory.** "A primary lane must declare its baseline, changed runtime lever, feedback signal, stop gate, and escalation rule before live validation." The standing rule is *one* primary lane; the external proposal's "spend heavily within that lane" is what we already do (writer-arms list in `test-drafting-isolated`). |
-| Multi-model parallel evaluation | **Conditional yes — diagnostic only.** Active runtime is DeepSeek-only per L090. *Off-policy* multi-model eval against produced artifacts (e.g., Opus 4.7 vs Sonnet 4.6 vs DeepSeek scoring the same scenes) is permitted and useful as a diagnostic anchor. Useful when paired with the narrow judge plan above; not useful as a per-beat router experiment until L090 is reopened. |
-| Lint baseline calibration vs published genre prose | **Yes — concrete and cheap.** Corpus pipeline already supports this (`docs/corpus-pipeline.md`, Salvatore + 2,470 pairs). The "silence stretched 42×" failure mode is real (lint regex pulls vs distribution thresholds). One-shot calibration over a 50-novel fantasy corpus → distribution thresholds for each lint pattern. Would directly retire several phantom-failure lint blockers. Recommend as a small, bounded support lane. |
-| Synthetic reader-persona testing | **Hard skepticism.** The Plan-A bias incident (memory: feedback_priming_suppression_ab + lane-queue notes on blind semantic pairwise judge — `0/18` after AB/BA swap) showed that LLM-pairwise judges over prose are wildly position-biased. Don't add another LLM-eval surface until the existing semantic-judge plan ships and proves discernment. Even then, treat synthetic readers as one diagnostic input, not a promotion gate. |
+- Capture provider token usage and cost when available.
+- Record run IDs, model role, cache-hit fields, wall time, output path, and
+  failure reason.
+- If actual cost or latency is more than 3x the estimate, update the runbook
+  before repeating the sweep.
 
-### Tier 3 — production volume
+## Highest-Return Lanes
 
-| External item | Verdict | Note |
-| --- | --- | --- |
-| K=3 candidate generation per chapter | **Yes, scoped to writer-arm A/B inside POC.** Maps cleanly onto `test-drafting-isolated --writer-arms`. Spend is bounded; arms already exist (`baseline`, `scene-call-v1`, `id-suppress`, `contract-render-only`). Pick-best post-hoc once the diagnostic judges are calibrated. |
-| Parallel chapter generation | **Premature.** Royal Road serial launch is not on the active critical path. Defer until production-default scene-first migration ships. |
-| ElevenLabs / Hailuo voice scaling | **Out of scope.** Audiobook pipeline isn't an active lane. |
+### Lane A: POC Artifact Throughput
 
-### Tier 4 — AI content channel amplification
+Current active target: `poc/scene-first-novella/`.
 
-All four (image, video, music, voice cloning) — **out of scope** for the
-current quality lane. Re-evaluate post production-migration.
+Spend here first. The fastest way to improve the harness is to produce more
+complete, traceable short fiction artifacts and inspect what failed.
 
-### Discipline anchors
+Immediate work:
 
-All four (stop gates, single primary lane, telemetry payload extensions,
-schema-level invariants) are already standing rules in
-`docs/experiment-design-rules.md`, CLAUDE.md, and `docs/invariants.md`. No
-new spend; tighten enforcement, don't reinvent.
+- Run the P3 clean fixture end to end.
+- Expand to P1/P2/P4 after the P3 artifact is reviewable.
+- Produce static HTML for every run: scene contract, prose, trace IDs,
+  diagnostics, and artifacts side-by-side.
+- Keep checkers post-hoc unless the POC is explicitly testing blockers.
+- Preserve `runId`, `novelId`, `chapterId`, `sceneId`, `obligationId`,
+  `sourceId`, `characterId`, `threadId`, `promiseId`, and `payoffId` when
+  available.
 
----
+Acceleration rule:
 
-## What actually moves quality fastest given current state
+- Do not stop after one artifact if the next fixture can run with the same
+  command shape.
+- Do not wait for UI/Playwright unless the artifact itself is UI behavior.
+- Do not harden production code until the artifact shows a reader-visible gain.
 
-Ranked by structural ROI **inside the L100 POC lane** and the
-deferred-but-imminent scene-first production migration.
+### Lane B: Multi-Arm Comparison
 
-### Lane A — POC artifact iteration (fastest reader-visible feedback)
+Use spend to compare alternatives on the same plan instead of debating them in
+the abstract.
 
-The POC packet that just shipped (`poc/scene-first-novella/run.ts +
-diagnostics.ts + render-html.ts`) is a one-command pipeline. Quality moves
-when this runs *more often, on more fixtures, with more arms, reviewed
-faster.*
+Preferred arms for scene-first evidence:
 
-- **Fixture breadth.** P3 (clean attribution) is the first run. Adding P1
-  (over-target), P2 (undershoot), P4 (real frozen plan) gives four reader
-  artifacts side-by-side. Marginal cost is one more LXC run per fixture
-  (~$0.10 each at current cache hit rates). High signal: shows whether the
-  scene-first writer is robust across attribution conditions.
-- **Writer-arm matrix on the POC.** Wire the existing `--writer-arms` set
-  into the POC runner so a single output dir contains baseline + scene-call
-  + contract-render + id-suppress prose for the same plan. Cost ~4× per
-  fixture. Diff-able prose is the single fastest way to see whether
-  scene-first beats baseline.
-- **Diagnostic judge ship.** The three-judge plan (endpoint-landing /
-  scene-dramaturgy / character-agency) is already running post-hoc in
-  `poc/scene-first-novella/diagnostics.ts` but uncalibrated. Calibration =
-  20-row gold panel + judge self-consistency at gold ≥ 0.85 (per memory:
-  feedback_gold_stability_first). Once green, the POC artifact carries
-  defensible verdicts, not raw prose.
+- baseline production path;
+- scene-call writer;
+- scene-contract rendered into writer context;
+- ID-rendering ablation where raw prompt IDs are suppressed but trace metadata
+  is preserved.
 
-**Cost band: $5–30 per full POC sweep across fixtures × arms. Concrete
-budget: $50/week for POC iteration. This is the highest-return spend.**
+Each multi-arm run should emit:
 
-### Lane B — narrow judge calibration (unlocks promotion gates)
+- one output directory per run;
+- a manifest naming source fixture, model roles, flags, and arms;
+- per-arm prose;
+- per-arm diagnostics;
+- per-arm token/cost/latency where available;
+- a side-by-side HTML review page.
 
-`docs/research/opus-semantic-judge-plan.md` already lays out the shape:
-single-excerpt, single-dimension, evidence-first, narrow rubric (memory:
-feedback_gold_stability_first). The infrastructure (eval_briefs +
-eval_results) exists.
+Promotion signal:
 
-What's missing:
+- An arm should not win on word count alone.
+- Prefer arms that improve endpoint landing, character agency,
+  scene-dramaturgy, obligation satisfaction, and operator readability without
+  losing traceability.
 
-- 20-row gold panels for endpoint-landing, scene-dramaturgy, and
-  character-agency, labeled by the operator (or a Sonnet teacher subagent
-  with operator spot-check).
-- Judge self-consistency runs (calibration anchor + production emit
-  granularity) per the gold-stability-first memory.
-- Promotion gate: J ≥ 0.85 at both granularities OR data-only binary
-  collapse before re-labeling.
+### Lane C: Narrow Diagnostic Judges
 
-**Cost band: ~$2–5 in V4 Flash per gold panel calibration round; ~$10–30
-in Opus/Sonnet subagent labels for gold construction. Bounded total well
-under $100. Output: defensible POC verdicts.**
+Use LLM judges as diagnostic filters, not production blockers.
 
-### Lane C — engineering throughput via subagents (the real "trade subscription for code")
+Start with the smallest useful dimensions:
 
-This is the answer to "trade subscription/API costs directly for building
-up this repo." The repo is single-operator-driven; the bottleneck is human
-review bandwidth, not LLM spend.
+- endpoint landing: did the scene/chapter arrive at the planned story result?
+- scene dramaturgy: did the scene have goal, opposition, turn, choice,
+  consequence?
+- character agency: did named characters make motivated choices rather than
+  merely appear?
 
-Standing patterns to lean into harder:
+Judge shape:
 
-- **Parallel Sonnet subagents for decomposable implementation** (memory:
-  feedback_parallel_sonnet_subagents). Default to multiple, not one.
-- **Codex `gpt-5.5 --effort high` for review and adversarial consensus**
-  (memory: feedback_codex_gpt54_subagents). Routine review at coherent
-  stop gates.
-- **Documentation subagent in parallel with next work** (memory:
-  feedback_documentation_subagent). Keeps human oriented without
-  re-reading commits.
-- **Codex consensus → proceed without asking** (memory:
-  feedback_act_on_codex_consensus). Removes a serialization point.
-- **Schedule wakeups during long LXC runs** instead of idling. The current
-  POC run alternates wakeups with productive parallel work (this doc is an
-  example).
+- one excerpt;
+- one dimension;
+- one rubric;
+- evidence-first output;
+- explicit "not applicable" option;
+- no broad pairwise "which is better?" prompt without AB/BA controls.
 
-What this does NOT mean: building a custom autonomous coding supervisor
-inside the repo. CLAUDE.md "Engineering orchestration boundary" forbids
-that — Claude Code / OpenCode is the engineering layer.
+Calibration shape:
 
-**Cost band: subagent + Codex spend ~$1–5 per substantive ticket;
-~$30–80/week if every shipped commit gets review. Buys human-equivalent
-review-loop speed without adding internal infrastructure.**
+- Build a small gold panel with both pass and fail examples.
+- Check self-consistency before trusting aggregate scores.
+- Treat ties/unclear judgments as data, not as promotion evidence.
+- Persist judge outputs in eval artifacts or POC output manifests.
 
-### Lane D — lint distribution calibration (one-shot, retires phantom failures)
+Spend here reduces operator burden. It does not replace operator review for
+promotion decisions.
 
-Concrete and bounded. Pull lint pattern frequency stats over a 50-novel
-fantasy / litRPG corpus; replace hard-coded regex caps with corpus-derived
-thresholds. The Salvatore corpus (2,470 pairs) is already in place; pulling
-50 more public-domain or owned-corpus novels is cheap. Memory:
-feedback_lint_sourcing — patterns must be researched and cited; this lane
-*is* that citation.
+### Lane D: Engineering Parallelism
 
-**Cost band: one bounded engineering ticket; LLM spend negligible. Output:
-fewer phantom blockers in production drafting.**
+Use coding agents aggressively, but only where ownership is separable.
 
-### Lane E — world-bible / canon depth (architectural, deferred but compounding)
+Good parallel packets:
 
-Per memory `project_world_bible_architecture_priority` (2026-05-03
-direction): deep evolving world/character bibles + scoped context >
-checker tightening. Halluc-ungrounded measured at 11% TP / 71% FP; demote
-to warning, don't propose whitelist fixes.
+- one agent builds a runner while another builds static HTML;
+- one agent writes fixture loaders while another writes docs/runbooks;
+- one agent reviews generated artifacts while another fixes runner bugs;
+- one agent ports diagnostics while another adds manifest/cost capture.
 
-This is the genuinely Tier-1 architectural lane in the external proposal's
-spirit, but it isn't framed as a spend lever — it's an engineering
-direction. Spend = engineering subagent capacity (Lane C) pointed at the
-canon/world-bible service layer once the POC clears.
+Bad parallel packets:
 
-**Defer until POC yields evidence; then resume as the next architectural
-lane.**
+- two agents editing the same prompt file;
+- two agents touching the same runner control flow;
+- research agents producing long reports with no decision they can affect;
+- UI agents polishing surfaces before artifact evidence exists.
 
----
+Default implementation loop:
 
-## Codified autonomous-improvement loop
+1. Pick the highest-value item from `docs/sessions/lane-queue.md`.
+2. Name the phase/surface, exact change, expected benefit, downstream
+   projection, and evidence gate.
+3. Split independent write scopes if parallelism helps.
+4. Build the smallest runnable vertical artifact.
+5. Run targeted verification.
+6. Commit the coherent slice on `main`.
+7. Update lane/session docs with artifact paths and lessons.
+8. Continue to the next independent item while long runs execute.
 
-Translates "subscription + API spend → repo improvements" into a repeatable
-cycle. Each turn of the loop produces a committed artifact. The loop runs
-without operator approval inside the cost autonomy band defined in
-CLAUDE.md ("runtime actions costing under $2 per run proceed without
-asking" + standing $26 overnight budget cap).
+Do not stop merely because a commit landed, a summary was written, or a review
+request was sent. Stop when a human decision is required, an environment is
+blocked, a production-default risk appears, or every useful next item is gated.
 
-```
-┌────────────────────────────────────────────────────────────────┐
-│ 0. Pull next item from docs/sessions/lane-queue.md §Next       │
-│    Skip blocked items; respect "don't combine lanes."          │
-├────────────────────────────────────────────────────────────────┤
-│ 1. Session-start contract (docs/session-start-contract.md):    │
-│    goal + why + signal + stop gates. <$2 = proceed.            │
-├────────────────────────────────────────────────────────────────┤
-│ 2. Implement                                                   │
-│    - Decomposable? → fan out parallel Sonnet subagents.        │
-│    - Architectural? → captain-loop with Codex review.          │
-│    - One-shot fix? → direct Edit + Bash.                       │
-├────────────────────────────────────────────────────────────────┤
-│ 3. Verify (the narrowest test that bites first):               │
-│    - Unit / typecheck → bunx tsc --noEmit; bun test <file>     │
-│    - Integration → fixture replay or LXC smoke                 │
-│    - UI → Playwright MCP gate (CLAUDE.md UI Work Gate)         │
-├────────────────────────────────────────────────────────────────┤
-│ 4. Adversarial review at coherent stop gate:                   │
-│    Codex `gpt-5.5 --effort high` (memory: codex SOP).          │
-│    Consensus → proceed. Disagreement → reconcile in same loop. │
-├────────────────────────────────────────────────────────────────┤
-│ 5. Commit (atomic, one concern). Pre-authorized.               │
-├────────────────────────────────────────────────────────────────┤
-│ 6. Docs sweep (parallel subagent permitted):                   │
-│    current-state.md / decisions/LNNN / lessons-learned /       │
-│    todo.md / lane-queue advance / experiment row.              │
-├────────────────────────────────────────────────────────────────┤
-│ 7. Background runs → ScheduleWakeup, not idle. Pick up the     │
-│    next §Next item while LXC works.                            │
-└────────────────────────────────────────────────────────────────┘
-```
+### Lane E: Corpus And Lint Calibration
 
-Stop conditions (CLAUDE.md autonomous-loop default):
-- Blocker requires human input.
-- Every Next item is gated on environment access not available.
-- User says stop.
+This is a useful support lane after the POC artifact loop is moving.
 
-Explicitly NOT stop conditions: "I just shipped a commit," "I just sent
-something for review," "I summarized." Those are continuation points.
+Goal:
 
----
+- distinguish deterministic prose/style flags that correlate with real quality
+  from regex noise that triggers phantom failures.
 
-## Concrete spend bands (next 30 days)
+Shape:
 
-| Category | Monthly band | Trigger |
-| --- | --- | --- |
-| LXC runtime (DeepSeek V4 Flash, runtime drafting + diagnostics) | $30–120 | POC sweeps + writer-arm matrix + judge calibration |
-| Anthropic API (subagent engineering — Sonnet/Opus/Codex) | $80–250 | Per-ticket review + parallel implementation + doc subagent |
-| Anthropic batch API (Sonnet teacher labeling, gold-panel construction) | $0–40 | Only when a labeling round is queued |
-| Off-policy multi-model eval (Opus / Sonnet scoring artifacts) | $0–60 | Only when needed as diagnostic anchor |
-| Lint corpus expansion (one-shot) | <$20 | Lane D when scheduled |
-| **Total** | **$110–490 / mo** | |
+- gather corpus distributions for each lint pattern;
+- cite corpus/source assumptions;
+- convert hard blockers into warnings when they do not predict quality;
+- keep semantic/story issues in judge or operator-review lanes, not regex
+  heuristics.
 
-This is one order of magnitude under the external proposal's $1.5–3k/mo
-"foundation" band, because most of that proposal's foundation is already
-built or explicitly chosen against.
+This should be a bounded ticket, not an open-ended craft-research lane.
 
-The right way to scale spend is: hold this band until the POC clears its
-reader-visible-evidence gate, then expand into the production-migration
-lanes (S1+) at the next decision point. Spending more before that gate
-buys infra for a system that hasn't validated the architectural bet yet.
+### Lane F: World And Character Context Depth
 
----
+This is likely a major quality lane after scene-first artifacts prove the
+writing path is worth hardening.
 
-## Items I'm rejecting outright
+Hypothesis:
 
-- Voice LoRA / Writer Pack training (retired).
-- Anthropic prompt-cache optimization on the runtime path (wrong runtime).
-- Generic per-checker P/R panels for noisy LLM checkers (wrong direction;
-  memory: feedback_dont_calibrate_noisy_llm_checkers).
-- Synthetic reader-persona promotion gates (Plan-A bias risk).
-- Custom autonomous coding supervisor (CLAUDE.md engineering boundary).
-- Tier-4 AI content channel work (out of scope).
+- richer character/world context and cleaner scoped retrieval will improve
+  prose coherence more than adding more blockers.
 
-## Items I'm holding for later
+Do not start by building a large UI or policy layer. Start with a POC:
 
-- Parallel chapter generation (post production migration).
-- Audiobook pipeline (post production migration).
-- World-bible / canon architecture lane (after POC artifact lands).
+- one richer character bible shape;
+- one richer world/context shape;
+- one scene-first drafting run;
+- diagnostics comparing character agency, world pressure, and plan adherence.
 
-## Items to start now (in priority order)
+## Items To Reject For Now
 
-1. **Finish the POC sweep already in flight** (P3 → diagnostics → HTML →
-   commit artifact). Not a future lever; it's running.
-2. **Expand POC fixtures to P1/P2/P4** once P3 lands. ~$0.50–2 per fixture
-   sweep at current rates.
-3. **Wire `--writer-arms` into the POC runner** so a single sweep produces
-   baseline + scene-call + contract-render + id-suppress side-by-side.
-4. **Build 20-row gold panels for the three diagnostic judges** and run
-   self-consistency calibration. Promotion gate: J ≥ 0.85.
-5. **Lint corpus expansion** (Lane D) — bounded one-shot ticket.
-6. Then re-evaluate against the production scene-first migration plan
-   (`docs/sessions/2026-05-10-scene-migration-plan.md` S1–S7).
+- Voice LoRA / writer-pack training unless a new decision explicitly reopens
+  fine-tuning.
+- Runtime routing outside DeepSeek V4 Flash / V4 Pro.
+- Generic per-checker precision/recall projects for noisy LLM checkers.
+- Synthetic reader-persona promotion gates.
+- Audiobook/video/music/content-channel work.
+- Custom autonomous coding supervisor infrastructure inside this repo.
+- UI/browser work that does not directly support a current artifact review.
 
----
+## Thirty-Day Acceleration Plan
 
-## Pushback summary
+### Days 1-3: Produce More Artifacts
 
-The external session's tier list is well-structured for a greenfield AI
-fiction stack. This repo isn't greenfield — it's mid-migration with active
-strategic constraints (DeepSeek-only runtime, fine-tune-free direction,
-world-bible-over-checkers). The right move is not to import the external
-list wholesale; it's to keep the L100 POC velocity, sink spend into POC
-iteration + narrow judge calibration + subagent engineering throughput,
-and revisit the bigger architectural and production-volume bets *after*
-the artifact gates clear.
+- Finish the first scene-first novella POC run.
+- Render the static review page.
+- Run at least one additional fixture with the same command shape.
+- Record actual token/cost/latency in the run manifest where available.
+
+Exit condition:
+
+- The operator can open a side-by-side artifact and judge whether the harness is
+  moving toward useful fiction.
+
+### Days 4-10: Compare Arms
+
+- Add or finish multi-arm support in the POC runner.
+- Run baseline vs scene-call vs contract-render vs ID-suppressed variants on at
+  least two fixtures.
+- Capture diagnostics and side-by-side prose.
+
+Exit condition:
+
+- There is a concrete winner, loser, or "no difference" result with prose and
+  diagnostics visible.
+
+### Days 11-17: Calibrate Narrow Judges
+
+- Build small gold panels for endpoint landing, scene dramaturgy, and character
+  agency.
+- Run judge self-consistency checks.
+- Add judge summaries to the static review artifact.
+
+Exit condition:
+
+- The operator can use judge output to prioritize what to read, without treating
+  it as an automatic promotion gate.
+
+### Days 18-24: Promote One Proven Slice
+
+- Pick one POC result with clear artifact-level value.
+- Write a production change packet.
+- Freeze or delete the experimental path that would otherwise become duplicate
+  substrate.
+- Run production verification gates.
+
+Exit condition:
+
+- One net-positive slice moves from POC to production path, or a documented
+  no-go decision prevents waste.
+
+### Days 25-30: Start The Next Quality Lane
+
+Choose one based on evidence:
+
+- character/world context depth if prose lacks agency or world pressure;
+- planner template work if scenes lack strong goals/turns/consequences;
+- diagnostic judge expansion if operator-review burden remains the bottleneck;
+- lint/corpus calibration if deterministic style flags waste retries.
+
+Do not pursue all four at once.
+
+## Metrics That Matter
+
+Track these weekly:
+
+- complete reviewable artifacts produced;
+- fixtures and arms run;
+- average time from idea to artifact;
+- operator-read pages avoided by diagnostics;
+- production slices promoted from POC;
+- production defaults changed without evidence: target zero;
+- traceability regressions: target zero.
+
+## Bottom Line
+
+Spend more, but spend it on throughput and discrimination:
+
+- more POC runs;
+- more side-by-side alternatives;
+- more narrow diagnostic judging;
+- more parallel engineering;
+- more actual usage telemetry.
+
+Do not spend it on speculative infrastructure before the current scene-first
+artifact loop proves what should be hardened.
