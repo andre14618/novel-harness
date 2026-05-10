@@ -172,6 +172,8 @@ disposable flags for live clone-producing runs:
 `--allow-disposable-baseline`, `--allow-disposable-matrix`, or
 `--allow-disposable-cohort`. Matrix/cohort children propagate the narrower
 child flags automatically. Summary-only cohort aggregation remains read-only.
+A fast-tier disposable-runner control test now covers the known output-producing
+POC/disposable command surfaces so these guards are not memory-only policy.
 
 The first production-path operator loop on `p1-allow-brief-1778447459`
 dispositioned superseded whole-chapter semantic lows, created two manual
