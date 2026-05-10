@@ -36,6 +36,19 @@ function routeValidationFindings(
       continue
     }
 
+    // L098 Slice 3: prefer obligation-ID lookup when the finding carries
+    // exact refs — this is the scene-satisfaction routing path. Closes the
+    // silent-no-op risk where a scene-keyed finding without beatIndex
+    // would default to beat 0. Skips when no obligation match is found
+    // (falls through to the legacy switch below).
+    if (finding.obligationIds && finding.obligationIds.length > 0) {
+      const targetIndex = findEntryByObligationIds(outline, finding.obligationIds)
+      if (targetIndex !== null) {
+        addTo(targetIndex, formatFindingRewriteInstruction(finding))
+        continue
+      }
+    }
+
     switch (finding.code) {
       case "pov_missing": {
         addTo(selectPovBeatIndex(outline), `POV character "${outline.povCharacter}" must be dramatized — ensure this beat puts "${outline.povCharacter}" on the page by name or clear referent.`)
@@ -47,6 +60,30 @@ function routeValidationFindings(
   }
 
   return perBeat
+}
+
+// L098 Slice 3: locate the entry whose obligations include any of the
+// listed obligationIds. Used by validation-routing when a scene-satisfaction
+// finding has no beatIndex but carries exact obligation refs. Returns
+// null when no entry matches — caller falls through to legacy routing.
+function findEntryByObligationIds(outline: ChapterOutline, obligationIds: string[]): number | null {
+  if (obligationIds.length === 0) return null
+  const targets = new Set(obligationIds)
+  const scenes = outline.scenes ?? []
+  for (let i = 0; i < scenes.length; i++) {
+    const scene = scenes[i]
+    if (!scene?.obligations) continue
+    const keys = ["mustEstablish", "mustPayOff", "mustTransferKnowledge", "mustShowStateChange", "mustNotReveal"] as const
+    for (const key of keys) {
+      const items = (scene.obligations as Record<string, unknown>)[key]
+      if (!Array.isArray(items)) continue
+      for (const item of items) {
+        const oid = (item as { obligationId?: unknown }).obligationId
+        if (typeof oid === "string" && targets.has(oid)) return i
+      }
+    }
+  }
+  return null
 }
 
 function routeLegacyValidationBlockers(

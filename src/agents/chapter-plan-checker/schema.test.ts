@@ -51,6 +51,56 @@ function baseOutline(): ChapterOutline {
   } as ChapterOutline
 }
 
+describe("L098 Slice 3: chapter-plan-checker scene-satisfaction fields", () => {
+  test("schema accepts deviations with optional obligationIds", () => {
+    const parsed = chapterPlanCheckSchema.parse({
+      pass: false,
+      deviations: [
+        {
+          description: "Scene goal not satisfied — choice did not produce observable consequence.",
+          beat_index: null,
+          obligationIds: ["obl-confront-001-fact-ledger", "obl-confront-002-state-mira-resolved"],
+        },
+      ],
+    })
+
+    expect(parsed.deviations).toHaveLength(1)
+    expect(parsed.deviations[0]?.obligationIds).toEqual([
+      "obl-confront-001-fact-ledger",
+      "obl-confront-002-state-mira-resolved",
+    ])
+  })
+
+  test("schema preserves legacy deviations without obligationIds", () => {
+    const parsed = chapterPlanCheckSchema.parse({
+      pass: false,
+      deviations: [
+        { description: "Beat omits the ledger discovery.", beat_index: 1 },
+        "Legacy string deviation.",
+      ],
+    })
+
+    expect(parsed.deviations[0]?.obligationIds).toBeUndefined()
+    expect(parsed.deviations[1]).toEqual({
+      description: "Legacy string deviation.",
+      beat_index: null,
+    })
+  })
+
+  test("schema rejects empty obligationIds entries", () => {
+    expect(() => chapterPlanCheckSchema.parse({
+      pass: false,
+      deviations: [
+        {
+          description: "Scene goal not satisfied.",
+          beat_index: null,
+          obligationIds: [""],
+        },
+      ],
+    })).toThrow()
+  })
+})
+
 describe("chapter-plan-checker stable refs", () => {
   test("attaches beatId from an enriched outline without changing legacy fields", () => {
     const outline = baseOutline()

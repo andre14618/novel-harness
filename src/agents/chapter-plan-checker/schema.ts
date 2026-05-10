@@ -6,6 +6,14 @@ export type ChapterPlanDeviation = {
   beat_index: number | null
   /** Durable beat ref resolved by the harness from outline.scenes[beat_index].beatId. */
   beatId?: string
+  /**
+   * L098 Slice 3: optional obligation refs for scene-satisfaction findings.
+   * When the chapter-plan-checker (under sceneSatisfactionCheckerV1) emits
+   * a deviation tied to specific scene obligations, populate this with the
+   * exact obligation IDs. Routing prefers obligation-ID lookup over the
+   * legacy beat-0 fallback when present and beat_index is null.
+   */
+  obligationIds?: string[]
 }
 
 // Coerce legacy string deviations into {description, beat_index: null} before
@@ -17,6 +25,7 @@ const deviationSchema = z.preprocess(
     description: z.string(),
     beat_index: z.number().int().nullable(),
     beatId: z.string().min(1).optional(),
+    obligationIds: z.array(z.string().min(1)).optional(),
   }),
 ) as unknown as z.ZodType<ChapterPlanDeviation>
 

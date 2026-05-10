@@ -96,6 +96,15 @@ export const pipeline = {
   // gate.
   writerExpansionMode: "off" as "off" | "retry-short-scenes-v1",
 
+  // L098 Slice 3: scene-satisfaction checker flag. Default off. When on,
+  // the chapter-plan-checker prompt asks scene-satisfaction questions
+  // per entry (did the scene satisfy its declared goal/turn/choice/
+  // consequence and cover its required obligations?) and finding shape
+  // includes optional `obligationIds`. Default routing remains beat-keyed;
+  // the new fields are additive. Promotion to blocker is contingent on
+  // parity-panel evidence per L092 standards.
+  sceneSatisfactionCheckerV1: false,
+
   // State management
   embeddings: false,          // skip embedding step (beat path uses deterministic DB lookups)
 
@@ -145,4 +154,10 @@ export function resolveWriterExpansionMode(
   overrides: { writerExpansionMode?: "off" | "retry-short-scenes-v1" } | undefined,
 ): "off" | "retry-short-scenes-v1" {
   return overrides?.writerExpansionMode ?? pipeline.writerExpansionMode
+}
+
+export function resolveSceneSatisfactionCheckerV1(
+  overrides: { sceneSatisfactionCheckerV1?: boolean } | undefined,
+): boolean {
+  return overrides?.sceneSatisfactionCheckerV1 ?? pipeline.sceneSatisfactionCheckerV1
 }

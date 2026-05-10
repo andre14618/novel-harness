@@ -48,6 +48,13 @@ export interface SeedInput {
      * expansion retries when word count is below the advisory floor.
      */
     writerExpansionMode?: "off" | "retry-short-scenes-v1"
+    /**
+     * L098 Slice 3: scene-satisfaction checker flag. Default-off. When on,
+     * chapter-plan-checker prompt asks scene-satisfaction questions and
+     * findings carry optional `obligationIds`. Diagnostic only; default
+     * routing remains beat-keyed.
+     */
+    sceneSatisfactionCheckerV1?: boolean
   }
 }
 
@@ -111,6 +118,15 @@ export interface ValidationFinding {
   chapterId?: string
   beatIndex?: number
   beatId?: string
+  /**
+   * L098 Slice 3: scene-keyed routing reference. When a finding originates
+   * from a scene-satisfaction LLM checker (sceneSatisfactionCheckerV1) or
+   * any future obligation-aware checker, populate this with the exact
+   * obligation IDs the finding refers to. validation-routing prefers
+   * obligation-ID lookup over the legacy beat-0 fallback when this is
+   * present and `beatIndex` is undefined.
+   */
+  obligationIds?: string[]
   metadata?: Record<string, unknown>
 }
 
