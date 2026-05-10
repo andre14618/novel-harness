@@ -104,10 +104,14 @@ As of 2026-05-10, L105 keeps scene-first promotion on hold, but production
 `drafting-brief-v1` evidence is promising. P4 hit 1.10x with 0/8 prose-semantic
 lows; P1 with `scenePlanContractV1=true` cut a paired writer-only run from
 baseline 2.45x / contract-render-only 2.41x to 1.37x with scene contracts
-10/10 and 0/8 lows. A full-path P1 brief smoke then paused on a
-halluc-ungrounded Plan-Assist gate after chapter 1. Keep defaults off until
-the new Plan-Assist `allow-entities` review action is exercised through full
-production/checker and endpoint-quality artifacts. See L103-L106.
+10/10 and 0/8 lows. A full-path P1 brief smoke later completed both chapters
+at 1.39x and 1.38x with 0/8 prose-semantic lows, plan checks passed, no
+checker blockers, and writer-brief telemetry 12/12. Scene-semantic replay found
+sceneDramaturgy clean (10/10 SCENE-3) but endpointLanding still weak
+(4/10 lows, all ch1), so promotion remains blocked on upstream endpoint/turn
+quality rather than deterministic prose compaction. The new Plan-Assist
+`allow-entities` action is implemented/tested but still needs live gate replay
+evidence before it counts as exercised. See L103-L106.
 
 ## Authoring Gates
 

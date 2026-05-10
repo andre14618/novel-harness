@@ -90,6 +90,18 @@ planning lineage against the `chapter_exhaustions` row, and restarts the
 attempt. Halluc-ungrounded remains a blocker by default; only reviewed entities
 enter the grounded surface.
 
+A follow-up full production-path P1 brief smoke
+(`p1-allow-brief-1778447459`) completed without firing Plan-Assist:
+ch1 2092/1500 = 1.39x, ch2 2065/1500 = 1.38x, both plan checks passed, checker
+blockers=0, prose-semantic rows=8 with 0 lows/0 errors, writer-context brief
+telemetry=12/12, scene contracts=12/12. This strengthens the production brief
+signal, but it does not count as live `allow-entities` branch evidence because
+the original halluc-ungrounded blocker did not reproduce on that attempt.
+Scene-semantic replay on the same artifact found sceneDramaturgy clean
+(10/10 SCENE-3) but endpointLanding still weak (mean 2.20; four lows, all
+chapter 1), so the next production-path lever should be upstream endpoint/turn
+quality rather than deterministic prose compaction.
+
 ## Evidence And Verification
 
 Production-path integration needs:

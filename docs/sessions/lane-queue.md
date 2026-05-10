@@ -18,7 +18,14 @@ unless the user explicitly requests a disposable branch.
   profiles/snapshots/capsules 10/10. Full-path P1 brief smoke then drafted ch1
   at 1885/1500 and passed plan + continuity, but paused at a pending
   Plan-Assist gate for two halluc-ungrounded findings. `allow-entities` is now
-  the production review action for sanctioned walk-on/lore terms. See L106.
+  the production review action for sanctioned walk-on/lore terms. Follow-up
+  full-path smoke `p1-allow-brief-1778447459` completed ch1 2092/1500 = 1.39x
+  and ch2 2065/1500 = 1.38x, plan checks passed, checker blockers 0,
+  prose-semantic rows 8 with lows 0/errors 0, and writer-brief telemetry 12/12;
+  no Plan-Assist gate fired on that attempt. Scene-semantic replay on the same
+  artifact found sceneDramaturgy 10/10 SCENE-3 but endpointLanding mean 2.20
+  with 4 lows (all ch1). Live `allow-entities` replay evidence remains open,
+  and promotion remains blocked by endpoint/turn quality. See L106.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -107,11 +114,13 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: exercise Plan-Assist `allow-entities` on the P1 blocker
-  (`Tomas Vogler`, `Harvest`) and rerun `drafting-brief-v1` through full
-  production gates. Promotion remains blocked until a comparable artifact
-  reaches <=1.5x target with 3/3/3 endpoints, complete scene IDs, diagnostics,
-  traces, and review artifacts. See L103-L106.
+- Next session start: target the ch1 endpointLanding lows from
+  `p1-allow-brief-1778447459` at the upstream plan/scene-contract layer, while
+  keeping `drafting-brief-v1` as the measured production writer surface. Only
+  force/replay the original Plan-Assist `allow-entities` blocker if live branch
+  evidence becomes load-bearing. Promotion remains blocked until a comparable
+  artifact reaches <=1.5x target with endpointLanding clean, complete scene
+  IDs, diagnostics, traces, and review artifacts. See L103-L106.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,
