@@ -45,6 +45,7 @@
  *     [--writer-arms baseline,id-suppress,contract-render-only,scene-call-no-expansion,scene-call-v1]
  *                                                                # default: baseline,scene-call-v1
  *     [--writer-only]                                            # set draftCaptureModeV1=true on every arm
+ *     [--prose-semantic-eval]                                    # attach advisory Flash prose semantic report per arm
  *     [--per-arm-timeout-ms 1800000]                             # 30-minute per-arm wallclock cap
  *
  * Each arm becomes a clone novel id `<target-prefix>-<arm>`. Arms run
@@ -74,6 +75,10 @@ import { runDraftingPhase } from "../src/phases/drafting"
 import { initNovelRun } from "../src/logger"
 import { setAutoMode, setResolverMode } from "../src/cli"
 import { getMode } from "../src/gates"
+import {
+  runProseSemanticForNovel,
+  type ProseSemanticReport,
+} from "./analysis/prose-semantic-report"
 
 interface Args {
   source: string
@@ -83,6 +88,12 @@ interface Args {
    *  chapter-level checker settle loops are skipped. Used to make the
    *  writer-arm comparison resistant to checker/API hangs. */
   writerOnly: boolean
+  /** When true, run the advisory prose-semantic diagnostics over each arm's
+   *  drafted chapters after drafting/partial collection. This does not gate
+   *  the arm; it only writes artifacts and persists judge telemetry. */
+  proseSemanticEval: boolean
+  proseSemanticDryRun: boolean
+  proseSemanticConcurrency: number
   /** Optional per-arm wallclock timeout in milliseconds. When the
    *  drafting promise for an arm doesn't resolve in time, the runner
    *  records a timeout result and proceeds to the next arm. The
@@ -110,6 +121,14 @@ interface ArmResult {
   totalTarget: number
   meanRatio: number
   expansionEvents: number
+  proseSemantic?: {
+    outputDir: string
+    resultCount: number
+    lowRows: number
+    errorRows: number
+    saturationNotes: string[]
+    recommendation: string
+  }
   error?: string
 }
 
@@ -291,6 +310,9 @@ async function collectArmResult(arm: ArmName, novelId: string): Promise<Pick<Arm
 
 interface RunArmOptions {
   writerOnly: boolean
+  proseSemanticEval: boolean
+  proseSemanticDryRun: boolean
+  proseSemanticConcurrency: number
   perArmTimeoutMs: number | null
 }
 
@@ -340,8 +362,10 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
       // before pausing on a gate. The collector reads chapter_drafts so
       // partial output is captured.
       const collected = await collectArmResult(arm, novelId)
+      const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts)
       return {
         arm, novelId, ...collected,
+        ...(proseSemantic ? { proseSemantic } : {}),
         error: `drafting did not complete: ${result.kind}`,
       }
     }
@@ -351,14 +375,55 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
     const collected = await collectArmResult(arm, novelId).catch(() => ({
       chapters: [] as ArmResult["chapters"], totalWords: 0, totalTarget: 0, meanRatio: 0, expansionEvents: 0,
     }))
+    const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts).catch(proseErr => ({
+      outputDir: "",
+      resultCount: 0,
+      lowRows: 0,
+      errorRows: 1,
+      saturationNotes: [],
+      recommendation: `prose semantic eval failed: ${proseErr instanceof Error ? proseErr.message : String(proseErr)}`,
+    }))
     return {
       arm, novelId, ...collected,
+      ...(proseSemantic ? { proseSemantic } : {}),
       error: err instanceof Error ? err.message : String(err),
     }
   }
 
   const collected = await collectArmResult(arm, novelId)
-  return { arm, novelId, ...collected }
+  const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts)
+  return { arm, novelId, ...collected, ...(proseSemantic ? { proseSemantic } : {}) }
+}
+
+async function maybeRunProseSemanticEval(
+  arm: ArmName,
+  novelId: string,
+  targetPrefix: string,
+  opts: RunArmOptions,
+): Promise<ArmResult["proseSemantic"] | null> {
+  if (!opts.proseSemanticEval) return null
+  console.log(`  prose semantic eval ...${opts.proseSemanticDryRun ? " (dry-run)" : ""}`)
+  const outputDir = `output/prose-semantic-eval/${targetPrefix}/${arm}`
+  const result = await runProseSemanticForNovel({
+    novelId,
+    dryRun: opts.proseSemanticDryRun,
+    concurrency: opts.proseSemanticConcurrency,
+    outputDir,
+    initRun: false,
+    traceSummary: !opts.proseSemanticDryRun,
+  })
+  return proseSemanticSummary(result.report, result.outputDir)
+}
+
+function proseSemanticSummary(report: ProseSemanticReport, outputDir: string): NonNullable<ArmResult["proseSemantic"]> {
+  return {
+    outputDir,
+    resultCount: report.resultCount,
+    lowRows: report.results.filter(row => !row.error && row.ordinal <= 1).length,
+    errorRows: report.results.filter(row => row.error).length,
+    saturationNotes: report.saturationNotes,
+    recommendation: report.advisoryRecommendation,
+  }
 }
 
 export function parseArgs(argv: string[]): Args {
@@ -366,6 +431,9 @@ export function parseArgs(argv: string[]): Args {
   let targetPrefix: string | null = null
   let armsRaw: string | null = null
   let writerOnly = false
+  let proseSemanticEval = false
+  let proseSemanticDryRun = false
+  let proseSemanticConcurrency = 4
   let perArmTimeoutMs: number | null = null
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!
@@ -373,6 +441,17 @@ export function parseArgs(argv: string[]): Args {
     if (a === "--target-prefix") { targetPrefix = argv[++i] ?? null; continue }
     if (a === "--writer-arms") { armsRaw = argv[++i] ?? null; continue }
     if (a === "--writer-only") { writerOnly = true; continue }
+    if (a === "--prose-semantic-eval") { proseSemanticEval = true; continue }
+    if (a === "--prose-semantic-dry-run") { proseSemanticEval = true; proseSemanticDryRun = true; continue }
+    if (a === "--prose-semantic-concurrency") {
+      const raw = argv[++i] ?? ""
+      const parsed = Number.parseInt(raw, 10)
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        throw new Error(`--prose-semantic-concurrency requires a positive integer; got ${JSON.stringify(raw)}`)
+      }
+      proseSemanticConcurrency = parsed
+      continue
+    }
     if (a === "--per-arm-timeout-ms") {
       const raw = argv[++i] ?? ""
       const parsed = Number.parseInt(raw, 10)
@@ -394,7 +473,7 @@ export function parseArgs(argv: string[]): Args {
     }
   }
   if (arms.length === 0) throw new Error("--writer-arms produced an empty arm list")
-  return { source, targetPrefix, arms, writerOnly, perArmTimeoutMs }
+  return { source, targetPrefix, arms, writerOnly, proseSemanticEval, proseSemanticDryRun, proseSemanticConcurrency, perArmTimeoutMs }
 }
 
 async function main() {
@@ -408,6 +487,9 @@ async function main() {
   if (args.writerOnly) {
     console.log(`writer-only mode: draftCaptureModeV1=true on every arm — chapter-level checker settle loops are SKIPPED`)
   }
+  if (args.proseSemanticEval) {
+    console.log(`prose semantic eval: enabled${args.proseSemanticDryRun ? " (dry-run)" : ""}, concurrency=${args.proseSemanticConcurrency}`)
+  }
   if (args.perArmTimeoutMs != null) {
     console.log(`per-arm timeout: ${args.perArmTimeoutMs}ms (a hung arm will not block the next arm; partial chapter_drafts are still collected)`)
   }
@@ -418,6 +500,9 @@ async function main() {
   for (const arm of args.arms) {
     results.push(await runArm(arm, args.source, args.targetPrefix, {
       writerOnly: args.writerOnly,
+      proseSemanticEval: args.proseSemanticEval,
+      proseSemanticDryRun: args.proseSemanticDryRun,
+      proseSemanticConcurrency: args.proseSemanticConcurrency,
       perArmTimeoutMs: args.perArmTimeoutMs,
     }))
   }
@@ -433,6 +518,14 @@ async function main() {
     console.log(`  total words: ${r.totalWords} / target ${r.totalTarget}`)
     console.log(`  mean per-chapter ratio: ${r.meanRatio.toFixed(3)}`)
     console.log(`  writer-expansion events: ${r.expansionEvents}`)
+    if (r.proseSemantic) {
+      console.log(`  prose semantic: rows=${r.proseSemantic.resultCount}, lows=${r.proseSemantic.lowRows}, errors=${r.proseSemantic.errorRows}`)
+      console.log(`    report: ${r.proseSemantic.outputDir || "(not written)"}`)
+      console.log(`    recommendation: ${r.proseSemantic.recommendation}`)
+      if (r.proseSemantic.saturationNotes.length > 0) {
+        console.log(`    saturation: ${r.proseSemantic.saturationNotes.join(" | ")}`)
+      }
+    }
     for (const c of r.chapters) {
       console.log(`    ch${c.chapter}: ${c.words}/${c.targetWords} (${c.ratio.toFixed(2)})`)
     }

@@ -45,6 +45,26 @@ describe("test-drafting-isolated parseArgs", () => {
     expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--writer-only"]).writerOnly).toBe(true)
   })
 
+  test("--prose-semantic-eval is opt-in and can dry-run", () => {
+    const defaults = parseArgs(["--source", "n", "--target-prefix", "ab"])
+    expect(defaults.proseSemanticEval).toBe(false)
+    expect(defaults.proseSemanticDryRun).toBe(false)
+
+    const live = parseArgs(["--source", "n", "--target-prefix", "ab", "--prose-semantic-eval", "--prose-semantic-concurrency", "2"])
+    expect(live.proseSemanticEval).toBe(true)
+    expect(live.proseSemanticDryRun).toBe(false)
+    expect(live.proseSemanticConcurrency).toBe(2)
+
+    const dry = parseArgs(["--source", "n", "--target-prefix", "ab", "--prose-semantic-dry-run"])
+    expect(dry.proseSemanticEval).toBe(true)
+    expect(dry.proseSemanticDryRun).toBe(true)
+  })
+
+  test("--prose-semantic-concurrency rejects non-positive / non-numeric values", () => {
+    expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--prose-semantic-concurrency", "0"])).toThrow(/positive integer/)
+    expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--prose-semantic-concurrency", "abc"])).toThrow(/positive integer/)
+  })
+
   test("--per-arm-timeout-ms defaults to null and parses positive integers", () => {
     expect(parseArgs(["--source", "n", "--target-prefix", "ab"]).perArmTimeoutMs).toBeNull()
     expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--per-arm-timeout-ms", "60000"]).perArmTimeoutMs).toBe(60000)

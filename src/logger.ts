@@ -150,6 +150,7 @@ export async function logLLMCallStructured(novelId: string | null, entry: LLMCal
 }
 
 function getPhaseForAgent(agent: string): string {
+  if (agent.startsWith("prose-semantic-")) return "drafting"
   const PHASE_MAP: Record<string, string> = {
     "world-builder": "concept",
     "character-agent": "concept",

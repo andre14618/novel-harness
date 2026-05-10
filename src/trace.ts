@@ -40,6 +40,7 @@ export type TraceEventType =
   | "reference-resolution"
   | "writer-context"
   | "writer-expansion"
+  | "prose-semantic-eval"
   | "draft-capture-mode"
   | "state-extraction"
   | "gate-wait"

@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-07
+updated: 2026-05-10
 role: program-loop-contract
 ---
 
@@ -29,7 +29,7 @@ Current methodology work optimizes one layer at a time:
 
 - Evidence and diagnostics:
   `diagnostics:semantic-gate`, `diagnostics:writer-expansion`,
-  `diagnostics:plan-drift`, `diagnostics:checker-warnings`,
+  `diagnostics:prose-semantic`, `diagnostics:plan-drift`, `diagnostics:checker-warnings`,
   `diagnostics:plan-assist-lineage`, `diagnostics:semantic-gate-matrix`,
   `diagnostics:semantic-gate-cohort-matrix`, replay, and live A/B summaries.
 - Proposal and interactivity infrastructure:
