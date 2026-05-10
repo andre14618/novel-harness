@@ -1,11 +1,42 @@
 ---
 status: active
-updated: 2026-05-09
+updated: 2026-05-10
 ---
 
 # Lessons Learned
 
 Hard-won principles from experiments, failures, and debugging. Each entry has evidence — experiment IDs, commit hashes, or specific observations. Read this before designing new agents, rubrics, benchmarks, or pipeline integrations.
+
+## A/B Fixture Discipline
+
+### A/B fixtures must produce the failure direction the hypothesis is meant to fix (2026-05-10)
+
+Slice 2.5 ran a fixed-plan A/B for `sceneCallWriterV1` + `writerExpansionMode="retry-short-scenes-v1"` (commit `e1570a4`) on `test-planner-fantasy-cartographer-1778375271479`. Baseline arm produced 5/10 chapters at mean ratio 2.20 — every chapter overshot target by 80-140%. Treatment arm bailed at chapter 1 on a halluc-ungrounded plan-assist gate. **Zero `writer-expansion` events fired across both arms** — because the L097 expansion path only triggers when `actualWords < advisoryFloor` (70% of target). The baseline never undershot, so the treatment's expansion path was never invoked, and the A/B produced no signal about the hypothesis.
+
+**The rule:** before running an A/B that gates a flag promotion, verify that the chosen baseline produces the same failure direction the new code is supposed to fix. Don't just check the baseline runs cleanly — check that it runs into the symptom you're trying to repair. POC's 0.60 → 0.79 word-ratio gain came from a fixture where writers undershot; running the same intervention on a writer-overshoots fixture exercises only the no-op path.
+
+**How to apply:**
+
+- Before authoring an A/B, write down the symptom the treatment should affect (e.g., "actualWords < 70% of target on 3+ chapters").
+- Pull a representative baseline draft and confirm the symptom is present at meaningful frequency. If it isn't, change the fixture.
+- For paths gated on a numeric threshold (advisory floors, retry caps, ratio bounds), prefer a fixture that crosses that threshold in the failing direction in the majority of measured units, not just one.
+- Document the symptom expectation in the A/B's session contract so a re-runner can verify the fixture before spending live calls.
+
+(L097 Slice 2.5 amendment, lane-queue 2026-05-10 entry.)
+
+### Plan-assist gates bail under `setAutoMode(true)`; multi-arm A/Bs need pre-resolved fixture entities (2026-05-10)
+
+The Slice 2.5 A/B harness called `setAutoMode(true)` and `setResolverMode(getMode(true))` before invoking `runDraftingPhase`. Both arms still bailed at plan-assist gates — baseline at chapter 6 (halluc-ungrounded "Guild cartographer"), treatment at chapter 1 (same entity). Auto mode handles automated flow but does NOT auto-resolve plan-assist gates raised by halluc-ungrounded blockers; `runDraftingPhase` returns `kind: 'plan-check-exhausted'` and the script reports a fail. For multi-chapter sequential A/Bs the harness needs either (a) a fixture whose declared concept entities cover the entities the writer naturally invokes, or (b) a different test mode that bypasses plan-assist for evaluation runs (does not exist today).
+
+**The rule:** when scripting drafting in auto mode for evaluation, expect halluc-ungrounded findings to bail mid-run unless the fixture's concept already declares every entity the writer is going to mention. A run that produces N/10 chapters before bail is partial evidence at best; a paired-arm A/B that bails at different chapter numbers is non-comparable.
+
+**How to apply:**
+
+- Before running a multi-arm A/B that depends on N chapters per arm, audit the source novel's facts/characters and pre-resolve entity gaps via concept update or proposal closure.
+- Treat `kind: 'plan-check-exhausted'` from `runDraftingPhase` as a fixture-shape signal, not just a blocker; report which entities triggered which arm before re-running.
+- If repeated A/B fixtures bail on the same blocker class, build a dedicated eval-mode resolver before the next A/B rather than fixing fixtures one entity at a time.
+
+(L097 Slice 2.5 amendment, `scripts/test-drafting-isolated.ts`, both arms in `ab-2026-05-10-*` bailed.)
 
 ## Substrate Adapter Design
 

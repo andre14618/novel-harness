@@ -89,3 +89,10 @@ lane queue stays focused on active and next work without losing closure detail.
 - Structural planning-edit routes and Structural Planning Studio UI shipped the
   beat/obligation replace/reorder action surface with persisted structural
   lineage; Playwright evidence on `codex-structural-ui-1777995796883`.
+
+## 2026-05-09 closures (archived 2026-05-10)
+
+- `calibrated:packed` v1 shipped (commits `da6e39f`, `f8057d4`) and evaluated at N=12 × 4 arms × 1 chapter (experiment #479): matches `control:source` clean-pass count (10/12) at 1.76 mean word ratio (vs 3.38) and 65% of control cost. Promotion remains `hold` per L086 — word ratio missed 1.75 by 0.01 and completion 10/12 vs better hard-cap 11/12. Audits show zero dropped obligations and zero dropped payoffs across all 12 cells, but is now diagnostic evidence only per L088. Record: `docs/sessions/2026-05-06-pickup-planner-shape-baseline.md`.
+- `nativePlanningContractV1` shipped and is now the production default: concept/planning contract guidance, over-fragmentation retry/reject enforcement, and legacy rollback with `nativePlanningContractV1=false`.
+- Controlled comparison on frozen `fantasy-system-heretic` concept produced legacy 24 beats vs native 18 beats. Native improved mapper headroom and avoided visible payoff-link sanitation, but still needs story-quality and downstream drafting evidence.
+- Planner-quality diagnostic added for controlled planning pairs. On the frozen `fantasy-system-heretic` pair it confirmed native's mechanical shape improvement while flagging endpoint/relationship risks that beat counts alone would hide.

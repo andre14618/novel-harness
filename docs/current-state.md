@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-09
+updated: 2026-05-10
 role: canonical-current-truth
 archive: archive/current-state-2026-05-04-full.md
 ---
@@ -134,6 +134,13 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-08:
   chapter contracts, scene functions, and planner-quality evidence to improve
   plan shape before changing drafting, checking, or UI defaults.
 - Corpus structure recreation POC now has a passing scene-first local plan/write scaffold; production drafting defaults to exact-ID character context capsules per L094.
+- Scene-first runtime promotion lane shipped 2026-05-09/10: four flag-gated
+  slices (L095-L098), all default-off. L096 validator advisory after V4 Flash
+  compliance ceiling. Diagnostic harnesses: `scripts/test-drafting-isolated.ts`,
+  `scripts/evals/scene-semantic-review.ts`, `scripts/evals/scene-checker-parity-panel.ts`.
+  Slice 2.5 A/B inconclusive (wrong fixture profile); Slice 3.5 live N≥20 deferred.
+  L092 no-blocker-promotion non-goal stands. Retrospective:
+  `docs/sessions/2026-05-09-scene-first-runtime-promotion.md`.
 - Open local operator-review artifacts before handoff when possible; still report the path.
 - First backend tracer exposes read-only planning targets and deterministic
   impact preview. Write tracers add `planning_edit` envelopes for chapter,
@@ -214,18 +221,11 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-08:
 - Deterministic lint-generated `prose_edit` span proposals now carry optional
   `beatRef` metadata when drafting can map the span through the exact
   `beatProses` join to an enriched outline beat id.
-- Target links are derived from stored artifacts, and approved
-  scalar/text/link/directive/character/world/spine planning edits now persist
-  old-ref/new-ref mutation lineage. Structural proposal action routes now
-  create/apply beat and beat-obligation replace/reorder edits, and structural
-  lineage records exact-ID reorder plus same-slot replacement supersession.
-  Planning Studio now exposes those structural beat/obligation replace/reorder
-  actions through explicit action-aware controls.
-- Structural Planning Studio UI exposes beat/obligation replace/reorder flows;
-  browser evidence for UI slices lives under `output/playwright/`.
-- UI fixes from clearance: artifact proposal resolve now preserves structured
-  stale-precondition `409` responses for the regenerate UI, and the stale Canon
-  proposal browser-untested footer copy was removed.
+- Approved scalar/text/link/directive/character/world/spine planning edits
+  persist old-ref/new-ref mutation lineage; structural beat/obligation
+  replace/reorder action routes record exact-ID reorder + same-slot
+  replacement supersession. Planning Studio exposes those flows; browser
+  evidence for UI slices lives under `output/playwright/`.
 - Phase 7 replay/promotion foundations remain available through the local
   guard and are no longer the active implementation lane.
 - Backlog: artifact/Canon checker observation sources after real observers

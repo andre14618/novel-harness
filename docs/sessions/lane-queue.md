@@ -5,55 +5,12 @@ unless the user explicitly requests a disposable branch.
 
 ## Active
 
-- Scene-first runtime promotion lane (2026-05-09): four-slice incremental
-  promotion of POC scene-contract methodology into production. Plan:
-  `/Users/andre/.claude/plans/velvet-riding-cascade.md`. Session contract:
-  `docs/sessions/2026-05-09-scene-first-runtime-promotion.md`.
-  - Slice 0 (L095): substrate shipped — optional scene-contract schema fields,
-    seven-value `storyDebtStage` enum, `scenePlanContractV1` flag,
-    `enforceScenePlanContract` helper. Default-off; byte-parity preserved.
-  - Slice 1 (L096): planner behavior wiring shipped — causal-motivation-v3
-    prompt under flag, state-mapper materiality + wider stage values,
-    structural-v1 retry. Default-off.
-  - Slice 1.5 (L096 amendment): validator demoted to advisory mode after
-    three LXC smokes showed DeepSeek V4 Flash can't reliably comply with the
-    multi-field contract on production-shape novels. Validator still runs
-    and logs findings; planning never throws. Promotion to blocking mode is
-    contingent on a model upgrade or contract simplification — deferred
-    indefinitely.
-  - Slice 2 (L097): writer scene-context rendering + retry-short-scenes-v1
-    expansion shipped behind `sceneCallWriterV1=false` +
-    `writerExpansionMode="off"`. Wiring validated by unit tests + byte-parity
-    replay; LXC drafting fixed-plan A/B explicitly deferred until a
-    `test-drafting-isolated` harness is built (Slice 2.5 backlog).
-  - Slice 3 (L098): structural wiring shipped — optional `obligationIds`
-    on `ChapterPlanDeviation` and `ValidationFinding`,
-    `sceneSatisfactionCheckerV1` flag, obligation-aware validation-routing
-    helper that closes a silent-no-op routing bug. LLM judge + parity
-    panel deferred to Slice 3.5 backlog.
-  - Slice 2.5 (harness shipped, A/B inconclusive 2026-05-10):
-    `scripts/test-drafting-isolated.ts` clones planning-done source twice and
-    runs drafting on both arms with different writer flags. First run on
-    `test-planner-fantasy-cartographer-1778375271479` produced no usable A/B —
-    baseline arm drafted 5/10 chapters at mean ratio 2.20 (over-target across
-    the board), treatment arm bailed at ch1 on a halluc-ungrounded plan-assist
-    gate. Zero `writer-expansion` events fired in either arm because the L097
-    expansion path only triggers when `actualWords < advisoryFloor` (70% of
-    target) and this fixture overshoots. To actually answer the deferred
-    question, pick a fixture where writers undershoot AND bypass/pre-resolve
-    plan-assist gates so both arms can complete the full 10 chapters. Until
-    then, `sceneCallWriterV1` and `writerExpansionMode` stay default-off.
-  - Slice 3.5 (scripts shipped 2026-05-10): both
-    `scripts/evals/scene-semantic-review.ts` and
-    `scripts/evals/scene-checker-parity-panel.ts` shipped with unit tests
-    + LXC dry-run sanity. Live evidence run requires a fixture with
-    populated thread/promise/payoff refs AND scene-contract fields; the
-    L096 advisory novel doesn't satisfy that shape (most scenes have no
-    refs declared, so applicability skips dominate and gates fall back
-    to none-declared = true). Live N≥20 run is a separate scope; ship
-    it against a properly-shaped persisted novel before any scene-
-    satisfaction promotion proposal. Both scripts are diagnostic-only;
-    L092 + L098 keep the no-blocker-promotion non-goal in place.
+- Scene-first runtime promotion lane CLOSED (2026-05-09/10). All four slices
+  + 2.5 + 3.5 shipped default-off. Retrospective:
+  `docs/sessions/2026-05-09-scene-first-runtime-promotion.md`. Open follow-ups
+  outside this lane: (a) Slice 2.5 redo needs a writer-undershoots fixture +
+  pre-resolved entities; (b) Slice 3.5 live N≥20 panel needs a fixture with
+  declared refs AND scene-contract fields. Promotion of any flag stays gated.
 - Upstream planning methodology lane: narrow the active product question to
   concept/planning templates, chapter contracts, scene contracts, obligation
   traceability, and planner-quality diagnostics. See L089.
@@ -133,26 +90,10 @@ unless the user explicitly requests a disposable branch.
 
 ## Recently Closed
 
-- `calibrated:packed` v1 shipped (commits `da6e39f`, `f8057d4`) and
-  evaluated at N=12 × 4 arms × 1 chapter (experiment #479): matches
-  `control:source` clean-pass count (10/12) at 1.76 mean word ratio (vs
-  3.38) and 65% of control cost. Promotion remains `hold` per L086 — word
-  ratio missed 1.75 by 0.01 and completion 10/12 vs better hard-cap 11/12.
-  Audits show zero dropped obligations and zero dropped payoffs across all
-  12 cells, but is now diagnostic evidence only per L088. Record:
-  `docs/sessions/2026-05-06-pickup-planner-shape-baseline.md`.
-- `nativePlanningContractV1` shipped and is now the production default:
-  concept/planning contract guidance, over-fragmentation retry/reject
-  enforcement, and legacy rollback with `nativePlanningContractV1=false`.
-- Controlled comparison on frozen `fantasy-system-heretic` concept produced
-  legacy 24 beats vs native 18 beats. Native improved mapper headroom and
-  avoided visible payoff-link sanitation, but still needs story-quality and
-  downstream drafting evidence.
-- Planner-quality diagnostic added for controlled planning pairs. On the
-  frozen `fantasy-system-heretic` pair it confirmed native's mechanical shape
-  improvement while flagging endpoint/relationship risks that beat counts alone
-  would hide.
-- Additional recent closures are archived in
+- Scene-first runtime promotion lane (2026-05-09/10): see Active section + retrospective.
+- Older 2026-05-09 closures (`calibrated:packed` v1, `nativePlanningContractV1`
+  default, `fantasy-system-heretic` controlled comparison, planner-quality
+  diagnostic) archived in
   `docs/sessions/archive/lane-queue-2026-05-06-recent-closed.md`.
 
 ## Parked
