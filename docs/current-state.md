@@ -40,6 +40,8 @@ Use deeper docs only when linked by the context pack or needed by code.
   for proof-of-concept speed. In POC mode, build vertical reviewable artifacts
   under `poc/`, defer blocking checkers, spend cheap model calls for evidence,
   preserve trace IDs, and do not change production defaults. See L100.
+- When accelerating, use goal-driven evidence loops and parallel agents where
+  write scopes are separable; continue until a real stop condition. See L101.
 
 ## Active Runtime Posture
 

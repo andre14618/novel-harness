@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-09
+updated: 2026-05-10
 role: decision-index
 archive: decisions/full-log-2026-05-04.md
 ---
@@ -16,6 +16,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
+| L101 | 2026-05-10 | active | Aggressive evidence loops: when accelerating, agents should run goal-driven autonomous POC/eval loops, spend model calls on artifacts/statistics/semantic diagnostics, parallelize independent engineering work, and continue until a real stop condition while preserving L090 runtime policy, trace IDs, and production-default gates. | `docs/decisions/L101-aggressive-evidence-loops.md` |
 | L100 | 2026-05-10 | active | POC acceleration lane: when lane-queue marks work as POC, agents optimize for vertical reviewable artifacts under `poc/`, checker-deferred generation, targeted verification, larger/parallel packets, and aggressive token-for-evidence spending while preserving trace IDs and not changing production defaults. | `docs/decisions/L100-poc-acceleration-lane.md` |
 | L99 | 2026-05-10 | active | Traceability IDs are mandatory infrastructure across state, DB, telemetry, checker findings, proposal targets, eval artifacts, and audit logs. The narrow ablation question is whether raw IDs should be visible in the prose-writer prompt; mapper/checker/reviewer/plan-update/disambiguation prompts keep IDs. Adjusted-B1 ablation planned; no runtime change in this record. | `docs/decisions/L099-writer-prompt-id-rendering.md` |
 | L98 | 2026-05-09 | active | Scene-satisfaction structural wiring shipped: optional `obligationIds` on `ChapterPlanDeviation` and `ValidationFinding`, `sceneSatisfactionCheckerV1` flag, obligation-aware validation-routing helper that closes a silent-no-op routing bug. LLM judge + parity panel deferred to Slice 3.5. | `docs/decisions/L098-scene-satisfaction-diagnostic.md` |

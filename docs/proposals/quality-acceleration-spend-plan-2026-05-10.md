@@ -28,6 +28,8 @@ This plan is subordinate to L090 and L100:
   without a production decision and verification gate.
 - Traceability IDs stay mandatory in state, DB, telemetry, diagnostics, audit,
   and artifacts.
+- L101 authorizes aggressive goal-driven evidence loops, parallel engineering
+  agents, and broader off-runtime research/judgment harness use.
 
 ## Review Verdict
 
@@ -63,9 +65,7 @@ Spend is not justified when it creates:
 
 ## Proposed Spend Posture
 
-These are proposed operating caps for the active POC lane. They should be
-written into the lane queue or a decision record before being treated as
-standing authorization.
+These are standing operating rules for the active POC lane under L101.
 
 | Spend class | Proposed default | Rule |
 | --- | --- | --- |
@@ -75,6 +75,7 @@ standing authorization.
 | Strong review/adjudication agents | use at coherent stop gates | Prefer review of artifacts, diffs, and promotion choices. |
 | Large one-off research/eval batch | require a named question and stop gate | Do not run broad research without a decision it can change. |
 | Production default flip | never spend-through | Requires production change packet, decision record, and verification. |
+| Uncalibrated semantic diagnostic | proceed as diagnostic | Persist output; never treat as blocker or promotion gate. |
 
 Replace dollar guesses with observed data wherever possible:
 
@@ -205,7 +206,29 @@ Do not stop merely because a commit landed, a summary was written, or a review
 request was sent. Stop when a human decision is required, an environment is
 blocked, a production-default risk appears, or every useful next item is gated.
 
-### Lane E: Corpus And Lint Calibration
+### Lane E: Bounded Research For Implementation Decisions
+
+Research is useful when it changes what the harness will build next.
+
+Good research packets:
+
+- compare two scene-planning methods and produce an implementation choice;
+- survey craft structures only to extract planner-testable obligations;
+- inspect generated artifacts and propose which context field is missing;
+- evaluate judge designs against known bias/failure modes;
+- identify corpus distributions that should become deterministic warnings.
+
+Bad research packets:
+
+- broad market reports with no implementation decision;
+- long lists of craft advice that do not become planner contracts;
+- model-vs-model essays without an artifact or evaluation shape;
+- repeating previous research without a new question.
+
+Research output should be short enough to be used: decision, evidence, proposed
+slice, stop gate, and files likely affected.
+
+### Lane F: Corpus And Lint Calibration
 
 This is a useful support lane after the POC artifact loop is moving.
 
@@ -224,7 +247,7 @@ Shape:
 
 This should be a bounded ticket, not an open-ended craft-research lane.
 
-### Lane F: World And Character Context Depth
+### Lane G: World And Character Context Depth
 
 This is likely a major quality lane after scene-first artifacts prove the
 writing path is worth hardening.
@@ -252,13 +275,18 @@ Do not start by building a large UI or policy layer. Start with a POC:
 - Custom autonomous coding supervisor infrastructure inside this repo.
 - UI/browser work that does not directly support a current artifact review.
 
-## Thirty-Day Acceleration Plan
+## Goal Queue
 
-### Days 1-3: Produce More Artifacts
+Use this queue instead of day-based timelines. Run the next loop as soon as its
+inputs are available.
 
-- Finish the first scene-first novella POC run.
+### Goal 1: Produce Reviewable Artifacts
+
+Actions:
+
+- Finish the current scene-first novella POC run.
 - Render the static review page.
-- Run at least one additional fixture with the same command shape.
+- Run the next fixture with the same command shape.
 - Record actual token/cost/latency in the run manifest where available.
 
 Exit condition:
@@ -266,36 +294,57 @@ Exit condition:
 - The operator can open a side-by-side artifact and judge whether the harness is
   moving toward useful fiction.
 
-### Days 4-10: Compare Arms
+Next loop trigger:
+
+- If one artifact renders, immediately run the next fixture unless it requires a
+  new code path or operator decision.
+
+### Goal 2: Compare Runtime Arms
+
+Actions:
 
 - Add or finish multi-arm support in the POC runner.
 - Run baseline vs scene-call vs contract-render vs ID-suppressed variants on at
   least two fixtures.
-- Capture diagnostics and side-by-side prose.
+- Capture diagnostics, side-by-side prose, and usage stats.
 
 Exit condition:
 
-- There is a concrete winner, loser, or "no difference" result with prose and
+- There is a concrete winner, loser, or no-difference result with prose and
   diagnostics visible.
 
-### Days 11-17: Calibrate Narrow Judges
+Next loop trigger:
 
-- Build small gold panels for endpoint landing, scene dramaturgy, and character
-  agency.
-- Run judge self-consistency checks.
+- If the result is unclear, add one more fixture or one narrower semantic
+  diagnostic before debating architecture.
+
+### Goal 3: Expand Semantic Diagnostics
+
+Actions:
+
+- Run scoped judges for endpoint landing, scene dramaturgy, character agency,
+  obligation satisfaction, world/context pressure, and promise/payoff movement.
+- Keep each judge narrow and evidence-first.
 - Add judge summaries to the static review artifact.
+- Build small gold/self-consistency panels for any judge that appears useful.
 
 Exit condition:
 
-- The operator can use judge output to prioritize what to read, without treating
-  it as an automatic promotion gate.
+- Judge output helps prioritize what the operator reads, or the judge is marked
+  not useful and removed from the active diagnostic set.
 
-### Days 18-24: Promote One Proven Slice
+Next loop trigger:
+
+- If a judge finds a repeated failure class, create either a planner-context
+  slice, writer-context slice, or deterministic validator proposal.
+
+### Goal 4: Promote One Proven Slice
+
+Actions:
 
 - Pick one POC result with clear artifact-level value.
 - Write a production change packet.
-- Freeze or delete the experimental path that would otherwise become duplicate
-  substrate.
+- Freeze or delete duplicate experimental substrate.
 - Run production verification gates.
 
 Exit condition:
@@ -303,16 +352,22 @@ Exit condition:
 - One net-positive slice moves from POC to production path, or a documented
   no-go decision prevents waste.
 
-### Days 25-30: Start The Next Quality Lane
+Next loop trigger:
 
-Choose one based on evidence:
+- Return to artifact generation with the promoted slice held constant.
+
+### Goal 5: Attack The Next Quality Bottleneck
+
+Choose based on evidence:
 
 - character/world context depth if prose lacks agency or world pressure;
-- planner template work if scenes lack strong goals/turns/consequences;
+- planner template work if scenes lack goals/turns/consequences;
 - diagnostic judge expansion if operator-review burden remains the bottleneck;
-- lint/corpus calibration if deterministic style flags waste retries.
+- lint/corpus calibration if deterministic style flags waste retries;
+- lineage/thread/promise scaffolding if payoff movement is hard to trace.
 
-Do not pursue all four at once.
+Do not pursue all five at once. Pick the bottleneck shown by the latest
+artifacts and diagnostics.
 
 ## Metrics That Matter
 
@@ -322,6 +377,8 @@ Track these weekly:
 - fixtures and arms run;
 - average time from idea to artifact;
 - operator-read pages avoided by diagnostics;
+- semantic diagnostic dimensions attempted, retained, and retired;
+- repeated failure classes discovered;
 - production slices promoted from POC;
 - production defaults changed without evidence: target zero;
 - traceability regressions: target zero.

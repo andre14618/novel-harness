@@ -11,6 +11,13 @@ unless the user explicitly requests a disposable branch.
   spend cheap model calls for evidence, and preserve trace IDs without changing
   production defaults. POC success must later be promoted through a production
   change packet before defaults change.
+- **Aggressive evidence loops are authorized (L101).** Replace day-based
+  timelines with goal queues and stop conditions. Use DeepSeek spend for POC
+  sweeps, semantic diagnostics, and statistics; use the best available coding
+  or research harness off the runtime path; parallelize independent write
+  scopes; keep going until blocked by production-default risk, traceability
+  loss, repeated same-fingerprint failure, unavailable environment, or explicit
+  operator decision.
 - **Scene-level plan/write lane (operator-adjusted, 2026-05-10).** Operational
   plan is `docs/research/user-adjusted-backlog-2026-05-10.md` (B1–B5).
   Inputs: seven Opus deep-dive artifacts at `docs/research/opus-*.md`.

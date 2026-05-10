@@ -47,6 +47,10 @@ the work diagnostic/docs-only or stop for user judgment.
   vertical reviewable artifacts under `poc/`, checker-deferred generation,
   targeted tests, and faster token-for-evidence loops. Preserve traceability
   IDs and do not change production defaults. See L100.
+- When L101/aggressive evidence loops are active, keep moving through the next
+  independent goal after each artifact or commit. Use parallel agents where
+  write scopes are separable, gather run statistics, and use semantic
+  diagnostics as decision aids rather than blockers.
 
 ## Current Work
 
