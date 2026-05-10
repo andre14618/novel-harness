@@ -37,7 +37,7 @@ import {
   summarizeCharacterContextCapsules,
   type WriterCharacterContextTrace,
 } from "./character-context"
-import type { WriterContextMode } from "./context-mode"
+import type { WriterContextMode, WriterPromptIdRendering } from "./context-mode"
 
 /** Attempt a DB lookup that may legitimately return no data (novel hasn't reached that stage yet).
  *  Only catches "not found" style errors. Real errors (connection, schema) propagate. */
@@ -61,6 +61,9 @@ export async function buildContext(
   chapterNum: number,
   opts: {
     writerContextMode?: WriterContextMode
+    /** L099 / adjusted-B1: defaults to "raw" (legacy). "suppress" hides
+     *  Cluster-1 raw-ID lines in the rendered character context. */
+    writerPromptIdRendering?: WriterPromptIdRendering
     onCharacterContextTrace?: (trace: WriterCharacterContextTrace) => void
   } = {},
 ): Promise<string> {
@@ -99,7 +102,7 @@ export async function buildContext(
     })
     if (capsules) {
       opts.onCharacterContextTrace?.(summarizeCharacterContextCapsules(capsules))
-      sections.push(renderCharacterContextCapsules(capsules))
+      sections.push(renderCharacterContextCapsules(capsules, { idRendering: opts.writerPromptIdRendering }))
     }
   }
 

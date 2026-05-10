@@ -108,6 +108,7 @@ export function effectivePipeline(seed: SeedInput): typeof pipeline {
       o.continuityEditorialFlagProposals ?? pipeline.continuityEditorialFlagProposals,
     factRoleContextPolicy: o.factRoleContextPolicy ?? pipeline.factRoleContextPolicy,
     writerContextMode: o.writerContextMode ?? pipeline.writerContextMode,
+    writerPromptIdRendering: o.writerPromptIdRendering ?? pipeline.writerPromptIdRendering,
     planningMaxBeatsPerChapter:
       o.planningMaxBeatsPerChapter ?? pipeline.planningMaxBeatsPerChapter,
     nativePlanningContractV1:
@@ -133,6 +134,11 @@ async function traceWriterContextEvent(
     path: "beat" | "chapter"
     stage: "initial" | "beat-fallback" | "chapter" | "chapter-plan-rewrite" | "validation-rewrite" | "integrity-rewrite"
     writerContextMode: string
+    /** L099 / adjusted-B1: which writer-prompt ID rendering arm produced
+     *  this writer call. Recorded in telemetry so A/B audits can attribute
+     *  prose differences to the rendering arm without re-deriving it from
+     *  the seed. Defaults to "raw" when omitted (legacy callers). */
+    writerPromptIdRendering?: string
     targetWords?: number
     characterContextTrace?: WriterCharacterContextTrace | null
   },
@@ -145,6 +151,7 @@ async function traceWriterContextEvent(
       path: args.path,
       stage: args.stage,
       writerContextMode: args.writerContextMode,
+      writerPromptIdRendering: args.writerPromptIdRendering ?? "raw",
       targetWords: args.targetWords ?? null,
       hasCharacterContext: Boolean(args.characterContextTrace),
       characterContext: args.characterContextTrace ?? null,
@@ -201,6 +208,9 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
   }
   if (eff.writerContextMode !== pipeline.writerContextMode) {
     log(novelId, "info", `Drafting: pipelineOverrides applied — writerContextMode=${eff.writerContextMode}`)
+  }
+  if (eff.writerPromptIdRendering !== pipeline.writerPromptIdRendering) {
+    log(novelId, "info", `Drafting: pipelineOverrides applied — writerPromptIdRendering=${eff.writerPromptIdRendering}`)
   }
 
   console.log(`  Drafting ${totalChapters} chapters (approved chapters will be skipped)\n`)
@@ -381,6 +391,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               genre: novel.seed?.genre,
               priorChapterFacts,
               writerContextMode: eff.writerContextMode,
+              writerPromptIdRendering: eff.writerPromptIdRendering,
               sceneCallWriterV1,
             })
             await traceWriterContextEvent(novelId, {
@@ -389,6 +400,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               path: "beat",
               stage: "initial",
               writerContextMode: eff.writerContextMode,
+              writerPromptIdRendering: eff.writerPromptIdRendering,
               targetWords: beatCtx.targetWords,
               characterContextTrace: beatCtx.characterContextTrace,
             })
@@ -646,6 +658,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             let chapterCharacterContextTrace: WriterCharacterContextTrace | null = null
             const writerContext = await buildWriterContext(novelId, ch, {
               writerContextMode: eff.writerContextMode,
+              writerPromptIdRendering: eff.writerPromptIdRendering,
               onCharacterContextTrace: trace => { chapterCharacterContextTrace = trace },
             })
             await traceWriterContextEvent(novelId, {
@@ -653,6 +666,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               path: "chapter",
               stage: "beat-fallback",
               writerContextMode: eff.writerContextMode,
+              writerPromptIdRendering: eff.writerPromptIdRendering,
               characterContextTrace: chapterCharacterContextTrace,
             })
             const draftResult = await callAgent({
@@ -679,6 +693,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           let chapterCharacterContextTrace: WriterCharacterContextTrace | null = null
           writerContext = await buildWriterContext(novelId, ch, {
             writerContextMode: eff.writerContextMode,
+            writerPromptIdRendering: eff.writerPromptIdRendering,
             onCharacterContextTrace: trace => { chapterCharacterContextTrace = trace },
           })
           await traceWriterContextEvent(novelId, {
@@ -686,6 +701,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             path: "chapter",
             stage: "chapter",
             writerContextMode: eff.writerContextMode,
+            writerPromptIdRendering: eff.writerPromptIdRendering,
             characterContextTrace: chapterCharacterContextTrace,
           })
         } catch (err) {
@@ -858,6 +874,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 genre: novel.seed?.genre,
                 priorChapterFacts,
                 writerContextMode: eff.writerContextMode,
+                writerPromptIdRendering: eff.writerPromptIdRendering,
                 sceneCallWriterV1,
               })
               await traceWriterContextEvent(novelId, {
@@ -866,6 +883,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 path: "beat",
                 stage: "chapter-plan-rewrite",
                 writerContextMode: eff.writerContextMode,
+                writerPromptIdRendering: eff.writerPromptIdRendering,
                 targetWords: beatCtx.targetWords,
                 characterContextTrace: beatCtx.characterContextTrace,
               })
@@ -1161,6 +1179,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               genre: novel.seed?.genre,
               priorChapterFacts,
               writerContextMode: eff.writerContextMode,
+              writerPromptIdRendering: eff.writerPromptIdRendering,
               sceneCallWriterV1,
             })
             await traceWriterContextEvent(novelId, {
@@ -1169,6 +1188,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               path: "beat",
               stage: "validation-rewrite",
               writerContextMode: eff.writerContextMode,
+              writerPromptIdRendering: eff.writerPromptIdRendering,
               targetWords: beatCtx.targetWords,
               characterContextTrace: beatCtx.characterContextTrace,
             })
@@ -1741,6 +1761,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   genre: novel.seed?.genre,
                   priorChapterFacts,
                   writerContextMode: eff.writerContextMode,
+                  writerPromptIdRendering: eff.writerPromptIdRendering,
                   sceneCallWriterV1,
                 })
                 await traceWriterContextEvent(novelId, {
@@ -1749,6 +1770,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   path: "beat",
                   stage: "integrity-rewrite",
                   writerContextMode: eff.writerContextMode,
+                  writerPromptIdRendering: eff.writerPromptIdRendering,
                   targetWords: beatCtx.targetWords,
                   characterContextTrace: beatCtx.characterContextTrace,
                 })

@@ -47,7 +47,7 @@ import {
   type WriterCharacterContextCapsules,
   type WriterCharacterContextTrace,
 } from "./character-context"
-import type { WriterContextMode } from "./context-mode"
+import type { WriterContextMode, WriterPromptIdRendering } from "./context-mode"
 import type { BeatObligationsContract, ChapterOutline, CharacterProfile, Fact, SceneBeat } from "../../types"
 
 // ── exampleLines conditioning presets ────────────────────────────────────
@@ -98,6 +98,13 @@ export interface BeatContextInput {
    *  surface them as a SCENE CONTRACT block in the writer prompt. Off
    *  preserves byte-parity. */
   sceneCallWriterV1?: boolean
+  /** L099 / adjusted-B1: writer-prompt ID rendering ablation lever.
+   *  Defaults to "raw" (legacy behaviour). When set to "suppress", the
+   *  Cluster-1 raw-ID lines are omitted from the rendered prompt; trace
+   *  metadata is unaffected. Pure render-time concern; the slot builder
+   *  still populates every field, so swapping arms in an A/B does not
+   *  require rebuilding context. */
+  writerPromptIdRendering?: WriterPromptIdRendering
 }
 
 export interface BeatContextResult {
@@ -399,7 +406,10 @@ export async function buildBeatContext(input: BeatContextInput): Promise<BeatCon
   const targetWords = ctx.sceneContract?.targetWords
     ?? Math.round(input.outline.targetWords / Math.max(input.outline.scenes.length, 1))
   return {
-    userPrompt: renderBeatContext(ctx, { compact: !!input.compactMode }),
+    userPrompt: renderBeatContext(ctx, {
+      compact: !!input.compactMode,
+      idRendering: input.writerPromptIdRendering,
+    }),
     targetWords,
     characterContextTrace: ctx.characterContextCapsules
       ? summarizeCharacterContextCapsules(ctx.characterContextCapsules)

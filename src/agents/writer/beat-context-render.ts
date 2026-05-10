@@ -25,8 +25,16 @@
 
 import type { BeatContext, BeatSpec, CharacterSnapshot, SceneContractBlock, SettingBlock } from "./beat-context"
 import { renderCharacterContextCapsules } from "./character-context"
+import type { WriterPromptIdRendering } from "./context-mode"
 
-export function renderBeatContext(ctx: BeatContext, opts: { compact: boolean }): string {
+export interface RenderBeatContextOptions {
+  compact: boolean
+  /** L099 / adjusted-B1: writer-prompt ID rendering ablation lever.
+   *  Defaults to "raw" (legacy behaviour) when omitted. */
+  idRendering?: WriterPromptIdRendering
+}
+
+export function renderBeatContext(ctx: BeatContext, opts: RenderBeatContextOptions): string {
   const sections: string[] = []
 
   // ── 1. Beat spec ──────────────────────────────────────────────────────
@@ -60,7 +68,7 @@ export function renderBeatContext(ctx: BeatContext, opts: { compact: boolean }):
   }
 
   if (ctx.characterContextCapsules) {
-    sections.push(renderCharacterContextCapsules(ctx.characterContextCapsules))
+    sections.push(renderCharacterContextCapsules(ctx.characterContextCapsules, { idRendering: opts.idRendering }))
   }
 
   // ── 5. Resolved references ────────────────────────────────────────────

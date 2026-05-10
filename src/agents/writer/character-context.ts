@@ -1,4 +1,22 @@
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
+import type { WriterPromptIdRendering } from "./context-mode"
+
+/**
+ * Render-time options for `renderCharacterContextCapsules`.
+ *
+ * `idRendering`: L099 / adjusted-B1 ablation lever. Defaults to "raw"
+ * (current production rendering — emits raw Chapter ID, Beat ID, POV
+ * character ID, Active thread/promise/payoff refs, Missing character IDs,
+ * per-card `[characterId]` brackets, per-card Source obligations / Active
+ * threads/promises/payoffs lines). When set to "suppress", those Cluster-1
+ * raw-ID lines are omitted from the rendered prompt. The function is pure;
+ * it does not consult the trace summarizer (`summarizeCharacterContextCapsules`)
+ * or any DB / telemetry surface — IDs continue to flow through trace
+ * metadata regardless of this option.
+ */
+export interface RenderCharacterContextCapsulesOptions {
+  idRendering?: WriterPromptIdRendering
+}
 
 export interface WriterCharacterContextCard {
   characterId: string
@@ -144,26 +162,38 @@ export function buildChapterCharacterContextCapsules(args: {
   }
 }
 
-export function renderCharacterContextCapsules(ctx: WriterCharacterContextCapsules): string {
+export function renderCharacterContextCapsules(
+  ctx: WriterCharacterContextCapsules,
+  options: RenderCharacterContextCapsulesOptions = {},
+): string {
+  // Default "raw" preserves byte-for-byte parity with the legacy renderer.
+  // "suppress" gates the Cluster-1 raw-ID lines per L099 / adjusted-B1.
+  const showIds = (options.idRendering ?? "raw") === "raw"
   const lines = ["CHARACTER CONTEXT CAPSULES:"]
   const activeThreadIds = ctx.activeThreadIds ?? []
   const activePromiseIds = ctx.activePromiseIds ?? []
   const activePayoffIds = ctx.activePayoffIds ?? []
   lines.push(`Mode: ${ctx.mode}`)
   lines.push(`Scope: ${ctx.scope}`)
-  if (ctx.chapterId) lines.push(`Chapter ID: ${ctx.chapterId}`)
-  if (ctx.beatId) lines.push(`Beat ID: ${ctx.beatId}`)
+  if (showIds && ctx.chapterId) lines.push(`Chapter ID: ${ctx.chapterId}`)
+  if (showIds && ctx.beatId) lines.push(`Beat ID: ${ctx.beatId}`)
+  // Beat NUMBER is a positional ordinal, not an ID — keep visible in both modes.
   if (ctx.beatNumber != null) lines.push(`Beat number: ${ctx.beatNumber}`)
-  if (ctx.povCharacterId) lines.push(`POV character ID: ${ctx.povCharacterId}`)
+  if (showIds && ctx.povCharacterId) lines.push(`POV character ID: ${ctx.povCharacterId}`)
+  // POV personal stake is semantic content — keep visible in both modes.
   if (ctx.povPersonalStake) lines.push(`POV personal stake: ${ctx.povPersonalStake}`)
-  if (activeThreadIds.length > 0) lines.push(`Active thread refs: ${activeThreadIds.join(", ")}`)
-  if (activePromiseIds.length > 0) lines.push(`Active promise refs: ${activePromiseIds.join(", ")}`)
-  if (activePayoffIds.length > 0) lines.push(`Active payoff refs: ${activePayoffIds.join(", ")}`)
-  if (ctx.missingCharacterIds.length > 0) lines.push(`Missing character IDs: ${ctx.missingCharacterIds.join(", ")}`)
+  if (showIds && activeThreadIds.length > 0) lines.push(`Active thread refs: ${activeThreadIds.join(", ")}`)
+  if (showIds && activePromiseIds.length > 0) lines.push(`Active promise refs: ${activePromiseIds.join(", ")}`)
+  if (showIds && activePayoffIds.length > 0) lines.push(`Active payoff refs: ${activePayoffIds.join(", ")}`)
+  if (showIds && ctx.missingCharacterIds.length > 0) lines.push(`Missing character IDs: ${ctx.missingCharacterIds.join(", ")}`)
 
   for (const card of ctx.cards) {
     lines.push("")
-    lines.push(`- ${card.name} [${card.characterId}] (${card.sceneRole}; ${card.role})`)
+    if (showIds) {
+      lines.push(`- ${card.name} [${card.characterId}] (${card.sceneRole}; ${card.role})`)
+    } else {
+      lines.push(`- ${card.name} (${card.sceneRole}; ${card.role})`)
+    }
     if (card.want) lines.push(`  Want: ${card.want}`)
     if (card.need) lines.push(`  Need: ${card.need}`)
     if (card.lie) lines.push(`  Lie: ${card.lie}`)
@@ -174,10 +204,10 @@ export function renderCharacterContextCapsules(ctx: WriterCharacterContextCapsul
     if (card.conflict) lines.push(`  Conflict: ${card.conflict}`)
     if (card.voice) lines.push(`  Voice: ${card.voice}`)
     if (card.state) lines.push(`  State: ${card.state}`)
-    if (card.sourceObligationIds.length > 0) lines.push(`  Source obligations: ${card.sourceObligationIds.join(", ")}`)
-    if (card.activeThreadIds.length > 0) lines.push(`  Active threads: ${card.activeThreadIds.join(", ")}`)
-    if (card.activePromiseIds.length > 0) lines.push(`  Active promises: ${card.activePromiseIds.join(", ")}`)
-    if (card.activePayoffIds.length > 0) lines.push(`  Active payoffs: ${card.activePayoffIds.join(", ")}`)
+    if (showIds && card.sourceObligationIds.length > 0) lines.push(`  Source obligations: ${card.sourceObligationIds.join(", ")}`)
+    if (showIds && card.activeThreadIds.length > 0) lines.push(`  Active threads: ${card.activeThreadIds.join(", ")}`)
+    if (showIds && card.activePromiseIds.length > 0) lines.push(`  Active promises: ${card.activePromiseIds.join(", ")}`)
+    if (showIds && card.activePayoffIds.length > 0) lines.push(`  Active payoffs: ${card.activePayoffIds.join(", ")}`)
   }
 
   return lines.join("\n")

@@ -134,6 +134,87 @@ test("beat character capsules surface exact IDs, LTWN fields, stakes, and obliga
   })
 })
 
+test("renderCharacterContextCapsules with idRendering='raw' is byte-identical to no option (parity)", () => {
+  const capsules = buildBeatCharacterContextCapsules({
+    outline: OUTLINE,
+    beat: OUTLINE.scenes[0]!,
+    beatIndex: 0,
+    characters: CHARACTERS,
+    characterStates: [{ characterId: "char-noor", emotionalState: "alert and isolated" }],
+  })
+  expect(capsules).not.toBeNull()
+  const legacy = renderCharacterContextCapsules(capsules!)
+  const withRaw = renderCharacterContextCapsules(capsules!, { idRendering: "raw" })
+  expect(withRaw).toBe(legacy)
+})
+
+test("renderCharacterContextCapsules with idRendering='suppress' omits Cluster-1 raw-ID lines but keeps semantic content", () => {
+  const capsules = buildBeatCharacterContextCapsules({
+    outline: OUTLINE,
+    beat: OUTLINE.scenes[0]!,
+    beatIndex: 0,
+    characters: CHARACTERS,
+    characterStates: [{ characterId: "char-noor", emotionalState: "alert and isolated" }],
+  })
+  expect(capsules).not.toBeNull()
+  const rendered = renderCharacterContextCapsules(capsules!, { idRendering: "suppress" })
+
+  // Cluster-1 raw-ID lines must be suppressed.
+  expect(rendered).not.toContain("Chapter ID:")
+  expect(rendered).not.toContain("Beat ID:")
+  expect(rendered).not.toContain("POV character ID:")
+  expect(rendered).not.toContain("Active thread refs:")
+  expect(rendered).not.toContain("Active promise refs:")
+  expect(rendered).not.toContain("Active payoff refs:")
+  expect(rendered).not.toContain("Missing character IDs:")
+  expect(rendered).not.toContain("[char-noor]")
+  expect(rendered).not.toContain("[char-cassius]")
+  expect(rendered).not.toContain("Source obligations:")
+  expect(rendered).not.toContain("Active threads:")
+  expect(rendered).not.toContain("Active promises:")
+  expect(rendered).not.toContain("Active payoffs:")
+  // Raw obligation/thread/promise/payoff IDs must not appear anywhere in the prompt.
+  expect(rendered).not.toContain("obl-noor-learns-cassius")
+  expect(rendered).not.toContain("thread-inquiry")
+  expect(rendered).not.toContain("debt-folio")
+  expect(rendered).not.toContain("payoff-folio-prediction")
+
+  // Semantic content stays — character names + want/need/lie/truth/voice/state.
+  expect(rendered).toContain("CHARACTER CONTEXT CAPSULES:")
+  expect(rendered).toContain("Mode: thread-character-context-v1")
+  expect(rendered).toContain("- Noor (pov; protagonist)")
+  expect(rendered).toContain("- Cassius (supporting; supporting)")
+  expect(rendered).toContain("Want: Recover the missing folio.")
+  expect(rendered).toContain("Need: Trust another keeper.")
+  expect(rendered).toContain("Lie: Truth can be preserved alone.")
+  expect(rendered).toContain("Truth: Truth needs witnesses.")
+  expect(rendered).toContain("POV personal stake: Noor")
+})
+
+test("renderCharacterContextCapsules suppress mode does NOT mutate the trace summary (IDs stay in metadata)", () => {
+  // Per L099: traceability IDs are mandatory infrastructure across DB,
+  // telemetry, traces, checker findings, proposals, evals, and audit logs.
+  // The ablation flag is render-only; the trace summarizer is unaffected.
+  const capsules = buildBeatCharacterContextCapsules({
+    outline: OUTLINE,
+    beat: OUTLINE.scenes[0]!,
+    beatIndex: 0,
+    characters: CHARACTERS,
+    characterStates: [{ characterId: "char-noor", emotionalState: "alert and isolated" }],
+  })
+  expect(capsules).not.toBeNull()
+  // Render in suppress mode — output drops IDs, but the trace below MUST keep them.
+  renderCharacterContextCapsules(capsules!, { idRendering: "suppress" })
+  const trace = summarizeCharacterContextCapsules(capsules!)
+  expect(trace.chapterId).toBe("ch-001-deep-stacks")
+  expect(trace.beatId).toBe("beat-001-trust-choice")
+  expect(trace.characterIds).toEqual(["char-noor", "char-cassius"])
+  expect(trace.activeThreadIds).toEqual(["thread-inquiry", "thread-relationship"])
+  expect(trace.activePromiseIds).toEqual(["debt-folio"])
+  expect(trace.activePayoffIds).toEqual(["payoff-folio-prediction"])
+  expect(trace.sourceObligationIds).toEqual(["obl-noor-learns-cassius", "obl-cassius-helps"])
+})
+
 test("beat character capsules keep story refs even without character cards", () => {
   const beat = {
     ...OUTLINE.scenes[0]!,

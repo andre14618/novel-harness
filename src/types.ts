@@ -55,6 +55,14 @@ export interface SeedInput {
      * runtime routing accepts optional `obligationIds`.
      */
     sceneSatisfactionCheckerV1?: boolean
+    /**
+     * L099 / adjusted-B1: writer-prompt ID rendering ablation lever.
+     * Default "raw" preserves production prompt byte-for-byte. Override to
+     * "suppress" per novel to omit Cluster-1 raw-ID lines from the prose-
+     * writer prompt only. Trace metadata, DB rows, checker findings, and
+     * audit logs continue to carry every ID.
+     */
+    writerPromptIdRendering?: import("./agents/writer/context-mode").WriterPromptIdRendering
   }
 }
 

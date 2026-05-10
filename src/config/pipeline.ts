@@ -1,5 +1,10 @@
 import type { FactRoleContextPolicy } from "../harness/fact-roles"
-import { DEFAULT_WRITER_CONTEXT_MODE, type WriterContextMode } from "../agents/writer/context-mode"
+import {
+  DEFAULT_WRITER_CONTEXT_MODE,
+  DEFAULT_WRITER_PROMPT_ID_RENDERING,
+  type WriterContextMode,
+  type WriterPromptIdRendering,
+} from "../agents/writer/context-mode"
 
 export const pipeline = {
   // Drafting
@@ -56,6 +61,18 @@ export const pipeline = {
   // floor warnings without adding semantic/prose regressions. Override to
   // "legacy" per seed when isolating old prompt shape.
   writerContextMode: DEFAULT_WRITER_CONTEXT_MODE as WriterContextMode,
+
+  // L099 / adjusted-B1: writer-prompt ID rendering ablation lever. Default
+  // "raw" preserves the production prompt byte-for-byte. Override to
+  // "suppress" per novel via `seed.pipelineOverrides.writerPromptIdRendering`
+  // to omit Cluster-1 raw-ID lines from the prose-writer prompt
+  // (Chapter/Beat/POV-character IDs, Active thread/promise/payoff refs,
+  // Missing character IDs, per-card [characterId] brackets, per-card
+  // Source obligations / Active threads/promises/payoffs). Trace metadata
+  // and `summarizeCharacterContextCapsules` are unaffected — IDs remain
+  // mandatory in DB / telemetry / traces / checker findings / proposals /
+  // evals / audit per L099.
+  writerPromptIdRendering: DEFAULT_WRITER_PROMPT_ID_RENDERING as WriterPromptIdRendering,
 
   // Diagnostic/A-B planning shape lever. Default null leaves planner behavior
   // unchanged. Per-novel overrides cap generated planning beats before state
@@ -159,4 +176,10 @@ export function resolveSceneSatisfactionCheckerV1(
   overrides: { sceneSatisfactionCheckerV1?: boolean } | undefined,
 ): boolean {
   return overrides?.sceneSatisfactionCheckerV1 ?? pipeline.sceneSatisfactionCheckerV1
+}
+
+export function resolveWriterPromptIdRendering(
+  overrides: { writerPromptIdRendering?: WriterPromptIdRendering } | undefined,
+): WriterPromptIdRendering {
+  return overrides?.writerPromptIdRendering ?? pipeline.writerPromptIdRendering
 }

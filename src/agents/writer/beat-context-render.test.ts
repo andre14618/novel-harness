@@ -163,4 +163,23 @@ test("renderBeatContext emits character context capsules when supplied", () => {
   expect(rendered).toContain("POV personal stake: Noor's need to be useful")
   expect(rendered).toContain("- Noor [char-noor] (pov; protagonist)")
   expect(rendered.indexOf("CHARACTER CONTEXT CAPSULES:")).toBeLessThan(rendered.indexOf("RESOLVED REFERENCES:"))
+
+  // L099 / adjusted-B1: idRendering="suppress" hides Cluster-1 raw-ID lines
+  // while preserving every semantic field. Default ("raw" / undefined) is
+  // byte-identical to the legacy renderer (covered above).
+  const suppressed = renderBeatContext(ctx, { compact: false, idRendering: "suppress" })
+  expect(suppressed).toContain("CHARACTER CONTEXT CAPSULES:")
+  expect(suppressed).toContain("POV personal stake: Noor's need to be useful")
+  expect(suppressed).toContain("- Noor (pov; protagonist)")
+  expect(suppressed).not.toContain("Chapter ID:")
+  expect(suppressed).not.toContain("Beat ID:")
+  expect(suppressed).not.toContain("POV character ID:")
+  expect(suppressed).not.toContain("Active thread refs:")
+  expect(suppressed).not.toContain("Active promise refs:")
+  expect(suppressed).not.toContain("Source obligations:")
+  expect(suppressed).not.toContain("Active threads:")
+  expect(suppressed).not.toContain("[char-noor]")
+  expect(suppressed).not.toContain("thread-inquiry")
+  expect(suppressed).not.toContain("debt-folio")
+  expect(suppressed).not.toContain("obl-trust-choice")
 })
