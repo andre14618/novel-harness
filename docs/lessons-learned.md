@@ -2494,3 +2494,33 @@ one side. Add the smaller-merged-group key, then lowest-index for determinism.
 (Caught by smoke `calibrated-packed-smoke-20260506T213911Z`; fixed in
 `f8057d4` with regression test
 `balances merges across the chapter when obligation density is uniform`.)
+
+## Zod `.describe()` metadata is not auto-injected into prompts; render the schema yourself (2026-05-10)
+
+POC scene-first novella diagnostics (`poc/scene-first-novella/diagnostics.ts`)
+shipped with three V4 Flash judges whose Zod schemas had rich `.describe()`
+text on every field. The first sweep hit 100% schema-drift across all 18
+scenes + 3 chapter endpoints — V4 Flash returned `score`, `scene_span`,
+`evidence`-as-object, etc., not the declared field names. `callAgent` in
+`src/llm.ts` only validates the response *after* it returns; it does not
+project the schema into the system prompt.
+
+**The rule:** when a prompt asks for structured JSON, write the exact JSON
+shape into the system prompt. Field names, types, required-vs-optional, and
+"no other top-level fields" must all appear as text the model reads.
+`.describe()` calls feed Zod's error messages, not the LLM. Asserting "respond
+as JSON conforming to the schema" without enumerating the schema is a coin
+flip — and on V4 Flash it loses every time.
+
+**How to apply:**
+
+- For every new judge or structured-output agent, write the JSON shape into
+  the prompt verbatim — keys, types, "All N fields are required."
+- Treat `.describe()` as developer documentation, not LLM contract.
+- When a new judge fires, sanity-check on one excerpt before fanning out to a
+  full sweep. The V4 Flash drift would have been caught on scene 1 of 18 if
+  we'd done a one-shot smoke. (Pattern: `feedback_pilot_checkers_in_production`.)
+
+(Caught on POC sweep `poc-scene-first-1778423752`, 2026-05-10. Fixed in
+`08b2f65` with explicit JSON-shape blocks in all three judge system prompts.
+Re-run produced clean verdicts for 18/18 scenes + 3/3 chapter endpoints.)
