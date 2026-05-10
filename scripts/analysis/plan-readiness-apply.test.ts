@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 
 import {
   parseArgs,
+  renderReport,
   requestBodyForPlanAction,
   selectReadinessActions,
 } from "./plan-readiness-apply"
@@ -77,6 +78,40 @@ describe("plan-readiness-apply", () => {
       operatorNote: "make endpoint concrete",
       rationale: "operator-reviewed endpoint fix",
     })
+  })
+
+  test("renderReport includes drafting source hygiene telemetry", () => {
+    const rendered = renderReport({
+      generatedAt: "2026-05-10T00:00:00.000Z",
+      novelId: "novel",
+      dryRun: true,
+      planPath: "/tmp/plan.json",
+      draftingSource: {
+        clean: false,
+        issue: "source already has 2 chapter_drafts and is not a clean planning source",
+        guidance: "Use a clean planning/drafting source.",
+        state: {
+          phase: "complete",
+          currentChapter: 3,
+          outlineCount: 2,
+          draftCount: 2,
+        },
+      },
+      summary: {
+        requestedActions: 0,
+        matchedActions: 0,
+        appliedActions: 0,
+        dispositionActions: 0,
+        proposalActions: 0,
+        errors: 0,
+      },
+      actions: [],
+      outcomes: {},
+    })
+
+    expect(rendered).toContain("## Drafting Source")
+    expect(rendered).toContain("clean for drafting evidence: no")
+    expect(rendered).toContain("drafts=2")
   })
 })
 

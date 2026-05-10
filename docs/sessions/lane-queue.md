@@ -34,8 +34,9 @@ unless the user explicitly requests a disposable branch.
   fragments through L70b settle. Live `allow-entities` replay remains open;
   promotion is blocked by residual endpoint landing plus review-artifact
   completeness. A later loop4 rerun from drafted loop3 copied generated state
-  and is negative/contaminated evidence; `test-drafting-isolated` now rejects
-  drafted sources unless `--allow-drafted-source` is explicit. See L106.
+  and is negative/contaminated evidence; Drafting Evidence Source hygiene now
+  guards `test-drafting-isolated` and appears in Plan Readiness reports. See
+  L106.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and

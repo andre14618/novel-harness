@@ -98,6 +98,18 @@ import {
   renderSceneSemanticReadinessAggregate,
 } from "./evals/scene-semantic-readiness"
 import type { Dimension } from "./evals/planner-discernment-calibration"
+import {
+  assessSourceDraftingIsolation,
+  formatSourceDraftingIsolationAssessment,
+  loadSourceDraftingIsolationState,
+  sourceDraftingIsolationIssue,
+  type SourceDraftingIsolationState,
+} from "../src/harness/drafting-source"
+
+export {
+  sourceDraftingIsolationIssue,
+  type SourceDraftingIsolationState,
+}
 
 interface Args {
   source: string
@@ -197,13 +209,6 @@ export interface SceneSemanticTelemetrySummary {
 
 const DEFAULT_SCENE_SEMANTIC_DIMENSIONS: Dimension[] = ["endpointLanding", "sceneDramaturgy"]
 
-export interface SourceDraftingIsolationState {
-  phase: string | null
-  currentChapter: number | null
-  outlineCount: number
-  draftCount: number
-}
-
 function emptyDraftingBriefTelemetry(): DraftingBriefTelemetrySummary {
   return {
     events: 0,
@@ -217,52 +222,15 @@ function emptyDraftingBriefTelemetry(): DraftingBriefTelemetrySummary {
 }
 
 async function ensureSourceExists(source: string, opts: { allowDraftedSource: boolean }): Promise<void> {
-  const [novelRow] = await db`
-    SELECT phase, current_chapter FROM novels WHERE id = ${source}
-  ` as Array<{ phase: string | null; current_chapter: number | null }>
-  if (!novelRow) throw new Error(`Source novel ${source} not found`)
-  // Drafting reads chapter_outlines from the source; reject sources that
-  // have no plan yet. Phase string is permissive — `test-planner-isolated`
-  // leaves novels at phase='concept' but with chapter_outlines populated;
-  // drafting will run successfully on those.
-  const [{ outline_count } = { outline_count: 0 }] = await db`
-    SELECT COUNT(*)::int AS outline_count FROM chapter_outlines WHERE novel_id = ${source}
-  ` as any
-  if ((outline_count ?? 0) === 0) {
-    throw new Error(`Source novel ${source} has no chapter_outlines; planning must complete before this script can run drafting`)
+  const state = await loadSourceDraftingIsolationState(source, db)
+  if (!state) throw new Error(`Source novel ${source} not found`)
+  const assessment = assessSourceDraftingIsolation(state)
+  if (assessment.issue && !opts.allowDraftedSource) {
+    throw new Error(formatSourceDraftingIsolationAssessment(assessment))
   }
-  const [{ draft_count } = { draft_count: 0 }] = await db`
-    SELECT COUNT(*)::int AS draft_count FROM chapter_drafts WHERE novel_id = ${source}
-  ` as any
-  const isolationIssue = sourceDraftingIsolationIssue({
-    phase: novelRow.phase,
-    currentChapter: novelRow.current_chapter,
-    outlineCount: outline_count ?? 0,
-    draftCount: draft_count ?? 0,
-  })
-  if (isolationIssue && !opts.allowDraftedSource) {
-    throw new Error(
-      `${isolationIssue}. Use a clean planning/drafting source, or pass --allow-drafted-source to intentionally clone generated draft state.`,
-    )
+  if (assessment.issue) {
+    console.warn(`WARNING: ${formatSourceDraftingIsolationAssessment(assessment)}; proceeding because --allow-drafted-source was set.`)
   }
-  if (isolationIssue) {
-    console.warn(`WARNING: ${isolationIssue}; proceeding because --allow-drafted-source was set.`)
-  }
-}
-
-export function sourceDraftingIsolationIssue(state: SourceDraftingIsolationState): string | null {
-  if (state.outlineCount <= 0) return "source has no chapter_outlines"
-  if ((state.draftCount ?? 0) > 0) {
-    return `source already has ${state.draftCount} chapter_drafts and is not a clean planning source`
-  }
-  const phase = state.phase ?? ""
-  if (phase === "complete" || phase === "failed" || phase === "aborted") {
-    return `source phase is ${phase}, not a clean planning/drafting source`
-  }
-  if ((state.currentChapter ?? 1) > 1) {
-    return `source current_chapter is ${state.currentChapter}, not chapter 1`
-  }
-  return null
 }
 
 function runCloneSubprocess(source: string, target: string): Promise<void> {

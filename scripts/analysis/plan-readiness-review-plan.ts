@@ -16,6 +16,11 @@ import type {
   PlanReadinessActionPlan,
   PlanReadinessApplyDecision,
 } from "./plan-readiness-apply"
+import {
+  formatSourceDraftingIsolationAssessment,
+  loadSourceDraftingIsolationAssessment,
+  type SourceDraftingIsolationAssessment,
+} from "../../src/harness/drafting-source"
 
 type StatusFilter = PlanReadinessStatus | "all"
 
@@ -35,6 +40,7 @@ export interface PlanReadinessReviewPlanReport {
   novelId: string
   status: StatusFilter
   defaultDecision: PlanReadinessApplyDecision
+  draftingSource: SourceDraftingIsolationAssessment | null
   itemCount: number
   summary: {
     byStatus: Record<string, number>
@@ -94,6 +100,7 @@ export function buildReviewPlanReport(input: {
   items: readonly PlanReadinessItem[]
   status: StatusFilter
   defaultDecision?: PlanReadinessApplyDecision
+  draftingSource?: SourceDraftingIsolationAssessment | null
   generatedAt?: string
 }): PlanReadinessReviewPlanReport {
   const defaultDecision = input.defaultDecision ?? "deferred"
@@ -118,6 +125,7 @@ export function buildReviewPlanReport(input: {
     novelId: input.novelId,
     status: input.status,
     defaultDecision,
+    draftingSource: input.draftingSource ?? null,
     itemCount: items.length,
     summary: {
       byStatus: countBy(items, item => item.status),
@@ -152,6 +160,10 @@ export function renderReviewPlanReport(report: PlanReadinessReviewPlanReport): s
   lines.push(`Default decision: ${report.defaultDecision}`)
   lines.push(`Items: ${report.itemCount}`)
   lines.push("")
+  lines.push("## Drafting Source")
+  lines.push("")
+  lines.push(...renderDraftingSourceLines(report.draftingSource))
+  lines.push("")
   lines.push("## Summary")
   lines.push(`- by label: ${formatCounts(report.summary.byLabel)}`)
   lines.push(`- by dimension: ${formatCounts(report.summary.byDimension)}`)
@@ -185,15 +197,19 @@ export function renderReviewPlanReport(report: PlanReadinessReviewPlanReport): s
 
 async function run(args: PlanReadinessReviewPlanArgs): Promise<PlanReadinessReviewPlanReport> {
   const { listPlanReadinessItems } = await import("../../src/db/plan-readiness")
-  const items = await listPlanReadinessItems(args.novelId, {
-    status: args.status,
-    limit: args.limit,
-  })
+  const [items, draftingSource] = await Promise.all([
+    listPlanReadinessItems(args.novelId, {
+      status: args.status,
+      limit: args.limit,
+    }),
+    loadSourceDraftingIsolationAssessment(args.novelId),
+  ])
   return buildReviewPlanReport({
     novelId: args.novelId,
     items,
     status: args.status,
     defaultDecision: args.defaultDecision,
+    draftingSource,
   })
 }
 
@@ -226,6 +242,22 @@ function formatCounts(counts: Record<string, number>): string {
 
 function formatTarget(item: PlanReadinessItem): string {
   return `${item.target.kind}:${item.target.ref}${item.target.fieldPath ? `:${item.target.fieldPath}` : ""}`
+}
+
+function renderDraftingSourceLines(assessment: SourceDraftingIsolationAssessment | null): string[] {
+  if (!assessment) return ["- clean for drafting evidence: unknown"]
+  const state = assessment.state
+  return [
+    `- clean for drafting evidence: ${assessment.clean ? "yes" : "no"}`,
+    ...(assessment.issue ? [`- issue: ${assessment.issue}`] : []),
+    ...(assessment.guidance ? [`- guidance: ${assessment.guidance}`] : []),
+    ...(state
+      ? [
+        `- state: phase=${state.phase ?? "(none)"} current_chapter=${state.currentChapter ?? "(none)"} outlines=${state.outlineCount} drafts=${state.draftCount}`,
+      ]
+      : []),
+    `- summary: ${formatSourceDraftingIsolationAssessment(assessment)}`,
+  ]
 }
 
 function formatPreserveIds(preserveIds: PlanReadinessItem["preserveIds"]): string {

@@ -9,6 +9,11 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { z } from "zod"
 import type { PlanReadinessItem } from "../../src/db/plan-readiness"
+import {
+  formatSourceDraftingIsolationAssessment,
+  loadSourceDraftingIsolationAssessment,
+  type SourceDraftingIsolationAssessment,
+} from "../../src/harness/drafting-source"
 
 const targetKindSchema = z.enum(["chapter_outline", "scene_plan", "beat_plan"])
 const dispositionDecisionSchema = z.enum([
@@ -75,6 +80,7 @@ export interface PlanReadinessApplyReport {
   novelId: string
   dryRun: boolean
   planPath: string
+  draftingSource: SourceDraftingIsolationAssessment
   summary: {
     requestedActions: number
     matchedActions: number
@@ -173,7 +179,10 @@ export function requestBodyForPlanAction(action: PlanReadinessPlanAction): Recor
 async function run(args: PlanReadinessApplyArgs): Promise<PlanReadinessApplyReport> {
   const plan = loadActionPlan(args.planPath)
   const { listPlanReadinessItems } = await import("../../src/db/plan-readiness")
-  const items = await listPlanReadinessItems(args.novelId, { status: "all", limit: args.limit })
+  const [items, draftingSource] = await Promise.all([
+    listPlanReadinessItems(args.novelId, { status: "all", limit: args.limit }),
+    loadSourceDraftingIsolationAssessment(args.novelId),
+  ])
   const selections = selectReadinessActions(items, plan.actions)
   const actions: AppliedReadinessAction[] = []
 
@@ -217,6 +226,7 @@ async function run(args: PlanReadinessApplyArgs): Promise<PlanReadinessApplyRepo
     novelId: args.novelId,
     dryRun: args.dryRun,
     planPath: resolve(args.planPath),
+    draftingSource,
     summary: summarizeActions(plan.actions.length, actions),
     actions,
     outcomes,
@@ -286,7 +296,7 @@ function summarizeActions(
   }
 }
 
-function renderReport(report: PlanReadinessApplyReport): string {
+export function renderReport(report: PlanReadinessApplyReport): string {
   const lines: string[] = []
   lines.push("# Plan Readiness Apply")
   lines.push("")
@@ -294,6 +304,16 @@ function renderReport(report: PlanReadinessApplyReport): string {
   lines.push(`Novel: ${report.novelId}`)
   lines.push(`Dry run: ${report.dryRun}`)
   lines.push(`Plan: ${report.planPath}`)
+  lines.push("")
+  lines.push("## Drafting Source")
+  lines.push(`- clean for drafting evidence: ${report.draftingSource.clean ? "yes" : "no"}`)
+  if (report.draftingSource.issue) lines.push(`- issue: ${report.draftingSource.issue}`)
+  if (report.draftingSource.guidance) lines.push(`- guidance: ${report.draftingSource.guidance}`)
+  const state = report.draftingSource.state
+  if (state) {
+    lines.push(`- state: phase=${state.phase ?? "(none)"} current_chapter=${state.currentChapter ?? "(none)"} outlines=${state.outlineCount} drafts=${state.draftCount}`)
+  }
+  lines.push(`- summary: ${formatSourceDraftingIsolationAssessment(report.draftingSource)}`)
   lines.push("")
   lines.push("## Summary")
   lines.push(`- requested: ${report.summary.requestedActions}`)

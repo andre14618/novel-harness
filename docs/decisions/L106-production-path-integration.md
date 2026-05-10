@@ -219,11 +219,14 @@ new source state. It also worsened length (4375/3000 = 1.46x) and
 endpointLanding lows (3/10). Treat this as evidence-hygiene signal rather than
 as proof that the two endpoint edits should be promoted or repeated blindly.
 
-To prevent this failure mode from recurring, `test-drafting-isolated` now
-rejects sources that already have `chapter_drafts`, terminal phases, or
-advanced `current_chapter` values unless the operator explicitly passes
-`--allow-drafted-source`. Clean production evidence should start from a
-pre-drafting source; contaminated replay is an explicit investigation mode.
+To prevent this failure mode from recurring, Drafting Evidence Source hygiene
+now lives in a shared production module instead of only in the isolated runner.
+`test-drafting-isolated` rejects sources that already have `chapter_drafts`,
+terminal phases, or advanced `current_chapter` values unless the operator
+explicitly passes `--allow-drafted-source`; Plan Readiness review/apply reports
+surface the same clean-source assessment as advisory telemetry. Clean
+production evidence should start from a pre-drafting source; contaminated
+replay is an explicit investigation mode.
 
 ## Evidence And Verification
 

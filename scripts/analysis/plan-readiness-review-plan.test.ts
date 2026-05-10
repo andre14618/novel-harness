@@ -72,6 +72,17 @@ describe("plan-readiness-review-plan", () => {
       novelId: "novel",
       status: "open",
       generatedAt: "2026-05-10T00:00:00.000Z",
+      draftingSource: {
+        clean: false,
+        issue: "source already has 1 chapter_drafts and is not a clean planning source",
+        guidance: "Use a clean planning/drafting source.",
+        state: {
+          phase: "complete",
+          currentChapter: 2,
+          outlineCount: 1,
+          draftCount: 1,
+        },
+      },
       items: [item({
         id: "item-1",
         diagnosticLabel: "SCENE-1",
@@ -91,6 +102,8 @@ describe("plan-readiness-review-plan", () => {
     })
 
     const rendered = renderReviewPlanReport(report)
+    expect(rendered).toContain("## Drafting Source")
+    expect(rendered).toContain("clean for drafting evidence: no")
     expect(rendered).toContain("Review and edit the JSON plan")
     expect(rendered).toContain("### SCENE-1 scene_plan:scene")
     expect(rendered).toContain("evidence: score=1; reason=No choice turn.")

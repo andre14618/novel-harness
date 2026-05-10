@@ -78,6 +78,10 @@ _Avoid_: scene, section, paragraph.
 The selective bundle assembled per Beat before writing — Beat spec, Transition Bridge, Landing Target, Character Snapshots, Setting.
 _Avoid_: context, prompt.
 
+**Drafting Evidence Source**:
+A Novel used as the source plan/state for fixed-plan Drafting evidence. It should have Chapter Plans and no generated Drafts or advanced Drafting state unless the run is explicitly a contamination replay.
+_Avoid_: treating completed Drafting artifacts as clean planner sources.
+
 **Transition Bridge**:
 The last 2–3 sentences of the prior Beat's prose, injected into Beat Context to maintain continuity.
 _Avoid_: handoff, lead-in.

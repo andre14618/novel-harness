@@ -121,9 +121,11 @@ exercised deterministic duplicate-integrity repair in ch1 and L70b per-beat
 integrity settle in ch2. Promotion remains blocked on residual endpoint
 landing quality and live `allow-entities` replay, not prose compaction. See
 L103-L106.
-`test-drafting-isolated` now rejects drafted/completed sources unless
-`--allow-drafted-source` is explicit; loop4 from drafted loop3 is contaminated
-negative evidence, not a promotion run.
+Drafting Evidence Source hygiene is shared production telemetry/guarding:
+`test-drafting-isolated` rejects drafted/completed sources unless
+`--allow-drafted-source` is explicit, and Plan Readiness reports surface the
+same clean-source assessment. Loop4 from drafted loop3 is contaminated negative
+evidence, not a promotion run.
 
 ## Authoring Gates
 
