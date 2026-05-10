@@ -51,6 +51,7 @@
  *                                                                # default: baseline,scene-call-v1
  *     [--writer-only]                                            # set draftCaptureModeV1=true on every arm
  *     [--no-prose-semantic-eval]                                 # opt out of default advisory prose telemetry
+ *     [--scene-semantic-review]                                  # opt into endpoint/scene replay telemetry
  *     [--per-arm-timeout-ms 1800000]                             # 30-minute per-arm wallclock cap
  *
  * Each arm becomes a clone novel id `<target-prefix>-<arm>`. Arms run
@@ -75,6 +76,8 @@
  */
 
 import { spawn } from "node:child_process"
+import { mkdirSync, writeFileSync } from "node:fs"
+import { join } from "node:path"
 import db from "../src/db/connection"
 import { runDraftingPhase } from "../src/phases/drafting"
 import { initNovelRun } from "../src/logger"
@@ -84,6 +87,12 @@ import {
   runProseSemanticForNovel,
   type ProseSemanticReport,
 } from "./analysis/prose-semantic-report"
+import {
+  buildSceneSemanticReplayReport,
+  renderSceneSemanticReplayReport,
+  type SceneSemanticReplayReport,
+} from "./evals/scene-semantic-review"
+import type { Dimension } from "./evals/planner-discernment-calibration"
 
 interface Args {
   source: string
@@ -100,6 +109,14 @@ interface Args {
   proseSemanticEval: boolean
   proseSemanticDryRun: boolean
   proseSemanticConcurrency: number
+  /** Optional production replay semantic telemetry over persisted outlines +
+   *  approved/partial drafts. Default-off because it runs one LLM judge call
+   *  per scene × dimension. Diagnostic only. */
+  sceneSemanticReview: boolean
+  sceneSemanticLive: boolean
+  sceneSemanticConcurrency: number
+  sceneSemanticMaxTokens: number
+  sceneSemanticDimensions: Dimension[]
   /** Optional per-arm wallclock timeout in milliseconds. When the
    *  drafting promise for an arm doesn't resolve in time, the runner
    *  records a timeout result and proceeds to the next arm. The
@@ -139,6 +156,7 @@ interface ArmResult {
     qualityRisk: string
     recommendation: string
   }
+  sceneSemantic?: SceneSemanticTelemetrySummary
   error?: string
 }
 
@@ -151,6 +169,24 @@ export interface DraftingBriefTelemetrySummary {
   avgFullContextPromptChars: number | null
   totalCharsDelta: number
 }
+
+export interface SceneSemanticTelemetrySummary {
+  outputDir: string
+  taskCount: number
+  skipCount: number
+  lowRows: number
+  errorRows: number
+  dimensions: Array<{
+    dimension: Dimension
+    count: number
+    meanOrdinal: number
+    lowCount: number
+    labelCounts: Record<string, number>
+  }>
+  recommendation: string
+}
+
+const DEFAULT_SCENE_SEMANTIC_DIMENSIONS: Dimension[] = ["endpointLanding", "sceneDramaturgy"]
 
 function emptyDraftingBriefTelemetry(): DraftingBriefTelemetrySummary {
   return {
@@ -433,6 +469,11 @@ interface RunArmOptions {
   proseSemanticEval: boolean
   proseSemanticDryRun: boolean
   proseSemanticConcurrency: number
+  sceneSemanticReview: boolean
+  sceneSemanticLive: boolean
+  sceneSemanticConcurrency: number
+  sceneSemanticMaxTokens: number
+  sceneSemanticDimensions: Dimension[]
   perArmTimeoutMs: number | null
 }
 
@@ -484,9 +525,11 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
       // partial output is captured.
       const collected = await collectArmResult(arm, novelId)
       const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts)
+      const sceneSemantic = await maybeRunSceneSemanticReview(arm, novelId, targetPrefix, opts)
       return {
         arm, novelId, ...collected,
         ...(proseSemantic ? { proseSemantic } : {}),
+        ...(sceneSemantic ? { sceneSemantic } : {}),
         error: `drafting did not complete: ${result.kind}`,
       }
     }
@@ -505,16 +548,25 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
       saturationNotes: [],
       recommendation: `prose semantic eval failed: ${proseErr instanceof Error ? proseErr.message : String(proseErr)}`,
     }))
+    const sceneSemantic = await maybeRunSceneSemanticReview(arm, novelId, targetPrefix, opts)
     return {
       arm, novelId, ...collected,
       ...(proseSemantic ? { proseSemantic } : {}),
+      ...(sceneSemantic ? { sceneSemantic } : {}),
       error: err instanceof Error ? err.message : String(err),
     }
   }
 
   const collected = await collectArmResult(arm, novelId)
   const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts)
-  return { arm, novelId, ...collected, ...(proseSemantic ? { proseSemantic } : {}) }
+  const sceneSemantic = await maybeRunSceneSemanticReview(arm, novelId, targetPrefix, opts)
+  return {
+    arm,
+    novelId,
+    ...collected,
+    ...(proseSemantic ? { proseSemantic } : {}),
+    ...(sceneSemantic ? { sceneSemantic } : {}),
+  }
 }
 
 async function maybeRunProseSemanticEval(
@@ -563,6 +615,70 @@ function proseSemanticSummary(report: ProseSemanticReport, outputDir: string): N
   }
 }
 
+async function maybeRunSceneSemanticReview(
+  arm: ArmName,
+  novelId: string,
+  targetPrefix: string,
+  opts: RunArmOptions,
+): Promise<SceneSemanticTelemetrySummary | null> {
+  if (!opts.sceneSemanticReview) return null
+  const outputDir = `output/scene-semantic-review/${targetPrefix}/${arm}`
+  console.log(`  scene semantic replay ...${opts.sceneSemanticLive ? "" : " (dry-run)"}`)
+  try {
+    const report = await buildSceneSemanticReplayReport({
+      novelId,
+      chapters: null,
+      outputDir,
+      setName: `scene-semantic-review:${targetPrefix}:${arm}`,
+      live: opts.sceneSemanticLive,
+      persist: false,
+      model: "deepseek-v4-flash",
+      thinking: true,
+      maxTokens: opts.sceneSemanticMaxTokens,
+      concurrency: opts.sceneSemanticConcurrency,
+      promptMode: "evidence-first",
+      dimensions: opts.sceneSemanticDimensions,
+      json: false,
+    })
+    writeSceneSemanticArtifacts(report, outputDir)
+    return sceneSemanticSummary(report, outputDir)
+  } catch (err) {
+    return {
+      outputDir,
+      taskCount: 0,
+      skipCount: 0,
+      lowRows: 0,
+      errorRows: 1,
+      dimensions: [],
+      recommendation: `scene semantic review failed: ${err instanceof Error ? err.message : String(err)}`,
+    }
+  }
+}
+
+function writeSceneSemanticArtifacts(report: SceneSemanticReplayReport, outputDir: string): void {
+  mkdirSync(outputDir, { recursive: true })
+  writeFileSync(join(outputDir, "scene-semantic-review.json"), `${JSON.stringify(report, null, 2)}\n`)
+  writeFileSync(join(outputDir, "scene-semantic-review.md"), renderSceneSemanticReplayReport(report))
+}
+
+export function sceneSemanticSummary(
+  report: SceneSemanticReplayReport,
+  outputDir: string,
+): SceneSemanticTelemetrySummary {
+  const lowRows = report.results.filter(row => row.ordinal <= 1).length
+  return {
+    outputDir,
+    taskCount: report.taskCount,
+    skipCount: report.skipCount,
+    lowRows,
+    errorRows: 0,
+    dimensions: report.summaries,
+    recommendation: lowRows > 0
+      ? "Diagnostic review: inspect low endpoint/scene-turn rows before promoting this drafting surface."
+      : "Diagnostic review: no low endpoint/scene-turn rows in selected dimensions.",
+  }
+}
+
 export function parseArgs(argv: string[]): Args {
   let source: string | null = null
   let targetPrefix: string | null = null
@@ -571,6 +687,11 @@ export function parseArgs(argv: string[]): Args {
   let proseSemanticEval = true
   let proseSemanticDryRun = false
   let proseSemanticConcurrency = 4
+  let sceneSemanticReview = false
+  let sceneSemanticLive = true
+  let sceneSemanticConcurrency = 4
+  let sceneSemanticMaxTokens = 1400
+  const sceneSemanticDimensions: Dimension[] = []
   let perArmTimeoutMs: number | null = null
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!
@@ -588,6 +709,34 @@ export function parseArgs(argv: string[]): Args {
         throw new Error(`--prose-semantic-concurrency requires a positive integer; got ${JSON.stringify(raw)}`)
       }
       proseSemanticConcurrency = parsed
+      continue
+    }
+    if (a === "--scene-semantic-review") { sceneSemanticReview = true; sceneSemanticLive = true; continue }
+    if (a === "--scene-semantic-dry-run") { sceneSemanticReview = true; sceneSemanticLive = false; continue }
+    if (a === "--no-scene-semantic-review") { sceneSemanticReview = false; continue }
+    if (a === "--scene-semantic-dimension") {
+      sceneSemanticReview = true
+      sceneSemanticDimensions.push(parseSceneSemanticDimension(argv[++i] ?? ""))
+      continue
+    }
+    if (a === "--scene-semantic-concurrency") {
+      sceneSemanticReview = true
+      const raw = argv[++i] ?? ""
+      const parsed = Number.parseInt(raw, 10)
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        throw new Error(`--scene-semantic-concurrency requires a positive integer; got ${JSON.stringify(raw)}`)
+      }
+      sceneSemanticConcurrency = parsed
+      continue
+    }
+    if (a === "--scene-semantic-max-tokens") {
+      sceneSemanticReview = true
+      const raw = argv[++i] ?? ""
+      const parsed = Number.parseInt(raw, 10)
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        throw new Error(`--scene-semantic-max-tokens requires a positive integer; got ${JSON.stringify(raw)}`)
+      }
+      sceneSemanticMaxTokens = parsed
       continue
     }
     if (a === "--per-arm-timeout-ms") {
@@ -611,7 +760,32 @@ export function parseArgs(argv: string[]): Args {
     }
   }
   if (arms.length === 0) throw new Error("--writer-arms produced an empty arm list")
-  return { source, targetPrefix, arms, writerOnly, proseSemanticEval, proseSemanticDryRun, proseSemanticConcurrency, perArmTimeoutMs }
+  return {
+    source,
+    targetPrefix,
+    arms,
+    writerOnly,
+    proseSemanticEval,
+    proseSemanticDryRun,
+    proseSemanticConcurrency,
+    sceneSemanticReview,
+    sceneSemanticLive,
+    sceneSemanticConcurrency,
+    sceneSemanticMaxTokens,
+    sceneSemanticDimensions: sceneSemanticDimensions.length > 0 ? sceneSemanticDimensions : DEFAULT_SCENE_SEMANTIC_DIMENSIONS,
+    perArmTimeoutMs,
+  }
+}
+
+function parseSceneSemanticDimension(value: string): Dimension {
+  const allowed: Dimension[] = [
+    "characterAgency", "worldPressure", "endpointLanding", "causalMomentum",
+    "sceneDramaturgy", "threadProgression", "promiseProgress", "promisePayoff",
+    "motivationSpecificity", "characterMateriality", "relationshipDelta",
+    "worldFactPressure", "stakesValueShift",
+  ]
+  if (allowed.includes(value as Dimension)) return value as Dimension
+  throw new Error(`unsupported --scene-semantic-dimension: ${value}`)
 }
 
 async function main() {
@@ -628,6 +802,9 @@ async function main() {
   if (args.proseSemanticEval) {
     console.log(`prose semantic eval: enabled${args.proseSemanticDryRun ? " (dry-run)" : ""}, concurrency=${args.proseSemanticConcurrency}`)
   }
+  if (args.sceneSemanticReview) {
+    console.log(`scene semantic replay: enabled${args.sceneSemanticLive ? "" : " (dry-run)"}, dimensions=${args.sceneSemanticDimensions.join(",")}, concurrency=${args.sceneSemanticConcurrency}`)
+  }
   if (args.perArmTimeoutMs != null) {
     console.log(`per-arm timeout: ${args.perArmTimeoutMs}ms (a hung arm will not block the next arm; partial chapter_drafts are still collected)`)
   }
@@ -641,6 +818,11 @@ async function main() {
       proseSemanticEval: args.proseSemanticEval,
       proseSemanticDryRun: args.proseSemanticDryRun,
       proseSemanticConcurrency: args.proseSemanticConcurrency,
+      sceneSemanticReview: args.sceneSemanticReview,
+      sceneSemanticLive: args.sceneSemanticLive,
+      sceneSemanticConcurrency: args.sceneSemanticConcurrency,
+      sceneSemanticMaxTokens: args.sceneSemanticMaxTokens,
+      sceneSemanticDimensions: args.sceneSemanticDimensions,
       perArmTimeoutMs: args.perArmTimeoutMs,
     }))
   }
@@ -663,6 +845,18 @@ async function main() {
       console.log(`    recommendation: ${r.proseSemantic.recommendation}`)
       if (r.proseSemantic.saturationNotes.length > 0) {
         console.log(`    saturation: ${r.proseSemantic.saturationNotes.join(" | ")}`)
+      }
+    }
+    if (r.sceneSemantic) {
+      console.log(`  scene semantic: tasks=${r.sceneSemantic.taskCount}, lows=${r.sceneSemantic.lowRows}, errors=${r.sceneSemantic.errorRows}, skips=${r.sceneSemantic.skipCount}`)
+      console.log(`    report: ${r.sceneSemantic.outputDir || "(not written)"}`)
+      console.log(`    recommendation: ${r.sceneSemantic.recommendation}`)
+      for (const dim of r.sceneSemantic.dimensions) {
+        const counts = Object.entries(dim.labelCounts)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([label, count]) => `${label}:${count}`)
+          .join(" ")
+        console.log(`    ${dim.dimension}: mean=${dim.meanOrdinal.toFixed(2)}, lows=${dim.lowCount}/${dim.count}, ${counts}`)
       }
     }
     for (const c of r.chapters) {

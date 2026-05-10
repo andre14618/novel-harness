@@ -1,5 +1,12 @@
 import { expect, test, describe } from "bun:test"
-import { parseArgs, flagsForArm, WRITER_ARM_NAMES, summarizeDraftingBriefTelemetry } from "./test-drafting-isolated"
+import {
+  parseArgs,
+  flagsForArm,
+  WRITER_ARM_NAMES,
+  summarizeDraftingBriefTelemetry,
+  sceneSemanticSummary,
+} from "./test-drafting-isolated"
+import type { SceneSemanticReplayReport } from "./evals/scene-semantic-review"
 
 describe("test-drafting-isolated parseArgs", () => {
   test("requires --source", () => {
@@ -62,6 +69,54 @@ describe("test-drafting-isolated parseArgs", () => {
     const disabled = parseArgs(["--source", "n", "--target-prefix", "ab", "--no-prose-semantic-eval"])
     expect(disabled.proseSemanticEval).toBe(false)
     expect(disabled.proseSemanticDryRun).toBe(false)
+  })
+
+  test("scene semantic replay is default-off and can be enabled live or dry-run", () => {
+    const defaults = parseArgs(["--source", "n", "--target-prefix", "ab"])
+    expect(defaults.sceneSemanticReview).toBe(false)
+    expect(defaults.sceneSemanticLive).toBe(true)
+    expect(defaults.sceneSemanticDimensions).toEqual(["endpointLanding", "sceneDramaturgy"])
+
+    const live = parseArgs(["--source", "n", "--target-prefix", "ab", "--scene-semantic-review"])
+    expect(live.sceneSemanticReview).toBe(true)
+    expect(live.sceneSemanticLive).toBe(true)
+
+    const dry = parseArgs(["--source", "n", "--target-prefix", "ab", "--scene-semantic-dry-run"])
+    expect(dry.sceneSemanticReview).toBe(true)
+    expect(dry.sceneSemanticLive).toBe(false)
+  })
+
+  test("scene semantic replay parses dimensions and tuning flags", () => {
+    const args = parseArgs([
+      "--source", "n",
+      "--target-prefix", "ab",
+      "--scene-semantic-dimension", "endpointLanding",
+      "--scene-semantic-dimension", "sceneDramaturgy",
+      "--scene-semantic-concurrency", "2",
+      "--scene-semantic-max-tokens", "900",
+    ])
+    expect(args.sceneSemanticReview).toBe(true)
+    expect(args.sceneSemanticDimensions).toEqual(["endpointLanding", "sceneDramaturgy"])
+    expect(args.sceneSemanticConcurrency).toBe(2)
+    expect(args.sceneSemanticMaxTokens).toBe(900)
+  })
+
+  test("scene semantic replay rejects unsupported dimensions and non-positive tuning", () => {
+    expect(() => parseArgs([
+      "--source", "n",
+      "--target-prefix", "ab",
+      "--scene-semantic-dimension", "notReal",
+    ])).toThrow(/unsupported --scene-semantic-dimension/)
+    expect(() => parseArgs([
+      "--source", "n",
+      "--target-prefix", "ab",
+      "--scene-semantic-concurrency", "0",
+    ])).toThrow(/positive integer/)
+    expect(() => parseArgs([
+      "--source", "n",
+      "--target-prefix", "ab",
+      "--scene-semantic-max-tokens", "abc",
+    ])).toThrow(/positive integer/)
   })
 
   test("--prose-semantic-concurrency rejects non-positive / non-numeric values", () => {
@@ -182,3 +237,72 @@ describe("summarizeDraftingBriefTelemetry", () => {
     expect(summary.avgCharsRatio).toBeNull()
   })
 })
+
+describe("sceneSemanticSummary", () => {
+  test("summarizes low rows and dimension counts for harness output", () => {
+    const summary = sceneSemanticSummary({
+      generatedAt: "2026-05-10T00:00:00.000Z",
+      novelId: "novel-1",
+      setName: "scene-semantic-review:test",
+      chapters: [1],
+      live: true,
+      model: "deepseek-v4-flash",
+      thinking: true,
+      promptMode: "evidence-first",
+      dimensions: ["endpointLanding", "sceneDramaturgy"],
+      taskCount: 2,
+      skipCount: 0,
+      results: [
+        resultRow("endpointLanding", "ENDPOINT-1", 1),
+        resultRow("sceneDramaturgy", "SCENE-3", 3),
+      ],
+      skips: [],
+      summaries: [{
+        dimension: "endpointLanding",
+        count: 1,
+        meanOrdinal: 1,
+        lowCount: 1,
+        labelCounts: { "ENDPOINT-1": 1 },
+      }, {
+        dimension: "sceneDramaturgy",
+        count: 1,
+        meanOrdinal: 3,
+        lowCount: 0,
+        labelCounts: { "SCENE-3": 1 },
+      }],
+    } satisfies SceneSemanticReplayReport, "output/scene-semantic-review/ab/brief")
+
+    expect(summary.taskCount).toBe(2)
+    expect(summary.lowRows).toBe(1)
+    expect(summary.errorRows).toBe(0)
+    expect(summary.dimensions.map(d => d.dimension)).toEqual(["endpointLanding", "sceneDramaturgy"])
+    expect(summary.recommendation).toContain("inspect low")
+  })
+})
+
+function resultRow(dimension: "endpointLanding" | "sceneDramaturgy", label: string, ordinal: number): SceneSemanticReplayReport["results"][number] {
+  return {
+    taskId: `task-${dimension}`,
+    chapterNumber: 1,
+    sceneIndex: 0,
+    sceneId: "scene-1",
+    dimension,
+    promptMode: "evidence-first",
+    excerpt: "excerpt",
+    obligationIds: [],
+    relevantCharacterIds: [],
+    relevantWorldFactIds: [],
+    label,
+    ordinal,
+    confidence: 0.9,
+    evidenceFields: 3,
+    missingForNextLevel: "",
+    output: {
+      label,
+      confidence: 0.9,
+      evidence: { strength: "x", weakness: "y", cue: "z" },
+      missingForNextLevel: "",
+      gates: {},
+    },
+  }
+}

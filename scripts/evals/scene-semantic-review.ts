@@ -47,7 +47,7 @@ import {
 
 type ModelId = "deepseek-v4-flash" | "deepseek-v4-pro"
 
-interface Args {
+export interface SceneSemanticReviewArgs {
   novelId: string
   chapters: number[] | null
   outputDir: string | null
@@ -294,7 +294,7 @@ function renderSceneExcerpt(input: {
   ].join("\n")
 }
 
-export async function buildSceneSemanticReplayReport(args: Args, generatedAt = new Date().toISOString()): Promise<SceneSemanticReplayReport> {
+export async function buildSceneSemanticReplayReport(args: SceneSemanticReviewArgs, generatedAt = new Date().toISOString()): Promise<SceneSemanticReplayReport> {
   const chapters = await loadChapterRows(args.novelId, args.chapters)
   if (chapters.length === 0) {
     throw new Error(`no chapters with both an outline and a draft were found for novel ${args.novelId}`)
@@ -585,7 +585,7 @@ function parseChapterRange(value: string | null): number[] | null {
   return [...out].sort((a, b) => a - b)
 }
 
-function parseArgs(argv = process.argv.slice(2)): Args {
+function parseArgs(argv = process.argv.slice(2)): SceneSemanticReviewArgs {
   let novelId: string | null = null
   let chapters: string | null = null
   let outputDir: string | null = null

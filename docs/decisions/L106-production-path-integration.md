@@ -102,6 +102,13 @@ Scene-semantic replay on the same artifact found sceneDramaturgy clean
 chapter 1), so the next production-path lever should be upstream endpoint/turn
 quality rather than deterministic prose compaction.
 
+The production drafting evidence harness now accepts opt-in
+`--scene-semantic-review` telemetry. It calls the production replay evaluator
+after each arm, writes `output/scene-semantic-review/<target-prefix>/<arm>/`
+artifacts, and prints per-dimension low counts. This preserves the calibrated
+POC judge shape as fail-open production evidence without making it a drafting
+gate or adding another POC runner.
+
 ## Evidence And Verification
 
 Production-path integration needs:

@@ -102,6 +102,11 @@ A/B/C/C runs resistant to that failure shape:
 - `--per-arm-timeout-ms <N>` caps per-arm wallclock. On timeout the
   runner collects whatever `chapter_drafts` did finish, records the
   timeout as the arm's error, and proceeds to the next arm.
+- `--scene-semantic-review` runs the production scene-semantic replay
+  evaluator after each arm and writes endpoint/scene-turn artifacts under
+  `output/scene-semantic-review/<target-prefix>/<arm>/`. It is diagnostic-only
+  and default-off; default dimensions are `endpointLanding` and
+  `sceneDramaturgy`.
 
 Example commands (P4 directly via clone-for-variant):
 
@@ -167,6 +172,7 @@ bun scripts/test-drafting-isolated.ts \
   --source <novel-id-with-scenePlanContractV1=true planning> \
   --target-prefix "scene-first-$(date +%s)" \
   --writer-arms baseline,scene-call-v1 \
+  --scene-semantic-review \
   --writer-only \
   --per-arm-timeout-ms 1800000
 ```
