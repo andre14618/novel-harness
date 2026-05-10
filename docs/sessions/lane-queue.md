@@ -9,7 +9,8 @@ unless the user explicitly requests a disposable branch.
   should move into production modules, controls, telemetry, tests, and review
   artifacts. Use historical `poc/` outputs as evidence/fixtures, but do not add
   another long-lived POC runner, prompt branch, mapper, checker, or review
-  format when the same question can be tested through the production path.
+  format when the same question can be tested through the production path. New
+  scene-first novella POC runs require an explicit disposable-POC flag.
 - **Production writer-brief evidence (2026-05-10).** P4 writer-only smoke
   hit 3666/3300 = 1.10x with 0/8 prose-semantic lows. Contract-bearing P1
   paired writer-only smoke (`p1-contract-1778445814`) yielded baseline 2.45x,

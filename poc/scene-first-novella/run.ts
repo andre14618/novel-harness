@@ -19,6 +19,7 @@
  *
  * Usage:
  *   bun poc/scene-first-novella/run.ts \
+ *     --allow-disposable-poc \
  *     [--fixture docs/fixtures/scene-first/concepts/pre-resolved/P3-debt-binder-resolved.json] \
  *     [--chapters 3] \
  *     [--writer-expansion-mode retry-short-scenes-v1|off] \
@@ -61,6 +62,7 @@ export interface Args {
   planningNotePreset: PlanningNotePreset
   obligationControl: ObligationControlMode
   sceneContractControl: SceneContractControlMode
+  allowDisposablePoc: boolean
 }
 
 interface SceneContractCoverage {
@@ -343,6 +345,7 @@ export function parseArgs(argv: string[]): Args {
   let planningNotePreset: PlanningNotePreset = "none"
   let obligationControl: ObligationControlMode = "none"
   let sceneContractControl: SceneContractControlMode = "none"
+  let allowDisposablePoc = false
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!
     if (a === "--fixture") { fixturePath = argv[++i] ?? fixturePath; continue }
@@ -353,6 +356,7 @@ export function parseArgs(argv: string[]): Args {
     if (a === "--planning-note-preset") { planningNotePreset = parsePlanningNotePreset(argv[++i]); continue }
     if (a === "--obligation-control") { obligationControl = parseObligationControlMode(argv[++i]); continue }
     if (a === "--scene-contract-control") { sceneContractControl = parseSceneContractControlMode(argv[++i]); continue }
+    if (a === "--allow-disposable-poc") { allowDisposablePoc = true; continue }
     throw new Error(`unknown arg: ${a}`)
   }
   if (!Number.isFinite(chapters) || chapters < 1) {
@@ -370,7 +374,17 @@ export function parseArgs(argv: string[]): Args {
     planningNotePreset,
     obligationControl,
     sceneContractControl,
+    allowDisposablePoc,
   }
+}
+
+export function assertDisposablePocAllowed(args: Args): void {
+  if (args.captureOnly || args.allowDisposablePoc) return
+  throw new Error([
+    "poc/scene-first-novella is historical/disposable under L106 and is not the default production path.",
+    "For production evidence, use scripts/test-drafting-isolated.ts with --scene-semantic-review and the Plan Readiness import/review/apply commands.",
+    "Pass --allow-disposable-poc only when the operator explicitly wants a disposable POC artifact.",
+  ].join(" "))
 }
 
 function appendRawNote(seed: SeedInput, note: string): SeedInput {
@@ -871,6 +885,7 @@ async function captureChapterArtifacts(
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2))
+  assertDisposablePocAllowed(args)
   console.log(`fixture: ${args.fixturePath}`)
   console.log(`chapters: ${args.chapters}`)
   console.log(`runId: ${args.runId}`)

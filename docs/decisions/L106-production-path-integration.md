@@ -147,6 +147,11 @@ Markdown review packet and an apply-compatible JSON scaffold. The generated
 actions default to `deferred` and must be edited with operator judgment before
 non-dry-run apply.
 
+The historical `poc/scene-first-novella` runner now requires
+`--allow-disposable-poc` for new runs and its README points operators to the
+production drafting/semantic/readiness commands. Capture-only repair remains
+available for existing artifacts.
+
 The first production-path operator loop on `p1-allow-brief-1778447459`
 dispositioned superseded whole-chapter semantic lows, created two manual
 planning edits, approved them through the normal planning-proposal route, and

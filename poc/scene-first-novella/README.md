@@ -1,13 +1,20 @@
 # Scene-First Novella POC
 
-A vertical, reviewable artifact of the scene-first writer architecture. The
-goal is **one readable thing** — three chapters of prose plus the planner's
-scene contracts plus post-hoc diagnostics, rendered as a static HTML page —
-not a production-ready system.
+Historical/disposable artifact lane for the scene-first writer architecture.
+The active operating path is production drafting plus production telemetry:
+`scripts/test-drafting-isolated.ts --scene-semantic-review`,
+`diagnostics:plan-readiness-import`, `diagnostics:plan-readiness-review-plan`,
+and `diagnostics:plan-readiness-apply`.
+
+Use this POC only when the operator explicitly asks for a disposable artifact
+outside production defaults. New runs require `--allow-disposable-poc`.
 
 ## Lane discipline
 
-This packet runs under [L100 — POC acceleration lane](../../docs/decisions/L100-poc-acceleration-lane.md).
+This packet was built under
+[L100 — POC acceleration lane](../../docs/decisions/L100-poc-acceleration-lane.md),
+which L106 supersedes for active posture. L100 is now historical guidance for
+explicit disposable experiments only.
 
 - **Production defaults are NOT touched.** Every scene-first flag
   (`scenePlanContractV1`, `sceneCallWriterV1`, `writerExpansionMode`,
@@ -38,6 +45,7 @@ Three commands, in order, against a single output directory.
 #    chapter count and writer expansion). Default fixture is P3
 #    (pre-resolved debt-binder), default chapter count is 3.
 bun poc/scene-first-novella/run.ts \
+  --allow-disposable-poc \
   --fixture docs/fixtures/scene-first/concepts/pre-resolved/P3-debt-binder-resolved.json \
   --chapters 3 \
   --writer-expansion-mode retry-short-scenes-v1 \

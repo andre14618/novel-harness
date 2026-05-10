@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test"
 import {
   applyPlanningNotePreset,
+  assertDisposablePocAllowed,
   compactOutlineObligationsForChapterBudget,
   compactOutlineSceneContractsForEndpointControl,
   parseArgs,
@@ -10,6 +11,13 @@ test("defaults POC writer expansion to retry-short-scenes-v1", () => {
   const args = parseArgs(["--run-id", "poc-test"])
 
   expect(args.writerExpansionMode).toBe("retry-short-scenes-v1")
+  expect(args.allowDisposablePoc).toBe(false)
+})
+
+test("requires explicit disposable POC acknowledgement for new runs", () => {
+  expect(() => assertDisposablePocAllowed(parseArgs(["--run-id", "poc-test"]))).toThrow(/historical\/disposable/)
+  expect(() => assertDisposablePocAllowed(parseArgs(["--run-id", "poc-test", "--allow-disposable-poc"]))).not.toThrow()
+  expect(() => assertDisposablePocAllowed(parseArgs(["--capture-only", "--run-id", "existing-novel"]))).not.toThrow()
 })
 
 test("allows expansion-off POC runs for writer expansion isolation", () => {
@@ -20,6 +28,7 @@ test("allows expansion-off POC runs for writer expansion isolation", () => {
     "3",
     "--run-id",
     "poc-test",
+    "--allow-disposable-poc",
     "--writer-expansion-mode",
     "off",
   ])
@@ -27,6 +36,7 @@ test("allows expansion-off POC runs for writer expansion isolation", () => {
   expect(args.fixturePath).toBe("docs/fixtures/scene-first/concepts/pre-resolved/P3-debt-binder-density-cap.json")
   expect(args.chapters).toBe(3)
   expect(args.writerExpansionMode).toBe("off")
+  expect(args.allowDisposablePoc).toBe(true)
 })
 
 test("rejects unknown writer expansion modes", () => {
@@ -39,6 +49,7 @@ test("parses load-control experiment knobs", () => {
   const args = parseArgs([
     "--run-id",
     "poc-test",
+    "--allow-disposable-poc",
     "--planning-note-preset",
     "single-obligation-hardcap-v2",
     "--obligation-control",
