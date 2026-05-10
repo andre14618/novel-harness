@@ -41,6 +41,14 @@ import type { SeedInput } from "../../src/types"
 const DEFAULT_FIXTURE = "docs/fixtures/scene-first/concepts/pre-resolved/P3-debt-binder-resolved.json"
 const POC_OUTPUT_ROOT = "poc/scene-first-novella/output"
 type WriterExpansionMode = "off" | "retry-short-scenes-v1"
+type PlanningNotePreset = "none" | "single-obligation-hardcap-v2"
+type ObligationControlMode = "none" | "chapter-budget-v1"
+type LoadBearingObligationKey =
+  | "mustEstablish"
+  | "mustPayOff"
+  | "mustTransferKnowledge"
+  | "mustShowStateChange"
+  | "mustNotReveal"
 
 export interface Args {
   fixturePath: string
@@ -48,6 +56,8 @@ export interface Args {
   runId: string
   captureOnly: boolean
   writerExpansionMode: WriterExpansionMode
+  planningNotePreset: PlanningNotePreset
+  obligationControl: ObligationControlMode
 }
 
 interface SceneContractCoverage {
@@ -86,6 +96,38 @@ interface ChapterArtifactStats {
   completionTokens: number
   cost: number
 }
+
+interface ObligationControlReport {
+  mode: ObligationControlMode
+  applied: boolean
+  chapters: Array<{
+    chapterNumber: number
+    budget: number
+    before: number
+    after: number
+    removed: number
+  }>
+}
+
+const LOAD_BEARING_OBLIGATION_KEYS: LoadBearingObligationKey[] = [
+  "mustPayOff",
+  "mustEstablish",
+  "mustTransferKnowledge",
+  "mustShowStateChange",
+  "mustNotReveal",
+]
+
+const SINGLE_OBLIGATION_HARDCAP_V2_NOTE = [
+  "POC EXPERIMENT: single-obligation-hardcap-v2.",
+  "The prior density-cap run still emitted 17 load-bearing obligations across 9 scenes and overshot 1.90x.",
+  "For this run, preserve the same 3 chapters, exactly 9 scene contracts, and the same endpoints, but make obligation load the controlled variable.",
+  "State mapping must inventory only durable state required after the chapter. Do not create state solely because something happened on page.",
+  "Across the whole chapter, target at most 3 load-bearing obligations in chapters 1 and 2 and at most 4 in chapter 3.",
+  "Each scene should carry at most one load-bearing obligation, except the final Council-choice scene may carry two.",
+  "Do not emit both a fact obligation and a knowledge obligation for the same story payload. Pick the one list that makes the payload writer-visible.",
+  "Prefer scene-contract goal/opposition/turn/outcome text for local scene work; reserve obligations for continuity-critical payloads only.",
+  "Do not emit obligations for summons, travel, room setup, mood, already-known deadlines, or restating the scene description.",
+].join(" ")
 
 function nonEmpty(value: unknown): boolean {
   return typeof value === "string" ? value.trim().length > 0 : value != null
@@ -207,12 +249,24 @@ function parseWriterExpansionMode(value: string | undefined): WriterExpansionMod
   throw new Error(`--writer-expansion-mode must be "off" or "retry-short-scenes-v1"; got ${value ?? "(missing)"}`)
 }
 
+function parsePlanningNotePreset(value: string | undefined): PlanningNotePreset {
+  if (value === "none" || value === "single-obligation-hardcap-v2") return value
+  throw new Error(`--planning-note-preset must be "none" or "single-obligation-hardcap-v2"; got ${value ?? "(missing)"}`)
+}
+
+function parseObligationControlMode(value: string | undefined): ObligationControlMode {
+  if (value === "none" || value === "chapter-budget-v1") return value
+  throw new Error(`--obligation-control must be "none" or "chapter-budget-v1"; got ${value ?? "(missing)"}`)
+}
+
 export function parseArgs(argv: string[]): Args {
   let fixturePath = DEFAULT_FIXTURE
   let chapters = 3
   let runId: string | null = null
   let captureOnly = false
   let writerExpansionMode: WriterExpansionMode = "retry-short-scenes-v1"
+  let planningNotePreset: PlanningNotePreset = "none"
+  let obligationControl: ObligationControlMode = "none"
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!
     if (a === "--fixture") { fixturePath = argv[++i] ?? fixturePath; continue }
@@ -220,6 +274,8 @@ export function parseArgs(argv: string[]): Args {
     if (a === "--run-id") { runId = argv[++i] ?? null; continue }
     if (a === "--capture-only") { captureOnly = true; continue }
     if (a === "--writer-expansion-mode") { writerExpansionMode = parseWriterExpansionMode(argv[++i]); continue }
+    if (a === "--planning-note-preset") { planningNotePreset = parsePlanningNotePreset(argv[++i]); continue }
+    if (a === "--obligation-control") { obligationControl = parseObligationControlMode(argv[++i]); continue }
     throw new Error(`unknown arg: ${a}`)
   }
   if (!Number.isFinite(chapters) || chapters < 1) {
@@ -234,7 +290,187 @@ export function parseArgs(argv: string[]): Args {
     runId: runId ?? `poc-scene-first-${Date.now()}`,
     captureOnly,
     writerExpansionMode,
+    planningNotePreset,
+    obligationControl,
   }
+}
+
+function appendRawNote(seed: SeedInput, note: string): SeedInput {
+  const directives = seed.directives ?? {
+    lockedCharacters: [],
+    requiredBeats: [],
+    forbidden: [],
+    tonalAnchors: [],
+    structuralConstraints: { povRotation: "", pacing: "" },
+    storyThreads: [],
+    storyDebts: [],
+    storyPayoffs: [],
+    rawNotes: "",
+  }
+  return {
+    ...seed,
+    directives: {
+      ...directives,
+      rawNotes: [directives.rawNotes?.trim(), note].filter(Boolean).join("\n\n"),
+    },
+  }
+}
+
+export function applyPlanningNotePreset(seed: SeedInput, preset: PlanningNotePreset): SeedInput {
+  if (preset === "none") return seed
+  return appendRawNote(seed, SINGLE_OBLIGATION_HARDCAP_V2_NOTE)
+}
+
+function hardObligationCount(scene: any): number {
+  const obligations = scene?.obligations ?? {}
+  return LOAD_BEARING_OBLIGATION_KEYS.reduce((sum, key) => {
+    const items = obligations[key]
+    return sum + (Array.isArray(items) ? items.length : 0)
+  }, 0)
+}
+
+function chapterHardObligationBudget(chapterNumber: number): number {
+  return chapterNumber >= 3 ? 4 : 3
+}
+
+function obligationScore(entry: {
+  key: LoadBearingObligationKey
+  item: any
+  sceneIndex: number
+}): number {
+  const keyScore: Record<LoadBearingObligationKey, number> = {
+    mustPayOff: 80,
+    mustEstablish: 60,
+    mustTransferKnowledge: 50,
+    mustShowStateChange: 40,
+    mustNotReveal: 20,
+  }
+  const stage = typeof entry.item?.storyDebtStage === "string" ? entry.item.storyDebtStage : ""
+  const stageScore = stage === "final_payoff" ? 35
+    : stage === "partial_payoff" ? 25
+      : stage === "progress" ? 10
+        : 0
+  const payoffScore = typeof entry.item?.payoffId === "string" && entry.item.payoffId && entry.item.payoffId !== "null" ? 30 : 0
+  const text = typeof entry.item?.text === "string" ? entry.item.text.toLowerCase() : ""
+  const endpointScore = /\b(decide|decides|chooses|refuses|proposes|council|vote|velo|third path)\b/.test(text) ? 12 : 0
+  return keyScore[entry.key] + stageScore + payoffScore + endpointScore + entry.sceneIndex / 10
+}
+
+export function compactOutlineObligationsForChapterBudget(outline: any): {
+  outline: any
+  report: ObligationControlReport["chapters"][number]
+} {
+  const chapterNumber = Number(outline?.chapterNumber ?? 0)
+  const scenes = Array.isArray(outline?.scenes) ? outline.scenes : []
+  const budget = chapterHardObligationBudget(chapterNumber)
+  const before = scenes.reduce((sum: number, scene: any) => sum + hardObligationCount(scene), 0)
+  if (before <= budget) {
+    return {
+      outline,
+      report: { chapterNumber, budget, before, after: before, removed: 0 },
+    }
+  }
+
+  const entries: Array<{
+    id: string
+    key: LoadBearingObligationKey
+    item: any
+    sceneIndex: number
+    itemIndex: number
+    sourceId: string
+    score: number
+  }> = []
+  scenes.forEach((scene: any, sceneIndex: number) => {
+    const obligations = scene?.obligations ?? {}
+    for (const key of LOAD_BEARING_OBLIGATION_KEYS) {
+      const items = Array.isArray(obligations[key]) ? obligations[key] : []
+      items.forEach((item: any, itemIndex: number) => {
+        const sourceId = typeof item?.sourceId === "string" ? item.sourceId : ""
+        const entry = {
+          id: `${sceneIndex}:${key}:${itemIndex}`,
+          key,
+          item,
+          sceneIndex,
+          itemIndex,
+          sourceId,
+          score: 0,
+        }
+        entry.score = obligationScore(entry)
+        entries.push(entry)
+      })
+    }
+  })
+
+  const keep = new Set<string>()
+  const keptSourceIds = new Set<string>()
+  const sceneCounts = new Map<number, number>()
+  const sorted = [...entries].sort((a, b) => b.score - a.score || a.sceneIndex - b.sceneIndex || a.itemIndex - b.itemIndex)
+  const select = (allowPerScene: number): void => {
+    for (const entry of sorted) {
+      if (keep.size >= budget) return
+      if (keep.has(entry.id)) continue
+      if (entry.sourceId && keptSourceIds.has(entry.sourceId)) continue
+      const maxForScene = entry.sceneIndex === scenes.length - 1 ? Math.max(allowPerScene, 2) : allowPerScene
+      if ((sceneCounts.get(entry.sceneIndex) ?? 0) >= maxForScene) continue
+      keep.add(entry.id)
+      if (entry.sourceId) keptSourceIds.add(entry.sourceId)
+      sceneCounts.set(entry.sceneIndex, (sceneCounts.get(entry.sceneIndex) ?? 0) + 1)
+    }
+  }
+  select(1)
+  select(2)
+  select(Number.POSITIVE_INFINITY)
+
+  const compacted = {
+    ...outline,
+    scenes: scenes.map((scene: any, sceneIndex: number) => {
+      const existing = scene?.obligations ?? {}
+      const nextObligations: Record<string, any[]> = { ...existing }
+      for (const key of LOAD_BEARING_OBLIGATION_KEYS) {
+        const items = Array.isArray(existing[key]) ? existing[key] : []
+        nextObligations[key] = items.filter((_: any, itemIndex: number) => keep.has(`${sceneIndex}:${key}:${itemIndex}`))
+      }
+      return { ...scene, obligations: nextObligations }
+    }),
+  }
+  const after = compacted.scenes.reduce((sum: number, scene: any) => sum + hardObligationCount(scene), 0)
+  return {
+    outline: compacted,
+    report: {
+      chapterNumber,
+      budget,
+      before,
+      after,
+      removed: before - after,
+    },
+  }
+}
+
+async function applyObligationControl(novelId: string, mode: ObligationControlMode): Promise<ObligationControlReport> {
+  const report: ObligationControlReport = { mode, applied: mode !== "none", chapters: [] }
+  if (mode === "none") return report
+
+  const rows = await db`
+    SELECT chapter_number, outline_json
+    FROM chapter_outlines
+    WHERE novel_id = ${novelId}
+    ORDER BY chapter_number ASC
+  ` as Array<{ chapter_number: number; outline_json: unknown }>
+
+  for (const row of rows) {
+    const outline = typeof row.outline_json === "string" ? JSON.parse(row.outline_json) : row.outline_json
+    const compacted = compactOutlineObligationsForChapterBudget(outline)
+    report.chapters.push(compacted.report)
+    if (compacted.report.removed > 0) {
+      await db`
+        UPDATE chapter_outlines
+        SET outline_json = ${JSON.stringify(compacted.outline)}::jsonb
+        WHERE novel_id = ${novelId} AND chapter_number = ${row.chapter_number}
+      `
+    }
+  }
+
+  return report
 }
 
 async function captureChapterArtifacts(
@@ -394,6 +630,8 @@ async function main(): Promise<void> {
   console.log(`fixture: ${args.fixturePath}`)
   console.log(`chapters: ${args.chapters}`)
   console.log(`runId: ${args.runId}`)
+  console.log(`planning note preset: ${args.planningNotePreset}`)
+  console.log(`obligation control: ${args.obligationControl}`)
 
   setAutoMode(true)
   setResolverMode(getMode(true))
@@ -407,7 +645,7 @@ async function main(): Promise<void> {
   // Build the seed: fixture concept + chapter-count override + scene-first
   // pipelineOverrides. Production defaults are NOT touched — every flag is
   // set on this single novel via seed.pipelineOverrides.
-  const seed: SeedInput = {
+  const seedBase: SeedInput = applyPlanningNotePreset({
     ...fixture.concept,
     chapterCount: args.chapters,
     pipelineOverrides: {
@@ -423,7 +661,8 @@ async function main(): Promise<void> {
       // collection survives checker/API hangs. Diagnostics run post-hoc.
       draftCaptureModeV1: true,
     },
-  }
+  }, args.planningNotePreset)
+  const seed: SeedInput = seedBase
 
   const outputDir = join(POC_OUTPUT_ROOT, args.runId)
   await mkdir(outputDir, { recursive: true })
@@ -450,6 +689,19 @@ async function main(): Promise<void> {
 
     console.log("\n━━━ planning phase ━━━")
     await runPlanningPhase(args.runId)
+  }
+
+  const obligationControlReport = !args.captureOnly
+    ? await applyObligationControl(args.runId, args.obligationControl)
+    : { mode: args.obligationControl, applied: false, chapters: [] }
+  if (obligationControlReport.applied) {
+    const removed = obligationControlReport.chapters.reduce((sum, ch) => sum + ch.removed, 0)
+    console.log(`\nobligation control ${args.obligationControl}: removed ${removed} load-bearing obligation(s) before drafting`)
+    await writeFile(
+      join(outputDir, "obligation-control-report.json"),
+      JSON.stringify(obligationControlReport, null, 2),
+      "utf8",
+    )
   }
 
   // Sanity check: are any scene-contract fields populated? POC runs are
@@ -538,6 +790,8 @@ async function main(): Promise<void> {
         cost: totalCost,
       },
       chapterStats,
+      planningNotePreset: args.planningNotePreset,
+      obligationControl: obligationControlReport,
       draftingResultKind: draftingResult.kind,
       pipelineOverrides: seed.pipelineOverrides,
       capturedAt: new Date().toISOString(),
