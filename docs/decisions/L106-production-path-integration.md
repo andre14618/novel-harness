@@ -77,6 +77,12 @@ contracts on 10/10 writer-context events. This supports production brief
 framing over simply adding more full-context contract text, but it remains
 writer-only evidence until checked by full production/endpoint gates.
 
+A full production-path P1 brief smoke (`p1-full-brief-1778446488`) drafted
+chapter 1 at 1885/1500 and passed plan + continuity checks, then paused at a
+pending Plan-Assist gate for two halluc-ungrounded findings. That makes the
+next integration blocker checker/entity review handling, not prompt length
+control.
+
 ## Evidence And Verification
 
 Production-path integration needs:

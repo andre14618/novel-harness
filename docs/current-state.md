@@ -104,8 +104,10 @@ As of 2026-05-10, L105 keeps scene-first promotion on hold, but production
 `drafting-brief-v1` evidence is promising. P4 hit 1.10x with 0/8 prose-semantic
 lows; P1 with `scenePlanContractV1=true` cut a paired writer-only run from
 baseline 2.45x / contract-render-only 2.41x to 1.37x with scene contracts
-10/10 and 0/8 lows. Keep defaults off until a full production/checker and
-endpoint-quality artifact confirms the signal. See L103-L106.
+10/10 and 0/8 lows. A full-path P1 brief smoke then paused on a
+halluc-ungrounded Plan-Assist gate after chapter 1. Keep defaults off until
+full production/checker and endpoint-quality artifacts confirm the signal. See
+L103-L106.
 
 ## Authoring Gates
 

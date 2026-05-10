@@ -10,27 +10,14 @@ unless the user explicitly requests a disposable branch.
   artifacts. Use historical `poc/` outputs as evidence/fixtures, but do not add
   another long-lived POC runner, prompt branch, mapper, checker, or review
   format when the same question can be tested through the production path.
-- **First production writer-brief smoke completed (2026-05-10).**
-  `test-drafting-isolated --writer-arms drafting-brief-v1 --writer-only`
-  on P4 source `novel-1778411555121` produced
-  `p4-brief-1778445285-drafting-brief-v1`: 3666/3300 words = 1.10x
-  (ch1 1469/1500, ch2 2197/1800), prose-semantic rows=8/lows=0/errors=0.
-  `diagnostics:writer-context` showed drafting-brief telemetry 11/11,
-  character profiles/snapshots/capsules 11/11, obligations/story 10/11,
-  world 3/11, reader-info 6/11, scene contracts 0/11, refs 0/11, avg prompt
-  chars 6527/6701 = 0.975. Treat as promising production-path telemetry and
-  budget-framing evidence, not scene-contract/endpoint promotion evidence.
-- **Contract-bearing writer-brief smoke completed (2026-05-10).**
-  P1 fixture source `fixture-P1-fantasy-debt-binder-1778445572848` planned
-  with `scenePlanContractV1=true`; paired writer-only drafting under
-  `p1-contract-1778445814` yielded baseline 7335/3000 = 2.45x,
-  `contract-render-only` 7238/3000 = 2.41x, and `drafting-brief-v1`
-  4115/3000 = 1.37x. Prose-semantic rows were 8/lows=0/errors=0 for each
-  arm. Writer-context report on the brief arm: drafting-brief telemetry 10/10,
-  scene contracts 10/10, character profiles/snapshots/capsules 10/10,
-  obligations/story 8/10, world 2/10, refs 0/10, avg prompt chars
-  6504/6919 = 0.940. This supports brief framing over full contract rendering;
-  it is still writer-only evidence, not a default-flip artifact.
+- **Production writer-brief evidence (2026-05-10).** P4 writer-only smoke
+  hit 3666/3300 = 1.10x with 0/8 prose-semantic lows. Contract-bearing P1
+  paired writer-only smoke (`p1-contract-1778445814`) yielded baseline 2.45x,
+  `contract-render-only` 2.41x, and `drafting-brief-v1` 1.37x, all 0/8 lows;
+  brief telemetry preserved scene contracts 10/10 and character
+  profiles/snapshots/capsules 10/10. Full-path P1 brief smoke then drafted ch1
+  at 1885/1500 and passed plan + continuity, but paused at a pending
+  Plan-Assist gate for two halluc-ungrounded findings. See L106 for details.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -119,12 +106,13 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: convert the P1 `drafting-brief-v1` signal into a
-  promotion-grade artifact: run the brief arm through the full production
-  drafting/checker path or add an endpoint-quality diagnostic over the saved
-  writer-only drafts. Promotion remains blocked until a comparable artifact
-  reaches <=1.5x target with 3/3/3 endpoints, complete scene IDs, diagnostics,
-  traces, and review artifacts. See L103-L106.
+- Next session start: resolve the full-path blocker before more prompt-shape
+  work: either pre-resolve/allow fixture-specific named debtor/calendar terms
+  or route checker-blocked coined entities through the existing plan-assist
+  review path, then rerun `drafting-brief-v1` through full production gates.
+  Promotion remains blocked until a comparable artifact reaches <=1.5x target
+  with 3/3/3 endpoints, complete scene IDs, diagnostics, traces, and review
+  artifacts. See L103-L106.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,
