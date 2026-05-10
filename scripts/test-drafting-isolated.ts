@@ -30,6 +30,11 @@
  *                        scenePlanContractV1 stays default-off), the
  *                        rendered prompt remains byte-identical to
  *                        baseline.
+ *   scene-call-no-expansion — scene-call writer with the same SCENE
+ *                        CONTRACT rendering as scene-call-v1, but with
+ *                        writerExpansionMode="off". Use this to isolate
+ *                        the retry-short-scenes expansion path while
+ *                        holding the cloned plan constant.
  *   scene-call-v1      — L097 Slice 2: scene-call writer + retry-short-
  *                        scenes-v1 expansion path. The full B3 Arm C.
  *
@@ -37,7 +42,7 @@
  *   bun scripts/test-drafting-isolated.ts \
  *     --source <planning-done-novel-id> \
  *     --target-prefix <prefix>                                   # e.g. "ab-1778378900"
- *     [--writer-arms baseline,id-suppress,contract-render-only,scene-call-v1]
+ *     [--writer-arms baseline,id-suppress,contract-render-only,scene-call-no-expansion,scene-call-v1]
  *                                                                # default: baseline,scene-call-v1
  *     [--writer-only]                                            # set draftCaptureModeV1=true on every arm
  *     [--per-arm-timeout-ms 1800000]                             # 30-minute per-arm wallclock cap
@@ -91,6 +96,7 @@ export const WRITER_ARM_NAMES = [
   "baseline",
   "id-suppress",
   "contract-render-only",
+  "scene-call-no-expansion",
   "scene-call-v1",
 ] as const
 
@@ -179,6 +185,16 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         sceneCallWriterV1: false,
         writerExpansionMode: "off",
         forceRenderSceneContractWhenAvailable: true,
+        writerPromptIdRendering: "raw",
+      }
+    case "scene-call-no-expansion":
+      // Scene-call writer with expansion disabled. This isolates the
+      // retry-short-scenes-v1 expansion path from the scene-call writer
+      // architecture while keeping the cloned plan fixed.
+      return {
+        sceneCallWriterV1: true,
+        writerExpansionMode: "off",
+        forceRenderSceneContractWhenAvailable: false, // implied by sceneCallWriterV1=true
         writerPromptIdRendering: "raw",
       }
     case "scene-call-v1":

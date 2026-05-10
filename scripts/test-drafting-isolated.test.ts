@@ -15,13 +15,13 @@ describe("test-drafting-isolated parseArgs", () => {
     expect(args.arms).toEqual(["baseline", "scene-call-v1"])
   })
 
-  test("accepts the four supported arms in any combination", () => {
+  test("accepts the five supported arms in any combination", () => {
     const args = parseArgs([
       "--source", "n",
       "--target-prefix", "ab",
-      "--writer-arms", "baseline,id-suppress,contract-render-only,scene-call-v1",
+      "--writer-arms", "baseline,id-suppress,contract-render-only,scene-call-no-expansion,scene-call-v1",
     ])
-    expect(args.arms).toEqual(["baseline", "id-suppress", "contract-render-only", "scene-call-v1"])
+    expect(args.arms).toEqual(["baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "scene-call-v1"])
   })
 
   test("rejects unknown arm names", () => {
@@ -92,7 +92,15 @@ describe("flagsForArm", () => {
     expect(flags.writerPromptIdRendering).toBe("raw")
   })
 
-  test("WRITER_ARM_NAMES enumerates the four supported arms in declaration order", () => {
-    expect(WRITER_ARM_NAMES).toEqual(["baseline", "id-suppress", "contract-render-only", "scene-call-v1"])
+  test("scene-call-no-expansion isolates scene-call from expansion retry", () => {
+    const flags = flagsForArm("scene-call-no-expansion")
+    expect(flags.sceneCallWriterV1).toBe(true)
+    expect(flags.writerExpansionMode).toBe("off")
+    expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
+    expect(flags.writerPromptIdRendering).toBe("raw")
+  })
+
+  test("WRITER_ARM_NAMES enumerates the five supported arms in declaration order", () => {
+    expect(WRITER_ARM_NAMES).toEqual(["baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "scene-call-v1"])
   })
 })
