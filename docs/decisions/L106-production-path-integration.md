@@ -112,10 +112,12 @@ gate or adding another POC runner.
 Scene-semantic replay now also writes `scene-semantic-readiness.{json,md}`
 sidecars. These convert low semantic rows into the existing Plan Readiness
 aggregate shape with exact scene, obligation, character, world-fact,
-scene-turn, thread, promise, payoff, and source IDs when available. They are
-manual review inputs only: no DB import, proposal creation, plan mutation, or
-drafting gate occurs unless an operator explicitly uses the Plan Readiness
-path.
+scene-turn, thread, promise, payoff, and source IDs when available. When replay
+is run with `--persist`, those lows import as open Plan Readiness items through
+the shared target-hash/staleness importer by default; `--no-readiness-import`
+keeps the run artifact-only. They remain manual review inputs only: no proposal
+creation, plan mutation, or drafting gate occurs unless an operator explicitly
+uses the Plan Readiness path.
 
 ## Evidence And Verification
 

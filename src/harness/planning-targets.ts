@@ -180,15 +180,15 @@ export async function previewPlanningImpact(
   const targetRefs = impactTargetRefs(target)
   const relatedProposalEnvelopes = []
   const seenProposalIds = new Set<string>()
+  const proposalRefs = new Set([target.ref, requested.ref])
   for (const kind of planningTargetKindAliasesForLookup(requested.kind)) {
-    const summaries = await listProposalEnvelopeTargetSummaries(novelId, {
-      kind,
-      ref: target.ref,
-    })
-    for (const summary of summaries) {
-      if (seenProposalIds.has(summary.id)) continue
-      seenProposalIds.add(summary.id)
-      relatedProposalEnvelopes.push(summary)
+    for (const ref of proposalRefs) {
+      const summaries = await listProposalEnvelopeTargetSummaries(novelId, { kind, ref })
+      for (const summary of summaries) {
+        if (seenProposalIds.has(summary.id)) continue
+        seenProposalIds.add(summary.id)
+        relatedProposalEnvelopes.push(summary)
+      }
     }
   }
   const relatedResolutionImpacts = await listProposalResolutionImpactsByTargetRefs(novelId, targetRefs)
@@ -588,7 +588,7 @@ function findTarget(
 ): PlanningTarget | null {
   const target = targets.find((candidate) =>
     planningTargetKindsSameArtifact(candidate.kind, requested.kind) &&
-    candidate.ref === requested.ref &&
+    planningTargetRefMatches(candidate, requested) &&
     (requested.fieldPath === undefined || candidate.fieldPaths.includes(requested.fieldPath))
   ) ?? null
   if (!target) return null
@@ -605,6 +605,16 @@ function findTarget(
     }
   }
   return target
+}
+
+function planningTargetRefMatches(
+  candidate: PlanningTarget,
+  requested: PlanningTargetRef,
+): boolean {
+  if (candidate.ref === requested.ref) return true
+  if (!planningTargetKindsSameArtifact(candidate.kind, requested.kind)) return false
+  if (requested.kind !== "scene_plan" && requested.kind !== "beat_plan") return false
+  return candidate.location?.sceneId === requested.ref || candidate.location?.beatId === requested.ref
 }
 
 function planningTargetRefsSameArtifact(

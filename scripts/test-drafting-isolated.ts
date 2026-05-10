@@ -636,6 +636,7 @@ async function maybeRunSceneSemanticReview(
       setName: `scene-semantic-review:${targetPrefix}:${arm}`,
       live: opts.sceneSemanticLive,
       persist: false,
+      readinessImport: false,
       model: "deepseek-v4-flash",
       thinking: true,
       maxTokens: opts.sceneSemanticMaxTokens,

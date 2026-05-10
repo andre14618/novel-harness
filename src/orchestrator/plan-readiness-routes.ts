@@ -1,6 +1,5 @@
 import { z } from "zod"
 import {
-  buildPlanReadinessDraftsFromAggregate,
   PLAN_READINESS_IMPORTER_KINDS,
   PLAN_READINESS_OPERATOR_DISPOSITIONS,
   PLAN_READINESS_STATUSES,
@@ -9,14 +8,18 @@ import {
   type PlanReadinessTargetKind,
 } from "../harness/plan-readiness"
 import {
+  importPlanReadinessAggregateForNovel,
+  loadReadinessTargetVersions,
+  targetVersionsForStaleness,
+} from "../harness/plan-readiness-import"
+import {
   findPlanReadinessItem,
   listPlanReadinessItems,
   markStalePlanReadinessItems,
   updatePlanReadinessDisposition,
-  upsertPlanReadinessItems,
   type PlanReadinessItem,
 } from "../db/plan-readiness"
-import { loadPlanningTargetMap, PlanningTargetLookupError } from "../harness/planning-targets"
+import { PlanningTargetLookupError } from "../harness/planning-targets"
 import { loadPlanReadinessOutcomeReport } from "../harness/plan-readiness-outcomes"
 import { handlePlanningProposalRoute } from "./planning-proposal-routes"
 
@@ -162,24 +165,19 @@ async function handleImportPlanReadiness(req: Request, novelId: string): Promise
   }
 
   try {
-    const targetVersions = await loadReadinessTargetVersions(novelId)
-    if (body.refreshStaleness) {
-      await markStalePlanReadinessItems(novelId, targetVersionsForStaleness(targetVersions))
-    }
-    const built = buildPlanReadinessDraftsFromAggregate({
+    const result = await importPlanReadinessAggregateForNovel({
       novelId,
       aggregate: body.aggregate,
-      targetVersions,
       importedByKind: body.importedByKind ?? "script",
       importedByRef: body.importedByRef ?? null,
+      refreshStaleness: body.refreshStaleness,
     })
-    const result = await upsertPlanReadinessItems(built.drafts)
     return Response.json({
       ok: true,
       novelId,
       inserted: result.inserted,
       updated: result.updated,
-      skipped: built.skipped,
+      skipped: result.skipped,
       items: result.items,
     })
   } catch (err) {
@@ -428,35 +426,6 @@ async function handleCreatePlanningProposalFromReadiness(
   } catch (err) {
     return planReadinessErrorResponse(err, "plan-readiness proposal bridge failed")
   }
-}
-
-async function loadReadinessTargetVersions(novelId: string): Promise<Map<string, string>> {
-  const map = await loadPlanningTargetMap(novelId)
-  const out = new Map<string, string>()
-  for (const target of map.targets) {
-    if (target.kind === "chapter_outline" || target.kind === "beat_plan") {
-      out.set(readinessTargetKey({ kind: target.kind, ref: target.ref }), target.currentVersion)
-      if (target.kind === "beat_plan") {
-        out.set(readinessTargetKey({ kind: "scene_plan", ref: target.ref }), target.currentVersion)
-      }
-    } else if (target.kind === "scene_plan") {
-      out.set(readinessTargetKey({ kind: target.kind, ref: target.ref }), target.currentVersion)
-      out.set(readinessTargetKey({ kind: "beat_plan", ref: target.ref }), target.currentVersion)
-    }
-  }
-  return out
-}
-
-function targetVersionsForStaleness(
-  targetVersions: Map<string, string>,
-): Array<{ targetKind: PlanReadinessTargetKind; targetRef: string; sourceHash: string }> {
-  const out: Array<{ targetKind: PlanReadinessTargetKind; targetRef: string; sourceHash: string }> = []
-  for (const [key, sourceHash] of targetVersions.entries()) {
-    const [targetKind, ...rest] = key.split(":")
-    if (targetKind !== "chapter_outline" && targetKind !== "scene_plan" && targetKind !== "beat_plan") continue
-    out.push({ targetKind, targetRef: rest.join(":"), sourceHash })
-  }
-  return out
 }
 
 function dispositionForStatus(status: PlanReadinessStatus) {

@@ -25,10 +25,9 @@ unless the user explicitly requests a disposable branch.
   no Plan-Assist gate fired on that attempt. Scene-semantic replay on the same
   artifact found sceneDramaturgy 10/10 SCENE-3 but endpointLanding mean 2.20
   with 4 lows (all ch1). Live `allow-entities` replay evidence remains open,
-  and promotion remains blocked by endpoint/turn quality. The
-  `test-drafting-isolated --scene-semantic-review` now writes telemetry and
-  Plan Readiness sidecars so fixed-plan arms carry endpoint/scene-turn review
-  inputs without a sidecar POC runner. See L106.
+  and promotion remains blocked by endpoint/turn quality. Scene-semantic
+  replay now writes readiness sidecars; `--persist` imports open review items
+  unless `--no-readiness-import` is set. See L106.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and

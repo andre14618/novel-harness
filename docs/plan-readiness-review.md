@@ -166,7 +166,11 @@ bun run diagnostics:scene-semantic-readiness -- \
 automatically. The adapter captures low semantic rows as manual scene-plan
 readiness candidates and preserves exact scene, obligation, character,
 world-fact, scene-turn, thread, promise, payoff, and source IDs when present.
-It does not create proposals or mutate plans.
+When `scene-semantic-review.ts --persist` is used, the same aggregate is also
+imported as open Plan Readiness items by default through the shared
+target-hash/staleness importer. Pass `--no-readiness-import` to keep a
+persisted eval run artifact-only. Importing readiness items does not create
+proposals or mutate plans.
 
 Exact character-ref gaps can also be converted into concrete manual repair
 candidates without touching the DB:

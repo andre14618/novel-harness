@@ -62,8 +62,10 @@ Use deeper docs only when linked by the context pack or needed by code.
 - Evidence-generation flows should collect prose-semantic telemetry by default
   where wired. The drafting-isolated harness can also collect opt-in
   scene-semantic replay telemetry plus Plan Readiness candidate sidecars for
-  endpoint/scene-turn dimensions. Semantic telemetry is advisory/fail-open
-  data, not a drafting or promotion gate.
+  endpoint/scene-turn dimensions. Persisted scene-semantic replay imports open
+  Plan Readiness items by default unless `--no-readiness-import` is set.
+  Semantic telemetry is advisory/fail-open data, not a drafting or promotion
+  gate.
 
 ## Authoring Direction
 

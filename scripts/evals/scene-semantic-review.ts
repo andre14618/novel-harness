@@ -27,7 +27,8 @@
  *     [--chapters 1-5]                 # default: every chapter with an outline+draft
  *     [--dimension sceneDramaturgy]    # repeatable; default: 6 POC dimensions
  *     [--live]                         # default: synthetic (dry) for testing
- *     [--persist]                      # default: print only
+ *     [--persist]                      # writes eval rows and imports readiness lows
+ *     [--no-readiness-import]          # keep readiness as artifact-only when persisting
  *     [--concurrency 4]
  *     [--set-name <slug>]              # default: scene-semantic-review:YYYYMMDD
  *     [--output-dir <path>]
@@ -37,6 +38,7 @@ import { mkdirSync, writeFileSync } from "node:fs"
 import { join, resolve } from "node:path"
 
 import db from "../../src/db/connection"
+import { importPlanReadinessAggregateForNovel } from "../../src/harness/plan-readiness-import"
 import type { ChapterOutline, SceneBeat } from "../../src/types"
 import {
   judgePlanningExcerpt,
@@ -58,6 +60,7 @@ export interface SceneSemanticReviewArgs {
   setName: string
   live: boolean
   persist: boolean
+  readinessImport: boolean
   model: ModelId
   thinking: boolean
   maxTokens: number
@@ -626,6 +629,7 @@ function parseArgs(argv = process.argv.slice(2)): SceneSemanticReviewArgs {
   let setName: string | null = null
   let live = false
   let persist = false
+  let readinessImport = true
   let model: ModelId = "deepseek-v4-flash"
   let noThinking = false
   let maxTokens = 1400
@@ -647,6 +651,8 @@ function parseArgs(argv = process.argv.slice(2)): SceneSemanticReviewArgs {
     if (a === "--set-name") { setName = eat(); continue }
     if (a === "--live") { live = true; continue }
     if (a === "--persist") { persist = true; continue }
+    if (a === "--readiness-import") { readinessImport = true; continue }
+    if (a === "--no-readiness-import") { readinessImport = false; continue }
     if (a === "--model") { model = parseModel(eat()); continue }
     if (a === "--no-thinking") { noThinking = true; continue }
     if (a === "--max-tokens") { maxTokens = positiveInt(eat(), "--max-tokens"); continue }
@@ -665,6 +671,7 @@ function parseArgs(argv = process.argv.slice(2)): SceneSemanticReviewArgs {
     setName: setName ?? defaultSetName(),
     live,
     persist,
+    readinessImport,
     model,
     thinking,
     maxTokens,
@@ -724,6 +731,16 @@ async function main(): Promise<void> {
   if (args.persist) {
     const persisted = await persistSceneSemanticReplayReport(report)
     console.log(`persisted ${persisted.briefRows} briefs and ${persisted.resultRows} results to set "${args.setName}"`)
+    if (args.readinessImport) {
+      const imported = await importPlanReadinessAggregateForNovel({
+        novelId: report.novelId,
+        aggregate: readiness,
+        importedByKind: "script",
+        importedByRef: `scene-semantic-review:${report.setName}`,
+        refreshStaleness: true,
+      })
+      console.log(`imported ${imported.inserted} readiness items, updated ${imported.updated}, skipped ${imported.skipped.length}`)
+    }
   }
 
   console.log(args.json ? JSON.stringify(report, null, 2) : renderSceneSemanticReplayReport(report))
