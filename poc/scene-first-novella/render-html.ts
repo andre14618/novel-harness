@@ -82,6 +82,13 @@ interface DiagnosticStats {
   characterAgencyAverage: number | null
 }
 
+interface RuntimeStats {
+  traceEvents: number
+  llmCalls: number
+  writerCalls: number
+  writerExpansionEvents: number
+}
+
 interface ReviewSummary {
   runId: string
   profile: string | null
@@ -90,6 +97,7 @@ interface ReviewSummary {
   chaptersRequested: number | null
   reviewStats: ReviewStats
   diagnosticStats: DiagnosticStats
+  runtimeStats: RuntimeStats
   findings: string[]
 }
 
@@ -293,6 +301,26 @@ export function computeDiagnosticStats(chapters: ChapterBundle[]): DiagnosticSta
   }
 }
 
+export function computeRuntimeStats(chapters: ChapterBundle[]): RuntimeStats {
+  let traceEvents = 0
+  let llmCalls = 0
+  let writerCalls = 0
+  let writerExpansionEvents = 0
+
+  for (const ch of chapters) {
+    const events = Array.isArray(ch.trace?.events) ? ch.trace.events : []
+    const calls = Array.isArray(ch.trace?.llmCalls) ? ch.trace.llmCalls : []
+    traceEvents += typeof ch.trace?.counts?.events === "number" ? ch.trace.counts.events : events.length
+    llmCalls += typeof ch.trace?.counts?.llmCalls === "number" ? ch.trace.counts.llmCalls : calls.length
+    writerCalls += typeof ch.trace?.counts?.writerCalls === "number"
+      ? ch.trace.counts.writerCalls
+      : calls.filter((c: any) => c?.agent === "beat-writer").length
+    writerExpansionEvents += events.filter((e: any) => e?.eventType === "writer-expansion").length
+  }
+
+  return { traceEvents, llmCalls, writerCalls, writerExpansionEvents }
+}
+
 function round(value: number): number {
   return Number(value.toFixed(2))
 }
@@ -312,6 +340,7 @@ function obligationsPerScene(stats: ReviewStats): number | null {
 export function buildReviewSummary(runId: string, runSummary: any | null, chapters: ChapterBundle[]): ReviewSummary {
   const reviewStats = computeReviewStats(chapters)
   const diagnosticStats = computeDiagnosticStats(chapters)
+  const runtimeStats = computeRuntimeStats(chapters)
   const wordRatio = reviewStats.targetWords > 0 ? reviewStats.proseWords / reviewStats.targetWords : null
   const obligationDensity = obligationsPerScene(reviewStats)
   const otc = reviewStats.obligationTypeCounts
@@ -326,6 +355,7 @@ export function buildReviewSummary(runId: string, runSummary: any | null, chapte
     `Scene-contract coverage: core fields on ${reviewStats.coreContractFieldScenes}/${reviewStats.totalScenes} scenes; choice alternatives on ${reviewStats.choiceAlternativeScenes}/${reviewStats.totalScenes}; scene IDs on ${reviewStats.sceneIds}/${reviewStats.totalScenes}; legacy beat IDs on ${reviewStats.beatIds}/${reviewStats.totalScenes}.`,
     `Traceability surfaced in contracts: ${plural(reviewStats.obligationIds, "obligation ID")}, ${plural(reviewStats.sourceIds, "source ID")}, ${plural(reviewStats.characterIds, "character ID")}, ${plural(reviewStats.threadIds, "thread ID")}, ${plural(reviewStats.promiseIds, "promise ID")}, ${plural(reviewStats.payoffIds, "payoff ID")}.`,
     `Obligation load: ${otc.loadBearing} load-bearing obligations (${obligationDensity == null ? "n/a" : obligationDensity.toFixed(2)} per scene): establish ${otc.mustEstablish}, pay off ${otc.mustPayOff}, transfer knowledge ${otc.mustTransferKnowledge}, state change ${otc.mustShowStateChange}, not reveal ${otc.mustNotReveal}; allowed-new-entity hints ${otc.allowedNewEntities}.`,
+    `Runtime trace: ${runtimeStats.traceEvents} trace events, ${runtimeStats.llmCalls} LLM calls, ${runtimeStats.writerCalls} writer calls, ${runtimeStats.writerExpansionEvents} writer-expansion events.`,
     `Post-hoc diagnostics: endpoint scores ${diagnosticStats.endpointScores.join(", ") || "none"} (${diagnosticStats.endpointJudged}/${chapters.length} chapters, ${diagnosticStats.endpointErrors} errors); scene dramaturgy ${diagnosticStats.sceneDramaturgyJudged}/${reviewStats.totalScenes} judged with ${diagnosticStats.sceneDramaturgyErrors} errors; character agency ${diagnosticStats.characterAgencyJudged}/${reviewStats.totalScenes} judged with ${diagnosticStats.characterAgencyErrors} errors.`,
     `Runtime posture: production defaults stayed untouched; the POC used ${overrides}.`,
   ]
@@ -338,6 +368,7 @@ export function buildReviewSummary(runId: string, runSummary: any | null, chapte
     chaptersRequested,
     reviewStats,
     diagnosticStats,
+    runtimeStats,
     findings,
   }
 }

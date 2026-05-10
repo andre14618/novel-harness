@@ -47,6 +47,13 @@ function summary(overrides: Record<string, any> = {}) {
       characterAgencyAverage: 2.61,
       ...(overrides.diagnosticStats ?? {}),
     },
+    runtimeStats: {
+      traceEvents: 90,
+      llmCalls: 30,
+      writerCalls: 18,
+      writerExpansionEvents: 0,
+      ...(overrides.runtimeStats ?? {}),
+    },
     findings: overrides.findings ?? [],
   }
 }
@@ -88,6 +95,7 @@ test("builds directional verdicts for improved POC variants", () => {
   expect(comparison.deltas.chapterOneEndpointDelta).toBe(1)
   expect(markdown).toContain("Word overshoot is mainly a planner-scope problem")
   expect(markdown).toContain("Obligation type counts")
+  expect(markdown).toContain("Writer-expansion events")
   expect(markdown).toContain("Supported: tighter scene count")
   expect(markdown).toContain("Needs another POC loop before promotion")
 })

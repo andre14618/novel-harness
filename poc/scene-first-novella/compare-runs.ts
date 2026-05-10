@@ -56,6 +56,12 @@ interface ReviewSummary {
     characterAgencyErrors: number
     characterAgencyAverage: number | null
   }
+  runtimeStats?: {
+    traceEvents: number
+    llmCalls: number
+    writerCalls: number
+    writerExpansionEvents: number
+  }
   findings: string[]
 }
 
@@ -153,6 +159,12 @@ function formatTypeCounts(summary: ReviewSummary): string {
   ].join(" / ")
 }
 
+function writerExpansionEvents(summary: ReviewSummary): number | null {
+  return typeof summary.runtimeStats?.writerExpansionEvents === "number"
+    ? summary.runtimeStats.writerExpansionEvents
+    : null
+}
+
 export function buildComparison(baseline: ReviewSummary, variant: ReviewSummary): Comparison {
   const baselineRatio = ratio(baseline)
   const variantRatio = ratio(variant)
@@ -243,6 +255,7 @@ export function renderComparisonMarkdown(comparison: Comparison): string {
     `| Scene contracts | ${baseline.reviewStats.totalScenes} | ${variant.reviewStats.totalScenes} | ${fmtSigned(deltas.totalScenesDelta, 0)} |`,
     `| Obligations / scene | ${fmtNumber(baselineOps)} | ${fmtNumber(variantOps)} | ${fmtSigned(deltas.obligationsPerSceneDelta)} |`,
     `| Obligation type counts | ${formatTypeCounts(baseline)} | ${formatTypeCounts(variant)} |  |`,
+    `| Writer-expansion events | ${writerExpansionEvents(baseline) ?? "n/a"} | ${writerExpansionEvents(variant) ?? "n/a"} |  |`,
     `| Chapter-1 endpoint score | ${firstEndpoint(baseline) ?? "n/a"} | ${firstEndpoint(variant) ?? "n/a"} | ${fmtSigned(deltas.chapterOneEndpointDelta, 0)} |`,
     `| Endpoint scores | ${baseline.diagnosticStats.endpointScores.join(", ")} | ${variant.diagnosticStats.endpointScores.join(", ")} |  |`,
     `| Scene diagnostics judged | ${baseline.diagnosticStats.sceneDramaturgyJudged}/${baseline.reviewStats.totalScenes} | ${variant.diagnosticStats.sceneDramaturgyJudged}/${variant.reviewStats.totalScenes} |  |`,

@@ -1,11 +1,25 @@
 import { expect, test } from "bun:test"
-import { buildFindingsMarkdown, buildReviewSummary, computeDiagnosticStats, computeReviewStats, proseWordCount } from "./render-html"
+import { buildFindingsMarkdown, buildReviewSummary, computeDiagnosticStats, computeReviewStats, computeRuntimeStats, proseWordCount } from "./render-html"
 
 function chapter(overrides: Record<string, unknown> = {}) {
   return {
     chapterNumber: 1,
     prose: "# Chapter 1: Test\n\n*POV: A*\n*Setting: B*\n*Word count: 123 (target 200)*\n\none two three",
-    trace: null,
+    trace: {
+      events: [
+        { eventType: "writer-start" },
+        { eventType: "writer-expansion" },
+      ],
+      llmCalls: [
+        { agent: "beat-writer" },
+        { agent: "diagnostic" },
+      ],
+      counts: {
+        events: 2,
+        llmCalls: 2,
+        writerCalls: 1,
+      },
+    },
     diagnostics: null,
     contracts: {
       targetWords: 200,
@@ -124,6 +138,15 @@ test("computes diagnostic coverage from optional post-hoc judge files", () => {
   expect(stats.characterAgencyAverage).toBe(2)
 })
 
+test("computes runtime trace coverage including writer expansion events", () => {
+  const stats = computeRuntimeStats([chapter()])
+
+  expect(stats.traceEvents).toBe(2)
+  expect(stats.llmCalls).toBe(2)
+  expect(stats.writerCalls).toBe(1)
+  expect(stats.writerExpansionEvents).toBe(1)
+})
+
 test("builds reader-visible findings with L102 planner-scope framing", () => {
   const summary = buildReviewSummary(
     "run-1",
@@ -144,6 +167,8 @@ test("builds reader-visible findings with L102 planner-scope framing", () => {
   expect(markdown).toContain("Word-count finding (L102)")
   expect(markdown).toContain("planner-scope scene/chapter-load finding")
   expect(markdown).toContain("Obligation load: 3 load-bearing obligations")
+  expect(markdown).toContain("Runtime trace: 2 trace events")
+  expect(markdown).toContain("1 writer-expansion events")
   expect(markdown).toContain("production defaults stayed untouched")
   expect(markdown).toContain("review-summary.json")
 })
