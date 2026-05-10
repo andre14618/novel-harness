@@ -21,6 +21,7 @@
  *   bun poc/scene-first-novella/run.ts \
  *     [--fixture docs/fixtures/scene-first/concepts/pre-resolved/P3-debt-binder-resolved.json] \
  *     [--chapters 3] \
+ *     [--writer-expansion-mode retry-short-scenes-v1|off] \
  *     [--run-id poc-scene-first-<ts>]    # default auto-derived from timestamp
  */
 
@@ -39,12 +40,14 @@ import type { SeedInput } from "../../src/types"
 
 const DEFAULT_FIXTURE = "docs/fixtures/scene-first/concepts/pre-resolved/P3-debt-binder-resolved.json"
 const POC_OUTPUT_ROOT = "poc/scene-first-novella/output"
+type WriterExpansionMode = "off" | "retry-short-scenes-v1"
 
-interface Args {
+export interface Args {
   fixturePath: string
   chapters: number
   runId: string
   captureOnly: boolean
+  writerExpansionMode: WriterExpansionMode
 }
 
 interface SceneContractCoverage {
@@ -199,17 +202,24 @@ function mergeTraceabilityCoverage(a: TraceabilityCoverage, b: TraceabilityCover
   }
 }
 
-function parseArgs(argv: string[]): Args {
+function parseWriterExpansionMode(value: string | undefined): WriterExpansionMode {
+  if (value === "off" || value === "retry-short-scenes-v1") return value
+  throw new Error(`--writer-expansion-mode must be "off" or "retry-short-scenes-v1"; got ${value ?? "(missing)"}`)
+}
+
+export function parseArgs(argv: string[]): Args {
   let fixturePath = DEFAULT_FIXTURE
   let chapters = 3
   let runId: string | null = null
   let captureOnly = false
+  let writerExpansionMode: WriterExpansionMode = "retry-short-scenes-v1"
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!
     if (a === "--fixture") { fixturePath = argv[++i] ?? fixturePath; continue }
     if (a === "--chapters") { chapters = Number.parseInt(argv[++i] ?? "3", 10); continue }
     if (a === "--run-id") { runId = argv[++i] ?? null; continue }
     if (a === "--capture-only") { captureOnly = true; continue }
+    if (a === "--writer-expansion-mode") { writerExpansionMode = parseWriterExpansionMode(argv[++i]); continue }
     throw new Error(`unknown arg: ${a}`)
   }
   if (!Number.isFinite(chapters) || chapters < 1) {
@@ -223,6 +233,7 @@ function parseArgs(argv: string[]): Args {
     chapters,
     runId: runId ?? `poc-scene-first-${Date.now()}`,
     captureOnly,
+    writerExpansionMode,
   }
 }
 
@@ -405,8 +416,9 @@ async function main(): Promise<void> {
       scenePlanContractV1: true,
       // Writer renders SCENE CONTRACT block + scene-call shape per L097.
       sceneCallWriterV1: true,
-      // Expansion-retry path fires when actual words < advisory floor.
-      writerExpansionMode: "retry-short-scenes-v1",
+      // Expansion-retry path is default for the POC, but can be disabled to
+      // isolate writer expansion effects while preserving the same fixture.
+      writerExpansionMode: args.writerExpansionMode,
       // POC lane: skip chapter-level checker settle loops so prose
       // collection survives checker/API hangs. Diagnostics run post-hoc.
       draftCaptureModeV1: true,

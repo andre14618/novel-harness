@@ -40,6 +40,7 @@ Three commands, in order, against a single output directory.
 bun poc/scene-first-novella/run.ts \
   --fixture docs/fixtures/scene-first/concepts/pre-resolved/P3-debt-binder-resolved.json \
   --chapters 3 \
+  --writer-expansion-mode retry-short-scenes-v1 \
   --run-id poc-scene-first-$(date +%s)
 
 # 2) Post-hoc diagnostics: V4 Flash judges (endpoint-landing per chapter,
@@ -67,6 +68,9 @@ bun poc/scene-first-novella/run.ts \
   --capture-only \
   --run-id <existingNovelId>
 ```
+
+Use `--writer-expansion-mode off` for expansion-ablation runs that should keep
+the same planner fixture but skip the retry-short-scenes expansion path.
 
 The resulting `poc/scene-first-novella/output/<runId>/` contains:
 
