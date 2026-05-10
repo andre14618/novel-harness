@@ -11,6 +11,7 @@ function chapter(num: number, scenesData: Array<Record<string, unknown>>, opts: 
   prose: string
   wordCount: number
   draftVersion: number
+  sceneProseBySceneId: Map<string, string>
 } {
   return {
     chapterNumber: num,
@@ -31,6 +32,7 @@ function chapter(num: number, scenesData: Array<Record<string, unknown>>, opts: 
     prose: opts.purpose === "empty" ? "" : "Mira walked into the archive. The lantern was already lit, and Renn looked up.",
     wordCount: 18,
     draftVersion: 1,
+    sceneProseBySceneId: new Map(),
   }
 }
 
@@ -188,5 +190,47 @@ describe("scene-semantic-review task building", () => {
     expect(excerpt).toContain("Crisis choice: expose the steward or yield")
     expect(excerpt).toContain("CHAPTER PROSE")
     expect(excerpt).toContain("Mira walked into the archive")
+    expect(result.tasks[0]?.proseSource).toBe("chapter_draft")
+  })
+
+  test("excerpt prefers captured per-scene writer prose over whole chapter prose", () => {
+    const ch = chapter(8, [
+      {
+        sceneId: "ch8-s1",
+        description: "Mira refuses the archivist's bargain.",
+        characters: ["Mira"],
+        kind: "dialogue",
+        requiredPayoffs: [],
+        obligations: {
+          mustEstablish: [],
+          mustPayOff: [],
+          mustTransferKnowledge: [],
+          mustShowStateChange: [],
+          mustNotReveal: [],
+          allowedNewEntities: [],
+        },
+        lifeValueAxes: [],
+        miceActive: [],
+        miceOpens: [],
+        miceCloses: [],
+      },
+    ])
+    ch.sceneProseBySceneId.set(
+      "ch8-s1",
+      "Mira closed the archive ledger and refused to sign. The archivist barred the door.",
+    )
+
+    const result = buildSceneSemanticReplayTasks({
+      chapters: [ch],
+      dimensions: ["endpointLanding"],
+      promptMode: "evidence-first",
+    })
+
+    expect(result.tasks).toHaveLength(1)
+    const task = result.tasks[0]!
+    expect(task.proseSource).toBe("scene_writer_call")
+    expect(task.excerpt).toContain("SCENE PROSE")
+    expect(task.excerpt).toContain("Mira closed the archive ledger")
+    expect(task.excerpt).not.toContain("Mira walked into the archive")
   })
 })

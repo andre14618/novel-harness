@@ -10,11 +10,11 @@
  * novel's pipeline state.
  *
  * The POC excerpt rendering bound prose to a per-scene `chapter.json`. The
- * production runtime persists chapter prose as a single string in
- * `chapter_drafts.prose` — there is no per-beat prose split. The judge
- * therefore receives the WHOLE chapter prose with the per-scene contract as
- * the narrow lens; applicability skips and dimension scoping keep the
- * question focused.
+ * production runtime persists approved chapter prose as a single string in
+ * `chapter_drafts.prose`, but beat-writer calls carry durable `scene_id`
+ * telemetry. When those writer-call rows exist, the judge receives the
+ * captured per-scene prose; otherwise it falls back to the whole chapter prose
+ * with the per-scene contract as the narrow lens.
  *
  * Persistence (when `--persist`): one `eval_briefs` row per (chapter, scene,
  * dimension) tuple keyed by `set_name='scene-semantic-review:<date>'`, one
@@ -76,7 +76,10 @@ interface ChapterRow {
   prose: string
   wordCount: number
   draftVersion: number
+  sceneProseBySceneId: Map<string, string>
 }
+
+type SceneSemanticProseSource = "scene_writer_call" | "chapter_draft"
 
 export interface SceneSemanticReplayTask {
   taskId: string
@@ -86,6 +89,7 @@ export interface SceneSemanticReplayTask {
   legacyBeatId?: string
   dimension: Dimension
   promptMode: PromptMode
+  proseSource: SceneSemanticProseSource
   excerpt: string
   obligationIds: string[]
   relevantCharacterIds: string[]
@@ -214,6 +218,7 @@ export function buildSceneSemanticReplayTasks(input: {
       const sceneId = scene.sceneId ?? scene.beatId ?? `ch${chapter.chapterNumber}-scene${sceneIndex + 1}`
       const legacyBeatId = scene.beatId
       const obligations = flattenObligations(scene)
+      const sceneProse = proseForScene({ chapter, scene, sceneIndex, sceneId })
 
       const worldFactCount = obligations.filter(o => o.worldFactId || o.sourceKind === "fact").length
       const characterCount = obligations.filter(o => o.characterId || o.sourceKind === "knowledge" || o.sourceKind === "state").length
@@ -248,7 +253,15 @@ export function buildSceneSemanticReplayTasks(input: {
           ...(legacyBeatId ? { legacyBeatId } : {}),
           dimension,
           promptMode: input.promptMode,
-          excerpt: renderSceneExcerpt({ chapter, sceneIndex, scene, obligations }),
+          proseSource: sceneProse.source,
+          excerpt: renderSceneExcerpt({
+            chapter,
+            sceneIndex,
+            scene,
+            obligations,
+            sceneProse: sceneProse.prose,
+            proseSource: sceneProse.source,
+          }),
           obligationIds,
           relevantCharacterIds: characterIds,
           relevantWorldFactIds: worldFactIds,
@@ -269,6 +282,8 @@ function renderSceneExcerpt(input: {
   sceneIndex: number
   scene: SceneBeat
   obligations: ReturnType<typeof flattenObligations>
+  sceneProse: string
+  proseSource: SceneSemanticProseSource
 }): string {
   const { chapter, sceneIndex, scene } = input
   const totalScenes = chapter.outline.scenes?.length ?? 0
@@ -313,9 +328,32 @@ function renderSceneExcerpt(input: {
       return `${refs}: ${o.text}${materiality}`
     })),
     "",
-    "CHAPTER PROSE (judge against this scene's contract — chapter is single string in production storage):",
-    chapter.prose,
+    input.proseSource === "scene_writer_call"
+      ? "SCENE PROSE (captured beat-writer response for this scene):"
+      : "CHAPTER PROSE (fallback; no per-scene writer call found, judge against this scene's contract):",
+    input.sceneProse,
   ].join("\n")
+}
+
+function proseForScene(input: {
+  chapter: ChapterRow
+  scene: SceneBeat
+  sceneIndex: number
+  sceneId: string
+}): { prose: string; source: SceneSemanticProseSource } {
+  const candidateKeys = [
+    input.sceneId,
+    input.scene.sceneId,
+    input.scene.beatId,
+    `index:${input.sceneIndex}`,
+  ].filter((key): key is string => typeof key === "string" && key.length > 0)
+  for (const key of candidateKeys) {
+    const prose = input.chapter.sceneProseBySceneId.get(key)
+    if (prose && prose.trim().length > 0) {
+      return { prose, source: "scene_writer_call" }
+    }
+  }
+  return { prose: input.chapter.prose, source: "chapter_draft" }
 }
 
 function worldFactIdForObligation(obligation: ReturnType<typeof flattenObligations>[number]): string | undefined {
@@ -452,6 +490,38 @@ async function loadChapterRows(novelId: string, chapterFilter: number[] | null):
     WHERE novel_id = ${novelId}
     ORDER BY chapter_number ASC
   ` as Array<{ chapter_number: number; outline_json: ChapterOutline }>
+  const writerRows = await db`
+    SELECT chapter, beat_index, scene_id, beat_id, response_content
+    FROM llm_calls
+    WHERE novel_id = ${novelId}
+      AND phase = 'drafting'
+      AND agent = 'beat-writer'
+      AND failed IS NOT TRUE
+      AND response_content IS NOT NULL
+    ORDER BY timestamp DESC
+  ` as Array<{
+    chapter: number | null
+    beat_index: number | null
+    scene_id: string | null
+    beat_id: string | null
+    response_content: string | null
+  }>
+  const sceneProseByChapter = new Map<number, Map<string, string>>()
+  for (const row of writerRows) {
+    if (typeof row.chapter !== "number") continue
+    const prose = row.response_content?.trim()
+    if (!prose) continue
+    const byKey = sceneProseByChapter.get(row.chapter) ?? new Map<string, string>()
+    sceneProseByChapter.set(row.chapter, byKey)
+    const keys = [
+      row.scene_id,
+      row.beat_id,
+      typeof row.beat_index === "number" ? `index:${row.beat_index}` : null,
+    ].filter((key): key is string => typeof key === "string" && key.length > 0)
+    for (const key of keys) {
+      if (!byKey.has(key)) byKey.set(key, prose)
+    }
+  }
 
   const filterSet = chapterFilter && chapterFilter.length > 0 ? new Set(chapterFilter) : null
   const out: ChapterRow[] = []
@@ -465,6 +535,7 @@ async function loadChapterRows(novelId: string, chapterFilter: number[] | null):
       prose: draft.prose,
       wordCount: draft.wordCount,
       draftVersion: draft.version,
+      sceneProseBySceneId: sceneProseByChapter.get(row.chapter_number) ?? new Map(),
     })
   }
   return out
@@ -482,6 +553,7 @@ export async function persistSceneSemanticReplayReport(report: SceneSemanticRepl
       ...(task.legacyBeatId ? { legacyBeatId: task.legacyBeatId } : {}),
       dimension: task.dimension,
       promptMode: task.promptMode,
+      proseSource: task.proseSource,
       obligationIds: task.obligationIds,
       relevantCharacterIds: task.relevantCharacterIds,
       relevantWorldFactIds: task.relevantWorldFactIds,

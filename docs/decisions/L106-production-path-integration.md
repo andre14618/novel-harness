@@ -97,10 +97,14 @@ blockers=0, prose-semantic rows=8 with 0 lows/0 errors, writer-context brief
 telemetry=12/12, scene contracts=12/12. This strengthens the production brief
 signal, but it does not count as live `allow-entities` branch evidence because
 the original halluc-ungrounded blocker did not reproduce on that attempt.
-Scene-semantic replay on the same artifact found sceneDramaturgy clean
-(10/10 SCENE-3) but endpointLanding still weak (mean 2.20; four lows, all
-chapter 1), so the next production-path lever should be upstream endpoint/turn
-quality rather than deterministic prose compaction.
+Initial scene-semantic replay on the same artifact used whole-chapter prose as
+the judge excerpt and found sceneDramaturgy clean (10/10 SCENE-3) but
+endpointLanding weak (mean 2.20; four lows, all chapter 1). Corrected replay
+now prefers captured per-scene `beat-writer` calls via `llm_calls.scene_id`;
+on `p1-allow-brief-1778447459` that reduced endpointLanding lows to 1/10 while
+sceneDramaturgy remained 10/10 clean. The remaining lever is upstream
+endpoint/turn quality on the actual low scene, not deterministic prose
+compaction.
 
 The production drafting evidence harness now accepts opt-in
 `--scene-semantic-review` telemetry. It calls the production replay evaluator

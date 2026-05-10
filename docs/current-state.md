@@ -94,7 +94,8 @@ Use deeper docs only when linked by the context pack or needed by code.
   `diagnostics:writer-context` to audit context-surface coverage after runs.
   Fixed-plan drafting evidence can add `--scene-semantic-review` to capture
   endpointLanding/sceneDramaturgy replay artifacts and readiness candidates
-  per arm.
+  per arm; replay prefers captured per-scene writer calls before falling back
+  to whole-chapter prose.
 - Production drafting defaults to exact-ID character context capsules
   (`thread-character-context-v1`). See L094.
 - Native chapter contracts and story-turn planning are the production planning
@@ -117,10 +118,11 @@ lows; P1 with `scenePlanContractV1=true` cut a paired writer-only run from
 baseline 2.45x / contract-render-only 2.41x to 1.37x with scene contracts
 10/10 and 0/8 lows. A full-path P1 brief smoke later completed both chapters
 at 1.39x and 1.38x with 0/8 prose-semantic lows, plan checks passed, no
-checker blockers, and writer-brief telemetry 12/12. Scene-semantic replay found
-sceneDramaturgy clean (10/10 SCENE-3) but endpointLanding still weak
-(4/10 lows, all ch1), so promotion remains blocked on upstream endpoint/turn
-quality rather than deterministic prose compaction. The new Plan-Assist
+checker blockers, and writer-brief telemetry 12/12. Corrected per-scene-prose
+scene-semantic replay found sceneDramaturgy clean (10/10 SCENE-3) and reduced
+endpointLanding lows to 1/10, so promotion remains blocked on the remaining
+upstream endpoint/turn weakness rather than deterministic prose compaction.
+The new Plan-Assist
 `allow-entities` action is implemented/tested but still needs live gate replay
 evidence before it counts as exercised. See L103-L106.
 

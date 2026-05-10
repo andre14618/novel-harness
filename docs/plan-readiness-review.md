@@ -181,6 +181,9 @@ bun run diagnostics:scene-semantic-readiness -- \
 automatically. The adapter captures low semantic rows as manual scene-plan
 readiness candidates and preserves exact scene, obligation, character,
 world-fact, scene-turn, thread, promise, payoff, and source IDs when present.
+Replay judges captured per-scene `beat-writer` responses via
+`llm_calls.scene_id` when available, falling back to whole-chapter prose only
+when scene-level prose telemetry is missing.
 When `scene-semantic-review.ts --persist` is used, the same aggregate is also
 imported as open Plan Readiness items by default through the shared
 target-hash/staleness importer. Pass `--no-readiness-import` to keep a
