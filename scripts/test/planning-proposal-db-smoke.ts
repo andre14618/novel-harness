@@ -30,6 +30,8 @@ type SmokeCase = {
 
 const CASE_TIMEOUT_MS = 60_000
 const CASE_RETRIES = 1
+const FIRST_SCENE_ID = "ch-001-ledger-test-scene-001-istra-proves-ledger-forged-chooses"
+const SECOND_SCENE_ID = "ch-001-ledger-test-scene-002-aldrics-answer"
 
 const cases: SmokeCase[] = [
   {
@@ -130,11 +132,10 @@ const cases: SmokeCase[] = [
   {
     name: "scene-plan field replace apply lineage",
     run: async (novelId) => {
-      const sceneId = "ch-001-ledger-test-beat-001-ledger-breaks"
       const created = await expectJson(await invoke("POST", `/api/novel/${novelId}/planning-proposals`, {
         target: {
           kind: "scene_plan",
-          ref: sceneId,
+          ref: FIRST_SCENE_ID,
           fieldPath: "description",
         },
         previousValue: "Istra proves the ledger is forged and chooses to protect Wren.",
@@ -154,11 +155,11 @@ const cases: SmokeCase[] = [
 
       const persisted = await getChapterOutline(novelId, 1)
       assert.equal(persisted.scenes[0].description, "Istra proves the forged ledger in public and decides whether to protect Wren.")
-      const lineage = await listPlanningMutationLineageForRefs(novelId, [sceneId])
+      const lineage = await listPlanningMutationLineageForRefs(novelId, [FIRST_SCENE_ID])
       assert.ok(lineage.some((row) =>
         row.targetKind === "scene_plan" &&
-        row.previousRef === sceneId &&
-        row.nextRef === sceneId &&
+        row.previousRef === FIRST_SCENE_ID &&
+        row.nextRef === FIRST_SCENE_ID &&
         row.fieldPath === "description"
       ))
     },
@@ -259,13 +260,12 @@ const cases: SmokeCase[] = [
   {
     name: "beat reorder apply structural lineage",
     run: async (novelId) => {
-      const firstBeatId = "ch-001-ledger-test-beat-001-ledger-breaks"
-      const secondBeatId = "ch-001-ledger-test-beat-002-aldrics-answer"
       await saveChapterOutline(novelId, outline({
         scenes: [
           beat(),
           beat({
-            beatId: secondBeatId,
+            sceneId: SECOND_SCENE_ID,
+            beatId: "ch-001-ledger-test-beat-002-aldrics-answer",
             description: "Aldric answers Istra's accusation with a false mercy claim.",
             obligations: emptyObligations(),
           }),
@@ -279,7 +279,7 @@ const cases: SmokeCase[] = [
           ref: "ch-001-ledger-test",
           fieldPath: "scenes",
         },
-        proposedValue: [secondBeatId, firstBeatId],
+        proposedValue: [SECOND_SCENE_ID, FIRST_SCENE_ID],
         rationale: "Open with Aldric's claim, then prove the ledger break.",
       }))
       assert.equal(created.status, 200)
@@ -294,13 +294,13 @@ const cases: SmokeCase[] = [
       assert.equal(resolved.body.ok, true)
 
       const persisted = await getChapterOutline(novelId, 1)
-      assert.deepEqual(persisted.scenes.map((scene) => scene.beatId), [secondBeatId, firstBeatId])
-      const lineage = await listPlanningMutationLineageForRefs(novelId, [firstBeatId, secondBeatId])
+      assert.deepEqual(persisted.scenes.map((scene) => scene.sceneId), [SECOND_SCENE_ID, FIRST_SCENE_ID])
+      const lineage = await listPlanningMutationLineageForRefs(novelId, [FIRST_SCENE_ID, SECOND_SCENE_ID])
       const structural = lineage.filter((row) => row.metadata.structuralOperation === "beat_reorder")
       assert.equal(structural.length, 2)
       assert.ok(structural.some((row) =>
-        row.previousRef === firstBeatId &&
-        row.nextRef === firstBeatId &&
+        row.previousRef === FIRST_SCENE_ID &&
+        row.nextRef === FIRST_SCENE_ID &&
         row.fieldPath === "scenes"
       ))
     },
@@ -308,17 +308,17 @@ const cases: SmokeCase[] = [
   {
     name: "beat replace apply structural lineage",
     run: async (novelId) => {
-      const oldBeatId = "ch-001-ledger-test-beat-001-ledger-breaks"
-      const newBeatId = "ch-001-ledger-test-beat-001-public-proof"
+      const oldSceneId = FIRST_SCENE_ID
+      const newSceneId = "ch-001-ledger-test-scene-001-public-proof"
       const created = await expectJson(await invoke("POST", `/api/novel/${novelId}/planning-proposals`, {
         action: "beat_replace",
         target: {
-          kind: "beat_plan",
-          ref: oldBeatId,
+          kind: "scene_plan",
+          ref: oldSceneId,
           fieldPath: "self",
         },
         proposedValue: beat({
-          beatId: newBeatId,
+          sceneId: newSceneId,
           description: "Istra proves the forged ledger in front of the bell court.",
         }),
         rationale: "Replace the private proof beat with a public turn.",
@@ -335,12 +335,12 @@ const cases: SmokeCase[] = [
       assert.equal(resolved.body.ok, true)
 
       const persisted = await getChapterOutline(novelId, 1)
-      assert.equal(persisted.scenes[0].beatId, newBeatId)
-      const lineage = await listPlanningMutationLineageForRefs(novelId, [oldBeatId, newBeatId])
+      assert.equal(persisted.scenes[0].sceneId, newSceneId)
+      const lineage = await listPlanningMutationLineageForRefs(novelId, [oldSceneId, newSceneId])
       assert.ok(lineage.some((row) =>
         row.metadata.structuralOperation === "beat_replace" &&
-        row.previousRef === oldBeatId &&
-        row.nextRef === newBeatId &&
+        row.previousRef === oldSceneId &&
+        row.nextRef === newSceneId &&
         row.fieldPath === "scenes"
       ))
     },
@@ -348,7 +348,6 @@ const cases: SmokeCase[] = [
   {
     name: "obligation reorder apply structural lineage",
     run: async (novelId) => {
-      const beatId = "ch-001-ledger-test-beat-001-ledger-breaks"
       await saveChapterOutline(novelId, outline({
         scenes: [
           beat({
@@ -366,8 +365,8 @@ const cases: SmokeCase[] = [
       const created = await expectJson(await invoke("POST", `/api/novel/${novelId}/planning-proposals`, {
         action: "beat_obligation_reorder",
         target: {
-          kind: "beat_plan",
-          ref: beatId,
+          kind: "scene_plan",
+          ref: FIRST_SCENE_ID,
           fieldPath: "obligations",
         },
         proposedValue: {
@@ -695,6 +694,7 @@ function beat(overrides: Partial<SceneBeat> = {}): SceneBeat {
     description: "Istra proves the ledger is forged and chooses to protect Wren.",
     characters: ["Istra"],
     kind: "action",
+    sceneId: FIRST_SCENE_ID,
     beatId: "ch-001-ledger-test-beat-001-ledger-breaks",
     requiredPayoffs: [],
     obligations: {

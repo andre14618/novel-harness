@@ -177,7 +177,7 @@ describe.skipIf(!reachable)("handlePlanningProposalRoute (DB-backed)", () => {
     await db`DELETE FROM novels WHERE id = ${novelId}`
   })
 
-  test("creates and applies a beat requirement removal planning edit", async () => {
+  test("creates and applies a scene requirement removal planning edit", async () => {
     const created = await expectJson(await invoke(
       "POST",
       `/api/novel/${novelId}/planning-proposals`,
@@ -185,7 +185,7 @@ describe.skipIf(!reachable)("handlePlanningProposalRoute (DB-backed)", () => {
         action: "beat_requirement_remove",
         target: {
           kind: "scene_plan",
-          ref: "beat-route-1",
+          ref: "scene-route-1",
           fieldPath: "requirements",
         },
         proposedValue: {
@@ -224,7 +224,7 @@ describe.skipIf(!reachable)("handlePlanningProposalRoute (DB-backed)", () => {
         action: "beat_requirement_remove",
         target: {
           kind: "scene_plan",
-          ref: "beat-route-1",
+          ref: "scene-route-1",
           fieldPath: "requirements",
         },
         proposedValue: {
@@ -243,7 +243,7 @@ describe.skipIf(!reachable)("handlePlanningProposalRoute (DB-backed)", () => {
         action: "beat_requirement_remove",
         target: {
           kind: "scene_plan",
-          ref: "beat-route-1",
+          ref: "scene-route-1",
           fieldPath: "requirements",
         },
         proposedValue: {
@@ -276,6 +276,7 @@ function outline(): ChapterOutline {
 
 function beat(): SceneBeat {
   return {
+    sceneId: "scene-route-1",
     beatId: "beat-route-1",
     kind: "dialogue",
     description: "Istra faces Vey but the oath road does not change the choice.",

@@ -30,17 +30,21 @@ export interface StructuralPlanningMutationLineageDraft {
   }
 }
 
-interface BeatSlot {
-  beatId: string
-  beat: SceneBeatInOutline
+type SceneRefKind = "sceneId" | "beatId"
+
+interface SceneSlot {
+  sceneRef: string
+  sceneRefKind: SceneRefKind
+  scene: SceneBeatInOutline
   index: number
 }
 
 interface ObligationSlot {
   obligationId: string
   obligation: Record<string, unknown>
-  beatId: string
-  beatIndex: number
+  sceneRef: string
+  sceneRefKind: SceneRefKind
+  sceneIndex: number
   listKey: ObligationListKey
   itemIndex: number
 }
@@ -49,28 +53,28 @@ export function collectStructuralPlanningMutationLineage(
   previousOutline: ChapterOutline,
   nextOutline: ChapterOutline,
 ): StructuralPlanningMutationLineageDraft[] {
-  const previousBeats = collectBeatSlots(previousOutline)
-  const nextBeats = collectBeatSlots(nextOutline)
-  const previousBeatIds = new Set(previousBeats.map((slot) => slot.beatId))
-  const nextBeatIds = new Set(nextBeats.map((slot) => slot.beatId))
-  const nextBeatById = new Map(nextBeats.map((slot) => [slot.beatId, slot]))
-  const previousBeatByIndex = new Map(previousBeats.map((slot) => [slot.index, slot]))
-  const nextBeatByIndex = new Map(nextBeats.map((slot) => [slot.index, slot]))
+  const previousScenes = collectSceneSlots(previousOutline)
+  const nextScenes = collectSceneSlots(nextOutline)
+  const previousSceneRefs = new Set(previousScenes.map((slot) => slot.sceneRef))
+  const nextSceneRefs = new Set(nextScenes.map((slot) => slot.sceneRef))
+  const nextSceneByRef = new Map(nextScenes.map((slot) => [slot.sceneRef, slot]))
+  const previousSceneByIndex = new Map(previousScenes.map((slot) => [slot.index, slot]))
+  const nextSceneByIndex = new Map(nextScenes.map((slot) => [slot.index, slot]))
   const drafts: StructuralPlanningMutationLineageDraft[] = []
 
-  for (const previous of previousBeats) {
-    const next = nextBeatById.get(previous.beatId)
+  for (const previous of previousScenes) {
+    const next = nextSceneByRef.get(previous.sceneRef)
     if (!next || next.index === previous.index) continue
-    drafts.push(buildBeatReorderDraft(previous, next, previousOutline, nextOutline))
+    drafts.push(buildSceneReorderDraft(previous, next, previousOutline, nextOutline))
   }
 
-  const maxBeatIndex = Math.max(previousOutline.scenes?.length ?? 0, nextOutline.scenes?.length ?? 0)
-  for (let index = 0; index < maxBeatIndex; index++) {
-    const previous = previousBeatByIndex.get(index)
-    const next = nextBeatByIndex.get(index)
-    if (!previous || !next || previous.beatId === next.beatId) continue
-    if (nextBeatIds.has(previous.beatId) || previousBeatIds.has(next.beatId)) continue
-    drafts.push(buildBeatReplaceDraft(previous, next, previousOutline, nextOutline))
+  const maxSceneIndex = Math.max(previousOutline.scenes?.length ?? 0, nextOutline.scenes?.length ?? 0)
+  for (let index = 0; index < maxSceneIndex; index++) {
+    const previous = previousSceneByIndex.get(index)
+    const next = nextSceneByIndex.get(index)
+    if (!previous || !next || previous.sceneRef === next.sceneRef) continue
+    if (nextSceneRefs.has(previous.sceneRef) || previousSceneRefs.has(next.sceneRef)) continue
+    drafts.push(buildSceneReplaceDraft(previous, next, previousOutline, nextOutline))
   }
 
   drafts.push(...collectObligationStructuralLineage(previousOutline, nextOutline))
@@ -106,27 +110,29 @@ function collectObligationStructuralLineage(
   return drafts
 }
 
-function buildBeatReorderDraft(
-  previous: BeatSlot,
-  next: BeatSlot,
+function buildSceneReorderDraft(
+  previous: SceneSlot,
+  next: SceneSlot,
   previousOutline: ChapterOutline,
   nextOutline: ChapterOutline,
 ): StructuralPlanningMutationLineageDraft {
   return {
     targetKind: "scene_plan",
-    previousRef: previous.beatId,
-    nextRef: next.beatId,
+    previousRef: previous.sceneRef,
+    nextRef: next.sceneRef,
     fieldPath: "scenes",
     previousVersion: structuralLocationVersion({
       targetKind: "scene_plan",
-      ref: previous.beatId,
+      ref: previous.sceneRef,
+      ...sceneRefLocation(previous),
       chapterId: previousOutline.chapterId,
       chapterNumber: previousOutline.chapterNumber,
       index: previous.index,
     }),
     nextVersion: structuralLocationVersion({
       targetKind: "scene_plan",
-      ref: next.beatId,
+      ref: next.sceneRef,
+      ...sceneRefLocation(next),
       chapterId: nextOutline.chapterId,
       chapterNumber: nextOutline.chapterNumber,
       index: next.index,
@@ -137,31 +143,43 @@ function buildBeatReorderDraft(
       chapterNumber: nextOutline.chapterNumber ?? previousOutline.chapterNumber,
       previousIndex: previous.index,
       nextIndex: next.index,
+      previousSceneRef: previous.sceneRef,
+      nextSceneRef: next.sceneRef,
+      previousSceneRefKind: previous.sceneRefKind,
+      nextSceneRefKind: next.sceneRefKind,
+      ...legacyBeatIdMetadata(previous, "previous"),
+      ...legacyBeatIdMetadata(next, "next"),
       exactIdMatch: true,
       versionShape: "structural_location_v1",
     }) as StructuralPlanningMutationLineageDraft["metadata"],
   }
 }
 
-function buildBeatReplaceDraft(
-  previous: BeatSlot,
-  next: BeatSlot,
+function buildSceneReplaceDraft(
+  previous: SceneSlot,
+  next: SceneSlot,
   previousOutline: ChapterOutline,
   nextOutline: ChapterOutline,
 ): StructuralPlanningMutationLineageDraft {
   return {
     targetKind: "scene_plan",
-    previousRef: previous.beatId,
-    nextRef: next.beatId,
+    previousRef: previous.sceneRef,
+    nextRef: next.sceneRef,
     fieldPath: "scenes",
-    previousVersion: stableHash(previous.beat),
-    nextVersion: stableHash(next.beat),
+    previousVersion: stableHash(previous.scene),
+    nextVersion: stableHash(next.scene),
     metadata: compactRecord({
       structuralOperation: "beat_replace",
       chapterId: nextOutline.chapterId ?? previousOutline.chapterId,
       chapterNumber: nextOutline.chapterNumber ?? previousOutline.chapterNumber,
       previousIndex: previous.index,
       nextIndex: next.index,
+      previousSceneRef: previous.sceneRef,
+      nextSceneRef: next.sceneRef,
+      previousSceneRefKind: previous.sceneRefKind,
+      nextSceneRefKind: next.sceneRefKind,
+      ...legacyBeatIdMetadata(previous, "previous"),
+      ...legacyBeatIdMetadata(next, "next"),
       supersessionBasis: "same_index_exact_id_absence",
       versionShape: "artifact_hash_v1",
     }) as StructuralPlanningMutationLineageDraft["metadata"],
@@ -185,14 +203,14 @@ function buildObligationReorderDraft(
     previousVersion: structuralLocationVersion({
       targetKind: "beat_obligation",
       ref: previous.obligationId,
-      beatId: previous.beatId,
+      ...obligationSceneRefLocation(previous),
       listKey: previous.listKey,
       itemIndex: previous.itemIndex,
     }),
     nextVersion: structuralLocationVersion({
       targetKind: "beat_obligation",
       ref: next.obligationId,
-      beatId: next.beatId,
+      ...obligationSceneRefLocation(next),
       listKey: next.listKey,
       itemIndex: next.itemIndex,
     }),
@@ -200,10 +218,14 @@ function buildObligationReorderDraft(
       structuralOperation: "obligation_reorder",
       chapterId: nextOutline.chapterId ?? previousOutline.chapterId,
       chapterNumber: nextOutline.chapterNumber ?? previousOutline.chapterNumber,
-      previousBeatId: previous.beatId,
-      nextBeatId: next.beatId,
-      previousBeatIndex: previous.beatIndex,
-      nextBeatIndex: next.beatIndex,
+      previousSceneRef: previous.sceneRef,
+      nextSceneRef: next.sceneRef,
+      previousSceneRefKind: previous.sceneRefKind,
+      nextSceneRefKind: next.sceneRefKind,
+      previousSceneIndex: previous.sceneIndex,
+      nextSceneIndex: next.sceneIndex,
+      ...legacyObligationBeatIdMetadata(previous, "previous"),
+      ...legacyObligationBeatIdMetadata(next, "next"),
       previousListKey: previous.listKey,
       nextListKey: next.listKey,
       previousIndex: previous.itemIndex,
@@ -231,8 +253,10 @@ function buildObligationReplaceDraft(
       structuralOperation: "obligation_replace",
       chapterId: nextOutline.chapterId ?? previousOutline.chapterId,
       chapterNumber: nextOutline.chapterNumber ?? previousOutline.chapterNumber,
-      beatId: next.beatId,
-      beatIndex: next.beatIndex,
+      sceneRef: next.sceneRef,
+      sceneRefKind: next.sceneRefKind,
+      sceneIndex: next.sceneIndex,
+      ...legacyObligationBeatIdMetadata(next),
       listKey: next.listKey,
       previousIndex: previous.itemIndex,
       nextIndex: next.itemIndex,
@@ -242,14 +266,14 @@ function buildObligationReplaceDraft(
   }
 }
 
-function collectBeatSlots(outline: ChapterOutline): BeatSlot[] {
-  const slots: BeatSlot[] = []
+function collectSceneSlots(outline: ChapterOutline): SceneSlot[] {
+  const slots: SceneSlot[] = []
   const scenes = outline.scenes ?? []
   for (let index = 0; index < scenes.length; index++) {
-    const beat = scenes[index]
-    const beatId = stableId(beat.beatId)
-    if (!beatId) continue
-    slots.push({ beatId, beat, index })
+    const scene = scenes[index]
+    const ref = sceneEntryRef(scene)
+    if (!ref) continue
+    slots.push({ sceneRef: ref.value, sceneRefKind: ref.kind, scene, index })
   }
   return slots
 }
@@ -257,17 +281,25 @@ function collectBeatSlots(outline: ChapterOutline): BeatSlot[] {
 function collectObligationSlots(outline: ChapterOutline): ObligationSlot[] {
   const slots: ObligationSlot[] = []
   const scenes = outline.scenes ?? []
-  for (let beatIndex = 0; beatIndex < scenes.length; beatIndex++) {
-    const beat = scenes[beatIndex]
-    const beatId = stableId(beat.beatId)
-    if (!beatId) continue
+  for (let sceneIndex = 0; sceneIndex < scenes.length; sceneIndex++) {
+    const beat = scenes[sceneIndex]
+    const ref = sceneEntryRef(beat)
+    if (!ref) continue
     for (const listKey of OBLIGATION_LIST_KEYS) {
       const list = obligationList(beat, listKey)
       for (let itemIndex = 0; itemIndex < list.length; itemIndex++) {
         const obligation = list[itemIndex]
         const obligationId = stableId(obligation.obligationId)
         if (!obligationId) continue
-        slots.push({ obligationId, obligation, beatId, beatIndex, listKey, itemIndex })
+        slots.push({
+          obligationId,
+          obligation,
+          sceneRef: ref.value,
+          sceneRefKind: ref.kind,
+          sceneIndex,
+          listKey,
+          itemIndex,
+        })
       }
     }
   }
@@ -287,11 +319,11 @@ function obligationList(
 }
 
 function obligationStructuralSlotKey(slot: ObligationSlot): string {
-  return `${slot.beatId}:${slot.listKey}:${slot.itemIndex}`
+  return `${slot.sceneRef}:${slot.listKey}:${slot.itemIndex}`
 }
 
 function obligationsShareStructuralSlot(a: ObligationSlot, b: ObligationSlot): boolean {
-  return a.beatId === b.beatId && a.listKey === b.listKey && a.itemIndex === b.itemIndex
+  return a.sceneRef === b.sceneRef && a.listKey === b.listKey && a.itemIndex === b.itemIndex
 }
 
 function structuralLocationVersion(location: Record<string, unknown>): string {
@@ -303,6 +335,47 @@ function structuralLocationVersion(location: Record<string, unknown>): string {
 
 function stableId(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value : null
+}
+
+function sceneEntryRef(scene: SceneBeatInOutline): { value: string; kind: SceneRefKind } | null {
+  const sceneId = stableId((scene as { sceneId?: unknown }).sceneId)
+  if (sceneId) return { value: sceneId, kind: "sceneId" }
+  const beatId = stableId((scene as { beatId?: unknown }).beatId)
+  if (beatId) return { value: beatId, kind: "beatId" }
+  return null
+}
+
+function sceneRefLocation(slot: SceneSlot): Record<string, unknown> {
+  return slot.sceneRefKind === "sceneId"
+    ? { sceneId: slot.sceneRef }
+    : { beatId: slot.sceneRef }
+}
+
+function obligationSceneRefLocation(slot: ObligationSlot): Record<string, unknown> {
+  return slot.sceneRefKind === "sceneId"
+    ? { sceneId: slot.sceneRef }
+    : { beatId: slot.sceneRef }
+}
+
+function legacyBeatIdMetadata(
+  slot: SceneSlot,
+  prefix?: "previous" | "next",
+): Record<string, unknown> {
+  if (slot.sceneRefKind !== "beatId") return {}
+  const key = prefix === undefined
+    ? "beatId"
+    : `${prefix}BeatId`
+  return { [key]: slot.sceneRef }
+}
+
+function legacyObligationBeatIdMetadata(
+  slot: ObligationSlot,
+  prefix?: "previous" | "next",
+): Record<string, unknown> {
+  if (slot.sceneRefKind !== "beatId") return {}
+  const idKey = prefix === undefined ? "beatId" : `${prefix}BeatId`
+  const indexKey = prefix === undefined ? "beatIndex" : `${prefix}BeatIndex`
+  return { [idKey]: slot.sceneRef, [indexKey]: slot.sceneIndex }
 }
 
 function compactRecord(record: Record<string, unknown>): Record<string, unknown> {

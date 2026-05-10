@@ -394,8 +394,13 @@ describe("planning edit proposals", () => {
   })
 
   test("structural action targets and proposed values validate deterministically", () => {
-    // Structural action contracts are intentionally still exercised with
-    // `beat_plan` to match existing route/action compatibility.
+    // Scene-first targets are canonical, while `beat_plan` remains a legacy alias
+    // for older route/action payloads.
+    expect(validatePlanningEditActionTarget("beat_replace", {
+      kind: "scene_plan",
+      ref: "scene-a",
+      fieldPath: "self",
+    })).toBeNull()
     expect(validatePlanningEditActionTarget("beat_replace", {
       kind: "beat_plan",
       ref: "beat-a",
@@ -407,6 +412,15 @@ describe("planning edit proposals", () => {
       fieldPath: "description",
     })).toMatch(/fieldPath=self/)
 
+    expect(validatePlanningEditProposedValue("beat_replace", {
+      kind: "scene_plan",
+      ref: "scene-a",
+      fieldPath: "self",
+    }, {
+      sceneId: "scene-b",
+      description: "Move the accusation earlier.",
+      kind: "dialogue",
+    })).toBeNull()
     expect(validatePlanningEditProposedValue("beat_replace", {
       kind: "beat_plan",
       ref: "beat-a",
@@ -429,6 +443,11 @@ describe("planning edit proposals", () => {
       ref: "ch-001",
       fieldPath: "scenes",
     }, ["beat-a", "beat-a"])).toMatch(/duplicate/)
+    expect(validatePlanningEditActionTarget("beat_obligation_reorder", {
+      kind: "scene_plan",
+      ref: "scene-a",
+      fieldPath: "obligations",
+    })).toBeNull()
     expect(validatePlanningEditProposedValue("beat_obligation_reorder", {
       kind: "beat_plan",
       ref: "beat-a",

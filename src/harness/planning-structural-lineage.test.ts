@@ -36,6 +36,35 @@ describe("collectStructuralPlanningMutationLineage", () => {
     expect(drafts.every((draft) => draft.targetKind === "scene_plan")).toBe(true)
   })
 
+  test("prefers sceneId over beatId for scene-level structural lineage", () => {
+    const previous = outline([
+      scene("scene-a", "beat-a", "Open the vault", [obligation("obl-a")]),
+      scene("scene-b", "beat-b", "Inspect the map", [obligation("obl-b")]),
+    ])
+    const next = outline([
+      scene("scene-b", "beat-b", "Inspect the map", [obligation("obl-b")]),
+      scene("scene-a", "beat-a", "Open the vault", [obligation("obl-a")]),
+    ])
+
+    const drafts = collectStructuralPlanningMutationLineage(previous, next)
+
+    expect(drafts).toHaveLength(2)
+    expect(drafts[0]).toMatchObject({
+      targetKind: "scene_plan",
+      previousRef: "scene-a",
+      nextRef: "scene-a",
+      metadata: {
+        structuralOperation: "beat_reorder",
+        previousSceneRef: "scene-a",
+        nextSceneRef: "scene-a",
+        previousSceneRefKind: "sceneId",
+        nextSceneRefKind: "sceneId",
+      },
+    })
+    expect(drafts[0]!.metadata.previousBeatId).toBeUndefined()
+    expect(drafts[0]!.metadata.nextBeatId).toBeUndefined()
+  })
+
   test("records beat replacement only when old and new ids supersede the same slot", () => {
     const previous = outline([
       beat("beat-a", "Open the vault"),
@@ -212,6 +241,18 @@ function beat(
     miceActive: [],
     miceOpens: [],
     miceCloses: [],
+  }
+}
+
+function scene(
+  sceneId: string,
+  beatId: string,
+  description: string,
+  mustEstablish: Array<ReturnType<typeof obligation>> = [],
+): NonNullable<ChapterOutline["scenes"]>[number] {
+  return {
+    ...beat(beatId, description, mustEstablish),
+    sceneId,
   }
 }
 

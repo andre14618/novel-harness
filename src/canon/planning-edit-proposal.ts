@@ -176,9 +176,10 @@ export const planningEditTargetSchema = z.discriminatedUnion("kind", [
 ])
 
 const stableIdSchema = z.string().regex(STABLE_ID_RE, "value must match stable-ID kebab-case shape")
+const sceneOrBeatPlanKindSchema = z.enum(["scene_plan", "beat_plan"])
 
 export const beatReplacePlanningEditTargetSchema = z.object({
-  kind: z.literal("beat_plan"),
+  kind: sceneOrBeatPlanKindSchema,
   ref: z.string().min(1),
   fieldPath: z.literal("self"),
 })
@@ -196,13 +197,13 @@ export const beatObligationReplacePlanningEditTargetSchema = z.object({
 })
 
 export const beatObligationReorderPlanningEditTargetSchema = z.object({
-  kind: z.literal("beat_plan"),
+  kind: sceneOrBeatPlanKindSchema,
   ref: z.string().min(1),
   fieldPath: z.literal("obligations"),
 })
 
 export const beatRequirementRemovePlanningEditTargetSchema = z.object({
-  kind: z.enum(["scene_plan", "beat_plan"]),
+  kind: sceneOrBeatPlanKindSchema,
   ref: z.string().min(1),
   fieldPath: z.literal("requirements"),
 })
@@ -481,7 +482,7 @@ export function validatePlanningEditActionTarget(
   if (action === "beat_replace") {
     return beatReplacePlanningEditTargetSchema.safeParse(target).success
       ? null
-      : "beat_replace requires target kind=beat_plan fieldPath=self"
+      : "beat_replace requires target kind=scene_plan or beat_plan fieldPath=self"
   }
   if (action === "beat_reorder") {
     return beatReorderPlanningEditTargetSchema.safeParse(target).success
@@ -496,7 +497,7 @@ export function validatePlanningEditActionTarget(
   if (action === "beat_obligation_reorder") {
     return beatObligationReorderPlanningEditTargetSchema.safeParse(target).success
       ? null
-      : "beat_obligation_reorder requires target kind=beat_plan fieldPath=obligations"
+      : "beat_obligation_reorder requires target kind=scene_plan or beat_plan fieldPath=obligations"
   }
   return beatRequirementRemovePlanningEditTargetSchema.safeParse(target).success
     ? null
@@ -525,10 +526,22 @@ export function validatePlanningEditProposedValue(
 function validateBeatReplacementValue(targetRef: string, value: unknown): string | null {
   const record = objectRecord(value, "beat_replace proposedValue")
   if (typeof record === "string") return record
-  const beatIdError = validateStableIdField("beatId", record.beatId)
-  if (beatIdError) return beatIdError
-  if (record.beatId === targetRef) {
-    return "beat_replace proposedValue.beatId must differ from the target beat ref"
+  const sceneId = typeof record.sceneId === "string" ? record.sceneId : undefined
+  const beatId = typeof record.beatId === "string" ? record.beatId : undefined
+  const proposedRef = sceneId ?? beatId
+  if (proposedRef === undefined) {
+    return "beat_replace proposedValue.sceneId or beatId must match stable-ID kebab-case shape"
+  }
+  if (sceneId !== undefined) {
+    const sceneIdError = validateStableIdField("sceneId", sceneId)
+    if (sceneIdError) return sceneIdError
+  }
+  if (beatId !== undefined) {
+    const beatIdError = validateStableIdField("beatId", beatId)
+    if (beatIdError) return beatIdError
+  }
+  if (proposedRef === targetRef) {
+    return "beat_replace proposedValue ref must differ from the target ref"
   }
   if (typeof record.description !== "string" || record.description.trim().length === 0) {
     return "beat_replace proposedValue.description must be a non-empty string"
