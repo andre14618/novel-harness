@@ -46,6 +46,13 @@ export interface MechanicalQuoteIntegrityRepairResult {
   fixed: number
 }
 
+export interface MechanicalDuplicateIntegrityRepairResult {
+  prose: string
+  fixed: number
+  duplicateParagraphs: number
+  duplicateSentences: number
+}
+
 export function validateLintFixIntegrity(original: string, fixed: string): LintFixIntegrityResult {
   const issues: LintFixIntegrityIssue[] = []
 
@@ -120,6 +127,116 @@ function repairMechanicalQuoteParagraph(paragraph: string): { text: string; fixe
   if (afterIssues.length >= beforeIssues.length) return { text: paragraph, fixed: 0 }
 
   return { text: candidate, fixed }
+}
+
+export function repairMechanicalDuplicateIntegrity(text: string): MechanicalDuplicateIntegrityRepairResult {
+  const paragraphRepair = removeAdjacentDuplicateParagraphs(text)
+  const sentenceRepair = removeAdjacentDuplicateSentences(paragraphRepair.text)
+  const fixed = paragraphRepair.fixed + sentenceRepair.fixed
+  if (fixed === 0) {
+    return { prose: text, fixed: 0, duplicateParagraphs: 0, duplicateSentences: 0 }
+  }
+
+  if (!duplicateRepairImproves(text, sentenceRepair.text)) {
+    return { prose: text, fixed: 0, duplicateParagraphs: 0, duplicateSentences: 0 }
+  }
+
+  return {
+    prose: sentenceRepair.text,
+    fixed,
+    duplicateParagraphs: paragraphRepair.fixed,
+    duplicateSentences: sentenceRepair.fixed,
+  }
+}
+
+function removeAdjacentDuplicateParagraphs(text: string): { text: string; fixed: number } {
+  const paragraphs: Array<{ separatorBefore: string; text: string }> = []
+  const splitRe = /\n{2,}/g
+  let lastEnd = 0
+  let separatorBefore = ""
+
+  for (const match of text.matchAll(splitRe)) {
+    const start = match.index ?? 0
+    paragraphs.push({ separatorBefore, text: text.slice(lastEnd, start) })
+    separatorBefore = match[0]
+    lastEnd = start + match[0].length
+  }
+  paragraphs.push({ separatorBefore, text: text.slice(lastEnd) })
+
+  const kept: Array<{ separatorBefore: string; text: string; norm: string }> = []
+  let fixed = 0
+  for (const paragraph of paragraphs) {
+    const norm = normalizeParagraphForDuplicateRepair(paragraph.text)
+    const prev = kept[kept.length - 1]
+    if (prev && norm && norm === prev.norm && isEligibleDuplicateParagraph(paragraph.text)) {
+      fixed += 1
+      continue
+    }
+    kept.push({ ...paragraph, norm })
+  }
+
+  if (fixed === 0) return { text, fixed: 0 }
+  return { text: kept.map(p => p.separatorBefore + p.text).join(""), fixed }
+}
+
+function removeAdjacentDuplicateSentences(text: string): { text: string; fixed: number } {
+  const sentences = extractSentences(text)
+  const ranges: Array<{ start: number; end: number }> = []
+
+  for (let i = 1; i < sentences.length; i++) {
+    const prev = normalizeSentence(sentences[i - 1].text)
+    const cur = normalizeSentence(sentences[i].text)
+    if (!prev || prev !== cur) continue
+    if (!isEligibleDuplicateSentence(sentences[i].text)) continue
+    ranges.push({ start: sentences[i].offset, end: sentences[i].offset + sentences[i].text.length })
+  }
+
+  if (ranges.length === 0) return { text, fixed: 0 }
+
+  const parts: string[] = []
+  let cursor = 0
+  let fixed = 0
+  for (const range of ranges) {
+    if (range.start < cursor) continue
+    parts.push(text.slice(cursor, range.start))
+    cursor = range.end
+    fixed += 1
+  }
+  parts.push(text.slice(cursor))
+  return { text: parts.join(""), fixed }
+}
+
+function duplicateRepairImproves(original: string, candidate: string): boolean {
+  const before = countIntegrityKinds(detectProseIntegrityIssues(original))
+  const after = countIntegrityKinds(detectProseIntegrityIssues(candidate))
+  return after.duplicate < before.duplicate && after.other <= before.other
+}
+
+function countIntegrityKinds(issues: LintFixIntegrityIssue[]): { duplicate: number; other: number } {
+  let duplicate = 0
+  let other = 0
+  for (const issue of issues) {
+    if (issue.kind === "duplicate-fragment" || issue.kind === "duplicate-sentence") duplicate += 1
+    else other += 1
+  }
+  return { duplicate, other }
+}
+
+function normalizeParagraphForDuplicateRepair(paragraph: string): string {
+  return paragraph
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+}
+
+function isEligibleDuplicateParagraph(paragraph: string): boolean {
+  return countWords(paragraph) >= 12
+}
+
+function isEligibleDuplicateSentence(sentence: string): boolean {
+  return countWords(sentence) >= 12
 }
 
 function detectFusedBoundaries(text: string): LintFixIntegrityIssue[] {
@@ -297,6 +414,10 @@ function normalizeSentence(sentence: string): string {
 
 function countMatches(text: string, re: RegExp): number {
   return text.match(re)?.length ?? 0
+}
+
+function countWords(text: string): number {
+  return text.match(/[A-Za-z']+/g)?.length ?? 0
 }
 
 function contextExcerpt(text: string, index: number): string {

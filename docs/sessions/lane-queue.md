@@ -25,17 +25,15 @@ unless the user explicitly requests a disposable branch.
   prose-semantic rows 8 with lows 0/errors 0, and writer-brief telemetry 12/12;
   no Plan-Assist gate fired on that attempt. Corrected per-scene-prose
   scene-semantic replay on the same artifact kept sceneDramaturgy 10/10 SCENE-3
-  and reduced endpointLanding lows from 4/10 to 1/10. Plan Readiness operator
-  actions then created and approved two planning edits, but the fixed-plan
-  rerun `p1-ready-brief-1778451217-drafting-brief-v1` stayed length-safe
-  (4029/3000 = 1.34x) with 0 prose-semantic lows but regressed to
-  endpointLanding lows 6/10, one sceneDramaturgy low, and a
-  personal-vs-sovereign-debt continuity blocker. Live `allow-entities` replay
-  evidence remains open; promotion is blocked by endpoint/turn plus
-  plan-consistency quality. Scene-semantic replay writes readiness sidecars,
-  planner-quality diagnostics imports readiness, and
-  existing readiness sidecars/checker blockers now import through production
-  commands before a generated review plan feeds `diagnostics:plan-readiness-apply`. See L106.
+  and reduced endpointLanding lows from 4/10 to 1/10. The P1 Plan Readiness
+  loop then edited and approved 7 planning edits, deferred 1 duplicate item,
+  and reran production drafting as `p1-ready-loop3-1778454964-drafting-brief-v1`:
+  3546/3000 = 1.18x, both chapters approved, no exhaustions, prose-semantic
+  0/8 lows, sceneDramaturgy 10/10 clean, endpointLanding lows 2/10. Ch1
+  exercised deterministic duplicate-integrity repair; ch2 cleared duplicate
+  fragments through L70b settle. Live `allow-entities` replay remains open;
+  promotion is blocked by residual endpoint landing plus review-artifact
+  completeness. See L106.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -119,12 +117,12 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: edit the generated review-plan JSON for the 8 open
-  `p1-ready-brief-1778451217-drafting-brief-v1` readiness items with real
-  operator judgments, apply only approved planning edits, and rerun a comparable
-  production artifact. Do not treat word count or prose-semantic as the blocker.
-  Promotion remains blocked until endpointLanding is clean with complete scene
-  IDs, diagnostics, traces, and review artifacts. See L103-L106.
+- Next session start: inspect the 2 endpointLanding lows from
+  `p1-ready-loop3-1778454964-drafting-brief-v1` and either import/apply them
+  through Plan Readiness if plan-authored or keep them diagnostic if
+  writer-local. Continue seeking live `allow-entities` replay only when that
+  blocker reproduces. Do not reopen POC branching or treat prose length as the
+  blocker. See L103-L106.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,

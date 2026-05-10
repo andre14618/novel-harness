@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test"
-import { detectProseIntegrityIssues, offsetToBeatIndex, repairMechanicalQuoteIntegrity, validateLintFixIntegrity } from "./integrity"
+import {
+  detectProseIntegrityIssues,
+  offsetToBeatIndex,
+  repairMechanicalDuplicateIntegrity,
+  repairMechanicalQuoteIntegrity,
+  validateLintFixIntegrity,
+} from "./integrity"
 
 describe("validateLintFixIntegrity", () => {
   test("passes unchanged prose", () => {
@@ -103,6 +109,54 @@ He set his daughter down on the cot with a tenderness that made Istra's chest ti
   test("does not guess at unrecoverable odd quote counts", () => {
     const prose = `She did not stop writing. “If it pleases you, I am nearly finished.`
     const repaired = repairMechanicalQuoteIntegrity(prose)
+
+    expect(repaired.fixed).toBe(0)
+    expect(repaired.prose).toBe(prose)
+  })
+
+  test("repairs exact adjacent duplicate paragraphs from drafting integrity runs", () => {
+    const repeated = `The warmth of Halric's fireplace hit her face. She did not turn around. She knew Tovin was there.`
+    const prose = `Maren crossed the threshold.
+
+${repeated}
+
+${repeated}
+
+Halric waited with the ledger open.`
+    const before = detectProseIntegrityIssues(prose)
+
+    expect(before.some(i => i.kind === "duplicate-fragment")).toBe(true)
+
+    const repaired = repairMechanicalDuplicateIntegrity(prose)
+    const after = detectProseIntegrityIssues(repaired.prose)
+
+    expect(repaired.fixed).toBe(1)
+    expect(repaired.duplicateParagraphs).toBe(1)
+    expect(repaired.prose.match(/The warmth of Halric's fireplace/g)?.length).toBe(1)
+    expect(after.filter(i => i.kind === "duplicate-fragment" || i.kind === "duplicate-sentence")).toEqual([])
+  })
+
+  test("repairs exact adjacent long duplicate sentences", () => {
+    const sentence = "The ledger strap cut into Maren's palm while the chancellor waited for her answer."
+    const prose = `${sentence} ${sentence} She kept writing.`
+    const before = detectProseIntegrityIssues(prose)
+
+    expect(before.some(i => i.kind === "duplicate-sentence")).toBe(true)
+
+    const repaired = repairMechanicalDuplicateIntegrity(prose)
+    const after = detectProseIntegrityIssues(repaired.prose)
+
+    expect(repaired.fixed).toBe(1)
+    expect(repaired.duplicateSentences).toBe(1)
+    expect(repaired.prose.match(/The ledger strap cut/g)?.length).toBe(1)
+    expect(after.filter(i => i.kind === "duplicate-fragment" || i.kind === "duplicate-sentence")).toEqual([])
+  })
+
+  test("does not delete short repeated dialogue", () => {
+    const prose = `"No."
+
+"No."`
+    const repaired = repairMechanicalDuplicateIntegrity(prose)
 
     expect(repaired.fixed).toBe(0)
     expect(repaired.prose).toBe(prose)

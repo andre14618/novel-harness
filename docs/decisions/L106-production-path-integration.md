@@ -193,6 +193,23 @@ none created proposals or mutated plans during import. A review-plan scaffold
 for those eight items was generated and dry-ran through
 `diagnostics:plan-readiness-apply` with 8/8 matches and 0 errors.
 
+The next production operator loop edited those eight readiness actions with
+real judgments, applied them through `diagnostics:plan-readiness-apply`, and
+approved seven resulting `planning_edit` proposals through the normal proposal
+route; the duplicate target scene item stayed deferred. A comparable production
+rerun (`p1-ready-loop3-1778454964-drafting-brief-v1`) completed both chapters:
+3546/3000 words = 1.18x, plan/continuity passed, no exhaustions,
+prose-semantic rows=8 with 0 lows/0 errors, sceneDramaturgy 10/10 clean, and
+endpointLanding lows reduced to 2/10. The remaining lows are scene-local
+endpoint questions, not evidence for deterministic prose compaction.
+
+That rerun also exposed and exercised a production repair slice: exact adjacent
+duplicate paragraph/sentence removal now lives in `src/lint/integrity.ts`, is
+traced as `prose-integrity-repair` with `kind: "duplicate-integrity"`, and runs
+before drafting retries or Plan-Assist exhaustion. Chapter 1 used this
+deterministic repair and approved; chapter 2 still used the existing L70b
+per-beat integrity settle for non-exact duplicate fragments.
+
 ## Evidence And Verification
 
 Production-path integration needs:

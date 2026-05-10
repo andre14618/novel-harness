@@ -73,7 +73,13 @@ import {
 import { runSettleLoop } from "./settle-loop"
 import { lintProse } from "../lint"
 import { fixLintIssues } from "../lint/fix"
-import { detectProseIntegrityIssues, offsetToBeatIndex, repairMechanicalQuoteIntegrity, validateLintFixIntegrity } from "../lint/integrity"
+import {
+  detectProseIntegrityIssues,
+  offsetToBeatIndex,
+  repairMechanicalDuplicateIntegrity,
+  repairMechanicalQuoteIntegrity,
+  validateLintFixIntegrity,
+} from "../lint/integrity"
 import { buildCheckerBlockerDeviations, type AcceptedBeatCheckIssues } from "./checker-blockers"
 import { runFunctionalStoryChecks, type FunctionalIssue } from "./functional-checks"
 import { checkFunctionalStateGrounding } from "../agents/functional-state-checker"
@@ -1771,6 +1777,25 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
         })
         console.log(`  Prose integrity repaired deterministically: quote-integrity (${quoteRepair.fixed})`)
         log(novelId, "info", `Prose integrity repaired deterministically for chapter ${ch}: quote-integrity=${quoteRepair.fixed}`)
+      }
+
+      const duplicateRepair = repairMechanicalDuplicateIntegrity(prose)
+      if (duplicateRepair.fixed > 0) {
+        prose = duplicateRepair.prose
+        wordCount = prose.split(/\s+/).filter(Boolean).length
+        await saveChapterDraft(novelId, ch, prose, wordCount)
+        await trace(novelId, {
+          eventType: "prose-integrity-repair",
+          chapter: ch,
+          payload: {
+            kind: "duplicate-integrity",
+            fixed: duplicateRepair.fixed,
+            duplicateParagraphs: duplicateRepair.duplicateParagraphs,
+            duplicateSentences: duplicateRepair.duplicateSentences,
+          },
+        })
+        console.log(`  Prose integrity repaired deterministically: duplicate-integrity (${duplicateRepair.fixed})`)
+        log(novelId, "info", `Prose integrity repaired deterministically for chapter ${ch}: duplicate-integrity=${duplicateRepair.fixed}`)
       }
 
       let proseIntegrityIssues = detectProseIntegrityIssues(prose)

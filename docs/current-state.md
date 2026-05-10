@@ -109,22 +109,18 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 The active lane is in `docs/sessions/lane-queue.md`.
 
-As of 2026-05-10, L105 keeps scene-first promotion on hold, but production
-`drafting-brief-v1` evidence is promising. P4 hit 1.10x with 0/8 prose-semantic
-lows; P1 with `scenePlanContractV1=true` cut a paired writer-only run from
-baseline 2.45x / contract-render-only 2.41x to 1.37x with scene contracts
-10/10 and 0/8 lows. A full-path P1 brief smoke later completed both chapters
-at 1.39x and 1.38x with 0/8 prose-semantic lows, plan checks passed, no
-checker blockers, and writer-brief telemetry 12/12. Corrected per-scene-prose
-scene-semantic replay found sceneDramaturgy clean (10/10 SCENE-3) and reduced
-endpointLanding lows to 1/10 on that artifact. The follow-up readiness edit
-rerun (`p1-ready-brief-1778451217-drafting-brief-v1`) stayed length-safe
-(4029/3000 = 1.34x) with 0 prose-semantic lows but regressed to
-endpointLanding lows 6/10, one sceneDramaturgy low, and a personal-vs-sovereign
-debt continuity blocker; these now exist as 8 open Plan Readiness items (1
-CONTINUITY-BLOCKER, 6 endpoint, 1 scene). Promotion remains blocked on upstream
-endpoint/turn and plan-consistency quality, not deterministic prose compaction.
-Plan-Assist `allow-entities` still needs live gate replay evidence. See L103-L106.
+As of 2026-05-10, L105 keeps scene-first promotion on hold, but L106 production
+path integration has absorbed validated POC evidence into writer-brief
+telemetry, scene-semantic replay, Plan Readiness import/apply, and disposable
+runner guards. The P1 readiness loop edited and approved 7 planning edits,
+deferred 1 duplicate readiness item, then reran production drafting as
+`p1-ready-loop3-1778454964-drafting-brief-v1`: both chapters approved,
+3546/3000 = 1.18x, plan/continuity passed, no exhaustions, prose-semantic
+0/8 lows, sceneDramaturgy 10/10 clean, endpointLanding lows 2/10. That run
+exercised deterministic duplicate-integrity repair in ch1 and L70b per-beat
+integrity settle in ch2. Promotion remains blocked on residual endpoint
+landing quality and live `allow-entities` replay, not prose compaction. See
+L103-L106.
 
 ## Authoring Gates
 
