@@ -30,11 +30,13 @@ describe("buildChapterHealthReport", () => {
       severity: "blocker",
       chapterId: "ch-001-ledger-test",
       beatIndex: 0,
+      sceneId: "ch-001-ledger-test-scene-001-ledger-verdict-shatters-council",
       beatId: "beat-ledger-verdict",
     }))
     expect(beatFinding?.refs).toEqual(expect.arrayContaining([
       { kind: "chapter_outline", ref: "ch-001-ledger-test" },
-      { kind: "scene_plan", ref: "beat-ledger-verdict" },
+      { kind: "scene_plan", ref: "ch-001-ledger-test-scene-001-ledger-verdict-shatters-council" },
+      { kind: "beat_plan", ref: "beat-ledger-verdict" },
     ]))
     expect(beatFinding?.stableSource).toEqual(expect.objectContaining({
       kind: "computed",

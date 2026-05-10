@@ -82,7 +82,7 @@ export interface PlannerCanonDeltaChapterReport {
     errors: string[]
     warnings: string[]
     missingSourceIds: string[]
-    unknownObligations: Array<{ beatId: string; obligationKey: string; sourceId: string }>
+    unknownObligations: Array<{ sceneId?: string; beatId?: string; obligationKey: string; sourceId: string }>
     summary: {
       factCount: number
       knowledgeCount: number

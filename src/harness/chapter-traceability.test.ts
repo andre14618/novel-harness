@@ -40,6 +40,7 @@ describe("buildChapterTraceabilityReport", () => {
         id: 7,
         agent: "beat-writer",
         beatIndex: 0,
+        sceneId: "ch-001-ledger-test-scene-001-ledger-verdict-shatters-council",
         beatId: "beat-ledger-verdict",
         attempt: 1,
         failed: false,
@@ -49,6 +50,7 @@ describe("buildChapterTraceabilityReport", () => {
         requestJson: {
           meta: {
             chapterId: "ch-001-ledger-test",
+            sceneId: "ch-001-ledger-test-scene-001-ledger-verdict-shatters-council",
             beatId: "beat-ledger-verdict",
             obligationIds: ["obl-ledger-fact"],
             sourceIds: ["fact-ledger-forgery"],
@@ -72,6 +74,7 @@ describe("buildChapterTraceabilityReport", () => {
       timestamp: "2026-05-05T00:00:00.000Z",
       payload: {
         chapterId: "ch-001-ledger-test",
+        sceneId: "ch-001-ledger-test-scene-001-ledger-verdict-shatters-council",
         beatId: "beat-ledger-verdict",
         obligationIds: ["obl-ledger-fact"],
         sourceIds: ["fact-ledger-forgery"],
@@ -109,7 +112,8 @@ describe("buildChapterTraceabilityReport", () => {
     const beat = report.beats[0]
     expect(beat.refs).toEqual(expect.arrayContaining([
       { kind: "chapter_outline", ref: "ch-001-ledger-test", label: "Chapter 1: Ledger Test" },
-      { kind: "scene_plan", ref: "beat-ledger-verdict", label: "Chapter 1, scene 1" },
+      { kind: "scene_plan", ref: "ch-001-ledger-test-scene-001-ledger-verdict-shatters-council", label: "Chapter 1, scene 1" },
+      { kind: "beat_plan", ref: "beat-ledger-verdict" },
     ]))
     expect(beat.upstreamTargets).toEqual(expect.arrayContaining([
       { kind: "chapter_outline", ref: "ch-001-ledger-test" },
@@ -119,7 +123,7 @@ describe("buildChapterTraceabilityReport", () => {
     expect(beat.upstreamTargets).not.toContainEqual({ kind: "character", ref: "know-istra-ledger-forgery" })
     expect(beat.obligations.every((item) => item.sourceFound)).toBe(true)
     expect(beat.llmCalls.map((call) => [call.agent, call.linkEvidence])).toEqual([
-      ["beat-writer", "beat_id"],
+      ["beat-writer", "scene_id"],
       ["adherence-checker", "beat_index"],
     ])
     expect(beat.llmCalls[0].metaRefs).toEqual(expect.arrayContaining([
@@ -127,9 +131,10 @@ describe("buildChapterTraceabilityReport", () => {
       { kind: "source", ref: "fact-ledger-forgery" },
       { kind: "world_fact", ref: "fact-ledger-forgery" },
     ]))
-    expect(beat.traceEvents[0].linkEvidence).toBe("payload_beat_id")
+    expect(beat.traceEvents[0].linkEvidence).toBe("payload_scene_id")
     expect(beat.traceEvents[0].refs).toEqual(expect.arrayContaining([
-      { kind: "scene_plan", ref: "beat-ledger-verdict" },
+      { kind: "scene_plan", ref: "ch-001-ledger-test-scene-001-ledger-verdict-shatters-council" },
+      { kind: "beat_plan", ref: "beat-ledger-verdict" },
       { kind: "beat_obligation", ref: "obl-ledger-fact" },
       { kind: "world_fact", ref: "fact-ledger-forgery" },
     ]))
@@ -258,7 +263,7 @@ describe("buildChapterTraceabilityReport", () => {
     })
 
     const beat = report.beats[0]
-    expect(beat.proposalEvidence[0].target).toEqual({ kind: "scene_plan", ref: "beat-ledger-verdict", label: "Chapter 1, scene 1" })
+    expect(beat.proposalEvidence[0].target).toEqual({ kind: "beat_plan", ref: "beat-ledger-verdict" })
     expect(beat.proposalEvidence[0].proposalEnvelopes.map((item) => item.id)).toEqual([
       "planning-edit:beat",
     ])

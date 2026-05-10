@@ -50,7 +50,7 @@ export interface RunBeatChecksInput {
    *  Consumed by the halluc-ungrounded checker under the beat-entity-list
    *  charter (v1/v3) to surface prior-beat entities as grounded. */
   prevBeat?: SceneBeat
-  tags?: { novelId?: string; chapter?: number; beatIndex?: number; beatId?: string; attempt?: number }
+  tags?: { novelId?: string; chapter?: number; beatIndex?: number; sceneId?: string; beatId?: string; attempt?: number }
 }
 
 /**

@@ -192,6 +192,7 @@ export function traceLLMCallStart(
     agent: string
     chapter?: number
     beatIndex?: number
+    sceneId?: string
     attempt?: number
     model: string
     provider: string
@@ -206,6 +207,7 @@ export function traceLLMCallStart(
     payload: {
       model: opts.model,
       provider: opts.provider,
+      ...(opts.sceneId != null && { sceneId: opts.sceneId }),
       ...(opts.attempt != null && { attempt: opts.attempt }),
       ...opts.meta,
     },

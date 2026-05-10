@@ -915,7 +915,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       // Get the latest successful beat-writer call per chapter+beat (highest attempt)
       const rows = await db`
         SELECT DISTINCT ON (chapter, beat_index)
-          chapter, beat_index, beat_id, response_content, prompt_tokens, completion_tokens, latency_ms, timestamp
+          chapter, beat_index, scene_id, beat_id, response_content, prompt_tokens, completion_tokens, latency_ms, timestamp
         FROM llm_calls
         WHERE novel_id = ${novelId}
           AND agent = 'beat-writer'
@@ -925,6 +925,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       return Response.json(rows.map((r: any) => ({
         chapter: r.chapter,
         beatIndex: r.beat_index,
+        sceneId: r.scene_id,
         beatId: r.beat_id,
         prose: r.response_content,
         wordCount: r.response_content ? r.response_content.split(/\s+/).filter(Boolean).length : 0,
@@ -1233,7 +1234,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
 
   // ── LLM call inspector — list view ───────────────────────────────────
   // Returns metadata only (no prompt text) for the table view. Filters:
-  //   ?novel_id=…  ?run_id=…  ?agent=…  ?chapter=N  ?beat_index=N  ?beat_id=…  ?limit=N
+  //   ?novel_id=…  ?run_id=…  ?agent=…  ?chapter=N  ?beat_index=N  ?scene_id=…  ?beat_id=…  ?limit=N
   // For full prompt+response text, use /api/novel/llm-calls/:id below.
   if (path === "/api/novel/llm-calls" && req.method === "GET") {
     const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "100"), 500)
@@ -1242,6 +1243,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     const agent = url.searchParams.get("agent")
     const chapter = url.searchParams.get("chapter")
     const beatIndex = url.searchParams.get("beat_index")
+    const sceneId = url.searchParams.get("scene_id")
     const beatId = url.searchParams.get("beat_id")
     const failedOnly = url.searchParams.get("failed")
     try {
@@ -1259,6 +1261,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       if (agent) add("agent = ?", agent)
       if (chapter) add("chapter = ?", parseInt(chapter))
       if (beatIndex) add("beat_index = ?", parseInt(beatIndex))
+      if (sceneId) add("scene_id = ?", sceneId)
       if (beatId) add("beat_id = ?", beatId)
       if (failedOnly === "1" || failedOnly === "true") where.push("failed = true")
       const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : ""
@@ -1267,7 +1270,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       const rows = await db.unsafe(
         `SELECT id, run_id, agent, phase, provider, model, temperature,
                 prompt_tokens, completion_tokens, latency_ms, tokens_per_sec,
-                cost, novel_id, chapter, beat_index, beat_id, attempt, timestamp,
+                cost, novel_id, chapter, beat_index, scene_id, beat_id, attempt, timestamp,
                 failed, error_text
            FROM llm_calls ${whereSql}
           ORDER BY id DESC LIMIT ${limitParam}`,
@@ -1301,7 +1304,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       const rows = await db`
         SELECT id, run_id, agent, phase, provider, model, temperature, max_tokens,
                prompt_tokens, completion_tokens, latency_ms, tokens_per_sec, cost,
-               novel_id, chapter, beat_index, beat_id, attempt, timestamp,
+               novel_id, chapter, beat_index, scene_id, beat_id, attempt, timestamp,
                system_prompt, user_prompt, response_content,
                request_json, failed, error_text,
                json_extraction_success, json_extraction_retried,

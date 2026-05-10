@@ -490,7 +490,7 @@ export async function checkHallucUngrounded(
   outline: ChapterOutline,
   characters: CharacterProfile[],
   worldBible: any,
-  tags?: { novelId?: string; chapter?: number; beatIndex?: number; beatId?: string; attempt?: number },
+  tags?: { novelId?: string; chapter?: number; beatIndex?: number; sceneId?: string; beatId?: string; attempt?: number },
   opts?: { prevBeat?: SceneBeat; voteN?: number },
 ): Promise<HallucUngroundedResult> {
   const variant = resolveVariant()
@@ -630,6 +630,7 @@ export async function checkHallucUngrounded(
           novelId: tags?.novelId,
           chapter: tags?.chapter,
           beatIndex: tags?.beatIndex,
+          sceneId: tags?.sceneId ?? beat.sceneId,
           beatId: tags?.beatId ?? beat.beatId,
           attempt: tags?.attempt,
           agentName: "halluc-ungrounded" as const,

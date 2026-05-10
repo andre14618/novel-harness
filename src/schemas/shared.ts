@@ -29,6 +29,7 @@ export type BeatKind = typeof BEAT_KINDS[number]
 // contract methodology (see L092). Always optional in zod; the planner only
 // emits this array when `scenePlanContractV1` is on (Slice 1).
 export const beatHintSchema = z.object({
+  beatId: z.coerce.string().optional(),
   kind: z.coerce.string().optional(),
   boundarySignal: z.coerce.string().optional(),
   gapSize: z.coerce.string().optional(),
@@ -157,10 +158,12 @@ export const sceneBeatSchema = z.object({
   povPersonalStake: z.coerce.string().optional(),
   characters: z.array(z.string()).default([]),
   kind: z.enum(BEAT_KINDS).default("action").catch("action"),
-  // Stable beat ID assigned by harness/ids.ts after planning-beats expansion;
-  // preserved across mapper retries so obligations can reference beats by ID
-  // even when beats are reordered. Optional in zod because legacy outlines
-  // and LLM responses round-trip without it; `enrichOutlineIds` fills it.
+  // Stable scene ID assigned by harness/ids.ts for each outline.scenes[] entry.
+  // This is the durable identity for scene-level planning/writing/checking.
+  sceneId: z.coerce.string().optional(),
+  // Stable beat ID for legacy beat-shaped entries or beat-specific records.
+  // Do not use this as a generic outline.scenes[] identity; scene-first
+  // contracts use sceneId, while beat hints inside a scene may carry beatId.
   beatId: z.coerce.string().optional(),
   // Planner-Phase-2 V1a: setups declared here are expected to be realized at
   // `payoff_beat` later in the chapter. Empty array is valid — not every
@@ -249,8 +252,9 @@ export const sceneBeatSchema = z.object({
   // in this schema. Legacy outlines round-trip unchanged because every
   // field is `.optional()`. Sourced from POC `recreationScenePlanSchema`
   // (`scripts/evals/corpus-recreation-poc.ts:195-217`); the entry in
-  // `outline.scenes[]` carries scene semantics under the v1 flag without
-  // renaming `SceneBeat`/`scenes` per L092 non-goals.
+  // `outline.scenes[]` carries scene semantics under the v1 flag and uses
+  // sceneId as its durable scene identity. `SceneBeat` remains the TypeScript
+  // alias for compatibility with the older schema/module names.
   goal: z.coerce.string().optional(),
   opposition: z.coerce.string().optional(),
   turningPoint: z.coerce.string().optional(),

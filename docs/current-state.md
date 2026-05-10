@@ -175,10 +175,10 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-08:
 - Accepted chapter-plan-reviser outline replacements now record
   `planning_mutation_lineage` sourced from `chapter_revisions`.
 - Stable-ref checker coverage now includes chapter-plan checker deviations:
-  drafting resolves `beatId` from `outline.scenes[beat_index].beatId` without
-  changing the legacy `beat_index` contract.
-- Beat-level LLM telemetry now persists `llm_calls.beat_id` for beat writer,
-  targeted beat rewrites, adherence checks, and halluc-ungrounded checks.
+  drafting resolves `sceneId` without changing the legacy `beat_index` contract.
+- Scene-level LLM telemetry persists `llm_calls.scene_id` for scene-first
+  writer/checker surfaces; `beat_id` is retained only for legacy beat-shaped
+  entries and beat-specific records.
 - Semantic-gate diagnostics and Diagnostics UI expose risk drivers, candidate
   artifacts, action/proposal evidence, drift witnesses, writer expansion,
   checker evidence, and plan-assist lineage. Beat caps and `calibrated:packed`
@@ -197,7 +197,7 @@ See `docs/sessions/lane-queue.md` for the current lane. As of 2026-05-08:
 - Halluc-ungrounded issue metadata now carries exact-match `entityRefs[]` for
   `character`, `world_system`, and `culture` targets when deterministic
   resolution is possible, and accepted beat-check blockers preserve the
-  containing `beatId`.
+  containing `sceneId` plus legacy `beatId` only when present.
 - `validateChapterDraft()` now emits additive structured `findings[]` with
   stable chapter refs on all findings and stable beat refs for validation-mode
   beat keyword checks while preserving legacy blocker/warning strings.

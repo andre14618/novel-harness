@@ -17,6 +17,7 @@ export type DebugContext = {
   agentName: string
   chapter?: number
   beatIndex?: number
+  sceneId?: string
   attempt?: number
 }
 
@@ -34,6 +35,7 @@ export type InjectionMatch = {
   agentName: string
   chapter?: number
   beatIndex?: number
+  sceneId?: string
   attempt?: number | number[]
 }
 

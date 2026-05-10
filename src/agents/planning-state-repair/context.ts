@@ -25,12 +25,12 @@ export function buildContext(args: BuildRepairContextArgs): string {
     validation.missingSourceIds.map(id => `- ${id}`).join("\n") || "- none",
     "",
     "UNKNOWN OBLIGATION SOURCE IDS:",
-    validation.unknownObligations.map(item => `- beatId=${item.beatId} list=${item.obligationKey} sourceId=${item.sourceId}`).join("\n") || "- none",
+    validation.unknownObligations.map(item => `- ${formatEntryRef(item)} list=${item.obligationKey} sourceId=${item.sourceId}`).join("\n") || "- none",
     "",
     "SOURCE REGISTRY:",
     renderSources(outline),
     "",
-    "BEATS:",
+    "SCENES / LEGACY BEAT ENTRIES:",
     (outline.scenes ?? []).map(renderBeat).join("\n"),
     "",
     "EXISTING OBLIGATIONS:",
@@ -64,7 +64,7 @@ function renderSources(outline: ChapterOutline): string {
 }
 
 function renderBeat(beat: SceneBeat, index: number): string {
-  return `- index=${index} beatId=${beat.beatId ?? "(missing-beatId)"} kind=${beat.kind} characters=${(beat.characters ?? []).join(", ") || "none"}\n  description=${beat.description}`
+  return `- index=${index} sceneId=${beat.sceneId ?? "(missing-sceneId)"} beatId=${beat.beatId ?? "(none)"} kind=${beat.kind} characters=${(beat.characters ?? []).join(", ") || "none"}\n  description=${beat.description}`
 }
 
 function renderBeatObligations(beat: SceneBeat): string {
@@ -73,8 +73,14 @@ function renderBeatObligations(beat: SceneBeat): string {
   const lines: string[] = []
   for (const list of OBLIGATION_LISTS) {
     for (const item of obligations[list] ?? []) {
-      lines.push(`- beatId=${beat.beatId ?? "(missing-beatId)"} list=${list} obligationId=${(item as any).obligationId ?? "(missing-obligationId)"} sourceId=${(item as any).sourceId ?? "(missing-sourceId)"} sourceKind=${(item as any).sourceKind ?? "(missing-sourceKind)"} characterId=${(item as any).characterId ?? ""} text=${item.text}`)
+      lines.push(`- sceneId=${beat.sceneId ?? "(missing-sceneId)"} beatId=${beat.beatId ?? "(none)"} list=${list} obligationId=${(item as any).obligationId ?? "(missing-obligationId)"} sourceId=${(item as any).sourceId ?? "(missing-sourceId)"} sourceKind=${(item as any).sourceKind ?? "(missing-sourceKind)"} characterId=${(item as any).characterId ?? ""} text=${item.text}`)
     }
   }
   return lines.join("\n")
+}
+
+function formatEntryRef(item: { sceneId?: string; beatId?: string }): string {
+  if (item.sceneId) return `sceneId=${item.sceneId}`
+  if (item.beatId) return `beatId=${item.beatId}`
+  return "sceneId=(missing-sceneId)"
 }

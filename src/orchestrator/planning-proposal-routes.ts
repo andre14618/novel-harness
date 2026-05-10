@@ -30,7 +30,7 @@ import {
   updateEnvelopeResolution,
 } from "../db/proposal-envelopes"
 import {
-  getChapterOutlineByBeatId,
+  getChapterOutlineBySceneRef,
   getChapterOutlineByChapterId,
   getChapterOutlineByObligationId,
   normalizeChapterOutlineForPersistence,
@@ -732,7 +732,7 @@ async function loadPlanningEditTargetState(
     }
   }
   if (isScenePlanTargetKind(target.kind)) {
-    const stored = await getChapterOutlineByBeatId(novelId, target.ref, opts)
+    const stored = await getChapterOutlineBySceneRef(novelId, target.ref, opts)
     if (!stored) return null
     const outline = normalizeChapterOutlineForPersistence(stored.outline)
     const beat = findBeat(outline, target.ref)
@@ -740,7 +740,7 @@ async function loadPlanningEditTargetState(
     if (action === "beat_replace") {
       return {
         outline,
-        ref: beat.beatId ?? target.ref,
+        ref: entryRef(beat) ?? target.ref,
         currentVersion: stableHash(beat),
         previousValue: beat,
       }
@@ -750,7 +750,7 @@ async function loadPlanningEditTargetState(
       if (!listKey) return null
       return {
         outline,
-        ref: beat.beatId ?? target.ref,
+        ref: entryRef(beat) ?? target.ref,
         currentVersion: stableHash(obligationOrder(beat, listKey)),
         previousValue: {
           listKey,
@@ -761,14 +761,14 @@ async function loadPlanningEditTargetState(
     if (action === "beat_requirement_remove") {
       return {
         outline,
-        ref: beat.beatId ?? target.ref,
+        ref: entryRef(beat) ?? target.ref,
         currentVersion: stableHash(beatRequirementState(beat)),
         previousValue: beatRequirementState(beat),
       }
     }
     return {
       outline,
-      ref: beat.beatId ?? target.ref,
+      ref: entryRef(beat) ?? target.ref,
       currentVersion: stableHash(beat),
       previousValue: readBeatField(beat, target.fieldPath as BeatPlanPlanningEditField),
     }
@@ -832,15 +832,15 @@ function applyPlanningStructuralEdit(
   const next = JSON.parse(JSON.stringify(outline)) as ChapterOutline
   if (payload.action === "beat_replace") {
     const scenes = next.scenes ?? []
-    const index = scenes.findIndex((beat) => beat.beatId === payload.target.ref)
+    const index = scenes.findIndex((beat) => entryRef(beat) === payload.target.ref || beat.beatId === payload.target.ref)
     if (index >= 0) scenes[index] = payload.proposedValue as SceneBeatInOutline
     next.scenes = scenes
     return normalizeChapterOutlineForPersistence(next)
   }
   if (payload.action === "beat_reorder") {
-    const byId = new Map((next.scenes ?? []).map((beat) => [beat.beatId, beat]))
+    const byId = new Map((next.scenes ?? []).map((beat) => [entryRef(beat), beat]))
     next.scenes = (payload.proposedValue as string[])
-      .map((beatId) => byId.get(beatId))
+      .map((sceneRef) => byId.get(sceneRef))
       .filter((beat): beat is SceneBeatInOutline => beat !== undefined)
     return normalizeChapterOutlineForPersistence(next)
   }
@@ -1087,9 +1087,13 @@ function readObligationField(
 
 function findBeat(
   outline: ChapterOutline,
-  beatId: string,
+  ref: string,
 ): NonNullable<ChapterOutline["scenes"]>[number] | null {
-  return (outline.scenes ?? []).find((beat) => beat.beatId === beatId) ?? null
+  return (outline.scenes ?? []).find((beat) => beat.sceneId === ref || beat.beatId === ref) ?? null
+}
+
+function entryRef(beat: Pick<SceneBeatInOutline, "sceneId" | "beatId"> | null | undefined): string | undefined {
+  return beat?.sceneId ?? beat?.beatId
 }
 
 function findObligation(
@@ -1140,8 +1144,8 @@ function findObligationContext(
 
 function beatOrder(outline: ChapterOutline): string[] {
   return (outline.scenes ?? [])
-    .map((beat) => beat.beatId)
-    .filter((beatId): beatId is string => typeof beatId === "string" && beatId.length > 0)
+    .map((beat) => entryRef(beat))
+    .filter((sceneRef): sceneRef is string => typeof sceneRef === "string" && sceneRef.length > 0)
 }
 
 function obligationOrder(beat: SceneBeatInOutline, listKey: ObligationListKey): string[] {
@@ -1258,9 +1262,13 @@ function validatePlanningEditSemantics(
   if (action === "beat_replace") {
     if (!targetState.outline) return "beat_replace target state missing outline"
     const proposed = proposedValue as Record<string, unknown>
-    const proposedBeatId = typeof proposed.beatId === "string" ? proposed.beatId : ""
-    if (findBeat(targetState.outline, proposedBeatId)) {
-      return `beat_replace proposedValue.beatId ${proposedBeatId} already exists`
+    const proposedRef = typeof proposed.sceneId === "string"
+      ? proposed.sceneId
+      : typeof proposed.beatId === "string"
+        ? proposed.beatId
+        : ""
+    if (proposedRef && proposedRef !== target.ref && findBeat(targetState.outline, proposedRef)) {
+      return `beat_replace proposedValue ref ${proposedRef} already exists`
     }
     return null
   }
@@ -1452,8 +1460,9 @@ function validateObligationSourceLink(
       if (!payoffPlacement) {
         return `sourceKind=payoff requires a requiredPayoffs link for ${link.sourceId}`
       }
-      if (payoffPlacement.beatId && payoffPlacement.beatId !== context.beat.beatId) {
-        return `sourceKind=payoff for ${link.sourceId} must land on ${payoffPlacement.beatId}`
+      const contextRef = entryRef(context.beat)
+      if (payoffPlacement.entryRef && payoffPlacement.entryRef !== contextRef) {
+        return `sourceKind=payoff for ${link.sourceId} must land on ${payoffPlacement.entryRef}`
       }
     }
   }
@@ -1467,7 +1476,7 @@ function validateObligationSourceLink(
       return `characterId ${link.characterId ?? "(missing)"} does not match ${source.characterId} for ${link.sourceId}`
     }
     if (!beatIncludesCharacter(context.beat, source.characterName)) {
-      return `${source.characterName} (${source.characterId}) is not present in beat ${context.beat.beatId ?? "(missing-beatId)"}`
+      return `${source.characterName} (${source.characterId}) is not present in entry ${entryRef(context.beat) ?? "(missing-entry-ref)"}`
     }
   }
 
@@ -1482,7 +1491,7 @@ function validateObligationSourceLink(
     (item as { sourceId?: unknown }).sourceId === link.sourceId
   )
   return duplicate
-    ? `${context.beat.beatId ?? "(missing-beatId)"} ${context.listKey} already references sourceId ${link.sourceId}`
+    ? `${entryRef(context.beat) ?? "(missing-entry-ref)"} ${context.listKey} already references sourceId ${link.sourceId}`
     : null
 }
 
@@ -1529,7 +1538,7 @@ function findCharacterScopedSource(
 function findPayoffPlacement(
   outline: ChapterOutline,
   factId: string,
-): { beatId: string | null } | null {
+): { entryRef: string | null } | null {
   const scenes = outline.scenes ?? []
   for (const beat of scenes) {
     for (const link of beat.requiredPayoffs ?? []) {
@@ -1539,9 +1548,9 @@ function findPayoffPlacement(
         link.payoff_beat < 0 ||
         link.payoff_beat >= scenes.length
       ) {
-        return { beatId: null }
+        return { entryRef: null }
       }
-      return { beatId: scenes[link.payoff_beat].beatId ?? null }
+      return { entryRef: entryRef(scenes[link.payoff_beat]) ?? null }
     }
   }
   return null
@@ -1586,8 +1595,12 @@ function targetVersion(
   }
   if (payload.action === "beat_replace") {
     const proposed = payload.proposedValue as Record<string, unknown>
-    const beatId = typeof proposed.beatId === "string" ? proposed.beatId : target.ref
-    return stableHash(findBeat(outline, beatId) ?? null)
+    const sceneRef = typeof proposed.sceneId === "string"
+      ? proposed.sceneId
+      : typeof proposed.beatId === "string"
+        ? proposed.beatId
+        : target.ref
+    return stableHash(findBeat(outline, sceneRef) ?? null)
   }
   if (payload.action === "beat_obligation_replace") {
     const proposed = payload.proposedValue as Record<string, unknown>
@@ -1612,7 +1625,11 @@ function targetRef(
   const target = payload.target
   if (payload.action === "beat_replace") {
     const proposed = payload.proposedValue as Record<string, unknown>
-    return typeof proposed.beatId === "string" ? proposed.beatId : target.ref
+    return typeof proposed.sceneId === "string"
+      ? proposed.sceneId
+      : typeof proposed.beatId === "string"
+        ? proposed.beatId
+        : target.ref
   }
   if (payload.action === "beat_obligation_replace") {
     const proposed = payload.proposedValue as Record<string, unknown>
@@ -1624,7 +1641,7 @@ function targetRef(
     return typeof obligation?.obligationId === "string" ? obligation.obligationId : target.ref
   }
   const beat = findBeat(outline, target.ref)
-  return beat?.beatId ?? target.ref
+  return entryRef(beat) ?? target.ref
 }
 
 function targetForEnvelope(

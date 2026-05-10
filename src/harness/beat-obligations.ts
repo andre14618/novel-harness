@@ -1,6 +1,7 @@
 import type { BeatObligationsContract, ChapterOutline, SceneBeat } from "../types"
 import {
   enrichOutlineIds,
+  isSceneContractEntry,
   characterIdFromName,
   knowledgeIdFromContent,
   stateIdFromContent,
@@ -72,7 +73,7 @@ export interface BeatObligationCoverageValidation {
   /** Names of source IDs that have no covering obligation. */
   missingSourceIds: string[]
   /** Obligation entries whose `sourceId` does not match any source registry. */
-  unknownObligations: Array<{ beatId: string; obligationKey: string; sourceId: string }>
+  unknownObligations: Array<{ sceneId?: string; beatId?: string; obligationKey: string; sourceId: string }>
 }
 
 export interface BeatObligationRepairPatchResult {
@@ -173,7 +174,7 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
     warnings.push(`Chapter ${outline.chapterNumber}: source id "${id}" is not covered by any beat obligation`)
   }
   for (const obl of validation.unknownObligations) {
-    warnings.push(`Chapter ${outline.chapterNumber}: obligation on ${obl.beatId} (${obl.obligationKey}) references unknown sourceId "${obl.sourceId}"`)
+    warnings.push(`Chapter ${outline.chapterNumber}: obligation on ${entryRef(obl)} (${obl.obligationKey}) references unknown sourceId "${obl.sourceId}"`)
   }
   for (const issue of validation.characterIssues) {
     warnings.push(`Chapter ${outline.chapterNumber}: ${issue}`)
@@ -199,7 +200,7 @@ interface InternalCoverage {
   orphanKnowledge: number
   orphanState: number
   missingSourceIds: string[]
-  unknownObligations: Array<{ beatId: string; obligationKey: string; sourceId: string }>
+  unknownObligations: Array<{ sceneId?: string; beatId?: string; obligationKey: string; sourceId: string }>
   duplicateSourceIds: number
   sourceKindMismatches: number
   characterIdMismatches: number
@@ -263,20 +264,20 @@ function computeCoverage(outline: ChapterOutline): InternalCoverage {
   const coveredStateIds = new Set<string>()
 
   for (const beat of outline.scenes ?? []) {
-    const beatId = beat.beatId ?? `beat-${(outline.scenes ?? []).indexOf(beat) + 1}`
+    const ref = entryRef(beat, (outline.scenes ?? []).indexOf(beat))
     const obligations = beat.obligations
     if (!obligations) continue
 
     for (const item of obligations.mustEstablish ?? []) {
       const sId = (item as any).sourceId
       if (sId && factRegistry.has(sId)) coveredFactIds.add(sId)
-      else if (sId) out.unknownObligations.push({ beatId, obligationKey: "mustEstablish", sourceId: sId })
+      else if (sId) out.unknownObligations.push({ ...entryIds(beat), obligationKey: "mustEstablish", sourceId: sId })
       if (sId && !sourceKindMatches(item, ["fact"])) out.sourceKindMismatches++
     }
     for (const item of obligations.mustPayOff ?? []) {
       const sId = (item as any).sourceId
       if (sId && factRegistry.has(sId)) coveredFactIds.add(sId)
-      else if (sId) out.unknownObligations.push({ beatId, obligationKey: "mustPayOff", sourceId: sId })
+      else if (sId) out.unknownObligations.push({ ...entryIds(beat), obligationKey: "mustPayOff", sourceId: sId })
       if (sId && !sourceKindMatches(item, ["fact", "payoff"])) out.sourceKindMismatches++
     }
     for (const item of obligations.mustTransferKnowledge ?? []) {
@@ -288,10 +289,10 @@ function computeCoverage(outline: ChapterOutline): InternalCoverage {
         const itemCharId = (item as any).characterId
         if (itemCharId && itemCharId !== reg.characterId) {
           out.characterIdMismatches++
-          out.characterIssues.push(`obligation ${(item as any).obligationId ?? "(unnamed)"} on ${beatId} characterId "${itemCharId}" ≠ source "${reg.characterId}"`)
+          out.characterIssues.push(`obligation ${(item as any).obligationId ?? "(unnamed)"} on ${ref} characterId "${itemCharId}" ≠ source "${reg.characterId}"`)
         }
       } else if (sId) {
-        out.unknownObligations.push({ beatId, obligationKey: "mustTransferKnowledge", sourceId: sId })
+        out.unknownObligations.push({ ...entryIds(beat), obligationKey: "mustTransferKnowledge", sourceId: sId })
         if (!sourceKindMatches(item, ["knowledge"])) out.sourceKindMismatches++
       }
     }
@@ -304,10 +305,10 @@ function computeCoverage(outline: ChapterOutline): InternalCoverage {
         const itemCharId = (item as any).characterId
         if (itemCharId && itemCharId !== reg.characterId) {
           out.characterIdMismatches++
-          out.characterIssues.push(`obligation ${(item as any).obligationId ?? "(unnamed)"} on ${beatId} characterId "${itemCharId}" ≠ source "${reg.characterId}"`)
+          out.characterIssues.push(`obligation ${(item as any).obligationId ?? "(unnamed)"} on ${ref} characterId "${itemCharId}" ≠ source "${reg.characterId}"`)
         }
       } else if (sId) {
-        out.unknownObligations.push({ beatId, obligationKey: "mustShowStateChange", sourceId: sId })
+        out.unknownObligations.push({ ...entryIds(beat), obligationKey: "mustShowStateChange", sourceId: sId })
         if (!sourceKindMatches(item, ["state"])) out.sourceKindMismatches++
       }
     }
@@ -415,7 +416,7 @@ export function formatObligationCoverageRetryFeedback(
     "- Every knowledgeChanges[].id must appear as the sourceId of exactly one mustTransferKnowledge obligation; characterId must match.",
     "- Every characterStateChanges[].id must appear as the sourceId of at least one mustShowStateChange obligation; characterId must match.",
     "- Obligation sourceId must reference a real chapter-level item; sourceKind must match the registry.",
-    "- Preserve every existing id and beatId verbatim. Do not delete valid state to make coverage pass.",
+    "- Preserve every existing id, sceneId, and beatId verbatim. Do not delete valid state to make coverage pass.",
     "",
     "Coverage errors:",
     ...validation.errors.map(error => `- ${error}`),
@@ -431,7 +432,7 @@ export function formatObligationCoverageRetryFeedback(
   if (validation.unknownObligations.length > 0) {
     lines.push("", "Unknown obligation source IDs (rename to a real chapter-level item id, or remove):")
     for (const obl of validation.unknownObligations) {
-      lines.push(`- ${obl.beatId} ${obl.obligationKey} → ${obl.sourceId}`)
+      lines.push(`- ${entryRef(obl)} ${obl.obligationKey} → ${obl.sourceId}`)
     }
   }
 
@@ -490,8 +491,8 @@ function applyRepairOperation(
   outline: ChapterOutline,
   operation: PlanningStateRepairOperation,
 ): { ok: boolean; message: string } {
-  const beat = (outline.scenes ?? []).find(scene => scene.beatId === operation.beatId)
-  if (!beat) return { ok: false, message: `${operation.op}: unknown beatId ${operation.beatId}` }
+  const beat = findEntryForRepairOperation(outline, operation)
+  if (!beat) return { ok: false, message: `${operation.op}: unknown ${operation.sceneId ? `sceneId ${operation.sceneId}` : `beatId ${operation.beatId ?? "(missing)"}`}` }
   if (operation.op === "removeObligation") return removeRepairObligation(beat, operation.list, operation.obligationId)
   return addRepairObligation(outline, beat, operation)
 }
@@ -501,9 +502,9 @@ function removeRepairObligation(beat: SceneBeat, list: RepairObligationList, obl
   beat.obligations = obligations
   const items = obligations[list] as any[]
   const index = items.findIndex(item => item.obligationId === obligationId)
-  if (index < 0) return { ok: false, message: `removeObligation: obligationId ${obligationId} not found on ${beat.beatId} ${list}` }
+  if (index < 0) return { ok: false, message: `removeObligation: obligationId ${obligationId} not found on ${entryRef(beat)} ${list}` }
   items.splice(index, 1)
-  return { ok: true, message: `removeObligation: ${beat.beatId} ${list} ${obligationId}` }
+  return { ok: true, message: `removeObligation: ${entryRef(beat)} ${list} ${obligationId}` }
 }
 
 function addRepairObligation(
@@ -527,7 +528,7 @@ function addRepairObligation(
   // obligation. Names use the same alias-tolerant comparator the writer
   // already uses for character matching.
   if ((source.kind === "knowledge" || source.kind === "state") && !beatIncludesCharacter(beat, source.characterName)) {
-    return { ok: false, message: `addObligation: ${source.characterName} (${source.characterId}) is not in beat ${beat.beatId} characters [${beat.characters.join(", ")}] for sourceId ${operation.sourceId}` }
+    return { ok: false, message: `addObligation: ${source.characterName} (${source.characterId}) is not in entry ${entryRef(beat)} characters [${beat.characters.join(", ")}] for sourceId ${operation.sourceId}` }
   }
 
   // Phase-12 guard: when sourceKind=payoff, the chapter must have a real
@@ -541,8 +542,8 @@ function addRepairObligation(
     if (!payoffPlacement) {
       return { ok: false, message: `addObligation: sourceKind=payoff requires a requiredPayoffs link for ${operation.sourceId}; none found in chapter` }
     }
-    if (payoffPlacement.beatId && payoffPlacement.beatId !== beat.beatId) {
-      return { ok: false, message: `addObligation: sourceKind=payoff for ${operation.sourceId} must land on ${payoffPlacement.beatId} per requiredPayoffs link, not ${beat.beatId}` }
+    if (payoffPlacement.entryId && payoffPlacement.entryId !== entryRef(beat)) {
+      return { ok: false, message: `addObligation: sourceKind=payoff for ${operation.sourceId} must land on ${payoffPlacement.entryId} per requiredPayoffs link, not ${entryRef(beat)}` }
     }
   }
 
@@ -555,7 +556,7 @@ function addRepairObligation(
   // within the same envelope mapper-authored beats target.
   const currentHard = countHardObligationsContract(beat.obligations)
   if (currentHard >= OVERLOADED_BEAT_OBLIGATION_LIMIT) {
-    return { ok: false, message: `addObligation: beat ${beat.beatId} already has ${currentHard} hard obligations (cap ${OVERLOADED_BEAT_OBLIGATION_LIMIT}); place ${operation.sourceId} elsewhere` }
+    return { ok: false, message: `addObligation: entry ${entryRef(beat)} already has ${currentHard} hard obligations (cap ${OVERLOADED_BEAT_OBLIGATION_LIMIT}); place ${operation.sourceId} elsewhere` }
   }
 
   const obligations = normalizeAuthoredObligations(beat.obligations)
@@ -569,7 +570,7 @@ function addRepairObligation(
   // writer-visible obligations that pass coverage but show up twice in
   // the BEAT OBLIGATIONS prompt section.
   if (items.some(item => item.sourceId === operation.sourceId)) {
-    return { ok: false, message: `addObligation: ${beat.beatId} ${operation.list} already references sourceId ${operation.sourceId}` }
+    return { ok: false, message: `addObligation: ${entryRef(beat)} ${operation.list} already references sourceId ${operation.sourceId}` }
   }
 
   const ordinal = items.length
@@ -580,7 +581,7 @@ function addRepairObligation(
   // writer sees was authored by the upstream mapper as the source's
   // own text.
   const item: any = {
-    obligationId: obligationIdGen(beat.beatId ?? "unknown-beat", kindTail, operation.sourceId, ordinal),
+    obligationId: obligationIdGen(entryRef(beat), kindTail, operation.sourceId, ordinal),
     sourceId: operation.sourceId,
     sourceKind: operation.sourceKind,
     text: source.text,
@@ -590,21 +591,47 @@ function addRepairObligation(
     item.characterName = source.characterName
   }
   items.push(item)
-  return { ok: true, message: `addObligation: ${beat.beatId} ${operation.list} ${operation.sourceId}` }
+  return { ok: true, message: `addObligation: ${entryRef(beat)} ${operation.list} ${operation.sourceId}` }
 }
 
-function findPayoffPlacement(outline: ChapterOutline, factId: string): { beatId: string | null } | null {
+function findPayoffPlacement(outline: ChapterOutline, factId: string): { entryId: string | null } | null {
   const scenes = outline.scenes ?? []
   for (const beat of scenes) {
     for (const link of beat.requiredPayoffs ?? []) {
       if (link.fact_id?.trim() !== factId) continue
       if (!Number.isInteger(link.payoff_beat) || link.payoff_beat < 0 || link.payoff_beat >= scenes.length) {
-        return { beatId: null }
+        return { entryId: null }
       }
-      return { beatId: scenes[link.payoff_beat].beatId ?? null }
+      return { entryId: entryRef(scenes[link.payoff_beat]) }
     }
   }
   return null
+}
+
+function findEntryForRepairOperation(outline: ChapterOutline, operation: PlanningStateRepairOperation): SceneBeat | null {
+  const scenes = outline.scenes ?? []
+  if (operation.sceneId) {
+    const byScene = scenes.find(scene => scene.sceneId === operation.sceneId)
+    if (byScene) return byScene
+  }
+  if (operation.beatId) {
+    const byBeat = scenes.find(scene => scene.beatId === operation.beatId)
+    if (byBeat) return byBeat
+  }
+  return null
+}
+
+function entryIds(beat: SceneBeat): { sceneId?: string; beatId?: string } {
+  return {
+    ...(beat.sceneId ? { sceneId: beat.sceneId } : {}),
+    ...(beat.beatId ? { beatId: beat.beatId } : {}),
+  }
+}
+
+function entryRef(beat: Pick<SceneBeat, "sceneId" | "beatId">, fallbackIndex?: number): string {
+  return isSceneContractEntry(beat as SceneBeat)
+    ? beat.sceneId ?? beat.beatId ?? (fallbackIndex == null ? "unknown-entry" : `entry-${fallbackIndex + 1}`)
+    : beat.beatId ?? beat.sceneId ?? (fallbackIndex == null ? "unknown-entry" : `entry-${fallbackIndex + 1}`)
 }
 
 function countHardObligationsContract(obligations: BeatObligationsContract | undefined): number {

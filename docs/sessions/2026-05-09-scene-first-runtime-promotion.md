@@ -19,7 +19,7 @@ Promote scene-first methodology from corpus-recreation POC into production runti
 
 Substrate decisions made up front:
 
-- `beatId` remains the durable per-entry identity for `outline.scenes[]`. **Do not** add a parallel `sceneId` field. Renaming-debt is acknowledged.
+- Amended 2026-05-10: `sceneId` is the durable per-entry identity for `outline.scenes[]`. `beatId` is reserved for beat hints, legacy beat-shaped entries, and beat-specific records.
 - `storyDebtStage` enum extended additively to seven values: `open`, `progress`, `complicate`, `partial_payoff`, `final_payoff`, `aftermath`, `escalation`.
 - All new schema fields are `.optional()` in Zod regardless of flag state. Required-when-flag-on lives only in `enforceScenePlanContract`.
 
@@ -27,7 +27,7 @@ Substrate decisions made up front:
 
 L094 (2026-05-09) already promoted the writer-context layer (`thread-character-context-v1`) into production drafting after fixed-plan A/B evidence. The remaining unpromoted layers — planner contract, writer contract rendering, scene satisfaction — have accumulated POC evidence that should retire L092's "do not promote corpus-recreation POC behavior into production runtime yet" non-goal layer-by-layer. POC chapter-2 baseline ran 3 semantic lows + 0 thread refs; `causal-motivation-v3` ran 0 lows + 4 thread refs across the four-chapter cohort. Fixed-plan A/B with the same plans showed a 0.60 → 0.79 word-ratio improvement when the writer received explicit scene contracts and the `retry-short-scenes-v1` expansion path was active, with no semantic-review regression and no new checker-blocker class.
 
-User instruction: "let's just add in each of them in the right order" + "make sure that the llm calls and semantic judgements and planner ids and deterministic piping and checks make it in." Plan revision after substrate verification corrected three implementation assumptions (`enrichOutlineIds` mints only `beatId`, not `sceneId`; production `storyDebtStage` enum is narrower than POC; production drafting already loops per `outline.scenes[]` entry).
+User instruction: "let's just add in each of them in the right order" + "make sure that the llm calls and semantic judgements and planner ids and deterministic piping and checks make it in." Plan revision after substrate verification corrected two implementation assumptions (production `storyDebtStage` enum is narrower than POC; production drafting already loops per `outline.scenes[]` entry). A later Codex review corrected the ID policy so `sceneId` is the scene-entry identity and `beatId` is not overloaded.
 
 ## Signal
 
@@ -124,5 +124,16 @@ Codex review after closeout found two integration gaps and corrected them:
   `outline.scenes[]` entry before falling back to legacy beat-0 routing.
 
 The review also corrected docs/comments that implied a production inline
-`sceneSatisfactionCheckerV1` prompt switch or a current `sceneId` field. The
-runtime remains default-off and evidence-gated.
+`sceneSatisfactionCheckerV1` prompt switch.
+
+Post-user review then migrated scene-first identity:
+
+- `sceneId` is now minted for every `outline.scenes[]` entry and propagated
+  through writer/checker telemetry, validation findings, traceability, health,
+  proposal lookup, and planning-state repair.
+- `beatId` is retained only for beat hints, legacy beat-shaped entries, and
+  compatibility fallbacks.
+- `llm_calls.scene_id` is the scene-first telemetry column; `beat_id` remains
+  available for legacy/beat-specific calls.
+
+The runtime remains default-off and evidence-gated.

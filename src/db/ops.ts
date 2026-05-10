@@ -504,6 +504,7 @@ export interface LLMCallData {
   responseContent?: string
   novelId?: string
   beatIndex?: number
+  sceneId?: string
   beatId?: string
   attempt?: number
   // Failure capture (sql/018_llm_call_errors.sql) — guarantee one row per attempt
@@ -525,7 +526,7 @@ export async function logLLMCall(runId: number, data: LLMCallData): Promise<numb
       json_extraction_success, json_extraction_retried,
       zod_validation_success, zod_errors, http_attempts, retry_errors,
       system_prompt, user_prompt, response_content,
-      novel_id, beat_index, beat_id, attempt,
+      novel_id, beat_index, scene_id, beat_id, attempt,
       request_json, failed, error_text
     ) VALUES (
       ${runId}, ${data.agent}, ${data.phase ?? null}, ${data.model}, ${data.provider},
@@ -544,6 +545,7 @@ export async function logLLMCall(runId: number, data: LLMCallData): Promise<numb
       ${data.responseContent ?? null},
       ${data.novelId ?? null},
       ${data.beatIndex ?? null},
+      ${data.sceneId ?? null},
       ${data.beatId ?? null},
       ${data.attempt ?? null},
       ${data.requestJson ?? null},

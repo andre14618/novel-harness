@@ -61,7 +61,7 @@ describe("buildPlanningTargetMap", () => {
         "character:char-istra",
         "story_spine:target-map-test",
         "chapter_outline:ch-001-ledger-test",
-        "scene_plan:ch-001-ledger-test-beat-001-ledger-breaks",
+        "scene_plan:ch-001-ledger-test-scene-001-istra-proves-ledger-forged-chooses",
         "beat_obligation:obl-ledger-fact",
         "world_fact:fact-ledger-forgery",
         "world_system:system-bells",
@@ -73,7 +73,7 @@ describe("buildPlanningTargetMap", () => {
 
     const beat = map.targets.find((target) =>
       target.kind === "scene_plan" &&
-      target.ref === "ch-001-ledger-test-beat-001-ledger-breaks"
+      target.ref === "ch-001-ledger-test-scene-001-istra-proves-ledger-forged-chooses"
     )
     expect(beat?.upstreamRefs).toEqual(
       expect.arrayContaining([
@@ -124,6 +124,7 @@ describe("buildPlanningTargetMap", () => {
       chapterId: undefined,
       scenes: [
         beat({
+          sceneId: undefined,
           beatId: undefined,
           obligations: {
             mustEstablish: [
@@ -153,7 +154,7 @@ describe("buildPlanningTargetMap", () => {
 
     const codes = map.validationFindings.map((finding) => finding.code)
     expect(codes).toContain("missing-persisted-chapter-id")
-    expect(codes).toContain("missing-persisted-beat-id")
+    expect(codes).toContain("missing-persisted-scene-id")
     expect(codes).toContain("missing-persisted-obligation-id")
     expect(codes).toContain("missing-obligation-source-id")
   })
@@ -203,6 +204,7 @@ function beat(overrides: Partial<SceneBeat> = {}): SceneBeat {
     description: "Istra proves the ledger is forged and chooses to protect Wren.",
     characters: ["Istra"],
     kind: "action",
+    sceneId: "ch-001-ledger-test-scene-001-istra-proves-ledger-forged-chooses",
     beatId: "ch-001-ledger-test-beat-001-ledger-breaks",
     requiredPayoffs: [],
     obligations: {

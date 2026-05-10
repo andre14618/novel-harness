@@ -100,7 +100,7 @@ export async function checkBeatAdherence(
   // Tags so this call lands in llm_calls with the same drill-down keys
   // as the beat-writer call it's checking. Optional for backwards compat
   // (callers outside the drafting loop pass nothing → call is logged untagged).
-  tags?: { novelId?: string; chapter?: number; beatIndex?: number; beatId?: string; attempt?: number },
+  tags?: { novelId?: string; chapter?: number; beatIndex?: number; sceneId?: string; beatId?: string; attempt?: number },
 ): Promise<AdherenceResult> {
   const issues: string[] = []
 
@@ -163,6 +163,7 @@ ${proseTrimmed}
       novelId: tags?.novelId,
       chapter: tags?.chapter,
       beatIndex: tags?.beatIndex,
+      sceneId: tags?.sceneId ?? beat.sceneId,
       beatId: tags?.beatId ?? beat.beatId,
       attempt: tags?.attempt,
       agentName: "adherence-events" as const,
@@ -185,7 +186,7 @@ ${proseTrimmed}
       const stage2Result = await enumerateMissingEvents({
         userPrompt,
         fallbackReasoning: stage1.output.reasoning,
-        tags: { ...tags, beatId: tags?.beatId ?? beat.beatId },
+        tags: { ...tags, sceneId: tags?.sceneId ?? beat.sceneId, beatId: tags?.beatId ?? beat.beatId },
       })
       if (stage2Result.stage2Override) {
         // Unanimous stage-2 enactment overrides stage-1 fail.
@@ -245,7 +246,7 @@ async function enumerateMissingEvents(input: {
   // string, but Zod's inferred type stays `string | undefined` (a known
   // quirk of optional+default), so widen the param type to match.
   fallbackReasoning: string | undefined
-  tags?: { novelId?: string; chapter?: number; beatIndex?: number; beatId?: string; attempt?: number }
+  tags?: { novelId?: string; chapter?: number; beatIndex?: number; sceneId?: string; beatId?: string; attempt?: number }
 }): Promise<{ issues: string[]; stage2Override: boolean }> {
   const { userPrompt, fallbackReasoning, tags } = input
   const fallback = `Beat events not enacted on-page: ${fallbackReasoning || "no evidence found"}`
@@ -254,6 +255,7 @@ async function enumerateMissingEvents(input: {
       novelId: tags?.novelId,
       chapter: tags?.chapter,
       beatIndex: tags?.beatIndex,
+      sceneId: tags?.sceneId,
       beatId: tags?.beatId,
       attempt: tags?.attempt,
       agentName: "adherence-events" as const,

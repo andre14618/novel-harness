@@ -17,7 +17,8 @@ const idStringSchema = z.string().regex(ID_RE, "must match stable-ID kebab-case 
 
 export const addObligationOperationSchema = z.object({
   op: z.literal("addObligation"),
-  beatId: idStringSchema,
+  sceneId: idStringSchema.optional(),
+  beatId: idStringSchema.optional(),
   list: repairObligationListSchema,
   sourceId: idStringSchema,
   sourceKind: repairSourceKindSchema,
@@ -30,7 +31,8 @@ export const addObligationOperationSchema = z.object({
 
 export const removeObligationOperationSchema = z.object({
   op: z.literal("removeObligation"),
-  beatId: idStringSchema,
+  sceneId: idStringSchema.optional(),
+  beatId: idStringSchema.optional(),
   list: repairObligationListSchema,
   obligationId: idStringSchema,
 })
@@ -47,6 +49,17 @@ const MAX_OPERATIONS_PER_CALL = 64
 
 export const planningStateRepairSchema = z.object({
   operations: z.array(planningStateRepairOperationSchema).max(MAX_OPERATIONS_PER_CALL).default([]),
+}).superRefine((value, ctx) => {
+  for (let i = 0; i < value.operations.length; i++) {
+    const operation = value.operations[i]
+    if (!operation.sceneId && !operation.beatId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["operations", i],
+        message: "operation must include sceneId or beatId",
+      })
+    }
+  }
 })
 
 export type PlanningStateRepairOperation = z.infer<typeof planningStateRepairOperationSchema>

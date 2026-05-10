@@ -301,6 +301,40 @@ test("applyBeatObligationRepairPatch mechanically applies valid add operations",
   expect((outline.scenes[0].obligations as any)?.mustTransferKnowledge ?? []).toEqual([])
 })
 
+test("applyBeatObligationRepairPatch targets scene-contract entries by sceneId", () => {
+  const outline = chapter({
+    chapterId: "ch-001-treatment",
+    scenes: [beat({
+      sceneId: "ch-001-treatment-scene-001-dose",
+      description: "Istra chooses whether to expose the forged dose ledger.",
+      characters: ["Istra"],
+      goal: "Expose the forged dose ledger.",
+      outcome: "Istra commits to exposing the ledger.",
+    })],
+    knowledgeChanges: [
+      { id: "know-istra-ledger-forgery", characterId: "char-istra", characterName: "Istra", knowledge: "Aldric falsified the plague ledgers", source: "deduced" } as any,
+    ],
+  })
+
+  const result = applyBeatObligationRepairPatch(outline, {
+    operations: [{
+      op: "addObligation",
+      sceneId: "ch-001-treatment-scene-001-dose",
+      list: "mustTransferKnowledge",
+      sourceId: "know-istra-ledger-forgery",
+      sourceKind: "knowledge",
+      characterId: "char-istra",
+      text: "Istra learns Aldric falsified the plague ledgers.",
+    }],
+  })
+
+  expect(result.rejected).toEqual([])
+  expect(result.validation.valid).toBe(true)
+  expect(result.outline.scenes[0].beatId).toBeUndefined()
+  const item = result.outline.scenes[0].obligations.mustTransferKnowledge[0] as any
+  expect(item.obligationId).toContain("001-treatment-scene-001-dose")
+})
+
 test("planningStateRepairSchema accepts null characterId as omitted for fact ops", () => {
   const parsed = planningStateRepairSchema.parse({
     operations: [{
@@ -538,7 +572,7 @@ test("apply rejects knowledge/state ops on beats where the source character is a
     }],
   })
   expect(result.applied).toEqual([])
-  expect(result.rejected[0]).toContain("not in beat ch-001-treatment-beat-002-aldric-only")
+  expect(result.rejected[0]).toContain("not in entry ch-001-treatment-beat-002-aldric-only")
 })
 
 test("apply enforces per-beat hard-obligation cap of 5", () => {

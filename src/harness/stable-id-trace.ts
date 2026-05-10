@@ -6,6 +6,7 @@ export interface BeatStableIdTraceMeta {
   totalBeats: number
   chapterTitle: string
   chapterId?: string
+  sceneId?: string
   beatId?: string
   obligationIds: string[]
   sourceIds: string[]
@@ -56,6 +57,7 @@ export function beatStableIdTraceMeta(outline: ChapterOutline, beatSpec: SceneBe
     totalBeats: outline.scenes.length,
     chapterTitle: outline.title,
     chapterId: outline.chapterId,
+    sceneId: beatSpec.sceneId,
     beatId: beatSpec.beatId,
     obligationIds: collectObligationIds(beatSpec.obligations),
     sourceIds: collectSourceIds(beatSpec.obligations),

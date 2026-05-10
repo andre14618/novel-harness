@@ -38,8 +38,9 @@ export interface ChapterTraceabilityCall {
   id: number
   agent: string
   role: "writer" | "checker" | "other"
-  linkEvidence: "beat_id" | "beat_index"
+  linkEvidence: "scene_id" | "beat_id" | "beat_index"
   beatIndex?: number
+  sceneId?: string
   beatId?: string
   attempt?: number
   failed: boolean
@@ -53,7 +54,7 @@ export interface ChapterTraceabilityEvent {
   id: number
   eventType: string
   agent?: string
-  linkEvidence: "payload_beat_id" | "beat_index"
+  linkEvidence: "payload_scene_id" | "payload_beat_id" | "beat_index"
   beatIndex?: number
   llmCallId?: number
   durationMs?: number
@@ -63,6 +64,7 @@ export interface ChapterTraceabilityEvent {
 
 export interface ChapterTraceabilityBeat {
   beatIndex: number
+  sceneId?: string
   beatId?: string
   description: string
   kind: string
@@ -180,6 +182,7 @@ export interface ChapterTraceabilityCallInput {
   id: number
   agent: string
   beatIndex?: number | null
+  sceneId?: string | null
   beatId?: string | null
   attempt?: number | null
   failed: boolean
@@ -326,21 +329,28 @@ export function buildChapterTraceabilityReport(
   const eventsByBeat = groupEventsByBeat(args.traceEvents ?? [])
 
   const beats = (outline.scenes ?? []).map((beat, beatIndex) => {
+    const sceneId = beat.sceneId
     const beatId = beat.beatId
+    const sceneRef = sceneId ?? beatId
     const refs = [
       ref("chapter_outline", chapterRef, targetLabels),
-      ...(beatId ? [ref("scene_plan", beatId, targetLabels)] : []),
+      ...(sceneRef ? [ref("scene_plan", sceneRef, targetLabels)] : []),
+      ...(beatId && beatId !== sceneRef ? [ref("beat_plan", beatId, targetLabels)] : []),
     ]
     const obligations = collectTraceableObligations(beat, sourceKeys, targetLabels, evidenceIndex)
-    const llmCalls = callsForBeat(callsByBeat, beatIndex, beatId).map((call) => mapCall(call, sourceKindById))
-    const traceEvents = eventsForBeat(eventsByBeat, beatIndex, beatId).map((event) => mapEvent(event, sourceKindById))
+    const llmCalls = callsForBeat(callsByBeat, beatIndex, sceneRef).map((call) => mapCall(call, sourceKindById))
+    const traceEvents = eventsForBeat(eventsByBeat, beatIndex, sceneRef).map((event) => mapEvent(event, sourceKindById))
     const proposalEvidence = evidenceForRefs(
-      beatId ? [ref("scene_plan", beatId, targetLabels)] : [],
+      [
+        ...(sceneRef ? [ref("scene_plan", sceneRef, targetLabels)] : []),
+        ...(beatId && beatId !== sceneRef ? [ref("beat_plan", beatId, targetLabels)] : []),
+      ],
       evidenceIndex,
     )
 
     return {
       beatIndex,
+      ...(sceneId ? { sceneId } : {}),
       beatId,
       description: beat.description,
       kind: beat.kind,
@@ -462,7 +472,7 @@ async function loadTraceabilityCalls(
   chapterNumber: number,
 ): Promise<ChapterTraceabilityCallInput[]> {
   const rows = await db`
-    SELECT id, agent, beat_index, beat_id, attempt, failed, timestamp,
+    SELECT id, agent, beat_index, scene_id, beat_id, attempt, failed, timestamp,
            prompt_tokens, completion_tokens, request_json
     FROM llm_calls
     WHERE novel_id = ${novelId}
@@ -474,6 +484,7 @@ async function loadTraceabilityCalls(
     id: row.id,
     agent: row.agent,
     beatIndex: row.beat_index,
+    sceneId: row.scene_id,
     beatId: row.beat_id,
     attempt: row.attempt,
     failed: row.failed === true,
@@ -613,7 +624,9 @@ function collectReportEvidenceRefs(outlineInput: ChapterOutline): ChapterTraceab
     refs.push({ kind: item.kind, ref: item.ref })
   }
   for (const beat of outline.scenes ?? []) {
-    if (beat.beatId) refs.push({ kind: "scene_plan", ref: beat.beatId })
+    const sceneRef = beat.sceneId ?? beat.beatId
+    if (sceneRef) refs.push({ kind: "scene_plan", ref: sceneRef })
+    if (beat.beatId && beat.beatId !== sceneRef) refs.push({ kind: "beat_plan", ref: beat.beatId })
     forEachObligation(beat.obligations, (item) => {
       refs.push(...obligationEvidenceRefs(item))
     })
@@ -940,8 +953,9 @@ function mapCall(
     role: input.agent === "beat-writer"
       ? "writer"
       : CHECKER_AGENTS.has(input.agent) ? "checker" : "other",
-    linkEvidence: input.beatId ? "beat_id" : "beat_index",
+    linkEvidence: input.sceneId ? "scene_id" : input.beatId ? "beat_id" : "beat_index",
     beatIndex: numberOrUndefined(input.beatIndex),
+    sceneId: input.sceneId ?? undefined,
     beatId: input.beatId ?? undefined,
     attempt: numberOrUndefined(input.attempt),
     failed: input.failed,
@@ -961,7 +975,11 @@ function mapEvent(
     id: input.id,
     eventType: input.eventType,
     agent: input.agent ?? undefined,
-    linkEvidence: typeof meta?.beatId === "string" ? "payload_beat_id" : "beat_index",
+    linkEvidence: typeof meta?.sceneId === "string"
+      ? "payload_scene_id"
+      : typeof meta?.beatId === "string"
+        ? "payload_beat_id"
+        : "beat_index",
     beatIndex: numberOrUndefined(input.beatIndex),
     llmCallId: numberOrUndefined(input.llmCallId),
     durationMs: numberOrUndefined(input.durationMs),
@@ -978,7 +996,8 @@ function refsFromMeta(
   const value = meta as Record<string, unknown>
   const refs: ChapterTraceabilityRef[] = []
   if (typeof value.chapterId === "string") refs.push({ kind: "chapter_outline", ref: value.chapterId })
-  if (typeof value.beatId === "string") refs.push({ kind: "scene_plan", ref: value.beatId })
+  if (typeof value.sceneId === "string") refs.push({ kind: "scene_plan", ref: value.sceneId })
+  if (typeof value.beatId === "string") refs.push({ kind: "beat_plan", ref: value.beatId })
   for (const id of stringArray(value.obligationIds)) refs.push({ kind: "beat_obligation", ref: id })
   for (const id of stringArray(value.sourceIds)) {
     refs.push({ kind: "source", ref: id })
@@ -995,6 +1014,7 @@ function readMeta(value: unknown): unknown {
   if (obj.meta && typeof obj.meta === "object") return obj.meta
   if (
     typeof obj.chapterId === "string" ||
+    typeof obj.sceneId === "string" ||
     typeof obj.beatId === "string" ||
     Array.isArray(obj.obligationIds) ||
     Array.isArray(obj.sourceIds) ||
@@ -1064,7 +1084,7 @@ function groupCallsByBeat(
 ): Map<string, ChapterTraceabilityCallInput[]> {
   const grouped = new Map<string, ChapterTraceabilityCallInput[]>()
   for (const call of calls) {
-    addGrouped(grouped, beatGroupKeys(call.beatIndex, call.beatId), call)
+    addGrouped(grouped, beatGroupKeys(call.beatIndex, call.sceneId ?? call.beatId), call)
   }
   return grouped
 }
@@ -1075,10 +1095,12 @@ function groupEventsByBeat(
   const grouped = new Map<string, ChapterTraceabilityEventInput[]>()
   for (const event of events) {
     const meta = readMeta(event.payload) as Record<string, unknown> | undefined
-    const beatId = event.beatIndex == null && typeof meta?.beatId === "string"
-      ? meta.beatId
-      : undefined
-    addGrouped(grouped, beatGroupKeys(event.beatIndex, beatId), event)
+    const sceneRef = event.beatIndex == null && typeof meta?.sceneId === "string"
+      ? meta.sceneId
+      : event.beatIndex == null && typeof meta?.beatId === "string"
+        ? meta.beatId
+        : undefined
+    addGrouped(grouped, beatGroupKeys(event.beatIndex, sceneRef), event)
   }
   return grouped
 }
@@ -1086,22 +1108,22 @@ function groupEventsByBeat(
 function callsForBeat(
   grouped: Map<string, ChapterTraceabilityCallInput[]>,
   beatIndex: number,
-  beatId?: string,
+  sceneRef?: string,
 ): ChapterTraceabilityCallInput[] {
   return dedupeById([
     ...grouped.get(indexKey(beatIndex)) ?? [],
-    ...(beatId ? grouped.get(idKey(beatId)) ?? [] : []),
+    ...(sceneRef ? grouped.get(idKey(sceneRef)) ?? [] : []),
   ])
 }
 
 function eventsForBeat(
   grouped: Map<string, ChapterTraceabilityEventInput[]>,
   beatIndex: number,
-  beatId?: string,
+  sceneRef?: string,
 ): ChapterTraceabilityEventInput[] {
   return dedupeById([
     ...grouped.get(indexKey(beatIndex)) ?? [],
-    ...(beatId ? grouped.get(idKey(beatId)) ?? [] : []),
+    ...(sceneRef ? grouped.get(idKey(sceneRef)) ?? [] : []),
   ])
 }
 
@@ -1113,10 +1135,10 @@ function addGrouped<T>(grouped: Map<string, T[]>, keys: string[], value: T): voi
   }
 }
 
-function beatGroupKeys(beatIndex?: number | null, beatId?: string | null): string[] {
+function beatGroupKeys(beatIndex?: number | null, sceneRef?: string | null): string[] {
   const keys: string[] = []
   if (typeof beatIndex === "number") keys.push(indexKey(beatIndex))
-  if (beatId) keys.push(idKey(beatId))
+  if (sceneRef) keys.push(idKey(sceneRef))
   return keys
 }
 

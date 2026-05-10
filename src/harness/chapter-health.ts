@@ -47,6 +47,7 @@ export interface ChapterHealthFinding {
   chapterNumber: number
   chapterId?: string
   beatIndex?: number
+  sceneId?: string
   beatId?: string
   refs: ChapterHealthStableRef[]
   metadata?: Record<string, unknown>
@@ -83,6 +84,7 @@ export interface ChapterHealthCheckerCall {
   id: number
   agent: string
   beatIndex?: number
+  sceneId?: string
   beatId?: string
   attempt?: number
   failed: boolean
@@ -194,6 +196,7 @@ export interface ChapterHealthExhaustionInput {
   unresolvedDeviations: Array<{
     description: string
     beat_index?: number | null
+    sceneId?: string
     beatId?: string
     metadata?: Record<string, unknown>
   }>
@@ -230,6 +233,7 @@ export interface ChapterHealthCheckerCallInput {
   chapterNumber: number
   agent: string
   beatIndex?: number | null
+  sceneId?: string | null
   beatId?: string | null
   attempt?: number | null
   failed: boolean
@@ -495,7 +499,7 @@ function summarizeOutline(
   target?: PlanningTarget,
 ): ChapterHealthOutlineSummary {
   const beatRefs = (outline.scenes ?? [])
-    .map((beat, index) => beat.beatId ?? `${outline.chapterId ?? `chapter:${outline.chapterNumber}`}-beat-${index + 1}`)
+    .map((beat, index) => beat.sceneId ?? beat.beatId ?? `${outline.chapterId ?? `chapter:${outline.chapterNumber}`}-scene-${index + 1}`)
   return {
     targetRef: outline.chapterId ?? `chapter:${outline.chapterNumber}`,
     currentVersion: target?.currentVersion ?? stableHash(outline),
@@ -528,6 +532,7 @@ function validationFindingToHealthFinding(
   chapterId: string | undefined,
   draftHash: string,
 ): ChapterHealthFinding {
+  const sceneId = finding.sceneId
   const beatId = finding.beatId
   return {
     source: "validation",
@@ -537,8 +542,9 @@ function validationFindingToHealthFinding(
     chapterNumber,
     ...(chapterId ? { chapterId } : {}),
     ...(finding.beatIndex !== undefined ? { beatIndex: finding.beatIndex } : {}),
+    ...(sceneId ? { sceneId } : {}),
     ...(beatId ? { beatId } : {}),
-    refs: refsForChapterAndBeat(chapterNumber, chapterId, beatId),
+    refs: refsForChapterAndBeat(chapterNumber, chapterId, sceneId, beatId),
     ...(finding.metadata ? { metadata: finding.metadata } : {}),
     stableSource: {
       kind: "computed",
@@ -606,8 +612,9 @@ function exhaustionToFinding(
     chapterNumber,
     ...(chapterId ? { chapterId } : {}),
     ...(beatIndex !== undefined ? { beatIndex } : {}),
+    ...(deviation.sceneId ? { sceneId: deviation.sceneId } : {}),
     ...(deviation.beatId ? { beatId: deviation.beatId } : {}),
-    refs: refsForChapterAndBeat(chapterNumber, chapterId, deviation.beatId),
+    refs: refsForChapterAndBeat(chapterNumber, chapterId, deviation.sceneId, deviation.beatId),
     metadata: {
       attempt: exhaustion.attempt,
       ...(deviation.metadata ? deviation.metadata : {}),
@@ -626,6 +633,7 @@ function proposalToFinding(
     typeof payload?.severity === "string" ? payload.severity : proposal.risk,
   )
   const code = typeof payload?.issueType === "string" ? payload.issueType : proposal.kind
+  const sceneRef = typeof payload?.sceneRef === "string" ? payload.sceneRef : undefined
   const beatRef = typeof payload?.beatRef === "string" ? payload.beatRef : undefined
   return {
     source: "proposal",
@@ -634,9 +642,10 @@ function proposalToFinding(
     description: proposal.summary,
     chapterNumber,
     ...(chapterId ? { chapterId } : {}),
+    ...(sceneRef ? { sceneId: sceneRef } : {}),
     ...(beatRef ? { beatId: beatRef } : {}),
     refs: [
-      ...refsForChapterAndBeat(chapterNumber, chapterId, beatRef),
+      ...refsForChapterAndBeat(chapterNumber, chapterId, sceneRef, beatRef),
       { kind: proposal.targetKind, ref: proposal.targetRef },
     ],
     metadata: {
@@ -652,13 +661,15 @@ function proposalToFinding(
 function refsForChapterAndBeat(
   chapterNumber: number,
   chapterId?: string,
-  beatId?: string,
+  sceneRef?: string,
+  beatRef?: string,
 ): ChapterHealthStableRef[] {
   const refs: ChapterHealthStableRef[] = [
     { kind: "chapter", ref: `chapter:${chapterNumber}` },
   ]
   if (chapterId) refs.push({ kind: "chapter_outline", ref: chapterId })
-  if (beatId) refs.push({ kind: "scene_plan", ref: beatId })
+  if (sceneRef) refs.push({ kind: "scene_plan", ref: sceneRef })
+  if (beatRef && beatRef !== sceneRef) refs.push({ kind: "beat_plan", ref: beatRef })
   return refs
 }
 
@@ -717,6 +728,7 @@ function toCheckerCall(call: ChapterHealthCheckerCallInput): ChapterHealthChecke
     id: call.id,
     agent: call.agent,
     ...(call.beatIndex != null ? { beatIndex: call.beatIndex } : {}),
+    ...(call.sceneId ? { sceneId: call.sceneId } : {}),
     ...(call.beatId ? { beatId: call.beatId } : {}),
     ...(call.attempt != null ? { attempt: call.attempt } : {}),
     failed: call.failed,
@@ -992,7 +1004,7 @@ async function loadCheckerCalls(
 ): Promise<ChapterHealthCheckerCallInput[]> {
   const rows = chapter !== undefined
     ? await db`
-        SELECT id, agent, chapter, beat_index, beat_id, attempt, failed,
+        SELECT id, agent, chapter, beat_index, scene_id, beat_id, attempt, failed,
                zod_validation_success, json_extraction_success,
                ner_prepass_json, timestamp
         FROM llm_calls
@@ -1002,7 +1014,7 @@ async function loadCheckerCalls(
         LIMIT 200
       `
     : await db`
-        SELECT id, agent, chapter, beat_index, beat_id, attempt, failed,
+        SELECT id, agent, chapter, beat_index, scene_id, beat_id, attempt, failed,
                zod_validation_success, json_extraction_success,
                ner_prepass_json, timestamp
         FROM llm_calls
@@ -1018,6 +1030,7 @@ async function loadCheckerCalls(
       chapterNumber: row.chapter,
       agent: row.agent,
       beatIndex: row.beat_index,
+      sceneId: row.scene_id,
       beatId: row.beat_id,
       attempt: row.attempt,
       failed: row.failed === true,

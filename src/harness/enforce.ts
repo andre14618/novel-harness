@@ -193,7 +193,7 @@ export function enforceScenePlanContract(
   const scenes = ch.scenes ?? []
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i]
-    const sceneRef = scene.beatId ?? `ch${ch.chapterNumber}-entry-${i + 1}`
+    const sceneRef = scene.sceneId ?? scene.beatId ?? `ch${ch.chapterNumber}-entry-${i + 1}`
 
     // (1) choiceAlternatives must declare at least two options.
     const alts = scene.choiceAlternatives ?? []

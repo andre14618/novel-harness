@@ -3,6 +3,7 @@ import {
   attachChapterPlanDeviationBeatIds,
   chapterPlanCheckSchema,
   resolveDeviationBeatId,
+  resolveDeviationSceneId,
 } from "./schema"
 import { enrichOutlineIds } from "../../harness/ids"
 import type { ChapterOutline, SceneBeat } from "../../types"
@@ -102,9 +103,10 @@ describe("L098 Slice 3: chapter-plan-checker scene-satisfaction fields", () => {
 })
 
 describe("chapter-plan-checker stable refs", () => {
-  test("attaches beatId from an enriched outline without changing legacy fields", () => {
+  test("attaches sceneId from an enriched outline without changing legacy fields", () => {
     const outline = baseOutline()
     enrichOutlineIds(outline)
+    const expectedSceneId = outline.scenes[1]!.sceneId
     const expectedBeatId = outline.scenes[1]!.beatId
 
     const result = attachChapterPlanDeviationBeatIds({
@@ -118,6 +120,7 @@ describe("chapter-plan-checker stable refs", () => {
     expect(result.deviations[0]).toEqual({
       description: "Beat omits the ledger discovery.",
       beat_index: 1,
+      sceneId: expectedSceneId,
       beatId: expectedBeatId,
     })
     expect(result.deviations[1]).toEqual({
@@ -126,9 +129,12 @@ describe("chapter-plan-checker stable refs", () => {
     })
   })
 
-  test("leaves beatId absent for un-enriched or out-of-range beat indices", () => {
+  test("leaves refs absent for un-enriched or out-of-range beat indices", () => {
     const outline = baseOutline()
 
+    expect(resolveDeviationSceneId(outline, 0)).toBeUndefined()
+    expect(resolveDeviationSceneId(outline, 99)).toBeUndefined()
+    expect(resolveDeviationSceneId(outline, null)).toBeUndefined()
     expect(resolveDeviationBeatId(outline, 0)).toBeUndefined()
     expect(resolveDeviationBeatId(outline, 99)).toBeUndefined()
     expect(resolveDeviationBeatId(outline, null)).toBeUndefined()

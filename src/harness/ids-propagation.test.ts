@@ -8,7 +8,7 @@
  * drafting smoke runs.
  *
  * The eight ID classes covered:
- *   1. beatId (entry identity for `outline.scenes[]`).
+ *   1. sceneId (entry identity for `outline.scenes[]`; beatId only on beat hints / legacy beat entries).
  *   2. obligationId (per obligation item).
  *   3. sourceId + sourceKind (per obligation item).
  *   4. threadId, promiseId, payoffId (story-debt graph refs).
@@ -65,7 +65,7 @@ const FIXTURE = {
       description: "Calla confronts Orvath in the empty archive.",
       characters: ["Calla", "Orvath"],
       kind: "dialogue",
-      beatId: "ch-001-confront-the-archive-beat-001-confront-orvath",
+      sceneId: "ch-001-confront-the-archive-scene-001-confront-orvath",
       // Slice 0 scene-contract additions.
       goal: "Force Orvath to confess.",
       opposition: "Orvath holds Davan's safety as leverage.",
@@ -80,7 +80,13 @@ const FIXTURE = {
       povPersonalStake: "Calla cannot let Davan be reduced to leverage.",
       targetWords: 720,
       beatHints: [
-        { kind: "dialogue", boundarySignal: "interruption", gapSize: "wide", purpose: "Orvath threatens Davan." },
+        {
+          beatId: "ch-001-confront-the-archive-beat-001-threaten-davan",
+          kind: "dialogue",
+          boundarySignal: "interruption",
+          gapSize: "wide",
+          purpose: "Orvath threatens Davan.",
+        },
       ],
       obligations: {
         mustEstablish: [
@@ -124,7 +130,9 @@ test("ID-propagation baseline: scene-contract outline parses with every ID class
   const parsed = chapterOutlineSchema.parse(FIXTURE)
   const scene = parsed.scenes[0]
 
-  expect(scene.beatId).toBe("ch-001-confront-the-archive-beat-001-confront-orvath")
+  expect(scene.sceneId).toBe("ch-001-confront-the-archive-scene-001-confront-orvath")
+  expect(scene.beatId).toBeUndefined()
+  expect(scene.beatHints?.[0]?.beatId).toBe("ch-001-confront-the-archive-beat-001-threaten-davan")
 
   const fact = scene.obligations.mustEstablish[0] as Record<string, unknown>
   expect(fact.obligationId).toBe("obl-confront-001-fact-ledger")
@@ -266,10 +274,13 @@ test("ID-propagation baseline: enrichOutlineIds preserves every well-formed ID",
   expect(outline.chapterId).toBe("ch-001-confront-the-archive")
   expect(report.chapterId).toBe("ch-001-confront-the-archive")
 
-  // beatId preserved (no remint).
-  expect(outline.scenes[0].beatId).toBe(
-    "ch-001-confront-the-archive-beat-001-confront-orvath",
+  // sceneId preserved (no remint); scene-contract entries do not need a
+  // generic beatId. Beat-specific IDs live inside beatHints.
+  expect(outline.scenes[0].sceneId).toBe(
+    "ch-001-confront-the-archive-scene-001-confront-orvath",
   )
+  expect(outline.scenes[0].beatId).toBeUndefined()
+  expect(outline.scenes[0].beatHints?.[0]?.beatId).toBe("ch-001-confront-the-archive-beat-001-threaten-davan")
 
   // Obligation IDs preserved.
   const fact = outline.scenes[0].obligations.mustEstablish[0] as Record<string, unknown>

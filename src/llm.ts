@@ -67,6 +67,7 @@ interface AgentConfig<T> {
   // they're working in (drafting loop, retry loops, etc.).
   chapter?: number
   beatIndex?: number
+  sceneId?: string
   beatId?: string
   attempt?: number
 }
@@ -174,6 +175,7 @@ export function extractJSON(raw: string): string {
 export interface ExecuteTags {
   chapter?: number
   beatIndex?: number
+  sceneId?: string
   beatId?: string
   attempt?: number
 }
@@ -241,6 +243,7 @@ export async function executeAndLog(
         agent: agentName,
         chapter: tags?.chapter,
         beatIndex: tags?.beatIndex,
+        sceneId: tags?.sceneId,
         attempt: tags?.attempt,
         model: request.model,
         provider: request.provider,
@@ -274,6 +277,7 @@ export async function executeAndLog(
       agentName,
       chapter: tags?.chapter,
       beatIndex: tags?.beatIndex,
+      sceneId: tags?.sceneId,
       attempt: tags?.attempt,
     }
   } catch (err) {
@@ -403,6 +407,7 @@ export async function executeAndLog(
           responseContent: response?.content,
           chapter: tags?.chapter,
           beatIndex: tags?.beatIndex,
+          sceneId: tags?.sceneId,
           beatId: tags?.beatId,
           attempt: tags?.attempt,
           requestJson: requestJsonWithMeta,
@@ -709,6 +714,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
         chapter: config.chapter,
         beatIndex: config.beatIndex,
         beatId: config.beatId,
+        sceneId: config.sceneId,
         attempt: config.attempt,
         // Reconstruct the request envelope for reproducibility. Active calls
         // are DeepSeek-only, so the only provider-specific body we need to

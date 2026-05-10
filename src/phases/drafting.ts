@@ -434,7 +434,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   },
                   novelId,
                   "beat-writer",
-                  { chapter: ch, beatIndex: bi, beatId: beatSpec.beatId, attempt: retry + 1 },
+                  { chapter: ch, beatIndex: bi, sceneId: beatSpec.sceneId, beatId: beatSpec.beatId, attempt: retry + 1 },
                   {
                     stream: true,
                     meta: beatStableIdTraceMeta(outline, beatSpec),
@@ -459,7 +459,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   // charter (v1/v3) to ground legitimate continuity
                   // references.
                   prevBeat: bi > 0 ? outline.scenes[bi - 1] : undefined,
-                  tags: { novelId, chapter: ch, beatIndex: bi, beatId: beatSpec.beatId, attempt: retry + 1 },
+                  tags: { novelId, chapter: ch, beatIndex: bi, sceneId: beatSpec.sceneId, beatId: beatSpec.beatId, attempt: retry + 1 },
                 })
                 // Quality defects (repetition / underlength) detected AFTER existing
                 // checker pipeline. Motivated by 2026-04-21 rewrite-capability-probe:
@@ -477,7 +477,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   beatProse = prose
                   if (!checks.pass) {
                     log(novelId, "warn", `Beat ${bi + 1} issues accepted after max retries: ${summarizeIssues(checks.issues)}`)
-                    acceptedBeatCheckIssues.push({ beatIndex: bi, beatId: beatSpec.beatId, issues: checks.issues })
+                    acceptedBeatCheckIssues.push({ beatIndex: bi, sceneId: beatSpec.sceneId, beatId: beatSpec.beatId, issues: checks.issues })
                   } else if (hasQualityDefect) {
                     log(novelId, "warn", `Beat ${bi + 1} quality defect(s) accepted after max retries: ${qualityDefects.map(d => d.kind).join(",")}`)
                   }
@@ -556,6 +556,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                       {
                         chapter: ch,
                         beatIndex: bi,
+                        sceneId: beatSpec.sceneId,
                         beatId: beatSpec.beatId,
                         // Tag expansion attempts with attempt numbers above the
                         // checker-retry range so cost/quality analysis can split
@@ -597,6 +598,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                     chapter: ch,
                     beatIndex: bi,
                     payload: {
+                      sceneId: beatSpec.sceneId,
                       beatId: beatSpec.beatId,
                       startWords: startWordCount,
                       bestWords: bestWordCount,
@@ -882,7 +884,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   },
                   novelId,
                   "beat-writer",
-                  { chapter: ch, beatIndex: bi, beatId: beatSpec.beatId, attempt: attempts + currentRewritePass * 10 },
+                  { chapter: ch, beatIndex: bi, sceneId: beatSpec.sceneId, beatId: beatSpec.beatId, attempt: attempts + currentRewritePass * 10 },
                   {
                     stream: true,
                     meta: {
@@ -1185,7 +1187,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 },
                 novelId,
                 "beat-writer",
-                { chapter: ch, beatIndex: bi, beatId: beatSpec.beatId, attempt: attempts + currentValidationPass * 20 },
+                { chapter: ch, beatIndex: bi, sceneId: beatSpec.sceneId, beatId: beatSpec.beatId, attempt: attempts + currentValidationPass * 20 },
                 {
                   stream: true,
                   meta: {
@@ -1765,7 +1767,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                     },
                     novelId,
                     "beat-writer",
-                    { chapter: ch, beatIndex: bi, beatId: beatSpec.beatId, attempt: attempts + 100 + integritySettlePass * 10 },
+                    { chapter: ch, beatIndex: bi, sceneId: beatSpec.sceneId, beatId: beatSpec.beatId, attempt: attempts + 100 + integritySettlePass * 10 },
                     {
                       stream: true,
                       meta: {

@@ -117,6 +117,7 @@ export interface ValidationFinding {
   chapterNumber?: number
   chapterId?: string
   beatIndex?: number
+  sceneId?: string
   beatId?: string
   /**
    * L098 Slice 3: scene-keyed routing reference. When a finding originates

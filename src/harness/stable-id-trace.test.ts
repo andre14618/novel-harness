@@ -59,6 +59,7 @@ test("stable-ID trace links chapter state to obligations and beat-writer metadat
   expect(derived.beats[0].mustShowStateChange[0].sourceId).toBe("state-istra-protective")
 
   expect(meta.chapterId).toBe("ch-001-ledger-test")
+  expect(meta.sceneId).toBe("ch-001-ledger-test-scene-001-istra-proves-ledger-forged-chooses")
   expect(meta.beatId).toBe("ch-001-ledger-test-beat-001-ledger-breaks")
   expect(meta.obligationIds).toEqual(["obl-ledger-fact", "obl-ledger-know", "obl-ledger-state"])
   expect(meta.sourceIds.sort()).toEqual(["fact-ledger-forgery", "know-istra-ledger-forgery", "state-istra-protective"].sort())

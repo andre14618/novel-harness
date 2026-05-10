@@ -90,6 +90,47 @@ export async function getChapterOutlineByBeatId(
   return null
 }
 
+export async function getChapterOutlineBySceneId(
+  novelId: string,
+  sceneId: string,
+  opts: { executor?: Executor; forUpdate?: boolean } = {},
+): Promise<StoredChapterOutline | null> {
+  const executor = opts.executor ?? db
+  const rows = (opts.forUpdate === true
+    ? await executor`
+        SELECT chapter_number, outline_json
+        FROM chapter_outlines
+        WHERE novel_id = ${novelId}
+        ORDER BY chapter_number
+        FOR UPDATE
+      `
+    : await executor`
+        SELECT chapter_number, outline_json
+        FROM chapter_outlines
+        WHERE novel_id = ${novelId}
+        ORDER BY chapter_number
+      `) as Array<{ chapter_number: number; outline_json: ChapterOutline }>
+  for (const row of rows) {
+    const outline = normalizeChapterOutlineForPersistence(row.outline_json)
+    if ((outline.scenes ?? []).some((scene) => scene.sceneId === sceneId)) {
+      return {
+        chapterNumber: row.chapter_number,
+        outline,
+      }
+    }
+  }
+  return null
+}
+
+export async function getChapterOutlineBySceneRef(
+  novelId: string,
+  ref: string,
+  opts: { executor?: Executor; forUpdate?: boolean } = {},
+): Promise<StoredChapterOutline | null> {
+  return (await getChapterOutlineBySceneId(novelId, ref, opts))
+    ?? getChapterOutlineByBeatId(novelId, ref, opts)
+}
+
 export async function getChapterOutlineByObligationId(
   novelId: string,
   obligationId: string,

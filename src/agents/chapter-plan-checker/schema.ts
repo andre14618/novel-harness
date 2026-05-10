@@ -4,7 +4,9 @@ import type { ChapterOutline } from "../../types"
 export type ChapterPlanDeviation = {
   description: string
   beat_index: number | null
-  /** Durable beat ref resolved by the harness from outline.scenes[beat_index].beatId. */
+  /** Durable scene ref resolved by the harness from outline.scenes[beat_index].sceneId. */
+  sceneId?: string
+  /** Legacy durable beat ref for beat-shaped entries. Not a generic scene ref. */
   beatId?: string
   /**
    * L098 Slice 3: optional obligation refs for scene-satisfaction findings.
@@ -24,6 +26,7 @@ const deviationSchema = z.preprocess(
   z.object({
     description: z.string(),
     beat_index: z.number().int().nullable(),
+    sceneId: z.string().min(1).optional(),
     beatId: z.string().min(1).optional(),
     obligationIds: z.array(z.string().min(1)).optional(),
   }),
@@ -53,10 +56,28 @@ export function attachChapterPlanDeviationBeatIds<T extends {
   return {
     ...result,
     deviations: (result.deviations ?? []).map((deviation) => {
+      const sceneId = resolveDeviationSceneId(outline, deviation.beat_index)
       const beatId = resolveDeviationBeatId(outline, deviation.beat_index)
-      return beatId ? { ...deviation, beatId } : { ...deviation }
+      return {
+        ...deviation,
+        ...(sceneId ? { sceneId } : {}),
+        ...(beatId ? { beatId } : {}),
+      }
     }),
   }
+}
+
+export function resolveDeviationSceneId(
+  outline: Pick<ChapterOutline, "scenes">,
+  beatIndex: number | null,
+): string | undefined {
+  if (beatIndex === null || !Number.isInteger(beatIndex) || beatIndex < 0) {
+    return undefined
+  }
+  const scene = outline.scenes?.[beatIndex]
+  return typeof scene?.sceneId === "string" && scene.sceneId.length > 0
+    ? scene.sceneId
+    : undefined
 }
 
 export function resolveDeviationBeatId(

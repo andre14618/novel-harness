@@ -101,12 +101,14 @@ export function validateChapterDraft(
         if (matched.length === 0) {
           addFinding("blocker", "beat_keyword_missing", `Scene beat ${i + 1} has no keyword matches — may be missing entirely`, {
             beatIndex: i,
+            ...(beat.sceneId ? { sceneId: beat.sceneId } : {}),
             ...(beat.beatId ? { beatId: beat.beatId } : {}),
             metadata: { keywordCount: keywords.length },
           })
         } else if (ratio < 0.4) {
           addFinding("warning", "beat_keyword_low_coverage", `Scene beat ${i + 1} has low keyword coverage (${matched.length}/${keywords.length})`, {
             beatIndex: i,
+            ...(beat.sceneId ? { sceneId: beat.sceneId } : {}),
             ...(beat.beatId ? { beatId: beat.beatId } : {}),
             metadata: { matchedKeywords: matched.length, keywordCount: keywords.length },
           })

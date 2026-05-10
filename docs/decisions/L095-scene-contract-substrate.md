@@ -14,16 +14,18 @@ L094 already promoted the writer-context layer (`thread-character-context-v1`). 
 
 ## Substrate Decisions
 
-### `beatId` is the durable per-entry identity for `outline.scenes[]`
+### `sceneId` is the durable per-entry identity for `outline.scenes[]`
 
-Production already uses `beatId` as the per-entry identifier (assigned by `enrichOutlineIds` at `src/harness/ids.ts:141`). When `scenePlanContractV1` is on (Slice 1+), each entry in `outline.scenes[]` carries scene semantics; the field name `beatId` is preserved for byte parity, schema stability, and zero churn across telemetry, traceability, planning-edit proposals, and findings.
+Amendment, 2026-05-10: production now assigns `sceneId` to each `outline.scenes[]` entry and treats it as the durable identity for scene-first planning, writing, checking, telemetry, traceability, and planning-edit targets. `beatId` is reserved for actual beat hints, legacy beat-shaped entries, and beat-specific records. Legacy rows may still carry `beatId`; compatibility readers resolve `sceneId` first and fall back to `beatId` only when needed.
 
-Two alternatives were considered and rejected:
+The original L095 substrate chose to keep `beatId` as the entry identity to reduce churn. User review rejected that terminology because scene-level entries should not be keyed by a field named `beatId`. The migration is additive:
 
-- **Adding a parallel `sceneId` field.** Doubles the identity surface, forces every consumer (mapper, writer context, `llm_calls`, checker findings, traceability views, planning-edit targets) to choose between two IDs, creates ambiguity for legacy rows.
-- **Renaming `beatId` to `sceneId`.** L092 explicitly forbids this in the same slice as the public target alias work; a rename is a separate future decision that would touch every consumer at once.
+- `src/harness/ids.ts` mints `sceneId` for every entry, preserves existing legacy `beatId`s, and only mints new `beatId`s for non-scene-contract legacy entries.
+- `src/schemas/shared.ts` accepts both fields; scene contracts use `sceneId`, while `beatHints[]` may carry beat-specific `beatId`s.
+- `llm_calls.scene_id` records the scene-first call target; `beat_id` remains compatibility/beat-specific telemetry.
+- Planning repair, proposal lookup, traceability, health, validation, and checker routing prefer `sceneId` and fall back to `beatId` for legacy data.
 
-Renaming-debt is acknowledged: under `scenePlanContractV1`, the field name `beatId` no longer matches the conceptual unit. A future decision may rename the field across producers and consumers in a dedicated slice; this decision keeps the rename out of scope.
+Non-goal retained: no rename of the `SceneBeat` type alias or `outline.scenes[]` property in this slice. Those names remain compatibility debt until a narrower naming cleanup is worth the churn.
 
 ### `storyDebtStage` enum widened from 5 to 7 values
 
@@ -45,14 +47,14 @@ Schema, pipeline flag resolver, harness enforcement helper, and ID-propagation r
 
 ## Exact Change
 
-- `src/schemas/shared.ts` extends `sceneBeatSchema` with the optional scene-contract fields, exports a new `beatHintSchema` and `BeatHint` type, exports `BeatObligationItem` (the inferred type from `beatObligationItemSchema`), widens `storyDebtStage` to seven values, and adds optional `materialityTest` on obligations.
+- `src/schemas/shared.ts` extends `sceneBeatSchema` with `sceneId`, optional scene-contract fields, exports a new `beatHintSchema` and `BeatHint` type, exports `BeatObligationItem` (the inferred type from `beatObligationItemSchema`), widens `storyDebtStage` to seven values, and adds optional `materialityTest` on obligations.
 - `src/types.ts` extends `SeedInput.pipelineOverrides` with optional `scenePlanContractV1`.
 - `src/config/pipeline.ts` adds `scenePlanContractV1: false` and `resolveScenePlanContractV1(overrides)` mirroring `resolveNativePlanningContractV1`.
 - `src/harness/enforce.ts` adds `enforceScenePlanContract(chapter, options)`, a pure function that ports the POC's `assessSceneContract` checks (choice alternatives ≥2, optional POV personal stake floor, ≥1 obligation with sourceId, observable consequence ≠ outcome, optional materiality-test floor, payoff-stage / `payoffEventId` / `payoffId` consistency). Not wired into any phase yet — Slice 1 wires it.
 - New tests:
   - `src/schemas/shared.test.ts` covers round-trip of optional scene-contract fields, all seven `storyDebtStage` values, and `materialityTest`.
   - `src/harness/enforce-scene-plan-contract.test.ts` ports POC fixtures for each validator class.
-  - `src/harness/ids-propagation.test.ts` is the ID-flow regression baseline. It parses an outline carrying every ID class (`beatId`, `obligationId`, `sourceId`, `sourceKind`, `threadId`, `promiseId`, `payoffId`, `payoffEventId`, `storyDebtStage`, `characterId`, `sceneTurnId`) and verifies each survives `enrichOutlineIds`. Slice 1 must preserve this invariant.
+  - `src/harness/ids-propagation.test.ts` is the ID-flow regression baseline. It parses an outline carrying every ID class (`sceneId`, beat-hint `beatId`, `obligationId`, `sourceId`, `sourceKind`, `threadId`, `promiseId`, `payoffId`, `payoffEventId`, `storyDebtStage`, `characterId`, `sceneTurnId`) and verifies each survives `enrichOutlineIds`. Slice 1 must preserve this invariant.
 
 ## Expected Benefit
 
@@ -85,12 +87,12 @@ This decision retires L092's "do not promote corpus-recreation POC behavior into
 
 ## Non-Goals
 
-- No `sceneId` field, no rename of `beatId`/`SceneBeat`/`outline.scenes`.
+- No rename of `SceneBeat`/`outline.scenes`.
 - No prompt edits, no phase orchestration changes.
 - No mapper behavior change beyond schema acceptance of the wider `storyDebtStage` enum and optional `materialityTest`.
 - No UI surface change.
 - No autonomy posture change.
-- No telemetry column addition (Slice 2 may add `attempt_number` / `retained_attempt_id` trace fields when scene-call expansion ships).
+- Telemetry identity addition is limited to `llm_calls.scene_id`; no external telemetry or CI surface is added.
 
 ## Follow-Up
 

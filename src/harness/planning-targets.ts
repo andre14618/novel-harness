@@ -63,6 +63,7 @@ export interface PlanningTargetLocation {
   chapterNumber?: number
   chapterId?: string
   beatIndex?: number
+  sceneId?: string
   beatId?: string
 }
 
@@ -363,7 +364,7 @@ export function buildPlanningTargetMap(artifacts: PlanningArtifacts): PlanningTa
   for (const rawOutline of artifacts.outlines) {
     const outline = clone(rawOutline)
     const missingChapterId = !rawOutline.chapterId
-    const missingBeatIds = (rawOutline.scenes ?? []).map((beat) => !beat.beatId)
+    const missingSceneIds = (rawOutline.scenes ?? []).map((beat) => !beat.sceneId)
     const missingObligationIds = collectMissingObligationIds(rawOutline)
     const enrichment = enrichOutlineIds(outline)
 
@@ -413,7 +414,7 @@ export function buildPlanningTargetMap(artifacts: PlanningArtifacts): PlanningTa
         severity: "error",
         code: "missing-obligation-source-id",
         message: failure.reason,
-        path: `scenes.${failure.beatId}.obligations.${failure.obligationKey}.${failure.obligationIndex}`,
+        path: `scenes.${failure.sceneId ?? failure.beatId ?? "unknown-entry"}.obligations.${failure.obligationKey}.${failure.obligationIndex}`,
       })
     }
     addTarget(outlineTarget)
@@ -438,18 +439,20 @@ export function buildPlanningTargetMap(artifacts: PlanningArtifacts): PlanningTa
 
     for (let beatIndex = 0; beatIndex < (outline.scenes ?? []).length; beatIndex++) {
       const beat = outline.scenes[beatIndex]
+      const sceneRef = beat.sceneId ?? beat.beatId ?? `${outlineTarget.ref}-scene-${beatIndex + 1}`
       const beatTarget: PlanningTarget = {
         kind: "scene_plan",
-        ref: beat.beatId ?? `${outlineTarget.ref}-beat-${beatIndex + 1}`,
+        ref: sceneRef,
         label: `Chapter ${outline.chapterNumber}, scene ${beatIndex + 1}`,
-        fieldPaths: objectFieldPaths(beat).filter((path) => path !== "beatId"),
+        fieldPaths: objectFieldPaths(beat).filter((path) => path !== "sceneId" && path !== "beatId"),
         currentVersion: stableHash(beat),
         inSnapshot: true,
         location: {
           chapterNumber: outline.chapterNumber,
           chapterId: outline.chapterId,
           beatIndex,
-          beatId: beat.beatId,
+          sceneId: beat.sceneId,
+          ...(beat.beatId ? { beatId: beat.beatId } : {}),
         },
         upstreamRefs: [
           { kind: "chapter_outline", ref: outlineTarget.ref },
@@ -457,12 +460,12 @@ export function buildPlanningTargetMap(artifacts: PlanningArtifacts): PlanningTa
         ],
         validationFindings: [],
       }
-      if (missingBeatIds[beatIndex]) {
+      if (missingSceneIds[beatIndex]) {
         addFinding(beatTarget, {
           severity: "warning",
-          code: "missing-persisted-beat-id",
-          message: "Persisted beat was missing beatId; target ref was synthesized in memory.",
-          path: `scenes.${beatIndex}.beatId`,
+          code: "missing-persisted-scene-id",
+          message: "Persisted scene entry was missing sceneId; target ref was synthesized in memory.",
+          path: `scenes.${beatIndex}.sceneId`,
         })
       }
       addTarget(beatTarget)
@@ -481,7 +484,8 @@ export function buildPlanningTargetMap(artifacts: PlanningArtifacts): PlanningTa
             chapterNumber: outline.chapterNumber,
             chapterId: outline.chapterId,
             beatIndex,
-            beatId: beat.beatId,
+            sceneId: beat.sceneId,
+            ...(beat.beatId ? { beatId: beat.beatId } : {}),
           },
           upstreamRefs: [
             { kind: "scene_plan", ref: beatTarget.ref },
@@ -501,7 +505,7 @@ export function buildPlanningTargetMap(artifacts: PlanningArtifacts): PlanningTa
           addFinding(obligationTarget, {
             severity: "error",
             code: "missing-obligation-source-id",
-            message: "Obligation has no sourceId, so impact can only be traced to the containing beat.",
+            message: "Obligation has no sourceId, so impact can only be traced to the containing scene entry.",
             path: `scenes.${beatIndex}.obligations.${key}.${itemIndex}.sourceId`,
           })
         }

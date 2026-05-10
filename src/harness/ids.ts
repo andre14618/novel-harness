@@ -2,7 +2,7 @@
  * Stable-ID generation + outline enrichment.
  *
  * Names and prose text are display fields. IDs are identity. Every semantic
- * artifact in a chapter outline (chapter, beat, fact, knowledgeChange,
+ * artifact in a chapter outline (chapter, scene/beat entry, fact, knowledgeChange,
  * stateChange, payoff, obligation) gets a deterministic kebab-case ID that
  * downstream surfaces (mapper, writer context, llm_calls metadata, checker
  * findings) reference instead of fuzzy text matching.
@@ -75,6 +75,35 @@ export function beatId(chapter: string, beatIndex: number, description: string):
   return `${chapter}-beat-${pad3(beatIndex + 1)}-${slug}`
 }
 
+export function sceneId(chapter: string, sceneIndex: number, description: string): string {
+  const slug = slugify(description, { maxTokens: 5 }) || "scene"
+  return `${chapter}-scene-${pad3(sceneIndex + 1)}-${slug}`
+}
+
+export function isSceneContractEntry(entry: Pick<SceneBeat,
+  "goal" | "opposition" | "turningPoint" | "crisisChoice" | "outcome" | "consequence" |
+  "choiceAlternatives" | "beatHints" | "targetWords" | "valueIn" | "valueOut"
+> & { povPersonalStake?: string | null }): boolean {
+  return Boolean(
+    cleanString((entry as any).goal)
+    || cleanString((entry as any).opposition)
+    || cleanString((entry as any).turningPoint)
+    || cleanString((entry as any).crisisChoice)
+    || cleanString((entry as any).outcome)
+    || cleanString((entry as any).consequence)
+    || cleanString((entry as any).povPersonalStake)
+    || cleanString((entry as any).valueIn)
+    || cleanString((entry as any).valueOut)
+    || ((entry as any).choiceAlternatives?.length ?? 0) > 0
+    || ((entry as any).beatHints?.length ?? 0) > 0
+    || (typeof (entry as any).targetWords === "number" && (entry as any).targetWords > 0)
+  )
+}
+
+function cleanString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : ""
+}
+
 export function characterIdFromName(name: string): string {
   return `char-${slugify(name, { maxTokens: 4 }) || "unnamed"}`
 }
@@ -109,9 +138,11 @@ const KIND_TO_OBLIGATION_KEYS: Record<SourceKind, ("mustEstablish" | "mustPayOff
 
 export interface EnrichmentReport {
   chapterId: string
+  sceneIds: string[]
   beatIds: string[]
   obligationLinkFailures: Array<{
-    beatId: string
+    sceneId?: string
+    beatId?: string
     obligationKey: string
     obligationIndex: number
     text: string
@@ -120,7 +151,7 @@ export interface EnrichmentReport {
 }
 
 /**
- * Mutating in-place: assigns chapterId, beatIds, knowledge/state IDs,
+ * Mutating in-place: assigns chapterId, sceneIds, beatIds where applicable, knowledge/state IDs,
  * character IDs, and obligation IDs. It reports unlinked obligations but does
  * not resolve source IDs from text.
  *
@@ -132,16 +163,34 @@ export function enrichOutlineIds(outline: ChapterOutline): EnrichmentReport {
     : chapterId(outline.chapterNumber, outline.title)
   outline.chapterId = cId
 
-  // ── Beat IDs ──────────────────────────────────────────────────────────
+  // ── Scene/beat entry IDs ──────────────────────────────────────────────
+  const sceneIdScope = new Set<string>()
   const beatIdScope = new Set<string>()
+  const sceneIds: string[] = []
   const beatIds: string[] = []
   for (let i = 0; i < (outline.scenes ?? []).length; i++) {
-    const beat = outline.scenes[i]
-    const existing = beat.beatId
-    let assigned = existing && ID_RE.test(existing) ? existing : beatId(cId, i, beat.description)
-    assigned = uniqueWithinScope(beatIdScope, assigned)
-    beat.beatId = assigned
-    beatIds.push(assigned)
+    const entry = outline.scenes[i]
+    const existingSceneId = entry.sceneId
+    let assignedSceneId = existingSceneId && ID_RE.test(existingSceneId)
+      ? existingSceneId
+      : sceneId(cId, i, entry.description)
+    assignedSceneId = uniqueWithinScope(sceneIdScope, assignedSceneId)
+    entry.sceneId = assignedSceneId
+    sceneIds.push(assignedSceneId)
+
+    const isScene = isSceneContractEntry(entry)
+    const existingBeatId = entry.beatId
+    if (existingBeatId && ID_RE.test(existingBeatId)) {
+      const assignedBeatId = uniqueWithinScope(beatIdScope, existingBeatId)
+      entry.beatId = assignedBeatId
+      beatIds.push(assignedBeatId)
+    } else if (!isScene) {
+      const assignedBeatId = uniqueWithinScope(beatIdScope, beatId(cId, i, entry.description))
+      entry.beatId = assignedBeatId
+      beatIds.push(assignedBeatId)
+    } else {
+      delete (entry as { beatId?: string }).beatId
+    }
   }
 
   // ── Fact IDs (prefer existing `id`, leave alone if missing — validation
@@ -184,25 +233,27 @@ export function enrichOutlineIds(outline: ChapterOutline): EnrichmentReport {
   const failures: EnrichmentReport["obligationLinkFailures"] = []
   for (let beatIndex = 0; beatIndex < (outline.scenes ?? []).length; beatIndex++) {
     const beat = outline.scenes[beatIndex]
-    const bId = beatIds[beatIndex]
-    if (!beat.obligations) continue
+    const sId = beat.sceneId ?? sceneIds[beatIndex]
+    const bId = beat.beatId
+    const anchorId = isSceneContractEntry(beat) ? sId : (bId ?? sId)
+    if (!beat.obligations || !anchorId) continue
 
-    enrichObligationList(beat, bId, "mustEstablish", "fact", failures)
-    enrichObligationList(beat, bId, "mustPayOff", "payoff", failures)
-    enrichObligationList(beat, bId, "mustTransferKnowledge", "knowledge", failures)
-    enrichObligationList(beat, bId, "mustShowStateChange", "state", failures)
+    enrichObligationList(beat, anchorId, "mustEstablish", "fact", failures)
+    enrichObligationList(beat, anchorId, "mustPayOff", "payoff", failures)
+    enrichObligationList(beat, anchorId, "mustTransferKnowledge", "knowledge", failures)
+    enrichObligationList(beat, anchorId, "mustShowStateChange", "state", failures)
     // mustNotReveal has no upstream source registry — assign obligationId only.
     if (beat.obligations.mustNotReveal) {
       for (let i = 0; i < beat.obligations.mustNotReveal.length; i++) {
         const item = beat.obligations.mustNotReveal[i] as any
         if (!item.obligationId || !ID_RE.test(item.obligationId)) {
-          item.obligationId = obligationIdGen(bId, "avoid", "", i)
+          item.obligationId = obligationIdGen(anchorId, "avoid", "", i)
         }
       }
     }
   }
 
-  return { chapterId: cId, beatIds, obligationLinkFailures: failures }
+  return { chapterId: cId, sceneIds, beatIds, obligationLinkFailures: failures }
 }
 
 // L096 Slice 1.5: payoff stages that require a unique child event id.
@@ -210,7 +261,7 @@ const PAYOFF_DEBT_STAGES_REQUIRING_EVENT_ID = new Set(["partial_payoff", "final_
 
 function enrichObligationList(
   beat: SceneBeat,
-  bId: string,
+  entryId: string,
   key: "mustEstablish" | "mustPayOff" | "mustTransferKnowledge" | "mustShowStateChange",
   kind: SourceKind,
   failures: EnrichmentReport["obligationLinkFailures"],
@@ -229,7 +280,8 @@ function enrichObligationList(
       item.sourceId = sourceId
     } else {
       failures.push({
-        beatId: bId,
+        ...(beat.sceneId ? { sceneId: beat.sceneId } : {}),
+        ...(beat.beatId ? { beatId: beat.beatId } : {}),
         obligationKey: key,
         obligationIndex: i,
         text: item.text,
@@ -239,7 +291,7 @@ function enrichObligationList(
 
     // Always assign an obligationId.
     if (!item.obligationId || !ID_RE.test(item.obligationId)) {
-      item.obligationId = obligationIdGen(bId, kindShort(kind), sourceId ?? "", i)
+      item.obligationId = obligationIdGen(entryId, kindShort(kind), sourceId ?? "", i)
     }
 
     // L096 Slice 1.5: deterministic payoffEventId mint when an obligation
