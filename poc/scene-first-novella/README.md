@@ -79,8 +79,11 @@ Use `--writer-expansion-mode off` for expansion-ablation runs that should keep
 the same planner fixture but skip the retry-short-scenes expansion path.
 Use `--planning-note-preset single-obligation-hardcap-v2` for prompt-only
 load-control runs, and `--obligation-control chapter-budget-v1` for the
-POC-only deterministic obligation compactor. For mapper-minimization runs,
-start the process with
+POC-only deterministic obligation compactor. Use
+`--scene-contract-control endpoint-min-v1` or `endpoint-core-v1` for
+endpoint-preserving writer-context payload experiments: these reduce planner
+scene-contract text before drafting but do not compact generated prose. For
+mapper-minimization runs, start the process with
 `PLANNING_STATE_MAPPER_PROMPT_OVERRIDE=poc/scene-first-novella/state-mapper-minimal-system.md`.
 
 The resulting `poc/scene-first-novella/output/<runId>/` contains:
@@ -93,6 +96,7 @@ chapter-N.scene-contracts.json    full outline_json row
 chapter-N.trace.json              pipeline_events + llm_calls metadata
 chapter-N.diagnostics.json        endpointLanding + per-scene judges
 obligation-control-report.json    optional compactor report
+scene-contract-control-report.json optional scene-contract payload report
 prose-eval.json / .md             optional prose-effectiveness panel
 review-summary.json               aggregate review stats + finding bullets
 findings.md                       concise reader-visible POC findings

@@ -22,6 +22,7 @@
  *     [--fixture docs/fixtures/scene-first/concepts/pre-resolved/P3-debt-binder-resolved.json] \
  *     [--chapters 3] \
  *     [--writer-expansion-mode retry-short-scenes-v1|off] \
+ *     [--scene-contract-control endpoint-min-v1|endpoint-core-v1] \
  *     [--run-id poc-scene-first-<ts>]    # default auto-derived from timestamp
  */
 
@@ -43,6 +44,7 @@ const POC_OUTPUT_ROOT = "poc/scene-first-novella/output"
 type WriterExpansionMode = "off" | "retry-short-scenes-v1"
 type PlanningNotePreset = "none" | "single-obligation-hardcap-v2"
 type ObligationControlMode = "none" | "chapter-budget-v1"
+type SceneContractControlMode = "none" | "endpoint-min-v1" | "endpoint-core-v1"
 type LoadBearingObligationKey =
   | "mustEstablish"
   | "mustPayOff"
@@ -58,6 +60,7 @@ export interface Args {
   writerExpansionMode: WriterExpansionMode
   planningNotePreset: PlanningNotePreset
   obligationControl: ObligationControlMode
+  sceneContractControl: SceneContractControlMode
 }
 
 interface SceneContractCoverage {
@@ -109,6 +112,35 @@ interface ObligationControlReport {
   }>
 }
 
+interface SceneContractControlChapterReport {
+  chapterNumber: number
+  mode: SceneContractControlMode
+  scenes: number
+  beforeChars: number
+  afterChars: number
+  removedChars: number
+  choiceAlternativesBefore: number
+  choiceAlternativesAfter: number
+  clippedFields: number
+  clearedFields: number
+}
+
+interface SceneContractControlReport {
+  mode: SceneContractControlMode
+  applied: boolean
+  totals: {
+    scenes: number
+    beforeChars: number
+    afterChars: number
+    removedChars: number
+    choiceAlternativesBefore: number
+    choiceAlternativesAfter: number
+    clippedFields: number
+    clearedFields: number
+  }
+  chapters: SceneContractControlChapterReport[]
+}
+
 const LOAD_BEARING_OBLIGATION_KEYS: LoadBearingObligationKey[] = [
   "mustPayOff",
   "mustEstablish",
@@ -128,6 +160,44 @@ const SINGLE_OBLIGATION_HARDCAP_V2_NOTE = [
   "Prefer scene-contract goal/opposition/turn/outcome text for local scene work; reserve obligations for continuity-critical payloads only.",
   "Do not emit obligations for summons, travel, room setup, mood, already-known deadlines, or restating the scene description.",
 ].join(" ")
+
+const SCENE_CONTRACT_TEXT_KEYS = [
+  "goal",
+  "opposition",
+  "turningPoint",
+  "crisisChoice",
+  "outcome",
+  "consequence",
+  "valueIn",
+  "valueOut",
+  "povPersonalStake",
+] as const
+
+const ENDPOINT_MIN_FIELD_LIMITS: Partial<Record<typeof SCENE_CONTRACT_TEXT_KEYS[number], number>> = {
+  goal: 72,
+  opposition: 72,
+  turningPoint: 72,
+  crisisChoice: 84,
+  outcome: 72,
+  consequence: 84,
+  valueIn: 32,
+  valueOut: 32,
+  povPersonalStake: 72,
+}
+
+const ENDPOINT_CORE_KEEP_FIELDS = new Set<typeof SCENE_CONTRACT_TEXT_KEYS[number]>([
+  "goal",
+  "crisisChoice",
+  "outcome",
+  "consequence",
+])
+
+const ENDPOINT_CORE_FIELD_LIMITS: Partial<Record<typeof SCENE_CONTRACT_TEXT_KEYS[number], number>> = {
+  goal: 64,
+  crisisChoice: 72,
+  outcome: 64,
+  consequence: 72,
+}
 
 function nonEmpty(value: unknown): boolean {
   return typeof value === "string" ? value.trim().length > 0 : value != null
@@ -259,6 +329,11 @@ function parseObligationControlMode(value: string | undefined): ObligationContro
   throw new Error(`--obligation-control must be "none" or "chapter-budget-v1"; got ${value ?? "(missing)"}`)
 }
 
+function parseSceneContractControlMode(value: string | undefined): SceneContractControlMode {
+  if (value === "none" || value === "endpoint-min-v1" || value === "endpoint-core-v1") return value
+  throw new Error(`--scene-contract-control must be "none", "endpoint-min-v1", or "endpoint-core-v1"; got ${value ?? "(missing)"}`)
+}
+
 export function parseArgs(argv: string[]): Args {
   let fixturePath = DEFAULT_FIXTURE
   let chapters = 3
@@ -267,6 +342,7 @@ export function parseArgs(argv: string[]): Args {
   let writerExpansionMode: WriterExpansionMode = "retry-short-scenes-v1"
   let planningNotePreset: PlanningNotePreset = "none"
   let obligationControl: ObligationControlMode = "none"
+  let sceneContractControl: SceneContractControlMode = "none"
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!
     if (a === "--fixture") { fixturePath = argv[++i] ?? fixturePath; continue }
@@ -276,6 +352,7 @@ export function parseArgs(argv: string[]): Args {
     if (a === "--writer-expansion-mode") { writerExpansionMode = parseWriterExpansionMode(argv[++i]); continue }
     if (a === "--planning-note-preset") { planningNotePreset = parsePlanningNotePreset(argv[++i]); continue }
     if (a === "--obligation-control") { obligationControl = parseObligationControlMode(argv[++i]); continue }
+    if (a === "--scene-contract-control") { sceneContractControl = parseSceneContractControlMode(argv[++i]); continue }
     throw new Error(`unknown arg: ${a}`)
   }
   if (!Number.isFinite(chapters) || chapters < 1) {
@@ -292,6 +369,7 @@ export function parseArgs(argv: string[]): Args {
     writerExpansionMode,
     planningNotePreset,
     obligationControl,
+    sceneContractControl,
   }
 }
 
@@ -446,6 +524,142 @@ export function compactOutlineObligationsForChapterBudget(outline: any): {
   }
 }
 
+function oneLine(value: string): string {
+  return value.replace(/\s+/g, " ").trim()
+}
+
+function clipTextField(value: unknown, maxChars: number): { value: unknown; changed: boolean } {
+  if (typeof value !== "string") return { value, changed: false }
+  const normalized = oneLine(value)
+  if (normalized.length <= maxChars) return { value: normalized, changed: normalized !== value }
+  const suffix = "..."
+  const hardLimit = Math.max(1, maxChars - suffix.length)
+  const boundary = normalized.lastIndexOf(" ", hardLimit)
+  const cutAt = boundary >= Math.floor(maxChars * 0.6) ? boundary : hardLimit
+  return {
+    value: `${normalized.slice(0, Math.max(1, cutAt)).trimEnd()}${suffix}`,
+    changed: true,
+  }
+}
+
+function textChars(value: unknown): number {
+  if (typeof value === "string") return value.length
+  if (Array.isArray(value)) {
+    return value.reduce((sum, item) => sum + (typeof item === "string" ? item.length : 0), 0)
+  }
+  return 0
+}
+
+function sceneContractPayloadChars(scene: any): number {
+  let chars = textChars(scene?.choiceAlternatives)
+  for (const key of SCENE_CONTRACT_TEXT_KEYS) {
+    chars += textChars(scene?.[key])
+  }
+  return chars
+}
+
+function choiceAlternativeCount(scene: any): number {
+  return Array.isArray(scene?.choiceAlternatives) ? scene.choiceAlternatives.length : 0
+}
+
+function emptySceneContractControlReport(mode: SceneContractControlMode): SceneContractControlReport {
+  return {
+    mode,
+    applied: mode !== "none",
+    totals: {
+      scenes: 0,
+      beforeChars: 0,
+      afterChars: 0,
+      removedChars: 0,
+      choiceAlternativesBefore: 0,
+      choiceAlternativesAfter: 0,
+      clippedFields: 0,
+      clearedFields: 0,
+    },
+    chapters: [],
+  }
+}
+
+function addSceneContractChapterReport(
+  report: SceneContractControlReport,
+  chapter: SceneContractControlChapterReport,
+): void {
+  report.chapters.push(chapter)
+  report.totals.scenes += chapter.scenes
+  report.totals.beforeChars += chapter.beforeChars
+  report.totals.afterChars += chapter.afterChars
+  report.totals.removedChars += chapter.removedChars
+  report.totals.choiceAlternativesBefore += chapter.choiceAlternativesBefore
+  report.totals.choiceAlternativesAfter += chapter.choiceAlternativesAfter
+  report.totals.clippedFields += chapter.clippedFields
+  report.totals.clearedFields += chapter.clearedFields
+}
+
+export function compactOutlineSceneContractsForEndpointControl(
+  outline: any,
+  mode: Exclude<SceneContractControlMode, "none">,
+): {
+  outline: any
+  report: SceneContractControlChapterReport
+} {
+  const chapterNumber = Number(outline?.chapterNumber ?? 0)
+  const scenes = Array.isArray(outline?.scenes) ? outline.scenes : []
+  let beforeChars = 0
+  let afterChars = 0
+  let choiceAlternativesBefore = 0
+  let choiceAlternativesAfter = 0
+  let clippedFields = 0
+  let clearedFields = 0
+
+  const limits = mode === "endpoint-core-v1" ? ENDPOINT_CORE_FIELD_LIMITS : ENDPOINT_MIN_FIELD_LIMITS
+  const compactedScenes = scenes.map((scene: any) => {
+    beforeChars += sceneContractPayloadChars(scene)
+    choiceAlternativesBefore += choiceAlternativeCount(scene)
+    const next = { ...scene }
+
+    for (const key of SCENE_CONTRACT_TEXT_KEYS) {
+      const existing = next[key]
+      if (mode === "endpoint-core-v1" && !ENDPOINT_CORE_KEEP_FIELDS.has(key)) {
+        if (nonEmpty(existing)) clearedFields++
+        next[key] = null
+        continue
+      }
+      const limit = limits[key]
+      if (typeof limit === "number") {
+        const clipped = clipTextField(existing, limit)
+        if (clipped.changed) clippedFields++
+        next[key] = clipped.value
+      }
+    }
+
+    if (choiceAlternativeCount(next) > 0) {
+      next.choiceAlternatives = []
+    }
+    choiceAlternativesAfter += choiceAlternativeCount(next)
+    afterChars += sceneContractPayloadChars(next)
+    return next
+  })
+
+  return {
+    outline: {
+      ...outline,
+      scenes: compactedScenes,
+    },
+    report: {
+      chapterNumber,
+      mode,
+      scenes: scenes.length,
+      beforeChars,
+      afterChars,
+      removedChars: beforeChars - afterChars,
+      choiceAlternativesBefore,
+      choiceAlternativesAfter,
+      clippedFields,
+      clearedFields,
+    },
+  }
+}
+
 async function applyObligationControl(novelId: string, mode: ObligationControlMode): Promise<ObligationControlReport> {
   const report: ObligationControlReport = { mode, applied: mode !== "none", chapters: [] }
   if (mode === "none") return report
@@ -462,6 +676,36 @@ async function applyObligationControl(novelId: string, mode: ObligationControlMo
     const compacted = compactOutlineObligationsForChapterBudget(outline)
     report.chapters.push(compacted.report)
     if (compacted.report.removed > 0) {
+      await db`
+        UPDATE chapter_outlines
+        SET outline_json = ${compacted.outline as unknown as Record<string, unknown>}
+        WHERE novel_id = ${novelId} AND chapter_number = ${row.chapter_number}
+      `
+    }
+  }
+
+  return report
+}
+
+async function applySceneContractControl(
+  novelId: string,
+  mode: SceneContractControlMode,
+): Promise<SceneContractControlReport> {
+  const report = emptySceneContractControlReport(mode)
+  if (mode === "none") return report
+
+  const rows = await db`
+    SELECT chapter_number, outline_json
+    FROM chapter_outlines
+    WHERE novel_id = ${novelId}
+    ORDER BY chapter_number ASC
+  ` as Array<{ chapter_number: number; outline_json: unknown }>
+
+  for (const row of rows) {
+    const outline = typeof row.outline_json === "string" ? JSON.parse(row.outline_json) : row.outline_json
+    const compacted = compactOutlineSceneContractsForEndpointControl(outline, mode)
+    addSceneContractChapterReport(report, compacted.report)
+    if (compacted.report.removedChars > 0 || compacted.report.clearedFields > 0 || compacted.report.clippedFields > 0) {
       await db`
         UPDATE chapter_outlines
         SET outline_json = ${compacted.outline as unknown as Record<string, unknown>}
@@ -632,6 +876,7 @@ async function main(): Promise<void> {
   console.log(`runId: ${args.runId}`)
   console.log(`planning note preset: ${args.planningNotePreset}`)
   console.log(`obligation control: ${args.obligationControl}`)
+  console.log(`scene-contract control: ${args.sceneContractControl}`)
 
   setAutoMode(true)
   setResolverMode(getMode(true))
@@ -700,6 +945,23 @@ async function main(): Promise<void> {
     await writeFile(
       join(outputDir, "obligation-control-report.json"),
       JSON.stringify(obligationControlReport, null, 2),
+      "utf8",
+    )
+  }
+
+  const sceneContractControlReport = !args.captureOnly
+    ? await applySceneContractControl(args.runId, args.sceneContractControl)
+    : emptySceneContractControlReport(args.sceneContractControl)
+  if (sceneContractControlReport.applied) {
+    const totals = sceneContractControlReport.totals
+    console.log(
+      `\nscene-contract control ${args.sceneContractControl}: removed ${totals.removedChars} contract char(s), ` +
+      `cleared ${totals.choiceAlternativesBefore - totals.choiceAlternativesAfter} choice alternative(s), ` +
+      `clipped ${totals.clippedFields} field(s) before drafting`,
+    )
+    await writeFile(
+      join(outputDir, "scene-contract-control-report.json"),
+      JSON.stringify(sceneContractControlReport, null, 2),
       "utf8",
     )
   }
@@ -792,6 +1054,7 @@ async function main(): Promise<void> {
       chapterStats,
       planningNotePreset: args.planningNotePreset,
       obligationControl: obligationControlReport,
+      sceneContractControl: sceneContractControlReport,
       draftingResultKind: draftingResult.kind,
       pipelineOverrides: seed.pipelineOverrides,
       capturedAt: new Date().toISOString(),

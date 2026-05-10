@@ -31,6 +31,8 @@ interface ReviewSummary {
     totalScenes: number
     coreContractFieldScenes: number
     choiceAlternativeScenes: number
+    choiceAlternativeCount?: number
+    sceneContractPayloadChars?: number
     sceneIds: number
     beatIds: number
     obligationIds: number
@@ -165,6 +167,12 @@ function writerExpansionEvents(summary: ReviewSummary): number | null {
     : null
 }
 
+function sceneContractPayloadChars(summary: ReviewSummary): number | null {
+  return typeof summary.reviewStats.sceneContractPayloadChars === "number"
+    ? summary.reviewStats.sceneContractPayloadChars
+    : null
+}
+
 export function buildComparison(baseline: ReviewSummary, variant: ReviewSummary): Comparison {
   const baselineRatio = ratio(baseline)
   const variantRatio = ratio(variant)
@@ -237,6 +245,11 @@ export function renderComparisonMarkdown(comparison: Comparison): string {
   const variantRatio = ratio(variant)
   const baselineOps = obligationsPerScene(baseline)
   const variantOps = obligationsPerScene(variant)
+  const baselinePayloadChars = sceneContractPayloadChars(baseline)
+  const variantPayloadChars = sceneContractPayloadChars(variant)
+  const payloadDelta = baselinePayloadChars !== null && variantPayloadChars !== null
+    ? variantPayloadChars - baselinePayloadChars
+    : null
   return [
     `# Scene-First POC Comparison: ${basename(baseline.runId)} -> ${basename(variant.runId)}`,
     "",
@@ -253,6 +266,8 @@ export function renderComparisonMarkdown(comparison: Comparison): string {
     `| Word ratio | ${fmtNumber(baselineRatio)} | ${fmtNumber(variantRatio)} | ${fmtSigned(deltas.wordRatioDelta)} |`,
     `| Prose / target words | ${baseline.reviewStats.proseWords}/${baseline.reviewStats.targetWords} | ${variant.reviewStats.proseWords}/${variant.reviewStats.targetWords} | ${variant.reviewStats.proseWords - baseline.reviewStats.proseWords} words |`,
     `| Scene contracts | ${baseline.reviewStats.totalScenes} | ${variant.reviewStats.totalScenes} | ${fmtSigned(deltas.totalScenesDelta, 0)} |`,
+    `| Scene-contract payload chars | ${baselinePayloadChars ?? "n/a"} | ${variantPayloadChars ?? "n/a"} | ${payloadDelta ?? "n/a"} |`,
+    `| Choice alternatives | ${baseline.reviewStats.choiceAlternativeCount ?? "n/a"} | ${variant.reviewStats.choiceAlternativeCount ?? "n/a"} |  |`,
     `| Obligations / scene | ${fmtNumber(baselineOps)} | ${fmtNumber(variantOps)} | ${fmtSigned(deltas.obligationsPerSceneDelta)} |`,
     `| Obligation type counts | ${formatTypeCounts(baseline)} | ${formatTypeCounts(variant)} |  |`,
     `| Writer-expansion events | ${writerExpansionEvents(baseline) ?? "n/a"} | ${writerExpansionEvents(variant) ?? "n/a"} |  |`,

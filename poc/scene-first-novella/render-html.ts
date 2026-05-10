@@ -45,6 +45,8 @@ interface ReviewStats {
   anyContractFieldScenes: number
   coreContractFieldScenes: number
   choiceAlternativeScenes: number
+  choiceAlternativeCount: number
+  sceneContractPayloadChars: number
   sceneIds: number
   beatIds: number
   obligationIds: number
@@ -151,6 +153,28 @@ function nonEmpty(value: unknown): boolean {
   return typeof value === "string" ? value.trim().length > 0 : value != null
 }
 
+function payloadChars(value: unknown): number {
+  if (typeof value === "string") return value.length
+  if (Array.isArray(value)) {
+    return value.reduce((sum, item) => sum + (typeof item === "string" ? item.length : 0), 0)
+  }
+  return 0
+}
+
+function sceneContractPayloadChars(scene: any): number {
+  const c = scene?.contract ?? {}
+  return payloadChars(scene?.povPersonalStake)
+    + payloadChars(c.goal)
+    + payloadChars(c.opposition)
+    + payloadChars(c.turningPoint)
+    + payloadChars(c.crisisChoice)
+    + payloadChars(c.choiceAlternatives)
+    + payloadChars(c.outcome)
+    + payloadChars(c.consequence)
+    + payloadChars(c.valueIn)
+    + payloadChars(c.valueOut)
+}
+
 function countIds(value: unknown, stats: ReviewStats): void {
   if (!value || typeof value !== "object") return
   if (Array.isArray(value)) {
@@ -201,6 +225,8 @@ export function computeReviewStats(chapters: ChapterBundle[]): ReviewStats {
     anyContractFieldScenes: 0,
     coreContractFieldScenes: 0,
     choiceAlternativeScenes: 0,
+    choiceAlternativeCount: 0,
+    sceneContractPayloadChars: 0,
     sceneIds: 0,
     beatIds: 0,
     obligationIds: 0,
@@ -231,6 +257,8 @@ export function computeReviewStats(chapters: ChapterBundle[]): ReviewStats {
       const hasStake = nonEmpty(scene.povPersonalStake)
       const hasCrisisChoice = nonEmpty(c.crisisChoice)
       const hasAlternatives = Array.isArray(c.choiceAlternatives) && c.choiceAlternatives.length >= 2
+      stats.choiceAlternativeCount += Array.isArray(c.choiceAlternatives) ? c.choiceAlternatives.length : 0
+      stats.sceneContractPayloadChars += sceneContractPayloadChars(scene)
       if (
         hasGoal || hasOpposition || hasTurningPoint || hasOutcome || hasConsequence ||
         hasValueIn || hasValueOut || hasStake || hasCrisisChoice || hasAlternatives
@@ -352,7 +380,7 @@ export function buildReviewSummary(runId: string, runSummary: any | null, chapte
   const findings = [
     `Artifact scope: ${runSummary?.profile ?? "unknown profile"} rendered ${chapters.length}/${chaptersRequested ?? chapters.length} chapters with ${reviewStats.totalScenes} scene contracts.`,
     `Word-count finding (L102): prose totals ${reviewStats.proseWords}/${reviewStats.targetWords} target words (${formatRatio(wordRatio)}). Treat this as a planner-scope scene/chapter-load finding before trying writer numeric forcing.`,
-    `Scene-contract coverage: core fields on ${reviewStats.coreContractFieldScenes}/${reviewStats.totalScenes} scenes; choice alternatives on ${reviewStats.choiceAlternativeScenes}/${reviewStats.totalScenes}; scene IDs on ${reviewStats.sceneIds}/${reviewStats.totalScenes}; legacy beat IDs on ${reviewStats.beatIds}/${reviewStats.totalScenes}.`,
+    `Scene-contract coverage: core fields on ${reviewStats.coreContractFieldScenes}/${reviewStats.totalScenes} scenes; choice alternatives on ${reviewStats.choiceAlternativeScenes}/${reviewStats.totalScenes} scenes (${reviewStats.choiceAlternativeCount} total); scene-contract payload ${reviewStats.sceneContractPayloadChars} chars; scene IDs on ${reviewStats.sceneIds}/${reviewStats.totalScenes}; legacy beat IDs on ${reviewStats.beatIds}/${reviewStats.totalScenes}.`,
     `Traceability surfaced in contracts: ${plural(reviewStats.obligationIds, "obligation ID")}, ${plural(reviewStats.sourceIds, "source ID")}, ${plural(reviewStats.characterIds, "character ID")}, ${plural(reviewStats.threadIds, "thread ID")}, ${plural(reviewStats.promiseIds, "promise ID")}, ${plural(reviewStats.payoffIds, "payoff ID")}.`,
     `Obligation load: ${otc.loadBearing} load-bearing obligations (${obligationDensity == null ? "n/a" : obligationDensity.toFixed(2)} per scene): establish ${otc.mustEstablish}, pay off ${otc.mustPayOff}, transfer knowledge ${otc.mustTransferKnowledge}, state change ${otc.mustShowStateChange}, not reveal ${otc.mustNotReveal}; allowed-new-entity hints ${otc.allowedNewEntities}.`,
     `Runtime trace: ${runtimeStats.traceEvents} trace events, ${runtimeStats.llmCalls} LLM calls, ${runtimeStats.writerCalls} writer calls, ${runtimeStats.writerExpansionEvents} writer-expansion events.`,
@@ -568,6 +596,7 @@ function renderHtml(runId: string, runSummary: any | null, chapters: ChapterBund
         <span><strong>Chapters saved:</strong> ${(runSummary.chaptersSaved ?? []).length}/${runSummary.chaptersRequested}</span>
         <span><strong>Prose words:</strong> ${reviewStats.proseWords}/${reviewStats.targetWords} (×${wordRatio})</span>
         <span><strong>Contract coverage:</strong> any ${reviewStats.anyContractFieldScenes}/${reviewStats.totalScenes} · core ${reviewStats.coreContractFieldScenes}/${reviewStats.totalScenes} · choices ${reviewStats.choiceAlternativeScenes}/${reviewStats.totalScenes}</span>
+        <span><strong>Contract payload:</strong> ${reviewStats.sceneContractPayloadChars} chars · ${reviewStats.choiceAlternativeCount} alternatives</span>
         <span><strong>Trace IDs:</strong> scene ${reviewStats.sceneIds}/${reviewStats.totalScenes} · obl ${reviewStats.obligationIds} · src ${reviewStats.sourceIds} · thread ${reviewStats.threadIds} · promise ${reviewStats.promiseIds}</span>
         <span><strong>Drafting:</strong> ${htmlEscape(runSummary.draftingResultKind ?? "?")}</span>
       </div>`

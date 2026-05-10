@@ -12,6 +12,8 @@ function summary(overrides: Record<string, any> = {}) {
       totalScenes: 18,
       coreContractFieldScenes: 18,
       choiceAlternativeScenes: 11,
+      choiceAlternativeCount: 22,
+      sceneContractPayloadChars: 14000,
       sceneIds: 18,
       beatIds: 0,
       obligationIds: 40,
@@ -63,10 +65,12 @@ test("builds directional verdicts for improved POC variants", () => {
   const variant = summary({
     runId: "variant",
     reviewStats: {
-      totalScenes: 9,
-      coreContractFieldScenes: 9,
-      choiceAlternativeScenes: 8,
-      sceneIds: 9,
+        totalScenes: 9,
+        coreContractFieldScenes: 9,
+        choiceAlternativeScenes: 8,
+        choiceAlternativeCount: 16,
+        sceneContractPayloadChars: 7600,
+        sceneIds: 9,
       obligationIds: 15,
       sourceIds: 15,
       obligationTypeCounts: {
@@ -94,6 +98,7 @@ test("builds directional verdicts for improved POC variants", () => {
   expect(comparison.deltas.totalScenesDelta).toBe(-9)
   expect(comparison.deltas.chapterOneEndpointDelta).toBe(1)
   expect(markdown).toContain("Word overshoot is mainly a planner-scope problem")
+  expect(markdown).toContain("Scene-contract payload chars")
   expect(markdown).toContain("Obligation type counts")
   expect(markdown).toContain("Writer-expansion events")
   expect(markdown).toContain("Supported: tighter scene count")

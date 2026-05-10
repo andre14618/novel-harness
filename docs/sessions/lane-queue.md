@@ -98,12 +98,13 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: continue L100 POC mode only if testing endpoint-
-  preserving scene-contract compression directly. Hold scene count at 9,
-  endpoints at 3/3/3, and roughly one obligation per scene; reduce per-scene
-  goal/outcome/choice payload before drafting. Promotion remains blocked until
-  a comparable artifact reaches <=1.5x target with complete scene IDs,
-  diagnostics, traces, and review artifacts. See L103/L104.
+- Next session start: continue L100 POC mode only if testing a writer-facing
+  drafting brief, not further scene-contract payload clipping. Preserve full
+  planner contracts in storage/review, render a small writer brief with
+  endpoint-critical fields, obligations, trace IDs, and per-scene budgets, and
+  collect payload + prose-semantic telemetry. Promotion remains blocked until a
+  comparable artifact reaches <=1.5x target with 3/3/3 endpoints, complete
+  scene IDs, diagnostics, traces, and review artifacts. See L103-L105.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,

@@ -94,12 +94,12 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 The active lane is in `docs/sessions/lane-queue.md`.
 
-As of 2026-05-10, the L104 load-control POC keeps scene-first promotion on
-hold: prompt-only hard cap reached 0.89 obligations/scene and 1.66x but
-regressed endpoints to 2/2/3; deterministic compaction worsened to 2.16x; and
-minimal state mapping held 3/3/3 endpoints but stayed 1.89x. Keep scene-first
-runtime flags default-off; next evidence should target endpoint-preserving
-scene-contract compression before drafting. See L103/L104.
+As of 2026-05-10, L105 keeps scene-first promotion on hold after endpoint-
+preserving scene-contract compression: conservative clipping held 3/3/3
+endpoints but worsened to 2.07x, while aggressive endpoint-core shortened to
+1.78x but regressed endpoints/core coverage. Keep scene-first runtime flags
+default-off; next evidence should target a separate writer-facing drafting
+brief with per-scene budgets, not more payload clipping. See L103-L105.
 
 ## Authoring Gates
 
