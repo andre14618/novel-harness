@@ -8,12 +8,681 @@
       "stage-2 adherence rescues; baseline observed 5/11",
       "ch2 plan deviation flagged by chapter-plan-checker"
     ],
-    "scene_contract_population_target": "0 of 9 fields populated (substrate captured before scenePlanContractV1=true was a runtime path)",
     "source_novel_id": "novel-1778411555121",
-    "captured_at": null,
-    "captured_against_commit": null,
-    "pipeline_overrides_at_capture": null,
-    "notes": "STUB. The outline rows for ch1+ch2 of novel-1778411555121 must be captured from the LXC DB before this fixture can be hydrated. See README.md in this directory for the capture procedure. The loader rejects this fixture while is_stub is true."
+    "source_central_run_id": 839,
+    "source_experiment_id": 480,
+    "captured_at": "2026-05-10T13:33:22.153Z",
+    "captured_against_commit": "ab7f457",
+    "pipeline_overrides_at_capture": {},
+    "notes": "Captured 2026-05-10. The captured_against_commit references the runtime evidence recording commit; the planner+writer that generated this novel ran earlier on harness code at or before that commit. The writerPromptIdRendering, forceRenderSceneContractWhenAvailable flags shipped in 62e5c8c and 138780c were NOT yet present at capture time (default-off behaviour preserved through this fixture)."
   },
-  "is_stub": true
+  "outlines": [
+    {
+      "chapterNumber": 1,
+      "outline_json": {
+        "title": "The Wound That Cannot Be Healed",
+        "scenes": [
+          {
+            "kind": "action",
+            "beatId": "ch-001-wound-cannot-healed-beat-001-sylvie-works-through-night-healer",
+            "sceneId": "ch-001-wound-cannot-healed-scene-001-sylvie-works-through-night-healer",
+            "miceOpens": [
+              "M"
+            ],
+            "characters": [
+              "Sylvie Dunmore",
+              "Corporal Jien"
+            ],
+            "gapPresent": false,
+            "miceActive": [],
+            "miceCloses": [],
+            "description": "Sylvie works through the night in the healer's tent, transferring a leg wound from a young officer onto a prisoner. The phantom ache settles in her own leg as she finishes.",
+            "obligations": {
+              "mustPayOff": [],
+              "mustEstablish": [
+                {
+                  "text": "Sylvie transfers a leg wound from a young officer onto a prisoner, establishing the wound-transfer ability",
+                  "sourceId": "fact-wound-transfer-mechanism",
+                  "sourceKind": "fact",
+                  "obligationId": "obl-001-beat-000-establish-mechanism"
+                },
+                {
+                  "text": "The phantom ache settles in her own leg after the transfer",
+                  "sourceId": "fact-phantom-aches",
+                  "sourceKind": "fact",
+                  "obligationId": "obl-001-beat-000-establish-phantom"
+                },
+                {
+                  "text": "The recipient is a prisoner, showing the army's practice",
+                  "sourceId": "fact-army-uses-prisoners",
+                  "sourceKind": "fact",
+                  "obligationId": "obl-001-beat-000-establish-army-uses"
+                }
+              ],
+              "mustNotReveal": [],
+              "allowedNewEntities": [],
+              "mustShowStateChange": [],
+              "mustTransferKnowledge": []
+            },
+            "valueShifted": true,
+            "lifeValueAxes": [
+              "life-death",
+              "ethics"
+            ],
+            "requiredPayoffs": []
+          },
+          {
+            "kind": "dialogue",
+            "beatId": "ch-001-wound-cannot-healed-beat-002-jien-counts-sylvie-s-steps",
+            "sceneId": "ch-001-wound-cannot-healed-scene-002-jien-counts-sylvie-s-steps",
+            "miceOpens": [],
+            "characters": [
+              "Sylvie Dunmore",
+              "Corporal Jien"
+            ],
+            "gapPresent": true,
+            "miceActive": [],
+            "miceCloses": [],
+            "description": "Jien counts Sylvie's steps as she moves to the next pallet, then asks if she's keeping count of the transfers. She deflects with clinical talk about the prisoner's infection risk.",
+            "obligations": {
+              "mustPayOff": [],
+              "mustEstablish": [],
+              "mustNotReveal": [],
+              "allowedNewEntities": [],
+              "mustShowStateChange": [],
+              "mustTransferKnowledge": []
+            },
+            "valueShifted": true,
+            "lifeValueAxes": [
+              "ethics",
+              "relational"
+            ],
+            "requiredPayoffs": []
+          },
+          {
+            "kind": "dialogue",
+            "beatId": "ch-001-wound-cannot-healed-beat-003-sergeant-arrives-orders-immediate-transfer",
+            "sceneId": "ch-001-wound-cannot-healed-scene-003-sergeant-arrives-orders-immediate-transfer",
+            "miceOpens": [],
+            "characters": [
+              "Sylvie Dunmore",
+              "Corporal Jien",
+              "Sergeant"
+            ],
+            "gapPresent": true,
+            "miceActive": [],
+            "miceCloses": [],
+            "description": "A sergeant arrives with orders for an immediate transfer: a captain with a chest wound. Sylvie refuses, citing the prisoner shortage. The sergeant insists, and Jien steps between them.",
+            "obligations": {
+              "mustPayOff": [],
+              "mustEstablish": [
+                {
+                  "text": "Sylvie refuses the order citing the prisoner shortage",
+                  "sourceId": "fact-prisoner-shortage",
+                  "sourceKind": "fact",
+                  "obligationId": "obl-001-beat-002-establish-shortage"
+                }
+              ],
+              "mustNotReveal": [],
+              "allowedNewEntities": [],
+              "mustShowStateChange": [],
+              "mustTransferKnowledge": []
+            },
+            "valueShifted": true,
+            "lifeValueAxes": [
+              "life-death",
+              "agency",
+              "ethics"
+            ],
+            "requiredPayoffs": []
+          },
+          {
+            "kind": "action",
+            "beatId": "ch-001-wound-cannot-healed-beat-004-sylvie-performs-transfer-moving-captain",
+            "sceneId": "ch-001-wound-cannot-healed-scene-004-sylvie-performs-transfer-moving-captain",
+            "miceOpens": [],
+            "characters": [
+              "Sylvie Dunmore",
+              "Corporal Jien"
+            ],
+            "gapPresent": true,
+            "miceActive": [],
+            "miceCloses": [],
+            "description": "Sylvie performs the transfer, moving the captain's chest wound onto a dying prisoner. The phantom ache doubles in her ribs, and she staggers. Jien catches her and counts her breaths.",
+            "obligations": {
+              "mustPayOff": [],
+              "mustEstablish": [
+                {
+                  "text": "Sylvie staggers after the transfer, phantom ache doubles in ribs, Jien catches her",
+                  "sourceId": "fact-sylvie-exhaustion",
+                  "sourceKind": "fact",
+                  "obligationId": "obl-001-beat-003-establish-exhaustion"
+                }
+              ],
+              "mustNotReveal": [],
+              "allowedNewEntities": [],
+              "mustShowStateChange": [],
+              "mustTransferKnowledge": []
+            },
+            "valueShifted": true,
+            "lifeValueAxes": [
+              "life-death",
+              "ethics"
+            ],
+            "requiredPayoffs": []
+          },
+          {
+            "kind": "action",
+            "beatId": "ch-001-wound-cannot-healed-beat-005-runner-summons-sylvie-general-voss",
+            "sceneId": "ch-001-wound-cannot-healed-scene-005-runner-summons-sylvie-general-voss",
+            "miceOpens": [],
+            "characters": [
+              "Sylvie Dunmore",
+              "Corporal Jien"
+            ],
+            "gapPresent": true,
+            "miceActive": [],
+            "miceCloses": [],
+            "description": "A runner summons Sylvie to General Voss's command pavilion immediately. Jien protests her exhaustion, but Sylvie knows she cannot refuse. She leaves the tent, the rain hitting her face, the phantom aches a chorus in her body.",
+            "obligations": {
+              "mustPayOff": [],
+              "mustEstablish": [
+                {
+                  "text": "A runner summons Sylvie to General Voss's command pavilion immediately",
+                  "sourceId": "fact-general-voss-summons",
+                  "sourceKind": "fact",
+                  "obligationId": "obl-001-beat-004-establish-summons"
+                }
+              ],
+              "mustNotReveal": [
+                {
+                  "text": "Do not reveal General Voss's wound or the nature of his request; Sylvie does not know why she is summoned",
+                  "obligationId": "obl-001-wound-cannot-healed-beat-005-runner-summons-sylvie-general-voss-avoid-001-n1"
+                }
+              ],
+              "allowedNewEntities": [],
+              "mustShowStateChange": [
+                {
+                  "text": "Sylvie leaves the tent, physically exhausted from accumulated phantom aches, morally conflicted, dreading the summons",
+                  "sourceId": "state-sylvie-end",
+                  "sourceKind": "state",
+                  "characterId": "char-sylvie-dunmore",
+                  "obligationId": "obl-001-beat-004-state-end",
+                  "characterName": "Sylvie Dunmore"
+                }
+              ],
+              "mustTransferKnowledge": [
+                {
+                  "text": "Sylvie learns she is being summoned to General Voss's command pavilion",
+                  "sourceId": "know-sylvie-summons",
+                  "sourceKind": "knowledge",
+                  "characterId": "char-sylvie-dunmore",
+                  "obligationId": "obl-001-beat-004-know-summons",
+                  "characterName": "Sylvie Dunmore"
+                }
+              ]
+            },
+            "valueShifted": true,
+            "lifeValueAxes": [
+              "agency",
+              "life-death"
+            ],
+            "requiredPayoffs": []
+          }
+        ],
+        "purpose": "Establishes Sylvie's unsustainable life as a wound-transfer healer, forced to move injuries from officers onto prisoners under the army's demand. Introduces her phantom pains and growing moral exhaustion. Ends with General Voss summoning her to his command pavilion, where he presents his ultimatum\u2014a hook that forces her into a choice she cannot avoid.",
+        "setting": "The Healer's Tent, Aldorian Army camp",
+        "chapterId": "ch-001-wound-cannot-healed",
+        "targetWords": 1500,
+        "povCharacter": "Sylvie Dunmore",
+        "chapterNumber": 1,
+        "establishedFacts": [
+          {
+            "id": "fact-wound-transfer-mechanism",
+            "fact": "Sylvie can transfer a wound from one living person to another by touching both simultaneously",
+            "category": "magic"
+          },
+          {
+            "id": "fact-phantom-aches",
+            "fact": "Each transfer leaves a permanent phantom ache in Sylvie's body at the site of the original wound",
+            "category": "physical"
+          },
+          {
+            "id": "fact-army-uses-prisoners",
+            "fact": "The army forces Sylvie to transfer wounds from officers onto prisoners",
+            "category": "institutional"
+          },
+          {
+            "id": "fact-prisoner-shortage",
+            "fact": "The army is running low on prisoners to serve as wound recipients",
+            "category": "logistics"
+          },
+          {
+            "id": "fact-sylvie-exhaustion",
+            "fact": "Sylvie is physically exhausted from performing multiple transfers in one night",
+            "category": "physical"
+          },
+          {
+            "id": "fact-general-voss-summons",
+            "fact": "A runner summons Sylvie to General Voss's command pavilion immediately",
+            "category": "event"
+          }
+        ],
+        "knowledgeChanges": [
+          {
+            "id": "know-sylvie-summons",
+            "source": "told",
+            "knowledge": "She is being summoned to General Voss's command pavilion",
+            "characterId": "char-sylvie-dunmore",
+            "characterName": "Sylvie Dunmore"
+          }
+        ],
+        "charactersPresent": [
+          "Sylvie Dunmore",
+          "Corporal Jien",
+          "General Voss"
+        ],
+        "characterStateChanges": [
+          {
+            "id": "state-sylvie-end",
+            "name": "Sylvie Dunmore",
+            "knows": [
+              "she has performed several transfers tonight",
+              "she is being summoned to General Voss"
+            ],
+            "location": "leaving the healer's tent toward command pavilion",
+            "characterId": "char-sylvie-dunmore",
+            "doesNotKnow": [
+              "why General Voss summoned her"
+            ],
+            "emotionalState": "physically exhausted from accumulated phantom aches, morally conflicted, dreading the summons"
+          }
+        ]
+      }
+    },
+    {
+      "chapterNumber": 2,
+      "outline_json": {
+        "title": "The General's Equation",
+        "scenes": [
+          {
+            "kind": "dialogue",
+            "beatId": "ch-002-general-s-equation-beat-001-sylvie-enters-voss-s-pavilion",
+            "sceneId": "ch-002-general-s-equation-scene-001-sylvie-enters-voss-s-pavilion",
+            "miceOpens": [],
+            "characters": [
+              "Sylvie Dunmore",
+              "General Voss"
+            ],
+            "gapPresent": true,
+            "miceActive": [],
+            "miceCloses": [],
+            "description": "Sylvie enters Voss's pavilion, finding him pale and sweating on his cot. He outlines his wound and the proposed solution: transfer it to a prisoner. She refuses immediately, citing her oath and the prisoners' innocence.",
+            "obligations": {
+              "mustPayOff": [],
+              "mustEstablish": [
+                {
+                  "text": "General Voss is dying from a gut wound",
+                  "sourceId": "fact-voss-gut-wound",
+                  "sourceKind": "fact",
+                  "obligationId": "obl-002-beat-000-fact-001"
+                },
+                {
+                  "text": "General Voss proposes transferring his wound to a prisoner",
+                  "sourceId": "fact-voss-proposal",
+                  "sourceKind": "fact",
+                  "obligationId": "obl-002-beat-000-fact-002"
+                },
+                {
+                  "text": "Sylvie refuses to transfer the wound",
+                  "sourceId": "fact-sylvie-refuses-initially",
+                  "sourceKind": "fact",
+                  "obligationId": "obl-002-beat-000-fact-003"
+                }
+              ],
+              "mustNotReveal": [],
+              "allowedNewEntities": [],
+              "mustShowStateChange": [],
+              "mustTransferKnowledge": []
+            },
+            "valueShifted": true,
+            "lifeValueAxes": [
+              "ethics",
+              "life-death"
+            ],
+            "requiredPayoffs": []
+          },
+          {
+            "kind": "dialogue",
+            "beatId": "ch-002-general-s-equation-beat-002-voss-counters-strategic-stakes-his",
+            "sceneId": "ch-002-general-s-equation-scene-002-voss-counters-strategic-stakes-his",
+            "miceOpens": [],
+            "characters": [
+              "Sylvie Dunmore",
+              "General Voss"
+            ],
+            "gapPresent": true,
+            "miceActive": [],
+            "miceCloses": [],
+            "description": "Voss counters with the strategic stakes: his death will fragment the army, costing hundreds of lives. He frames it as a utilitarian equation. Sylvie wavers internally but holds her refusal, though the phantom ache in her shoulder pulses harder.",
+            "obligations": {
+              "mustPayOff": [],
+              "mustEstablish": [
+                {
+                  "text": "Voss's death would fragment the army and cost hundreds of lives",
+                  "sourceId": "fact-voss-death-consequences",
+                  "sourceKind": "fact",
+                  "obligationId": "obl-002-beat-001-fact-001"
+                }
+              ],
+              "mustNotReveal": [],
+              "allowedNewEntities": [],
+              "mustShowStateChange": [],
+              "mustTransferKnowledge": [
+                {
+                  "text": "Sylvie learns that Voss's death would fragment the army and cost hundreds of lives",
+                  "sourceId": "know-sylvie-strategic-consequences",
+                  "sourceKind": "knowledge",
+                  "characterId": "char-sylvie-dunmore",
+                  "obligationId": "obl-002-beat-001-know-001",
+                  "characterName": "Sylvie Dunmore"
+                }
+              ]
+            },
+            "valueShifted": true,
+            "lifeValueAxes": [
+              "ethics",
+              "aspiration"
+            ],
+            "requiredPayoffs": []
+          },
+          {
+            "kind": "action",
+            "beatId": "ch-002-general-s-equation-beat-003-sylvie-leaves-pavilion-seeks-alternatives",
+            "sceneId": "ch-002-general-s-equation-scene-003-sylvie-leaves-pavilion-seeks-alternatives",
+            "miceOpens": [],
+            "characters": [
+              "Sylvie Dunmore",
+              "Corporal Jien"
+            ],
+            "gapPresent": true,
+            "miceActive": [],
+            "miceCloses": [],
+            "description": "Sylvie leaves the pavilion and seeks alternatives: she visits the supply depot to check for rare medicines, then the healer's tent to ask other medics for any other solution. She finds nothing\u2014no remedy, no other healer with her ability.",
+            "obligations": {
+              "mustPayOff": [],
+              "mustEstablish": [
+                {
+                  "text": "Sylvie finds no alternative remedy or other healer",
+                  "sourceId": "fact-no-alternative-healing",
+                  "sourceKind": "fact",
+                  "obligationId": "obl-002-beat-002-fact-001"
+                }
+              ],
+              "mustNotReveal": [],
+              "allowedNewEntities": [],
+              "mustShowStateChange": [],
+              "mustTransferKnowledge": []
+            },
+            "valueShifted": false,
+            "lifeValueAxes": [
+              "life-death",
+              "agency"
+            ],
+            "requiredPayoffs": []
+          },
+          {
+            "kind": "description",
+            "beatId": "ch-002-general-s-equation-beat-004-returning-camp-sylvie-witnesses-army",
+            "sceneId": "ch-002-general-s-equation-scene-004-returning-camp-sylvie-witnesses-army",
+            "miceOpens": [],
+            "characters": [
+              "Sylvie Dunmore",
+              "Corporal Jien"
+            ],
+            "gapPresent": true,
+            "miceActive": [],
+            "miceCloses": [],
+            "description": "Returning to the camp, Sylvie witnesses the army's morale crumbling: soldiers argue, officers bicker, and a skirmish at the siege lines goes badly because Voss's orders are countermanded. She sees the cost of her refusal in real time.",
+            "obligations": {
+              "mustPayOff": [],
+              "mustEstablish": [
+                {
+                  "text": "After Voss's orders are countermanded, army morale fractures and casualties mount",
+                  "sourceId": "fact-army-morale-crumbles",
+                  "sourceKind": "fact",
+                  "obligationId": "obl-002-beat-003-fact-001"
+                }
+              ],
+              "mustNotReveal": [],
+              "allowedNewEntities": [],
+              "mustShowStateChange": [],
+              "mustTransferKnowledge": [
+                {
+                  "text": "Sylvie witnesses the army's morale crumbling and casualties mounting due to her refusal",
+                  "sourceId": "know-sylvie-refusal-cost",
+                  "sourceKind": "knowledge",
+                  "characterId": "char-sylvie-dunmore",
+                  "obligationId": "obl-002-beat-003-know-001",
+                  "characterName": "Sylvie Dunmore"
+                }
+              ]
+            },
+            "valueShifted": true,
+            "lifeValueAxes": [
+              "life-death",
+              "relational"
+            ],
+            "requiredPayoffs": []
+          },
+          {
+            "kind": "action",
+            "beatId": "ch-002-general-s-equation-beat-005-night-assassin-infiltrates-camp-attacks",
+            "sceneId": "ch-002-general-s-equation-scene-005-night-assassin-infiltrates-camp-attacks",
+            "miceOpens": [],
+            "characters": [
+              "Sylvie Dunmore",
+              "Corporal Jien"
+            ],
+            "gapPresent": true,
+            "miceActive": [],
+            "miceCloses": [],
+            "description": "That night, an assassin infiltrates the camp and attacks Sylvie's tent, mistaking her for the healer who refused Voss. Jien intercepts the blade and is fatally wounded. Sylvie watches him die in her arms, unable to save him.",
+            "obligations": {
+              "mustPayOff": [],
+              "mustEstablish": [
+                {
+                  "text": "An assassin targets Sylvie's tent, mistaking her for the healer who refused",
+                  "sourceId": "fact-assassin-mistaken-target",
+                  "sourceKind": "fact",
+                  "obligationId": "obl-002-beat-004-fact-001"
+                },
+                {
+                  "text": "Corporal Jien is killed intercepting the assassin's blade",
+                  "sourceId": "fact-jien-dies",
+                  "sourceKind": "fact",
+                  "obligationId": "obl-002-beat-004-fact-002"
+                }
+              ],
+              "mustNotReveal": [],
+              "allowedNewEntities": [],
+              "mustShowStateChange": [
+                {
+                  "text": "Corporal Jien dies from the assassin's blade",
+                  "sourceId": "state-jien-dead",
+                  "sourceKind": "state",
+                  "characterId": "char-corporal-jien",
+                  "obligationId": "obl-002-beat-004-state-001",
+                  "characterName": "Corporal Jien"
+                }
+              ],
+              "mustTransferKnowledge": [
+                {
+                  "text": "Sylvie realizes her refusal led to Jien's death",
+                  "sourceId": "know-sylvie-jien-death-cost",
+                  "sourceKind": "knowledge",
+                  "characterId": "char-sylvie-dunmore",
+                  "obligationId": "obl-002-beat-004-know-001",
+                  "characterName": "Sylvie Dunmore"
+                }
+              ]
+            },
+            "valueShifted": true,
+            "lifeValueAxes": [
+              "life-death",
+              "relational"
+            ],
+            "requiredPayoffs": []
+          },
+          {
+            "kind": "interiority",
+            "beatId": "ch-002-general-s-equation-beat-006-sylvie-covered-jien-s-blood",
+            "sceneId": "ch-002-general-s-equation-scene-006-sylvie-covered-jien-s-blood",
+            "miceOpens": [],
+            "characters": [
+              "Sylvie Dunmore"
+            ],
+            "gapPresent": true,
+            "miceActive": [],
+            "miceCloses": [],
+            "description": "Sylvie, covered in Jien's blood, realizes her refusal has already cost lives\u2014including the one person she swore to protect. She makes her decision: she will go to Voss and accept his offer, but on her own terms.",
+            "obligations": {
+              "mustPayOff": [],
+              "mustEstablish": [
+                {
+                  "text": "Sylvie decides to accept Voss's offer on her own terms",
+                  "sourceId": "fact-sylvie-decides-accept",
+                  "sourceKind": "fact",
+                  "obligationId": "obl-002-beat-005-fact-001"
+                }
+              ],
+              "mustNotReveal": [],
+              "allowedNewEntities": [],
+              "mustShowStateChange": [
+                {
+                  "text": "Sylvie, covered in Jien's blood, shifts from refusal to guilt-ridden determination to accept the transfer on her own terms",
+                  "sourceId": "state-sylvie-guilt-resolve",
+                  "sourceKind": "state",
+                  "characterId": "char-sylvie-dunmore",
+                  "obligationId": "obl-002-beat-005-state-001",
+                  "characterName": "Sylvie Dunmore"
+                }
+              ],
+              "mustTransferKnowledge": []
+            },
+            "valueShifted": true,
+            "lifeValueAxes": [
+              "ethics",
+              "aspiration"
+            ],
+            "requiredPayoffs": []
+          }
+        ],
+        "purpose": "Sylvie confronts General Voss's dying request: transfer his gut wound onto a prisoner to save the campaign. She refuses, triggering a try/fail cycle as she searches for alternatives\u2014only to see the army's morale fracture and casualties mount. Ends with an assassination attempt that kills Corporal Jien, forcing Sylvie to realize her refusal has already cost lives, setting up her climactic decision.",
+        "setting": "General Voss's Command Pavilion",
+        "chapterId": "ch-002-general-s-equation",
+        "targetWords": 1800,
+        "povCharacter": "Sylvie Dunmore",
+        "chapterNumber": 2,
+        "establishedFacts": [
+          {
+            "id": "fact-voss-gut-wound",
+            "fact": "General Voss is dying from a gut wound",
+            "category": "physical"
+          },
+          {
+            "id": "fact-voss-proposal",
+            "fact": "General Voss proposes transferring his wound to a prisoner",
+            "category": "relationship"
+          },
+          {
+            "id": "fact-sylvie-refuses-initially",
+            "fact": "Sylvie refuses to transfer the wound",
+            "category": "decision"
+          },
+          {
+            "id": "fact-voss-death-consequences",
+            "fact": "Voss's death would fragment the army and cost hundreds of lives",
+            "category": "relationship"
+          },
+          {
+            "id": "fact-no-alternative-healing",
+            "fact": "Sylvie finds no alternative remedy or other healer",
+            "category": "physical"
+          },
+          {
+            "id": "fact-army-morale-crumbles",
+            "fact": "After Voss's orders are countermanded, army morale fractures and casualties mount",
+            "category": "relationship"
+          },
+          {
+            "id": "fact-assassin-mistaken-target",
+            "fact": "An assassin targets Sylvie's tent, mistaking her for the healer who refused",
+            "category": "event"
+          },
+          {
+            "id": "fact-jien-dies",
+            "fact": "Corporal Jien is killed intercepting the assassin's blade",
+            "category": "event"
+          },
+          {
+            "id": "fact-sylvie-decides-accept",
+            "fact": "Sylvie decides to accept Voss's offer on her own terms",
+            "category": "decision"
+          }
+        ],
+        "knowledgeChanges": [
+          {
+            "id": "know-sylvie-strategic-consequences",
+            "source": "told",
+            "knowledge": "Voss's death would fragment the army and cost hundreds of lives",
+            "characterId": "char-sylvie-dunmore",
+            "characterName": "Sylvie Dunmore"
+          },
+          {
+            "id": "know-sylvie-refusal-cost",
+            "source": "witnessed",
+            "knowledge": "Her refusal has caused army morale to collapse and casualties to mount",
+            "characterId": "char-sylvie-dunmore",
+            "characterName": "Sylvie Dunmore"
+          },
+          {
+            "id": "know-sylvie-jien-death-cost",
+            "source": "witnessed",
+            "knowledge": "Her refusal led to Jien's death",
+            "characterId": "char-sylvie-dunmore",
+            "characterName": "Sylvie Dunmore"
+          }
+        ],
+        "charactersPresent": [
+          "Sylvie Dunmore",
+          "General Voss",
+          "Corporal Jien"
+        ],
+        "characterStateChanges": [
+          {
+            "id": "state-sylvie-guilt-resolve",
+            "name": "Sylvie Dunmore",
+            "knows": [
+              "Jien is dead",
+              "her refusal cost lives"
+            ],
+            "location": "her tent",
+            "characterId": "char-sylvie-dunmore",
+            "doesNotKnow": [],
+            "emotionalState": "guilt-ridden but resolute to accept the transfer on her own terms"
+          },
+          {
+            "id": "state-jien-dead",
+            "name": "Corporal Jien",
+            "knows": [],
+            "location": "healer's tent",
+            "characterId": "char-corporal-jien",
+            "doesNotKnow": [],
+            "emotionalState": "dead"
+          }
+        ]
+      }
+    }
+  ]
 }
