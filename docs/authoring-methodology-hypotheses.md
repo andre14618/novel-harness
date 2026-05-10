@@ -409,8 +409,8 @@ operator review evidence. Corpus `beatId`s are annotation refs, not the future
 primary writing/checking unit.
 
 Risk: overfitting to one author or copying expressive plot/prose. Mitigation:
-use this as a structural reference POC, not a runtime template; commit only
-schemas, metrics, and conclusions, not detailed source-derived outlines.
+use this as a structural reference diagnostic, not a runtime template; commit
+only schemas, metrics, and conclusions, not detailed source-derived outlines.
 
 ## Recommended Sequence
 

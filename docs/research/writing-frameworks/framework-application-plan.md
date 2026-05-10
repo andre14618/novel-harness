@@ -40,12 +40,12 @@ Useful existing repo assets:
 The original Salvatore beat corpus is not a sufficient golden structure source
 by itself. It was decomposed into short beats for an earlier small-model
 workflow, so its beat size should not define the writer interface. A separate
-corpus-structure recreation POC is useful, though: use the local Stage 6
+corpus-structure recreation diagnostic is useful, though: use the local Stage 6
 scene/value/MICE/promise annotations to build a chapter/scene reference target,
 then ask whether the planner can recreate comparable structural granularity
 from compressed premise/context. Golden examples should come from authored
 craft templates, corpus-derived scene/function references, operator judgment,
-and prose-level POC outcomes.
+and production-path prose outcomes.
 
 ## External Source Refresh
 
@@ -137,8 +137,8 @@ Expected benefit: better macro progression, stronger endpoint/hook landings,
 and less aimless middle material.
 
 Evidence signal: method arm improves endpoint landing, causal momentum, and
-promise progress in planner diagnostics; later prose POC shows fewer plan-drift
-and hallucinated-resolution blockers.
+promise progress in planner diagnostics; later production-path drafting
+evidence shows fewer plan-drift and hallucinated-resolution blockers.
 
 ### 3. Story Grid Scene Contracts
 
@@ -168,8 +168,8 @@ Expected benefit: give DeepSeek a complete unit of story to write, rather than
 asking it to stitch many small beats into prose.
 
 Evidence signal: scene plans should pass scene dramaturgy, stakes/value shift,
-and character-materiality sensors. Prose POC should preserve scene outcomes
-without requiring beat-level adherence.
+and character-materiality sensors. Drafting evidence should preserve scene
+outcomes without requiring beat-level adherence.
 
 ### 4. Character Materiality Overlay
 
@@ -236,8 +236,8 @@ show fewer unsupported payoffs or unresolved major promises.
 
 - Beat-count calibration and post-hoc packing remain diagnostic history, not
   the target method.
-- Microtension, prose lints, and voice polish belong after the scene-plan POC
-  proves that upstream context produces better scenes.
+- Microtension, prose lints, and voice polish belong after scene-plan
+  diagnostics prove that upstream context produces better scenes.
 - LitRPG-specific progression systems should wait until the general planning
   scaffold works in a simpler commercial fantasy/adventure lane.
 - UI work remains deferred unless a new planning/review surface is required to
@@ -245,17 +245,20 @@ show fewer unsupported payoffs or unresolved major promises.
 - Full durable DB schemas for story debt or template packs should wait until
   diagnostic outputs justify persistence beyond artifacts.
 
-## First Proof-Of-Concept
+## First Production-Path Diagnostic
 
-Run a small framework-to-prose POC rather than another planner-only pass.
+Run a small framework-to-prose diagnostic through existing production planning,
+drafting, readiness, and evaluation surfaces rather than another planner-only
+pass or separate POC runner.
 
 Recommended shape:
 
-1. Pick 3-6 disposable commercial fantasy/adventure concepts.
+1. Pick 3-6 frozen commercial fantasy/adventure fixture concepts.
 2. Generate two arms from the same concept:
-   - `control`: current planning path.
-   - `framework-v1`: Snowflake-lite strategy packet + flexible macro slots +
-     scene contracts + character/story-debt overlays.
+   - `control`: current production planning path.
+   - `framework-v1`: default-off method-pack arm with Snowflake-lite strategy
+     packet + flexible macro slots + scene contracts + character/story-debt
+     overlays.
 3. Hold writer, checker, model policy, target length, and seed constant.
 4. Draft either:
    - one complete short story, or
@@ -303,9 +306,9 @@ Build `commercial-fantasy-adventure-v1` as a diagnostic-only method pack:
 
 - add a compact method-pack artifact or prompt module for the Snowflake-lite
   strategy packet and Story Grid scene contract fields;
-- add 3-6 frozen disposable concepts for the framework POC;
+- add 3-6 frozen fixture concepts for the framework diagnostic;
 - extend the existing method-pack diagnostic runner only enough to emit and
   score scene contracts with the new fields;
-- add a draft-from-plan smoke on 1-2 concepts after the planner output is
-  inspectable;
+- add a draft-from-plan smoke through existing drafting/evaluation surfaces on
+  1-2 concepts after the planner output is inspectable;
 - document results in a session record before changing production defaults.

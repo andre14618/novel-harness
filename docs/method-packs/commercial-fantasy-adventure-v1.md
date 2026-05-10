@@ -28,7 +28,8 @@ beat counts.
   to draft into coherent scenes with active character pressure, operational
   world constraints, and visible setup/payoff intent.
 - Evidence gate: diagnostic planner score, Plan Readiness Review findings,
-  operator side-by-side review, then a small framework-to-prose POC.
+  operator side-by-side review, then a small production-path framework-to-prose
+  diagnostic.
 
 ## Method Stack
 
@@ -59,7 +60,7 @@ V1 keeps the CFA slot family from V0, but treats slots as story jobs rather
 than chapter-count mechanics. A short story may map several slots into a few
 scenes; a novel may expand slots into chapters or chapter groups.
 
-The first POC still uses six representative slots:
+The first diagnostic still uses six representative slots:
 
 - `CFA-01` Pressure baseline
 - `CFA-04` Invitation to danger
@@ -122,9 +123,9 @@ V1 keeps V0 dimensions and adds:
   through material character refs.
 - `storyDebtTraceability`: story-debt IDs route into obligations and scenes.
 
-## First POC
+## First Diagnostic
 
-1. Run planner-only diagnostics on frozen disposable concepts.
+1. Run planner-only diagnostics on frozen fixture concepts.
 2. Import findings into Plan Readiness Review for operator dispositions.
 3. Draft one short story or the first 2-3 chapters from the selected arm.
 4. Compare plan diagnostics, readiness findings, checker blockers, word ratio,
@@ -132,4 +133,3 @@ V1 keeps V0 dimensions and adds:
 
 Promotion remains `hold` until the framework arm improves both upstream plan
 quality and downstream prose usefulness.
-
