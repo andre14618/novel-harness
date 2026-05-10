@@ -15,11 +15,14 @@ import { describe, expect, it } from "bun:test"
 import type { BeatContext, BeatContextResult } from "./beat-context"
 import { renderBeatContext } from "./beat-context-render"
 import { summarizeBeatContextSurface } from "./context-surface"
+import { renderWriterDraftingBrief, selectWriterPromptForDraftingBrief } from "./drafting-brief"
 import { buildExpansionPrompt } from "./retry-context"
 
 function baseCtx(overrides: Partial<BeatContext> = {}): BeatContext {
   return {
     beatSpec: {
+      sceneId: "scene-archive-1",
+      beatId: "beat-archive-1",
       beatNumber: 1,
       totalBeats: 5,
       pov: "Calla",
@@ -177,6 +180,123 @@ describe("renderBeatContext + scene contract", () => {
     expect(surface.counts.sceneContractFields).toBe(3)
     expect(surface.counts.choiceAlternatives).toBe(2)
     expect(surface.counts.activeThreadIds).toBe(1)
+  })
+
+  it("renders a production writer drafting brief from the full context surface", () => {
+    const out = renderWriterDraftingBrief(
+      baseCtx({
+        sceneContract: {
+          goal: "Force Orvath to confess his deal with the empire.",
+          opposition: "Orvath holds Davan's safety as leverage.",
+          turningPoint: "Calla realises she is the leverage.",
+          crisisChoice: "Trade the script or burn it.",
+          choiceAlternatives: ["Trade the script.", "Burn the script."],
+          outcome: "Calla burns the script.",
+          consequence: "Davan is exiled and the empire begins hunting Calla.",
+          povPersonalStake: "Calla cannot let Davan be reduced to leverage again.",
+          valueIn: "compliance",
+          valueOut: "rupture",
+          targetWords: 640,
+        },
+        transitionBridge: "The archive doors shut behind Calla.",
+        landingTarget: "Davan reaches the bridge",
+        characterSnapshots: [{
+          name: "Calla",
+          exampleLines: ["No more bargains."],
+          voice: "Precise and wary.",
+          drives: "Protect Davan.",
+          state: "cornered but focused",
+        }],
+        characterContextCapsules: {
+          mode: "thread-character-context-v1",
+          scope: "beat",
+          chapterId: "ch-1",
+          beatId: "beat-archive-1",
+          beatNumber: 1,
+          povCharacterId: "char-calla",
+          povPersonalStake: "Calla cannot let Davan be reduced to leverage again.",
+          activeThreadIds: ["thread-reckoning"],
+          activePromiseIds: ["promise-script"],
+          activePayoffIds: [],
+          cards: [{
+            characterId: "char-calla",
+            name: "Calla",
+            role: "protagonist",
+            sceneRole: "pov",
+            voice: "Precise and wary.",
+            sourceObligationIds: ["obl-choice"],
+            activeThreadIds: ["thread-reckoning"],
+            activePromiseIds: ["promise-script"],
+            activePayoffIds: [],
+          }],
+          missingCharacterIds: [],
+        },
+        beatSpec: {
+          ...baseCtx().beatSpec,
+          obligations: {
+            mustEstablish: [{
+              text: "Calla chooses rupture over protection.",
+              obligationId: "obl-choice",
+              sourceId: "fact-script",
+              threadId: "thread-reckoning",
+              promiseId: "promise-script",
+            }],
+            mustPayOff: [],
+            mustTransferKnowledge: [],
+            mustShowStateChange: [],
+            mustNotReveal: [],
+            allowedNewEntities: ["junior archivist"],
+          },
+        },
+        resolvedReferencesText: "RESOLVED REFERENCES:\n- script",
+        readerInfoState: "READER-INFO STATE:\nReader knows Davan is leverage.",
+        setting: { name: "Imperial Archive", description: "A sealed record hall.", sensoryDetails: "ink and stone" },
+      }),
+      { targetWords: 640, idRendering: "raw" },
+    )
+
+    expect(out).toContain("WRITER DRAFTING BRIEF")
+    expect(out).toContain("Budget: about 640 words")
+    expect(out).toContain("Scene ID: scene-archive-1")
+    expect(out).toContain("Beat ID: beat-archive-1")
+    expect(out).toContain("SCENE CONTRACT:")
+    expect(out).toContain("- Crisis choice: Trade the script or burn it.")
+    expect(out).toContain("- Value shift: compliance -> rupture")
+    expect(out).toContain("OBLIGATIONS:")
+    expect(out).toContain("obl-choice")
+    expect(out).toContain("source:fact-script")
+    expect(out).toContain("CHARACTER PROFILES/SNAPSHOTS:")
+    expect(out).toContain("CHARACTER CONTEXT CAPSULES:")
+    expect(out).toContain("RESOLVED REFERENCES:")
+    expect(out).toContain("READER-INFO STATE:")
+    expect(out).toContain("SETTING CONTEXT: Imperial Archive")
+  })
+
+  it("selects the drafting brief prompt and records payload telemetry", () => {
+    const ctx = baseCtx({
+      sceneContract: {
+        goal: "Force Orvath to confess.",
+        choiceAlternatives: ["Trade.", "Burn."],
+        targetWords: 500,
+      },
+      characterSnapshots: [{ name: "Calla", exampleLines: [], voice: "Precise." }],
+    })
+    const full = renderBeatContext(ctx, { compact: false })
+    const selected = selectWriterPromptForDraftingBrief({
+      ctx,
+      mode: "scene-budget-v1",
+      fullContextPrompt: full,
+      targetWords: 500,
+      idRendering: "raw",
+    })
+
+    expect(selected.userPrompt).toContain("WRITER DRAFTING BRIEF")
+    expect(selected.userPrompt).not.toBe(full)
+    expect(selected.draftingBriefTrace.mode).toBe("scene-budget-v1")
+    expect(selected.draftingBriefTrace.selectedPromptChars).toBe(selected.userPrompt.length)
+    expect(selected.draftingBriefTrace.fullContextPromptChars).toBe(full.length)
+    expect(selected.draftingBriefTrace.sections.sceneContract).toBe(true)
+    expect(selected.draftingBriefTrace.counts.choiceAlternatives).toBe(2)
   })
 })
 

@@ -9,6 +9,7 @@ import {
   resolveScenePlanContractV1,
   resolveNativePlanningContractV1,
   resolveSceneSatisfactionCheckerV1,
+  resolveWriterDraftingBriefMode,
 } from "./pipeline"
 
 describe("pipeline default flag values (production runtime)", () => {
@@ -17,6 +18,7 @@ describe("pipeline default flag values (production runtime)", () => {
     expect(pipeline.writerExpansionMode).toBe("off")
     expect(pipeline.forceRenderSceneContractWhenAvailable).toBe(false)
     expect(pipeline.writerPromptIdRendering).toBe("raw")
+    expect(pipeline.writerDraftingBriefMode).toBe("off")
     expect(pipeline.draftCaptureModeV1).toBe(false)
     expect(pipeline.scenePlanContractV1).toBe(false)
     expect(pipeline.sceneSatisfactionCheckerV1).toBe(false)
@@ -55,6 +57,12 @@ describe("override resolvers fall back to pipeline defaults when override absent
     expect(resolveWriterPromptIdRendering({})).toBe("raw")
     expect(resolveWriterPromptIdRendering({ writerPromptIdRendering: "suppress" })).toBe("suppress")
     expect(resolveWriterPromptIdRendering({ writerPromptIdRendering: "raw" })).toBe("raw")
+  })
+
+  test("resolveWriterDraftingBriefMode", () => {
+    expect(resolveWriterDraftingBriefMode(undefined)).toBe("off")
+    expect(resolveWriterDraftingBriefMode({})).toBe("off")
+    expect(resolveWriterDraftingBriefMode({ writerDraftingBriefMode: "scene-budget-v1" })).toBe("scene-budget-v1")
   })
 
   test("resolveDraftCaptureModeV1", () => {

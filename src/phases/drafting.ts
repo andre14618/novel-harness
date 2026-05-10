@@ -18,6 +18,7 @@ import { buildContext as buildWriterContext } from "../agents/writer/context"
 import { buildBeatContext } from "../agents/writer/beat-context"
 import type { WriterCharacterContextTrace } from "../agents/writer/character-context"
 import type { WriterContextSurfaceTrace } from "../agents/writer/context-surface"
+import type { WriterDraftingBriefTrace } from "../agents/writer/drafting-brief"
 import { resolveReferences } from "../agents/writer/reference-resolver"
 import {
   buildRetryPrompt,
@@ -53,6 +54,7 @@ import {
   resolveWriterExpansionMode,
   resolveForceRenderSceneContractWhenAvailable,
   resolveDraftCaptureModeV1,
+  resolveWriterDraftingBriefMode,
 } from "../config/pipeline"
 import type { SeedInput } from "../types"
 import {
@@ -116,6 +118,7 @@ export function effectivePipeline(seed: SeedInput): typeof pipeline {
     factRoleContextPolicy: o.factRoleContextPolicy ?? pipeline.factRoleContextPolicy,
     writerContextMode: o.writerContextMode ?? pipeline.writerContextMode,
     writerPromptIdRendering: o.writerPromptIdRendering ?? pipeline.writerPromptIdRendering,
+    writerDraftingBriefMode: o.writerDraftingBriefMode ?? pipeline.writerDraftingBriefMode,
     draftCaptureModeV1: o.draftCaptureModeV1 ?? pipeline.draftCaptureModeV1,
     planningMaxBeatsPerChapter:
       o.planningMaxBeatsPerChapter ?? pipeline.planningMaxBeatsPerChapter,
@@ -150,6 +153,7 @@ async function traceWriterContextEvent(
     targetWords?: number
     characterContextTrace?: WriterCharacterContextTrace | null
     contextSurfaceTrace?: WriterContextSurfaceTrace | null
+    draftingBriefTrace?: WriterDraftingBriefTrace | null
   },
 ): Promise<void> {
   await trace(novelId, {
@@ -165,6 +169,7 @@ async function traceWriterContextEvent(
       hasCharacterContext: Boolean(args.characterContextTrace),
       characterContext: args.characterContextTrace ?? null,
       contextSurface: args.contextSurfaceTrace ?? null,
+      draftingBrief: args.draftingBriefTrace ?? null,
     },
   })
 }
@@ -221,6 +226,9 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
   }
   if (eff.writerPromptIdRendering !== pipeline.writerPromptIdRendering) {
     log(novelId, "info", `Drafting: pipelineOverrides applied — writerPromptIdRendering=${eff.writerPromptIdRendering}`)
+  }
+  if (eff.writerDraftingBriefMode !== pipeline.writerDraftingBriefMode) {
+    log(novelId, "info", `Drafting: pipelineOverrides applied — writerDraftingBriefMode=${eff.writerDraftingBriefMode}`)
   }
   if (eff.draftCaptureModeV1 !== pipeline.draftCaptureModeV1) {
     log(novelId, "info", `Drafting: pipelineOverrides applied — draftCaptureModeV1=${eff.draftCaptureModeV1} (chapter-level checker settle loops will be SKIPPED — writer-arm experiment lane only)`)
@@ -344,6 +352,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       const writerExpansionMode = resolveWriterExpansionMode(novel.seed.pipelineOverrides)
       const forceRenderSceneContractWhenAvailable =
         resolveForceRenderSceneContractWhenAvailable(novel.seed.pipelineOverrides)
+      const writerDraftingBriefMode = resolveWriterDraftingBriefMode(novel.seed.pipelineOverrides)
 
       // 1-2. Context assembly + writer (beat-level or chapter-level)
       let prose: string
@@ -411,6 +420,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               priorChapterFacts,
               writerContextMode: eff.writerContextMode,
               writerPromptIdRendering: eff.writerPromptIdRendering,
+              writerDraftingBriefMode,
               sceneCallWriterV1,
               forceRenderSceneContractWhenAvailable,
             })
@@ -424,6 +434,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               targetWords: beatCtx.targetWords,
               characterContextTrace: beatCtx.characterContextTrace,
               contextSurfaceTrace: beatCtx.contextSurfaceTrace,
+              draftingBriefTrace: beatCtx.draftingBriefTrace,
             })
 
             let beatProse: string | null = null
@@ -927,6 +938,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 priorChapterFacts,
                 writerContextMode: eff.writerContextMode,
                 writerPromptIdRendering: eff.writerPromptIdRendering,
+                writerDraftingBriefMode,
                 sceneCallWriterV1,
                 forceRenderSceneContractWhenAvailable,
               })
@@ -940,6 +952,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 targetWords: beatCtx.targetWords,
                 characterContextTrace: beatCtx.characterContextTrace,
                 contextSurfaceTrace: beatCtx.contextSurfaceTrace,
+                draftingBriefTrace: beatCtx.draftingBriefTrace,
               })
               const priorProse = beatProses[bi]
               const retryContext = `\n\n--- TARGETED REWRITE (chapter-plan check) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nChapter-plan issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
@@ -1234,6 +1247,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               priorChapterFacts,
               writerContextMode: eff.writerContextMode,
               writerPromptIdRendering: eff.writerPromptIdRendering,
+              writerDraftingBriefMode,
               sceneCallWriterV1,
               forceRenderSceneContractWhenAvailable,
             })
@@ -1247,6 +1261,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               targetWords: beatCtx.targetWords,
               characterContextTrace: beatCtx.characterContextTrace,
               contextSurfaceTrace: beatCtx.contextSurfaceTrace,
+              draftingBriefTrace: beatCtx.draftingBriefTrace,
             })
             const priorProse = beatProses[bi]
             const retryContext = `\n\n--- TARGETED REWRITE (validation) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nValidation issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
@@ -1818,6 +1833,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   priorChapterFacts,
                   writerContextMode: eff.writerContextMode,
                   writerPromptIdRendering: eff.writerPromptIdRendering,
+                  writerDraftingBriefMode,
                   sceneCallWriterV1,
                   forceRenderSceneContractWhenAvailable,
                 })
@@ -1831,6 +1847,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   targetWords: beatCtx.targetWords,
                   characterContextTrace: beatCtx.characterContextTrace,
                   contextSurfaceTrace: beatCtx.contextSurfaceTrace,
+                  draftingBriefTrace: beatCtx.draftingBriefTrace,
                 })
                 const priorProse = beatProses[bi]
                 const retryContext = `\n\n--- TARGETED REWRITE (chapter integrity check) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nIntegrity issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`

@@ -1,4 +1,5 @@
 import type { FactRoleContextPolicy } from "../harness/fact-roles"
+import type { WriterDraftingBriefMode } from "../agents/writer/drafting-brief"
 import {
   DEFAULT_WRITER_CONTEXT_MODE,
   DEFAULT_WRITER_PROMPT_ID_RENDERING,
@@ -73,6 +74,12 @@ export const pipeline = {
   // mandatory in DB / telemetry / traces / checker findings / proposals /
   // evals / audit per L099.
   writerPromptIdRendering: DEFAULT_WRITER_PROMPT_ID_RENDERING as WriterPromptIdRendering,
+
+  // L106 production-path integration: compact writer-facing drafting brief
+  // rendered from the production BeatContext slots. Default off preserves the
+  // full existing writer prompt. Override per novel to "scene-budget-v1" to
+  // test the production brief path with telemetry.
+  writerDraftingBriefMode: "off" as WriterDraftingBriefMode,
 
   // Diagnostic/A-B planning shape lever. Default null leaves planner behavior
   // unchanged. Per-novel overrides cap generated planning beats before state
@@ -224,4 +231,10 @@ export function resolveWriterPromptIdRendering(
   overrides: { writerPromptIdRendering?: WriterPromptIdRendering } | undefined,
 ): WriterPromptIdRendering {
   return overrides?.writerPromptIdRendering ?? pipeline.writerPromptIdRendering
+}
+
+export function resolveWriterDraftingBriefMode(
+  overrides: { writerDraftingBriefMode?: WriterDraftingBriefMode } | undefined,
+): WriterDraftingBriefMode {
+  return overrides?.writerDraftingBriefMode ?? pipeline.writerDraftingBriefMode
 }

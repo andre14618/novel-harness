@@ -84,12 +84,14 @@ mock.module("../config/pipeline", () => ({
     writerExpansionMode: "off",
     forceRenderSceneContractWhenAvailable: false,
     writerPromptIdRendering: "raw",
+    writerDraftingBriefMode: "off",
     draftCaptureModeV1: false,
   },
   resolveSceneCallWriterV1: () => false,
   resolveWriterExpansionMode: () => "off",
   resolveForceRenderSceneContractWhenAvailable: () => false,
   resolveWriterPromptIdRendering: () => "raw",
+  resolveWriterDraftingBriefMode: () => "off",
   resolveDraftCaptureModeV1: () => false,
 }))
 

@@ -80,6 +80,10 @@ Use deeper docs only when linked by the context pack or needed by code.
   `scenePlanContractV1`, `sceneCallWriterV1`, writer expansion mode, and
   scene-satisfaction diagnostic wiring. Do not flip defaults without a new
   production decision and evidence gate.
+- L106 production writer-brief integration exists behind default-off
+  `writerDraftingBriefMode="scene-budget-v1"`: it renders a compact
+  writer-facing brief from production `BeatContext` slots and records prompt
+  payload telemetry on `writer-context` trace events.
 - Production drafting defaults to exact-ID character context capsules
   (`thread-character-context-v1`). See L094.
 - Native chapter contracts and story-turn planning are the production planning
@@ -99,11 +103,11 @@ As of 2026-05-10, L105 keeps scene-first promotion on hold after endpoint-
 preserving scene-contract compression: conservative clipping held 3/3/3
 endpoints but worsened to 2.07x, while aggressive endpoint-core shortened to
 1.78x but regressed endpoints/core coverage. Keep scene-first runtime flags
-default-off; next evidence should target a production writer-facing drafting
-brief with per-scene budgets as a view over the full writer context surface
+default-off; next evidence should exercise `writerDraftingBriefMode` through
+the production drafting path, preserving the full writer context surface
 (Character Profiles/Snapshots, World Bible/setting, Story Spine, reader-info
-state, refs, obligations, and scene contracts), not more payload clipping. See
-L103-L106.
+state, refs, obligations, and scene contracts) in storage/review while testing
+the smaller writer-facing brief. See L103-L106.
 
 ## Authoring Gates
 

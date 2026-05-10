@@ -48,6 +48,11 @@ import {
   type WriterCharacterContextTrace,
 } from "./character-context"
 import { summarizeBeatContextSurface, type WriterContextSurfaceTrace } from "./context-surface"
+import {
+  selectWriterPromptForDraftingBrief,
+  type WriterDraftingBriefMode,
+  type WriterDraftingBriefTrace,
+} from "./drafting-brief"
 import type { WriterContextMode, WriterPromptIdRendering } from "./context-mode"
 import type { BeatObligationsContract, ChapterOutline, CharacterProfile, Fact, SceneBeat } from "../../types"
 
@@ -112,6 +117,10 @@ export interface BeatContextInput {
    *  still populates every field, so swapping arms in an A/B does not
    *  require rebuilding context. */
   writerPromptIdRendering?: WriterPromptIdRendering
+  /** L106 production-path integration: optional compact writer-facing brief
+   *  rendered from the same BeatContext slots. Default "off" preserves the
+   *  full existing prompt shape. */
+  writerDraftingBriefMode?: WriterDraftingBriefMode
 }
 
 export interface BeatContextResult {
@@ -119,6 +128,7 @@ export interface BeatContextResult {
   targetWords: number
   characterContextTrace?: WriterCharacterContextTrace | null
   contextSurfaceTrace?: WriterContextSurfaceTrace
+  draftingBriefTrace?: WriterDraftingBriefTrace
 }
 
 // ── Typed slots (D1) ─────────────────────────────────────────────────────
@@ -142,6 +152,8 @@ export interface PayoffDue {
 }
 
 export interface BeatSpec {
+  sceneId?: string
+  beatId?: string
   beatNumber: number
   totalBeats: number
   pov: string
@@ -265,6 +277,8 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
   }
 
   const beatSpec: BeatSpec = {
+    ...(beat.sceneId ? { sceneId: beat.sceneId } : {}),
+    ...(beat.beatId ? { beatId: beat.beatId } : {}),
     beatNumber: beatIndex + 1,
     totalBeats: outline.scenes.length,
     pov: outline.povCharacter,
@@ -346,7 +360,9 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
   // scenePlanContractV1 stays default-off) emit no SCENE CONTRACT
   // section regardless.
   const renderSceneContractFlagOn =
-    Boolean(input.sceneCallWriterV1) || Boolean(input.forceRenderSceneContractWhenAvailable)
+    Boolean(input.sceneCallWriterV1)
+    || Boolean(input.forceRenderSceneContractWhenAvailable)
+    || input.writerDraftingBriefMode === "scene-budget-v1"
   const sceneContract = renderSceneContractFlagOn
     ? buildSceneContractBlock(beat)
     : null
@@ -423,16 +439,25 @@ export async function buildBeatContext(input: BeatContextInput): Promise<BeatCon
   // the legacy chapter-divided behaviour is preserved.
   const targetWords = ctx.sceneContract?.targetWords
     ?? Math.round(input.outline.targetWords / Math.max(input.outline.scenes.length, 1))
+  const fullContextPrompt = renderBeatContext(ctx, {
+    compact: !!input.compactMode,
+    idRendering: input.writerPromptIdRendering,
+  })
+  const { userPrompt, draftingBriefTrace } = selectWriterPromptForDraftingBrief({
+    ctx,
+    mode: input.writerDraftingBriefMode ?? "off",
+    fullContextPrompt,
+    targetWords,
+    idRendering: input.writerPromptIdRendering,
+  })
   return {
-    userPrompt: renderBeatContext(ctx, {
-      compact: !!input.compactMode,
-      idRendering: input.writerPromptIdRendering,
-    }),
+    userPrompt,
     targetWords,
     characterContextTrace: ctx.characterContextCapsules
       ? summarizeCharacterContextCapsules(ctx.characterContextCapsules)
       : null,
     contextSurfaceTrace: summarizeBeatContextSurface(ctx),
+    draftingBriefTrace,
   }
 }
 

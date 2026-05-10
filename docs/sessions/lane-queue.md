@@ -98,9 +98,9 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: implement the writer-facing drafting brief through the
-  production drafting path, not another POC-only branch. Preserve full planner
-  contracts and the production writer context surface in storage/review
+- Next session start: run the new `writerDraftingBriefMode="scene-budget-v1"`
+  arm through the production drafting path, not another POC-only branch.
+  Preserve full planner contracts and the production writer context surface in storage/review
   (Character Profiles/Snapshots, World Bible/setting, Story Spine,
   reader-info state, refs, obligations, and scene contracts), render a small
   writer brief with endpoint-critical fields, trace IDs, and per-scene budgets,

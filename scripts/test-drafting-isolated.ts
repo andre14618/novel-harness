@@ -35,6 +35,11 @@
  *                        writerExpansionMode="off". Use this to isolate
  *                        the retry-short-scenes expansion path while
  *                        holding the cloned plan constant.
+ *   drafting-brief-v1  — production-path writer drafting brief from L106:
+ *                        the writer prompt is rendered as a compact
+ *                        scene-budget brief from the same BeatContext slots.
+ *                        Scene contract fields are included when present;
+ *                        production context surface telemetry is preserved.
  *   scene-call-v1      — L097 Slice 2: scene-call writer + retry-short-
  *                        scenes-v1 expansion path. The full B3 Arm C.
  *
@@ -42,7 +47,7 @@
  *   bun scripts/test-drafting-isolated.ts \
  *     --source <planning-done-novel-id> \
  *     --target-prefix <prefix>                                   # e.g. "ab-1778378900"
- *     [--writer-arms baseline,id-suppress,contract-render-only,scene-call-no-expansion,scene-call-v1]
+ *     [--writer-arms baseline,id-suppress,contract-render-only,scene-call-no-expansion,drafting-brief-v1,scene-call-v1]
  *                                                                # default: baseline,scene-call-v1
  *     [--writer-only]                                            # set draftCaptureModeV1=true on every arm
  *     [--no-prose-semantic-eval]                                 # opt out of default advisory prose telemetry
@@ -109,6 +114,7 @@ export const WRITER_ARM_NAMES = [
   "id-suppress",
   "contract-render-only",
   "scene-call-no-expansion",
+  "drafting-brief-v1",
   "scene-call-v1",
 ] as const
 
@@ -122,6 +128,7 @@ interface ArmResult {
   totalTarget: number
   meanRatio: number
   expansionEvents: number
+  draftingBrief: DraftingBriefTelemetrySummary
   proseSemantic?: {
     outputDir: string
     resultCount: number
@@ -133,6 +140,28 @@ interface ArmResult {
     recommendation: string
   }
   error?: string
+}
+
+export interface DraftingBriefTelemetrySummary {
+  events: number
+  enabledEvents: number
+  modes: Record<string, number>
+  avgCharsRatio: number | null
+  avgSelectedPromptChars: number | null
+  avgFullContextPromptChars: number | null
+  totalCharsDelta: number
+}
+
+function emptyDraftingBriefTelemetry(): DraftingBriefTelemetrySummary {
+  return {
+    events: 0,
+    enabledEvents: 0,
+    modes: {},
+    avgCharsRatio: null,
+    avgSelectedPromptChars: null,
+    avgFullContextPromptChars: null,
+    totalCharsDelta: 0,
+  }
 }
 
 async function ensureSourceExists(source: string): Promise<void> {
@@ -178,6 +207,7 @@ interface ArmFlags {
   writerExpansionMode: "off" | "retry-short-scenes-v1"
   forceRenderSceneContractWhenAvailable: boolean
   writerPromptIdRendering: "raw" | "suppress"
+  writerDraftingBriefMode: "off" | "scene-budget-v1"
 }
 
 export function flagsForArm(arm: ArmName): ArmFlags {
@@ -188,6 +218,7 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         writerExpansionMode: "off",
         forceRenderSceneContractWhenAvailable: false,
         writerPromptIdRendering: "raw",
+        writerDraftingBriefMode: "off",
       }
     case "id-suppress":
       // adjusted-B1 ablation: same writer + plan path as baseline; only the
@@ -197,6 +228,7 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         writerExpansionMode: "off",
         forceRenderSceneContractWhenAvailable: false,
         writerPromptIdRendering: "suppress",
+        writerDraftingBriefMode: "off",
       }
     case "contract-render-only":
       // adjusted-B3 Arm B preparation: render the scene contract block
@@ -208,6 +240,7 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         writerExpansionMode: "off",
         forceRenderSceneContractWhenAvailable: true,
         writerPromptIdRendering: "raw",
+        writerDraftingBriefMode: "off",
       }
     case "scene-call-no-expansion":
       // Scene-call writer with expansion disabled. This isolates the
@@ -218,6 +251,18 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         writerExpansionMode: "off",
         forceRenderSceneContractWhenAvailable: false, // implied by sceneCallWriterV1=true
         writerPromptIdRendering: "raw",
+        writerDraftingBriefMode: "off",
+      }
+    case "drafting-brief-v1":
+      // L106 production-path integration: render a compact writer-facing
+      // drafting brief from the same production BeatContext slots. This
+      // isolates prompt shaping from scene-call architecture and expansion.
+      return {
+        sceneCallWriterV1: false,
+        writerExpansionMode: "off",
+        forceRenderSceneContractWhenAvailable: false,
+        writerPromptIdRendering: "raw",
+        writerDraftingBriefMode: "scene-budget-v1",
       }
     case "scene-call-v1":
       // L097 Slice 2: scene-call writer + expansion-retry. The full B3 Arm C.
@@ -226,6 +271,7 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         writerExpansionMode: "retry-short-scenes-v1",
         forceRenderSceneContractWhenAvailable: false, // implied by sceneCallWriterV1=true
         writerPromptIdRendering: "raw",
+        writerDraftingBriefMode: "off",
       }
   }
 }
@@ -241,25 +287,30 @@ async function setWriterFlags(novelId: string, arm: ArmName, opts: { writerOnly:
               jsonb_set(
                 jsonb_set(
                   jsonb_set(
-                    COALESCE(seed_json, '{}'::jsonb),
-                    '{pipelineOverrides}',
-                    COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+                    jsonb_set(
+                      COALESCE(seed_json, '{}'::jsonb),
+                      '{pipelineOverrides}',
+                      COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+                      true
+                    ),
+                    '{pipelineOverrides,sceneCallWriterV1}',
+                    to_jsonb(${flags.sceneCallWriterV1}::boolean),
                     true
                   ),
-                  '{pipelineOverrides,sceneCallWriterV1}',
-                  to_jsonb(${flags.sceneCallWriterV1}::boolean),
+                  '{pipelineOverrides,writerExpansionMode}',
+                  to_jsonb(${flags.writerExpansionMode}::text),
                   true
                 ),
-                '{pipelineOverrides,writerExpansionMode}',
-                to_jsonb(${flags.writerExpansionMode}::text),
+                '{pipelineOverrides,forceRenderSceneContractWhenAvailable}',
+                to_jsonb(${flags.forceRenderSceneContractWhenAvailable}::boolean),
                 true
               ),
-              '{pipelineOverrides,forceRenderSceneContractWhenAvailable}',
-              to_jsonb(${flags.forceRenderSceneContractWhenAvailable}::boolean),
+              '{pipelineOverrides,writerPromptIdRendering}',
+              to_jsonb(${flags.writerPromptIdRendering}::text),
               true
             ),
-            '{pipelineOverrides,writerPromptIdRendering}',
-            to_jsonb(${flags.writerPromptIdRendering}::text),
+            '{pipelineOverrides,writerDraftingBriefMode}',
+            to_jsonb(${flags.writerDraftingBriefMode}::text),
             true
           ),
           '{pipelineOverrides,draftCaptureModeV1}',
@@ -271,7 +322,7 @@ async function setWriterFlags(novelId: string, arm: ArmName, opts: { writerOnly:
   `
 }
 
-async function collectArmResult(arm: ArmName, novelId: string): Promise<Pick<ArmResult, "chapters" | "totalWords" | "totalTarget" | "meanRatio" | "expansionEvents">> {
+async function collectArmResult(arm: ArmName, novelId: string): Promise<Pick<ArmResult, "chapters" | "totalWords" | "totalTarget" | "meanRatio" | "expansionEvents" | "draftingBrief">> {
   const chapterRows = await db`
     SELECT cd.chapter_number, cd.word_count, cd.version,
            (co.outline_json->>'targetWords')::int AS target_words
@@ -308,7 +359,73 @@ async function collectArmResult(arm: ArmName, novelId: string): Promise<Pick<Arm
   ` as Array<{ n: number }>
   const expansionEvents = expansionRows[0]?.n ?? 0
 
-  return { chapters, totalWords, totalTarget, meanRatio, expansionEvents }
+  const draftingBriefRows = await db`
+    SELECT payload FROM pipeline_events
+    WHERE novel_id = ${novelId} AND event_type = 'writer-context'
+  ` as Array<{ payload: unknown }>
+  const draftingBrief = summarizeDraftingBriefTelemetry(draftingBriefRows.map(row => row.payload))
+
+  return { chapters, totalWords, totalTarget, meanRatio, expansionEvents, draftingBrief }
+}
+
+export function summarizeDraftingBriefTelemetry(payloads: unknown[]): DraftingBriefTelemetrySummary {
+  const rows = payloads
+    .map(payload => readDraftingBriefTelemetry(payload))
+    .filter((row): row is NonNullable<ReturnType<typeof readDraftingBriefTelemetry>> => Boolean(row))
+  if (rows.length === 0) return emptyDraftingBriefTelemetry()
+
+  const modes: Record<string, number> = {}
+  let selectedTotal = 0
+  let fullTotal = 0
+  let ratioTotal = 0
+  let ratioCount = 0
+  let totalCharsDelta = 0
+  let enabledEvents = 0
+  for (const row of rows) {
+    modes[row.mode] = (modes[row.mode] ?? 0) + 1
+    selectedTotal += row.selectedPromptChars
+    fullTotal += row.fullContextPromptChars
+    totalCharsDelta += row.charsDelta
+    if (row.mode !== "off") enabledEvents++
+    if (Number.isFinite(row.charsRatio)) {
+      ratioTotal += row.charsRatio
+      ratioCount++
+    }
+  }
+
+  return {
+    events: rows.length,
+    enabledEvents,
+    modes,
+    avgCharsRatio: ratioCount > 0 ? ratioTotal / ratioCount : null,
+    avgSelectedPromptChars: selectedTotal / rows.length,
+    avgFullContextPromptChars: fullTotal / rows.length,
+    totalCharsDelta,
+  }
+}
+
+function readDraftingBriefTelemetry(payload: unknown): {
+  mode: string
+  selectedPromptChars: number
+  fullContextPromptChars: number
+  charsRatio: number
+  charsDelta: number
+} | null {
+  if (!payload || typeof payload !== "object") return null
+  const draftingBrief = (payload as { draftingBrief?: unknown }).draftingBrief
+  if (!draftingBrief || typeof draftingBrief !== "object") return null
+  const row = draftingBrief as Record<string, unknown>
+  const mode = typeof row.mode === "string" ? row.mode : null
+  const selectedPromptChars = readFiniteNumber(row.selectedPromptChars)
+  const fullContextPromptChars = readFiniteNumber(row.fullContextPromptChars)
+  const charsRatio = readFiniteNumber(row.charsRatio)
+  const charsDelta = readFiniteNumber(row.charsDelta)
+  if (!mode || selectedPromptChars === null || fullContextPromptChars === null || charsRatio === null || charsDelta === null) return null
+  return { mode, selectedPromptChars, fullContextPromptChars, charsRatio, charsDelta }
+}
+
+function readFiniteNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 
 interface RunArmOptions {
@@ -345,12 +462,13 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
   } catch (err) {
     return {
       arm, novelId, chapters: [], totalWords: 0, totalTarget: 0, meanRatio: 0,
+      draftingBrief: emptyDraftingBriefTelemetry(),
       expansionEvents: 0, error: `clone failed: ${err instanceof Error ? err.message : err}`,
     }
   }
 
   const flags = flagsForArm(arm)
-  console.log(`  setting writer flags: sceneCallWriterV1=${flags.sceneCallWriterV1}, writerExpansionMode=${flags.writerExpansionMode}, forceRenderSceneContractWhenAvailable=${flags.forceRenderSceneContractWhenAvailable}, writerPromptIdRendering=${flags.writerPromptIdRendering}, draftCaptureModeV1=${opts.writerOnly}`)
+  console.log(`  setting writer flags: sceneCallWriterV1=${flags.sceneCallWriterV1}, writerExpansionMode=${flags.writerExpansionMode}, forceRenderSceneContractWhenAvailable=${flags.forceRenderSceneContractWhenAvailable}, writerPromptIdRendering=${flags.writerPromptIdRendering}, writerDraftingBriefMode=${flags.writerDraftingBriefMode}, draftCaptureModeV1=${opts.writerOnly}`)
   await setWriterFlags(novelId, arm, { writerOnly: opts.writerOnly })
 
   await initNovelRun(novelId)
@@ -377,6 +495,7 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
     // the operator gets evidence from chapters that did finish.
     const collected = await collectArmResult(arm, novelId).catch(() => ({
       chapters: [] as ArmResult["chapters"], totalWords: 0, totalTarget: 0, meanRatio: 0, expansionEvents: 0,
+      draftingBrief: emptyDraftingBriefTelemetry(),
     }))
     const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts).catch(proseErr => ({
       outputDir: "",
@@ -536,6 +655,7 @@ async function main() {
     console.log(`  total words: ${r.totalWords} / target ${r.totalTarget}`)
     console.log(`  mean per-chapter ratio: ${r.meanRatio.toFixed(3)}`)
     console.log(`  writer-expansion events: ${r.expansionEvents}`)
+    console.log(`  writer drafting brief: ${formatDraftingBriefTelemetry(r.draftingBrief)}`)
     if (r.proseSemantic) {
       console.log(`  prose semantic: rows=${r.proseSemantic.resultCount}, lows=${r.proseSemantic.lowRows}, errors=${r.proseSemantic.errorRows}`)
       console.log(`    guidance: lengthSignal=${r.proseSemantic.lengthSignal}, qualityRisk=${r.proseSemantic.qualityRisk}`)
@@ -573,6 +693,17 @@ async function main() {
   }
 
   process.exit(0)
+}
+
+function formatDraftingBriefTelemetry(summary: DraftingBriefTelemetrySummary): string {
+  if (summary.events === 0) return "no writer-context telemetry"
+  const modeText = Object.entries(summary.modes)
+    .map(([mode, count]) => `${mode}=${count}`)
+    .join(", ")
+  const ratio = summary.avgCharsRatio === null ? "n/a" : summary.avgCharsRatio.toFixed(3)
+  const selected = summary.avgSelectedPromptChars === null ? "n/a" : Math.round(summary.avgSelectedPromptChars)
+  const full = summary.avgFullContextPromptChars === null ? "n/a" : Math.round(summary.avgFullContextPromptChars)
+  return `events=${summary.events}, enabled=${summary.enabledEvents}, modes=${modeText || "none"}, avgChars=${selected}/${full}, avgRatio=${ratio}, delta=${summary.totalCharsDelta}`
 }
 
 if (import.meta.main) {

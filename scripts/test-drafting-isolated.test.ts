@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test"
-import { parseArgs, flagsForArm, WRITER_ARM_NAMES } from "./test-drafting-isolated"
+import { parseArgs, flagsForArm, WRITER_ARM_NAMES, summarizeDraftingBriefTelemetry } from "./test-drafting-isolated"
 
 describe("test-drafting-isolated parseArgs", () => {
   test("requires --source", () => {
@@ -15,13 +15,13 @@ describe("test-drafting-isolated parseArgs", () => {
     expect(args.arms).toEqual(["baseline", "scene-call-v1"])
   })
 
-  test("accepts the five supported arms in any combination", () => {
+  test("accepts the six supported arms in any combination", () => {
     const args = parseArgs([
       "--source", "n",
       "--target-prefix", "ab",
-      "--writer-arms", "baseline,id-suppress,contract-render-only,scene-call-no-expansion,scene-call-v1",
+      "--writer-arms", "baseline,id-suppress,contract-render-only,scene-call-no-expansion,drafting-brief-v1,scene-call-v1",
     ])
-    expect(args.arms).toEqual(["baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "scene-call-v1"])
+    expect(args.arms).toEqual(["baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "drafting-brief-v1", "scene-call-v1"])
   })
 
   test("rejects unknown arm names", () => {
@@ -82,23 +82,25 @@ describe("test-drafting-isolated parseArgs", () => {
 })
 
 describe("flagsForArm", () => {
-  test("baseline arm preserves production defaults across all four flags", () => {
+  test("baseline arm preserves production defaults across all writer flags", () => {
     expect(flagsForArm("baseline")).toEqual({
       sceneCallWriterV1: false,
       writerExpansionMode: "off",
       forceRenderSceneContractWhenAvailable: false,
       writerPromptIdRendering: "raw",
+      writerDraftingBriefMode: "off",
     })
   })
 
   test("id-suppress arm flips ONLY the writer-prompt ID rendering flag", () => {
     const flags = flagsForArm("id-suppress")
     expect(flags.writerPromptIdRendering).toBe("suppress")
-    // The other three flags must match baseline so the ablation isolates
+    // The other flags must match baseline so the ablation isolates
     // the prompt-rendering effect.
     expect(flags.sceneCallWriterV1).toBe(false)
     expect(flags.writerExpansionMode).toBe("off")
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
+    expect(flags.writerDraftingBriefMode).toBe("off")
   })
 
   test("contract-render-only arm flips ONLY the scene-contract-render flag", () => {
@@ -107,6 +109,7 @@ describe("flagsForArm", () => {
     expect(flags.sceneCallWriterV1).toBe(false)
     expect(flags.writerExpansionMode).toBe("off")
     expect(flags.writerPromptIdRendering).toBe("raw")
+    expect(flags.writerDraftingBriefMode).toBe("off")
   })
 
   test("scene-call-v1 arm enables scene-call writer + expansion-retry; ID rendering stays raw", () => {
@@ -114,6 +117,7 @@ describe("flagsForArm", () => {
     expect(flags.sceneCallWriterV1).toBe(true)
     expect(flags.writerExpansionMode).toBe("retry-short-scenes-v1")
     expect(flags.writerPromptIdRendering).toBe("raw")
+    expect(flags.writerDraftingBriefMode).toBe("off")
   })
 
   test("scene-call-no-expansion isolates scene-call from expansion retry", () => {
@@ -122,9 +126,59 @@ describe("flagsForArm", () => {
     expect(flags.writerExpansionMode).toBe("off")
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
     expect(flags.writerPromptIdRendering).toBe("raw")
+    expect(flags.writerDraftingBriefMode).toBe("off")
   })
 
-  test("WRITER_ARM_NAMES enumerates the five supported arms in declaration order", () => {
-    expect(WRITER_ARM_NAMES).toEqual(["baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "scene-call-v1"])
+  test("drafting-brief-v1 flips only the production drafting brief mode", () => {
+    const flags = flagsForArm("drafting-brief-v1")
+    expect(flags.writerDraftingBriefMode).toBe("scene-budget-v1")
+    expect(flags.sceneCallWriterV1).toBe(false)
+    expect(flags.writerExpansionMode).toBe("off")
+    expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
+    expect(flags.writerPromptIdRendering).toBe("raw")
+  })
+
+  test("WRITER_ARM_NAMES enumerates the six supported arms in declaration order", () => {
+    expect(WRITER_ARM_NAMES).toEqual(["baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "drafting-brief-v1", "scene-call-v1"])
+  })
+})
+
+describe("summarizeDraftingBriefTelemetry", () => {
+  test("aggregates writer-context drafting brief payload stats by mode", () => {
+    const summary = summarizeDraftingBriefTelemetry([{
+      draftingBrief: {
+        mode: "off",
+        selectedPromptChars: 1000,
+        fullContextPromptChars: 1000,
+        charsRatio: 1,
+        charsDelta: 0,
+      },
+    }, {
+      draftingBrief: {
+        mode: "scene-budget-v1",
+        selectedPromptChars: 600,
+        fullContextPromptChars: 1200,
+        charsRatio: 0.5,
+        charsDelta: -600,
+      },
+    }, {
+      eventType: "other",
+    }])
+
+    expect(summary.events).toBe(2)
+    expect(summary.enabledEvents).toBe(1)
+    expect(summary.modes).toEqual({ off: 1, "scene-budget-v1": 1 })
+    expect(summary.avgCharsRatio).toBe(0.75)
+    expect(summary.avgSelectedPromptChars).toBe(800)
+    expect(summary.avgFullContextPromptChars).toBe(1100)
+    expect(summary.totalCharsDelta).toBe(-600)
+  })
+
+  test("returns an empty summary when no drafting brief trace exists", () => {
+    const summary = summarizeDraftingBriefTelemetry([{ draftingBrief: null }, {}])
+    expect(summary.events).toBe(0)
+    expect(summary.enabledEvents).toBe(0)
+    expect(summary.modes).toEqual({})
+    expect(summary.avgCharsRatio).toBeNull()
   })
 })

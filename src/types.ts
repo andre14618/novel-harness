@@ -83,6 +83,12 @@ export interface SeedInput {
      * audit logs continue to carry every ID.
      */
     writerPromptIdRendering?: import("./agents/writer/context-mode").WriterPromptIdRendering
+    /**
+     * L106 production-path integration: optional compact writer-facing
+     * drafting brief rendered from production writer context slots. Default
+     * "off" preserves the full existing writer prompt.
+     */
+    writerDraftingBriefMode?: import("./agents/writer/drafting-brief").WriterDraftingBriefMode
   }
 }
 
