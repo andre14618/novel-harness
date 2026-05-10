@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-03
+updated: 2026-05-09
 ---
 
 # Lessons Learned
@@ -8,6 +8,14 @@ updated: 2026-05-03
 Hard-won principles from experiments, failures, and debugging. Each entry has evidence — experiment IDs, commit hashes, or specific observations. Read this before designing new agents, rubrics, benchmarks, or pipeline integrations.
 
 ## Substrate Adapter Design
+
+### Validators ported from POC must be calibrated against production reality, not POC reality (2026-05-09)
+
+When porting POC structural validators (e.g. `assessSceneContract` from `scripts/evals/corpus-recreation-poc.ts`) into production enforcement, the POC's invariants assume the POC's data shape — not production's. Two real bugs surfaced on the L096 Slice 1 LXC smoke (commit `137b91c` is the fix): (1) materialityTest enforcement iterated `mustNotReveal` obligations, but `mustNotReveal` items have no upstream `sourceId` by design (per `harness/ids.ts:194`); they are avoidance constraints, not source-grounded materials. The POC validator never saw `mustNotReveal` because POC plans don't have it. (2) The "≥1 obligation with sourceId per scene" rule reflected POC reality where every scene was a major dramatic unit; production beats include legitimate transit/establishment entries that have no story-debt obligations. Validators that hold under POC constraints can throw on production output because production has shape variance the POC never carried. Always run the new validator against a real production planner output BEFORE wiring it into a phase-blocking enforcement loop, even if the POC unit tests pass — the unit tests are necessary, not sufficient. Adjacent rule: when porting, audit the production schema for fields the POC didn't have (here: `mustNotReveal`) and decide explicitly whether each is in or out of scope for the new check. (`src/harness/enforce.ts` Slice 0+1, `docs/decisions/L096-scene-contract-planner-behavior.md`.)
+
+### Prompt-fidelity gaps must be measured before treating a contract as "production-ready" (2026-05-09)
+
+A production prompt that "instructs the LLM to emit X" is not the same as a prompt where "the LLM reliably emits X across N runs." The L096 Slice 1 r2 LXC smoke surfaced a 12% per-scene non-compliance rate even after the prompt explicitly stated the rule (`crisisChoice` declared → must include sourced obligation). The structural-v1 retry surfaced the gap on the first pass and re-emitted, but the LLM returned a similarly-non-compliant plan. Lesson: a prompt-instructed contract that lacks a worked example or a deterministic post-processor (e.g., minting `payoffEventId` in `enrichOutlineIds` rather than asking the LLM to emit it) will never be 100% compliant under stochastic LLM output. Before flipping a flag to default-on, you need either (a) a worked-example block in the prompt + ≥95% measured compliance, or (b) a deterministic post-processor that fills the field for you and skips the LLM ask. Don't defer this question until promotion — it shows up the moment a phase-blocking enforcer is wired against the prompt. (`docs/decisions/L096-scene-contract-planner-behavior.md` Calibration Debt section.)
 
 ### Multi-row writes need a transaction; default `db` proxy + optional `executor` param is the cheap pattern (2026-05-03)
 

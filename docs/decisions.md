@@ -16,6 +16,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
+| L96 | 2026-05-09 | active | Scene contract planner behavior shipped behind `scenePlanContractV1=false`. LXC smoke validated wiring + structural-v1 retry; surfaced real LLM prompt-fidelity gaps (crisisChoice→sourced-obligation, payoffEventId compliance) that block default-on promotion until a follow-up calibration slice closes them. | `docs/decisions/L096-scene-contract-planner-behavior.md` |
 | L95 | 2026-05-09 | active | Scene contract substrate: optional scene-contract schema fields, widened seven-value `storyDebtStage` enum, `scenePlanContractV1` flag, and `enforceScenePlanContract` helper. `beatId` remains the per-entry identity; no rename, no behavior change, default-off. | `docs/decisions/L095-scene-contract-substrate.md` |
 | L94 | 2026-05-09 | active | Production drafting defaults to exact-ID character context capsules after fixed-plan POC evidence improved expansion without semantic/prose regressions. | `docs/decisions/L094-production-character-context-default.md` |
 | L93 | 2026-05-09 | active | Extend stable-ref traceability into runtime thread/payoff refs: directives, state-mapper obligations, writer context, and telemetry carry IDs without making thread semantics blocking. | `docs/decisions/L093-run-thread-id-drafting-coherence.md` |
