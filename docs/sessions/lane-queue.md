@@ -15,17 +15,32 @@ unless the user explicitly requests a disposable branch.
   design (4 profiles for adjusted-B2;
   `docs/research/scene-write-fixture-design-2026-05-10.md`). Decision
   record for the writer-prompt ID question: L099.
-- **Adjusted-B2 fixture + runner readiness shipped.** Loaders at
-  `scripts/fixture/load-concept-fixture.ts` (P1/P2/P3) and
-  `scripts/fixture/load-frozen-plan.ts` (P4); shared schema at
-  `scripts/fixture/scene-first-fixture-schema.ts`; tests in the same dir.
-  Fixtures at `docs/fixtures/scene-first/concepts/{over-target,undershoot,pre-resolved}/`
-  for P1/P2/P3 and `docs/fixtures/scene-first/frozen-plan/novel-1778411555121-ch1-ch2/`
-  as a P4 stub awaiting LXC capture per its `README.md`. Operator
-  command examples in `docs/fixtures/scene-first/README.md`. Next:
-  capture the P4 frozen plan from LXC, then open adjusted-B1
-  (writer-prompt ID ablation behind a flag, Cluster-1 sites only). The
-  structure-* namespace move stays parked — not on the critical path.
+- **Adjusted-B1/B2/B3 prep all shipped (default-off).** The scene-first
+  evidence lane is runnable end-to-end on LXC.
+  - **B1 flag (`writerPromptIdRendering`, commit `62e5c8c`):** default
+    "raw" preserves byte-parity (replay green; 21 beat-context fixtures
+    pass; 1423 fast-tier tests pass); `"suppress"` per-novel override
+    omits Cluster-1 raw-ID lines from the prose-writer prompt only.
+    Trace metadata / DB / telemetry / checker findings / proposals /
+    evals / audit unaffected. See L099.
+  - **B2 runner (`--from-fixture`, commit `e48f996`):** chains concept
+    + planning on a P1/P2/P3 fixture in one command. Resulting novel-id
+    feeds `test-drafting-isolated`.
+  - **B3 contract-render decoupling + new arms (commit `138780c`):**
+    `forceRenderSceneContractWhenAvailable` decouples scene-contract
+    render from `sceneCallWriterV1`. `test-drafting-isolated --writer-arms`
+    grows two new arms — `id-suppress` (B1 ablation) and
+    `contract-render-only` (B3 Arm B). `scene-call-v1` (B3 Arm C)
+    pre-existing. Default arm list `baseline,scene-call-v1` unchanged
+    so existing scripts produce identical output.
+  - **P4 capture (commit `cc6385e`):** real frozen plan from
+    `novel-1778411555121` ch1+ch2 (5+6 scenes, 11 obligations, empty
+    refs substrate). Replaces the is_stub manifest. Loader hydration
+    is partial — for B3 evidence on P4, drive
+    `test-drafting-isolated --source novel-1778411555121` so
+    `clone-for-variant` carries the full concept-side state.
+  - Operator commands in `docs/fixtures/scene-first/README.md`.
+  - structure-* namespace move stays parked — not on the critical path.
 - Scene-first runtime promotion lane CLOSED (2026-05-09/10). All four slices
   + 2.5 + 3.5 shipped default-off. Retrospective:
   `docs/sessions/2026-05-09-scene-first-runtime-promotion.md`. Open follow-ups
@@ -47,20 +62,25 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: capture the P4 frozen plan from LXC per
-  `docs/fixtures/scene-first/frozen-plan/novel-1778411555121-ch1-ch2/README.md`,
-  validate the captured manifest with the schema parser, and run a small
-  fixed-plan smoke through the existing baseline + scene-call-v1 arms to
-  confirm the P4 hydration round-trips. Then open adjusted-B1 (writer-
-  prompt ID ablation behind a flag, Cluster-1 sites only) → adjusted-B3
-  (scene-contract A/B/C with planner-authored contracts) → adjusted-B4
-  (judges as diagnostic only) → adjusted-B5 (promotion decision). At
-  least one fixture used in adjusted-B1 must declare real
-  `threadId`/`promiseId`/`payoffId` refs so the ID-ablation arms are
-  not trivially equal on lineage. Endpoint-landing semantic review and
-  remaining telemetry cleanup (`beatId` only for real beat hints,
-  legacy beat-shaped entries, or beat-specific compatibility) are
-  deferred to post-B5.
+- Next session start: drive the first real evidence run. Recommended
+  cheapest path is the P4-direct route: `bun scripts/test-drafting-isolated.ts
+  --source novel-1778411555121 --target-prefix p4-$(date +%s) --writer-arms
+  baseline,id-suppress,contract-render-only,scene-call-v1`. P4 holds
+  planner output fixed across arms (no replan), so any per-arm delta
+  is attributable to the writer-side change. For P1/P2/P3 evidence,
+  use the `--from-fixture` planner runner first to mint a planning-done
+  novel, then `test-drafting-isolated`. After B1 evidence lands, sequence
+  is adjusted-B3 verdict → adjusted-B4 (judges as diagnostic only) →
+  adjusted-B5 (promotion decision). At least one fixture used in
+  adjusted-B1 must declare real `threadId`/`promiseId`/`payoffId` refs so
+  the ID-ablation arms are not trivially equal on lineage. Endpoint-
+  landing semantic review and remaining telemetry cleanup (`beatId` only
+  for real beat hints, legacy beat-shaped entries, or beat-specific
+  compatibility) are deferred to post-B5.
+- Open follow-ups (NOT on the critical path): richer P4 fixture
+  hydration (load-frozen-plan currently writes only novels +
+  chapter_outlines; clone-for-variant carries the full state today, so
+  P4 is usable via --source). See `docs/fixtures/scene-first/README.md`.
 - Native chapter contracts and story-turn planning are now the production
   runtime default, with legacy rollback via seed override. Next gather direct
   runtime drafting evidence and improve endpoint satisfaction plus listed-

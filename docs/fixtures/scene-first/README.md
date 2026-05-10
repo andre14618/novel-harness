@@ -39,58 +39,65 @@ and `--novel-id <id>` to override the auto-derived id.
 
 ### P1 / P2 / P3 (concept-level fixture)
 
+`scripts/test-planner-isolated.ts --from-fixture <path>` reads a parsed
+concept fixture, creates a fresh novel with the fixture's concept block
+as seed, and runs concept + planning end-to-end. The resulting novel-id
+is printed (look for `novel: fixture-...`); chain it into the drafting
+runner.
+
 ```bash
-# 1. Seed the novel from the fixture.
-novel_id=$(bun scripts/fixture/load-concept-fixture.ts \
-  --fixture docs/fixtures/scene-first/concepts/over-target/P1-fantasy-debt-binder.json \
-  --quiet)
-echo "novel: $novel_id"
+# 1. Concept + planning from a fixture.
+bun scripts/test-planner-isolated.ts \
+  --from-fixture docs/fixtures/scene-first/concepts/over-target/P1-fantasy-debt-binder.json \
+  --native-planning-contract \
+  --scene-plan-contract        # only when adjusted-B3 evidence on a planner-authored contract is wanted
+# capture the printed novel-id, e.g. fixture-P1-fantasy-debt-binder-1778500000000
 
-# 2. Run concept + planning. The existing test-planner-isolated.ts
-#    seed-name path runs both, but it loads from src/seeds/<name>.json,
-#    not from a fixture-loaded novel. Use a small inline driver until a
-#    dedicated --novel-from-fixture path lands as a follow-up:
-bun -e "
-  import { runConceptPhase } from './src/phases/concept';
-  import { runPlanningPhase } from './src/phases/planning';
-  import { initNovelRun } from './src/logger';
-  import { setAutoMode, setResolverMode } from './src/cli';
-  import { getMode } from './src/gates';
-  import db from './src/db/connection';
-  const id = '$novel_id';
-  setAutoMode(true); setResolverMode(getMode(true));
-  const [{ seed_json }] = await db\`SELECT seed_json FROM novels WHERE id = \${id}\` as any[];
-  await initNovelRun(id);
-  await runConceptPhase(id, seed_json);
-  await runPlanningPhase(id);
-  console.log('planning done for', id);
-"
-
-# 3. Run drafting A/B (existing baseline vs scene-call-v1 arms).
+# 2. Drafting A/B/C across the four supported arms.
 bun scripts/test-drafting-isolated.ts \
-  --source "$novel_id" \
-  --target-prefix "ab-$(date +%s)"
+  --source <novel-id-from-step-1> \
+  --target-prefix "ab-$(date +%s)" \
+  --writer-arms baseline,id-suppress,contract-render-only,scene-call-v1
 ```
 
 ### P4 (frozen-plan fixture)
 
+The shipped P4 fixture is a real captured manifest from
+`novel-1778411555121` ch1+ch2. The `load-frozen-plan.ts` loader
+hydrates only `novels` + `chapter_outlines`; running drafting against
+its hydrated clone needs the rest of the concept-side state
+(`world_bibles`, `character_profiles`, `world_systems`, `cultures`,
+`story_spines`, etc.). Until the loader is extended (follow-up #2 below),
+the supported path for held-plan A/B/C against P4 is to clone the
+existing source novel directly via `clone-for-variant.ts` and let
+`test-drafting-isolated` orchestrate the clone:
+
 ```bash
-# 0. Capture the frozen plan ONCE per fixture revision.
-#    See docs/fixtures/scene-first/frozen-plan/<slug>/README.md for the
-#    exact ssh + DB-dump procedure. The default fixture ships as a stub
-#    and the loader will refuse to hydrate it until capture completes.
-
-# 1. Hydrate the novel from the captured fixture.
-novel_id=$(bun scripts/fixture/load-frozen-plan.ts \
-  --fixture docs/fixtures/scene-first/frozen-plan/novel-1778411555121-ch1-ch2 \
-  --quiet)
-echo "novel: $novel_id"
-
-# 2. Drafting only — the plan is already in place.
+# Cleanest path while load-frozen-plan.ts hydration is partial:
 bun scripts/test-drafting-isolated.ts \
-  --source "$novel_id" \
-  --target-prefix "ab-$(date +%s)"
+  --source novel-1778411555121 \
+  --target-prefix "p4-$(date +%s)" \
+  --writer-arms baseline,id-suppress,contract-render-only,scene-call-v1
 ```
+
+The captured fixture file (`frozen-plan/novel-1778411555121-ch1-ch2/chapter-outlines.json`)
+remains the durable provenance record (source novel id, central run id,
+experiment id, captured-at timestamp, captured-against commit) so a
+future loader extension can rehydrate from it cleanly.
+
+### Writer arms (used by `test-drafting-isolated.ts --writer-arms`)
+
+| Arm | Description | Flag deltas vs production |
+|---|---|---|
+| `baseline` | Current production writer. | none — preserves all four flags at production defaults. |
+| `id-suppress` | adjusted-B1 ablation. Cluster-1 raw-ID lines suppressed in the prose-writer prompt; trace metadata, DB rows, telemetry, and audit logs unaffected. | `writerPromptIdRendering="suppress"` |
+| `contract-render-only` | adjusted-B3 Arm B preparation. Renders the SCENE CONTRACT block when populated, without enabling scene-call writer. No effect when the planner has authored no scene-contract field. | `forceRenderSceneContractWhenAvailable=true` |
+| `scene-call-v1` | adjusted-B3 Arm C / L097 Slice 2. Full scene-call writer + retry-short-scenes-v1 expansion. | `sceneCallWriterV1=true` + `writerExpansionMode="retry-short-scenes-v1"` |
+
+The first three arms are all beat-shaped writer calls. Differences between
+them isolate ablation effects (id-suppress), contract-rendering effects
+(contract-render-only), and the architecture shift (scene-call-v1) per
+the adjusted-B1/B3 split in `docs/research/user-adjusted-backlog-2026-05-10.md`.
 
 ## Constraints honored
 
@@ -109,17 +116,19 @@ bun scripts/test-drafting-isolated.ts \
   one fixture sourced from a real runtime artifact, with explicit
   capture provenance in its `fixture_metadata`.
 
-## Follow-up tickets (NOT in this slice)
+## Follow-up tickets
 
-1. **`--novel-from-fixture` mode for `test-planner-isolated.ts`** — the
-   inline driver above for P1/P2/P3 is workable but should be folded
-   into the existing planner runner so a single command can seed +
-   run concept + run planning.
-2. **Richer P4 hydration** — capture `world_bibles`, `characters`,
-   `world_systems`, `cultures`, `story_spines` alongside outlines if A/B
-   results show the partial hydration is confounding.
-3. **Third writer arm** — `contract-render-only` (current beat-shaped
-   writer + scene contract rendered) is part of adjusted-B3, not
-   adjusted-B2. Requires a new pipeline override
-   (`forceRenderSceneContractWhenAvailable`) plus a runner enum
-   extension. Both deferred to the adjusted-B3 implementation slice.
+1. **DONE** — `--from-fixture` mode added to `test-planner-isolated.ts`
+   (commit `e48f996`).
+2. **OPEN** — Richer P4 hydration. The shipped loader writes only
+   `novels` + `chapter_outlines`. Add `world_bibles`, `characters`,
+   `world_systems`, `cultures`, `character_cultures`,
+   `character_system_awareness`, `story_spines`, `retrieval_config` to
+   the captured fixture and to the loader's hydration set so a clone
+   can run drafting without depending on the source novel still
+   existing. Until then, drive P4 evidence via
+   `--source novel-1778411555121` directly (above).
+3. **DONE** — Third writer arm `contract-render-only` shipped
+   alongside the new `forceRenderSceneContractWhenAvailable` pipeline
+   override and the `id-suppress` arm (commit `138780c`). All four
+   arms are usable through `test-drafting-isolated.ts --writer-arms`.
