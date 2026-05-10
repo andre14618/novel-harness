@@ -1,10 +1,12 @@
 import { describe, expect, test } from "bun:test"
 
 import {
+  buildPlannerQualityReadinessAggregate,
   buildPlannerQualityReport,
   renderPlannerQualityReport,
   type PlannerQualityOutlineRow,
 } from "./planner-quality-report"
+import { buildPlanReadinessDraftsFromAggregate } from "../../src/harness/plan-readiness"
 import type { ChapterOutline, SceneBeat } from "../../src/types"
 
 describe("planner-quality-report", () => {
@@ -67,6 +69,66 @@ describe("planner-quality-report", () => {
     expect(report.chapters[0]!.flags).toContain("over_planned_beats")
     expect(report.chapters[0]!.flags).toContain("obligation_coverage_error")
   })
+
+  test("converts endpoint and turn issues into Plan Readiness aggregate groups", () => {
+    const report = buildPlannerQualityReport([
+      row(chapter({
+        chapterId: "ch-readiness",
+        purpose: "Maret proves the System can lie. The chapter ends with Theo accepting the oath pact.",
+        scenes: [
+          beat("Maret waits.", ["Maret"], {
+            sceneId: "scene-flat",
+            requiredCharacterIds: ["char-maret"],
+            obligations: {
+              mustEstablish: [{
+                obligationId: "obl-flat",
+                sourceId: "fact-oath-price",
+                sourceKind: "fact",
+                text: "The oath has a price.",
+              } as any],
+              mustPayOff: [],
+              mustTransferKnowledge: [],
+              mustShowStateChange: [],
+              mustNotReveal: [],
+              allowedNewEntities: [],
+            },
+          }),
+          beat("Maret leaves the vault corridor.", ["Maret"], {
+            sceneId: "scene-final",
+            requiredWorldFactIds: ["fact-vault-law"],
+          }),
+        ],
+      })),
+    ], "novel-readiness")
+
+    const aggregate = buildPlannerQualityReadinessAggregate(report, "planner-quality-report:test")
+    const groups = aggregate.groups as any[]
+    expect(groups.map(group => group.findings[0].label)).toEqual(
+      expect.arrayContaining(["ENDPOINT-PLAN-1", "TURN-PLAN-1"]),
+    )
+    expect(groups.find(group => group.findings[0].label === "ENDPOINT-PLAN-1").rewritePacket.proposalCandidate.target).toMatchObject({
+      kind: "scene_plan",
+      ref: "scene-final",
+      fieldPath: "description",
+    })
+    expect(groups.find(group => group.sceneId === "scene-flat").rewritePacket.preserveIds).toMatchObject({
+      obligationIds: ["obl-flat"],
+      worldFactIds: ["fact-oath-price"],
+      sourceIds: ["fact-oath-price"],
+    })
+
+    const imported = buildPlanReadinessDraftsFromAggregate({
+      novelId: "novel-readiness",
+      aggregate,
+      targetVersions: new Map([
+        ["scene_plan:scene-final", "hash-final"],
+        ["scene_plan:scene-flat", "hash-flat"],
+      ]),
+    })
+    expect(imported.skipped).toEqual([])
+    expect(imported.drafts.length).toBeGreaterThanOrEqual(2)
+    expect(imported.drafts.every(draft => draft.sourceHashKind === "target_current_version")).toBe(true)
+  })
 })
 
 function row(outline: ChapterOutline): PlannerQualityOutlineRow {
@@ -93,7 +155,11 @@ function chapter(overrides: Partial<ChapterOutline> = {}): ChapterOutline {
   }
 }
 
-function beat(description: string, characters: string[] = ["Maret"]): SceneBeat {
+function beat(
+  description: string,
+  characters: string[] = ["Maret"],
+  overrides: Partial<SceneBeat> = {},
+): SceneBeat {
   return {
     description,
     characters,
@@ -111,5 +177,6 @@ function beat(description: string, characters: string[] = ["Maret"]): SceneBeat 
     miceActive: [],
     miceOpens: [],
     miceCloses: [],
+    ...overrides,
   }
 }

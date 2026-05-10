@@ -8,9 +8,13 @@
  * coverage.
  */
 
+import { mkdirSync, writeFileSync } from "node:fs"
+import { dirname, resolve } from "node:path"
+
 import { chapterOutlineSchema, type ChapterOutline } from "../../src/agents/planning-plotter/schema"
 import { assessBeatCountForTarget } from "../../src/harness/beat-counts"
 import { validateBeatObligationCoverage } from "../../src/harness/beat-obligations"
+import type { SceneBeat } from "../../src/types"
 
 export interface PlannerQualityOutlineRow {
   chapter_number: number
@@ -37,12 +41,26 @@ export interface PlannerQualityCharacterMateriality {
 export interface PlannerQualityEndpoint {
   declared: string | null
   finalBeat: string | null
+  finalSceneRef: string | null
+  finalScenePreserveIds: PlannerQualityPreserveIds
   overlapRatio: number | null
   missingTokens: string[]
 }
 
+export interface PlannerQualityPreserveIds {
+  obligationIds: string[]
+  characterIds: string[]
+  worldFactIds: string[]
+  sceneTurnIds: string[]
+  threadIds: string[]
+  promiseIds: string[]
+  payoffIds: string[]
+  sourceIds: string[]
+}
+
 export interface PlannerQualityChapter {
   chapter: number
+  chapterRef: string | null
   title: string
   targetWords: number | null
   plannedBeats: number
@@ -51,7 +69,13 @@ export interface PlannerQualityChapter {
   purpose: string
   endpoint: PlannerQualityEndpoint
   characters: PlannerQualityCharacterMateriality[]
-  weakStoryTurnBeats: Array<{ beat: number; kind: string; description: string }>
+  weakStoryTurnBeats: Array<{
+    beat: number
+    kind: string
+    description: string
+    targetRef: string | null
+    preserveIds: PlannerQualityPreserveIds
+  }>
   obligationHealth: {
     valid: boolean
     errors: string[]
@@ -84,6 +108,8 @@ export interface PlannerQualityReport {
 interface Args {
   novelId: string | null
   json: boolean
+  readinessJson: string | null
+  importReadiness: boolean
 }
 
 const ENDPOINT_PATTERNS = [
@@ -106,6 +132,17 @@ const STORY_TURN_TERMS = [
   "kill", "learn", "prove", "realize", "refuse", "reveal", "risk",
   "sacrifice", "threaten", "warn",
 ]
+
+const EMPTY_PRESERVE_IDS: PlannerQualityPreserveIds = {
+  obligationIds: [],
+  characterIds: [],
+  worldFactIds: [],
+  sceneTurnIds: [],
+  threadIds: [],
+  promiseIds: [],
+  payoffIds: [],
+  sourceIds: [],
+}
 
 export function buildPlannerQualityReport(
   rows: readonly PlannerQualityOutlineRow[],
@@ -163,6 +200,7 @@ function rowToChapter(row: PlannerQualityOutlineRow): PlannerQualityChapter | nu
 
   return {
     chapter: Number(outline.chapterNumber ?? row.chapter_number),
+    chapterRef: outline.chapterId ?? null,
     title: outline.title,
     targetWords,
     plannedBeats,
@@ -188,11 +226,18 @@ function rowToChapter(row: PlannerQualityOutlineRow): PlannerQualityChapter | nu
 
 function endpointAssessment(outline: ChapterOutline): PlannerQualityEndpoint {
   const declared = extractEndpoint(outline.purpose)
-  const finalBeat = outline.scenes.at(-1)?.description ?? null
+  const finalScene = outline.scenes.at(-1) as SceneBeat | undefined
+  const finalBeat = finalScene?.description ?? null
+  const finalSceneRef = finalScene
+    ? sceneTargetRef(outline, finalScene, outline.scenes.length - 1)
+    : null
+  const finalScenePreserveIds = finalScene ? preserveIdsForScene(finalScene) : EMPTY_PRESERVE_IDS
   if (!declared || !finalBeat) {
     return {
       declared,
       finalBeat,
+      finalSceneRef,
+      finalScenePreserveIds,
       overlapRatio: declared ? 0 : null,
       missingTokens: declared ? contentTokens(declared) : [],
     }
@@ -203,6 +248,8 @@ function endpointAssessment(outline: ChapterOutline): PlannerQualityEndpoint {
   return {
     declared,
     finalBeat,
+    finalSceneRef,
+    finalScenePreserveIds,
     overlapRatio: declaredTokens.length > 0 ? matched.length / declaredTokens.length : null,
     missingTokens: declaredTokens.filter(token => !finalTokens.has(token)),
   }
@@ -229,17 +276,228 @@ function characterMateriality(outline: ChapterOutline): PlannerQualityCharacterM
   })
 }
 
-function storyTurnWeaknesses(outline: ChapterOutline): Array<{ beat: number; kind: string; description: string }> {
+function storyTurnWeaknesses(outline: ChapterOutline): PlannerQualityChapter["weakStoryTurnBeats"] {
   return outline.scenes.flatMap((beat, index) => {
     const desc = beat.description ?? ""
+    const issue = {
+      beat: index + 1,
+      kind: beat.kind,
+      description: desc,
+      targetRef: sceneTargetRef(outline, beat as SceneBeat, index),
+      preserveIds: preserveIdsForScene(beat as SceneBeat),
+    }
     const tokens = contentTokens(desc)
-    if (tokens.length < 6) return [{ beat: index + 1, kind: beat.kind, description: desc }]
+    if (tokens.length < 6) return [issue]
     const hasTurnTerm = STORY_TURN_TERMS.some(term => tokens.includes(term))
     const hasPressurePunctuation = /[;:—-]/.test(desc)
     const hasMultipleClauses = /\bbut\b|\bwhen\b|\bwhile\b|\bforcing\b|\bso\b/i.test(desc)
     if (hasTurnTerm || hasPressurePunctuation || hasMultipleClauses) return []
-    return [{ beat: index + 1, kind: beat.kind, description: desc }]
+    return [issue]
   })
+}
+
+export function buildPlannerQualityReadinessAggregate(
+  report: PlannerQualityReport,
+  sourceReport = "planner-quality-report",
+): Record<string, unknown> {
+  const groups: Record<string, unknown>[] = []
+  for (const chapter of report.chapters) {
+    if (chapter.flags.includes("endpoint_not_declared") && chapter.chapterRef) {
+      groups.push(readinessGroup({
+        groupId: `planner-quality:ch${chapter.chapter}:endpoint-missing`,
+        report,
+        chapter,
+        target: { kind: "chapter_outline", ref: chapter.chapterRef, fieldPath: "purpose" },
+        dimension: "endpointPlanning",
+        label: "ENDPOINT-PLAN-0",
+        severity: "medium",
+        fixIntent: "declare_chapter_endpoint_before_drafting",
+        rationale: "Planner quality diagnostic found no declared chapter endpoint in the chapter purpose.",
+        missingForNextLevel: "Declare the intended endpoint/hook in the chapter purpose before drafting.",
+        evidence: { purpose: chapter.purpose },
+        preserveIds: EMPTY_PRESERVE_IDS,
+        sourceReport,
+      }))
+    }
+
+    if (
+      chapter.flags.includes("endpoint_low_overlap") &&
+      chapter.endpoint.declared &&
+      chapter.endpoint.finalSceneRef
+    ) {
+      groups.push(readinessGroup({
+        groupId: `planner-quality:ch${chapter.chapter}:endpoint-low-overlap`,
+        report,
+        chapter,
+        sceneId: chapter.endpoint.finalSceneRef,
+        target: {
+          kind: "scene_plan",
+          ref: chapter.endpoint.finalSceneRef,
+          fieldPath: "description",
+        },
+        dimension: "endpointPlanning",
+        label: "ENDPOINT-PLAN-1",
+        severity: "medium",
+        fixIntent: "align_final_scene_contract_with_declared_endpoint",
+        rationale: "Planner quality diagnostic found the final scene has low token overlap with the declared chapter endpoint.",
+        missingForNextLevel: "Revise the final scene contract so the declared endpoint lands through a concrete action, consequence, or hook.",
+        evidence: {
+          declaredEndpoint: chapter.endpoint.declared,
+          finalScene: chapter.endpoint.finalBeat ?? "",
+          overlapRatio: chapter.endpoint.overlapRatio == null ? "" : chapter.endpoint.overlapRatio.toFixed(2),
+          missingTokens: chapter.endpoint.missingTokens.join(","),
+        },
+        preserveIds: chapter.endpoint.finalScenePreserveIds,
+        sourceReport,
+      }))
+    }
+
+    for (const turn of chapter.weakStoryTurnBeats) {
+      if (!turn.targetRef) continue
+      groups.push(readinessGroup({
+        groupId: `planner-quality:ch${chapter.chapter}:turn:${turn.beat}`,
+        report,
+        chapter,
+        sceneId: turn.targetRef,
+        target: {
+          kind: "scene_plan",
+          ref: turn.targetRef,
+          fieldPath: "description",
+        },
+        dimension: "storyTurnReadiness",
+        label: "TURN-PLAN-1",
+        severity: "medium",
+        fixIntent: "make_scene_turn_playable_before_drafting",
+        rationale: "Planner quality diagnostic found a scene description without enough concrete turn pressure.",
+        missingForNextLevel: "Give the scene a playable turn: goal pressure, opposition, decision, reversal, or consequence.",
+        evidence: {
+          beat: String(turn.beat),
+          kind: turn.kind,
+          description: turn.description,
+        },
+        preserveIds: turn.preserveIds,
+        sourceReport,
+      }))
+    }
+  }
+
+  const labels = groups.flatMap(group =>
+    Array.isArray(group.findings)
+      ? (group.findings as Array<Record<string, unknown>>).map(finding => String(finding.label ?? ""))
+      : []
+  ).filter(Boolean)
+
+  return {
+    sourceReports: [sourceReport],
+    labels: unique(labels),
+    groups,
+  }
+}
+
+function readinessGroup(args: {
+  groupId: string
+  report: PlannerQualityReport
+  chapter: PlannerQualityChapter
+  sceneId?: string
+  target: { kind: "chapter_outline" | "scene_plan"; ref: string; fieldPath: string }
+  dimension: string
+  label: string
+  severity: "medium" | "low" | "info"
+  fixIntent: string
+  rationale: string
+  missingForNextLevel: string
+  evidence: Record<string, string>
+  preserveIds: PlannerQualityPreserveIds
+  sourceReport: string
+}): Record<string, unknown> {
+  return {
+    groupId: args.groupId,
+    fixtureId: args.report.novelId ?? "planner-quality",
+    armId: "production-planner-quality",
+    methodPackEnabled: false,
+    unitType: args.target.kind === "chapter_outline" ? "chapter" : "scene",
+    chapterId: args.chapter.chapterRef ?? `chapter:${args.chapter.chapter}`,
+    ...(args.sceneId ? { sceneId: args.sceneId } : {}),
+    sourceIds: args.preserveIds,
+    rewritePacket: {
+      preserveIds: args.preserveIds,
+      proposalCandidate: {
+        action: "field_replace",
+        target: args.target,
+        requiresProposedValue: true,
+        proposedValueStatus: "operator_required",
+        safeToAutoApply: false,
+        sourceAgent: "planner-quality-report",
+      },
+    },
+    findings: [{
+      findingId: `${args.groupId}:1`,
+      sourceReport: args.sourceReport,
+      promptMode: "deterministic-planner-quality",
+      dimension: args.dimension,
+      label: args.label,
+      severity: args.severity,
+      fixIntent: args.fixIntent,
+      rationale: args.rationale,
+      missingForNextLevel: args.missingForNextLevel,
+      evidence: args.evidence,
+    }],
+    excerpt: Object.entries(args.evidence)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join("\n"),
+  }
+}
+
+function sceneTargetRef(outline: ChapterOutline, scene: SceneBeat, index: number): string | null {
+  return scene.sceneId ?? scene.beatId ?? `${outline.chapterId ?? `chapter-${outline.chapterNumber}`}-scene-${index + 1}`
+}
+
+function preserveIdsForScene(scene: SceneBeat): PlannerQualityPreserveIds {
+  const obligations = sceneObligationRecords(scene)
+  const sourceIds = obligations.map(value => stringField(value, "sourceId")).filter(Boolean)
+  return {
+    obligationIds: unique(obligations.map(value => stringField(value, "obligationId")).filter(Boolean)),
+    characterIds: unique([
+      ...stringArrayField(scene as unknown as Record<string, unknown>, "requiredCharacterIds"),
+      ...stringArrayField(scene as unknown as Record<string, unknown>, "affectedCharacterIds"),
+      ...obligations.map(value => stringField(value, "characterId")),
+    ].filter(Boolean)),
+    worldFactIds: unique([
+      ...stringArrayField(scene as unknown as Record<string, unknown>, "requiredWorldFactIds"),
+      ...obligations.map(value => stringField(value, "worldFactId")),
+      ...obligations
+        .filter(value => stringField(value, "sourceKind") === "fact" || /^(fact|world)-/u.test(stringField(value, "sourceId")))
+        .map(value => stringField(value, "sourceId")),
+    ].filter(Boolean)),
+    sceneTurnIds: unique(obligations.map(value => stringField(value, "sceneTurnId")).filter(Boolean)),
+    threadIds: unique(obligations.map(value => stringField(value, "threadId")).filter(Boolean)),
+    promiseIds: unique(obligations.map(value => stringField(value, "promiseId")).filter(Boolean)),
+    payoffIds: unique(obligations.map(value => stringField(value, "payoffId")).filter(Boolean)),
+    sourceIds: unique(sourceIds),
+  }
+}
+
+function sceneObligationRecords(scene: SceneBeat): Array<Record<string, unknown>> {
+  const obligations = scene.obligations as Record<string, unknown> | undefined
+  if (!obligations) return []
+  const out: Array<Record<string, unknown>> = []
+  for (const value of Object.values(obligations)) {
+    if (!Array.isArray(value)) continue
+    for (const item of value) {
+      if (item && typeof item === "object" && !Array.isArray(item)) out.push(item as Record<string, unknown>)
+    }
+  }
+  return out
+}
+
+function stringField(record: Record<string, unknown>, key: string): string {
+  const value = record[key]
+  return typeof value === "string" ? value : ""
+}
+
+function stringArrayField(record: Record<string, unknown>, key: string): string[] {
+  const value = record[key]
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
 }
 
 function extractEndpoint(purpose: string): string | null {
@@ -338,6 +596,8 @@ function formatNullable(value: number | null, digits: number): string {
 function parseArgs(argv: string[]): Args {
   let novelId: string | null = null
   let json = false
+  let readinessJson: string | null = null
+  let importReadiness = false
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === "--novel") {
@@ -346,23 +606,40 @@ function parseArgs(argv: string[]): Args {
       novelId = value
     } else if (arg === "--json") {
       json = true
+    } else if (arg === "--readiness-json") {
+      const value = argv[++i]
+      if (!value) throw new Error("--readiness-json requires a value")
+      readinessJson = value
+    } else if (arg === "--import-readiness") {
+      importReadiness = true
     } else {
       throw new Error(`unknown arg: ${arg}`)
     }
   }
-  return { novelId, json }
+  return { novelId, json, readinessJson, importReadiness }
+}
+
+let loadedDb: { default: typeof import("../../src/db/connection").default } | null = null
+
+async function getDb(): Promise<typeof import("../../src/db/connection").default> {
+  loadedDb ??= await import("../../src/db/connection")
+  return loadedDb.default
 }
 
 async function loadRows(novelId: string): Promise<PlannerQualityOutlineRow[]> {
-  const { default: db } = await import("../../src/db/connection")
+  const db = await getDb()
   const rows = await db`
     SELECT chapter_number, outline_json
     FROM chapter_outlines
     WHERE novel_id = ${novelId}
     ORDER BY chapter_number
   ` as PlannerQualityOutlineRow[]
-  await db.end().catch(() => {})
   return rows
+}
+
+async function closeDb(): Promise<void> {
+  if (!loadedDb) return
+  await loadedDb.default.end().catch(() => {})
 }
 
 async function main(argv: string[]): Promise<number> {
@@ -371,16 +648,44 @@ async function main(argv: string[]): Promise<number> {
     args = parseArgs(argv)
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err))
-    console.error("usage: bun scripts/analysis/planner-quality-report.ts --novel <novelId> [--json]")
+    console.error(usage())
     return 2
   }
   if (!args.novelId) {
-    console.error("usage: bun scripts/analysis/planner-quality-report.ts --novel <novelId> [--json]")
+    console.error(usage())
     return 2
   }
-  const report = buildPlannerQualityReport(await loadRows(args.novelId), args.novelId)
-  console.log(args.json ? JSON.stringify(report, null, 2) : renderPlannerQualityReport(report))
-  return 0
+  try {
+    const report = buildPlannerQualityReport(await loadRows(args.novelId), args.novelId)
+    const readiness = args.readinessJson || args.importReadiness
+      ? buildPlannerQualityReadinessAggregate(report, `planner-quality-report:${args.novelId}`)
+      : null
+    if (args.readinessJson && readiness) {
+      const outPath = resolve(args.readinessJson)
+      mkdirSync(dirname(outPath), { recursive: true })
+      writeFileSync(outPath, `${JSON.stringify(readiness, null, 2)}\n`)
+      console.error(`wrote planner-quality readiness aggregate to ${outPath}`)
+    }
+    if (args.importReadiness && readiness) {
+      const { importPlanReadinessAggregateForNovel } = await import("../../src/harness/plan-readiness-import")
+      const imported = await importPlanReadinessAggregateForNovel({
+        novelId: args.novelId,
+        aggregate: readiness,
+        importedByKind: "script",
+        importedByRef: "planner-quality-report",
+        refreshStaleness: true,
+      })
+      console.error(`imported ${imported.inserted} readiness items, updated ${imported.updated}, skipped ${imported.skipped.length}`)
+    }
+    console.log(args.json ? JSON.stringify(report, null, 2) : renderPlannerQualityReport(report))
+    return 0
+  } finally {
+    await closeDb()
+  }
+}
+
+function usage(): string {
+  return "usage: bun scripts/analysis/planner-quality-report.ts --novel <novelId> [--json] [--readiness-json <path>] [--import-readiness]"
 }
 
 if (import.meta.main) {

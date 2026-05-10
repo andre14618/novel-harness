@@ -119,6 +119,12 @@ keeps the run artifact-only. They remain manual review inputs only: no proposal
 creation, plan mutation, or drafting gate occurs unless an operator explicitly
 uses the Plan Readiness path.
 
+The production planner-quality diagnostic can now emit and import the same
+aggregate shape for upstream endpoint/scene-turn weaknesses via
+`--readiness-json` and `--import-readiness`. This puts deterministic planning
+issues into the same manual review queue before drafting, without adding a POC
+runner or turning diagnostics into blockers.
+
 ## Evidence And Verification
 
 Production-path integration needs:

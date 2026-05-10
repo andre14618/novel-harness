@@ -27,7 +27,9 @@ unless the user explicitly requests a disposable branch.
   with 4 lows (all ch1). Live `allow-entities` replay evidence remains open,
   and promotion remains blocked by endpoint/turn quality. Scene-semantic
   replay now writes readiness sidecars; `--persist` imports open review items
-  unless `--no-readiness-import` is set. See L106.
+  unless `--no-readiness-import` is set. Planner-quality diagnostics can also
+  import deterministic endpoint/scene-turn readiness items before drafting.
+  See L106.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -36,14 +38,9 @@ unless the user explicitly requests a disposable branch.
   unavailable environment, or explicit operator decision.
 - **Scene-level plan/write lane (operator-adjusted, 2026-05-10).** Operational
   plan is `docs/research/user-adjusted-backlog-2026-05-10.md` (B1–B5).
-  Inputs: seven Opus deep-dive artifacts at `docs/research/opus-*.md`.
-  Audits landed: ID rendering (29 sites, 4 in Cluster 1 ablation surface;
-  `docs/research/id-rendering-audit-2026-05-10.md`); structure-* namespace
-  (corpus-only confirmed, 12-file move proposal pending operator decision;
-  `docs/research/structure-agents-namespace-audit-2026-05-10.md`); fixture
-  design (4 profiles for adjusted-B2;
-  `docs/research/scene-write-fixture-design-2026-05-10.md`). Decision
-  record for the writer-prompt ID question: L099.
+  Inputs: seven Opus deep dives plus audits for ID rendering, structure-*
+  namespace, and fixture design under `docs/research/`. Decision record for
+  the writer-prompt ID question: L099.
 - **Strategic direction (2026-05-10): scene-first migration.** Beats
   are not the future. The legacy beat-shaped writer was never
   validated to a production-quality bar and is no longer treated as a
@@ -116,10 +113,11 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: target the ch1 endpointLanding lows from
-  `p1-allow-brief-1778447459` at the upstream plan/scene-contract layer, while
-  keeping `drafting-brief-v1` as the measured production writer surface and
-  running `test-drafting-isolated --scene-semantic-review` on fixed-plan arms; use generated `scene-semantic-readiness` sidecars as the review queue.
+- Next session start: run planner-quality readiness import and scene-semantic
+  readiness import on `p1-allow-brief-1778447459`, then use those open review
+  items to target the ch1 endpointLanding lows at the upstream
+  plan/scene-contract layer while keeping `drafting-brief-v1` as the measured
+  production writer surface.
   Only force/replay the original Plan-Assist `allow-entities` blocker if live
   branch evidence becomes load-bearing. Promotion remains blocked until a
   comparable artifact reaches <=1.5x target with endpointLanding clean,

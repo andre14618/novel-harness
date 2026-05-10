@@ -136,6 +136,21 @@ the exact draft-hash observer path, and writes JSON/Markdown evidence under
 observer plumbing; it does not prove story quality until a real draft/checker
 or operator-labeled outcome is attached.
 
+Production planner-quality diagnostics can also feed upstream readiness review
+before drafting:
+
+```bash
+bun scripts/analysis/planner-quality-report.ts \
+  --novel <novelId> \
+  --readiness-json output/planner-quality/<novelId>-readiness.json \
+  --import-readiness
+```
+
+This captures deterministic chapter-endpoint and scene-turn weaknesses as open
+Plan Readiness items with normal target-hash/staleness handling. It does not
+create proposals or mutate plans; an operator still decides whether each item
+is a real issue and supplies any replacement text.
+
 Corpus recreation semantic lows can be converted into the same review-group
 shape without touching the DB:
 

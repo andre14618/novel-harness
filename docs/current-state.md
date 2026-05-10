@@ -64,6 +64,8 @@ Use deeper docs only when linked by the context pack or needed by code.
   scene-semantic replay telemetry plus Plan Readiness candidate sidecars for
   endpoint/scene-turn dimensions. Persisted scene-semantic replay imports open
   Plan Readiness items by default unless `--no-readiness-import` is set.
+  Planner-quality diagnostics can import deterministic endpoint/scene-turn
+  readiness items with `--import-readiness`.
   Semantic telemetry is advisory/fail-open data, not a drafting or promotion
   gate.
 
