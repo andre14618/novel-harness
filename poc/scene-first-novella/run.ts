@@ -464,7 +464,7 @@ async function applyObligationControl(novelId: string, mode: ObligationControlMo
     if (compacted.report.removed > 0) {
       await db`
         UPDATE chapter_outlines
-        SET outline_json = ${JSON.stringify(compacted.outline)}::jsonb
+        SET outline_json = ${compacted.outline as unknown as Record<string, unknown>}
         WHERE novel_id = ${novelId} AND chapter_number = ${row.chapter_number}
       `
     }

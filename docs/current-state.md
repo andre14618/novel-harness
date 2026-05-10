@@ -92,11 +92,12 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 The active lane is in `docs/sessions/lane-queue.md`.
 
-As of 2026-05-10, the L100 scene-first novella POC produced a promotion hold:
-scene count, endpoint fit, and lower obligation density improved the artifact,
-but the best run still overshot 1.90x and fixed-plan expansion A/B recorded
-zero `writer-expansion` events. Keep scene-first runtime flags default-off;
-next evidence should target planner/state-mapper obligation load. See L103.
+As of 2026-05-10, the L104 load-control POC keeps scene-first promotion on
+hold: prompt-only hard cap reached 0.89 obligations/scene and 1.66x but
+regressed endpoints to 2/2/3; deterministic compaction worsened to 2.16x; and
+minimal state mapping held 3/3/3 endpoints but stayed 1.89x. Keep scene-first
+runtime flags default-off; next evidence should target endpoint-preserving
+scene-contract compression before drafting. See L103/L104.
 
 ## Authoring Gates
 

@@ -6,18 +6,67 @@ Return strict JSON matching the planning-state-mapper schema:
 
 ```json
 {
-  "establishedFacts": [],
-  "knowledgeChanges": [],
-  "characterStateChanges": [],
+  "establishedFacts": [
+    {
+      "id": "fact-chapter-endpoint-choice",
+      "fact": "The chapter lands one durable endpoint fact",
+      "category": "rule"
+    }
+  ],
+  "knowledgeChanges": [
+    {
+      "id": "know-maren-endpoint-discovery",
+      "characterId": "char-maren-ailish",
+      "characterName": "Maren Ailish",
+      "knowledge": "Maren learns the endpoint-critical information",
+      "source": "discovered"
+    }
+  ],
+  "characterStateChanges": [
+    {
+      "id": "state-maren-endpoint-turn",
+      "characterId": "char-maren-ailish",
+      "name": "Maren Ailish",
+      "location": "the endpoint location",
+      "emotionalState": "changed by the endpoint choice",
+      "knows": ["the endpoint-critical information"],
+      "doesNotKnow": []
+    }
+  ],
   "beatMappings": [
     {
       "beatIndex": 0,
       "beatId": "exact input beatId if present",
       "obligations": {
-        "mustEstablish": [],
+        "mustEstablish": [
+          {
+            "obligationId": "obl-chapter-beat-001-fact-chapter-endpoint-choice",
+            "sourceId": "fact-chapter-endpoint-choice",
+            "sourceKind": "fact",
+            "text": "Make the endpoint fact visible."
+          }
+        ],
         "mustPayOff": [],
-        "mustTransferKnowledge": [],
-        "mustShowStateChange": [],
+        "mustTransferKnowledge": [
+          {
+            "obligationId": "obl-chapter-beat-001-know-maren-endpoint-discovery",
+            "sourceId": "know-maren-endpoint-discovery",
+            "sourceKind": "knowledge",
+            "characterId": "char-maren-ailish",
+            "characterName": "Maren Ailish",
+            "text": "Maren learns the endpoint-critical information."
+          }
+        ],
+        "mustShowStateChange": [
+          {
+            "obligationId": "obl-chapter-beat-001-state-maren-endpoint-turn",
+            "sourceId": "state-maren-endpoint-turn",
+            "sourceKind": "state",
+            "characterId": "char-maren-ailish",
+            "characterName": "Maren Ailish",
+            "text": "Show Maren's changed endpoint state."
+          }
+        ],
         "mustNotReveal": [],
         "allowedNewEntities": []
       }
@@ -49,6 +98,12 @@ Return strict JSON matching the planning-state-mapper schema:
 ## IDs and Coverage
 
 - Every chapter-level item you emit must have a stable kebab-case `id`.
+- Every `establishedFacts[]` item must include `id`, `fact`, and `category`.
+- Every `knowledgeChanges[]` item must include `id`, `characterId`,
+  `characterName`, `knowledge`, and `source`. Use `source` values only from:
+  `witnessed`, `told`, `overheard`, `deduced`, `read`, `discovered`.
+- Every `characterStateChanges[]` item must include `id`, `characterId`,
+  `name`, `location`, `emotionalState`, `knows`, and `doesNotKnow`.
 - Every obligation item must include concrete `text`, `sourceId`, and
   `sourceKind`.
 - `sourceId` must reference a chapter-level item you emitted.
@@ -64,7 +119,12 @@ Return strict JSON matching the planning-state-mapper schema:
 
 - Use only existing beat indexes. Do not rewrite, add, remove, or summarize
   scenes.
-- Omit empty beat mappings.
+- `beatMappings` must be a JSON array, never an object keyed by beat index.
+- Include one `beatMappings[]` entry for every input beat/scene, in input
+  order, using that beat's exact `beatIndex` and `beatId`.
+- Give each scene exactly one load-bearing obligation when possible. Use an
+  empty hard-obligation set only if the scene truly has no durable endpoint
+  payload; still include the `beatMappings[]` entry.
 - `allowedNewEntities` is not a load-bearing obligation; use it only when a
   genuinely new named entity is necessary and absent from the scene/chapter
   cast.

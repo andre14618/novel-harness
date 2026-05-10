@@ -45,6 +45,12 @@ unless the user explicitly requests a disposable branch.
   remains 1.90x target and expansion retry recorded zero events. Keep
   `scenePlanContractV1`, `sceneCallWriterV1`, and `writerExpansionMode`
   default-off; next POC should target planner/state-mapper obligation load.
+- **Load-control POC promotion hold (L104).** Parallel arms tested prompt-only
+  hard cap, deterministic chapter-budget compaction, and minimal state mapping.
+  Best length was prompt-only at 6456/3900 = 1.66x with 8 obligations, but
+  endpoints regressed to 2/2/3. Endpoint-complete arms stayed at 2.16x
+  (compactor) and 1.89x (mapper-min v3). Do not promote load-control defaults;
+  next POC should compress scene-contract payload while preserving endpoints.
 - **Adjusted-B1/B2/B3 prep all shipped (default-off).** The scene-first
   evidence lane is runnable end-to-end on LXC.
   - **B1 flag (`writerPromptIdRendering`, commit `62e5c8c`):** default
@@ -92,11 +98,12 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: continue L100 POC mode only if testing planner/state-
-  mapper obligation-load control directly. Hold scene count at 9 and endpoints
-  at 3/3/3, then reduce load toward one obligation per scene before drafting.
-  Promotion remains blocked until a comparable artifact reaches <=1.5x target
-  with complete scene IDs, diagnostics, traces, and review artifacts. See L103.
+- Next session start: continue L100 POC mode only if testing endpoint-
+  preserving scene-contract compression directly. Hold scene count at 9,
+  endpoints at 3/3/3, and roughly one obligation per scene; reduce per-scene
+  goal/outcome/choice payload before drafting. Promotion remains blocked until
+  a comparable artifact reaches <=1.5x target with complete scene IDs,
+  diagnostics, traces, and review artifacts. See L103/L104.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,
