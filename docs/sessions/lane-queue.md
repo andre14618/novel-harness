@@ -28,8 +28,9 @@ unless the user explicitly requests a disposable branch.
   and promotion remains blocked by endpoint/turn quality. Scene-semantic
   replay now writes readiness sidecars; `--persist` imports open review items
   unless `--no-readiness-import` is set. Planner-quality diagnostics can also
-  import deterministic endpoint/scene-turn readiness items before drafting.
-  See L106.
+  import deterministic endpoint/scene-turn readiness items before drafting, and
+  `diagnostics:plan-readiness-apply` applies explicit operator plans to real
+  production readiness queues. See L106.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -113,11 +114,10 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: run planner-quality readiness import and scene-semantic
-  readiness import on `p1-allow-brief-1778447459`, then use those open review
-  items to target the ch1 endpointLanding lows at the upstream
-  plan/scene-contract layer while keeping `drafting-brief-v1` as the measured
-  production writer surface.
+- Next session start: use `diagnostics:plan-readiness-apply` with an explicit
+  operator plan for `p1-allow-brief-1778447459`, then rerun the fixed-plan
+  `drafting-brief-v1` arm with `--scene-semantic-review` to see whether the
+  upstream endpoint/turn edits reduce ch1 endpointLanding lows.
   Only force/replay the original Plan-Assist `allow-entities` blocker if live
   branch evidence becomes load-bearing. Promotion remains blocked until a
   comparable artifact reaches <=1.5x target with endpointLanding clean,

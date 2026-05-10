@@ -187,6 +187,20 @@ target-hash/staleness importer. Pass `--no-readiness-import` to keep a
 persisted eval run artifact-only. Importing readiness items does not create
 proposals or mutate plans.
 
+Production readiness items can be acted on with an explicit operator plan:
+
+```bash
+bun run diagnostics:plan-readiness-apply -- \
+  --novel <novelId> \
+  --plan docs/fixtures/evals/<operator-readiness-plan>.json \
+  --output output/plan-readiness/<novelId>-apply.md
+```
+
+The plan may mark items `accepted_as_is`, `not_applicable`, `deferred`, or
+`fixed`, or create a normal manual `planning_edit` proposal with
+`field_replace` / `beat_requirement_remove`. The command does not approve
+planning proposals; it only uses the existing Plan Readiness route.
+
 Exact character-ref gaps can also be converted into concrete manual repair
 candidates without touching the DB:
 

@@ -125,6 +125,12 @@ aggregate shape for upstream endpoint/scene-turn weaknesses via
 issues into the same manual review queue before drafting, without adding a POC
 runner or turning diagnostics into blockers.
 
+Existing production readiness items can now be acted on through
+`diagnostics:plan-readiness-apply`, which consumes an explicit operator plan
+and calls the normal Plan Readiness routes for dispositions or manual
+`planning_edit` proposal creation. It replaces the disposable data-loop as the
+forward operating path for real novels.
+
 ## Evidence And Verification
 
 Production-path integration needs:
