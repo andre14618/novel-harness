@@ -26,8 +26,16 @@ unless the user explicitly requests a disposable branch.
     `writerExpansionMode="off"`. Wiring validated by unit tests + byte-parity
     replay; LXC drafting fixed-plan A/B explicitly deferred until a
     `test-drafting-isolated` harness is built (Slice 2.5 backlog).
-  - Slice 3 (next, L098): scene-satisfaction LLM diagnostic + parity panel.
-    Diagnostic only; does not depend on Slice 2 evidence.
+  - Slice 3 (L098): structural wiring shipped — optional `obligationIds`
+    on `ChapterPlanDeviation` and `ValidationFinding`,
+    `sceneSatisfactionCheckerV1` flag, obligation-aware validation-routing
+    helper that closes a silent-no-op routing bug. LLM judge + parity
+    panel deferred to Slice 3.5 backlog.
+  - Slice 2.5 (deferred): build `test-drafting-isolated.ts` + run fixed-plan
+    A/B for `sceneCallWriterV1` + `writerExpansionMode` evidence.
+  - Slice 3.5 (deferred): port narrow scene-semantic LLM judge to
+    `scripts/evals/scene-semantic-review.ts` (replay-only) + build
+    `scene-checker-parity-panel.ts` (agreement matrix). Diagnostic only.
 - Upstream planning methodology lane: narrow the active product question to
   concept/planning templates, chapter contracts, scene contracts, obligation
   traceability, and planner-quality diagnostics. See L089.
