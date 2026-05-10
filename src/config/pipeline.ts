@@ -117,6 +117,21 @@ export const pipeline = {
   // section emits.
   forceRenderSceneContractWhenAvailable: false,
 
+  // adjusted-B1/B3 experiment lane: draft-capture mode. Default off.
+  // When on, after the writer assembles each chapter's prose, drafting
+  // saves+approves the draft and SKIPS the post-writer settle loops
+  // (chapter-plan-checker, continuity, validation, halluc-ungrounded
+  // routing, integrity reviser, validation reviser, plan-check beat
+  // rewrites). The writer's own per-beat retries inside its checker
+  // budget are unaffected; only the chapter-level settle loops are
+  // skipped. This exists because writer-arm A/B comparisons should
+  // collect prose evidence even when checker/API hangs would otherwise
+  // block one arm. Diagnostics can be run post-hoc on the saved drafts
+  // (chapter_drafts row + llm_calls + writer-context trace events all
+  // persist normally). Production runtime stays default-off — no
+  // default behaviour changes.
+  draftCaptureModeV1: false,
+
   // L097 Slice 2: writer expansion mode. "off" = legacy behaviour (writer
   // is called once per entry, retries only on checker failure).
   // "retry-short-scenes-v1" = under sceneCallWriterV1, after the per-entry
@@ -185,6 +200,12 @@ export function resolveForceRenderSceneContractWhenAvailable(
   overrides: { forceRenderSceneContractWhenAvailable?: boolean } | undefined,
 ): boolean {
   return overrides?.forceRenderSceneContractWhenAvailable ?? pipeline.forceRenderSceneContractWhenAvailable
+}
+
+export function resolveDraftCaptureModeV1(
+  overrides: { draftCaptureModeV1?: boolean } | undefined,
+): boolean {
+  return overrides?.draftCaptureModeV1 ?? pipeline.draftCaptureModeV1
 }
 
 export function resolveWriterExpansionMode(

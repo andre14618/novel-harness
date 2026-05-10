@@ -84,11 +84,13 @@ mock.module("../config/pipeline", () => ({
     writerExpansionMode: "off",
     forceRenderSceneContractWhenAvailable: false,
     writerPromptIdRendering: "raw",
+    draftCaptureModeV1: false,
   },
   resolveSceneCallWriterV1: () => false,
   resolveWriterExpansionMode: () => "off",
   resolveForceRenderSceneContractWhenAvailable: () => false,
   resolveWriterPromptIdRendering: () => "raw",
+  resolveDraftCaptureModeV1: () => false,
 }))
 
 mock.module("../logger", () => ({

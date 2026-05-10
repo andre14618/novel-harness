@@ -39,6 +39,22 @@ describe("test-drafting-isolated parseArgs", () => {
       "--writer-arms", "",
     ])).toThrow(/empty arm list/)
   })
+
+  test("--writer-only defaults to false and enables when present", () => {
+    expect(parseArgs(["--source", "n", "--target-prefix", "ab"]).writerOnly).toBe(false)
+    expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--writer-only"]).writerOnly).toBe(true)
+  })
+
+  test("--per-arm-timeout-ms defaults to null and parses positive integers", () => {
+    expect(parseArgs(["--source", "n", "--target-prefix", "ab"]).perArmTimeoutMs).toBeNull()
+    expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--per-arm-timeout-ms", "60000"]).perArmTimeoutMs).toBe(60000)
+  })
+
+  test("--per-arm-timeout-ms rejects non-positive / non-numeric values", () => {
+    expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--per-arm-timeout-ms", "0"])).toThrow(/positive integer/)
+    expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--per-arm-timeout-ms", "-1"])).toThrow(/positive integer/)
+    expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--per-arm-timeout-ms", "abc"])).toThrow(/positive integer/)
+  })
 })
 
 describe("flagsForArm", () => {

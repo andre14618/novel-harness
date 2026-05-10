@@ -52,6 +52,17 @@ export interface SeedInput {
      */
     forceRenderSceneContractWhenAvailable?: boolean
     /**
+     * adjusted-B1/B3 experiment lane: draft-capture mode. Default-off.
+     * When on, drafting saves + approves each chapter immediately after
+     * the writer assembles its prose, skipping the chapter-level
+     * checker settle loops (plan check, continuity, validation,
+     * halluc-ungrounded routing, integrity reviser, validation
+     * reviser, plan-check beat rewrites). Used by writer-arm A/B
+     * runners that need to collect prose evidence even when checker
+     * APIs hang. Production runtime stays default-off.
+     */
+    draftCaptureModeV1?: boolean
+    /**
      * L097 Slice 2: writer expansion mode. "off" preserves legacy
      * single-call-per-entry retry behaviour. "retry-short-scenes-v1" adds
      * expansion retries when word count is below the advisory floor.

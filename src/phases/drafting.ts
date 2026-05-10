@@ -51,6 +51,7 @@ import {
   resolveSceneCallWriterV1,
   resolveWriterExpansionMode,
   resolveForceRenderSceneContractWhenAvailable,
+  resolveDraftCaptureModeV1,
 } from "../config/pipeline"
 import type { SeedInput } from "../types"
 import {
@@ -114,6 +115,7 @@ export function effectivePipeline(seed: SeedInput): typeof pipeline {
     factRoleContextPolicy: o.factRoleContextPolicy ?? pipeline.factRoleContextPolicy,
     writerContextMode: o.writerContextMode ?? pipeline.writerContextMode,
     writerPromptIdRendering: o.writerPromptIdRendering ?? pipeline.writerPromptIdRendering,
+    draftCaptureModeV1: o.draftCaptureModeV1 ?? pipeline.draftCaptureModeV1,
     planningMaxBeatsPerChapter:
       o.planningMaxBeatsPerChapter ?? pipeline.planningMaxBeatsPerChapter,
     nativePlanningContractV1:
@@ -216,6 +218,9 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
   }
   if (eff.writerPromptIdRendering !== pipeline.writerPromptIdRendering) {
     log(novelId, "info", `Drafting: pipelineOverrides applied — writerPromptIdRendering=${eff.writerPromptIdRendering}`)
+  }
+  if (eff.draftCaptureModeV1 !== pipeline.draftCaptureModeV1) {
+    log(novelId, "info", `Drafting: pipelineOverrides applied — draftCaptureModeV1=${eff.draftCaptureModeV1} (chapter-level checker settle loops will be SKIPPED — writer-arm experiment lane only)`)
   }
 
   console.log(`  Drafting ${totalChapters} chapters (approved chapters will be skipped)\n`)
@@ -739,6 +744,31 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           emit(novelId, { type: "error", data: { step: "writer", chapter: ch, error: String(err) } })
           continue
         }
+      }
+
+      // adjusted-B1/B3 experiment lane: draft-capture mode short-circuit.
+      // When `draftCaptureModeV1` is set on the seed, save+approve the
+      // chapter immediately and skip every post-writer settle loop
+      // (chapter-plan-checker, continuity, validation, halluc-ungrounded
+      // routing, integrity reviser, validation reviser, plan-check beat
+      // rewrites). Used by writer-arm A/B runners that need prose
+      // evidence collection to survive checker/API hangs in unrelated
+      // arms. Production runtime stays default-off — no behaviour change
+      // when the flag is absent. The chapter draft, llm_calls rows, and
+      // writer-context trace events all persist normally so post-hoc
+      // diagnostics can run on the saved drafts.
+      if (eff.draftCaptureModeV1) {
+        log(novelId, "info", `Chapter ${ch} draft-capture: saving writer output and skipping checker settle loops`)
+        await saveChapterDraft(novelId, ch, prose, wordCount)
+        await approveChapterDraft(novelId, ch)
+        approved = true
+        emit(novelId, { type: "progress", data: { step: "drafting", chapter: ch, status: "draft-captured" } })
+        await trace(novelId, {
+          eventType: "draft-capture-mode",
+          chapter: ch,
+          payload: { wordCount, beats: outline.scenes.length, attempts },
+        })
+        continue
       }
 
       // 2b-4. Post-draft checks: plan check + continuity in parallel (independent

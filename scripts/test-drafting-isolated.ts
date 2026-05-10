@@ -39,9 +39,28 @@
  *     --target-prefix <prefix>                                   # e.g. "ab-1778378900"
  *     [--writer-arms baseline,id-suppress,contract-render-only,scene-call-v1]
  *                                                                # default: baseline,scene-call-v1
+ *     [--writer-only]                                            # set draftCaptureModeV1=true on every arm
+ *     [--per-arm-timeout-ms 1800000]                             # 30-minute per-arm wallclock cap
  *
  * Each arm becomes a clone novel id `<target-prefix>-<arm>`. Arms run
  * sequentially (parallel runs would race on shared DB resources).
+ *
+ * `--writer-only` (draft-capture mode):
+ *   Skips the post-writer chapter-level settle loops (plan-check,
+ *   continuity, validation, halluc-ungrounded routing, integrity
+ *   reviser, validation reviser, plan-check beat rewrites). Each
+ *   chapter's writer output is saved + approved as-is. Use this when
+ *   the experiment cares only about the writer's prose-rendering arm
+ *   and the checker stack is irrelevant or slow. Per-beat writer
+ *   retries inside the writer's own checker budget are unaffected.
+ *
+ * `--per-arm-timeout-ms`:
+ *   Wallclock cap for each arm's drafting. On timeout, the runner
+ *   collects partial chapter_drafts that did finish, records the
+ *   timeout as the arm's error, and proceeds to the next arm. The
+ *   underlying drafting promise is NOT cancelled — postgres.js + LLM
+ *   transport have their own timeouts. Subsequent arms run in fresh
+ *   clones (different novel-id), so there is no cross-arm DB contention.
  */
 
 import { spawn } from "node:child_process"
@@ -55,6 +74,17 @@ interface Args {
   source: string
   targetPrefix: string
   arms: ArmName[]
+  /** When true, every arm runs with `draftCaptureModeV1=true` so the
+   *  chapter-level checker settle loops are skipped. Used to make the
+   *  writer-arm comparison resistant to checker/API hangs. */
+  writerOnly: boolean
+  /** Optional per-arm wallclock timeout in milliseconds. When the
+   *  drafting promise for an arm doesn't resolve in time, the runner
+   *  records a timeout result and proceeds to the next arm. The
+   *  underlying drafting flow keeps running until its own LLM
+   *  transport timeouts fire; subsequent arms run in fresh clones, so
+   *  there is no cross-arm DB contention. */
+  perArmTimeoutMs: number | null
 }
 
 export const WRITER_ARM_NAMES = [
@@ -162,8 +192,9 @@ export function flagsForArm(arm: ArmName): ArmFlags {
   }
 }
 
-async function setWriterFlags(novelId: string, arm: ArmName): Promise<void> {
+async function setWriterFlags(novelId: string, arm: ArmName, opts: { writerOnly: boolean }): Promise<void> {
   const flags = flagsForArm(arm)
+  const draftCaptureModeV1 = opts.writerOnly
   await db`
     UPDATE novels
     SET seed_json = jsonb_set(
@@ -171,25 +202,30 @@ async function setWriterFlags(novelId: string, arm: ArmName): Promise<void> {
             jsonb_set(
               jsonb_set(
                 jsonb_set(
-                  COALESCE(seed_json, '{}'::jsonb),
-                  '{pipelineOverrides}',
-                  COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+                  jsonb_set(
+                    COALESCE(seed_json, '{}'::jsonb),
+                    '{pipelineOverrides}',
+                    COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+                    true
+                  ),
+                  '{pipelineOverrides,sceneCallWriterV1}',
+                  to_jsonb(${flags.sceneCallWriterV1}::boolean),
                   true
                 ),
-                '{pipelineOverrides,sceneCallWriterV1}',
-                to_jsonb(${flags.sceneCallWriterV1}::boolean),
+                '{pipelineOverrides,writerExpansionMode}',
+                to_jsonb(${flags.writerExpansionMode}::text),
                 true
               ),
-              '{pipelineOverrides,writerExpansionMode}',
-              to_jsonb(${flags.writerExpansionMode}::text),
+              '{pipelineOverrides,forceRenderSceneContractWhenAvailable}',
+              to_jsonb(${flags.forceRenderSceneContractWhenAvailable}::boolean),
               true
             ),
-            '{pipelineOverrides,forceRenderSceneContractWhenAvailable}',
-            to_jsonb(${flags.forceRenderSceneContractWhenAvailable}::boolean),
+            '{pipelineOverrides,writerPromptIdRendering}',
+            to_jsonb(${flags.writerPromptIdRendering}::text),
             true
           ),
-          '{pipelineOverrides,writerPromptIdRendering}',
-          to_jsonb(${flags.writerPromptIdRendering}::text),
+          '{pipelineOverrides,draftCaptureModeV1}',
+          to_jsonb(${draftCaptureModeV1}::boolean),
           true
         ),
         updated_at = now()
@@ -237,7 +273,29 @@ async function collectArmResult(arm: ArmName, novelId: string): Promise<Pick<Arm
   return { chapters, totalWords, totalTarget, meanRatio, expansionEvents }
 }
 
-async function runArm(arm: ArmName, source: string, targetPrefix: string): Promise<ArmResult> {
+interface RunArmOptions {
+  writerOnly: boolean
+  perArmTimeoutMs: number | null
+}
+
+/** Race a promise against a wallclock timeout. The dangling promise is
+ *  NOT cancelled — postgres.js + LLM transport have their own timeouts.
+ *  This races so that one arm's hang doesn't block the next arm's run. */
+async function withArmTimeout<T>(p: Promise<T>, timeoutMs: number, armLabel: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`arm "${armLabel}" timed out after ${timeoutMs}ms (drafting promise still running in the background; subsequent arms will use fresh clones)`))
+    }, timeoutMs)
+  })
+  try {
+    return await Promise.race([p, timeoutPromise])
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
+}
+
+async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: RunArmOptions): Promise<ArmResult> {
   const novelId = `${targetPrefix}-${arm}`
   console.log(`\n━━━ arm: ${arm} ━━━`)
   console.log(`  cloning ${source} → ${novelId}`)
@@ -250,23 +308,36 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string): Promi
     }
   }
 
-  console.log(`  setting writer flags (sceneCallWriterV1=${arm === "scene-call-v1"})`)
-  await setWriterFlags(novelId, arm)
+  const flags = flagsForArm(arm)
+  console.log(`  setting writer flags: sceneCallWriterV1=${flags.sceneCallWriterV1}, writerExpansionMode=${flags.writerExpansionMode}, forceRenderSceneContractWhenAvailable=${flags.forceRenderSceneContractWhenAvailable}, writerPromptIdRendering=${flags.writerPromptIdRendering}, draftCaptureModeV1=${opts.writerOnly}`)
+  await setWriterFlags(novelId, arm, { writerOnly: opts.writerOnly })
 
   await initNovelRun(novelId)
   console.log(`  drafting ...`)
   try {
-    const result = await runDraftingPhase(novelId)
+    const draftingPromise = runDraftingPhase(novelId)
+    const result = opts.perArmTimeoutMs != null
+      ? await withArmTimeout(draftingPromise, opts.perArmTimeoutMs, arm)
+      : await draftingPromise
     if (result.kind !== "complete") {
+      // collect partial results — drafting may have produced some chapters
+      // before pausing on a gate. The collector reads chapter_drafts so
+      // partial output is captured.
+      const collected = await collectArmResult(arm, novelId)
       return {
-        arm, novelId, chapters: [], totalWords: 0, totalTarget: 0, meanRatio: 0,
-        expansionEvents: 0, error: `drafting did not complete: ${result.kind}`,
+        arm, novelId, ...collected,
+        error: `drafting did not complete: ${result.kind}`,
       }
     }
   } catch (err) {
+    // Always attempt to collect partial output even on timeout/error so
+    // the operator gets evidence from chapters that did finish.
+    const collected = await collectArmResult(arm, novelId).catch(() => ({
+      chapters: [] as ArmResult["chapters"], totalWords: 0, totalTarget: 0, meanRatio: 0, expansionEvents: 0,
+    }))
     return {
-      arm, novelId, chapters: [], totalWords: 0, totalTarget: 0, meanRatio: 0,
-      expansionEvents: 0, error: err instanceof Error ? err.message : String(err),
+      arm, novelId, ...collected,
+      error: err instanceof Error ? err.message : String(err),
     }
   }
 
@@ -278,11 +349,23 @@ export function parseArgs(argv: string[]): Args {
   let source: string | null = null
   let targetPrefix: string | null = null
   let armsRaw: string | null = null
+  let writerOnly = false
+  let perArmTimeoutMs: number | null = null
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!
     if (a === "--source") { source = argv[++i] ?? null; continue }
     if (a === "--target-prefix") { targetPrefix = argv[++i] ?? null; continue }
     if (a === "--writer-arms") { armsRaw = argv[++i] ?? null; continue }
+    if (a === "--writer-only") { writerOnly = true; continue }
+    if (a === "--per-arm-timeout-ms") {
+      const raw = argv[++i] ?? ""
+      const parsed = Number.parseInt(raw, 10)
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        throw new Error(`--per-arm-timeout-ms requires a positive integer; got ${JSON.stringify(raw)}`)
+      }
+      perArmTimeoutMs = parsed
+      continue
+    }
     throw new Error(`unknown arg: ${a}`)
   }
   if (!source) throw new Error("--source <planning-done-novel-id> is required")
@@ -295,7 +378,7 @@ export function parseArgs(argv: string[]): Args {
     }
   }
   if (arms.length === 0) throw new Error("--writer-arms produced an empty arm list")
-  return { source, targetPrefix, arms }
+  return { source, targetPrefix, arms, writerOnly, perArmTimeoutMs }
 }
 
 async function main() {
@@ -306,12 +389,21 @@ async function main() {
   console.log(`source: ${args.source}`)
   console.log(`target prefix: ${args.targetPrefix}`)
   console.log(`arms: ${args.arms.join(", ")}`)
+  if (args.writerOnly) {
+    console.log(`writer-only mode: draftCaptureModeV1=true on every arm — chapter-level checker settle loops are SKIPPED`)
+  }
+  if (args.perArmTimeoutMs != null) {
+    console.log(`per-arm timeout: ${args.perArmTimeoutMs}ms (a hung arm will not block the next arm; partial chapter_drafts are still collected)`)
+  }
 
   await ensureSourceExists(args.source)
 
   const results: ArmResult[] = []
   for (const arm of args.arms) {
-    results.push(await runArm(arm, args.source, args.targetPrefix))
+    results.push(await runArm(arm, args.source, args.targetPrefix, {
+      writerOnly: args.writerOnly,
+      perArmTimeoutMs: args.perArmTimeoutMs,
+    }))
   }
 
   console.log(`\n\n━━━━━━━━━━ A/B SUMMARY ━━━━━━━━━━`)
