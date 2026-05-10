@@ -60,14 +60,10 @@ Use deeper docs only when linked by the context pack or needed by code.
 - Active LLM calls use DeepSeek V4 Flash or DeepSeek V4 Pro only. Legacy model
   references are historical unless a current decision reopens them. See L90.
 - Evidence-generation flows should collect prose-semantic telemetry by default
-  where wired. The drafting-isolated harness can also collect opt-in
-  scene-semantic replay telemetry plus Plan Readiness candidate sidecars for
-  endpoint/scene-turn dimensions. Persisted scene-semantic replay imports open
-  Plan Readiness items by default unless `--no-readiness-import` is set.
-  Planner-quality diagnostics can import deterministic endpoint/scene-turn
-  readiness items with `--import-readiness`.
-  Semantic telemetry is advisory/fail-open data, not a drafting or promotion
-  gate.
+  where wired. Scene-semantic replay, planner-quality diagnostics, existing
+  readiness sidecars, and checker blocker reports can import open Plan
+  Readiness items through production commands; semantic telemetry stays
+  advisory/fail-open data, not a drafting or promotion gate.
 
 ## Authoring Direction
 
@@ -124,9 +120,10 @@ endpointLanding lows to 1/10 on that artifact. The follow-up readiness edit
 rerun (`p1-ready-brief-1778451217-drafting-brief-v1`) stayed length-safe
 (4029/3000 = 1.34x) with 0 prose-semantic lows but regressed to
 endpointLanding lows 6/10, one sceneDramaturgy low, and a personal-vs-sovereign
-debt continuity blocker. Promotion remains blocked on upstream endpoint/turn
-and plan-consistency quality, not deterministic prose compaction. Plan-Assist
-`allow-entities` still needs live gate replay evidence. See L103-L106.
+debt continuity blocker; these now exist as 8 open Plan Readiness items (1
+CONTINUITY-BLOCKER, 6 endpoint, 1 scene). Promotion remains blocked on upstream
+endpoint/turn and plan-consistency quality, not deterministic prose compaction.
+Plan-Assist `allow-entities` still needs live gate replay evidence. See L103-L106.
 
 ## Authoring Gates
 

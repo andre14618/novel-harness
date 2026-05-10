@@ -33,7 +33,8 @@ unless the user explicitly requests a disposable branch.
   evidence remains open; promotion is blocked by endpoint/turn plus
   plan-consistency quality. Scene-semantic replay writes readiness sidecars,
   planner-quality diagnostics imports readiness, and
-  `diagnostics:plan-readiness-apply` applies operator plans. See L106.
+  existing readiness sidecars/checker blockers now import through production
+  commands before `diagnostics:plan-readiness-apply` applies operator plans. See L106.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -117,14 +118,13 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: convert `p1-ready-brief-1778451217-drafting-brief-v1`
-  evidence into Plan Readiness items, prioritizing the personal-vs-sovereign
-  contradiction and scene-local endpoint landing for ch1 scenes 1-4, ch2 scene
-  1, and ch2 scene 4. Do not treat word count or prose-semantic as the blocker.
-  Only force/replay the original Plan-Assist `allow-entities` blocker if live
-  branch evidence becomes load-bearing. Promotion remains blocked until a
-  comparable artifact reaches <=1.5x target with endpointLanding clean,
-  complete scene IDs, diagnostics, traces, and review artifacts. See L103-L106.
+- Next session start: disposition the 8 open Plan Readiness items imported for
+  `p1-ready-brief-1778451217-drafting-brief-v1` (1 CONTINUITY-BLOCKER, 1
+  ENDPOINT-0, 5 ENDPOINT-1, 1 SCENE-1), apply only operator-approved planning
+  edits, and rerun a comparable production artifact. Do not treat word count or
+  prose-semantic as the blocker. Promotion remains blocked until a comparable
+  artifact reaches <=1.5x target with endpointLanding clean, complete scene IDs,
+  diagnostics, traces, and review artifacts. See L103-L106.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,

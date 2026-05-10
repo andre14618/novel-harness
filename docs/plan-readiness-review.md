@@ -190,6 +190,30 @@ target-hash/staleness importer. Pass `--no-readiness-import` to keep a
 persisted eval run artifact-only. Importing readiness items does not create
 proposals or mutate plans.
 
+Existing aggregate sidecars can be imported without rerunning their diagnostic:
+
+```bash
+bun run diagnostics:plan-readiness-import -- \
+  --novel <novelId> \
+  --aggregate output/<path>/<readiness>.json \
+  --imported-by-ref <diagnostic-run-ref>
+```
+
+Production checker evidence can also open manual readiness items:
+
+```bash
+bun run diagnostics:checker-readiness -- \
+  --novel <novelId> \
+  --output output/checker-readiness/<novelId>.md \
+  --json output/checker-readiness/<novelId>.json \
+  --import-readiness
+```
+
+`checker-readiness` converts blocker-severity functional/continuity findings
+unless polarity is explicitly positive. `--include-warnings` additionally
+imports standard warning-severity findings. These imports are advisory review
+items only; they do not create proposals or mutate plans.
+
 Production readiness items can be acted on with an explicit operator plan:
 
 ```bash
@@ -272,6 +296,8 @@ Done:
   `docs/fixtures/evals/plan-readiness-mapmaker-dispositions-v0.json`.
   Evidence:
   `output/method-pack-diagnostics/2026-05-08-plan-readiness-data-loop-mapmaker-disposition-v0/`.
+- production import commands for existing readiness sidecars and checker
+  blocker evidence, preserving manual review semantics.
 
 Next:
 

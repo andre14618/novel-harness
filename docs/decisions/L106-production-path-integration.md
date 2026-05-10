@@ -135,6 +135,13 @@ and calls the normal Plan Readiness routes for dispositions or manual
 `planning_edit` proposal creation. It replaces the disposable data-loop as the
 forward operating path for real novels.
 
+Existing Plan Readiness-compatible JSON sidecars can be imported directly with
+`diagnostics:plan-readiness-import`, so production review can reuse evaluator
+artifacts without rerunning judges. Checker/continuity blocker evidence can
+also be converted with `diagnostics:checker-readiness`; blocker-severity
+findings import unless polarity is explicitly positive, while warnings remain
+opt-in. Both commands create only open manual review items.
+
 The first production-path operator loop on `p1-allow-brief-1778447459`
 dispositioned superseded whole-chapter semantic lows, created two manual
 planning edits, approved them through the normal planning-proposal route, and
@@ -145,6 +152,11 @@ sceneDramaturgy low. It also surfaced a continuity blocker around personal
 versus sovereign debt. Treat this as evidence that the next production-path
 work is plan consistency plus scene-local endpoint landing, not prose
 compaction.
+
+That rerun evidence has now been imported into the production Plan Readiness
+queue: seven scene-semantic items from the replay sidecar plus one
+`CONTINUITY-BLOCKER` from checker evidence. All eight are open review items;
+none created proposals or mutated plans during import.
 
 ## Evidence And Verification
 

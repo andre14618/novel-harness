@@ -323,7 +323,7 @@ function parseArgs(argv: string[]): Args {
   return { novelId, json }
 }
 
-async function loadInputs(novelId: string): Promise<{
+export async function loadCheckerWarningInputs(novelId: string): Promise<{
   functionalEvents: FunctionalEventRow[]
   continuityRows: ContinuityCallRow[]
 }> {
@@ -360,7 +360,7 @@ async function main(argv: string[]): Promise<number> {
     return 2
   }
 
-  const report = buildCheckerWarningReport(await loadInputs(args.novelId), args.novelId)
+  const report = buildCheckerWarningReport(await loadCheckerWarningInputs(args.novelId), args.novelId)
   console.log(args.json ? JSON.stringify(report, null, 2) : renderCheckerWarningReport(report))
   return 0
 }
