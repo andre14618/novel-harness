@@ -56,6 +56,12 @@ bun poc/scene-first-novella/diagnostics.ts \
 bun poc/scene-first-novella/render-html.ts \
   --run-dir poc/scene-first-novella/output/<runId>
 
+# Optional prose-effectiveness panel: V4 Flash chapter-level judges for
+# dramatization, earned length, POV voice, and payoff propulsion. IDs remain in
+# metadata but are intentionally omitted from judge prompts.
+bun poc/scene-first-novella/prose-eval.ts \
+  --run-dir poc/scene-first-novella/output/<runId>
+
 # Optional evidence-loop comparison against the completed baseline P3 run.
 bun poc/scene-first-novella/compare-runs.ts \
   --baseline poc/scene-first-novella/output/poc-scene-first-1778423752 \
@@ -87,6 +93,7 @@ chapter-N.scene-contracts.json    full outline_json row
 chapter-N.trace.json              pipeline_events + llm_calls metadata
 chapter-N.diagnostics.json        endpointLanding + per-scene judges
 obligation-control-report.json    optional compactor report
+prose-eval.json / .md             optional prose-effectiveness panel
 review-summary.json               aggregate review stats + finding bullets
 findings.md                       concise reader-visible POC findings
 comparison.md                     optional baseline-vs-variant report
