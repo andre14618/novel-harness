@@ -13,19 +13,14 @@ unless the user explicitly requests a disposable branch.
   scene-first novella POC runs require an explicit disposable-POC flag.
 - **Production writer-brief evidence (2026-05-11).** P1 made
   `drafting-brief-v1` strongest at 1.24x with prose lows 0/8 and scene lows
-  1/33, but LitRPG replication held promotion. Planner-generated P1 first
-  controlled length (`drafting-brief-v1` 1.22x, scene-turn 1.29x) and removed
-  characterMateriality lows, but had `choice/full=7/11`, endpoint lows 5/11 and
-  4/11, and a Corso clean-record contradiction. After Plan Readiness plus
-  reviewed planning edits, the repaired clone reached `choice/full=11/11`,
-  `factContradictions=0`; clean rerun compact brief landed 1.30x, scene lows
-  3/36, endpoint lows 3/11, while scene-turn landed 1.46x, scene lows 4/36,
-  endpoint lows 2/11, with scene/world regressions. Follow-up tightened
-  scene-contract and writer-brief wording around executed outcome/consequence
-  plus length discipline, then v2 repaired absolute `transfer impossible`
-  wording. V2 compact brief improved to lows 2/36, endpoint 2/11, but length
-  regressed to 1.38x; scene-turn shortened to 1.29x but endpoint regressed to
-  4/11. Compact brief remains best quality tradeoff. No default flip. See L106.
+  1/33, but LitRPG replication held promotion. Planner-generated P1 repair
+  reached `choice/full=11/11` and `factContradictions=0`; evidence now shows a
+  quality/length tradeoff. Clean rerun compact brief: 1.30x, scene lows 3/36,
+  endpoint 3/11. V2 compact: 5265/3800 = 1.38x, scene lows 2/36, endpoint 2/11.
+  V3 endpoint-source repair: 5759/3800 = 1.52x, scene lows 1/34, endpoint 1/10
+  after deleting the setup opener. Compact brief remains best quality tradeoff,
+  but next repair should be narrower than scene deletion. No default flip. See
+  L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
@@ -118,7 +113,10 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: repair signed-order adherence and setup/intention-only endpoint scenes before any prompt-arm/default decision. Residual lows are ch1 setup scenes and ch2 Tovin-intention scenes ending before an immediate consequence; continuity also catches "signed and ready" orders rendered as newly signed/empty. See L103-L106.
+- Next session start: repair signed-order adherence and setup/intention-only
+  endpoint scenes before any prompt-arm/default decision. V3 reduced semantic
+  endpoint lows but bloated prose, so prefer a narrower source/brief adherence
+  repair over scene deletion. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.

@@ -114,19 +114,15 @@ The active lane is in `docs/sessions/lane-queue.md`.
 
 As of 2026-05-11, L106 has absorbed validated POC evidence into production
 writer-brief telemetry, scene-semantic replay, Plan Readiness import/apply,
-source hygiene, planning-edit replay, scene-contract completeness telemetry, and
-fact-status continuity readiness. P1 made `drafting-brief-v1` strongest at 1.24x
-with prose lows 0/8 and scene lows 1/33, but LitRPG replication held promotion.
-Planner-generated P1 initially had `choice/full=7/11` plus a Corso contradiction;
-the repaired clone reached `choice/full=11/11` and `factContradictions=0`.
-Clean rerun: compact brief 4930/3800 = 1.30x, scene lows 3/36, endpoint lows
-3/11; scene-turn 1.46x, scene lows 4/36, endpoint lows 2/11. Endpoint/brief
-wording then tightened, and a v2 wording repair removed the absolute war-loan
-`transfer impossible` contradiction. V2 evidence: compact brief 5265/3800 =
-1.38x, scene lows 2/36, endpoint lows 2/11; scene-turn 4920/3800 = 1.29x,
-scene lows 4/36, endpoint lows 4/11. Compact brief remains best quality but
-length regressed; next target signed-order adherence and setup/intention-only
-endpoint scenes. Do not flip defaults. See L103-L106.
+source hygiene, planning-edit replay, scene-contract telemetry, and fact-status
+readiness. P1 made `drafting-brief-v1` strongest at 1.24x with prose lows 0/8
+and scene lows 1/33, but LitRPG replication held promotion. Planner-generated
+P1 repair reached `choice/full=11/11` and `factContradictions=0`; clean reruns
+now show the tradeoff: v2 compact brief 5265/3800 = 1.38x, scene lows 2/36,
+endpoint lows 2/11; v3 endpoint-source repair 5759/3800 = 1.52x, scene lows
+1/34, endpoint lows 1/10. Semantic endpoint quality improved, but length
+regressed. Next target a narrower signed-order/setup-intention repair without
+scene deletion or default flips. See L103-L106.
 
 ## Authoring Gates
 
