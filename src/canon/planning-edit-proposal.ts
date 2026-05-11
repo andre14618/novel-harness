@@ -26,6 +26,7 @@ export const ALLOWED_CHAPTER_OUTLINE_FIELD_PATHS = [
   "purpose",
   "setting",
   "targetWords",
+  "establishedFacts",
 ] as const
 
 export type ChapterOutlinePlanningEditField =
@@ -679,6 +680,7 @@ export function validatePlanningEditValue(
   fieldPath: PlanningEditField,
   value: unknown,
 ): string | null {
+  if (fieldPath === "establishedFacts") return validateEstablishedFactsValue(value)
   if (fieldPath === "targetWords") {
     return typeof value === "number" &&
       Number.isInteger(value) &&
@@ -754,4 +756,28 @@ export function validatePlanningEditValue(
   return typeof value === "string" && value.trim().length > 0
     ? null
     : `${fieldPath} must be a non-empty string`
+}
+
+function validateEstablishedFactsValue(value: unknown): string | null {
+  if (!Array.isArray(value)) return "establishedFacts must be an array"
+  if (value.length > 200) return "establishedFacts may contain at most 200 entries"
+  for (const [index, item] of value.entries()) {
+    const record = objectRecord(item, `establishedFacts[${index}]`)
+    if (typeof record === "string") return record
+    if (record.id !== undefined && validateStableIdField(`establishedFacts[${index}].id`, record.id)) {
+      return validateStableIdField(`establishedFacts[${index}].id`, record.id)
+    }
+    if (typeof record.fact !== "string" || record.fact.trim().length === 0) {
+      return `establishedFacts[${index}].fact must be a non-empty string`
+    }
+    if (record.fact.length > 2_000) return `establishedFacts[${index}].fact must be 2000 characters or fewer`
+    if (typeof record.category !== "string" || record.category.trim().length === 0) {
+      return `establishedFacts[${index}].category must be a non-empty string`
+    }
+    if (record.category.length > 120) return `establishedFacts[${index}].category must be 120 characters or fewer`
+    if (/[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(record.fact) || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(record.category)) {
+      return `establishedFacts[${index}] must not contain control characters`
+    }
+  }
+  return null
 }

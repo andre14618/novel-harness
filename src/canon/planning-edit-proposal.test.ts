@@ -298,6 +298,21 @@ describe("planning edit proposals", () => {
     expect(validatePlanningEditValue("targetWords", "1800")).toMatch(/positive integer/)
   })
 
+  test("chapter establishedFacts can be replaced through reviewed planning edits", () => {
+    expect(validatePlanningEditValue("establishedFacts", [{
+      id: "fact-corso-file",
+      fact: "Foreman Corso is imprisoned for 200 silver thalers.",
+      category: "character",
+    }])).toBeNull()
+    expect(validatePlanningEditValue("establishedFacts", "facts")).toMatch(/must be an array/)
+    expect(validatePlanningEditValue("establishedFacts", [{ id: "Fact Corso", fact: "x", category: "character" }]))
+      .toMatch(/stable-ID/)
+    expect(validatePlanningEditValue("establishedFacts", [{ id: "fact-corso", fact: "", category: "character" }]))
+      .toMatch(/fact must be a non-empty string/)
+    expect(validatePlanningEditValue("establishedFacts", [{ id: "fact-corso", fact: "x", category: "" }]))
+      .toMatch(/category must be a non-empty string/)
+  })
+
   test("beat kind accepts only known beat kinds", () => {
     expect(validatePlanningEditValue("kind", "dialogue")).toBeNull()
     expect(validatePlanningEditValue("kind", "montage")).toMatch(/kind must be one of/)
