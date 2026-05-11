@@ -47,6 +47,9 @@ describe("drafting-run-compare", () => {
         readerInfoStateChars: 100,
         withResolvedReferences: 0,
         missingCharacterIds: 0,
+        referenceContextAttempts: [
+          { eventCount: 1, sceneRef: "scene-a" },
+        ],
       })
       writeContextReport(candidateContextDir, {
         maxScenesPerChapter: 4,
@@ -63,6 +66,10 @@ describe("drafting-run-compare", () => {
         readerInfoStateChars: 20,
         withResolvedReferences: 0,
         missingCharacterIds: 2,
+        referenceContextAttempts: [
+          { eventCount: 2, sceneRef: "scene-a" },
+          { eventCount: 1, sceneRef: "scene-b" },
+        ],
       })
 
       const baselineReport = join(dir, "baseline-report.json")
@@ -109,6 +116,8 @@ describe("drafting-run-compare", () => {
       expect(comparison.planningContext.storyRefIdsDelta).toBe(2)
       expect(comparison.planningContext.readerInfoStateDelta).toBe(-1)
       expect(comparison.planningContext.readerInfoStateCharsDelta).toBe(-80)
+      expect(comparison.planningContext.referenceAttemptSceneDelta).toBe(1)
+      expect(comparison.planningContext.referenceAttemptEventDelta).toBe(2)
       expect(comparison.reasons).toContain("Length improved while semantic evidence regressed; treat the candidate as source-sensitive rather than a default candidate.")
       expect(comparison.sceneSemantic.changedRows[0]?.traceIds.relevantWorldFactIds).toEqual(["fact-foreman", "fact-seal"])
       expect(comparison.sceneSemantic.changedRows[0]?.traceIds.relevantCharacterIds).toEqual(["char-maren"])
@@ -116,6 +125,7 @@ describe("drafting-run-compare", () => {
       const rendered = renderDraftingRunComparisonReport(report)
       expect(rendered).toContain("Signal: regressed")
       expect(rendered).toContain("Context coverage: character=1 -> 1, world=1 -> 1, canon=1 -> 1 (sourceRefs=1 -> 3, factAnchors=0 -> 1), story=1 -> 1 (storyRefs=1 -> 3), reader=1 -> 0 (chars=100 -> 20), refs=0 -> 0 (lookups=0 -> 0)")
+      expect(rendered).toContain("Reference attempts: scenes=1 -> 2, events=1 -> 3")
       expect(rendered).toContain("ids=obligations:obl-file; characters:char-maren; worldFacts:fact-foreman,fact-seal")
       expect(rendered).toContain("Length improved while semantic evidence regressed")
     } finally {
@@ -272,6 +282,10 @@ function writeContextReport(outputDir: string, opts: {
   readerInfoStateChars?: number
   withResolvedReferences?: number
   missingCharacterIds: number
+  referenceContextAttempts?: Array<{
+    eventCount: number
+    sceneRef: string
+  }>
 }): void {
   mkdirSync(outputDir, { recursive: true })
   writeFileSync(join(outputDir, "planning-drafting-context-report.json"), `${JSON.stringify({
@@ -298,6 +312,7 @@ function writeContextReport(outputDir: string, opts: {
       withResolvedReferences: opts.withResolvedReferences ?? 0,
       referenceLookups: 0,
     },
+    referenceContextAttempts: opts.referenceContextAttempts ?? [],
   }, null, 2)}\n`)
 }
 

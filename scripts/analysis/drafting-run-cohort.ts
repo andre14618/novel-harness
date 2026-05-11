@@ -43,6 +43,8 @@ export interface DraftingRunCohortPair {
   readerInfoStateDelta: number | null
   readerInfoStateCharsDelta: number | null
   missingCharacterIdsDelta: number | null
+  referenceAttemptSceneDelta: number | null
+  referenceAttemptEventDelta: number | null
 }
 
 export interface DraftingRunCohortDimensionSummary {
@@ -82,6 +84,8 @@ export interface DraftingRunCohortReport {
       readerInfoState: number | null
       readerInfoStateChars: number | null
       resolvedReferences: number | null
+      referenceAttemptScenes: number | null
+      referenceAttemptEvents: number | null
       missingCharacterIds: number | null
     }
   }
@@ -149,6 +153,8 @@ export function buildDraftingRunCohortReport(input: {
         readerInfoState: sumComparisonDelta(input.refs, "readerInfoStateDelta"),
         readerInfoStateChars: sumComparisonDelta(input.refs, "readerInfoStateCharsDelta"),
         resolvedReferences: sumComparisonDelta(input.refs, "resolvedReferencesDelta"),
+        referenceAttemptScenes: sumComparisonDelta(input.refs, "referenceAttemptSceneDelta"),
+        referenceAttemptEvents: sumComparisonDelta(input.refs, "referenceAttemptEventDelta"),
         missingCharacterIds: sumComparisonDelta(input.refs, "missingCharacterIdsDelta"),
       },
     },
@@ -182,6 +188,8 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
       `reader=${formatDelta(report.aggregate.contextDeltas.readerInfoState)}, ` +
       `readerChars=${formatDelta(report.aggregate.contextDeltas.readerInfoStateChars)}, ` +
       `resolvedRefs=${formatDelta(report.aggregate.contextDeltas.resolvedReferences)}, ` +
+      `refAttemptScenes=${formatDelta(report.aggregate.contextDeltas.referenceAttemptScenes)}, ` +
+      `refAttemptEvents=${formatDelta(report.aggregate.contextDeltas.referenceAttemptEvents)}, ` +
       `missingChars=${formatDelta(report.aggregate.contextDeltas.missingCharacterIds)}`,
   )
   lines.push("")
@@ -199,14 +207,15 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
   lines.push("")
   lines.push("## Comparisons")
   lines.push("")
-  lines.push("| Source | Baseline | Candidate | Clean | Signal | Words | Scene Lows | Canon Refs | Story Refs | Reader | Reader Chars | Missing Chars |")
-  lines.push("| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+  lines.push("| Source | Baseline | Candidate | Clean | Signal | Words | Scene Lows | Canon Refs | Story Refs | Reader | Reader Chars | Ref Attempt Scenes | Ref Attempt Events | Missing Chars |")
+  lines.push("| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
   for (const pair of report.pairs) {
     lines.push(
       `| ${pair.source} | ${pair.baselineArm} | ${pair.candidateArm} | ${pair.cleanSource ? "yes" : "no"} | ` +
         `${pair.signal} | ${formatSigned(pair.totalWordsDelta)} | ${formatDelta(pair.sceneLowDelta)} | ` +
         `${formatDelta(pair.canonSourceRefsDelta)} | ${formatDelta(pair.storyRefIdsDelta)} | ` +
         `${formatDelta(pair.readerInfoStateDelta)} | ${formatDelta(pair.readerInfoStateCharsDelta)} | ` +
+        `${formatDelta(pair.referenceAttemptSceneDelta)} | ${formatDelta(pair.referenceAttemptEventDelta)} | ` +
         `${formatDelta(pair.missingCharacterIdsDelta)} |`,
     )
   }
@@ -246,6 +255,8 @@ function pairRowsForReport(ref: DraftingRunCohortReportRef): DraftingRunCohortPa
     readerInfoStateDelta: comparison.planningContext.readerInfoStateDelta ?? null,
     readerInfoStateCharsDelta: comparison.planningContext.readerInfoStateCharsDelta ?? null,
     missingCharacterIdsDelta: comparison.planningContext.missingCharacterIdsDelta ?? null,
+    referenceAttemptSceneDelta: comparison.planningContext.referenceAttemptSceneDelta ?? null,
+    referenceAttemptEventDelta: comparison.planningContext.referenceAttemptEventDelta ?? null,
   }))
 }
 

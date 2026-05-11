@@ -14,8 +14,8 @@ describe("drafting-run-cohort", () => {
   test("aggregates clean-source comparison reports by signal, semantic dimension, and context delta", () => {
     const report = buildDraftingRunCohortReport({
       refs: [
-        { path: "lit.json", report: comparisonReport("lit", "promising", -500, 0, 0, 2, "improved", 3, 80) },
-        { path: "corso.json", report: comparisonReport("corso", "regressed", 224, 4, 3, 0, "regressed", -1, -30) },
+        { path: "lit.json", report: comparisonReport("lit", "promising", -500, 0, 0, 2, "improved", 3, 80, 2, 3) },
+        { path: "corso.json", report: comparisonReport("corso", "regressed", 224, 4, 3, 0, "regressed", -1, -30, -1, -2) },
       ],
       generatedAt: "2026-05-11T00:00:00.000Z",
     })
@@ -29,10 +29,14 @@ describe("drafting-run-cohort", () => {
     expect(report.aggregate.contextDeltas.canonSourceRefs).toBe(2)
     expect(report.aggregate.contextDeltas.storyRefIds).toBe(2)
     expect(report.aggregate.contextDeltas.readerInfoStateChars).toBe(50)
+    expect(report.aggregate.contextDeltas.referenceAttemptScenes).toBe(1)
+    expect(report.aggregate.contextDeltas.referenceAttemptEvents).toBe(1)
     expect(report.pairs[0]).toMatchObject({
       canonSourceRefsDelta: 2,
       storyRefIdsDelta: 3,
       readerInfoStateCharsDelta: 80,
+      referenceAttemptSceneDelta: 2,
+      referenceAttemptEventDelta: 3,
     })
     expect(report.dimensions.find(row => row.dimension === "endpointLanding")).toMatchObject({
       comparisons: 2,
@@ -45,9 +49,11 @@ describe("drafting-run-cohort", () => {
     expect(rendered).toContain("canonSourceRefs=+2")
     expect(rendered).toContain("storyRefs=+2")
     expect(rendered).toContain("readerChars=+50")
+    expect(rendered).toContain("refAttemptScenes=+1")
+    expect(rendered).toContain("refAttemptEvents=+1")
     expect(rendered).toContain("| endpointLanding | 2 |")
-    expect(rendered).toContain("| Source | Baseline | Candidate | Clean | Signal | Words | Scene Lows | Canon Refs | Story Refs | Reader | Reader Chars | Missing Chars |")
-    expect(rendered).toContain("| corso | drafting-brief-v1 | drafting-brief-tight-v1 | yes | regressed | +224 | +4 | 0 | -1 | 0 | -30 | 0 |")
+    expect(rendered).toContain("| Source | Baseline | Candidate | Clean | Signal | Words | Scene Lows | Canon Refs | Story Refs | Reader | Reader Chars | Ref Attempt Scenes | Ref Attempt Events | Missing Chars |")
+    expect(rendered).toContain("| corso | drafting-brief-v1 | drafting-brief-tight-v1 | yes | regressed | +224 | +4 | 0 | -1 | 0 | -30 | -1 | -2 | 0 |")
   })
 
   test("loads comparison JSON artifacts", () => {
@@ -82,7 +88,7 @@ describe("drafting-run-cohort", () => {
     expect(rendered).toContain("canonSourceRefs=+1")
     expect(rendered).toContain("storyRefs=n/a")
     expect(rendered).toContain("readerChars=n/a")
-    expect(rendered).toContain("| legacy | drafting-brief-v1 | drafting-brief-tight-v1 | yes | mixed | 0 | 0 | +1 | n/a | 0 | n/a | 0 |")
+    expect(rendered).toContain("| legacy | drafting-brief-v1 | drafting-brief-tight-v1 | yes | mixed | 0 | 0 | +1 | n/a | 0 | n/a | 0 | 0 | 0 |")
   })
 })
 
@@ -96,6 +102,8 @@ function comparisonReport(
   verdict: "improved" | "regressed" | "mixed",
   storyRefIdsDelta = 0,
   readerInfoStateCharsDelta = 0,
+  referenceAttemptSceneDelta = 0,
+  referenceAttemptEventDelta = 0,
 ): DraftingRunComparisonReport {
   return {
     generatedAt: "2026-05-11T00:00:00.000Z",
@@ -160,6 +168,8 @@ function comparisonReport(
         readerInfoStateCharsDelta,
         missingCharacterIdsDelta: 0,
         resolvedReferencesDelta: 0,
+        referenceAttemptSceneDelta,
+        referenceAttemptEventDelta,
         overloadedChapterDelta: 0,
         minTargetWordsPerSceneDelta: 0,
       },

@@ -123,6 +123,11 @@ interface PlanningContextDetail {
     withResolvedReferences: number | null
     referenceLookups: number | null
   } | null
+  referenceContextAttempts: {
+    sceneCount: number | null
+    eventCount: number | null
+    sceneRefs: string[]
+  } | null
 }
 
 export interface DraftingRunRef {
@@ -161,6 +166,7 @@ export interface DraftingRunSummary {
     readinessLabels: Record<string, number>
     sceneLoad: PlanningContextDetail["sceneLoad"]
     downstream: PlanningContextDetail["downstream"]
+    referenceContextAttempts: PlanningContextDetail["referenceContextAttempts"]
   } | null
   proseSemantic: {
     outputDir: string | null
@@ -220,6 +226,8 @@ export interface DraftingRunComparison {
     readerInfoStateCharsDelta: number | null
     missingCharacterIdsDelta: number | null
     resolvedReferencesDelta: number | null
+    referenceAttemptSceneDelta: number | null
+    referenceAttemptEventDelta: number | null
     overloadedChapterDelta: number | null
     minTargetWordsPerSceneDelta: number | null
   }
@@ -307,6 +315,14 @@ export function renderDraftingRunComparisonReport(report: DraftingRunComparisonR
           `(chars=${formatTransition(baselineContext?.readerInfoStateChars, candidateContext?.readerInfoStateChars)}), ` +
           `refs=${formatTransition(baselineContext?.withResolvedReferences, candidateContext?.withResolvedReferences)} ` +
           `(lookups=${formatTransition(baselineContext?.referenceLookups, candidateContext?.referenceLookups)})`,
+      )
+    }
+    const baselineReferenceAttempts = report.baseline.planningContext?.referenceContextAttempts
+    const candidateReferenceAttempts = candidate.planningContext?.referenceContextAttempts
+    if (hasReferenceAttemptSignal(baselineReferenceAttempts) || hasReferenceAttemptSignal(candidateReferenceAttempts)) {
+      lines.push(
+        `Reference attempts: scenes=${formatTransition(baselineReferenceAttempts?.sceneCount, candidateReferenceAttempts?.sceneCount)}, ` +
+          `events=${formatTransition(baselineReferenceAttempts?.eventCount, candidateReferenceAttempts?.eventCount)}`,
       )
     }
     if (comparison.sceneSemantic.comparisonVerdict) {
@@ -460,6 +476,14 @@ function compareCandidate(
         baseline.summary.planningContext?.downstream?.withResolvedReferences ?? null,
         candidate.summary.planningContext?.downstream?.withResolvedReferences ?? null,
       ),
+      referenceAttemptSceneDelta: nullableDelta(
+        baseline.summary.planningContext?.referenceContextAttempts?.sceneCount ?? null,
+        candidate.summary.planningContext?.referenceContextAttempts?.sceneCount ?? null,
+      ),
+      referenceAttemptEventDelta: nullableDelta(
+        baseline.summary.planningContext?.referenceContextAttempts?.eventCount ?? null,
+        candidate.summary.planningContext?.referenceContextAttempts?.eventCount ?? null,
+      ),
       overloadedChapterDelta: nullableDelta(
         baseline.summary.planningContext?.sceneLoad?.overloadedChapterCount ?? null,
         candidate.summary.planningContext?.sceneLoad?.overloadedChapterCount ?? null,
@@ -551,6 +575,7 @@ function summarizeRun(
       readinessLabels: arm.planningContext.readiness?.labels ?? {},
       sceneLoad: contextDetail?.sceneLoad ?? null,
       downstream: contextDetail?.downstream ?? null,
+      referenceContextAttempts: contextDetail?.referenceContextAttempts ?? null,
     } : null,
     proseSemantic: arm.proseSemantic ? {
       outputDir: arm.proseSemantic.outputDir ?? null,
@@ -580,6 +605,12 @@ function summarizeRun(
   }
 }
 
+function hasReferenceAttemptSignal(
+  attempts: PlanningContextDetail["referenceContextAttempts"] | undefined | null,
+): boolean {
+  return (attempts?.sceneCount ?? 0) > 0 || (attempts?.eventCount ?? 0) > 0
+}
+
 function loadPlanningContextDetail(reportDir: string, outputDir: string | null): PlanningContextDetail | null {
   if (!outputDir) return null
   const path = resolveArtifactPath(reportDir, join(outputDir, "planning-drafting-context-report.json"))
@@ -590,9 +621,17 @@ function loadPlanningContextDetail(reportDir: string, outputDir: string | null):
         sceneLoad?: PlanningContextDetail["sceneLoad"]
       }
       downstream?: PlanningContextDetail["downstream"]
+      referenceContextAttempts?: Array<{
+        eventCount?: unknown
+        eventIds?: unknown
+        sceneRef?: unknown
+      }>
     }
     const sceneLoad = report.upstream?.sceneLoad ?? null
     const downstream = report.downstream ?? null
+    const referenceContextAttempts = Array.isArray(report.referenceContextAttempts)
+      ? report.referenceContextAttempts
+      : []
     return {
       sceneLoad: sceneLoad ? {
         maxScenesPerChapter: finiteOrNull(sceneLoad.maxScenesPerChapter),
@@ -615,6 +654,17 @@ function loadPlanningContextDetail(reportDir: string, outputDir: string | null):
         withResolvedReferences: finiteOrNull(downstream.withResolvedReferences),
         referenceLookups: finiteOrNull(downstream.referenceLookups),
       } : null,
+      referenceContextAttempts: {
+        sceneCount: referenceContextAttempts.length,
+        eventCount: referenceContextAttempts.reduce((sum, attempt) => {
+          const eventCount = finiteOrNull(attempt.eventCount)
+          if (eventCount !== null) return sum + eventCount
+          return Array.isArray(attempt.eventIds) ? sum + attempt.eventIds.length : sum
+        }, 0),
+        sceneRefs: referenceContextAttempts
+          .map(attempt => typeof attempt.sceneRef === "string" ? attempt.sceneRef : null)
+          .filter((ref): ref is string => ref !== null),
+      },
     }
   } catch {
     return null
