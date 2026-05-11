@@ -633,6 +633,7 @@ function summarizeRun(
   arm: DraftingArmArtifact,
 ): DraftingRunSummary {
   const contextDetail = loadPlanningContextDetail(reportDir, arm.planningContext?.outputDir ?? null)
+  const manualReadiness = loadManualReadinessSummary(reportDir, report.targetPrefix ?? "unknown", arm.arm ?? "unknown", arm)
   return {
     reportPath,
     source: report.source ?? "unknown",
@@ -663,15 +664,7 @@ function summarizeRun(
       downstream: contextDetail?.downstream ?? null,
       referenceContextAttempts: contextDetail?.referenceContextAttempts ?? null,
     } : null,
-    manualReadiness: {
-      planAssistFindingCount: finiteOrNull(arm.planAssistReadiness?.findingCount),
-      planAssistExhaustionRows: finiteOrNull(arm.planAssistReadiness?.exhaustionRows),
-      planAssistPendingRows: finiteOrNull(arm.planAssistReadiness?.pendingRows),
-      checkerFindingCount: finiteOrNull(arm.checkerReadiness?.findingCount),
-      checkerItems: finiteOrNull(arm.checkerReadiness?.checkerItems),
-      checkerBlockerItems: finiteOrNull(arm.checkerReadiness?.blockerItems),
-      checkerWarningItems: finiteOrNull(arm.checkerReadiness?.warningItems),
-    },
+    manualReadiness,
     proseSemantic: arm.proseSemantic ? {
       outputDir: arm.proseSemantic.outputDir ?? null,
       resultCount: finiteOrNull(arm.proseSemantic.resultCount),
@@ -698,6 +691,115 @@ function summarizeRun(
       }),
     } : null,
   }
+}
+
+function loadManualReadinessSummary(
+  reportDir: string,
+  targetPrefix: string,
+  armName: string,
+  arm: DraftingArmArtifact,
+): DraftingRunSummary["manualReadiness"] {
+  const planAssist = loadPlanAssistReadinessSummary(reportDir, targetPrefix, armName, arm)
+  const checker = loadCheckerReadinessSummary(reportDir, targetPrefix, armName, arm)
+  return {
+    planAssistFindingCount: planAssist.findingCount,
+    planAssistExhaustionRows: planAssist.exhaustionRows,
+    planAssistPendingRows: planAssist.pendingRows,
+    checkerFindingCount: checker.findingCount,
+    checkerItems: checker.checkerItems,
+    checkerBlockerItems: checker.blockerItems,
+    checkerWarningItems: checker.warningItems,
+  }
+}
+
+function loadPlanAssistReadinessSummary(
+  reportDir: string,
+  targetPrefix: string,
+  armName: string,
+  arm: DraftingArmArtifact,
+): {
+  findingCount: number | null
+  exhaustionRows: number | null
+  pendingRows: number | null
+} {
+  if (arm.planAssistReadiness) {
+    return {
+      findingCount: finiteOrNull(arm.planAssistReadiness.findingCount),
+      exhaustionRows: finiteOrNull(arm.planAssistReadiness.exhaustionRows),
+      pendingRows: finiteOrNull(arm.planAssistReadiness.pendingRows),
+    }
+  }
+  const path = resolveArtifactPath(
+    reportDir,
+    join("output/plan-assist-readiness", targetPrefix, armName, "plan-assist-readiness.json"),
+  )
+  if (!path) return { findingCount: null, exhaustionRows: null, pendingRows: null }
+  try {
+    const aggregate = JSON.parse(readFileSync(path, "utf8")) as {
+      findingCount?: unknown
+      exhaustionRows?: unknown
+      pendingRows?: unknown
+    }
+    return {
+      findingCount: finiteOrNull(aggregate.findingCount),
+      exhaustionRows: finiteOrNull(aggregate.exhaustionRows),
+      pendingRows: finiteOrNull(aggregate.pendingRows),
+    }
+  } catch {
+    return { findingCount: null, exhaustionRows: null, pendingRows: null }
+  }
+}
+
+function loadCheckerReadinessSummary(
+  reportDir: string,
+  targetPrefix: string,
+  armName: string,
+  arm: DraftingArmArtifact,
+): {
+  findingCount: number | null
+  checkerItems: number | null
+  blockerItems: number | null
+  warningItems: number | null
+} {
+  if (arm.checkerReadiness) {
+    return {
+      findingCount: finiteOrNull(arm.checkerReadiness.findingCount),
+      checkerItems: finiteOrNull(arm.checkerReadiness.checkerItems),
+      blockerItems: finiteOrNull(arm.checkerReadiness.blockerItems),
+      warningItems: finiteOrNull(arm.checkerReadiness.warningItems),
+    }
+  }
+  const dir = join("output/checker-readiness", targetPrefix, armName)
+  const readinessPath = resolveArtifactPath(reportDir, join(dir, "checker-readiness.json"))
+  const warningPath = resolveArtifactPath(reportDir, join(dir, "checker-warning-report.json"))
+  let findingCount: number | null = null
+  let checkerItems: number | null = null
+  let blockerItems: number | null = null
+  let warningItems: number | null = null
+  if (readinessPath) {
+    try {
+      const aggregate = JSON.parse(readFileSync(readinessPath, "utf8")) as { findingCount?: unknown }
+      findingCount = finiteOrNull(aggregate.findingCount)
+    } catch {
+      findingCount = null
+    }
+  }
+  if (warningPath) {
+    try {
+      const warning = JSON.parse(readFileSync(warningPath, "utf8")) as {
+        totalItems?: unknown
+        bySeverity?: Record<string, unknown>
+      }
+      checkerItems = finiteOrNull(warning.totalItems)
+      blockerItems = finiteOrNull(warning.bySeverity?.blocker)
+      warningItems = finiteOrNull(warning.bySeverity?.warning)
+    } catch {
+      checkerItems = null
+      blockerItems = null
+      warningItems = null
+    }
+  }
+  return { findingCount, checkerItems, blockerItems, warningItems }
 }
 
 function hasManualReadinessSignal(readiness: DraftingRunSummary["manualReadiness"] | undefined | null): boolean {

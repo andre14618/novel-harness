@@ -26,7 +26,7 @@ unless the user explicitly requests a disposable branch.
   endpoint repairs reached 3398/2700 = 1.27x with scene lows 0/45; Corso
   replication regressed to 5002/3800 with scene lows 4/34. Fresh P1 N=4 tight
   cohort stayed mixed: mean -31.3 words, scene lows -6, endpoint lows -2,
-  alignment 3 quality-gain-with-load-change / 1 expanded-no-gain row. Separate gate cell leaves 5 clean sources but 4 evidence-comparable rows.
+  alignment 3 quality-gain-with-load-change / 1 expanded-no-gain row; new-row manual readiness: checker blockers -1, warnings +17. Separate gate cell leaves 5 clean sources but 4 evidence-comparable rows.
   Keep broad operational-facts brief out after 6050/3800 regression. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with

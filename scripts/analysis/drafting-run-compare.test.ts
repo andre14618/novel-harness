@@ -85,9 +85,6 @@ describe("drafting-run-compare", () => {
         contextOutputDir: baselineContextDir,
         sceneLowRows: 0,
         missingReadiness: 0,
-        checkerItems: 1,
-        checkerBlockers: 0,
-        checkerWarnings: 1,
       })
       writeRunReport(candidateReport, {
         targetPrefix: "candidate-run",
@@ -100,9 +97,18 @@ describe("drafting-run-compare", () => {
         contextOutputDir: candidateContextDir,
         sceneLowRows: 1,
         missingReadiness: 0,
-        checkerItems: 3,
-        checkerBlockers: 1,
-        checkerWarnings: 2,
+      })
+      writeCheckerReadinessSidecar(dir, "baseline-run", "drafting-brief-v1", {
+        items: 1,
+        blockers: 0,
+        warnings: 1,
+        findings: 0,
+      })
+      writeCheckerReadinessSidecar(dir, "candidate-run", "drafting-brief-tight-v1", {
+        items: 3,
+        blockers: 1,
+        warnings: 2,
+        findings: 1,
       })
 
       const report = buildDraftingRunComparisonReport({
@@ -279,9 +285,6 @@ function writeRunReport(path: string, opts: {
   contextOutputDir: string
   sceneLowRows: number
   missingReadiness: number
-  checkerItems?: number
-  checkerBlockers?: number
-  checkerWarnings?: number
 }): void {
   writeFileSync(path, `${JSON.stringify({
     v: "drafting-isolated-report-v1",
@@ -319,15 +322,37 @@ function writeRunReport(path: string, opts: {
         },
         gaps: [],
       },
-      checkerReadiness: opts.checkerItems == null ? undefined : {
-        outputDir: "output/checker-readiness/test",
-        groupCount: opts.checkerBlockers ?? 0,
-        findingCount: opts.checkerBlockers ?? 0,
-        checkerItems: opts.checkerItems,
-        blockerItems: opts.checkerBlockers ?? 0,
-        warningItems: opts.checkerWarnings ?? 0,
-      },
     })],
+  }, null, 2)}\n`)
+}
+
+function writeCheckerReadinessSidecar(root: string, targetPrefix: string, armName: string, counts: {
+  items: number
+  blockers: number
+  warnings: number
+  findings: number
+}): void {
+  const dir = join(root, "output/checker-readiness", targetPrefix, armName)
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(join(dir, "checker-readiness.json"), `${JSON.stringify({
+    generatedAt: "2026-05-11T00:00:00.000Z",
+    sourceReports: [`checker-warning-report:${targetPrefix}`],
+    labels: counts.findings > 0 ? ["CONTINUITY-BLOCKER"] : [],
+    maxOrdinal: 1,
+    findingCount: counts.findings,
+    groupCount: counts.findings,
+    groups: [],
+  }, null, 2)}\n`)
+  writeFileSync(join(dir, "checker-warning-report.json"), `${JSON.stringify({
+    novelId: `${targetPrefix}-${armName}`,
+    totalItems: counts.items,
+    bySeverity: {
+      blocker: counts.blockers,
+      warning: counts.warnings,
+    },
+    byPolarity: { negative: counts.blockers, positive: 0, ambiguous: counts.warnings },
+    byCalibration: { standard: counts.items, "low-confidence": 0 },
+    chapters: [],
   }, null, 2)}\n`)
 }
 

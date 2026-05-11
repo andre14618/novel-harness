@@ -124,7 +124,7 @@ The default-off tight brief plus two source `planning_edit` endpoint repairs
 reached 3398/2700 = 1.27x with scene lows 0/45; Corso replication regressed
 to 5002/3800 with scene lows 4/34. Fresh P1 N=4 tight cohort stayed mixed:
 mean -31.3 words, scene lows -6, endpoint lows -2, and alignment 3 quality-gain-with-load-change / 1 expanded-no-gain row.
-Separate repaired-source gate cell leaves 5 clean sources but 4 evidence-comparable rows. No default flip; broad operational-facts stays out after 6050/3800. Continuity fact prompts carry
+Manual readiness delta on the new row: checker blockers -1, warnings +17. Separate repaired-source gate cell leaves 5 clean sources but 4 evidence-comparable rows. No default flip; broad operational-facts stays out after 6050/3800. Continuity fact prompts carry
 `factId`, disambiguate seal roles, and filter explicit support echoes. Do not
 flip defaults. See L103-L106.
 
