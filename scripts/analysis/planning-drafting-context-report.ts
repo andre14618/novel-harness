@@ -72,6 +72,15 @@ export interface PlanningArtifactSummary {
   obligationIds: number
   obligationSourceRefs: number
   activeStoryRefIds: number
+  implicitReferenceScenes: ImplicitReferenceSceneSummary[]
+}
+
+export interface ImplicitReferenceSceneSummary {
+  chapterNumber: number
+  chapterId: string
+  beatIndex: number
+  sceneRef: string
+  descriptionExcerpt: string
 }
 
 export type SceneLoadSignal = "balanced" | "dense" | "overloaded" | "unknown"
@@ -180,6 +189,23 @@ export interface PlanningToDraftingContextReport {
   downstream: WriterContextTelemetryReport["totals"]
   surfaces: PlanningToDraftingContextAuditRow[]
   gaps: PlanningToDraftingContextAuditRow[]
+  referenceContextAttempts?: ReferenceContextAttemptSummary[]
+}
+
+export interface ReferenceContextAttemptSummary {
+  eventIds: number[]
+  eventCount: number
+  chapter: number | null
+  beatIndex: number | null
+  stages: string[]
+  sceneRef: string | null
+  descriptionExcerpt: string | null
+  referenceLookups: number
+  referenceLlmCalls: number
+  canonSourceRefs: number
+  storyRefIds: number
+  readerInfoStateChars: number
+  missingCharacterIds: number
 }
 
 interface Args {
@@ -201,7 +227,7 @@ export function summarizePlanningArtifacts(args: {
   }
 
   const sceneRows = outlines.flatMap(outline =>
-    (outline.scenes ?? []).map(scene => ({ outline, scene }))
+    (outline.scenes ?? []).map((scene, sceneIndex) => ({ outline, scene, sceneIndex }))
   )
   const scenes = sceneRows.map(row => row.scene)
   const sceneContractShapes = scenes.map(scene => summarizeSceneContractShape(readRecord(scene)))
@@ -254,6 +280,7 @@ export function summarizePlanningArtifacts(args: {
     activeStoryRefIds: obligationItems.filter(item =>
       hasText(item.threadId) || hasText(item.promiseId) || hasText(item.payoffId)
     ).length,
+    implicitReferenceScenes: summarizeImplicitReferenceScenes(sceneRows),
   }
 }
 
@@ -383,6 +410,7 @@ export function buildPlanningToDraftingContextReport(args: {
       row.status === "not_observed" ||
       row.status === "represented_without_upstream"
     ),
+    referenceContextAttempts: summarizeReferenceContextAttempts(upstream, args.writerContext),
   }
 }
 
@@ -454,6 +482,22 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
       ).join(", ")}`,
     )
   }
+  const referenceContextAttempts = report.referenceContextAttempts ?? []
+  if (referenceContextAttempts.length > 0) {
+    const eventCount = referenceContextAttempts.reduce((sum, attempt) => sum + attempt.eventCount, 0)
+    lines.push(`Reference context attempts: scenes=${referenceContextAttempts.length}, events=${eventCount}`)
+    for (const attempt of referenceContextAttempts.slice(0, 8)) {
+      lines.push(
+        `- REF-ATTEMPT: events=${attempt.eventIds.map(id => `#${id}`).join(",")} ` +
+          `ch${attempt.chapter ?? "?"}` +
+          `${attempt.beatIndex == null ? "" : ` beat${attempt.beatIndex + 1}`} stages=${attempt.stages.join(",")}; ` +
+          `scene=${attempt.sceneRef ?? "unknown"}; lookups=${attempt.referenceLookups}; llm=${attempt.referenceLlmCalls}; ` +
+          `canonRefs=${attempt.canonSourceRefs}; storyRefs=${attempt.storyRefIds}; ` +
+          `readerChars=${attempt.readerInfoStateChars}; missingChars=${attempt.missingCharacterIds}` +
+          `${attempt.descriptionExcerpt ? `; "${attempt.descriptionExcerpt}"` : ""}`,
+      )
+    }
+  }
   lines.push(
     `Downstream writer-context events: ${report.downstream.events}; ` +
       `character=${report.downstream.withCharacterContext}, world=${report.downstream.withWorldContext}, ` +
@@ -523,6 +567,95 @@ function auditStoryRefLineageSurface(args: {
     eventCount: args.eventCount,
     note,
   })
+}
+
+function summarizeImplicitReferenceScenes(
+  rows: Array<{ outline: ChapterOutline; scene: unknown; sceneIndex: number }>,
+): ImplicitReferenceSceneSummary[] {
+  return rows
+    .filter(row => beatDescriptionHasImplicitReference(String(readRecord(row.scene).description ?? "")))
+    .map(row => {
+      const record = readRecord(row.scene)
+      const chapterId = row.outline.chapterId ?? `chapter:${row.outline.chapterNumber}`
+      return {
+        chapterNumber: row.outline.chapterNumber,
+        chapterId,
+        beatIndex: row.sceneIndex,
+        sceneRef: sceneRef(row.scene) ?? `${chapterId}-scene-${row.sceneIndex + 1}`,
+        descriptionExcerpt: truncateForEvidence(String(record.description ?? "")),
+      }
+    })
+}
+
+function summarizeReferenceContextAttempts(
+  upstream: PlanningArtifactSummary,
+  writerContext: WriterContextTelemetryReport,
+): ReferenceContextAttemptSummary[] {
+  const sceneByKey = new Map(
+    upstream.implicitReferenceScenes.map(scene => [`${scene.chapterNumber}:${scene.beatIndex}`, scene] as const),
+  )
+  const attempts = writerContext.events
+    .filter(event =>
+      event.surfaces.implicitReferences &&
+      !event.surfaces.resolvedReferences &&
+      (event.referenceLookups > 0 || event.referenceLlmCalls > 0)
+    )
+    .map(event => {
+      const scene = event.chapter !== null && event.beatIndex !== null
+        ? sceneByKey.get(`${event.chapter}:${event.beatIndex}`)
+        : undefined
+      return {
+        eventId: event.id,
+        chapter: event.chapter,
+        beatIndex: event.beatIndex,
+        stage: event.stage,
+        sceneRef: scene?.sceneRef ?? null,
+        descriptionExcerpt: scene?.descriptionExcerpt ?? null,
+        referenceLookups: event.referenceLookups,
+        referenceLlmCalls: event.referenceLlmCalls,
+        canonSourceRefs: event.canonSourceRefs,
+        storyRefIds: event.storyRefIds,
+        readerInfoStateChars: event.readerInfoStateChars,
+        missingCharacterIds: event.missingCharacterIds,
+      }
+    })
+  const grouped = new Map<string, ReferenceContextAttemptSummary>()
+  for (const attempt of attempts) {
+    const key = [
+      attempt.chapter ?? "?",
+      attempt.beatIndex ?? "?",
+      attempt.sceneRef ?? "unknown",
+    ].join(":")
+    const existing = grouped.get(key)
+    if (!existing) {
+      grouped.set(key, {
+        eventIds: [attempt.eventId],
+        eventCount: 1,
+        chapter: attempt.chapter,
+        beatIndex: attempt.beatIndex,
+        stages: [attempt.stage],
+        sceneRef: attempt.sceneRef,
+        descriptionExcerpt: attempt.descriptionExcerpt,
+        referenceLookups: attempt.referenceLookups,
+        referenceLlmCalls: attempt.referenceLlmCalls,
+        canonSourceRefs: attempt.canonSourceRefs,
+        storyRefIds: attempt.storyRefIds,
+        readerInfoStateChars: attempt.readerInfoStateChars,
+        missingCharacterIds: attempt.missingCharacterIds,
+      })
+      continue
+    }
+    existing.eventIds.push(attempt.eventId)
+    existing.eventCount += 1
+    if (!existing.stages.includes(attempt.stage)) existing.stages.push(attempt.stage)
+    existing.referenceLookups += attempt.referenceLookups
+    existing.referenceLlmCalls += attempt.referenceLlmCalls
+    existing.canonSourceRefs = Math.max(existing.canonSourceRefs, attempt.canonSourceRefs)
+    existing.storyRefIds = Math.max(existing.storyRefIds, attempt.storyRefIds)
+    existing.readerInfoStateChars = Math.max(existing.readerInfoStateChars, attempt.readerInfoStateChars)
+    existing.missingCharacterIds = Math.max(existing.missingCharacterIds, attempt.missingCharacterIds)
+  }
+  return [...grouped.values()]
 }
 
 function auditSurface(args: {

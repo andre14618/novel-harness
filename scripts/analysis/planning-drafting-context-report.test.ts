@@ -112,6 +112,11 @@ describe("planning-drafting-context-report", () => {
       },
       scenesWithObligations: 1,
       scenesWithImplicitReferences: 1,
+      implicitReferenceScenes: [{
+        chapterNumber: 1,
+        beatIndex: 0,
+        sceneRef: "ch-001-scene-001-ledger",
+      }],
       chaptersWithSetting: 2,
       chaptersWithCharactersPresentIds: 2,
       readerInfoSourceChapters: 1,
@@ -623,8 +628,25 @@ describe("planning-drafting-context-report", () => {
     expect(statuses(report.surfaces)).toMatchObject({
       resolvedReferences: "attempted_no_context",
     })
+    expect(report.referenceContextAttempts).toEqual([{
+      eventIds: [1],
+      eventCount: 1,
+      chapter: 1,
+      beatIndex: 0,
+      stages: ["initial"],
+      sceneRef: "ch-001-scene-002",
+      descriptionExcerpt: "After the riot is suppressed, Maren returns to the ledger.",
+      referenceLookups: 3,
+      referenceLlmCalls: 1,
+      canonSourceRefs: 0,
+      storyRefIds: 0,
+      readerInfoStateChars: 0,
+      missingCharacterIds: 0,
+    }])
     expect(report.gaps.map(row => row.surface)).not.toContain("resolvedReferences")
     expect(renderPlanningToDraftingContextReport(report)).toContain("attempted_no_context")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("Reference context attempts: scenes=1, events=1")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("REF-ATTEMPT: events=#1 ch1 beat1 stages=initial; scene=ch-001-scene-002; lookups=3; llm=1")
   })
 })
 
