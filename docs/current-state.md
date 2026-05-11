@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-10
+updated: 2026-05-11
 role: canonical-current-truth
 archive: archive/current-state-2026-05-04-full.md
 references:
@@ -109,23 +109,18 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 The active lane is in `docs/sessions/lane-queue.md`.
 
-As of 2026-05-10, L105 keeps scene-first promotion on hold, but L106 production
-path integration has absorbed validated POC evidence into writer-brief
-telemetry, scene-semantic replay, Plan Readiness import/apply, and disposable
-runner guards. The P1 readiness loop edited and approved 7 planning edits,
-deferred 1 duplicate readiness item, then reran production drafting as
-`p1-ready-loop3-1778454964-drafting-brief-v1`: both chapters approved,
-3546/3000 = 1.18x, plan/continuity passed, no exhaustions, prose-semantic
-0/8 lows, sceneDramaturgy 10/10 clean, endpointLanding lows 2/10. That run
-exercised deterministic duplicate-integrity repair in ch1 and L70b per-beat
-integrity settle in ch2. Promotion remains blocked on residual endpoint
-landing quality and live `allow-entities` replay, not prose compaction. See
-L103-L106.
-Drafting Evidence Source hygiene is shared production telemetry/guarding:
-`test-drafting-isolated` rejects drafted/completed sources unless
-`--allow-drafted-source` is explicit, and Plan Readiness reports surface the
-same clean-source assessment. Loop4 from drafted loop3 is contaminated negative
-evidence, not a promotion run.
+As of 2026-05-11, L106 has absorbed validated POC evidence into writer-brief
+telemetry, scene-semantic replay, Plan Readiness import/apply, source hygiene,
+and planning-edit replay. `diagnostics:planning-edit-replay` projected 11
+approved readiness edits onto clean source `p1-clean-replay-1778457296` through
+normal planning proposals; source hygiene stayed clean (0 drafts/facts/knowledge).
+The clean rerun `p1-clean-rerun-1778457296-drafting-brief-v1` approved both
+chapters at 3742/3000 = 1.25x with no exhaustions, prose-semantic 0/8 lows,
+sceneDramaturgy 10/10 clean, and endpointLanding lows 1/10. The old loop4 from
+a drafted source remains contamination evidence only. Promotion remains blocked
+by the residual endpoint low and review-artifact completeness, not prose
+compaction; `allow-entities` should be replayed only if that blocker reproduces.
+See L103-L106.
 
 ## Authoring Gates
 

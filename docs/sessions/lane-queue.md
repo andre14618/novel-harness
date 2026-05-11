@@ -11,32 +11,19 @@ unless the user explicitly requests a disposable branch.
   another long-lived POC runner, prompt branch, mapper, checker, or review
   format when the same question can be tested through the production path. New
   scene-first novella POC runs require an explicit disposable-POC flag.
-- **Production writer-brief evidence (2026-05-10).** P4 writer-only smoke
-  hit 3666/3300 = 1.10x with 0/8 prose-semantic lows. Contract-bearing P1
-  paired writer-only smoke (`p1-contract-1778445814`) yielded baseline 2.45x,
-  `contract-render-only` 2.41x, and `drafting-brief-v1` 1.37x, all 0/8 lows;
-  brief telemetry preserved scene contracts 10/10 and character
-  profiles/snapshots/capsules 10/10. Full-path P1 brief smoke then drafted ch1
-  at 1885/1500 and passed plan + continuity, but paused at a pending
-  Plan-Assist gate for two halluc-ungrounded findings. `allow-entities` is now
-  the production review action for sanctioned walk-on/lore terms. Follow-up
-  full-path smoke `p1-allow-brief-1778447459` completed ch1 2092/1500 = 1.39x
-  and ch2 2065/1500 = 1.38x, plan checks passed, checker blockers 0,
-  prose-semantic rows 8 with lows 0/errors 0, and writer-brief telemetry 12/12;
-  no Plan-Assist gate fired on that attempt. Corrected per-scene-prose
-  scene-semantic replay on the same artifact kept sceneDramaturgy 10/10 SCENE-3
-  and reduced endpointLanding lows from 4/10 to 1/10. The P1 Plan Readiness
-  loop then edited and approved 7 planning edits, deferred 1 duplicate item,
-  and reran production drafting as `p1-ready-loop3-1778454964-drafting-brief-v1`:
-  3546/3000 = 1.18x, both chapters approved, no exhaustions, prose-semantic
-  0/8 lows, sceneDramaturgy 10/10 clean, endpointLanding lows 2/10. Ch1
-  exercised deterministic duplicate-integrity repair; ch2 cleared duplicate
-  fragments through L70b settle. Live `allow-entities` replay remains open;
-  promotion is blocked by residual endpoint landing plus review-artifact
-  completeness. A later loop4 rerun from drafted loop3 copied generated state
-  and is negative/contaminated evidence; Drafting Evidence Source hygiene now
-  guards `test-drafting-isolated` and appears in Plan Readiness reports. See
-  L106.
+- **Production writer-brief evidence (2026-05-11).** Writer-brief smokes and
+  P1 readiness loops showed no prose-semantic lows but left endpointLanding as
+  the live quality signal. `diagnostics:planning-edit-replay` projected 11
+  approved `planning_edit` proposals from prior P1 evidence artifacts onto clean
+  source `p1-clean-replay-1778457296` through the production proposal route
+  (11/11 created and approved, all with parent lineage; source had 0 drafts,
+  facts, or knowledge rows). Clean rerun
+  `p1-clean-rerun-1778457296-drafting-brief-v1` approved both chapters at
+  3742/3000 = 1.25x, no exhaustions, prose-semantic 0/8 lows, sceneDramaturgy
+  10/10 clean, endpointLanding lows 1/10. The remaining low is ch2 scene 1
+  ending as setup rather than a consequence. `allow-entities` did not reproduce
+  in this clean run; replay it only when that blocker appears again. Loop4 from
+  a drafted source stays negative/contaminated evidence. See L106.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -120,11 +107,11 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: if testing endpoint fixes again, apply them to a clean
-  pre-drafting source, not a completed drafted clone. Loop4 from drafted loop3
-  should be treated as a contamination lesson, not promotion evidence. Continue
-  seeking live `allow-entities` replay only when that blocker reproduces. Do
-  not reopen POC branching or treat prose length as the blocker. See L103-L106.
+- Next session start: inspect the single clean-rerun endpoint low (ch2 scene 1)
+  and decide whether one more planning edit is warranted or the signal is good
+  enough for the next production-path question. Continue seeking live
+  `allow-entities` replay only when that blocker reproduces; do not reopen POC
+  branching or treat prose length as the blocker. See L103-L106.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,

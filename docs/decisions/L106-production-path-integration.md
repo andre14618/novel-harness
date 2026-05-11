@@ -243,6 +243,27 @@ planning-proposal route, and can optionally approve them with
 lineage records instead of relying on direct DB mutation or POC-only replay
 scripts.
 
+Live application validated the bridge on P1 evidence. Clean clone
+`p1-clean-replay-1778457296` was created from the pre-drafting source
+`p1-full-brief-1778446488-drafting-brief-v1`, then replayed the 11 approved
+`planning_edit` envelopes from `p1-allow-brief-1778447459`,
+`p1-ready-brief-1778451217-drafting-brief-v1`, and
+`p1-ready-loop3-1778454964-drafting-brief-v1`. Replay created and approved
+11/11 target proposals with parent lineage and zero errors. Source hygiene after
+replay stayed clean: 2 Chapter Plans, 0 drafts, 0 facts, 0 character-knowledge
+rows.
+
+The resulting production drafting run
+`p1-clean-rerun-1778457296-drafting-brief-v1` approved both chapters with no
+Plan-Assist exhaustion. Durable report:
+`output/drafting-isolated/p1-clean-rerun-1778457296/drafting-isolated-report.json`.
+Key telemetry: 3742/3000 total words (mean ratio 1.25), writer-brief events
+11/11 enabled, prose semantic 0/8 lows and 0 errors, sceneDramaturgy 10/10
+SCENE-3, endpointLanding 1/10 low and 0 errors. The remaining endpoint low is
+ch2 scene 1, where the judge found the scene ended as setup rather than a
+concrete consequence. `allow-entities` did not reproduce in this clean run; keep
+that replay opportunistic rather than manufacturing a separate path.
+
 ## Evidence And Verification
 
 Production-path integration needs:
