@@ -169,6 +169,76 @@ describe("plan-readiness-review-plan", () => {
     expect(renderReviewPlanReport(report)).toContain("1. scene-1 - First scene.")
   })
 
+  test("buildReviewPlanReport templates scene description proposals with current scene context", () => {
+    const report = buildReviewPlanReport({
+      novelId: "novel",
+      status: "open",
+      generatedAt: "2026-05-10T00:00:00.000Z",
+      targetContexts: new Map([[
+        "scene_plan:scene-25:description",
+        {
+          currentValueSummary: {
+            chapterId: "ch-002",
+            index: 5,
+            ref: "scene-25",
+            kind: "decision",
+            description: "Maren returns to Halric, her decision made.",
+          },
+        },
+      ]]),
+      items: [
+        item({
+          id: "ref-context",
+          severity: "low",
+          diagnosticLabel: "REFERENCE-CONTEXT-UNRESOLVED",
+          dimension: "referenceContext",
+          fixIntent: "resolve_reference_context",
+          target: { kind: "scene_plan", ref: "scene-25", fieldPath: "description" },
+          evidence: { eventIds: "101,102", referenceLookups: "6" },
+          metadata: {
+            proposalCandidate: {
+              action: "field_replace",
+              target: { kind: "scene_plan", ref: "scene-25", fieldPath: "description" },
+              requiresProposedValue: true,
+              safeToAutoApply: false,
+            },
+          },
+        }),
+      ],
+    })
+
+    expect(report.plan.actions[0]).toMatchObject({
+      match: {
+        itemId: "ref-context",
+        targetKind: "scene_plan",
+        targetRef: "scene-25",
+        targetFieldPath: "description",
+      },
+      diagnostic: {
+        label: "REFERENCE-CONTEXT-UNRESOLVED",
+        dimension: "referenceContext",
+        fixIntent: "resolve_reference_context",
+      },
+      proposalCandidate: {
+        action: "field_replace",
+        target: { kind: "scene_plan", ref: "scene-25", fieldPath: "description" },
+      },
+      proposedValueTemplate: {
+        target: { kind: "scene_plan", ref: "scene-25", fieldPath: "description" },
+        currentValueSummary: {
+          ref: "scene-25",
+          description: "Maren returns to Halric, her decision made.",
+        },
+        replaceWithReviewedValue: true,
+      },
+    })
+
+    const rendered = renderReviewPlanReport(report)
+    expect(rendered).toContain("### REFERENCE-CONTEXT-UNRESOLVED scene_plan:scene-25:description")
+    expect(rendered).toContain("current scene: scene-25 (ch-002) kind=decision")
+    expect(rendered).toContain("current description: Maren returns to Halric, her decision made.")
+  })
+
   test("renderReviewPlanReport includes review context without requiring proposals", () => {
     const report = buildReviewPlanReport({
       novelId: "novel",

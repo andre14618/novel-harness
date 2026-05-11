@@ -180,14 +180,17 @@ function actionForItem(
       ? {
         proposalCandidate,
         proposalInstruction: "To create a planning proposal, set decision to the candidate action and replace proposedValueTemplate with proposedValue.",
-        proposedValueTemplate: proposedValueTemplateFor(item),
+        proposedValueTemplate: proposedValueTemplateFor(item, context),
       }
       : {}),
     ...(context ? { currentValueSummary: context.currentValueSummary } : {}),
   }
 }
 
-function proposedValueTemplateFor(item: PlanReadinessItem): unknown {
+function proposedValueTemplateFor(
+  item: PlanReadinessItem,
+  context: PlanReadinessReviewTargetContext | null,
+): unknown {
   const proposalCandidate = item.metadata.proposalCandidate
   const action = typeof proposalCandidate === "object" && proposalCandidate !== null && !Array.isArray(proposalCandidate)
     ? (proposalCandidate as Record<string, unknown>).action
@@ -202,6 +205,7 @@ function proposedValueTemplateFor(item: PlanReadinessItem): unknown {
       ref: item.target.ref,
       ...(item.target.fieldPath ? { fieldPath: item.target.fieldPath } : {}),
     },
+    ...(context?.currentValueSummary ? { currentValueSummary: context.currentValueSummary } : {}),
     replaceWithReviewedValue: true,
   }
 }
@@ -291,6 +295,15 @@ async function loadReviewTargetContexts(
     out.set(`chapter_outline:${chapterRef}:scenes`, {
       currentValueSummary: sceneOrder,
     })
+    for (const scene of sceneOrder) {
+      const summary = { ...scene, chapterId: chapterRef }
+      out.set(`scene_plan:${scene.ref}:description`, {
+        currentValueSummary: summary,
+      })
+      out.set(`scene_plan:${scene.ref}:self`, {
+        currentValueSummary: summary,
+      })
+    }
   }
   return out
 }
@@ -371,7 +384,25 @@ function formatPreserveIds(preserveIds: PlanReadinessItem["preserveIds"]): strin
 }
 
 function renderCurrentValueSummary(value: unknown): string[] {
-  if (!Array.isArray(value) || value.length === 0) return []
+  if (typeof value === "string" && value.length > 0) {
+    return [`- current value: ${truncate(value, 320)}`]
+  }
+  if (!Array.isArray(value)) {
+    const record = value && typeof value === "object" && !Array.isArray(value)
+      ? value as Record<string, unknown>
+      : null
+    if (!record) return []
+    const ref = stringValue(record.ref)
+    const chapterId = stringValue(record.chapterId)
+    const kind = stringValue(record.kind)
+    const description = stringValue(record.description)
+    if (!ref && !description) return []
+    return [
+      `- current scene: ${ref || "(unknown)"}${chapterId ? ` (${chapterId})` : ""}${kind ? ` kind=${kind}` : ""}`,
+      ...(description ? [`- current description: ${truncate(description, 420)}`] : []),
+    ]
+  }
+  if (value.length === 0) return []
   const lines = ["- current scenes:"]
   for (const item of value.slice(0, 24)) {
     if (typeof item !== "object" || item === null || Array.isArray(item)) continue
