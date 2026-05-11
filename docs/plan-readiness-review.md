@@ -152,6 +152,22 @@ Plan Readiness items with normal target-hash/staleness handling. It does not
 create proposals or mutate plans; an operator still decides whether each item
 is a real issue and supplies any replacement text.
 
+Production planning-to-drafting context audits can convert overloaded
+chapter scene-load pressure into the same manual review path:
+
+```bash
+bun run diagnostics:planning-context-readiness -- \
+  --novel <novelId> \
+  --output output/planning-drafting-context/<novelId>-readiness.md \
+  --json output/planning-drafting-context/<novelId>-readiness.json \
+  --import-readiness
+```
+
+This adapter is deterministic and manual. It flags chapters whose scene count
+is too dense for the target word budget, then asks the operator whether to
+split the chapter, reduce scene count, or combine scene purposes before
+drafting. It never creates replacement scene arrays by itself.
+
 Corpus recreation semantic lows can be converted into the same review-group
 shape without touching the DB:
 

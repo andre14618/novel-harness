@@ -61,6 +61,7 @@ export type SceneLoadSignal = "balanced" | "dense" | "overloaded" | "unknown"
 
 export interface ChapterSceneLoad {
   chapterNumber: number
+  chapterId: string
   sceneCount: number
   targetWords: number | null
   targetWordsPerScene: number | null
@@ -370,6 +371,7 @@ function summarizeSceneLoad(outlines: readonly ChapterOutline[]): SceneLoadSumma
       : null
     return {
       chapterNumber: outline.chapterNumber,
+      chapterId: outline.chapterId ?? `chapter:${outline.chapterNumber}`,
       sceneCount,
       targetWords,
       targetWordsPerScene,
