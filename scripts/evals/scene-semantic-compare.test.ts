@@ -17,7 +17,7 @@ describe("scene-semantic-compare", () => {
     ]))
     const candidate = reportRef("candidate.json", report("candidate", [
       row("scene-a", "endpointLanding", "ENDPOINT-2", 2, { relevantCharacterIds: ["char-a"] }),
-      row("scene-b", "endpointLanding", "ENDPOINT-1", 1, { missingForNextLevel: "Needs endpoint action.", sourceIds: ["src-b"] }),
+      row("scene-b", "endpointLanding", "ENDPOINT-1", 1, { missingForNextLevel: "Needs endpoint action.", sourceIds: ["src-b", "null", "undefined"], threadIds: ["null"] }),
       row("scene-a", "characterMateriality", "MATERIAL-3", 3),
     ]))
 
@@ -38,6 +38,7 @@ describe("scene-semantic-compare", () => {
     const regressed = result.rowChanges.find(row => row.status === "regressed_low")!
     expect(regressed.traceIds.relevantWorldFactIds).toEqual(["fact-b"])
     expect(regressed.traceIds.sourceIds).toEqual(["src-b"])
+    expect(regressed.traceIds.threadIds).toEqual([])
     expect(regressed.candidateMissingForNextLevel).toBe("Needs endpoint action.")
     const materiality = result.dimensions.find(row => row.dimension === "characterMateriality")!
     expect(materiality.meanDelta).toBe(1)

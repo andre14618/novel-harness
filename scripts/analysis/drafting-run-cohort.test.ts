@@ -57,6 +57,13 @@ describe("drafting-run-cohort", () => {
       lowDeltaSum: 3,
       regressedLowRows: 3,
     })
+    expect(report.semanticRowExamples.regressions[0]).toMatchObject({
+      source: "corso",
+      dimension: "endpointLanding",
+      status: "regressed_low",
+      baselineLabel: "ENDPOINT-3",
+      candidateLabel: "ENDPOINT-1",
+    })
 
     const rendered = renderDraftingRunCohortReport(report)
     expect(rendered).toContain("Signal: regressed")
@@ -70,6 +77,9 @@ describe("drafting-run-cohort", () => {
     expect(rendered).toContain("refAttemptEvents=+1")
     expect(rendered).toContain("manual readiness deltas: planAssist=0, checker=0, checkerBlockers=0, checkerWarnings=0, checkerNegative=0, checkerPositive=0, checkerAmbiguous=0, checkerLowConfidence=0")
     expect(rendered).toContain("| endpointLanding | 2 |")
+    expect(rendered).toContain("## Semantic Row Examples")
+    expect(rendered).toContain("Advisory examples for manual review")
+    expect(rendered).toContain("corso ch1 corso-scene endpointLanding: ENDPOINT-3 -> ENDPOINT-1 (-2; regressed_low); ids=obligations:obl-corso; characters:char-corso; worldFacts:fact-corso; sources:source-corso")
     expect(rendered).toContain("Comparisons: 2 (2 clean-source, 2 evidence-comparable)")
     expect(rendered).toContain("| Source | Baseline | Candidate | Clean | Signal | Quality | Context Load | Alignment | Words | Scene Lows | Checker Blockers | Canon Refs | Story Refs | Reader | Reader Chars | Ref Attempt Scenes | Ref Attempt Events | Missing Chars |")
     expect(rendered).toContain("| corso | drafting-brief-v1 | drafting-brief-tight-v1 | yes | regressed | regressed | contracted | context-contracted-with-quality-regression | +224 | +4 | 0 | 0 | -1 | 0 | -30 | -1 | -2 | 0 |")
@@ -130,9 +140,15 @@ describe("drafting-run-cohort", () => {
     expect(report.aggregate.contextDeltas.canonSourceRefs).toBe(2)
     expect(report.alignment.qualityMovementCounts).toEqual({ improved: 1 })
     expect(report.alignment.missingSemanticEvidence).toBe(0)
+    expect(report.semanticRowExamples.resolutions[0]).toMatchObject({
+      source: "complete",
+      status: "resolved_low",
+      candidateLabel: "ENDPOINT-2",
+    })
 
     const rendered = renderDraftingRunCohortReport(report)
     expect(rendered).toContain("Comparisons: 2 (2 clean-source, 1 evidence-comparable)")
+    expect(rendered).toContain("complete ch1 complete-scene endpointLanding: ENDPOINT-1 -> ENDPOINT-2 (+1; resolved_low)")
     expect(rendered).toContain("| gated | drafting-brief-v1 | drafting-brief-tight-v1 | yes | incomplete | incomplete | expanded | needs-semantic-evidence | n/a | n/a | n/a | +14 | 0 | +9 | +5886 | 0 | 0 | +6 |")
   })
 })
@@ -253,9 +269,74 @@ function comparisonReport(
           improvedRows: endpointLowDelta <= 0 ? 1 : 0,
           worsenedRows: endpointLowDelta > 0 ? 1 : 0,
         }],
-        changedRows: [],
+        changedRows: semanticChangedRows(source, endpointLowDelta),
       },
     }],
+  }
+}
+
+function semanticChangedRows(
+  source: string,
+  endpointLowDelta: number,
+): DraftingRunComparisonReport["comparisons"][number]["sceneSemantic"]["changedRows"] {
+  if (endpointLowDelta > 0) {
+    return [semanticChangedRow(source, {
+      baselineLabel: "ENDPOINT-3",
+      candidateLabel: "ENDPOINT-1",
+      baselineOrdinal: 3,
+      candidateOrdinal: 1,
+      ordinalDelta: -2,
+      status: "regressed_low",
+      candidateMissingForNextLevel: "Needs a concrete final action that changes the scene state.",
+    })]
+  }
+  if (endpointLowDelta < 0) {
+    return [semanticChangedRow(source, {
+      baselineLabel: "ENDPOINT-1",
+      candidateLabel: "ENDPOINT-2",
+      baselineOrdinal: 1,
+      candidateOrdinal: 2,
+      ordinalDelta: 1,
+      status: "resolved_low",
+      candidateMissingForNextLevel: "Needs a stronger hook to reach the highest endpoint level.",
+    })]
+  }
+  return []
+}
+
+function semanticChangedRow(
+  source: string,
+  overrides: Partial<DraftingRunComparisonReport["comparisons"][number]["sceneSemantic"]["changedRows"][number]>,
+): DraftingRunComparisonReport["comparisons"][number]["sceneSemantic"]["changedRows"][number] {
+  const traceIds = {
+    obligationIds: [`obl-${source}`],
+    relevantCharacterIds: [`char-${source}`],
+    relevantWorldFactIds: [`fact-${source}`],
+    sceneTurnIds: [],
+    threadIds: [],
+    promiseIds: [],
+    payoffIds: [],
+    sourceIds: [`source-${source}`],
+  }
+  return {
+    key: `${source}:endpoint`,
+    chapterNumber: 1,
+    sceneId: `${source}-scene`,
+    dimension: "endpointLanding",
+    baselineLabel: "ENDPOINT-2",
+    candidateLabel: "ENDPOINT-2",
+    baselineOrdinal: 2,
+    candidateOrdinal: 2,
+    ordinalDelta: 0,
+    status: "unchanged",
+    traceIds,
+    baselineTraceIds: traceIds,
+    candidateTraceIds: traceIds,
+    baselineConfidence: 0.8,
+    candidateConfidence: 0.8,
+    baselineMissingForNextLevel: "",
+    candidateMissingForNextLevel: "",
+    ...overrides,
   }
 }
 

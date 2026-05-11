@@ -25,6 +25,7 @@ type ContextQualityAlignment =
   | "mixed-quality-review"
   | "stable-no-clear-change"
   | "needs-semantic-evidence"
+type ChangedSemanticRow = DraftingRunComparison["sceneSemantic"]["changedRows"][number]
 
 interface Args {
   comparisons: string[]
@@ -81,6 +82,22 @@ export interface DraftingRunCohortDimensionSummary {
   worsenedRows: number
 }
 
+export interface DraftingRunCohortSemanticRowExample {
+  reportPath: string
+  source: string
+  baselineArm: string
+  candidateArm: string
+  dimension: Dimension
+  chapterNumber: number
+  sceneId: string
+  baselineLabel: string
+  candidateLabel: string
+  ordinalDelta: number
+  status: ChangedSemanticRow["status"]
+  traceIds: ChangedSemanticRow["traceIds"]
+  candidateMissingForNextLevel: string
+}
+
 export interface DraftingRunCohortReport {
   generatedAt: string
   sourceReports: string[]
@@ -131,6 +148,10 @@ export interface DraftingRunCohortReport {
     }
   }
   dimensions: DraftingRunCohortDimensionSummary[]
+  semanticRowExamples: {
+    regressions: DraftingRunCohortSemanticRowExample[]
+    resolutions: DraftingRunCohortSemanticRowExample[]
+  }
   pairs: DraftingRunCohortPair[]
 }
 
@@ -225,6 +246,10 @@ export function buildDraftingRunCohortReport(input: {
       },
     },
     dimensions: [...dimensionMap.values()].sort((a, b) => a.dimension.localeCompare(b.dimension)),
+    semanticRowExamples: {
+      regressions: semanticRowExamples(input.refs, ["regressed_low", "worsened"], 12),
+      resolutions: semanticRowExamples(input.refs, ["resolved_low", "improved"], 12),
+    },
     pairs,
   }
 }
@@ -290,6 +315,14 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
         `${dim.improvedRows} | ${dim.worsenedRows} |`,
     )
   }
+  lines.push("")
+  lines.push("## Semantic Row Examples")
+  lines.push("")
+  lines.push("- Advisory examples for manual review; do not treat repeated IDs as automatic tag requirements.")
+  lines.push("")
+  renderSemanticRowExamples(lines, "Regressions", report.semanticRowExamples.regressions)
+  lines.push("")
+  renderSemanticRowExamples(lines, "Resolutions", report.semanticRowExamples.resolutions)
   lines.push("")
   lines.push("## Comparisons")
   lines.push("")
@@ -362,6 +395,84 @@ function pairRowsForReport(ref: DraftingRunCohortReportRef): DraftingRunCohortPa
       referenceAttemptEventDelta: comparison.planningContext.referenceAttemptEventDelta ?? null,
     }
   })
+}
+
+function semanticRowExamples(
+  refs: readonly DraftingRunCohortReportRef[],
+  statuses: readonly ChangedSemanticRow["status"][],
+  limit: number,
+): DraftingRunCohortSemanticRowExample[] {
+  const allowed = new Set(statuses)
+  const examples: DraftingRunCohortSemanticRowExample[] = []
+  for (const ref of refs) {
+    for (const comparison of ref.report.comparisons) {
+      if (!isEvidenceComparableComparison(ref.report, comparison)) continue
+      for (const row of comparison.sceneSemantic.changedRows) {
+        if (!allowed.has(row.status)) continue
+        examples.push({
+          reportPath: ref.path,
+          source: comparison.candidate.source,
+          baselineArm: ref.report.baseline.arm,
+          candidateArm: comparison.candidate.arm,
+          dimension: row.dimension,
+          chapterNumber: row.chapterNumber,
+          sceneId: row.sceneId,
+          baselineLabel: row.baselineLabel,
+          candidateLabel: row.candidateLabel,
+          ordinalDelta: row.ordinalDelta,
+          status: row.status,
+          traceIds: normalizeTraceIds(row.traceIds),
+          candidateMissingForNextLevel: row.candidateMissingForNextLevel ?? "",
+        })
+      }
+    }
+  }
+  return examples.sort(semanticRowExampleSort).slice(0, limit)
+}
+
+function semanticRowExampleSort(
+  a: DraftingRunCohortSemanticRowExample,
+  b: DraftingRunCohortSemanticRowExample,
+): number {
+  return semanticRowStatusPriority(a.status) - semanticRowStatusPriority(b.status) ||
+    Math.abs(b.ordinalDelta) - Math.abs(a.ordinalDelta) ||
+    a.dimension.localeCompare(b.dimension) ||
+    a.source.localeCompare(b.source) ||
+    a.sceneId.localeCompare(b.sceneId)
+}
+
+function semanticRowStatusPriority(status: ChangedSemanticRow["status"]): number {
+  switch (status) {
+    case "regressed_low": return 0
+    case "resolved_low": return 1
+    case "worsened": return 2
+    case "improved": return 3
+    case "unchanged": return 4
+  }
+}
+
+function renderSemanticRowExamples(
+  lines: string[],
+  title: string,
+  examples: readonly DraftingRunCohortSemanticRowExample[],
+): void {
+  lines.push(`### ${title}`)
+  lines.push("")
+  if (examples.length === 0) {
+    lines.push("- none")
+    return
+  }
+  for (const example of examples) {
+    const trace = formatTraceIds(example.traceIds)
+    const next = truncateForMarkdown(example.candidateMissingForNextLevel)
+    lines.push(
+      `- ${example.source} ch${example.chapterNumber} ${example.sceneId} ${example.dimension}: ` +
+        `${example.baselineLabel} -> ${example.candidateLabel} ` +
+        `(${formatSigned(example.ordinalDelta)}; ${example.status})` +
+        `${trace ? `; ids=${trace}` : ""}` +
+        `${next ? `; next=${next}` : ""}`,
+    )
+  }
 }
 
 function classifyQualityMovement(comparison: DraftingRunComparison): QualityMovement {
@@ -526,6 +637,51 @@ function formatEvidenceSigned(value: number, pair: DraftingRunCohortPair): strin
 
 function formatEvidenceDelta(value: number | null, pair: DraftingRunCohortPair): string {
   return isEvidenceComparablePair(pair) ? formatDelta(value) : "n/a"
+}
+
+function normalizeTraceIds(value: unknown): ChangedSemanticRow["traceIds"] {
+  const row = typeof value === "object" && value !== null ? value as Record<string, unknown> : {}
+  return {
+    obligationIds: cleanStrings(row.obligationIds),
+    relevantCharacterIds: cleanStrings(row.relevantCharacterIds),
+    relevantWorldFactIds: cleanStrings(row.relevantWorldFactIds),
+    sceneTurnIds: cleanStrings(row.sceneTurnIds),
+    threadIds: cleanStrings(row.threadIds),
+    promiseIds: cleanStrings(row.promiseIds),
+    payoffIds: cleanStrings(row.payoffIds),
+    sourceIds: cleanStrings(row.sourceIds),
+  }
+}
+
+function cleanStrings(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return [...new Set(value
+    .map(item => typeof item === "string" ? item.trim() : "")
+    .filter(item => item.length > 0 && item !== "null" && item !== "undefined"))]
+    .sort()
+}
+
+function formatTraceIds(traceIds: ChangedSemanticRow["traceIds"]): string {
+  const groups = [
+    ["obligations", traceIds.obligationIds],
+    ["characters", traceIds.relevantCharacterIds],
+    ["worldFacts", traceIds.relevantWorldFactIds],
+    ["sceneTurns", traceIds.sceneTurnIds],
+    ["threads", traceIds.threadIds],
+    ["promises", traceIds.promiseIds],
+    ["payoffs", traceIds.payoffIds],
+    ["sources", traceIds.sourceIds],
+  ] as const
+  return groups
+    .filter(([, ids]) => ids.length > 0)
+    .map(([label, ids]) => `${label}:${ids.slice(0, 4).join(",")}${ids.length > 4 ? `+${ids.length - 4}` : ""}`)
+    .join("; ")
+}
+
+function truncateForMarkdown(value: string): string {
+  const clean = value.replace(/\s+/g, " ").trim()
+  if (!clean) return ""
+  return clean.length > 140 ? `${clean.slice(0, 137)}...` : clean
 }
 
 function parseArgs(argv = process.argv.slice(2)): Args {

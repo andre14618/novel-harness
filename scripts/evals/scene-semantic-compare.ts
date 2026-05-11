@@ -316,7 +316,10 @@ function mergeTraceIds(...rows: SceneSemanticTraceIds[]): SceneSemanticTraceIds 
 }
 
 function cleanStrings(values: readonly string[] | undefined): string[] {
-  return unique((values ?? []).filter(value => typeof value === "string" && value.trim().length > 0)).sort()
+  return unique((values ?? [])
+    .map(value => typeof value === "string" ? value.trim() : "")
+    .filter(value => value.length > 0 && value !== "null" && value !== "undefined"))
+    .sort()
 }
 
 function formatTraceIds(traceIds: SceneSemanticTraceIds): string {
