@@ -236,7 +236,14 @@ function isEligibleDuplicateParagraph(paragraph: string): boolean {
 }
 
 function isEligibleDuplicateSentence(sentence: string): boolean {
-  return countWords(sentence) >= 12
+  const wordCount = countWords(sentence)
+  if (wordCount >= 12) return true
+  return wordCount >= 3 && !isQuotedDialogueSentence(sentence)
+}
+
+function isQuotedDialogueSentence(sentence: string): boolean {
+  const trimmed = sentence.trim()
+  return /^["“][^"”]+["”]?[.!?]*$/.test(trimmed)
 }
 
 function detectFusedBoundaries(text: string): LintFixIntegrityIssue[] {

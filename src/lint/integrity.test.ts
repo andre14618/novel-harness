@@ -152,6 +152,21 @@ Halric waited with the ledger open.`
     expect(after.filter(i => i.kind === "duplicate-fragment" || i.kind === "duplicate-sentence")).toEqual([])
   })
 
+  test("repairs exact adjacent short non-dialogue duplicate sentences", () => {
+    const prose = `Maret saw the glyphs churn. Per the records. Per the records. She forced herself to breathe.`
+    const before = detectProseIntegrityIssues(prose)
+
+    expect(before.some(i => i.kind === "duplicate-sentence")).toBe(true)
+
+    const repaired = repairMechanicalDuplicateIntegrity(prose)
+    const after = detectProseIntegrityIssues(repaired.prose)
+
+    expect(repaired.fixed).toBe(1)
+    expect(repaired.duplicateSentences).toBe(1)
+    expect(repaired.prose.match(/Per the records/g)?.length).toBe(1)
+    expect(after.filter(i => i.kind === "duplicate-fragment" || i.kind === "duplicate-sentence")).toEqual([])
+  })
+
   test("does not delete short repeated dialogue", () => {
     const prose = `"No."
 
