@@ -303,11 +303,21 @@ describe("planning edit proposals", () => {
     expect(validatePlanningEditValue("kind", "montage")).toMatch(/kind must be one of/)
   })
 
-  test("scene temporal and place anchors are editable scalar plan fields", () => {
+  test("scene anchors and dramatic-shape slots are editable scalar plan fields", () => {
     expect(validatePlanningEditValue("temporalAnchor", "dawn the next morning")).toBeNull()
     expect(validatePlanningEditValue("placeAnchor", "Iron Bridge")).toBeNull()
+    expect(validatePlanningEditValue("goal", "Maret tries to reach the bridge without exposing herself.")).toBeNull()
+    expect(validatePlanningEditValue("opposition", "Cassel and the crowd make quiet escape impossible.")).toBeNull()
+    expect(validatePlanningEditValue("turningPoint", "The warrant makes flight look like confession.")).toBeNull()
+    expect(validatePlanningEditValue("crisisChoice", "Submit to Verification or run before the guards close in.")).toBeNull()
+    expect(validatePlanningEditValue("outcome", "Maret submits to the test.")).toBeNull()
+    expect(validatePlanningEditValue("consequence", "Her hidden strength is about to become public evidence.")).toBeNull()
+    expect(validatePlanningEditValue("povPersonalStake", "If the lie breaks, Maret loses her place in the city.")).toBeNull()
+    expect(validatePlanningEditValue("valueIn", "concealment")).toBeNull()
+    expect(validatePlanningEditValue("valueOut", "exposure")).toBeNull()
     expect(validatePlanningEditValue("temporalAnchor", "")).toMatch(/temporalAnchor must be a non-empty string/)
     expect(validatePlanningEditValue("placeAnchor", 12)).toMatch(/placeAnchor must be a non-empty string/)
+    expect(validatePlanningEditValue("goal", "")).toMatch(/goal must be a non-empty string/)
   })
 
   test("obligation text must be non-empty", () => {
