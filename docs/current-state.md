@@ -119,11 +119,14 @@ fact-status continuity readiness. P1 made `drafting-brief-v1` strongest at 1.24x
 with prose lows 0/8 and scene lows 1/33, but LitRPG replication held promotion.
 Planner-generated P1 initially had `choice/full=7/11` plus a Corso contradiction;
 the repaired clone reached `choice/full=11/11` and `factContradictions=0`.
-Clean rerun: compact brief 4930/3800 = 1.30x, prose lows 0/8, scene lows 3/36,
-endpoint lows 3/11; scene-turn 5554/3800 = 1.46x, prose lows 0/8, scene lows
-4/36, endpoint lows 2/11 with scene/world regressions. Compact brief remains
-best tradeoff; endpoint/brief wording now targets executed outcome/consequence
-and length discipline. Next rerun clean cohorts; do not flip defaults. See L103-L106.
+Clean rerun: compact brief 4930/3800 = 1.30x, scene lows 3/36, endpoint lows
+3/11; scene-turn 1.46x, scene lows 4/36, endpoint lows 2/11. Endpoint/brief
+wording then tightened, and a v2 wording repair removed the absolute war-loan
+`transfer impossible` contradiction. V2 evidence: compact brief 5265/3800 =
+1.38x, scene lows 2/36, endpoint lows 2/11; scene-turn 4920/3800 = 1.29x,
+scene lows 4/36, endpoint lows 4/11. Compact brief remains best quality but
+length regressed; next target signed-order adherence and setup/intention-only
+endpoint scenes. Do not flip defaults. See L103-L106.
 
 ## Authoring Gates
 

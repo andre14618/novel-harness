@@ -18,12 +18,14 @@ unless the user explicitly requests a disposable branch.
   characterMateriality lows, but had `choice/full=7/11`, endpoint lows 5/11 and
   4/11, and a Corso clean-record contradiction. After Plan Readiness plus
   reviewed planning edits, the repaired clone reached `choice/full=11/11`,
-  `factContradictions=0`; clean rerun compact brief landed 1.30x, prose lows
-  0/8, scene lows 3/36, endpoint lows 3/11, while scene-turn landed 1.46x,
-  scene lows 4/36, endpoint lows 2/11, with scene/world regressions. Compact
-  brief remains the best tradeoff. Follow-up tightened scene-contract and
-  writer-brief wording around executed outcome/consequence plus length
-  discipline. No default flip. See L106.
+  `factContradictions=0`; clean rerun compact brief landed 1.30x, scene lows
+  3/36, endpoint lows 3/11, while scene-turn landed 1.46x, scene lows 4/36,
+  endpoint lows 2/11, with scene/world regressions. Follow-up tightened
+  scene-contract and writer-brief wording around executed outcome/consequence
+  plus length discipline, then v2 repaired absolute `transfer impossible`
+  wording. V2 compact brief improved to lows 2/36, endpoint 2/11, but length
+  regressed to 1.38x; scene-turn shortened to 1.29x but endpoint regressed to
+  4/11. Compact brief remains best quality tradeoff. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
@@ -116,11 +118,7 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: rerun the repaired generated-P1 cohort with tightened
-  endpoint/brief wording before any prompt-arm/default decision. Watch whether
-  endpoint lows improve without length or world-pressure regressions; also
-  inspect the known "transfer impossible" wording risk versus "no clean
-  transfer is possible." See L103-L106.
+- Next session start: repair signed-order adherence and setup/intention-only endpoint scenes before any prompt-arm/default decision. Residual lows are ch1 setup scenes and ch2 Tovin-intention scenes ending before an immediate consequence; continuity also catches "signed and ready" orders rendered as newly signed/empty. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
