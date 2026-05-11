@@ -76,13 +76,23 @@ export interface WriterContextEventSummary {
       sceneContractBudgetFields: number
       choiceAlternatives: number
     }
+    ids: {
+      canonSourceRefs: string[]
+      activeThreadIds: string[]
+      activePromiseIds: string[]
+      activePayoffIds: string[]
+    }
   } | null
   sceneContractFields: number
   sceneContractAnchorFields: number
   sceneContractDramaticFields: number
   sceneContractBudgetFields: number
   canonSourceRefs: number
+  canonSourceRefValues: string[]
   storyRefIds: number
+  activeThreadIdValues: string[]
+  activePromiseIdValues: string[]
+  activePayoffIdValues: string[]
   readerInfoStateChars: number
   referenceLookups: number
   referenceLlmCalls: number
@@ -115,11 +125,15 @@ export interface WriterContextTelemetryReport {
     withCanonFactContext: number
     withFactContinuityAnchors: number
     canonSourceRefs: number
+    canonSourceRefCounts: Record<string, number>
     withWorldContext: number
     withWorldBible: number
     withSetting: number
     withStoryContext: number
     storyRefIds: number
+    activeThreadIdCounts: Record<string, number>
+    activePromiseIdCounts: Record<string, number>
+    activePayoffIdCounts: Record<string, number>
     withImplicitReferences: number
     withReaderInfoState: number
     readerInfoStateChars: number
@@ -185,11 +199,15 @@ export function buildWriterContextTelemetryReport(
       withCanonFactContext: events.filter(event => event.surfaces.canonFacts).length,
       withFactContinuityAnchors: events.filter(event => Boolean(event.draftingBrief?.sections.factContinuityAnchors)).length,
       canonSourceRefs: events.reduce((sum, event) => sum + event.canonSourceRefs, 0),
+      canonSourceRefCounts: countBy(events.flatMap(event => event.canonSourceRefValues), value => value),
       withWorldContext: events.filter(event => event.surfaces.world).length,
       withWorldBible: events.filter(event => event.surfaces.worldBible).length,
       withSetting: events.filter(event => event.surfaces.setting).length,
       withStoryContext: events.filter(event => event.surfaces.story).length,
       storyRefIds: events.reduce((sum, event) => sum + event.storyRefIds, 0),
+      activeThreadIdCounts: countBy(events.flatMap(event => event.activeThreadIdValues), value => value),
+      activePromiseIdCounts: countBy(events.flatMap(event => event.activePromiseIdValues), value => value),
+      activePayoffIdCounts: countBy(events.flatMap(event => event.activePayoffIdValues), value => value),
       withImplicitReferences: events.filter(event => event.surfaces.implicitReferences).length,
       withReaderInfoState: events.filter(event => event.surfaces.readerInfoState).length,
       readerInfoStateChars: events.reduce((sum, event) => sum + event.readerInfoStateChars, 0),
@@ -227,11 +245,14 @@ export function renderWriterContextTelemetryReport(report: WriterContextTelemetr
       `anchorOnly=${report.totals.withAnchorOnlySceneContract}, anchors=${report.totals.withSceneContractAnchors}), ` +
       `obligations=${formatCoverage(report.totals.withObligations, report.totals.events)}, ` +
       `canon=${formatCoverage(report.totals.withCanonFactContext, report.totals.events)} ` +
-      `(sourceRefs=${report.totals.canonSourceRefs}, factAnchors=${report.totals.withFactContinuityAnchors}), ` +
+      `(sourceRefs=${report.totals.canonSourceRefs}${recordSuffix(report.totals.canonSourceRefCounts)}, ` +
+      `factAnchors=${report.totals.withFactContinuityAnchors}), ` +
       `world=${formatCoverage(report.totals.withWorldContext, report.totals.events)} ` +
       `(bible=${report.totals.withWorldBible}, setting=${report.totals.withSetting}), ` +
       `story=${formatCoverage(report.totals.withStoryContext, report.totals.events)} ` +
-      `(refs=${report.totals.storyRefIds}), ` +
+      `(refs=${report.totals.storyRefIds}, threads=${formatRecordOrNone(report.totals.activeThreadIdCounts)}, ` +
+      `promises=${formatRecordOrNone(report.totals.activePromiseIdCounts)}, ` +
+      `payoffs=${formatRecordOrNone(report.totals.activePayoffIdCounts)}), ` +
       `implicitRefs=${formatCoverage(report.totals.withImplicitReferences, report.totals.events)}, ` +
       `readerInfo=${formatCoverage(report.totals.withReaderInfoState, report.totals.events)} ` +
       `(chars=${report.totals.readerInfoStateChars}), ` +
@@ -279,6 +300,8 @@ export function renderWriterContextTelemetryReport(report: WriterContextTelemetr
     if (event.missingCharacterIdValues.length > 0) {
       lines.push(`  missingCharacterIds=${event.missingCharacterIdValues.join(",")}`)
     }
+    const traceIds = formatEventTraceIds(event)
+    if (traceIds) lines.push(`  traceIds=${traceIds}`)
   }
 
   return lines.join("\n")
@@ -289,6 +312,7 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
   const contextSurface = readRecord(payload.contextSurface)
   const surfaces = readRecord(contextSurface.surfaces)
   const counts = readRecord(contextSurface.counts)
+  const contextSurfaceIds = readRecord(contextSurface.ids)
   const characterContext = readRecord(payload.characterContext)
   const draftingBrief = readDraftingBrief(payload.draftingBrief)
   const path = readString(payload.path) ?? "unknown"
@@ -310,15 +334,35 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
   const hasObligations = positiveNumber(counts.obligations)
     || Boolean(draftingBrief?.sections.obligations)
     || positiveNumber(draftingBrief?.counts.obligations)
+  const canonSourceRefValues = uniqueStrings([
+    ...cleanStringArray(contextSurfaceIds.canonSourceRefs),
+    ...(draftingBrief?.ids.canonSourceRefs ?? []),
+  ])
   const canonSourceRefs = maxNumber(
     readFiniteNumber(counts.canonSourceRefs),
     draftingBrief?.counts.canonSourceRefs,
+    canonSourceRefValues.length,
   )
   const hasCanonFacts = readBoolean(surfaces.canonFacts)
     || canonSourceRefs > 0
     || Boolean(draftingBrief?.sections.factContinuityAnchors)
   const hasWorldBible = readBoolean(surfaces.worldBible)
   const hasSetting = readBoolean(surfaces.setting) || Boolean(draftingBrief?.sections.setting)
+  const activeThreadIdValues = uniqueStrings([
+    ...cleanStringArray(contextSurfaceIds.activeThreadIds),
+    ...(draftingBrief?.ids.activeThreadIds ?? []),
+    ...cleanStringArray(characterContext.activeThreadIds),
+  ])
+  const activePromiseIdValues = uniqueStrings([
+    ...cleanStringArray(contextSurfaceIds.activePromiseIds),
+    ...(draftingBrief?.ids.activePromiseIds ?? []),
+    ...cleanStringArray(characterContext.activePromiseIds),
+  ])
+  const activePayoffIdValues = uniqueStrings([
+    ...cleanStringArray(contextSurfaceIds.activePayoffIds),
+    ...(draftingBrief?.ids.activePayoffIds ?? []),
+    ...cleanStringArray(characterContext.activePayoffIds),
+  ])
   const storyRefIds = maxNumber(
     readFiniteNumber(counts.storyRefIds),
     draftingBrief?.counts.storyRefIds,
@@ -335,6 +379,7 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
     readArray(characterContext.activeThreadIds).length +
       readArray(characterContext.activePromiseIds).length +
       readArray(characterContext.activePayoffIds).length,
+    activeThreadIdValues.length + activePromiseIdValues.length + activePayoffIdValues.length,
   )
   const readerInfoStateChars = maxNumber(
     readFiniteNumber(counts.readerInfoStateChars),
@@ -399,7 +444,11 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
     sceneContractDramaticFields,
     sceneContractBudgetFields,
     canonSourceRefs,
+    canonSourceRefValues,
     storyRefIds,
+    activeThreadIdValues,
+    activePromiseIdValues,
+    activePayoffIdValues,
     readerInfoStateChars,
     referenceLookups,
     referenceLlmCalls,
@@ -420,6 +469,7 @@ function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingB
   }
   const sections = readRecord(row.sections)
   const counts = readRecord(row.counts)
+  const ids = readRecord(row.ids)
   return {
     mode,
     selectedPromptChars,
@@ -451,6 +501,12 @@ function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingB
       sceneContractDramaticFields: readFiniteNumber(counts.sceneContractDramaticFields) ?? 0,
       sceneContractBudgetFields: readFiniteNumber(counts.sceneContractBudgetFields) ?? 0,
       choiceAlternatives: readFiniteNumber(counts.choiceAlternatives) ?? 0,
+    },
+    ids: {
+      canonSourceRefs: cleanStringArray(ids.canonSourceRefs),
+      activeThreadIds: cleanStringArray(ids.activeThreadIds),
+      activePromiseIds: cleanStringArray(ids.activePromiseIds),
+      activePayoffIds: cleanStringArray(ids.activePayoffIds),
     },
   }
 }
@@ -513,10 +569,32 @@ function readArray(value: unknown): unknown[] {
 
 function cleanStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return []
-  return [...new Set(value
+  return uniqueStrings(value
     .map(item => typeof item === "string" ? item.trim() : "")
-    .filter(item => item.length > 0 && item !== "null" && item !== "undefined"))]
-    .sort()
+    .filter(item => item.length > 0 && item !== "null" && item !== "undefined"))
+}
+
+function uniqueStrings(values: readonly string[]): string[] {
+  return [...new Set(values)].sort()
+}
+
+function recordSuffix(record: Record<string, number>): string {
+  const rendered = formatRecordOrNone(record)
+  return rendered === "none" ? "" : `; ${rendered}`
+}
+
+function formatRecordOrNone(record: Record<string, number>): string {
+  return Object.keys(record).length > 0 ? formatRecord(record) : "none"
+}
+
+function formatEventTraceIds(event: WriterContextEventSummary): string {
+  const parts = [
+    event.canonSourceRefValues.length > 0 ? `canon:${event.canonSourceRefValues.join(",")}` : null,
+    event.activeThreadIdValues.length > 0 ? `threads:${event.activeThreadIdValues.join(",")}` : null,
+    event.activePromiseIdValues.length > 0 ? `promises:${event.activePromiseIdValues.join(",")}` : null,
+    event.activePayoffIdValues.length > 0 ? `payoffs:${event.activePayoffIdValues.join(",")}` : null,
+  ].filter((part): part is string => part !== null)
+  return parts.join("; ")
 }
 
 function formatCoverage(count: number, total: number): string {

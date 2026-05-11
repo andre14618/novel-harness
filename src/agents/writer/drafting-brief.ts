@@ -1,7 +1,7 @@
 import type { BeatContext, CharacterSnapshot, SceneContractBlock, SettingBlock } from "./beat-context"
 import { renderCharacterContextCapsules } from "./character-context"
 import type { WriterPromptIdRendering } from "./context-mode"
-import { countCanonSourceRefs, countStoryRefs } from "./context-trace-counts"
+import { collectCanonSourceRefIds, collectStoryRefIds, countCanonSourceRefs, countStoryRefs } from "./context-trace-counts"
 import { summarizeSceneContractShape } from "./scene-contract-shape"
 
 export type WriterDraftingBriefMode =
@@ -45,6 +45,12 @@ export interface WriterDraftingBriefTrace {
     sceneContractDramaticFields: number
     sceneContractBudgetFields: number
     choiceAlternatives: number
+  }
+  ids: {
+    canonSourceRefs: string[]
+    activeThreadIds: string[]
+    activePromiseIds: string[]
+    activePayoffIds: string[]
   }
 }
 
@@ -396,6 +402,8 @@ function summarizeWriterDraftingBrief(args: {
   const fullContextPromptChars = args.fullContextPrompt.length
   const sceneContractShape = args.ctx.sceneContract ? summarizeSceneContractShape(args.ctx.sceneContract) : null
   const storyRefs = countStoryRefs(args.ctx)
+  const canonSourceRefIds = collectCanonSourceRefIds(args.ctx)
+  const storyRefIds = collectStoryRefIds(args.ctx)
   return {
     mode: args.mode,
     selectedPromptChars,
@@ -433,6 +441,12 @@ function summarizeWriterDraftingBrief(args: {
       sceneContractDramaticFields: sceneContractShape?.dramaticFields ?? 0,
       sceneContractBudgetFields: sceneContractShape?.budgetFields ?? 0,
       choiceAlternatives: sceneContractShape?.choiceAlternatives ?? 0,
+    },
+    ids: {
+      canonSourceRefs: canonSourceRefIds,
+      activeThreadIds: storyRefIds.threadIds,
+      activePromiseIds: storyRefIds.promiseIds,
+      activePayoffIds: storyRefIds.payoffIds,
     },
   }
 }

@@ -7,7 +7,13 @@ export interface StoryRefCounts {
   payoffIds: number
 }
 
-export function countStoryRefs(ctx: BeatContext): StoryRefCounts {
+export interface StoryRefIds {
+  threadIds: string[]
+  promiseIds: string[]
+  payoffIds: string[]
+}
+
+export function collectStoryRefIds(ctx: BeatContext): StoryRefIds {
   const threadIds = new Set<string>()
   const promiseIds = new Set<string>()
   const payoffIds = new Set<string>()
@@ -41,14 +47,23 @@ export function countStoryRefs(ctx: BeatContext): StoryRefCounts {
   }
 
   return {
-    total: threadIds.size + promiseIds.size + payoffIds.size,
-    threadIds: threadIds.size,
-    promiseIds: promiseIds.size,
-    payoffIds: payoffIds.size,
+    threadIds: [...threadIds].sort(),
+    promiseIds: [...promiseIds].sort(),
+    payoffIds: [...payoffIds].sort(),
   }
 }
 
-export function countCanonSourceRefs(ctx: BeatContext): number {
+export function countStoryRefs(ctx: BeatContext): StoryRefCounts {
+  const refs = collectStoryRefIds(ctx)
+  return {
+    total: refs.threadIds.length + refs.promiseIds.length + refs.payoffIds.length,
+    threadIds: refs.threadIds.length,
+    promiseIds: refs.promiseIds.length,
+    payoffIds: refs.payoffIds.length,
+  }
+}
+
+export function collectCanonSourceRefIds(ctx: BeatContext): string[] {
   const ids = new Set<string>()
   for (const seed of ctx.beatSpec.seeds) if (seed.factId) ids.add(seed.factId)
   for (const due of ctx.beatSpec.payoffsDue) if (due.factId) ids.add(due.factId)
@@ -61,5 +76,9 @@ export function countCanonSourceRefs(ctx: BeatContext): number {
   ]) {
     if (item.sourceId) ids.add(item.sourceId)
   }
-  return ids.size
+  return [...ids].sort()
+}
+
+export function countCanonSourceRefs(ctx: BeatContext): number {
+  return collectCanonSourceRefIds(ctx).length
 }

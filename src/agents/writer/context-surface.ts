@@ -1,5 +1,5 @@
 import type { BeatContext } from "./beat-context"
-import { countCanonSourceRefs, countStoryRefs } from "./context-trace-counts"
+import { collectCanonSourceRefIds, collectStoryRefIds, countCanonSourceRefs, countStoryRefs } from "./context-trace-counts"
 import { summarizeSceneContractShape } from "./scene-contract-shape"
 
 export interface WriterContextSurfaceTrace {
@@ -47,6 +47,12 @@ export interface WriterContextSurfaceTrace {
     referenceLlmCalls?: number
     missingCharacterIds?: number
   }
+  ids?: {
+    canonSourceRefs?: string[]
+    activeThreadIds?: string[]
+    activePromiseIds?: string[]
+    activePayoffIds?: string[]
+  }
 }
 
 export function summarizeBeatContextSurface(ctx: BeatContext): WriterContextSurfaceTrace {
@@ -54,6 +60,8 @@ export function summarizeBeatContextSurface(ctx: BeatContext): WriterContextSurf
   const sceneContractShape = ctx.sceneContract ? summarizeSceneContractShape(ctx.sceneContract) : null
   const canonSourceRefs = countCanonSourceRefs(ctx)
   const storyRefs = countStoryRefs(ctx)
+  const canonSourceRefIds = collectCanonSourceRefIds(ctx)
+  const storyRefIds = collectStoryRefIds(ctx)
   return {
     path: "beat",
     surfaces: {
@@ -92,6 +100,12 @@ export function summarizeBeatContextSurface(ctx: BeatContext): WriterContextSurf
       referenceLookups: ctx.referenceResolutionTrace?.lookupCount ?? 0,
       referenceLlmCalls: ctx.referenceResolutionTrace?.llmUsed ? 1 : 0,
       missingCharacterIds: capsules?.missingCharacterIds.length ?? 0,
+    },
+    ids: {
+      canonSourceRefs: canonSourceRefIds,
+      activeThreadIds: storyRefIds.threadIds,
+      activePromiseIds: storyRefIds.promiseIds,
+      activePayoffIds: storyRefIds.payoffIds,
     },
   }
 }

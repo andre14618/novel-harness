@@ -48,6 +48,10 @@ describe("writer-context-report", () => {
             referenceLlmCalls: 1,
             missingCharacterIds: 1,
           },
+          ids: {
+            canonSourceRefs: ["fact-ledger"],
+            activeThreadIds: ["thread-report"],
+          },
         },
         draftingBrief: {
           mode: "scene-budget-v1",
@@ -80,6 +84,12 @@ describe("writer-context-report", () => {
             sceneContractDramaticFields: 2,
             sceneContractBudgetFields: 1,
             choiceAlternatives: 1,
+          },
+          ids: {
+            canonSourceRefs: ["fact-ledger", "fact-warrant"],
+            activeThreadIds: ["thread-report"],
+            activePromiseIds: ["promise-return"],
+            activePayoffIds: [],
           },
         },
       })),
@@ -127,7 +137,11 @@ describe("writer-context-report", () => {
       withCanonFactContext: 1,
       withFactContinuityAnchors: 1,
       canonSourceRefs: 2,
+      canonSourceRefCounts: { "fact-ledger": 1, "fact-warrant": 1 },
       storyRefIds: 2,
+      activeThreadIdCounts: { "thread-report": 1 },
+      activePromiseIdCounts: { "promise-return": 1 },
+      activePayoffIdCounts: {},
       withWorldContext: 2,
       withWorldBible: 2,
       withSetting: 1,
@@ -148,6 +162,9 @@ describe("writer-context-report", () => {
       missingCharacterIdCounts: { "char-missing": 1 },
     })
     expect(report.events[0]?.missingCharacterIdValues).toEqual(["char-missing"])
+    expect(report.events[0]?.canonSourceRefValues).toEqual(["fact-ledger", "fact-warrant"])
+    expect(report.events[0]?.activeThreadIdValues).toEqual(["thread-report"])
+    expect(report.events[0]?.activePromiseIdValues).toEqual(["promise-return"])
     expect(report.byPath).toEqual({ beat: 1, chapter: 1, unknown: 1 })
     expect(report.byStage).toEqual({ initial: 1, chapter: 1, unknown: 1 })
     expect(report.byWriterContextMode).toEqual({
@@ -162,9 +179,9 @@ describe("writer-context-report", () => {
     expect(rendered).toContain("character=1/3 (profiles=1, snapshots=1, capsules=1)")
     expect(rendered).toContain("sceneContract=1/3 (shapeCounts=1, dramatic=1, anchorOnly=0, anchors=1)")
     expect(rendered).toContain("obligations=1/3")
-    expect(rendered).toContain("canon=1/3 (sourceRefs=2, factAnchors=1)")
+    expect(rendered).toContain("canon=1/3 (sourceRefs=2; fact-ledger=1, fact-warrant=1, factAnchors=1)")
     expect(rendered).toContain("world=2/3 (bible=2, setting=1)")
-    expect(rendered).toContain("story=2/3 (refs=2)")
+    expect(rendered).toContain("story=2/3 (refs=2, threads=thread-report=1, promises=promise-return=1, payoffs=none)")
     expect(rendered).toContain("implicitRefs=1/3")
     expect(rendered).toContain("readerInfo=1/3 (chars=32)")
     expect(rendered).toContain("refLookups=2, refLlm=1")
@@ -173,6 +190,7 @@ describe("writer-context-report", () => {
     expect(rendered).toContain("avgRatio=0.500")
     expect(rendered).toContain("#1 ch1 beat1 beat/initial: surfaces=char,scene,canon,obligations")
     expect(rendered).toContain("missingCharacterIds=char-missing")
+    expect(rendered).toContain("traceIds=canon:fact-ledger,fact-warrant; threads:thread-report; promises:promise-return")
     expect(rendered).toContain("brief=scene-budget-v1 500/1000 (0.500)")
   })
 

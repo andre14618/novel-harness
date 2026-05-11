@@ -583,10 +583,13 @@ function groupForReferenceContextAttempt(args: {
   const chapterId = args.attempt.chapter === null ? "unknown" : `chapter:${args.attempt.chapter}`
   const sourceIds = emptySourceIds()
   sourceIds.sceneTurnIds = [sceneRef]
+  sourceIds.sourceIds = cleanAttemptIdValues(args.attempt.canonSourceRefValues)
+  sourceIds.threadIds = cleanAttemptIdValues(args.attempt.activeThreadIdValues)
+  sourceIds.promiseIds = cleanAttemptIdValues(args.attempt.activePromiseIdValues)
+  sourceIds.payoffIds = cleanAttemptIdValues(args.attempt.activePayoffIdValues)
   const eventIds = args.attempt.eventIds.map(String)
-  const missingCharacterIdValues = Array.isArray(args.attempt.missingCharacterIdValues)
-    ? args.attempt.missingCharacterIdValues.filter(value => typeof value === "string" && value.trim().length > 0).join(",")
-    : ""
+  const missingCharacterIdValues = cleanAttemptIdValues(args.attempt.missingCharacterIdValues)
+  sourceIds.characterIds = missingCharacterIdValues
   const readinessFinding: PlanningContextReadinessFinding = {
     findingId: `${String(args.groupIndex + 1).padStart(3, "0")}.1`,
     sourceReport: args.sourceReport,
@@ -607,10 +610,14 @@ function groupForReferenceContextAttempt(args: {
       referenceLookups: String(args.attempt.referenceLookups),
       referenceLlmCalls: String(args.attempt.referenceLlmCalls),
       canonSourceRefs: String(args.attempt.canonSourceRefs),
+      canonSourceRefValues: sourceIds.sourceIds.join(","),
       storyRefIds: String(args.attempt.storyRefIds),
+      activeThreadIdValues: sourceIds.threadIds.join(","),
+      activePromiseIdValues: sourceIds.promiseIds.join(","),
+      activePayoffIdValues: sourceIds.payoffIds.join(","),
       readerInfoStateChars: String(args.attempt.readerInfoStateChars),
       missingCharacterIds: String(args.attempt.missingCharacterIds),
-      missingCharacterIdValues,
+      missingCharacterIdValues: missingCharacterIdValues.join(","),
       descriptionExcerpt: args.attempt.descriptionExcerpt ?? "",
     },
   }
@@ -688,6 +695,14 @@ function emptySourceIds(): PlanningContextReadinessSourceIds {
     payoffIds: [],
     sourceIds: [],
   }
+}
+
+function cleanAttemptIdValues(values: unknown): string[] {
+  return Array.isArray(values)
+    ? [...new Set(values
+        .map(value => typeof value === "string" ? value.trim() : "")
+        .filter(value => value.length > 0 && value !== "null" && value !== "undefined"))].sort()
+    : []
 }
 
 function formatNullableNumber(value: number | null): string {

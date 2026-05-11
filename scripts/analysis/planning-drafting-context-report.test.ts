@@ -156,6 +156,10 @@ describe("planning-drafting-context-report", () => {
             sceneContractDramaticFields: 3,
             sceneContractBudgetFields: 0,
           },
+          ids: {
+            canonSourceRefs: ["fact-ledger"],
+            activeThreadIds: ["thread-court"],
+          },
         },
         draftingBrief: {
           mode: "scene-budget-v1",
@@ -189,6 +193,12 @@ describe("planning-drafting-context-report", () => {
             sceneContractBudgetFields: 0,
             choiceAlternatives: 0,
           },
+          ids: {
+            canonSourceRefs: ["fact-ledger"],
+            activeThreadIds: ["thread-court"],
+            activePromiseIds: [],
+            activePayoffIds: [],
+          },
         },
       }),
     ], "novel-a")
@@ -211,6 +221,8 @@ describe("planning-drafting-context-report", () => {
       draftingBrief: "covered",
     })
     expect(report.gaps).toHaveLength(0)
+    expect(report.downstream.canonSourceRefCounts).toEqual({ "fact-ledger": 1 })
+    expect(report.downstream.activeThreadIdCounts).toEqual({ "thread-court": 1 })
     expect(renderPlanningToDraftingContextReport(report)).toContain("Gaps: 0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("canonFacts=1, canonKnowledge=0, canonStates=0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("canon=1 (sourceRefs=1, factAnchors=0)")
@@ -610,6 +622,7 @@ describe("planning-drafting-context-report", () => {
         writerContextMode: "thread-character-context-v1",
         characterContext: {
           missingCharacterIds: ["char-prior-riot"],
+          activeThreadIds: ["thread-riot"],
         },
         contextSurface: {
           surfaces: {
@@ -620,7 +633,18 @@ describe("planning-drafting-context-report", () => {
             implicitReferenceMarkers: 1,
             referenceLookups: 3,
             referenceLlmCalls: 1,
+            canonSourceRefs: 1,
+            storyRefIds: 3,
+            activeThreadIds: 1,
+            activePromiseIds: 1,
+            activePayoffIds: 1,
             missingCharacterIds: 1,
+          },
+          ids: {
+            canonSourceRefs: ["fact-riot"],
+            activeThreadIds: ["thread-riot"],
+            activePromiseIds: ["promise-ledger"],
+            activePayoffIds: ["payoff-riot"],
           },
         },
         draftingBrief: null,
@@ -642,8 +666,12 @@ describe("planning-drafting-context-report", () => {
       descriptionExcerpt: "After the riot is suppressed, Maren returns to the ledger.",
       referenceLookups: 3,
       referenceLlmCalls: 1,
-      canonSourceRefs: 0,
-      storyRefIds: 0,
+      canonSourceRefs: 1,
+      canonSourceRefValues: ["fact-riot"],
+      storyRefIds: 3,
+      activeThreadIdValues: ["thread-riot"],
+      activePromiseIdValues: ["promise-ledger"],
+      activePayoffIdValues: ["payoff-riot"],
       readerInfoStateChars: 0,
       missingCharacterIds: 1,
       missingCharacterIdValues: ["char-prior-riot"],
@@ -652,6 +680,7 @@ describe("planning-drafting-context-report", () => {
     expect(renderPlanningToDraftingContextReport(report)).toContain("attempted_no_context")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Reference context attempts: scenes=1, events=1")
     expect(renderPlanningToDraftingContextReport(report)).toContain("REF-ATTEMPT: events=#1 ch1 beat1 stages=initial; scene=ch-001-scene-002; lookups=3; llm=1")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("canonIds=fact-riot; threadIds=thread-riot; promiseIds=promise-ledger; payoffIds=payoff-riot")
     expect(renderPlanningToDraftingContextReport(report)).toContain("missingChars=1 (char-prior-riot)")
   })
 })

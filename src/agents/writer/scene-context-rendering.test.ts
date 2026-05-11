@@ -216,6 +216,10 @@ describe("renderBeatContext + scene contract", () => {
     expect(surface.counts.storyRefIds).toBe(2)
     expect(surface.counts.activeThreadIds).toBe(1)
     expect(surface.counts.activePromiseIds).toBe(1)
+    expect(surface.ids?.canonSourceRefs).toEqual(["fact-ledger-seal", "fact-script", "fact-script-danger"])
+    expect(surface.ids?.activeThreadIds).toEqual(["thread-reckoning"])
+    expect(surface.ids?.activePromiseIds).toEqual(["promise-script"])
+    expect(surface.ids?.activePayoffIds).toEqual([])
     expect(surface.counts.readerInfoStateChars).toBeGreaterThan(0)
     expect(surface.counts.implicitReferenceMarkers).toBe(1)
     expect(surface.counts.referenceLookups).toBe(2)
@@ -349,6 +353,8 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.draftingBriefTrace.counts.sceneContractBudgetFields).toBe(1)
     expect(selected.draftingBriefTrace.counts.choiceAlternatives).toBe(2)
     expect(selected.draftingBriefTrace.counts.canonSourceRefs).toBe(0)
+    expect(selected.draftingBriefTrace.ids.canonSourceRefs).toEqual([])
+    expect(selected.draftingBriefTrace.ids.activeThreadIds).toEqual([])
   })
 
   it("renders obligation-named witnesses in drafting brief characters present", () => {
@@ -514,6 +520,7 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.draftingBriefTrace.mode).toBe("scene-turn-anchored-v1")
     expect(selected.draftingBriefTrace.sections.factContinuityAnchors).toBe(true)
     expect(selected.draftingBriefTrace.counts.canonSourceRefs).toBe(2)
+    expect(selected.draftingBriefTrace.ids.canonSourceRefs).toEqual(["fact-ledger-seal", "know-orvath-warrant"])
   })
 
   it("renders compact status-polarity guidance for already-authorized missing-seal facts", () => {
@@ -580,6 +587,7 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.draftingBriefTrace.sections.obligations).toBe(true)
     expect(selected.draftingBriefTrace.counts.obligations).toBe(1)
     expect(selected.draftingBriefTrace.counts.canonSourceRefs).toBe(1)
+    expect(selected.draftingBriefTrace.ids.canonSourceRefs).toEqual(["fact-warrant-signed"])
   })
 })
 

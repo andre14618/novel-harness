@@ -206,7 +206,11 @@ export interface ReferenceContextAttemptSummary {
   referenceLookups: number
   referenceLlmCalls: number
   canonSourceRefs: number
+  canonSourceRefValues: string[]
   storyRefIds: number
+  activeThreadIdValues: string[]
+  activePromiseIdValues: string[]
+  activePayoffIdValues: string[]
   readerInfoStateChars: number
   missingCharacterIds: number
   missingCharacterIdValues: string[]
@@ -494,12 +498,14 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
     lines.push(`Reference context attempts: scenes=${referenceContextAttempts.length}, events=${eventCount}`)
     for (const attempt of referenceContextAttempts.slice(0, 8)) {
       const missingCharacterIdValues = missingCharacterIdValuesForAttempt(attempt)
+      const traceIdSuffix = referenceContextTraceIdSuffix(attempt)
       lines.push(
         `- REF-ATTEMPT: events=${attempt.eventIds.map(id => `#${id}`).join(",")} ` +
           `ch${attempt.chapter ?? "?"}` +
           `${attempt.beatIndex == null ? "" : ` beat${attempt.beatIndex + 1}`} stages=${attempt.stages.join(",")}; ` +
           `scene=${attempt.sceneRef ?? "unknown"}; lookups=${attempt.referenceLookups}; llm=${attempt.referenceLlmCalls}; ` +
           `canonRefs=${attempt.canonSourceRefs}; storyRefs=${attempt.storyRefIds}; ` +
+          `${traceIdSuffix}` +
           `readerChars=${attempt.readerInfoStateChars}; missingChars=${attempt.missingCharacterIds}` +
           `${missingCharacterIdValues.length > 0 ? ` (${missingCharacterIdValues.join(",")})` : ""}` +
           `${attempt.descriptionExcerpt ? `; "${attempt.descriptionExcerpt}"` : ""}`,
@@ -622,7 +628,11 @@ function summarizeReferenceContextAttempts(
         referenceLookups: event.referenceLookups,
         referenceLlmCalls: event.referenceLlmCalls,
         canonSourceRefs: event.canonSourceRefs,
+        canonSourceRefValues: event.canonSourceRefValues,
         storyRefIds: event.storyRefIds,
+        activeThreadIdValues: event.activeThreadIdValues,
+        activePromiseIdValues: event.activePromiseIdValues,
+        activePayoffIdValues: event.activePayoffIdValues,
         readerInfoStateChars: event.readerInfoStateChars,
         missingCharacterIds: event.missingCharacterIds,
         missingCharacterIdValues: event.missingCharacterIdValues,
@@ -648,7 +658,11 @@ function summarizeReferenceContextAttempts(
         referenceLookups: attempt.referenceLookups,
         referenceLlmCalls: attempt.referenceLlmCalls,
         canonSourceRefs: attempt.canonSourceRefs,
+        canonSourceRefValues: traceIdValuesForAttempt(attempt, "canonSourceRefValues"),
         storyRefIds: attempt.storyRefIds,
+        activeThreadIdValues: traceIdValuesForAttempt(attempt, "activeThreadIdValues"),
+        activePromiseIdValues: traceIdValuesForAttempt(attempt, "activePromiseIdValues"),
+        activePayoffIdValues: traceIdValuesForAttempt(attempt, "activePayoffIdValues"),
         readerInfoStateChars: attempt.readerInfoStateChars,
         missingCharacterIds: attempt.missingCharacterIds,
         missingCharacterIdValues: missingCharacterIdValuesForAttempt(attempt),
@@ -661,7 +675,23 @@ function summarizeReferenceContextAttempts(
     existing.referenceLookups += attempt.referenceLookups
     existing.referenceLlmCalls += attempt.referenceLlmCalls
     existing.canonSourceRefs = Math.max(existing.canonSourceRefs, attempt.canonSourceRefs)
+    existing.canonSourceRefValues = unique([
+      ...existing.canonSourceRefValues,
+      ...traceIdValuesForAttempt(attempt, "canonSourceRefValues"),
+    ]).sort()
     existing.storyRefIds = Math.max(existing.storyRefIds, attempt.storyRefIds)
+    existing.activeThreadIdValues = unique([
+      ...existing.activeThreadIdValues,
+      ...traceIdValuesForAttempt(attempt, "activeThreadIdValues"),
+    ]).sort()
+    existing.activePromiseIdValues = unique([
+      ...existing.activePromiseIdValues,
+      ...traceIdValuesForAttempt(attempt, "activePromiseIdValues"),
+    ]).sort()
+    existing.activePayoffIdValues = unique([
+      ...existing.activePayoffIdValues,
+      ...traceIdValuesForAttempt(attempt, "activePayoffIdValues"),
+    ]).sort()
     existing.readerInfoStateChars = Math.max(existing.readerInfoStateChars, attempt.readerInfoStateChars)
     existing.missingCharacterIds = Math.max(existing.missingCharacterIds, attempt.missingCharacterIds)
     existing.missingCharacterIdValues = unique([
@@ -672,9 +702,43 @@ function summarizeReferenceContextAttempts(
   return [...grouped.values()]
 }
 
-function missingCharacterIdValuesForAttempt(attempt: ReferenceContextAttemptSummary): string[] {
-  return Array.isArray(attempt.missingCharacterIdValues)
-    ? unique(attempt.missingCharacterIdValues.filter(value => typeof value === "string" && value.trim().length > 0)).sort()
+function referenceContextTraceIdSuffix(attempt: ReferenceContextAttemptSummary): string {
+  const parts = [
+    idListLabel("canonIds", traceIdValuesForAttempt(attempt, "canonSourceRefValues")),
+    idListLabel("threadIds", traceIdValuesForAttempt(attempt, "activeThreadIdValues")),
+    idListLabel("promiseIds", traceIdValuesForAttempt(attempt, "activePromiseIdValues")),
+    idListLabel("payoffIds", traceIdValuesForAttempt(attempt, "activePayoffIdValues")),
+  ].filter((part): part is string => part !== null)
+  return parts.length > 0 ? `${parts.join("; ")}; ` : ""
+}
+
+function idListLabel(label: string, values: string[]): string | null {
+  return values.length > 0 ? `${label}=${values.join(",")}` : null
+}
+
+type ReferenceTraceIdKey =
+  | "canonSourceRefValues"
+  | "activeThreadIdValues"
+  | "activePromiseIdValues"
+  | "activePayoffIdValues"
+
+function traceIdValuesForAttempt(
+  attempt: Partial<Record<ReferenceTraceIdKey, unknown>>,
+  key: ReferenceTraceIdKey,
+): string[] {
+  return cleanIdValues(attempt[key])
+}
+
+function missingCharacterIdValuesForAttempt(attempt: { missingCharacterIdValues?: unknown }): string[] {
+  return cleanIdValues(attempt.missingCharacterIdValues)
+}
+
+function cleanIdValues(values: unknown): string[] {
+  return Array.isArray(values)
+    ? unique(values
+        .map(value => typeof value === "string" ? value.trim() : "")
+        .filter(value => value.length > 0 && value !== "null" && value !== "undefined"))
+      .sort()
     : []
 }
 
