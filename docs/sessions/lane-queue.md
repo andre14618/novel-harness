@@ -31,8 +31,8 @@ unless the user explicitly requests a disposable branch.
   `diagnostics:planning-drafting-context` now compares upstream artifact
   availability with writer-context telemetry, and `test-drafting-isolated`
   writes it per arm. Clean P1 covered character, world, story, reader-info,
-  scene-contract, obligation, and drafting-brief surfaces; only implicit refs
-  showed a gap (2 marker scenes; trace separates markers/lookups/context).
+  scene-contract, obligation, and drafting-brief surfaces; implicit refs now
+  classify as `attempted_no_context` when lookups run but render no context.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -121,10 +121,9 @@ unless the user explicitly requests a disposable branch.
   next production workflow gap. Continue
   seeking live `allow-entities` replay only if that blocker reproduces. See
   L103-L106.
-- Planning-to-drafting context next step: inspect whether implicit-reference
-  marker scenes should produce retrievable context or whether the resolver/audit
-  needs a narrower "needs background" signal before this becomes Plan Readiness
-  input.
+- Planning-to-drafting context next step: use `attempted_no_context` reference
+  telemetry as a diagnostic only; escalate to Plan Readiness only after a run
+  shows missing downstream context for a genuinely needed background reference.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,

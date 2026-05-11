@@ -190,6 +190,62 @@ describe("planning-drafting-context-report", () => {
     })
     expect(report.gaps.map(row => row.status)).toContain("represented_without_upstream")
   })
+
+  test("separates attempted empty reference lookups from missing downstream context", () => {
+    const upstream = summarizePlanningArtifacts({
+      worldBibleAvailable: true,
+      storySpineAvailable: true,
+      characters: [{ id: "char-maren", name: "Maren" }],
+      outlines: [outline(1, {
+        scenes: [{
+          sceneId: "ch-001-scene-002",
+          description: "After the riot is suppressed, Maren returns to the ledger.",
+          characters: ["Maren"],
+          kind: "reaction",
+          requiredPayoffs: [],
+          obligations: {
+            mustEstablish: [],
+            mustPayOff: [],
+            mustTransferKnowledge: [],
+            mustShowStateChange: [],
+            mustNotReveal: [],
+            allowedNewEntities: [],
+          },
+          lifeValueAxes: [],
+          miceActive: [],
+          miceOpens: [],
+          miceCloses: [],
+        }],
+      })],
+    })
+    const writerContext = buildWriterContextTelemetryReport([
+      row(1, {
+        path: "beat",
+        stage: "initial",
+        writerContextMode: "thread-character-context-v1",
+        contextSurface: {
+          surfaces: {
+            implicitReferences: true,
+            resolvedReferences: false,
+          },
+          counts: {
+            implicitReferenceMarkers: 1,
+            referenceLookups: 3,
+            referenceLlmCalls: 1,
+          },
+        },
+        draftingBrief: null,
+      }),
+    ], "novel-d")
+
+    const report = buildPlanningToDraftingContextReport({ novelId: "novel-d", upstream, writerContext })
+
+    expect(statuses(report.surfaces)).toMatchObject({
+      resolvedReferences: "attempted_no_context",
+    })
+    expect(report.gaps.map(row => row.surface)).not.toContain("resolvedReferences")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("attempted_no_context")
+  })
 })
 
 function statuses(rows: { surface: string; status: ContextContractStatus }[]): Record<string, ContextContractStatus> {

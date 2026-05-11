@@ -34,6 +34,7 @@ export type ContextContractStatus =
   | "missing_downstream"
   | "not_observed"
   | "not_available"
+  | "attempted_no_context"
   | "represented_without_upstream"
 
 export interface PlanningArtifactSummary {
@@ -187,13 +188,16 @@ export function buildPlanningToDraftingContextReport(args: {
       eventCount,
       note: "Reader-info state should appear when later chapters have prior facts/knowledge/state to protect.",
     }),
-    auditSurface({
+    auditResolvedReferencesSurface({
       surface: "resolvedReferences",
       upstreamAvailable: upstream.scenesWithImplicitReferences > 0,
       upstreamCount: upstream.scenesWithImplicitReferences,
       downstreamCount: downstream.withResolvedReferences,
       eventCount,
       note: "Resolved references are selected only when a Beat description carries implicit-reference markers.",
+      implicitReferenceEvents: downstream.withImplicitReferences,
+      referenceLookups: downstream.referenceLookups,
+      referenceLlmCalls: downstream.referenceLlmCalls,
     }),
     auditSurface({
       surface: "sceneContract",
@@ -266,6 +270,34 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
     )
   }
   return lines.join("\n")
+}
+
+function auditResolvedReferencesSurface(args: {
+  surface: "resolvedReferences"
+  upstreamAvailable: boolean
+  upstreamCount: number
+  downstreamCount: number
+  eventCount: number
+  note: string
+  implicitReferenceEvents: number
+  referenceLookups: number
+  referenceLlmCalls: number
+}): PlanningToDraftingContextAuditRow {
+  const attemptedResolution =
+    args.implicitReferenceEvents > 0 &&
+    (args.referenceLookups > 0 || args.referenceLlmCalls > 0)
+  if (args.upstreamAvailable && args.downstreamCount === 0 && attemptedResolution) {
+    return {
+      surface: args.surface,
+      upstreamAvailable: true,
+      upstreamCount: args.upstreamCount,
+      downstreamRepresented: false,
+      downstreamCount: 0,
+      status: "attempted_no_context",
+      note: `${args.note} The resolver observed implicit markers and attempted lookups, but no retrievable context was rendered.`,
+    }
+  }
+  return auditSurface(args)
 }
 
 function auditSurface(args: {
