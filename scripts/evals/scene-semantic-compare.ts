@@ -84,6 +84,24 @@ export interface RowDelta {
   candidateOrdinal: number
   ordinalDelta: number
   status: RowStatus
+  traceIds: SceneSemanticTraceIds
+  baselineTraceIds: SceneSemanticTraceIds
+  candidateTraceIds: SceneSemanticTraceIds
+  baselineConfidence: number
+  candidateConfidence: number
+  baselineMissingForNextLevel: string
+  candidateMissingForNextLevel: string
+}
+
+export interface SceneSemanticTraceIds {
+  obligationIds: string[]
+  relevantCharacterIds: string[]
+  relevantWorldFactIds: string[]
+  sceneTurnIds: string[]
+  threadIds: string[]
+  promiseIds: string[]
+  payoffIds: string[]
+  sourceIds: string[]
 }
 
 export function buildSceneSemanticComparisonReport(input: {
@@ -132,7 +150,15 @@ export function renderSceneSemanticComparisonReport(report: SceneSemanticCompari
       lines.push("- none")
     } else {
       for (const row of changedRows) {
-        lines.push(`- ch${row.chapterNumber} ${row.sceneId} ${row.dimension}: ${row.baselineLabel} -> ${row.candidateLabel} (${formatSigned(row.ordinalDelta)}; ${row.status})`)
+        const trace = formatTraceIds(row.traceIds)
+        const missing = truncateForMarkdown(row.candidateMissingForNextLevel)
+        lines.push(
+          `- ch${row.chapterNumber} ${row.sceneId} ${row.dimension}: ` +
+            `${row.baselineLabel} -> ${row.candidateLabel} ` +
+            `(${formatSigned(row.ordinalDelta)}; ${row.status})` +
+            `${trace ? `; ids=${trace}` : ""}` +
+            `${missing ? `; next=${missing}` : ""}`,
+        )
       }
     }
     lines.push("")
@@ -205,6 +231,13 @@ function rowDelta(key: string, baseline: SceneSemanticReplayResult, candidate: S
     candidateOrdinal: candidate.ordinal,
     ordinalDelta,
     status: rowStatus(baseline.ordinal, candidate.ordinal),
+    traceIds: mergeTraceIds(traceIdsForResult(baseline), traceIdsForResult(candidate)),
+    baselineTraceIds: traceIdsForResult(baseline),
+    candidateTraceIds: traceIdsForResult(candidate),
+    baselineConfidence: baseline.confidence,
+    candidateConfidence: candidate.confidence,
+    baselineMissingForNextLevel: baseline.missingForNextLevel ?? "",
+    candidateMissingForNextLevel: candidate.missingForNextLevel ?? "",
   }
 }
 
@@ -254,6 +287,59 @@ function average(values: number[]): number | null {
 
 function unique<T>(values: T[]): T[] {
   return [...new Set(values)]
+}
+
+function traceIdsForResult(row: SceneSemanticReplayResult): SceneSemanticTraceIds {
+  return {
+    obligationIds: cleanStrings(row.obligationIds),
+    relevantCharacterIds: cleanStrings(row.relevantCharacterIds),
+    relevantWorldFactIds: cleanStrings(row.relevantWorldFactIds),
+    sceneTurnIds: cleanStrings(row.sceneTurnIds),
+    threadIds: cleanStrings(row.threadIds),
+    promiseIds: cleanStrings(row.promiseIds),
+    payoffIds: cleanStrings(row.payoffIds),
+    sourceIds: cleanStrings(row.sourceIds),
+  }
+}
+
+function mergeTraceIds(...rows: SceneSemanticTraceIds[]): SceneSemanticTraceIds {
+  return {
+    obligationIds: unique(rows.flatMap(row => row.obligationIds)).sort(),
+    relevantCharacterIds: unique(rows.flatMap(row => row.relevantCharacterIds)).sort(),
+    relevantWorldFactIds: unique(rows.flatMap(row => row.relevantWorldFactIds)).sort(),
+    sceneTurnIds: unique(rows.flatMap(row => row.sceneTurnIds)).sort(),
+    threadIds: unique(rows.flatMap(row => row.threadIds)).sort(),
+    promiseIds: unique(rows.flatMap(row => row.promiseIds)).sort(),
+    payoffIds: unique(rows.flatMap(row => row.payoffIds)).sort(),
+    sourceIds: unique(rows.flatMap(row => row.sourceIds)).sort(),
+  }
+}
+
+function cleanStrings(values: readonly string[] | undefined): string[] {
+  return unique((values ?? []).filter(value => typeof value === "string" && value.trim().length > 0)).sort()
+}
+
+function formatTraceIds(traceIds: SceneSemanticTraceIds): string {
+  const groups = [
+    ["obligations", traceIds.obligationIds],
+    ["characters", traceIds.relevantCharacterIds],
+    ["worldFacts", traceIds.relevantWorldFactIds],
+    ["sceneTurns", traceIds.sceneTurnIds],
+    ["threads", traceIds.threadIds],
+    ["promises", traceIds.promiseIds],
+    ["payoffs", traceIds.payoffIds],
+    ["sources", traceIds.sourceIds],
+  ] as const
+  return groups
+    .filter(([, ids]) => ids.length > 0)
+    .map(([label, ids]) => `${label}:${ids.slice(0, 4).join(",")}${ids.length > 4 ? `+${ids.length - 4}` : ""}`)
+    .join("; ")
+}
+
+function truncateForMarkdown(value: string): string {
+  const clean = value.replace(/\s+/g, " ").trim()
+  if (!clean) return ""
+  return clean.length > 140 ? `${clean.slice(0, 137)}...` : clean
 }
 
 function formatNumber(value: number | null): string {

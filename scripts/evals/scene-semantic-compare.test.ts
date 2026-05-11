@@ -11,13 +11,13 @@ import type { Dimension } from "./planner-discernment-calibration"
 describe("scene-semantic-compare", () => {
   test("aligns rows and summarizes resolved and regressed lows", () => {
     const baseline = reportRef("baseline.json", report("baseline", [
-      row("scene-a", "endpointLanding", "ENDPOINT-1", 1),
-      row("scene-b", "endpointLanding", "ENDPOINT-3", 3),
+      row("scene-a", "endpointLanding", "ENDPOINT-1", 1, { obligationIds: ["obl-a"] }),
+      row("scene-b", "endpointLanding", "ENDPOINT-3", 3, { relevantWorldFactIds: ["fact-b"] }),
       row("scene-a", "characterMateriality", "MATERIAL-2", 2),
     ]))
     const candidate = reportRef("candidate.json", report("candidate", [
-      row("scene-a", "endpointLanding", "ENDPOINT-2", 2),
-      row("scene-b", "endpointLanding", "ENDPOINT-1", 1),
+      row("scene-a", "endpointLanding", "ENDPOINT-2", 2, { relevantCharacterIds: ["char-a"] }),
+      row("scene-b", "endpointLanding", "ENDPOINT-1", 1, { missingForNextLevel: "Needs endpoint action.", sourceIds: ["src-b"] }),
       row("scene-a", "characterMateriality", "MATERIAL-3", 3),
     ]))
 
@@ -35,6 +35,10 @@ describe("scene-semantic-compare", () => {
     expect(endpoint.resolvedLowRows).toBe(1)
     expect(endpoint.regressedLowRows).toBe(1)
     expect(endpoint.lowDelta).toBe(0)
+    const regressed = result.rowChanges.find(row => row.status === "regressed_low")!
+    expect(regressed.traceIds.relevantWorldFactIds).toEqual(["fact-b"])
+    expect(regressed.traceIds.sourceIds).toEqual(["src-b"])
+    expect(regressed.candidateMissingForNextLevel).toBe("Needs endpoint action.")
     const materiality = result.dimensions.find(row => row.dimension === "characterMateriality")!
     expect(materiality.meanDelta).toBe(1)
     expect(result.rowChanges.map(row => row.status).sort()).toEqual([
@@ -42,7 +46,10 @@ describe("scene-semantic-compare", () => {
       "regressed_low",
       "resolved_low",
     ])
-    expect(renderSceneSemanticComparisonReport(comparison)).toContain("ENDPOINT-1 -> ENDPOINT-2")
+    const rendered = renderSceneSemanticComparisonReport(comparison)
+    expect(rendered).toContain("ENDPOINT-1 -> ENDPOINT-2")
+    expect(rendered).toContain("ids=worldFacts:fact-b; sources:src-b")
+    expect(rendered).toContain("next=Needs endpoint action.")
   })
 
   test("tracks rows missing from either report", () => {
@@ -96,7 +103,13 @@ function report(setName: string, results: SceneSemanticReplayResult[]): SceneSem
   }
 }
 
-function row(sceneId: string, dimension: Dimension, label: string, ordinal: number): SceneSemanticReplayResult {
+function row(
+  sceneId: string,
+  dimension: Dimension,
+  label: string,
+  ordinal: number,
+  overrides: Partial<SceneSemanticReplayResult> = {},
+): SceneSemanticReplayResult {
   return {
     taskId: `${sceneId}-${dimension}`,
     chapterNumber: 1,
@@ -126,5 +139,6 @@ function row(sceneId: string, dimension: Dimension, label: string, ordinal: numb
       missingForNextLevel: "",
       gates: {},
     },
+    ...overrides,
   }
 }

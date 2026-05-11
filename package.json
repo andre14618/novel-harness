@@ -39,6 +39,7 @@
     "diagnostics:writer-expansion": "bun scripts/analysis/writer-expansion-report.ts",
     "diagnostics:writer-context": "bun scripts/analysis/writer-context-report.ts",
     "diagnostics:planning-drafting-context": "bun scripts/analysis/planning-drafting-context-report.ts",
+    "diagnostics:drafting-run-compare": "bun scripts/analysis/drafting-run-compare.ts",
     "diagnostics:planning-context-readiness": "bun scripts/analysis/planning-context-readiness.ts",
     "diagnostics:method-pack-planner": "bun scripts/evals/method-pack-planner-diagnostic.ts",
     "diagnostics:build-cfa-v1-fixtures": "bun scripts/evals/build-cfa-v1-cohort-fixtures.ts",

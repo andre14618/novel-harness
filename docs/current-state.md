@@ -92,9 +92,9 @@ Use deeper docs only when linked by the context pack or needed by code.
   worldFactPressure replay artifacts per arm; `--scene-semantic-persist` stores
   eval rows and imports readiness lows unless disabled. Replay prefers captured
   per-scene writer calls before falling back to whole-chapter prose. Use
-  `diagnostics:planning-drafting-context` to audit upstream context
-  availability, scene-contract gaps, reference telemetry, and scene-load
-  pressure; `test-drafting-isolated` writes that audit plus a readiness sidecar.
+  `diagnostics:planning-drafting-context` to audit upstream context surfaces and
+  `diagnostics:drafting-run-compare` to compare clean-source reports with
+  semantic trace IDs; `test-drafting-isolated` writes readiness sidecars.
 - Production drafting defaults to exact-ID character context capsules
   (`thread-character-context-v1`). See L094.
 - Native chapter contracts and story-turn planning are the production planning

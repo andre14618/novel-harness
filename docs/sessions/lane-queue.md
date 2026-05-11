@@ -30,8 +30,8 @@ unless the user explicitly requests a disposable branch.
   6050/3800 regression without low-row improvement. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
-  writer-context telemetry and scene-load pressure; `test-drafting-isolated`
-  writes it per arm and can persist/import scene-semantic readiness lows.
+  writer-context telemetry and scene-load pressure; `diagnostics:drafting-run-compare`
+  compares reports with trace IDs; `test-drafting-isolated` writes sidecars.
   Scene-contract telemetry separates broad `dramatic` presence from `choice`,
   `endpoint`, and `full` completeness.
   `diagnostics:planning-context-readiness` converts
@@ -121,7 +121,7 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: isolate when `drafting-brief-tight-v1` helps overloaded plans versus regresses endpoint/world pressure; no default decision. See L103-L106.
+- Next session start: use `diagnostics:drafting-run-compare` to isolate when `drafting-brief-tight-v1` helps length versus regresses endpoint/world pressure; no default decision. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
