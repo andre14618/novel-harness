@@ -61,6 +61,29 @@ describe("drafting-run-cohort", () => {
       rmSync(dir, { recursive: true, force: true })
     }
   })
+
+  test("renders missing context deltas as unavailable instead of zero", () => {
+    const legacy = comparisonReport("legacy", "mixed", 0, 0, 0, 1, "mixed") as unknown as {
+      comparisons: Array<{ planningContext: Record<string, unknown> }>
+    } & DraftingRunComparisonReport
+    delete legacy.comparisons[0]!.planningContext.storyRefIdsDelta
+    delete legacy.comparisons[0]!.planningContext.readerInfoStateCharsDelta
+
+    const report = buildDraftingRunCohortReport({
+      refs: [{ path: "legacy.json", report: legacy }],
+      generatedAt: "2026-05-11T00:00:00.000Z",
+    })
+
+    expect(report.aggregate.contextDeltas.canonSourceRefs).toBe(1)
+    expect(report.aggregate.contextDeltas.storyRefIds).toBeNull()
+    expect(report.aggregate.contextDeltas.readerInfoStateChars).toBeNull()
+
+    const rendered = renderDraftingRunCohortReport(report)
+    expect(rendered).toContain("canonSourceRefs=+1")
+    expect(rendered).toContain("storyRefs=n/a")
+    expect(rendered).toContain("readerChars=n/a")
+    expect(rendered).toContain("| legacy | drafting-brief-v1 | drafting-brief-tight-v1 | yes | mixed | 0 | 0 | +1 | n/a | 0 | n/a | 0 |")
+  })
 })
 
 function comparisonReport(

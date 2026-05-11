@@ -72,17 +72,17 @@ export interface DraftingRunCohortReport {
     contextGapDeltaSum: number
     readinessFindingDeltaSum: number
     contextDeltas: {
-      characterContext: number
-      worldContext: number
-      canonFactContext: number
-      factContinuityAnchors: number
-      canonSourceRefs: number
-      storyContext: number
-      storyRefIds: number
-      readerInfoState: number
-      readerInfoStateChars: number
-      resolvedReferences: number
-      missingCharacterIds: number
+      characterContext: number | null
+      worldContext: number | null
+      canonFactContext: number | null
+      factContinuityAnchors: number | null
+      canonSourceRefs: number | null
+      storyContext: number | null
+      storyRefIds: number | null
+      readerInfoState: number | null
+      readerInfoStateChars: number | null
+      resolvedReferences: number | null
+      missingCharacterIds: number | null
     }
   }
   dimensions: DraftingRunCohortDimensionSummary[]
@@ -176,13 +176,13 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
   lines.push(`- context gap delta sum: ${formatSigned(report.aggregate.contextGapDeltaSum)}`)
   lines.push(`- readiness finding delta sum: ${formatSigned(report.aggregate.readinessFindingDeltaSum)}`)
   lines.push(
-    `- context deltas: canonSourceRefs=${formatSigned(report.aggregate.contextDeltas.canonSourceRefs)}, ` +
-      `factAnchors=${formatSigned(report.aggregate.contextDeltas.factContinuityAnchors)}, ` +
-      `storyRefs=${formatSigned(report.aggregate.contextDeltas.storyRefIds)}, ` +
-      `reader=${formatSigned(report.aggregate.contextDeltas.readerInfoState)}, ` +
-      `readerChars=${formatSigned(report.aggregate.contextDeltas.readerInfoStateChars)}, ` +
-      `resolvedRefs=${formatSigned(report.aggregate.contextDeltas.resolvedReferences)}, ` +
-      `missingChars=${formatSigned(report.aggregate.contextDeltas.missingCharacterIds)}`,
+    `- context deltas: canonSourceRefs=${formatDelta(report.aggregate.contextDeltas.canonSourceRefs)}, ` +
+      `factAnchors=${formatDelta(report.aggregate.contextDeltas.factContinuityAnchors)}, ` +
+      `storyRefs=${formatDelta(report.aggregate.contextDeltas.storyRefIds)}, ` +
+      `reader=${formatDelta(report.aggregate.contextDeltas.readerInfoState)}, ` +
+      `readerChars=${formatDelta(report.aggregate.contextDeltas.readerInfoStateChars)}, ` +
+      `resolvedRefs=${formatDelta(report.aggregate.contextDeltas.resolvedReferences)}, ` +
+      `missingChars=${formatDelta(report.aggregate.contextDeltas.missingCharacterIds)}`,
   )
   lines.push("")
   lines.push("## Semantic Dimensions")
@@ -256,16 +256,20 @@ function isCleanComparison(report: DraftingRunComparisonReport, comparison: Draf
 function sumComparisonDelta(
   refs: readonly DraftingRunCohortReportRef[],
   key: keyof DraftingRunComparison["planningContext"],
-): number {
+): number | null {
   let sum = 0
+  let count = 0
   for (const ref of refs) {
     for (const comparison of ref.report.comparisons) {
       if (!isCleanComparison(ref.report, comparison)) continue
       const value = comparison.planningContext[key]
-      if (typeof value === "number" && Number.isFinite(value)) sum += value
+      if (typeof value === "number" && Number.isFinite(value)) {
+        sum += value
+        count += 1
+      }
     }
   }
-  return sum
+  return count > 0 ? sum : null
 }
 
 function cohortSignal(counts: Record<string, number>, cleanCount: number): CohortSignal {
