@@ -1,6 +1,12 @@
 import { expect, test } from "bun:test"
 
-import { buildFactUserPrompt, buildStateUserPrompt, resolveFactId, stateViolationToIssue } from "./check"
+import {
+  buildFactUserPrompt,
+  buildStateUserPrompt,
+  isExplicitFactNonContradiction,
+  resolveFactId,
+  stateViolationToIssue,
+} from "./check"
 import type { ChapterOutline, CharacterState, Fact } from "../../types"
 
 test("state prompt includes current plan and frames prior locations as starting context", () => {
@@ -238,6 +244,19 @@ test("resolveFactId skips facts without an id field even when the text matches",
   // The match is on text, but the fact carries no durable id — there's
   // nothing safe to copy onto the issue.
   expect(resolveFactId("The bell tower hides the fever cure", facts)).toBeUndefined()
+})
+
+test("isExplicitFactNonContradiction filters support echoes and omissions", () => {
+  expect(isExplicitFactNonContradiction({
+    evidence: "The transfer order bears Halric's seal.",
+    reasoning: "This is consistent with the fact. No contradiction.",
+  })).toBe(true)
+  expect(isExplicitFactNonContradiction({
+    reasoning: "The draft does not mention Halric's personal ruin, but it does not contradict it either.",
+  })).toBe(true)
+  expect(isExplicitFactNonContradiction({
+    reasoning: "The draft states verification requires no witness, contradicting the fact.",
+  })).toBe(false)
 })
 
 function characterState(overrides: Partial<CharacterState> = {}): CharacterState {

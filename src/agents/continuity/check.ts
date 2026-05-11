@@ -96,6 +96,7 @@ export async function checkContinuity(
 
   if (factResult.status === "fulfilled") {
     for (const c of factResult.value.output.contradictions ?? []) {
+      if (isExplicitFactNonContradiction(c)) continue
       const factId = resolveFactId(c.fact, facts)
       issues.push({
         severity: c.severity,
@@ -155,6 +156,16 @@ export function resolveFactId(modelFact: string | undefined, facts: readonly Fac
     if (id && text && text === trimmed) return id
   }
   return undefined
+}
+
+export function isExplicitFactNonContradiction(item: {
+  evidence?: string
+  reasoning?: string
+}): boolean {
+  const text = `${item.reasoning ?? ""}\n${item.evidence ?? ""}`.toLowerCase()
+  return /\b(no contradiction|not a contradiction|does not contradict|doesn't contradict|do not contradict)\b/.test(text)
+    || /\b(consistent with|matches the fact|matches the established fact|confirms the fact|confirms the established fact)\b/.test(text)
+    || /\b(simply not addressed|not addressed|simply not mentioned|not mentioned|simply not referenced|not referenced)\b/.test(text)
 }
 
 // ── User prompt builders ─────────────────────────────────────────────────────

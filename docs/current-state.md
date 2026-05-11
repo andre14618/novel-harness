@@ -121,10 +121,12 @@ P1 repair reached `choice/full=11/11` and `factContradictions=0`; clean reruns
 now show the tradeoff. V3 endpoint-source repair improved endpoint lows to
 1/10 but bloated to 5759/3800 = 1.52x. A narrower compact status-polarity
 guardrail kept endpoint lows 1/10 and cut length to 4713/3800 = 1.24x, with
-scene lows 2/34 and prose lows 0/8. Next target the remaining Corso-file
-world-pressure/setup endpoint weakness. Continuity fact prompts now carry
-`factId` and disambiguate authorization/signature/office seals from missing
-binding seals. Do not flip defaults. See L103-L106.
+scene lows 2/34 and prose lows 0/8. A broad operational-facts brief regressed
+to 6050/3800 without low-row improvement, so keep it out. Next target the
+remaining Corso-file world-pressure/setup endpoint weakness. Continuity fact
+prompts now carry `factId`, disambiguate authorization/signature/office seals
+from missing binding seals, and filter explicit support echoes. Do not flip
+defaults. See L103-L106.
 
 ## Authoring Gates
 

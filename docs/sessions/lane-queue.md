@@ -19,8 +19,10 @@ unless the user explicitly requests a disposable branch.
   endpoint 3/11. V2 compact: 5265/3800 = 1.38x, scene lows 2/36, endpoint 2/11.
   V3 endpoint-source repair: 5759/3800 = 1.52x, scene lows 1/34, endpoint 1/10
   after deleting the setup opener. Compact status-polarity guardrail: 4713/3800
-  = 1.24x, scene lows 2/34, endpoint 1/10, prose lows 0/8. Compact brief remains
-  best quality tradeoff, with no default flip. See L106.
+  = 1.24x, scene lows 2/34, endpoint 1/10, prose lows 0/8. Broad
+  operational-facts brief regressed to 6050/3800 without low-row improvement;
+  keep it out. Compact brief remains best quality tradeoff, with no default
+  flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
@@ -117,8 +119,8 @@ unless the user explicitly requests a disposable branch.
   endpoint scenes before any prompt-arm/default decision. V3 reduced semantic
   endpoint lows but bloated prose; the narrower status-polarity guardrail
   recovered length, but the Corso-file scene still needs world-pressure/endpoint
-  improvement. Continuity fact prompts now preserve `factId` and separate
-  authorization/signature/office seals from missing binding seals. See L103-L106.
+  improvement. Continuity facts now preserve `factId`, separate binding-seal
+  roles, and filter explicit support echoes. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
