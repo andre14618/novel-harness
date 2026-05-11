@@ -98,6 +98,11 @@ import {
   buildSceneSemanticReadinessAggregate,
   renderSceneSemanticReadinessAggregate,
 } from "./evals/scene-semantic-readiness"
+import {
+  loadPlanningToDraftingContextReport,
+  renderPlanningToDraftingContextReport,
+  type PlanningToDraftingContextReport,
+} from "./analysis/planning-drafting-context-report"
 import type { Dimension } from "./evals/planner-discernment-calibration"
 import {
   assessSourceDraftingIsolation,
@@ -170,6 +175,7 @@ export interface ArmResult {
   meanRatio: number
   expansionEvents: number
   draftingBrief: DraftingBriefTelemetrySummary
+  planningContext?: PlanningContextTelemetrySummary
   proseSemantic?: {
     outputDir: string
     resultCount: number
@@ -220,6 +226,7 @@ export interface DraftingIsolatedRunReport {
     cleanSource: boolean
     totalWordsByArm: Record<string, number>
     meanRatioByArm: Record<string, number>
+    planningContextGapsByArm: Record<string, number | null>
     proseSemanticLowRowsByArm: Record<string, number | null>
     sceneSemanticLowRowsByArm: Record<string, number | null>
   }
@@ -235,6 +242,42 @@ export interface DraftingBriefTelemetrySummary {
   avgSelectedPromptChars: number | null
   avgFullContextPromptChars: number | null
   totalCharsDelta: number
+}
+
+export interface PlanningContextTelemetrySummary {
+  outputDir: string
+  surfaceCount: number
+  gapCount: number
+  gaps: Array<{
+    surface: string
+    status: string
+    upstreamCount: number
+    downstreamCount: number
+  }>
+  upstream: {
+    worldBibleAvailable: boolean
+    storySpineAvailable: boolean
+    characterCount: number
+    chapterPlanCount: number
+    plannedSceneCount: number
+    scenesWithSceneContract: number
+    scenesWithObligations: number
+    scenesWithImplicitReferences: number
+  }
+  downstream: {
+    events: number
+    withCharacterContext: number
+    withWorldContext: number
+    withStoryContext: number
+    withReaderInfoState: number
+    withImplicitReferences: number
+    withResolvedReferences: number
+    referenceLookups: number
+    withSceneContract: number
+    withObligations: number
+    withDraftingBriefTrace: number
+  }
+  error?: string
 }
 
 export interface SceneSemanticTelemetrySummary {
@@ -570,6 +613,7 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
     return {
       arm, novelId, chapters: [], totalWords: 0, totalTarget: 0, meanRatio: 0,
       draftingBrief: emptyDraftingBriefTelemetry(),
+      planningContext: await maybeRunPlanningContextAudit(arm, novelId, targetPrefix),
       expansionEvents: 0, error: `clone failed: ${err instanceof Error ? err.message : err}`,
     }
   }
@@ -590,10 +634,12 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
       // before pausing on a gate. The collector reads chapter_drafts so
       // partial output is captured.
       const collected = await collectArmResult(arm, novelId)
+      const planningContext = await maybeRunPlanningContextAudit(arm, novelId, targetPrefix)
       const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts)
       const sceneSemantic = await maybeRunSceneSemanticReview(arm, novelId, targetPrefix, opts)
       return {
         arm, novelId, ...collected,
+        planningContext,
         ...(proseSemantic ? { proseSemantic } : {}),
         ...(sceneSemantic ? { sceneSemantic } : {}),
         error: `drafting did not complete: ${result.kind}`,
@@ -606,6 +652,36 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
       chapters: [] as ArmResult["chapters"], totalWords: 0, totalTarget: 0, meanRatio: 0, expansionEvents: 0,
       draftingBrief: emptyDraftingBriefTelemetry(),
     }))
+    const planningContext = await maybeRunPlanningContextAudit(arm, novelId, targetPrefix).catch(err => ({
+      outputDir: `output/planning-drafting-context/${targetPrefix}/${arm}`,
+      surfaceCount: 0,
+      gapCount: 0,
+      gaps: [],
+      upstream: {
+        worldBibleAvailable: false,
+        storySpineAvailable: false,
+        characterCount: 0,
+        chapterPlanCount: 0,
+        plannedSceneCount: 0,
+        scenesWithSceneContract: 0,
+        scenesWithObligations: 0,
+        scenesWithImplicitReferences: 0,
+      },
+      downstream: {
+        events: 0,
+        withCharacterContext: 0,
+        withWorldContext: 0,
+        withStoryContext: 0,
+        withReaderInfoState: 0,
+        withImplicitReferences: 0,
+        withResolvedReferences: 0,
+        referenceLookups: 0,
+        withSceneContract: 0,
+        withObligations: 0,
+        withDraftingBriefTrace: 0,
+      },
+      error: `planning context audit failed: ${err instanceof Error ? err.message : String(err)}`,
+    }))
     const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts).catch(proseErr => ({
       outputDir: "",
       resultCount: 0,
@@ -617,6 +693,7 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
     const sceneSemantic = await maybeRunSceneSemanticReview(arm, novelId, targetPrefix, opts)
     return {
       arm, novelId, ...collected,
+      planningContext,
       ...(proseSemantic ? { proseSemantic } : {}),
       ...(sceneSemantic ? { sceneSemantic } : {}),
       error: err instanceof Error ? err.message : String(err),
@@ -624,14 +701,107 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
   }
 
   const collected = await collectArmResult(arm, novelId)
+  const planningContext = await maybeRunPlanningContextAudit(arm, novelId, targetPrefix)
   const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts)
   const sceneSemantic = await maybeRunSceneSemanticReview(arm, novelId, targetPrefix, opts)
   return {
     arm,
     novelId,
     ...collected,
+    planningContext,
     ...(proseSemantic ? { proseSemantic } : {}),
     ...(sceneSemantic ? { sceneSemantic } : {}),
+  }
+}
+
+async function maybeRunPlanningContextAudit(
+  arm: ArmName,
+  novelId: string,
+  targetPrefix: string,
+): Promise<PlanningContextTelemetrySummary> {
+  const outputDir = `output/planning-drafting-context/${targetPrefix}/${arm}`
+  console.log(`  planning-to-drafting context audit ...`)
+  try {
+    const report = await loadPlanningToDraftingContextReport(novelId)
+    writePlanningContextArtifacts(report, outputDir)
+    return planningContextSummary(report, outputDir)
+  } catch (err) {
+    return {
+      outputDir,
+      surfaceCount: 0,
+      gapCount: 0,
+      gaps: [],
+      upstream: {
+        worldBibleAvailable: false,
+        storySpineAvailable: false,
+        characterCount: 0,
+        chapterPlanCount: 0,
+        plannedSceneCount: 0,
+        scenesWithSceneContract: 0,
+        scenesWithObligations: 0,
+        scenesWithImplicitReferences: 0,
+      },
+      downstream: {
+        events: 0,
+        withCharacterContext: 0,
+        withWorldContext: 0,
+        withStoryContext: 0,
+        withReaderInfoState: 0,
+        withImplicitReferences: 0,
+        withResolvedReferences: 0,
+        referenceLookups: 0,
+        withSceneContract: 0,
+        withObligations: 0,
+        withDraftingBriefTrace: 0,
+      },
+      error: `planning context audit failed: ${err instanceof Error ? err.message : String(err)}`,
+    }
+  }
+}
+
+function writePlanningContextArtifacts(report: PlanningToDraftingContextReport, outputDir: string): void {
+  mkdirSync(outputDir, { recursive: true })
+  writeFileSync(join(outputDir, "planning-drafting-context-report.json"), `${JSON.stringify(report, null, 2)}\n`)
+  writeFileSync(join(outputDir, "planning-drafting-context-report.md"), renderPlanningToDraftingContextReport(report))
+}
+
+function planningContextSummary(
+  report: PlanningToDraftingContextReport,
+  outputDir: string,
+): PlanningContextTelemetrySummary {
+  return {
+    outputDir,
+    surfaceCount: report.surfaces.length,
+    gapCount: report.gaps.length,
+    gaps: report.gaps.map(row => ({
+      surface: row.surface,
+      status: row.status,
+      upstreamCount: row.upstreamCount,
+      downstreamCount: row.downstreamCount,
+    })),
+    upstream: {
+      worldBibleAvailable: report.upstream.worldBibleAvailable,
+      storySpineAvailable: report.upstream.storySpineAvailable,
+      characterCount: report.upstream.characterCount,
+      chapterPlanCount: report.upstream.chapterPlanCount,
+      plannedSceneCount: report.upstream.plannedSceneCount,
+      scenesWithSceneContract: report.upstream.scenesWithSceneContract,
+      scenesWithObligations: report.upstream.scenesWithObligations,
+      scenesWithImplicitReferences: report.upstream.scenesWithImplicitReferences,
+    },
+    downstream: {
+      events: report.downstream.events,
+      withCharacterContext: report.downstream.withCharacterContext,
+      withWorldContext: report.downstream.withWorldContext,
+      withStoryContext: report.downstream.withStoryContext,
+      withReaderInfoState: report.downstream.withReaderInfoState,
+      withImplicitReferences: report.downstream.withImplicitReferences,
+      withResolvedReferences: report.downstream.withResolvedReferences,
+      referenceLookups: report.downstream.referenceLookups,
+      withSceneContract: report.downstream.withSceneContract,
+      withObligations: report.downstream.withObligations,
+      withDraftingBriefTrace: report.downstream.withDraftingBriefTrace,
+    },
   }
 }
 
@@ -921,6 +1091,15 @@ async function main() {
     console.log(`  mean per-chapter ratio: ${r.meanRatio.toFixed(3)}`)
     console.log(`  writer-expansion events: ${r.expansionEvents}`)
     console.log(`  writer drafting brief: ${formatDraftingBriefTelemetry(r.draftingBrief)}`)
+    if (r.planningContext) {
+      console.log(`  planning context: surfaces=${r.planningContext.surfaceCount}, gaps=${r.planningContext.gapCount}, report=${r.planningContext.outputDir}`)
+      if (r.planningContext.gaps.length > 0) {
+        console.log(`    gaps: ${r.planningContext.gaps.map(gap => `${gap.surface}:${gap.status}`).join(", ")}`)
+      }
+      if (r.planningContext.error) {
+        console.log(`    error: ${r.planningContext.error}`)
+      }
+    }
     if (r.proseSemantic) {
       console.log(`  prose semantic: rows=${r.proseSemantic.resultCount}, lows=${r.proseSemantic.lowRows}, errors=${r.proseSemantic.errorRows}`)
       console.log(`    guidance: lengthSignal=${r.proseSemantic.lengthSignal}, qualityRisk=${r.proseSemantic.qualityRisk}`)
@@ -1016,6 +1195,7 @@ export function buildDraftingIsolatedRunReport(input: {
       cleanSource: input.sourceAssessment.clean,
       totalWordsByArm: Object.fromEntries(results.map(result => [result.arm, result.totalWords])),
       meanRatioByArm: Object.fromEntries(results.map(result => [result.arm, result.meanRatio])),
+      planningContextGapsByArm: Object.fromEntries(results.map(result => [result.arm, result.planningContext?.gapCount ?? null])),
       proseSemanticLowRowsByArm: Object.fromEntries(results.map(result => [result.arm, result.proseSemantic?.lowRows ?? null])),
       sceneSemanticLowRowsByArm: Object.fromEntries(results.map(result => [result.arm, result.sceneSemantic?.lowRows ?? null])),
     },
@@ -1073,6 +1253,12 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
     lines.push(`- ${result.arm}: novel=${result.novelId} words=${result.totalWords}/${result.totalTarget} meanRatio=${result.meanRatio.toFixed(3)}${result.error ? ` error=${result.error}` : ""}`)
     if (result.proseSemantic) {
       lines.push(`  proseSemantic rows=${result.proseSemantic.resultCount} lows=${result.proseSemantic.lowRows} errors=${result.proseSemantic.errorRows} report=${result.proseSemantic.outputDir || "(not written)"}`)
+    }
+    if (result.planningContext) {
+      lines.push(`  planningContext surfaces=${result.planningContext.surfaceCount} gaps=${result.planningContext.gapCount} report=${result.planningContext.outputDir}`)
+      if (result.planningContext.gaps.length > 0) {
+        lines.push(`  planningContextGaps ${result.planningContext.gaps.map(gap => `${gap.surface}:${gap.status}`).join(", ")}`)
+      }
     }
     if (result.sceneSemantic) {
       lines.push(`  sceneSemantic tasks=${result.sceneSemantic.taskCount} lows=${result.sceneSemantic.lowRows} errors=${result.sceneSemantic.errorRows} report=${result.sceneSemantic.outputDir || "(not written)"}`)

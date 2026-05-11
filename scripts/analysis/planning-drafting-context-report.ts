@@ -373,6 +373,19 @@ function parseArgs(argv: string[]): Args {
   return { novelId, json }
 }
 
+export async function loadPlanningToDraftingContextReport(novelId: string): Promise<PlanningToDraftingContextReport> {
+  const [upstream, writerRows] = await Promise.all([
+    loadPlanningArtifacts(novelId),
+    loadWriterContextRows(novelId),
+  ])
+  const writerContext = buildWriterContextTelemetryReport(writerRows, novelId)
+  return buildPlanningToDraftingContextReport({
+    novelId,
+    upstream,
+    writerContext,
+  })
+}
+
 async function loadPlanningArtifacts(novelId: string): Promise<PlanningArtifactSummary> {
   const [worldRows, storyRows, characterRows, outlineRows] = await Promise.all([
     db<Array<{ present: boolean }>>`
@@ -429,16 +442,7 @@ async function main(argv: string[]): Promise<number> {
     return 2
   }
 
-  const [upstream, writerRows] = await Promise.all([
-    loadPlanningArtifacts(args.novelId),
-    loadWriterContextRows(args.novelId),
-  ])
-  const writerContext = buildWriterContextTelemetryReport(writerRows, args.novelId)
-  const report = buildPlanningToDraftingContextReport({
-    novelId: args.novelId,
-    upstream,
-    writerContext,
-  })
+  const report = await loadPlanningToDraftingContextReport(args.novelId)
   console.log(args.json ? JSON.stringify(report, null, 2) : renderPlanningToDraftingContextReport(report))
   await db.end().catch(() => {})
   return 0

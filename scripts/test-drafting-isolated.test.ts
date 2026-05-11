@@ -213,6 +213,40 @@ describe("drafting isolated report", () => {
           totalWords: 3300,
           meanRatio: 1.12,
           expansionEvents: 2,
+          planningContext: {
+            outputDir: "output/planning-context",
+            surfaceCount: 11,
+            gapCount: 1,
+            gaps: [{
+              surface: "resolvedReferences",
+              status: "missing_downstream",
+              upstreamCount: 2,
+              downstreamCount: 0,
+            }],
+            upstream: {
+              worldBibleAvailable: true,
+              storySpineAvailable: true,
+              characterCount: 3,
+              chapterPlanCount: 2,
+              plannedSceneCount: 10,
+              scenesWithSceneContract: 10,
+              scenesWithObligations: 8,
+              scenesWithImplicitReferences: 2,
+            },
+            downstream: {
+              events: 11,
+              withCharacterContext: 11,
+              withWorldContext: 4,
+              withStoryContext: 9,
+              withReaderInfoState: 5,
+              withImplicitReferences: 0,
+              withResolvedReferences: 0,
+              referenceLookups: 0,
+              withSceneContract: 11,
+              withObligations: 9,
+              withDraftingBriefTrace: 11,
+            },
+          },
           proseSemantic: {
             outputDir: "output/prose",
             resultCount: 4,
@@ -239,6 +273,7 @@ describe("drafting isolated report", () => {
     expect(report.v).toBe("drafting-isolated-report-v1")
     expect(report.summary.cleanSource).toBe(true)
     expect(report.summary.totalWordsByArm["scene-call-v1"]).toBe(3300)
+    expect(report.summary.planningContextGapsByArm["scene-call-v1"]).toBe(1)
     expect(report.summary.proseSemanticLowRowsByArm["scene-call-v1"]).toBe(0)
     expect(report.summary.sceneSemanticLowRowsByArm["scene-call-v1"]).toBe(1)
     expect(report.deltas[0]).toMatchObject({
@@ -252,6 +287,8 @@ describe("drafting isolated report", () => {
 
     const rendered = renderDraftingIsolatedRunReport(report)
     expect(rendered).toContain("Clean source: yes")
+    expect(rendered).toContain("planningContext surfaces=11 gaps=1")
+    expect(rendered).toContain("planningContextGaps resolvedReferences:missing_downstream")
     expect(rendered).toContain("sceneSemantic tasks=4 lows=1")
   })
 

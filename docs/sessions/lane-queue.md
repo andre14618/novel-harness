@@ -29,10 +29,10 @@ unless the user explicitly requests a disposable branch.
   L106.
 - **Planning-to-drafting context audit started (2026-05-11).**
   `diagnostics:planning-drafting-context` now compares upstream artifact
-  availability with writer-context telemetry. On clean P1 rerun, character,
-  world, story, reader-info, scene-contract, obligation, and drafting-brief
-  surfaces were covered; only implicit-reference resolution reported a gap
-  (2 marker scenes; trace now separates markers, lookups, and rendered context).
+  availability with writer-context telemetry, and `test-drafting-isolated`
+  writes it per arm. Clean P1 covered character, world, story, reader-info,
+  scene-contract, obligation, and drafting-brief surfaces; only implicit refs
+  showed a gap (2 marker scenes; trace separates markers/lookups/context).
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
