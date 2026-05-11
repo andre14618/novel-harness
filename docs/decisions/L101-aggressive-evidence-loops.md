@@ -2,14 +2,17 @@
 status: active
 date: 2026-05-10
 role: decision-record
-amended_by: L106
+amended_by:
+  - L106
+  - L107
 ---
 
 # L101: Aggressive Evidence Loops
 
-Amended 2026-05-10 by L106: aggressive loops now target production-path
-integration by default. Use POC-only substrates only for explicit disposable
-experiments.
+Amended 2026-05-10 by L106 and 2026-05-11 by L107: aggressive loops now target
+production-path integration by default. Use POC-only substrates only for
+explicit disposable experiments, and prefer one-offs that call production
+modules and emit production-compatible artifacts.
 
 ## Decision
 
@@ -56,7 +59,7 @@ job:
 
 - coding agents for implementation and reviews;
 - stronger reasoning models for architectural critique;
-- DeepSeek calls for cheap POC sweeps and scoped semantic diagnostics;
+- DeepSeek calls for production-path sweeps and scoped semantic diagnostics;
 - research agents for bounded questions that can change an implementation or
   evaluation choice;
 - multiple judge/adjudicator calls when the goal is to measure whether a
@@ -102,7 +105,8 @@ decision record unless one agent owns the final integration.
 
 ## Statistics
 
-Every substantive POC or evaluation run should capture available statistics:
+Every substantive production-path one-off or evaluation run should capture
+available statistics:
 
 - run ID, fixture/source ID, chapter/scene IDs;
 - model role and route;
@@ -119,12 +123,12 @@ high-priority support task.
 
 Aggressive loops do not lower the production bar.
 
-Promotion from POC to production still requires:
+Promotion or default-on movement still requires:
 
 - exact phase/surface named;
 - artifact evidence cited;
 - traceability preserved;
-- duplicate experimental substrate frozen or removed;
+- duplicate experimental substrate avoided, frozen, or removed;
 - production verification run;
 - rollback path.
 
@@ -132,8 +136,9 @@ Promotion from POC to production still requires:
 
 - Day-based plans should be replaced with goal queues and loop stop conditions.
 - Agents should continue from one independent item to the next until blocked.
-- More DeepSeek spend on POC generation and semantic diagnostics is preferred
-  over more planning discussion when the next artifact can be generated.
+- More DeepSeek spend on production-path generation and semantic diagnostics is
+  preferred over more planning discussion when the next artifact can be
+  generated.
 - Engineering parallelism is the default when ownership can be separated.
 - Repository docs should distinguish runtime model policy from engineering and
   research harness choices.

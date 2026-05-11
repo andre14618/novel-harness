@@ -9,6 +9,8 @@ amends:
   - L103
   - L104
   - L105
+amended_by:
+  - L107
 ---
 
 # L106: Production Path Integration Over POC Branching
@@ -23,6 +25,11 @@ trace contracts, and production review artifacts by default. POC artifacts
 remain useful as evidence, fixtures, and historical comparison points, but they
 are not the forward operating lane unless the user explicitly asks for a
 disposable experiment.
+
+Amended 2026-05-11 by L107: one-off experiments should be thin wrappers around
+production modules and production-compatible artifacts wherever possible. Avoid
+POC-to-main loops; integrate the reusable behavior into the production path
+first, behind default-off controls or diagnostics when needed.
 
 ## Integration Contract
 

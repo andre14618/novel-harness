@@ -25,7 +25,7 @@ you need historical evidence for a decision.
 ## Git Workflow
 
 - Work directly on `main` by default. Do not create lane or feature branches
-  unless the user explicitly asks or the work is a disposable experiment.
+  unless the user explicitly asks.
 - Before risky merges, rewrites, or migrations, create a rollback tag instead
   of long-lived branches.
 - Commit coherent slices atomically on `main`; keep the worktree clean before
@@ -42,11 +42,14 @@ the work diagnostic/docs-only or stop for user judgment.
 
 - Production lane is the default: preserve runtime defaults and run the relevant
   production verification gates.
-- POC lane is allowed only when `docs/sessions/lane-queue.md` marks it active
-  or the user explicitly asks for a proof-of-concept. In POC lane, optimize for
-  vertical reviewable artifacts under `poc/`, checker-deferred generation,
-  targeted tests, and faster token-for-evidence loops. Preserve traceability
-  IDs and do not change production defaults. See L100.
+- Production-path one-offs are allowed when they reuse production modules,
+  commands, artifact schemas, and comparison/cohort reports. Prefer a
+  default-off production arm, diagnostic, or thin wrapper over a separate POC
+  runner.
+- POC lane is allowed only when the user explicitly asks for a proof of concept
+  or disposable experiment. Preserve traceability IDs, require explicit
+  disposable flags for output-producing runs, and do not change production
+  defaults. See L107.
 - When L101/aggressive evidence loops are active, keep moving through the next
   independent goal after each artifact or commit. Use parallel agents where
   write scopes are separable, gather run statistics, and use semantic

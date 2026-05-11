@@ -29,20 +29,20 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 ## Repository Mode
 
-- Work happens on `main` unless the user explicitly requests a branch or a
-  disposable experiment needs one. Use rollback tags before risky moves.
+- Work happens on `main` unless the user explicitly requests a branch. Use
+  rollback tags before risky moves.
 - Novel Harness owns novel planning, writing, checking, revision, evaluation,
   proposal workflows, telemetry, and operator review surfaces. It does not own
   a custom autonomous coding supervisor.
 - Production lane is the default: preserve runtime defaults, make coherent
   atomic commits, and run targeted verification for changed behavior.
-- Production path integration is the active posture: absorb validated POC
-  learnings into production modules, telemetry, tests, and review artifacts
-  instead of extending parallel POC workflows. See L106.
-- POC work is reserved for explicit disposable experiments; historical POC
-  artifacts remain evidence and fixtures, not the forward operating lane.
-- When accelerating, use goal-driven evidence loops and parallel agents where
-  write scopes are separable; continue until a real stop condition. See L101.
+- Production path integration is the active posture: test hypotheses through
+  production modules, default-off arms, diagnostics, telemetry, readiness, and
+  compare/cohort artifacts rather than POC-to-main loops. One-offs must reuse
+  the same production code/artifact contracts; standalone POCs need explicit
+  disposable approval. See L106/L107.
+- When accelerating, use goal-driven production evidence loops and parallel
+  agents where write scopes are separable; continue until a real stop condition. See L101/L107.
 
 ## Active Runtime Posture
 

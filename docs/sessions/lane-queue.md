@@ -5,12 +5,12 @@ unless the user explicitly requests a disposable branch.
 
 ## Active
 
-- **Production-first posture is now the standing default (L106).** Validated POC
-  learnings move into production modules, controls, telemetry, tests, and review
-  artifacts. Use historical `poc/` outputs as evidence/fixtures, but do not add
-  another long-lived POC runner, prompt branch, mapper, checker, or review
-  format when the same question can be tested through the production path. New
-  scene-first novella POC runs require an explicit disposable-POC flag.
+- **Production-path one-offs are now the standing default (L106/L107).** Test
+  new hypotheses through production modules, default-off arms, diagnostics,
+  readiness artifacts, and run-compare/cohort reports. Historical `poc/`
+  outputs are evidence/fixtures only. Do not add POC runners, prompt branches,
+  mappers, checkers, or review formats when a thin production wrapper can write
+  the same artifacts. Standalone POCs require explicit approval plus flags.
 - **Production writer-brief evidence (2026-05-11).** P1 made
   `drafting-brief-v1` strongest at 1.24x with prose lows 0/8 and scene lows
   1/33, but LitRPG replication still holds promotion. Planner-generated P1
@@ -38,12 +38,12 @@ unless the user explicitly requests a disposable branch.
   future-event anchors, partial scene contracts, narrow fact-status reversals, and
   unresolved reference attempts into manual Plan Readiness items. `diagnostics:plan-assist-readiness`
   converts pending Plan-Assist rows into manual readiness items. Keep context gaps diagnostic unless downstream context is missing for a needed ref.
-- **Aggressive evidence loops remain authorized (L101, amended by L106).**
+- **Aggressive evidence loops remain authorized (L101, amended by L106/L107).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
   statistics; parallelize independent write scopes; keep going until blocked by
   production-default risk, traceability loss, repeated same-fingerprint failure,
-  unavailable environment, or explicit operator decision.
+  unavailable environment, or explicit operator decision. Disposable one-offs must reuse production modules/artifact contracts whenever possible.
 - **Scene-level plan/write lane (operator-adjusted, 2026-05-10).** Operational
   plan is `docs/research/user-adjusted-backlog-2026-05-10.md` (B1–B5).
   Inputs: seven Opus deep dives plus audits for ID rendering, structure-*
@@ -59,7 +59,7 @@ unless the user explicitly requests a disposable branch.
   scenePlanContractV1 calibration) is now a later production slice,
   deferred behind production-path integration evidence; it will need its own
   production-default decision record and replay-fixture re-record.
-- **Scene-first novella POC promotion hold (L103).** P3 baseline,
+- **Historical scene-first evidence hold (L103).** P3 baseline,
   tight-scope, density-cap, and fixed-plan expansion A/B artifacts landed under
   `poc/scene-first-novella/output/`. Evidence supports scene-count control,
   endpoint/hook fit, and lower obligation density as real levers, but best run
@@ -67,7 +67,7 @@ unless the user explicitly requests a disposable branch.
   `scenePlanContractV1`, `sceneCallWriterV1`, and `writerExpansionMode`
   default-off; next production-path slice should target planner/state-mapper
   obligation load.
-- **Load-control POC promotion hold (L104).** Parallel arms tested prompt-only
+- **Historical load-control evidence hold (L104).** Parallel arms tested prompt-only
   hard cap, deterministic chapter-budget compaction, and minimal state mapping.
   Best length was prompt-only at 6456/3900 = 1.66x with 8 obligations, but
   endpoints regressed to 2/2/3. Endpoint-complete arms stayed at 2.16x
