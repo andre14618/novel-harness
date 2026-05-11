@@ -50,7 +50,7 @@ interface ReportSummary {
 
 export interface SceneSemanticComparison {
   candidate: ReportSummary
-  verdict: "improved" | "regressed" | "mixed" | "unchanged"
+  verdict: "improved" | "regressed" | "mixed" | "unchanged" | "incomplete"
   comparedRows: number
   missingInCandidate: string[]
   missingInBaseline: string[]
@@ -141,7 +141,7 @@ export function renderSceneSemanticComparisonReport(report: SceneSemanticCompari
   lines.push("")
   lines.push("- This is advisory replay telemetry, not a drafting gate.")
   lines.push("- Positive mean deltas and resolved lows are useful only when rows align by exact scene and dimension.")
-  lines.push("- Missing rows usually mean dimensions or applicability targets changed; inspect before treating them as improvement.")
+  lines.push("- `incomplete` means at least one report has unpaired rows; inspect missing rows before treating deltas as improvement.")
   return `${lines.join("\n")}\n`
 }
 
@@ -158,7 +158,7 @@ function compareCandidate(
   const dimensions = summarizeDimensionDeltas(rowChanges)
   return {
     candidate: summarizeReport(candidate),
-    verdict: comparisonVerdict(dimensions),
+    verdict: comparisonVerdict(dimensions, missingInCandidate.length + missingInBaseline.length),
     comparedRows: rowChanges.length,
     missingInCandidate,
     missingInBaseline,
@@ -216,7 +216,11 @@ function rowStatus(baselineOrdinal: number, candidateOrdinal: number): RowStatus
   return "unchanged"
 }
 
-function comparisonVerdict(dimensions: DimensionDelta[]): SceneSemanticComparison["verdict"] {
+function comparisonVerdict(
+  dimensions: DimensionDelta[],
+  missingRows: number,
+): SceneSemanticComparison["verdict"] {
+  if (missingRows > 0) return "incomplete"
   const resolved = dimensions.reduce((sum, dim) => sum + dim.resolvedLowRows, 0)
   const regressed = dimensions.reduce((sum, dim) => sum + dim.regressedLowRows, 0)
   const lowDelta = dimensions.reduce((sum, dim) => sum + dim.lowDelta, 0)

@@ -64,7 +64,12 @@ describe("scene-semantic-compare", () => {
     expect(comparison.comparedRows).toBe(1)
     expect(comparison.missingInCandidate).toEqual(["ch1:scene-b:sceneDramaturgy"])
     expect(comparison.missingInBaseline).toEqual(["ch1:scene-c:worldFactPressure"])
-    expect(comparison.verdict).toBe("improved")
+    expect(comparison.verdict).toBe("incomplete")
+    expect(renderSceneSemanticComparisonReport(buildSceneSemanticComparisonReport({
+      baseline,
+      candidates: [candidate],
+      generatedAt: "2026-05-11T00:00:00.000Z",
+    }))).toContain("Verdict: incomplete")
   })
 })
 
