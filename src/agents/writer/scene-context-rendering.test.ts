@@ -284,9 +284,12 @@ describe("renderBeatContext + scene contract", () => {
     expect(out).toContain("- Place: empty archive")
     expect(out).toContain("- Crisis choice: Trade the script or burn it.")
     expect(out).toContain("- Value shift: compliance -> rupture")
+    expect(out).toContain("show the immediate record, custody, access, debt, threat, or relationship change")
     expect(out).toContain("OBLIGATIONS:")
+    expect(out).toContain("Preserve status polarity exactly")
     expect(out).toContain("obl-choice")
     expect(out).toContain("source:fact-script")
+    expect(out).toContain("Preserve bridge state exactly")
     expect(out).toContain("CHARACTER PROFILES/SNAPSHOTS:")
     expect(out).toContain("CHARACTER CONTEXT CAPSULES:")
     expect(out).toContain("RESOLVED REFERENCES:")
@@ -353,6 +356,7 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.userPrompt).toContain("before cutting endpoint action or consequence")
     expect(selected.userPrompt).toContain("SCENE CONTRACT (dramatize this shape on-page):")
     expect(selected.userPrompt).toContain("Endpoint landing: execute the outcome")
+    expect(selected.userPrompt).toContain("If the outcome is delay, investigation, or refusal to decide")
     expect(selected.userPrompt).toContain("CHARACTER MATERIALITY:")
     expect(selected.userPrompt).toContain("Use these details to shape concrete behavior")
     expect(selected.draftingBriefTrace.mode).toBe("scene-turn-v1")
@@ -449,8 +453,36 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.userPrompt).toContain("Make each retained anchor change a choice")
     expect(selected.userPrompt).toContain("Anchor: establish: The ledger seal burns anyone who lies. [source:fact-ledger-seal]")
     expect(selected.userPrompt).toContain("Continue cleanly from the transition bridge")
+    expect(selected.userPrompt).toContain("Preserve bridge state exactly")
     expect(selected.draftingBriefTrace.mode).toBe("scene-turn-anchored-v1")
     expect(selected.draftingBriefTrace.sections.factContinuityAnchors).toBe(true)
+  })
+
+  it("renders compact status-polarity guidance for already-authorized missing-seal facts", () => {
+    const out = renderWriterDraftingBrief(
+      baseCtx({
+        beatSpec: {
+          ...baseCtx().beatSpec,
+          obligations: {
+            mustEstablish: [{
+              text: "The transfer order is already authorized and signed; only Calla's seal remains missing.",
+              obligationId: "obl-transfer-status",
+              sourceId: "fact-transfer-status",
+            }],
+            mustPayOff: [],
+            mustTransferKnowledge: [],
+            mustShowStateChange: [],
+            mustNotReveal: [],
+            allowedNewEntities: [],
+          },
+        },
+      }),
+      { targetWords: 500, idRendering: "raw" },
+    )
+
+    expect(out).toContain("Preserve status polarity exactly")
+    expect(out).toContain("already/only/not-yet/missing/withheld/authorized/signed")
+    expect(out).toContain("The transfer order is already authorized and signed; only Calla's seal remains missing.")
   })
 })
 

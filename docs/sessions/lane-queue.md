@@ -18,9 +18,9 @@ unless the user explicitly requests a disposable branch.
   quality/length tradeoff. Clean rerun compact brief: 1.30x, scene lows 3/36,
   endpoint 3/11. V2 compact: 5265/3800 = 1.38x, scene lows 2/36, endpoint 2/11.
   V3 endpoint-source repair: 5759/3800 = 1.52x, scene lows 1/34, endpoint 1/10
-  after deleting the setup opener. Compact brief remains best quality tradeoff,
-  but next repair should be narrower than scene deletion. No default flip. See
-  L106.
+  after deleting the setup opener. Compact status-polarity guardrail: 4713/3800
+  = 1.24x, scene lows 2/34, endpoint 1/10, prose lows 0/8. Compact brief remains
+  best quality tradeoff, with no default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
@@ -115,8 +115,10 @@ unless the user explicitly requests a disposable branch.
 
 - Next session start: repair signed-order adherence and setup/intention-only
   endpoint scenes before any prompt-arm/default decision. V3 reduced semantic
-  endpoint lows but bloated prose, so prefer a narrower source/brief adherence
-  repair over scene deletion. See L103-L106.
+  endpoint lows but bloated prose; the narrower status-polarity guardrail
+  recovered length, but the Corso-file scene still needs world-pressure/endpoint
+  improvement and checker seal/authorization semantics need isolation. See
+  L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.

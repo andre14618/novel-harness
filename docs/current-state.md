@@ -118,11 +118,12 @@ source hygiene, planning-edit replay, scene-contract telemetry, and fact-status
 readiness. P1 made `drafting-brief-v1` strongest at 1.24x with prose lows 0/8
 and scene lows 1/33, but LitRPG replication held promotion. Planner-generated
 P1 repair reached `choice/full=11/11` and `factContradictions=0`; clean reruns
-now show the tradeoff: v2 compact brief 5265/3800 = 1.38x, scene lows 2/36,
-endpoint lows 2/11; v3 endpoint-source repair 5759/3800 = 1.52x, scene lows
-1/34, endpoint lows 1/10. Semantic endpoint quality improved, but length
-regressed. Next target a narrower signed-order/setup-intention repair without
-scene deletion or default flips. See L103-L106.
+now show the tradeoff. V3 endpoint-source repair improved endpoint lows to
+1/10 but bloated to 5759/3800 = 1.52x. A narrower compact status-polarity
+guardrail kept endpoint lows 1/10 and cut length to 4713/3800 = 1.24x, with
+scene lows 2/34 and prose lows 0/8. Next target the remaining Corso-file
+world-pressure/setup endpoint weakness and checker seal/authorization semantics.
+Do not flip defaults. See L103-L106.
 
 ## Authoring Gates
 

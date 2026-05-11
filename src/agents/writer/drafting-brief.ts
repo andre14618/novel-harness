@@ -171,6 +171,7 @@ function renderSceneContractBrief(scene: SceneContractBlock, mode: WriterDraftin
   if (scene.consequence) lines.push(`- Consequence: ${scene.consequence}`)
   if (scene.outcome || scene.consequence) {
     lines.push("- Endpoint landing: execute the outcome and show the consequence in this scene; do not only point toward a later confrontation.")
+    lines.push("- If the outcome is delay, investigation, or refusal to decide, show the immediate record, custody, access, debt, threat, or relationship change that makes the delay costly, then exit.")
   }
   if (scene.povPersonalStake) lines.push(`- POV personal stake: ${scene.povPersonalStake}`)
   if (scene.valueIn || scene.valueOut) {
@@ -192,6 +193,9 @@ function renderObligationsBrief(
   pushObligationItems(lines, "Must not reveal", obligations.mustNotReveal, idRendering)
   if (obligations.allowedNewEntities.length > 0) {
     lines.push(`- Allowed new named entities: ${obligations.allowedNewEntities.join(", ")}`)
+  }
+  if (lines.length > 0) {
+    lines.unshift("- Preserve status polarity exactly: already/only/not-yet/missing/withheld/authorized/signed facts are binding; do not reverse, repeat, or advance them unless this scene explicitly changes them.")
   }
   return lines.join("\n")
 }
@@ -272,6 +276,9 @@ function formatObligationRefs(item: {
 
 function renderContinuityAnchors(ctx: BeatContext): string | null {
   const lines: string[] = []
+  if (ctx.transitionBridge) {
+    lines.push("- Preserve bridge state exactly; do not contradict concrete possession, location, status, or relationship facts from the prior scene.")
+  }
   if (ctx.transitionBridge) lines.push(`Continue from: ${ctx.transitionBridge}`)
   if (ctx.landingTarget) lines.push(`Land toward next scene: ${ctx.landingTarget}`)
   return lines.length > 0 ? `CONTINUITY ANCHORS:\n${lines.join("\n")}` : null
