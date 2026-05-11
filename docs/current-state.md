@@ -122,11 +122,11 @@ character/world lows 0. LitRPG replication first held promotion; after reviewed
 `litrpg-scene-select-cohort-1778472482` controlled length at 3473/2700 = 1.29x
 but regressed scene lows to 23/45 versus baseline 11/45. Scene-turn comparison
 `litrpg-scene-turn-cohort-1778474291` improved lows to 16/45 at 3777/2700 =
-1.40x, but worldFactPressure regressed. Prompt-only anchoring did not recover
-the gap: `litrpg-anchored-brief-cohort-1778475936` worsened to 18/45 lows at
-3873/2700 = 1.45x and still moved the dawn Verification onto the bridge. Do
-not flip defaults; next push timing/location/fact constraints upstream into
-scene-contract semantics or deterministic diagnostics. See L103-L106.
+1.40x, but worldFactPressure regressed. Prompt-only anchoring worsened to 18/45
+lows at 1.45x; upstream future-event readiness edit `litrpg-temporal-anchor-cohort-1778475936` improved to 12/45 lows, WFACT 0/9,
+and 3749/2700 = 1.39x, while continuity still printed likely false-positive
+timing/location blockers. Do not flip defaults; next formalize temporal/place
+semantics in scene contracts and checker interpretation. See L103-L106.
 
 ## Authoring Gates
 
