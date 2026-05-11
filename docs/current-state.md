@@ -112,21 +112,19 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 The active lane is in `docs/sessions/lane-queue.md`.
 
-As of 2026-05-11, L106 has absorbed validated POC evidence into writer-brief
-telemetry, scene-semantic replay, Plan Readiness import/apply, source hygiene,
-and planning-edit replay; the formal production-path integration audit passed.
-`diagnostics:planning-edit-replay` projected 11
-approved readiness edits onto clean source `p1-clean-replay-1778457296` through
-normal planning proposals; source hygiene stayed clean (0 drafts/facts/knowledge).
-The clean rerun `p1-clean-rerun-1778457296-drafting-brief-v1` approved both
-chapters at 3742/3000 = 1.25x with no exhaustions, prose-semantic 0/8 lows,
-sceneDramaturgy 10/10 clean, and endpointLanding lows 1/10. The old loop4 from
-a drafted source remains contamination evidence only. A structural Plan
-Readiness scene replacement for the residual low reran worse
-(`p1-clean-rerun2-1778457296`: 4061/3000, endpointLanding lows 3/10) and was
-reverted by production proposal. Do not chase that single low without a new
-upstream hypothesis; `allow-entities` should be replayed only if it reproduces.
-See L103-L106.
+As of 2026-05-11, L106 has absorbed validated POC evidence into production
+writer-brief telemetry, scene-semantic replay, Plan Readiness import/apply,
+source hygiene, and planning-edit replay. Clean-source cohort
+`p1-arm-cohort-1778464932` compared `baseline`, `drafting-brief-v1`, and
+`scene-call-v1` from `p1-clean-replay-1778457296`; the automatic semantic
+sidecar aligned 33 rows per candidate. `drafting-brief-v1` is the strongest
+current arm: 3731/3000 = 1.24x, prose-semantic 0/8 lows, context gaps 0,
+scene-semantic lows 1/33 with character/world lows 0. Baseline was
+7703/3000 = 2.57x with sceneContract missing downstream and endpoint lows
+3/10; `scene-call-v1` was 7142/3000 = 2.38x with one worldFactPressure low.
+Prior structural Plan Readiness scene replacement worsened and was reverted.
+Do not chase the remaining single endpoint low without a new upstream
+hypothesis; replay `allow-entities` only if it reproduces. See L103-L106.
 
 ## Authoring Gates
 

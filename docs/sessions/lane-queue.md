@@ -11,29 +11,29 @@ unless the user explicitly requests a disposable branch.
   another long-lived POC runner, prompt branch, mapper, checker, or review
   format when the same question can be tested through the production path. New
   scene-first novella POC runs require an explicit disposable-POC flag.
-- **Production writer-brief evidence (2026-05-11).** Writer-brief smokes and
-  P1 readiness loops showed no prose-semantic lows but left endpointLanding as
-  the live quality signal. `diagnostics:planning-edit-replay` projected 11
-  approved `planning_edit` proposals from prior P1 evidence artifacts onto clean
-  source `p1-clean-replay-1778457296` through the production proposal route
-  (11/11 created and approved, all with parent lineage; source had 0 drafts,
-  facts, or knowledge rows). Clean rerun
-  `p1-clean-rerun-1778457296-drafting-brief-v1` approved both chapters at
-  3742/3000 = 1.25x, no exhaustions, prose-semantic 0/8 lows, sceneDramaturgy
-  10/10 clean, endpointLanding lows 1/10. The remaining low is ch2 scene 1
-  ending as setup rather than a consequence. A Plan Readiness structural
-  `beat_replace` edit for that scene was tested through normal proposals, but
-  clean rerun2 worsened to 4061/3000 and endpointLanding lows 3/10; the edit was
-  reverted by another proposal. `allow-entities` did not reproduce; replay it
-  only when that blocker appears again. Loop4 stays contaminated evidence. See
-  L106.
-- **Planning-to-drafting context audit started (2026-05-11).**
-  `diagnostics:planning-drafting-context` now compares upstream artifact
-  availability with writer-context telemetry, and `test-drafting-isolated`
-  writes it per arm. Clean P1 covered character, world, story, reader-info,
-  scene-contract, obligation, and drafting-brief surfaces; implicit refs now
-  classify as `attempted_no_context` when lookups run but render no context.
-  Target-ID scene-semantic replay leaves material/world lows at 0; endpoint 1/10.
+- **Production writer-brief evidence (2026-05-11).** `planning_edit` replay
+  projected 11 approved readiness edits onto clean source `p1-clean-replay-1778457296`;
+  source hygiene stayed clean. Cohort `p1-arm-cohort-1778464932` compared
+  `baseline`, `drafting-brief-v1`, and `scene-call-v1` with live prose +
+  scene-semantic telemetry. Baseline: 7703/3000 = 2.57x, prose lows 0/8, scene lows 3/33,
+  context gap `sceneContract:missing_downstream`. `drafting-brief-v1`: 3731/3000 =
+  1.24x, prose lows 0/8, scene lows 1/33, character/world lows 0, context gaps 0.
+  `scene-call-v1`: 7142/3000 = 2.38x, scene lows 3/33 including one
+  `worldFactPressure` low. Automatic scene-semantic comparison aligned 33 rows
+  per candidate; both verdicts are mixed, but `drafting-brief-v1` is the only
+  current production arm that improves length and endpoint lows without creating
+  material/world lows. The prior structural `beat_replace` endpoint edit
+  worsened and was reverted; do not chase the remaining single endpoint low
+  without a new upstream hypothesis. `allow-entities` did not reproduce; replay
+  only if that blocker appears again. See L106.
+- **Planning-to-drafting context audit is production evidence now (2026-05-11).**
+  `diagnostics:planning-drafting-context` compares upstream artifacts with
+  writer-context telemetry; `test-drafting-isolated` writes it per arm.
+  Clean P1 covered character, world, story, reader-info, scene-contract,
+  obligation, and drafting-brief surfaces; implicit refs classify as
+  `attempted_no_context` when lookups run but render no context. Use these
+  gaps diagnostically; escalate to Plan Readiness only when a run shows missing
+  downstream context for a genuinely needed reference.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
