@@ -118,15 +118,14 @@ writer-brief telemetry, scene-semantic replay, Plan Readiness, source hygiene,
 planning-edit replay, scene-contract telemetry, and compare/cohort artifacts.
 Clean-source tight-brief evidence is mixed; tight-anchored shortened P1 by 337
 words but lowered endpoint, materiality, and world-fact means. The default-off
-`planningSceneTurnShapingV1` upstream control now runs through the production
-planner/state-mapper path and paired-source compare via `--source-pair-id`.
-On the P1 concept-clone pair it shortened by 43 words, improved endpoint lows
-and cleared one checker blocker, but regressed total scene lows by 4 with
-character-materiality/world-pressure losses and +2 readiness findings.
-`planningMaterialPressureV1` now annotates existing source-refed non-final
-obligations with writer-visible materiality pressure notes; the first paired
-run filled 21/27 notes, shortened 575 words, and improved scene lows by 7, but
-checker negatives rose 2->14 and readiness +1. No default flip. See L103-L107.
+`planningSceneTurnShapingV1` and `planningMaterialPressureV1` now run through
+production planner/state-mapper paths and paired-source compare via
+`--source-pair-id`. Scene-turn shaping retries source-refed non-final scenes
+missing turn fields and fallback-fills minimal turn fields from existing
+obligations. P1 evidence: material pressure alone shortened 575 words and
+improved scene lows -7 but raised checker negatives 2->14; turn scaffold vs
+material pressure shortened 422 words and improved scene lows -6, checker
+negatives -12, endpoint mean +0.52, but readiness +4. No default flip. See L103-L107.
 
 ## Authoring Gates
 

@@ -45,6 +45,64 @@ describe("planningBeatExpansionRetryReason", () => {
     })).toBeNull()
   })
 
+  test("retries selective scene-turn shaping when source-refed non-final entries lack turn fields", () => {
+    expect(planningBeatExpansionRetryReason({
+      chapterNumber: 1,
+      targetWords: 900,
+      scenes: [
+        scene("Maren forces the clerk to honor the seal.", {
+          obligations: {
+            ...emptyObligations(),
+            mustEstablish: [{
+              text: "Halric's seal compels archive staff.",
+              sourceId: "fact-halric-seal-authority",
+              sourceKind: "fact",
+              obligationId: "obl-seal-authority",
+            }],
+          },
+        }),
+        scene("The clerk leads Maren down the archive stair."),
+        scene("Maren enters Halric's chamber.", {
+          outcome: "Maren enters Halric's chamber.",
+          consequence: "Halric must answer before the council seal.",
+        }),
+      ],
+    }, {
+      planningSceneTurnShapingV1: true,
+    })).toContain("source-refed non-final entries missing goal/opposition/outcome/consequence")
+  })
+
+  test("accepts selective scene-turn shaping when source-refed non-final entries have turn fields", () => {
+    expect(planningBeatExpansionRetryReason({
+      chapterNumber: 1,
+      targetWords: 900,
+      scenes: [
+        scene("Maren forces the clerk to honor the seal.", {
+          goal: "Force the clerk to open the sealed archive.",
+          opposition: "The clerk can refuse unless the seal creates immediate risk.",
+          outcome: "The clerk opens the archive ledger.",
+          consequence: "Maren reaches the forged page before Halric can bury it.",
+          obligations: {
+            ...emptyObligations(),
+            mustEstablish: [{
+              text: "Halric's seal compels archive staff.",
+              sourceId: "fact-halric-seal-authority",
+              sourceKind: "fact",
+              obligationId: "obl-seal-authority",
+            }],
+          },
+        }),
+        scene("The clerk leads Maren down the archive stair."),
+        scene("Maren enters Halric's chamber.", {
+          outcome: "Maren enters Halric's chamber.",
+          consequence: "Halric must answer before the council seal.",
+        }),
+      ],
+    }, {
+      planningSceneTurnShapingV1: true,
+    })).toBeNull()
+  })
+
   test("does not apply selective scene-turn retry under full scene-plan contract", () => {
     expect(planningBeatExpansionRetryReason({
       chapterNumber: 1,
@@ -73,6 +131,37 @@ describe("planningBeatExpansionRetryReason", () => {
 
     expect(scenes.at(-1)?.outcome).toBe("Maren pockets Halric's sealed summons.")
     expect(scenes.at(-1)?.consequence).toBe("Chapter endpoint consequence: Tovin escorting her toward the Chancellor's locked chamber")
+  })
+
+  test("fills non-final turn fields from source-refed obligations under selective shaping", () => {
+    const scenes = applySelectiveSceneTurnShapingFallback(
+      "unit-novel",
+      { chapterNumber: 1, purpose: "Maren reaches Halric's locked chamber." },
+      [
+        scene("Maren uses the summons to force a clerk's help.", {
+          characters: ["Maren", "Clerk"],
+          obligations: {
+            ...emptyObligations(),
+            mustEstablish: [{
+              text: "Halric's seal can compel archive staff.",
+              sourceId: "fact-halric-seal-authority",
+              sourceKind: "fact",
+              obligationId: "obl-seal-authority",
+            }],
+          },
+        }),
+        scene("Maren enters Halric's locked chamber."),
+      ],
+      seed({ planningSceneTurnShapingV1: true }),
+    )
+
+    expect(scenes[0]?.goal).toContain("Maren must act on")
+    expect(scenes[0]?.opposition).toContain("source pressure")
+    expect(scenes[0]?.turningPoint).toContain("Halric's seal")
+    expect(scenes[0]?.outcome).toBe("Maren uses the summons to force a clerk's help.")
+    expect(scenes[0]?.consequence).toContain("visible changed status")
+    expect(scenes[0]?.povPersonalStake).toContain("Maren cannot treat this as background")
+    expect(scenes[1]?.goal).toBeUndefined()
   })
 
   test("does not fill final endpoint fields when selective shaping is off", () => {

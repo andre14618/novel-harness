@@ -149,7 +149,8 @@ function renderSelectiveSceneTurnGuidance(enabled: boolean, scenePlanContractV1:
 Selective scene-turn shaping (planningSceneTurnShapingV1):
 This flag is active. It is not the full scenePlanContractV1 template, but the final entry MUST include "outcome" and "consequence"; the planner will retry if those endpoint fields are missing.
 - Populate the final entry's "outcome" and "consequence" so the chapter endpoint/hook lands through an on-page action, reveal, refusal, concession, or changed status with an immediate external effect.
-- Use other optional scene-turn fields only when they clarify a load-bearing entry. Do not tag background, transit, or decorative setup just because a field exists.
+- For source-grounded non-final entries that change fact, knowledge, state, relationship, world rule, or debt pressure, populate "goal", "opposition", "turningPoint", "outcome", "consequence", and "povPersonalStake". Do not leave an obligation-bearing action/revelation entry as description-only.
+- Use optional scene-turn fields only when they clarify a load-bearing entry. Do not tag background, transit, or decorative setup just because a field exists.
 - For entries driven by a concrete decision or pressure turn, populate "goal", "opposition", "turningPoint", "outcome", "consequence", and "povPersonalStake". Add "crisisChoice" and two "choiceAlternatives" only when there is a real tradeoff the prose should dramatize.
 - If a world fact, rule, debt, location constraint, or supporting character is load-bearing, make it constrain the goal, opposition, outcome, or consequence. Do not add standalone labels for context that does not change the turn.
 - Keep each scene description concise and playable. The optional fields should sharpen endpoint, character materiality, and world pressure; they must not duplicate the description or inflate the entry with generic theory.

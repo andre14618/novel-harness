@@ -431,7 +431,11 @@ async function expandChapter(
   )
   const shapedScenes = applySelectiveSceneTurnShapingFallback(novelId, skeleton, scenes, seed)
   const mapped = await mapChapterState(novelId, skeleton, allSkeletons, worldBible, characters, spine, seed, shapedScenes, attempt)
-  return applyPlanningMaterialPressureFallback(novelId, mapped, seed)
+  const pressured = applyPlanningMaterialPressureFallback(novelId, mapped, seed)
+  return {
+    ...pressured,
+    scenes: applySelectiveSceneTurnShapingFallback(novelId, skeleton, pressured.scenes ?? [], seed),
+  }
 }
 
 export function planningBeatExpansionRetryReason(
@@ -466,11 +470,32 @@ function selectiveSceneTurnShapingRetryReason(scenes: readonly SceneBeat[]): str
   if (!hasText(finalScene.outcome) || !hasText(finalScene.consequence)) {
     return "planningSceneTurnShapingV1 final entry missing outcome/consequence endpoint fields"
   }
+  const missingTurnShape = scenes
+    .slice(0, -1)
+    .filter(sceneHasSourceRefedHardObligation)
+    .filter(scene => !hasNonFinalSceneTurnShape(scene))
+  if (missingTurnShape.length > 0) {
+    return `planningSceneTurnShapingV1 ${missingTurnShape.length} source-refed non-final entries missing goal/opposition/outcome/consequence fields`
+  }
   return null
 }
 
 function hasText(value: unknown): boolean {
   return typeof value === "string" && value.trim().length > 0
+}
+
+function hasNonFinalSceneTurnShape(scene: SceneBeat): boolean {
+  return hasText(scene.goal)
+    && hasText(scene.opposition)
+    && hasText(scene.outcome)
+    && hasText(scene.consequence)
+}
+
+function sceneHasSourceRefedHardObligation(scene: SceneBeat): boolean {
+  for (const list of MATERIAL_PRESSURE_OBLIGATION_LISTS) {
+    if (scene.obligations[list].some(item => hasText(item.sourceId))) return true
+  }
+  return false
 }
 
 export function applySelectiveSceneTurnShapingFallback(
@@ -500,6 +525,18 @@ export function applySelectiveSceneTurnShapingFallback(
     )
     applied.push("consequence")
   }
+  let nonFinalEntriesFilled = 0
+  let nonFinalFieldsFilled = 0
+  for (const scene of out.slice(0, -1)) {
+    if (!sceneHasSourceRefedHardObligation(scene)) continue
+    const primary = firstSourceRefedHardObligation(scene)
+    if (!primary) continue
+    const filled = fillMissingSourceRefedSceneTurnFields(scene, primary)
+    if (filled > 0) {
+      nonFinalEntriesFilled += 1
+      nonFinalFieldsFilled += filled
+    }
+  }
   if (applied.length > 0) {
     log(
       novelId,
@@ -507,7 +544,65 @@ export function applySelectiveSceneTurnShapingFallback(
       `Planning scene-turn fallback ch${skeleton.chapterNumber}: filled final ${applied.join("+")} from existing plan text`,
     )
   }
+  if (nonFinalEntriesFilled > 0) {
+    log(
+      novelId,
+      "info",
+      `Planning scene-turn fallback ch${skeleton.chapterNumber}: filled ${nonFinalFieldsFilled} fields on ${nonFinalEntriesFilled} source-refed non-final entries`,
+    )
+  }
   return out
+}
+
+function firstSourceRefedHardObligation(scene: SceneBeat): MaterialPressureObligation | null {
+  for (const list of MATERIAL_PRESSURE_OBLIGATION_LISTS) {
+    const item = scene.obligations[list].find(candidate => hasText(candidate.sourceId))
+    if (item) return item
+  }
+  return null
+}
+
+function fillMissingSourceRefedSceneTurnFields(scene: SceneBeat, primary: MaterialPressureObligation): number {
+  let filled = 0
+  const obligationText = truncatePlanningField(primary.text, 140)
+  const characterName = primary.characterName
+  const actor = typeof characterName === "string" && characterName.trim().length > 0
+    ? characterName.trim()
+    : scene.characters.find(hasText)?.trim()
+  if (!hasText(scene.goal)) {
+    scene.goal = truncatePlanningField(`${actor ? `${actor} must` : "The scene must"} act on: ${obligationText}`, 220)
+    filled += 1
+  }
+  if (!hasText(scene.opposition)) {
+    scene.opposition = truncatePlanningField(
+      `The source pressure cannot remain background; it must create resistance, cost, or a harder choice on page.`,
+      220,
+    )
+    filled += 1
+  }
+  if (!hasText(scene.turningPoint)) {
+    scene.turningPoint = truncatePlanningField(`The obligation becomes impossible to ignore: ${obligationText}`, 220)
+    filled += 1
+  }
+  if (!hasText(scene.outcome)) {
+    scene.outcome = truncatePlanningField(scene.description, 260)
+    filled += 1
+  }
+  if (!hasText(scene.consequence)) {
+    scene.consequence = truncatePlanningField(
+      `By the exit, ${obligationText} creates a visible changed status, relationship pressure, or next action.`,
+      260,
+    )
+    filled += 1
+  }
+  if (!hasText(scene.povPersonalStake)) {
+    scene.povPersonalStake = truncatePlanningField(
+      `${actor ?? "The POV"} cannot treat this as background; it changes what they risk, choose, or owe.`,
+      220,
+    )
+    filled += 1
+  }
+  return filled
 }
 
 export function applyPlanningMaterialPressureFallback(

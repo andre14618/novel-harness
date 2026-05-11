@@ -20,14 +20,13 @@ unless the user explicitly requests a disposable branch.
   with scene lows 4/34. N=3 tight cohort is mixed: mean -90.7 words, scene lows
   -6, endpoint lows -2, scene-normalized context deltas zero. Tight-anchored
   P1 shortened 337 words but lowered endpoint/materiality/world means. The
-  default-off `planningSceneTurnShapingV1` upstream control now runs through
-  production planner/state-mapper code and compare supports paired source IDs;
-  on the P1 concept pair it shortened 43 words and cleared one checker blocker,
-  but scene lows regressed +4 with character/world losses and +2 readiness.
-  `planningMaterialPressureV1` now annotates existing source-refed non-final
-  obligations without adding tags; first pair filled 21/27 notes, shortened
-  575 words, and improved scene lows -7, but checker negatives rose 2->14 and
-  readiness +1. Keep controls default-off pending replication. See L106/L107.
+  default-off `planningSceneTurnShapingV1` and `planningMaterialPressureV1`
+  run through production planner/state-mapper code and paired-source compare.
+  Material pressure alone shortened 575 words and scene lows -7 but checker
+  negatives rose 2->14. Tightened scene-turn shaping now retries/fallback-fills
+  source-refed non-final turn fields; P1 vs material pressure shortened 422
+  words with scene lows -6, checker negatives -12, endpoint mean +0.52, and
+  readiness +4. Keep controls default-off pending replication. See L106/L107.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort
@@ -121,8 +120,8 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: replicate or narrow `planningMaterialPressureV1`; inspect
-  checker-negative clusters before any default flip. See L103-L107.
+- Next session start: replicate tightened `planningSceneTurnShapingV1` plus
+  material pressure; inspect choice-shape readiness before any default flip. See L103-L107.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
