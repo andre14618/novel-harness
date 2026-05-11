@@ -273,17 +273,26 @@ export function renderDraftingRunComparisonReport(report: DraftingRunComparisonR
   lines.push("")
   for (const comparison of report.comparisons) {
     const candidate = comparison.candidate
+    const failedArm = hasFailedArm(report.baseline, candidate)
     lines.push(`## ${summaryLabel(candidate)}`)
     lines.push("")
     lines.push(`Signal: ${comparison.signal}`)
+    if (failedArm) {
+      lines.push(
+        `Words: ${candidate.totalWords}/${candidate.totalTarget} (${candidate.meanRatio.toFixed(3)}) ` +
+          `vs ${report.baseline.totalWords}/${report.baseline.totalTarget} (${report.baseline.meanRatio.toFixed(3)}); ` +
+          "delta=n/a (failed arm; reported totals may be partial)",
+      )
+    } else {
+      lines.push(
+        `Words: ${candidate.totalWords}/${candidate.totalTarget} (${candidate.meanRatio.toFixed(3)}) ` +
+          `vs ${report.baseline.totalWords}/${report.baseline.totalTarget} (${report.baseline.meanRatio.toFixed(3)}); ` +
+          `delta=${formatSigned(comparison.length.totalWordsDelta)} words, ratio=${formatSignedNumber(comparison.length.meanRatioDelta, 3)}`,
+      )
+    }
     lines.push(
-      `Words: ${candidate.totalWords}/${candidate.totalTarget} (${candidate.meanRatio.toFixed(3)}) ` +
-        `vs ${report.baseline.totalWords}/${report.baseline.totalTarget} (${report.baseline.meanRatio.toFixed(3)}); ` +
-        `delta=${formatSigned(comparison.length.totalWordsDelta)} words, ratio=${formatSignedNumber(comparison.length.meanRatioDelta, 3)}`,
-    )
-    lines.push(
-      `Telemetry: proseLows=${formatDelta(comparison.proseSemantic.lowRowsDelta)}, ` +
-        `sceneLows=${formatDelta(comparison.sceneSemantic.lowRowsDelta)}, ` +
+      `Telemetry: proseLows=${failedArm ? "n/a" : formatDelta(comparison.proseSemantic.lowRowsDelta)}, ` +
+        `sceneLows=${failedArm ? "n/a" : formatDelta(comparison.sceneSemantic.lowRowsDelta)}, ` +
         `contextGaps=${formatDelta(comparison.planningContext.gapDelta)}, ` +
         `readiness=${formatDelta(comparison.planningContext.readinessFindingDelta)}, ` +
         `promptRatio=${formatNullableDelta(comparison.prompt.avgCharsRatioDelta, 3)}`,
@@ -707,25 +716,29 @@ function evidenceReasons(
   const reasons: string[] = []
   if (baseline.error) reasons.push(`Baseline arm has error: ${baseline.error}`)
   if (candidate.error) reasons.push(`Candidate arm has error: ${candidate.error}`)
+  const failedArm = hasFailedArm(baseline, candidate)
+  if (failedArm) {
+    reasons.push("Length and semantic deltas are non-comparable because at least one arm failed before producing complete evidence.")
+  }
   if (baseline.cleanSource === false || candidate.cleanSource === false) {
     reasons.push("At least one report is not marked as a clean drafting source.")
   }
   if (candidate.source !== baseline.source) {
     reasons.push(`Reports use different source ids: ${baseline.source} -> ${candidate.source}.`)
   }
-  if (comparison.length.meanRatioDelta <= -0.05) {
+  if (!failedArm && comparison.length.meanRatioDelta <= -0.05) {
     reasons.push(`Candidate is shorter by ${Math.abs(comparison.length.totalWordsDelta)} words and ${Math.abs(comparison.length.meanRatioDelta).toFixed(3)} ratio points.`)
-  } else if (comparison.length.meanRatioDelta >= 0.05) {
+  } else if (!failedArm && comparison.length.meanRatioDelta >= 0.05) {
     reasons.push(`Candidate is longer by ${comparison.length.totalWordsDelta} words and ${comparison.length.meanRatioDelta.toFixed(3)} ratio points.`)
   }
-  if (positiveDelta(comparison.sceneSemantic.lowRowsDelta)) {
+  if (!failedArm && positiveDelta(comparison.sceneSemantic.lowRowsDelta)) {
     reasons.push(`Scene-semantic lows worsened by ${comparison.sceneSemantic.lowRowsDelta}.`)
-  } else if (negativeDelta(comparison.sceneSemantic.lowRowsDelta)) {
+  } else if (!failedArm && negativeDelta(comparison.sceneSemantic.lowRowsDelta)) {
     reasons.push(`Scene-semantic lows improved by ${Math.abs(comparison.sceneSemantic.lowRowsDelta!)}.`)
   }
-  if (positiveDelta(comparison.proseSemantic.lowRowsDelta)) {
+  if (!failedArm && positiveDelta(comparison.proseSemantic.lowRowsDelta)) {
     reasons.push(`Prose-semantic lows worsened by ${comparison.proseSemantic.lowRowsDelta}.`)
-  } else if (negativeDelta(comparison.proseSemantic.lowRowsDelta)) {
+  } else if (!failedArm && negativeDelta(comparison.proseSemantic.lowRowsDelta)) {
     reasons.push(`Prose-semantic lows improved by ${Math.abs(comparison.proseSemantic.lowRowsDelta!)}.`)
   }
   if (comparison.sceneSemantic.comparisonVerdict) {
@@ -742,7 +755,7 @@ function evidenceReasons(
   if (positiveDelta(comparison.planningContext.missingCharacterIdsDelta)) {
     reasons.push(`Writer-context missing character ids increased by ${comparison.planningContext.missingCharacterIdsDelta}.`)
   }
-  if (comparison.length.meanRatioDelta < 0 && (
+  if (!failedArm && comparison.length.meanRatioDelta < 0 && (
     positiveDelta(comparison.sceneSemantic.lowRowsDelta) ||
     positiveDelta(comparison.proseSemantic.lowRowsDelta) ||
     comparison.sceneSemantic.comparisonVerdict === "regressed"
@@ -778,6 +791,10 @@ function evidenceSignal(baseline: DraftingRunSummary, comparison: DraftingRunCom
   ) return "promising"
   if (comparison.sceneSemantic.comparisonVerdict === "improved") return "promising"
   return "unchanged"
+}
+
+function hasFailedArm(baseline: DraftingRunSummary, candidate: DraftingRunSummary): boolean {
+  return Boolean(baseline.error || candidate.error)
 }
 
 function rowChangeSort(a: RowDelta, b: RowDelta): number {

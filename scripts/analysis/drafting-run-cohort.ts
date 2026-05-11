@@ -78,6 +78,7 @@ export interface DraftingRunCohortReport {
   sourceReports: string[]
   comparisonCount: number
   cleanComparisonCount: number
+  evidenceComparisonCount: number
   signal: CohortSignal
   signalCounts: Record<string, number>
   cleanSignalCounts: Record<string, number>
@@ -123,10 +124,11 @@ export function buildDraftingRunCohortReport(input: {
 }): DraftingRunCohortReport {
   const pairs = input.refs.flatMap(ref => pairRowsForReport(ref))
   const cleanPairs = pairs.filter(pair => pair.cleanSource)
+  const evidencePairs = cleanPairs.filter(pair => isEvidenceComparablePair(pair))
   const dimensionMap = new Map<Dimension, DraftingRunCohortDimensionSummary>()
   for (const ref of input.refs) {
     for (const comparison of ref.report.comparisons) {
-      if (!isCleanComparison(ref.report, comparison)) continue
+      if (!isEvidenceComparableComparison(ref.report, comparison)) continue
       for (const dim of comparison.sceneSemantic.dimensions) {
         const current = dimensionMap.get(dim.dimension) ?? {
           dimension: dim.dimension,
@@ -151,18 +153,22 @@ export function buildDraftingRunCohortReport(input: {
   }
   const signalCounts = countBy(pairs, pair => pair.signal)
   const cleanSignalCounts = countBy(cleanPairs, pair => pair.signal)
-  const contextQualityAlignmentCounts = countBy(cleanPairs, pair => pair.contextQualityAlignment)
+  const evidenceSignalCounts = countBy(evidencePairs, pair => pair.signal)
+  const contextQualityAlignmentCounts = countBy(evidencePairs, pair => pair.contextQualityAlignment)
   return {
     generatedAt: input.generatedAt ?? new Date().toISOString(),
     sourceReports: input.refs.map(ref => ref.path),
     comparisonCount: pairs.length,
     cleanComparisonCount: cleanPairs.length,
-    signal: cohortSignal(cleanSignalCounts, cleanPairs.length),
+    evidenceComparisonCount: evidencePairs.length,
+    signal: evidencePairs.length > 0
+      ? cohortSignal(evidenceSignalCounts, evidencePairs.length)
+      : cohortSignal(cleanSignalCounts, cleanPairs.length),
     signalCounts,
     cleanSignalCounts,
     alignment: {
-      qualityMovementCounts: countBy(cleanPairs, pair => pair.qualityMovement),
-      contextLoadMovementCounts: countBy(cleanPairs, pair => pair.contextLoadMovement),
+      qualityMovementCounts: countBy(evidencePairs, pair => pair.qualityMovement),
+      contextLoadMovementCounts: countBy(evidencePairs, pair => pair.contextLoadMovement),
       contextQualityAlignmentCounts,
       contextExpandedWithoutClearQualityGain: contextQualityAlignmentCounts["context-expanded-without-clear-quality-gain"] ?? 0,
       leanerWithoutQualityLoss:
@@ -172,26 +178,26 @@ export function buildDraftingRunCohortReport(input: {
       missingSemanticEvidence: contextQualityAlignmentCounts["needs-semantic-evidence"] ?? 0,
     },
     aggregate: {
-      meanWordsDelta: mean(cleanPairs.map(pair => pair.totalWordsDelta)),
-      meanRatioDelta: mean(cleanPairs.map(pair => pair.meanRatioDelta)),
-      proseLowDeltaSum: sumNullable(cleanPairs.map(pair => pair.proseLowDelta)),
-      sceneLowDeltaSum: sumNullable(cleanPairs.map(pair => pair.sceneLowDelta)),
-      contextGapDeltaSum: sumNullable(cleanPairs.map(pair => pair.contextGapDelta)),
-      readinessFindingDeltaSum: sumNullable(cleanPairs.map(pair => pair.readinessFindingDelta)),
+      meanWordsDelta: mean(evidencePairs.map(pair => pair.totalWordsDelta)),
+      meanRatioDelta: mean(evidencePairs.map(pair => pair.meanRatioDelta)),
+      proseLowDeltaSum: sumNullable(evidencePairs.map(pair => pair.proseLowDelta)),
+      sceneLowDeltaSum: sumNullable(evidencePairs.map(pair => pair.sceneLowDelta)),
+      contextGapDeltaSum: sumNullable(evidencePairs.map(pair => pair.contextGapDelta)),
+      readinessFindingDeltaSum: sumNullable(evidencePairs.map(pair => pair.readinessFindingDelta)),
       contextDeltas: {
-        characterContext: sumComparisonDelta(input.refs, "characterContextDelta"),
-        worldContext: sumComparisonDelta(input.refs, "worldContextDelta"),
-        canonFactContext: sumComparisonDelta(input.refs, "canonFactContextDelta"),
-        factContinuityAnchors: sumComparisonDelta(input.refs, "factContinuityAnchorDelta"),
-        canonSourceRefs: sumComparisonDelta(input.refs, "canonSourceRefsDelta"),
-        storyContext: sumComparisonDelta(input.refs, "storyContextDelta"),
-        storyRefIds: sumComparisonDelta(input.refs, "storyRefIdsDelta"),
-        readerInfoState: sumComparisonDelta(input.refs, "readerInfoStateDelta"),
-        readerInfoStateChars: sumComparisonDelta(input.refs, "readerInfoStateCharsDelta"),
-        resolvedReferences: sumComparisonDelta(input.refs, "resolvedReferencesDelta"),
-        referenceAttemptScenes: sumComparisonDelta(input.refs, "referenceAttemptSceneDelta"),
-        referenceAttemptEvents: sumComparisonDelta(input.refs, "referenceAttemptEventDelta"),
-        missingCharacterIds: sumComparisonDelta(input.refs, "missingCharacterIdsDelta"),
+        characterContext: sumComparisonDelta(input.refs, "characterContextDelta", isEvidenceComparableComparison),
+        worldContext: sumComparisonDelta(input.refs, "worldContextDelta", isEvidenceComparableComparison),
+        canonFactContext: sumComparisonDelta(input.refs, "canonFactContextDelta", isEvidenceComparableComparison),
+        factContinuityAnchors: sumComparisonDelta(input.refs, "factContinuityAnchorDelta", isEvidenceComparableComparison),
+        canonSourceRefs: sumComparisonDelta(input.refs, "canonSourceRefsDelta", isEvidenceComparableComparison),
+        storyContext: sumComparisonDelta(input.refs, "storyContextDelta", isEvidenceComparableComparison),
+        storyRefIds: sumComparisonDelta(input.refs, "storyRefIdsDelta", isEvidenceComparableComparison),
+        readerInfoState: sumComparisonDelta(input.refs, "readerInfoStateDelta", isEvidenceComparableComparison),
+        readerInfoStateChars: sumComparisonDelta(input.refs, "readerInfoStateCharsDelta", isEvidenceComparableComparison),
+        resolvedReferences: sumComparisonDelta(input.refs, "resolvedReferencesDelta", isEvidenceComparableComparison),
+        referenceAttemptScenes: sumComparisonDelta(input.refs, "referenceAttemptSceneDelta", isEvidenceComparableComparison),
+        referenceAttemptEvents: sumComparisonDelta(input.refs, "referenceAttemptEventDelta", isEvidenceComparableComparison),
+        missingCharacterIds: sumComparisonDelta(input.refs, "missingCharacterIdsDelta", isEvidenceComparableComparison),
       },
     },
     dimensions: [...dimensionMap.values()].sort((a, b) => a.dimension.localeCompare(b.dimension)),
@@ -205,7 +211,7 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
   lines.push("")
   lines.push(`Generated: ${report.generatedAt}`)
   lines.push(`Reports: ${report.sourceReports.length}`)
-  lines.push(`Comparisons: ${report.comparisonCount} (${report.cleanComparisonCount} clean-source)`)
+  lines.push(`Comparisons: ${report.comparisonCount} (${report.cleanComparisonCount} clean-source, ${report.evidenceComparisonCount} evidence-comparable)`)
   lines.push(`Signal: ${report.signal}`)
   lines.push(`Signals: ${formatCounts(report.cleanSignalCounts)}`)
   lines.push("")
@@ -259,7 +265,7 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
     lines.push(
       `| ${pair.source} | ${pair.baselineArm} | ${pair.candidateArm} | ${pair.cleanSource ? "yes" : "no"} | ` +
         `${pair.signal} | ${pair.qualityMovement} | ${pair.contextLoadMovement} | ${pair.contextQualityAlignment} | ` +
-        `${formatSigned(pair.totalWordsDelta)} | ${formatDelta(pair.sceneLowDelta)} | ` +
+        `${formatEvidenceSigned(pair.totalWordsDelta, pair)} | ${formatEvidenceDelta(pair.sceneLowDelta, pair)} | ` +
         `${formatDelta(pair.canonSourceRefsDelta)} | ${formatDelta(pair.storyRefIdsDelta)} | ` +
         `${formatDelta(pair.readerInfoStateDelta)} | ${formatDelta(pair.readerInfoStateCharsDelta)} | ` +
         `${formatDelta(pair.referenceAttemptSceneDelta)} | ${formatDelta(pair.referenceAttemptEventDelta)} | ` +
@@ -381,15 +387,24 @@ function isCleanComparison(report: DraftingRunComparisonReport, comparison: Draf
   return report.baseline.cleanSource === true && comparison.candidate.cleanSource === true
 }
 
+function isEvidenceComparablePair(pair: DraftingRunCohortPair): boolean {
+  return pair.cleanSource && pair.signal !== "incomplete"
+}
+
+function isEvidenceComparableComparison(report: DraftingRunComparisonReport, comparison: DraftingRunComparison): boolean {
+  return isCleanComparison(report, comparison) && comparison.signal !== "incomplete"
+}
+
 function sumComparisonDelta(
   refs: readonly DraftingRunCohortReportRef[],
   key: keyof DraftingRunComparison["planningContext"],
+  includeComparison: (report: DraftingRunComparisonReport, comparison: DraftingRunComparison) => boolean,
 ): number | null {
   let sum = 0
   let count = 0
   for (const ref of refs) {
     for (const comparison of ref.report.comparisons) {
-      if (!isCleanComparison(ref.report, comparison)) continue
+      if (!includeComparison(ref.report, comparison)) continue
       const value = comparison.planningContext[key]
       if (typeof value === "number" && Number.isFinite(value)) {
         sum += value
@@ -459,6 +474,14 @@ function formatNullableNumber(value: number | null, digits: number): string {
 
 function formatDelta(value: number | null): string {
   return value === null ? "n/a" : formatSigned(value)
+}
+
+function formatEvidenceSigned(value: number, pair: DraftingRunCohortPair): string {
+  return isEvidenceComparablePair(pair) ? formatSigned(value) : "n/a"
+}
+
+function formatEvidenceDelta(value: number | null, pair: DraftingRunCohortPair): string {
+  return isEvidenceComparablePair(pair) ? formatDelta(value) : "n/a"
 }
 
 function parseArgs(argv = process.argv.slice(2)): Args {

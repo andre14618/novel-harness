@@ -22,6 +22,7 @@ describe("drafting-run-cohort", () => {
 
     expect(report.comparisonCount).toBe(2)
     expect(report.cleanComparisonCount).toBe(2)
+    expect(report.evidenceComparisonCount).toBe(2)
     expect(report.signal).toBe("regressed")
     expect(report.cleanSignalCounts).toEqual({ promising: 1, regressed: 1 })
     expect(report.aggregate.meanWordsDelta).toBe(-138)
@@ -66,6 +67,7 @@ describe("drafting-run-cohort", () => {
     expect(rendered).toContain("refAttemptScenes=+1")
     expect(rendered).toContain("refAttemptEvents=+1")
     expect(rendered).toContain("| endpointLanding | 2 |")
+    expect(rendered).toContain("Comparisons: 2 (2 clean-source, 2 evidence-comparable)")
     expect(rendered).toContain("| Source | Baseline | Candidate | Clean | Signal | Quality | Context Load | Alignment | Words | Scene Lows | Canon Refs | Story Refs | Reader | Reader Chars | Ref Attempt Scenes | Ref Attempt Events | Missing Chars |")
     expect(rendered).toContain("| corso | drafting-brief-v1 | drafting-brief-tight-v1 | yes | regressed | regressed | contracted | context-contracted-with-quality-regression | +224 | +4 | 0 | -1 | 0 | -30 | -1 | -2 | 0 |")
   })
@@ -104,6 +106,31 @@ describe("drafting-run-cohort", () => {
     expect(rendered).toContain("readerChars=n/a")
     expect(rendered).toContain("context expanded without clear quality gain: 1")
     expect(rendered).toContain("| legacy | drafting-brief-v1 | drafting-brief-tight-v1 | yes | mixed | mixed | expanded | context-expanded-without-clear-quality-gain | 0 | 0 | +1 | n/a | 0 | n/a | 0 | 0 | 0 |")
+  })
+
+  test("excludes incomplete clean comparisons from aggregate evidence while preserving rows", () => {
+    const report = buildDraftingRunCohortReport({
+      refs: [
+        { path: "complete.json", report: comparisonReport("complete", "mixed", -120, -1, -1, 2, "mixed") },
+        { path: "gated.json", report: incompleteComparisonReport("gated") },
+      ],
+      generatedAt: "2026-05-11T00:00:00.000Z",
+    })
+
+    expect(report.comparisonCount).toBe(2)
+    expect(report.cleanComparisonCount).toBe(2)
+    expect(report.evidenceComparisonCount).toBe(1)
+    expect(report.cleanSignalCounts).toEqual({ incomplete: 1, mixed: 1 })
+    expect(report.signal).toBe("mixed")
+    expect(report.aggregate.meanWordsDelta).toBe(-120)
+    expect(report.aggregate.sceneLowDeltaSum).toBe(-1)
+    expect(report.aggregate.contextDeltas.canonSourceRefs).toBe(2)
+    expect(report.alignment.qualityMovementCounts).toEqual({ improved: 1 })
+    expect(report.alignment.missingSemanticEvidence).toBe(0)
+
+    const rendered = renderDraftingRunCohortReport(report)
+    expect(rendered).toContain("Comparisons: 2 (2 clean-source, 1 evidence-comparable)")
+    expect(rendered).toContain("| gated | drafting-brief-v1 | drafting-brief-tight-v1 | yes | incomplete | incomplete | expanded | needs-semantic-evidence | n/a | n/a | +14 | 0 | +9 | +5886 | 0 | 0 | +6 |")
   })
 })
 
@@ -212,4 +239,35 @@ function comparisonReport(
       },
     }],
   }
+}
+
+function incompleteComparisonReport(source: string): DraftingRunComparisonReport {
+  const report = comparisonReport(source, "mixed", 4407, 3, 0, 14, "mixed")
+  report.baseline.error = "Pipeline bailed at plan-assist gate"
+  report.baseline.totalWords = 0
+  report.baseline.totalTarget = 0
+  report.baseline.meanRatio = 0
+  const comparison = report.comparisons[0]!
+  comparison.signal = "incomplete"
+  comparison.reasons = ["Baseline arm has error: Pipeline bailed at plan-assist gate"]
+  comparison.length = {
+    totalWordsDelta: 4407,
+    meanRatioDelta: 1.158,
+    targetWordsDelta: 3800,
+  }
+  comparison.planningContext.canonSourceRefsDelta = 14
+  comparison.planningContext.readerInfoStateDelta = 9
+  comparison.planningContext.readerInfoStateCharsDelta = 5886
+  comparison.planningContext.missingCharacterIdsDelta = 6
+  comparison.sceneSemantic = {
+    lowRowsDelta: 3,
+    errorRowsDelta: 1,
+    comparisonVerdict: null,
+    comparedRows: null,
+    missingInCandidate: null,
+    missingInBaseline: null,
+    dimensions: [],
+    changedRows: [],
+  }
+  return report
 }

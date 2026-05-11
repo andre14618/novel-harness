@@ -187,6 +187,74 @@ describe("drafting-run-compare", () => {
       rmSync(dir, { recursive: true, force: true })
     }
   })
+
+  test("renders failed arm comparisons as incomplete without comparable semantic deltas", () => {
+    const dir = mkdtempSync(join(tmpdir(), "drafting-run-compare-failed-arm-"))
+    try {
+      const baselineReport = join(dir, "baseline-report.json")
+      const candidateReport = join(dir, "candidate-report.json")
+      writeFileSync(baselineReport, `${JSON.stringify({
+        v: "drafting-isolated-report-v1",
+        source: "source",
+        targetPrefix: "baseline",
+        sourceAssessment: { clean: true, issue: null },
+        results: [arm({
+          arm: "drafting-brief-v1",
+          totalWords: 0,
+          totalTarget: 0,
+          meanRatio: 0,
+          error: "Pipeline bailed at plan-assist gate",
+          sceneSemantic: {
+            outputDir: join(dir, "baseline-scene"),
+            taskCount: 0,
+            skipCount: 0,
+            lowRows: 0,
+            errorRows: 1,
+            dimensions: [],
+          },
+        })],
+      }, null, 2)}\n`)
+      writeFileSync(candidateReport, `${JSON.stringify({
+        v: "drafting-isolated-report-v1",
+        source: "source",
+        targetPrefix: "candidate",
+        sourceAssessment: { clean: true, issue: null },
+        results: [arm({
+          arm: "drafting-brief-tight-v1",
+          totalWords: 4407,
+          totalTarget: 3800,
+          meanRatio: 1.158,
+          sceneSemantic: {
+            outputDir: join(dir, "candidate-scene"),
+            taskCount: 36,
+            skipCount: 8,
+            lowRows: 3,
+            errorRows: 0,
+            dimensions: [],
+          },
+        })],
+      }, null, 2)}\n`)
+
+      const report = buildDraftingRunComparisonReport({
+        baseline: readDraftingRunRef(baselineReport),
+        candidates: [readDraftingRunRef(candidateReport)],
+      })
+      const comparison = report.comparisons[0]!
+
+      expect(comparison.signal).toBe("incomplete")
+      expect(comparison.sceneSemantic.lowRowsDelta).toBe(3)
+      expect(comparison.reasons.join("\n")).toContain("Length and semantic deltas are non-comparable")
+      expect(comparison.reasons.join("\n")).not.toContain("Candidate is longer")
+      expect(comparison.reasons.join("\n")).not.toContain("Scene-semantic lows worsened")
+
+      const rendered = renderDraftingRunComparisonReport(report)
+      expect(rendered).toContain("Signal: incomplete")
+      expect(rendered).toContain("delta=n/a (failed arm; reported totals may be partial)")
+      expect(rendered).toContain("Telemetry: proseLows=n/a, sceneLows=n/a")
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
 })
 
 function writeRunReport(path: string, opts: {
