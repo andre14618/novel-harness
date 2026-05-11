@@ -24,8 +24,9 @@ unless the user explicitly requests a disposable branch.
   endpoint lows 4/14; endpoint repair cleared selected LitRPG lows at
   4640/2700 = 1.72x. A new default-off `drafting-brief-tight-v1` arm plus two
   source `planning_edit` endpoint repairs reached 3398/2700 = 1.27x with scene
-  lows 0/45 and prose lows 0/8, but compare vs cleared brief was mixed. Replicate
-  before any default flip. Keep broad operational-facts brief out after
+  lows 0/45 and prose lows 0/8; Corso replication regressed to 5002/3800 with
+  scene lows 4/34. Treat tight brief as source-sensitive A/B evidence.
+  Keep broad operational-facts brief out after
   6050/3800 regression without low-row improvement. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
@@ -120,8 +121,7 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: replicate `drafting-brief-tight-v1` on clean-source cohorts;
-  no default decision until acceptable ratios hold without semantic lows or repeated mean regressions. See L103-L106.
+- Next session start: isolate when `drafting-brief-tight-v1` helps overloaded plans versus regresses endpoint/world pressure; no default decision. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
