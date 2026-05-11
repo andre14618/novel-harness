@@ -89,6 +89,53 @@ describe("scene-semantic-readiness", () => {
     expect(aggregate.findingCount).toBe(1)
     expect(aggregate.groups[0]!.findings[0]!.label).toBe("SCENE-1")
   })
+
+  test("gives character/world materiality findings specific review intents", () => {
+    const aggregate = buildSceneSemanticReadinessAggregate([{
+      report: {
+        ...report(),
+        dimensions: ["characterMateriality", "worldFactPressure"],
+        results: [
+          row("characterMateriality", "MATERIAL-1", 1, "The required character only observes."),
+          row("worldFactPressure", "WFACT-1", 1, "The world fact is named but does not constrain action."),
+        ],
+        summaries: [
+          { dimension: "characterMateriality", count: 1, meanOrdinal: 1, lowCount: 1, labelCounts: { "MATERIAL-1": 1 } },
+          { dimension: "worldFactPressure", count: 1, meanOrdinal: 1, lowCount: 1, labelCounts: { "WFACT-1": 1 } },
+        ],
+      },
+      sourceReport: "scene-semantic-review.json",
+    }], { generatedAt: "2026-05-10T00:00:00.000Z" })
+
+    expect(aggregate.groupCount).toBe(1)
+    expect(aggregate.groups[0]!.fixIntents.sort()).toEqual([
+      "make_required_character_material_or_remove_requirement",
+      "make_world_fact_operational_or_remove_requirement",
+    ])
+
+    const readiness = buildPlanReadinessDraftsFromAggregate({
+      novelId: "novel-abc",
+      aggregate,
+      importedByKind: "test",
+    })
+    expect(readiness.drafts.map(draft => draft.dimension).sort()).toEqual([
+      "characterMateriality",
+      "worldFactPressure",
+    ])
+    expect(readiness.drafts.map(draft => draft.fixIntent).sort()).toEqual([
+      "make_required_character_material_or_remove_requirement",
+      "make_world_fact_operational_or_remove_requirement",
+    ])
+    expect(readiness.drafts[0]!.preserveIds).toMatchObject({
+      characterIds: ["char-nara"],
+      worldFactIds: ["world-key"],
+    })
+
+    const rendered = renderSceneSemanticReadinessAggregate(aggregate)
+    expect(rendered).toContain("make required characters and world facts operational")
+    expect(rendered).toContain("Make required characters materially affect")
+    expect(rendered).toContain("Make the required world fact constrain")
+  })
 })
 
 function report(): SceneSemanticReplayReport {
@@ -122,7 +169,7 @@ function report(): SceneSemanticReplayReport {
 }
 
 function row(
-  dimension: "endpointLanding" | "sceneDramaturgy",
+  dimension: SceneSemanticReplayReport["results"][number]["dimension"],
   label: string,
   ordinal: number,
   missingForNextLevel: string,

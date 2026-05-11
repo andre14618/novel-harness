@@ -349,6 +349,15 @@ function operatorQuestionFor(group: SceneSemanticReadinessGroup): string {
   if (dimensions.has("threadProgression") || dimensions.has("promiseProgress") || dimensions.has("promisePayoff")) {
     return "Should this scene contract clarify thread or promise movement before drafting?"
   }
+  if (dimensions.has("characterMateriality") && dimensions.has("worldFactPressure")) {
+    return "Should this scene contract make required characters and world facts operational, or remove those requirements?"
+  }
+  if (dimensions.has("characterMateriality")) {
+    return "Should this scene contract make required characters materially affect choice, conflict, outcome, or pressure?"
+  }
+  if (dimensions.has("worldFactPressure")) {
+    return "Should this scene contract make required world facts constrain action, cost, outcome, or pressure?"
+  }
   return "Is this diagnostic a real planning issue, false positive, acceptable choice, or deferred concern?"
 }
 
@@ -362,7 +371,7 @@ function fixIntentFor(dimension: Dimension): string {
     motivationSpecificity: "sharpen_pov_motivation_tradeoff",
     characterMateriality: "make_required_character_material_or_remove_requirement",
     relationshipDelta: "make_relationship_state_change_concrete",
-    worldFactPressure: "make_world_fact_operational",
+    worldFactPressure: "make_world_fact_operational_or_remove_requirement",
     worldPressure: "make_world_pressure_operational",
     characterAgency: "strengthen_character_agency",
     causalMomentum: "strengthen_causal_momentum",
