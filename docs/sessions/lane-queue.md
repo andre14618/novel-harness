@@ -13,19 +13,17 @@ unless the user explicitly requests a disposable branch.
   scene-first novella POC runs require an explicit disposable-POC flag.
 - **Production writer-brief evidence (2026-05-11).** `planning_edit` replay
   projected 11 approved readiness edits onto clean source `p1-clean-replay-1778457296`;
-  source hygiene stayed clean. Cohort `p1-arm-cohort-1778464932` compared
-  `baseline`, `drafting-brief-v1`, and `scene-call-v1` with live prose +
-  scene-semantic telemetry. Baseline: 7703/3000 = 2.57x, prose lows 0/8, scene lows 3/33,
-  context gap `sceneContract:missing_downstream`. `drafting-brief-v1`: 3731/3000 =
-  1.24x, prose lows 0/8, scene lows 1/33, character/world lows 0, context gaps 0.
-  `scene-call-v1`: 7142/3000 = 2.38x, scene lows 3/33 including one
-  `worldFactPressure` low. Automatic scene-semantic comparison aligned 33 rows
-  per candidate; both verdicts are mixed, but `drafting-brief-v1` is the only
-  current production arm that improves length and endpoint lows without creating
-  material/world lows. The prior structural `beat_replace` endpoint edit
-  worsened and was reverted; do not chase the remaining single endpoint low
-  without a new upstream hypothesis. `allow-entities` did not reproduce; replay
-  only if that blocker appears again. See L106.
+  source hygiene stayed clean. P1 cohort `p1-arm-cohort-1778464932` found
+  `drafting-brief-v1` strongest: 3731/3000 = 1.24x, prose lows 0/8, context gaps
+  0, scene lows 1/33 with character/world lows 0; baseline was 7703/3000 = 2.57x
+  with endpoint lows 3/10, and `scene-call-v1` was 7142/3000 = 2.38x with one
+  worldFactPressure low. Higher-scene-count LitRPG cohort
+  `litrpg-brief-cohort-1778467196` is a hold signal: baseline exhausted ch1 at
+  5182/1200 with semantic lows 11/34; `drafting-brief-v1` reached ch2 but
+  exhausted at 3910/2700 with semantic lows 30/68. Its comparison is
+  `incomplete` because baseline has no ch2 rows. Do not flip defaults from P1
+  alone; next target is a brief/plan floor for scene turn, temporal anchoring,
+  and character materiality under high scene counts. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry; `test-drafting-isolated` writes it per arm.

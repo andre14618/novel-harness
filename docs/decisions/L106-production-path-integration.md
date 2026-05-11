@@ -279,6 +279,19 @@ low. This strengthens `drafting-brief-v1` as the next production candidate, but
 does not by itself flip defaults because the sidecar verdict is still mixed and
 the evidence is one clean P1 cohort.
 
+The next clean-source replication on LitRPG source `novel-1777777292668` was a
+hold signal rather than a promotion signal. Cohort
+`litrpg-brief-cohort-1778467196` produced durable report
+`output/drafting-isolated/litrpg-brief-cohort-1778467196/drafting-isolated-report.json`.
+Baseline exhausted at chapter 1 with 5182/1200 words and scene-semantic lows
+11/34. `drafting-brief-v1` controlled length better and reached chapter 2, but
+still exhausted there at 3910/2700 words with scene-semantic lows 30/68,
+including sceneDramaturgy lows 13/23 and characterMateriality lows 7/11. The
+comparison sidecar is now marked `incomplete` when missing rows exist; this run
+has 34 candidate-only rows because baseline never reached chapter 2. Treat this
+as evidence that writer briefs need a scene-turn/temporal-anchor/materiality
+floor on high-scene-count plans before any default flip.
+
 The residual endpoint low was inspected through the production Plan Readiness
 path rather than by editing POC artifacts. That exposed a real integration gap:
 readiness apply could create scalar `field_replace` proposals but not full

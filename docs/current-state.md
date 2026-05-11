@@ -114,17 +114,17 @@ The active lane is in `docs/sessions/lane-queue.md`.
 
 As of 2026-05-11, L106 has absorbed validated POC evidence into production
 writer-brief telemetry, scene-semantic replay, Plan Readiness import/apply,
-source hygiene, and planning-edit replay. Clean-source cohort
-`p1-arm-cohort-1778464932` compared `baseline`, `drafting-brief-v1`, and
-`scene-call-v1` from `p1-clean-replay-1778457296`; the automatic semantic
-sidecar aligned 33 rows per candidate. `drafting-brief-v1` is the strongest
-current arm: 3731/3000 = 1.24x, prose-semantic 0/8 lows, context gaps 0,
-scene-semantic lows 1/33 with character/world lows 0. Baseline was
-7703/3000 = 2.57x with sceneContract missing downstream and endpoint lows
-3/10; `scene-call-v1` was 7142/3000 = 2.38x with one worldFactPressure low.
-Prior structural Plan Readiness scene replacement worsened and was reverted.
-Do not chase the remaining single endpoint low without a new upstream
-hypothesis; replay `allow-entities` only if it reproduces. See L103-L106.
+source hygiene, and planning-edit replay. P1 cohort `p1-arm-cohort-1778464932`
+made `drafting-brief-v1` the strongest current arm: 3731/3000 = 1.24x,
+prose-semantic 0/8 lows, context gaps 0, scene-semantic lows 1/33 with
+character/world lows 0; baseline was 7703/3000 = 2.57x with endpoint lows 3/10,
+and `scene-call-v1` was 7142/3000 = 2.38x with one worldFactPressure low.
+Replication on higher-scene-count LitRPG source `litrpg-brief-cohort-1778467196`
+is a hold signal: baseline exhausted ch1 at 5182/1200 with 11/34 semantic lows;
+`drafting-brief-v1` reached ch2 but exhausted at 3910/2700 with 30/68 semantic
+lows, especially sceneDramaturgy and characterMateriality. Do not flip defaults
+from P1 alone; next hypothesis is a brief/plan floor for scene turn, temporal
+anchoring, and character materiality under high scene counts. See L103-L106.
 
 ## Authoring Gates
 
