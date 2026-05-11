@@ -119,11 +119,12 @@ readiness. Clean-source Corso repair reached 4778/3800 = 1.26x with prose lows
 0/8, scene lows 0/34, persisted scene rows 34, and no readiness lows. LitRPG
 plan-only repair was mixed: 3966/2700 = 1.47x, prose lows 0/8, gaps 0, scene
 lows 3/45. Writer-brief obligation-character carry-through fixed materiality
-lows to 0/8 and attached source obligations, but regressed to 4476/2700 =
-1.67x with endpoint lows 4/14. A broad operational-facts brief regressed to
-6050/3800 without low-row improvement, so keep it out. Continuity fact prompts
-carry `factId`, disambiguate seal roles, and filter explicit support echoes.
-Do not flip defaults. See L103-L106.
+lows to 0/8 and attached source obligations; endpoint repair improved the
+combined path to 4254/2700 = 1.58x with scene lows 1/45, but length remains a
+promotion blocker. A broad operational-facts brief regressed to 6050/3800
+without low-row improvement, so keep it out. Continuity fact prompts carry
+`factId`, disambiguate seal roles, and filter explicit support echoes. Do not
+flip defaults. See L103-L106.
 
 ## Authoring Gates
 

@@ -17,15 +17,14 @@ unless the user explicitly requests a disposable branch.
   repair reached `choice/full=11/11` and `factContradictions=0`; evidence now
   shows a quality/length tradeoff. Clean-source Corso plan repair:
   4778/3800 = 1.26x, scene lows 0/34, prose lows 0/8, persisted scene rows 34,
-  readiness import 0. LitRPG materiality repair applied two approved
-  `planning_edit` proposals to the clean source and reran compact brief:
-  3966/2700 = 1.47x, prose lows 0/8, planning-context gaps 0, scene lows 3/45,
-  persisted scene rows 45, readiness import 3. Mixed vs rep2: ch1
-  Cassel-request materiality resolved; ch2 Verification stayed MATERIAL-0; new
-  ch1 materiality plus ch2 endpoint lows appeared. Obligation-character
-  carry-through cleared materiality lows to 0/8 but regressed to 4476/2700 =
-  1.67x with endpoint lows 4/14. Broad operational-facts brief regressed to
-  6050/3800 without low-row improvement; keep it out. No default flip. See L106.
+  readiness import 0. LitRPG materiality repair via two approved
+  `planning_edit` proposals: 3966/2700 = 1.47x, prose lows 0/8, gaps 0, scene
+  lows 3/45; ch1 materiality resolved, ch2 Verification stayed MATERIAL-0, and
+  new ch1 materiality plus ch2 endpoint lows appeared. Obligation-character
+  carry-through cleared materiality but regressed to 4476/2700 = 1.67x and
+  endpoint lows 4/14; endpoint repair improved to 4254/2700 = 1.58x, lows
+  1/45, prose lows 0/8. Keep broad operational-facts brief out after
+  6050/3800 regression without low-row improvement. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
@@ -119,9 +118,9 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: inspect LitRPG endpoint lows before any default decision.
-  Character carry-through clears materiality but over-expands and weakens
-  endpoint landing; target scene endpoint shape/load next. See L103-L106.
+- Next session start: inspect remaining LitRPG ch2 Theo-argument endpoint low
+  and length/load before any default decision; target endpoint shape without
+  broader context expansion. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
