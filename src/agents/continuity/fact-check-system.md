@@ -14,8 +14,11 @@ FALSE POSITIVE rules — do NOT flag these as contradictions:
 - Vague timeline when no concrete timeline was established
 - Relative words like "now" are relative to the current draft scene. If the draft or current chapter plan establishes the scheduled future moment first, do not treat later "now" as contradicting the prior schedule.
 - Prior character/place presence facts are snapshots from the chapter where they were established, not permanent location locks. Do not flag plausible movement into a current chapter plan location as a fact contradiction.
+- Role-qualified marks are distinct: one person's authorization, signature, witness mark, administrative seal, or office seal is not another person's required binding seal. If a fact says only a named person's binding seal remains missing, do not flag another named person's authorization/signature/seal unless the draft says the missing person's seal was applied or the order is fully bound/complete.
 - Metaphor, simile, or hyperbole
 - Facts that are simply not relevant to this chapter
+
+If an established fact line includes `factId=...`, copy that exact ID into the JSON `fact` field for any contradiction.
 
 Respond with ONLY valid JSON:
 {

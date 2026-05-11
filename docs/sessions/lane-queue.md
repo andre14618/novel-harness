@@ -117,8 +117,8 @@ unless the user explicitly requests a disposable branch.
   endpoint scenes before any prompt-arm/default decision. V3 reduced semantic
   endpoint lows but bloated prose; the narrower status-polarity guardrail
   recovered length, but the Corso-file scene still needs world-pressure/endpoint
-  improvement and checker seal/authorization semantics need isolation. See
-  L103-L106.
+  improvement. Continuity fact prompts now preserve `factId` and separate
+  authorization/signature/office seals from missing binding seals. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.

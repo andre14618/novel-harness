@@ -170,8 +170,12 @@ export function buildFactUserPrompt(draft: string, facts: Fact[], outline?: Chap
     }
     prompt += `Interpret relative words in the draft (such as "now") inside this current chapter plan. Prior-chapter location/presence facts are snapshots unless they state a permanent constraint.\n\n`
   }
+  prompt += `CONTRADICTION DISAMBIGUATION:\n`
+  prompt += `- Role-qualified marks are distinct. Do not collapse one person's authorization, signature, witness mark, administrative seal, or office seal into another person's required binding seal.\n`
+  prompt += `- If a fact says only a named person's binding seal remains missing, draft mentions of another named person's authorization/signature/seal do not contradict it unless the draft says the missing person's seal was applied or the order is fully bound/complete.\n`
+  prompt += `- When reporting a contradiction for a fact line with factId=..., copy that exact factId into the JSON "fact" field.\n\n`
   if (facts.length > 0) {
-    prompt += `ESTABLISHED FACTS:\n${facts.map(f => `- [ch${f.establishedInChapter}] [${f.category}] ${f.fact}`).join("\n")}\n`
+    prompt += `ESTABLISHED FACTS:\n${facts.map(f => `- ${formatFactForContinuityPrompt(f)}`).join("\n")}\n`
   } else {
     prompt += `ESTABLISHED FACTS:\n(none)\n`
   }
@@ -221,6 +225,15 @@ function cleanPlanAnchor(value: string | undefined | null): string | undefined {
   if (typeof value !== "string") return undefined
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : undefined
+}
+
+function formatFactForContinuityPrompt(fact: Fact): string {
+  const refs = [
+    fact.id?.trim() ? `factId=${fact.id.trim()}` : "",
+    `ch${fact.establishedInChapter}`,
+    fact.category ? `category=${fact.category}` : "",
+  ].filter(Boolean)
+  return `[${refs.join("; ")}] ${fact.fact}`
 }
 
 export function stateViolationToIssue(

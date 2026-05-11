@@ -61,6 +61,42 @@ test("fact prompt includes current plan and frames relative timing/place context
   expect(prompt).toContain("place: Iron Bridge")
   expect(prompt).toContain("Interpret relative words")
   expect(prompt).toContain("Prior-chapter location/presence facts are snapshots")
+  expect(prompt).toContain("[factId=fact-verification; ch1; category=event]")
+  expect(prompt).toContain('copy that exact factId into the JSON "fact" field')
+})
+
+test("fact prompt disambiguates authorization marks from missing binding seals", () => {
+  const prompt = buildFactUserPrompt(
+    "The transfer order bore Halric's signature and office seal. The blank circle for Maren's binding seal remained empty.",
+    [{
+      id: "fact-transfer-order-signed",
+      fact: "The transfer order already bears Halric's authorization and names Corso as the new bearer; only Maren's binding seal remains missing.",
+      category: "debt-law",
+      establishedInChapter: 1,
+      role: "operational",
+    }],
+    outline({
+      chapterNumber: 2,
+      title: "The Foreman's Name",
+      setting: "Treasury Keep",
+      scenes: [{
+        kind: "action",
+        description: "Maren reviews the authorized order before deciding whether to apply her seal.",
+        characters: ["Maren Ailish"],
+        requiredPayoffs: [],
+        obligations: { mustEstablish: [], mustPayOff: [], mustTransferKnowledge: [], mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [] },
+        lifeValueAxes: [],
+        miceActive: [],
+        miceOpens: [],
+        miceCloses: [],
+      }],
+    }),
+  )
+
+  expect(prompt).toContain("Role-qualified marks are distinct")
+  expect(prompt).toContain("another person's required binding seal")
+  expect(prompt).toContain("unless the draft says the missing person's seal was applied")
+  expect(prompt).toContain("[factId=fact-transfer-order-signed; ch1; category=debt-law]")
 })
 
 test("prior-state location violations are warning-class even when the model asks for blocker", () => {
