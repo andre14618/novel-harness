@@ -83,8 +83,7 @@ Use deeper docs only when linked by the context pack or needed by code.
   `scenePlanContractV1`, `sceneCallWriterV1`, writer expansion mode, and
   scene-satisfaction diagnostic wiring. Do not flip defaults without a new
   production decision and evidence gate.
-- L106 production writer-brief integration exists behind default-off
-  `writerDraftingBriefMode` values `scene-budget-v1` and `scene-turn-v1`: they
+- L106 writer-brief integration exists behind default-off `writerDraftingBriefMode` values `scene-budget-v1`, `scene-turn-v1`, and `scene-turn-anchored-v1`: they
   render compact writer-facing briefs from production `BeatContext` slots and
   record prompt payload telemetry on `writer-context` trace events; use
   `diagnostics:writer-context` to audit context-surface coverage after runs.
@@ -120,13 +119,14 @@ made `drafting-brief-v1` the strongest current arm: 3731/3000 = 1.24x,
 prose-semantic 0/8 lows, context gaps 0, scene-semantic lows 1/33 with
 character/world lows 0. LitRPG replication first held promotion; after reviewed
 `scene_select` edits reduced source chapters from 10/13 scenes to 6/8 scenes,
-`litrpg-scene-select-cohort-1778472482` showed the split clearly:
-`drafting-brief-v1` controlled length at 3473/2700 = 1.29x with no prose lows or
-context gaps, but regressed scene-semantic lows to 23/45 versus baseline 11/45,
-especially sceneDramaturgy and characterMateriality. Direct comparison
+`litrpg-scene-select-cohort-1778472482` controlled length at 3473/2700 = 1.29x
+but regressed scene lows to 23/45 versus baseline 11/45. Scene-turn comparison
 `litrpg-scene-turn-cohort-1778474291` improved lows to 16/45 at 3777/2700 =
-1.40x, but worldFactPressure regressed. Do not flip defaults; next tighten
-fact/continuity anchoring while preserving scene-turn gains. See L103-L106.
+1.40x, but worldFactPressure regressed. Prompt-only anchoring did not recover
+the gap: `litrpg-anchored-brief-cohort-1778475936` worsened to 18/45 lows at
+3873/2700 = 1.45x and still moved the dawn Verification onto the bridge. Do
+not flip defaults; next push timing/location/fact constraints upstream into
+scene-contract semantics or deterministic diagnostics. See L103-L106.
 
 ## Authoring Gates
 

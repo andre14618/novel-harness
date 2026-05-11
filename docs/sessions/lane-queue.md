@@ -23,8 +23,10 @@ unless the user explicitly requests a disposable branch.
   controlled at 3473/2700 = 1.29x with prose lows 0/8 and gaps 0, but scene
   lows regressed to 23/45 versus baseline 11/45. New default-off
   `drafting-brief-scene-turn-v1` improved direct-comparison lows to 16/45 at
-  3777/2700 = 1.40x but regressed worldFactPressure. No default flip; next
-  tighten fact/continuity anchoring. See L106.
+  3777/2700 = 1.40x but regressed worldFactPressure. Follow-up default-off
+  `drafting-brief-anchored-v1` worsened to 18/45 lows at 1.45x, tied
+  worldFactPressure lows at 1/9, and still collapsed the dawn Verification onto
+  the bridge. No default flip; move the next lever upstream. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
@@ -117,11 +119,9 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: do not keep chasing the same single endpoint low without a
-  new upstream hypothesis; the direct structural edit regressed. Move to the
-  next production workflow gap. Continue
-  seeking live `allow-entities` replay only if that blocker reproduces. See
-  L103-L106.
+- Next session start: stop prompt-only anchoring for this LitRPG failure mode.
+  Audit the chapter/scene plan for temporal/location contradictions and add a production
+  diagnostic/readiness path that catches future-event collapse before drafting. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
