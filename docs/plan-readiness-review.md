@@ -166,7 +166,10 @@ bun run diagnostics:planning-context-readiness -- \
 This adapter is deterministic and manual. It flags chapters whose scene count
 is too dense for the target word budget, then asks the operator whether to
 split the chapter, reduce scene count, or combine scene purposes before
-drafting. It never creates replacement scene arrays by itself.
+drafting. Proposal scaffolds use the structural `beat_reorder` action with
+the current scene-ID order as the template; the operator must supply the
+reviewed scene-ID order. The adapter never creates that replacement order by
+itself.
 
 Corpus recreation semantic lows can be converted into the same review-group
 shape without touching the DB:

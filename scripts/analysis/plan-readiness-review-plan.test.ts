@@ -84,6 +84,47 @@ describe("plan-readiness-review-plan", () => {
     expect(report.plan.actions[0]?.proposalInstruction).toContain("set decision to the candidate action")
   })
 
+  test("buildReviewPlanReport templates scene-load reorder proposals with current scene refs", () => {
+    const report = buildReviewPlanReport({
+      novelId: "novel",
+      status: "open",
+      generatedAt: "2026-05-10T00:00:00.000Z",
+      items: [
+        item({
+          id: "scene-load",
+          severity: "high",
+          diagnosticLabel: "SCENE-LOAD-OVERLOADED",
+          dimension: "sceneLoad",
+          target: { kind: "chapter_outline", ref: "ch-001", fieldPath: "scenes" },
+          evidence: { sceneRefs: "scene-1,scene-2,scene-3" },
+          metadata: {
+            proposalCandidate: {
+              action: "beat_reorder",
+              target: { kind: "chapter_outline", ref: "ch-001", fieldPath: "scenes" },
+              requiresProposedValue: true,
+              safeToAutoApply: false,
+            },
+          },
+        }),
+      ],
+    })
+
+    expect(report.plan.actions[0]).toMatchObject({
+      match: {
+        itemId: "scene-load",
+        targetKind: "chapter_outline",
+        targetRef: "ch-001",
+        targetFieldPath: "scenes",
+      },
+      decision: "deferred",
+      proposalCandidate: {
+        action: "beat_reorder",
+        target: { kind: "chapter_outline", ref: "ch-001", fieldPath: "scenes" },
+      },
+      proposedValueTemplate: ["scene-1", "scene-2", "scene-3"],
+    })
+  })
+
   test("renderReviewPlanReport includes review context without requiring proposals", () => {
     const report = buildReviewPlanReport({
       novelId: "novel",

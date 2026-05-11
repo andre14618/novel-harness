@@ -31,9 +31,12 @@ describe("planning-context-readiness", () => {
       label: "SCENE-LOAD-OVERLOADED",
       dimension: "sceneLoad",
       fixIntent: "rebalance_scene_load",
+      evidence: {
+        sceneRefs: "scene-1,scene-2",
+      },
     })
     expect(group.rewritePacket.proposalCandidate).toMatchObject({
-      action: "field_replace",
+      action: "beat_reorder",
       target: {
         kind: "chapter_outline",
         ref: "ch-001",
@@ -90,7 +93,7 @@ describe("planning-context-readiness", () => {
       importedByRef: "planning-context-readiness-test",
       metadata: {
         proposalCandidate: {
-          action: "field_replace",
+          action: "beat_reorder",
           target: { kind: "chapter_outline", ref: "ch-001", fieldPath: "scenes" },
           requiresProposedValue: true,
           proposedValueStatus: "operator_required",
@@ -120,6 +123,7 @@ function report(): PlanningToDraftingContextReport {
           {
             chapterNumber: 1,
             chapterId: "ch-001",
+            sceneRefs: ["scene-1", "scene-2"],
             sceneCount: 10,
             targetWords: 1200,
             targetWordsPerScene: 120,
@@ -128,6 +132,7 @@ function report(): PlanningToDraftingContextReport {
           {
             chapterNumber: 2,
             chapterId: "ch-002",
+            sceneRefs: ["scene-11", "scene-12"],
             sceneCount: 9,
             targetWords: 2400,
             targetWordsPerScene: 266.6666667,
@@ -136,6 +141,7 @@ function report(): PlanningToDraftingContextReport {
           {
             chapterNumber: 3,
             chapterId: "ch-003",
+            sceneRefs: ["scene-21"],
             sceneCount: 6,
             targetWords: 1800,
             targetWordsPerScene: 300,

@@ -274,6 +274,73 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
     expect((saved.scenes![0] as any).consequence).toBe(proposedScene.consequence)
   })
 
+  test("creates and applies a scene-order planning_edit from scene-load readiness", async () => {
+    const stored = await getChapterOutline(novelId, 1)
+    const first = { ...(stored.scenes![0] as Record<string, unknown>), beatId: "beat-route-1", sceneId: "beat-route-1" }
+    const second = {
+      ...first,
+      beatId: "beat-route-2",
+      sceneId: "beat-route-2",
+      description: "Vey names the second oath-road consequence.",
+    }
+    await saveChapterOutline(novelId, {
+      ...stored,
+      scenes: [first, second] as unknown as ChapterOutline["scenes"],
+    })
+    const imported = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/import`,
+      {
+        aggregate: sceneLoadAggregate(),
+        importedByKind: "test",
+        importedByRef: "scene-load-route-test",
+      },
+    ))
+    const itemId = imported.body.items[0].id
+    expect(imported.body.items[0].metadata.proposalCandidate).toMatchObject({
+      action: "beat_reorder",
+      target: {
+        kind: "chapter_outline",
+        ref: "ch-route-1",
+        fieldPath: "scenes",
+      },
+    })
+
+    const created = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/${itemId}/create-planning-proposal`,
+      {
+        action: "beat_reorder",
+        proposedValue: ["beat-route-2", "beat-route-1"],
+        operatorNote: "Move the consequence scene before the static setup scene.",
+      },
+    ))
+
+    expect(created.status).toBe(200)
+    expect(created.body.ok).toBe(true)
+    expect(created.body.proposal.envelope.payload.action).toBe("beat_reorder")
+    expect(created.body.proposal.envelope.target).toMatchObject({
+      kind: "chapter_outline",
+      ref: "ch-route-1",
+      fieldPath: "scenes",
+    })
+    expect(created.body.proposal.diff.before.value).toEqual(["beat-route-1", "beat-route-2"])
+    expect(created.body.proposal.diff.after.value).toEqual(["beat-route-2", "beat-route-1"])
+
+    const approved = await resolvePlanningProposal(novelId, created.body.proposal.envelope.id, {
+      status: "approved",
+      resolvedBy: "test",
+      operatorNote: "Approve scene-load reorder bridge test.",
+    })
+    expect(approved.status).toBe(200)
+
+    const saved = await getChapterOutline(novelId, 1)
+    expect(saved.scenes?.map(scene => (scene as any).beatId ?? (scene as any).sceneId)).toEqual([
+      "beat-route-2",
+      "beat-route-1",
+    ])
+  })
+
   test("creates and applies a character-ref field planning_edit from readiness", async () => {
     const imported = await expectJson(await invoke(
       "POST",
@@ -509,6 +576,73 @@ function aggregate() {
           },
         ],
         excerpt: "Scene: beat-route-1",
+      },
+    ],
+  }
+}
+
+function sceneLoadAggregate() {
+  return {
+    sourceReports: ["/tmp/planning-context.json"],
+    labels: ["SCENE-LOAD-OVERLOADED"],
+    groups: [
+      {
+        groupId: "001",
+        fixtureId: "route-fixture",
+        armId: "planning-context-readiness",
+        methodPackEnabled: false,
+        unitType: "chapter",
+        chapterId: "ch-route-1",
+        sceneId: "",
+        sourceIds: {
+          obligationIds: [],
+          characterIds: [],
+          worldFactIds: [],
+          sceneTurnIds: [],
+          threadIds: [],
+          promiseIds: [],
+          payoffIds: [],
+          sourceIds: [],
+        },
+        rewritePacket: {
+          preserveIds: {
+            obligationIds: [],
+            characterIds: [],
+            worldFactIds: [],
+            sceneTurnIds: [],
+            threadIds: [],
+            promiseIds: [],
+            payoffIds: [],
+            sourceIds: [],
+          },
+          proposalCandidate: {
+            action: "beat_reorder",
+            target: {
+              kind: "chapter_outline",
+              ref: "ch-route-1",
+              fieldPath: "scenes",
+            },
+            requiresProposedValue: true,
+            proposedValueStatus: "operator_required",
+            safeToAutoApply: false,
+            sourceAgent: "planning-context-readiness",
+          },
+        },
+        findings: [
+          {
+            findingId: "001.1",
+            sourceReport: "/tmp/planning-context.json",
+            promptMode: "deterministic-planning-context",
+            dimension: "sceneLoad",
+            label: "SCENE-LOAD-OVERLOADED",
+            severity: "high",
+            fixIntent: "rebalance_scene_load",
+            rationale: "Chapter 1 has 2 planned scenes for 120 target words.",
+            missingForNextLevel: "Rebalance the upstream chapter plan.",
+            evidence: { sceneRefs: "beat-route-1,beat-route-2" },
+          },
+        ],
+        excerpt: "Chapter 1 scene load is overloaded.",
       },
     ],
   }

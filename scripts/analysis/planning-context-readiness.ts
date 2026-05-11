@@ -71,7 +71,7 @@ interface PlanningContextReadinessGroup {
     rewriteGoals: string[]
     preserveIds: PlanningContextReadinessSourceIds
     proposalCandidate: {
-      action: "field_replace"
+      action: "beat_reorder"
       target: {
         kind: "chapter_outline"
         ref: string
@@ -217,6 +217,7 @@ function groupForChapter(args: {
       chapterNumber: String(args.chapter.chapterNumber),
       chapterId,
       sceneCount: String(args.chapter.sceneCount),
+      sceneRefs: args.chapter.sceneRefs.join(","),
       targetWords: args.chapter.targetWords === null ? "n/a" : String(args.chapter.targetWords),
       targetWordsPerScene: formatNullableNumber(args.chapter.targetWordsPerScene),
       signal: args.chapter.signal,
@@ -246,7 +247,7 @@ function groupForChapter(args: {
       ],
       preserveIds: sourceIds,
       proposalCandidate: {
-        action: "field_replace",
+        action: "beat_reorder",
         target: {
           kind: "chapter_outline",
           ref: chapterId,

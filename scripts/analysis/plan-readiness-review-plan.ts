@@ -166,6 +166,14 @@ function actionForItem(
 }
 
 function proposedValueTemplateFor(item: PlanReadinessItem): unknown {
+  const proposalCandidate = item.metadata.proposalCandidate
+  const action = typeof proposalCandidate === "object" && proposalCandidate !== null && !Array.isArray(proposalCandidate)
+    ? (proposalCandidate as Record<string, unknown>).action
+    : null
+  if (action === "beat_reorder") {
+    const sceneRefs = stringListFromCsv(item.evidence.sceneRefs)
+    return sceneRefs.length > 0 ? sceneRefs : ["replace-with-reviewed-scene-id-order"]
+  }
   return {
     target: {
       kind: item.target.kind,
@@ -174,6 +182,11 @@ function proposedValueTemplateFor(item: PlanReadinessItem): unknown {
     },
     replaceWithReviewedValue: true,
   }
+}
+
+function stringListFromCsv(value: string | undefined): string[] {
+  if (!value) return []
+  return value.split(",").map(item => item.trim()).filter(Boolean)
 }
 
 export function renderReviewPlanReport(report: PlanReadinessReviewPlanReport): string {

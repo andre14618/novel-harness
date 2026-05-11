@@ -62,6 +62,7 @@ export type SceneLoadSignal = "balanced" | "dense" | "overloaded" | "unknown"
 export interface ChapterSceneLoad {
   chapterNumber: number
   chapterId: string
+  sceneRefs: string[]
   sceneCount: number
   targetWords: number | null
   targetWordsPerScene: number | null
@@ -365,6 +366,9 @@ function auditSurface(args: {
 function summarizeSceneLoad(outlines: readonly ChapterOutline[]): SceneLoadSummary {
   const chapters = outlines.map(outline => {
     const sceneCount = (outline.scenes ?? []).length
+    const sceneRefs = (outline.scenes ?? [])
+      .map(scene => sceneRef(scene))
+      .filter((ref): ref is string => ref !== null)
     const targetWords = positiveNumber(outline.targetWords) ? outline.targetWords : null
     const targetWordsPerScene = targetWords !== null && sceneCount > 0
       ? targetWords / sceneCount
@@ -372,6 +376,7 @@ function summarizeSceneLoad(outlines: readonly ChapterOutline[]): SceneLoadSumma
     return {
       chapterNumber: outline.chapterNumber,
       chapterId: outline.chapterId ?? `chapter:${outline.chapterNumber}`,
+      sceneRefs,
       sceneCount,
       targetWords,
       targetWordsPerScene,
@@ -390,6 +395,12 @@ function summarizeSceneLoad(outlines: readonly ChapterOutline[]): SceneLoadSumma
     denseChapterCount: chapters.filter(chapter => chapter.signal === "dense").length,
     overloadedChapterCount: chapters.filter(chapter => chapter.signal === "overloaded").length,
   }
+}
+
+function sceneRef(scene: unknown): string | null {
+  if (scene === null || typeof scene !== "object" || Array.isArray(scene)) return null
+  const record = scene as Record<string, unknown>
+  return hasText(record.sceneId) ? record.sceneId as string : hasText(record.beatId) ? record.beatId as string : null
 }
 
 function sceneLoadSignal(sceneCount: number, targetWordsPerScene: number | null): SceneLoadSignal {

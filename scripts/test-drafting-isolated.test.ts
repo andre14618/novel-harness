@@ -641,6 +641,7 @@ function planningContextReport(): PlanningToDraftingContextReport {
         chapters: [{
           chapterNumber: 1,
           chapterId: "ch-001",
+          sceneRefs: ["scene-1", "scene-2"],
           sceneCount: 10,
           targetWords: 1200,
           targetWordsPerScene: 120,

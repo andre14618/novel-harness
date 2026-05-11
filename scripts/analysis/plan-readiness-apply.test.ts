@@ -92,6 +92,17 @@ describe("plan-readiness-apply", () => {
       proposedValue: { sceneId: "scene-1", description: "A full scene replacement." },
       operatorNote: "replace the scene contract so endpoint fields stay coherent",
     })
+
+    expect(requestBodyForPlanAction({
+      match: { label: "SCENE-LOAD-OVERLOADED", targetKind: "chapter_outline" },
+      decision: "beat_reorder",
+      proposedValue: ["scene-1", "scene-2"],
+      operatorNote: "operator reviewed the scene order/count",
+    })).toEqual({
+      action: "beat_reorder",
+      proposedValue: ["scene-1", "scene-2"],
+      operatorNote: "operator reviewed the scene order/count",
+    })
   })
 
   test("renderReport includes drafting source hygiene telemetry", () => {
