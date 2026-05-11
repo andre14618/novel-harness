@@ -24,6 +24,7 @@ describe("writer-context-report", () => {
         contextSurface: {
           surfaces: {
             characterProfiles: true,
+            canonFacts: true,
             sceneContract: false,
             worldBible: true,
             setting: false,
@@ -34,6 +35,7 @@ describe("writer-context-report", () => {
           },
           counts: {
             obligations: 0,
+            canonSourceRefs: 2,
             sceneContractFields: 5,
             sceneContractAnchorFields: 2,
             sceneContractDramaticFields: 2,
@@ -65,6 +67,7 @@ describe("writer-context-report", () => {
           counts: {
             characters: 2,
             obligations: 3,
+            canonSourceRefs: 2,
             sceneContractFields: 5,
             sceneContractAnchorFields: 2,
             sceneContractDramaticFields: 2,
@@ -114,6 +117,9 @@ describe("writer-context-report", () => {
       sceneContractDramaticFields: 2,
       sceneContractBudgetFields: 1,
       withObligations: 1,
+      withCanonFactContext: 1,
+      withFactContinuityAnchors: 1,
+      canonSourceRefs: 2,
       withWorldContext: 2,
       withWorldBible: 2,
       withSetting: 1,
@@ -145,12 +151,13 @@ describe("writer-context-report", () => {
     expect(rendered).toContain("character=1/3 (profiles=1, snapshots=1, capsules=1)")
     expect(rendered).toContain("sceneContract=1/3 (shapeCounts=1, dramatic=1, anchorOnly=0, anchors=1)")
     expect(rendered).toContain("obligations=1/3")
+    expect(rendered).toContain("canon=1/3 (sourceRefs=2, factAnchors=1)")
     expect(rendered).toContain("world=2/3 (bible=2, setting=1)")
     expect(rendered).toContain("implicitRefs=1/3")
     expect(rendered).toContain("refLookups=2, refLlm=1")
     expect(rendered).toContain("avgChars=500/1000")
     expect(rendered).toContain("avgRatio=0.500")
-    expect(rendered).toContain("#1 ch1 beat1 beat/initial")
+    expect(rendered).toContain("#1 ch1 beat1 beat/initial: surfaces=char,scene,canon,obligations")
     expect(rendered).toContain("brief=scene-budget-v1 500/1000 (0.500)")
   })
 

@@ -33,6 +33,7 @@ export interface WriterDraftingBriefTrace {
   counts: {
     characters: number
     obligations: number
+    canonSourceRefs: number
     sceneContractFields: number
     sceneContractAnchorFields: number
     sceneContractDramaticFields: number
@@ -414,6 +415,7 @@ function summarizeWriterDraftingBrief(args: {
     counts: {
       characters: briefCharacterNames(args.ctx).length,
       obligations: countObligations(args.ctx.beatSpec.obligations),
+      canonSourceRefs: countCanonSourceRefs(args.ctx),
       sceneContractFields: sceneContractShape?.fieldCount ?? 0,
       sceneContractAnchorFields: sceneContractShape?.anchorFields ?? 0,
       sceneContractDramaticFields: sceneContractShape?.dramaticFields ?? 0,
@@ -421,6 +423,22 @@ function summarizeWriterDraftingBrief(args: {
       choiceAlternatives: sceneContractShape?.choiceAlternatives ?? 0,
     },
   }
+}
+
+function countCanonSourceRefs(ctx: BeatContext): number {
+  const ids = new Set<string>()
+  for (const seed of ctx.beatSpec.seeds) if (seed.factId) ids.add(seed.factId)
+  for (const due of ctx.beatSpec.payoffsDue) if (due.factId) ids.add(due.factId)
+  for (const item of [
+    ...ctx.beatSpec.obligations.mustEstablish,
+    ...ctx.beatSpec.obligations.mustPayOff,
+    ...ctx.beatSpec.obligations.mustTransferKnowledge,
+    ...ctx.beatSpec.obligations.mustShowStateChange,
+    ...ctx.beatSpec.obligations.mustNotReveal,
+  ]) {
+    if (item.sourceId) ids.add(item.sourceId)
+  }
+  return ids.size
 }
 
 function countObligations(obligations: BeatContext["beatSpec"]["obligations"]): number {

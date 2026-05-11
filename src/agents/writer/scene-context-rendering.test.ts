@@ -177,9 +177,27 @@ describe("renderBeatContext + scene contract", () => {
       },
       readerInfoState: "READER-INFO STATE:\nReader already knows the script is dangerous.",
       setting: { name: "Imperial Archive", sensoryDetails: "ink and stone" },
+      beatSpec: {
+        ...baseCtx().beatSpec,
+        seeds: [{ fact: "The script is dangerous.", factId: "fact-script-danger", landsAtBeat: 3 }],
+        payoffsDue: [{ fact: "The ledger seal burns liars.", factId: "fact-ledger-seal", seededAtBeat: 0 }],
+        obligations: {
+          mustEstablish: [{
+            text: "Calla chooses rupture over protection.",
+            obligationId: "obl-choice",
+            sourceId: "fact-script",
+          }],
+          mustPayOff: [],
+          mustTransferKnowledge: [],
+          mustShowStateChange: [],
+          mustNotReveal: [],
+          allowedNewEntities: [],
+        },
+      },
     }))
 
     expect(surface.surfaces.sceneContract).toBe(true)
+    expect(surface.surfaces.canonFacts).toBe(true)
     expect(surface.surfaces.characterProfiles).toBe(true)
     expect(surface.surfaces.characterSnapshots).toBe(true)
     expect(surface.surfaces.characterContextCapsules).toBe(true)
@@ -194,6 +212,7 @@ describe("renderBeatContext + scene contract", () => {
     expect(surface.counts.sceneContractDramaticFields).toBe(3)
     expect(surface.counts.sceneContractBudgetFields).toBe(0)
     expect(surface.counts.choiceAlternatives).toBe(2)
+    expect(surface.counts.canonSourceRefs).toBe(3)
     expect(surface.counts.activeThreadIds).toBe(1)
     expect(surface.counts.implicitReferenceMarkers).toBe(1)
     expect(surface.counts.referenceLookups).toBe(2)
@@ -326,6 +345,7 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.draftingBriefTrace.counts.sceneContractDramaticFields).toBe(2)
     expect(selected.draftingBriefTrace.counts.sceneContractBudgetFields).toBe(1)
     expect(selected.draftingBriefTrace.counts.choiceAlternatives).toBe(2)
+    expect(selected.draftingBriefTrace.counts.canonSourceRefs).toBe(0)
   })
 
   it("renders obligation-named witnesses in drafting brief characters present", () => {
@@ -490,6 +510,7 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.userPrompt).toContain("Preserve bridge state exactly")
     expect(selected.draftingBriefTrace.mode).toBe("scene-turn-anchored-v1")
     expect(selected.draftingBriefTrace.sections.factContinuityAnchors).toBe(true)
+    expect(selected.draftingBriefTrace.counts.canonSourceRefs).toBe(2)
   })
 
   it("renders compact status-polarity guidance for already-authorized missing-seal facts", () => {
@@ -555,6 +576,7 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.draftingBriefTrace.sections.sceneLoadControl).toBe(true)
     expect(selected.draftingBriefTrace.sections.obligations).toBe(true)
     expect(selected.draftingBriefTrace.counts.obligations).toBe(1)
+    expect(selected.draftingBriefTrace.counts.canonSourceRefs).toBe(1)
   })
 })
 

@@ -142,6 +142,7 @@ export interface BeatContextResult {
 // such lever becomes a `BeatContext → BeatContext` transform behind a flag.
 
 export interface SeedLink {
+  factId?: string
   /** Pre-resolved fact text (factById lookup already applied by builder). */
   fact: string
   /** 0-based beat index where the seeded payoff lands. */
@@ -149,6 +150,7 @@ export interface SeedLink {
 }
 
 export interface PayoffDue {
+  factId?: string
   /** Pre-resolved fact text. */
   fact: string
   /** 0-based beat index that originally seeded this payoff. */
@@ -276,19 +278,25 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
   const facts = outline.establishedFacts ?? []
   const factById = new Map(facts.filter(f => f.id).map(f => [f.id, f.fact]))
 
-  const seeds: SeedLink[] = (beat.requiredPayoffs ?? []).map(p => ({
-    fact: factById.get(p.fact_id) ?? `[fact_id=${p.fact_id}]`,
-    landsAtBeat: p.payoff_beat,
-  }))
+  const seeds: SeedLink[] = (beat.requiredPayoffs ?? []).map(p => {
+    const seed: SeedLink = {
+      fact: factById.get(p.fact_id) ?? `[fact_id=${p.fact_id}]`,
+      landsAtBeat: p.payoff_beat,
+    }
+    if (p.fact_id) seed.factId = p.fact_id
+    return seed
+  })
 
   const payoffsDue: PayoffDue[] = []
   for (let i = 0; i < beatIndex; i++) {
     for (const link of outline.scenes[i]?.requiredPayoffs ?? []) {
       if (link.payoff_beat === beatIndex) {
-        payoffsDue.push({
+        const due: PayoffDue = {
           fact: factById.get(link.fact_id) ?? `[fact_id=${link.fact_id}]`,
           seededAtBeat: i,
-        })
+        }
+        if (link.fact_id) due.factId = link.fact_id
+        payoffsDue.push(due)
       }
     }
   }

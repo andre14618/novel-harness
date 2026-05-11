@@ -53,6 +53,10 @@ describe("planning-drafting-context-report", () => {
       worldBibleAvailable: true,
       storySpineAvailable: true,
       characterCount: 2,
+      canonFactCount: 1,
+      canonKnowledgeChangeCount: 0,
+      canonCharacterStateChangeCount: 0,
+      canonChangeCount: 1,
       chapterPlanCount: 2,
       plannedSceneCount: 2,
       sceneLoad: {
@@ -128,6 +132,7 @@ describe("planning-drafting-context-report", () => {
             characterProfiles: true,
             characterSnapshots: true,
             characterContextCapsules: true,
+            canonFacts: true,
             worldBible: true,
             setting: true,
             storySpine: false,
@@ -137,6 +142,7 @@ describe("planning-drafting-context-report", () => {
           },
           counts: {
             obligations: 1,
+            canonSourceRefs: 1,
             activeThreadIds: 1,
             sceneContractFields: 5,
             sceneContractAnchorFields: 2,
@@ -164,6 +170,7 @@ describe("planning-drafting-context-report", () => {
           counts: {
             characters: 2,
             obligations: 1,
+            canonSourceRefs: 1,
             sceneContractFields: 5,
             sceneContractAnchorFields: 2,
             sceneContractDramaticFields: 3,
@@ -181,6 +188,7 @@ describe("planning-drafting-context-report", () => {
       characterSnapshots: "covered",
       characterContextCapsules: "covered",
       worldBible: "covered",
+      canonFacts: "covered",
       setting: "covered",
       storySpine: "covered",
       readerInfoState: "covered",
@@ -191,6 +199,8 @@ describe("planning-drafting-context-report", () => {
     })
     expect(report.gaps).toHaveLength(0)
     expect(renderPlanningToDraftingContextReport(report)).toContain("Gaps: 0")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("canonFacts=1, canonKnowledge=0, canonStates=0")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("canon=1 (sourceRefs=1, factAnchors=0)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Scene load: maxScenesPerChapter=1")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Plan continuity: futureEventAnchors=0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=1, choice=0, endpoint=1, full=0, anchorOnly=0, temporal=1, place=1)")
@@ -455,6 +465,7 @@ describe("planning-drafting-context-report", () => {
       worldBible: "not_observed",
       setting: "not_observed",
       storySpine: "not_observed",
+      canonFacts: "not_available",
       resolvedReferences: "not_available",
       obligations: "not_available",
       draftingBrief: "not_available",
@@ -478,6 +489,7 @@ describe("planning-drafting-context-report", () => {
         contextSurface: {
           surfaces: {
             characterProfiles: true,
+            canonFacts: true,
             worldBible: true,
           },
           counts: {},
@@ -490,6 +502,7 @@ describe("planning-drafting-context-report", () => {
 
     expect(statuses(report.surfaces)).toMatchObject({
       characterProfiles: "represented_without_upstream",
+      canonFacts: "represented_without_upstream",
       worldBible: "represented_without_upstream",
     })
     expect(report.gaps.map(row => row.status)).toContain("represented_without_upstream")

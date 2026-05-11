@@ -23,6 +23,7 @@ export type ContextContractSurface =
   | "characterSnapshots"
   | "characterContextCapsules"
   | "worldBible"
+  | "canonFacts"
   | "setting"
   | "storySpine"
   | "readerInfoState"
@@ -43,6 +44,10 @@ export interface PlanningArtifactSummary {
   worldBibleAvailable: boolean
   storySpineAvailable: boolean
   characterCount: number
+  canonFactCount: number
+  canonKnowledgeChangeCount: number
+  canonCharacterStateChangeCount: number
+  canonChangeCount: number
   chapterPlanCount: number
   plannedSceneCount: number
   sceneLoad: SceneLoadSummary
@@ -208,6 +213,15 @@ export function summarizePlanningArtifacts(args: {
     worldBibleAvailable: args.worldBibleAvailable,
     storySpineAvailable: args.storySpineAvailable,
     characterCount: args.characters.length,
+    canonFactCount: outlines.reduce((sum, outline) => sum + (outline.establishedFacts ?? []).length, 0),
+    canonKnowledgeChangeCount: outlines.reduce((sum, outline) => sum + (outline.knowledgeChanges ?? []).length, 0),
+    canonCharacterStateChangeCount: outlines.reduce((sum, outline) => sum + (outline.characterStateChanges ?? []).length, 0),
+    canonChangeCount: outlines.reduce((sum, outline) =>
+      sum +
+      (outline.establishedFacts ?? []).length +
+      (outline.knowledgeChanges ?? []).length +
+      (outline.characterStateChanges ?? []).length,
+    0),
     chapterPlanCount: outlines.length,
     plannedSceneCount: scenes.length,
     sceneLoad,
@@ -282,6 +296,14 @@ export function buildPlanningToDraftingContextReport(args: {
       downstreamCount: downstream.withWorldBible,
       eventCount,
       note: "Writer telemetry currently observes World-Bible-derived context through selected world/setting slots.",
+    }),
+    auditSurface({
+      surface: "canonFacts",
+      upstreamAvailable: upstream.canonChangeCount > 0 || upstream.obligationSourceRefs > 0,
+      upstreamCount: upstream.canonChangeCount,
+      downstreamCount: downstream.withCanonFactContext,
+      eventCount,
+      note: "Planner canon facts, knowledge changes, and character state changes should reach the writer as source-refed obligations, reader-state, or fact-continuity anchors.",
     }),
     auditSurface({
       surface: "setting",
@@ -364,7 +386,9 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
     `Upstream: worldBible=${report.upstream.worldBibleAvailable ? "yes" : "no"}, ` +
       `storySpine=${report.upstream.storySpineAvailable ? "yes" : "no"}, ` +
       `characters=${report.upstream.characterCount}, chapterPlans=${report.upstream.chapterPlanCount}, ` +
-      `scenes=${report.upstream.plannedSceneCount}`,
+      `scenes=${report.upstream.plannedSceneCount}, ` +
+      `canonFacts=${report.upstream.canonFactCount}, canonKnowledge=${report.upstream.canonKnowledgeChangeCount}, ` +
+      `canonStates=${report.upstream.canonCharacterStateChangeCount}`,
   )
   lines.push(
       `Plan shape: sceneIds=${report.upstream.scenesWithSceneIds}/${report.upstream.plannedSceneCount}, ` +
@@ -426,6 +450,7 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
   lines.push(
     `Downstream writer-context events: ${report.downstream.events}; ` +
       `character=${report.downstream.withCharacterContext}, world=${report.downstream.withWorldContext}, ` +
+      `canon=${report.downstream.withCanonFactContext} (sourceRefs=${report.downstream.canonSourceRefs}, factAnchors=${report.downstream.withFactContinuityAnchors}), ` +
       `story=${report.downstream.withStoryContext}, readerInfo=${report.downstream.withReaderInfoState}, ` +
       `implicitRefs=${report.downstream.withImplicitReferences}, refs=${report.downstream.withResolvedReferences}, ` +
       `refLookups=${report.downstream.referenceLookups}, sceneContract=${report.downstream.withSceneContract} ` +

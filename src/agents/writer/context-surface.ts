@@ -7,6 +7,7 @@ export interface WriterContextSurfaceTrace {
     sceneSetup?: boolean
     beatSpec?: boolean
     sceneContract?: boolean
+    canonFacts?: boolean
     characterProfiles?: boolean
     characterSnapshots?: boolean
     characterContextCapsules?: boolean
@@ -29,6 +30,7 @@ export interface WriterContextSurfaceTrace {
     characterSnapshots?: number
     characterContextCards?: number
     obligations?: number
+    canonSourceRefs?: number
     sceneContractFields?: number
     sceneContractAnchorFields?: number
     sceneContractDramaticFields?: number
@@ -47,11 +49,13 @@ export interface WriterContextSurfaceTrace {
 export function summarizeBeatContextSurface(ctx: BeatContext): WriterContextSurfaceTrace {
   const capsules = ctx.characterContextCapsules ?? null
   const sceneContractShape = ctx.sceneContract ? summarizeSceneContractShape(ctx.sceneContract) : null
+  const canonSourceRefs = countCanonSourceRefs(ctx)
   return {
     path: "beat",
     surfaces: {
       beatSpec: true,
       sceneContract: Boolean(ctx.sceneContract),
+      canonFacts: canonSourceRefs > 0,
       characterProfiles: ctx.characterSnapshots.length > 0,
       characterSnapshots: ctx.characterSnapshots.length > 0,
       characterContextCapsules: Boolean(capsules),
@@ -69,6 +73,7 @@ export function summarizeBeatContextSurface(ctx: BeatContext): WriterContextSurf
       characterSnapshots: ctx.characterSnapshots.length,
       characterContextCards: capsules?.cards.length ?? 0,
       obligations: countObligations(ctx.beatSpec.obligations),
+      canonSourceRefs,
       sceneContractFields: sceneContractShape?.fieldCount ?? 0,
       sceneContractAnchorFields: sceneContractShape?.anchorFields ?? 0,
       sceneContractDramaticFields: sceneContractShape?.dramaticFields ?? 0,
@@ -83,6 +88,22 @@ export function summarizeBeatContextSurface(ctx: BeatContext): WriterContextSurf
       missingCharacterIds: capsules?.missingCharacterIds.length ?? 0,
     },
   }
+}
+
+function countCanonSourceRefs(ctx: BeatContext): number {
+  const ids = new Set<string>()
+  for (const seed of ctx.beatSpec.seeds) if (seed.factId) ids.add(seed.factId)
+  for (const due of ctx.beatSpec.payoffsDue) if (due.factId) ids.add(due.factId)
+  for (const item of [
+    ...ctx.beatSpec.obligations.mustEstablish,
+    ...ctx.beatSpec.obligations.mustPayOff,
+    ...ctx.beatSpec.obligations.mustTransferKnowledge,
+    ...ctx.beatSpec.obligations.mustShowStateChange,
+    ...ctx.beatSpec.obligations.mustNotReveal,
+  ]) {
+    if (item.sourceId) ids.add(item.sourceId)
+  }
+  return ids.size
 }
 
 function countObligations(obligations: BeatContext["beatSpec"]["obligations"]): number {
