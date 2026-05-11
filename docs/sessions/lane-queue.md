@@ -26,7 +26,8 @@ unless the user explicitly requests a disposable branch.
   and character materiality under high scene counts. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
-  writer-context telemetry; `test-drafting-isolated` writes it per arm.
+  writer-context telemetry and scene-load pressure; `test-drafting-isolated`
+  writes it per arm.
   Clean P1 covered character, world, story, reader-info, scene-contract,
   obligation, and drafting-brief surfaces; implicit refs classify as
   `attempted_no_context` when lookups run but render no context. Use these
