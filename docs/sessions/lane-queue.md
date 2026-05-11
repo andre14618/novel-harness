@@ -11,20 +11,20 @@ unless the user explicitly requests a disposable branch.
   another long-lived POC runner, prompt branch, mapper, checker, or review
   format when the same question can be tested through the production path. New
   scene-first novella POC runs require an explicit disposable-POC flag.
-- **Production writer-brief evidence (2026-05-11).** P1 cohort
-  `p1-arm-cohort-1778464932` found `drafting-brief-v1` strongest:
-  3731/3000 = 1.24x, prose lows 0/8, context gaps
-  0, scene lows 1/33 with character/world lows 0; baseline was 7703/3000 = 2.57x
-  with endpoint lows 3/10, and `scene-call-v1` was 7142/3000 = 2.38x with one
-  worldFactPressure low. Higher-scene-count LitRPG cohort
+- **Production writer-brief evidence (2026-05-11).** P1 made
+  `drafting-brief-v1` strongest: 3731/3000 = 1.24x, prose lows 0/8, context
+  gaps 0, scene lows 1/33 with character/world lows 0. Higher-scene-count LitRPG
+  cohort
   `litrpg-brief-cohort-1778467196` is a hold signal: baseline exhausted ch1 at
   5182/1200 with semantic lows 11/34; `drafting-brief-v1` reached ch2 but
   exhausted at 3910/2700 with semantic lows 30/68. Reviewed `scene_select`
   edits reduced a clone to 6/8 scenes and removed overloaded readiness; cohort
   `litrpg-scene-select-cohort-1778472482` found `drafting-brief-v1` length
   controlled at 3473/2700 = 1.29x with prose lows 0/8 and gaps 0, but scene
-  lows regressed to 23/45 versus baseline 11/45. No default flip; next compare
-  default-off `drafting-brief-scene-turn-v1`. See L106.
+  lows regressed to 23/45 versus baseline 11/45. New default-off
+  `drafting-brief-scene-turn-v1` improved direct-comparison lows to 16/45 at
+  3777/2700 = 1.40x but regressed worldFactPressure. No default flip; next
+  tighten fact/continuity anchoring. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`

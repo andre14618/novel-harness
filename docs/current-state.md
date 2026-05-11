@@ -123,9 +123,10 @@ character/world lows 0. LitRPG replication first held promotion; after reviewed
 `litrpg-scene-select-cohort-1778472482` showed the split clearly:
 `drafting-brief-v1` controlled length at 3473/2700 = 1.29x with no prose lows or
 context gaps, but regressed scene-semantic lows to 23/45 versus baseline 11/45,
-especially sceneDramaturgy and characterMateriality. Do not flip defaults; next
-hypothesis is a brief/plan floor that preserves materiality and scene turn while
-staying compact. See L103-L106.
+especially sceneDramaturgy and characterMateriality. Direct comparison
+`litrpg-scene-turn-cohort-1778474291` improved lows to 16/45 at 3777/2700 =
+1.40x, but worldFactPressure regressed. Do not flip defaults; next tighten
+fact/continuity anchoring while preserving scene-turn gains. See L103-L106.
 
 ## Authoring Gates
 
