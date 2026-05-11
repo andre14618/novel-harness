@@ -524,6 +524,18 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
       `anchors=${report.downstream.withSceneContractAnchors}), ` +
       `obligations=${report.downstream.withObligations}, draftingBrief=${report.downstream.withDraftingBriefTrace}`,
   )
+  const sceneCoverage = report.downstream.sceneCoverage
+  if (sceneCoverage) {
+    lines.push(
+      `Scene-normalized downstream: scenes=${sceneCoverage.beatScenes}; ` +
+        `character=${sceneCoverage.withCharacterContext}, world=${sceneCoverage.withWorldContext}, ` +
+        `canon=${sceneCoverage.withCanonFactContext} (sourceRefs=${sceneCoverage.canonSourceRefs}), ` +
+        `story=${sceneCoverage.withStoryContext} (storyRefs=${sceneCoverage.storyRefIds}), ` +
+        `readerInfo=${sceneCoverage.withReaderInfoState} (readerChars=${sceneCoverage.readerInfoStateChars}), ` +
+        `refs=${sceneCoverage.withResolvedReferences}, refLookups=${sceneCoverage.referenceLookups}, ` +
+        `missingChars=${sceneCoverage.missingCharacterIds}`,
+    )
+  }
   lines.push(`Gaps: ${report.gaps.length}`)
   for (const row of report.surfaces) {
     lines.push(

@@ -148,11 +148,34 @@ export interface WriterContextTelemetryReport {
     totalDraftingBriefCharsDelta: number
     missingCharacterIds: number
     missingCharacterIdCounts: Record<string, number>
+    sceneCoverage: WriterContextSceneCoverageSummary
   }
   byPath: Record<string, number>
   byStage: Record<string, number>
   byWriterContextMode: Record<string, number>
   byDraftingBriefMode: Record<string, number>
+}
+
+export interface WriterContextSceneCoverageSummary {
+  beatScenes: number
+  withCharacterContext: number
+  withWorldContext: number
+  withCanonFactContext: number
+  canonSourceRefs: number
+  canonSourceRefCounts: Record<string, number>
+  withStoryContext: number
+  storyRefIds: number
+  activeThreadIdCounts: Record<string, number>
+  activePromiseIdCounts: Record<string, number>
+  activePayoffIdCounts: Record<string, number>
+  withReaderInfoState: number
+  readerInfoStateChars: number
+  withResolvedReferences: number
+  referenceLookups: number
+  referenceLlmCalls: number
+  withDraftingBriefTrace: number
+  missingCharacterIds: number
+  missingCharacterIdCounts: Record<string, number>
 }
 
 interface Args {
@@ -169,6 +192,7 @@ export function buildWriterContextTelemetryReport(
     .map(normalizeWriterContextEvent)
   const draftingBriefEvents = events.flatMap(event => event.draftingBrief ? [event.draftingBrief] : [])
   const enabledDraftingBriefEvents = draftingBriefEvents.filter(event => event.mode !== "off")
+  const sceneCoverage = summarizeSceneCoverage(events)
 
   return {
     novelId,
@@ -222,6 +246,7 @@ export function buildWriterContextTelemetryReport(
       totalDraftingBriefCharsDelta: enabledDraftingBriefEvents.reduce((sum, event) => sum + event.charsDelta, 0),
       missingCharacterIds: events.reduce((sum, event) => sum + event.missingCharacterIds, 0),
       missingCharacterIdCounts: countBy(events.flatMap(event => event.missingCharacterIdValues), value => value),
+      sceneCoverage,
     },
     byPath: countBy(events, event => event.path),
     byStage: countBy(events, event => event.stage),
@@ -268,6 +293,24 @@ export function renderWriterContextTelemetryReport(report: WriterContextTelemetr
       `avgChars=${formatNullable(report.totals.avgSelectedPromptChars, 0)}/${formatNullable(report.totals.avgFullContextPromptChars, 0)}, ` +
       `avgRatio=${formatNullable(report.totals.avgDraftingBriefCharsRatio, 3)}, ` +
       `delta=${report.totals.totalDraftingBriefCharsDelta}`,
+  )
+  const sceneCoverage = report.totals.sceneCoverage
+  lines.push(
+    `Scene-normalized context: scenes=${sceneCoverage.beatScenes}; ` +
+      `character=${formatCoverage(sceneCoverage.withCharacterContext, sceneCoverage.beatScenes)}, ` +
+      `world=${formatCoverage(sceneCoverage.withWorldContext, sceneCoverage.beatScenes)}, ` +
+      `canon=${formatCoverage(sceneCoverage.withCanonFactContext, sceneCoverage.beatScenes)} ` +
+      `(sourceRefs=${sceneCoverage.canonSourceRefs}${recordSuffix(sceneCoverage.canonSourceRefCounts)}), ` +
+      `story=${formatCoverage(sceneCoverage.withStoryContext, sceneCoverage.beatScenes)} ` +
+      `(refs=${sceneCoverage.storyRefIds}, threads=${formatRecordOrNone(sceneCoverage.activeThreadIdCounts)}, ` +
+      `promises=${formatRecordOrNone(sceneCoverage.activePromiseIdCounts)}, ` +
+      `payoffs=${formatRecordOrNone(sceneCoverage.activePayoffIdCounts)}), ` +
+      `readerInfo=${formatCoverage(sceneCoverage.withReaderInfoState, sceneCoverage.beatScenes)} ` +
+      `(chars=${sceneCoverage.readerInfoStateChars}), ` +
+      `refs=${formatCoverage(sceneCoverage.withResolvedReferences, sceneCoverage.beatScenes)}, ` +
+      `refLookups=${sceneCoverage.referenceLookups}, refLlm=${sceneCoverage.referenceLlmCalls}, ` +
+      `missingCharacterIds=${sceneCoverage.missingCharacterIds}` +
+      `${Object.keys(sceneCoverage.missingCharacterIdCounts).length > 0 ? ` (${formatRecord(sceneCoverage.missingCharacterIdCounts)})` : ""}`,
   )
   lines.push(`Stages: ${formatRecord(report.byStage)}`)
   lines.push(`Writer context modes: ${formatRecord(report.byWriterContextMode)}`)
@@ -457,6 +500,124 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
   }
 }
 
+function summarizeSceneCoverage(events: readonly WriterContextEventSummary[]): WriterContextSceneCoverageSummary {
+  const byScene = new Map<string, {
+    withCharacterContext: boolean
+    withWorldContext: boolean
+    withCanonFactContext: boolean
+    withStoryContext: boolean
+    withReaderInfoState: boolean
+    withResolvedReferences: boolean
+    withDraftingBriefTrace: boolean
+    canonSourceRefs: Set<string>
+    activeThreadIds: Set<string>
+    activePromiseIds: Set<string>
+    activePayoffIds: Set<string>
+    missingCharacterIds: Set<string>
+    maxCanonSourceRefs: number
+    maxStoryRefIds: number
+    maxReaderInfoStateChars: number
+    maxReferenceLookups: number
+    maxReferenceLlmCalls: number
+    maxMissingCharacterIds: number
+  }>()
+
+  for (const event of events) {
+    const key = sceneCoverageKey(event)
+    if (!key) continue
+    const current = byScene.get(key) ?? {
+      withCharacterContext: false,
+      withWorldContext: false,
+      withCanonFactContext: false,
+      withStoryContext: false,
+      withReaderInfoState: false,
+      withResolvedReferences: false,
+      withDraftingBriefTrace: false,
+      canonSourceRefs: new Set<string>(),
+      activeThreadIds: new Set<string>(),
+      activePromiseIds: new Set<string>(),
+      activePayoffIds: new Set<string>(),
+      missingCharacterIds: new Set<string>(),
+      maxCanonSourceRefs: 0,
+      maxStoryRefIds: 0,
+      maxReaderInfoStateChars: 0,
+      maxReferenceLookups: 0,
+      maxReferenceLlmCalls: 0,
+      maxMissingCharacterIds: 0,
+    }
+    current.withCharacterContext ||= event.surfaces.character
+    current.withWorldContext ||= event.surfaces.world
+    current.withCanonFactContext ||= event.surfaces.canonFacts
+    current.withStoryContext ||= event.surfaces.story
+    current.withReaderInfoState ||= event.surfaces.readerInfoState
+    current.withResolvedReferences ||= event.surfaces.resolvedReferences
+    current.withDraftingBriefTrace ||= event.surfaces.draftingBrief
+    for (const id of event.canonSourceRefValues) current.canonSourceRefs.add(id)
+    for (const id of event.activeThreadIdValues) current.activeThreadIds.add(id)
+    for (const id of event.activePromiseIdValues) current.activePromiseIds.add(id)
+    for (const id of event.activePayoffIdValues) current.activePayoffIds.add(id)
+    for (const id of event.missingCharacterIdValues) current.missingCharacterIds.add(id)
+    current.maxCanonSourceRefs = Math.max(current.maxCanonSourceRefs, event.canonSourceRefs)
+    current.maxStoryRefIds = Math.max(current.maxStoryRefIds, event.storyRefIds)
+    current.maxReaderInfoStateChars = Math.max(current.maxReaderInfoStateChars, event.readerInfoStateChars)
+    current.maxReferenceLookups = Math.max(current.maxReferenceLookups, event.referenceLookups)
+    current.maxReferenceLlmCalls = Math.max(current.maxReferenceLlmCalls, event.referenceLlmCalls)
+    current.maxMissingCharacterIds = Math.max(current.maxMissingCharacterIds, event.missingCharacterIds)
+    byScene.set(key, current)
+  }
+
+  const rows = [...byScene.values()]
+  const canonSourceRefCounts: Record<string, number> = {}
+  const activeThreadIdCounts: Record<string, number> = {}
+  const activePromiseIdCounts: Record<string, number> = {}
+  const activePayoffIdCounts: Record<string, number> = {}
+  const missingCharacterIdCounts: Record<string, number> = {}
+  for (const row of rows) {
+    incrementIds(canonSourceRefCounts, row.canonSourceRefs)
+    incrementIds(activeThreadIdCounts, row.activeThreadIds)
+    incrementIds(activePromiseIdCounts, row.activePromiseIds)
+    incrementIds(activePayoffIdCounts, row.activePayoffIds)
+    incrementIds(missingCharacterIdCounts, row.missingCharacterIds)
+  }
+
+  return {
+    beatScenes: rows.length,
+    withCharacterContext: rows.filter(row => row.withCharacterContext).length,
+    withWorldContext: rows.filter(row => row.withWorldContext).length,
+    withCanonFactContext: rows.filter(row => row.withCanonFactContext).length,
+    canonSourceRefs: rows.reduce((sum, row) =>
+      sum + (row.canonSourceRefs.size > 0 ? row.canonSourceRefs.size : row.maxCanonSourceRefs), 0),
+    canonSourceRefCounts: sortNumberRecord(canonSourceRefCounts),
+    withStoryContext: rows.filter(row => row.withStoryContext).length,
+    storyRefIds: rows.reduce((sum, row) => {
+      const exactCount = row.activeThreadIds.size + row.activePromiseIds.size + row.activePayoffIds.size
+      return sum + (exactCount > 0 ? exactCount : row.maxStoryRefIds)
+    }, 0),
+    activeThreadIdCounts: sortNumberRecord(activeThreadIdCounts),
+    activePromiseIdCounts: sortNumberRecord(activePromiseIdCounts),
+    activePayoffIdCounts: sortNumberRecord(activePayoffIdCounts),
+    withReaderInfoState: rows.filter(row => row.withReaderInfoState).length,
+    readerInfoStateChars: rows.reduce((sum, row) => sum + row.maxReaderInfoStateChars, 0),
+    withResolvedReferences: rows.filter(row => row.withResolvedReferences).length,
+    referenceLookups: rows.reduce((sum, row) => sum + row.maxReferenceLookups, 0),
+    referenceLlmCalls: rows.reduce((sum, row) => sum + row.maxReferenceLlmCalls, 0),
+    withDraftingBriefTrace: rows.filter(row => row.withDraftingBriefTrace).length,
+    missingCharacterIds: rows.reduce((sum, row) =>
+      sum + (row.missingCharacterIds.size > 0 ? row.missingCharacterIds.size : row.maxMissingCharacterIds), 0),
+    missingCharacterIdCounts: sortNumberRecord(missingCharacterIdCounts),
+  }
+}
+
+function sceneCoverageKey(event: WriterContextEventSummary): string | null {
+  return event.path === "beat" && event.chapter !== null && event.beatIndex !== null
+    ? `${event.chapter}:${event.beatIndex}`
+    : null
+}
+
+function incrementIds(target: Record<string, number>, ids: ReadonlySet<string>): void {
+  for (const id of ids) target[id] = (target[id] ?? 0) + 1
+}
+
 function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingBrief"] {
   const row = readRecord(value)
   const mode = readString(row.mode)
@@ -525,7 +686,7 @@ function countBy<T>(items: readonly T[], keyFn: (item: T) => string): Record<str
     const key = keyFn(item)
     out[key] = (out[key] ?? 0) + 1
   }
-  return out
+  return sortNumberRecord(out)
 }
 
 function average(values: readonly number[]): number | null {
@@ -576,6 +737,12 @@ function cleanStringArray(value: unknown): string[] {
 
 function uniqueStrings(values: readonly string[]): string[] {
   return [...new Set(values)].sort()
+}
+
+function sortNumberRecord(record: Record<string, number>): Record<string, number> {
+  return Object.fromEntries(
+    Object.entries(record).sort(([a], [b]) => a.localeCompare(b)),
+  )
 }
 
 function recordSuffix(record: Record<string, number>): string {

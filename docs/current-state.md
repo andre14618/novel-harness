@@ -86,13 +86,13 @@ Use deeper docs only when linked by the context pack or needed by code.
 - L106 writer-brief integration exists behind default-off `writerDraftingBriefMode` values `scene-budget-v1`, `scene-budget-tight-v1`, `scene-turn-v1`, and `scene-turn-anchored-v1`: they
   render compact writer-facing briefs from production `BeatContext` slots and
   record prompt payload telemetry on `writer-context` trace events; use
-  `diagnostics:writer-context` to audit context-surface coverage after runs.
+  `diagnostics:writer-context` to audit context-surface plus scene-normalized coverage after runs.
   Fixed-plan drafting evidence can add `--scene-semantic-review` to capture
   endpointLanding, sceneDramaturgy, characterMateriality, and
   worldFactPressure replay artifacts per arm; `--scene-semantic-persist` stores
   eval rows and imports readiness lows unless disabled. Replay prefers captured
   per-scene writer calls before falling back to whole-chapter prose. Use
-  `diagnostics:planning-drafting-context` to audit context/canon/story-spine/story-ref/reader-state and unresolved reference-attempt surfaces and
+  `diagnostics:planning-drafting-context` to audit context/canon/story-spine/story-ref/reader-state and unresolved reference attempts and
   `diagnostics:drafting-run-compare`/`diagnostics:drafting-run-cohort` to compare
   clean-source reports with semantic trace IDs/clusters, context, and manual-readiness deltas; `test-drafting-isolated` writes context, Plan-Assist, and checker-readiness sidecars.
 - Production drafting defaults to exact-ID character context capsules

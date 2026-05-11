@@ -85,6 +85,8 @@ describe("drafting-run-cohort", () => {
     expect(rendered).toContain("canonSourceRefs=+2")
     expect(rendered).toContain("storyRefs=+2")
     expect(rendered).toContain("readerChars=+50")
+    expect(rendered).toContain("event-context deltas: canonSourceRefs=+2")
+    expect(rendered).toContain("scene-normalized context deltas: scenes=0, canonSourceRefs=+2, storyRefs=+2")
     expect(rendered).toContain("refAttemptScenes=+1")
     expect(rendered).toContain("refAttemptEvents=+1")
     expect(rendered).toContain("context ID deltas: canon=fact-lit=+2; threads=thread-lit=+3, thread-corso=-1")
@@ -96,8 +98,8 @@ describe("drafting-run-cohort", () => {
     expect(rendered).toContain("## Semantic Trace Clusters")
     expect(rendered).toContain("obligation:obl-corso rows=2 sources=1 dimensions=endpointLanding: 2 statuses=regressed_low: 2")
     expect(rendered).toContain("Comparisons: 2 (2 clean-source, 2 evidence-comparable)")
-    expect(rendered).toContain("| Source | Baseline | Candidate | Clean | Signal | Quality | Context Load | Alignment | Words | Scene Lows | Checker Blockers | Canon Refs | Story Refs | Reader | Reader Chars | Ref Attempt Scenes | Ref Attempt Events | Missing Chars |")
-    expect(rendered).toContain("| corso | drafting-brief-v1 | drafting-brief-tight-v1 | yes | regressed | regressed | contracted | context-contracted-with-quality-regression | +224 | +4 | 0 | 0 | -1 | 0 | -30 | -1 | -2 | 0 |")
+    expect(rendered).toContain("| Source | Baseline | Candidate | Clean | Signal | Quality | Context Load | Alignment | Words | Scene Lows | Checker Blockers | Event Canon Refs | Event Story Refs | Event Reader Chars | Scene Canon Refs | Scene Story Refs | Scene Reader Chars | Ref Attempt Events | Event Missing Chars | Scene Missing Chars |")
+    expect(rendered).toContain("| corso | drafting-brief-v1 | drafting-brief-tight-v1 | yes | regressed | regressed | contracted | context-contracted-with-quality-regression | +224 | +4 | 0 | 0 | -1 | -30 | 0 | -1 | -30 | -2 | 0 | 0 |")
   })
 
   test("loads comparison JSON artifacts", () => {
@@ -118,6 +120,7 @@ describe("drafting-run-cohort", () => {
     } & DraftingRunComparisonReport
     delete legacy.comparisons[0]!.planningContext.storyRefIdsDelta
     delete legacy.comparisons[0]!.planningContext.readerInfoStateCharsDelta
+    delete legacy.comparisons[0]!.planningContext.sceneCoverage
 
     const report = buildDraftingRunCohortReport({
       refs: [{ path: "legacy.json", report: legacy }],
@@ -133,7 +136,7 @@ describe("drafting-run-cohort", () => {
     expect(rendered).toContain("storyRefs=n/a")
     expect(rendered).toContain("readerChars=n/a")
     expect(rendered).toContain("context expanded without clear quality gain: 1")
-    expect(rendered).toContain("| legacy | drafting-brief-v1 | drafting-brief-tight-v1 | yes | mixed | mixed | expanded | context-expanded-without-clear-quality-gain | 0 | 0 | 0 | +1 | n/a | 0 | n/a | 0 | 0 | 0 |")
+    expect(rendered).toContain("| legacy | drafting-brief-v1 | drafting-brief-tight-v1 | yes | mixed | mixed | expanded | context-expanded-without-clear-quality-gain | 0 | 0 | 0 | +1 | n/a | n/a | n/a | n/a | n/a | 0 | 0 | n/a |")
   })
 
   test("excludes incomplete clean comparisons from aggregate evidence while preserving rows", () => {
@@ -164,7 +167,7 @@ describe("drafting-run-cohort", () => {
     const rendered = renderDraftingRunCohortReport(report)
     expect(rendered).toContain("Comparisons: 2 (2 clean-source, 1 evidence-comparable)")
     expect(rendered).toContain("complete ch1 complete-scene endpointLanding: ENDPOINT-1 -> ENDPOINT-2 (+1; resolved_low)")
-    expect(rendered).toContain("| gated | drafting-brief-v1 | drafting-brief-tight-v1 | yes | incomplete | incomplete | expanded | needs-semantic-evidence | n/a | n/a | n/a | +14 | 0 | +9 | +5886 | 0 | 0 | +6 |")
+    expect(rendered).toContain("| gated | drafting-brief-v1 | drafting-brief-tight-v1 | yes | incomplete | incomplete | expanded | needs-semantic-evidence | n/a | n/a | n/a | +14 | 0 | +5886 | +14 | 0 | +5886 | 0 | +6 | +6 |")
   })
 })
 
@@ -249,6 +252,7 @@ function comparisonReport(
         referenceAttemptSceneDelta,
         referenceAttemptEventDelta,
         idDeltas: contextIdDeltas(source, canonSourceRefsDelta, storyRefIdsDelta),
+        sceneCoverage: sceneCoverageDeltas(canonSourceRefsDelta, storyRefIdsDelta, readerInfoStateCharsDelta),
         overloadedChapterDelta: 0,
         minTargetWordsPerSceneDelta: 0,
       },
@@ -288,6 +292,34 @@ function comparisonReport(
         changedRows: semanticChangedRows(source, endpointLowDelta),
       },
     }],
+  }
+}
+
+function sceneCoverageDeltas(
+  canonSourceRefsDelta: number,
+  storyRefIdsDelta: number,
+  readerInfoStateCharsDelta: number,
+): DraftingRunComparisonReport["comparisons"][number]["planningContext"]["sceneCoverage"] {
+  return {
+    beatScenesDelta: 0,
+    characterContextDelta: 0,
+    worldContextDelta: 0,
+    canonFactContextDelta: 0,
+    canonSourceRefsDelta,
+    storyContextDelta: 0,
+    storyRefIdsDelta,
+    readerInfoStateDelta: 0,
+    readerInfoStateCharsDelta,
+    resolvedReferencesDelta: 0,
+    referenceLookupsDelta: 0,
+    missingCharacterIdsDelta: 0,
+    idDeltas: {
+      canonSourceRefs: {},
+      activeThreadIds: {},
+      activePromiseIds: {},
+      activePayoffIds: {},
+      missingCharacterIds: {},
+    },
   }
 }
 
@@ -414,6 +446,9 @@ function incompleteComparisonReport(source: string): DraftingRunComparisonReport
   comparison.planningContext.readerInfoStateDelta = 9
   comparison.planningContext.readerInfoStateCharsDelta = 5886
   comparison.planningContext.missingCharacterIdsDelta = 6
+  comparison.planningContext.sceneCoverage.readerInfoStateDelta = 9
+  comparison.planningContext.sceneCoverage.readerInfoStateCharsDelta = 5886
+  comparison.planningContext.sceneCoverage.missingCharacterIdsDelta = 6
   comparison.sceneSemantic = {
     lowRowsDelta: 3,
     errorRowsDelta: 1,

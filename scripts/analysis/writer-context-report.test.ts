@@ -200,6 +200,88 @@ describe("writer-context-report", () => {
     expect(report.totals.events).toBe(0)
     expect(renderWriterContextTelemetryReport(report)).toContain("No writer-context events found.")
   })
+
+  test("normalizes context coverage by beat scene instead of retry event volume", () => {
+    const rows: WriterContextEventRow[] = [
+      row(1, 2, 4, {
+        path: "beat",
+        stage: "initial",
+        contextSurface: {
+          surfaces: {
+            canonFacts: true,
+            storySpine: false,
+            readerInfoState: true,
+            resolvedReferences: false,
+          },
+          counts: {
+            canonSourceRefs: 1,
+            storyRefIds: 1,
+            activeThreadIds: 1,
+            readerInfoStateChars: 100,
+            referenceLookups: 2,
+          },
+          ids: {
+            canonSourceRefs: ["fact-a"],
+            activeThreadIds: ["thread-a"],
+          },
+        },
+      }),
+      row(2, 2, 4, {
+        path: "beat",
+        stage: "integrity-rewrite",
+        characterContext: {
+          missingCharacterIds: ["char-missing"],
+        },
+        contextSurface: {
+          surfaces: {
+            canonFacts: true,
+            storySpine: false,
+            readerInfoState: true,
+            resolvedReferences: false,
+          },
+          counts: {
+            canonSourceRefs: 2,
+            storyRefIds: 2,
+            activeThreadIds: 1,
+            activePromiseIds: 1,
+            readerInfoStateChars: 160,
+            referenceLookups: 4,
+            referenceLlmCalls: 1,
+            missingCharacterIds: 1,
+          },
+          ids: {
+            canonSourceRefs: ["fact-a", "fact-b"],
+            activeThreadIds: ["thread-a"],
+            activePromiseIds: ["promise-b"],
+          },
+        },
+      }),
+    ]
+
+    const report = buildWriterContextTelemetryReport(rows, "novel-retry")
+
+    expect(report.totals.events).toBe(2)
+    expect(report.totals.canonSourceRefs).toBe(3)
+    expect(report.totals.storyRefIds).toBe(3)
+    expect(report.totals.readerInfoStateChars).toBe(260)
+    expect(report.totals.sceneCoverage).toMatchObject({
+      beatScenes: 1,
+      withCanonFactContext: 1,
+      canonSourceRefs: 2,
+      canonSourceRefCounts: { "fact-a": 1, "fact-b": 1 },
+      withStoryContext: 1,
+      storyRefIds: 2,
+      activeThreadIdCounts: { "thread-a": 1 },
+      activePromiseIdCounts: { "promise-b": 1 },
+      withReaderInfoState: 1,
+      readerInfoStateChars: 160,
+      referenceLookups: 4,
+      referenceLlmCalls: 1,
+      missingCharacterIds: 1,
+      missingCharacterIdCounts: { "char-missing": 1 },
+    })
+    expect(renderWriterContextTelemetryReport(report)).toContain("Scene-normalized context: scenes=1")
+  })
 })
 
 function row(

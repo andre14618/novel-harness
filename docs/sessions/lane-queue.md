@@ -24,13 +24,13 @@ unless the user explicitly requests a disposable branch.
   endpoint lows 4/14; endpoint repair cleared selected LitRPG lows at
   4640/2700 = 1.72x. A default-off tight arm plus two source `planning_edit`
   endpoint repairs reached 3398/2700 = 1.27x with scene lows 0/45; Corso
-  replication regressed to 5002/3800 with scene lows 4/34. Fresh P1 N=4 tight
-  cohort stayed mixed: mean -31.3 words, scene lows -6, endpoint lows -2,
-  alignment 3 quality-gain-with-load-change / 1 expanded-no-gain row; new-row manual readiness: checker blockers -1, warnings +17 with negative polarity flat, positive +1, ambiguous +15. Separate gate cell leaves 5 clean sources but 4 evidence-comparable rows.
+  replication regressed to 5002/3800 with scene lows 4/34. Current clean-source
+  N=3 tight cohort is mixed: mean -90.7 words, scene lows -6, endpoint lows -2,
+  alignment 3 quality-gain-with-load-change rows; event-context deltas looked contracted, but scene-normalized context deltas were zero. Manual readiness: checker blockers -1, warnings +17 with negative polarity flat, positive +1, ambiguous +15.
   Keep broad operational-facts brief out after 6050/3800 regression. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
-  writer-context/canon/story-spine/story-ref/reader-state telemetry and scene-load pressure; run-compare/cohort
+  writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort
   compare reports with trace IDs/clusters, context, and manual-readiness deltas, and isolated runs now write Plan-Assist plus checker-readiness sidecars.
   Scene-contract telemetry separates broad `dramatic` presence from `choice`,
   `endpoint`, and `full` completeness.

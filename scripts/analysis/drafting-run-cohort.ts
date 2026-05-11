@@ -79,6 +79,12 @@ export interface DraftingRunCohortPair {
   missingCharacterIdsDelta: number | null
   referenceAttemptSceneDelta: number | null
   referenceAttemptEventDelta: number | null
+  sceneCoverageBeatScenesDelta: number | null
+  sceneCoverageCanonSourceRefsDelta: number | null
+  sceneCoverageStoryRefIdsDelta: number | null
+  sceneCoverageReaderInfoStateDelta: number | null
+  sceneCoverageReaderInfoStateCharsDelta: number | null
+  sceneCoverageMissingCharacterIdsDelta: number | null
   contextIdDeltas: ContextIdDeltas
 }
 
@@ -172,6 +178,14 @@ export interface DraftingRunCohortReport {
       resolvedReferences: number | null
       referenceAttemptScenes: number | null
       referenceAttemptEvents: number | null
+      missingCharacterIds: number | null
+    }
+    sceneCoverageDeltas: {
+      beatScenes: number | null
+      canonSourceRefs: number | null
+      storyRefIds: number | null
+      readerInfoState: number | null
+      readerInfoStateChars: number | null
       missingCharacterIds: number | null
     }
     contextIdDeltas: ContextIdDeltas
@@ -277,6 +291,14 @@ export function buildDraftingRunCohortReport(input: {
         referenceAttemptEvents: sumComparisonDelta(input.refs, "referenceAttemptEventDelta", isEvidenceComparableComparison),
         missingCharacterIds: sumComparisonDelta(input.refs, "missingCharacterIdsDelta", isEvidenceComparableComparison),
       },
+      sceneCoverageDeltas: {
+        beatScenes: sumNullable(evidencePairs.map(pair => pair.sceneCoverageBeatScenesDelta)),
+        canonSourceRefs: sumNullable(evidencePairs.map(pair => pair.sceneCoverageCanonSourceRefsDelta)),
+        storyRefIds: sumNullable(evidencePairs.map(pair => pair.sceneCoverageStoryRefIdsDelta)),
+        readerInfoState: sumNullable(evidencePairs.map(pair => pair.sceneCoverageReaderInfoStateDelta)),
+        readerInfoStateChars: sumNullable(evidencePairs.map(pair => pair.sceneCoverageReaderInfoStateCharsDelta)),
+        missingCharacterIds: sumNullable(evidencePairs.map(pair => pair.sceneCoverageMissingCharacterIdsDelta)),
+      },
       contextIdDeltas: aggregateContextIdDeltas(input.refs, isEvidenceComparableComparison),
     },
     dimensions: [...dimensionMap.values()].sort((a, b) => a.dimension.localeCompare(b.dimension)),
@@ -331,7 +353,7 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
       `checkerLowConfidence=${formatSigned(report.aggregate.checkerLowConfidenceDeltaSum)}`,
   )
   lines.push(
-    `- context deltas: canonSourceRefs=${formatDelta(report.aggregate.contextDeltas.canonSourceRefs)}, ` +
+    `- event-context deltas: canonSourceRefs=${formatDelta(report.aggregate.contextDeltas.canonSourceRefs)}, ` +
       `factAnchors=${formatDelta(report.aggregate.contextDeltas.factContinuityAnchors)}, ` +
       `storyRefs=${formatDelta(report.aggregate.contextDeltas.storyRefIds)}, ` +
       `reader=${formatDelta(report.aggregate.contextDeltas.readerInfoState)}, ` +
@@ -340,6 +362,14 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
       `refAttemptScenes=${formatDelta(report.aggregate.contextDeltas.referenceAttemptScenes)}, ` +
       `refAttemptEvents=${formatDelta(report.aggregate.contextDeltas.referenceAttemptEvents)}, ` +
       `missingChars=${formatDelta(report.aggregate.contextDeltas.missingCharacterIds)}`,
+  )
+  lines.push(
+    `- scene-normalized context deltas: scenes=${formatDelta(report.aggregate.sceneCoverageDeltas.beatScenes)}, ` +
+      `canonSourceRefs=${formatDelta(report.aggregate.sceneCoverageDeltas.canonSourceRefs)}, ` +
+      `storyRefs=${formatDelta(report.aggregate.sceneCoverageDeltas.storyRefIds)}, ` +
+      `reader=${formatDelta(report.aggregate.sceneCoverageDeltas.readerInfoState)}, ` +
+      `readerChars=${formatDelta(report.aggregate.sceneCoverageDeltas.readerInfoStateChars)}, ` +
+      `missingChars=${formatDelta(report.aggregate.sceneCoverageDeltas.missingCharacterIds)}`,
   )
   const contextIdDeltas = formatContextIdDeltas(report.aggregate.contextIdDeltas)
   if (contextIdDeltas) lines.push(`- context ID deltas: ${contextIdDeltas}`)
@@ -374,8 +404,8 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
   lines.push("")
   lines.push("## Comparisons")
   lines.push("")
-  lines.push("| Source | Baseline | Candidate | Clean | Signal | Quality | Context Load | Alignment | Words | Scene Lows | Checker Blockers | Canon Refs | Story Refs | Reader | Reader Chars | Ref Attempt Scenes | Ref Attempt Events | Missing Chars |")
-  lines.push("| --- | --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+  lines.push("| Source | Baseline | Candidate | Clean | Signal | Quality | Context Load | Alignment | Words | Scene Lows | Checker Blockers | Event Canon Refs | Event Story Refs | Event Reader Chars | Scene Canon Refs | Scene Story Refs | Scene Reader Chars | Ref Attempt Events | Event Missing Chars | Scene Missing Chars |")
+  lines.push("| --- | --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
   for (const pair of report.pairs) {
     lines.push(
       `| ${pair.source} | ${pair.baselineArm} | ${pair.candidateArm} | ${pair.cleanSource ? "yes" : "no"} | ` +
@@ -383,9 +413,11 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
         `${formatEvidenceSigned(pair.totalWordsDelta, pair)} | ${formatEvidenceDelta(pair.sceneLowDelta, pair)} | ` +
         `${formatEvidenceDelta(pair.checkerBlockerDelta, pair)} | ` +
         `${formatDelta(pair.canonSourceRefsDelta)} | ${formatDelta(pair.storyRefIdsDelta)} | ` +
-        `${formatDelta(pair.readerInfoStateDelta)} | ${formatDelta(pair.readerInfoStateCharsDelta)} | ` +
-        `${formatDelta(pair.referenceAttemptSceneDelta)} | ${formatDelta(pair.referenceAttemptEventDelta)} | ` +
-        `${formatDelta(pair.missingCharacterIdsDelta)} |`,
+        `${formatDelta(pair.readerInfoStateCharsDelta)} | ` +
+        `${formatDelta(pair.sceneCoverageCanonSourceRefsDelta)} | ${formatDelta(pair.sceneCoverageStoryRefIdsDelta)} | ` +
+        `${formatDelta(pair.sceneCoverageReaderInfoStateCharsDelta)} | ` +
+        `${formatDelta(pair.referenceAttemptEventDelta)} | ` +
+        `${formatDelta(pair.missingCharacterIdsDelta)} | ${formatDelta(pair.sceneCoverageMissingCharacterIdsDelta)} |`,
     )
   }
   lines.push("")
@@ -441,6 +473,12 @@ function pairRowsForReport(ref: DraftingRunCohortReportRef): DraftingRunCohortPa
       missingCharacterIdsDelta: comparison.planningContext.missingCharacterIdsDelta ?? null,
       referenceAttemptSceneDelta: comparison.planningContext.referenceAttemptSceneDelta ?? null,
       referenceAttemptEventDelta: comparison.planningContext.referenceAttemptEventDelta ?? null,
+      sceneCoverageBeatScenesDelta: comparison.planningContext.sceneCoverage?.beatScenesDelta ?? null,
+      sceneCoverageCanonSourceRefsDelta: comparison.planningContext.sceneCoverage?.canonSourceRefsDelta ?? null,
+      sceneCoverageStoryRefIdsDelta: comparison.planningContext.sceneCoverage?.storyRefIdsDelta ?? null,
+      sceneCoverageReaderInfoStateDelta: comparison.planningContext.sceneCoverage?.readerInfoStateDelta ?? null,
+      sceneCoverageReaderInfoStateCharsDelta: comparison.planningContext.sceneCoverage?.readerInfoStateCharsDelta ?? null,
+      sceneCoverageMissingCharacterIdsDelta: comparison.planningContext.sceneCoverage?.missingCharacterIdsDelta ?? null,
       contextIdDeltas: normalizeContextIdDeltas(comparison.planningContext.idDeltas),
     }
   })
@@ -668,9 +706,18 @@ function classifyQualityMovement(comparison: DraftingRunComparison): QualityMove
 }
 
 function classifyContextLoadMovement(comparison: DraftingRunComparison): ContextLoadMovement {
-  const deltas = [
-    comparison.prompt.avgSelectedPromptCharsDelta,
-    comparison.prompt.totalCharsDeltaDelta,
+  const sceneCoverageDeltas = [
+    comparison.planningContext.sceneCoverage?.characterContextDelta,
+    comparison.planningContext.sceneCoverage?.worldContextDelta,
+    comparison.planningContext.sceneCoverage?.canonFactContextDelta,
+    comparison.planningContext.sceneCoverage?.canonSourceRefsDelta,
+    comparison.planningContext.sceneCoverage?.storyContextDelta,
+    comparison.planningContext.sceneCoverage?.storyRefIdsDelta,
+    comparison.planningContext.sceneCoverage?.readerInfoStateDelta,
+    comparison.planningContext.sceneCoverage?.readerInfoStateCharsDelta,
+    comparison.planningContext.sceneCoverage?.resolvedReferencesDelta,
+  ].filter((value): value is number => typeof value === "number" && Number.isFinite(value))
+  const eventDeltas = [
     comparison.planningContext.characterContextDelta,
     comparison.planningContext.worldContextDelta,
     comparison.planningContext.canonFactContextDelta,
@@ -681,6 +728,12 @@ function classifyContextLoadMovement(comparison: DraftingRunComparison): Context
     comparison.planningContext.readerInfoStateDelta,
     comparison.planningContext.readerInfoStateCharsDelta,
     comparison.planningContext.resolvedReferencesDelta,
+  ].filter((value): value is number => typeof value === "number" && Number.isFinite(value))
+  const contextDeltas = sceneCoverageDeltas.length > 0 ? sceneCoverageDeltas : eventDeltas
+  const deltas = [
+    comparison.prompt.avgSelectedPromptCharsDelta,
+    comparison.prompt.totalCharsDeltaDelta,
+    ...contextDeltas,
   ].filter((value): value is number => typeof value === "number" && Number.isFinite(value))
   if (deltas.length === 0) return "unknown"
   const nonZero = deltas.filter(value => value !== 0)

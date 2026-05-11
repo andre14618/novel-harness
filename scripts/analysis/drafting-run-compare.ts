@@ -148,12 +148,34 @@ interface PlanningContextDetail {
     missingCharacterIdCounts: Record<string, number>
     withResolvedReferences: number | null
     referenceLookups: number | null
+    sceneCoverage: PlanningContextSceneCoverage | null
   } | null
   referenceContextAttempts: {
     sceneCount: number | null
     eventCount: number | null
     sceneRefs: string[]
   } | null
+}
+
+interface PlanningContextSceneCoverage {
+  beatScenes: number | null
+  withCharacterContext: number | null
+  withWorldContext: number | null
+  withCanonFactContext: number | null
+  canonSourceRefs: number | null
+  canonSourceRefCounts: Record<string, number>
+  withStoryContext: number | null
+  storyRefIds: number | null
+  activeThreadIdCounts: Record<string, number>
+  activePromiseIdCounts: Record<string, number>
+  activePayoffIdCounts: Record<string, number>
+  withReaderInfoState: number | null
+  readerInfoStateChars: number | null
+  withResolvedReferences: number | null
+  referenceLookups: number | null
+  referenceLlmCalls: number | null
+  missingCharacterIds: number | null
+  missingCharacterIdCounts: Record<string, number>
 }
 
 export interface DraftingRunRef {
@@ -275,6 +297,27 @@ export interface DraftingRunComparison {
       activePromiseIds: Record<string, number>
       activePayoffIds: Record<string, number>
       missingCharacterIds: Record<string, number>
+    }
+    sceneCoverage: {
+      beatScenesDelta: number | null
+      characterContextDelta: number | null
+      worldContextDelta: number | null
+      canonFactContextDelta: number | null
+      canonSourceRefsDelta: number | null
+      storyContextDelta: number | null
+      storyRefIdsDelta: number | null
+      readerInfoStateDelta: number | null
+      readerInfoStateCharsDelta: number | null
+      resolvedReferencesDelta: number | null
+      referenceLookupsDelta: number | null
+      missingCharacterIdsDelta: number | null
+      idDeltas: {
+        canonSourceRefs: Record<string, number>
+        activeThreadIds: Record<string, number>
+        activePromiseIds: Record<string, number>
+        activePayoffIds: Record<string, number>
+        missingCharacterIds: Record<string, number>
+      }
     }
   }
   manualReadiness: {
@@ -402,6 +445,26 @@ export function renderDraftingRunComparisonReport(report: DraftingRunComparisonR
       )
       const contextIdDeltas = formatContextIdDeltas(comparison.planningContext.idDeltas)
       if (contextIdDeltas) lines.push(`Context ID deltas: ${contextIdDeltas}`)
+      const baselineSceneCoverage = baselineContext?.sceneCoverage ?? null
+      const candidateSceneCoverage = candidateContext?.sceneCoverage ?? null
+      if (baselineSceneCoverage || candidateSceneCoverage) {
+        lines.push(
+          `Scene-normalized context: scenes=${formatTransition(baselineSceneCoverage?.beatScenes, candidateSceneCoverage?.beatScenes)}, ` +
+            `character=${formatTransition(baselineSceneCoverage?.withCharacterContext, candidateSceneCoverage?.withCharacterContext)}, ` +
+            `world=${formatTransition(baselineSceneCoverage?.withWorldContext, candidateSceneCoverage?.withWorldContext)}, ` +
+            `canon=${formatTransition(baselineSceneCoverage?.withCanonFactContext, candidateSceneCoverage?.withCanonFactContext)} ` +
+            `(sourceRefs=${formatTransition(baselineSceneCoverage?.canonSourceRefs, candidateSceneCoverage?.canonSourceRefs)}), ` +
+            `story=${formatTransition(baselineSceneCoverage?.withStoryContext, candidateSceneCoverage?.withStoryContext)} ` +
+            `(storyRefs=${formatTransition(baselineSceneCoverage?.storyRefIds, candidateSceneCoverage?.storyRefIds)}), ` +
+            `reader=${formatTransition(baselineSceneCoverage?.withReaderInfoState, candidateSceneCoverage?.withReaderInfoState)} ` +
+            `(chars=${formatTransition(baselineSceneCoverage?.readerInfoStateChars, candidateSceneCoverage?.readerInfoStateChars)}), ` +
+            `refs=${formatTransition(baselineSceneCoverage?.withResolvedReferences, candidateSceneCoverage?.withResolvedReferences)} ` +
+            `(lookups=${formatTransition(baselineSceneCoverage?.referenceLookups, candidateSceneCoverage?.referenceLookups)}), ` +
+            `missingChars=${formatTransition(baselineSceneCoverage?.missingCharacterIds, candidateSceneCoverage?.missingCharacterIds)}`,
+        )
+        const sceneContextIdDeltas = formatContextIdDeltas(comparison.planningContext.sceneCoverage.idDeltas)
+        if (sceneContextIdDeltas) lines.push(`Scene-normalized ID deltas: ${sceneContextIdDeltas}`)
+      }
     }
     const baselineReferenceAttempts = report.baseline.planningContext?.referenceContextAttempts
     const candidateReferenceAttempts = candidate.planningContext?.referenceContextAttempts
@@ -600,6 +663,10 @@ function compareCandidate(
           candidate.summary.planningContext?.downstream?.missingCharacterIdCounts,
         ),
       },
+      sceneCoverage: compareSceneCoverage(
+        baseline.summary.planningContext?.downstream?.sceneCoverage ?? null,
+        candidate.summary.planningContext?.downstream?.sceneCoverage ?? null,
+      ),
     },
     manualReadiness: {
       planAssistFindingDelta: nullableDelta(
@@ -993,6 +1060,7 @@ function loadPlanningContextDetail(reportDir: string, outputDir: string | null):
         missingCharacterIdCounts: numberRecord(downstream.missingCharacterIdCounts),
         withResolvedReferences: finiteOrNull(downstream.withResolvedReferences),
         referenceLookups: finiteOrNull(downstream.referenceLookups),
+        sceneCoverage: readSceneCoverage(downstream.sceneCoverage),
       } : null,
       referenceContextAttempts: {
         sceneCount: referenceContextAttempts.length,
@@ -1008,6 +1076,31 @@ function loadPlanningContextDetail(reportDir: string, outputDir: string | null):
     }
   } catch {
     return null
+  }
+}
+
+function readSceneCoverage(value: unknown): PlanningContextSceneCoverage | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null
+  const row = value as Record<string, unknown>
+  return {
+    beatScenes: finiteOrNull(row.beatScenes),
+    withCharacterContext: finiteOrNull(row.withCharacterContext),
+    withWorldContext: finiteOrNull(row.withWorldContext),
+    withCanonFactContext: finiteOrNull(row.withCanonFactContext),
+    canonSourceRefs: finiteOrNull(row.canonSourceRefs),
+    canonSourceRefCounts: numberRecord(row.canonSourceRefCounts),
+    withStoryContext: finiteOrNull(row.withStoryContext),
+    storyRefIds: finiteOrNull(row.storyRefIds),
+    activeThreadIdCounts: numberRecord(row.activeThreadIdCounts),
+    activePromiseIdCounts: numberRecord(row.activePromiseIdCounts),
+    activePayoffIdCounts: numberRecord(row.activePayoffIdCounts),
+    withReaderInfoState: finiteOrNull(row.withReaderInfoState),
+    readerInfoStateChars: finiteOrNull(row.readerInfoStateChars),
+    withResolvedReferences: finiteOrNull(row.withResolvedReferences),
+    referenceLookups: finiteOrNull(row.referenceLookups),
+    referenceLlmCalls: finiteOrNull(row.referenceLlmCalls),
+    missingCharacterIds: finiteOrNull(row.missingCharacterIds),
+    missingCharacterIdCounts: numberRecord(row.missingCharacterIdCounts),
   }
 }
 
@@ -1086,6 +1179,9 @@ function evidenceReasons(
   if (positiveDelta(comparison.planningContext.missingCharacterIdsDelta)) {
     reasons.push(`Writer-context missing character ids increased by ${comparison.planningContext.missingCharacterIdsDelta}.`)
   }
+  if (rawContextChangedButSceneCoverageStable(comparison)) {
+    reasons.push("Aggregate context deltas changed with writer event volume; scene-normalized context coverage was stable.")
+  }
   if (positiveDelta(comparison.manualReadiness.planAssistFindingDelta)) {
     reasons.push(`Plan-Assist readiness findings increased by ${comparison.manualReadiness.planAssistFindingDelta}.`)
   }
@@ -1107,6 +1203,29 @@ function evidenceReasons(
   }
   if (reasons.length === 0) reasons.push("No material telemetry difference was detected.")
   return reasons
+}
+
+function rawContextChangedButSceneCoverageStable(comparison: DraftingRunComparison): boolean {
+  const rawDeltas = [
+    comparison.planningContext.canonSourceRefsDelta,
+    comparison.planningContext.storyRefIdsDelta,
+    comparison.planningContext.readerInfoStateDelta,
+    comparison.planningContext.readerInfoStateCharsDelta,
+    comparison.planningContext.missingCharacterIdsDelta,
+    comparison.planningContext.referenceAttemptEventDelta,
+  ]
+  const normalizedDeltas = [
+    comparison.planningContext.sceneCoverage.beatScenesDelta,
+    comparison.planningContext.sceneCoverage.canonSourceRefsDelta,
+    comparison.planningContext.sceneCoverage.storyRefIdsDelta,
+    comparison.planningContext.sceneCoverage.readerInfoStateDelta,
+    comparison.planningContext.sceneCoverage.readerInfoStateCharsDelta,
+    comparison.planningContext.sceneCoverage.missingCharacterIdsDelta,
+    comparison.planningContext.sceneCoverage.referenceLookupsDelta,
+  ]
+  return rawDeltas.some(value => typeof value === "number" && value !== 0) &&
+    normalizedDeltas.some(value => value !== null) &&
+    normalizedDeltas.every(value => value === null || value === 0)
 }
 
 function evidenceSignal(baseline: DraftingRunSummary, comparison: DraftingRunComparison): EvidenceSignal {
@@ -1212,6 +1331,33 @@ function recordDelta(
     if (delta !== 0) out[key] = delta
   }
   return out
+}
+
+function compareSceneCoverage(
+  baseline: PlanningContextSceneCoverage | null,
+  candidate: PlanningContextSceneCoverage | null,
+): DraftingRunComparison["planningContext"]["sceneCoverage"] {
+  return {
+    beatScenesDelta: nullableDelta(baseline?.beatScenes ?? null, candidate?.beatScenes ?? null),
+    characterContextDelta: nullableDelta(baseline?.withCharacterContext ?? null, candidate?.withCharacterContext ?? null),
+    worldContextDelta: nullableDelta(baseline?.withWorldContext ?? null, candidate?.withWorldContext ?? null),
+    canonFactContextDelta: nullableDelta(baseline?.withCanonFactContext ?? null, candidate?.withCanonFactContext ?? null),
+    canonSourceRefsDelta: nullableDelta(baseline?.canonSourceRefs ?? null, candidate?.canonSourceRefs ?? null),
+    storyContextDelta: nullableDelta(baseline?.withStoryContext ?? null, candidate?.withStoryContext ?? null),
+    storyRefIdsDelta: nullableDelta(baseline?.storyRefIds ?? null, candidate?.storyRefIds ?? null),
+    readerInfoStateDelta: nullableDelta(baseline?.withReaderInfoState ?? null, candidate?.withReaderInfoState ?? null),
+    readerInfoStateCharsDelta: nullableDelta(baseline?.readerInfoStateChars ?? null, candidate?.readerInfoStateChars ?? null),
+    resolvedReferencesDelta: nullableDelta(baseline?.withResolvedReferences ?? null, candidate?.withResolvedReferences ?? null),
+    referenceLookupsDelta: nullableDelta(baseline?.referenceLookups ?? null, candidate?.referenceLookups ?? null),
+    missingCharacterIdsDelta: nullableDelta(baseline?.missingCharacterIds ?? null, candidate?.missingCharacterIds ?? null),
+    idDeltas: {
+      canonSourceRefs: recordDelta(baseline?.canonSourceRefCounts, candidate?.canonSourceRefCounts),
+      activeThreadIds: recordDelta(baseline?.activeThreadIdCounts, candidate?.activeThreadIdCounts),
+      activePromiseIds: recordDelta(baseline?.activePromiseIdCounts, candidate?.activePromiseIdCounts),
+      activePayoffIds: recordDelta(baseline?.activePayoffIdCounts, candidate?.activePayoffIdCounts),
+      missingCharacterIds: recordDelta(baseline?.missingCharacterIdCounts, candidate?.missingCharacterIdCounts),
+    },
+  }
 }
 
 function summaryLabel(summary: DraftingRunSummary): string {
