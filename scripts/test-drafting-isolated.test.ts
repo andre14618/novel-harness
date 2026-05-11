@@ -15,9 +15,11 @@ import {
   writeSceneSemanticFailureArtifacts,
   writeDraftingIsolatedSceneSemanticComparison,
   writePlanningContextArtifacts,
+  writePlannerQualityArtifacts,
 } from "./test-drafting-isolated"
 import type { ArmResult, Args } from "./test-drafting-isolated"
 import type { PlanningToDraftingContextReport } from "./analysis/planning-drafting-context-report"
+import type { PlannerQualityReport } from "./analysis/planner-quality-report"
 import type { SceneSemanticReplayReport } from "./evals/scene-semantic-review"
 
 describe("test-drafting-isolated parseArgs", () => {
@@ -235,6 +237,22 @@ describe("drafting isolated report", () => {
           draftCount: 0,
         },
       },
+      sourcePlannerQuality: {
+        outputDir: "output/planner-quality/ab/source",
+        chapters: 2,
+        plannedBeats: 10,
+        endpointIssues: 1,
+        inactiveCharacterFindings: 1,
+        weakStoryTurnBeats: 2,
+        obligationErrorChapters: 0,
+        overloadedObligationChapters: 0,
+        readiness: {
+          outputDir: "output/planner-quality/ab/source",
+          groupCount: 1,
+          findingCount: 1,
+          labels: { "ENDPOINT-PLAN-1": 1 },
+        },
+      },
       results: [
         armResult({ arm: "baseline", novelId: "ab-baseline", totalWords: 3000, meanRatio: 1 }),
         armResult({
@@ -338,6 +356,7 @@ describe("drafting isolated report", () => {
     expect(report.summary.planningContextReadinessByArm["scene-call-v1"]).toBe(2)
     expect(report.summary.proseSemanticLowRowsByArm["scene-call-v1"]).toBe(0)
     expect(report.summary.sceneSemanticLowRowsByArm["scene-call-v1"]).toBe(1)
+    expect(report.sourcePlannerQuality?.readiness.findingCount).toBe(1)
     expect(report.deltas[0]).toMatchObject({
       arm: "scene-call-v1",
       baselineArm: "baseline",
@@ -349,6 +368,7 @@ describe("drafting isolated report", () => {
 
     const rendered = renderDraftingIsolatedRunReport(report)
     expect(rendered).toContain("Clean source: yes")
+    expect(rendered).toContain("source planner quality: chapters=2 beats=10 endpointIssues=1")
     expect(rendered).toContain("planningContext surfaces=11 gaps=1")
     expect(rendered).toContain("planningContextReadiness groups=2 findings=2")
     expect(rendered).toContain("planningContextGaps resolvedReferences:missing_downstream")
@@ -392,6 +412,26 @@ describe("drafting isolated report", () => {
       })
       expect(readFileSync(join(dir, "planning-context-readiness.md"), "utf8")).toContain("Should this chapter be split")
       expect(readFileSync(join(dir, "planning-drafting-context-report.json"), "utf8")).toContain('"chapterId": "ch-001"')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test("writePlannerQualityArtifacts writes source-plan readiness sidecars", () => {
+    const dir = mkdtempSync(join(tmpdir(), "planner-quality-artifacts-"))
+    try {
+      const readiness = writePlannerQualityArtifacts(plannerQualityReport(), dir)
+
+      expect(readiness).toMatchObject({
+        outputDir: dir,
+        groupCount: 1,
+        findingCount: 1,
+        labels: { "ENDPOINT-PLAN-1": 1 },
+      })
+      const aggregate = JSON.parse(readFileSync(join(dir, "planner-quality-readiness.json"), "utf8"))
+      expect(aggregate.groups[0].findings[0].label).toBe("ENDPOINT-PLAN-1")
+      expect(readFileSync(join(dir, "planner-quality-readiness.md"), "utf8")).toContain("Planner Quality Readiness Candidates")
+      expect(readFileSync(join(dir, "planner-quality-report.md"), "utf8")).toContain("Planner quality report for novel-plan")
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -796,6 +836,64 @@ function planningContextReport(): PlanningToDraftingContextReport {
     },
     surfaces: [],
     gaps: [],
+  }
+}
+
+function plannerQualityReport(): PlannerQualityReport {
+  const preserveIds = {
+    obligationIds: [],
+    characterIds: [],
+    worldFactIds: [],
+    sceneTurnIds: [],
+    threadIds: [],
+    promiseIds: [],
+    payoffIds: [],
+    sourceIds: [],
+  }
+  return {
+    novelId: "novel-plan",
+    chapters: [{
+      chapter: 1,
+      chapterRef: "ch-001",
+      title: "The Test",
+      targetWords: 1200,
+      plannedBeats: 2,
+      recommendedBeats: 4,
+      beatDeltaFromRecommended: -2,
+      purpose: "Maret proves the System can lie. The chapter ends with Theo accepting the oath pact.",
+      endpoint: {
+        declared: "Theo accepting the oath pact",
+        finalBeat: "Maret leaves the vault corridor.",
+        finalSceneRef: "scene-final",
+        finalScenePreserveIds: preserveIds,
+        overlapRatio: 0.12,
+        missingTokens: ["theo", "accepting", "oath", "pact"],
+      },
+      characters: [],
+      weakStoryTurnBeats: [],
+      obligationHealth: {
+        valid: true,
+        errors: [],
+        warnings: [],
+        overloadedBeats: 0,
+        missingSourceIds: 0,
+        orphanFacts: 0,
+        orphanKnowledgeChanges: 0,
+        orphanStateChanges: 0,
+      },
+      flags: ["endpoint_low_overlap"],
+    }],
+    totals: {
+      chapters: 1,
+      plannedBeats: 2,
+      overPlannedChapters: 0,
+      underPlannedChapters: 0,
+      endpointIssues: 1,
+      inactiveCharacterFindings: 0,
+      weakStoryTurnBeats: 0,
+      obligationErrorChapters: 0,
+      overloadedObligationChapters: 0,
+    },
   }
 }
 

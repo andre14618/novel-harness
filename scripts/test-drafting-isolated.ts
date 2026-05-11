@@ -123,6 +123,13 @@ import {
   renderPlanningContextReadinessAggregate,
   type PlanningContextReadinessAggregate,
 } from "./analysis/planning-context-readiness"
+import {
+  buildPlannerQualityReadinessAggregate,
+  buildPlannerQualityReport,
+  renderPlannerQualityReport,
+  type PlannerQualityOutlineRow,
+  type PlannerQualityReport,
+} from "./analysis/planner-quality-report"
 import type { Dimension } from "./evals/planner-discernment-calibration"
 import {
   assessSourceDraftingIsolation,
@@ -258,6 +265,7 @@ export interface DraftingIsolatedRunReport {
     proseSemanticLowRowsByArm: Record<string, number | null>
     sceneSemanticLowRowsByArm: Record<string, number | null>
   }
+  sourcePlannerQuality?: PlannerQualityTelemetrySummary | null
   results: ArmResult[]
   deltas: DraftingIsolatedDelta[]
   sceneSemanticComparison?: DraftingIsolatedSceneSemanticComparisonSummary | null
@@ -352,6 +360,19 @@ export interface PlanningContextReadinessTelemetrySummary {
   groupCount: number
   findingCount: number
   labels: Record<string, number>
+}
+
+export interface PlannerQualityTelemetrySummary {
+  outputDir: string
+  chapters: number
+  plannedBeats: number
+  endpointIssues: number
+  inactiveCharacterFindings: number
+  weakStoryTurnBeats: number
+  obligationErrorChapters: number
+  overloadedObligationChapters: number
+  readiness: PlanningContextReadinessTelemetrySummary
+  error?: string
 }
 
 export interface SceneSemanticTelemetrySummary {
@@ -859,6 +880,147 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
     ...(proseSemantic ? { proseSemantic } : {}),
     ...(sceneSemantic ? { sceneSemantic } : {}),
   }
+}
+
+async function maybeRunSourcePlannerQualityAudit(
+  novelId: string,
+  targetPrefix: string,
+): Promise<PlannerQualityTelemetrySummary> {
+  const outputDir = `output/planner-quality/${targetPrefix}/source`
+  console.log(`source planner quality audit ...`)
+  try {
+    const report = buildPlannerQualityReport(await loadPlannerQualityRows(novelId), novelId)
+    const readiness = writePlannerQualityArtifacts(report, outputDir)
+    return plannerQualitySummary(report, outputDir, readiness)
+  } catch (err) {
+    return {
+      outputDir,
+      chapters: 0,
+      plannedBeats: 0,
+      endpointIssues: 0,
+      inactiveCharacterFindings: 0,
+      weakStoryTurnBeats: 0,
+      obligationErrorChapters: 0,
+      overloadedObligationChapters: 0,
+      readiness: {
+        outputDir,
+        groupCount: 0,
+        findingCount: 0,
+        labels: {},
+      },
+      error: `planner quality audit failed: ${err instanceof Error ? err.message : String(err)}`,
+    }
+  }
+}
+
+async function loadPlannerQualityRows(novelId: string): Promise<PlannerQualityOutlineRow[]> {
+  return await db`
+    SELECT chapter_number, outline_json
+    FROM chapter_outlines
+    WHERE novel_id = ${novelId}
+    ORDER BY chapter_number
+  ` as PlannerQualityOutlineRow[]
+}
+
+export function writePlannerQualityArtifacts(
+  report: PlannerQualityReport,
+  outputDir: string,
+): PlanningContextReadinessTelemetrySummary {
+  mkdirSync(outputDir, { recursive: true })
+  const reportPath = join(outputDir, "planner-quality-report.json")
+  writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`)
+  writeFileSync(join(outputDir, "planner-quality-report.md"), renderPlannerQualityReport(report))
+  const readiness = buildPlannerQualityReadinessAggregate(report, reportPath)
+  writeFileSync(join(outputDir, "planner-quality-readiness.json"), `${JSON.stringify(readiness, null, 2)}\n`)
+  writeFileSync(join(outputDir, "planner-quality-readiness.md"), renderPlannerQualityReadinessSidecar(readiness))
+  return plannerQualityReadinessSummary(readiness, outputDir)
+}
+
+function plannerQualitySummary(
+  report: PlannerQualityReport,
+  outputDir: string,
+  readiness: PlanningContextReadinessTelemetrySummary,
+): PlannerQualityTelemetrySummary {
+  return {
+    outputDir,
+    chapters: report.totals.chapters,
+    plannedBeats: report.totals.plannedBeats,
+    endpointIssues: report.totals.endpointIssues,
+    inactiveCharacterFindings: report.totals.inactiveCharacterFindings,
+    weakStoryTurnBeats: report.totals.weakStoryTurnBeats,
+    obligationErrorChapters: report.totals.obligationErrorChapters,
+    overloadedObligationChapters: report.totals.overloadedObligationChapters,
+    readiness,
+  }
+}
+
+function plannerQualityReadinessSummary(
+  aggregate: ReturnType<typeof buildPlannerQualityReadinessAggregate>,
+  outputDir: string,
+): PlanningContextReadinessTelemetrySummary {
+  const groups = plannerQualityReadinessGroups(aggregate)
+  const labels = new Map<string, number>()
+  let findingCount = 0
+  for (const group of groups) {
+    const findings = Array.isArray(group.findings) ? group.findings : []
+    findingCount += findings.length
+    for (const finding of findings) {
+      const label = typeof finding.label === "string" ? finding.label : ""
+      if (label) labels.set(label, (labels.get(label) ?? 0) + 1)
+    }
+  }
+  return {
+    outputDir,
+    groupCount: groups.length,
+    findingCount,
+    labels: Object.fromEntries(labels.entries()),
+  }
+}
+
+function renderPlannerQualityReadinessSidecar(
+  aggregate: ReturnType<typeof buildPlannerQualityReadinessAggregate>,
+): string {
+  const groups = plannerQualityReadinessGroups(aggregate)
+  const lines: string[] = []
+  lines.push("# Planner Quality Readiness Candidates")
+  lines.push("")
+  lines.push(`Groups: ${groups.length}`)
+  lines.push("")
+  lines.push("These are advisory source-plan candidates. They do not auto-mutate the plan.")
+  lines.push("")
+  for (const group of groups) {
+    const finding = Array.isArray(group.findings) ? asRecord(group.findings[0]) : null
+    const label = typeof finding?.label === "string" ? finding.label : "UNKNOWN"
+    const dimension = typeof finding?.dimension === "string" ? finding.dimension : "unknown"
+    const rewritePacket = asRecord(group.rewritePacket)
+    const proposalCandidate = asRecord(rewritePacket?.proposalCandidate)
+    const target = asRecord(proposalCandidate?.target)
+    const targetText = target
+      ? `${String(target.kind ?? "unknown")}:${String(target.ref ?? "unknown")}:${String(target.fieldPath ?? "unknown")}`
+      : "unknown"
+    lines.push(`## ${String(group.groupId ?? "planner-quality")} ${label}`)
+    lines.push("")
+    lines.push(`Target: ${targetText}`)
+    lines.push(`Dimension: ${dimension}`)
+    if (typeof finding?.missingForNextLevel === "string") {
+      lines.push(`Missing: ${finding.missingForNextLevel}`)
+    }
+    lines.push("")
+  }
+  return `${lines.join("\n")}\n`
+}
+
+function plannerQualityReadinessGroups(
+  aggregate: ReturnType<typeof buildPlannerQualityReadinessAggregate>,
+): Array<Record<string, unknown>> {
+  const groups = (aggregate as { groups?: unknown }).groups
+  return Array.isArray(groups)
+    ? groups.filter((group): group is Record<string, unknown> => Boolean(group) && typeof group === "object" && !Array.isArray(group))
+    : []
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null
 }
 
 async function maybeRunPlanningContextAudit(
@@ -1419,6 +1581,7 @@ async function main() {
   }
 
   const sourceAssessment = await ensureSourceExists(args.source, { allowDraftedSource: args.allowDraftedSource })
+  const sourcePlannerQuality = await maybeRunSourcePlannerQualityAudit(args.source, args.targetPrefix)
 
   const results: ArmResult[] = []
   for (const arm of args.arms) {
@@ -1527,6 +1690,7 @@ async function main() {
     args,
     results,
     sourceAssessment,
+    sourcePlannerQuality,
     sceneSemanticComparison,
   })
   writeDraftingIsolatedRunReport(report, reportDir)
@@ -1539,6 +1703,7 @@ export function buildDraftingIsolatedRunReport(input: {
   args: Args
   results: ArmResult[]
   sourceAssessment: SourceDraftingIsolationAssessment
+  sourcePlannerQuality?: PlannerQualityTelemetrySummary | null
   sceneSemanticComparison?: DraftingIsolatedSceneSemanticComparisonSummary | null
   generatedAt?: string
 }): DraftingIsolatedRunReport {
@@ -1578,6 +1743,7 @@ export function buildDraftingIsolatedRunReport(input: {
       proseSemanticLowRowsByArm: Object.fromEntries(results.map(result => [result.arm, result.proseSemantic?.lowRows ?? null])),
       sceneSemanticLowRowsByArm: Object.fromEntries(results.map(result => [result.arm, result.sceneSemantic?.lowRows ?? null])),
     },
+    sourcePlannerQuality: input.sourcePlannerQuality ?? null,
     results,
     deltas,
     sceneSemanticComparison: input.sceneSemanticComparison ?? null,
@@ -1691,6 +1857,16 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
   lines.push(`- scene semantic replay: ${report.options.sceneSemanticReview ? "enabled" : "disabled"}`)
   lines.push(`- scene semantic persistence: ${report.options.sceneSemanticPersist ? "enabled" : "disabled"}`)
   lines.push(`- scene semantic readiness import: ${report.options.sceneSemanticPersist && report.options.sceneSemanticReadinessImport ? "enabled" : "disabled"}`)
+  if (report.sourcePlannerQuality) {
+    const quality = report.sourcePlannerQuality
+    lines.push(
+      `- source planner quality: chapters=${quality.chapters} beats=${quality.plannedBeats} ` +
+        `endpointIssues=${quality.endpointIssues} inactiveCharacters=${quality.inactiveCharacterFindings} ` +
+        `weakStoryTurns=${quality.weakStoryTurnBeats} obligationErrors=${quality.obligationErrorChapters} ` +
+        `readiness=${quality.readiness.findingCount} report=${quality.outputDir}` +
+        (quality.error ? ` error=${quality.error}` : ""),
+    )
+  }
   lines.push("")
   lines.push("## Arms")
   for (const result of report.results) {
