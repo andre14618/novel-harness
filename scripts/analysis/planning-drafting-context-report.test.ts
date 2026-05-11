@@ -59,6 +59,9 @@ describe("planning-drafting-context-report", () => {
         denseChapterCount: 0,
         overloadedChapterCount: 0,
       },
+      planContinuity: {
+        futureEventAnchors: [],
+      },
       scenesWithCharacters: 2,
       scenesWithSceneIds: 2,
       scenesWithSceneContract: 1,
@@ -140,6 +143,7 @@ describe("planning-drafting-context-report", () => {
     expect(report.gaps).toHaveLength(0)
     expect(renderPlanningToDraftingContextReport(report)).toContain("Gaps: 0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Scene load: maxScenesPerChapter=1")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("Plan continuity: futureEventAnchors=0")
   })
 
   test("summarizes dense and overloaded scene load before drafting", () => {
@@ -182,6 +186,85 @@ describe("planning-drafting-context-report", () => {
     })
     expect(renderPlanningToDraftingContextReport(report)).toContain("overloadedChapters=2")
     expect(renderPlanningToDraftingContextReport(report)).toContain("ch2=13sc/115.4wps/overloaded")
+  })
+
+  test("flags later scenes that execute a scheduled future event without carrying the temporal anchor", () => {
+    const upstream = summarizePlanningArtifacts({
+      worldBibleAvailable: true,
+      storySpineAvailable: true,
+      characters: [{ id: "char-maren", name: "Maren" }],
+      outlines: [
+        outline(1, {
+          establishedFacts: [{
+            id: "fact-verification-scheduled",
+            fact: "A mandatory Verification test is scheduled for tomorrow at dawn",
+            category: "event",
+          }],
+          scenes: [{
+            ...scenes(1)[0]!,
+            sceneId: "ch-001-scene-announcement",
+            description: "The Arbiter announces a mandatory Verification test scheduled for tomorrow at dawn.",
+          }],
+        }),
+        outline(2, {
+          chapterId: "ch-002",
+          scenes: [{
+            ...scenes(1)[0]!,
+            sceneId: "ch-002-scene-verification",
+            description: "Cassel activates Verification on the bridge while the crowd watches.",
+          }],
+        }),
+      ],
+    })
+
+    expect(upstream.planContinuity.futureEventAnchors).toHaveLength(1)
+    expect(upstream.planContinuity.futureEventAnchors[0]).toMatchObject({
+      label: "FUTURE-EVENT-ANCHOR-MISSING",
+      sourceChapterId: "ch-001",
+      targetChapterId: "ch-002",
+      targetSceneRef: "ch-002-scene-verification",
+      sourceRef: "fact-verification-scheduled",
+    })
+    const report = buildPlanningToDraftingContextReport({
+      novelId: "novel-temporal",
+      upstream,
+      writerContext: buildWriterContextTelemetryReport([], "novel-temporal"),
+    })
+    expect(renderPlanningToDraftingContextReport(report)).toContain("Plan continuity: futureEventAnchors=1")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("FUTURE-EVENT-ANCHOR-MISSING")
+  })
+
+  test("does not flag a later future event scene that carries the declared time cue", () => {
+    const upstream = summarizePlanningArtifacts({
+      worldBibleAvailable: true,
+      storySpineAvailable: true,
+      characters: [{ id: "char-maren", name: "Maren" }],
+      outlines: [
+        outline(1, {
+          establishedFacts: [{
+            id: "fact-verification-scheduled",
+            fact: "A mandatory Verification test is scheduled for tomorrow at dawn",
+            category: "event",
+          }],
+        }),
+        outline(2, {
+          scenes: [
+            {
+              ...scenes(1)[0]!,
+              sceneId: "ch-002-scene-arrival",
+              description: "At dawn the next morning, Maren arrives for the Verification on the bridge.",
+            },
+            {
+              ...scenes(1)[0]!,
+              sceneId: "ch-002-scene-verification",
+              description: "Cassel activates Verification on the bridge.",
+            },
+          ],
+        }),
+      ],
+    })
+
+    expect(upstream.planContinuity.futureEventAnchors).toHaveLength(0)
   })
 
   test("marks available upstream surfaces as not observed when no writer telemetry exists", () => {

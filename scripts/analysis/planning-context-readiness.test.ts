@@ -116,9 +116,91 @@ describe("planning-context-readiness", () => {
       },
     })
   })
+
+  test("turns future-event anchor findings into scene-plan readiness groups", () => {
+    const aggregate = buildPlanningContextReadinessAggregate({
+      report: report({
+        planContinuity: {
+          futureEventAnchors: [{
+            label: "FUTURE-EVENT-ANCHOR-MISSING",
+            severity: "medium",
+            sourceChapterNumber: 1,
+            sourceChapterId: "ch-001",
+            targetChapterNumber: 2,
+            targetChapterId: "ch-002",
+            sourceRef: "fact-verification-scheduled",
+            targetSceneRef: "scene-12",
+            sourceText: "A mandatory Verification test is scheduled for tomorrow at dawn",
+            targetTextExcerpt: "Cassel activates Verification on the bridge.",
+            eventTokens: ["verification"],
+            requiredTemporalCue: "Carry the dawn timing into the later scene or explicitly revise the schedule.",
+          }],
+        },
+      }),
+      sourceReport: "context.json",
+      generatedAt: "2026-05-11T00:00:00.000Z",
+    })
+
+    expect(aggregate.groups).toHaveLength(2)
+    const group = aggregate.groups[1]!
+    expect(group).toMatchObject({
+      unitType: "scene",
+      chapterId: "ch-002",
+      sceneId: "scene-12",
+      highestSeverity: "medium",
+      dimensions: ["futureEventAnchor"],
+      fixIntents: ["preserve_future_event_anchor"],
+    })
+    expect(group.findings[0]).toMatchObject({
+      label: "FUTURE-EVENT-ANCHOR-MISSING",
+      dimension: "futureEventAnchor",
+      fixIntent: "preserve_future_event_anchor",
+      evidence: {
+        sourceRef: "fact-verification-scheduled",
+        targetSceneRef: "scene-12",
+      },
+    })
+    expect(group.rewritePacket.proposalCandidate).toMatchObject({
+      action: "field_replace",
+      target: {
+        kind: "scene_plan",
+        ref: "scene-12",
+        fieldPath: "description",
+      },
+      safeToAutoApply: false,
+    })
+    expect(renderPlanningContextReadinessAggregate(aggregate)).toContain("Should this scene description carry the scheduled time/place anchor")
+
+    const built = buildPlanReadinessDraftsFromAggregate({
+      novelId: "novel-load",
+      aggregate,
+      targetVersions: {
+        "chapter_outline:ch-001": "outline-hash-1",
+        "scene_plan:scene-12": "scene-hash-12",
+      },
+    })
+    expect(built.skipped).toEqual([])
+    expect(built.drafts[1]).toMatchObject({
+      target: { kind: "scene_plan", ref: "scene-12", fieldPath: "description" },
+      sourceHash: "scene-hash-12",
+      diagnosticLabel: "FUTURE-EVENT-ANCHOR-MISSING",
+      dimension: "futureEventAnchor",
+      fixIntent: "preserve_future_event_anchor",
+      metadata: {
+        proposalCandidate: {
+          action: "field_replace",
+          target: { kind: "scene_plan", ref: "scene-12", fieldPath: "description" },
+          requiresProposedValue: true,
+          proposedValueStatus: "operator_required",
+          safeToAutoApply: false,
+          sourceAgent: "planning-context-readiness",
+        },
+      },
+    })
+  })
 })
 
-function report(): PlanningToDraftingContextReport {
+function report(overrides: Partial<PlanningToDraftingContextReport["upstream"]> = {}): PlanningToDraftingContextReport {
   return {
     novelId: "novel-load",
     upstream: {
@@ -162,6 +244,9 @@ function report(): PlanningToDraftingContextReport {
           },
         ],
       },
+      planContinuity: {
+        futureEventAnchors: [],
+      },
       scenesWithCharacters: 25,
       scenesWithSceneIds: 25,
       scenesWithSceneContract: 0,
@@ -173,6 +258,7 @@ function report(): PlanningToDraftingContextReport {
       obligationIds: 12,
       obligationSourceRefs: 12,
       activeStoryRefIds: 0,
+      ...overrides,
     },
     downstream: {
       events: 0,

@@ -45,6 +45,7 @@ export interface PlanningArtifactSummary {
   chapterPlanCount: number
   plannedSceneCount: number
   sceneLoad: SceneLoadSummary
+  planContinuity: PlanContinuitySummary
   scenesWithCharacters: number
   scenesWithSceneIds: number
   scenesWithSceneContract: number
@@ -76,6 +77,25 @@ export interface SceneLoadSummary {
   minTargetWordsPerScene: number | null
   denseChapterCount: number
   overloadedChapterCount: number
+}
+
+export interface FutureEventAnchorFinding {
+  label: "FUTURE-EVENT-ANCHOR-MISSING"
+  severity: "medium"
+  sourceChapterNumber: number
+  sourceChapterId: string
+  targetChapterNumber: number
+  targetChapterId: string
+  sourceRef: string
+  targetSceneRef: string
+  sourceText: string
+  targetTextExcerpt: string
+  eventTokens: string[]
+  requiredTemporalCue: string
+}
+
+export interface PlanContinuitySummary {
+  futureEventAnchors: FutureEventAnchorFinding[]
 }
 
 export interface PlanningToDraftingContextAuditRow {
@@ -117,6 +137,7 @@ export function summarizePlanningArtifacts(args: {
   const scenes = outlines.flatMap(outline => outline.scenes ?? [])
   const obligationItems = scenes.flatMap(scene => obligationItemsForScene(scene))
   const sceneLoad = summarizeSceneLoad(outlines)
+  const planContinuity = summarizePlanContinuity(outlines)
 
   return {
     worldBibleAvailable: args.worldBibleAvailable,
@@ -125,6 +146,7 @@ export function summarizePlanningArtifacts(args: {
     chapterPlanCount: outlines.length,
     plannedSceneCount: scenes.length,
     sceneLoad,
+    planContinuity,
     scenesWithCharacters: scenes.filter(scene => stringArray((scene as Record<string, unknown>).characters).length > 0).length,
     scenesWithSceneIds: scenes.filter(scene => hasText((scene as Record<string, unknown>).sceneId)).length,
     scenesWithSceneContract: scenes.filter(hasSceneContract).length,
@@ -284,6 +306,15 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
       `denseChapters=${report.upstream.sceneLoad.denseChapterCount}, ` +
       `overloadedChapters=${report.upstream.sceneLoad.overloadedChapterCount}`,
   )
+  lines.push(
+    `Plan continuity: futureEventAnchors=${report.upstream.planContinuity.futureEventAnchors.length}`,
+  )
+  for (const finding of report.upstream.planContinuity.futureEventAnchors.slice(0, 5)) {
+    lines.push(
+      `- ${finding.label}: ${finding.sourceChapterId} -> ${finding.targetSceneRef}; ` +
+        `source="${finding.sourceText}"`,
+    )
+  }
   if (report.upstream.sceneLoad.chapters.length > 0) {
     lines.push(
       `Scene load by chapter: ${report.upstream.sceneLoad.chapters.map(chapter =>
@@ -399,6 +430,174 @@ function summarizeSceneLoad(outlines: readonly ChapterOutline[]): SceneLoadSumma
   }
 }
 
+function summarizePlanContinuity(outlines: readonly ChapterOutline[]): PlanContinuitySummary {
+  const normalized = outlines
+    .map(canonicalOutlineForSceneLoad)
+    .sort((a, b) => a.chapterNumber - b.chapterNumber)
+  const futureSources = normalized.flatMap(futureEventSources)
+  const findings: FutureEventAnchorFinding[] = []
+  const seen = new Set<string>()
+
+  for (const source of futureSources) {
+    for (const targetChapter of normalized) {
+      if (targetChapter.chapterNumber <= source.chapterNumber) continue
+      const match = firstFutureEventTarget(source, targetChapter)
+      if (!match) continue
+      const key = [
+        source.chapterId,
+        targetChapter.chapterId ?? `chapter:${targetChapter.chapterNumber}`,
+        "future-event-anchor",
+      ].join("::")
+      if (seen.has(key)) break
+      seen.add(key)
+      findings.push({
+        label: "FUTURE-EVENT-ANCHOR-MISSING",
+        severity: "medium",
+        sourceChapterNumber: source.chapterNumber,
+        sourceChapterId: source.chapterId,
+        targetChapterNumber: targetChapter.chapterNumber,
+        targetChapterId: targetChapter.chapterId ?? `chapter:${targetChapter.chapterNumber}`,
+        sourceRef: source.ref,
+        targetSceneRef: match.sceneRef,
+        sourceText: source.text,
+        targetTextExcerpt: truncateForEvidence(match.text),
+        eventTokens: source.eventTokens,
+        requiredTemporalCue: temporalCueRequirement(source.text),
+      })
+      break
+    }
+  }
+
+  return { futureEventAnchors: findings }
+}
+
+interface FutureEventSource {
+  chapterNumber: number
+  chapterId: string
+  ref: string
+  text: string
+  eventTokens: string[]
+}
+
+function futureEventSources(outline: ChapterOutline): FutureEventSource[] {
+  const chapterId = outline.chapterId ?? `chapter:${outline.chapterNumber}`
+  const sources: Array<{ ref: string; text: string }> = []
+  for (const fact of outline.establishedFacts ?? []) {
+    sources.push({ ref: fact.id ?? chapterId, text: fact.fact })
+  }
+  for (const knowledge of outline.knowledgeChanges ?? []) {
+    sources.push({ ref: knowledge.id ?? chapterId, text: knowledge.knowledge })
+  }
+  for (const scene of outline.scenes ?? []) {
+    const sceneReference = sceneRef(scene) ?? chapterId
+    const record = readRecord(scene)
+    if (hasText(record.description)) sources.push({ ref: sceneReference, text: record.description as string })
+    for (const item of obligationItemsForScene(scene)) {
+      const ref = hasText(item.obligationId) ? item.obligationId as string : sceneReference
+      if (hasText(item.text)) sources.push({ ref, text: item.text as string })
+    }
+  }
+  const out: FutureEventSource[] = []
+  const seen = new Set<string>()
+  for (const source of sources) {
+    if (!hasFutureSchedulingCue(source.text)) continue
+    const eventTokens = futureEventTokens(source.text)
+    if (eventTokens.length === 0) continue
+    const key = eventTokens.join("|")
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push({
+      chapterNumber: outline.chapterNumber,
+      chapterId,
+      ref: source.ref,
+      text: source.text.trim(),
+      eventTokens,
+    })
+  }
+  return out
+}
+
+function firstFutureEventTarget(
+  source: FutureEventSource,
+  targetChapter: ChapterOutline,
+): { sceneRef: string; text: string } | null {
+  for (const scene of targetChapter.scenes ?? []) {
+    const sceneReference = sceneRef(scene)
+    if (!sceneReference) continue
+    const text = scenePlanningText(scene)
+    if (!text) continue
+    if (!mentionsSameFutureEvent(text, source)) continue
+    if (hasTemporalLandingCue(text, source.text)) return null
+    return { sceneRef: sceneReference, text }
+  }
+  return null
+}
+
+function mentionsSameFutureEvent(text: string, source: FutureEventSource): boolean {
+  const target = normalizedText(text)
+  if (source.eventTokens.some(token => target.includes(token))) return true
+  const sourceText = normalizedText(source.text)
+  return (sourceText.includes("verification") && /\btest\b/.test(target)) ||
+    (sourceText.includes("test") && /\bverification\b/.test(target))
+}
+
+function scenePlanningText(scene: unknown): string {
+  const record = readRecord(scene)
+  const parts = [
+    hasText(record.description) ? record.description as string : "",
+    ...obligationItemsForScene(scene).map(item => hasText(item.text) ? item.text as string : ""),
+  ].filter(Boolean)
+  return parts.join(" ")
+}
+
+function hasFutureSchedulingCue(text: string): boolean {
+  return /\b(tomorrow|next\s+(?:morning|day|dawn)|following\s+(?:morning|day|dawn)|scheduled\s+for)\b/i.test(text)
+}
+
+function hasTemporalLandingCue(targetText: string, sourceText: string): boolean {
+  const target = normalizedText(targetText)
+  if (/\bdawn\b/i.test(sourceText) && /\b(dawn|daybreak|sunrise)\b/.test(target)) return true
+  return /\b(tomorrow|next\s+(?:morning|day|dawn)|following\s+(?:morning|day|dawn)|daybreak|sunrise|that\s+morning|at\s+dawn)\b/.test(target)
+}
+
+function temporalCueRequirement(sourceText: string): string {
+  if (/\bdawn\b/i.test(sourceText)) return "Carry the dawn timing into the later scene or explicitly revise the schedule."
+  if (/\btomorrow\b/i.test(sourceText)) return "Carry the next-day timing into the later scene or explicitly revise the schedule."
+  return "Carry the scheduled future timing into the later scene or explicitly revise the schedule."
+}
+
+function futureEventTokens(text: string): string[] {
+  const stop = new Set([
+    "about",
+    "after",
+    "before",
+    "during",
+    "event",
+    "following",
+    "mandatory",
+    "scheduled",
+    "system",
+    "their",
+    "there",
+    "tomorrow",
+    "upcoming",
+  ])
+  return unique(
+    normalizedText(text)
+      .split(/[^a-z0-9]+/)
+      .filter(token => token.length >= 5 && !stop.has(token)),
+  ).slice(0, 6)
+}
+
+function normalizedText(text: string): string {
+  return text.toLowerCase()
+}
+
+function truncateForEvidence(text: string): string {
+  const trimmed = text.trim().replace(/\s+/g, " ")
+  return trimmed.length > 260 ? `${trimmed.slice(0, 257)}...` : trimmed
+}
+
 function canonicalOutlineForSceneLoad(outline: ChapterOutline): ChapterOutline {
   const normalized = JSON.parse(JSON.stringify(outline)) as ChapterOutline
   enrichOutlineIds(normalized)
@@ -480,6 +679,10 @@ function hasText(value: unknown): boolean {
 
 function positiveNumber(value: unknown): boolean {
   return typeof value === "number" && Number.isFinite(value) && value > 0
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values)]
 }
 
 function parseArgs(argv: string[]): Args {

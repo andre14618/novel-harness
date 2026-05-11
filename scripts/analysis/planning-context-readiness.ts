@@ -12,12 +12,15 @@ import { dirname, resolve } from "node:path"
 import {
   loadPlanningToDraftingContextReport,
   type ChapterSceneLoad,
+  type FutureEventAnchorFinding,
   type PlanningToDraftingContextReport,
   type SceneLoadSignal,
 } from "./planning-drafting-context-report"
 
 type Severity = "high" | "medium" | "low" | "info"
 type PlanningContextSourceAgent = "planning-context-readiness"
+type PlanningContextDimension = "sceneLoad" | "futureEventAnchor"
+type PlanningContextFixIntent = "rebalance_scene_load" | "preserve_future_event_anchor"
 
 export interface PlanningContextReadinessArgs {
   novelId: string | null
@@ -33,10 +36,10 @@ interface PlanningContextReadinessFinding {
   findingId: string
   sourceReport: string
   promptMode: "deterministic-planning-context"
-  dimension: "sceneLoad"
-  label: "SCENE-LOAD-OVERLOADED" | "SCENE-LOAD-DENSE"
+  dimension: PlanningContextDimension
+  label: "SCENE-LOAD-OVERLOADED" | "SCENE-LOAD-DENSE" | "FUTURE-EVENT-ANCHOR-MISSING"
   severity: Severity
-  fixIntent: "rebalance_scene_load"
+  fixIntent: PlanningContextFixIntent
   rationale: string
   missingForNextLevel: string
   evidence: Record<string, string>
@@ -58,24 +61,24 @@ interface PlanningContextReadinessGroup {
   fixtureId: string
   armId: string
   methodPackEnabled: false
-  unitType: "chapter"
+  unitType: "chapter" | "scene"
   chapterId: string
-  sceneId: ""
+  sceneId: string
   sourceIds: PlanningContextReadinessSourceIds
   highestSeverity: Severity
-  fixIntents: ["rebalance_scene_load"]
-  dimensions: ["sceneLoad"]
+  fixIntents: PlanningContextFixIntent[]
+  dimensions: PlanningContextDimension[]
   findings: PlanningContextReadinessFinding[]
   rewritePacket: {
     targetSummary: string
     rewriteGoals: string[]
     preserveIds: PlanningContextReadinessSourceIds
     proposalCandidate: {
-      action: "scene_select"
+      action: "scene_select" | "field_replace"
       target: {
-        kind: "chapter_outline"
+        kind: "chapter_outline" | "scene_plan"
         ref: string
-        fieldPath: "scenes"
+        fieldPath: "scenes" | "description"
       }
       requiresProposedValue: true
       proposedValueStatus: "operator_required"
@@ -142,7 +145,7 @@ export function buildPlanningContextReadinessAggregate(input: {
   includeDense?: boolean
   generatedAt?: string
 }): PlanningContextReadinessAggregate {
-  const groups = input.report.upstream.sceneLoad.chapters
+  const sceneLoadGroups = input.report.upstream.sceneLoad.chapters
     .filter(chapter => shouldIncludeChapter(chapter, input.includeDense === true))
     .map((chapter, index) => groupForChapter({
       report: input.report,
@@ -150,6 +153,14 @@ export function buildPlanningContextReadinessAggregate(input: {
       sourceReport: input.sourceReport ?? `planning-drafting-context:${input.report.novelId ?? "unknown"}`,
       groupIndex: index,
     }))
+  const futureEventGroups = (input.report.upstream.planContinuity?.futureEventAnchors ?? [])
+    .map((finding, index) => groupForFutureEventAnchor({
+      report: input.report,
+      finding,
+      sourceReport: input.sourceReport ?? `planning-drafting-context:${input.report.novelId ?? "unknown"}`,
+      groupIndex: sceneLoadGroups.length + index,
+    }))
+  const groups = [...sceneLoadGroups, ...futureEventGroups]
 
   return {
     generatedAt: input.generatedAt ?? new Date().toISOString(),
@@ -174,14 +185,23 @@ export function renderPlanningContextReadinessAggregate(report: PlanningContextR
   lines.push("")
   for (const group of report.groups) {
     const finding = group.findings[0]!
+    const target = group.rewritePacket.proposalCandidate.target
     lines.push(`## ${group.groupId} ${group.highestSeverity.toUpperCase()} ${group.chapterId}`)
     lines.push("")
-    lines.push(`Target: chapter_outline:${group.chapterId}:scenes`)
+    lines.push(`Target: ${target.kind}:${target.ref}:${target.fieldPath}`)
     lines.push(`Label: ${finding.label}`)
-    lines.push(`Scene load: ${finding.evidence.sceneCount} scenes, ${finding.evidence.targetWordsPerScene} target words/scene`)
+    if (finding.dimension === "futureEventAnchor") {
+      lines.push(`Evidence: ${finding.evidence.sourceRef} -> ${finding.evidence.targetSceneRef}`)
+    } else {
+      lines.push(`Scene load: ${finding.evidence.sceneCount} scenes, ${finding.evidence.targetWordsPerScene} target words/scene`)
+    }
     lines.push("")
     lines.push("Operator question:")
-    lines.push("- Should this chapter be split, scene-count reduced, or scene purposes combined before drafting?")
+    if (finding.dimension === "futureEventAnchor") {
+      lines.push("- Should this scene description carry the scheduled time/place anchor, or should the prior schedule be revised?")
+    } else {
+      lines.push("- Should this chapter be split, scene-count reduced, or scene purposes combined before drafting?")
+    }
     lines.push("")
     lines.push("Rewrite goals if accepted:")
     for (const goal of group.rewritePacket.rewriteGoals) lines.push(`- ${goal}`)
@@ -260,6 +280,74 @@ function groupForChapter(args: {
       },
     },
     excerpt: sceneLoadRationale(args.chapter),
+  }
+}
+
+function groupForFutureEventAnchor(args: {
+  report: PlanningToDraftingContextReport
+  finding: FutureEventAnchorFinding
+  sourceReport: string
+  groupIndex: number
+}): PlanningContextReadinessGroup {
+  const sourceIds = emptySourceIds()
+  sourceIds.sourceIds = [args.finding.sourceRef].filter(Boolean)
+  const readinessFinding: PlanningContextReadinessFinding = {
+    findingId: `${String(args.groupIndex + 1).padStart(3, "0")}.1`,
+    sourceReport: args.sourceReport,
+    promptMode: "deterministic-planning-context",
+    dimension: "futureEventAnchor",
+    label: "FUTURE-EVENT-ANCHOR-MISSING",
+    severity: args.finding.severity,
+    fixIntent: "preserve_future_event_anchor",
+    rationale: `A future event was scheduled upstream but the later scene executes or invokes it without carrying the temporal anchor: ${args.finding.sourceText}`,
+    missingForNextLevel: args.finding.requiredTemporalCue,
+    evidence: {
+      sourceChapterNumber: String(args.finding.sourceChapterNumber),
+      sourceChapterId: args.finding.sourceChapterId,
+      targetChapterNumber: String(args.finding.targetChapterNumber),
+      targetChapterId: args.finding.targetChapterId,
+      sourceRef: args.finding.sourceRef,
+      targetSceneRef: args.finding.targetSceneRef,
+      sourceText: args.finding.sourceText,
+      targetTextExcerpt: args.finding.targetTextExcerpt,
+      eventTokens: args.finding.eventTokens.join(","),
+    },
+  }
+  return {
+    groupId: `${String(args.groupIndex + 1).padStart(3, "0")}`,
+    fixtureId: args.report.novelId ?? "unknown",
+    armId: "planning-context-readiness",
+    methodPackEnabled: false,
+    unitType: "scene",
+    chapterId: args.finding.targetChapterId,
+    sceneId: args.finding.targetSceneRef,
+    sourceIds,
+    highestSeverity: readinessFinding.severity,
+    fixIntents: ["preserve_future_event_anchor"],
+    dimensions: ["futureEventAnchor"],
+    findings: [readinessFinding],
+    rewritePacket: {
+      targetSummary: `scene ${args.finding.targetSceneRef}`,
+      rewriteGoals: [
+        args.finding.requiredTemporalCue,
+        "Prefer an explicit scene-plan timing/location anchor over relying on the writer to infer continuity from the prior chapter.",
+        "Preserve the scene endpoint and traceability IDs while clarifying when/where the scheduled event lands.",
+      ],
+      preserveIds: sourceIds,
+      proposalCandidate: {
+        action: "field_replace",
+        target: {
+          kind: "scene_plan",
+          ref: args.finding.targetSceneRef,
+          fieldPath: "description",
+        },
+        requiresProposedValue: true,
+        proposedValueStatus: "operator_required",
+        safeToAutoApply: false,
+        sourceAgent: "planning-context-readiness",
+      },
+    },
+    excerpt: `${args.finding.sourceText}\n${args.finding.targetTextExcerpt}`,
   }
 }
 
