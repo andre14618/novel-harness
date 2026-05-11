@@ -57,6 +57,10 @@ export interface DraftingRunCohortPair {
   checkerReadinessDelta: number | null
   checkerBlockerDelta: number | null
   checkerWarningDelta: number | null
+  checkerNegativeDelta: number | null
+  checkerPositiveDelta: number | null
+  checkerAmbiguousDelta: number | null
+  checkerLowConfidenceDelta: number | null
   canonSourceRefsDelta: number | null
   storyRefIdsDelta: number | null
   readerInfoStateDelta: number | null
@@ -106,6 +110,10 @@ export interface DraftingRunCohortReport {
     checkerReadinessDeltaSum: number
     checkerBlockerDeltaSum: number
     checkerWarningDeltaSum: number
+    checkerNegativeDeltaSum: number
+    checkerPositiveDeltaSum: number
+    checkerAmbiguousDeltaSum: number
+    checkerLowConfidenceDeltaSum: number
     contextDeltas: {
       characterContext: number | null
       worldContext: number | null
@@ -196,6 +204,10 @@ export function buildDraftingRunCohortReport(input: {
       checkerReadinessDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerReadinessDelta)),
       checkerBlockerDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerBlockerDelta)),
       checkerWarningDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerWarningDelta)),
+      checkerNegativeDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerNegativeDelta)),
+      checkerPositiveDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerPositiveDelta)),
+      checkerAmbiguousDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerAmbiguousDelta)),
+      checkerLowConfidenceDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerLowConfidenceDelta)),
       contextDeltas: {
         characterContext: sumComparisonDelta(input.refs, "characterContextDelta", isEvidenceComparableComparison),
         worldContext: sumComparisonDelta(input.refs, "worldContextDelta", isEvidenceComparableComparison),
@@ -249,7 +261,11 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
     `- manual readiness deltas: planAssist=${formatSigned(report.aggregate.planAssistReadinessDeltaSum)}, ` +
       `checker=${formatSigned(report.aggregate.checkerReadinessDeltaSum)}, ` +
       `checkerBlockers=${formatSigned(report.aggregate.checkerBlockerDeltaSum)}, ` +
-      `checkerWarnings=${formatSigned(report.aggregate.checkerWarningDeltaSum)}`,
+      `checkerWarnings=${formatSigned(report.aggregate.checkerWarningDeltaSum)}, ` +
+      `checkerNegative=${formatSigned(report.aggregate.checkerNegativeDeltaSum)}, ` +
+      `checkerPositive=${formatSigned(report.aggregate.checkerPositiveDeltaSum)}, ` +
+      `checkerAmbiguous=${formatSigned(report.aggregate.checkerAmbiguousDeltaSum)}, ` +
+      `checkerLowConfidence=${formatSigned(report.aggregate.checkerLowConfidenceDeltaSum)}`,
   )
   lines.push(
     `- context deltas: canonSourceRefs=${formatDelta(report.aggregate.contextDeltas.canonSourceRefs)}, ` +
@@ -333,6 +349,10 @@ function pairRowsForReport(ref: DraftingRunCohortReportRef): DraftingRunCohortPa
       checkerReadinessDelta: manualReadiness?.checkerFindingDelta ?? null,
       checkerBlockerDelta: manualReadiness?.checkerBlockerDelta ?? null,
       checkerWarningDelta: manualReadiness?.checkerWarningDelta ?? null,
+      checkerNegativeDelta: manualReadiness?.checkerNegativeDelta ?? null,
+      checkerPositiveDelta: manualReadiness?.checkerPositiveDelta ?? null,
+      checkerAmbiguousDelta: manualReadiness?.checkerAmbiguousDelta ?? null,
+      checkerLowConfidenceDelta: manualReadiness?.checkerLowConfidenceDelta ?? null,
       canonSourceRefsDelta: comparison.planningContext.canonSourceRefsDelta ?? null,
       storyRefIdsDelta: comparison.planningContext.storyRefIdsDelta ?? null,
       readerInfoStateDelta: comparison.planningContext.readerInfoStateDelta ?? null,

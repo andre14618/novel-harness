@@ -92,6 +92,10 @@ interface DraftingArmArtifact {
     checkerItems?: number
     blockerItems?: number
     warningItems?: number
+    negativeItems?: number
+    positiveItems?: number
+    ambiguousItems?: number
+    lowConfidenceItems?: number
     error?: string
   }
   proseSemantic?: {
@@ -193,6 +197,10 @@ export interface DraftingRunSummary {
     checkerItems: number | null
     checkerBlockerItems: number | null
     checkerWarningItems: number | null
+    checkerNegativeItems: number | null
+    checkerPositiveItems: number | null
+    checkerAmbiguousItems: number | null
+    checkerLowConfidenceItems: number | null
   }
   proseSemantic: {
     outputDir: string | null
@@ -265,6 +273,10 @@ export interface DraftingRunComparison {
     checkerItemDelta: number | null
     checkerBlockerDelta: number | null
     checkerWarningDelta: number | null
+    checkerNegativeDelta: number | null
+    checkerPositiveDelta: number | null
+    checkerAmbiguousDelta: number | null
+    checkerLowConfidenceDelta: number | null
   }
   proseSemantic: {
     lowRowsDelta: number | null
@@ -341,7 +353,11 @@ export function renderDraftingRunComparisonReport(report: DraftingRunComparisonR
           `checker=${formatTransition(baseManual.checkerFindingCount, candidateManual.checkerFindingCount)} ` +
           `(items=${formatTransition(baseManual.checkerItems, candidateManual.checkerItems)}, ` +
           `blockers=${formatTransition(baseManual.checkerBlockerItems, candidateManual.checkerBlockerItems)}, ` +
-          `warnings=${formatTransition(baseManual.checkerWarningItems, candidateManual.checkerWarningItems)})`,
+          `warnings=${formatTransition(baseManual.checkerWarningItems, candidateManual.checkerWarningItems)}, ` +
+          `negative=${formatTransition(baseManual.checkerNegativeItems, candidateManual.checkerNegativeItems)}, ` +
+          `positive=${formatTransition(baseManual.checkerPositiveItems, candidateManual.checkerPositiveItems)}, ` +
+          `ambiguous=${formatTransition(baseManual.checkerAmbiguousItems, candidateManual.checkerAmbiguousItems)}, ` +
+          `lowConfidence=${formatTransition(baseManual.checkerLowConfidenceItems, candidateManual.checkerLowConfidenceItems)})`,
       )
     }
     const baselineLoad = report.baseline.planningContext?.sceneLoad
@@ -578,6 +594,22 @@ function compareCandidate(
         baseline.summary.manualReadiness.checkerWarningItems,
         candidate.summary.manualReadiness.checkerWarningItems,
       ),
+      checkerNegativeDelta: nullableDelta(
+        baseline.summary.manualReadiness.checkerNegativeItems,
+        candidate.summary.manualReadiness.checkerNegativeItems,
+      ),
+      checkerPositiveDelta: nullableDelta(
+        baseline.summary.manualReadiness.checkerPositiveItems,
+        candidate.summary.manualReadiness.checkerPositiveItems,
+      ),
+      checkerAmbiguousDelta: nullableDelta(
+        baseline.summary.manualReadiness.checkerAmbiguousItems,
+        candidate.summary.manualReadiness.checkerAmbiguousItems,
+      ),
+      checkerLowConfidenceDelta: nullableDelta(
+        baseline.summary.manualReadiness.checkerLowConfidenceItems,
+        candidate.summary.manualReadiness.checkerLowConfidenceItems,
+      ),
     },
     proseSemantic: {
       lowRowsDelta: nullableDelta(
@@ -709,6 +741,10 @@ function loadManualReadinessSummary(
     checkerItems: checker.checkerItems,
     checkerBlockerItems: checker.blockerItems,
     checkerWarningItems: checker.warningItems,
+    checkerNegativeItems: checker.negativeItems,
+    checkerPositiveItems: checker.positiveItems,
+    checkerAmbiguousItems: checker.ambiguousItems,
+    checkerLowConfidenceItems: checker.lowConfidenceItems,
   }
 }
 
@@ -760,15 +796,41 @@ function loadCheckerReadinessSummary(
   checkerItems: number | null
   blockerItems: number | null
   warningItems: number | null
+  negativeItems: number | null
+  positiveItems: number | null
+  ambiguousItems: number | null
+  lowConfidenceItems: number | null
 } {
+  const sidecar = loadCheckerReadinessSidecarSummary(reportDir, targetPrefix, armName)
   if (arm.checkerReadiness) {
     return {
-      findingCount: finiteOrNull(arm.checkerReadiness.findingCount),
-      checkerItems: finiteOrNull(arm.checkerReadiness.checkerItems),
-      blockerItems: finiteOrNull(arm.checkerReadiness.blockerItems),
-      warningItems: finiteOrNull(arm.checkerReadiness.warningItems),
+      findingCount: finiteOrNull(arm.checkerReadiness.findingCount) ?? sidecar.findingCount,
+      checkerItems: finiteOrNull(arm.checkerReadiness.checkerItems) ?? sidecar.checkerItems,
+      blockerItems: finiteOrNull(arm.checkerReadiness.blockerItems) ?? sidecar.blockerItems,
+      warningItems: finiteOrNull(arm.checkerReadiness.warningItems) ?? sidecar.warningItems,
+      negativeItems: finiteOrNull(arm.checkerReadiness.negativeItems) ?? sidecar.negativeItems,
+      positiveItems: finiteOrNull(arm.checkerReadiness.positiveItems) ?? sidecar.positiveItems,
+      ambiguousItems: finiteOrNull(arm.checkerReadiness.ambiguousItems) ?? sidecar.ambiguousItems,
+      lowConfidenceItems: finiteOrNull(arm.checkerReadiness.lowConfidenceItems) ?? sidecar.lowConfidenceItems,
     }
   }
+  return sidecar
+}
+
+function loadCheckerReadinessSidecarSummary(
+  reportDir: string,
+  targetPrefix: string,
+  armName: string,
+): {
+  findingCount: number | null
+  checkerItems: number | null
+  blockerItems: number | null
+  warningItems: number | null
+  negativeItems: number | null
+  positiveItems: number | null
+  ambiguousItems: number | null
+  lowConfidenceItems: number | null
+} {
   const dir = join("output/checker-readiness", targetPrefix, armName)
   const readinessPath = resolveArtifactPath(reportDir, join(dir, "checker-readiness.json"))
   const warningPath = resolveArtifactPath(reportDir, join(dir, "checker-warning-report.json"))
@@ -776,6 +838,10 @@ function loadCheckerReadinessSummary(
   let checkerItems: number | null = null
   let blockerItems: number | null = null
   let warningItems: number | null = null
+  let negativeItems: number | null = null
+  let positiveItems: number | null = null
+  let ambiguousItems: number | null = null
+  let lowConfidenceItems: number | null = null
   if (readinessPath) {
     try {
       const aggregate = JSON.parse(readFileSync(readinessPath, "utf8")) as { findingCount?: unknown }
@@ -789,17 +855,36 @@ function loadCheckerReadinessSummary(
       const warning = JSON.parse(readFileSync(warningPath, "utf8")) as {
         totalItems?: unknown
         bySeverity?: Record<string, unknown>
+        byPolarity?: Record<string, unknown>
+        byCalibration?: Record<string, unknown>
       }
       checkerItems = finiteOrNull(warning.totalItems)
       blockerItems = finiteOrNull(warning.bySeverity?.blocker)
       warningItems = finiteOrNull(warning.bySeverity?.warning)
+      negativeItems = finiteOrNull(warning.byPolarity?.negative)
+      positiveItems = finiteOrNull(warning.byPolarity?.positive)
+      ambiguousItems = finiteOrNull(warning.byPolarity?.ambiguous)
+      lowConfidenceItems = finiteOrNull(warning.byCalibration?.["low-confidence"])
     } catch {
       checkerItems = null
       blockerItems = null
       warningItems = null
+      negativeItems = null
+      positiveItems = null
+      ambiguousItems = null
+      lowConfidenceItems = null
     }
   }
-  return { findingCount, checkerItems, blockerItems, warningItems }
+  return {
+    findingCount,
+    checkerItems,
+    blockerItems,
+    warningItems,
+    negativeItems,
+    positiveItems,
+    ambiguousItems,
+    lowConfidenceItems,
+  }
 }
 
 function hasManualReadinessSignal(readiness: DraftingRunSummary["manualReadiness"] | undefined | null): boolean {
@@ -812,6 +897,10 @@ function hasManualReadinessSignal(readiness: DraftingRunSummary["manualReadiness
     readiness.checkerItems,
     readiness.checkerBlockerItems,
     readiness.checkerWarningItems,
+    readiness.checkerNegativeItems,
+    readiness.checkerPositiveItems,
+    readiness.checkerAmbiguousItems,
+    readiness.checkerLowConfidenceItems,
   ].some(value => typeof value === "number" && Number.isFinite(value) && value !== 0)
 }
 
@@ -961,6 +1050,9 @@ function evidenceReasons(
   }
   if (positiveDelta(comparison.manualReadiness.checkerBlockerDelta)) {
     reasons.push(`Checker blocker items increased by ${comparison.manualReadiness.checkerBlockerDelta}.`)
+  }
+  if (positiveDelta(comparison.manualReadiness.checkerNegativeDelta)) {
+    reasons.push(`Checker negative-polarity items increased by ${comparison.manualReadiness.checkerNegativeDelta}.`)
   }
   if (positiveDelta(comparison.manualReadiness.checkerFindingDelta)) {
     reasons.push(`Checker readiness findings increased by ${comparison.manualReadiness.checkerFindingDelta}.`)

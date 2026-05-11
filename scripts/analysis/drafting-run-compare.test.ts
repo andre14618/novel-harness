@@ -133,8 +133,13 @@ describe("drafting-run-compare", () => {
       expect(comparison.manualReadiness.checkerItemDelta).toBe(2)
       expect(comparison.manualReadiness.checkerBlockerDelta).toBe(1)
       expect(comparison.manualReadiness.checkerWarningDelta).toBe(1)
+      expect(comparison.manualReadiness.checkerNegativeDelta).toBe(1)
+      expect(comparison.manualReadiness.checkerPositiveDelta).toBe(0)
+      expect(comparison.manualReadiness.checkerAmbiguousDelta).toBe(1)
+      expect(comparison.manualReadiness.checkerLowConfidenceDelta).toBe(0)
       expect(comparison.reasons).toContain("Length improved while semantic evidence regressed; treat the candidate as source-sensitive rather than a default candidate.")
       expect(comparison.reasons).toContain("Checker blocker items increased by 1.")
+      expect(comparison.reasons).toContain("Checker negative-polarity items increased by 1.")
       expect(comparison.sceneSemantic.changedRows[0]?.traceIds.relevantWorldFactIds).toEqual(["fact-foreman", "fact-seal"])
       expect(comparison.sceneSemantic.changedRows[0]?.traceIds.relevantCharacterIds).toEqual(["char-maren"])
 
@@ -142,7 +147,7 @@ describe("drafting-run-compare", () => {
       expect(rendered).toContain("Signal: regressed")
       expect(rendered).toContain("Context coverage: character=1 -> 1, world=1 -> 1, canon=1 -> 1 (sourceRefs=1 -> 3, factAnchors=0 -> 1), story=1 -> 1 (storyRefs=1 -> 3), reader=1 -> 0 (chars=100 -> 20), refs=0 -> 0 (lookups=0 -> 0)")
       expect(rendered).toContain("Reference attempts: scenes=1 -> 2, events=1 -> 3")
-      expect(rendered).toContain("Manual readiness: planAssist=n/a -> n/a (pending=n/a -> n/a), checker=0 -> 1 (items=1 -> 3, blockers=0 -> 1, warnings=1 -> 2)")
+      expect(rendered).toContain("Manual readiness: planAssist=n/a -> n/a (pending=n/a -> n/a), checker=0 -> 1 (items=1 -> 3, blockers=0 -> 1, warnings=1 -> 2, negative=0 -> 1, positive=0 -> 0, ambiguous=1 -> 2, lowConfidence=0 -> 0)")
       expect(rendered).toContain("ids=obligations:obl-file; characters:char-maren; worldFacts:fact-foreman,fact-seal")
       expect(rendered).toContain("Length improved while semantic evidence regressed")
     } finally {

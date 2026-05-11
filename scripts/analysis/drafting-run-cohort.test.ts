@@ -33,6 +33,7 @@ describe("drafting-run-cohort", () => {
     expect(report.aggregate.contextDeltas.referenceAttemptScenes).toBe(1)
     expect(report.aggregate.contextDeltas.referenceAttemptEvents).toBe(1)
     expect(report.aggregate.checkerBlockerDeltaSum).toBe(0)
+    expect(report.aggregate.checkerNegativeDeltaSum).toBe(0)
     expect(report.alignment.qualityMovementCounts).toEqual({ improved: 1, regressed: 1 })
     expect(report.alignment.contextLoadMovementCounts).toEqual({ contracted: 1, expanded: 1 })
     expect(report.alignment.contextQualityAlignmentCounts).toEqual({
@@ -67,7 +68,7 @@ describe("drafting-run-cohort", () => {
     expect(rendered).toContain("readerChars=+50")
     expect(rendered).toContain("refAttemptScenes=+1")
     expect(rendered).toContain("refAttemptEvents=+1")
-    expect(rendered).toContain("manual readiness deltas: planAssist=0, checker=0, checkerBlockers=0, checkerWarnings=0")
+    expect(rendered).toContain("manual readiness deltas: planAssist=0, checker=0, checkerBlockers=0, checkerWarnings=0, checkerNegative=0, checkerPositive=0, checkerAmbiguous=0, checkerLowConfidence=0")
     expect(rendered).toContain("| endpointLanding | 2 |")
     expect(rendered).toContain("Comparisons: 2 (2 clean-source, 2 evidence-comparable)")
     expect(rendered).toContain("| Source | Baseline | Candidate | Clean | Signal | Quality | Context Load | Alignment | Words | Scene Lows | Checker Blockers | Canon Refs | Story Refs | Reader | Reader Chars | Ref Attempt Scenes | Ref Attempt Events | Missing Chars |")
@@ -227,6 +228,10 @@ function comparisonReport(
         checkerItemDelta: 0,
         checkerBlockerDelta: 0,
         checkerWarningDelta: 0,
+        checkerNegativeDelta: 0,
+        checkerPositiveDelta: 0,
+        checkerAmbiguousDelta: 0,
+        checkerLowConfidenceDelta: 0,
       },
       proseSemantic: {
         lowRowsDelta: 0,
@@ -263,6 +268,10 @@ function manualReadiness(): DraftingRunComparisonReport["baseline"]["manualReadi
     checkerItems: 0,
     checkerBlockerItems: 0,
     checkerWarningItems: 0,
+    checkerNegativeItems: 0,
+    checkerPositiveItems: 0,
+    checkerAmbiguousItems: 0,
+    checkerLowConfidenceItems: 0,
   }
 }
 
