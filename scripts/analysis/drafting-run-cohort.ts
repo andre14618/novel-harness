@@ -53,6 +53,10 @@ export interface DraftingRunCohortPair {
   sceneLowDelta: number | null
   contextGapDelta: number | null
   readinessFindingDelta: number | null
+  planAssistReadinessDelta: number | null
+  checkerReadinessDelta: number | null
+  checkerBlockerDelta: number | null
+  checkerWarningDelta: number | null
   canonSourceRefsDelta: number | null
   storyRefIdsDelta: number | null
   readerInfoStateDelta: number | null
@@ -98,6 +102,10 @@ export interface DraftingRunCohortReport {
     sceneLowDeltaSum: number
     contextGapDeltaSum: number
     readinessFindingDeltaSum: number
+    planAssistReadinessDeltaSum: number
+    checkerReadinessDeltaSum: number
+    checkerBlockerDeltaSum: number
+    checkerWarningDeltaSum: number
     contextDeltas: {
       characterContext: number | null
       worldContext: number | null
@@ -184,6 +192,10 @@ export function buildDraftingRunCohortReport(input: {
       sceneLowDeltaSum: sumNullable(evidencePairs.map(pair => pair.sceneLowDelta)),
       contextGapDeltaSum: sumNullable(evidencePairs.map(pair => pair.contextGapDelta)),
       readinessFindingDeltaSum: sumNullable(evidencePairs.map(pair => pair.readinessFindingDelta)),
+      planAssistReadinessDeltaSum: sumNullable(evidencePairs.map(pair => pair.planAssistReadinessDelta)),
+      checkerReadinessDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerReadinessDelta)),
+      checkerBlockerDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerBlockerDelta)),
+      checkerWarningDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerWarningDelta)),
       contextDeltas: {
         characterContext: sumComparisonDelta(input.refs, "characterContextDelta", isEvidenceComparableComparison),
         worldContext: sumComparisonDelta(input.refs, "worldContextDelta", isEvidenceComparableComparison),
@@ -234,6 +246,12 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
   lines.push(`- context gap delta sum: ${formatSigned(report.aggregate.contextGapDeltaSum)}`)
   lines.push(`- readiness finding delta sum: ${formatSigned(report.aggregate.readinessFindingDeltaSum)}`)
   lines.push(
+    `- manual readiness deltas: planAssist=${formatSigned(report.aggregate.planAssistReadinessDeltaSum)}, ` +
+      `checker=${formatSigned(report.aggregate.checkerReadinessDeltaSum)}, ` +
+      `checkerBlockers=${formatSigned(report.aggregate.checkerBlockerDeltaSum)}, ` +
+      `checkerWarnings=${formatSigned(report.aggregate.checkerWarningDeltaSum)}`,
+  )
+  lines.push(
     `- context deltas: canonSourceRefs=${formatDelta(report.aggregate.contextDeltas.canonSourceRefs)}, ` +
       `factAnchors=${formatDelta(report.aggregate.contextDeltas.factContinuityAnchors)}, ` +
       `storyRefs=${formatDelta(report.aggregate.contextDeltas.storyRefIds)}, ` +
@@ -259,13 +277,14 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
   lines.push("")
   lines.push("## Comparisons")
   lines.push("")
-  lines.push("| Source | Baseline | Candidate | Clean | Signal | Quality | Context Load | Alignment | Words | Scene Lows | Canon Refs | Story Refs | Reader | Reader Chars | Ref Attempt Scenes | Ref Attempt Events | Missing Chars |")
-  lines.push("| --- | --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+  lines.push("| Source | Baseline | Candidate | Clean | Signal | Quality | Context Load | Alignment | Words | Scene Lows | Checker Blockers | Canon Refs | Story Refs | Reader | Reader Chars | Ref Attempt Scenes | Ref Attempt Events | Missing Chars |")
+  lines.push("| --- | --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
   for (const pair of report.pairs) {
     lines.push(
       `| ${pair.source} | ${pair.baselineArm} | ${pair.candidateArm} | ${pair.cleanSource ? "yes" : "no"} | ` +
         `${pair.signal} | ${pair.qualityMovement} | ${pair.contextLoadMovement} | ${pair.contextQualityAlignment} | ` +
         `${formatEvidenceSigned(pair.totalWordsDelta, pair)} | ${formatEvidenceDelta(pair.sceneLowDelta, pair)} | ` +
+        `${formatEvidenceDelta(pair.checkerBlockerDelta, pair)} | ` +
         `${formatDelta(pair.canonSourceRefsDelta)} | ${formatDelta(pair.storyRefIdsDelta)} | ` +
         `${formatDelta(pair.readerInfoStateDelta)} | ${formatDelta(pair.readerInfoStateCharsDelta)} | ` +
         `${formatDelta(pair.referenceAttemptSceneDelta)} | ${formatDelta(pair.referenceAttemptEventDelta)} | ` +
@@ -293,6 +312,7 @@ function pairRowsForReport(ref: DraftingRunCohortReportRef): DraftingRunCohortPa
   return ref.report.comparisons.map(comparison => {
     const qualityMovement = classifyQualityMovement(comparison)
     const contextLoadMovement = classifyContextLoadMovement(comparison)
+    const manualReadiness = comparison.manualReadiness
     return {
       reportPath: ref.path,
       source: comparison.candidate.source,
@@ -309,6 +329,10 @@ function pairRowsForReport(ref: DraftingRunCohortReportRef): DraftingRunCohortPa
       sceneLowDelta: comparison.sceneSemantic.lowRowsDelta,
       contextGapDelta: comparison.planningContext.gapDelta,
       readinessFindingDelta: comparison.planningContext.readinessFindingDelta,
+      planAssistReadinessDelta: manualReadiness?.planAssistFindingDelta ?? null,
+      checkerReadinessDelta: manualReadiness?.checkerFindingDelta ?? null,
+      checkerBlockerDelta: manualReadiness?.checkerBlockerDelta ?? null,
+      checkerWarningDelta: manualReadiness?.checkerWarningDelta ?? null,
       canonSourceRefsDelta: comparison.planningContext.canonSourceRefsDelta ?? null,
       storyRefIdsDelta: comparison.planningContext.storyRefIdsDelta ?? null,
       readerInfoStateDelta: comparison.planningContext.readerInfoStateDelta ?? null,

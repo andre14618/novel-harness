@@ -77,6 +77,23 @@ interface DraftingArmArtifact {
       downstreamCount?: number
     }>
   }
+  planAssistReadiness?: {
+    outputDir?: string
+    groupCount?: number
+    findingCount?: number
+    exhaustionRows?: number
+    pendingRows?: number
+    error?: string
+  }
+  checkerReadiness?: {
+    outputDir?: string
+    groupCount?: number
+    findingCount?: number
+    checkerItems?: number
+    blockerItems?: number
+    warningItems?: number
+    error?: string
+  }
   proseSemantic?: {
     outputDir?: string
     resultCount?: number
@@ -168,6 +185,15 @@ export interface DraftingRunSummary {
     downstream: PlanningContextDetail["downstream"]
     referenceContextAttempts: PlanningContextDetail["referenceContextAttempts"]
   } | null
+  manualReadiness: {
+    planAssistFindingCount: number | null
+    planAssistExhaustionRows: number | null
+    planAssistPendingRows: number | null
+    checkerFindingCount: number | null
+    checkerItems: number | null
+    checkerBlockerItems: number | null
+    checkerWarningItems: number | null
+  }
   proseSemantic: {
     outputDir: string | null
     resultCount: number | null
@@ -230,6 +256,15 @@ export interface DraftingRunComparison {
     referenceAttemptEventDelta: number | null
     overloadedChapterDelta: number | null
     minTargetWordsPerSceneDelta: number | null
+  }
+  manualReadiness: {
+    planAssistFindingDelta: number | null
+    planAssistExhaustionRowsDelta: number | null
+    planAssistPendingRowsDelta: number | null
+    checkerFindingDelta: number | null
+    checkerItemDelta: number | null
+    checkerBlockerDelta: number | null
+    checkerWarningDelta: number | null
   }
   proseSemantic: {
     lowRowsDelta: number | null
@@ -297,6 +332,18 @@ export function renderDraftingRunComparisonReport(report: DraftingRunComparisonR
         `readiness=${formatDelta(comparison.planningContext.readinessFindingDelta)}, ` +
         `promptRatio=${formatNullableDelta(comparison.prompt.avgCharsRatioDelta, 3)}`,
     )
+    if (hasManualReadinessSignal(report.baseline.manualReadiness) || hasManualReadinessSignal(candidate.manualReadiness)) {
+      const baseManual = report.baseline.manualReadiness
+      const candidateManual = candidate.manualReadiness
+      lines.push(
+        `Manual readiness: planAssist=${formatTransition(baseManual.planAssistFindingCount, candidateManual.planAssistFindingCount)} ` +
+          `(pending=${formatTransition(baseManual.planAssistPendingRows, candidateManual.planAssistPendingRows)}), ` +
+          `checker=${formatTransition(baseManual.checkerFindingCount, candidateManual.checkerFindingCount)} ` +
+          `(items=${formatTransition(baseManual.checkerItems, candidateManual.checkerItems)}, ` +
+          `blockers=${formatTransition(baseManual.checkerBlockerItems, candidateManual.checkerBlockerItems)}, ` +
+          `warnings=${formatTransition(baseManual.checkerWarningItems, candidateManual.checkerWarningItems)})`,
+      )
+    }
     const baselineLoad = report.baseline.planningContext?.sceneLoad
     const candidateLoad = candidate.planningContext?.sceneLoad
     if (baselineLoad || candidateLoad) {
@@ -502,6 +549,36 @@ function compareCandidate(
         candidate.summary.planningContext?.sceneLoad?.minTargetWordsPerScene ?? null,
       ),
     },
+    manualReadiness: {
+      planAssistFindingDelta: nullableDelta(
+        baseline.summary.manualReadiness.planAssistFindingCount,
+        candidate.summary.manualReadiness.planAssistFindingCount,
+      ),
+      planAssistExhaustionRowsDelta: nullableDelta(
+        baseline.summary.manualReadiness.planAssistExhaustionRows,
+        candidate.summary.manualReadiness.planAssistExhaustionRows,
+      ),
+      planAssistPendingRowsDelta: nullableDelta(
+        baseline.summary.manualReadiness.planAssistPendingRows,
+        candidate.summary.manualReadiness.planAssistPendingRows,
+      ),
+      checkerFindingDelta: nullableDelta(
+        baseline.summary.manualReadiness.checkerFindingCount,
+        candidate.summary.manualReadiness.checkerFindingCount,
+      ),
+      checkerItemDelta: nullableDelta(
+        baseline.summary.manualReadiness.checkerItems,
+        candidate.summary.manualReadiness.checkerItems,
+      ),
+      checkerBlockerDelta: nullableDelta(
+        baseline.summary.manualReadiness.checkerBlockerItems,
+        candidate.summary.manualReadiness.checkerBlockerItems,
+      ),
+      checkerWarningDelta: nullableDelta(
+        baseline.summary.manualReadiness.checkerWarningItems,
+        candidate.summary.manualReadiness.checkerWarningItems,
+      ),
+    },
     proseSemantic: {
       lowRowsDelta: nullableDelta(
         baseline.summary.proseSemantic?.lowRows ?? null,
@@ -586,6 +663,15 @@ function summarizeRun(
       downstream: contextDetail?.downstream ?? null,
       referenceContextAttempts: contextDetail?.referenceContextAttempts ?? null,
     } : null,
+    manualReadiness: {
+      planAssistFindingCount: finiteOrNull(arm.planAssistReadiness?.findingCount),
+      planAssistExhaustionRows: finiteOrNull(arm.planAssistReadiness?.exhaustionRows),
+      planAssistPendingRows: finiteOrNull(arm.planAssistReadiness?.pendingRows),
+      checkerFindingCount: finiteOrNull(arm.checkerReadiness?.findingCount),
+      checkerItems: finiteOrNull(arm.checkerReadiness?.checkerItems),
+      checkerBlockerItems: finiteOrNull(arm.checkerReadiness?.blockerItems),
+      checkerWarningItems: finiteOrNull(arm.checkerReadiness?.warningItems),
+    },
     proseSemantic: arm.proseSemantic ? {
       outputDir: arm.proseSemantic.outputDir ?? null,
       resultCount: finiteOrNull(arm.proseSemantic.resultCount),
@@ -612,6 +698,19 @@ function summarizeRun(
       }),
     } : null,
   }
+}
+
+function hasManualReadinessSignal(readiness: DraftingRunSummary["manualReadiness"] | undefined | null): boolean {
+  if (!readiness) return false
+  return [
+    readiness.planAssistFindingCount,
+    readiness.planAssistExhaustionRows,
+    readiness.planAssistPendingRows,
+    readiness.checkerFindingCount,
+    readiness.checkerItems,
+    readiness.checkerBlockerItems,
+    readiness.checkerWarningItems,
+  ].some(value => typeof value === "number" && Number.isFinite(value) && value !== 0)
 }
 
 function hasReferenceAttemptSignal(
@@ -754,6 +853,15 @@ function evidenceReasons(
   }
   if (positiveDelta(comparison.planningContext.missingCharacterIdsDelta)) {
     reasons.push(`Writer-context missing character ids increased by ${comparison.planningContext.missingCharacterIdsDelta}.`)
+  }
+  if (positiveDelta(comparison.manualReadiness.planAssistFindingDelta)) {
+    reasons.push(`Plan-Assist readiness findings increased by ${comparison.manualReadiness.planAssistFindingDelta}.`)
+  }
+  if (positiveDelta(comparison.manualReadiness.checkerBlockerDelta)) {
+    reasons.push(`Checker blocker items increased by ${comparison.manualReadiness.checkerBlockerDelta}.`)
+  }
+  if (positiveDelta(comparison.manualReadiness.checkerFindingDelta)) {
+    reasons.push(`Checker readiness findings increased by ${comparison.manualReadiness.checkerFindingDelta}.`)
   }
   if (!failedArm && comparison.length.meanRatioDelta < 0 && (
     positiveDelta(comparison.sceneSemantic.lowRowsDelta) ||
