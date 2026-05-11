@@ -7,6 +7,9 @@
  * diagnostic only: it does not gate drafting and does not mutate Canon or plans.
  */
 
+import { mkdirSync, writeFileSync } from "node:fs"
+import { dirname, resolve } from "node:path"
+
 import db from "../../src/db/connection"
 import type { ChapterOutline, CharacterProfile } from "../../src/types"
 import { enrichOutlineIds } from "../../src/harness/ids"
@@ -211,6 +214,8 @@ export interface ReferenceContextAttemptSummary {
 interface Args {
   novelId: string | null
   json: boolean
+  outputPath: string | null
+  jsonOutputPath: string | null
 }
 
 export function summarizePlanningArtifacts(args: {
@@ -1256,6 +1261,8 @@ function unique(values: string[]): string[] {
 function parseArgs(argv: string[]): Args {
   let novelId: string | null = null
   let json = false
+  let outputPath: string | null = null
+  let jsonOutputPath: string | null = null
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === "--novel") {
@@ -1264,11 +1271,19 @@ function parseArgs(argv: string[]): Args {
       novelId = value
     } else if (arg === "--json") {
       json = true
+    } else if (arg === "--output") {
+      const value = argv[++i]
+      if (!value) throw new Error("--output requires a value")
+      outputPath = value
+    } else if (arg === "--json-output") {
+      const value = argv[++i]
+      if (!value) throw new Error("--json-output requires a value")
+      jsonOutputPath = value
     } else {
       throw new Error(`unknown arg: ${arg}`)
     }
   }
-  return { novelId, json }
+  return { novelId, json, outputPath, jsonOutputPath }
 }
 
 export async function loadPlanningToDraftingContextReport(novelId: string): Promise<PlanningToDraftingContextReport> {
@@ -1331,19 +1346,33 @@ async function main(argv: string[]): Promise<number> {
     args = parseArgs(argv)
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err))
-    console.error("usage: bun scripts/analysis/planning-drafting-context-report.ts --novel <novelId> [--json]")
+    printUsage()
     return 2
   }
 
   if (!args.novelId) {
-    console.error("usage: bun scripts/analysis/planning-drafting-context-report.ts --novel <novelId> [--json]")
+    printUsage()
     return 2
   }
 
   const report = await loadPlanningToDraftingContextReport(args.novelId)
-  console.log(args.json ? JSON.stringify(report, null, 2) : renderPlanningToDraftingContextReport(report))
+  const rendered = renderPlanningToDraftingContextReport(report)
+  const json = JSON.stringify(report, null, 2)
+  if (args.outputPath) writeOutput(args.outputPath, `${rendered}\n`)
+  if (args.jsonOutputPath) writeOutput(args.jsonOutputPath, `${json}\n`)
+  console.log(args.json ? json : rendered)
   await db.end().catch(() => {})
   return 0
+}
+
+function writeOutput(path: string, content: string): void {
+  const abs = resolve(path)
+  mkdirSync(dirname(abs), { recursive: true })
+  writeFileSync(abs, content)
+}
+
+function printUsage(): void {
+  console.error("usage: bun scripts/analysis/planning-drafting-context-report.ts --novel <novelId> [--json] [--output <report.md>] [--json-output <report.json>]")
 }
 
 if (import.meta.main) {
