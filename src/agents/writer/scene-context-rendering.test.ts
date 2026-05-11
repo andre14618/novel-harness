@@ -348,7 +348,11 @@ describe("renderBeatContext + scene contract", () => {
 
     expect(selected.userPrompt).toContain("SCENE EXECUTION FLOOR:")
     expect(selected.userPrompt).toContain("Write a complete scene turn")
+    expect(selected.userPrompt).toContain("Land the endpoint through an on-page action")
+    expect(selected.userPrompt).toContain("Do not end on only an intention")
+    expect(selected.userPrompt).toContain("before cutting endpoint action or consequence")
     expect(selected.userPrompt).toContain("SCENE CONTRACT (dramatize this shape on-page):")
+    expect(selected.userPrompt).toContain("Endpoint landing: execute the outcome")
     expect(selected.userPrompt).toContain("CHARACTER MATERIALITY:")
     expect(selected.userPrompt).toContain("Use these details to shape concrete behavior")
     expect(selected.draftingBriefTrace.mode).toBe("scene-turn-v1")

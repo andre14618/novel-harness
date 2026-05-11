@@ -139,7 +139,10 @@ function renderSceneExecutionFloor(mode: WriterDraftingBriefMode | undefined): s
   const lines = [
     "SCENE EXECUTION FLOOR:",
     "- Write a complete scene turn, not a summary of required events.",
-    "- Put the pressure, choice/turn, outcome, and consequence on the page.",
+    "- Put the pressure, choice/turn, outcome, and consequence on the page before the scene exits.",
+    "- Land the endpoint through an on-page action, refusal, reveal, concession, or irreversible movement with an immediate observable consequence.",
+    "- Do not end on only an intention, delayed decision, request for time, or internal reflection unless the scene also shows the new external cost, obligation, threat, debt, or relationship state.",
+    "- Keep the scene inside the stated budget by cutting repeated setup, arithmetic restatement, and generic reflection before cutting endpoint action or consequence.",
     "- Make present characters materially specific through action, dialogue, interiority, or changed behavior.",
   ]
   if (mode === "scene-turn-anchored-v1") {
@@ -166,6 +169,9 @@ function renderSceneContractBrief(scene: SceneContractBlock, mode: WriterDraftin
   }
   if (scene.outcome) lines.push(`- Outcome: ${scene.outcome}`)
   if (scene.consequence) lines.push(`- Consequence: ${scene.consequence}`)
+  if (scene.outcome || scene.consequence) {
+    lines.push("- Endpoint landing: execute the outcome and show the consequence in this scene; do not only point toward a later confrontation.")
+  }
   if (scene.povPersonalStake) lines.push(`- POV personal stake: ${scene.povPersonalStake}`)
   if (scene.valueIn || scene.valueOut) {
     lines.push(`- Value shift: ${scene.valueIn ?? "?"} -> ${scene.valueOut ?? "?"}`)

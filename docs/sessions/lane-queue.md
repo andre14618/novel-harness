@@ -21,7 +21,9 @@ unless the user explicitly requests a disposable branch.
   `factContradictions=0`; clean rerun compact brief landed 1.30x, prose lows
   0/8, scene lows 3/36, endpoint lows 3/11, while scene-turn landed 1.46x,
   scene lows 4/36, endpoint lows 2/11, with scene/world regressions. Compact
-  brief remains the best tradeoff. No default flip. See L106.
+  brief remains the best tradeoff. Follow-up tightened scene-contract and
+  writer-brief wording around executed outcome/consequence plus length
+  discipline. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
@@ -114,11 +116,11 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: inspect repaired generated-P1 low scene-semantic rows and
-  tighten endpoint-executed contract wording plus length discipline before any
-  prompt-arm/default decision. The known upstream wording risk is absolute
-  "transfer impossible" language where the intended mechanic is closer to "no
-  clean transfer is possible." See L103-L106.
+- Next session start: rerun the repaired generated-P1 cohort with tightened
+  endpoint/brief wording before any prompt-arm/default decision. Watch whether
+  endpoint lows improve without length or world-pressure regressions; also
+  inspect the known "transfer impossible" wording risk versus "no clean
+  transfer is possible." See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.

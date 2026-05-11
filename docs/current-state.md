@@ -122,8 +122,8 @@ the repaired clone reached `choice/full=11/11` and `factContradictions=0`.
 Clean rerun: compact brief 4930/3800 = 1.30x, prose lows 0/8, scene lows 3/36,
 endpoint lows 3/11; scene-turn 5554/3800 = 1.46x, prose lows 0/8, scene lows
 4/36, endpoint lows 2/11 with scene/world regressions. Compact brief remains
-best tradeoff; next target endpoint-executed contract wording and length
-discipline, not default flips. See L103-L106.
+best tradeoff; endpoint/brief wording now targets executed outcome/consequence
+and length discipline. Next rerun clean cohorts; do not flip defaults. See L103-L106.
 
 ## Authoring Gates
 

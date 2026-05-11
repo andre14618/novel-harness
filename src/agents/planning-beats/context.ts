@@ -164,12 +164,14 @@ Scene-scope discipline:
 - One scene contract should contain one protagonist goal, one main opposition source, one dominant turn/crisis choice, and one immediate outcome/consequence. If an entry needs two goals, two locations, two confrontations, or multiple unrelated reveals, split or move material.
 - Keep obligation load realistic for one scene. Prefer one to three load-bearing facts/knowledge/state movements. If a scene needs more, the chapter plan is probably over-packed.
 - If a short chapter purpose contains enough content for several full scenes, reduce the chapter movement to its essential turn while preserving the endpoint/hook. Do not cram the whole skeleton purpose into dense scene contracts.
+- Spend the scene's limited scope on executing the endpoint. Avoid setup-only, transit-only, and delayed-decision entries unless the entry's consequence shows a new external cost, deadline, debt, threat, or relationship state before the scene exits.
 
 Causal-motivation-v3 expectations:
 - The crisis choice must be motive-caused, not arbitrary. The povPersonalStake and choiceAlternatives must show why this protagonist (not a generic protagonist) is forced to choose under this pressure.
 - Choice alternatives must each carry a concrete tradeoff: gain vs cost, want vs need, oath vs survival, etc.
 - World facts and supporting characters are operational pressure, not background. If a world fact or character is named in the entry, it must constrain the choice or alter the outcome.
 - The consequence must create future pressure (a new obligation, threat, debt, or relationship shift) that the next entry or chapter can build on.
+- The endpoint must land inside the current entry through the existing outcome/consequence pair. Do not make the endpoint a promised later confrontation, an intention to investigate, or an unanswered order unless the current entry also shows the immediate consequence that changes the next entry's starting conditions.
 
 If you cannot honour these fields for a given entry, omit the optional fields rather than emitting placeholder text. Empty string consequences and one-option choiceAlternatives are validator failures.
 
@@ -208,5 +210,6 @@ Compliance rules (validator will fail without these — fix every line before re
 2. choiceAlternatives MUST be a non-empty array of at least TWO entries when the field is present. Every option is a complete sentence describing a concrete action and its tradeoff.
 3. consequence MUST describe externally observable downstream pressure that is different from outcome. "Calla burns the script" + "Calla burns the script" is invalid; "Calla burns the script" + "Davan is publicly exiled" is valid.
 4. povPersonalStake MUST name the specific personal pressure (oath, fear, wound, lie, truth, relationship debt) — generic motives like "do the right thing" or "survive" will be rejected.
-5. valueIn and valueOut should be short value labels (one or two words) describing the polarity of the dominant value at the start and end of the entry.`
+5. outcome/consequence MUST execute a visible action/reveal/refusal/commitment on the page; "she considers", "she waits", "she intends", or "she asks for more time" is insufficient without an immediate external cost.
+6. valueIn and valueOut should be short value labels (one or two words) describing the polarity of the dominant value at the start and end of the entry.`
 }
