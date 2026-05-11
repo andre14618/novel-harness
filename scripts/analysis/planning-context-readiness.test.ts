@@ -198,6 +198,139 @@ describe("planning-context-readiness", () => {
       },
     })
   })
+
+  test("turns partial scene-contract shape into manual scene replacement readiness", () => {
+    const aggregate = buildPlanningContextReadinessAggregate({
+      report: report({
+        scenesWithSceneContract: 1,
+        sceneContractsWithDramaticShape: 1,
+        sceneContractsWithEndpointShape: 1,
+        sceneContractsWithChoiceShape: 0,
+        sceneContractsWithFullDramaticShape: 0,
+        sceneContractShape: {
+          missingDramaticShape: [],
+          missingChoiceShape: [{
+            label: "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE",
+            severity: "medium",
+            chapterNumber: 2,
+            chapterId: "ch-002",
+            sceneRef: "scene-12",
+            descriptionExcerpt: "Maren confronts the false transfer record.",
+            hasTemporalAnchor: true,
+            hasPlaceAnchor: true,
+            hasObligations: true,
+            hasChoiceShape: false,
+            hasEndpointShape: true,
+            hasFullDramaticShape: false,
+            characterCount: 2,
+            obligationIds: ["obl-transfer"],
+            characterIds: ["char-maren"],
+            sourceIds: ["fact-transfer-order"],
+            threadIds: ["thread-ledger"],
+            promiseIds: [],
+            payoffIds: [],
+            missingFields: ["crisisChoice", "choiceAlternatives"],
+          }],
+          missingFullDramaticShape: [{
+            label: "SCENE-CONTRACT-FULL-SHAPE-INCOMPLETE",
+            severity: "medium",
+            chapterNumber: 2,
+            chapterId: "ch-002",
+            sceneRef: "scene-12",
+            descriptionExcerpt: "Maren confronts the false transfer record.",
+            hasTemporalAnchor: true,
+            hasPlaceAnchor: true,
+            hasObligations: true,
+            hasChoiceShape: false,
+            hasEndpointShape: true,
+            hasFullDramaticShape: false,
+            characterCount: 2,
+            obligationIds: ["obl-transfer"],
+            characterIds: ["char-maren"],
+            sourceIds: ["fact-transfer-order"],
+            threadIds: ["thread-ledger"],
+            promiseIds: [],
+            payoffIds: [],
+            missingFields: ["crisisChoice", "choiceAlternatives", "povPersonalStake"],
+          }],
+          anchorOnly: [],
+        },
+      }),
+      sourceReport: "context.json",
+      generatedAt: "2026-05-11T00:00:00.000Z",
+    })
+
+    expect(aggregate.groups).toHaveLength(2)
+    const group = aggregate.groups[1]!
+    expect(group).toMatchObject({
+      unitType: "scene",
+      chapterId: "ch-002",
+      sceneId: "scene-12",
+      highestSeverity: "medium",
+      dimensions: ["sceneContract"],
+      fixIntents: ["complete_scene_contract"],
+      sourceIds: {
+        obligationIds: ["obl-transfer"],
+        characterIds: ["char-maren"],
+        sceneTurnIds: ["scene-12"],
+        sourceIds: ["fact-transfer-order"],
+        threadIds: ["thread-ledger"],
+      },
+    })
+    expect(group.findings[0]).toMatchObject({
+      label: "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE",
+      dimension: "sceneContract",
+      fixIntent: "complete_scene_contract",
+      evidence: {
+        sceneRef: "scene-12",
+        missingFields: "crisisChoice,choiceAlternatives",
+      },
+    })
+    expect(group.rewritePacket.proposalCandidate).toMatchObject({
+      action: "beat_replace",
+      target: {
+        kind: "scene_plan",
+        ref: "scene-12",
+        fieldPath: "self",
+      },
+      safeToAutoApply: false,
+    })
+    expect(renderPlanningContextReadinessAggregate(aggregate)).toContain("Should this scene plan be replaced")
+
+    const built = buildPlanReadinessDraftsFromAggregate({
+      novelId: "novel-load",
+      aggregate,
+      targetVersions: {
+        "chapter_outline:ch-001": "outline-hash-1",
+        "scene_plan:scene-12": "scene-hash-12",
+      },
+    })
+    expect(built.skipped).toEqual([])
+    expect(built.drafts[1]).toMatchObject({
+      target: { kind: "scene_plan", ref: "scene-12", fieldPath: "self" },
+      sourceHash: "scene-hash-12",
+      diagnosticLabel: "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE",
+      dimension: "sceneContract",
+      fixIntent: "complete_scene_contract",
+      preserveIds: {
+        obligationIds: ["obl-transfer"],
+        characterIds: ["char-maren"],
+        sceneTurnIds: ["scene-12"],
+        sourceIds: ["fact-transfer-order"],
+        threadIds: ["thread-ledger"],
+      },
+      metadata: {
+        proposalCandidate: {
+          action: "beat_replace",
+          target: { kind: "scene_plan", ref: "scene-12", fieldPath: "self" },
+          requiresProposedValue: true,
+          proposedValueStatus: "operator_required",
+          safeToAutoApply: false,
+          sourceAgent: "planning-context-readiness",
+        },
+      },
+    })
+  })
 })
 
 function report(overrides: Partial<PlanningToDraftingContextReport["upstream"]> = {}): PlanningToDraftingContextReport {
@@ -259,6 +392,8 @@ function report(overrides: Partial<PlanningToDraftingContextReport["upstream"]> 
       anchorOnlySceneContracts: 0,
       sceneContractShape: {
         missingDramaticShape: [],
+        missingChoiceShape: [],
+        missingFullDramaticShape: [],
         anchorOnly: [],
       },
       scenesWithObligations: 12,

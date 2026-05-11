@@ -108,7 +108,11 @@ export interface PlanContinuitySummary {
 }
 
 export interface DramaticSceneContractGap {
-  label: "DRAMATIC-SCENE-CONTRACT-MISSING" | "ANCHOR-ONLY-SCENE-CONTRACT"
+  label:
+    | "DRAMATIC-SCENE-CONTRACT-MISSING"
+    | "ANCHOR-ONLY-SCENE-CONTRACT"
+    | "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE"
+    | "SCENE-CONTRACT-FULL-SHAPE-INCOMPLETE"
   severity: "medium" | "low"
   chapterNumber: number
   chapterId: string
@@ -117,12 +121,23 @@ export interface DramaticSceneContractGap {
   hasTemporalAnchor: boolean
   hasPlaceAnchor: boolean
   hasObligations: boolean
+  hasChoiceShape: boolean
+  hasEndpointShape: boolean
+  hasFullDramaticShape: boolean
   characterCount: number
+  obligationIds: string[]
+  characterIds: string[]
+  sourceIds: string[]
+  threadIds: string[]
+  promiseIds: string[]
+  payoffIds: string[]
   missingFields: string[]
 }
 
 export interface SceneContractShapeSummary {
   missingDramaticShape: DramaticSceneContractGap[]
+  missingChoiceShape: DramaticSceneContractGap[]
+  missingFullDramaticShape: DramaticSceneContractGap[]
   anchorOnly: DramaticSceneContractGap[]
 }
 
@@ -348,11 +363,15 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
   )
   const sceneContractShape = report.upstream.sceneContractShape
   const missingDramaticShape = sceneContractShape?.missingDramaticShape ?? []
+  const missingChoiceShape = sceneContractShape?.missingChoiceShape ?? []
+  const missingFullDramaticShape = sceneContractShape?.missingFullDramaticShape ?? []
   const anchorOnly = sceneContractShape?.anchorOnly ?? []
   lines.push(
-    `Scene contract shape gaps: missingDramatic=${missingDramaticShape.length}, anchorOnly=${anchorOnly.length}`,
+    `Scene contract shape gaps: missingDramatic=${missingDramaticShape.length}, ` +
+      `missingChoice=${missingChoiceShape.length}, missingFull=${missingFullDramaticShape.length}, ` +
+      `anchorOnly=${anchorOnly.length}`,
   )
-  for (const gap of missingDramaticShape.slice(0, 5)) {
+  for (const gap of [...missingDramaticShape, ...missingChoiceShape, ...missingFullDramaticShape].slice(0, 5)) {
     lines.push(
       `- ${gap.label}: ${gap.sceneRef}; missing=${gap.missingFields.join(",")}; ` +
         `obligations=${gap.hasObligations ? "yes" : "no"}; "${gap.descriptionExcerpt}"`,
@@ -700,40 +719,142 @@ const DRAMATIC_SCENE_CONTRACT_FIELDS = [
   "valueOut",
 ] as const
 
+const FULL_DRAMATIC_SCENE_CONTRACT_FIELDS = [
+  "goal",
+  "opposition",
+  "turningPoint",
+  "crisisChoice",
+  "choiceAlternatives",
+  "outcome",
+  "consequence",
+  "povPersonalStake",
+  "valueIn",
+  "valueOut",
+] as const
+
 function summarizeSceneContractShapeGaps(
   rows: Array<{ outline: ChapterOutline; scene: unknown }>,
 ): SceneContractShapeSummary {
   const missingDramaticShape: DramaticSceneContractGap[] = []
+  const missingChoiceShape: DramaticSceneContractGap[] = []
+  const missingFullDramaticShape: DramaticSceneContractGap[] = []
   const anchorOnly: DramaticSceneContractGap[] = []
 
   for (const row of rows) {
     const record = readRecord(row.scene)
     const shape = summarizeSceneContractShape(record)
-    if (shape.hasDramaticShape) continue
     const sceneReference = sceneRef(row.scene)
     if (!sceneReference) continue
-    const gap: DramaticSceneContractGap = {
-      label: shape.isAnchorOnly ? "ANCHOR-ONLY-SCENE-CONTRACT" : "DRAMATIC-SCENE-CONTRACT-MISSING",
-      severity: shape.hasAnchor || obligationItemsForScene(row.scene).length > 0 ? "medium" : "low",
-      chapterNumber: row.outline.chapterNumber,
-      chapterId: row.outline.chapterId ?? `chapter:${row.outline.chapterNumber}`,
-      sceneRef: sceneReference,
-      descriptionExcerpt: truncateForEvidence(String(record.description ?? "")),
-      hasTemporalAnchor: hasText(record.temporalAnchor),
-      hasPlaceAnchor: hasText(record.placeAnchor),
-      hasObligations: obligationItemsForScene(row.scene).length > 0,
-      characterCount: stringArray(record.characters).length,
-      missingFields: missingDramaticFields(record),
+    const obligationItems = obligationItemsForScene(row.scene)
+
+    if (!shape.hasDramaticShape) {
+      const gap = sceneContractGap({
+        row,
+        sceneReference,
+        record,
+        shape,
+        obligationItems,
+        label: shape.isAnchorOnly ? "ANCHOR-ONLY-SCENE-CONTRACT" : "DRAMATIC-SCENE-CONTRACT-MISSING",
+        missingFields: missingDramaticFields(record),
+      })
+      missingDramaticShape.push(gap)
+      if (shape.isAnchorOnly) anchorOnly.push(gap)
+      continue
     }
-    missingDramaticShape.push(gap)
-    if (shape.isAnchorOnly) anchorOnly.push(gap)
+
+    if (!shape.hasChoiceShape && shouldFlagSceneContractCompletenessGap(shape, obligationItems)) {
+      missingChoiceShape.push(sceneContractGap({
+        row,
+        sceneReference,
+        record,
+        shape,
+        obligationItems,
+        label: "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE",
+        missingFields: missingChoiceShapeFields(record),
+      }))
+    }
+
+    if (!shape.hasFullDramaticShape && shouldFlagSceneContractCompletenessGap(shape, obligationItems)) {
+      missingFullDramaticShape.push(sceneContractGap({
+        row,
+        sceneReference,
+        record,
+        shape,
+        obligationItems,
+        label: "SCENE-CONTRACT-FULL-SHAPE-INCOMPLETE",
+        missingFields: missingFullDramaticFields(record),
+      }))
+    }
   }
 
-  return { missingDramaticShape, anchorOnly }
+  return { missingDramaticShape, missingChoiceShape, missingFullDramaticShape, anchorOnly }
 }
 
 function missingDramaticFields(scene: Record<string, unknown>): string[] {
   return DRAMATIC_SCENE_CONTRACT_FIELDS.filter(field => !hasText(scene[field]))
+}
+
+function missingChoiceShapeFields(scene: Record<string, unknown>): string[] {
+  const fields: string[] = []
+  if (!hasText(scene.crisisChoice)) fields.push("crisisChoice")
+  if (stringArray(scene.choiceAlternatives).length < 2) fields.push("choiceAlternatives")
+  return fields
+}
+
+function missingFullDramaticFields(scene: Record<string, unknown>): string[] {
+  return FULL_DRAMATIC_SCENE_CONTRACT_FIELDS.filter(field =>
+    field === "choiceAlternatives"
+      ? stringArray(scene.choiceAlternatives).length < 2
+      : !hasText(scene[field])
+  )
+}
+
+function shouldFlagSceneContractCompletenessGap(
+  shape: ReturnType<typeof summarizeSceneContractShape>,
+  obligationItems: Array<Record<string, unknown>>,
+): boolean {
+  return shape.hasEndpointShape || shape.hasChoiceShape || shape.dramaticFields >= 4 || obligationItems.length > 0
+}
+
+function sceneContractGap(args: {
+  row: { outline: ChapterOutline; scene: unknown }
+  sceneReference: string
+  record: Record<string, unknown>
+  shape: ReturnType<typeof summarizeSceneContractShape>
+  obligationItems: Array<Record<string, unknown>>
+  label: DramaticSceneContractGap["label"]
+  missingFields: string[]
+}): DramaticSceneContractGap {
+  return {
+    label: args.label,
+    severity: args.shape.hasAnchor || args.obligationItems.length > 0 || args.shape.hasEndpointShape ? "medium" : "low",
+    chapterNumber: args.row.outline.chapterNumber,
+    chapterId: args.row.outline.chapterId ?? `chapter:${args.row.outline.chapterNumber}`,
+    sceneRef: args.sceneReference,
+    descriptionExcerpt: truncateForEvidence(String(args.record.description ?? "")),
+    hasTemporalAnchor: hasText(args.record.temporalAnchor),
+    hasPlaceAnchor: hasText(args.record.placeAnchor),
+    hasObligations: args.obligationItems.length > 0,
+    hasChoiceShape: args.shape.hasChoiceShape,
+    hasEndpointShape: args.shape.hasEndpointShape,
+    hasFullDramaticShape: args.shape.hasFullDramaticShape,
+    characterCount: stringArray(args.record.characters).length,
+    obligationIds: idsFromRecords(args.obligationItems, "obligationId"),
+    characterIds: unique([
+      ...stringArray(args.record.requiredCharacterIds),
+      ...stringArray(args.record.affectedCharacterIds),
+      ...idsFromRecords(args.obligationItems, "characterId"),
+    ]),
+    sourceIds: idsFromRecords(args.obligationItems, "sourceId"),
+    threadIds: idsFromRecords(args.obligationItems, "threadId"),
+    promiseIds: idsFromRecords(args.obligationItems, "promiseId"),
+    payoffIds: idsFromRecords(args.obligationItems, "payoffId"),
+    missingFields: args.missingFields,
+  }
+}
+
+function idsFromRecords(records: Array<Record<string, unknown>>, key: string): string[] {
+  return unique(records.map(record => record[key]).filter(hasText) as string[])
 }
 
 function obligationItemsForScene(scene: unknown): Array<Record<string, unknown>> {

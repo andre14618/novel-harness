@@ -692,6 +692,8 @@ function planningContextReport(): PlanningToDraftingContextReport {
       anchorOnlySceneContracts: 0,
       sceneContractShape: {
         missingDramaticShape: [],
+        missingChoiceShape: [],
+        missingFullDramaticShape: [],
         anchorOnly: [],
       },
       scenesWithObligations: 8,

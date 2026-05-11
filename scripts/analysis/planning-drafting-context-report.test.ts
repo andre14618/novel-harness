@@ -80,6 +80,29 @@ describe("planning-drafting-context-report", () => {
           sceneRef: "ch-002-scene-001",
           severity: "low",
         }],
+        missingChoiceShape: [{
+          label: "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE",
+          sceneRef: "ch-001-scene-001-ledger",
+          severity: "medium",
+          missingFields: ["crisisChoice", "choiceAlternatives"],
+          obligationIds: ["obl-ledger"],
+          sourceIds: ["fact-ledger"],
+          threadIds: ["thread-court"],
+        }],
+        missingFullDramaticShape: [{
+          label: "SCENE-CONTRACT-FULL-SHAPE-INCOMPLETE",
+          sceneRef: "ch-001-scene-001-ledger",
+          severity: "medium",
+          missingFields: [
+            "opposition",
+            "turningPoint",
+            "crisisChoice",
+            "choiceAlternatives",
+            "povPersonalStake",
+            "valueIn",
+            "valueOut",
+          ],
+        }],
         anchorOnly: [],
       },
       scenesWithObligations: 1,
@@ -171,7 +194,8 @@ describe("planning-drafting-context-report", () => {
     expect(renderPlanningToDraftingContextReport(report)).toContain("Plan continuity: futureEventAnchors=0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=1, choice=0, endpoint=1, full=0, anchorOnly=0, temporal=1, place=1)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=1, anchorOnly=0, anchors=1)")
-    expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, anchorOnly=0")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, missingChoice=1, missingFull=1, anchorOnly=0")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE")
   })
 
   test("separates anchor-only scene contracts from dramatic scene shape", () => {
@@ -217,6 +241,8 @@ describe("planning-drafting-context-report", () => {
             "valueOut",
           ],
         }],
+        missingChoiceShape: [],
+        missingFullDramaticShape: [],
         anchorOnly: [{
           sceneRef: "scene-1",
         }],
@@ -244,7 +270,7 @@ describe("planning-drafting-context-report", () => {
 
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=0, choice=0, endpoint=0, full=0, anchorOnly=1, temporal=1, place=1)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=0, anchorOnly=1, anchors=1)")
-    expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, anchorOnly=1")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, missingChoice=0, missingFull=0, anchorOnly=1")
     expect(renderPlanningToDraftingContextReport(report)).toContain("ANCHOR-ONLY-SCENE-CONTRACT: scene-1")
   })
 

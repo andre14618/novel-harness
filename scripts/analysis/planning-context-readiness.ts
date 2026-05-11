@@ -12,6 +12,7 @@ import { dirname, resolve } from "node:path"
 import {
   loadPlanningToDraftingContextReport,
   type ChapterSceneLoad,
+  type DramaticSceneContractGap,
   type FutureEventAnchorFinding,
   type PlanningToDraftingContextReport,
   type SceneLoadSignal,
@@ -19,8 +20,11 @@ import {
 
 type Severity = "high" | "medium" | "low" | "info"
 type PlanningContextSourceAgent = "planning-context-readiness"
-type PlanningContextDimension = "sceneLoad" | "futureEventAnchor"
-type PlanningContextFixIntent = "rebalance_scene_load" | "preserve_future_event_anchor"
+type PlanningContextDimension = "sceneLoad" | "futureEventAnchor" | "sceneContract"
+type PlanningContextFixIntent =
+  | "rebalance_scene_load"
+  | "preserve_future_event_anchor"
+  | "complete_scene_contract"
 
 export interface PlanningContextReadinessArgs {
   novelId: string | null
@@ -37,7 +41,12 @@ interface PlanningContextReadinessFinding {
   sourceReport: string
   promptMode: "deterministic-planning-context"
   dimension: PlanningContextDimension
-  label: "SCENE-LOAD-OVERLOADED" | "SCENE-LOAD-DENSE" | "FUTURE-EVENT-ANCHOR-MISSING"
+  label:
+    | "SCENE-LOAD-OVERLOADED"
+    | "SCENE-LOAD-DENSE"
+    | "FUTURE-EVENT-ANCHOR-MISSING"
+    | "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE"
+    | "SCENE-CONTRACT-FULL-SHAPE-INCOMPLETE"
   severity: Severity
   fixIntent: PlanningContextFixIntent
   rationale: string
@@ -74,11 +83,11 @@ interface PlanningContextReadinessGroup {
     rewriteGoals: string[]
     preserveIds: PlanningContextReadinessSourceIds
     proposalCandidate: {
-      action: "scene_select" | "field_replace"
+      action: "scene_select" | "field_replace" | "beat_replace"
       target: {
         kind: "chapter_outline" | "scene_plan"
         ref: string
-        fieldPath: "scenes" | "description" | "temporalAnchor"
+        fieldPath: "scenes" | "description" | "temporalAnchor" | "self"
       }
       requiresProposedValue: true
       proposedValueStatus: "operator_required"
@@ -160,7 +169,14 @@ export function buildPlanningContextReadinessAggregate(input: {
       sourceReport: input.sourceReport ?? `planning-drafting-context:${input.report.novelId ?? "unknown"}`,
       groupIndex: sceneLoadGroups.length + index,
     }))
-  const groups = [...sceneLoadGroups, ...futureEventGroups]
+  const sceneContractGroups = prioritizedSceneContractGaps(input.report)
+    .map((gap, index) => groupForSceneContractGap({
+      report: input.report,
+      gap,
+      sourceReport: input.sourceReport ?? `planning-drafting-context:${input.report.novelId ?? "unknown"}`,
+      groupIndex: sceneLoadGroups.length + futureEventGroups.length + index,
+    }))
+  const groups = [...sceneLoadGroups, ...futureEventGroups, ...sceneContractGroups]
 
   return {
     generatedAt: input.generatedAt ?? new Date().toISOString(),
@@ -192,6 +208,8 @@ export function renderPlanningContextReadinessAggregate(report: PlanningContextR
     lines.push(`Label: ${finding.label}`)
     if (finding.dimension === "futureEventAnchor") {
       lines.push(`Evidence: ${finding.evidence.sourceRef} -> ${finding.evidence.targetSceneRef}`)
+    } else if (finding.dimension === "sceneContract") {
+      lines.push(`Evidence: ${finding.evidence.sceneRef}; missing=${finding.evidence.missingFields}`)
     } else {
       lines.push(`Scene load: ${finding.evidence.sceneCount} scenes, ${finding.evidence.targetWordsPerScene} target words/scene`)
     }
@@ -199,6 +217,8 @@ export function renderPlanningContextReadinessAggregate(report: PlanningContextR
     lines.push("Operator question:")
     if (finding.dimension === "futureEventAnchor") {
       lines.push("- Should this scene contract carry the scheduled temporal anchor, or should the prior schedule be revised?")
+    } else if (finding.dimension === "sceneContract") {
+      lines.push("- Should this scene plan be replaced with a complete dramatic contract before drafting?")
     } else {
       lines.push("- Should this chapter be split, scene-count reduced, or scene purposes combined before drafting?")
     }
@@ -208,6 +228,15 @@ export function renderPlanningContextReadinessAggregate(report: PlanningContextR
     lines.push("")
   }
   return `${lines.join("\n")}\n`
+}
+
+function prioritizedSceneContractGaps(report: PlanningToDraftingContextReport): DramaticSceneContractGap[] {
+  const shape = report.upstream.sceneContractShape
+  const choiceGaps = shape?.missingChoiceShape ?? []
+  const choiceRefs = new Set(choiceGaps.map(gap => gap.sceneRef))
+  const fullOnlyGaps = (shape?.missingFullDramaticShape ?? [])
+    .filter(gap => !choiceRefs.has(gap.sceneRef))
+  return [...choiceGaps, ...fullOnlyGaps]
 }
 
 function shouldIncludeChapter(chapter: ChapterSceneLoad, includeDense: boolean): boolean {
@@ -348,6 +377,96 @@ function groupForFutureEventAnchor(args: {
       },
     },
     excerpt: `${args.finding.sourceText}\n${args.finding.targetTextExcerpt}`,
+  }
+}
+
+function groupForSceneContractGap(args: {
+  report: PlanningToDraftingContextReport
+  gap: DramaticSceneContractGap
+  sourceReport: string
+  groupIndex: number
+}): PlanningContextReadinessGroup {
+  const sourceIds = sourceIdsFromSceneContractGap(args.gap)
+  const readinessFinding: PlanningContextReadinessFinding = {
+    findingId: `${String(args.groupIndex + 1).padStart(3, "0")}.1`,
+    sourceReport: args.sourceReport,
+    promptMode: "deterministic-planning-context",
+    dimension: "sceneContract",
+    label: args.gap.label === "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE"
+      ? "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE"
+      : "SCENE-CONTRACT-FULL-SHAPE-INCOMPLETE",
+    severity: args.gap.severity,
+    fixIntent: "complete_scene_contract",
+    rationale: `Scene ${args.gap.sceneRef} has a partial scene contract: missing ${args.gap.missingFields.join(", ")}.`,
+    missingForNextLevel: sceneContractMissingForNextLevel(args.gap),
+    evidence: {
+      chapterNumber: String(args.gap.chapterNumber),
+      chapterId: args.gap.chapterId,
+      sceneRef: args.gap.sceneRef,
+      descriptionExcerpt: args.gap.descriptionExcerpt,
+      missingFields: args.gap.missingFields.join(","),
+      hasChoiceShape: String(args.gap.hasChoiceShape),
+      hasEndpointShape: String(args.gap.hasEndpointShape),
+      hasFullDramaticShape: String(args.gap.hasFullDramaticShape),
+      obligationIds: args.gap.obligationIds.join(","),
+      sourceIds: args.gap.sourceIds.join(","),
+    },
+  }
+  return {
+    groupId: `${String(args.groupIndex + 1).padStart(3, "0")}`,
+    fixtureId: args.report.novelId ?? "unknown",
+    armId: "planning-context-readiness",
+    methodPackEnabled: false,
+    unitType: "scene",
+    chapterId: args.gap.chapterId,
+    sceneId: args.gap.sceneRef,
+    sourceIds,
+    highestSeverity: readinessFinding.severity,
+    fixIntents: ["complete_scene_contract"],
+    dimensions: ["sceneContract"],
+    findings: [readinessFinding],
+    rewritePacket: {
+      targetSummary: `scene ${args.gap.sceneRef}`,
+      rewriteGoals: [
+        readinessFinding.missingForNextLevel,
+        "Prefer a full scene-plan replacement that preserves the existing sceneId, obligations, source refs, endpoint intent, and character/world pressure.",
+        "Do not add a crisis choice to a true transit/establishment scene unless the scene is meant to carry a dramatic turn.",
+      ],
+      preserveIds: sourceIds,
+      proposalCandidate: {
+        action: "beat_replace",
+        target: {
+          kind: "scene_plan",
+          ref: args.gap.sceneRef,
+          fieldPath: "self",
+        },
+        requiresProposedValue: true,
+        proposedValueStatus: "operator_required",
+        safeToAutoApply: false,
+        sourceAgent: "planning-context-readiness",
+      },
+    },
+    excerpt: `${args.gap.descriptionExcerpt}\nMissing: ${args.gap.missingFields.join(", ")}`,
+  }
+}
+
+function sceneContractMissingForNextLevel(gap: DramaticSceneContractGap): string {
+  if (gap.label === "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE") {
+    return "Add a real crisisChoice with at least two concrete choiceAlternatives, or explicitly simplify the scene so it no longer pretends to carry a dramatic decision."
+  }
+  return "Complete the scene contract with goal, opposition, turningPoint, crisisChoice, two choiceAlternatives, outcome, consequence, povPersonalStake, valueIn, and valueOut where the scene is meant to carry a dramatic turn."
+}
+
+function sourceIdsFromSceneContractGap(gap: DramaticSceneContractGap): PlanningContextReadinessSourceIds {
+  return {
+    obligationIds: gap.obligationIds,
+    characterIds: gap.characterIds,
+    worldFactIds: [],
+    sceneTurnIds: [gap.sceneRef],
+    threadIds: gap.threadIds,
+    promiseIds: gap.promiseIds,
+    payoffIds: gap.payoffIds,
+    sourceIds: gap.sourceIds,
   }
 }
 

@@ -360,6 +360,8 @@ async function main() {
       )
       console.log(
         `  scene-contract gaps: missingDramatic=${p.sceneContractShape.missingDramaticShape.length}, ` +
+          `missingChoice=${p.sceneContractShape.missingChoiceShape.length}, ` +
+          `missingFull=${p.sceneContractShape.missingFullDramaticShape.length}, ` +
           `anchorOnly=${p.sceneContractShape.anchorOnly.length}`,
       )
     }
@@ -487,6 +489,8 @@ export function renderPlannerIsolatedReport(report: PlannerIsolatedRunReport): s
       )
       lines.push(
         `sceneContractGaps: missingDramatic=${p.sceneContractShape.missingDramaticShape.length}; ` +
+          `missingChoice=${p.sceneContractShape.missingChoiceShape.length}; ` +
+          `missingFull=${p.sceneContractShape.missingFullDramaticShape.length}; ` +
           `anchorOnly=${p.sceneContractShape.anchorOnly.length}`,
       )
       lines.push(

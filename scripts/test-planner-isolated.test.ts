@@ -129,7 +129,12 @@ describe("renderPlannerIsolatedReport", () => {
           sceneContractsWithEndpointShape: 2,
           sceneContractsWithFullDramaticShape: 2,
           anchorOnlySceneContracts: 0,
-          sceneContractShape: { missingDramaticShape: [], anchorOnly: [] },
+          sceneContractShape: {
+            missingDramaticShape: [],
+            missingChoiceShape: [],
+            missingFullDramaticShape: [],
+            anchorOnly: [],
+          },
           scenesWithObligations: 2,
           scenesWithImplicitReferences: 0,
           chaptersWithSetting: 1,
