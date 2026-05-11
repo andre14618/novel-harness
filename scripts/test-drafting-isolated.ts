@@ -40,6 +40,8 @@
  *                        scene-budget brief from the same BeatContext slots.
  *                        Scene contract fields are included when present;
  *                        production context surface telemetry is preserved.
+ *   drafting-brief-tight-v1 — compact brief plus scene load-control guard
+ *                        for advisory evidence loops.
  *   drafting-brief-scene-turn-v1 — compact brief plus scene-turn/materiality
  *                        floor for advisory evidence loops.
  *   drafting-brief-anchored-v1 — scene-turn brief plus fact/continuity
@@ -181,6 +183,7 @@ export const WRITER_ARM_NAMES = [
   "contract-render-only",
   "scene-call-no-expansion",
   "drafting-brief-v1",
+  "drafting-brief-tight-v1",
   "drafting-brief-scene-turn-v1",
   "drafting-brief-anchored-v1",
   "scene-call-v1",
@@ -447,7 +450,7 @@ interface ArmFlags {
   writerExpansionMode: "off" | "retry-short-scenes-v1"
   forceRenderSceneContractWhenAvailable: boolean
   writerPromptIdRendering: "raw" | "suppress"
-  writerDraftingBriefMode: "off" | "scene-budget-v1" | "scene-turn-v1" | "scene-turn-anchored-v1"
+  writerDraftingBriefMode: "off" | "scene-budget-v1" | "scene-budget-tight-v1" | "scene-turn-v1" | "scene-turn-anchored-v1"
 }
 
 export function flagsForArm(arm: ArmName): ArmFlags {
@@ -503,6 +506,17 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         forceRenderSceneContractWhenAvailable: false,
         writerPromptIdRendering: "raw",
         writerDraftingBriefMode: "scene-budget-v1",
+      }
+    case "drafting-brief-tight-v1":
+      // Follow-on evidence arm: keep the compact production brief path and
+      // add explicit load control, without changing the scene-call writer,
+      // expansion retry, or production defaults.
+      return {
+        sceneCallWriterV1: false,
+        writerExpansionMode: "off",
+        forceRenderSceneContractWhenAvailable: false,
+        writerPromptIdRendering: "raw",
+        writerDraftingBriefMode: "scene-budget-tight-v1",
       }
     case "drafting-brief-scene-turn-v1":
       // Follow-on evidence arm: keep the compact brief path but add an

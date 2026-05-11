@@ -51,6 +51,7 @@ export interface WriterContextEventSummary {
     charsDelta: number
     sections: {
       sceneContract: boolean
+      sceneLoadControl: boolean
       obligations: boolean
       factContinuityAnchors: boolean
       characterSnapshots: boolean
@@ -366,6 +367,7 @@ function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingB
     charsDelta,
     sections: {
       sceneContract: readBoolean(sections.sceneContract),
+      sceneLoadControl: readBoolean(sections.sceneLoadControl),
       obligations: readBoolean(sections.obligations),
       factContinuityAnchors: readBoolean(sections.factContinuityAnchors),
       characterSnapshots: readBoolean(sections.characterSnapshots),

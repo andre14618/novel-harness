@@ -433,7 +433,7 @@ describe("renderBeatContext + scene contract", () => {
       knowledgeChanges: [],
     }
 
-    for (const writerDraftingBriefMode of ["scene-budget-v1", "scene-turn-v1", "scene-turn-anchored-v1"] as const) {
+    for (const writerDraftingBriefMode of ["scene-budget-v1", "scene-budget-tight-v1", "scene-turn-v1", "scene-turn-anchored-v1"] as const) {
       const ctx = await buildBeatContextSlots({
         novelId: "unit-novel",
         chapterNumber: 2,
@@ -517,6 +517,44 @@ describe("renderBeatContext + scene contract", () => {
     expect(out).toContain("Preserve status polarity exactly")
     expect(out).toContain("already/only/not-yet/missing/withheld/authorized/signed")
     expect(out).toContain("The transfer order is already authorized and signed; only Calla's seal remains missing.")
+  })
+
+  it("renders tight scene load control without dropping required context telemetry", () => {
+    const ctx = baseCtx({
+      beatSpec: {
+        ...baseCtx().beatSpec,
+        obligations: {
+          mustEstablish: [{
+            text: "The warrant is already signed.",
+            obligationId: "obl-warrant-signed",
+            sourceId: "fact-warrant-signed",
+          }],
+          mustPayOff: [],
+          mustTransferKnowledge: [],
+          mustShowStateChange: [],
+          mustNotReveal: [],
+          allowedNewEntities: [],
+        },
+      },
+    })
+    const full = renderBeatContext(ctx, { compact: false })
+    const selected = selectWriterPromptForDraftingBrief({
+      ctx,
+      mode: "scene-budget-tight-v1",
+      fullContextPrompt: full,
+      targetWords: 500,
+      idRendering: "raw",
+    })
+
+    expect(selected.userPrompt).toContain("SCENE LOAD CONTROL:")
+    expect(selected.userPrompt).toContain("Treat about 500 words as the ceiling")
+    expect(selected.userPrompt).toContain("Let one concrete action")
+    expect(selected.userPrompt).toContain("Preserve declared character, world, canon, and reader-state obligations")
+    expect(selected.userPrompt).toContain("Must establish: The warrant is already signed.")
+    expect(selected.draftingBriefTrace.mode).toBe("scene-budget-tight-v1")
+    expect(selected.draftingBriefTrace.sections.sceneLoadControl).toBe(true)
+    expect(selected.draftingBriefTrace.sections.obligations).toBe(true)
+    expect(selected.draftingBriefTrace.counts.obligations).toBe(1)
   })
 })
 

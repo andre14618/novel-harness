@@ -34,13 +34,13 @@ describe("test-drafting-isolated parseArgs", () => {
     expect(args.arms).toEqual(["baseline", "scene-call-v1"])
   })
 
-  test("accepts the eight supported arms in any combination", () => {
+  test("accepts supported arms in any combination", () => {
     const args = parseArgs([
       "--source", "n",
       "--target-prefix", "ab",
-      "--writer-arms", "baseline,id-suppress,contract-render-only,scene-call-no-expansion,drafting-brief-v1,drafting-brief-scene-turn-v1,drafting-brief-anchored-v1,scene-call-v1",
+      "--writer-arms", "baseline,id-suppress,contract-render-only,scene-call-no-expansion,drafting-brief-v1,drafting-brief-tight-v1,drafting-brief-scene-turn-v1,drafting-brief-anchored-v1,scene-call-v1",
     ])
-    expect(args.arms).toEqual(["baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "drafting-brief-v1", "drafting-brief-scene-turn-v1", "drafting-brief-anchored-v1", "scene-call-v1"])
+    expect(args.arms).toEqual(["baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "drafting-brief-v1", "drafting-brief-tight-v1", "drafting-brief-scene-turn-v1", "drafting-brief-anchored-v1", "scene-call-v1"])
   })
 
   test("rejects unknown arm names", () => {
@@ -453,6 +453,15 @@ describe("flagsForArm", () => {
     expect(flags.writerPromptIdRendering).toBe("raw")
   })
 
+  test("drafting-brief-tight-v1 flips only the production drafting brief mode", () => {
+    const flags = flagsForArm("drafting-brief-tight-v1")
+    expect(flags.writerDraftingBriefMode).toBe("scene-budget-tight-v1")
+    expect(flags.sceneCallWriterV1).toBe(false)
+    expect(flags.writerExpansionMode).toBe("off")
+    expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
+    expect(flags.writerPromptIdRendering).toBe("raw")
+  })
+
   test("drafting-brief-scene-turn-v1 flips only the production drafting brief mode", () => {
     const flags = flagsForArm("drafting-brief-scene-turn-v1")
     expect(flags.writerDraftingBriefMode).toBe("scene-turn-v1")
@@ -471,8 +480,8 @@ describe("flagsForArm", () => {
     expect(flags.writerPromptIdRendering).toBe("raw")
   })
 
-  test("WRITER_ARM_NAMES enumerates the eight supported arms in declaration order", () => {
-    expect(WRITER_ARM_NAMES).toEqual(["baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "drafting-brief-v1", "drafting-brief-scene-turn-v1", "drafting-brief-anchored-v1", "scene-call-v1"])
+  test("WRITER_ARM_NAMES enumerates the supported arms in declaration order", () => {
+    expect(WRITER_ARM_NAMES).toEqual(["baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "drafting-brief-v1", "drafting-brief-tight-v1", "drafting-brief-scene-turn-v1", "drafting-brief-anchored-v1", "scene-call-v1"])
   })
 })
 

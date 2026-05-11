@@ -21,10 +21,11 @@ unless the user explicitly requests a disposable branch.
   lows 3/45; ch1 materiality resolved, ch2 Verification stayed MATERIAL-0, and
   new ch1 materiality plus ch2 endpoint lows appeared. Obligation-character
   carry-through cleared materiality but regressed to 4476/2700 = 1.67x and
-  endpoint lows 4/14; endpoint repair then cleared selected LitRPG lows at
-  4640/2700 = 1.72x, scene lows 0/45, prose lows 0/8, persisted scene rows 45.
-  This is production-path quality repair, not a default flip; length/load is
-  the active blocker. Keep broad operational-facts brief out after
+  endpoint lows 4/14; endpoint repair cleared selected LitRPG lows at
+  4640/2700 = 1.72x. A new default-off `drafting-brief-tight-v1` arm plus two
+  source `planning_edit` endpoint repairs reached 3398/2700 = 1.27x with scene
+  lows 0/45 and prose lows 0/8, but compare vs cleared brief was mixed. Replicate
+  before any default flip. Keep broad operational-facts brief out after
   6050/3800 regression without low-row improvement. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
@@ -119,9 +120,8 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: preserve LitRPG scene-quality gains while cutting
-  length/load; no writer-brief default decision until a clean-source cohort
-  holds semantic lows near zero at acceptable target ratios. See L103-L106.
+- Next session start: replicate `drafting-brief-tight-v1` on clean-source cohorts;
+  no default decision until acceptable ratios hold without semantic lows or repeated mean regressions. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.

@@ -3,7 +3,12 @@ import { renderCharacterContextCapsules } from "./character-context"
 import type { WriterPromptIdRendering } from "./context-mode"
 import { summarizeSceneContractShape } from "./scene-contract-shape"
 
-export type WriterDraftingBriefMode = "off" | "scene-budget-v1" | "scene-turn-v1" | "scene-turn-anchored-v1"
+export type WriterDraftingBriefMode =
+  | "off"
+  | "scene-budget-v1"
+  | "scene-budget-tight-v1"
+  | "scene-turn-v1"
+  | "scene-turn-anchored-v1"
 
 export interface WriterDraftingBriefTrace {
   mode: WriterDraftingBriefMode
@@ -14,6 +19,7 @@ export interface WriterDraftingBriefTrace {
   charsRatio: number
   sections: {
     sceneContract: boolean
+    sceneLoadControl: boolean
     obligations: boolean
     transitionBridge: boolean
     landingTarget: boolean
@@ -47,9 +53,7 @@ export function selectWriterPromptForDraftingBrief(input: SelectWriterPromptInpu
   userPrompt: string
   draftingBriefTrace: WriterDraftingBriefTrace
 } {
-  const userPrompt = input.mode === "scene-budget-v1"
-    || input.mode === "scene-turn-v1"
-    || input.mode === "scene-turn-anchored-v1"
+  const userPrompt = input.mode !== "off"
     ? renderWriterDraftingBrief(input.ctx, {
         targetWords: input.targetWords,
         idRendering: input.idRendering,
@@ -79,6 +83,10 @@ export function renderWriterDraftingBrief(
 
   if (opts.mode === "scene-turn-v1" || opts.mode === "scene-turn-anchored-v1") {
     sections.push(renderSceneExecutionFloor(opts.mode))
+  }
+
+  if (opts.mode === "scene-budget-tight-v1") {
+    sections.push(renderSceneLoadControl(opts.targetWords))
   }
 
   if (ctx.sceneContract) sections.push(renderSceneContractBrief(ctx.sceneContract, opts.mode))
@@ -183,6 +191,17 @@ function renderSceneExecutionFloor(mode: WriterDraftingBriefMode | undefined): s
     lines.push("- Preserve declared timing, location, and fact constraints; do not move future events earlier for convenience.")
   }
   return lines.join("\n")
+}
+
+function renderSceneLoadControl(targetWords: number): string {
+  return [
+    "SCENE LOAD CONTROL:",
+    `- Treat about ${targetWords} words as the ceiling for this scene unless a required endpoint or obligation would be lost.`,
+    "- Spend words once: pressure, choice/turn, endpoint action, immediate consequence, and required obligations.",
+    "- Do not add extra setup, travel, recap, aftermath, second conversations, or reflective restatement unless the scene task explicitly requires them.",
+    "- Let one concrete action, refusal, reveal, concession, or changed status carry the endpoint instead of adding a separate summary beat.",
+    "- Preserve declared character, world, canon, and reader-state obligations; compress repetition before cutting required material.",
+  ].join("\n")
 }
 
 function renderSceneContractBrief(scene: SceneContractBlock, mode: WriterDraftingBriefMode | undefined): string {
@@ -378,6 +397,7 @@ function summarizeWriterDraftingBrief(args: {
     charsRatio: fullContextPromptChars > 0 ? selectedPromptChars / fullContextPromptChars : 1,
     sections: {
       sceneContract: Boolean(args.ctx.sceneContract),
+      sceneLoadControl: args.mode === "scene-budget-tight-v1",
       obligations: countObligations(args.ctx.beatSpec.obligations) > 0,
       transitionBridge: Boolean(args.ctx.transitionBridge),
       landingTarget: Boolean(args.ctx.landingTarget),
