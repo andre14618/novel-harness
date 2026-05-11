@@ -286,6 +286,8 @@ export interface SceneSemanticTelemetrySummary {
   skipCount: number
   lowRows: number
   errorRows: number
+  error?: string
+  failureArtifact?: string
   dimensions: Array<{
     dimension: Dimension
     count: number
@@ -302,6 +304,7 @@ const DEFAULT_SCENE_SEMANTIC_DIMENSIONS: Dimension[] = [
   "characterMateriality",
   "worldFactPressure",
 ]
+const DEFAULT_SCENE_SEMANTIC_MAX_TOKENS = 2200
 
 function emptyDraftingBriefTelemetry(): DraftingBriefTelemetrySummary {
   return {
@@ -885,6 +888,15 @@ async function maybeRunSceneSemanticReview(
     writeSceneSemanticArtifacts(report, outputDir)
     return sceneSemanticSummary(report, outputDir)
   } catch (err) {
+    const error = err instanceof Error ? err.message : String(err)
+    const failureArtifact = writeSceneSemanticFailureArtifacts({
+      novelId,
+      targetPrefix,
+      arm,
+      outputDir,
+      error,
+      opts,
+    })
     return {
       outputDir,
       taskCount: 0,
@@ -892,9 +904,73 @@ async function maybeRunSceneSemanticReview(
       lowRows: 0,
       errorRows: 1,
       dimensions: [],
-      recommendation: `scene semantic review failed: ${err instanceof Error ? err.message : String(err)}`,
+      error,
+      failureArtifact,
+      recommendation: `scene semantic review failed: ${error}`,
     }
   }
+}
+
+export function writeSceneSemanticFailureArtifacts(input: {
+  novelId: string
+  targetPrefix: string
+  arm: ArmName
+  outputDir: string
+  error: string
+  opts: Pick<RunArmOptions,
+    "sceneSemanticLive" |
+    "sceneSemanticConcurrency" |
+    "sceneSemanticMaxTokens" |
+    "sceneSemanticDimensions"
+  >
+}): string {
+  mkdirSync(input.outputDir, { recursive: true })
+  const generatedAt = new Date().toISOString()
+  const artifact = {
+    v: "scene-semantic-review-failure-v1",
+    generatedAt,
+    novelId: input.novelId,
+    targetPrefix: input.targetPrefix,
+    arm: input.arm,
+    error: input.error,
+    options: {
+      live: input.opts.sceneSemanticLive,
+      model: "deepseek-v4-flash",
+      thinking: true,
+      promptMode: "evidence-first",
+      maxTokens: input.opts.sceneSemanticMaxTokens,
+      concurrency: input.opts.sceneSemanticConcurrency,
+      dimensions: input.opts.sceneSemanticDimensions,
+    },
+    recommendation: "Treat this as evaluator telemetry; rerun with a narrower dimension set, lower concurrency, or a larger token cap before comparing scene-semantic rows.",
+  }
+  const jsonPath = join(input.outputDir, "scene-semantic-review-failure.json")
+  writeFileSync(jsonPath, `${JSON.stringify(artifact, null, 2)}\n`)
+
+  const lines = [
+    "# Scene-Semantic Replay Failure",
+    "",
+    `Generated: ${generatedAt}`,
+    `Novel: ${input.novelId}`,
+    `Target prefix: ${input.targetPrefix}`,
+    `Arm: ${input.arm}`,
+    `Mode: ${input.opts.sceneSemanticLive ? "live" : "dry"}; model=deepseek-v4-flash; thinking=true; promptMode=evidence-first`,
+    `Max tokens: ${input.opts.sceneSemanticMaxTokens}`,
+    `Concurrency: ${input.opts.sceneSemanticConcurrency}`,
+    `Dimensions: ${input.opts.sceneSemanticDimensions.join(", ")}`,
+    "",
+    "## Error",
+    "",
+    input.error,
+    "",
+    "## Next",
+    "",
+    "- Treat this as evaluator telemetry, not a drafting failure.",
+    "- Rerun with a narrower dimension set, lower concurrency, or a larger token cap before comparing scene-semantic rows.",
+    "",
+  ]
+  writeFileSync(join(input.outputDir, "scene-semantic-review-failure.md"), `${lines.join("\n")}`)
+  return jsonPath
 }
 
 function writeSceneSemanticArtifacts(report: SceneSemanticReplayReport, outputDir: string): void {
@@ -939,7 +1015,7 @@ export function parseArgs(argv: string[]): Args {
   let sceneSemanticReview = false
   let sceneSemanticLive = true
   let sceneSemanticConcurrency = 4
-  let sceneSemanticMaxTokens = 1400
+  let sceneSemanticMaxTokens = DEFAULT_SCENE_SEMANTIC_MAX_TOKENS
   const sceneSemanticDimensions: Dimension[] = []
   let allowDraftedSource = false
   let perArmTimeoutMs: number | null = null

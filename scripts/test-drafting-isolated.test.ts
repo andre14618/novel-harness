@@ -1,4 +1,7 @@
 import { expect, test, describe } from "bun:test"
+import { mkdtempSync, readFileSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import {
   buildDraftingIsolatedRunReport,
   draftingIsolatedDeltas,
@@ -9,6 +12,7 @@ import {
   summarizeDraftingBriefTelemetry,
   sceneSemanticSummary,
   sourceDraftingIsolationIssue,
+  writeSceneSemanticFailureArtifacts,
 } from "./test-drafting-isolated"
 import type { ArmResult, Args } from "./test-drafting-isolated"
 import type { SceneSemanticReplayReport } from "./evals/scene-semantic-review"
@@ -80,6 +84,7 @@ describe("test-drafting-isolated parseArgs", () => {
     const defaults = parseArgs(["--source", "n", "--target-prefix", "ab"])
     expect(defaults.sceneSemanticReview).toBe(false)
     expect(defaults.sceneSemanticLive).toBe(true)
+    expect(defaults.sceneSemanticMaxTokens).toBe(2200)
     expect(defaults.sceneSemanticDimensions).toEqual([
       "endpointLanding",
       "sceneDramaturgy",
@@ -456,6 +461,38 @@ describe("sceneSemanticSummary", () => {
     expect(summary.dimensions.map(d => d.dimension)).toEqual(["endpointLanding", "sceneDramaturgy"])
     expect(summary.recommendation).toContain("inspect low")
   })
+
+  test("writes durable failure artifacts when scene semantic replay fails", () => {
+    const dir = mkdtempSync(join(tmpdir(), "scene-semantic-failure-"))
+    try {
+      const outputDir = join(dir, "run", "drafting-brief-v1")
+      const jsonPath = writeSceneSemanticFailureArtifacts({
+        novelId: "novel-1",
+        targetPrefix: "run",
+        arm: "drafting-brief-v1",
+        outputDir,
+        error: "DeepSeek deepseek-v4-flash hit max token cap",
+        opts: {
+          sceneSemanticLive: true,
+          sceneSemanticConcurrency: 4,
+          sceneSemanticMaxTokens: 2200,
+          sceneSemanticDimensions: ["endpointLanding", "sceneDramaturgy"],
+        },
+      })
+
+      const artifact = JSON.parse(readFileSync(jsonPath, "utf8"))
+      expect(artifact.v).toBe("scene-semantic-review-failure-v1")
+      expect(artifact.error).toContain("max token cap")
+      expect(artifact.options.maxTokens).toBe(2200)
+      expect(artifact.options.dimensions).toEqual(["endpointLanding", "sceneDramaturgy"])
+
+      const markdown = readFileSync(join(outputDir, "scene-semantic-review-failure.md"), "utf8")
+      expect(markdown).toContain("Scene-Semantic Replay Failure")
+      expect(markdown).toContain("DeepSeek deepseek-v4-flash hit max token cap")
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
 })
 
 function resultRow(dimension: "endpointLanding" | "sceneDramaturgy", label: string, ordinal: number): SceneSemanticReplayReport["results"][number] {
@@ -502,7 +539,7 @@ function args(overrides: Partial<Args> = {}): Args {
     sceneSemanticReview: true,
     sceneSemanticLive: true,
     sceneSemanticConcurrency: 4,
-    sceneSemanticMaxTokens: 1400,
+    sceneSemanticMaxTokens: 2200,
     sceneSemanticDimensions: ["endpointLanding", "sceneDramaturgy"],
     allowDraftedSource: false,
     perArmTimeoutMs: null,

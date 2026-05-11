@@ -150,6 +150,7 @@ const DEFAULT_DIMENSIONS: Dimension[] = [
   "worldFactPressure",
   "relationshipDelta",
 ]
+const DEFAULT_MAX_TOKENS = 2200
 
 export function applicabilitySkipReason(dimension: Dimension, counts: {
   worldFactCount: number
@@ -704,7 +705,7 @@ function parseArgs(argv = process.argv.slice(2)): SceneSemanticReviewArgs {
   let readinessImport = true
   let model: ModelId = "deepseek-v4-flash"
   let noThinking = false
-  let maxTokens = 1400
+  let maxTokens = DEFAULT_MAX_TOKENS
   let concurrency = 4
   let promptMode: PromptMode = "evidence-first"
   const dims: string[] = []
