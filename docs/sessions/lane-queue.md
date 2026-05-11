@@ -22,12 +22,12 @@ unless the user explicitly requests a disposable branch.
   new ch1 materiality plus ch2 endpoint lows appeared. Obligation-character
   carry-through cleared materiality but regressed to 4476/2700 = 1.67x and
   endpoint lows 4/14; endpoint repair cleared selected LitRPG lows at
-  4640/2700 = 1.72x. A new default-off `drafting-brief-tight-v1` arm plus two
-  source `planning_edit` endpoint repairs reached 3398/2700 = 1.27x with scene
-  lows 0/45 and prose lows 0/8; Corso replication regressed to 5002/3800 with
-  scene lows 4/34. Treat tight brief as source-sensitive A/B evidence.
-  Keep broad operational-facts brief out after
-  6050/3800 regression without low-row improvement. No default flip. See L106.
+  4640/2700 = 1.72x. A default-off tight arm plus two source `planning_edit`
+  endpoint repairs reached 3398/2700 = 1.27x with scene lows 0/45; Corso
+  replication regressed to 5002/3800 with scene lows 4/34. Fresh post-telemetry
+  P1 rerun was mixed: tight 5526/3800 vs regular 5379/3800, scene lows unchanged
+  2/34, readerChars +717. Treat tight brief as source-sensitive A/B evidence.
+  Keep broad operational-facts brief out after 6050/3800 regression. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-ref/reader-state telemetry and scene-load pressure; run-compare/cohort
