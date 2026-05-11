@@ -16,14 +16,15 @@ unless the user explicitly requests a disposable branch.
   1/33, but LitRPG replication still holds promotion. Planner-generated P1
   repair reached `choice/full=11/11` and `factContradictions=0`; evidence now
   shows a quality/length tradeoff. Clean-source Corso plan repair:
-  4778/3800 = 1.26x, scene lows 0/34, prose lows 0/8, persisted scene rows 34,
-  readiness import 0. LitRPG materiality repair via two approved
+  4778/3800 = 1.26x, scene lows 0/34, prose lows 0/8. LitRPG materiality repair via two approved
   `planning_edit` proposals: 3966/2700 = 1.47x, prose lows 0/8, gaps 0, scene
   lows 3/45; ch1 materiality resolved, ch2 Verification stayed MATERIAL-0, and
   new ch1 materiality plus ch2 endpoint lows appeared. Obligation-character
   carry-through cleared materiality but regressed to 4476/2700 = 1.67x and
-  endpoint lows 4/14; endpoint repair improved to 4254/2700 = 1.58x, lows
-  1/45, prose lows 0/8. Keep broad operational-facts brief out after
+  endpoint lows 4/14; endpoint repair then cleared selected LitRPG lows at
+  4640/2700 = 1.72x, scene lows 0/45, prose lows 0/8, persisted scene rows 45.
+  This is production-path quality repair, not a default flip; length/load is
+  the active blocker. Keep broad operational-facts brief out after
   6050/3800 regression without low-row improvement. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
@@ -118,9 +119,9 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: inspect remaining LitRPG ch2 Theo-argument endpoint low
-  and length/load before any default decision; target endpoint shape without
-  broader context expansion. See L103-L106.
+- Next session start: preserve LitRPG scene-quality gains while cutting
+  length/load; no writer-brief default decision until a clean-source cohort
+  holds semantic lows near zero at acceptable target ratios. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
