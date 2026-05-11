@@ -117,6 +117,7 @@ function renderBriefHeader(
 ): string {
   const spec = ctx.beatSpec
   const showIds = (opts.idRendering ?? "raw") === "raw"
+  const characterNames = briefCharacterNames(ctx)
   const lines = [
     "WRITER DRAFTING BRIEF",
     `Scene: ${spec.beatNumber} of ${spec.totalBeats}`,
@@ -129,10 +130,43 @@ function renderBriefHeader(
   if (showIds && spec.beatId) lines.push(`Beat ID: ${spec.beatId}`)
   lines.push("")
   lines.push(`Task: ${spec.description}`)
-  if (spec.charactersPresent.length > 0) {
-    lines.push(`Characters present: ${spec.charactersPresent.join(", ")}`)
+  if (characterNames.length > 0) {
+    lines.push(`Characters present: ${characterNames.join(", ")}`)
   }
   return lines.join("\n")
+}
+
+function briefCharacterNames(ctx: BeatContext): string[] {
+  return uniqueNames([
+    ...ctx.beatSpec.charactersPresent,
+    ...obligationCharacterNames(ctx.beatSpec.obligations),
+  ])
+}
+
+function obligationCharacterNames(obligations: BeatContext["beatSpec"]["obligations"]): string[] {
+  return [
+    ...obligations.mustEstablish,
+    ...obligations.mustPayOff,
+    ...obligations.mustTransferKnowledge,
+    ...obligations.mustShowStateChange,
+    ...obligations.mustNotReveal,
+  ]
+    .map(item => typeof item.characterName === "string" ? item.characterName.trim() : "")
+    .filter(name => name.length > 0)
+}
+
+function uniqueNames(names: string[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const name of names) {
+    const clean = name.trim()
+    if (!clean) continue
+    const key = clean.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(clean)
+  }
+  return out
 }
 
 function renderSceneExecutionFloor(mode: WriterDraftingBriefMode | undefined): string {
@@ -358,7 +392,7 @@ function summarizeWriterDraftingBrief(args: {
       setting: Boolean(args.ctx.setting),
     },
     counts: {
-      characters: args.ctx.characterSnapshots.length,
+      characters: briefCharacterNames(args.ctx).length,
       obligations: countObligations(args.ctx.beatSpec.obligations),
       sceneContractFields: sceneContractShape?.fieldCount ?? 0,
       sceneContractAnchorFields: sceneContractShape?.anchorFields ?? 0,

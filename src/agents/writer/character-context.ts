@@ -285,7 +285,9 @@ function buildCharacterCard(
 ): WriterCharacterContextCard {
   const { povCharacterId, obligations, characterStates } = args
   const sourceObligations = obligations.filter(obligation =>
-    obligation.characterId === character.id || obligation.sourceId === character.id,
+    obligation.characterId === character.id ||
+    obligation.sourceId === character.id ||
+    sameCharacterName(obligation.characterName, character.name),
   )
   const state = characterStates.find(
     cs => cs.characterId === character.id || cs.characterId?.toLowerCase() === character.name.toLowerCase(),
@@ -341,6 +343,12 @@ function hasActiveStoryRefs(refs: { activeThreadIds: string[]; activePromiseIds:
 
 function cleanString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined
+}
+
+function sameCharacterName(a: unknown, b: unknown): boolean {
+  const left = cleanString(a)
+  const right = cleanString(b)
+  return Boolean(left && right && left.toLowerCase() === right.toLowerCase())
 }
 
 function uniqueStrings(values: string[]): string[] {

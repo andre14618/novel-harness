@@ -134,6 +134,40 @@ test("beat character capsules surface exact IDs, LTWN fields, stakes, and obliga
   })
 })
 
+test("beat character capsules attach obligation IDs by characterName when source IDs drift", () => {
+  const beat = {
+    ...OUTLINE.scenes[0]!,
+    characters: ["Noor"],
+    obligations: {
+      mustEstablish: [],
+      mustPayOff: [],
+      mustTransferKnowledge: [{
+        text: "Cassius witnesses the folio burn.",
+        obligationId: "obl-cassius-witnesses",
+        characterId: "char-cassius-legacy",
+        characterName: "Cassius",
+      } as any],
+      mustShowStateChange: [],
+      mustNotReveal: [],
+      allowedNewEntities: [],
+    },
+  }
+  const capsules = buildBeatCharacterContextCapsules({
+    outline: OUTLINE,
+    beat,
+    beatIndex: 0,
+    characters: CHARACTERS,
+    characterStates: [],
+  })
+
+  expect(capsules).not.toBeNull()
+  expect(capsules?.missingCharacterIds).toContain("char-cassius-legacy")
+  expect(summarizeCharacterContextCapsules(capsules!).sourceObligationIds).toEqual([
+    "obl-cassius-witnesses",
+  ])
+  expect(renderCharacterContextCapsules(capsules!)).toContain("Source obligations: obl-cassius-witnesses")
+})
+
 test("renderCharacterContextCapsules with idRendering='raw' is byte-identical to no option (parity)", () => {
   const capsules = buildBeatCharacterContextCapsules({
     outline: OUTLINE,

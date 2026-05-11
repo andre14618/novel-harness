@@ -328,6 +328,40 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.draftingBriefTrace.counts.choiceAlternatives).toBe(2)
   })
 
+  it("renders obligation-named witnesses in drafting brief characters present", () => {
+    const ctx = baseCtx({
+      beatSpec: {
+        ...baseCtx().beatSpec,
+        charactersPresent: ["Maret", "Arbiter Cassel"],
+        obligations: {
+          mustEstablish: [],
+          mustPayOff: [],
+          mustTransferKnowledge: [{
+            text: "Journeyman Theo witnesses the true Strength stat",
+            characterName: "Journeyman Theo",
+            characterId: "char-theo",
+            sourceId: "know-theo-learns-true-strength",
+            obligationId: "obl-theo-knows",
+          }],
+          mustShowStateChange: [],
+          mustNotReveal: [],
+          allowedNewEntities: [],
+        },
+      },
+    })
+    const full = renderBeatContext(ctx, { compact: false })
+    const selected = selectWriterPromptForDraftingBrief({
+      ctx,
+      mode: "scene-budget-v1",
+      fullContextPrompt: full,
+      targetWords: 500,
+      idRendering: "raw",
+    })
+
+    expect(selected.userPrompt).toContain("Characters present: Maret, Arbiter Cassel, Journeyman Theo")
+    expect(selected.draftingBriefTrace.counts.characters).toBe(3)
+  })
+
   it("renders the scene-turn drafting brief floor without changing the budget mode", () => {
     const ctx = baseCtx({
       sceneContract: {
