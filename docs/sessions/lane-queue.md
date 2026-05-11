@@ -28,7 +28,7 @@ unless the user explicitly requests a disposable branch.
   worldFactPressure lows at 1/9, and still collapsed the dawn Verification onto
   the bridge. Future-event readiness edit improved to 12/45 lows, WFACT 0/9,
   and 1.39x; plan-aware continuity fact replay cleared timing/place issues.
-  First-class anchor cohort worsened to 20/45 lows, WFACT 2/9, and 1.48x despite one observed anchor-only contract; dramatic-contract scene-turn clone improved to 4/45 lows at 1.46x, while compact brief hit 3/45 lows at 1.38x but failed integrity-exhausted. No default flip. See L106.
+  First-class anchor cohort worsened to 20/45 lows, WFACT 2/9, and 1.48x despite one observed anchor-only contract; dramatic-contract scene-turn clone improved to 4/45 lows at 1.46x. Compact brief failed once at 3/45 lows and 1.38x, then passed after duplicate-integrity repair at 3/45 lows, WFACT 0/9, and 1.49x with characterMateriality 2/8 lows. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
@@ -121,7 +121,7 @@ unless the user explicitly requests a disposable branch.
 ## Next
 
 - Next session start: treat dramatic scene contracts as a semantic win but not a default win.
-  Next isolate planner-generated contract method plus compact-brief integrity repair before promotion. See L103-L106.
+  Next isolate planner-generated contract method plus compact-brief replication before promotion. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
