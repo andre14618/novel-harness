@@ -61,7 +61,7 @@ Use deeper docs only when linked by the context pack or needed by code.
   references are historical unless a current decision reopens them. See L90.
 - Evidence-generation flows should collect prose-semantic telemetry by default
   where wired. Scene-semantic replay, planner-quality diagnostics, existing
-  readiness sidecars, and checker blocker reports can import open Plan
+  readiness sidecars, Plan-Assist gate reports, and checker blocker reports can import open Plan
   Readiness items through production commands; semantic telemetry stays
   advisory/fail-open data, not a drafting or promotion gate.
 
@@ -94,7 +94,7 @@ Use deeper docs only when linked by the context pack or needed by code.
   per-scene writer calls before falling back to whole-chapter prose. Use
   `diagnostics:planning-drafting-context` to audit context/canon/story-spine/story-ref/reader-state and unresolved reference-attempt surfaces and
   `diagnostics:drafting-run-compare`/`diagnostics:drafting-run-cohort` to compare
-  clean-source reports with semantic trace IDs/context deltas; `test-drafting-isolated` writes sidecars.
+  clean-source reports with semantic trace IDs/context deltas; `test-drafting-isolated` writes context and Plan-Assist sidecars.
 - Production drafting defaults to exact-ID character context capsules
   (`thread-character-context-v1`). See L094.
 - Native chapter contracts and story-turn planning are the production planning

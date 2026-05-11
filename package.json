@@ -72,6 +72,7 @@
     "diagnostics:plan-readiness-import": "bun scripts/analysis/plan-readiness-import.ts",
     "diagnostics:planning-edit-replay": "bun scripts/analysis/planning-edit-replay.ts",
     "diagnostics:checker-readiness": "bun scripts/analysis/checker-readiness-report.ts",
+    "diagnostics:plan-assist-readiness": "bun scripts/analysis/plan-assist-readiness-report.ts",
     "diagnostics:continuity-grayzone-extract": "bun scripts/analysis/continuity-grayzone-extract.ts",
     "diagnostics:continuity-grayzone-aggregate": "bun scripts/analysis/continuity-grayzone-aggregate.ts",
     "diagnostics:fact-roles": "bun scripts/analysis/fact-role-report.ts",

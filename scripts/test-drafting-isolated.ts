@@ -124,6 +124,12 @@ import {
   type PlanningContextReadinessAggregate,
 } from "./analysis/planning-context-readiness"
 import {
+  buildPlanAssistReadinessAggregate,
+  loadPlanAssistReadinessInputs,
+  renderPlanAssistReadinessAggregate,
+  type PlanAssistReadinessAggregate,
+} from "./analysis/plan-assist-readiness-report"
+import {
   buildPlannerQualityReadinessAggregate,
   buildPlannerQualityReport,
   renderPlannerQualityReport,
@@ -219,6 +225,7 @@ export interface ArmResult {
     recommendation: string
   }
   sceneSemantic?: SceneSemanticTelemetrySummary
+  planAssistReadiness?: PlanAssistReadinessTelemetrySummary
   error?: string
 }
 
@@ -262,6 +269,7 @@ export interface DraftingIsolatedRunReport {
     meanRatioByArm: Record<string, number>
     planningContextGapsByArm: Record<string, number | null>
     planningContextReadinessByArm: Record<string, number | null>
+    planAssistReadinessByArm: Record<string, number | null>
     proseSemanticLowRowsByArm: Record<string, number | null>
     sceneSemanticLowRowsByArm: Record<string, number | null>
   }
@@ -372,6 +380,12 @@ export interface PlannerQualityTelemetrySummary {
   obligationErrorChapters: number
   overloadedObligationChapters: number
   readiness: PlanningContextReadinessTelemetrySummary
+  error?: string
+}
+
+export interface PlanAssistReadinessTelemetrySummary extends PlanningContextReadinessTelemetrySummary {
+  exhaustionRows: number
+  pendingRows: number
   error?: string
 }
 
@@ -765,10 +779,12 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
   try {
     await runCloneSubprocess(source, novelId)
   } catch (err) {
+    const planAssistReadiness = await maybeRunPlanAssistReadinessAudit(arm, novelId, targetPrefix)
     return {
       arm, novelId, chapters: [], totalWords: 0, totalTarget: 0, meanRatio: 0,
       draftingBrief: emptyDraftingBriefTelemetry(),
       planningContext: await maybeRunPlanningContextAudit(arm, novelId, targetPrefix),
+      planAssistReadiness,
       expansionEvents: 0, error: `clone failed: ${err instanceof Error ? err.message : err}`,
     }
   }
@@ -790,11 +806,13 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
       // partial output is captured.
       const collected = await collectArmResult(arm, novelId)
       const planningContext = await maybeRunPlanningContextAudit(arm, novelId, targetPrefix)
+      const planAssistReadiness = await maybeRunPlanAssistReadinessAudit(arm, novelId, targetPrefix)
       const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts)
       const sceneSemantic = await maybeRunSceneSemanticReview(arm, novelId, targetPrefix, opts)
       return {
         arm, novelId, ...collected,
         planningContext,
+        planAssistReadiness,
         ...(proseSemantic ? { proseSemantic } : {}),
         ...(sceneSemantic ? { sceneSemantic } : {}),
         error: `drafting did not complete: ${result.kind}`,
@@ -850,6 +868,15 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
       },
       error: `planning context audit failed: ${err instanceof Error ? err.message : String(err)}`,
     }))
+    const planAssistReadiness = await maybeRunPlanAssistReadinessAudit(arm, novelId, targetPrefix).catch(paErr => ({
+      outputDir: `output/plan-assist-readiness/${targetPrefix}/${arm}`,
+      groupCount: 0,
+      findingCount: 0,
+      labels: {},
+      exhaustionRows: 0,
+      pendingRows: 0,
+      error: `plan-assist readiness audit failed: ${paErr instanceof Error ? paErr.message : String(paErr)}`,
+    }))
     const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts).catch(proseErr => ({
       outputDir: "",
       resultCount: 0,
@@ -862,6 +889,7 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
     return {
       arm, novelId, ...collected,
       planningContext,
+      planAssistReadiness,
       ...(proseSemantic ? { proseSemantic } : {}),
       ...(sceneSemantic ? { sceneSemantic } : {}),
       error: err instanceof Error ? err.message : String(err),
@@ -870,6 +898,7 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
 
   const collected = await collectArmResult(arm, novelId)
   const planningContext = await maybeRunPlanningContextAudit(arm, novelId, targetPrefix)
+  const planAssistReadiness = await maybeRunPlanAssistReadinessAudit(arm, novelId, targetPrefix)
   const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts)
   const sceneSemantic = await maybeRunSceneSemanticReview(arm, novelId, targetPrefix, opts)
   return {
@@ -877,6 +906,7 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
     novelId,
     ...collected,
     planningContext,
+    planAssistReadiness,
     ...(proseSemantic ? { proseSemantic } : {}),
     ...(sceneSemantic ? { sceneSemantic } : {}),
   }
@@ -1166,6 +1196,64 @@ function planningContextReadinessSummary(
     groupCount: aggregate.groupCount,
     findingCount: aggregate.findingCount,
     labels: Object.fromEntries(labels.entries()),
+  }
+}
+
+async function maybeRunPlanAssistReadinessAudit(
+  arm: ArmName,
+  novelId: string,
+  targetPrefix: string,
+): Promise<PlanAssistReadinessTelemetrySummary> {
+  const outputDir = `output/plan-assist-readiness/${targetPrefix}/${arm}`
+  console.log(`  plan-assist readiness audit ...`)
+  try {
+    const inputs = await loadPlanAssistReadinessInputs(novelId)
+    const aggregate = buildPlanAssistReadinessAggregate({
+      novelId,
+      exhaustions: inputs.exhaustions,
+      chapterTargets: inputs.chapterTargets,
+    })
+    return writePlanAssistReadinessArtifacts(aggregate, outputDir)
+  } catch (err) {
+    return {
+      outputDir,
+      groupCount: 0,
+      findingCount: 0,
+      labels: {},
+      exhaustionRows: 0,
+      pendingRows: 0,
+      error: `plan-assist readiness audit failed: ${err instanceof Error ? err.message : String(err)}`,
+    }
+  }
+}
+
+export function writePlanAssistReadinessArtifacts(
+  aggregate: PlanAssistReadinessAggregate,
+  outputDir: string,
+): PlanAssistReadinessTelemetrySummary {
+  mkdirSync(outputDir, { recursive: true })
+  writeFileSync(join(outputDir, "plan-assist-readiness.json"), `${JSON.stringify(aggregate, null, 2)}\n`)
+  writeFileSync(join(outputDir, "plan-assist-readiness.md"), renderPlanAssistReadinessAggregate(aggregate))
+  return planAssistReadinessSummary(aggregate, outputDir)
+}
+
+function planAssistReadinessSummary(
+  aggregate: PlanAssistReadinessAggregate,
+  outputDir: string,
+): PlanAssistReadinessTelemetrySummary {
+  const labels = new Map<string, number>()
+  for (const group of aggregate.groups) {
+    for (const finding of group.findings) {
+      labels.set(finding.label, (labels.get(finding.label) ?? 0) + 1)
+    }
+  }
+  return {
+    outputDir,
+    groupCount: aggregate.groupCount,
+    findingCount: aggregate.findingCount,
+    labels: Object.fromEntries([...labels.entries()].sort(([a], [b]) => a.localeCompare(b))),
+    exhaustionRows: aggregate.exhaustionRows,
+    pendingRows: aggregate.pendingRows,
   }
 }
 
@@ -1624,6 +1712,12 @@ async function main() {
         console.log(`    error: ${r.planningContext.error}`)
       }
     }
+    if (r.planAssistReadiness) {
+      console.log(`  plan-assist readiness: rows=${r.planAssistReadiness.exhaustionRows}, pending=${r.planAssistReadiness.pendingRows}, groups=${r.planAssistReadiness.groupCount}, findings=${r.planAssistReadiness.findingCount}, report=${r.planAssistReadiness.outputDir}`)
+      if (r.planAssistReadiness.error) {
+        console.log(`    error: ${r.planAssistReadiness.error}`)
+      }
+    }
     if (r.proseSemantic) {
       console.log(`  prose semantic: rows=${r.proseSemantic.resultCount}, lows=${r.proseSemantic.lowRows}, errors=${r.proseSemantic.errorRows}`)
       console.log(`    guidance: lengthSignal=${r.proseSemantic.lengthSignal}, qualityRisk=${r.proseSemantic.qualityRisk}`)
@@ -1740,6 +1834,7 @@ export function buildDraftingIsolatedRunReport(input: {
       meanRatioByArm: Object.fromEntries(results.map(result => [result.arm, result.meanRatio])),
       planningContextGapsByArm: Object.fromEntries(results.map(result => [result.arm, result.planningContext?.gapCount ?? null])),
       planningContextReadinessByArm: Object.fromEntries(results.map(result => [result.arm, result.planningContext?.readiness?.findingCount ?? null])),
+      planAssistReadinessByArm: Object.fromEntries(results.map(result => [result.arm, result.planAssistReadiness?.findingCount ?? null])),
       proseSemanticLowRowsByArm: Object.fromEntries(results.map(result => [result.arm, result.proseSemantic?.lowRows ?? null])),
       sceneSemanticLowRowsByArm: Object.fromEntries(results.map(result => [result.arm, result.sceneSemantic?.lowRows ?? null])),
     },
@@ -1882,6 +1977,13 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
       if (result.planningContext.gaps.length > 0) {
         lines.push(`  planningContextGaps ${result.planningContext.gaps.map(gap => `${gap.surface}:${gap.status}`).join(", ")}`)
       }
+    }
+    if (result.planAssistReadiness) {
+      lines.push(
+        `  planAssistReadiness rows=${result.planAssistReadiness.exhaustionRows} pending=${result.planAssistReadiness.pendingRows} ` +
+          `groups=${result.planAssistReadiness.groupCount} findings=${result.planAssistReadiness.findingCount} report=${result.planAssistReadiness.outputDir}` +
+          (result.planAssistReadiness.error ? ` error=${result.planAssistReadiness.error}` : ""),
+      )
     }
     if (result.sceneSemantic) {
       lines.push(`  sceneSemantic tasks=${result.sceneSemantic.taskCount} lows=${result.sceneSemantic.lowRows} errors=${result.sceneSemantic.errorRows} report=${result.sceneSemantic.outputDir || "(not written)"}`)

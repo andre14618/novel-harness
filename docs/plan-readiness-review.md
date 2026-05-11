@@ -235,6 +235,20 @@ unless polarity is explicitly positive. `--include-warnings` additionally
 imports standard warning-severity findings. These imports are advisory review
 items only; they do not create proposals or mutate plans.
 
+Pending Plan-Assist gates can be converted into the same manual readiness queue:
+
+```bash
+bun run diagnostics:plan-assist-readiness -- \
+  --novel <novelId> \
+  --output output/plan-assist-readiness/<novelId>.md \
+  --json output/plan-assist-readiness/<novelId>.json \
+  --import-readiness
+```
+
+`plan-assist-readiness` targets the blocked beat or scene when those ids are
+available, falls back to the chapter outline otherwise, and keeps the gate
+advisory until an operator creates a planning proposal or records a disposition.
+
 Production readiness items can be acted on with an explicit operator plan:
 
 ```bash

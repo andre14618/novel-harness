@@ -41,6 +41,7 @@ export interface ExhaustionRow {
 export interface ExhaustionDeviation {
   description: string
   beat_index: number | null
+  sceneId?: string
   beatId?: string
   metadata?: Record<string, unknown>
 }
