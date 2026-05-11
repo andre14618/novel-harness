@@ -118,14 +118,14 @@ writer-brief telemetry, scene-semantic replay, Plan Readiness import/apply,
 source hygiene, and planning-edit replay. P1 cohort `p1-arm-cohort-1778464932`
 made `drafting-brief-v1` the strongest current arm: 3731/3000 = 1.24x,
 prose-semantic 0/8 lows, context gaps 0, scene-semantic lows 1/33 with
-character/world lows 0; baseline was 7703/3000 = 2.57x with endpoint lows 3/10,
-and `scene-call-v1` was 7142/3000 = 2.38x with one worldFactPressure low.
-Replication on higher-scene-count LitRPG source `litrpg-brief-cohort-1778467196`
-is a hold signal: baseline exhausted ch1 at 5182/1200 with 11/34 semantic lows;
-`drafting-brief-v1` reached ch2 but exhausted at 3910/2700 with 30/68 semantic
-lows, especially sceneDramaturgy and characterMateriality. Do not flip defaults
-from P1 alone; next hypothesis is a brief/plan floor for scene turn, temporal
-anchoring, and character materiality under high scene counts. See L103-L106.
+character/world lows 0. LitRPG replication first held promotion; after reviewed
+`scene_select` edits reduced source chapters from 10/13 scenes to 6/8 scenes,
+`litrpg-scene-select-cohort-1778472482` showed the split clearly:
+`drafting-brief-v1` controlled length at 3473/2700 = 1.29x with no prose lows or
+context gaps, but regressed scene-semantic lows to 23/45 versus baseline 11/45,
+especially sceneDramaturgy and characterMateriality. Do not flip defaults; next
+hypothesis is a brief/plan floor that preserves materiality and scene turn while
+staying compact. See L103-L106.
 
 ## Authoring Gates
 

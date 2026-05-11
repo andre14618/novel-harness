@@ -11,29 +11,29 @@ unless the user explicitly requests a disposable branch.
   another long-lived POC runner, prompt branch, mapper, checker, or review
   format when the same question can be tested through the production path. New
   scene-first novella POC runs require an explicit disposable-POC flag.
-- **Production writer-brief evidence (2026-05-11).** `planning_edit` replay
-  projected 11 approved readiness edits onto clean source `p1-clean-replay-1778457296`;
-  source hygiene stayed clean. P1 cohort `p1-arm-cohort-1778464932` found
-  `drafting-brief-v1` strongest: 3731/3000 = 1.24x, prose lows 0/8, context gaps
+- **Production writer-brief evidence (2026-05-11).** P1 cohort
+  `p1-arm-cohort-1778464932` found `drafting-brief-v1` strongest:
+  3731/3000 = 1.24x, prose lows 0/8, context gaps
   0, scene lows 1/33 with character/world lows 0; baseline was 7703/3000 = 2.57x
   with endpoint lows 3/10, and `scene-call-v1` was 7142/3000 = 2.38x with one
   worldFactPressure low. Higher-scene-count LitRPG cohort
   `litrpg-brief-cohort-1778467196` is a hold signal: baseline exhausted ch1 at
   5182/1200 with semantic lows 11/34; `drafting-brief-v1` reached ch2 but
-  exhausted at 3910/2700 with semantic lows 30/68. Its comparison is
-  `incomplete` because baseline has no ch2 rows. Do not flip defaults from P1
-  alone; next target is a brief/plan floor for scene turn, temporal anchoring,
-  and character materiality under high scene counts. See L106.
+  exhausted at 3910/2700 with semantic lows 30/68. Reviewed `scene_select`
+  edits reduced a clone to 6/8 scenes and removed overloaded readiness; cohort
+  `litrpg-scene-select-cohort-1778472482` found `drafting-brief-v1` length
+  controlled at 3473/2700 = 1.29x with prose lows 0/8 and gaps 0, but scene
+  lows regressed to 23/45 versus baseline 11/45. No default flip; next:
+  compact-brief materiality and scene-turn preservation. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
   writes it per arm. `diagnostics:planning-context-readiness` converts
   overloaded scene-load pressure into manual Plan Readiness items using
-  `scene_select` proposal scaffolds with current scene summaries; clean LitRPG
-  source `novel-1777777292668` now has two high `sceneLoad` items for
-  `ch-001-weight-lie`/`ch-002-unmasking`. Clean P1 covered character, world,
-  story, reader-info, scene-contract, obligation, and drafting-brief surfaces;
-  keep gaps diagnostic unless downstream context is missing for a needed ref.
+  `scene_select` proposal scaffolds with canonical scene summaries; clean
+  LitRPG source `novel-1777777292668` has two high `sceneLoad` items, and the
+  edited clone proved proposal/apply approval with lineage. Keep context gaps
+  diagnostic unless downstream context is missing for a needed ref.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
