@@ -28,12 +28,12 @@ unless the user explicitly requests a disposable branch.
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
   writes it per arm. `diagnostics:planning-context-readiness` converts
-  overloaded scene-load pressure into manual Plan Readiness items; LitRPG
-  brief arm import opened two high `sceneLoad` items for
-  `ch-001-weight-lie`/`ch-002-unmasking` plus a review scaffold, but next
-  evidence should use a clean source. Clean P1 covered character, world, story,
-  reader-info, scene-contract, obligation, and drafting-brief surfaces; keep
-  gaps diagnostic unless a run shows missing downstream context for a needed ref.
+  overloaded scene-load pressure into manual Plan Readiness items using
+  `beat_reorder` proposal scaffolds with current scene summaries; clean LitRPG
+  source `novel-1777777292668` now has two high `sceneLoad` items for
+  `ch-001-weight-lie`/`ch-002-unmasking`. Clean P1 covered character, world,
+  story, reader-info, scene-contract, obligation, and drafting-brief surfaces;
+  keep gaps diagnostic unless downstream context is missing for a needed ref.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
