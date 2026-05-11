@@ -608,6 +608,9 @@ describe("planning-drafting-context-report", () => {
         path: "beat",
         stage: "initial",
         writerContextMode: "thread-character-context-v1",
+        characterContext: {
+          missingCharacterIds: ["char-prior-riot"],
+        },
         contextSurface: {
           surfaces: {
             implicitReferences: true,
@@ -617,6 +620,7 @@ describe("planning-drafting-context-report", () => {
             implicitReferenceMarkers: 1,
             referenceLookups: 3,
             referenceLlmCalls: 1,
+            missingCharacterIds: 1,
           },
         },
         draftingBrief: null,
@@ -641,12 +645,14 @@ describe("planning-drafting-context-report", () => {
       canonSourceRefs: 0,
       storyRefIds: 0,
       readerInfoStateChars: 0,
-      missingCharacterIds: 0,
+      missingCharacterIds: 1,
+      missingCharacterIdValues: ["char-prior-riot"],
     }])
     expect(report.gaps.map(row => row.surface)).not.toContain("resolvedReferences")
     expect(renderPlanningToDraftingContextReport(report)).toContain("attempted_no_context")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Reference context attempts: scenes=1, events=1")
     expect(renderPlanningToDraftingContextReport(report)).toContain("REF-ATTEMPT: events=#1 ch1 beat1 stages=initial; scene=ch-001-scene-002; lookups=3; llm=1")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("missingChars=1 (char-prior-riot)")
   })
 })
 

@@ -209,6 +209,7 @@ export interface ReferenceContextAttemptSummary {
   storyRefIds: number
   readerInfoStateChars: number
   missingCharacterIds: number
+  missingCharacterIdValues: string[]
 }
 
 interface Args {
@@ -492,6 +493,7 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
     const eventCount = referenceContextAttempts.reduce((sum, attempt) => sum + attempt.eventCount, 0)
     lines.push(`Reference context attempts: scenes=${referenceContextAttempts.length}, events=${eventCount}`)
     for (const attempt of referenceContextAttempts.slice(0, 8)) {
+      const missingCharacterIdValues = missingCharacterIdValuesForAttempt(attempt)
       lines.push(
         `- REF-ATTEMPT: events=${attempt.eventIds.map(id => `#${id}`).join(",")} ` +
           `ch${attempt.chapter ?? "?"}` +
@@ -499,6 +501,7 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
           `scene=${attempt.sceneRef ?? "unknown"}; lookups=${attempt.referenceLookups}; llm=${attempt.referenceLlmCalls}; ` +
           `canonRefs=${attempt.canonSourceRefs}; storyRefs=${attempt.storyRefIds}; ` +
           `readerChars=${attempt.readerInfoStateChars}; missingChars=${attempt.missingCharacterIds}` +
+          `${missingCharacterIdValues.length > 0 ? ` (${missingCharacterIdValues.join(",")})` : ""}` +
           `${attempt.descriptionExcerpt ? `; "${attempt.descriptionExcerpt}"` : ""}`,
       )
     }
@@ -622,6 +625,7 @@ function summarizeReferenceContextAttempts(
         storyRefIds: event.storyRefIds,
         readerInfoStateChars: event.readerInfoStateChars,
         missingCharacterIds: event.missingCharacterIds,
+        missingCharacterIdValues: event.missingCharacterIdValues,
       }
     })
   const grouped = new Map<string, ReferenceContextAttemptSummary>()
@@ -647,6 +651,7 @@ function summarizeReferenceContextAttempts(
         storyRefIds: attempt.storyRefIds,
         readerInfoStateChars: attempt.readerInfoStateChars,
         missingCharacterIds: attempt.missingCharacterIds,
+        missingCharacterIdValues: missingCharacterIdValuesForAttempt(attempt),
       })
       continue
     }
@@ -659,8 +664,18 @@ function summarizeReferenceContextAttempts(
     existing.storyRefIds = Math.max(existing.storyRefIds, attempt.storyRefIds)
     existing.readerInfoStateChars = Math.max(existing.readerInfoStateChars, attempt.readerInfoStateChars)
     existing.missingCharacterIds = Math.max(existing.missingCharacterIds, attempt.missingCharacterIds)
+    existing.missingCharacterIdValues = unique([
+      ...existing.missingCharacterIdValues,
+      ...missingCharacterIdValuesForAttempt(attempt),
+    ]).sort()
   }
   return [...grouped.values()]
+}
+
+function missingCharacterIdValuesForAttempt(attempt: ReferenceContextAttemptSummary): string[] {
+  return Array.isArray(attempt.missingCharacterIdValues)
+    ? unique(attempt.missingCharacterIdValues.filter(value => typeof value === "string" && value.trim().length > 0)).sort()
+    : []
 }
 
 function auditSurface(args: {

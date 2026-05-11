@@ -428,6 +428,7 @@ describe("planning-context-readiness", () => {
       storyRefIds: 2,
       readerInfoStateChars: 552,
       missingCharacterIds: 1,
+      missingCharacterIdValues: ["char-halric"],
     }]
 
     const aggregate = buildPlanningContextReadinessAggregate({
@@ -456,6 +457,7 @@ describe("planning-context-readiness", () => {
         eventIds: "101,102",
         referenceLookups: "6",
         sceneRef: "scene-25",
+        missingCharacterIdValues: "char-halric",
       },
     })
     expect(group.rewritePacket.proposalCandidate).toMatchObject({
@@ -599,6 +601,7 @@ function report(overrides: Partial<PlanningToDraftingContextReport["upstream"]> 
       withFactContinuityAnchors: 0,
       canonSourceRefs: 0,
       missingCharacterIds: 0,
+      missingCharacterIdCounts: {},
       withDraftingBriefTrace: 0,
     },
     surfaces: [],

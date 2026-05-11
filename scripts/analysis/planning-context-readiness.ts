@@ -584,6 +584,9 @@ function groupForReferenceContextAttempt(args: {
   const sourceIds = emptySourceIds()
   sourceIds.sceneTurnIds = [sceneRef]
   const eventIds = args.attempt.eventIds.map(String)
+  const missingCharacterIdValues = Array.isArray(args.attempt.missingCharacterIdValues)
+    ? args.attempt.missingCharacterIdValues.filter(value => typeof value === "string" && value.trim().length > 0).join(",")
+    : ""
   const readinessFinding: PlanningContextReadinessFinding = {
     findingId: `${String(args.groupIndex + 1).padStart(3, "0")}.1`,
     sourceReport: args.sourceReport,
@@ -607,6 +610,7 @@ function groupForReferenceContextAttempt(args: {
       storyRefIds: String(args.attempt.storyRefIds),
       readerInfoStateChars: String(args.attempt.readerInfoStateChars),
       missingCharacterIds: String(args.attempt.missingCharacterIds),
+      missingCharacterIdValues,
       descriptionExcerpt: args.attempt.descriptionExcerpt ?? "",
     },
   }

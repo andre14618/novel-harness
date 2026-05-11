@@ -145,7 +145,9 @@ describe("writer-context-report", () => {
       avgFullContextPromptChars: 1000,
       totalDraftingBriefCharsDelta: -500,
       missingCharacterIds: 1,
+      missingCharacterIdCounts: { "char-missing": 1 },
     })
+    expect(report.events[0]?.missingCharacterIdValues).toEqual(["char-missing"])
     expect(report.byPath).toEqual({ beat: 1, chapter: 1, unknown: 1 })
     expect(report.byStage).toEqual({ initial: 1, chapter: 1, unknown: 1 })
     expect(report.byWriterContextMode).toEqual({
@@ -166,9 +168,11 @@ describe("writer-context-report", () => {
     expect(rendered).toContain("implicitRefs=1/3")
     expect(rendered).toContain("readerInfo=1/3 (chars=32)")
     expect(rendered).toContain("refLookups=2, refLlm=1")
+    expect(rendered).toContain("missingCharacterIds=1 (char-missing=1)")
     expect(rendered).toContain("avgChars=500/1000")
     expect(rendered).toContain("avgRatio=0.500")
     expect(rendered).toContain("#1 ch1 beat1 beat/initial: surfaces=char,scene,canon,obligations")
+    expect(rendered).toContain("missingCharacterIds=char-missing")
     expect(rendered).toContain("brief=scene-budget-v1 500/1000 (0.500)")
   })
 

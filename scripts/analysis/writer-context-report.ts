@@ -87,6 +87,7 @@ export interface WriterContextEventSummary {
   referenceLookups: number
   referenceLlmCalls: number
   missingCharacterIds: number
+  missingCharacterIdValues: string[]
 }
 
 export interface WriterContextTelemetryReport {
@@ -132,6 +133,7 @@ export interface WriterContextTelemetryReport {
     avgFullContextPromptChars: number | null
     totalDraftingBriefCharsDelta: number
     missingCharacterIds: number
+    missingCharacterIdCounts: Record<string, number>
   }
   byPath: Record<string, number>
   byStage: Record<string, number>
@@ -201,6 +203,7 @@ export function buildWriterContextTelemetryReport(
       avgFullContextPromptChars: average(enabledDraftingBriefEvents.map(event => event.fullContextPromptChars)),
       totalDraftingBriefCharsDelta: enabledDraftingBriefEvents.reduce((sum, event) => sum + event.charsDelta, 0),
       missingCharacterIds: events.reduce((sum, event) => sum + event.missingCharacterIds, 0),
+      missingCharacterIdCounts: countBy(events.flatMap(event => event.missingCharacterIdValues), value => value),
     },
     byPath: countBy(events, event => event.path),
     byStage: countBy(events, event => event.stage),
@@ -234,7 +237,8 @@ export function renderWriterContextTelemetryReport(report: WriterContextTelemetr
       `(chars=${report.totals.readerInfoStateChars}), ` +
       `refs=${formatCoverage(report.totals.withResolvedReferences, report.totals.events)}, ` +
       `refLookups=${report.totals.referenceLookups}, refLlm=${report.totals.referenceLlmCalls}, ` +
-      `missingCharacterIds=${report.totals.missingCharacterIds}`,
+      `missingCharacterIds=${report.totals.missingCharacterIds}` +
+      `${Object.keys(report.totals.missingCharacterIdCounts).length > 0 ? ` (${formatRecord(report.totals.missingCharacterIdCounts)})` : ""}`,
   )
   lines.push(
     `Drafting brief: traced=${formatCoverage(report.totals.withDraftingBriefTrace, report.totals.events)}, ` +
@@ -272,6 +276,9 @@ export function renderWriterContextTelemetryReport(report: WriterContextTelemetr
         `${event.beatIndex == null ? "" : ` beat${event.beatIndex + 1}`} ` +
         `${event.path}/${event.stage}: surfaces=${surfaces}; target=${event.targetWords ?? "?"}; brief=${brief}`,
     )
+    if (event.missingCharacterIdValues.length > 0) {
+      lines.push(`  missingCharacterIds=${event.missingCharacterIdValues.join(",")}`)
+    }
   }
 
   return lines.join("\n")
@@ -357,6 +364,7 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
     || sceneContractFields > 0
   const referenceLookups = readFiniteNumber(counts.referenceLookups) ?? 0
   const referenceLlmCalls = readFiniteNumber(counts.referenceLlmCalls) ?? 0
+  const missingCharacterIdValues = cleanStringArray(characterContext.missingCharacterIds)
 
   return {
     id: Number(row.id),
@@ -395,7 +403,8 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
     readerInfoStateChars,
     referenceLookups,
     referenceLlmCalls,
-    missingCharacterIds: readFiniteNumber(counts.missingCharacterIds) ?? readArray(characterContext.missingCharacterIds).length,
+    missingCharacterIds: readFiniteNumber(counts.missingCharacterIds) ?? missingCharacterIdValues.length,
+    missingCharacterIdValues,
   }
 }
 
@@ -500,6 +509,14 @@ function positiveNumber(value: unknown): boolean {
 
 function readArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
+}
+
+function cleanStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return [...new Set(value
+    .map(item => typeof item === "string" ? item.trim() : "")
+    .filter(item => item.length > 0 && item !== "null" && item !== "undefined"))]
+    .sort()
 }
 
 function formatCoverage(count: number, total: number): string {
