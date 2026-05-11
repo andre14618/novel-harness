@@ -27,6 +27,12 @@ unless the user explicitly requests a disposable branch.
   reverted by another proposal. `allow-entities` did not reproduce; replay it
   only when that blocker appears again. Loop4 stays contaminated evidence. See
   L106.
+- **Planning-to-drafting context audit started (2026-05-11).**
+  `diagnostics:planning-drafting-context` now compares upstream artifact
+  availability with writer-context telemetry. On clean P1 rerun, character,
+  world, story, reader-info, scene-contract, obligation, and drafting-brief
+  surfaces were covered; only implicit-reference resolution reported a gap
+  (2 marker scenes, 0 rendered resolved-reference contexts).
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -115,6 +121,10 @@ unless the user explicitly requests a disposable branch.
   next production workflow gap. Continue
   seeking live `allow-entities` replay only if that blocker reproduces. See
   L103-L106.
+- Planning-to-drafting context next step: inspect whether implicit-reference
+  marker scenes should produce retrievable context or whether the resolver/audit
+  needs a narrower "needs background" signal before this becomes Plan Readiness
+  input.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,

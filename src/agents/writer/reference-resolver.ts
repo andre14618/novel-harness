@@ -25,7 +25,7 @@ export interface ResolvedReferences {
   llmUsed: boolean
 }
 
-const IMPLICIT_MARKERS = [
+export const IMPLICIT_REFERENCE_MARKERS = [
   "their last", "the letter", "what she learned", "what he learned",
   "consequences of", "tension from", "after the", "because of",
   "what happened", "the incident", "the argument", "the fight",
@@ -33,6 +33,11 @@ const IMPLICIT_MARKERS = [
   "the truth about", "the lie", "what they said",
   "earlier", "last time", "before the", "since the",
 ]
+
+export function beatDescriptionHasImplicitReference(description: string): boolean {
+  const desc = description.toLowerCase()
+  return IMPLICIT_REFERENCE_MARKERS.some(marker => desc.includes(marker))
+}
 
 const lookupResponseSchema = z.object({
   lookups: z.array(z.object({
@@ -50,11 +55,8 @@ export async function resolveReferences(
   chapterNumber: number,
   characters: CharacterProfile[],
 ): Promise<ResolvedReferences> {
-  const desc = beat.description.toLowerCase()
-
   // Step 1: Check if beat has implicit references
-  const hasImplicit = IMPLICIT_MARKERS.some(m => desc.includes(m))
-  if (!hasImplicit) {
+  if (!beatDescriptionHasImplicitReference(beat.description)) {
     return { context: "", lookupCount: 0, llmUsed: false }
   }
 
