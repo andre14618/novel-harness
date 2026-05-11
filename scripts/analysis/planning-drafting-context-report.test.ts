@@ -71,6 +71,14 @@ describe("planning-drafting-context-report", () => {
       scenesWithPlaceAnchor: 1,
       sceneContractsWithDramaticShape: 1,
       anchorOnlySceneContracts: 0,
+      sceneContractShape: {
+        missingDramaticShape: [{
+          label: "DRAMATIC-SCENE-CONTRACT-MISSING",
+          sceneRef: "ch-002-scene-001",
+          severity: "low",
+        }],
+        anchorOnly: [],
+      },
       scenesWithObligations: 1,
       scenesWithImplicitReferences: 1,
       chaptersWithSetting: 2,
@@ -160,6 +168,7 @@ describe("planning-drafting-context-report", () => {
     expect(renderPlanningToDraftingContextReport(report)).toContain("Plan continuity: futureEventAnchors=0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=1, anchorOnly=0, temporal=1, place=1)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=1, anchorOnly=0, anchors=1)")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, anchorOnly=0")
   })
 
   test("separates anchor-only scene contracts from dramatic scene shape", () => {
@@ -183,6 +192,29 @@ describe("planning-drafting-context-report", () => {
       scenesWithPlaceAnchor: 1,
       sceneContractsWithDramaticShape: 0,
       anchorOnlySceneContracts: 1,
+      sceneContractShape: {
+        missingDramaticShape: [{
+          label: "ANCHOR-ONLY-SCENE-CONTRACT",
+          sceneRef: "scene-1",
+          severity: "medium",
+          hasTemporalAnchor: true,
+          hasPlaceAnchor: true,
+          hasObligations: false,
+          missingFields: [
+            "goal",
+            "opposition",
+            "turningPoint",
+            "outcome",
+            "consequence",
+            "povPersonalStake",
+            "valueIn",
+            "valueOut",
+          ],
+        }],
+        anchorOnly: [{
+          sceneRef: "scene-1",
+        }],
+      },
     })
 
     const writerContext = buildWriterContextTelemetryReport([
@@ -206,6 +238,8 @@ describe("planning-drafting-context-report", () => {
 
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=0, anchorOnly=1, temporal=1, place=1)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=0, anchorOnly=1, anchors=1)")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, anchorOnly=1")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("ANCHOR-ONLY-SCENE-CONTRACT: scene-1")
   })
 
   test("summarizes dense and overloaded scene load before drafting", () => {

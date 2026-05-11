@@ -54,6 +54,7 @@ export interface PlanningArtifactSummary {
   scenesWithPlaceAnchor: number
   sceneContractsWithDramaticShape: number
   anchorOnlySceneContracts: number
+  sceneContractShape: SceneContractShapeSummary
   scenesWithObligations: number
   scenesWithImplicitReferences: number
   chaptersWithSetting: number
@@ -103,6 +104,25 @@ export interface PlanContinuitySummary {
   futureEventAnchors: FutureEventAnchorFinding[]
 }
 
+export interface DramaticSceneContractGap {
+  label: "DRAMATIC-SCENE-CONTRACT-MISSING" | "ANCHOR-ONLY-SCENE-CONTRACT"
+  severity: "medium" | "low"
+  chapterNumber: number
+  chapterId: string
+  sceneRef: string
+  descriptionExcerpt: string
+  hasTemporalAnchor: boolean
+  hasPlaceAnchor: boolean
+  hasObligations: boolean
+  characterCount: number
+  missingFields: string[]
+}
+
+export interface SceneContractShapeSummary {
+  missingDramaticShape: DramaticSceneContractGap[]
+  anchorOnly: DramaticSceneContractGap[]
+}
+
 export interface PlanningToDraftingContextAuditRow {
   surface: ContextContractSurface
   upstreamAvailable: boolean
@@ -139,11 +159,15 @@ export function summarizePlanningArtifacts(args: {
     previousContextByChapter.set(outline.chapterNumber, prior.some(hasReaderInfoSource))
   }
 
-  const scenes = outlines.flatMap(outline => outline.scenes ?? [])
+  const sceneRows = outlines.flatMap(outline =>
+    (outline.scenes ?? []).map(scene => ({ outline, scene }))
+  )
+  const scenes = sceneRows.map(row => row.scene)
   const sceneContractShapes = scenes.map(scene => summarizeSceneContractShape(readRecord(scene)))
   const obligationItems = scenes.flatMap(scene => obligationItemsForScene(scene))
   const sceneLoad = summarizeSceneLoad(outlines)
   const planContinuity = summarizePlanContinuity(outlines)
+  const sceneContractShape = summarizeSceneContractShapeGaps(sceneRows)
 
   return {
     worldBibleAvailable: args.worldBibleAvailable,
@@ -160,6 +184,7 @@ export function summarizePlanningArtifacts(args: {
     scenesWithPlaceAnchor: scenes.filter(scene => hasText(readRecord(scene).placeAnchor)).length,
     sceneContractsWithDramaticShape: sceneContractShapes.filter(shape => shape.hasDramaticShape).length,
     anchorOnlySceneContracts: sceneContractShapes.filter(shape => shape.isAnchorOnly).length,
+    sceneContractShape,
     scenesWithObligations: scenes.filter(scene => obligationItemsForScene(scene).length > 0).length,
     scenesWithImplicitReferences: scenes.filter(scene =>
       beatDescriptionHasImplicitReference(String((scene as Record<string, unknown>).description ?? ""))
@@ -313,6 +338,18 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
       `storyRefs=${report.upstream.activeStoryRefIds}, implicitRefs=${report.upstream.scenesWithImplicitReferences}, ` +
       `readerInfoSourceChapters=${report.upstream.readerInfoSourceChapters}`,
   )
+  const sceneContractShape = report.upstream.sceneContractShape
+  const missingDramaticShape = sceneContractShape?.missingDramaticShape ?? []
+  const anchorOnly = sceneContractShape?.anchorOnly ?? []
+  lines.push(
+    `Scene contract shape gaps: missingDramatic=${missingDramaticShape.length}, anchorOnly=${anchorOnly.length}`,
+  )
+  for (const gap of missingDramaticShape.slice(0, 5)) {
+    lines.push(
+      `- ${gap.label}: ${gap.sceneRef}; missing=${gap.missingFields.join(",")}; ` +
+        `obligations=${gap.hasObligations ? "yes" : "no"}; "${gap.descriptionExcerpt}"`,
+    )
+  }
   lines.push(
     `Scene load: maxScenesPerChapter=${report.upstream.sceneLoad.maxScenesPerChapter}, ` +
       `minTargetWordsPerScene=${formatNullableNumber(report.upstream.sceneLoad.minTargetWordsPerScene)}, ` +
@@ -642,6 +679,53 @@ function hasReaderInfoSource(outline: ChapterOutline): boolean {
   return (outline.establishedFacts ?? []).length > 0 ||
     (outline.characterStateChanges ?? []).length > 0 ||
     (outline.knowledgeChanges ?? []).length > 0
+}
+
+const DRAMATIC_SCENE_CONTRACT_FIELDS = [
+  "goal",
+  "opposition",
+  "turningPoint",
+  "outcome",
+  "consequence",
+  "povPersonalStake",
+  "valueIn",
+  "valueOut",
+] as const
+
+function summarizeSceneContractShapeGaps(
+  rows: Array<{ outline: ChapterOutline; scene: unknown }>,
+): SceneContractShapeSummary {
+  const missingDramaticShape: DramaticSceneContractGap[] = []
+  const anchorOnly: DramaticSceneContractGap[] = []
+
+  for (const row of rows) {
+    const record = readRecord(row.scene)
+    const shape = summarizeSceneContractShape(record)
+    if (shape.hasDramaticShape) continue
+    const sceneReference = sceneRef(row.scene)
+    if (!sceneReference) continue
+    const gap: DramaticSceneContractGap = {
+      label: shape.isAnchorOnly ? "ANCHOR-ONLY-SCENE-CONTRACT" : "DRAMATIC-SCENE-CONTRACT-MISSING",
+      severity: shape.hasAnchor || obligationItemsForScene(row.scene).length > 0 ? "medium" : "low",
+      chapterNumber: row.outline.chapterNumber,
+      chapterId: row.outline.chapterId ?? `chapter:${row.outline.chapterNumber}`,
+      sceneRef: sceneReference,
+      descriptionExcerpt: truncateForEvidence(String(record.description ?? "")),
+      hasTemporalAnchor: hasText(record.temporalAnchor),
+      hasPlaceAnchor: hasText(record.placeAnchor),
+      hasObligations: obligationItemsForScene(row.scene).length > 0,
+      characterCount: stringArray(record.characters).length,
+      missingFields: missingDramaticFields(record),
+    }
+    missingDramaticShape.push(gap)
+    if (shape.isAnchorOnly) anchorOnly.push(gap)
+  }
+
+  return { missingDramaticShape, anchorOnly }
+}
+
+function missingDramaticFields(scene: Record<string, unknown>): string[] {
+  return DRAMATIC_SCENE_CONTRACT_FIELDS.filter(field => !hasText(scene[field]))
 }
 
 function obligationItemsForScene(scene: unknown): Array<Record<string, unknown>> {

@@ -684,6 +684,10 @@ function planningContextReport(): PlanningToDraftingContextReport {
       scenesWithPlaceAnchor: 0,
       sceneContractsWithDramaticShape: 0,
       anchorOnlySceneContracts: 0,
+      sceneContractShape: {
+        missingDramaticShape: [],
+        anchorOnly: [],
+      },
       scenesWithObligations: 8,
       scenesWithImplicitReferences: 0,
       chaptersWithSetting: 1,

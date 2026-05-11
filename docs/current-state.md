@@ -92,7 +92,7 @@ Use deeper docs only when linked by the context pack or needed by code.
   worldFactPressure replay artifacts per arm; replay prefers captured per-scene
   writer calls before falling back to whole-chapter prose. Use
   `diagnostics:planning-drafting-context` to audit
-  upstream context availability, reference telemetry, and scene-load pressure;
+  upstream context availability, scene-contract gaps, reference telemetry, and scene-load pressure;
   `test-drafting-isolated` writes that audit plus a scene-load readiness
   sidecar per arm by default.
 - Production drafting defaults to exact-ID character context capsules
