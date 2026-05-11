@@ -63,8 +63,16 @@ export interface WriterContextEventSummary {
       characters: number
       obligations: number
       sceneContractFields: number
+      sceneContractAnchorFields: number
+      sceneContractDramaticFields: number
+      sceneContractBudgetFields: number
+      choiceAlternatives: number
     }
   } | null
+  sceneContractFields: number
+  sceneContractAnchorFields: number
+  sceneContractDramaticFields: number
+  sceneContractBudgetFields: number
   referenceLookups: number
   referenceLlmCalls: number
   missingCharacterIds: number
@@ -83,6 +91,14 @@ export interface WriterContextTelemetryReport {
     withCharacterSnapshots: number
     withCharacterContextCapsules: number
     withSceneContract: number
+    withSceneContractShapeCounts: number
+    withSceneContractAnchors: number
+    withDramaticSceneContract: number
+    withAnchorOnlySceneContract: number
+    sceneContractFields: number
+    sceneContractAnchorFields: number
+    sceneContractDramaticFields: number
+    sceneContractBudgetFields: number
     withObligations: number
     withWorldContext: number
     withWorldBible: number
@@ -135,6 +151,18 @@ export function buildWriterContextTelemetryReport(
       withCharacterSnapshots: events.filter(event => event.surfaces.characterSnapshots).length,
       withCharacterContextCapsules: events.filter(event => event.surfaces.characterContextCapsules).length,
       withSceneContract: events.filter(event => event.surfaces.sceneContract).length,
+      withSceneContractShapeCounts: events.filter(event =>
+        event.sceneContractAnchorFields + event.sceneContractDramaticFields + event.sceneContractBudgetFields > 0
+      ).length,
+      withSceneContractAnchors: events.filter(event => event.sceneContractAnchorFields > 0).length,
+      withDramaticSceneContract: events.filter(event => event.sceneContractDramaticFields > 0).length,
+      withAnchorOnlySceneContract: events.filter(event =>
+        event.sceneContractAnchorFields > 0 && event.sceneContractDramaticFields === 0
+      ).length,
+      sceneContractFields: events.reduce((sum, event) => sum + event.sceneContractFields, 0),
+      sceneContractAnchorFields: events.reduce((sum, event) => sum + event.sceneContractAnchorFields, 0),
+      sceneContractDramaticFields: events.reduce((sum, event) => sum + event.sceneContractDramaticFields, 0),
+      sceneContractBudgetFields: events.reduce((sum, event) => sum + event.sceneContractBudgetFields, 0),
       withObligations: events.filter(event => event.surfaces.obligations).length,
       withWorldContext: events.filter(event => event.surfaces.world).length,
       withWorldBible: events.filter(event => event.surfaces.worldBible).length,
@@ -170,7 +198,9 @@ export function renderWriterContextTelemetryReport(report: WriterContextTelemetr
   lines.push(
     `Context surfaces: character=${formatCoverage(report.totals.withCharacterContext, report.totals.events)} ` +
       `(profiles=${report.totals.withCharacterProfiles}, snapshots=${report.totals.withCharacterSnapshots}, capsules=${report.totals.withCharacterContextCapsules}), ` +
-      `sceneContract=${formatCoverage(report.totals.withSceneContract, report.totals.events)}, ` +
+      `sceneContract=${formatCoverage(report.totals.withSceneContract, report.totals.events)} ` +
+      `(shapeCounts=${report.totals.withSceneContractShapeCounts}, dramatic=${report.totals.withDramaticSceneContract}, ` +
+      `anchorOnly=${report.totals.withAnchorOnlySceneContract}, anchors=${report.totals.withSceneContractAnchors}), ` +
       `obligations=${formatCoverage(report.totals.withObligations, report.totals.events)}, ` +
       `world=${formatCoverage(report.totals.withWorldContext, report.totals.events)} ` +
       `(bible=${report.totals.withWorldBible}, setting=${report.totals.withSetting}), ` +
@@ -257,9 +287,25 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
     || positiveArray(characterContext.activePromiseIds)
     || positiveArray(characterContext.activePayoffIds)
     || hasObligations
+  const sceneContractFields = maxNumber(
+    readFiniteNumber(counts.sceneContractFields),
+    draftingBrief?.counts.sceneContractFields,
+  )
+  const sceneContractAnchorFields = maxNumber(
+    readFiniteNumber(counts.sceneContractAnchorFields),
+    draftingBrief?.counts.sceneContractAnchorFields,
+  )
+  const sceneContractDramaticFields = maxNumber(
+    readFiniteNumber(counts.sceneContractDramaticFields),
+    draftingBrief?.counts.sceneContractDramaticFields,
+  )
+  const sceneContractBudgetFields = maxNumber(
+    readFiniteNumber(counts.sceneContractBudgetFields),
+    draftingBrief?.counts.sceneContractBudgetFields,
+  )
   const hasSceneContract = readBoolean(surfaces.sceneContract)
     || Boolean(draftingBrief?.sections.sceneContract)
-    || positiveNumber(draftingBrief?.counts.sceneContractFields)
+    || sceneContractFields > 0
   const referenceLookups = readFiniteNumber(counts.referenceLookups) ?? 0
   const referenceLlmCalls = readFiniteNumber(counts.referenceLlmCalls) ?? 0
 
@@ -290,6 +336,10 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
       draftingBrief: draftingBrief !== null,
     },
     draftingBrief,
+    sceneContractFields,
+    sceneContractAnchorFields,
+    sceneContractDramaticFields,
+    sceneContractBudgetFields,
     referenceLookups,
     referenceLlmCalls,
     missingCharacterIds: readFiniteNumber(counts.missingCharacterIds) ?? readArray(characterContext.missingCharacterIds).length,
@@ -328,8 +378,16 @@ function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingB
       characters: readFiniteNumber(counts.characters) ?? 0,
       obligations: readFiniteNumber(counts.obligations) ?? 0,
       sceneContractFields: readFiniteNumber(counts.sceneContractFields) ?? 0,
+      sceneContractAnchorFields: readFiniteNumber(counts.sceneContractAnchorFields) ?? 0,
+      sceneContractDramaticFields: readFiniteNumber(counts.sceneContractDramaticFields) ?? 0,
+      sceneContractBudgetFields: readFiniteNumber(counts.sceneContractBudgetFields) ?? 0,
+      choiceAlternatives: readFiniteNumber(counts.choiceAlternatives) ?? 0,
     },
   }
+}
+
+function maxNumber(...values: Array<number | null | undefined>): number {
+  return Math.max(0, ...values.filter((value): value is number => typeof value === "number" && Number.isFinite(value)))
 }
 
 function countBy<T>(items: readonly T[], keyFn: (item: T) => string): Record<string, number> {

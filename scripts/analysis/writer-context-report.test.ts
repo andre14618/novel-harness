@@ -34,6 +34,10 @@ describe("writer-context-report", () => {
           },
           counts: {
             obligations: 0,
+            sceneContractFields: 5,
+            sceneContractAnchorFields: 2,
+            sceneContractDramaticFields: 2,
+            sceneContractBudgetFields: 1,
             activeThreadIds: 1,
             implicitReferenceMarkers: 1,
             referenceLookups: 2,
@@ -62,6 +66,10 @@ describe("writer-context-report", () => {
             characters: 2,
             obligations: 3,
             sceneContractFields: 5,
+            sceneContractAnchorFields: 2,
+            sceneContractDramaticFields: 2,
+            sceneContractBudgetFields: 1,
+            choiceAlternatives: 1,
           },
         },
       })),
@@ -97,6 +105,14 @@ describe("writer-context-report", () => {
       withCharacterSnapshots: 1,
       withCharacterContextCapsules: 1,
       withSceneContract: 1,
+      withSceneContractShapeCounts: 1,
+      withSceneContractAnchors: 1,
+      withDramaticSceneContract: 1,
+      withAnchorOnlySceneContract: 0,
+      sceneContractFields: 5,
+      sceneContractAnchorFields: 2,
+      sceneContractDramaticFields: 2,
+      sceneContractBudgetFields: 1,
       withObligations: 1,
       withWorldContext: 2,
       withWorldBible: 2,
@@ -127,6 +143,7 @@ describe("writer-context-report", () => {
     const rendered = renderWriterContextTelemetryReport(report)
     expect(rendered).toContain("Writer context telemetry for novel-a")
     expect(rendered).toContain("character=1/3 (profiles=1, snapshots=1, capsules=1)")
+    expect(rendered).toContain("sceneContract=1/3 (shapeCounts=1, dramatic=1, anchorOnly=0, anchors=1)")
     expect(rendered).toContain("obligations=1/3")
     expect(rendered).toContain("world=2/3 (bible=2, setting=1)")
     expect(rendered).toContain("implicitRefs=1/3")

@@ -1,4 +1,5 @@
-import type { BeatContext, SceneContractBlock } from "./beat-context"
+import type { BeatContext } from "./beat-context"
+import { summarizeSceneContractShape } from "./scene-contract-shape"
 
 export interface WriterContextSurfaceTrace {
   path: "beat" | "chapter"
@@ -29,6 +30,9 @@ export interface WriterContextSurfaceTrace {
     characterContextCards?: number
     obligations?: number
     sceneContractFields?: number
+    sceneContractAnchorFields?: number
+    sceneContractDramaticFields?: number
+    sceneContractBudgetFields?: number
     choiceAlternatives?: number
     activeThreadIds?: number
     activePromiseIds?: number
@@ -42,6 +46,7 @@ export interface WriterContextSurfaceTrace {
 
 export function summarizeBeatContextSurface(ctx: BeatContext): WriterContextSurfaceTrace {
   const capsules = ctx.characterContextCapsules ?? null
+  const sceneContractShape = ctx.sceneContract ? summarizeSceneContractShape(ctx.sceneContract) : null
   return {
     path: "beat",
     surfaces: {
@@ -64,8 +69,11 @@ export function summarizeBeatContextSurface(ctx: BeatContext): WriterContextSurf
       characterSnapshots: ctx.characterSnapshots.length,
       characterContextCards: capsules?.cards.length ?? 0,
       obligations: countObligations(ctx.beatSpec.obligations),
-      sceneContractFields: ctx.sceneContract ? countSceneContractFields(ctx.sceneContract) : 0,
-      choiceAlternatives: ctx.sceneContract?.choiceAlternatives.length ?? 0,
+      sceneContractFields: sceneContractShape?.fieldCount ?? 0,
+      sceneContractAnchorFields: sceneContractShape?.anchorFields ?? 0,
+      sceneContractDramaticFields: sceneContractShape?.dramaticFields ?? 0,
+      sceneContractBudgetFields: sceneContractShape?.budgetFields ?? 0,
+      choiceAlternatives: sceneContractShape?.choiceAlternatives ?? 0,
       activeThreadIds: capsules?.activeThreadIds.length ?? 0,
       activePromiseIds: capsules?.activePromiseIds.length ?? 0,
       activePayoffIds: capsules?.activePayoffIds.length ?? 0,
@@ -84,22 +92,4 @@ function countObligations(obligations: BeatContext["beatSpec"]["obligations"]): 
     + obligations.mustShowStateChange.length
     + obligations.mustNotReveal.length
     + obligations.allowedNewEntities.length
-}
-
-function countSceneContractFields(scene: SceneContractBlock): number {
-  let count = 0
-  if (scene.temporalAnchor) count++
-  if (scene.placeAnchor) count++
-  if (scene.goal) count++
-  if (scene.opposition) count++
-  if (scene.turningPoint) count++
-  if (scene.crisisChoice) count++
-  if (scene.outcome) count++
-  if (scene.consequence) count++
-  if (scene.povPersonalStake) count++
-  if (scene.valueIn) count++
-  if (scene.valueOut) count++
-  if (scene.targetWords != null) count++
-  if (scene.choiceAlternatives.length > 0) count++
-  return count
 }

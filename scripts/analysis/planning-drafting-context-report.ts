@@ -11,6 +11,7 @@ import db from "../../src/db/connection"
 import type { ChapterOutline, CharacterProfile } from "../../src/types"
 import { enrichOutlineIds } from "../../src/harness/ids"
 import { beatDescriptionHasImplicitReference } from "../../src/agents/writer/reference-resolver"
+import { summarizeSceneContractShape } from "../../src/agents/writer/scene-contract-shape"
 import {
   buildWriterContextTelemetryReport,
   type WriterContextEventRow,
@@ -49,6 +50,10 @@ export interface PlanningArtifactSummary {
   scenesWithCharacters: number
   scenesWithSceneIds: number
   scenesWithSceneContract: number
+  scenesWithTemporalAnchor: number
+  scenesWithPlaceAnchor: number
+  sceneContractsWithDramaticShape: number
+  anchorOnlySceneContracts: number
   scenesWithObligations: number
   scenesWithImplicitReferences: number
   chaptersWithSetting: number
@@ -135,6 +140,7 @@ export function summarizePlanningArtifacts(args: {
   }
 
   const scenes = outlines.flatMap(outline => outline.scenes ?? [])
+  const sceneContractShapes = scenes.map(scene => summarizeSceneContractShape(readRecord(scene)))
   const obligationItems = scenes.flatMap(scene => obligationItemsForScene(scene))
   const sceneLoad = summarizeSceneLoad(outlines)
   const planContinuity = summarizePlanContinuity(outlines)
@@ -149,7 +155,11 @@ export function summarizePlanningArtifacts(args: {
     planContinuity,
     scenesWithCharacters: scenes.filter(scene => stringArray((scene as Record<string, unknown>).characters).length > 0).length,
     scenesWithSceneIds: scenes.filter(scene => hasText((scene as Record<string, unknown>).sceneId)).length,
-    scenesWithSceneContract: scenes.filter(hasSceneContract).length,
+    scenesWithSceneContract: sceneContractShapes.filter(shape => shape.hasAny).length,
+    scenesWithTemporalAnchor: scenes.filter(scene => hasText(readRecord(scene).temporalAnchor)).length,
+    scenesWithPlaceAnchor: scenes.filter(scene => hasText(readRecord(scene).placeAnchor)).length,
+    sceneContractsWithDramaticShape: sceneContractShapes.filter(shape => shape.hasDramaticShape).length,
+    anchorOnlySceneContracts: sceneContractShapes.filter(shape => shape.isAnchorOnly).length,
     scenesWithObligations: scenes.filter(scene => obligationItemsForScene(scene).length > 0).length,
     scenesWithImplicitReferences: scenes.filter(scene =>
       beatDescriptionHasImplicitReference(String((scene as Record<string, unknown>).description ?? ""))
@@ -251,7 +261,7 @@ export function buildPlanningToDraftingContextReport(args: {
       upstreamCount: upstream.scenesWithSceneContract,
       downstreamCount: downstream.withSceneContract,
       eventCount,
-      note: "Scene contracts carry goal/opposition/turn/outcome/consequence fields into the writer surface.",
+      note: "Scene contract coverage includes anchors, budgets, and dramatic fields; shape counts separate anchor-only from goal/turn/outcome coverage.",
     }),
     auditSurface({
       surface: "obligations",
@@ -295,7 +305,10 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
   )
   lines.push(
       `Plan shape: sceneIds=${report.upstream.scenesWithSceneIds}/${report.upstream.plannedSceneCount}, ` +
-      `sceneContracts=${report.upstream.scenesWithSceneContract}, obligations=${report.upstream.scenesWithObligations}, ` +
+      `sceneContracts=${report.upstream.scenesWithSceneContract} ` +
+      `(dramatic=${report.upstream.sceneContractsWithDramaticShape}, anchorOnly=${report.upstream.anchorOnlySceneContracts}, ` +
+      `temporal=${report.upstream.scenesWithTemporalAnchor}, place=${report.upstream.scenesWithPlaceAnchor}), ` +
+      `obligations=${report.upstream.scenesWithObligations}, ` +
       `obligationIds=${report.upstream.obligationIds}, sourceRefs=${report.upstream.obligationSourceRefs}, ` +
       `storyRefs=${report.upstream.activeStoryRefIds}, implicitRefs=${report.upstream.scenesWithImplicitReferences}, ` +
       `readerInfoSourceChapters=${report.upstream.readerInfoSourceChapters}`,
@@ -327,7 +340,9 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
       `character=${report.downstream.withCharacterContext}, world=${report.downstream.withWorldContext}, ` +
       `story=${report.downstream.withStoryContext}, readerInfo=${report.downstream.withReaderInfoState}, ` +
       `implicitRefs=${report.downstream.withImplicitReferences}, refs=${report.downstream.withResolvedReferences}, ` +
-      `refLookups=${report.downstream.referenceLookups}, sceneContract=${report.downstream.withSceneContract}, ` +
+      `refLookups=${report.downstream.referenceLookups}, sceneContract=${report.downstream.withSceneContract} ` +
+      `(shapeCounts=${report.downstream.withSceneContractShapeCounts}, dramatic=${report.downstream.withDramaticSceneContract}, anchorOnly=${report.downstream.withAnchorOnlySceneContract}, ` +
+      `anchors=${report.downstream.withSceneContractAnchors}), ` +
       `obligations=${report.downstream.withObligations}, draftingBrief=${report.downstream.withDraftingBriefTrace}`,
   )
   lines.push(`Gaps: ${report.gaps.length}`)
@@ -627,25 +642,6 @@ function hasReaderInfoSource(outline: ChapterOutline): boolean {
   return (outline.establishedFacts ?? []).length > 0 ||
     (outline.characterStateChanges ?? []).length > 0 ||
     (outline.knowledgeChanges ?? []).length > 0
-}
-
-function hasSceneContract(scene: unknown): boolean {
-  const record = readRecord(scene)
-  return [
-    "temporalAnchor",
-    "placeAnchor",
-    "goal",
-    "opposition",
-    "turningPoint",
-    "crisisChoice",
-    "outcome",
-    "consequence",
-    "povPersonalStake",
-    "valueIn",
-    "valueOut",
-  ].some(key => hasText(record[key])) ||
-    stringArray(record.choiceAlternatives).length > 0 ||
-    positiveNumber(record.targetWords)
 }
 
 function obligationItemsForScene(scene: unknown): Array<Record<string, unknown>> {

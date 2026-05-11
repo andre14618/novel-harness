@@ -305,6 +305,10 @@ export interface PlanningContextTelemetrySummary {
     chapterPlanCount: number
     plannedSceneCount: number
     scenesWithSceneContract: number
+    scenesWithTemporalAnchor: number
+    scenesWithPlaceAnchor: number
+    sceneContractsWithDramaticShape: number
+    anchorOnlySceneContracts: number
     scenesWithObligations: number
     scenesWithImplicitReferences: number
   }
@@ -318,6 +322,10 @@ export interface PlanningContextTelemetrySummary {
     withResolvedReferences: number
     referenceLookups: number
     withSceneContract: number
+    withSceneContractShapeCounts: number
+    withSceneContractAnchors: number
+    withDramaticSceneContract: number
+    withAnchorOnlySceneContract: number
     withObligations: number
     withDraftingBriefTrace: number
   }
@@ -744,6 +752,10 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
         chapterPlanCount: 0,
         plannedSceneCount: 0,
         scenesWithSceneContract: 0,
+        scenesWithTemporalAnchor: 0,
+        scenesWithPlaceAnchor: 0,
+        sceneContractsWithDramaticShape: 0,
+        anchorOnlySceneContracts: 0,
         scenesWithObligations: 0,
         scenesWithImplicitReferences: 0,
       },
@@ -757,6 +769,10 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
         withResolvedReferences: 0,
         referenceLookups: 0,
         withSceneContract: 0,
+        withSceneContractShapeCounts: 0,
+        withSceneContractAnchors: 0,
+        withDramaticSceneContract: 0,
+        withAnchorOnlySceneContract: 0,
         withObligations: 0,
         withDraftingBriefTrace: 0,
       },
@@ -818,6 +834,10 @@ async function maybeRunPlanningContextAudit(
         chapterPlanCount: 0,
         plannedSceneCount: 0,
         scenesWithSceneContract: 0,
+        scenesWithTemporalAnchor: 0,
+        scenesWithPlaceAnchor: 0,
+        sceneContractsWithDramaticShape: 0,
+        anchorOnlySceneContracts: 0,
         scenesWithObligations: 0,
         scenesWithImplicitReferences: 0,
       },
@@ -831,6 +851,10 @@ async function maybeRunPlanningContextAudit(
         withResolvedReferences: 0,
         referenceLookups: 0,
         withSceneContract: 0,
+        withSceneContractShapeCounts: 0,
+        withSceneContractAnchors: 0,
+        withDramaticSceneContract: 0,
+        withAnchorOnlySceneContract: 0,
         withObligations: 0,
         withDraftingBriefTrace: 0,
       },
@@ -879,6 +903,10 @@ function planningContextSummary(
       chapterPlanCount: report.upstream.chapterPlanCount,
       plannedSceneCount: report.upstream.plannedSceneCount,
       scenesWithSceneContract: report.upstream.scenesWithSceneContract,
+      scenesWithTemporalAnchor: report.upstream.scenesWithTemporalAnchor,
+      scenesWithPlaceAnchor: report.upstream.scenesWithPlaceAnchor,
+      sceneContractsWithDramaticShape: report.upstream.sceneContractsWithDramaticShape,
+      anchorOnlySceneContracts: report.upstream.anchorOnlySceneContracts,
       scenesWithObligations: report.upstream.scenesWithObligations,
       scenesWithImplicitReferences: report.upstream.scenesWithImplicitReferences,
     },
@@ -892,6 +920,10 @@ function planningContextSummary(
       withResolvedReferences: report.downstream.withResolvedReferences,
       referenceLookups: report.downstream.referenceLookups,
       withSceneContract: report.downstream.withSceneContract,
+      withSceneContractShapeCounts: report.downstream.withSceneContractShapeCounts,
+      withSceneContractAnchors: report.downstream.withSceneContractAnchors,
+      withDramaticSceneContract: report.downstream.withDramaticSceneContract,
+      withAnchorOnlySceneContract: report.downstream.withAnchorOnlySceneContract,
       withObligations: report.downstream.withObligations,
       withDraftingBriefTrace: report.downstream.withDraftingBriefTrace,
     },

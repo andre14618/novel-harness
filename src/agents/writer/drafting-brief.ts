@@ -1,6 +1,7 @@
 import type { BeatContext, CharacterSnapshot, SceneContractBlock, SettingBlock } from "./beat-context"
 import { renderCharacterContextCapsules } from "./character-context"
 import type { WriterPromptIdRendering } from "./context-mode"
+import { summarizeSceneContractShape } from "./scene-contract-shape"
 
 export type WriterDraftingBriefMode = "off" | "scene-budget-v1" | "scene-turn-v1" | "scene-turn-anchored-v1"
 
@@ -27,6 +28,9 @@ export interface WriterDraftingBriefTrace {
     characters: number
     obligations: number
     sceneContractFields: number
+    sceneContractAnchorFields: number
+    sceneContractDramaticFields: number
+    sceneContractBudgetFields: number
     choiceAlternatives: number
   }
 }
@@ -317,6 +321,7 @@ function summarizeWriterDraftingBrief(args: {
 }): WriterDraftingBriefTrace {
   const selectedPromptChars = args.selectedPrompt.length
   const fullContextPromptChars = args.fullContextPrompt.length
+  const sceneContractShape = args.ctx.sceneContract ? summarizeSceneContractShape(args.ctx.sceneContract) : null
   return {
     mode: args.mode,
     selectedPromptChars,
@@ -342,8 +347,11 @@ function summarizeWriterDraftingBrief(args: {
     counts: {
       characters: args.ctx.characterSnapshots.length,
       obligations: countObligations(args.ctx.beatSpec.obligations),
-      sceneContractFields: args.ctx.sceneContract ? countSceneContractFields(args.ctx.sceneContract) : 0,
-      choiceAlternatives: args.ctx.sceneContract?.choiceAlternatives.length ?? 0,
+      sceneContractFields: sceneContractShape?.fieldCount ?? 0,
+      sceneContractAnchorFields: sceneContractShape?.anchorFields ?? 0,
+      sceneContractDramaticFields: sceneContractShape?.dramaticFields ?? 0,
+      sceneContractBudgetFields: sceneContractShape?.budgetFields ?? 0,
+      choiceAlternatives: sceneContractShape?.choiceAlternatives ?? 0,
     },
   }
 }
@@ -355,22 +363,4 @@ function countObligations(obligations: BeatContext["beatSpec"]["obligations"]): 
     + obligations.mustShowStateChange.length
     + obligations.mustNotReveal.length
     + obligations.allowedNewEntities.length
-}
-
-function countSceneContractFields(scene: SceneContractBlock): number {
-  let count = 0
-  if (scene.temporalAnchor) count++
-  if (scene.placeAnchor) count++
-  if (scene.goal) count++
-  if (scene.opposition) count++
-  if (scene.turningPoint) count++
-  if (scene.crisisChoice) count++
-  if (scene.outcome) count++
-  if (scene.consequence) count++
-  if (scene.povPersonalStake) count++
-  if (scene.valueIn) count++
-  if (scene.valueOut) count++
-  if (scene.targetWords != null) count++
-  if (scene.choiceAlternatives.length > 0) count++
-  return count
 }

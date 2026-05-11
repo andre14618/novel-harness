@@ -67,6 +67,10 @@ describe("planning-drafting-context-report", () => {
       scenesWithCharacters: 2,
       scenesWithSceneIds: 2,
       scenesWithSceneContract: 1,
+      scenesWithTemporalAnchor: 1,
+      scenesWithPlaceAnchor: 1,
+      sceneContractsWithDramaticShape: 1,
+      anchorOnlySceneContracts: 0,
       scenesWithObligations: 1,
       scenesWithImplicitReferences: 1,
       chaptersWithSetting: 2,
@@ -99,6 +103,10 @@ describe("planning-drafting-context-report", () => {
           counts: {
             obligations: 1,
             activeThreadIds: 1,
+            sceneContractFields: 5,
+            sceneContractAnchorFields: 2,
+            sceneContractDramaticFields: 3,
+            sceneContractBudgetFields: 0,
           },
         },
         draftingBrief: {
@@ -121,7 +129,11 @@ describe("planning-drafting-context-report", () => {
           counts: {
             characters: 2,
             obligations: 1,
-            sceneContractFields: 3,
+            sceneContractFields: 5,
+            sceneContractAnchorFields: 2,
+            sceneContractDramaticFields: 3,
+            sceneContractBudgetFields: 0,
+            choiceAlternatives: 0,
           },
         },
       }),
@@ -146,6 +158,54 @@ describe("planning-drafting-context-report", () => {
     expect(renderPlanningToDraftingContextReport(report)).toContain("Gaps: 0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Scene load: maxScenesPerChapter=1")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Plan continuity: futureEventAnchors=0")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=1, anchorOnly=0, temporal=1, place=1)")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=1, anchorOnly=0, anchors=1)")
+  })
+
+  test("separates anchor-only scene contracts from dramatic scene shape", () => {
+    const upstream = summarizePlanningArtifacts({
+      worldBibleAvailable: true,
+      storySpineAvailable: true,
+      characters: [{ id: "char-maren", name: "Maren" }],
+      outlines: [outline(1, {
+        scenes: [{
+          ...scenes(1)[0]!,
+          temporalAnchor: "dawn the next morning",
+          placeAnchor: "Iron Bridge",
+          targetWords: 400,
+        }],
+      })],
+    })
+
+    expect(upstream).toMatchObject({
+      scenesWithSceneContract: 1,
+      scenesWithTemporalAnchor: 1,
+      scenesWithPlaceAnchor: 1,
+      sceneContractsWithDramaticShape: 0,
+      anchorOnlySceneContracts: 1,
+    })
+
+    const writerContext = buildWriterContextTelemetryReport([
+      row(1, {
+        path: "beat",
+        stage: "initial",
+        writerContextMode: "thread-character-context-v1",
+        contextSurface: {
+          surfaces: { sceneContract: true },
+          counts: {
+            sceneContractFields: 3,
+            sceneContractAnchorFields: 2,
+            sceneContractDramaticFields: 0,
+            sceneContractBudgetFields: 1,
+          },
+        },
+        draftingBrief: null,
+      }),
+    ], "novel-anchor-only")
+    const report = buildPlanningToDraftingContextReport({ novelId: "novel-anchor-only", upstream, writerContext })
+
+    expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=0, anchorOnly=1, temporal=1, place=1)")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=0, anchorOnly=1, anchors=1)")
   })
 
   test("summarizes dense and overloaded scene load before drafting", () => {

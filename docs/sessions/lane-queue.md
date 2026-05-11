@@ -121,7 +121,7 @@ unless the user explicitly requests a disposable branch.
 ## Next
 
 - Next session start: stop prompt-only anchoring for this LitRPG failure mode.
-  Future-event readiness plus plan-aware continuity catch this issue; next inspect why first-class anchors surfaced yet worsened before adding broader scene tags. See L103-L106.
+  Shape telemetry now splits anchor-only versus dramatic scene contracts; next test whether dramatic fields, not tags alone, move scene quality. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
