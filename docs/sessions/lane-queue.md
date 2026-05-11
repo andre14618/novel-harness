@@ -5,8 +5,8 @@ unless the user explicitly requests a disposable branch.
 
 ## Active
 
-- **Production path integration lane is active (L106).** Validated POC learnings
-  should move into production modules, controls, telemetry, tests, and review
+- **Production-first posture is now the standing default (L106).** Validated POC
+  learnings move into production modules, controls, telemetry, tests, and review
   artifacts. Use historical `poc/` outputs as evidence/fixtures, but do not add
   another long-lived POC runner, prompt branch, mapper, checker, or review
   format when the same question can be tested through the production path. New
@@ -111,8 +111,8 @@ unless the user explicitly requests a disposable branch.
 ## Next
 
 - Next session start: do not keep chasing the same single endpoint low without a
-  new upstream hypothesis; the direct structural edit regressed. Complete the
-  production-path audit, then move to the next production workflow gap. Continue
+  new upstream hypothesis; the direct structural edit regressed. Move to the
+  next production workflow gap. Continue
   seeking live `allow-entities` replay only if that blocker reproduces. See
   L103-L106.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.

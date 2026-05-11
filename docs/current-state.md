@@ -111,7 +111,8 @@ The active lane is in `docs/sessions/lane-queue.md`.
 
 As of 2026-05-11, L106 has absorbed validated POC evidence into writer-brief
 telemetry, scene-semantic replay, Plan Readiness import/apply, source hygiene,
-and planning-edit replay. `diagnostics:planning-edit-replay` projected 11
+and planning-edit replay; the formal production-path integration audit passed.
+`diagnostics:planning-edit-replay` projected 11
 approved readiness edits onto clean source `p1-clean-replay-1778457296` through
 normal planning proposals; source hygiene stayed clean (0 drafts/facts/knowledge).
 The clean rerun `p1-clean-rerun-1778457296-drafting-brief-v1` approved both
