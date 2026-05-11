@@ -540,9 +540,6 @@ function validateBeatReplacementValue(targetRef: string, value: unknown): string
     const beatIdError = validateStableIdField("beatId", beatId)
     if (beatIdError) return beatIdError
   }
-  if (proposedRef === targetRef) {
-    return "beat_replace proposedValue ref must differ from the target ref"
-  }
   if (typeof record.description !== "string" || record.description.trim().length === 0) {
     return "beat_replace proposedValue.description must be a non-empty string"
   }

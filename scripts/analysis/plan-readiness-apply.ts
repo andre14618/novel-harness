@@ -22,7 +22,7 @@ const dispositionDecisionSchema = z.enum([
   "deferred",
   "fixed",
 ])
-const proposalDecisionSchema = z.enum(["field_replace", "beat_requirement_remove"])
+const proposalDecisionSchema = z.enum(["field_replace", "beat_replace", "beat_requirement_remove"])
 const decisionSchema = z.union([dispositionDecisionSchema, proposalDecisionSchema])
 
 const actionPlanSchema = z.object({
@@ -352,7 +352,7 @@ async function invokeReadiness(method: string, path: string, body?: unknown): Pr
 }
 
 function isProposalDecision(decision: PlanReadinessApplyDecision): boolean {
-  return decision === "field_replace" || decision === "beat_requirement_remove"
+  return decision === "field_replace" || decision === "beat_replace" || decision === "beat_requirement_remove"
 }
 
 function requireValue(value: string | undefined, flag: string): string {

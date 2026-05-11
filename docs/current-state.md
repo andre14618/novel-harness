@@ -117,9 +117,11 @@ normal planning proposals; source hygiene stayed clean (0 drafts/facts/knowledge
 The clean rerun `p1-clean-rerun-1778457296-drafting-brief-v1` approved both
 chapters at 3742/3000 = 1.25x with no exhaustions, prose-semantic 0/8 lows,
 sceneDramaturgy 10/10 clean, and endpointLanding lows 1/10. The old loop4 from
-a drafted source remains contamination evidence only. Promotion remains blocked
-by the residual endpoint low and review-artifact completeness, not prose
-compaction; `allow-entities` should be replayed only if that blocker reproduces.
+a drafted source remains contamination evidence only. A structural Plan
+Readiness scene replacement for the residual low reran worse
+(`p1-clean-rerun2-1778457296`: 4061/3000, endpointLanding lows 3/10) and was
+reverted by production proposal. Do not chase that single low without a new
+upstream hypothesis; `allow-entities` should be replayed only if it reproduces.
 See L103-L106.
 
 ## Authoring Gates

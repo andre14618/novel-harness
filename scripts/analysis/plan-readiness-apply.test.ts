@@ -78,6 +78,17 @@ describe("plan-readiness-apply", () => {
       operatorNote: "make endpoint concrete",
       rationale: "operator-reviewed endpoint fix",
     })
+
+    expect(requestBodyForPlanAction({
+      match: { label: "ENDPOINT-1", targetKind: "scene_plan" },
+      decision: "beat_replace",
+      proposedValue: { sceneId: "scene-1", description: "A full scene replacement." },
+      operatorNote: "replace the scene contract so endpoint fields stay coherent",
+    })).toEqual({
+      action: "beat_replace",
+      proposedValue: { sceneId: "scene-1", description: "A full scene replacement." },
+      operatorNote: "replace the scene contract so endpoint fields stay coherent",
+    })
   })
 
   test("renderReport includes drafting source hygiene telemetry", () => {

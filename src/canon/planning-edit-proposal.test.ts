@@ -436,8 +436,8 @@ describe("planning edit proposals", () => {
       fieldPath: "self",
     }, {
       beatId: "beat-a",
-      description: "Same id is not a replacement.",
-    })).toMatch(/must differ/)
+      description: "Same stable ID with revised content is a valid contract replacement.",
+    })).toBeNull()
     expect(validatePlanningEditProposedValue("beat_reorder", {
       kind: "chapter_outline",
       ref: "ch-001",

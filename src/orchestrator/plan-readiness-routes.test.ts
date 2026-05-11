@@ -222,6 +222,58 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
     expect(created.body.proposal.diff.after.value.requiredCharacterIds).toEqual(["char-istra"])
   })
 
+  test("creates a structural scene replacement planning_edit from readiness", async () => {
+    const imported = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/import`,
+      {
+        aggregate: aggregate(),
+        importedByKind: "test",
+        importedByRef: "route-test",
+      },
+    ))
+    const itemId = imported.body.items[0].id
+    const before = await getChapterOutline(novelId, 1)
+    const { sceneId: _generatedSceneId, ...baseScene } = before.scenes![0] as Record<string, unknown>
+    const proposedScene = {
+      ...baseScene,
+      description: "Istra names the oath-road cost, forcing Vey to answer before the trial can continue.",
+      outcome: "Vey answers on the record.",
+      consequence: "The testimony changes the trial leverage before the next scene begins.",
+    }
+
+    const created = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/${itemId}/create-planning-proposal`,
+      {
+        action: "beat_replace",
+        proposedValue: proposedScene,
+        operatorNote: "Endpoint repair needs the full scene contract to stay coherent.",
+      },
+    ))
+
+    expect(created.status).toBe(200)
+    expect(created.body.ok).toBe(true)
+    expect(created.body.proposal.envelope.payload.action).toBe("beat_replace")
+    expect(created.body.proposal.envelope.target).toMatchObject({
+      kind: "scene_plan",
+      ref: "beat-route-1",
+      fieldPath: "self",
+    })
+
+    const approved = await resolvePlanningProposal(novelId, created.body.proposal.envelope.id, {
+      status: "approved",
+      resolvedBy: "test",
+      operatorNote: "Approve structural readiness bridge test.",
+    })
+    expect(approved.status).toBe(200)
+
+    const saved = await getChapterOutline(novelId, 1)
+    expect((saved.scenes![0] as any).description).toBe(proposedScene.description)
+    expect((saved.scenes![0] as any).outcome).toBe(proposedScene.outcome)
+    expect((saved.scenes![0] as any).consequence).toBe(proposedScene.consequence)
+  })
+
   test("creates and applies a character-ref field planning_edit from readiness", async () => {
     const imported = await expectJson(await invoke(
       "POST",

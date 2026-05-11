@@ -21,9 +21,12 @@ unless the user explicitly requests a disposable branch.
   `p1-clean-rerun-1778457296-drafting-brief-v1` approved both chapters at
   3742/3000 = 1.25x, no exhaustions, prose-semantic 0/8 lows, sceneDramaturgy
   10/10 clean, endpointLanding lows 1/10. The remaining low is ch2 scene 1
-  ending as setup rather than a consequence. `allow-entities` did not reproduce
-  in this clean run; replay it only when that blocker appears again. Loop4 from
-  a drafted source stays negative/contaminated evidence. See L106.
+  ending as setup rather than a consequence. A Plan Readiness structural
+  `beat_replace` edit for that scene was tested through normal proposals, but
+  clean rerun2 worsened to 4061/3000 and endpointLanding lows 3/10; the edit was
+  reverted by another proposal. `allow-entities` did not reproduce; replay it
+  only when that blocker appears again. Loop4 stays contaminated evidence. See
+  L106.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -107,11 +110,11 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: inspect the single clean-rerun endpoint low (ch2 scene 1)
-  and decide whether one more planning edit is warranted or the signal is good
-  enough for the next production-path question. Continue seeking live
-  `allow-entities` replay only when that blocker reproduces; do not reopen POC
-  branching or treat prose length as the blocker. See L103-L106.
+- Next session start: do not keep chasing the same single endpoint low without a
+  new upstream hypothesis; the direct structural edit regressed. Complete the
+  production-path audit, then move to the next production workflow gap. Continue
+  seeking live `allow-entities` replay only if that blocker reproduces. See
+  L103-L106.
 - Production scene-first migration S1 is deferred by the L103 promotion hold.
   When reopened, close L096's
   `scenePlanContractV1` prompt-fidelity gaps, re-record replay parity fixtures,

@@ -264,6 +264,26 @@ ch2 scene 1, where the judge found the scene ended as setup rather than a
 concrete consequence. `allow-entities` did not reproduce in this clean run; keep
 that replay opportunistic rather than manufacturing a separate path.
 
+The residual endpoint low was inspected through the production Plan Readiness
+path rather than by editing POC artifacts. That exposed a real integration gap:
+readiness apply could create scalar `field_replace` proposals but not full
+scene-contract replacements. The production Plan Readiness route and
+`diagnostics:plan-readiness-apply` now support `beat_replace` proposals, and
+`beat_replace` may preserve the same durable scene/beat ID when replacing the
+contract. The edit was tested on `p1-clean-replay-1778457296` as proposal
+`planning_edit:p1-clean-replay-1778457296:9e20cdbf6d622308`.
+
+Live evidence rejected that edit as a promotion move:
+`p1-clean-rerun2-1778457296-drafting-brief-v1` approved both chapters but
+worsened to 4061/3000 words (mean ratio 1.35) and endpointLanding lows 3/10,
+while prose semantic stayed 0/8 lows and sceneDramaturgy stayed 10/10 clean.
+The scene-contract edit was reverted through follow-up production proposal
+`planning_edit:p1-clean-replay-1778457296:a8135ebc13ec3d47`, preserving the
+clean source's stronger prior plan state. Treat the remaining single
+endpointLanding low as diagnostic residue unless a new upstream planning
+hypothesis explains it; do not keep compacting prose or hand-tuning the same
+scene contract.
+
 ## Evidence And Verification
 
 Production-path integration needs:

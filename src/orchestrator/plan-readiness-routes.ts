@@ -51,14 +51,14 @@ const dispositionBodySchema = z
   })
 
 const createPlanningProposalBodySchema = z.object({
-  action: z.enum(["field_replace", "beat_requirement_remove"]).optional(),
+  action: z.enum(["field_replace", "beat_replace", "beat_requirement_remove"]).optional(),
   proposedValue: z.unknown().optional(),
   useCandidate: z.boolean().optional().default(false),
   operatorNote: z.string().nullable().optional(),
   rationale: z.string().optional(),
 })
 
-type ReadinessProposalAction = "field_replace" | "beat_requirement_remove"
+type ReadinessProposalAction = "field_replace" | "beat_replace" | "beat_requirement_remove"
 
 export async function handlePlanReadinessRoute(
   req: Request,
@@ -334,6 +334,21 @@ async function handleCreatePlanningProposalFromReadiness(
         { status: 400 },
       )
     }
+    if (
+      effectiveAction === "beat_replace" &&
+      item.target.kind !== "beat_plan" &&
+      item.target.kind !== "scene_plan"
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error: "beat_replace readiness proposals require a scene_plan or beat_plan target",
+          readinessItemId: item.id,
+          target: item.target,
+        },
+        { status: 400 },
+      )
+    }
     if (item.sourceHashKind === "target_current_version") {
       const targetVersions = await loadReadinessTargetVersions(novelId)
       const currentVersion = targetVersions.get(readinessTargetKey(item.target))
@@ -365,7 +380,9 @@ async function handleCreatePlanningProposalFromReadiness(
     const createUrl = new URL(`http://localhost/api/novel/${encodeURIComponent(novelId)}/planning-proposals`)
     const proposalTarget = effectiveAction === "beat_requirement_remove"
       ? { kind: item.target.kind as "scene_plan" | "beat_plan", ref: item.target.ref, fieldPath: "requirements" as const }
-      : item.target
+      : effectiveAction === "beat_replace"
+        ? { kind: item.target.kind as "scene_plan" | "beat_plan", ref: item.target.ref, fieldPath: "self" as const }
+        : item.target
     const planningBody = {
       action: effectiveAction,
       target: proposalTarget,
@@ -493,7 +510,7 @@ function readinessProposalCandidate(item: PlanReadinessItem): {
   const raw = item.metadata.proposalCandidate
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null
   const record = raw as Record<string, unknown>
-  const action = record.action === "field_replace" || record.action === "beat_requirement_remove"
+  const action = record.action === "field_replace" || record.action === "beat_replace" || record.action === "beat_requirement_remove"
     ? record.action
     : undefined
   const target = normalizeCandidateTarget(record.target)
