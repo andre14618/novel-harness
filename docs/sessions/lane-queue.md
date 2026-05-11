@@ -20,18 +20,17 @@ unless the user explicitly requests a disposable branch.
   `dramatic=11/11` but `choice/full=7/11`; drafting controlled length
   (`drafting-brief-v1` 1.22x, scene-turn 1.29x) and removed
   characterMateriality lows, but endpointLanding regressed to 5/11 and 4/11 lows;
-  continuity checks exposed upstream Corso/Kael/debt-status contradictions. No
-  default flip. See L106.
+  readiness now emits four partial-contract candidates and one high Corso
+  clean-record contradiction. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
   writes it per arm. Scene-contract telemetry now separates broad `dramatic`
   presence from `choice`, `endpoint`, and `full` completeness.
   `diagnostics:planning-context-readiness` converts
-  overloaded scene-load and future-event-anchor pressure into manual Plan Readiness items using `scene_select`/`field_replace` scaffolds; clean
-  LitRPG source `novel-1777777292668` has two high `sceneLoad` items, and the
-  edited clone proved proposal/apply approval with lineage. Keep context gaps
-  diagnostic unless downstream context is missing for a needed ref.
+  overloaded scene-load, future-event anchors, partial scene contracts, and
+  narrow fact-status reversals into manual Plan Readiness items. Keep context
+  gaps diagnostic unless downstream context is missing for a needed ref.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
@@ -115,11 +114,9 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: treat broad `dramatic` coverage as insufficient. Harden
-  planner-generated contracts so `choice/full` completeness reaches source
-  scenes, endpointLanding ends in concrete action/consequence, and immutable
-  entity/fact status survives planning into drafting; then rerun clean
-  production cohorts before any prompt-arm/default decision. See L103-L106.
+- Next session start: use the generated-P1 readiness candidates to repair
+  partial contracts and the Corso status reversal, then rerun clean production
+  cohorts to measure endpointLanding before any prompt-arm/default decision. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.

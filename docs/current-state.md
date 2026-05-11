@@ -114,17 +114,19 @@ The active lane is in `docs/sessions/lane-queue.md`.
 
 As of 2026-05-11, L106 has absorbed validated POC evidence into production
 writer-brief telemetry, scene-semantic replay, Plan Readiness import/apply,
-source hygiene, planning-edit replay, and scene-contract completeness telemetry.
+source hygiene, planning-edit replay, scene-contract completeness telemetry, and
+fact-status continuity readiness.
 P1 made `drafting-brief-v1` strongest at 1.24x with prose lows 0/8 and scene
 lows 1/33, but LitRPG replication held promotion. Reviewed `scene_select`,
 future-event, anchor, dramatic-contract, duplicate-integrity, and compact-brief
 runs left compact brief best on the edited LitRPG source at 2/45 lows and 1.53x,
 with length/materiality still blocking. Planner-generated P1 contracts controlled
 length better (`drafting-brief-v1` 1.22x, scene-turn 1.29x) and eliminated
-characterMateriality lows, but endpointLanding lows remained high and checker
-continuity found upstream Corso/Kael/debt-status contradictions. Treat broad
-dramatic fields as insufficient; next harden endpoint-executed contracts plus
-immutable fact/entity constraints. Do not flip defaults. See L103-L106.
+characterMateriality lows, but endpointLanding lows remained high; new
+readiness telemetry finds four missing choice/full scene contracts plus the
+high-severity Corso clean-record contradiction. Treat broad dramatic fields as
+insufficient; next repair endpoint-executed contracts and rerun clean cohorts.
+Do not flip defaults. See L103-L106.
 
 ## Authoring Gates
 
