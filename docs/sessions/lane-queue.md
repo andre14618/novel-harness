@@ -13,15 +13,15 @@ unless the user explicitly requests a disposable branch.
   scene-first novella POC runs require an explicit disposable-POC flag.
 - **Production writer-brief evidence (2026-05-11).** P1 made
   `drafting-brief-v1` strongest at 1.24x with prose lows 0/8 and scene lows
-  1/33, but LitRPG replication held promotion. Source-edit, future-event,
-  anchor, dramatic-contract, duplicate-integrity, and compact-brief runs left
-  compact brief best on the edited LitRPG source at 2/45 lows and 1.53x, with
-  length/materiality still blocking. Planner-generated P1 contracts had
-  `dramatic=11/11` but `choice/full=7/11`; drafting controlled length
-  (`drafting-brief-v1` 1.22x, scene-turn 1.29x) and removed
-  characterMateriality lows, but endpointLanding regressed to 5/11 and 4/11 lows;
-  readiness now emits four partial-contract candidates and one high Corso
-  clean-record contradiction. No default flip. See L106.
+  1/33, but LitRPG replication held promotion. Planner-generated P1 first
+  controlled length (`drafting-brief-v1` 1.22x, scene-turn 1.29x) and removed
+  characterMateriality lows, but had `choice/full=7/11`, endpoint lows 5/11 and
+  4/11, and a Corso clean-record contradiction. After Plan Readiness plus
+  reviewed planning edits, the repaired clone reached `choice/full=11/11`,
+  `factContradictions=0`; clean rerun compact brief landed 1.30x, prose lows
+  0/8, scene lows 3/36, endpoint lows 3/11, while scene-turn landed 1.46x,
+  scene lows 4/36, endpoint lows 2/11, with scene/world regressions. Compact
+  brief remains the best tradeoff. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
@@ -114,9 +114,11 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: use the generated-P1 readiness candidates to repair
-  partial contracts and the Corso status reversal, then rerun clean production
-  cohorts to measure endpointLanding before any prompt-arm/default decision. See L103-L106.
+- Next session start: inspect repaired generated-P1 low scene-semantic rows and
+  tighten endpoint-executed contract wording plus length discipline before any
+  prompt-arm/default decision. The known upstream wording risk is absolute
+  "transfer impossible" language where the intended mechanic is closer to "no
+  clean transfer is possible." See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
