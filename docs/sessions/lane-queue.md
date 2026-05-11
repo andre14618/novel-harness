@@ -26,7 +26,7 @@ unless the user explicitly requests a disposable branch.
   endpoint repairs reached 3398/2700 = 1.27x with scene lows 0/45; Corso
   replication regressed to 5002/3800 with scene lows 4/34. Fresh P1 N=3 tight
   cohort stayed mixed: mean +27.0 words, scene lows -2, endpoint lows flat,
-  alignment 2 load-change gains / 1 expanded-no-gain row. Treat tight brief as source-sensitive A/B evidence.
+  alignment 2 load-change gains / 1 expanded-no-gain row. Separate gate cell: regular stopped at ch1 Plan-Assist while tight completed 4407/3800 with 3 lows.
   Keep broad operational-facts brief out after 6050/3800 regression. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
