@@ -84,7 +84,7 @@ describe("plan-readiness-review-plan", () => {
     expect(report.plan.actions[0]?.proposalInstruction).toContain("set decision to the candidate action")
   })
 
-  test("buildReviewPlanReport templates scene-load reorder proposals with current scene refs", () => {
+  test("buildReviewPlanReport templates scene-load selection proposals with current scene refs", () => {
     const report = buildReviewPlanReport({
       novelId: "novel",
       status: "open",
@@ -109,7 +109,7 @@ describe("plan-readiness-review-plan", () => {
           evidence: { sceneRefs: "scene-1,scene-2,scene-3" },
           metadata: {
             proposalCandidate: {
-              action: "beat_reorder",
+              action: "scene_select",
               target: { kind: "chapter_outline", ref: "ch-001", fieldPath: "scenes" },
               requiresProposedValue: true,
               safeToAutoApply: false,
@@ -128,7 +128,7 @@ describe("plan-readiness-review-plan", () => {
       },
       decision: "deferred",
       proposalCandidate: {
-        action: "beat_reorder",
+        action: "scene_select",
         target: { kind: "chapter_outline", ref: "ch-001", fieldPath: "scenes" },
       },
       proposedValueTemplate: ["scene-1", "scene-2", "scene-3"],

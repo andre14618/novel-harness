@@ -92,6 +92,35 @@ describe("collectStructuralPlanningMutationLineage", () => {
     })
   })
 
+  test("records scene selection removals without treating compressed slots as replacements", () => {
+    const previous = outline([
+      scene("scene-a", "beat-a", "Open the vault"),
+      scene("scene-b", "beat-b", "Inspect the map"),
+      scene("scene-c", "beat-c", "Close the gate"),
+    ])
+    const next = outline([
+      scene("scene-a", "beat-a", "Open the vault"),
+      scene("scene-c", "beat-c", "Close the gate"),
+    ])
+
+    const drafts = collectStructuralPlanningMutationLineage(previous, next)
+
+    expect(drafts.some((draft) => draft.metadata.structuralOperation === "beat_replace")).toBe(false)
+    expect(drafts).toContainEqual(expect.objectContaining({
+      targetKind: "scene_plan",
+      previousRef: "scene-b",
+      nextRef: "scene-b",
+      fieldPath: "scenes",
+      metadata: expect.objectContaining({
+        structuralOperation: "scene_select",
+        previousIndex: 1,
+        removedFromChapterScenes: true,
+        previousSceneCount: 3,
+        nextSceneCount: 2,
+      }),
+    }))
+  })
+
   test("does not infer beat replacement when ids are missing", () => {
     const previous = outline([
       beat("beat-a", "Open the vault"),

@@ -51,14 +51,14 @@ const dispositionBodySchema = z
   })
 
 const createPlanningProposalBodySchema = z.object({
-  action: z.enum(["field_replace", "beat_replace", "beat_reorder", "beat_requirement_remove"]).optional(),
+  action: z.enum(["field_replace", "beat_replace", "beat_reorder", "scene_select", "beat_requirement_remove"]).optional(),
   proposedValue: z.unknown().optional(),
   useCandidate: z.boolean().optional().default(false),
   operatorNote: z.string().nullable().optional(),
   rationale: z.string().optional(),
 })
 
-type ReadinessProposalAction = "field_replace" | "beat_replace" | "beat_reorder" | "beat_requirement_remove"
+type ReadinessProposalAction = "field_replace" | "beat_replace" | "beat_reorder" | "scene_select" | "beat_requirement_remove"
 
 export async function handlePlanReadinessRoute(
   req: Request,
@@ -350,13 +350,13 @@ async function handleCreatePlanningProposalFromReadiness(
       )
     }
     if (
-      effectiveAction === "beat_reorder" &&
+      (effectiveAction === "beat_reorder" || effectiveAction === "scene_select") &&
       item.target.kind !== "chapter_outline"
     ) {
       return Response.json(
         {
           ok: false,
-          error: "beat_reorder readiness proposals require a chapter_outline target",
+          error: `${effectiveAction} readiness proposals require a chapter_outline target`,
           readinessItemId: item.id,
           target: item.target,
         },
@@ -396,7 +396,7 @@ async function handleCreatePlanningProposalFromReadiness(
       ? { kind: item.target.kind as "scene_plan" | "beat_plan", ref: item.target.ref, fieldPath: "requirements" as const }
       : effectiveAction === "beat_replace"
         ? { kind: item.target.kind as "scene_plan" | "beat_plan", ref: item.target.ref, fieldPath: "self" as const }
-        : effectiveAction === "beat_reorder"
+        : effectiveAction === "beat_reorder" || effectiveAction === "scene_select"
           ? { kind: "chapter_outline" as const, ref: item.target.ref, fieldPath: "scenes" as const }
           : item.target
     const planningBody = {
@@ -529,6 +529,7 @@ function readinessProposalCandidate(item: PlanReadinessItem): {
   const action = record.action === "field_replace" ||
     record.action === "beat_replace" ||
     record.action === "beat_reorder" ||
+    record.action === "scene_select" ||
     record.action === "beat_requirement_remove"
     ? record.action
     : undefined

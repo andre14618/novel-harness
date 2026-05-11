@@ -22,7 +22,7 @@ const dispositionDecisionSchema = z.enum([
   "deferred",
   "fixed",
 ])
-const proposalDecisionSchema = z.enum(["field_replace", "beat_replace", "beat_reorder", "beat_requirement_remove"])
+const proposalDecisionSchema = z.enum(["field_replace", "beat_replace", "beat_reorder", "scene_select", "beat_requirement_remove"])
 const decisionSchema = z.union([dispositionDecisionSchema, proposalDecisionSchema])
 
 const actionPlanSchema = z.object({
@@ -410,6 +410,7 @@ function isProposalDecision(decision: PlanReadinessApplyDecision): boolean {
   return decision === "field_replace" ||
     decision === "beat_replace" ||
     decision === "beat_reorder" ||
+    decision === "scene_select" ||
     decision === "beat_requirement_remove"
 }
 

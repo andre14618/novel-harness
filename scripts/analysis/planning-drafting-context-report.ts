@@ -9,6 +9,7 @@
 
 import db from "../../src/db/connection"
 import type { ChapterOutline, CharacterProfile } from "../../src/types"
+import { enrichOutlineIds } from "../../src/harness/ids"
 import { beatDescriptionHasImplicitReference } from "../../src/agents/writer/reference-resolver"
 import {
   buildWriterContextTelemetryReport,
@@ -365,17 +366,18 @@ function auditSurface(args: {
 
 function summarizeSceneLoad(outlines: readonly ChapterOutline[]): SceneLoadSummary {
   const chapters = outlines.map(outline => {
-    const sceneCount = (outline.scenes ?? []).length
-    const sceneRefs = (outline.scenes ?? [])
+    const normalized = canonicalOutlineForSceneLoad(outline)
+    const sceneCount = (normalized.scenes ?? []).length
+    const sceneRefs = (normalized.scenes ?? [])
       .map(scene => sceneRef(scene))
       .filter((ref): ref is string => ref !== null)
-    const targetWords = positiveNumber(outline.targetWords) ? outline.targetWords : null
+    const targetWords = positiveNumber(normalized.targetWords) ? normalized.targetWords : null
     const targetWordsPerScene = targetWords !== null && sceneCount > 0
       ? targetWords / sceneCount
       : null
     return {
-      chapterNumber: outline.chapterNumber,
-      chapterId: outline.chapterId ?? `chapter:${outline.chapterNumber}`,
+      chapterNumber: normalized.chapterNumber,
+      chapterId: normalized.chapterId ?? `chapter:${normalized.chapterNumber}`,
       sceneRefs,
       sceneCount,
       targetWords,
@@ -395,6 +397,12 @@ function summarizeSceneLoad(outlines: readonly ChapterOutline[]): SceneLoadSumma
     denseChapterCount: chapters.filter(chapter => chapter.signal === "dense").length,
     overloadedChapterCount: chapters.filter(chapter => chapter.signal === "overloaded").length,
   }
+}
+
+function canonicalOutlineForSceneLoad(outline: ChapterOutline): ChapterOutline {
+  const normalized = JSON.parse(JSON.stringify(outline)) as ChapterOutline
+  enrichOutlineIds(normalized)
+  return normalized
 }
 
 function sceneRef(scene: unknown): string | null {

@@ -190,6 +190,12 @@ export const beatReorderPlanningEditTargetSchema = z.object({
   fieldPath: z.literal("scenes"),
 })
 
+export const sceneSelectPlanningEditTargetSchema = z.object({
+  kind: z.literal("chapter_outline"),
+  ref: z.string().min(1),
+  fieldPath: z.literal("scenes"),
+})
+
 export const beatObligationReplacePlanningEditTargetSchema = z.object({
   kind: z.literal("beat_obligation"),
   ref: z.string().min(1),
@@ -211,6 +217,7 @@ export const beatRequirementRemovePlanningEditTargetSchema = z.object({
 export const planningEditStructuralTargetSchema = z.union([
   beatReplacePlanningEditTargetSchema,
   beatReorderPlanningEditTargetSchema,
+  sceneSelectPlanningEditTargetSchema,
   beatObligationReplacePlanningEditTargetSchema,
   beatObligationReorderPlanningEditTargetSchema,
   beatRequirementRemovePlanningEditTargetSchema,
@@ -259,6 +266,10 @@ export const planningEditPayloadSchema = z.discriminatedUnion("action", [
   planningEditPayloadBaseSchema.extend({
     action: z.literal("beat_reorder"),
     target: beatReorderPlanningEditTargetSchema,
+  }),
+  planningEditPayloadBaseSchema.extend({
+    action: z.literal("scene_select"),
+    target: sceneSelectPlanningEditTargetSchema,
   }),
   planningEditPayloadBaseSchema.extend({
     action: z.literal("beat_obligation_replace"),
@@ -489,6 +500,11 @@ export function validatePlanningEditActionTarget(
       ? null
       : "beat_reorder requires target kind=chapter_outline fieldPath=scenes"
   }
+  if (action === "scene_select") {
+    return sceneSelectPlanningEditTargetSchema.safeParse(target).success
+      ? null
+      : "scene_select requires target kind=chapter_outline fieldPath=scenes"
+  }
   if (action === "beat_obligation_replace") {
     return beatObligationReplacePlanningEditTargetSchema.safeParse(target).success
       ? null
@@ -516,6 +532,7 @@ export function validatePlanningEditProposedValue(
   }
   if (action === "beat_replace") return validateBeatReplacementValue(target.ref, value)
   if (action === "beat_reorder") return validateStableIdOrder("beat order", value)
+  if (action === "scene_select") return validateStableIdOrder("scene selection", value)
   if (action === "beat_obligation_replace") {
     return validateObligationReplacementValue(target.ref, value)
   }

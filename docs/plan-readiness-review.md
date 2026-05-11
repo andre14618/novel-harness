@@ -166,10 +166,10 @@ bun run diagnostics:planning-context-readiness -- \
 This adapter is deterministic and manual. It flags chapters whose scene count
 is too dense for the target word budget, then asks the operator whether to
 split the chapter, reduce scene count, or combine scene purposes before
-drafting. Proposal scaffolds use the structural `beat_reorder` action with
-the current scene-ID order as the template; the operator must supply the
-reviewed scene-ID order. The adapter never creates that replacement order by
-itself.
+drafting. Proposal scaffolds use the structural `scene_select` action with the
+current scene-ID order as the template; the operator must supply the reviewed
+subset of scene IDs to retain. The adapter never creates that replacement order
+by itself.
 
 Corpus recreation semantic lows can be converted into the same review-group
 shape without touching the DB:
@@ -257,7 +257,7 @@ bun run diagnostics:plan-readiness-apply -- \
 
 The plan may mark items `accepted_as_is`, `not_applicable`, `deferred`, or
 `fixed`, or create a normal manual `planning_edit` proposal with
-`field_replace`, `beat_replace`, `beat_reorder`, or
+`field_replace`, `beat_replace`, `beat_reorder`, `scene_select`, or
 `beat_requirement_remove`. By default the command creates proposals without
 approving them. Pass `--approve-proposals` only for an already reviewed
 operator plan; approval still goes through the normal planning proposal

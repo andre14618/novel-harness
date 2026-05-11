@@ -69,6 +69,7 @@ const createBodySchema = z.object({
     "field_replace",
     "beat_replace",
     "beat_reorder",
+    "scene_select",
     "beat_obligation_replace",
     "beat_obligation_reorder",
     "beat_requirement_remove",
@@ -716,7 +717,7 @@ async function loadPlanningEditTargetState(
     const stored = await getChapterOutlineByChapterId(novelId, target.ref, opts)
     if (!stored) return null
     const outline = normalizeChapterOutlineForPersistence(stored.outline)
-    if (action === "beat_reorder") {
+    if (action === "beat_reorder" || action === "scene_select") {
       return {
         outline,
         ref: outline.chapterId ?? target.ref,
@@ -837,7 +838,7 @@ function applyPlanningStructuralEdit(
     next.scenes = scenes
     return normalizeChapterOutlineForPersistence(next)
   }
-  if (payload.action === "beat_reorder") {
+  if (payload.action === "beat_reorder" || payload.action === "scene_select") {
     const byId = new Map((next.scenes ?? []).map((beat) => [entryRef(beat), beat]))
     next.scenes = (payload.proposedValue as string[])
       .map((sceneRef) => byId.get(sceneRef))
@@ -1245,6 +1246,28 @@ function validateExactOrderChange(
   return null
 }
 
+function validateSceneSelectionChange(
+  label: string,
+  currentOrder: readonly string[],
+  proposedOrder: readonly string[],
+): string | null {
+  const currentSet = new Set(currentOrder)
+  const proposedSet = new Set(proposedOrder)
+  const missing = currentOrder.filter((id) => !proposedSet.has(id))
+  const unknown = proposedOrder.filter((id) => !currentSet.has(id))
+  if (unknown.length > 0) {
+    return `${label} must contain only current IDs; unknown=${unknown.join(",")}`
+  }
+  if (missing.length === 0) {
+    return `${label} must remove at least one current ID; use beat_reorder for exact-set order changes`
+  }
+  const currentRelativeOrder = currentOrder.filter((id) => proposedSet.has(id))
+  if (!currentRelativeOrder.every((id, index) => proposedOrder[index] === id)) {
+    return `${label} must preserve current relative order for retained IDs`
+  }
+  return null
+}
+
 function validatePlanningEditSemantics(
   targetState: PlanningEditTargetState,
   target: PlanningEditPayload["target"],
@@ -1255,6 +1278,14 @@ function validatePlanningEditSemantics(
     if (!targetState.outline) return "beat_reorder target state missing outline"
     return validateExactOrderChange(
       "beat_reorder proposedValue",
+      beatOrder(targetState.outline),
+      proposedValue as string[],
+    )
+  }
+  if (action === "scene_select") {
+    if (!targetState.outline) return "scene_select target state missing outline"
+    return validateSceneSelectionChange(
+      "scene_select proposedValue",
       beatOrder(targetState.outline),
       proposedValue as string[],
     )
@@ -1583,7 +1614,7 @@ function targetVersion(
   payload: PlanningEditPayload,
 ): string {
   const target = payload.target
-  if (payload.action === "beat_reorder") return stableHash(beatOrder(outline))
+  if (payload.action === "beat_reorder" || payload.action === "scene_select") return stableHash(beatOrder(outline))
   if (payload.action === "beat_obligation_reorder") {
     const beat = findBeat(outline, target.ref)
     const reorder = readObligationReorder(payload.proposedValue)

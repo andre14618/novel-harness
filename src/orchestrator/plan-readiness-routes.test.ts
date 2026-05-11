@@ -274,7 +274,7 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
     expect((saved.scenes![0] as any).consequence).toBe(proposedScene.consequence)
   })
 
-  test("creates and applies a scene-order planning_edit from scene-load readiness", async () => {
+  test("creates and applies a scene-selection planning_edit from scene-load readiness", async () => {
     const stored = await getChapterOutline(novelId, 1)
     const first = { ...(stored.scenes![0] as Record<string, unknown>), beatId: "beat-route-1", sceneId: "beat-route-1" }
     const second = {
@@ -298,7 +298,7 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
     ))
     const itemId = imported.body.items[0].id
     expect(imported.body.items[0].metadata.proposalCandidate).toMatchObject({
-      action: "beat_reorder",
+      action: "scene_select",
       target: {
         kind: "chapter_outline",
         ref: "ch-route-1",
@@ -310,34 +310,33 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
       "POST",
       `/api/novel/${novelId}/plan-readiness/${itemId}/create-planning-proposal`,
       {
-        action: "beat_reorder",
-        proposedValue: ["beat-route-2", "beat-route-1"],
-        operatorNote: "Move the consequence scene before the static setup scene.",
+        action: "scene_select",
+        proposedValue: ["beat-route-2"],
+        operatorNote: "Keep the consequence scene and remove the static setup scene.",
       },
     ))
 
     expect(created.status).toBe(200)
     expect(created.body.ok).toBe(true)
-    expect(created.body.proposal.envelope.payload.action).toBe("beat_reorder")
+    expect(created.body.proposal.envelope.payload.action).toBe("scene_select")
     expect(created.body.proposal.envelope.target).toMatchObject({
       kind: "chapter_outline",
       ref: "ch-route-1",
       fieldPath: "scenes",
     })
     expect(created.body.proposal.diff.before.value).toEqual(["beat-route-1", "beat-route-2"])
-    expect(created.body.proposal.diff.after.value).toEqual(["beat-route-2", "beat-route-1"])
+    expect(created.body.proposal.diff.after.value).toEqual(["beat-route-2"])
 
     const approved = await resolvePlanningProposal(novelId, created.body.proposal.envelope.id, {
       status: "approved",
       resolvedBy: "test",
-      operatorNote: "Approve scene-load reorder bridge test.",
+      operatorNote: "Approve scene-load selection bridge test.",
     })
     expect(approved.status).toBe(200)
 
     const saved = await getChapterOutline(novelId, 1)
     expect(saved.scenes?.map(scene => (scene as any).beatId ?? (scene as any).sceneId)).toEqual([
       "beat-route-2",
-      "beat-route-1",
     ])
   })
 
@@ -616,7 +615,7 @@ function sceneLoadAggregate() {
             sourceIds: [],
           },
           proposalCandidate: {
-            action: "beat_reorder",
+            action: "scene_select",
             target: {
               kind: "chapter_outline",
               ref: "ch-route-1",

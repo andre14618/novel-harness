@@ -111,7 +111,7 @@ interface AggregateFindingLike {
   evidence?: unknown
 }
 
-type CandidateAction = "field_replace" | "beat_replace" | "beat_reorder" | "beat_requirement_remove"
+type CandidateAction = "field_replace" | "beat_replace" | "beat_reorder" | "scene_select" | "beat_requirement_remove"
 
 export function buildPlanReadinessDraftsFromAggregate(
   args: BuildReadinessDraftsArgs,
@@ -271,6 +271,7 @@ function normalizeCandidateAction(value: unknown): CandidateAction | null {
   return value === "field_replace" ||
     value === "beat_replace" ||
     value === "beat_reorder" ||
+    value === "scene_select" ||
     value === "beat_requirement_remove"
     ? value
     : null

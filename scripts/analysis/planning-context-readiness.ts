@@ -71,7 +71,7 @@ interface PlanningContextReadinessGroup {
     rewriteGoals: string[]
     preserveIds: PlanningContextReadinessSourceIds
     proposalCandidate: {
-      action: "beat_reorder"
+      action: "scene_select"
       target: {
         kind: "chapter_outline"
         ref: string
@@ -247,7 +247,7 @@ function groupForChapter(args: {
       ],
       preserveIds: sourceIds,
       proposalCandidate: {
-        action: "beat_reorder",
+        action: "scene_select",
         target: {
           kind: "chapter_outline",
           ref: chapterId,

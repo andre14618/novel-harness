@@ -21,6 +21,7 @@ import {
   loadSourceDraftingIsolationAssessment,
   type SourceDraftingIsolationAssessment,
 } from "../../src/harness/drafting-source"
+import { enrichOutlineIds } from "../../src/harness/ids"
 import type { ChapterOutline } from "../../src/types"
 
 type StatusFilter = PlanReadinessStatus | "all"
@@ -180,7 +181,7 @@ function proposedValueTemplateFor(item: PlanReadinessItem): unknown {
   const action = typeof proposalCandidate === "object" && proposalCandidate !== null && !Array.isArray(proposalCandidate)
     ? (proposalCandidate as Record<string, unknown>).action
     : null
-  if (action === "beat_reorder") {
+  if (action === "beat_reorder" || action === "scene_select") {
     const sceneRefs = stringListFromCsv(item.evidence.sceneRefs)
     return sceneRefs.length > 0 ? sceneRefs : ["replace-with-reviewed-scene-id-order"]
   }
@@ -273,13 +274,20 @@ async function loadReviewTargetContexts(
   const outlines = await getChapterOutlines(novelId).catch(() => [])
   const out = new Map<string, PlanReadinessReviewTargetContext>()
   for (const outline of outlines) {
-    const chapterRef = outline.chapterId ?? `chapter:${outline.chapterNumber}`
-    const sceneOrder = (outline.scenes ?? []).map((scene, index) => sceneSummary(scene, index))
+    const normalized = canonicalOutlineForReview(outline)
+    const chapterRef = normalized.chapterId ?? `chapter:${normalized.chapterNumber}`
+    const sceneOrder = (normalized.scenes ?? []).map((scene, index) => sceneSummary(scene, index))
     out.set(`chapter_outline:${chapterRef}:scenes`, {
       currentValueSummary: sceneOrder,
     })
   }
   return out
+}
+
+function canonicalOutlineForReview(outline: ChapterOutline): ChapterOutline {
+  const normalized = JSON.parse(JSON.stringify(outline)) as ChapterOutline
+  enrichOutlineIds(normalized)
+  return normalized
 }
 
 function sceneSummary(scene: NonNullable<ChapterOutline["scenes"]>[number], index: number): {

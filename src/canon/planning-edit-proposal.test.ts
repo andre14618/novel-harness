@@ -443,6 +443,16 @@ describe("planning edit proposals", () => {
       ref: "ch-001",
       fieldPath: "scenes",
     }, ["beat-a", "beat-a"])).toMatch(/duplicate/)
+    expect(validatePlanningEditActionTarget("scene_select", {
+      kind: "chapter_outline",
+      ref: "ch-001",
+      fieldPath: "scenes",
+    })).toBeNull()
+    expect(validatePlanningEditProposedValue("scene_select", {
+      kind: "chapter_outline",
+      ref: "ch-001",
+      fieldPath: "scenes",
+    }, ["scene-a", "scene-c"])).toBeNull()
     expect(validatePlanningEditActionTarget("beat_obligation_reorder", {
       kind: "scene_plan",
       ref: "scene-a",

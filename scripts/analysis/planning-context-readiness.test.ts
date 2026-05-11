@@ -36,7 +36,7 @@ describe("planning-context-readiness", () => {
       },
     })
     expect(group.rewritePacket.proposalCandidate).toMatchObject({
-      action: "beat_reorder",
+      action: "scene_select",
       target: {
         kind: "chapter_outline",
         ref: "ch-001",
@@ -106,7 +106,7 @@ describe("planning-context-readiness", () => {
       importedByRef: "planning-context-readiness-test",
       metadata: {
         proposalCandidate: {
-          action: "beat_reorder",
+          action: "scene_select",
           target: { kind: "chapter_outline", ref: "ch-001", fieldPath: "scenes" },
           requiresProposedValue: true,
           proposedValueStatus: "operator_required",

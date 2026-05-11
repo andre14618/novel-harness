@@ -97,11 +97,11 @@ describe("plan-readiness-apply", () => {
 
     expect(requestBodyForPlanAction({
       match: { label: "SCENE-LOAD-OVERLOADED", targetKind: "chapter_outline" },
-      decision: "beat_reorder",
+      decision: "scene_select",
       proposedValue: ["scene-1", "scene-2"],
       operatorNote: "operator reviewed the scene order/count",
     })).toEqual({
-      action: "beat_reorder",
+      action: "scene_select",
       proposedValue: ["scene-1", "scene-2"],
       operatorNote: "operator reviewed the scene order/count",
     })

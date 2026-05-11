@@ -15,6 +15,7 @@ type SceneBeatInOutline = NonNullable<ChapterOutline["scenes"]>[number]
 export type StructuralPlanningLineageOperation =
   | "beat_reorder"
   | "beat_replace"
+  | "scene_select"
   | "obligation_reorder"
   | "obligation_replace"
 
@@ -61,6 +62,7 @@ export function collectStructuralPlanningMutationLineage(
   const previousSceneByIndex = new Map(previousScenes.map((slot) => [slot.index, slot]))
   const nextSceneByIndex = new Map(nextScenes.map((slot) => [slot.index, slot]))
   const drafts: StructuralPlanningMutationLineageDraft[] = []
+  const replacedPreviousRefs = new Set<string>()
 
   for (const previous of previousScenes) {
     const next = nextSceneByRef.get(previous.sceneRef)
@@ -75,6 +77,12 @@ export function collectStructuralPlanningMutationLineage(
     if (!previous || !next || previous.sceneRef === next.sceneRef) continue
     if (nextSceneRefs.has(previous.sceneRef) || previousSceneRefs.has(next.sceneRef)) continue
     drafts.push(buildSceneReplaceDraft(previous, next, previousOutline, nextOutline))
+    replacedPreviousRefs.add(previous.sceneRef)
+  }
+
+  for (const previous of previousScenes) {
+    if (nextSceneRefs.has(previous.sceneRef) || replacedPreviousRefs.has(previous.sceneRef)) continue
+    drafts.push(buildSceneSelectRemovalDraft(previous, previousOutline, nextOutline))
   }
 
   drafts.push(...collectObligationStructuralLineage(previousOutline, nextOutline))
@@ -182,6 +190,42 @@ function buildSceneReplaceDraft(
       ...legacyBeatIdMetadata(next, "next"),
       supersessionBasis: "same_index_exact_id_absence",
       versionShape: "artifact_hash_v1",
+    }) as StructuralPlanningMutationLineageDraft["metadata"],
+  }
+}
+
+function buildSceneSelectRemovalDraft(
+  previous: SceneSlot,
+  previousOutline: ChapterOutline,
+  nextOutline: ChapterOutline,
+): StructuralPlanningMutationLineageDraft {
+  return {
+    targetKind: "scene_plan",
+    previousRef: previous.sceneRef,
+    nextRef: previous.sceneRef,
+    fieldPath: "scenes",
+    previousVersion: stableHash(previous.scene),
+    nextVersion: structuralLocationVersion({
+      targetKind: "scene_plan",
+      ref: previous.sceneRef,
+      ...sceneRefLocation(previous),
+      chapterId: nextOutline.chapterId ?? previousOutline.chapterId,
+      chapterNumber: nextOutline.chapterNumber ?? previousOutline.chapterNumber,
+      removedFromChapterScenes: true,
+      previousIndex: previous.index,
+    }),
+    metadata: compactRecord({
+      structuralOperation: "scene_select",
+      chapterId: nextOutline.chapterId ?? previousOutline.chapterId,
+      chapterNumber: nextOutline.chapterNumber ?? previousOutline.chapterNumber,
+      previousIndex: previous.index,
+      previousSceneRef: previous.sceneRef,
+      previousSceneRefKind: previous.sceneRefKind,
+      ...legacyBeatIdMetadata(previous, "previous"),
+      previousSceneCount: previousOutline.scenes?.length,
+      nextSceneCount: nextOutline.scenes?.length,
+      removedFromChapterScenes: true,
+      versionShape: "selection_removal_v1",
     }) as StructuralPlanningMutationLineageDraft["metadata"],
   }
 }
