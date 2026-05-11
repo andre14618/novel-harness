@@ -117,11 +117,10 @@ writer-brief telemetry, scene-semantic replay, Plan Readiness import/apply,
 source hygiene, planning-edit replay, scene-contract telemetry, and fact-status
 readiness. Clean-source Corso repair reached 4778/3800 = 1.26x with prose lows
 0/8, scene lows 0/34, persisted scene rows 34, and no readiness lows. LitRPG
-materiality repair replication through approved `planning_edit` proposals was
-mixed: 3966/2700 = 1.47x, prose lows 0/8, planning-context gaps 0, persisted
-scene rows 45, but scene lows 3/45; one targeted materiality low resolved,
-the Verification Theo/Cassel MATERIAL-0 persisted, and new ch1 materiality plus
-ch2 endpoint lows imported. A broad operational-facts brief regressed to
+plan-only repair was mixed: 3966/2700 = 1.47x, prose lows 0/8, gaps 0, scene
+lows 3/45. Writer-brief obligation-character carry-through fixed materiality
+lows to 0/8 and attached source obligations, but regressed to 4476/2700 =
+1.67x with endpoint lows 4/14. A broad operational-facts brief regressed to
 6050/3800 without low-row improvement, so keep it out. Continuity fact prompts
 carry `factId`, disambiguate seal roles, and filter explicit support echoes.
 Do not flip defaults. See L103-L106.

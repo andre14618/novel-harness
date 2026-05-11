@@ -22,9 +22,10 @@ unless the user explicitly requests a disposable branch.
   3966/2700 = 1.47x, prose lows 0/8, planning-context gaps 0, scene lows 3/45,
   persisted scene rows 45, readiness import 3. Mixed vs rep2: ch1
   Cassel-request materiality resolved; ch2 Verification stayed MATERIAL-0; new
-  ch1 materiality plus ch2 endpoint lows appeared. Broad operational-facts
-  brief regressed to 6050/3800 without low-row improvement; keep it out.
-  Compact brief remains useful evidence, with no default flip. See L106.
+  ch1 materiality plus ch2 endpoint lows appeared. Obligation-character
+  carry-through cleared materiality lows to 0/8 but regressed to 4476/2700 =
+  1.67x with endpoint lows 4/14. Broad operational-facts brief regressed to
+  6050/3800 without low-row improvement; keep it out. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
@@ -118,10 +119,9 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: inspect the three LitRPG repair lows before any default
-  decision. Either run another clean-source Plan Readiness repair for the
-  Verification materiality and endpoint lows, or first fix character-ref/source-ID
-  carry-through if missing Theo pressure is a context-surface issue. See L103-L106.
+- Next session start: inspect LitRPG endpoint lows before any default decision.
+  Character carry-through clears materiality but over-expands and weakens
+  endpoint landing; target scene endpoint shape/load next. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
