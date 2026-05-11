@@ -264,6 +264,21 @@ ch2 scene 1, where the judge found the scene ended as setup rather than a
 concrete consequence. `allow-entities` did not reproduce in this clean run; keep
 that replay opportunistic rather than manufacturing a separate path.
 
+A later clean-source cohort exercised the production fixed-plan harness across
+`baseline`, `drafting-brief-v1`, and `scene-call-v1` from the same
+`p1-clean-replay-1778457296` source. Durable reports:
+`output/drafting-isolated/p1-arm-cohort-1778464932/drafting-isolated-report.json`
+and `output/drafting-isolated/p1-arm-cohort-1778464932/scene-semantic-compare.json`.
+The automatic comparison sidecar aligned 33 scene-semantic rows per candidate.
+`drafting-brief-v1` was the strongest current arm: 3731/3000 words (mean ratio
+1.24), prose semantic 0/8 lows, planning-context gaps 0, scene-semantic lows
+1/33, and character/world lows 0. Baseline remained much longer at 7703/3000
+words with endpoint lows 3/10 and `sceneContract:missing_downstream`;
+`scene-call-v1` stayed long at 7142/3000 and introduced one worldFactPressure
+low. This strengthens `drafting-brief-v1` as the next production candidate, but
+does not by itself flip defaults because the sidecar verdict is still mixed and
+the evidence is one clean P1 cohort.
+
 The residual endpoint low was inspected through the production Plan Readiness
 path rather than by editing POC artifacts. That exposed a real integration gap:
 readiness apply could create scalar `field_replace` proposals but not full
