@@ -217,7 +217,7 @@ function groupForChapter(args: {
       chapterNumber: String(args.chapter.chapterNumber),
       chapterId,
       sceneCount: String(args.chapter.sceneCount),
-      sceneRefs: args.chapter.sceneRefs.join(","),
+      sceneRefs: chapterSceneRefs(args.chapter).join(","),
       targetWords: args.chapter.targetWords === null ? "n/a" : String(args.chapter.targetWords),
       targetWordsPerScene: formatNullableNumber(args.chapter.targetWordsPerScene),
       signal: args.chapter.signal,
@@ -266,6 +266,12 @@ function groupForChapter(args: {
 function chapterRef(chapter: ChapterSceneLoad): string {
   const ref = (chapter as ChapterSceneLoad & { chapterId?: string }).chapterId
   return ref && ref.trim().length > 0 ? ref : `chapter:${chapter.chapterNumber}`
+}
+
+function chapterSceneRefs(chapter: ChapterSceneLoad): string[] {
+  const refs = (chapter as ChapterSceneLoad & { sceneRefs?: unknown }).sceneRefs
+  if (!Array.isArray(refs)) return []
+  return refs.filter((ref): ref is string => typeof ref === "string" && ref.length > 0)
 }
 
 function labelFor(signal: SceneLoadSignal): PlanningContextReadinessFinding["label"] {

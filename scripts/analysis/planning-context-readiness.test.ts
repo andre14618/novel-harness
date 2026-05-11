@@ -64,6 +64,19 @@ describe("planning-context-readiness", () => {
     expect(withDense.groups[1]!.highestSeverity).toBe("medium")
   })
 
+  test("accepts legacy context reports without scene refs", () => {
+    const legacy = report() as unknown as PlanningToDraftingContextReport
+    delete (legacy.upstream.sceneLoad.chapters[0] as { sceneRefs?: string[] }).sceneRefs
+
+    const aggregate = buildPlanningContextReadinessAggregate({
+      report: legacy,
+      generatedAt: "2026-05-11T00:00:00.000Z",
+    })
+
+    expect(aggregate.groupCount).toBe(1)
+    expect(aggregate.groups[0]!.findings[0]!.evidence.sceneRefs).toBe("")
+  })
+
   test("emits aggregates consumable by the shared readiness importer", () => {
     const aggregate = buildPlanningContextReadinessAggregate({
       report: report(),
