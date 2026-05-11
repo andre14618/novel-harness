@@ -13,17 +13,18 @@ unless the user explicitly requests a disposable branch.
   scene-first novella POC runs require an explicit disposable-POC flag.
 - **Production writer-brief evidence (2026-05-11).** P1 made
   `drafting-brief-v1` strongest at 1.24x with prose lows 0/8 and scene lows
-  1/33, but LitRPG replication held promotion. Planner-generated P1 repair
-  reached `choice/full=11/11` and `factContradictions=0`; evidence now shows a
-  quality/length tradeoff. Clean rerun compact brief: 1.30x, scene lows 3/36,
-  endpoint 3/11. V2 compact: 5265/3800 = 1.38x, scene lows 2/36, endpoint 2/11.
-  V3 endpoint-source repair: 5759/3800 = 1.52x, scene lows 1/34, endpoint 1/10
-  after deleting the setup opener. Compact status-polarity guardrail: 4713/3800
-  = 1.24x, scene lows 2/34, endpoint 1/10, prose lows 0/8. Clean-source Corso
-  plan repair: 4778/3800 = 1.26x, scene lows 0/34, prose lows 0/8, persisted
-  scene rows 34, readiness import 0. Broad operational-facts brief regressed to
-  6050/3800 without low-row improvement; keep it out. Compact brief remains
-  best quality tradeoff, with no default flip. See L106.
+  1/33, but LitRPG replication still holds promotion. Planner-generated P1
+  repair reached `choice/full=11/11` and `factContradictions=0`; evidence now
+  shows a quality/length tradeoff. Clean-source Corso plan repair:
+  4778/3800 = 1.26x, scene lows 0/34, prose lows 0/8, persisted scene rows 34,
+  readiness import 0. LitRPG materiality repair applied two approved
+  `planning_edit` proposals to the clean source and reran compact brief:
+  3966/2700 = 1.47x, prose lows 0/8, planning-context gaps 0, scene lows 3/45,
+  persisted scene rows 45, readiness import 3. Mixed vs rep2: ch1
+  Cassel-request materiality resolved; ch2 Verification stayed MATERIAL-0; new
+  ch1 materiality plus ch2 endpoint lows appeared. Broad operational-facts
+  brief regressed to 6050/3800 without low-row improvement; keep it out.
+  Compact brief remains useful evidence, with no default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
@@ -117,11 +118,10 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: replicate the clean-source Corso repair before any
-  prompt-arm/default decision. It cleared semantic lows on P1 without length
-  bloat, but LitRPG/generalization is still the promotion hold. Continuity facts
-  now preserve `factId`, separate binding-seal roles, and filter explicit
-  support echoes. See L103-L106.
+- Next session start: inspect the three LitRPG repair lows before any default
+  decision. Either run another clean-source Plan Readiness repair for the
+  Verification materiality and endpoint lows, or first fix character-ref/source-ID
+  carry-through if missing Theo pressure is a context-surface issue. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.

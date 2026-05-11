@@ -115,17 +115,16 @@ The active lane is in `docs/sessions/lane-queue.md`.
 As of 2026-05-11, L106 has absorbed validated POC evidence into production
 writer-brief telemetry, scene-semantic replay, Plan Readiness import/apply,
 source hygiene, planning-edit replay, scene-contract telemetry, and fact-status
-readiness. P1 made `drafting-brief-v1` strongest at 1.24x with prose lows 0/8
-and scene lows 1/33, but LitRPG replication held promotion. Planner-generated
-P1 repair reached `choice/full=11/11` and `factContradictions=0`; clean reruns
-now show the tradeoff. V3 endpoint-source repair improved endpoint lows to
-1/10 but bloated to 5759/3800 = 1.52x. A compact status-polarity guardrail cut
-length to 4713/3800 = 1.24x with scene lows 2/34. Clean-source Corso plan repair
-then reached 4778/3800 = 1.26x with prose lows 0/8, scene lows 0/34, persisted
-scene rows 34, and no readiness lows. A broad operational-facts brief regressed
-to 6050/3800 without low-row improvement, so keep it out. Continuity fact
-prompts carry `factId`, disambiguate seal roles, and filter explicit support
-echoes. Do not flip defaults. See L103-L106.
+readiness. Clean-source Corso repair reached 4778/3800 = 1.26x with prose lows
+0/8, scene lows 0/34, persisted scene rows 34, and no readiness lows. LitRPG
+materiality repair replication through approved `planning_edit` proposals was
+mixed: 3966/2700 = 1.47x, prose lows 0/8, planning-context gaps 0, persisted
+scene rows 45, but scene lows 3/45; one targeted materiality low resolved,
+the Verification Theo/Cassel MATERIAL-0 persisted, and new ch1 materiality plus
+ch2 endpoint lows imported. A broad operational-facts brief regressed to
+6050/3800 without low-row improvement, so keep it out. Continuity fact prompts
+carry `factId`, disambiguate seal roles, and filter explicit support echoes.
+Do not flip defaults. See L103-L106.
 
 ## Authoring Gates
 
