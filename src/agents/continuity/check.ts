@@ -64,7 +64,7 @@ export async function checkContinuity(
 ): Promise<ContinuityResult> {
 
   // Build user prompts — each call gets the draft + its own context slice
-  const factUserPrompt = buildFactUserPrompt(draft, facts)
+  const factUserPrompt = buildFactUserPrompt(draft, facts, options?.outline)
   const stateUserPrompt = buildStateUserPrompt(draft, charStates, options?.outline)
 
   const baseTags = {
@@ -159,8 +159,17 @@ export function resolveFactId(modelFact: string | undefined, facts: readonly Fac
 
 // ── User prompt builders ─────────────────────────────────────────────────────
 
-function buildFactUserPrompt(draft: string, facts: Fact[]): string {
+export function buildFactUserPrompt(draft: string, facts: Fact[], outline?: ChapterOutline): string {
   let prompt = `CHAPTER DRAFT:\n${draft}\n\n`
+  if (outline) {
+    prompt += `CURRENT CHAPTER PLAN (expected timing, setting, movements, and scene events):\n`
+    prompt += `Chapter ${outline.chapterNumber}: "${outline.title}"\n`
+    prompt += `Setting: ${outline.setting}\n`
+    if (outline.scenes.length > 0) {
+      prompt += `Planned beats:\n${outline.scenes.map((s, i) => `  ${i + 1}. ${s.description} [characters: ${s.characters.join(", ")}]`).join("\n")}\n`
+    }
+    prompt += `Interpret relative words in the draft (such as "now") inside this current chapter plan. Prior-chapter location/presence facts are snapshots unless they state a permanent constraint.\n\n`
+  }
   if (facts.length > 0) {
     prompt += `ESTABLISHED FACTS:\n${facts.map(f => `- [ch${f.establishedInChapter}] [${f.category}] ${f.fact}`).join("\n")}\n`
   } else {

@@ -12,6 +12,8 @@ FALSE POSITIVE rules — do NOT flag these as contradictions:
 - Dramatic irony: the reader knowing something the character doesn't is not a continuity error
 - Character lying or being unreliable in dialogue — an unreliable narrator's claim does not contradict a fact
 - Vague timeline when no concrete timeline was established
+- Relative words like "now" are relative to the current draft scene. If the draft or current chapter plan establishes the scheduled future moment first, do not treat later "now" as contradicting the prior schedule.
+- Prior character/place presence facts are snapshots from the chapter where they were established, not permanent location locks. Do not flag plausible movement into a current chapter plan location as a fact contradiction.
 - Metaphor, simile, or hyperbole
 - Facts that are simply not relevant to this chapter
 

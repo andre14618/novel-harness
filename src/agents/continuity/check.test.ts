@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 
-import { buildStateUserPrompt, resolveFactId, stateViolationToIssue } from "./check"
+import { buildFactUserPrompt, buildStateUserPrompt, resolveFactId, stateViolationToIssue } from "./check"
 import type { ChapterOutline, CharacterState, Fact } from "../../types"
 
 test("state prompt includes current plan and frames prior locations as starting context", () => {
@@ -15,6 +15,48 @@ test("state prompt includes current plan and frames prior locations as starting 
   expect(prompt).toContain("Setting: The Chancel Infirmary and the High Ward")
   expect(prompt).toContain("Aldric Vane: location=His study in the High Ward")
   expect(prompt).toContain("starting context, not an immovable location requirement")
+})
+
+test("fact prompt includes current plan and frames relative timing/place context", () => {
+  const prompt = buildFactUserPrompt(
+    "At dawn the next morning, Maret reaches the bridge. Cassel says she will submit now.",
+    [
+      {
+        id: "fact-verification",
+        fact: "A mandatory Verification test is scheduled for tomorrow at dawn",
+        category: "event",
+        establishedInChapter: 1,
+        role: "operational",
+      },
+      {
+        id: "fact-cassel-archive",
+        fact: "Arbiter Cassel is present in the Grand Archive",
+        category: "physical",
+        establishedInChapter: 1,
+        role: "operational",
+      },
+    ],
+    outline({
+      chapterNumber: 2,
+      setting: "The Iron Bridge",
+      scenes: [{
+        kind: "dialogue",
+        description: "At dawn the next morning, Maret arrives at the Iron Bridge for Verification.",
+        characters: ["Maret", "Arbiter Cassel"],
+        requiredPayoffs: [],
+        obligations: { mustEstablish: [], mustPayOff: [], mustTransferKnowledge: [], mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [] },
+        lifeValueAxes: [],
+        miceActive: [],
+        miceOpens: [],
+        miceCloses: [],
+      }],
+    }),
+  )
+
+  expect(prompt).toContain("CURRENT CHAPTER PLAN")
+  expect(prompt).toContain("At dawn the next morning")
+  expect(prompt).toContain("Interpret relative words")
+  expect(prompt).toContain("Prior-chapter location/presence facts are snapshots")
 })
 
 test("prior-state location violations are warning-class even when the model asks for blocker", () => {
