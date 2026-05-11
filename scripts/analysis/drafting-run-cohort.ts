@@ -26,6 +26,15 @@ type ContextQualityAlignment =
   | "stable-no-clear-change"
   | "needs-semantic-evidence"
 type ChangedSemanticRow = DraftingRunComparison["sceneSemantic"]["changedRows"][number]
+type SemanticTraceKind =
+  | "obligation"
+  | "character"
+  | "worldFact"
+  | "sceneTurn"
+  | "thread"
+  | "promise"
+  | "payoff"
+  | "source"
 
 interface Args {
   comparisons: string[]
@@ -98,6 +107,23 @@ export interface DraftingRunCohortSemanticRowExample {
   candidateMissingForNextLevel: string
 }
 
+export interface DraftingRunCohortSemanticTraceCluster {
+  kind: SemanticTraceKind
+  id: string
+  rowCount: number
+  sourceCount: number
+  sources: string[]
+  dimensions: Partial<Record<Dimension, number>>
+  statuses: Record<string, number>
+  examples: Array<{
+    source: string
+    dimension: Dimension
+    sceneId: string
+    status: ChangedSemanticRow["status"]
+    ordinalDelta: number
+  }>
+}
+
 export interface DraftingRunCohortReport {
   generatedAt: string
   sourceReports: string[]
@@ -151,6 +177,10 @@ export interface DraftingRunCohortReport {
   semanticRowExamples: {
     regressions: DraftingRunCohortSemanticRowExample[]
     resolutions: DraftingRunCohortSemanticRowExample[]
+  }
+  semanticTraceClusters: {
+    regressions: DraftingRunCohortSemanticTraceCluster[]
+    resolutions: DraftingRunCohortSemanticTraceCluster[]
   }
   pairs: DraftingRunCohortPair[]
 }
@@ -250,6 +280,10 @@ export function buildDraftingRunCohortReport(input: {
       regressions: semanticRowExamples(input.refs, ["regressed_low", "worsened"], 12),
       resolutions: semanticRowExamples(input.refs, ["resolved_low", "improved"], 12),
     },
+    semanticTraceClusters: {
+      regressions: semanticTraceClusters(input.refs, ["regressed_low", "worsened"], 12),
+      resolutions: semanticTraceClusters(input.refs, ["resolved_low", "improved"], 12),
+    },
     pairs,
   }
 }
@@ -323,6 +357,14 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
   renderSemanticRowExamples(lines, "Regressions", report.semanticRowExamples.regressions)
   lines.push("")
   renderSemanticRowExamples(lines, "Resolutions", report.semanticRowExamples.resolutions)
+  lines.push("")
+  lines.push("## Semantic Trace Clusters")
+  lines.push("")
+  lines.push("- Repeated trace handles are evidence prompts, not automatic planning tags or required prompt fields.")
+  lines.push("")
+  renderSemanticTraceClusters(lines, "Regression Clusters", report.semanticTraceClusters.regressions)
+  lines.push("")
+  renderSemanticTraceClusters(lines, "Resolution Clusters", report.semanticTraceClusters.resolutions)
   lines.push("")
   lines.push("## Comparisons")
   lines.push("")
@@ -475,6 +517,133 @@ function renderSemanticRowExamples(
   }
 }
 
+function semanticTraceClusters(
+  refs: readonly DraftingRunCohortReportRef[],
+  statuses: readonly ChangedSemanticRow["status"][],
+  limit: number,
+): DraftingRunCohortSemanticTraceCluster[] {
+  const allowed = new Set(statuses)
+  const byKey = new Map<string, {
+    kind: SemanticTraceKind
+    id: string
+    rowCount: number
+    sources: Set<string>
+    dimensions: Partial<Record<Dimension, number>>
+    statuses: Record<string, number>
+    examples: DraftingRunCohortSemanticTraceCluster["examples"]
+  }>()
+
+  for (const ref of refs) {
+    for (const comparison of ref.report.comparisons) {
+      if (!isEvidenceComparableComparison(ref.report, comparison)) continue
+      for (const row of comparison.sceneSemantic.changedRows) {
+        if (!allowed.has(row.status)) continue
+        const traceIds = normalizeTraceIds(row.traceIds)
+        for (const trace of traceEntries(traceIds)) {
+          const key = `${trace.kind}:${trace.id}`
+          const cluster = byKey.get(key) ?? {
+            kind: trace.kind,
+            id: trace.id,
+            rowCount: 0,
+            sources: new Set<string>(),
+            dimensions: {},
+            statuses: {},
+            examples: [],
+          }
+          cluster.rowCount += 1
+          cluster.sources.add(comparison.candidate.source)
+          cluster.dimensions[row.dimension] = (cluster.dimensions[row.dimension] ?? 0) + 1
+          cluster.statuses[row.status] = (cluster.statuses[row.status] ?? 0) + 1
+          if (cluster.examples.length < 3) {
+            cluster.examples.push({
+              source: comparison.candidate.source,
+              dimension: row.dimension,
+              sceneId: row.sceneId,
+              status: row.status,
+              ordinalDelta: row.ordinalDelta,
+            })
+          }
+          byKey.set(key, cluster)
+        }
+      }
+    }
+  }
+
+  return [...byKey.values()]
+    .filter(cluster => cluster.rowCount > 1 || cluster.sources.size > 1)
+    .map(cluster => ({
+      kind: cluster.kind,
+      id: cluster.id,
+      rowCount: cluster.rowCount,
+      sourceCount: cluster.sources.size,
+      sources: [...cluster.sources].sort(),
+      dimensions: sortRecord(cluster.dimensions),
+      statuses: sortRecord(cluster.statuses),
+      examples: cluster.examples,
+    }))
+    .sort(semanticTraceClusterSort)
+    .slice(0, limit)
+}
+
+function traceEntries(traceIds: ChangedSemanticRow["traceIds"]): Array<{ kind: SemanticTraceKind; id: string }> {
+  return [
+    ...traceIds.obligationIds.map(id => ({ kind: "obligation" as const, id })),
+    ...traceIds.relevantCharacterIds.map(id => ({ kind: "character" as const, id })),
+    ...traceIds.relevantWorldFactIds.map(id => ({ kind: "worldFact" as const, id })),
+    ...traceIds.sceneTurnIds.map(id => ({ kind: "sceneTurn" as const, id })),
+    ...traceIds.threadIds.map(id => ({ kind: "thread" as const, id })),
+    ...traceIds.promiseIds.map(id => ({ kind: "promise" as const, id })),
+    ...traceIds.payoffIds.map(id => ({ kind: "payoff" as const, id })),
+    ...traceIds.sourceIds.map(id => ({ kind: "source" as const, id })),
+  ]
+}
+
+function semanticTraceClusterSort(
+  a: DraftingRunCohortSemanticTraceCluster,
+  b: DraftingRunCohortSemanticTraceCluster,
+): number {
+  return b.sourceCount - a.sourceCount ||
+    b.rowCount - a.rowCount ||
+    semanticTraceKindPriority(a.kind) - semanticTraceKindPriority(b.kind) ||
+    a.id.localeCompare(b.id)
+}
+
+function semanticTraceKindPriority(kind: SemanticTraceKind): number {
+  switch (kind) {
+    case "obligation": return 0
+    case "worldFact": return 1
+    case "source": return 2
+    case "character": return 3
+    case "sceneTurn": return 4
+    case "thread": return 5
+    case "promise": return 6
+    case "payoff": return 7
+  }
+}
+
+function renderSemanticTraceClusters(
+  lines: string[],
+  title: string,
+  clusters: readonly DraftingRunCohortSemanticTraceCluster[],
+): void {
+  lines.push(`### ${title}`)
+  lines.push("")
+  if (clusters.length === 0) {
+    lines.push("- none")
+    return
+  }
+  for (const cluster of clusters) {
+    const examples = cluster.examples
+      .map(example => `${example.source}:${example.dimension}:${example.status}:${formatSigned(example.ordinalDelta)}`)
+      .join(", ")
+    lines.push(
+      `- ${cluster.kind}:${cluster.id} rows=${cluster.rowCount} sources=${cluster.sourceCount} ` +
+        `dimensions=${formatCounts(cluster.dimensions)} statuses=${formatCounts(cluster.statuses)} ` +
+        `examples=${examples}`,
+    )
+  }
+}
+
 function classifyQualityMovement(comparison: DraftingRunComparison): QualityMovement {
   if (comparison.signal === "incomplete" || comparison.sceneSemantic.comparisonVerdict === "incomplete") return "incomplete"
   if (
@@ -586,7 +755,15 @@ function countBy<T>(items: readonly T[], keyFn: (item: T) => string): Record<str
     const key = keyFn(item)
     counts[key] = (counts[key] ?? 0) + 1
   }
-  return Object.fromEntries(Object.entries(counts).sort(([a], [b]) => a.localeCompare(b)))
+  return sortRecord(counts)
+}
+
+function sortRecord<T extends number>(record: Partial<Record<string, T>>): Record<string, T> {
+  return Object.fromEntries(
+    Object.entries(record)
+      .filter((entry): entry is [string, T] => typeof entry[1] === "number" && Number.isFinite(entry[1]))
+      .sort(([a], [b]) => a.localeCompare(b)),
+  ) as Record<string, T>
 }
 
 function mean(values: readonly number[]): number | null {

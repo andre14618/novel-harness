@@ -64,6 +64,14 @@ describe("drafting-run-cohort", () => {
       baselineLabel: "ENDPOINT-3",
       candidateLabel: "ENDPOINT-1",
     })
+    expect(report.semanticTraceClusters.regressions[0]).toMatchObject({
+      kind: "obligation",
+      id: "obl-corso",
+      rowCount: 2,
+      sourceCount: 1,
+      dimensions: { endpointLanding: 2 },
+      statuses: { regressed_low: 2 },
+    })
 
     const rendered = renderDraftingRunCohortReport(report)
     expect(rendered).toContain("Signal: regressed")
@@ -80,6 +88,8 @@ describe("drafting-run-cohort", () => {
     expect(rendered).toContain("## Semantic Row Examples")
     expect(rendered).toContain("Advisory examples for manual review")
     expect(rendered).toContain("corso ch1 corso-scene endpointLanding: ENDPOINT-3 -> ENDPOINT-1 (-2; regressed_low); ids=obligations:obl-corso; characters:char-corso; worldFacts:fact-corso; sources:source-corso")
+    expect(rendered).toContain("## Semantic Trace Clusters")
+    expect(rendered).toContain("obligation:obl-corso rows=2 sources=1 dimensions=endpointLanding: 2 statuses=regressed_low: 2")
     expect(rendered).toContain("Comparisons: 2 (2 clean-source, 2 evidence-comparable)")
     expect(rendered).toContain("| Source | Baseline | Candidate | Clean | Signal | Quality | Context Load | Alignment | Words | Scene Lows | Checker Blockers | Canon Refs | Story Refs | Reader | Reader Chars | Ref Attempt Scenes | Ref Attempt Events | Missing Chars |")
     expect(rendered).toContain("| corso | drafting-brief-v1 | drafting-brief-tight-v1 | yes | regressed | regressed | contracted | context-contracted-with-quality-regression | +224 | +4 | 0 | 0 | -1 | 0 | -30 | -1 | -2 | 0 |")
@@ -288,6 +298,16 @@ function semanticChangedRows(
       ordinalDelta: -2,
       status: "regressed_low",
       candidateMissingForNextLevel: "Needs a concrete final action that changes the scene state.",
+    }), semanticChangedRow(source, {
+      key: `${source}:endpoint-b`,
+      sceneId: `${source}-scene-b`,
+      baselineLabel: "ENDPOINT-2",
+      candidateLabel: "ENDPOINT-1",
+      baselineOrdinal: 2,
+      candidateOrdinal: 1,
+      ordinalDelta: -1,
+      status: "regressed_low",
+      candidateMissingForNextLevel: "Needs the endpoint consequence to land on page.",
     })]
   }
   if (endpointLowDelta < 0) {
