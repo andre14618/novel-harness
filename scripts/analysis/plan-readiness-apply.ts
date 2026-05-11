@@ -40,6 +40,7 @@ const actionPlanSchema = z.object({
     proposedValueTemplate: z.unknown().optional(),
     proposalCandidate: z.unknown().optional(),
     proposalInstruction: z.string().optional(),
+    currentValueSummary: z.unknown().optional(),
     useCandidate: z.boolean().optional(),
     operatorNote: z.string().optional(),
     rationale: z.string().optional(),

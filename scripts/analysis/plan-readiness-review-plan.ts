@@ -21,6 +21,7 @@ import {
   loadSourceDraftingIsolationAssessment,
   type SourceDraftingIsolationAssessment,
 } from "../../src/harness/drafting-source"
+import type { ChapterOutline } from "../../src/types"
 
 type StatusFilter = PlanReadinessStatus | "all"
 
@@ -61,7 +62,12 @@ export interface PlanReadinessReviewPlanReport {
     evidence: Record<string, string>
     preserveIds: PlanReadinessItem["preserveIds"]
     proposalCandidate: unknown
+    currentValueSummary: unknown
   }>
+}
+
+interface PlanReadinessReviewTargetContext {
+  currentValueSummary: unknown
 }
 
 export function parseArgs(argv = process.argv.slice(2)): PlanReadinessReviewPlanArgs {
@@ -101,12 +107,13 @@ export function buildReviewPlanReport(input: {
   status: StatusFilter
   defaultDecision?: PlanReadinessApplyDecision
   draftingSource?: SourceDraftingIsolationAssessment | null
+  targetContexts?: ReadonlyMap<string, PlanReadinessReviewTargetContext>
   generatedAt?: string
 }): PlanReadinessReviewPlanReport {
   const defaultDecision = input.defaultDecision ?? "deferred"
   const items = [...input.items].sort(compareReadinessItems)
   const plan: PlanReadinessActionPlan = {
-    actions: items.map(item => actionForItem(item, defaultDecision)),
+    actions: items.map(item => actionForItem(item, defaultDecision, input.targetContexts?.get(formatTarget(item)) ?? null)),
   }
 
   return {
@@ -135,6 +142,7 @@ export function buildReviewPlanReport(input: {
       evidence: item.evidence,
       preserveIds: item.preserveIds,
       proposalCandidate: item.metadata.proposalCandidate ?? null,
+      currentValueSummary: input.targetContexts?.get(formatTarget(item))?.currentValueSummary ?? null,
     })),
   }
 }
@@ -142,6 +150,7 @@ export function buildReviewPlanReport(input: {
 function actionForItem(
   item: PlanReadinessItem,
   defaultDecision: PlanReadinessApplyDecision,
+  context: PlanReadinessReviewTargetContext | null,
 ): PlanReadinessActionPlan["actions"][number] {
   const proposalCandidate = item.metadata.proposalCandidate ?? null
   return {
@@ -162,6 +171,7 @@ function actionForItem(
         proposedValueTemplate: proposedValueTemplateFor(item),
       }
       : {}),
+    ...(context ? { currentValueSummary: context.currentValueSummary } : {}),
   }
 }
 
@@ -228,6 +238,8 @@ export function renderReviewPlanReport(report: PlanReadinessReviewPlanReport): s
     if (evidenceLines.length > 0) lines.push(`- evidence: ${evidenceLines.join("; ")}`)
     const preserve = formatPreserveIds(item.preserveIds)
     if (preserve) lines.push(`- preserve IDs: ${preserve}`)
+    const current = renderCurrentValueSummary(item.currentValueSummary)
+    if (current.length > 0) lines.push(...current)
     if (item.proposalCandidate) lines.push("- proposal candidate: available in JSON")
     lines.push("")
   }
@@ -236,12 +248,13 @@ export function renderReviewPlanReport(report: PlanReadinessReviewPlanReport): s
 
 async function run(args: PlanReadinessReviewPlanArgs): Promise<PlanReadinessReviewPlanReport> {
   const { listPlanReadinessItems } = await import("../../src/db/plan-readiness")
-  const [items, draftingSource] = await Promise.all([
+  const [items, draftingSource, targetContexts] = await Promise.all([
     listPlanReadinessItems(args.novelId, {
       status: args.status,
       limit: args.limit,
     }),
     loadSourceDraftingIsolationAssessment(args.novelId),
+    loadReviewTargetContexts(args.novelId),
   ])
   return buildReviewPlanReport({
     novelId: args.novelId,
@@ -249,7 +262,39 @@ async function run(args: PlanReadinessReviewPlanArgs): Promise<PlanReadinessRevi
     status: args.status,
     defaultDecision: args.defaultDecision,
     draftingSource,
+    targetContexts,
   })
+}
+
+async function loadReviewTargetContexts(
+  novelId: string,
+): Promise<Map<string, PlanReadinessReviewTargetContext>> {
+  const { getChapterOutlines } = await import("../../src/db/outlines")
+  const outlines = await getChapterOutlines(novelId).catch(() => [])
+  const out = new Map<string, PlanReadinessReviewTargetContext>()
+  for (const outline of outlines) {
+    const chapterRef = outline.chapterId ?? `chapter:${outline.chapterNumber}`
+    const sceneOrder = (outline.scenes ?? []).map((scene, index) => sceneSummary(scene, index))
+    out.set(`chapter_outline:${chapterRef}:scenes`, {
+      currentValueSummary: sceneOrder,
+    })
+  }
+  return out
+}
+
+function sceneSummary(scene: NonNullable<ChapterOutline["scenes"]>[number], index: number): {
+  index: number
+  ref: string
+  kind: string
+  description: string
+} {
+  const record = scene as Record<string, unknown>
+  return {
+    index: index + 1,
+    ref: stringValue(record.sceneId) || stringValue(record.beatId) || `scene-${index + 1}`,
+    kind: stringValue(record.kind) || "(none)",
+    description: truncate(stringValue(record.description), 240),
+  }
 }
 
 function compareReadinessItems(a: PlanReadinessItem, b: PlanReadinessItem): number {
@@ -304,6 +349,28 @@ function formatPreserveIds(preserveIds: PlanReadinessItem["preserveIds"]): strin
     .filter(([, ids]) => Array.isArray(ids) && ids.length > 0)
     .map(([key, ids]) => `${key}=${(ids as string[]).join(",")}`)
     .join("; ")
+}
+
+function renderCurrentValueSummary(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length === 0) return []
+  const lines = ["- current scenes:"]
+  for (const item of value.slice(0, 24)) {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) continue
+    const record = item as Record<string, unknown>
+    const index = stringValue(record.index)
+    const ref = stringValue(record.ref)
+    const description = stringValue(record.description)
+    lines.push(`  - ${index ? `${index}. ` : ""}${ref}${description ? ` - ${description}` : ""}`)
+  }
+  return lines.length > 1 ? lines : []
+}
+
+function stringValue(value: unknown): string {
+  return typeof value === "string" ? value : value == null ? "" : String(value)
+}
+
+function truncate(value: string, max: number): string {
+  return value.length <= max ? value : `${value.slice(0, max - 3)}...`
 }
 
 function statusValue(raw: string): StatusFilter {

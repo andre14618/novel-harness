@@ -89,6 +89,16 @@ describe("plan-readiness-review-plan", () => {
       novelId: "novel",
       status: "open",
       generatedAt: "2026-05-10T00:00:00.000Z",
+      targetContexts: new Map([[
+        "chapter_outline:ch-001:scenes",
+        {
+          currentValueSummary: [
+            { index: 1, ref: "scene-1", kind: "dialogue", description: "First scene." },
+            { index: 2, ref: "scene-2", kind: "action", description: "Second scene." },
+            { index: 3, ref: "scene-3", kind: "decision", description: "Third scene." },
+          ],
+        },
+      ]]),
       items: [
         item({
           id: "scene-load",
@@ -122,7 +132,13 @@ describe("plan-readiness-review-plan", () => {
         target: { kind: "chapter_outline", ref: "ch-001", fieldPath: "scenes" },
       },
       proposedValueTemplate: ["scene-1", "scene-2", "scene-3"],
+      currentValueSummary: [
+        { index: 1, ref: "scene-1", kind: "dialogue", description: "First scene." },
+        { index: 2, ref: "scene-2", kind: "action", description: "Second scene." },
+        { index: 3, ref: "scene-3", kind: "decision", description: "Third scene." },
+      ],
     })
+    expect(renderReviewPlanReport(report)).toContain("1. scene-1 - First scene.")
   })
 
   test("renderReviewPlanReport includes review context without requiring proposals", () => {
