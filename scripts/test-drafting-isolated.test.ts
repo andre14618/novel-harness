@@ -679,6 +679,7 @@ function planningContextReport(): PlanningToDraftingContextReport {
       },
       planContinuity: {
         futureEventAnchors: [],
+        factContradictions: [],
       },
       scenesWithCharacters: 10,
       scenesWithSceneIds: 10,

@@ -135,6 +135,7 @@ describe("planning-context-readiness", () => {
             eventTokens: ["verification"],
             requiredTemporalCue: "Carry the dawn timing into the later scene or explicitly revise the schedule.",
           }],
+          factContradictions: [],
         },
       }),
       sourceReport: "context.json",
@@ -196,6 +197,85 @@ describe("planning-context-readiness", () => {
           sourceAgent: "planning-context-readiness",
         },
       },
+    })
+  })
+
+  test("turns fact status contradictions into manual scene replacement readiness", () => {
+    const aggregate = buildPlanningContextReadinessAggregate({
+      report: report({
+        planContinuity: {
+          futureEventAnchors: [],
+          factContradictions: [{
+            label: "PLAN-FACT-STATUS-CONTRADICTION",
+            severity: "high",
+            sourceChapterNumber: 1,
+            sourceChapterId: "ch-001",
+            targetChapterNumber: 2,
+            targetChapterId: "ch-002",
+            sourceRef: "fact-corso-file",
+            targetSceneRef: "scene-12",
+            sourceText: "Foreman Corso is imprisoned for 200 silver thalers.",
+            targetTextExcerpt: "Maren finds the foreman's file clean of any debt or crime.",
+            sharedAnchors: ["foreman"],
+            conflictTokens: ["clean-record-vs-debt"],
+            requiredFactStatus: "Preserve fact-corso-file: Foreman Corso is imprisoned for 200 silver thalers.",
+          }],
+        },
+      }),
+      sourceReport: "context.json",
+      generatedAt: "2026-05-11T00:00:00.000Z",
+    })
+
+    expect(aggregate.groups).toHaveLength(2)
+    const group = aggregate.groups[1]!
+    expect(group).toMatchObject({
+      unitType: "scene",
+      chapterId: "ch-002",
+      sceneId: "scene-12",
+      highestSeverity: "high",
+      dimensions: ["factContinuity"],
+      fixIntents: ["preserve_immutable_fact"],
+      sourceIds: {
+        sceneTurnIds: ["scene-12"],
+        sourceIds: ["fact-corso-file"],
+      },
+    })
+    expect(group.findings[0]).toMatchObject({
+      label: "PLAN-FACT-STATUS-CONTRADICTION",
+      dimension: "factContinuity",
+      fixIntent: "preserve_immutable_fact",
+      evidence: {
+        sourceRef: "fact-corso-file",
+        targetSceneRef: "scene-12",
+        conflictTokens: "clean-record-vs-debt",
+      },
+    })
+    expect(group.rewritePacket.proposalCandidate).toMatchObject({
+      action: "beat_replace",
+      target: {
+        kind: "scene_plan",
+        ref: "scene-12",
+        fieldPath: "self",
+      },
+      safeToAutoApply: false,
+    })
+    expect(renderPlanningContextReadinessAggregate(aggregate)).toContain("Should this scene plan preserve the established fact")
+
+    const built = buildPlanReadinessDraftsFromAggregate({
+      novelId: "novel-load",
+      aggregate,
+      targetVersions: {
+        "chapter_outline:ch-001": "outline-hash-1",
+        "scene_plan:scene-12": "scene-hash-12",
+      },
+    })
+    expect(built.skipped).toEqual([])
+    expect(built.drafts[1]).toMatchObject({
+      target: { kind: "scene_plan", ref: "scene-12", fieldPath: "self" },
+      sourceHash: "scene-hash-12",
+      diagnosticLabel: "PLAN-FACT-STATUS-CONTRADICTION",
+      dimension: "factContinuity",
+      fixIntent: "preserve_immutable_fact",
     })
   })
 
@@ -379,6 +459,7 @@ function report(overrides: Partial<PlanningToDraftingContextReport["upstream"]> 
       },
       planContinuity: {
         futureEventAnchors: [],
+        factContradictions: [],
       },
       scenesWithCharacters: 25,
       scenesWithSceneIds: 25,

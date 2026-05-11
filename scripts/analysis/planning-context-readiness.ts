@@ -14,17 +14,23 @@ import {
   type ChapterSceneLoad,
   type DramaticSceneContractGap,
   type FutureEventAnchorFinding,
+  type PlanFactContradictionFinding,
   type PlanningToDraftingContextReport,
   type SceneLoadSignal,
 } from "./planning-drafting-context-report"
 
 type Severity = "high" | "medium" | "low" | "info"
 type PlanningContextSourceAgent = "planning-context-readiness"
-type PlanningContextDimension = "sceneLoad" | "futureEventAnchor" | "sceneContract"
+type PlanningContextDimension =
+  | "sceneLoad"
+  | "futureEventAnchor"
+  | "sceneContract"
+  | "factContinuity"
 type PlanningContextFixIntent =
   | "rebalance_scene_load"
   | "preserve_future_event_anchor"
   | "complete_scene_contract"
+  | "preserve_immutable_fact"
 
 export interface PlanningContextReadinessArgs {
   novelId: string | null
@@ -47,6 +53,7 @@ interface PlanningContextReadinessFinding {
     | "FUTURE-EVENT-ANCHOR-MISSING"
     | "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE"
     | "SCENE-CONTRACT-FULL-SHAPE-INCOMPLETE"
+    | "PLAN-FACT-STATUS-CONTRADICTION"
   severity: Severity
   fixIntent: PlanningContextFixIntent
   rationale: string
@@ -169,14 +176,21 @@ export function buildPlanningContextReadinessAggregate(input: {
       sourceReport: input.sourceReport ?? `planning-drafting-context:${input.report.novelId ?? "unknown"}`,
       groupIndex: sceneLoadGroups.length + index,
     }))
+  const factContradictionGroups = (input.report.upstream.planContinuity?.factContradictions ?? [])
+    .map((finding, index) => groupForFactContradiction({
+      report: input.report,
+      finding,
+      sourceReport: input.sourceReport ?? `planning-drafting-context:${input.report.novelId ?? "unknown"}`,
+      groupIndex: sceneLoadGroups.length + futureEventGroups.length + index,
+    }))
   const sceneContractGroups = prioritizedSceneContractGaps(input.report)
     .map((gap, index) => groupForSceneContractGap({
       report: input.report,
       gap,
       sourceReport: input.sourceReport ?? `planning-drafting-context:${input.report.novelId ?? "unknown"}`,
-      groupIndex: sceneLoadGroups.length + futureEventGroups.length + index,
+      groupIndex: sceneLoadGroups.length + futureEventGroups.length + factContradictionGroups.length + index,
     }))
-  const groups = [...sceneLoadGroups, ...futureEventGroups, ...sceneContractGroups]
+  const groups = [...sceneLoadGroups, ...futureEventGroups, ...factContradictionGroups, ...sceneContractGroups]
 
   return {
     generatedAt: input.generatedAt ?? new Date().toISOString(),
@@ -208,6 +222,8 @@ export function renderPlanningContextReadinessAggregate(report: PlanningContextR
     lines.push(`Label: ${finding.label}`)
     if (finding.dimension === "futureEventAnchor") {
       lines.push(`Evidence: ${finding.evidence.sourceRef} -> ${finding.evidence.targetSceneRef}`)
+    } else if (finding.dimension === "factContinuity") {
+      lines.push(`Evidence: ${finding.evidence.sourceRef} -> ${finding.evidence.targetSceneRef}`)
     } else if (finding.dimension === "sceneContract") {
       lines.push(`Evidence: ${finding.evidence.sceneRef}; missing=${finding.evidence.missingFields}`)
     } else {
@@ -217,6 +233,8 @@ export function renderPlanningContextReadinessAggregate(report: PlanningContextR
     lines.push("Operator question:")
     if (finding.dimension === "futureEventAnchor") {
       lines.push("- Should this scene contract carry the scheduled temporal anchor, or should the prior schedule be revised?")
+    } else if (finding.dimension === "factContinuity") {
+      lines.push("- Should this scene plan preserve the established fact, or should the prior fact be explicitly revised?")
     } else if (finding.dimension === "sceneContract") {
       lines.push("- Should this scene plan be replaced with a complete dramatic contract before drafting?")
     } else {
@@ -369,6 +387,76 @@ function groupForFutureEventAnchor(args: {
           kind: "scene_plan",
           ref: args.finding.targetSceneRef,
           fieldPath: "temporalAnchor",
+        },
+        requiresProposedValue: true,
+        proposedValueStatus: "operator_required",
+        safeToAutoApply: false,
+        sourceAgent: "planning-context-readiness",
+      },
+    },
+    excerpt: `${args.finding.sourceText}\n${args.finding.targetTextExcerpt}`,
+  }
+}
+
+function groupForFactContradiction(args: {
+  report: PlanningToDraftingContextReport
+  finding: PlanFactContradictionFinding
+  sourceReport: string
+  groupIndex: number
+}): PlanningContextReadinessGroup {
+  const sourceIds = emptySourceIds()
+  sourceIds.sourceIds = [args.finding.sourceRef].filter(Boolean)
+  sourceIds.sceneTurnIds = [args.finding.targetSceneRef].filter(Boolean)
+  const readinessFinding: PlanningContextReadinessFinding = {
+    findingId: `${String(args.groupIndex + 1).padStart(3, "0")}.1`,
+    sourceReport: args.sourceReport,
+    promptMode: "deterministic-planning-context",
+    dimension: "factContinuity",
+    label: "PLAN-FACT-STATUS-CONTRADICTION",
+    severity: args.finding.severity,
+    fixIntent: "preserve_immutable_fact",
+    rationale: `A later scene appears to reverse an established fact status for ${args.finding.sharedAnchors.join(", ")}.`,
+    missingForNextLevel: args.finding.requiredFactStatus,
+    evidence: {
+      sourceChapterNumber: String(args.finding.sourceChapterNumber),
+      sourceChapterId: args.finding.sourceChapterId,
+      targetChapterNumber: String(args.finding.targetChapterNumber),
+      targetChapterId: args.finding.targetChapterId,
+      sourceRef: args.finding.sourceRef,
+      targetSceneRef: args.finding.targetSceneRef,
+      sourceText: args.finding.sourceText,
+      targetTextExcerpt: args.finding.targetTextExcerpt,
+      sharedAnchors: args.finding.sharedAnchors.join(","),
+      conflictTokens: args.finding.conflictTokens.join(","),
+    },
+  }
+  return {
+    groupId: `${String(args.groupIndex + 1).padStart(3, "0")}`,
+    fixtureId: args.report.novelId ?? "unknown",
+    armId: "planning-context-readiness",
+    methodPackEnabled: false,
+    unitType: "scene",
+    chapterId: args.finding.targetChapterId,
+    sceneId: args.finding.targetSceneRef,
+    sourceIds,
+    highestSeverity: readinessFinding.severity,
+    fixIntents: ["preserve_immutable_fact"],
+    dimensions: ["factContinuity"],
+    findings: [readinessFinding],
+    rewritePacket: {
+      targetSummary: `scene ${args.finding.targetSceneRef}`,
+      rewriteGoals: [
+        args.finding.requiredFactStatus,
+        "Replace or revise the later scene plan so it does not silently reclassify an established entity/role status.",
+        "If the later status is intentional, create an explicit upstream fact revision instead of relying on an implicit contradiction.",
+      ],
+      preserveIds: sourceIds,
+      proposalCandidate: {
+        action: "beat_replace",
+        target: {
+          kind: "scene_plan",
+          ref: args.finding.targetSceneRef,
+          fieldPath: "self",
         },
         requiresProposedValue: true,
         proposedValueStatus: "operator_required",

@@ -118,7 +118,7 @@ describe("renderPlannerIsolatedReport", () => {
               signal: "balanced",
             }],
           },
-          planContinuity: { futureEventAnchors: [] },
+          planContinuity: { futureEventAnchors: [], factContradictions: [] },
           scenesWithCharacters: 2,
           scenesWithSceneIds: 2,
           scenesWithSceneContract: 2,

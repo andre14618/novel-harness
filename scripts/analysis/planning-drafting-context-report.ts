@@ -103,8 +103,25 @@ export interface FutureEventAnchorFinding {
   requiredTemporalCue: string
 }
 
+export interface PlanFactContradictionFinding {
+  label: "PLAN-FACT-STATUS-CONTRADICTION"
+  severity: "high" | "medium"
+  sourceChapterNumber: number
+  sourceChapterId: string
+  targetChapterNumber: number
+  targetChapterId: string
+  sourceRef: string
+  targetSceneRef: string
+  sourceText: string
+  targetTextExcerpt: string
+  sharedAnchors: string[]
+  conflictTokens: string[]
+  requiredFactStatus: string
+}
+
 export interface PlanContinuitySummary {
   futureEventAnchors: FutureEventAnchorFinding[]
+  factContradictions: PlanFactContradictionFinding[]
 }
 
 export interface DramaticSceneContractGap {
@@ -384,12 +401,19 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
       `overloadedChapters=${report.upstream.sceneLoad.overloadedChapterCount}`,
   )
   lines.push(
-    `Plan continuity: futureEventAnchors=${report.upstream.planContinuity.futureEventAnchors.length}`,
+    `Plan continuity: futureEventAnchors=${report.upstream.planContinuity.futureEventAnchors.length}, ` +
+      `factContradictions=${report.upstream.planContinuity.factContradictions.length}`,
   )
   for (const finding of report.upstream.planContinuity.futureEventAnchors.slice(0, 5)) {
     lines.push(
       `- ${finding.label}: ${finding.sourceChapterId} -> ${finding.targetSceneRef}; ` +
         `source="${finding.sourceText}"`,
+    )
+  }
+  for (const finding of report.upstream.planContinuity.factContradictions.slice(0, 5)) {
+    lines.push(
+      `- ${finding.label}: ${finding.sourceRef} -> ${finding.targetSceneRef}; ` +
+        `anchors=${finding.sharedAnchors.join(",")}; source="${finding.sourceText}"`,
     )
   }
   if (report.upstream.sceneLoad.chapters.length > 0) {
@@ -547,8 +571,152 @@ function summarizePlanContinuity(outlines: readonly ChapterOutline[]): PlanConti
     }
   }
 
-  return { futureEventAnchors: findings }
+  return {
+    futureEventAnchors: findings,
+    factContradictions: summarizePlanFactContradictions(normalized),
+  }
 }
+
+interface PlanFactStatusSource {
+  chapterNumber: number
+  chapterId: string
+  ref: string
+  text: string
+  anchors: string[]
+  tokens: string[]
+}
+
+function summarizePlanFactContradictions(
+  outlines: readonly ChapterOutline[],
+): PlanFactContradictionFinding[] {
+  const sources = outlines.flatMap(planFactStatusSources)
+  const findings: PlanFactContradictionFinding[] = []
+  const seen = new Set<string>()
+
+  for (const source of sources) {
+    for (const targetChapter of outlines) {
+      if (targetChapter.chapterNumber <= source.chapterNumber) continue
+      for (const target of planFactStatusTargets(targetChapter)) {
+        const conflict = factStatusConflict(source, target.text)
+        if (!conflict) continue
+        const sharedAnchors = source.anchors.filter(anchor => target.anchors.includes(anchor))
+        if (sharedAnchors.length === 0) continue
+        const key = [source.ref, target.sceneRef, conflict.tokens.join("|")].join("::")
+        if (seen.has(key)) continue
+        seen.add(key)
+        findings.push({
+          label: "PLAN-FACT-STATUS-CONTRADICTION",
+          severity: conflict.severity,
+          sourceChapterNumber: source.chapterNumber,
+          sourceChapterId: source.chapterId,
+          targetChapterNumber: targetChapter.chapterNumber,
+          targetChapterId: targetChapter.chapterId ?? `chapter:${targetChapter.chapterNumber}`,
+          sourceRef: source.ref,
+          targetSceneRef: target.sceneRef,
+          sourceText: source.text,
+          targetTextExcerpt: truncateForEvidence(target.text),
+          sharedAnchors,
+          conflictTokens: conflict.tokens,
+          requiredFactStatus: `Preserve ${source.ref}: ${source.text}`,
+        })
+      }
+    }
+  }
+
+  return findings
+}
+
+function planFactStatusSources(outline: ChapterOutline): PlanFactStatusSource[] {
+  const chapterId = outline.chapterId ?? `chapter:${outline.chapterNumber}`
+  return (outline.establishedFacts ?? [])
+    .map(fact => ({
+      chapterNumber: outline.chapterNumber,
+      chapterId,
+      ref: fact.id ?? chapterId,
+      text: fact.fact,
+      anchors: salientEntityAnchors(fact.fact),
+      tokens: liabilityStatusTokens(fact.fact),
+    }))
+    .filter(source => source.anchors.length > 0 && source.tokens.length > 0)
+}
+
+function planFactStatusTargets(outline: ChapterOutline): Array<{ sceneRef: string; text: string; anchors: string[] }> {
+  const targets: Array<{ sceneRef: string; text: string; anchors: string[] }> = []
+  for (const scene of outline.scenes ?? []) {
+    const sceneReference = sceneRef(scene)
+    if (!sceneReference) continue
+    const text = scenePlanningText(scene)
+    if (!text) continue
+    targets.push({ sceneRef: sceneReference, text, anchors: salientEntityAnchors(text) })
+  }
+  return targets
+}
+
+function factStatusConflict(
+  source: PlanFactStatusSource,
+  targetText: string,
+): { severity: "high" | "medium"; tokens: string[] } | null {
+  const target = normalizedText(targetText)
+  const tokens: string[] = []
+  if (source.tokens.some(token => token === "debt" || token === "imprisoned")) {
+    if (/\b(?:clean|clear|free)\s+of\b[^.]{0,80}\b(?:debt|crime|criminal)\b/.test(target) ||
+      /\bno\s+(?:significant\s+)?(?:debt|crime|criminal\s+record)\b/.test(target) ||
+      /\bwithout\s+(?:significant\s+)?(?:debt|crime|criminal\s+record)\b/.test(target)
+    ) {
+      tokens.push("clean-record-vs-debt")
+    }
+  }
+  return tokens.length > 0
+    ? { severity: source.tokens.includes("imprisoned") ? "high" : "medium", tokens }
+    : null
+}
+
+function liabilityStatusTokens(text: string): string[] {
+  const normalized = normalizedText(text)
+  const tokens: string[] = []
+  if (/\b(?:imprisoned|prison|jailed|incarcerated)\b/.test(normalized)) tokens.push("imprisoned")
+  if (/\b(?:debt|debtor|owed|owes|owing|ruin)\b/.test(normalized)) tokens.push("debt")
+  if (/\b(?:crime|criminal|convicted|record)\b/.test(normalized)) tokens.push("criminal")
+  return unique(tokens)
+}
+
+function salientEntityAnchors(text: string): string[] {
+  const anchors = new Set<string>()
+  for (const match of text.matchAll(/\b[A-Z][a-zA-Z']{2,}\b/g)) {
+    const token = match[0].toLowerCase()
+    if (!ENTITY_ANCHOR_STOPWORDS.has(token)) anchors.add(token)
+  }
+  const normalized = normalizedText(text)
+  for (const role of ENTITY_ROLE_ANCHORS) {
+    if (new RegExp(`\\b${role}\\b`).test(normalized)) anchors.add(role)
+  }
+  return [...anchors]
+}
+
+const ENTITY_ROLE_ANCHORS = [
+  "foreman",
+  "chancellor",
+  "sergeant",
+  "prisoner",
+  "debtor",
+  "bearer",
+  "clerk",
+  "warden",
+  "arbiter",
+] as const
+
+const ENTITY_ANCHOR_STOPWORDS = new Set([
+  "a",
+  "an",
+  "chapter",
+  "maren",
+  "the",
+  "treasury",
+  "counting",
+  "house",
+  "office",
+  "keep",
+])
 
 interface FutureEventSource {
   chapterNumber: number

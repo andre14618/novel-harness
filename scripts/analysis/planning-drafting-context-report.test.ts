@@ -63,6 +63,7 @@ describe("planning-drafting-context-report", () => {
       },
       planContinuity: {
         futureEventAnchors: [],
+        factContradictions: [],
       },
       scenesWithCharacters: 2,
       scenesWithSceneIds: 2,
@@ -394,6 +395,47 @@ describe("planning-drafting-context-report", () => {
     })
 
     expect(upstream.planContinuity.futureEventAnchors).toHaveLength(0)
+  })
+
+  test("flags later scenes that reverse an established entity debt status", () => {
+    const upstream = summarizePlanningArtifacts({
+      worldBibleAvailable: true,
+      storySpineAvailable: true,
+      characters: [{ id: "char-maren", name: "Maren" }],
+      outlines: [
+        outline(1, {
+          establishedFacts: [{
+            id: "fact-corso-file",
+            fact: "Foreman Corso is imprisoned for 200 silver thalers, has a wife and two children",
+            category: "character",
+          }],
+        }),
+        outline(2, {
+          scenes: [{
+            ...scenes(1)[0]!,
+            sceneId: "ch-002-scene-clean-file",
+            description: "Maren reviews the foreman's file, finding it clean of any significant debt or crime.",
+          }],
+        }),
+      ],
+    })
+
+    expect(upstream.planContinuity.factContradictions).toHaveLength(1)
+    expect(upstream.planContinuity.factContradictions[0]).toMatchObject({
+      label: "PLAN-FACT-STATUS-CONTRADICTION",
+      severity: "high",
+      sourceRef: "fact-corso-file",
+      targetSceneRef: "ch-002-scene-clean-file",
+      sharedAnchors: ["foreman"],
+      conflictTokens: ["clean-record-vs-debt"],
+    })
+    const report = buildPlanningToDraftingContextReport({
+      novelId: "novel-fact-contradiction",
+      upstream,
+      writerContext: buildWriterContextTelemetryReport([], "novel-fact-contradiction"),
+    })
+    expect(renderPlanningToDraftingContextReport(report)).toContain("factContradictions=1")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("PLAN-FACT-STATUS-CONTRADICTION")
   })
 
   test("marks available upstream surfaces as not observed when no writer telemetry exists", () => {
