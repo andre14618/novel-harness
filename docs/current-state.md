@@ -119,14 +119,13 @@ readiness. P1 made `drafting-brief-v1` strongest at 1.24x with prose lows 0/8
 and scene lows 1/33, but LitRPG replication held promotion. Planner-generated
 P1 repair reached `choice/full=11/11` and `factContradictions=0`; clean reruns
 now show the tradeoff. V3 endpoint-source repair improved endpoint lows to
-1/10 but bloated to 5759/3800 = 1.52x. A narrower compact status-polarity
-guardrail kept endpoint lows 1/10 and cut length to 4713/3800 = 1.24x, with
-scene lows 2/34 and prose lows 0/8. A broad operational-facts brief regressed
-to 6050/3800 without low-row improvement, so keep it out. Next target the
-remaining Corso-file world-pressure/setup endpoint weakness. Continuity fact
-prompts now carry `factId`, disambiguate authorization/signature/office seals
-from missing binding seals, and filter explicit support echoes. Do not flip
-defaults. See L103-L106.
+1/10 but bloated to 5759/3800 = 1.52x. A compact status-polarity guardrail cut
+length to 4713/3800 = 1.24x with scene lows 2/34. Clean-source Corso plan repair
+then reached 4778/3800 = 1.26x with prose lows 0/8, scene lows 0/34, persisted
+scene rows 34, and no readiness lows. A broad operational-facts brief regressed
+to 6050/3800 without low-row improvement, so keep it out. Continuity fact
+prompts carry `factId`, disambiguate seal roles, and filter explicit support
+echoes. Do not flip defaults. See L103-L106.
 
 ## Authoring Gates
 
