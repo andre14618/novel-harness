@@ -330,7 +330,9 @@ export interface PlanningContextTelemetrySummary {
     withCharacterContext: number
     withWorldContext: number
     withStoryContext: number
+    storyRefIds: number
     withReaderInfoState: number
+    readerInfoStateChars: number
     withImplicitReferences: number
     withResolvedReferences: number
     referenceLookups: number
@@ -811,7 +813,9 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
         withCharacterContext: 0,
         withWorldContext: 0,
         withStoryContext: 0,
+        storyRefIds: 0,
         withReaderInfoState: 0,
+        readerInfoStateChars: 0,
         withImplicitReferences: 0,
         withResolvedReferences: 0,
         referenceLookups: 0,
@@ -896,7 +900,9 @@ async function maybeRunPlanningContextAudit(
         withCharacterContext: 0,
         withWorldContext: 0,
         withStoryContext: 0,
+        storyRefIds: 0,
         withReaderInfoState: 0,
+        readerInfoStateChars: 0,
         withImplicitReferences: 0,
         withResolvedReferences: 0,
         referenceLookups: 0,
@@ -968,7 +974,9 @@ function planningContextSummary(
       withCharacterContext: report.downstream.withCharacterContext,
       withWorldContext: report.downstream.withWorldContext,
       withStoryContext: report.downstream.withStoryContext,
+      storyRefIds: report.downstream.storyRefIds,
       withReaderInfoState: report.downstream.withReaderInfoState,
+      readerInfoStateChars: report.downstream.readerInfoStateChars,
       withImplicitReferences: report.downstream.withImplicitReferences,
       withResolvedReferences: report.downstream.withResolvedReferences,
       referenceLookups: report.downstream.referenceLookups,

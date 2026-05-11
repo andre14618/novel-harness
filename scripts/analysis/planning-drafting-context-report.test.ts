@@ -143,7 +143,9 @@ describe("planning-drafting-context-report", () => {
           counts: {
             obligations: 1,
             canonSourceRefs: 1,
+            storyRefIds: 1,
             activeThreadIds: 1,
+            readerInfoStateChars: 24,
             sceneContractFields: 5,
             sceneContractAnchorFields: 2,
             sceneContractDramaticFields: 3,
@@ -171,6 +173,11 @@ describe("planning-drafting-context-report", () => {
             characters: 2,
             obligations: 1,
             canonSourceRefs: 1,
+            storyRefIds: 1,
+            activeThreadIds: 1,
+            activePromiseIds: 0,
+            activePayoffIds: 0,
+            readerInfoStateChars: 24,
             sceneContractFields: 5,
             sceneContractAnchorFields: 2,
             sceneContractDramaticFields: 3,
@@ -201,6 +208,8 @@ describe("planning-drafting-context-report", () => {
     expect(renderPlanningToDraftingContextReport(report)).toContain("Gaps: 0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("canonFacts=1, canonKnowledge=0, canonStates=0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("canon=1 (sourceRefs=1, factAnchors=0)")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("story=1 (storyRefs=1)")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("readerInfo=1 (readerChars=24)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Scene load: maxScenesPerChapter=1")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Plan continuity: futureEventAnchors=0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=1, choice=0, endpoint=1, full=0, anchorOnly=0, temporal=1, place=1)")

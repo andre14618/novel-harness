@@ -451,7 +451,8 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
     `Downstream writer-context events: ${report.downstream.events}; ` +
       `character=${report.downstream.withCharacterContext}, world=${report.downstream.withWorldContext}, ` +
       `canon=${report.downstream.withCanonFactContext} (sourceRefs=${report.downstream.canonSourceRefs}, factAnchors=${report.downstream.withFactContinuityAnchors}), ` +
-      `story=${report.downstream.withStoryContext}, readerInfo=${report.downstream.withReaderInfoState}, ` +
+      `story=${report.downstream.withStoryContext} (storyRefs=${report.downstream.storyRefIds}), ` +
+      `readerInfo=${report.downstream.withReaderInfoState} (readerChars=${report.downstream.readerInfoStateChars}), ` +
       `implicitRefs=${report.downstream.withImplicitReferences}, refs=${report.downstream.withResolvedReferences}, ` +
       `refLookups=${report.downstream.referenceLookups}, sceneContract=${report.downstream.withSceneContract} ` +
       `(shapeCounts=${report.downstream.withSceneContractShapeCounts}, dramatic=${report.downstream.withDramaticSceneContract}, anchorOnly=${report.downstream.withAnchorOnlySceneContract}, ` +

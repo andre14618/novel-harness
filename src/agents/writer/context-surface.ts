@@ -1,4 +1,5 @@
 import type { BeatContext } from "./beat-context"
+import { countCanonSourceRefs, countStoryRefs } from "./context-trace-counts"
 import { summarizeSceneContractShape } from "./scene-contract-shape"
 
 export interface WriterContextSurfaceTrace {
@@ -36,9 +37,11 @@ export interface WriterContextSurfaceTrace {
     sceneContractDramaticFields?: number
     sceneContractBudgetFields?: number
     choiceAlternatives?: number
+    storyRefIds?: number
     activeThreadIds?: number
     activePromiseIds?: number
     activePayoffIds?: number
+    readerInfoStateChars?: number
     implicitReferenceMarkers?: number
     referenceLookups?: number
     referenceLlmCalls?: number
@@ -50,6 +53,7 @@ export function summarizeBeatContextSurface(ctx: BeatContext): WriterContextSurf
   const capsules = ctx.characterContextCapsules ?? null
   const sceneContractShape = ctx.sceneContract ? summarizeSceneContractShape(ctx.sceneContract) : null
   const canonSourceRefs = countCanonSourceRefs(ctx)
+  const storyRefs = countStoryRefs(ctx)
   return {
     path: "beat",
     surfaces: {
@@ -79,31 +83,17 @@ export function summarizeBeatContextSurface(ctx: BeatContext): WriterContextSurf
       sceneContractDramaticFields: sceneContractShape?.dramaticFields ?? 0,
       sceneContractBudgetFields: sceneContractShape?.budgetFields ?? 0,
       choiceAlternatives: sceneContractShape?.choiceAlternatives ?? 0,
-      activeThreadIds: capsules?.activeThreadIds.length ?? 0,
-      activePromiseIds: capsules?.activePromiseIds.length ?? 0,
-      activePayoffIds: capsules?.activePayoffIds.length ?? 0,
+      storyRefIds: storyRefs.total,
+      activeThreadIds: storyRefs.threadIds,
+      activePromiseIds: storyRefs.promiseIds,
+      activePayoffIds: storyRefs.payoffIds,
+      readerInfoStateChars: ctx.readerInfoState?.length ?? 0,
       implicitReferenceMarkers: ctx.referenceResolutionTrace?.hasImplicitReference ? 1 : 0,
       referenceLookups: ctx.referenceResolutionTrace?.lookupCount ?? 0,
       referenceLlmCalls: ctx.referenceResolutionTrace?.llmUsed ? 1 : 0,
       missingCharacterIds: capsules?.missingCharacterIds.length ?? 0,
     },
   }
-}
-
-function countCanonSourceRefs(ctx: BeatContext): number {
-  const ids = new Set<string>()
-  for (const seed of ctx.beatSpec.seeds) if (seed.factId) ids.add(seed.factId)
-  for (const due of ctx.beatSpec.payoffsDue) if (due.factId) ids.add(due.factId)
-  for (const item of [
-    ...ctx.beatSpec.obligations.mustEstablish,
-    ...ctx.beatSpec.obligations.mustPayOff,
-    ...ctx.beatSpec.obligations.mustTransferKnowledge,
-    ...ctx.beatSpec.obligations.mustShowStateChange,
-    ...ctx.beatSpec.obligations.mustNotReveal,
-  ]) {
-    if (item.sourceId) ids.add(item.sourceId)
-  }
-  return ids.size
 }
 
 function countObligations(obligations: BeatContext["beatSpec"]["obligations"]): number {

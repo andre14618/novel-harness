@@ -14,8 +14,8 @@ describe("drafting-run-cohort", () => {
   test("aggregates clean-source comparison reports by signal, semantic dimension, and context delta", () => {
     const report = buildDraftingRunCohortReport({
       refs: [
-        { path: "lit.json", report: comparisonReport("lit", "promising", -500, 0, 0, 2, "improved") },
-        { path: "corso.json", report: comparisonReport("corso", "regressed", 224, 4, 3, 0, "regressed") },
+        { path: "lit.json", report: comparisonReport("lit", "promising", -500, 0, 0, 2, "improved", 3, 80) },
+        { path: "corso.json", report: comparisonReport("corso", "regressed", 224, 4, 3, 0, "regressed", -1, -30) },
       ],
       generatedAt: "2026-05-11T00:00:00.000Z",
     })
@@ -27,6 +27,8 @@ describe("drafting-run-cohort", () => {
     expect(report.aggregate.meanWordsDelta).toBe(-138)
     expect(report.aggregate.sceneLowDeltaSum).toBe(4)
     expect(report.aggregate.contextDeltas.canonSourceRefs).toBe(2)
+    expect(report.aggregate.contextDeltas.storyRefIds).toBe(2)
+    expect(report.aggregate.contextDeltas.readerInfoStateChars).toBe(50)
     expect(report.dimensions.find(row => row.dimension === "endpointLanding")).toMatchObject({
       comparisons: 2,
       lowDeltaSum: 3,
@@ -36,6 +38,8 @@ describe("drafting-run-cohort", () => {
     const rendered = renderDraftingRunCohortReport(report)
     expect(rendered).toContain("Signal: regressed")
     expect(rendered).toContain("canonSourceRefs=+2")
+    expect(rendered).toContain("storyRefs=+2")
+    expect(rendered).toContain("readerChars=+50")
     expect(rendered).toContain("| endpointLanding | 2 |")
     expect(rendered).toContain("| corso | drafting-brief-v1 | drafting-brief-tight-v1 | yes | regressed | +224 | +4 | 0 |")
   })
@@ -61,6 +65,8 @@ function comparisonReport(
   endpointLowDelta: number,
   canonSourceRefsDelta: number,
   verdict: "improved" | "regressed" | "mixed",
+  storyRefIdsDelta = 0,
+  readerInfoStateCharsDelta = 0,
 ): DraftingRunComparisonReport {
   return {
     generatedAt: "2026-05-11T00:00:00.000Z",
@@ -120,7 +126,9 @@ function comparisonReport(
         factContinuityAnchorDelta: 0,
         canonSourceRefsDelta,
         storyContextDelta: 0,
+        storyRefIdsDelta,
         readerInfoStateDelta: 0,
+        readerInfoStateCharsDelta,
         missingCharacterIdsDelta: 0,
         resolvedReferencesDelta: 0,
         overloadedChapterDelta: 0,

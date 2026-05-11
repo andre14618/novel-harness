@@ -116,7 +116,9 @@ interface PlanningContextDetail {
     withFactContinuityAnchors: number | null
     canonSourceRefs: number | null
     withStoryContext: number | null
+    storyRefIds: number | null
     withReaderInfoState: number | null
+    readerInfoStateChars: number | null
     missingCharacterIds: number | null
     withResolvedReferences: number | null
     referenceLookups: number | null
@@ -213,7 +215,9 @@ export interface DraftingRunComparison {
     factContinuityAnchorDelta: number | null
     canonSourceRefsDelta: number | null
     storyContextDelta: number | null
+    storyRefIdsDelta: number | null
     readerInfoStateDelta: number | null
+    readerInfoStateCharsDelta: number | null
     missingCharacterIdsDelta: number | null
     resolvedReferencesDelta: number | null
     overloadedChapterDelta: number | null
@@ -297,8 +301,10 @@ export function renderDraftingRunComparisonReport(report: DraftingRunComparisonR
           `canon=${formatTransition(baselineContext?.withCanonFactContext, candidateContext?.withCanonFactContext)} ` +
           `(sourceRefs=${formatTransition(baselineContext?.canonSourceRefs, candidateContext?.canonSourceRefs)}, ` +
           `factAnchors=${formatTransition(baselineContext?.withFactContinuityAnchors, candidateContext?.withFactContinuityAnchors)}), ` +
-          `story=${formatTransition(baselineContext?.withStoryContext, candidateContext?.withStoryContext)}, ` +
-          `reader=${formatTransition(baselineContext?.withReaderInfoState, candidateContext?.withReaderInfoState)}, ` +
+          `story=${formatTransition(baselineContext?.withStoryContext, candidateContext?.withStoryContext)} ` +
+          `(storyRefs=${formatTransition(baselineContext?.storyRefIds, candidateContext?.storyRefIds)}), ` +
+          `reader=${formatTransition(baselineContext?.withReaderInfoState, candidateContext?.withReaderInfoState)} ` +
+          `(chars=${formatTransition(baselineContext?.readerInfoStateChars, candidateContext?.readerInfoStateChars)}), ` +
           `refs=${formatTransition(baselineContext?.withResolvedReferences, candidateContext?.withResolvedReferences)} ` +
           `(lookups=${formatTransition(baselineContext?.referenceLookups, candidateContext?.referenceLookups)})`,
       )
@@ -434,9 +440,17 @@ function compareCandidate(
         baseline.summary.planningContext?.downstream?.withStoryContext ?? null,
         candidate.summary.planningContext?.downstream?.withStoryContext ?? null,
       ),
+      storyRefIdsDelta: nullableDelta(
+        baseline.summary.planningContext?.downstream?.storyRefIds ?? null,
+        candidate.summary.planningContext?.downstream?.storyRefIds ?? null,
+      ),
       readerInfoStateDelta: nullableDelta(
         baseline.summary.planningContext?.downstream?.withReaderInfoState ?? null,
         candidate.summary.planningContext?.downstream?.withReaderInfoState ?? null,
+      ),
+      readerInfoStateCharsDelta: nullableDelta(
+        baseline.summary.planningContext?.downstream?.readerInfoStateChars ?? null,
+        candidate.summary.planningContext?.downstream?.readerInfoStateChars ?? null,
       ),
       missingCharacterIdsDelta: nullableDelta(
         baseline.summary.planningContext?.downstream?.missingCharacterIds ?? null,
@@ -594,7 +608,9 @@ function loadPlanningContextDetail(reportDir: string, outputDir: string | null):
         withFactContinuityAnchors: finiteOrNull(downstream.withFactContinuityAnchors),
         canonSourceRefs: finiteOrNull(downstream.canonSourceRefs),
         withStoryContext: finiteOrNull(downstream.withStoryContext),
+        storyRefIds: finiteOrNull(downstream.storyRefIds),
         withReaderInfoState: finiteOrNull(downstream.withReaderInfoState),
+        readerInfoStateChars: finiteOrNull(downstream.readerInfoStateChars),
         missingCharacterIds: finiteOrNull(downstream.missingCharacterIds),
         withResolvedReferences: finiteOrNull(downstream.withResolvedReferences),
         referenceLookups: finiteOrNull(downstream.referenceLookups),

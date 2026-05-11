@@ -65,6 +65,11 @@ export interface WriterContextEventSummary {
       characters: number
       obligations: number
       canonSourceRefs: number
+      storyRefIds: number
+      activeThreadIds: number
+      activePromiseIds: number
+      activePayoffIds: number
+      readerInfoStateChars: number
       sceneContractFields: number
       sceneContractAnchorFields: number
       sceneContractDramaticFields: number
@@ -77,6 +82,8 @@ export interface WriterContextEventSummary {
   sceneContractDramaticFields: number
   sceneContractBudgetFields: number
   canonSourceRefs: number
+  storyRefIds: number
+  readerInfoStateChars: number
   referenceLookups: number
   referenceLlmCalls: number
   missingCharacterIds: number
@@ -111,8 +118,10 @@ export interface WriterContextTelemetryReport {
     withWorldBible: number
     withSetting: number
     withStoryContext: number
+    storyRefIds: number
     withImplicitReferences: number
     withReaderInfoState: number
+    readerInfoStateChars: number
     withResolvedReferences: number
     referenceLookups: number
     referenceLlmCalls: number
@@ -178,8 +187,10 @@ export function buildWriterContextTelemetryReport(
       withWorldBible: events.filter(event => event.surfaces.worldBible).length,
       withSetting: events.filter(event => event.surfaces.setting).length,
       withStoryContext: events.filter(event => event.surfaces.story).length,
+      storyRefIds: events.reduce((sum, event) => sum + event.storyRefIds, 0),
       withImplicitReferences: events.filter(event => event.surfaces.implicitReferences).length,
       withReaderInfoState: events.filter(event => event.surfaces.readerInfoState).length,
+      readerInfoStateChars: events.reduce((sum, event) => sum + event.readerInfoStateChars, 0),
       withResolvedReferences: events.filter(event => event.surfaces.resolvedReferences).length,
       referenceLookups: events.reduce((sum, event) => sum + event.referenceLookups, 0),
       referenceLlmCalls: events.reduce((sum, event) => sum + event.referenceLlmCalls, 0),
@@ -216,9 +227,11 @@ export function renderWriterContextTelemetryReport(report: WriterContextTelemetr
       `(sourceRefs=${report.totals.canonSourceRefs}, factAnchors=${report.totals.withFactContinuityAnchors}), ` +
       `world=${formatCoverage(report.totals.withWorldContext, report.totals.events)} ` +
       `(bible=${report.totals.withWorldBible}, setting=${report.totals.withSetting}), ` +
-      `story=${formatCoverage(report.totals.withStoryContext, report.totals.events)}, ` +
+      `story=${formatCoverage(report.totals.withStoryContext, report.totals.events)} ` +
+      `(refs=${report.totals.storyRefIds}), ` +
       `implicitRefs=${formatCoverage(report.totals.withImplicitReferences, report.totals.events)}, ` +
-      `readerInfo=${formatCoverage(report.totals.withReaderInfoState, report.totals.events)}, ` +
+      `readerInfo=${formatCoverage(report.totals.withReaderInfoState, report.totals.events)} ` +
+      `(chars=${report.totals.readerInfoStateChars}), ` +
       `refs=${formatCoverage(report.totals.withResolvedReferences, report.totals.events)}, ` +
       `refLookups=${report.totals.referenceLookups}, refLlm=${report.totals.referenceLlmCalls}, ` +
       `missingCharacterIds=${report.totals.missingCharacterIds}`,
@@ -299,13 +312,29 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
     || Boolean(draftingBrief?.sections.factContinuityAnchors)
   const hasWorldBible = readBoolean(surfaces.worldBible)
   const hasSetting = readBoolean(surfaces.setting) || Boolean(draftingBrief?.sections.setting)
+  const storyRefIds = maxNumber(
+    readFiniteNumber(counts.storyRefIds),
+    draftingBrief?.counts.storyRefIds,
+    sumNumbers(
+      readFiniteNumber(counts.activeThreadIds),
+      readFiniteNumber(counts.activePromiseIds),
+      readFiniteNumber(counts.activePayoffIds),
+    ),
+    sumNumbers(
+      draftingBrief?.counts.activeThreadIds,
+      draftingBrief?.counts.activePromiseIds,
+      draftingBrief?.counts.activePayoffIds,
+    ),
+    readArray(characterContext.activeThreadIds).length +
+      readArray(characterContext.activePromiseIds).length +
+      readArray(characterContext.activePayoffIds).length,
+  )
+  const readerInfoStateChars = maxNumber(
+    readFiniteNumber(counts.readerInfoStateChars),
+    draftingBrief?.counts.readerInfoStateChars,
+  )
   const story = readBoolean(surfaces.storySpine)
-    || positiveNumber(counts.activeThreadIds)
-    || positiveNumber(counts.activePromiseIds)
-    || positiveNumber(counts.activePayoffIds)
-    || positiveArray(characterContext.activeThreadIds)
-    || positiveArray(characterContext.activePromiseIds)
-    || positiveArray(characterContext.activePayoffIds)
+    || storyRefIds > 0
     || hasObligations
   const sceneContractFields = maxNumber(
     readFiniteNumber(counts.sceneContractFields),
@@ -362,6 +391,8 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
     sceneContractDramaticFields,
     sceneContractBudgetFields,
     canonSourceRefs,
+    storyRefIds,
+    readerInfoStateChars,
     referenceLookups,
     referenceLlmCalls,
     missingCharacterIds: readFiniteNumber(counts.missingCharacterIds) ?? readArray(characterContext.missingCharacterIds).length,
@@ -401,6 +432,11 @@ function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingB
       characters: readFiniteNumber(counts.characters) ?? 0,
       obligations: readFiniteNumber(counts.obligations) ?? 0,
       canonSourceRefs: readFiniteNumber(counts.canonSourceRefs) ?? 0,
+      storyRefIds: readFiniteNumber(counts.storyRefIds) ?? 0,
+      activeThreadIds: readFiniteNumber(counts.activeThreadIds) ?? 0,
+      activePromiseIds: readFiniteNumber(counts.activePromiseIds) ?? 0,
+      activePayoffIds: readFiniteNumber(counts.activePayoffIds) ?? 0,
+      readerInfoStateChars: readFiniteNumber(counts.readerInfoStateChars) ?? 0,
       sceneContractFields: readFiniteNumber(counts.sceneContractFields) ?? 0,
       sceneContractAnchorFields: readFiniteNumber(counts.sceneContractAnchorFields) ?? 0,
       sceneContractDramaticFields: readFiniteNumber(counts.sceneContractDramaticFields) ?? 0,
@@ -412,6 +448,10 @@ function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingB
 
 function maxNumber(...values: Array<number | null | undefined>): number {
   return Math.max(0, ...values.filter((value): value is number => typeof value === "number" && Number.isFinite(value)))
+}
+
+function sumNumbers(...values: Array<number | null | undefined>): number {
+  return values.reduce((sum, value) => sum + (typeof value === "number" && Number.isFinite(value) ? value : 0), 0)
 }
 
 function countBy<T>(items: readonly T[], keyFn: (item: T) => string): Record<string, number> {
@@ -460,10 +500,6 @@ function positiveNumber(value: unknown): boolean {
 
 function readArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
-}
-
-function positiveArray(value: unknown): boolean {
-  return readArray(value).length > 0
 }
 
 function formatCoverage(count: number, total: number): string {

@@ -74,7 +74,9 @@ export interface DraftingRunCohortReport {
       factContinuityAnchors: number
       canonSourceRefs: number
       storyContext: number
+      storyRefIds: number
       readerInfoState: number
+      readerInfoStateChars: number
       resolvedReferences: number
       missingCharacterIds: number
     }
@@ -139,7 +141,9 @@ export function buildDraftingRunCohortReport(input: {
         factContinuityAnchors: sumComparisonDelta(input.refs, "factContinuityAnchorDelta"),
         canonSourceRefs: sumComparisonDelta(input.refs, "canonSourceRefsDelta"),
         storyContext: sumComparisonDelta(input.refs, "storyContextDelta"),
+        storyRefIds: sumComparisonDelta(input.refs, "storyRefIdsDelta"),
         readerInfoState: sumComparisonDelta(input.refs, "readerInfoStateDelta"),
+        readerInfoStateChars: sumComparisonDelta(input.refs, "readerInfoStateCharsDelta"),
         resolvedReferences: sumComparisonDelta(input.refs, "resolvedReferencesDelta"),
         missingCharacterIds: sumComparisonDelta(input.refs, "missingCharacterIdsDelta"),
       },
@@ -170,7 +174,9 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
   lines.push(
     `- context deltas: canonSourceRefs=${formatSigned(report.aggregate.contextDeltas.canonSourceRefs)}, ` +
       `factAnchors=${formatSigned(report.aggregate.contextDeltas.factContinuityAnchors)}, ` +
+      `storyRefs=${formatSigned(report.aggregate.contextDeltas.storyRefIds)}, ` +
       `reader=${formatSigned(report.aggregate.contextDeltas.readerInfoState)}, ` +
+      `readerChars=${formatSigned(report.aggregate.contextDeltas.readerInfoStateChars)}, ` +
       `resolvedRefs=${formatSigned(report.aggregate.contextDeltas.resolvedReferences)}, ` +
       `missingChars=${formatSigned(report.aggregate.contextDeltas.missingCharacterIds)}`,
   )

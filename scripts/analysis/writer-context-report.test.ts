@@ -36,11 +36,13 @@ describe("writer-context-report", () => {
           counts: {
             obligations: 0,
             canonSourceRefs: 2,
+            storyRefIds: 1,
             sceneContractFields: 5,
             sceneContractAnchorFields: 2,
             sceneContractDramaticFields: 2,
             sceneContractBudgetFields: 1,
             activeThreadIds: 1,
+            readerInfoStateChars: 0,
             implicitReferenceMarkers: 1,
             referenceLookups: 2,
             referenceLlmCalls: 1,
@@ -68,6 +70,11 @@ describe("writer-context-report", () => {
             characters: 2,
             obligations: 3,
             canonSourceRefs: 2,
+            storyRefIds: 2,
+            activeThreadIds: 1,
+            activePromiseIds: 1,
+            activePayoffIds: 0,
+            readerInfoStateChars: 32,
             sceneContractFields: 5,
             sceneContractAnchorFields: 2,
             sceneContractDramaticFields: 2,
@@ -120,12 +127,14 @@ describe("writer-context-report", () => {
       withCanonFactContext: 1,
       withFactContinuityAnchors: 1,
       canonSourceRefs: 2,
+      storyRefIds: 2,
       withWorldContext: 2,
       withWorldBible: 2,
       withSetting: 1,
       withStoryContext: 2,
       withImplicitReferences: 1,
       withReaderInfoState: 1,
+      readerInfoStateChars: 32,
       withResolvedReferences: 1,
       referenceLookups: 2,
       referenceLlmCalls: 1,
@@ -153,7 +162,9 @@ describe("writer-context-report", () => {
     expect(rendered).toContain("obligations=1/3")
     expect(rendered).toContain("canon=1/3 (sourceRefs=2, factAnchors=1)")
     expect(rendered).toContain("world=2/3 (bible=2, setting=1)")
+    expect(rendered).toContain("story=2/3 (refs=2)")
     expect(rendered).toContain("implicitRefs=1/3")
+    expect(rendered).toContain("readerInfo=1/3 (chars=32)")
     expect(rendered).toContain("refLookups=2, refLlm=1")
     expect(rendered).toContain("avgChars=500/1000")
     expect(rendered).toContain("avgRatio=0.500")

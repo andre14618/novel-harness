@@ -30,7 +30,7 @@ unless the user explicitly requests a disposable branch.
   6050/3800 regression without low-row improvement. No default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
-  writer-context/canon-ref telemetry and scene-load pressure; run-compare/cohort
+  writer-context/canon/story-ref/reader-state telemetry and scene-load pressure; run-compare/cohort
   compare reports with trace IDs and context deltas; `test-drafting-isolated` writes sidecars.
   Scene-contract telemetry separates broad `dramatic` presence from `choice`,
   `endpoint`, and `full` completeness.
