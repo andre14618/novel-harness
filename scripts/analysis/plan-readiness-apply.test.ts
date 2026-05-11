@@ -70,6 +70,9 @@ describe("plan-readiness-apply", () => {
       match: { label: "ENDPOINT-PLAN-1" },
       decision: "field_replace",
       proposedValue: "A sharper final scene description.",
+      proposedValueTemplate: { replaceWithReviewedValue: true },
+      proposalCandidate: { action: "field_replace" },
+      proposalInstruction: "operator-only scaffold",
       operatorNote: "make endpoint concrete",
       rationale: "operator-reviewed endpoint fix",
     })).toEqual({

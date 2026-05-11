@@ -45,6 +45,14 @@ describe("plan-readiness-review-plan", () => {
           diagnosticLabel: "CONTINUITY-BLOCKER",
           dimension: "planConsistency",
           target: { kind: "chapter_outline", ref: "chapter-2", fieldPath: "purpose" },
+          metadata: {
+            proposalCandidate: {
+              action: "field_replace",
+              target: { kind: "chapter_outline", ref: "chapter-2", fieldPath: "purpose" },
+              requiresProposedValue: true,
+              safeToAutoApply: false,
+            },
+          },
         }),
       ],
     })
@@ -64,7 +72,16 @@ describe("plan-readiness-review-plan", () => {
         targetFieldPath: "purpose",
       },
       decision: "deferred",
+      proposalCandidate: {
+        action: "field_replace",
+        target: { kind: "chapter_outline", ref: "chapter-2", fieldPath: "purpose" },
+      },
+      proposedValueTemplate: {
+        target: { kind: "chapter_outline", ref: "chapter-2", fieldPath: "purpose" },
+        replaceWithReviewedValue: true,
+      },
     })
+    expect(report.plan.actions[0]?.proposalInstruction).toContain("set decision to the candidate action")
   })
 
   test("renderReviewPlanReport includes review context without requiring proposals", () => {

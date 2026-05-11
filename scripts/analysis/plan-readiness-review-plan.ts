@@ -106,18 +106,7 @@ export function buildReviewPlanReport(input: {
   const defaultDecision = input.defaultDecision ?? "deferred"
   const items = [...input.items].sort(compareReadinessItems)
   const plan: PlanReadinessActionPlan = {
-    actions: items.map(item => ({
-      match: {
-        itemId: item.id,
-        label: item.diagnosticLabel,
-        dimension: item.dimension,
-        targetKind: item.target.kind,
-        targetRef: item.target.ref,
-        ...(item.target.fieldPath ? { targetFieldPath: item.target.fieldPath } : {}),
-      },
-      decision: defaultDecision,
-      operatorNote: DEFAULT_NOTE,
-    })),
+    actions: items.map(item => actionForItem(item, defaultDecision)),
   }
 
   return {
@@ -147,6 +136,43 @@ export function buildReviewPlanReport(input: {
       preserveIds: item.preserveIds,
       proposalCandidate: item.metadata.proposalCandidate ?? null,
     })),
+  }
+}
+
+function actionForItem(
+  item: PlanReadinessItem,
+  defaultDecision: PlanReadinessApplyDecision,
+): PlanReadinessActionPlan["actions"][number] {
+  const proposalCandidate = item.metadata.proposalCandidate ?? null
+  return {
+    match: {
+      itemId: item.id,
+      label: item.diagnosticLabel,
+      dimension: item.dimension,
+      targetKind: item.target.kind,
+      targetRef: item.target.ref,
+      ...(item.target.fieldPath ? { targetFieldPath: item.target.fieldPath } : {}),
+    },
+    decision: defaultDecision,
+    operatorNote: DEFAULT_NOTE,
+    ...(proposalCandidate
+      ? {
+        proposalCandidate,
+        proposalInstruction: "To create a planning proposal, set decision to the candidate action and replace proposedValueTemplate with proposedValue.",
+        proposedValueTemplate: proposedValueTemplateFor(item),
+      }
+      : {}),
+  }
+}
+
+function proposedValueTemplateFor(item: PlanReadinessItem): unknown {
+  return {
+    target: {
+      kind: item.target.kind,
+      ref: item.target.ref,
+      ...(item.target.fieldPath ? { fieldPath: item.target.fieldPath } : {}),
+    },
+    replaceWithReviewedValue: true,
   }
 }
 
