@@ -136,11 +136,16 @@ interface PlanningContextDetail {
     withCanonFactContext: number | null
     withFactContinuityAnchors: number | null
     canonSourceRefs: number | null
+    canonSourceRefCounts: Record<string, number>
     withStoryContext: number | null
     storyRefIds: number | null
+    activeThreadIdCounts: Record<string, number>
+    activePromiseIdCounts: Record<string, number>
+    activePayoffIdCounts: Record<string, number>
     withReaderInfoState: number | null
     readerInfoStateChars: number | null
     missingCharacterIds: number | null
+    missingCharacterIdCounts: Record<string, number>
     withResolvedReferences: number | null
     referenceLookups: number | null
   } | null
@@ -264,6 +269,13 @@ export interface DraftingRunComparison {
     referenceAttemptEventDelta: number | null
     overloadedChapterDelta: number | null
     minTargetWordsPerSceneDelta: number | null
+    idDeltas: {
+      canonSourceRefs: Record<string, number>
+      activeThreadIds: Record<string, number>
+      activePromiseIds: Record<string, number>
+      activePayoffIds: Record<string, number>
+      missingCharacterIds: Record<string, number>
+    }
   }
   manualReadiness: {
     planAssistFindingDelta: number | null
@@ -388,6 +400,8 @@ export function renderDraftingRunComparisonReport(report: DraftingRunComparisonR
           `refs=${formatTransition(baselineContext?.withResolvedReferences, candidateContext?.withResolvedReferences)} ` +
           `(lookups=${formatTransition(baselineContext?.referenceLookups, candidateContext?.referenceLookups)})`,
       )
+      const contextIdDeltas = formatContextIdDeltas(comparison.planningContext.idDeltas)
+      if (contextIdDeltas) lines.push(`Context ID deltas: ${contextIdDeltas}`)
     }
     const baselineReferenceAttempts = report.baseline.planningContext?.referenceContextAttempts
     const candidateReferenceAttempts = candidate.planningContext?.referenceContextAttempts
@@ -564,6 +578,28 @@ function compareCandidate(
         baseline.summary.planningContext?.sceneLoad?.minTargetWordsPerScene ?? null,
         candidate.summary.planningContext?.sceneLoad?.minTargetWordsPerScene ?? null,
       ),
+      idDeltas: {
+        canonSourceRefs: recordDelta(
+          baseline.summary.planningContext?.downstream?.canonSourceRefCounts,
+          candidate.summary.planningContext?.downstream?.canonSourceRefCounts,
+        ),
+        activeThreadIds: recordDelta(
+          baseline.summary.planningContext?.downstream?.activeThreadIdCounts,
+          candidate.summary.planningContext?.downstream?.activeThreadIdCounts,
+        ),
+        activePromiseIds: recordDelta(
+          baseline.summary.planningContext?.downstream?.activePromiseIdCounts,
+          candidate.summary.planningContext?.downstream?.activePromiseIdCounts,
+        ),
+        activePayoffIds: recordDelta(
+          baseline.summary.planningContext?.downstream?.activePayoffIdCounts,
+          candidate.summary.planningContext?.downstream?.activePayoffIdCounts,
+        ),
+        missingCharacterIds: recordDelta(
+          baseline.summary.planningContext?.downstream?.missingCharacterIdCounts,
+          candidate.summary.planningContext?.downstream?.missingCharacterIdCounts,
+        ),
+      },
     },
     manualReadiness: {
       planAssistFindingDelta: nullableDelta(
@@ -945,11 +981,16 @@ function loadPlanningContextDetail(reportDir: string, outputDir: string | null):
         withCanonFactContext: finiteOrNull(downstream.withCanonFactContext),
         withFactContinuityAnchors: finiteOrNull(downstream.withFactContinuityAnchors),
         canonSourceRefs: finiteOrNull(downstream.canonSourceRefs),
+        canonSourceRefCounts: numberRecord(downstream.canonSourceRefCounts),
         withStoryContext: finiteOrNull(downstream.withStoryContext),
         storyRefIds: finiteOrNull(downstream.storyRefIds),
+        activeThreadIdCounts: numberRecord(downstream.activeThreadIdCounts),
+        activePromiseIdCounts: numberRecord(downstream.activePromiseIdCounts),
+        activePayoffIdCounts: numberRecord(downstream.activePayoffIdCounts),
         withReaderInfoState: finiteOrNull(downstream.withReaderInfoState),
         readerInfoStateChars: finiteOrNull(downstream.readerInfoStateChars),
         missingCharacterIds: finiteOrNull(downstream.missingCharacterIds),
+        missingCharacterIdCounts: numberRecord(downstream.missingCharacterIdCounts),
         withResolvedReferences: finiteOrNull(downstream.withResolvedReferences),
         referenceLookups: finiteOrNull(downstream.referenceLookups),
       } : null,
@@ -1145,6 +1186,34 @@ function finiteOrNull(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 
+function numberRecord(value: unknown): Record<string, number> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  const out: Record<string, number> = {}
+  for (const [key, raw] of Object.entries(value)) {
+    if (typeof raw !== "number" || !Number.isFinite(raw) || raw === 0) continue
+    const cleanKey = key.trim()
+    if (!cleanKey || cleanKey === "null" || cleanKey === "undefined") continue
+    out[cleanKey] = raw
+  }
+  return out
+}
+
+function recordDelta(
+  baseline: Record<string, number> | undefined | null,
+  candidate: Record<string, number> | undefined | null,
+): Record<string, number> {
+  const keys = new Set([
+    ...Object.keys(baseline ?? {}),
+    ...Object.keys(candidate ?? {}),
+  ])
+  const out: Record<string, number> = {}
+  for (const key of keys) {
+    const delta = (candidate?.[key] ?? 0) - (baseline?.[key] ?? 0)
+    if (delta !== 0) out[key] = delta
+  }
+  return out
+}
+
 function summaryLabel(summary: DraftingRunSummary): string {
   return `${summary.targetPrefix}/${summary.arm} (${summary.novelId})`
 }
@@ -1172,6 +1241,28 @@ function formatNullableNumber(value: number | null | undefined, digits = 0): str
 
 function formatTransition(baseline: number | null | undefined, candidate: number | null | undefined): string {
   return `${formatNullableNumber(baseline ?? null)} -> ${formatNullableNumber(candidate ?? null)}`
+}
+
+function formatContextIdDeltas(deltas: DraftingRunComparison["planningContext"]["idDeltas"]): string {
+  const parts = [
+    contextIdDeltaPart("canon", deltas.canonSourceRefs),
+    contextIdDeltaPart("threads", deltas.activeThreadIds),
+    contextIdDeltaPart("promises", deltas.activePromiseIds),
+    contextIdDeltaPart("payoffs", deltas.activePayoffIds),
+    contextIdDeltaPart("missingChars", deltas.missingCharacterIds),
+  ].filter((part): part is string => part !== null)
+  return parts.join("; ")
+}
+
+function contextIdDeltaPart(label: string, record: Record<string, number>): string | null {
+  const entries = Object.entries(record)
+    .filter(([, value]) => value !== 0)
+    .sort(([aKey, aValue], [bKey, bValue]) => Math.abs(bValue) - Math.abs(aValue) || aKey.localeCompare(bKey))
+    .slice(0, 8)
+  if (entries.length === 0) return null
+  const extra = Object.keys(record).length - entries.length
+  const rendered = entries.map(([key, value]) => `${key}=${formatSigned(value)}`).join(", ")
+  return `${label}=${rendered}${extra > 0 ? ` (+${extra} more)` : ""}`
 }
 
 function formatTraceIds(traceIds: RowDelta["traceIds"]): string {

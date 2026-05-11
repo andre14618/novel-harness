@@ -35,6 +35,7 @@ type SemanticTraceKind =
   | "promise"
   | "payoff"
   | "source"
+type ContextIdDeltas = DraftingRunComparison["planningContext"]["idDeltas"]
 
 interface Args {
   comparisons: string[]
@@ -78,6 +79,7 @@ export interface DraftingRunCohortPair {
   missingCharacterIdsDelta: number | null
   referenceAttemptSceneDelta: number | null
   referenceAttemptEventDelta: number | null
+  contextIdDeltas: ContextIdDeltas
 }
 
 export interface DraftingRunCohortDimensionSummary {
@@ -172,6 +174,7 @@ export interface DraftingRunCohortReport {
       referenceAttemptEvents: number | null
       missingCharacterIds: number | null
     }
+    contextIdDeltas: ContextIdDeltas
   }
   dimensions: DraftingRunCohortDimensionSummary[]
   semanticRowExamples: {
@@ -274,6 +277,7 @@ export function buildDraftingRunCohortReport(input: {
         referenceAttemptEvents: sumComparisonDelta(input.refs, "referenceAttemptEventDelta", isEvidenceComparableComparison),
         missingCharacterIds: sumComparisonDelta(input.refs, "missingCharacterIdsDelta", isEvidenceComparableComparison),
       },
+      contextIdDeltas: aggregateContextIdDeltas(input.refs, isEvidenceComparableComparison),
     },
     dimensions: [...dimensionMap.values()].sort((a, b) => a.dimension.localeCompare(b.dimension)),
     semanticRowExamples: {
@@ -337,6 +341,8 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
       `refAttemptEvents=${formatDelta(report.aggregate.contextDeltas.referenceAttemptEvents)}, ` +
       `missingChars=${formatDelta(report.aggregate.contextDeltas.missingCharacterIds)}`,
   )
+  const contextIdDeltas = formatContextIdDeltas(report.aggregate.contextIdDeltas)
+  if (contextIdDeltas) lines.push(`- context ID deltas: ${contextIdDeltas}`)
   lines.push("")
   lines.push("## Semantic Dimensions")
   lines.push("")
@@ -435,6 +441,7 @@ function pairRowsForReport(ref: DraftingRunCohortReportRef): DraftingRunCohortPa
       missingCharacterIdsDelta: comparison.planningContext.missingCharacterIdsDelta ?? null,
       referenceAttemptSceneDelta: comparison.planningContext.referenceAttemptSceneDelta ?? null,
       referenceAttemptEventDelta: comparison.planningContext.referenceAttemptEventDelta ?? null,
+      contextIdDeltas: normalizeContextIdDeltas(comparison.planningContext.idDeltas),
     }
   })
 }
@@ -739,6 +746,66 @@ function sumComparisonDelta(
   return count > 0 ? sum : null
 }
 
+function aggregateContextIdDeltas(
+  refs: readonly DraftingRunCohortReportRef[],
+  includeComparison: (report: DraftingRunComparisonReport, comparison: DraftingRunComparison) => boolean,
+): ContextIdDeltas {
+  const out = emptyContextIdDeltas()
+  for (const ref of refs) {
+    for (const comparison of ref.report.comparisons) {
+      if (!includeComparison(ref.report, comparison)) continue
+      addContextIdDeltas(out, normalizeContextIdDeltas(comparison.planningContext.idDeltas))
+    }
+  }
+  return sortContextIdDeltas(out)
+}
+
+function normalizeContextIdDeltas(value: unknown): ContextIdDeltas {
+  const row = typeof value === "object" && value !== null ? value as Record<string, unknown> : {}
+  return {
+    canonSourceRefs: numberRecord(row.canonSourceRefs),
+    activeThreadIds: numberRecord(row.activeThreadIds),
+    activePromiseIds: numberRecord(row.activePromiseIds),
+    activePayoffIds: numberRecord(row.activePayoffIds),
+    missingCharacterIds: numberRecord(row.missingCharacterIds),
+  }
+}
+
+function emptyContextIdDeltas(): ContextIdDeltas {
+  return {
+    canonSourceRefs: {},
+    activeThreadIds: {},
+    activePromiseIds: {},
+    activePayoffIds: {},
+    missingCharacterIds: {},
+  }
+}
+
+function addContextIdDeltas(target: ContextIdDeltas, source: ContextIdDeltas): void {
+  addRecordDeltas(target.canonSourceRefs, source.canonSourceRefs)
+  addRecordDeltas(target.activeThreadIds, source.activeThreadIds)
+  addRecordDeltas(target.activePromiseIds, source.activePromiseIds)
+  addRecordDeltas(target.activePayoffIds, source.activePayoffIds)
+  addRecordDeltas(target.missingCharacterIds, source.missingCharacterIds)
+}
+
+function addRecordDeltas(target: Record<string, number>, source: Record<string, number>): void {
+  for (const [key, value] of Object.entries(source)) {
+    target[key] = (target[key] ?? 0) + value
+    if (target[key] === 0) delete target[key]
+  }
+}
+
+function sortContextIdDeltas(deltas: ContextIdDeltas): ContextIdDeltas {
+  return {
+    canonSourceRefs: sortRecord(deltas.canonSourceRefs),
+    activeThreadIds: sortRecord(deltas.activeThreadIds),
+    activePromiseIds: sortRecord(deltas.activePromiseIds),
+    activePayoffIds: sortRecord(deltas.activePayoffIds),
+    missingCharacterIds: sortRecord(deltas.missingCharacterIds),
+  }
+}
+
 function cohortSignal(counts: Record<string, number>, cleanCount: number): CohortSignal {
   if (cleanCount === 0) return "insufficient"
   if ((counts.regressed ?? 0) > 0) return "regressed"
@@ -786,6 +853,18 @@ function numberOrZero(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0
 }
 
+function numberRecord(value: unknown): Record<string, number> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  const out: Record<string, number> = {}
+  for (const [key, raw] of Object.entries(value)) {
+    if (typeof raw !== "number" || !Number.isFinite(raw) || raw === 0) continue
+    const cleanKey = key.trim()
+    if (!cleanKey || cleanKey === "null" || cleanKey === "undefined") continue
+    out[cleanKey] = raw
+  }
+  return sortRecord(out)
+}
+
 function formatCounts(counts: Record<string, number>): string {
   const entries = Object.entries(counts)
   return entries.length === 0 ? "(none)" : entries.map(([key, count]) => `${key}: ${count}`).join(", ")
@@ -814,6 +893,28 @@ function formatEvidenceSigned(value: number, pair: DraftingRunCohortPair): strin
 
 function formatEvidenceDelta(value: number | null, pair: DraftingRunCohortPair): string {
   return isEvidenceComparablePair(pair) ? formatDelta(value) : "n/a"
+}
+
+function formatContextIdDeltas(deltas: ContextIdDeltas): string {
+  const parts = [
+    contextIdDeltaPart("canon", deltas.canonSourceRefs),
+    contextIdDeltaPart("threads", deltas.activeThreadIds),
+    contextIdDeltaPart("promises", deltas.activePromiseIds),
+    contextIdDeltaPart("payoffs", deltas.activePayoffIds),
+    contextIdDeltaPart("missingChars", deltas.missingCharacterIds),
+  ].filter((part): part is string => part !== null)
+  return parts.join("; ")
+}
+
+function contextIdDeltaPart(label: string, record: Record<string, number>): string | null {
+  const entries = Object.entries(record)
+    .filter(([, value]) => value !== 0)
+    .sort(([aKey, aValue], [bKey, bValue]) => Math.abs(bValue) - Math.abs(aValue) || aKey.localeCompare(bKey))
+    .slice(0, 10)
+  if (entries.length === 0) return null
+  const extra = Object.keys(record).length - entries.length
+  const rendered = entries.map(([key, value]) => `${key}=${formatSigned(value)}`).join(", ")
+  return `${label}=${rendered}${extra > 0 ? ` (+${extra} more)` : ""}`
 }
 
 function normalizeTraceIds(value: unknown): ChangedSemanticRow["traceIds"] {

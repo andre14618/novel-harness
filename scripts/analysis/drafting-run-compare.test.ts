@@ -40,13 +40,18 @@ describe("drafting-run-compare", () => {
         withWorldContext: 1,
         withCanonFactContext: 1,
         canonSourceRefs: 1,
+        canonSourceRefCounts: { "fact-foreman": 1 },
         withFactContinuityAnchors: 0,
         withStoryContext: 1,
         storyRefIds: 1,
+        activeThreadIdCounts: { "thread-ledger": 1 },
+        activePromiseIdCounts: {},
+        activePayoffIdCounts: {},
         withReaderInfoState: 1,
         readerInfoStateChars: 100,
         withResolvedReferences: 0,
         missingCharacterIds: 0,
+        missingCharacterIdCounts: {},
         referenceContextAttempts: [
           { eventCount: 1, sceneRef: "scene-a" },
         ],
@@ -59,13 +64,18 @@ describe("drafting-run-compare", () => {
         withWorldContext: 1,
         withCanonFactContext: 1,
         canonSourceRefs: 3,
+        canonSourceRefCounts: { "fact-foreman": 1, "fact-seal": 2 },
         withFactContinuityAnchors: 1,
         withStoryContext: 1,
         storyRefIds: 3,
+        activeThreadIdCounts: { "thread-ledger": 1, "thread-appeal": 1 },
+        activePromiseIdCounts: { "promise-return": 1 },
+        activePayoffIdCounts: {},
         withReaderInfoState: 0,
         readerInfoStateChars: 20,
         withResolvedReferences: 0,
         missingCharacterIds: 2,
+        missingCharacterIdCounts: { "char-missing": 2 },
         referenceContextAttempts: [
           { eventCount: 2, sceneRef: "scene-a" },
           { eventCount: 1, sceneRef: "scene-b" },
@@ -128,6 +138,13 @@ describe("drafting-run-compare", () => {
       expect(comparison.planningContext.storyRefIdsDelta).toBe(2)
       expect(comparison.planningContext.readerInfoStateDelta).toBe(-1)
       expect(comparison.planningContext.readerInfoStateCharsDelta).toBe(-80)
+      expect(comparison.planningContext.idDeltas).toMatchObject({
+        canonSourceRefs: { "fact-seal": 2 },
+        activeThreadIds: { "thread-appeal": 1 },
+        activePromiseIds: { "promise-return": 1 },
+        activePayoffIds: {},
+        missingCharacterIds: { "char-missing": 2 },
+      })
       expect(comparison.planningContext.referenceAttemptSceneDelta).toBe(1)
       expect(comparison.planningContext.referenceAttemptEventDelta).toBe(2)
       expect(comparison.manualReadiness.checkerItemDelta).toBe(2)
@@ -146,6 +163,7 @@ describe("drafting-run-compare", () => {
       const rendered = renderDraftingRunComparisonReport(report)
       expect(rendered).toContain("Signal: regressed")
       expect(rendered).toContain("Context coverage: character=1 -> 1, world=1 -> 1, canon=1 -> 1 (sourceRefs=1 -> 3, factAnchors=0 -> 1), story=1 -> 1 (storyRefs=1 -> 3), reader=1 -> 0 (chars=100 -> 20), refs=0 -> 0 (lookups=0 -> 0)")
+      expect(rendered).toContain("Context ID deltas: canon=fact-seal=+2; threads=thread-appeal=+1; promises=promise-return=+1; missingChars=char-missing=+2")
       expect(rendered).toContain("Reference attempts: scenes=1 -> 2, events=1 -> 3")
       expect(rendered).toContain("Manual readiness: planAssist=n/a -> n/a (pending=n/a -> n/a), checker=0 -> 1 (items=1 -> 3, blockers=0 -> 1, warnings=1 -> 2, negative=0 -> 1, positive=0 -> 0, ambiguous=1 -> 2, lowConfidence=0 -> 0)")
       expect(rendered).toContain("ids=obligations:obl-file; characters:char-maren; worldFacts:fact-foreman,fact-seal")
@@ -396,12 +414,17 @@ function writeContextReport(outputDir: string, opts: {
   withCanonFactContext?: number
   withFactContinuityAnchors?: number
   canonSourceRefs?: number
+  canonSourceRefCounts?: Record<string, number>
   withStoryContext?: number
   storyRefIds?: number
+  activeThreadIdCounts?: Record<string, number>
+  activePromiseIdCounts?: Record<string, number>
+  activePayoffIdCounts?: Record<string, number>
   withReaderInfoState?: number
   readerInfoStateChars?: number
   withResolvedReferences?: number
   missingCharacterIds: number
+  missingCharacterIdCounts?: Record<string, number>
   referenceContextAttempts?: Array<{
     eventCount: number
     sceneRef: string
@@ -424,11 +447,16 @@ function writeContextReport(outputDir: string, opts: {
       withCanonFactContext: opts.withCanonFactContext ?? 0,
       withFactContinuityAnchors: opts.withFactContinuityAnchors ?? 0,
       canonSourceRefs: opts.canonSourceRefs ?? 0,
+      canonSourceRefCounts: opts.canonSourceRefCounts ?? {},
       withStoryContext: opts.withStoryContext ?? 0,
       storyRefIds: opts.storyRefIds ?? 0,
+      activeThreadIdCounts: opts.activeThreadIdCounts ?? {},
+      activePromiseIdCounts: opts.activePromiseIdCounts ?? {},
+      activePayoffIdCounts: opts.activePayoffIdCounts ?? {},
       withReaderInfoState: opts.withReaderInfoState ?? 0,
       readerInfoStateChars: opts.readerInfoStateChars ?? 0,
       missingCharacterIds: opts.missingCharacterIds,
+      missingCharacterIdCounts: opts.missingCharacterIdCounts ?? {},
       withResolvedReferences: opts.withResolvedReferences ?? 0,
       referenceLookups: 0,
     },

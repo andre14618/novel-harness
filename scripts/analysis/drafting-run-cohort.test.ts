@@ -32,6 +32,10 @@ describe("drafting-run-cohort", () => {
     expect(report.aggregate.contextDeltas.readerInfoStateChars).toBe(50)
     expect(report.aggregate.contextDeltas.referenceAttemptScenes).toBe(1)
     expect(report.aggregate.contextDeltas.referenceAttemptEvents).toBe(1)
+    expect(report.aggregate.contextIdDeltas).toMatchObject({
+      canonSourceRefs: { "fact-lit": 2 },
+      activeThreadIds: { "thread-lit": 3, "thread-corso": -1 },
+    })
     expect(report.aggregate.checkerBlockerDeltaSum).toBe(0)
     expect(report.aggregate.checkerNegativeDeltaSum).toBe(0)
     expect(report.alignment.qualityMovementCounts).toEqual({ improved: 1, regressed: 1 })
@@ -83,6 +87,7 @@ describe("drafting-run-cohort", () => {
     expect(rendered).toContain("readerChars=+50")
     expect(rendered).toContain("refAttemptScenes=+1")
     expect(rendered).toContain("refAttemptEvents=+1")
+    expect(rendered).toContain("context ID deltas: canon=fact-lit=+2; threads=thread-lit=+3, thread-corso=-1")
     expect(rendered).toContain("manual readiness deltas: planAssist=0, checker=0, checkerBlockers=0, checkerWarnings=0, checkerNegative=0, checkerPositive=0, checkerAmbiguous=0, checkerLowConfidence=0")
     expect(rendered).toContain("| endpointLanding | 2 |")
     expect(rendered).toContain("## Semantic Row Examples")
@@ -243,6 +248,7 @@ function comparisonReport(
         resolvedReferencesDelta: 0,
         referenceAttemptSceneDelta,
         referenceAttemptEventDelta,
+        idDeltas: contextIdDeltas(source, canonSourceRefsDelta, storyRefIdsDelta),
         overloadedChapterDelta: 0,
         minTargetWordsPerSceneDelta: 0,
       },
@@ -282,6 +288,20 @@ function comparisonReport(
         changedRows: semanticChangedRows(source, endpointLowDelta),
       },
     }],
+  }
+}
+
+function contextIdDeltas(
+  source: string,
+  canonSourceRefsDelta: number,
+  storyRefIdsDelta: number,
+): DraftingRunComparisonReport["comparisons"][number]["planningContext"]["idDeltas"] {
+  return {
+    canonSourceRefs: canonSourceRefsDelta === 0 ? {} : { [`fact-${source}`]: canonSourceRefsDelta },
+    activeThreadIds: storyRefIdsDelta === 0 ? {} : { [`thread-${source}`]: storyRefIdsDelta },
+    activePromiseIds: {},
+    activePayoffIds: {},
+    missingCharacterIds: {},
   }
 }
 
