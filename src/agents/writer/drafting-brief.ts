@@ -10,6 +10,7 @@ export type WriterDraftingBriefMode =
   | "scene-budget-tight-v1"
   | "scene-turn-v1"
   | "scene-turn-anchored-v1"
+  | "scene-budget-tight-anchored-v1"
 
 export interface WriterDraftingBriefTrace {
   mode: WriterDraftingBriefMode
@@ -94,11 +95,11 @@ export function renderWriterDraftingBrief(
     renderBriefHeader(ctx, opts),
   ]
 
-  if (opts.mode === "scene-turn-v1" || opts.mode === "scene-turn-anchored-v1") {
+  if (hasSceneTurnFloor(opts.mode)) {
     sections.push(renderSceneExecutionFloor(opts.mode))
   }
 
-  if (opts.mode === "scene-budget-tight-v1") {
+  if (hasSceneLoadControl(opts.mode)) {
     sections.push(renderSceneLoadControl(opts.targetWords))
   }
 
@@ -107,7 +108,7 @@ export function renderWriterDraftingBrief(
   const obligations = renderObligationsBrief(ctx.beatSpec.obligations, opts.idRendering)
   if (obligations) sections.push(`OBLIGATIONS:\n${obligations}`)
 
-  if (opts.mode === "scene-turn-anchored-v1") {
+  if (hasFactContinuityAnchorSection(opts.mode)) {
     const factContinuityAnchors = renderFactContinuityAnchors(ctx)
     if (factContinuityAnchors) sections.push(factContinuityAnchors)
   }
@@ -190,6 +191,26 @@ function uniqueNames(names: string[]): string[] {
   return out
 }
 
+function hasSceneTurnFloor(mode: WriterDraftingBriefMode | undefined): boolean {
+  return mode === "scene-turn-v1" ||
+    mode === "scene-turn-anchored-v1" ||
+    mode === "scene-budget-tight-anchored-v1"
+}
+
+function hasSceneLoadControl(mode: WriterDraftingBriefMode | undefined): boolean {
+  return mode === "scene-budget-tight-v1" ||
+    mode === "scene-budget-tight-anchored-v1"
+}
+
+function hasFactContinuityAnchorSection(mode: WriterDraftingBriefMode | undefined): boolean {
+  return mode === "scene-turn-anchored-v1" ||
+    mode === "scene-budget-tight-anchored-v1"
+}
+
+function hasTightAnchoredContractEmphasis(mode: WriterDraftingBriefMode | undefined): boolean {
+  return mode === "scene-budget-tight-anchored-v1"
+}
+
 function renderSceneExecutionFloor(mode: WriterDraftingBriefMode | undefined): string {
   const lines = [
     "SCENE EXECUTION FLOOR:",
@@ -200,7 +221,7 @@ function renderSceneExecutionFloor(mode: WriterDraftingBriefMode | undefined): s
     "- Keep the scene inside the stated budget by cutting repeated setup, arithmetic restatement, and generic reflection before cutting endpoint action or consequence.",
     "- Make present characters materially specific through action, dialogue, interiority, or changed behavior.",
   ]
-  if (mode === "scene-turn-anchored-v1") {
+  if (hasFactContinuityAnchorSection(mode)) {
     lines.push("- Preserve declared timing, location, and fact constraints; do not move future events earlier for convenience.")
   }
   return lines.join("\n")
@@ -219,7 +240,7 @@ function renderSceneLoadControl(targetWords: number): string {
 
 function renderSceneContractBrief(scene: SceneContractBlock, mode: WriterDraftingBriefMode | undefined): string {
   const lines = [
-    mode === "scene-turn-v1"
+    mode === "scene-turn-v1" || hasTightAnchoredContractEmphasis(mode)
       ? "SCENE CONTRACT (dramatize this shape on-page):"
       : "SCENE CONTRACT:",
   ]
@@ -354,7 +375,7 @@ function renderCharacterSectionBrief(
   snapshots: CharacterSnapshot[],
   mode: WriterDraftingBriefMode | undefined,
 ): string {
-  const header = mode === "scene-turn-v1"
+  const header = mode === "scene-turn-v1" || hasTightAnchoredContractEmphasis(mode)
     ? "CHARACTER MATERIALITY:\nUse these details to shape concrete behavior under this scene's pressure."
     : "CHARACTER PROFILES/SNAPSHOTS:"
   return `${header}\n${renderCharacterSnapshotsBrief(snapshots)}`
@@ -413,11 +434,11 @@ function summarizeWriterDraftingBrief(args: {
     charsRatio: fullContextPromptChars > 0 ? selectedPromptChars / fullContextPromptChars : 1,
     sections: {
       sceneContract: Boolean(args.ctx.sceneContract),
-      sceneLoadControl: args.mode === "scene-budget-tight-v1",
+      sceneLoadControl: hasSceneLoadControl(args.mode),
       obligations: countObligations(args.ctx.beatSpec.obligations) > 0,
       transitionBridge: Boolean(args.ctx.transitionBridge),
       landingTarget: Boolean(args.ctx.landingTarget),
-      factContinuityAnchors: args.mode === "scene-turn-anchored-v1" &&
+      factContinuityAnchors: hasFactContinuityAnchorSection(args.mode) &&
         (operationalAnchorItems(args.ctx.beatSpec.obligations).length > 0 ||
           Boolean(args.ctx.transitionBridge) ||
           Boolean(args.ctx.landingTarget)),

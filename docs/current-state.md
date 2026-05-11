@@ -83,10 +83,11 @@ Use deeper docs only when linked by the context pack or needed by code.
   `scenePlanContractV1`, `sceneCallWriterV1`, writer expansion mode, and
   scene-satisfaction diagnostic wiring. Do not flip defaults without a new
   production decision and evidence gate.
-- L106 writer-brief integration exists behind default-off `writerDraftingBriefMode` values `scene-budget-v1`, `scene-budget-tight-v1`, `scene-turn-v1`, and `scene-turn-anchored-v1`: they
-  render compact writer-facing briefs from production `BeatContext` slots and
-  record prompt payload telemetry on `writer-context` trace events; use
-  `diagnostics:writer-context` to audit context-surface plus scene-normalized coverage after runs.
+- L106 writer-brief integration exists behind default-off
+  `writerDraftingBriefMode` values including tight, scene-turn, anchored, and
+  tight-anchored variants. They render compact writer-facing briefs from
+  production `BeatContext` slots, record `writer-context` prompt telemetry, and
+  support `diagnostics:writer-context` scene-normalized audits after runs.
   Fixed-plan drafting evidence can add `--scene-semantic-review` to capture
   endpointLanding, sceneDramaturgy, characterMateriality, and
   worldFactPressure replay artifacts per arm; `--scene-semantic-persist` stores
@@ -115,18 +116,17 @@ The active lane is in `docs/sessions/lane-queue.md`.
 As of 2026-05-11, L106 has absorbed validated POC evidence into production
 writer-brief telemetry, scene-semantic replay, Plan Readiness import/apply,
 source hygiene, planning-edit replay, scene-contract telemetry, and fact-status
-readiness. Clean-source Corso repair reached 4778/3800 = 1.26x with prose lows
-0/8, scene lows 0/34, persisted scene rows 34, and no readiness lows. LitRPG
-plan-only repair was mixed: 3966/2700 = 1.47x, prose lows 0/8, gaps 0, scene
-lows 3/45. Writer-brief obligation-character carry-through fixed materiality;
-endpoint repair cleared all selected LitRPG scene lows at 4640/2700 = 1.72x.
-The default-off tight brief plus two source `planning_edit` endpoint repairs
-reached 3398/2700 = 1.27x with scene lows 0/45; Corso replication regressed
-to 5002/3800 with scene lows 4/34. Fresh P1 N=4 tight cohort stayed mixed:
-mean -31.3 words, scene lows -6, endpoint lows -2, and alignment 3 quality-gain-with-load-change / 1 expanded-no-gain row.
-Manual readiness delta on the new row: checker blockers -1, warnings +17 with negative polarity flat, positive +1, ambiguous +15. Separate repaired-source gate cell leaves 5 clean sources but 4 evidence-comparable rows. No default flip; broad operational-facts stays out after 6050/3800. Continuity fact prompts carry
-`factId`, disambiguate seal roles, and filter explicit support echoes. Do not
-flip defaults. See L103-L106.
+readiness. Clean-source Corso repair reached 4778/3800 = 1.26x with scene lows
+0/34; LitRPG planning repair stayed mixed at 3966/2700 = 1.47x with scene lows
+3/45. The default-off tight brief plus two source `planning_edit` endpoint
+repairs reached 3398/2700 = 1.27x with scene lows 0/45, but Corso replication
+regressed. The current clean-source N=3 tight cohort is mixed: mean -90.7
+words, scene lows -6, endpoint lows -2, and scene-normalized context deltas
+zero. A P1 tight-anchored follow-up shortened by 337 words but expanded event
+context without clear quality gain: scene dramaturgy +0.10; endpoint,
+materiality, and world fact means fell. No default flip; broad
+operational-facts stays out after 6050/3800. Next production-path lever is
+selective upstream scene-turn shaping, not prompt bulk. See L103-L106.
 
 ## Authoring Gates
 

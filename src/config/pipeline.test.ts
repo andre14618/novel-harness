@@ -66,6 +66,7 @@ describe("override resolvers fall back to pipeline defaults when override absent
     expect(resolveWriterDraftingBriefMode({ writerDraftingBriefMode: "scene-budget-tight-v1" })).toBe("scene-budget-tight-v1")
     expect(resolveWriterDraftingBriefMode({ writerDraftingBriefMode: "scene-turn-v1" })).toBe("scene-turn-v1")
     expect(resolveWriterDraftingBriefMode({ writerDraftingBriefMode: "scene-turn-anchored-v1" })).toBe("scene-turn-anchored-v1")
+    expect(resolveWriterDraftingBriefMode({ writerDraftingBriefMode: "scene-budget-tight-anchored-v1" })).toBe("scene-budget-tight-anchored-v1")
   })
 
   test("resolveDraftCaptureModeV1", () => {

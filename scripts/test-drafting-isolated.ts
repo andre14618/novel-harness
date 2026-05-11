@@ -46,6 +46,8 @@
  *                        floor for advisory evidence loops.
  *   drafting-brief-anchored-v1 — scene-turn brief plus fact/continuity
  *                        anchors for advisory evidence loops.
+ *   drafting-brief-tight-anchored-v1 — tight load control plus scene-turn
+ *                        floor and fact/continuity anchors.
  *   scene-call-v1      — L097 Slice 2: scene-call writer + retry-short-
  *                        scenes-v1 expansion path. The full B3 Arm C.
  *
@@ -211,6 +213,7 @@ export const WRITER_ARM_NAMES = [
   "drafting-brief-tight-v1",
   "drafting-brief-scene-turn-v1",
   "drafting-brief-anchored-v1",
+  "drafting-brief-tight-anchored-v1",
   "scene-call-v1",
 ] as const
 
@@ -512,7 +515,7 @@ interface ArmFlags {
   writerExpansionMode: "off" | "retry-short-scenes-v1"
   forceRenderSceneContractWhenAvailable: boolean
   writerPromptIdRendering: "raw" | "suppress"
-  writerDraftingBriefMode: "off" | "scene-budget-v1" | "scene-budget-tight-v1" | "scene-turn-v1" | "scene-turn-anchored-v1"
+  writerDraftingBriefMode: "off" | "scene-budget-v1" | "scene-budget-tight-v1" | "scene-turn-v1" | "scene-turn-anchored-v1" | "scene-budget-tight-anchored-v1"
 }
 
 export function flagsForArm(arm: ArmName): ArmFlags {
@@ -600,6 +603,16 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         forceRenderSceneContractWhenAvailable: false,
         writerPromptIdRendering: "raw",
         writerDraftingBriefMode: "scene-turn-anchored-v1",
+      }
+    case "drafting-brief-tight-anchored-v1":
+      // Follow-on evidence arm: preserve tight load control while adding
+      // scene-turn and fact/continuity anchors for endpoint/world regressions.
+      return {
+        sceneCallWriterV1: false,
+        writerExpansionMode: "off",
+        forceRenderSceneContractWhenAvailable: false,
+        writerPromptIdRendering: "raw",
+        writerDraftingBriefMode: "scene-budget-tight-anchored-v1",
       }
     case "scene-call-v1":
       // L097 Slice 2: scene-call writer + expansion-retry. The full B3 Arm C.

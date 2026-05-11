@@ -462,7 +462,7 @@ describe("renderBeatContext + scene contract", () => {
       knowledgeChanges: [],
     }
 
-    for (const writerDraftingBriefMode of ["scene-budget-v1", "scene-budget-tight-v1", "scene-turn-v1", "scene-turn-anchored-v1"] as const) {
+    for (const writerDraftingBriefMode of ["scene-budget-v1", "scene-budget-tight-v1", "scene-turn-v1", "scene-turn-anchored-v1", "scene-budget-tight-anchored-v1"] as const) {
       const ctx = await buildBeatContextSlots({
         novelId: "unit-novel",
         chapterNumber: 2,
@@ -588,6 +588,68 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.draftingBriefTrace.counts.obligations).toBe(1)
     expect(selected.draftingBriefTrace.counts.canonSourceRefs).toBe(1)
     expect(selected.draftingBriefTrace.ids.canonSourceRefs).toEqual(["fact-warrant-signed"])
+  })
+
+  it("renders tight anchored brief with load control, scene floor, and anchor telemetry", () => {
+    const ctx = baseCtx({
+      sceneContract: {
+        goal: "Force Orvath to choose between Davan and the warrant.",
+        turningPoint: "Calla sees Orvath move the seal behind his back.",
+        crisisChoice: "Expose the warrant or protect Davan.",
+        choiceAlternatives: ["Expose the warrant.", "Protect Davan."],
+        outcome: "Calla exposes the warrant.",
+        consequence: "Orvath loses custody of the seal before the next scene.",
+        targetWords: 500,
+      },
+      transitionBridge: "Calla entered with the warrant under her coat.",
+      landingTarget: "Orvath reaches for the seal",
+      beatSpec: {
+        ...baseCtx().beatSpec,
+        obligations: {
+          mustEstablish: [{
+            text: "The warrant is already signed.",
+            obligationId: "obl-warrant-signed",
+            sourceId: "fact-warrant-signed",
+          }],
+          mustPayOff: [],
+          mustTransferKnowledge: [{
+            text: "Orvath learns Calla copied the warrant.",
+            characterName: "Orvath",
+            obligationId: "obl-orvath-learns",
+            sourceId: "know-orvath-warrant",
+          }],
+          mustShowStateChange: [],
+          mustNotReveal: [],
+          allowedNewEntities: [],
+        },
+      },
+      characterSnapshots: [{
+        name: "Calla",
+        exampleLines: ["No more bargains."],
+        voice: "Precise and wary.",
+        drives: "Protect Davan.",
+      }],
+    })
+    const full = renderBeatContext(ctx, { compact: false })
+    const selected = selectWriterPromptForDraftingBrief({
+      ctx,
+      mode: "scene-budget-tight-anchored-v1",
+      fullContextPrompt: full,
+      targetWords: 500,
+      idRendering: "raw",
+    })
+
+    expect(selected.userPrompt).toContain("SCENE EXECUTION FLOOR:")
+    expect(selected.userPrompt).toContain("SCENE LOAD CONTROL:")
+    expect(selected.userPrompt).toContain("SCENE CONTRACT (dramatize this shape on-page):")
+    expect(selected.userPrompt).toContain("FACT AND CONTINUITY ANCHORS:")
+    expect(selected.userPrompt).toContain("Anchor: establish: The warrant is already signed. [source:fact-warrant-signed]")
+    expect(selected.userPrompt).toContain("CHARACTER MATERIALITY:")
+    expect(selected.draftingBriefTrace.mode).toBe("scene-budget-tight-anchored-v1")
+    expect(selected.draftingBriefTrace.sections.sceneLoadControl).toBe(true)
+    expect(selected.draftingBriefTrace.sections.factContinuityAnchors).toBe(true)
+    expect(selected.draftingBriefTrace.counts.canonSourceRefs).toBe(2)
+    expect(selected.draftingBriefTrace.ids.canonSourceRefs).toEqual(["fact-warrant-signed", "know-orvath-warrant"])
   })
 })
 
