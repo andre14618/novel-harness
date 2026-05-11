@@ -12,6 +12,7 @@
  *   bun scripts/test-planner-isolated.ts fantasy-healer --scene-plan-contract
  *   bun scripts/test-planner-isolated.ts --novel <concept-done-novel-id> [--native-planning-contract] [--scene-plan-contract]
  *   bun scripts/test-planner-isolated.ts --from-fixture docs/fixtures/scene-first/concepts/over-target/P1-fantasy-debt-binder.json
+ *     [--report-dir output/planner-isolated/<run-id>]
  *
  * L096 Slice 1: --scene-plan-contract sets `scenePlanContractV1=true`,
  * exercising the causal-motivation-v3 planner prompt and the
@@ -25,15 +26,21 @@
  * fixture; comma-separated multi-fixture mode is intentionally NOT
  * supported (one explicit fixture per planner run).
  */
-import { initDB, createNovel } from "../src/db"
+import { mkdirSync, writeFileSync } from "node:fs"
+import { join } from "node:path"
+import { initDB, createNovel, getCharacters, getStorySpine, getWorldBible } from "../src/db"
 import { setAutoMode, setResolverMode } from "../src/cli"
 import { getMode } from "../src/gates"
 import { runConceptPhase } from "../src/phases/concept"
 import { runPlanningPhase } from "../src/phases/planning"
 import { initNovelRun } from "../src/logger"
-import type { SeedInput } from "../src/types"
+import type { ChapterOutline, SeedInput } from "../src/types"
 import db from "../src/db/connection"
 import { parseConceptFixture } from "./fixture/scene-first-fixture-schema"
+import {
+  summarizePlanningArtifacts,
+  type PlanningArtifactSummary,
+} from "./analysis/planning-drafting-context-report"
 
 async function loadSeed(name: string): Promise<SeedInput> {
   const path = new URL(`../src/seeds/${name}.json`, import.meta.url).pathname
@@ -59,7 +66,7 @@ function fixtureSlugFromPath(fixturePath: string): string {
   return basename.replace(/\.json$/i, "")
 }
 
-interface CallStat {
+export interface CallStat {
   agent: string
   attempt: number
   chapter: number | null
@@ -76,16 +83,29 @@ interface Args {
   fixturePath: string | null
   nativePlanningContract: boolean
   scenePlanContract: boolean
+  reportDir: string | null
 }
 
-interface PlannerIsolatedResult {
+export interface PlannerIsolatedResult {
   seedName: string
   novelId: string
   stats: CallStat[]
   chapters: number
   totalBeats: number
   beatCounts: Array<{ chapter: number; beats: number; targetWords: number }>
+  planningArtifacts: PlanningArtifactSummary | null
   error?: string
+}
+
+export interface PlannerIsolatedRunReport {
+  v: "planner-isolated-report-v1"
+  generatedAt: string
+  options: {
+    nativePlanningContract: boolean
+    scenePlanContract: boolean
+    reportDir: string | null
+  }
+  results: PlannerIsolatedResult[]
 }
 
 async function testSeed(
@@ -197,6 +217,7 @@ async function collectPlannerResult(seedName: string, novelId: string): Promise<
   const chapterRows = await db`SELECT count(*)::int as c FROM chapter_outlines WHERE novel_id = ${novelId}` as any[]
   const chapters = chapterRows[0]?.c ?? 0
   const beatRows = await db`SELECT chapter_number, outline_json FROM chapter_outlines WHERE novel_id = ${novelId} ORDER BY chapter_number` as any[]
+  const outlines = beatRows.map(r => typeof r.outline_json === "string" ? JSON.parse(r.outline_json) : r.outline_json) as ChapterOutline[]
   const beatCounts = beatRows.map(r => {
     const o = typeof r.outline_json === "string" ? JSON.parse(r.outline_json) : r.outline_json
     return {
@@ -209,8 +230,31 @@ async function collectPlannerResult(seedName: string, novelId: string): Promise<
     const o = typeof r.outline_json === "string" ? JSON.parse(r.outline_json) : r.outline_json
     return s + (Array.isArray(o?.scenes) ? o.scenes.length : 0)
   }, 0)
+  const planningArtifacts = await loadPlanningArtifactSummary(novelId, outlines)
 
-  return { seedName, novelId, stats, chapters, totalBeats, beatCounts }
+  return { seedName, novelId, stats, chapters, totalBeats, beatCounts, planningArtifacts }
+}
+
+async function loadPlanningArtifactSummary(
+  novelId: string,
+  outlines: ChapterOutline[],
+): Promise<PlanningArtifactSummary | null> {
+  try {
+    const [worldBible, storySpine, characters] = await Promise.all([
+      getWorldBible(novelId).then(() => true).catch(() => false),
+      getStorySpine(novelId).then(() => true).catch(() => false),
+      getCharacters(novelId).catch(() => []),
+    ])
+    return summarizePlanningArtifacts({
+      worldBibleAvailable: worldBible,
+      storySpineAvailable: storySpine,
+      characters,
+      outlines,
+    })
+  } catch (err) {
+    console.warn(`  planner artifact summary unavailable for ${novelId}: ${err instanceof Error ? err.message : err}`)
+    return null
+  }
 }
 
 async function setNativePlanningContractOverride(novelId: string, enabled: boolean): Promise<void> {
@@ -263,7 +307,7 @@ async function main() {
     console.log("  scenePlanContractV1=true")
   }
 
-  const results = []
+  const results: PlannerIsolatedResult[] = []
   if (args.fixturePath) {
     try {
       results.push(await testFromFixture(args.fixturePath, {
@@ -272,7 +316,7 @@ async function main() {
       }))
     } catch (err) {
       console.error(`✗ ${args.fixturePath}: ${err instanceof Error ? err.message : err}`)
-      results.push({ seedName: args.fixturePath, novelId: "", stats: [], chapters: 0, totalBeats: 0, beatCounts: [], error: String(err) })
+      results.push({ seedName: args.fixturePath, novelId: "", stats: [], chapters: 0, totalBeats: 0, beatCounts: [], planningArtifacts: null, error: String(err) })
     }
   } else if (args.novelId) {
     try {
@@ -282,7 +326,7 @@ async function main() {
       }))
     } catch (err) {
       console.error(`✗ ${args.novelId}: ${err instanceof Error ? err.message : err}`)
-      results.push({ seedName: args.novelId, novelId: args.novelId, stats: [], chapters: 0, totalBeats: 0, beatCounts: [], error: String(err) })
+      results.push({ seedName: args.novelId, novelId: args.novelId, stats: [], chapters: 0, totalBeats: 0, beatCounts: [], planningArtifacts: null, error: String(err) })
     }
   } else {
     for (const s of args.seedNames) {
@@ -293,7 +337,7 @@ async function main() {
         }))
       } catch (err) {
         console.error(`✗ ${s}: ${err instanceof Error ? err.message : err}`)
-        results.push({ seedName: s, novelId: "", stats: [], chapters: 0, totalBeats: 0, beatCounts: [], error: String(err) })
+        results.push({ seedName: s, novelId: "", stats: [], chapters: 0, totalBeats: 0, beatCounts: [], planningArtifacts: null, error: String(err) })
       }
     }
   }
@@ -304,6 +348,18 @@ async function main() {
     console.log(`\n${r.seedName} → ${r.chapters} chapters, ${r.totalBeats} total beats`)
     if (r.beatCounts.length) {
       console.log(`  beat counts: ${r.beatCounts.map(b => `ch${b.chapter}=${b.beats}/${b.targetWords}w`).join(", ")}`)
+    }
+    if (r.planningArtifacts) {
+      const p = r.planningArtifacts
+      console.log(
+        `  plan shape: scenes=${p.plannedSceneCount}, sceneContracts=${p.scenesWithSceneContract}, ` +
+          `dramatic=${p.sceneContractsWithDramaticShape}, anchorOnly=${p.anchorOnlySceneContracts}, ` +
+          `obligations=${p.scenesWithObligations}, sceneLoad=${p.sceneLoad.chapters.map(ch => `ch${ch.chapterNumber}:${ch.signal}`).join(",")}`,
+      )
+      console.log(
+        `  scene-contract gaps: missingDramatic=${p.sceneContractShape.missingDramaticShape.length}, ` +
+          `anchorOnly=${p.sceneContractShape.anchorOnly.length}`,
+      )
     }
     if ("error" in r && r.error) { console.log(`  FAILED: ${r.error}`); continue }
     const byAgent = new Map<string, CallStat[]>()
@@ -327,6 +383,22 @@ async function main() {
   else if (anyLowHeadroom) console.log("⚠ WARN: at least one call used > 70% of maxTokens")
   else console.log("✓ PASS: all calls finished cleanly with ≥30% headroom")
 
+  const report: PlannerIsolatedRunReport = {
+    v: "planner-isolated-report-v1",
+    generatedAt: new Date().toISOString(),
+    options: {
+      nativePlanningContract: args.nativePlanningContract,
+      scenePlanContract: args.scenePlanContract,
+      reportDir: args.reportDir,
+    },
+    results,
+  }
+  const outputDir = args.reportDir ?? defaultReportDir(results)
+  mkdirSync(outputDir, { recursive: true })
+  writeFileSync(join(outputDir, "planner-isolated-report.json"), `${JSON.stringify(report, null, 2)}\n`)
+  writeFileSync(join(outputDir, "planner-isolated-report.md"), renderPlannerIsolatedReport(report))
+  console.log(`report: ${join(outputDir, "planner-isolated-report.json")}`)
+
   process.exit(0)
 }
 
@@ -338,6 +410,7 @@ export function parseArgs(argv: string[]): Args {
   let fixturePath: string | null = null
   let nativePlanningContract = false
   let scenePlanContract = false
+  let reportDir: string | null = null
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!
     if (arg === "--native-planning-contract" || arg === "--native-planning-contract-v1") {
@@ -358,6 +431,11 @@ export function parseArgs(argv: string[]): Args {
       if (!fixturePath) throw new Error(`${arg} requires a path`)
       continue
     }
+    if (arg === "--report-dir") {
+      reportDir = argv[++i] ?? null
+      if (!reportDir) throw new Error(`${arg} requires a value`)
+      continue
+    }
     if (arg.startsWith("--")) throw new Error(`unknown arg: ${arg}`)
     if (seedArg !== null) throw new Error(`unexpected extra seed arg: ${arg}`)
     seedArg = arg
@@ -372,5 +450,69 @@ export function parseArgs(argv: string[]): Args {
     fixturePath,
     nativePlanningContract,
     scenePlanContract,
+    reportDir,
   }
+}
+
+export function renderPlannerIsolatedReport(report: PlannerIsolatedRunReport): string {
+  const lines: string[] = []
+  lines.push(`# Planner Isolated Report`)
+  lines.push("")
+  lines.push(`generatedAt: ${report.generatedAt}`)
+  lines.push(`nativePlanningContract: ${report.options.nativePlanningContract ? "on" : "off"}`)
+  lines.push(`scenePlanContract: ${report.options.scenePlanContract ? "on" : "off"}`)
+  for (const result of report.results) {
+    lines.push("")
+    lines.push(`## ${result.seedName}`)
+    if (result.error) {
+      lines.push(`FAILED: ${result.error}`)
+      continue
+    }
+    lines.push(`novelId: ${result.novelId}`)
+    lines.push(`chapters: ${result.chapters}; scenes: ${result.totalBeats}`)
+    if (result.beatCounts.length > 0) {
+      lines.push(`beatCounts: ${result.beatCounts.map(b => `ch${b.chapter}=${b.beats}/${b.targetWords}w`).join(", ")}`)
+    }
+    if (result.planningArtifacts) {
+      const p = result.planningArtifacts
+      lines.push(
+        `planShape: sceneIds=${p.scenesWithSceneIds}/${p.plannedSceneCount}; ` +
+          `sceneContracts=${p.scenesWithSceneContract}; dramatic=${p.sceneContractsWithDramaticShape}; ` +
+          `anchorOnly=${p.anchorOnlySceneContracts}; temporal=${p.scenesWithTemporalAnchor}; place=${p.scenesWithPlaceAnchor}; ` +
+          `obligations=${p.scenesWithObligations}`,
+      )
+      lines.push(
+        `sceneContractGaps: missingDramatic=${p.sceneContractShape.missingDramaticShape.length}; ` +
+          `anchorOnly=${p.sceneContractShape.anchorOnly.length}`,
+      )
+      lines.push(
+        `sceneLoad: ${p.sceneLoad.chapters.map(ch =>
+          `ch${ch.chapterNumber}=${ch.sceneCount}sc/${formatNullableNumber(ch.targetWordsPerScene)}wps/${ch.signal}`
+        ).join(", ")}`,
+      )
+      lines.push(`futureEventAnchors: ${p.planContinuity.futureEventAnchors.length}`)
+    }
+    const byAgent = new Map<string, CallStat[]>()
+    for (const stat of result.stats) {
+      if (!byAgent.has(stat.agent)) byAgent.set(stat.agent, [])
+      byAgent.get(stat.agent)!.push(stat)
+    }
+    for (const [agent, calls] of byAgent) {
+      const max = calls.reduce((m, c) => Math.max(m, c.completion_tokens), 0)
+      const avg = Math.round(calls.reduce((s, c) => s + c.completion_tokens, 0) / calls.length)
+      const minHeadroom = calls.reduce((m, c) => Math.min(m, c.headroom_pct), 100)
+      const truncated = calls.filter(c => c.finish_reason === "length").length
+      lines.push(`${agent}: ${calls.length} calls; avg=${avg}; max=${max}/${calls[0]?.max_tokens ?? 0}; minHeadroom=${minHeadroom}%; truncated=${truncated}`)
+    }
+  }
+  return `${lines.join("\n")}\n`
+}
+
+function defaultReportDir(results: PlannerIsolatedResult[]): string {
+  const firstNovelId = results.find(result => result.novelId)?.novelId
+  return `output/planner-isolated/${firstNovelId ?? Date.now()}`
+}
+
+function formatNullableNumber(value: number | null): string {
+  return value === null ? "n/a" : Number.isInteger(value) ? String(value) : value.toFixed(1)
 }

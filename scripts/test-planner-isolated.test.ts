@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test"
-import { parseArgs } from "./test-planner-isolated"
+import { parseArgs, renderPlannerIsolatedReport, type PlannerIsolatedRunReport } from "./test-planner-isolated"
 
 describe("test-planner-isolated parseArgs", () => {
   test("defaults to fantasy-healer when no positional or flag is given", () => {
@@ -41,6 +41,11 @@ describe("test-planner-isolated parseArgs", () => {
     expect(args.scenePlanContract).toBe(true)
   })
 
+  test("parses --report-dir", () => {
+    const args = parseArgs(["fantasy-healer", "--report-dir", "output/planner-isolated/run"])
+    expect(args.reportDir).toBe("output/planner-isolated/run")
+  })
+
   test("rejects passing both --novel and a seed name", () => {
     expect(() => parseArgs(["fantasy-healer", "--novel", "n"])).toThrow(/exactly one of/i)
   })
@@ -57,7 +62,88 @@ describe("test-planner-isolated parseArgs", () => {
     expect(() => parseArgs(["--from-fixture"])).toThrow(/requires a path/i)
   })
 
+  test("rejects --report-dir without a path value", () => {
+    expect(() => parseArgs(["--report-dir"])).toThrow(/requires a value/i)
+  })
+
   test("rejects unknown flags", () => {
     expect(() => parseArgs(["--what"])).toThrow(/unknown arg: --what/)
+  })
+})
+
+describe("renderPlannerIsolatedReport", () => {
+  test("includes planner scene-contract telemetry", () => {
+    const report: PlannerIsolatedRunReport = {
+      v: "planner-isolated-report-v1",
+      generatedAt: "2026-05-11T00:00:00.000Z",
+      options: {
+        nativePlanningContract: true,
+        scenePlanContract: true,
+        reportDir: "output/planner-isolated/test",
+      },
+      results: [{
+        seedName: "fixture",
+        novelId: "novel-1",
+        chapters: 1,
+        totalBeats: 2,
+        beatCounts: [{ chapter: 1, beats: 2, targetWords: 1200 }],
+        stats: [{
+          agent: "planning-beats",
+          attempt: 1,
+          chapter: 1,
+          prompt_tokens: 100,
+          completion_tokens: 200,
+          max_tokens: 1000,
+          finish_reason: "stop",
+          headroom_pct: 80,
+        }],
+        planningArtifacts: {
+          worldBibleAvailable: true,
+          storySpineAvailable: true,
+          characterCount: 2,
+          chapterPlanCount: 1,
+          plannedSceneCount: 2,
+          sceneLoad: {
+            maxScenesPerChapter: 2,
+            minTargetWordsPerScene: 600,
+            denseChapterCount: 0,
+            overloadedChapterCount: 0,
+            chapters: [{
+              chapterNumber: 1,
+              chapterId: "ch-001",
+              sceneRefs: ["scene-1", "scene-2"],
+              sceneCount: 2,
+              targetWords: 1200,
+              targetWordsPerScene: 600,
+              signal: "balanced",
+            }],
+          },
+          planContinuity: { futureEventAnchors: [] },
+          scenesWithCharacters: 2,
+          scenesWithSceneIds: 2,
+          scenesWithSceneContract: 2,
+          scenesWithTemporalAnchor: 1,
+          scenesWithPlaceAnchor: 1,
+          sceneContractsWithDramaticShape: 2,
+          anchorOnlySceneContracts: 0,
+          sceneContractShape: { missingDramaticShape: [], anchorOnly: [] },
+          scenesWithObligations: 2,
+          scenesWithImplicitReferences: 0,
+          chaptersWithSetting: 1,
+          chaptersWithCharactersPresentIds: 1,
+          readerInfoSourceChapters: 0,
+          obligationIds: 2,
+          obligationSourceRefs: 2,
+          activeStoryRefIds: 0,
+        },
+      }],
+    }
+
+    const rendered = renderPlannerIsolatedReport(report)
+
+    expect(rendered).toContain("scenePlanContract: on")
+    expect(rendered).toContain("planShape: sceneIds=2/2; sceneContracts=2; dramatic=2")
+    expect(rendered).toContain("sceneLoad: ch1=2sc/600wps/balanced")
+    expect(rendered).toContain("planning-beats: 1 calls")
   })
 })
