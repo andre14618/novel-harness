@@ -38,6 +38,12 @@ export interface SeedInput {
      */
     planningSceneTurnShapingV1?: boolean
     /**
+     * Default-off planning/context control. When on, existing source-refed
+     * non-final obligations may carry compact materiality pressure notes
+     * into writer-visible context without adding extra obligations.
+     */
+    planningMaterialPressureV1?: boolean
+    /**
      * L095 Slice 0: scene-contract substrate flag. Default-off in Slice 0.
      * Slice 1 wires the `causal-motivation-v3` planner prompt and
      * `enforceScenePlanContract` under this flag.

@@ -286,6 +286,7 @@ describe("renderBeatContext + scene contract", () => {
               sourceId: "fact-script",
               threadId: "thread-reckoning",
               promiseId: "promise-script",
+              materialityTest: "Script leverage forces Calla to make the cost visible.",
             }],
             mustPayOff: [],
             mustTransferKnowledge: [],
@@ -315,6 +316,7 @@ describe("renderBeatContext + scene contract", () => {
     expect(out).toContain("Preserve status polarity exactly")
     expect(out).toContain("obl-choice")
     expect(out).toContain("source:fact-script")
+    expect(out).toContain("pressure: Script leverage forces Calla to make the cost visible.")
     expect(out).toContain("Preserve bridge state exactly")
     expect(out).toContain("CHARACTER PROFILES/SNAPSHOTS:")
     expect(out).toContain("CHARACTER CONTEXT CAPSULES:")

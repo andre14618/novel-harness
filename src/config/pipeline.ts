@@ -102,6 +102,13 @@ export const pipeline = {
   // crisis-choice scaffolding and does not change enforcement defaults.
   planningSceneTurnShapingV1: false,
 
+  // Default-off production planning/context control for material pressure.
+  // When enabled, existing source-refed non-final obligations get compact
+  // materiality pressure notes for the writer. This does not add obligations
+  // or change scene-contract validation; it only makes already-selected
+  // character/world/fact pressure operational in the drafting brief.
+  planningMaterialPressureV1: false,
+
   // L095 Slice 0: scene-contract substrate flag. Default off — Slice 0 only
   // adds optional schema fields, the `enforceScenePlanContract` helper, and
   // this resolver. No prompt or behavior change. Slice 1 wires the
@@ -203,6 +210,12 @@ export function resolvePlanningSceneTurnShapingV1(
   overrides: { planningSceneTurnShapingV1?: boolean } | undefined,
 ): boolean {
   return overrides?.planningSceneTurnShapingV1 ?? pipeline.planningSceneTurnShapingV1
+}
+
+export function resolvePlanningMaterialPressureV1(
+  overrides: { planningMaterialPressureV1?: boolean } | undefined,
+): boolean {
+  return overrides?.planningMaterialPressureV1 ?? pipeline.planningMaterialPressureV1
 }
 
 export function resolveScenePlanContractV1(

@@ -1,10 +1,11 @@
 import { describe, expect, test } from "bun:test"
 
 import {
+  applyPlanningMaterialPressureFallback,
   applySelectiveSceneTurnShapingFallback,
   planningBeatExpansionRetryReason,
 } from "./planning"
-import type { SceneBeat, SeedInput } from "../types"
+import type { ChapterOutline, SceneBeat, SeedInput } from "../types"
 
 describe("planningBeatExpansionRetryReason", () => {
   test("retries selective scene-turn shaping when final endpoint fields are absent", () => {
@@ -85,6 +86,89 @@ describe("planningBeatExpansionRetryReason", () => {
     expect(scenes.at(-1)?.outcome).toBeUndefined()
     expect(scenes.at(-1)?.consequence).toBeUndefined()
   })
+
+  test("fills material pressure on existing source-refed non-final obligations", () => {
+    const outline = applyPlanningMaterialPressureFallback(
+      "unit-novel",
+      chapter({
+        scenes: [
+          scene("Maren uses the summons to force a clerk's help.", {
+            opposition: "The clerk can refuse unless Halric's seal carries immediate risk.",
+            obligations: {
+              ...emptyObligations(),
+              mustEstablish: [{
+                text: "Halric's seal can compel archive staff.",
+                sourceId: "fact-halric-seal-authority",
+                sourceKind: "fact",
+                obligationId: "obl-seal-authority",
+              }],
+              mustTransferKnowledge: [{
+                text: "Maren learns the clerk fears Halric.",
+                sourceId: "know-maren-clerk-fears-halric",
+                sourceKind: "knowledge",
+                obligationId: "obl-maren-clerk-fear",
+                characterName: "Maren",
+                characterId: "char-maren",
+              }],
+            },
+          }),
+          scene("Maren enters Halric's locked chamber.", {
+            obligations: {
+              ...emptyObligations(),
+              mustEstablish: [{
+                text: "The chamber is locked by Halric's seal.",
+                sourceId: "fact-halric-locked-chamber",
+                sourceKind: "fact",
+                obligationId: "obl-final-lock",
+              }],
+            },
+          }),
+        ],
+      }),
+      seed({ planningMaterialPressureV1: true }),
+    )
+
+    expect(outline.scenes[0]?.obligations.mustEstablish[0]?.materialityTest).toContain(
+      "make this world fact constrain the scene choice",
+    )
+    expect(outline.scenes[0]?.obligations.mustEstablish[0]?.materialityTest).toContain(
+      "The clerk can refuse",
+    )
+    expect(outline.scenes[0]?.obligations.mustTransferKnowledge[0]?.materialityTest).toContain(
+      "Maren: make this knowledge alter action",
+    )
+    expect(outline.scenes[1]?.obligations.mustEstablish[0]?.materialityTest).toBeUndefined()
+  })
+
+  test("does not fill material pressure when the control is off or full scene-plan contract is on", () => {
+    const source = chapter({
+      scenes: [
+        scene("Maren uses the summons.", {
+          obligations: {
+            ...emptyObligations(),
+            mustEstablish: [{
+              text: "Halric's seal can compel archive staff.",
+              sourceId: "fact-halric-seal-authority",
+              sourceKind: "fact",
+              obligationId: "obl-seal-authority",
+            }],
+          },
+        }),
+        scene("Maren exits."),
+      ],
+    })
+
+    expect(
+      applyPlanningMaterialPressureFallback("unit-novel", source, seed({}))
+        .scenes[0]?.obligations.mustEstablish[0]?.materialityTest,
+    ).toBeUndefined()
+    expect(
+      applyPlanningMaterialPressureFallback("unit-novel", source, seed({
+        planningMaterialPressureV1: true,
+        scenePlanContractV1: true,
+      })).scenes[0]?.obligations.mustEstablish[0]?.materialityTest,
+    ).toBeUndefined()
+  })
 })
 
 function scene(description: string, overrides: Partial<SceneBeat> = {}): SceneBeat {
@@ -93,19 +177,41 @@ function scene(description: string, overrides: Partial<SceneBeat> = {}): SceneBe
     characters: ["Maren"],
     kind: "action",
     requiredPayoffs: [],
-    obligations: {
-      mustEstablish: [],
-      mustPayOff: [],
-      mustTransferKnowledge: [],
-      mustShowStateChange: [],
-      mustNotReveal: [],
-      allowedNewEntities: [],
-    },
+    obligations: emptyObligations(),
     lifeValueAxes: [],
     miceActive: [],
     miceOpens: [],
     miceCloses: [],
     ...overrides,
+  }
+}
+
+function chapter(overrides: Partial<ChapterOutline> = {}): ChapterOutline {
+  return {
+    chapterNumber: 1,
+    title: "The Ledger",
+    povCharacter: "Maren",
+    setting: "Counting-House",
+    purpose: "Maren reaches Halric's chamber.",
+    targetWords: 900,
+    charactersPresent: ["Maren"],
+    charactersPresentIds: [],
+    scenes: [],
+    establishedFacts: [],
+    characterStateChanges: [],
+    knowledgeChanges: [],
+    ...overrides,
+  }
+}
+
+function emptyObligations(): SceneBeat["obligations"] {
+  return {
+    mustEstablish: [],
+    mustPayOff: [],
+    mustTransferKnowledge: [],
+    mustShowStateChange: [],
+    mustNotReveal: [],
+    allowedNewEntities: [],
   }
 }
 

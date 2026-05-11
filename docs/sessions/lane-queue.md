@@ -8,9 +8,9 @@ unless the user explicitly requests a disposable branch.
 - **Production-path one-offs are now the standing default (L106/L107).** Test
   new hypotheses through production modules, default-off arms, diagnostics,
   readiness artifacts, and run-compare/cohort reports. Historical `poc/`
-  outputs are evidence/fixtures only. Do not add POC runners, prompt branches,
+  outputs are evidence/fixtures only; do not add POC runners, prompt branches,
   mappers, checkers, or review formats when a thin production wrapper can write
-  the same artifacts. Standalone POCs require explicit approval plus flags.
+  the same artifacts.
 - **Production writer/planner evidence (2026-05-11).** P1 made
   `drafting-brief-v1` strongest at 1.24x with scene lows 1/33, but replication
   holds promotion. Clean-source repairs reached Corso 4778/3800 = 1.26x with
@@ -24,8 +24,10 @@ unless the user explicitly requests a disposable branch.
   production planner/state-mapper code and compare supports paired source IDs;
   on the P1 concept pair it shortened 43 words and cleared one checker blocker,
   but scene lows regressed +4 with character/world losses and +2 readiness.
-  Keep broad operational-facts, tight-anchored, and scene-turn shaping out of
-  defaults; next lever is load-bearing non-final character/world pressure. See L106/L107.
+  `planningMaterialPressureV1` now annotates existing source-refed non-final
+  obligations without adding tags; first pair filled 21/27 notes, shortened
+  575 words, and improved scene lows -7, but checker negatives rose 2->14 and
+  readiness +1. Keep controls default-off pending replication. See L106/L107.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort
@@ -119,9 +121,8 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: use paired-source compare/cohort artifacts to add only
-  default-off load-bearing non-final character/world obligations in production
-  planner/state-mapper paths; avoid tag spam. See L103-L107.
+- Next session start: replicate or narrow `planningMaterialPressureV1`; inspect
+  checker-negative clusters before any default flip. See L103-L107.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
@@ -216,5 +217,4 @@ unless the user explicitly requests a disposable branch.
   artifact-aware or Canon-generation-aware observers exist.
 - External CI for `policy:promotion-guard` is on hold indefinitely. Keep the
   local guard as the supported path unless the user reopens a concrete CI need.
-
 Closed history: `docs/sessions/archive/`.

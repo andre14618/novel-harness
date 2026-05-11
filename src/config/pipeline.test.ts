@@ -8,6 +8,7 @@ import {
   resolveDraftCaptureModeV1,
   resolveScenePlanContractV1,
   resolveNativePlanningContractV1,
+  resolvePlanningMaterialPressureV1,
   resolvePlanningSceneTurnShapingV1,
   resolveSceneSatisfactionCheckerV1,
   resolveWriterDraftingBriefMode,
@@ -23,6 +24,7 @@ describe("pipeline default flag values (production runtime)", () => {
     expect(pipeline.draftCaptureModeV1).toBe(false)
     expect(pipeline.scenePlanContractV1).toBe(false)
     expect(pipeline.planningSceneTurnShapingV1).toBe(false)
+    expect(pipeline.planningMaterialPressureV1).toBe(false)
     expect(pipeline.sceneSatisfactionCheckerV1).toBe(false)
   })
 
@@ -91,6 +93,12 @@ describe("override resolvers fall back to pipeline defaults when override absent
     expect(resolvePlanningSceneTurnShapingV1(undefined)).toBe(false)
     expect(resolvePlanningSceneTurnShapingV1({})).toBe(false)
     expect(resolvePlanningSceneTurnShapingV1({ planningSceneTurnShapingV1: true })).toBe(true)
+  })
+
+  test("resolvePlanningMaterialPressureV1", () => {
+    expect(resolvePlanningMaterialPressureV1(undefined)).toBe(false)
+    expect(resolvePlanningMaterialPressureV1({})).toBe(false)
+    expect(resolvePlanningMaterialPressureV1({ planningMaterialPressureV1: true })).toBe(true)
   })
 
   test("resolveSceneSatisfactionCheckerV1", () => {

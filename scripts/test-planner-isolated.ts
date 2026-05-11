@@ -11,6 +11,7 @@
  *   bun scripts/test-planner-isolated.ts fantasy-healer --native-planning-contract
  *   bun scripts/test-planner-isolated.ts fantasy-healer --scene-plan-contract
  *   bun scripts/test-planner-isolated.ts fantasy-healer --scene-turn-planning
+ *   bun scripts/test-planner-isolated.ts fantasy-healer --material-pressure-planning
  *   bun scripts/test-planner-isolated.ts --novel <concept-done-novel-id> [--native-planning-contract] [--scene-plan-contract]
  *   bun scripts/test-planner-isolated.ts --from-fixture docs/fixtures/scene-first/concepts/over-target/P1-fantasy-debt-binder.json
  *     [--report-dir output/planner-isolated/<run-id>]
@@ -84,6 +85,7 @@ interface Args {
   fixturePath: string | null
   nativePlanningContract: boolean
   planningSceneTurnShaping: boolean
+  planningMaterialPressure: boolean
   scenePlanContract: boolean
   reportDir: string | null
 }
@@ -105,6 +107,7 @@ export interface PlannerIsolatedRunReport {
   options: {
     nativePlanningContract: boolean
     planningSceneTurnShaping: boolean
+    planningMaterialPressure: boolean
     scenePlanContract: boolean
     reportDir: string | null
   }
@@ -113,7 +116,7 @@ export interface PlannerIsolatedRunReport {
 
 async function testSeed(
   seedName: string,
-  options: { nativePlanningContract: boolean; planningSceneTurnShaping: boolean; scenePlanContract: boolean },
+  options: { nativePlanningContract: boolean; planningSceneTurnShaping: boolean; planningMaterialPressure: boolean; scenePlanContract: boolean },
 ): Promise<PlannerIsolatedResult> {
   console.log(`\n━━━ ${seedName} ━━━`)
   const seed = await loadSeed(seedName)
@@ -135,6 +138,12 @@ async function testSeed(
       planningSceneTurnShapingV1: true,
     }
   }
+  if (options.planningMaterialPressure) {
+    seed.pipelineOverrides = {
+      ...(seed.pipelineOverrides ?? {}),
+      planningMaterialPressureV1: true,
+    }
+  }
   const novelId = `test-planner-${seedName}-${Date.now()}`
   await initDB(novelId)
   await createNovel(novelId, seed)
@@ -151,7 +160,7 @@ async function testSeed(
 
 async function testFromFixture(
   fixturePath: string,
-  options: { nativePlanningContract: boolean; planningSceneTurnShaping: boolean; scenePlanContract: boolean },
+  options: { nativePlanningContract: boolean; planningSceneTurnShaping: boolean; planningMaterialPressure: boolean; scenePlanContract: boolean },
 ): Promise<PlannerIsolatedResult> {
   const { seed: fixtureSeed, profile, metadataNotes } = await loadFixtureConcept(fixturePath)
   const seed: SeedInput = { ...fixtureSeed }
@@ -173,6 +182,12 @@ async function testFromFixture(
       planningSceneTurnShapingV1: true,
     }
   }
+  if (options.planningMaterialPressure) {
+    seed.pipelineOverrides = {
+      ...(seed.pipelineOverrides ?? {}),
+      planningMaterialPressureV1: true,
+    }
+  }
   const slug = fixtureSlugFromPath(fixturePath)
   const novelId = `fixture-${slug}-${Date.now()}`
   console.log(`\n━━━ ${profile} ← ${fixturePath} ━━━`)
@@ -190,12 +205,13 @@ async function testFromFixture(
 
 async function testExistingConceptNovel(
   novelId: string,
-  options: { nativePlanningContract: boolean; planningSceneTurnShaping: boolean; scenePlanContract: boolean },
+  options: { nativePlanningContract: boolean; planningSceneTurnShaping: boolean; planningMaterialPressure: boolean; scenePlanContract: boolean },
 ): Promise<PlannerIsolatedResult> {
   console.log(`\n━━━ ${novelId} ━━━`)
   console.log(`  novel: ${novelId}`)
   await setNativePlanningContractOverride(novelId, options.nativePlanningContract)
   await setPlanningSceneTurnShapingOverride(novelId, options.planningSceneTurnShaping)
+  await setPlanningMaterialPressureOverride(novelId, options.planningMaterialPressure)
   await setScenePlanContractOverride(novelId, options.scenePlanContract)
   await initNovelRun(novelId)
   console.log(`  [1/1] planning phase...`)
@@ -311,6 +327,25 @@ async function setPlanningSceneTurnShapingOverride(novelId: string, enabled: boo
   `
 }
 
+async function setPlanningMaterialPressureOverride(novelId: string, enabled: boolean): Promise<void> {
+  await db`
+    UPDATE novels
+    SET seed_json = jsonb_set(
+          jsonb_set(
+            COALESCE(seed_json, '{}'::jsonb),
+            '{pipelineOverrides}',
+            COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+            true
+          ),
+          '{pipelineOverrides,planningMaterialPressureV1}',
+          to_jsonb(${enabled}::boolean),
+          true
+        ),
+        updated_at = now()
+    WHERE id = ${novelId}
+  `
+}
+
 async function setScenePlanContractOverride(novelId: string, enabled: boolean): Promise<void> {
   await db`
     UPDATE novels
@@ -344,6 +379,9 @@ async function main() {
   if (args.planningSceneTurnShaping) {
     console.log("  planningSceneTurnShapingV1=true")
   }
+  if (args.planningMaterialPressure) {
+    console.log("  planningMaterialPressureV1=true")
+  }
 
   const results: PlannerIsolatedResult[] = []
   if (args.fixturePath) {
@@ -351,6 +389,7 @@ async function main() {
       results.push(await testFromFixture(args.fixturePath, {
         nativePlanningContract: args.nativePlanningContract,
         planningSceneTurnShaping: args.planningSceneTurnShaping,
+        planningMaterialPressure: args.planningMaterialPressure,
         scenePlanContract: args.scenePlanContract,
       }))
     } catch (err) {
@@ -362,6 +401,7 @@ async function main() {
       results.push(await testExistingConceptNovel(args.novelId, {
         nativePlanningContract: args.nativePlanningContract,
         planningSceneTurnShaping: args.planningSceneTurnShaping,
+        planningMaterialPressure: args.planningMaterialPressure,
         scenePlanContract: args.scenePlanContract,
       }))
     } catch (err) {
@@ -374,6 +414,7 @@ async function main() {
         results.push(await testSeed(s, {
           nativePlanningContract: args.nativePlanningContract,
           planningSceneTurnShaping: args.planningSceneTurnShaping,
+          planningMaterialPressure: args.planningMaterialPressure,
           scenePlanContract: args.scenePlanContract,
         }))
       } catch (err) {
@@ -434,6 +475,7 @@ async function main() {
     options: {
       nativePlanningContract: args.nativePlanningContract,
       planningSceneTurnShaping: args.planningSceneTurnShaping,
+      planningMaterialPressure: args.planningMaterialPressure,
       scenePlanContract: args.scenePlanContract,
       reportDir: args.reportDir,
     },
@@ -456,6 +498,7 @@ export function parseArgs(argv: string[]): Args {
   let fixturePath: string | null = null
   let nativePlanningContract = false
   let planningSceneTurnShaping = false
+  let planningMaterialPressure = false
   let scenePlanContract = false
   let reportDir: string | null = null
   for (let i = 0; i < argv.length; i++) {
@@ -470,6 +513,10 @@ export function parseArgs(argv: string[]): Args {
     }
     if (arg === "--scene-turn-planning" || arg === "--planning-scene-turn-shaping-v1") {
       planningSceneTurnShaping = true
+      continue
+    }
+    if (arg === "--material-pressure-planning" || arg === "--planning-material-pressure-v1") {
+      planningMaterialPressure = true
       continue
     }
     if (arg === "--novel" || arg === "--novel-id") {
@@ -501,6 +548,7 @@ export function parseArgs(argv: string[]): Args {
     fixturePath,
     nativePlanningContract,
     planningSceneTurnShaping,
+    planningMaterialPressure,
     scenePlanContract,
     reportDir,
   }
@@ -513,6 +561,7 @@ export function renderPlannerIsolatedReport(report: PlannerIsolatedRunReport): s
   lines.push(`generatedAt: ${report.generatedAt}`)
   lines.push(`nativePlanningContract: ${report.options.nativePlanningContract ? "on" : "off"}`)
   lines.push(`planningSceneTurnShaping: ${report.options.planningSceneTurnShaping ? "on" : "off"}`)
+  lines.push(`planningMaterialPressure: ${report.options.planningMaterialPressure ? "on" : "off"}`)
   lines.push(`scenePlanContract: ${report.options.scenePlanContract ? "on" : "off"}`)
   for (const result of report.results) {
     lines.push("")

@@ -22,6 +22,7 @@ import { log } from "../logger"
 import {
   pipeline,
   resolveNativePlanningContractV1,
+  resolvePlanningMaterialPressureV1,
   resolvePlanningSceneTurnShapingV1,
   resolveScenePlanContractV1,
 } from "../config/pipeline"
@@ -429,7 +430,8 @@ async function expandChapter(
     seed,
   )
   const shapedScenes = applySelectiveSceneTurnShapingFallback(novelId, skeleton, scenes, seed)
-  return mapChapterState(novelId, skeleton, allSkeletons, worldBible, characters, spine, seed, shapedScenes, attempt)
+  const mapped = await mapChapterState(novelId, skeleton, allSkeletons, worldBible, characters, spine, seed, shapedScenes, attempt)
+  return applyPlanningMaterialPressureFallback(novelId, mapped, seed)
 }
 
 export function planningBeatExpansionRetryReason(
@@ -506,6 +508,105 @@ export function applySelectiveSceneTurnShapingFallback(
     )
   }
   return out
+}
+
+export function applyPlanningMaterialPressureFallback(
+  novelId: string,
+  outline: ChapterOutline,
+  seed: Pick<SeedInput, "pipelineOverrides">,
+): ChapterOutline {
+  if (
+    !resolvePlanningMaterialPressureV1(seed.pipelineOverrides) ||
+    resolveScenePlanContractV1(seed.pipelineOverrides)
+  ) {
+    return outline
+  }
+  const scenes = outline.scenes ?? []
+  if (scenes.length <= 1) return outline
+
+  let filled = 0
+  const mappedScenes = scenes.map((scene, index) => {
+    const cloned = cloneSceneWithObligations(scene)
+    if (index === scenes.length - 1) return cloned
+    for (const list of MATERIAL_PRESSURE_OBLIGATION_LISTS) {
+      for (const item of cloned.obligations[list]) {
+        if (!hasText(item.sourceId) || hasText(item.materialityTest)) continue
+        item.materialityTest = materialPressureForObligation(scene, item, list)
+        filled += 1
+      }
+    }
+    return cloned
+  })
+
+  if (filled > 0) {
+    log(
+      novelId,
+      "info",
+      `Planning material-pressure fallback ch${outline.chapterNumber}: filled ${filled} non-final obligation materiality notes`,
+    )
+    return { ...outline, scenes: mappedScenes }
+  }
+  return outline
+}
+
+const MATERIAL_PRESSURE_OBLIGATION_LISTS = [
+  "mustEstablish",
+  "mustPayOff",
+  "mustTransferKnowledge",
+  "mustShowStateChange",
+] as const
+
+type MaterialPressureList = typeof MATERIAL_PRESSURE_OBLIGATION_LISTS[number]
+type MaterialPressureObligation = BeatObligationsContract[MaterialPressureList][number]
+
+function cloneSceneWithObligations(scene: SceneBeat): SceneBeat {
+  return {
+    ...scene,
+    obligations: {
+      mustEstablish: scene.obligations.mustEstablish.map(item => ({ ...item })),
+      mustPayOff: scene.obligations.mustPayOff.map(item => ({ ...item })),
+      mustTransferKnowledge: scene.obligations.mustTransferKnowledge.map(item => ({ ...item })),
+      mustShowStateChange: scene.obligations.mustShowStateChange.map(item => ({ ...item })),
+      mustNotReveal: scene.obligations.mustNotReveal.map(item => ({ ...item })),
+      allowedNewEntities: [...scene.obligations.allowedNewEntities],
+    },
+  }
+}
+
+function materialPressureForObligation(
+  scene: SceneBeat,
+  item: MaterialPressureObligation,
+  list: MaterialPressureList,
+): string {
+  const turn = scenePressureAnchor(scene)
+  const actor = hasText(item.characterName) ? `${item.characterName}: ` : ""
+  const prefix = materialPressurePrefix(item, list)
+  return truncatePlanningField(`${actor}${prefix}: ${turn}`, 240)
+}
+
+function materialPressurePrefix(item: MaterialPressureObligation, list: MaterialPressureList): string {
+  if (list === "mustTransferKnowledge") return "make this knowledge alter action, dialogue, or tactics"
+  if (list === "mustShowStateChange") return "make this state visible through behavior or relationship pressure"
+  if (list === "mustPayOff") return "pay this source off through a visible cost, reveal, or changed status"
+  if (hasText(item.worldFactId) || sourceLooksLikeWorldFact(item.sourceId)) {
+    return "make this world fact constrain the scene choice, tactic, or outcome"
+  }
+  return "make this source change the scene choice, constraint, tactic, or outcome"
+}
+
+function scenePressureAnchor(scene: SceneBeat): string {
+  return [
+    scene.opposition,
+    scene.turningPoint,
+    scene.consequence,
+    scene.outcome,
+    scene.goal,
+    scene.description,
+  ].find(hasText) ?? scene.description
+}
+
+function sourceLooksLikeWorldFact(sourceId: unknown): boolean {
+  return typeof sourceId === "string" && /^(fact|world)-/u.test(sourceId.trim())
 }
 
 function extractChapterEndpoint(purpose: string): string | null {

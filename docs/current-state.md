@@ -122,9 +122,11 @@ words but lowered endpoint, materiality, and world-fact means. The default-off
 planner/state-mapper path and paired-source compare via `--source-pair-id`.
 On the P1 concept-clone pair it shortened by 43 words, improved endpoint lows
 and cleared one checker blocker, but regressed total scene lows by 4 with
-character-materiality/world-pressure losses and +2 readiness findings. No
-default flip; next lever is load-bearing non-final character/world pressure in
-planning, not writer prompt bulk. See L103-L107.
+character-materiality/world-pressure losses and +2 readiness findings.
+`planningMaterialPressureV1` now annotates existing source-refed non-final
+obligations with writer-visible materiality pressure notes; the first paired
+run filled 21/27 notes, shortened 575 words, and improved scene lows by 7, but
+checker negatives rose 2->14 and readiness +1. No default flip. See L103-L107.
 
 ## Authoring Gates
 

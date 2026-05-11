@@ -331,7 +331,16 @@ function operationalAnchorText(
 function pushObligationItems(
   lines: string[],
   label: string,
-  items: Array<{ text: string; characterName?: string; obligationId?: string; sourceId?: string; threadId?: string; promiseId?: string; payoffId?: string }>,
+  items: Array<{
+    text: string
+    characterName?: string
+    obligationId?: string
+    sourceId?: string
+    threadId?: string
+    promiseId?: string
+    payoffId?: string
+    materialityTest?: string
+  }>,
   idRendering: WriterPromptIdRendering | undefined,
 ): void {
   const showIds = (idRendering ?? "raw") === "raw"
@@ -340,7 +349,8 @@ function pushObligationItems(
     if (!text) continue
     const actor = item.characterName ? `${item.characterName}: ` : ""
     const refs = showIds ? formatObligationRefs(item) : ""
-    lines.push(`- ${label}: ${actor}${text}${refs}`)
+    const pressure = item.materialityTest?.trim()
+    lines.push(`- ${label}: ${actor}${text}${pressure ? `; pressure: ${pressure}` : ""}${refs}`)
   }
 }
 

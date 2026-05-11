@@ -66,6 +66,24 @@ test("planning-state-mapper context renders selective scene-turn obligation guid
   expect(context).not.toContain("SCENE PLAN CONTRACT (scenePlanContractV1)")
 })
 
+test("planning-state-mapper context renders material pressure guidance", () => {
+  const context = buildContext({
+    targetChapter: chapter(),
+    allSkeletons: [chapter()],
+    priorChapters: [],
+    scenes: [beat({ description: "Istra forces the clerk to honor the archive seal.", characters: ["Istra", "Clerk"] })],
+    worldBible: worldBible(),
+    characters: [character()],
+    spine: storySpine(),
+    seed: { ...seed(), pipelineOverrides: { planningMaterialPressureV1: true } },
+  })
+
+  expect(context).toContain("MATERIAL PRESSURE (planningMaterialPressureV1)")
+  expect(context).toContain("For non-final scenes, every selected source-refed fact, knowledge, or state obligation should include \"materialityTest\"")
+  expect(context).toContain("Do not add new obligations to satisfy this")
+  expect(context).not.toContain("SCENE PLAN CONTRACT (scenePlanContractV1)")
+})
+
 test("planning-state-mapper context carries beat indexes without asking for rewrites", () => {
   const context = buildContext({
     targetChapter: chapter(),

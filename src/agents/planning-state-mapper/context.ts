@@ -5,7 +5,11 @@ import type { StorySpine } from "../plotter/schema"
 import type { ChapterOutline } from "../planning-plotter/schema"
 import { renderDirectivesForPlanner } from "../../schemas/planning-directives"
 import { resolveStructuralPriors, renderStructuralPriorsForPlanner } from "../../models/roles"
-import { resolvePlanningSceneTurnShapingV1, resolveScenePlanContractV1 } from "../../config/pipeline"
+import {
+  resolvePlanningMaterialPressureV1,
+  resolvePlanningSceneTurnShapingV1,
+  resolveScenePlanContractV1,
+} from "../../config/pipeline"
 
 export interface StateMapperContextArgs {
   targetChapter: ChapterOutline
@@ -77,8 +81,12 @@ export function buildContext(args: StateMapperContextArgs): string {
     resolvePlanningSceneTurnShapingV1(seed.pipelineOverrides),
     resolveScenePlanContractV1(seed.pipelineOverrides),
   )
+  const materialPressureSection = renderStateMapperMaterialPressureGuidance(
+    resolvePlanningMaterialPressureV1(seed.pipelineOverrides),
+    resolveScenePlanContractV1(seed.pipelineOverrides),
+  )
 
-  return `Genre: ${seed.genre}\nPremise: ${seed.premise}\n\n${worldSection}\n\n${charSection}\n\n${spineSection}\n\n${allSkelSection}${priorSection}\n\n${targetSection}\n\n${beatSection}${directivesSection}${structuralSection}${scenePlanContractSection}${selectiveSceneTurnSection}\n\nMap Chapter ${targetChapter.chapterNumber}'s end-of-chapter state and writer-visible beat obligations onto the existing beat list.`
+  return `Genre: ${seed.genre}\nPremise: ${seed.premise}\n\n${worldSection}\n\n${charSection}\n\n${spineSection}\n\n${allSkelSection}${priorSection}\n\n${targetSection}\n\n${beatSection}${directivesSection}${structuralSection}${scenePlanContractSection}${selectiveSceneTurnSection}${materialPressureSection}\n\nMap Chapter ${targetChapter.chapterNumber}'s end-of-chapter state and writer-visible beat obligations onto the existing beat list.`
 }
 
 // L096 Slice 1: scene-plan-contract guidance for the state mapper. Off-flag
@@ -109,4 +117,15 @@ SELECTIVE SCENE-TURN SHAPING (planningSceneTurnShapingV1):
 - Prefer one to three source-refed obligations per scene. Each obligation should pressure a choice, constrain action, alter the outcome, make a character materially active, or create the endpoint consequence.
 - Do not add obligations for decorative context. If a fact or character does not change the turn, leave it out of writer-visible obligations.
 - Preserve exact source IDs and character IDs so scene semantic lows can trace endpoint, character materiality, and world pressure back to the plan.`
+}
+
+function renderStateMapperMaterialPressureGuidance(enabled: boolean, scenePlanContractV1: boolean): string {
+  if (!enabled || scenePlanContractV1) return ""
+  return `
+
+MATERIAL PRESSURE (planningMaterialPressureV1):
+- For non-final scenes, every selected source-refed fact, knowledge, or state obligation should include "materialityTest".
+- The materialityTest must state how that source changes this scene's choice, constraint, tactic, relationship behavior, outcome, or future pressure.
+- Keep it compact and concrete. Do not add new obligations to satisfy this; only annotate obligations already selected because they materially affect the scene turn.
+- Prefer notes that make a character active or a world rule costly on page, not generic restatements of the source text.`
 }
