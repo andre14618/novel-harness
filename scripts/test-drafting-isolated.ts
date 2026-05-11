@@ -42,6 +42,8 @@
  *                        production context surface telemetry is preserved.
  *   drafting-brief-scene-turn-v1 — compact brief plus scene-turn/materiality
  *                        floor for advisory evidence loops.
+ *   drafting-brief-anchored-v1 — scene-turn brief plus fact/continuity
+ *                        anchors for advisory evidence loops.
  *   scene-call-v1      — L097 Slice 2: scene-call writer + retry-short-
  *                        scenes-v1 expansion path. The full B3 Arm C.
  *
@@ -175,6 +177,7 @@ export const WRITER_ARM_NAMES = [
   "scene-call-no-expansion",
   "drafting-brief-v1",
   "drafting-brief-scene-turn-v1",
+  "drafting-brief-anchored-v1",
   "scene-call-v1",
 ] as const
 
@@ -408,7 +411,7 @@ interface ArmFlags {
   writerExpansionMode: "off" | "retry-short-scenes-v1"
   forceRenderSceneContractWhenAvailable: boolean
   writerPromptIdRendering: "raw" | "suppress"
-  writerDraftingBriefMode: "off" | "scene-budget-v1" | "scene-turn-v1"
+  writerDraftingBriefMode: "off" | "scene-budget-v1" | "scene-turn-v1" | "scene-turn-anchored-v1"
 }
 
 export function flagsForArm(arm: ArmName): ArmFlags {
@@ -475,6 +478,16 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         forceRenderSceneContractWhenAvailable: false,
         writerPromptIdRendering: "raw",
         writerDraftingBriefMode: "scene-turn-v1",
+      }
+    case "drafting-brief-anchored-v1":
+      // Follow-on evidence arm: preserve scene-turn floor and add
+      // fact/continuity anchoring to test worldFactPressure regressions.
+      return {
+        sceneCallWriterV1: false,
+        writerExpansionMode: "off",
+        forceRenderSceneContractWhenAvailable: false,
+        writerPromptIdRendering: "raw",
+        writerDraftingBriefMode: "scene-turn-anchored-v1",
       }
     case "scene-call-v1":
       // L097 Slice 2: scene-call writer + expansion-retry. The full B3 Arm C.

@@ -337,6 +337,48 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.userPrompt).toContain("Use these details to shape concrete behavior")
     expect(selected.draftingBriefTrace.mode).toBe("scene-turn-v1")
   })
+
+  it("renders anchored scene-turn brief anchors and records section telemetry", () => {
+    const ctx = baseCtx({
+      beatSpec: {
+        ...baseCtx().beatSpec,
+        obligations: {
+          mustEstablish: [{
+            text: "The ledger seal burns anyone who lies.",
+            obligationId: "obl-ledger-seal",
+            sourceId: "fact-ledger-seal",
+          }],
+          mustPayOff: [],
+          mustTransferKnowledge: [{
+            text: "Orvath learns Calla copied the warrant.",
+            characterName: "Orvath",
+            obligationId: "obl-orvath-learns",
+            sourceId: "know-orvath-warrant",
+          }],
+          mustShowStateChange: [],
+          mustNotReveal: [],
+          allowedNewEntities: [],
+        },
+      },
+      transitionBridge: "Calla shut the archive door behind her.",
+      landingTarget: "Orvath reaches for the ledger.",
+    })
+    const full = renderBeatContext(ctx, { compact: false })
+    const selected = selectWriterPromptForDraftingBrief({
+      ctx,
+      mode: "scene-turn-anchored-v1",
+      fullContextPrompt: full,
+      targetWords: 500,
+      idRendering: "raw",
+    })
+
+    expect(selected.userPrompt).toContain("FACT AND CONTINUITY ANCHORS:")
+    expect(selected.userPrompt).toContain("Make each retained anchor change a choice")
+    expect(selected.userPrompt).toContain("Anchor: establish: The ledger seal burns anyone who lies. [source:fact-ledger-seal]")
+    expect(selected.userPrompt).toContain("Continue cleanly from the transition bridge")
+    expect(selected.draftingBriefTrace.mode).toBe("scene-turn-anchored-v1")
+    expect(selected.draftingBriefTrace.sections.factContinuityAnchors).toBe(true)
+  })
 })
 
 describe("buildExpansionPrompt", () => {

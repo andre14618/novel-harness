@@ -52,6 +52,7 @@ export interface WriterContextEventSummary {
     sections: {
       sceneContract: boolean
       obligations: boolean
+      factContinuityAnchors: boolean
       characterSnapshots: boolean
       characterContextCapsules: boolean
       resolvedReferences: boolean
@@ -316,6 +317,7 @@ function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingB
     sections: {
       sceneContract: readBoolean(sections.sceneContract),
       obligations: readBoolean(sections.obligations),
+      factContinuityAnchors: readBoolean(sections.factContinuityAnchors),
       characterSnapshots: readBoolean(sections.characterSnapshots),
       characterContextCapsules: readBoolean(sections.characterContextCapsules),
       resolvedReferences: readBoolean(sections.resolvedReferences),

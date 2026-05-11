@@ -106,6 +106,7 @@ describe("planning-drafting-context-report", () => {
           sections: {
             sceneContract: true,
             obligations: true,
+            factContinuityAnchors: false,
             characterSnapshots: true,
             characterContextCapsules: true,
             resolvedReferences: true,

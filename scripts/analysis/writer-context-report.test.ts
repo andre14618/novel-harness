@@ -51,6 +51,7 @@ describe("writer-context-report", () => {
           sections: {
             sceneContract: true,
             obligations: true,
+            factContinuityAnchors: true,
             characterSnapshots: true,
             characterContextCapsules: true,
             resolvedReferences: true,

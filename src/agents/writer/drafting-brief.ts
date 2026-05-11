@@ -2,7 +2,7 @@ import type { BeatContext, CharacterSnapshot, SceneContractBlock, SettingBlock }
 import { renderCharacterContextCapsules } from "./character-context"
 import type { WriterPromptIdRendering } from "./context-mode"
 
-export type WriterDraftingBriefMode = "off" | "scene-budget-v1" | "scene-turn-v1"
+export type WriterDraftingBriefMode = "off" | "scene-budget-v1" | "scene-turn-v1" | "scene-turn-anchored-v1"
 
 export interface WriterDraftingBriefTrace {
   mode: WriterDraftingBriefMode
@@ -16,6 +16,7 @@ export interface WriterDraftingBriefTrace {
     obligations: boolean
     transitionBridge: boolean
     landingTarget: boolean
+    factContinuityAnchors: boolean
     characterSnapshots: boolean
     characterContextCapsules: boolean
     resolvedReferences: boolean
@@ -44,6 +45,7 @@ export function selectWriterPromptForDraftingBrief(input: SelectWriterPromptInpu
 } {
   const userPrompt = input.mode === "scene-budget-v1"
     || input.mode === "scene-turn-v1"
+    || input.mode === "scene-turn-anchored-v1"
     ? renderWriterDraftingBrief(input.ctx, {
         targetWords: input.targetWords,
         idRendering: input.idRendering,
@@ -71,12 +73,19 @@ export function renderWriterDraftingBrief(
     renderBriefHeader(ctx, opts),
   ]
 
-  if (opts.mode === "scene-turn-v1") sections.push(renderSceneExecutionFloor())
+  if (opts.mode === "scene-turn-v1" || opts.mode === "scene-turn-anchored-v1") {
+    sections.push(renderSceneExecutionFloor(opts.mode))
+  }
 
   if (ctx.sceneContract) sections.push(renderSceneContractBrief(ctx.sceneContract, opts.mode))
 
   const obligations = renderObligationsBrief(ctx.beatSpec.obligations, opts.idRendering)
   if (obligations) sections.push(`OBLIGATIONS:\n${obligations}`)
+
+  if (opts.mode === "scene-turn-anchored-v1") {
+    const factContinuityAnchors = renderFactContinuityAnchors(ctx)
+    if (factContinuityAnchors) sections.push(factContinuityAnchors)
+  }
 
   const continuityAnchors = renderContinuityAnchors(ctx)
   if (continuityAnchors) sections.push(continuityAnchors)
@@ -122,13 +131,17 @@ function renderBriefHeader(
   return lines.join("\n")
 }
 
-function renderSceneExecutionFloor(): string {
-  return [
+function renderSceneExecutionFloor(mode: WriterDraftingBriefMode | undefined): string {
+  const lines = [
     "SCENE EXECUTION FLOOR:",
     "- Write a complete scene turn, not a summary of required events.",
     "- Put the pressure, choice/turn, outcome, and consequence on the page.",
     "- Make present characters materially specific through action, dialogue, interiority, or changed behavior.",
-  ].join("\n")
+  ]
+  if (mode === "scene-turn-anchored-v1") {
+    lines.push("- Preserve declared timing, location, and fact constraints; do not move future events earlier for convenience.")
+  }
+  return lines.join("\n")
 }
 
 function renderSceneContractBrief(scene: SceneContractBlock, mode: WriterDraftingBriefMode | undefined): string {
@@ -169,6 +182,47 @@ function renderObligationsBrief(
     lines.push(`- Allowed new named entities: ${obligations.allowedNewEntities.join(", ")}`)
   }
   return lines.join("\n")
+}
+
+function renderFactContinuityAnchors(ctx: BeatContext): string | null {
+  const anchors = operationalAnchorItems(ctx.beatSpec.obligations)
+  const lines = [
+    "FACT AND CONTINUITY ANCHORS:",
+    "- Treat required facts, knowledge, state, and payoff obligations as operational pressure, not background.",
+    "- Make each retained anchor change a choice, tactic, constraint, cost, endpoint consequence, or future pressure.",
+    "- Preserve the scene's declared timing and location unless the scene task itself says they change.",
+  ]
+  if (ctx.transitionBridge) lines.push("- Continue cleanly from the transition bridge; do not contradict already-drafted facts.")
+  if (ctx.landingTarget) lines.push("- Land toward the next scene without resolving or pre-playing it.")
+  for (const anchor of anchors.slice(0, 6)) lines.push(`- Anchor: ${anchor}`)
+  return lines.length > 3 ? lines.join("\n") : null
+}
+
+function operationalAnchorItems(
+  obligations: BeatContext["beatSpec"]["obligations"],
+): string[] {
+  return [
+    ...obligations.mustEstablish.map(item => operationalAnchorText("establish", item)),
+    ...obligations.mustPayOff.map(item => operationalAnchorText("pay off", item)),
+    ...obligations.mustTransferKnowledge.map(item => operationalAnchorText("transfer", item)),
+    ...obligations.mustShowStateChange.map(item => operationalAnchorText("show state", item)),
+  ].filter((item): item is string => item !== null)
+}
+
+function operationalAnchorText(
+  label: string,
+  item: { text: string; characterName?: string; sourceId?: string; threadId?: string; promiseId?: string; payoffId?: string },
+): string | null {
+  const text = item.text.trim()
+  if (!text) return null
+  const actor = item.characterName ? `${item.characterName}: ` : ""
+  const refs = [
+    item.sourceId ? `source:${item.sourceId}` : "",
+    item.threadId ? `thread:${item.threadId}` : "",
+    item.promiseId ? `promise:${item.promiseId}` : "",
+    item.payoffId ? `payoff:${item.payoffId}` : "",
+  ].filter(Boolean)
+  return `${label}: ${actor}${text}${refs.length > 0 ? ` [${refs.join("; ")}]` : ""}`
 }
 
 function pushObligationItems(
@@ -273,6 +327,10 @@ function summarizeWriterDraftingBrief(args: {
       obligations: countObligations(args.ctx.beatSpec.obligations) > 0,
       transitionBridge: Boolean(args.ctx.transitionBridge),
       landingTarget: Boolean(args.ctx.landingTarget),
+      factContinuityAnchors: args.mode === "scene-turn-anchored-v1" &&
+        (operationalAnchorItems(args.ctx.beatSpec.obligations).length > 0 ||
+          Boolean(args.ctx.transitionBridge) ||
+          Boolean(args.ctx.landingTarget)),
       characterSnapshots: args.ctx.characterSnapshots.length > 0,
       characterContextCapsules: Boolean(args.ctx.characterContextCapsules),
       resolvedReferences: Boolean(args.ctx.resolvedReferencesText),
