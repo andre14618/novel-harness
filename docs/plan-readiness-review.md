@@ -257,8 +257,11 @@ bun run diagnostics:plan-readiness-apply -- \
 
 The plan may mark items `accepted_as_is`, `not_applicable`, `deferred`, or
 `fixed`, or create a normal manual `planning_edit` proposal with
-`field_replace` / `beat_requirement_remove`. The command does not approve
-planning proposals; it only uses the existing Plan Readiness route.
+`field_replace`, `beat_replace`, `beat_reorder`, or
+`beat_requirement_remove`. By default the command creates proposals without
+approving them. Pass `--approve-proposals` only for an already reviewed
+operator plan; approval still goes through the normal planning proposal
+resolver and lineage path.
 
 Exact character-ref gaps can also be converted into concrete manual repair
 candidates without touching the DB:

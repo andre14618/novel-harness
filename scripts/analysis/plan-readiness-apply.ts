@@ -56,6 +56,7 @@ export interface PlanReadinessApplyArgs {
   planPath: string
   outputPath: string | null
   dryRun: boolean
+  approveProposals: boolean
   json: boolean
   limit: number
 }
@@ -76,6 +77,7 @@ export interface AppliedReadinessAction {
   status: number | null
   ok: boolean
   proposalEnvelopeId: string | null
+  approved: boolean
   error: string | null
 }
 
@@ -91,6 +93,7 @@ export interface PlanReadinessApplyReport {
     appliedActions: number
     dispositionActions: number
     proposalActions: number
+    approvedProposals: number
     errors: number
   }
   actions: AppliedReadinessAction[]
@@ -102,6 +105,7 @@ export function parseArgs(argv = process.argv.slice(2)): PlanReadinessApplyArgs 
   let planPath = ""
   let outputPath: string | null = null
   let dryRun = false
+  let approveProposals = false
   let json = false
   let limit = 200
 
@@ -115,6 +119,8 @@ export function parseArgs(argv = process.argv.slice(2)): PlanReadinessApplyArgs 
       outputPath = requireValue(argv[++i], "--output")
     } else if (arg === "--dry-run") {
       dryRun = true
+    } else if (arg === "--approve-proposals") {
+      approveProposals = true
     } else if (arg === "--json") {
       json = true
     } else if (arg === "--limit") {
@@ -126,7 +132,7 @@ export function parseArgs(argv = process.argv.slice(2)): PlanReadinessApplyArgs 
 
   if (!novelId) throw new Error("--novel is required")
   if (!planPath) throw new Error("--plan is required")
-  return { novelId, planPath, outputPath, dryRun, json, limit }
+  return { novelId, planPath, outputPath, dryRun, approveProposals, json, limit }
 }
 
 export function loadActionPlan(path: string): PlanReadinessActionPlan {
@@ -211,12 +217,17 @@ async function run(args: PlanReadinessApplyArgs): Promise<PlanReadinessApplyRepo
       : `/api/novel/${encodeURIComponent(args.novelId)}/plan-readiness/${encodeURIComponent(selection.item.id)}/disposition`
     const response = await invokeReadiness("POST", path, requestBodyForPlanAction(selection.planAction))
     const body = await response.json().catch((err) => ({ ok: false, error: String(err) }))
+    const proposalEnvelopeId = stringValue(body?.proposal?.envelope?.id ?? body?.proposal?.id)
+    const approval = response.ok && body?.ok !== false && args.approveProposals && proposalEnvelopeId
+      ? await approvePlanningProposal(args.novelId, proposalEnvelopeId, selection.planAction.operatorNote)
+      : { approved: false, error: null as string | null }
     actions.push(actionResultForItem(selection.item, selection.planAction, {
       dryRun: false,
       status: response.status,
-      ok: response.ok && body?.ok !== false,
-      proposalEnvelopeId: stringValue(body?.proposal?.envelope?.id ?? body?.proposal?.id),
-      error: response.ok && body?.ok !== false ? null : stringValue(body?.error ?? response.statusText),
+      ok: response.ok && body?.ok !== false && approval.error === null,
+      proposalEnvelopeId,
+      approved: approval.approved,
+      error: response.ok && body?.ok !== false ? approval.error : stringValue(body?.error ?? response.statusText),
     }))
   }
 
@@ -261,6 +272,7 @@ function actionResultForMissing(
     status: null,
     ok: false,
     proposalEnvelopeId: null,
+    approved: false,
     error: selection.error,
   }
 }
@@ -273,6 +285,7 @@ function actionResultForItem(
     status: number | null
     ok: boolean
     proposalEnvelopeId: string | null
+    approved?: boolean
     error: string | null
   },
 ): AppliedReadinessAction {
@@ -282,6 +295,7 @@ function actionResultForItem(
     dimension: item.dimension,
     target: item.target,
     decision: planAction.decision,
+    approved: outcome.approved ?? false,
     ...outcome,
   }
 }
@@ -296,6 +310,7 @@ function summarizeActions(
     appliedActions: actions.filter(action => action.ok && !action.dryRun).length,
     dispositionActions: actions.filter(action => !isProposalDecision(action.decision)).length,
     proposalActions: actions.filter(action => isProposalDecision(action.decision)).length,
+    approvedProposals: actions.filter(action => action.approved).length,
     errors: actions.filter(action => !action.ok).length,
   }
 }
@@ -324,6 +339,7 @@ export function renderReport(report: PlanReadinessApplyReport): string {
   lines.push(`- matched: ${report.summary.matchedActions}`)
   lines.push(`- applied: ${report.summary.appliedActions}`)
   lines.push(`- proposals: ${report.summary.proposalActions}`)
+  lines.push(`- approved proposals: ${report.summary.approvedProposals}`)
   lines.push(`- dispositions: ${report.summary.dispositionActions}`)
   lines.push(`- errors: ${report.summary.errors}`)
   lines.push("")
@@ -333,7 +349,7 @@ export function renderReport(report: PlanReadinessApplyReport): string {
       ? `${action.target.kind}:${action.target.ref}${action.target.fieldPath ? `:${action.target.fieldPath}` : ""}`
       : "(unmatched)"
     const suffix = action.proposalEnvelopeId
-      ? ` proposal=${action.proposalEnvelopeId}`
+      ? ` proposal=${action.proposalEnvelopeId}${action.approved ? " approved=true" : ""}`
       : action.error
         ? ` error=${action.error}`
         : ""
@@ -352,6 +368,41 @@ async function invokeReadiness(method: string, path: string, body?: unknown): Pr
   }
   const response = await handlePlanReadinessRoute(new Request(url, init), url)
   if (!response) throw new Error(`Plan Readiness route did not handle ${method} ${path}`)
+  return response
+}
+
+async function approvePlanningProposal(
+  novelId: string,
+  envelopeId: string,
+  operatorNote: string | undefined,
+): Promise<{ approved: boolean; error: string | null }> {
+  const response = await invokePlanningProposal(
+    "POST",
+    `/api/novel/${encodeURIComponent(novelId)}/planning-proposals/${encodeURIComponent(envelopeId)}/resolve`,
+    {
+      status: "approved",
+      resolvedBy: "script",
+      operatorNote: operatorNote ?? "Approved by plan-readiness-apply --approve-proposals.",
+    },
+  )
+  const body = await response.json().catch((err) => ({ ok: false, error: String(err) }))
+  const approved = response.ok && body?.ok !== false
+  return {
+    approved,
+    error: approved ? null : stringValue(body?.error ?? response.statusText),
+  }
+}
+
+async function invokePlanningProposal(method: string, path: string, body?: unknown): Promise<Response> {
+  const { handlePlanningProposalRoute } = await import("../../src/orchestrator/planning-proposal-routes")
+  const url = new URL(`http://localhost${path}`)
+  const init: RequestInit = { method }
+  if (body !== undefined) {
+    init.body = JSON.stringify(body)
+    init.headers = { "content-type": "application/json" }
+  }
+  const response = await handlePlanningProposalRoute(new Request(url, init), url)
+  if (!response) throw new Error(`Planning Proposal route did not handle ${method} ${path}`)
   return response
 }
 
@@ -388,7 +439,7 @@ async function main(): Promise<number> {
     args = parseArgs()
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err))
-    console.error("usage: bun scripts/analysis/plan-readiness-apply.ts --novel <novelId> --plan <plan.json> [--output <report.md>] [--dry-run] [--json] [--limit <n>]")
+    console.error("usage: bun scripts/analysis/plan-readiness-apply.ts --novel <novelId> --plan <plan.json> [--output <report.md>] [--dry-run] [--approve-proposals] [--json] [--limit <n>]")
     return 2
   }
 

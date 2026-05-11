@@ -17,6 +17,7 @@ describe("plan-readiness-apply", () => {
       "--plan", "review.json",
       "--output", "report.md",
       "--dry-run",
+      "--approve-proposals",
       "--json",
       "--limit", "50",
     ])).toEqual({
@@ -24,6 +25,7 @@ describe("plan-readiness-apply", () => {
       planPath: "review.json",
       outputPath: "report.md",
       dryRun: true,
+      approveProposals: true,
       json: true,
       limit: 50,
     })
@@ -128,6 +130,7 @@ describe("plan-readiness-apply", () => {
         appliedActions: 0,
         dispositionActions: 0,
         proposalActions: 0,
+        approvedProposals: 0,
         errors: 0,
       },
       actions: [],
@@ -137,6 +140,7 @@ describe("plan-readiness-apply", () => {
     expect(rendered).toContain("## Drafting Source")
     expect(rendered).toContain("clean for drafting evidence: no")
     expect(rendered).toContain("drafts=2")
+    expect(rendered).toContain("approved proposals: 0")
   })
 })
 
