@@ -171,6 +171,7 @@ function flattenObligations(scene: SceneBeat): Array<{
   sourceId?: string
   sourceKind?: string
   characterId?: string
+  characterName?: string
   worldFactId?: string
   threadId?: string
   promiseId?: string
@@ -191,6 +192,7 @@ function flattenObligations(scene: SceneBeat): Array<{
         sourceId: typeof item.sourceId === "string" ? item.sourceId : undefined,
         sourceKind: typeof item.sourceKind === "string" ? item.sourceKind : undefined,
         characterId: typeof item.characterId === "string" ? item.characterId : undefined,
+        characterName: typeof item.characterName === "string" ? item.characterName : undefined,
         worldFactId: typeof item.worldFactId === "string" ? item.worldFactId : undefined,
         threadId: typeof item.threadId === "string" ? item.threadId : undefined,
         promiseId: typeof item.promiseId === "string" ? item.promiseId : undefined,
@@ -292,6 +294,9 @@ function renderSceneExcerpt(input: {
   const valueShift = scene.valueIn || scene.valueOut
     ? `${scene.valueIn ?? ""} -> ${scene.valueOut ?? ""}`
     : "(none declared)"
+  const characterTargets = declaredCharacterTargets(input.obligations)
+  const worldFactTargets = declaredWorldFactTargets(input.obligations)
+  const storyTargets = declaredStoryTargets(input.obligations)
   return [
     `CHAPTER ${chapter.chapterNumber}: ${chapter.outline.title ?? ""}`,
     `Chapter purpose: ${chapter.outline.purpose ?? "(none)"}`,
@@ -312,6 +317,14 @@ function renderSceneExcerpt(input: {
     `POV personal stake: ${scene.povPersonalStake ?? "(none declared)"}`,
     `Value shift: ${valueShift}`,
     `MICE/thread: ${(scene as Record<string, unknown>).miceThread ?? "(none declared)"}`,
+    "",
+    "APPLICABILITY TARGETS:",
+    `- characterMateriality targets: ${characterTargets.length > 0 ? characterTargets.join("; ") : "(none declared)"}`,
+    `- worldFactPressure targets: ${worldFactTargets.length > 0 ? worldFactTargets.join("; ") : "(none declared)"}`,
+    `- thread/promise/payoff targets: ${storyTargets.length > 0 ? storyTargets.join("; ") : "(none declared)"}`,
+    "- Judge characterMateriality only against declared characterId/sourceKind=knowledge/state obligations below; do not invent required characters from the scene title, setting, description, or prose.",
+    "- Judge worldFactPressure only against declared fact/worldFactId/sourceKind=fact obligations below; do not invent required world facts from setting or prose.",
+    "- For thread/promise/payoff dimensions, use only the declared threadId, promiseId, and payoffId refs below.",
     "",
     "SCENE OBLIGATIONS:",
     ...formatList(input.obligations.map(o => {
@@ -334,6 +347,31 @@ function renderSceneExcerpt(input: {
       : "CHAPTER PROSE (fallback; no per-scene writer call found, judge against this scene's contract):",
     input.sceneProse,
   ].join("\n")
+}
+
+function declaredCharacterTargets(obligations: ReturnType<typeof flattenObligations>): string[] {
+  return uniq(obligations.flatMap(obligation => {
+    if (!obligation.characterId && obligation.sourceKind !== "knowledge" && obligation.sourceKind !== "state") return []
+    const label = obligation.characterName ?? obligation.characterId ?? obligation.sourceId ?? obligation.text
+    const refs = [obligation.characterId, obligation.sourceId].filter(Boolean).join(", ")
+    return refs ? `${label} (${refs})` : label
+  }).filter(Boolean))
+}
+
+function declaredWorldFactTargets(obligations: ReturnType<typeof flattenObligations>): string[] {
+  return uniq(obligations.flatMap(obligation => {
+    const id = worldFactIdForObligation(obligation)
+    if (!id) return []
+    return obligation.text ? `${id}: ${obligation.text}` : id
+  }))
+}
+
+function declaredStoryTargets(obligations: ReturnType<typeof flattenObligations>): string[] {
+  return uniq(obligations.flatMap(obligation => [
+    obligation.threadId ? `thread:${obligation.threadId}` : "",
+    obligation.promiseId ? `promise:${obligation.promiseId}` : "",
+    obligation.payoffId ? `payoff:${obligation.payoffId}` : "",
+  ].filter(Boolean)))
 }
 
 function proseForScene(input: {

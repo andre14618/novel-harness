@@ -33,6 +33,7 @@ unless the user explicitly requests a disposable branch.
   writes it per arm. Clean P1 covered character, world, story, reader-info,
   scene-contract, obligation, and drafting-brief surfaces; implicit refs now
   classify as `attempted_no_context` when lookups run but render no context.
+  Target-ID scene-semantic replay leaves material/world lows at 0; endpoint 1/10.
 - **Aggressive evidence loops remain authorized (L101, amended by L106).**
   Replace day-based timelines with goal queues and stop conditions. Use
   DeepSeek spend for production-path sweeps, semantic diagnostics, and
