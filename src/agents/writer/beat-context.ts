@@ -242,6 +242,10 @@ export interface WriterReferenceResolutionTrace {
 }
 
 export interface SceneContractBlock {
+  /** Explicit time frame for this scene, e.g. "dawn the next morning". */
+  temporalAnchor?: string
+  /** Explicit place/arena frame for this scene, e.g. "Iron Bridge". */
+  placeAnchor?: string
   goal?: string
   opposition?: string
   turningPoint?: string
@@ -381,7 +385,7 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
   const renderSceneContractFlagOn =
     Boolean(input.sceneCallWriterV1)
     || Boolean(input.forceRenderSceneContractWhenAvailable)
-    || input.writerDraftingBriefMode === "scene-budget-v1"
+    || (input.writerDraftingBriefMode !== undefined && input.writerDraftingBriefMode !== "off")
   const sceneContract = renderSceneContractFlagOn
     ? buildSceneContractBlock(beat)
     : null
@@ -405,6 +409,8 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
 // off-flag byte parity for legacy outlines that ride through with the flag
 // on (no contract block rendered when the planner emitted no scene fields).
 function buildSceneContractBlock(beat: SceneBeat): SceneContractBlock | null {
+  const temporalAnchor = clean(beat.temporalAnchor)
+  const placeAnchor = clean(beat.placeAnchor)
   const goal = clean(beat.goal)
   const opposition = clean(beat.opposition)
   const turningPoint = clean(beat.turningPoint)
@@ -420,12 +426,15 @@ function buildSceneContractBlock(beat: SceneBeat): SceneContractBlock | null {
   const targetWords = typeof beat.targetWords === "number" && beat.targetWords > 0 ? beat.targetWords : undefined
 
   const hasAny = Boolean(
-    goal || opposition || turningPoint || crisisChoice || outcome || consequence
+    temporalAnchor || placeAnchor
+    || goal || opposition || turningPoint || crisisChoice || outcome || consequence
     || povPersonalStake || valueIn || valueOut || choiceAlternatives.length > 0,
   )
   if (!hasAny) return null
 
   const block: SceneContractBlock = { choiceAlternatives }
+  if (temporalAnchor) block.temporalAnchor = temporalAnchor
+  if (placeAnchor) block.placeAnchor = placeAnchor
   if (goal) block.goal = goal
   if (opposition) block.opposition = opposition
   if (turningPoint) block.turningPoint = turningPoint

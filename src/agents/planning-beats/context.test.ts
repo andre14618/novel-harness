@@ -52,6 +52,8 @@ test("planning beat context renders scene plan contract guidance when flag is on
   } as Parameters<typeof buildContext>[0])
 
   expect(context).toContain("Scene plan contract (scenePlanContractV1)")
+  expect(context).toContain("temporalAnchor")
+  expect(context).toContain("placeAnchor")
   expect(context).toContain("choiceAlternatives")
   expect(context).toContain("povPersonalStake")
   expect(context).toContain("crisisChoice")

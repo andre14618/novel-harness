@@ -33,6 +33,8 @@ export type ChapterOutlinePlanningEditField =
 
 export const ALLOWED_BEAT_PLAN_FIELD_PATHS = [
   "description",
+  "temporalAnchor",
+  "placeAnchor",
   "kind",
   "requiredCharacterIds",
   "affectedCharacterIds",

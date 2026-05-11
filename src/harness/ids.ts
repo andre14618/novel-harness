@@ -81,11 +81,14 @@ export function sceneId(chapter: string, sceneIndex: number, description: string
 }
 
 export function isSceneContractEntry(entry: Pick<SceneBeat,
+  "temporalAnchor" | "placeAnchor" |
   "goal" | "opposition" | "turningPoint" | "crisisChoice" | "outcome" | "consequence" |
   "choiceAlternatives" | "beatHints" | "targetWords" | "valueIn" | "valueOut"
 > & { povPersonalStake?: string | null }): boolean {
   return Boolean(
-    cleanString((entry as any).goal)
+    cleanString((entry as any).temporalAnchor)
+    || cleanString((entry as any).placeAnchor)
+    || cleanString((entry as any).goal)
     || cleanString((entry as any).opposition)
     || cleanString((entry as any).turningPoint)
     || cleanString((entry as any).crisisChoice)

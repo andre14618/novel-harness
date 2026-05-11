@@ -303,6 +303,13 @@ describe("planning edit proposals", () => {
     expect(validatePlanningEditValue("kind", "montage")).toMatch(/kind must be one of/)
   })
 
+  test("scene temporal and place anchors are editable scalar plan fields", () => {
+    expect(validatePlanningEditValue("temporalAnchor", "dawn the next morning")).toBeNull()
+    expect(validatePlanningEditValue("placeAnchor", "Iron Bridge")).toBeNull()
+    expect(validatePlanningEditValue("temporalAnchor", "")).toMatch(/temporalAnchor must be a non-empty string/)
+    expect(validatePlanningEditValue("placeAnchor", 12)).toMatch(/placeAnchor must be a non-empty string/)
+  })
+
   test("obligation text must be non-empty", () => {
     expect(validatePlanningEditValue("text", "Establish the forged ledger.")).toBeNull()
     expect(validatePlanningEditValue("text", "")).toMatch(/text must be a non-empty string/)

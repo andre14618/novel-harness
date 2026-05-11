@@ -88,6 +88,8 @@ function countObligations(obligations: BeatContext["beatSpec"]["obligations"]): 
 
 function countSceneContractFields(scene: SceneContractBlock): number {
   let count = 0
+  if (scene.temporalAnchor) count++
+  if (scene.placeAnchor) count++
   if (scene.goal) count++
   if (scene.opposition) count++
   if (scene.turningPoint) count++

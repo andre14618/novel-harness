@@ -87,6 +87,8 @@ test("sceneBeatSchema accepts optional scene-contract fields when provided", () 
   const beat = sceneBeatSchema.parse({
     description: "Calla confronts Orvath in the empty archive.",
     characters: ["Calla", "Orvath"],
+    temporalAnchor: "after closing",
+    placeAnchor: "empty archive",
     goal: "Force Orvath to confess his deal with the empire.",
     opposition: "Orvath knows where the script is hidden and can ruin Davan.",
     turningPoint: "Calla realises she has been the leverage all along.",
@@ -105,6 +107,8 @@ test("sceneBeatSchema accepts optional scene-contract fields when provided", () 
     ],
   })
 
+  expect(beat.temporalAnchor).toBe("after closing")
+  expect(beat.placeAnchor).toBe("empty archive")
   expect(beat.goal).toBe("Force Orvath to confess his deal with the empire.")
   expect(beat.choiceAlternatives).toHaveLength(2)
   expect(beat.targetWords).toBe(720)
@@ -118,6 +122,8 @@ test("sceneBeatSchema legacy outlines round-trip without scene-contract fields",
   })
 
   expect(beat.goal).toBeUndefined()
+  expect(beat.temporalAnchor).toBeUndefined()
+  expect(beat.placeAnchor).toBeUndefined()
   expect(beat.opposition).toBeUndefined()
   expect(beat.choiceAlternatives).toBeUndefined()
   expect(beat.beatHints).toBeUndefined()

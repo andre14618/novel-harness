@@ -150,6 +150,8 @@ function renderSceneContractBrief(scene: SceneContractBlock, mode: WriterDraftin
       ? "SCENE CONTRACT (dramatize this shape on-page):"
       : "SCENE CONTRACT:",
   ]
+  if (scene.temporalAnchor) lines.push(`- Time: ${scene.temporalAnchor}`)
+  if (scene.placeAnchor) lines.push(`- Place: ${scene.placeAnchor}`)
   if (scene.goal) lines.push(`- Goal: ${scene.goal}`)
   if (scene.opposition) lines.push(`- Opposition: ${scene.opposition}`)
   if (scene.turningPoint) lines.push(`- Turning point: ${scene.turningPoint}`)
@@ -357,6 +359,8 @@ function countObligations(obligations: BeatContext["beatSpec"]["obligations"]): 
 
 function countSceneContractFields(scene: SceneContractBlock): number {
   let count = 0
+  if (scene.temporalAnchor) count++
+  if (scene.placeAnchor) count++
   if (scene.goal) count++
   if (scene.opposition) count++
   if (scene.turningPoint) count++

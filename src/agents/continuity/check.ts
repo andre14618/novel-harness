@@ -166,7 +166,7 @@ export function buildFactUserPrompt(draft: string, facts: Fact[], outline?: Chap
     prompt += `Chapter ${outline.chapterNumber}: "${outline.title}"\n`
     prompt += `Setting: ${outline.setting}\n`
     if (outline.scenes.length > 0) {
-      prompt += `Planned beats:\n${outline.scenes.map((s, i) => `  ${i + 1}. ${s.description} [characters: ${s.characters.join(", ")}]`).join("\n")}\n`
+      prompt += `Planned beats:\n${outline.scenes.map(formatPlannedSceneForContinuity).join("\n")}\n`
     }
     prompt += `Interpret relative words in the draft (such as "now") inside this current chapter plan. Prior-chapter location/presence facts are snapshots unless they state a permanent constraint.\n\n`
   }
@@ -186,7 +186,7 @@ export function buildStateUserPrompt(draft: string, charStates: CharacterState[]
     prompt += `Setting: ${outline.setting}\n`
     prompt += `Characters present: ${outline.charactersPresent.join(", ")}\n`
     if (outline.scenes.length > 0) {
-      prompt += `Planned beats:\n${outline.scenes.map((s, i) => `  ${i + 1}. ${s.description} [characters: ${s.characters.join(", ")}]`).join("\n")}\n`
+      prompt += `Planned beats:\n${outline.scenes.map(formatPlannedSceneForContinuity).join("\n")}\n`
     }
     if (outline.characterStateChanges.length > 0) {
       prompt += `Planned end-of-chapter states:\n${outline.characterStateChanges.map(cs =>
@@ -203,6 +203,24 @@ export function buildStateUserPrompt(draft: string, charStates: CharacterState[]
     prompt += `CHARACTER STATES:\n(none)\n`
   }
   return prompt
+}
+
+function formatPlannedSceneForContinuity(
+  scene: ChapterOutline["scenes"][number],
+  index: number,
+): string {
+  const anchors = [
+    cleanPlanAnchor(scene.temporalAnchor) ? `time: ${cleanPlanAnchor(scene.temporalAnchor)}` : "",
+    cleanPlanAnchor(scene.placeAnchor) ? `place: ${cleanPlanAnchor(scene.placeAnchor)}` : "",
+  ].filter(Boolean)
+  const anchorText = anchors.length > 0 ? ` [${anchors.join("; ")}]` : ""
+  return `  ${index + 1}. ${scene.description}${anchorText} [characters: ${scene.characters.join(", ")}]`
+}
+
+function cleanPlanAnchor(value: string | undefined | null): string | undefined {
+  if (typeof value !== "string") return undefined
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : undefined
 }
 
 export function stateViolationToIssue(

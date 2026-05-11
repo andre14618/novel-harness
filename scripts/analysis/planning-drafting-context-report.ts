@@ -545,6 +545,8 @@ function scenePlanningText(scene: unknown): string {
   const record = readRecord(scene)
   const parts = [
     hasText(record.description) ? record.description as string : "",
+    hasText(record.temporalAnchor) ? record.temporalAnchor as string : "",
+    hasText(record.placeAnchor) ? record.placeAnchor as string : "",
     ...obligationItemsForScene(scene).map(item => hasText(item.text) ? item.text as string : ""),
   ].filter(Boolean)
   return parts.join(" ")
@@ -630,6 +632,8 @@ function hasReaderInfoSource(outline: ChapterOutline): boolean {
 function hasSceneContract(scene: unknown): boolean {
   const record = readRecord(scene)
   return [
+    "temporalAnchor",
+    "placeAnchor",
     "goal",
     "opposition",
     "turningPoint",

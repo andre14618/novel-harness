@@ -165,11 +165,11 @@ describe("planning-context-readiness", () => {
       target: {
         kind: "scene_plan",
         ref: "scene-12",
-        fieldPath: "description",
+        fieldPath: "temporalAnchor",
       },
       safeToAutoApply: false,
     })
-    expect(renderPlanningContextReadinessAggregate(aggregate)).toContain("Should this scene description carry the scheduled time/place anchor")
+    expect(renderPlanningContextReadinessAggregate(aggregate)).toContain("Should this scene contract carry the scheduled temporal anchor")
 
     const built = buildPlanReadinessDraftsFromAggregate({
       novelId: "novel-load",
@@ -181,7 +181,7 @@ describe("planning-context-readiness", () => {
     })
     expect(built.skipped).toEqual([])
     expect(built.drafts[1]).toMatchObject({
-      target: { kind: "scene_plan", ref: "scene-12", fieldPath: "description" },
+      target: { kind: "scene_plan", ref: "scene-12", fieldPath: "temporalAnchor" },
       sourceHash: "scene-hash-12",
       diagnosticLabel: "FUTURE-EVENT-ANCHOR-MISSING",
       dimension: "futureEventAnchor",
@@ -189,7 +189,7 @@ describe("planning-context-readiness", () => {
       metadata: {
         proposalCandidate: {
           action: "field_replace",
-          target: { kind: "scene_plan", ref: "scene-12", fieldPath: "description" },
+          target: { kind: "scene_plan", ref: "scene-12", fieldPath: "temporalAnchor" },
           requiresProposedValue: true,
           proposedValueStatus: "operator_required",
           safeToAutoApply: false,

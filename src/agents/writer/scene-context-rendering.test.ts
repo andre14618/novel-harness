@@ -12,11 +12,12 @@
 
 import { describe, expect, it } from "bun:test"
 
-import type { BeatContext, BeatContextResult } from "./beat-context"
+import { buildBeatContextSlots, type BeatContext, type BeatContextResult } from "./beat-context"
 import { renderBeatContext } from "./beat-context-render"
 import { summarizeBeatContextSurface } from "./context-surface"
 import { renderWriterDraftingBrief, selectWriterPromptForDraftingBrief } from "./drafting-brief"
 import { buildExpansionPrompt } from "./retry-context"
+import type { ChapterOutline } from "../../types"
 
 function baseCtx(overrides: Partial<BeatContext> = {}): BeatContext {
   return {
@@ -62,6 +63,8 @@ describe("renderBeatContext + scene contract", () => {
     const out = renderBeatContext(
       baseCtx({
         sceneContract: {
+          temporalAnchor: "after closing",
+          placeAnchor: "empty archive",
           goal: "Force Orvath to confess his deal with the empire.",
           opposition: "Orvath holds Davan's safety as leverage.",
           turningPoint: "Calla realises she is the leverage.",
@@ -81,6 +84,8 @@ describe("renderBeatContext + scene contract", () => {
     )
 
     expect(out).toContain("SCENE CONTRACT")
+    expect(out).toContain("Temporal anchor: after closing")
+    expect(out).toContain("Place anchor: empty archive")
     expect(out).toContain("Goal: Force Orvath to confess his deal with the empire.")
     expect(out).toContain("Crisis choice: Trade the script or burn it.")
     expect(out).toContain("Choice alternatives the protagonist weighs:")
@@ -196,6 +201,8 @@ describe("renderBeatContext + scene contract", () => {
     const out = renderWriterDraftingBrief(
       baseCtx({
         sceneContract: {
+          temporalAnchor: "after closing",
+          placeAnchor: "empty archive",
           goal: "Force Orvath to confess his deal with the empire.",
           opposition: "Orvath holds Davan's safety as leverage.",
           turningPoint: "Calla realises she is the leverage.",
@@ -270,6 +277,8 @@ describe("renderBeatContext + scene contract", () => {
     expect(out).toContain("Scene ID: scene-archive-1")
     expect(out).toContain("Beat ID: beat-archive-1")
     expect(out).toContain("SCENE CONTRACT:")
+    expect(out).toContain("- Time: after closing")
+    expect(out).toContain("- Place: empty archive")
     expect(out).toContain("- Crisis choice: Trade the script or burn it.")
     expect(out).toContain("- Value shift: compliance -> rupture")
     expect(out).toContain("OBLIGATIONS:")
@@ -336,6 +345,59 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.userPrompt).toContain("CHARACTER MATERIALITY:")
     expect(selected.userPrompt).toContain("Use these details to shape concrete behavior")
     expect(selected.draftingBriefTrace.mode).toBe("scene-turn-v1")
+  })
+
+  it("constructs scene-contract anchors for every drafting brief mode", async () => {
+    const outline: ChapterOutline = {
+      chapterNumber: 2,
+      chapterId: "ch-002-unmasking",
+      title: "The Unmasking",
+      povCharacter: "Maret",
+      setting: "Iron Bridge",
+      purpose: "Verification exposes Maret.",
+      targetWords: 1500,
+      charactersPresent: [],
+      charactersPresentIds: [],
+      scenes: [{
+        sceneId: "ch-002-scene-001-bridge",
+        description: "Maret arrives for Verification.",
+        temporalAnchor: "dawn the next morning",
+        placeAnchor: "Iron Bridge",
+        characters: [],
+        kind: "action",
+        requiredPayoffs: [],
+        obligations: {
+          mustEstablish: [],
+          mustPayOff: [],
+          mustTransferKnowledge: [],
+          mustShowStateChange: [],
+          mustNotReveal: [],
+          allowedNewEntities: [],
+        },
+        lifeValueAxes: [],
+        miceActive: [],
+        miceOpens: [],
+        miceCloses: [],
+      }],
+      establishedFacts: [],
+      characterStateChanges: [],
+      knowledgeChanges: [],
+    }
+
+    for (const writerDraftingBriefMode of ["scene-budget-v1", "scene-turn-v1", "scene-turn-anchored-v1"] as const) {
+      const ctx = await buildBeatContextSlots({
+        novelId: "unit-novel",
+        chapterNumber: 2,
+        beatIndex: 0,
+        outline,
+        characters: [],
+        characterStates: [],
+        worldBible: { locations: [] },
+        writerDraftingBriefMode,
+      })
+      expect(ctx.sceneContract?.temporalAnchor).toBe("dawn the next morning")
+      expect(ctx.sceneContract?.placeAnchor).toBe("Iron Bridge")
+    }
   })
 
   it("renders anchored scene-turn brief anchors and records section telemetry", () => {

@@ -24,6 +24,8 @@ describe("planning-drafting-context-report", () => {
           scenes: [{
             sceneId: "ch-001-scene-001-ledger",
             description: "Maren forces Halric to open the ledger because of their last encounter.",
+            temporalAnchor: "after the council vote",
+            placeAnchor: "Chancellor's Chambers",
             characters: ["Maren", "Halric"],
             goal: "Expose the ledger.",
             outcome: "Halric opens the ledger.",
@@ -252,7 +254,8 @@ describe("planning-drafting-context-report", () => {
             {
               ...scenes(1)[0]!,
               sceneId: "ch-002-scene-arrival",
-              description: "At dawn the next morning, Maren arrives for the Verification on the bridge.",
+              description: "Maren arrives for the Verification on the bridge.",
+              temporalAnchor: "dawn the next morning",
             },
             {
               ...scenes(1)[0]!,

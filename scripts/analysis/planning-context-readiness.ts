@@ -78,7 +78,7 @@ interface PlanningContextReadinessGroup {
       target: {
         kind: "chapter_outline" | "scene_plan"
         ref: string
-        fieldPath: "scenes" | "description"
+        fieldPath: "scenes" | "description" | "temporalAnchor"
       }
       requiresProposedValue: true
       proposedValueStatus: "operator_required"
@@ -198,7 +198,7 @@ export function renderPlanningContextReadinessAggregate(report: PlanningContextR
     lines.push("")
     lines.push("Operator question:")
     if (finding.dimension === "futureEventAnchor") {
-      lines.push("- Should this scene description carry the scheduled time/place anchor, or should the prior schedule be revised?")
+      lines.push("- Should this scene contract carry the scheduled temporal anchor, or should the prior schedule be revised?")
     } else {
       lines.push("- Should this chapter be split, scene-count reduced, or scene purposes combined before drafting?")
     }
@@ -339,7 +339,7 @@ function groupForFutureEventAnchor(args: {
         target: {
           kind: "scene_plan",
           ref: args.finding.targetSceneRef,
-          fieldPath: "description",
+          fieldPath: "temporalAnchor",
         },
         requiresProposedValue: true,
         proposedValueStatus: "operator_required",

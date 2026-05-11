@@ -17,6 +17,7 @@ import {
   type PlanningMutationLineage,
 } from "../db/planning-mutation-lineage"
 import {
+  ALLOWED_BEAT_PLAN_FIELD_PATHS,
   ALLOWED_STORY_SPINE_FIELD_PATHS,
   ALLOWED_WORLD_BIBLE_FIELD_PATHS,
 } from "../canon/planning-edit-proposal"
@@ -444,7 +445,7 @@ export function buildPlanningTargetMap(artifacts: PlanningArtifacts): PlanningTa
         kind: "scene_plan",
         ref: sceneRef,
         label: `Chapter ${outline.chapterNumber}, scene ${beatIndex + 1}`,
-        fieldPaths: objectFieldPaths(beat).filter((path) => path !== "sceneId" && path !== "beatId"),
+        fieldPaths: scenePlanFieldPaths(beat),
         currentVersion: stableHash(beat),
         inSnapshot: true,
         location: {
@@ -651,6 +652,14 @@ function targetKey(target: Pick<PlanningTarget, "kind" | "ref">): string {
 function objectFieldPaths(value: unknown): string[] {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return []
   return Object.keys(value as Record<string, unknown>).sort()
+}
+
+function scenePlanFieldPaths(scene: unknown): string[] {
+  const fields = new Set([
+    ...objectFieldPaths(scene).filter((path) => path !== "sceneId" && path !== "beatId"),
+    ...ALLOWED_BEAT_PLAN_FIELD_PATHS,
+  ])
+  return [...fields].sort()
 }
 
 function clone<T>(value: T): T {

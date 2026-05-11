@@ -67,6 +67,8 @@ const FIXTURE = {
       kind: "dialogue",
       sceneId: "ch-001-confront-the-archive-scene-001-confront-orvath",
       // Slice 0 scene-contract additions.
+      temporalAnchor: "after closing",
+      placeAnchor: "empty archive",
       goal: "Force Orvath to confess.",
       opposition: "Orvath holds Davan's safety as leverage.",
       turningPoint: "Calla realises she has been the leverage all along.",
@@ -131,6 +133,8 @@ test("ID-propagation baseline: scene-contract outline parses with every ID class
   const scene = parsed.scenes[0]
 
   expect(scene.sceneId).toBe("ch-001-confront-the-archive-scene-001-confront-orvath")
+  expect(scene.temporalAnchor).toBe("after closing")
+  expect(scene.placeAnchor).toBe("empty archive")
   expect(scene.beatId).toBeUndefined()
   expect(scene.beatHints?.[0]?.beatId).toBe("ch-001-confront-the-archive-beat-001-threaten-davan")
 

@@ -42,6 +42,8 @@ test("fact prompt includes current plan and frames relative timing/place context
       scenes: [{
         kind: "dialogue",
         description: "At dawn the next morning, Maret arrives at the Iron Bridge for Verification.",
+        temporalAnchor: "dawn the next morning",
+        placeAnchor: "Iron Bridge",
         characters: ["Maret", "Arbiter Cassel"],
         requiredPayoffs: [],
         obligations: { mustEstablish: [], mustPayOff: [], mustTransferKnowledge: [], mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [] },
@@ -55,6 +57,8 @@ test("fact prompt includes current plan and frames relative timing/place context
 
   expect(prompt).toContain("CURRENT CHAPTER PLAN")
   expect(prompt).toContain("At dawn the next morning")
+  expect(prompt).toContain("time: dawn the next morning")
+  expect(prompt).toContain("place: Iron Bridge")
   expect(prompt).toContain("Interpret relative words")
   expect(prompt).toContain("Prior-chapter location/presence facts are snapshots")
 })

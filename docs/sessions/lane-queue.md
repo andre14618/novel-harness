@@ -28,7 +28,7 @@ unless the user explicitly requests a disposable branch.
   worldFactPressure lows at 1/9, and still collapsed the dawn Verification onto
   the bridge. Future-event readiness edit improved to 12/45 lows, WFACT 0/9,
   and 1.39x; plan-aware continuity fact replay cleared timing/place issues.
-  No default flip; next formalize temporal/place scene-contract semantics. See L106.
+  First-class anchor cohort worsened to 20/45 lows, WFACT 2/9, and 1.48x despite one observed scene contract; no default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
@@ -121,7 +121,7 @@ unless the user explicitly requests a disposable branch.
 ## Next
 
 - Next session start: stop prompt-only anchoring for this LitRPG failure mode.
-  Future-event readiness plus plan-aware continuity now catch this issue; next formalize temporal/place scene-contract semantics. See L103-L106.
+  Future-event readiness plus plan-aware continuity catch this issue; next inspect why first-class anchors surfaced yet worsened before adding broader scene tags. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.

@@ -81,6 +81,13 @@ describe("buildPlanningTargetMap", () => {
         { kind: "world_fact", ref: "fact-ledger-forgery" },
       ]),
     )
+    expect(beat?.fieldPaths).toEqual(expect.arrayContaining([
+      "description",
+      "temporalAnchor",
+      "placeAnchor",
+      "requiredCharacterIds",
+      "affectedCharacterIds",
+    ]))
     const characterTarget = map.targets.find((target) =>
       target.kind === "character" &&
       target.ref === "char-istra"

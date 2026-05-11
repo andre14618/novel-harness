@@ -131,9 +131,11 @@ function renderBeatSpec(spec: BeatSpec): string {
 // purely additive — it never replaces or contradicts the beat spec; it
 // adds the dramatic shape the writer must satisfy (goal, opposition,
 // turning point, crisis choice + alternatives, outcome, consequence,
-// POV personal stake, value polarity).
+// POV personal stake, value polarity, timing/place anchors).
 function renderSceneContract(scene: SceneContractBlock): string {
   const lines: string[] = ["SCENE CONTRACT (write the dramatic shape; do not just narrate the beat description):"]
+  if (scene.temporalAnchor) lines.push(`Temporal anchor: ${scene.temporalAnchor}`)
+  if (scene.placeAnchor) lines.push(`Place anchor: ${scene.placeAnchor}`)
   if (scene.goal) lines.push(`Goal: ${scene.goal}`)
   if (scene.opposition) lines.push(`Opposition: ${scene.opposition}`)
   if (scene.turningPoint) lines.push(`Turning point: ${scene.turningPoint}`)

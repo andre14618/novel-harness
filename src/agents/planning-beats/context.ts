@@ -146,6 +146,8 @@ function renderScenePlanContractGuidance(enabled: boolean): string {
 
 Scene plan contract (scenePlanContractV1):
 Each entry in "scenes" is a scene contract — a complete dramatic unit, not a micro-beat. For every entry, ALSO emit these optional scene-contract fields:
+- "temporalAnchor": the explicit time frame the writer and checkers must preserve (e.g. "dawn the next morning"). Use this when timing matters; do not rely only on description prose.
+- "placeAnchor": the explicit location/arena frame the writer and checkers must preserve (e.g. "Iron Bridge"). Use this when place matters; do not rely only on description prose.
 - "goal": the protagonist's concrete scene-level goal in this entry.
 - "opposition": who or what opposes the goal in this entry.
 - "turningPoint": the moment the entry's dominant value flips or the protagonist commits.
@@ -178,6 +180,8 @@ Worked example of a complete scene-contract entry (do not copy literal content; 
   "description": "Calla confronts Orvath in the empty archive.",
   "characters": ["Calla", "Orvath"],
   "kind": "dialogue",
+  "temporalAnchor": "after closing",
+  "placeAnchor": "empty archive",
   "goal": "Force Orvath to confess his deal with the empire.",
   "opposition": "Orvath holds Davan's safety as leverage and will use it.",
   "turningPoint": "Calla realises she has been the leverage all along.",

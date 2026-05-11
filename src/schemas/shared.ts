@@ -255,6 +255,8 @@ export const sceneBeatSchema = z.object({
   // `outline.scenes[]` carries scene semantics under the v1 flag and uses
   // sceneId as its durable scene identity. `SceneBeat` remains the TypeScript
   // alias for compatibility with the older schema/module names.
+  temporalAnchor: z.coerce.string().optional(),
+  placeAnchor: z.coerce.string().optional(),
   goal: z.coerce.string().optional(),
   opposition: z.coerce.string().optional(),
   turningPoint: z.coerce.string().optional(),
