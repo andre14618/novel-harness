@@ -26,6 +26,7 @@ export type ContextContractSurface =
   | "canonFacts"
   | "setting"
   | "storySpine"
+  | "storyRefLineage"
   | "readerInfoState"
   | "resolvedReferences"
   | "sceneContract"
@@ -321,6 +322,12 @@ export function buildPlanningToDraftingContextReport(args: {
       eventCount,
       note: "Downstream story coverage is represented by obligations and active thread/promise/payoff refs, not a full Story Spine dump.",
     }),
+    auditStoryRefLineageSurface({
+      storySpineAvailable: upstream.storySpineAvailable,
+      upstreamStoryRefCount: upstream.activeStoryRefIds,
+      downstreamStoryRefCount: downstream.storyRefIds,
+      eventCount,
+    }),
     auditSurface({
       surface: "readerInfoState",
       upstreamAvailable: upstream.readerInfoSourceChapters > 0,
@@ -495,6 +502,27 @@ function auditResolvedReferencesSurface(args: {
     }
   }
   return auditSurface(args)
+}
+
+function auditStoryRefLineageSurface(args: {
+  storySpineAvailable: boolean
+  upstreamStoryRefCount: number
+  downstreamStoryRefCount: number
+  eventCount: number
+}): PlanningToDraftingContextAuditRow {
+  const note = args.upstreamStoryRefCount > 0
+    ? "Explicit thread/promise/payoff refs emitted by the plan should reach writer telemetry as story-ref lineage."
+    : args.storySpineAvailable
+      ? "Story Spine exists, but the plan emitted no explicit thread/promise/payoff refs; broad story context is audited separately."
+      : "No upstream Story Spine or explicit thread/promise/payoff refs were available for lineage."
+  return auditSurface({
+    surface: "storyRefLineage",
+    upstreamAvailable: args.upstreamStoryRefCount > 0,
+    upstreamCount: args.upstreamStoryRefCount,
+    downstreamCount: args.downstreamStoryRefCount,
+    eventCount: args.eventCount,
+    note,
+  })
 }
 
 function auditSurface(args: {

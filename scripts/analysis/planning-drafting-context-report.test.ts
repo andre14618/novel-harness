@@ -198,6 +198,7 @@ describe("planning-drafting-context-report", () => {
       canonFacts: "covered",
       setting: "covered",
       storySpine: "covered",
+      storyRefLineage: "covered",
       readerInfoState: "covered",
       resolvedReferences: "covered",
       sceneContract: "covered",
@@ -209,6 +210,7 @@ describe("planning-drafting-context-report", () => {
     expect(renderPlanningToDraftingContextReport(report)).toContain("canonFacts=1, canonKnowledge=0, canonStates=0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("canon=1 (sourceRefs=1, factAnchors=0)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("story=1 (storyRefs=1)")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("storyRefLineage: covered; upstream=1; downstream=1")
     expect(renderPlanningToDraftingContextReport(report)).toContain("readerInfo=1 (readerChars=24)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Scene load: maxScenesPerChapter=1")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Plan continuity: futureEventAnchors=0")
@@ -474,6 +476,7 @@ describe("planning-drafting-context-report", () => {
       worldBible: "not_observed",
       setting: "not_observed",
       storySpine: "not_observed",
+      storyRefLineage: "not_available",
       canonFacts: "not_available",
       resolvedReferences: "not_available",
       obligations: "not_available",
@@ -481,6 +484,57 @@ describe("planning-drafting-context-report", () => {
     })
     expect(report.gaps.map(row => row.surface)).toContain("characterProfiles")
     expect(report.gaps.map(row => row.surface)).toContain("storySpine")
+    expect(report.gaps.map(row => row.surface)).not.toContain("storyRefLineage")
+  })
+
+  test("separates broad story context from explicit story-ref lineage", () => {
+    const upstream = summarizePlanningArtifacts({
+      worldBibleAvailable: true,
+      storySpineAvailable: true,
+      characters: [{ id: "char-maren", name: "Maren" }],
+      outlines: [outline(1, {
+        scenes: [{
+          ...scenes(1)[0]!,
+          obligations: {
+            mustEstablish: [{
+              obligationId: "obl-thread",
+              threadId: "thread-court",
+              text: "Carry the court pressure forward.",
+            }],
+            mustPayOff: [],
+            mustTransferKnowledge: [],
+            mustShowStateChange: [],
+            mustNotReveal: [],
+            allowedNewEntities: [],
+          },
+        }],
+      })],
+    })
+    const writerContext = buildWriterContextTelemetryReport([
+      row(1, {
+        path: "beat",
+        stage: "initial",
+        writerContextMode: "thread-character-context-v1",
+        contextSurface: {
+          surfaces: {
+            storySpine: false,
+          },
+          counts: {
+            obligations: 1,
+          },
+        },
+        draftingBrief: null,
+      }),
+    ], "novel-story-lineage")
+
+    const report = buildPlanningToDraftingContextReport({ novelId: "novel-story-lineage", upstream, writerContext })
+
+    expect(statuses(report.surfaces)).toMatchObject({
+      storySpine: "covered",
+      storyRefLineage: "missing_downstream",
+    })
+    expect(report.gaps.map(row => row.surface)).toContain("storyRefLineage")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("storyRefLineage: missing_downstream; upstream=1; downstream=0")
   })
 
   test("marks represented telemetry without upstream artifacts as a contract mismatch", () => {
