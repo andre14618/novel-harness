@@ -84,9 +84,9 @@ Use deeper docs only when linked by the context pack or needed by code.
   scene-satisfaction diagnostic wiring. Do not flip defaults without a new
   production decision and evidence gate.
 - L106 production writer-brief integration exists behind default-off
-  `writerDraftingBriefMode="scene-budget-v1"`: it renders a compact
-  writer-facing brief from production `BeatContext` slots and records prompt
-  payload telemetry on `writer-context` trace events; use
+  `writerDraftingBriefMode` values `scene-budget-v1` and `scene-turn-v1`: they
+  render compact writer-facing briefs from production `BeatContext` slots and
+  record prompt payload telemetry on `writer-context` trace events; use
   `diagnostics:writer-context` to audit context-surface coverage after runs.
   Fixed-plan drafting evidence can add `--scene-semantic-review` to capture
   endpointLanding, sceneDramaturgy, characterMateriality, and

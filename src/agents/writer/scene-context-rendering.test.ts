@@ -308,6 +308,35 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.draftingBriefTrace.sections.sceneContract).toBe(true)
     expect(selected.draftingBriefTrace.counts.choiceAlternatives).toBe(2)
   })
+
+  it("renders the scene-turn drafting brief floor without changing the budget mode", () => {
+    const ctx = baseCtx({
+      sceneContract: {
+        goal: "Force Orvath to confess.",
+        turningPoint: "Calla realizes the ledger is bait.",
+        choiceAlternatives: [],
+        outcome: "Orvath lies again.",
+        consequence: "Calla must choose whether to expose him publicly.",
+        targetWords: 500,
+      },
+      characterSnapshots: [{ name: "Calla", exampleLines: [], voice: "Precise.", drives: "Protect the ledger." }],
+    })
+    const full = renderBeatContext(ctx, { compact: false })
+    const selected = selectWriterPromptForDraftingBrief({
+      ctx,
+      mode: "scene-turn-v1",
+      fullContextPrompt: full,
+      targetWords: 500,
+      idRendering: "raw",
+    })
+
+    expect(selected.userPrompt).toContain("SCENE EXECUTION FLOOR:")
+    expect(selected.userPrompt).toContain("Write a complete scene turn")
+    expect(selected.userPrompt).toContain("SCENE CONTRACT (dramatize this shape on-page):")
+    expect(selected.userPrompt).toContain("CHARACTER MATERIALITY:")
+    expect(selected.userPrompt).toContain("Use these details to shape concrete behavior")
+    expect(selected.draftingBriefTrace.mode).toBe("scene-turn-v1")
+  })
 })
 
 describe("buildExpansionPrompt", () => {

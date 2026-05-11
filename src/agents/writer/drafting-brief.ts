@@ -2,7 +2,7 @@ import type { BeatContext, CharacterSnapshot, SceneContractBlock, SettingBlock }
 import { renderCharacterContextCapsules } from "./character-context"
 import type { WriterPromptIdRendering } from "./context-mode"
 
-export type WriterDraftingBriefMode = "off" | "scene-budget-v1"
+export type WriterDraftingBriefMode = "off" | "scene-budget-v1" | "scene-turn-v1"
 
 export interface WriterDraftingBriefTrace {
   mode: WriterDraftingBriefMode
@@ -43,9 +43,11 @@ export function selectWriterPromptForDraftingBrief(input: SelectWriterPromptInpu
   draftingBriefTrace: WriterDraftingBriefTrace
 } {
   const userPrompt = input.mode === "scene-budget-v1"
+    || input.mode === "scene-turn-v1"
     ? renderWriterDraftingBrief(input.ctx, {
         targetWords: input.targetWords,
         idRendering: input.idRendering,
+        mode: input.mode,
       })
     : input.fullContextPrompt
 
@@ -63,13 +65,15 @@ export function selectWriterPromptForDraftingBrief(input: SelectWriterPromptInpu
 
 export function renderWriterDraftingBrief(
   ctx: BeatContext,
-  opts: { targetWords: number; idRendering?: WriterPromptIdRendering },
+  opts: { targetWords: number; idRendering?: WriterPromptIdRendering; mode?: WriterDraftingBriefMode },
 ): string {
   const sections: string[] = [
     renderBriefHeader(ctx, opts),
   ]
 
-  if (ctx.sceneContract) sections.push(renderSceneContractBrief(ctx.sceneContract))
+  if (opts.mode === "scene-turn-v1") sections.push(renderSceneExecutionFloor())
+
+  if (ctx.sceneContract) sections.push(renderSceneContractBrief(ctx.sceneContract, opts.mode))
 
   const obligations = renderObligationsBrief(ctx.beatSpec.obligations, opts.idRendering)
   if (obligations) sections.push(`OBLIGATIONS:\n${obligations}`)
@@ -78,7 +82,7 @@ export function renderWriterDraftingBrief(
   if (continuityAnchors) sections.push(continuityAnchors)
 
   if (ctx.characterSnapshots.length > 0) {
-    sections.push(`CHARACTER PROFILES/SNAPSHOTS:\n${renderCharacterSnapshotsBrief(ctx.characterSnapshots)}`)
+    sections.push(renderCharacterSectionBrief(ctx.characterSnapshots, opts.mode))
   }
 
   if (ctx.characterContextCapsules) {
@@ -118,8 +122,21 @@ function renderBriefHeader(
   return lines.join("\n")
 }
 
-function renderSceneContractBrief(scene: SceneContractBlock): string {
-  const lines = ["SCENE CONTRACT:"]
+function renderSceneExecutionFloor(): string {
+  return [
+    "SCENE EXECUTION FLOOR:",
+    "- Write a complete scene turn, not a summary of required events.",
+    "- Put the pressure, choice/turn, outcome, and consequence on the page.",
+    "- Make present characters materially specific through action, dialogue, interiority, or changed behavior.",
+  ].join("\n")
+}
+
+function renderSceneContractBrief(scene: SceneContractBlock, mode: WriterDraftingBriefMode | undefined): string {
+  const lines = [
+    mode === "scene-turn-v1"
+      ? "SCENE CONTRACT (dramatize this shape on-page):"
+      : "SCENE CONTRACT:",
+  ]
   if (scene.goal) lines.push(`- Goal: ${scene.goal}`)
   if (scene.opposition) lines.push(`- Opposition: ${scene.opposition}`)
   if (scene.turningPoint) lines.push(`- Turning point: ${scene.turningPoint}`)
@@ -192,6 +209,16 @@ function renderContinuityAnchors(ctx: BeatContext): string | null {
   if (ctx.transitionBridge) lines.push(`Continue from: ${ctx.transitionBridge}`)
   if (ctx.landingTarget) lines.push(`Land toward next scene: ${ctx.landingTarget}`)
   return lines.length > 0 ? `CONTINUITY ANCHORS:\n${lines.join("\n")}` : null
+}
+
+function renderCharacterSectionBrief(
+  snapshots: CharacterSnapshot[],
+  mode: WriterDraftingBriefMode | undefined,
+): string {
+  const header = mode === "scene-turn-v1"
+    ? "CHARACTER MATERIALITY:\nUse these details to shape concrete behavior under this scene's pressure."
+    : "CHARACTER PROFILES/SNAPSHOTS:"
+  return `${header}\n${renderCharacterSnapshotsBrief(snapshots)}`
 }
 
 function renderCharacterSnapshotsBrief(snapshots: CharacterSnapshot[]): string {

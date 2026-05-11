@@ -23,8 +23,8 @@ unless the user explicitly requests a disposable branch.
   edits reduced a clone to 6/8 scenes and removed overloaded readiness; cohort
   `litrpg-scene-select-cohort-1778472482` found `drafting-brief-v1` length
   controlled at 3473/2700 = 1.29x with prose lows 0/8 and gaps 0, but scene
-  lows regressed to 23/45 versus baseline 11/45. No default flip; next:
-  compact-brief materiality and scene-turn preservation. See L106.
+  lows regressed to 23/45 versus baseline 11/45. No default flip; next compare
+  default-off `drafting-brief-scene-turn-v1`. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`

@@ -77,8 +77,8 @@ export const pipeline = {
 
   // L106 production-path integration: compact writer-facing drafting brief
   // rendered from the production BeatContext slots. Default off preserves the
-  // full existing writer prompt. Override per novel to "scene-budget-v1" to
-  // test the production brief path with telemetry.
+  // full existing writer prompt. Override per novel to "scene-budget-v1" or
+  // "scene-turn-v1" to test production brief paths with telemetry.
   writerDraftingBriefMode: "off" as WriterDraftingBriefMode,
 
   // Diagnostic/A-B planning shape lever. Default null leaves planner behavior
