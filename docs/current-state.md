@@ -92,7 +92,7 @@ Use deeper docs only when linked by the context pack or needed by code.
   worldFactPressure replay artifacts per arm; `--scene-semantic-persist` stores
   eval rows and imports readiness lows unless disabled. Replay prefers captured
   per-scene writer calls before falling back to whole-chapter prose. Use
-  `diagnostics:planning-drafting-context` to audit context/canon/story-ref/reader-state surfaces and
+  `diagnostics:planning-drafting-context` to audit context/canon/story-spine/story-ref/reader-state and unresolved reference-attempt surfaces and
   `diagnostics:drafting-run-compare`/`diagnostics:drafting-run-cohort` to compare
   clean-source reports with semantic trace IDs/context deltas; `test-drafting-isolated` writes sidecars.
 - Production drafting defaults to exact-ID character context capsules

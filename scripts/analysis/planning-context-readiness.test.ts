@@ -411,6 +411,82 @@ describe("planning-context-readiness", () => {
       },
     })
   })
+
+  test("turns unresolved reference attempts into manual scene description readiness", () => {
+    const contextReport = report()
+    contextReport.referenceContextAttempts = [{
+      eventIds: [101, 102],
+      eventCount: 2,
+      chapter: 2,
+      beatIndex: 4,
+      stages: ["initial", "integrity-rewrite"],
+      sceneRef: "scene-25",
+      descriptionExcerpt: "Maren returns to Halric, her decision made.",
+      referenceLookups: 6,
+      referenceLlmCalls: 2,
+      canonSourceRefs: 3,
+      storyRefIds: 2,
+      readerInfoStateChars: 552,
+      missingCharacterIds: 1,
+    }]
+
+    const aggregate = buildPlanningContextReadinessAggregate({
+      report: contextReport,
+      sourceReport: "context.json",
+      generatedAt: "2026-05-11T00:00:00.000Z",
+    })
+
+    expect(aggregate.groups).toHaveLength(2)
+    const group = aggregate.groups[1]!
+    expect(group).toMatchObject({
+      unitType: "scene",
+      sceneId: "scene-25",
+      highestSeverity: "low",
+      dimensions: ["referenceContext"],
+      fixIntents: ["resolve_reference_context"],
+      sourceIds: {
+        sceneTurnIds: ["scene-25"],
+      },
+    })
+    expect(group.findings[0]).toMatchObject({
+      label: "REFERENCE-CONTEXT-UNRESOLVED",
+      dimension: "referenceContext",
+      fixIntent: "resolve_reference_context",
+      evidence: {
+        eventIds: "101,102",
+        referenceLookups: "6",
+        sceneRef: "scene-25",
+      },
+    })
+    expect(group.rewritePacket.proposalCandidate).toMatchObject({
+      action: "field_replace",
+      target: {
+        kind: "scene_plan",
+        ref: "scene-25",
+        fieldPath: "description",
+      },
+      safeToAutoApply: false,
+    })
+    expect(renderPlanningContextReadinessAggregate(aggregate)).toContain("Should this scene description name the referenced prior context directly")
+
+    const built = buildPlanReadinessDraftsFromAggregate({
+      novelId: "novel-load",
+      aggregate,
+      targetVersions: {
+        "chapter_outline:ch-001": "outline-hash-1",
+        "scene_plan:scene-25": "scene-hash-25",
+      },
+    })
+    expect(built.skipped).toEqual([])
+    expect(built.drafts[1]).toMatchObject({
+      target: { kind: "scene_plan", ref: "scene-25", fieldPath: "description" },
+      sourceHash: "scene-hash-25",
+      diagnosticLabel: "REFERENCE-CONTEXT-UNRESOLVED",
+      dimension: "referenceContext",
+      fixIntent: "resolve_reference_context",
+      severity: "low",
+    })
+  })
 })
 
 function report(overrides: Partial<PlanningToDraftingContextReport["upstream"]> = {}): PlanningToDraftingContextReport {
@@ -483,6 +559,7 @@ function report(overrides: Partial<PlanningToDraftingContextReport["upstream"]> 
       },
       scenesWithObligations: 12,
       scenesWithImplicitReferences: 0,
+      implicitReferenceScenes: [],
       chaptersWithSetting: 3,
       chaptersWithCharactersPresentIds: 3,
       readerInfoSourceChapters: 2,
@@ -521,9 +598,11 @@ function report(overrides: Partial<PlanningToDraftingContextReport["upstream"]> 
       withCanonFactContext: 0,
       withFactContinuityAnchors: 0,
       canonSourceRefs: 0,
+      missingCharacterIds: 0,
       withDraftingBriefTrace: 0,
     },
     surfaces: [],
     gaps: [],
+    referenceContextAttempts: [],
   }
 }

@@ -16,6 +16,7 @@ import {
   type FutureEventAnchorFinding,
   type PlanFactContradictionFinding,
   type PlanningToDraftingContextReport,
+  type ReferenceContextAttemptSummary,
   type SceneLoadSignal,
 } from "./planning-drafting-context-report"
 
@@ -26,11 +27,13 @@ type PlanningContextDimension =
   | "futureEventAnchor"
   | "sceneContract"
   | "factContinuity"
+  | "referenceContext"
 type PlanningContextFixIntent =
   | "rebalance_scene_load"
   | "preserve_future_event_anchor"
   | "complete_scene_contract"
   | "preserve_immutable_fact"
+  | "resolve_reference_context"
 
 export interface PlanningContextReadinessArgs {
   novelId: string | null
@@ -54,6 +57,7 @@ interface PlanningContextReadinessFinding {
     | "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE"
     | "SCENE-CONTRACT-FULL-SHAPE-INCOMPLETE"
     | "PLAN-FACT-STATUS-CONTRADICTION"
+    | "REFERENCE-CONTEXT-UNRESOLVED"
   severity: Severity
   fixIntent: PlanningContextFixIntent
   rationale: string
@@ -190,7 +194,14 @@ export function buildPlanningContextReadinessAggregate(input: {
       sourceReport: input.sourceReport ?? `planning-drafting-context:${input.report.novelId ?? "unknown"}`,
       groupIndex: sceneLoadGroups.length + futureEventGroups.length + factContradictionGroups.length + index,
     }))
-  const groups = [...sceneLoadGroups, ...futureEventGroups, ...factContradictionGroups, ...sceneContractGroups]
+  const referenceContextGroups = (input.report.referenceContextAttempts ?? [])
+    .map((attempt, index) => groupForReferenceContextAttempt({
+      report: input.report,
+      attempt,
+      sourceReport: input.sourceReport ?? `planning-drafting-context:${input.report.novelId ?? "unknown"}`,
+      groupIndex: sceneLoadGroups.length + futureEventGroups.length + factContradictionGroups.length + sceneContractGroups.length + index,
+    }))
+  const groups = [...sceneLoadGroups, ...futureEventGroups, ...factContradictionGroups, ...sceneContractGroups, ...referenceContextGroups]
 
   return {
     generatedAt: input.generatedAt ?? new Date().toISOString(),
@@ -226,6 +237,8 @@ export function renderPlanningContextReadinessAggregate(report: PlanningContextR
       lines.push(`Evidence: ${finding.evidence.sourceRef} -> ${finding.evidence.targetSceneRef}`)
     } else if (finding.dimension === "sceneContract") {
       lines.push(`Evidence: ${finding.evidence.sceneRef}; missing=${finding.evidence.missingFields}`)
+    } else if (finding.dimension === "referenceContext") {
+      lines.push(`Evidence: ${finding.evidence.sceneRef}; events=${finding.evidence.eventIds}; lookups=${finding.evidence.referenceLookups}`)
     } else {
       lines.push(`Scene load: ${finding.evidence.sceneCount} scenes, ${finding.evidence.targetWordsPerScene} target words/scene`)
     }
@@ -237,6 +250,8 @@ export function renderPlanningContextReadinessAggregate(report: PlanningContextR
       lines.push("- Should this scene plan preserve the established fact, or should the prior fact be explicitly revised?")
     } else if (finding.dimension === "sceneContract") {
       lines.push("- Should this scene plan be replaced with a complete dramatic contract before drafting?")
+    } else if (finding.dimension === "referenceContext") {
+      lines.push("- Should this scene description name the referenced prior context directly, add an explicit source ref, or remove the implicit reference?")
     } else {
       lines.push("- Should this chapter be split, scene-count reduced, or scene purposes combined before drafting?")
     }
@@ -555,6 +570,81 @@ function sourceIdsFromSceneContractGap(gap: DramaticSceneContractGap): PlanningC
     promiseIds: gap.promiseIds,
     payoffIds: gap.payoffIds,
     sourceIds: gap.sourceIds,
+  }
+}
+
+function groupForReferenceContextAttempt(args: {
+  report: PlanningToDraftingContextReport
+  attempt: ReferenceContextAttemptSummary
+  sourceReport: string
+  groupIndex: number
+}): PlanningContextReadinessGroup {
+  const sceneRef = args.attempt.sceneRef ?? `chapter:${args.attempt.chapter ?? "unknown"}:beat:${args.attempt.beatIndex ?? "unknown"}`
+  const chapterId = args.attempt.chapter === null ? "unknown" : `chapter:${args.attempt.chapter}`
+  const sourceIds = emptySourceIds()
+  sourceIds.sceneTurnIds = [sceneRef]
+  const eventIds = args.attempt.eventIds.map(String)
+  const readinessFinding: PlanningContextReadinessFinding = {
+    findingId: `${String(args.groupIndex + 1).padStart(3, "0")}.1`,
+    sourceReport: args.sourceReport,
+    promptMode: "deterministic-planning-context",
+    dimension: "referenceContext",
+    label: "REFERENCE-CONTEXT-UNRESOLVED",
+    severity: "low",
+    fixIntent: "resolve_reference_context",
+    rationale: `Scene ${sceneRef} triggered implicit-reference resolution, but no resolved reference context reached the writer prompt.`,
+    missingForNextLevel: "Make the referenced prior event/entity/fact explicit in the scene description or source refs, or revise the scene so it does not depend on an unresolved implicit reference.",
+    evidence: {
+      eventIds: eventIds.join(","),
+      eventCount: String(args.attempt.eventCount),
+      stages: args.attempt.stages.join(","),
+      sceneRef,
+      chapter: args.attempt.chapter === null ? "n/a" : String(args.attempt.chapter),
+      beatIndex: args.attempt.beatIndex === null ? "n/a" : String(args.attempt.beatIndex),
+      referenceLookups: String(args.attempt.referenceLookups),
+      referenceLlmCalls: String(args.attempt.referenceLlmCalls),
+      canonSourceRefs: String(args.attempt.canonSourceRefs),
+      storyRefIds: String(args.attempt.storyRefIds),
+      readerInfoStateChars: String(args.attempt.readerInfoStateChars),
+      missingCharacterIds: String(args.attempt.missingCharacterIds),
+      descriptionExcerpt: args.attempt.descriptionExcerpt ?? "",
+    },
+  }
+  return {
+    groupId: `${String(args.groupIndex + 1).padStart(3, "0")}`,
+    fixtureId: args.report.novelId ?? "unknown",
+    armId: "planning-context-readiness",
+    methodPackEnabled: false,
+    unitType: "scene",
+    chapterId,
+    sceneId: sceneRef,
+    sourceIds,
+    highestSeverity: readinessFinding.severity,
+    fixIntents: ["resolve_reference_context"],
+    dimensions: ["referenceContext"],
+    findings: [readinessFinding],
+    rewritePacket: {
+      targetSummary: `scene ${sceneRef}`,
+      rewriteGoals: [
+        readinessFinding.missingForNextLevel,
+        "Prefer clarifying the upstream scene plan or source refs over relying on resolver guesses inside the writer prompt.",
+        "Do not add a dedicated tag unless the referenced context is actually needed for endpoint, character materiality, or world pressure.",
+      ],
+      preserveIds: sourceIds,
+      proposalCandidate: {
+        action: "field_replace",
+        target: {
+          kind: "scene_plan",
+          ref: sceneRef,
+          fieldPath: "description",
+        },
+        requiresProposedValue: true,
+        proposedValueStatus: "operator_required",
+        safeToAutoApply: false,
+        sourceAgent: "planning-context-readiness",
+      },
+    },
+    excerpt: args.attempt.descriptionExcerpt ?? `Unresolved reference context for ${sceneRef}`,
   }
 }
 
