@@ -114,18 +114,17 @@ The active lane is in `docs/sessions/lane-queue.md`.
 
 As of 2026-05-11, L106 has absorbed validated POC evidence into production
 writer-brief telemetry, scene-semantic replay, Plan Readiness import/apply,
-source hygiene, and planning-edit replay. P1 cohort `p1-arm-cohort-1778464932`
-made `drafting-brief-v1` the strongest current arm: 3731/3000 = 1.24x,
-prose-semantic 0/8 lows, context gaps 0, scene-semantic lows 1/33 with
-character/world lows 0. LitRPG replication first held promotion; after reviewed
-`scene_select` edits reduced source chapters from 10/13 scenes to 6/8 scenes,
-`litrpg-scene-select-cohort-1778472482` controlled length at 3473/2700 = 1.29x
-but regressed scene lows to 23/45 versus baseline 11/45. Scene-turn comparison
-`litrpg-scene-turn-cohort-1778474291` improved lows to 16/45 at 3777/2700 =
-1.40x, but worldFactPressure regressed. Prompt-only anchoring worsened to 18/45
-lows at 1.45x; upstream future-event readiness edit `litrpg-temporal-anchor-cohort-1778475936` improved to 12/45 lows, WFACT 0/9,
-and 3749/2700 = 1.39x; plan-aware continuity fact replay cleared timing/place
-issues. First-class anchor cohort `litrpg-scene-anchor-cohort-1778475936` worsened to 20/45 lows, WFACT 2/9, and 1.48x despite one anchor-only contract; dramatic-contract scene-turn clone improved to 4/45 lows at 1.46x. Compact brief passed twice after duplicate-integrity repair: 3/45 lows at 1.49x, then 2/45 at 1.53x; length/materiality remain hold signals. Do not flip defaults. See L103-L106.
+source hygiene, planning-edit replay, and scene-contract completeness telemetry.
+P1 made `drafting-brief-v1` strongest at 1.24x with prose lows 0/8 and scene
+lows 1/33, but LitRPG replication held promotion. Reviewed `scene_select`,
+future-event, anchor, dramatic-contract, duplicate-integrity, and compact-brief
+runs left compact brief best on the edited LitRPG source at 2/45 lows and 1.53x,
+with length/materiality still blocking. Planner-generated P1 contracts controlled
+length better (`drafting-brief-v1` 1.22x, scene-turn 1.29x) and eliminated
+characterMateriality lows, but endpointLanding lows remained high and checker
+continuity found upstream Corso/Kael/debt-status contradictions. Treat broad
+dramatic fields as insufficient; next harden endpoint-executed contracts plus
+immutable fact/entity constraints. Do not flip defaults. See L103-L106.
 
 ## Authoring Gates
 

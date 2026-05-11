@@ -12,27 +12,22 @@ unless the user explicitly requests a disposable branch.
   format when the same question can be tested through the production path. New
   scene-first novella POC runs require an explicit disposable-POC flag.
 - **Production writer-brief evidence (2026-05-11).** P1 made
-  `drafting-brief-v1` strongest: 3731/3000 = 1.24x, prose lows 0/8, context
-  gaps 0, scene lows 1/33 with character/world lows 0. Higher-scene-count LitRPG
-  cohort
-  `litrpg-brief-cohort-1778467196` is a hold signal: baseline exhausted ch1 at
-  5182/1200 with semantic lows 11/34; `drafting-brief-v1` reached ch2 but
-  exhausted at 3910/2700 with semantic lows 30/68. Reviewed `scene_select`
-  edits reduced a clone to 6/8 scenes and removed overloaded readiness; cohort
-  `litrpg-scene-select-cohort-1778472482` found `drafting-brief-v1` length
-  controlled at 3473/2700 = 1.29x with prose lows 0/8 and gaps 0, but scene
-  lows regressed to 23/45 versus baseline 11/45. New default-off
-  `drafting-brief-scene-turn-v1` improved direct-comparison lows to 16/45 at
-  3777/2700 = 1.40x but regressed worldFactPressure. Follow-up default-off
-  `drafting-brief-anchored-v1` worsened to 18/45 lows at 1.45x, tied
-  worldFactPressure lows at 1/9, and still collapsed the dawn Verification onto
-  the bridge. Future-event readiness edit improved to 12/45 lows, WFACT 0/9,
-  and 1.39x; plan-aware continuity fact replay cleared timing/place issues.
-  First-class anchor cohort worsened to 20/45 lows, WFACT 2/9, and 1.48x despite one observed anchor-only contract; dramatic-contract scene-turn clone improved to 4/45 lows at 1.46x. Compact brief failed once at 3/45 lows and 1.38x, then passed twice after duplicate-integrity repair: 3/45 at 1.49x and 2/45 at 1.53x, with remaining lows all characterMateriality. Scene-turn replication was 4/45 at 1.46x with endpoint lows. No default flip. See L106.
+  `drafting-brief-v1` strongest at 1.24x with prose lows 0/8 and scene lows
+  1/33, but LitRPG replication held promotion. Source-edit, future-event,
+  anchor, dramatic-contract, duplicate-integrity, and compact-brief runs left
+  compact brief best on the edited LitRPG source at 2/45 lows and 1.53x, with
+  length/materiality still blocking. Planner-generated P1 contracts had
+  `dramatic=11/11` but `choice/full=7/11`; drafting controlled length
+  (`drafting-brief-v1` 1.22x, scene-turn 1.29x) and removed
+  characterMateriality lows, but endpointLanding regressed to 5/11 and 4/11 lows;
+  continuity checks exposed upstream Corso/Kael/debt-status contradictions. No
+  default flip. See L106.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
-  writes it per arm. `diagnostics:planning-context-readiness` converts
+  writes it per arm. Scene-contract telemetry now separates broad `dramatic`
+  presence from `choice`, `endpoint`, and `full` completeness.
+  `diagnostics:planning-context-readiness` converts
   overloaded scene-load and future-event-anchor pressure into manual Plan Readiness items using `scene_select`/`field_replace` scaffolds; clean
   LitRPG source `novel-1777777292668` has two high `sceneLoad` items, and the
   edited clone proved proposal/apply approval with lineage. Keep context gaps
@@ -120,8 +115,11 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: treat dramatic scene contracts as a semantic win but not a default win.
-  Next isolate planner-generated contract method plus compact-brief length/materiality repair before promotion. See L103-L106.
+- Next session start: treat broad `dramatic` coverage as insufficient. Harden
+  planner-generated contracts so `choice/full` completeness reaches source
+  scenes, endpointLanding ends in concrete action/consequence, and immutable
+  entity/fact status survives planning into drafting; then rerun clean
+  production cohorts before any prompt-arm/default decision. See L103-L106.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
