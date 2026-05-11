@@ -39,6 +39,10 @@ export interface DraftingRunCohortPair {
   contextGapDelta: number | null
   readinessFindingDelta: number | null
   canonSourceRefsDelta: number | null
+  storyRefIdsDelta: number | null
+  readerInfoStateDelta: number | null
+  readerInfoStateCharsDelta: number | null
+  missingCharacterIdsDelta: number | null
 }
 
 export interface DraftingRunCohortDimensionSummary {
@@ -195,13 +199,15 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
   lines.push("")
   lines.push("## Comparisons")
   lines.push("")
-  lines.push("| Source | Baseline | Candidate | Clean | Signal | Words | Scene Lows | Canon Refs |")
-  lines.push("| --- | --- | --- | --- | --- | ---: | ---: | ---: |")
+  lines.push("| Source | Baseline | Candidate | Clean | Signal | Words | Scene Lows | Canon Refs | Story Refs | Reader | Reader Chars | Missing Chars |")
+  lines.push("| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
   for (const pair of report.pairs) {
     lines.push(
       `| ${pair.source} | ${pair.baselineArm} | ${pair.candidateArm} | ${pair.cleanSource ? "yes" : "no"} | ` +
         `${pair.signal} | ${formatSigned(pair.totalWordsDelta)} | ${formatDelta(pair.sceneLowDelta)} | ` +
-        `${formatDelta(pair.canonSourceRefsDelta)} |`,
+        `${formatDelta(pair.canonSourceRefsDelta)} | ${formatDelta(pair.storyRefIdsDelta)} | ` +
+        `${formatDelta(pair.readerInfoStateDelta)} | ${formatDelta(pair.readerInfoStateCharsDelta)} | ` +
+        `${formatDelta(pair.missingCharacterIdsDelta)} |`,
     )
   }
   lines.push("")
@@ -236,6 +242,10 @@ function pairRowsForReport(ref: DraftingRunCohortReportRef): DraftingRunCohortPa
     contextGapDelta: comparison.planningContext.gapDelta,
     readinessFindingDelta: comparison.planningContext.readinessFindingDelta,
     canonSourceRefsDelta: comparison.planningContext.canonSourceRefsDelta ?? null,
+    storyRefIdsDelta: comparison.planningContext.storyRefIdsDelta ?? null,
+    readerInfoStateDelta: comparison.planningContext.readerInfoStateDelta ?? null,
+    readerInfoStateCharsDelta: comparison.planningContext.readerInfoStateCharsDelta ?? null,
+    missingCharacterIdsDelta: comparison.planningContext.missingCharacterIdsDelta ?? null,
   }))
 }
 

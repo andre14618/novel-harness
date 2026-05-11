@@ -29,6 +29,11 @@ describe("drafting-run-cohort", () => {
     expect(report.aggregate.contextDeltas.canonSourceRefs).toBe(2)
     expect(report.aggregate.contextDeltas.storyRefIds).toBe(2)
     expect(report.aggregate.contextDeltas.readerInfoStateChars).toBe(50)
+    expect(report.pairs[0]).toMatchObject({
+      canonSourceRefsDelta: 2,
+      storyRefIdsDelta: 3,
+      readerInfoStateCharsDelta: 80,
+    })
     expect(report.dimensions.find(row => row.dimension === "endpointLanding")).toMatchObject({
       comparisons: 2,
       lowDeltaSum: 3,
@@ -41,7 +46,8 @@ describe("drafting-run-cohort", () => {
     expect(rendered).toContain("storyRefs=+2")
     expect(rendered).toContain("readerChars=+50")
     expect(rendered).toContain("| endpointLanding | 2 |")
-    expect(rendered).toContain("| corso | drafting-brief-v1 | drafting-brief-tight-v1 | yes | regressed | +224 | +4 | 0 |")
+    expect(rendered).toContain("| Source | Baseline | Candidate | Clean | Signal | Words | Scene Lows | Canon Refs | Story Refs | Reader | Reader Chars | Missing Chars |")
+    expect(rendered).toContain("| corso | drafting-brief-v1 | drafting-brief-tight-v1 | yes | regressed | +224 | +4 | 0 | -1 | 0 | -30 | 0 |")
   })
 
   test("loads comparison JSON artifacts", () => {
