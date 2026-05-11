@@ -124,9 +124,9 @@ but regressed scene lows to 23/45 versus baseline 11/45. Scene-turn comparison
 `litrpg-scene-turn-cohort-1778474291` improved lows to 16/45 at 3777/2700 =
 1.40x, but worldFactPressure regressed. Prompt-only anchoring worsened to 18/45
 lows at 1.45x; upstream future-event readiness edit `litrpg-temporal-anchor-cohort-1778475936` improved to 12/45 lows, WFACT 0/9,
-and 3749/2700 = 1.39x, while continuity still printed likely false-positive
-timing/location blockers. Do not flip defaults; next formalize temporal/place
-semantics in scene contracts and checker interpretation. See L103-L106.
+and 3749/2700 = 1.39x; plan-aware continuity fact replay cleared timing/place
+issues. Do not flip defaults; next formalize temporal/place scene-contract
+semantics. See L103-L106.
 
 ## Authoring Gates
 
