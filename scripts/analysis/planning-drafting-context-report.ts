@@ -53,6 +53,9 @@ export interface PlanningArtifactSummary {
   scenesWithTemporalAnchor: number
   scenesWithPlaceAnchor: number
   sceneContractsWithDramaticShape: number
+  sceneContractsWithChoiceShape: number
+  sceneContractsWithEndpointShape: number
+  sceneContractsWithFullDramaticShape: number
   anchorOnlySceneContracts: number
   sceneContractShape: SceneContractShapeSummary
   scenesWithObligations: number
@@ -183,6 +186,9 @@ export function summarizePlanningArtifacts(args: {
     scenesWithTemporalAnchor: scenes.filter(scene => hasText(readRecord(scene).temporalAnchor)).length,
     scenesWithPlaceAnchor: scenes.filter(scene => hasText(readRecord(scene).placeAnchor)).length,
     sceneContractsWithDramaticShape: sceneContractShapes.filter(shape => shape.hasDramaticShape).length,
+    sceneContractsWithChoiceShape: sceneContractShapes.filter(shape => shape.hasChoiceShape).length,
+    sceneContractsWithEndpointShape: sceneContractShapes.filter(shape => shape.hasEndpointShape).length,
+    sceneContractsWithFullDramaticShape: sceneContractShapes.filter(shape => shape.hasFullDramaticShape).length,
     anchorOnlySceneContracts: sceneContractShapes.filter(shape => shape.isAnchorOnly).length,
     sceneContractShape,
     scenesWithObligations: scenes.filter(scene => obligationItemsForScene(scene).length > 0).length,
@@ -331,7 +337,9 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
   lines.push(
       `Plan shape: sceneIds=${report.upstream.scenesWithSceneIds}/${report.upstream.plannedSceneCount}, ` +
       `sceneContracts=${report.upstream.scenesWithSceneContract} ` +
-      `(dramatic=${report.upstream.sceneContractsWithDramaticShape}, anchorOnly=${report.upstream.anchorOnlySceneContracts}, ` +
+      `(dramatic=${report.upstream.sceneContractsWithDramaticShape}, choice=${report.upstream.sceneContractsWithChoiceShape}, ` +
+      `endpoint=${report.upstream.sceneContractsWithEndpointShape}, full=${report.upstream.sceneContractsWithFullDramaticShape}, ` +
+      `anchorOnly=${report.upstream.anchorOnlySceneContracts}, ` +
       `temporal=${report.upstream.scenesWithTemporalAnchor}, place=${report.upstream.scenesWithPlaceAnchor}), ` +
       `obligations=${report.upstream.scenesWithObligations}, ` +
       `obligationIds=${report.upstream.obligationIds}, sourceRefs=${report.upstream.obligationSourceRefs}, ` +

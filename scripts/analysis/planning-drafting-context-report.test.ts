@@ -70,6 +70,9 @@ describe("planning-drafting-context-report", () => {
       scenesWithTemporalAnchor: 1,
       scenesWithPlaceAnchor: 1,
       sceneContractsWithDramaticShape: 1,
+      sceneContractsWithChoiceShape: 0,
+      sceneContractsWithEndpointShape: 1,
+      sceneContractsWithFullDramaticShape: 0,
       anchorOnlySceneContracts: 0,
       sceneContractShape: {
         missingDramaticShape: [{
@@ -166,7 +169,7 @@ describe("planning-drafting-context-report", () => {
     expect(renderPlanningToDraftingContextReport(report)).toContain("Gaps: 0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Scene load: maxScenesPerChapter=1")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Plan continuity: futureEventAnchors=0")
-    expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=1, anchorOnly=0, temporal=1, place=1)")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=1, choice=0, endpoint=1, full=0, anchorOnly=0, temporal=1, place=1)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=1, anchorOnly=0, anchors=1)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, anchorOnly=0")
   })
@@ -191,6 +194,9 @@ describe("planning-drafting-context-report", () => {
       scenesWithTemporalAnchor: 1,
       scenesWithPlaceAnchor: 1,
       sceneContractsWithDramaticShape: 0,
+      sceneContractsWithChoiceShape: 0,
+      sceneContractsWithEndpointShape: 0,
+      sceneContractsWithFullDramaticShape: 0,
       anchorOnlySceneContracts: 1,
       sceneContractShape: {
         missingDramaticShape: [{
@@ -236,7 +242,7 @@ describe("planning-drafting-context-report", () => {
     ], "novel-anchor-only")
     const report = buildPlanningToDraftingContextReport({ novelId: "novel-anchor-only", upstream, writerContext })
 
-    expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=0, anchorOnly=1, temporal=1, place=1)")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=0, choice=0, endpoint=0, full=0, anchorOnly=1, temporal=1, place=1)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=0, anchorOnly=1, anchors=1)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, anchorOnly=1")
     expect(renderPlanningToDraftingContextReport(report)).toContain("ANCHOR-ONLY-SCENE-CONTRACT: scene-1")

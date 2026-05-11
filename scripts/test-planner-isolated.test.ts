@@ -125,6 +125,9 @@ describe("renderPlannerIsolatedReport", () => {
           scenesWithTemporalAnchor: 1,
           scenesWithPlaceAnchor: 1,
           sceneContractsWithDramaticShape: 2,
+          sceneContractsWithChoiceShape: 2,
+          sceneContractsWithEndpointShape: 2,
+          sceneContractsWithFullDramaticShape: 2,
           anchorOnlySceneContracts: 0,
           sceneContractShape: { missingDramaticShape: [], anchorOnly: [] },
           scenesWithObligations: 2,
@@ -142,7 +145,7 @@ describe("renderPlannerIsolatedReport", () => {
     const rendered = renderPlannerIsolatedReport(report)
 
     expect(rendered).toContain("scenePlanContract: on")
-    expect(rendered).toContain("planShape: sceneIds=2/2; sceneContracts=2; dramatic=2")
+    expect(rendered).toContain("planShape: sceneIds=2/2; sceneContracts=2; dramatic=2; choice=2; endpoint=2; full=2")
     expect(rendered).toContain("sceneLoad: ch1=2sc/600wps/balanced")
     expect(rendered).toContain("planning-beats: 1 calls")
   })

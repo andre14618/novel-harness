@@ -353,7 +353,9 @@ async function main() {
       const p = r.planningArtifacts
       console.log(
         `  plan shape: scenes=${p.plannedSceneCount}, sceneContracts=${p.scenesWithSceneContract}, ` +
-          `dramatic=${p.sceneContractsWithDramaticShape}, anchorOnly=${p.anchorOnlySceneContracts}, ` +
+          `dramatic=${p.sceneContractsWithDramaticShape}, choice=${p.sceneContractsWithChoiceShape}, ` +
+          `endpoint=${p.sceneContractsWithEndpointShape}, full=${p.sceneContractsWithFullDramaticShape}, ` +
+          `anchorOnly=${p.anchorOnlySceneContracts}, ` +
           `obligations=${p.scenesWithObligations}, sceneLoad=${p.sceneLoad.chapters.map(ch => `ch${ch.chapterNumber}:${ch.signal}`).join(",")}`,
       )
       console.log(
@@ -478,6 +480,8 @@ export function renderPlannerIsolatedReport(report: PlannerIsolatedRunReport): s
       lines.push(
         `planShape: sceneIds=${p.scenesWithSceneIds}/${p.plannedSceneCount}; ` +
           `sceneContracts=${p.scenesWithSceneContract}; dramatic=${p.sceneContractsWithDramaticShape}; ` +
+          `choice=${p.sceneContractsWithChoiceShape}; endpoint=${p.sceneContractsWithEndpointShape}; ` +
+          `full=${p.sceneContractsWithFullDramaticShape}; ` +
           `anchorOnly=${p.anchorOnlySceneContracts}; temporal=${p.scenesWithTemporalAnchor}; place=${p.scenesWithPlaceAnchor}; ` +
           `obligations=${p.scenesWithObligations}`,
       )

@@ -253,6 +253,9 @@ function report(overrides: Partial<PlanningToDraftingContextReport["upstream"]> 
       scenesWithTemporalAnchor: 0,
       scenesWithPlaceAnchor: 0,
       sceneContractsWithDramaticShape: 0,
+      sceneContractsWithChoiceShape: 0,
+      sceneContractsWithEndpointShape: 0,
+      sceneContractsWithFullDramaticShape: 0,
       anchorOnlySceneContracts: 0,
       sceneContractShape: {
         missingDramaticShape: [],

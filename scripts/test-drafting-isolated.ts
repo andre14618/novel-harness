@@ -308,6 +308,9 @@ export interface PlanningContextTelemetrySummary {
     scenesWithTemporalAnchor: number
     scenesWithPlaceAnchor: number
     sceneContractsWithDramaticShape: number
+    sceneContractsWithChoiceShape: number
+    sceneContractsWithEndpointShape: number
+    sceneContractsWithFullDramaticShape: number
     anchorOnlySceneContracts: number
     scenesWithObligations: number
     scenesWithImplicitReferences: number
@@ -755,6 +758,9 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
         scenesWithTemporalAnchor: 0,
         scenesWithPlaceAnchor: 0,
         sceneContractsWithDramaticShape: 0,
+        sceneContractsWithChoiceShape: 0,
+        sceneContractsWithEndpointShape: 0,
+        sceneContractsWithFullDramaticShape: 0,
         anchorOnlySceneContracts: 0,
         scenesWithObligations: 0,
         scenesWithImplicitReferences: 0,
@@ -837,6 +843,9 @@ async function maybeRunPlanningContextAudit(
         scenesWithTemporalAnchor: 0,
         scenesWithPlaceAnchor: 0,
         sceneContractsWithDramaticShape: 0,
+        sceneContractsWithChoiceShape: 0,
+        sceneContractsWithEndpointShape: 0,
+        sceneContractsWithFullDramaticShape: 0,
         anchorOnlySceneContracts: 0,
         scenesWithObligations: 0,
         scenesWithImplicitReferences: 0,
@@ -906,6 +915,9 @@ function planningContextSummary(
       scenesWithTemporalAnchor: report.upstream.scenesWithTemporalAnchor,
       scenesWithPlaceAnchor: report.upstream.scenesWithPlaceAnchor,
       sceneContractsWithDramaticShape: report.upstream.sceneContractsWithDramaticShape,
+      sceneContractsWithChoiceShape: report.upstream.sceneContractsWithChoiceShape,
+      sceneContractsWithEndpointShape: report.upstream.sceneContractsWithEndpointShape,
+      sceneContractsWithFullDramaticShape: report.upstream.sceneContractsWithFullDramaticShape,
       anchorOnlySceneContracts: report.upstream.anchorOnlySceneContracts,
       scenesWithObligations: report.upstream.scenesWithObligations,
       scenesWithImplicitReferences: report.upstream.scenesWithImplicitReferences,
