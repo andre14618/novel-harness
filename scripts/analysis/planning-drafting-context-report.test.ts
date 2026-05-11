@@ -53,6 +53,12 @@ describe("planning-drafting-context-report", () => {
       characterCount: 2,
       chapterPlanCount: 2,
       plannedSceneCount: 2,
+      sceneLoad: {
+        maxScenesPerChapter: 1,
+        minTargetWordsPerScene: 1500,
+        denseChapterCount: 0,
+        overloadedChapterCount: 0,
+      },
       scenesWithCharacters: 2,
       scenesWithSceneIds: 2,
       scenesWithSceneContract: 1,
@@ -132,6 +138,37 @@ describe("planning-drafting-context-report", () => {
     })
     expect(report.gaps).toHaveLength(0)
     expect(renderPlanningToDraftingContextReport(report)).toContain("Gaps: 0")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("Scene load: maxScenesPerChapter=1")
+  })
+
+  test("summarizes dense and overloaded scene load before drafting", () => {
+    const upstream = summarizePlanningArtifacts({
+      worldBibleAvailable: true,
+      storySpineAvailable: true,
+      characters: [{ id: "char-maren", name: "Maren" }],
+      outlines: [
+        outline(1, { targetWords: 1200, scenes: scenes(10) }),
+        outline(2, { targetWords: 1500, scenes: scenes(13) }),
+        outline(3, { targetWords: 1500, scenes: scenes(6) }),
+      ],
+    })
+
+    expect(upstream.sceneLoad.maxScenesPerChapter).toBe(13)
+    expect(upstream.sceneLoad.minTargetWordsPerScene).toBeCloseTo(115.38, 2)
+    expect(upstream.sceneLoad.overloadedChapterCount).toBe(2)
+    expect(upstream.sceneLoad.denseChapterCount).toBe(0)
+    expect(upstream.sceneLoad.chapters.map(chapter => chapter.signal)).toEqual([
+      "overloaded",
+      "overloaded",
+      "balanced",
+    ])
+    const report = buildPlanningToDraftingContextReport({
+      novelId: "novel-load",
+      upstream,
+      writerContext: buildWriterContextTelemetryReport([], "novel-load"),
+    })
+    expect(renderPlanningToDraftingContextReport(report)).toContain("overloadedChapters=2")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("ch2=13sc/115.4wps/overloaded")
   })
 
   test("marks available upstream surfaces as not observed when no writer telemetry exists", () => {
@@ -298,4 +335,26 @@ function outline(chapterNumber: number, overrides: Partial<ChapterOutline> = {})
     knowledgeChanges: [],
     ...overrides,
   } as ChapterOutline
+}
+
+function scenes(count: number): NonNullable<ChapterOutline["scenes"]> {
+  return Array.from({ length: count }, (_, index) => ({
+    sceneId: `scene-${index + 1}`,
+    description: `Scene ${index + 1}.`,
+    characters: ["Maren"],
+    kind: "dialogue",
+    requiredPayoffs: [],
+    obligations: {
+      mustEstablish: [],
+      mustPayOff: [],
+      mustTransferKnowledge: [],
+      mustShowStateChange: [],
+      mustNotReveal: [],
+      allowedNewEntities: [],
+    },
+    lifeValueAxes: [],
+    miceActive: [],
+    miceOpens: [],
+    miceCloses: [],
+  }))
 }

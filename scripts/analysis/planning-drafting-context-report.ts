@@ -43,6 +43,7 @@ export interface PlanningArtifactSummary {
   characterCount: number
   chapterPlanCount: number
   plannedSceneCount: number
+  sceneLoad: SceneLoadSummary
   scenesWithCharacters: number
   scenesWithSceneIds: number
   scenesWithSceneContract: number
@@ -54,6 +55,24 @@ export interface PlanningArtifactSummary {
   obligationIds: number
   obligationSourceRefs: number
   activeStoryRefIds: number
+}
+
+export type SceneLoadSignal = "balanced" | "dense" | "overloaded" | "unknown"
+
+export interface ChapterSceneLoad {
+  chapterNumber: number
+  sceneCount: number
+  targetWords: number | null
+  targetWordsPerScene: number | null
+  signal: SceneLoadSignal
+}
+
+export interface SceneLoadSummary {
+  chapters: ChapterSceneLoad[]
+  maxScenesPerChapter: number
+  minTargetWordsPerScene: number | null
+  denseChapterCount: number
+  overloadedChapterCount: number
 }
 
 export interface PlanningToDraftingContextAuditRow {
@@ -94,6 +113,7 @@ export function summarizePlanningArtifacts(args: {
 
   const scenes = outlines.flatMap(outline => outline.scenes ?? [])
   const obligationItems = scenes.flatMap(scene => obligationItemsForScene(scene))
+  const sceneLoad = summarizeSceneLoad(outlines)
 
   return {
     worldBibleAvailable: args.worldBibleAvailable,
@@ -101,6 +121,7 @@ export function summarizePlanningArtifacts(args: {
     characterCount: args.characters.length,
     chapterPlanCount: outlines.length,
     plannedSceneCount: scenes.length,
+    sceneLoad,
     scenesWithCharacters: scenes.filter(scene => stringArray((scene as Record<string, unknown>).characters).length > 0).length,
     scenesWithSceneIds: scenes.filter(scene => hasText((scene as Record<string, unknown>).sceneId)).length,
     scenesWithSceneContract: scenes.filter(hasSceneContract).length,
@@ -255,6 +276,19 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
       `readerInfoSourceChapters=${report.upstream.readerInfoSourceChapters}`,
   )
   lines.push(
+    `Scene load: maxScenesPerChapter=${report.upstream.sceneLoad.maxScenesPerChapter}, ` +
+      `minTargetWordsPerScene=${formatNullableNumber(report.upstream.sceneLoad.minTargetWordsPerScene)}, ` +
+      `denseChapters=${report.upstream.sceneLoad.denseChapterCount}, ` +
+      `overloadedChapters=${report.upstream.sceneLoad.overloadedChapterCount}`,
+  )
+  if (report.upstream.sceneLoad.chapters.length > 0) {
+    lines.push(
+      `Scene load by chapter: ${report.upstream.sceneLoad.chapters.map(chapter =>
+        `ch${chapter.chapterNumber}=${chapter.sceneCount}sc/${formatNullableNumber(chapter.targetWordsPerScene)}wps/${chapter.signal}`
+      ).join(", ")}`,
+    )
+  }
+  lines.push(
     `Downstream writer-context events: ${report.downstream.events}; ` +
       `character=${report.downstream.withCharacterContext}, world=${report.downstream.withWorldContext}, ` +
       `story=${report.downstream.withStoryContext}, readerInfo=${report.downstream.withReaderInfoState}, ` +
@@ -325,6 +359,46 @@ function auditSurface(args: {
     status,
     note: args.note,
   }
+}
+
+function summarizeSceneLoad(outlines: readonly ChapterOutline[]): SceneLoadSummary {
+  const chapters = outlines.map(outline => {
+    const sceneCount = (outline.scenes ?? []).length
+    const targetWords = positiveNumber(outline.targetWords) ? outline.targetWords : null
+    const targetWordsPerScene = targetWords !== null && sceneCount > 0
+      ? targetWords / sceneCount
+      : null
+    return {
+      chapterNumber: outline.chapterNumber,
+      sceneCount,
+      targetWords,
+      targetWordsPerScene,
+      signal: sceneLoadSignal(sceneCount, targetWordsPerScene),
+    }
+  })
+  const targetWordsPerSceneValues = chapters
+    .map(chapter => chapter.targetWordsPerScene)
+    .filter((value): value is number => value !== null)
+  return {
+    chapters,
+    maxScenesPerChapter: chapters.reduce((max, chapter) => Math.max(max, chapter.sceneCount), 0),
+    minTargetWordsPerScene: targetWordsPerSceneValues.length > 0
+      ? Math.min(...targetWordsPerSceneValues)
+      : null,
+    denseChapterCount: chapters.filter(chapter => chapter.signal === "dense").length,
+    overloadedChapterCount: chapters.filter(chapter => chapter.signal === "overloaded").length,
+  }
+}
+
+function sceneLoadSignal(sceneCount: number, targetWordsPerScene: number | null): SceneLoadSignal {
+  if (sceneCount === 0 || targetWordsPerScene === null) return "unknown"
+  if (sceneCount >= 8 && targetWordsPerScene < 180) return "overloaded"
+  if (sceneCount >= 8 || targetWordsPerScene < 250) return "dense"
+  return "balanced"
+}
+
+function formatNullableNumber(value: number | null): string {
+  return value === null ? "n/a" : Number.isInteger(value) ? String(value) : value.toFixed(1)
 }
 
 function hasReaderInfoSource(outline: ChapterOutline): boolean {
