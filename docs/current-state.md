@@ -122,9 +122,9 @@ lows 3/45. Writer-brief obligation-character carry-through fixed materiality;
 endpoint repair cleared all selected LitRPG scene lows at 4640/2700 = 1.72x.
 The default-off tight brief plus two source `planning_edit` endpoint repairs
 reached 3398/2700 = 1.27x with scene lows 0/45; Corso replication regressed
-to 5002/3800 with scene lows 4/34. Fresh P1 N=3 tight cohort stayed mixed:
-mean +27.0 words, scene lows -2, endpoint lows flat, and alignment 2 load-change gains / 1 expanded-no-gain row.
-Separate repaired-source gate cell: regular stopped at ch1 Plan-Assist; tight completed 4407/3800 with 3 lows. No default flip; broad operational-facts stays out after 6050/3800. Continuity fact prompts carry
+to 5002/3800 with scene lows 4/34. Fresh P1 N=4 tight cohort stayed mixed:
+mean -31.3 words, scene lows -6, endpoint lows -2, and alignment 3 quality-gain-with-load-change / 1 expanded-no-gain row.
+Separate repaired-source gate cell leaves 5 clean sources but 4 evidence-comparable rows. No default flip; broad operational-facts stays out after 6050/3800. Continuity fact prompts carry
 `factId`, disambiguate seal roles, and filter explicit support echoes. Do not
 flip defaults. See L103-L106.
 
