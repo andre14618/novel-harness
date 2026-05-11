@@ -87,6 +87,8 @@ describe("test-drafting-isolated parseArgs", () => {
     const defaults = parseArgs(["--source", "n", "--target-prefix", "ab"])
     expect(defaults.sceneSemanticReview).toBe(false)
     expect(defaults.sceneSemanticLive).toBe(true)
+    expect(defaults.sceneSemanticPersist).toBe(false)
+    expect(defaults.sceneSemanticReadinessImport).toBe(true)
     expect(defaults.sceneSemanticMaxTokens).toBe(2200)
     expect(defaults.sceneSemanticDimensions).toEqual([
       "endpointLanding",
@@ -98,10 +100,25 @@ describe("test-drafting-isolated parseArgs", () => {
     const live = parseArgs(["--source", "n", "--target-prefix", "ab", "--scene-semantic-review"])
     expect(live.sceneSemanticReview).toBe(true)
     expect(live.sceneSemanticLive).toBe(true)
+    expect(live.sceneSemanticPersist).toBe(false)
 
     const dry = parseArgs(["--source", "n", "--target-prefix", "ab", "--scene-semantic-dry-run"])
     expect(dry.sceneSemanticReview).toBe(true)
     expect(dry.sceneSemanticLive).toBe(false)
+
+    const persisted = parseArgs(["--source", "n", "--target-prefix", "ab", "--scene-semantic-persist"])
+    expect(persisted.sceneSemanticReview).toBe(true)
+    expect(persisted.sceneSemanticPersist).toBe(true)
+    expect(persisted.sceneSemanticReadinessImport).toBe(true)
+
+    const artifactOnly = parseArgs([
+      "--source", "n",
+      "--target-prefix", "ab",
+      "--scene-semantic-persist",
+      "--no-scene-semantic-readiness-import",
+    ])
+    expect(artifactOnly.sceneSemanticPersist).toBe(true)
+    expect(artifactOnly.sceneSemanticReadinessImport).toBe(false)
   })
 
   test("scene semantic replay parses dimensions and tuning flags", () => {
@@ -206,7 +223,7 @@ describe("drafting isolated report", () => {
   test("buildDraftingIsolatedRunReport preserves source hygiene and telemetry summaries", () => {
     const report = buildDraftingIsolatedRunReport({
       generatedAt: "2026-05-10T00:00:00.000Z",
-      args: args(),
+      args: args({ sceneSemanticPersist: true, sceneSemanticReadinessImport: true }),
       sourceAssessment: {
         clean: true,
         issue: null,
@@ -293,6 +310,18 @@ describe("drafting isolated report", () => {
             skipCount: 0,
             lowRows: 1,
             errorRows: 0,
+            persistence: {
+              requested: true,
+              briefRows: 4,
+              resultRows: 4,
+            },
+            readinessImport: {
+              requested: true,
+              inserted: 1,
+              updated: 0,
+              skipped: 0,
+              itemIds: ["pri-1"],
+            },
             dimensions: [],
             recommendation: "review",
           },
@@ -322,6 +351,9 @@ describe("drafting isolated report", () => {
     expect(rendered).toContain("planningContextReadiness groups=2 findings=2")
     expect(rendered).toContain("planningContextGaps resolvedReferences:missing_downstream")
     expect(rendered).toContain("sceneSemantic tasks=4 lows=1")
+    expect(rendered).toContain("scene semantic persistence: enabled")
+    expect(rendered).toContain("sceneSemanticPersistence briefs=4 results=4")
+    expect(rendered).toContain("sceneSemanticReadinessImport inserted=1 updated=0 skipped=0")
   })
 
   test("draftingIsolatedDeltas reports failed arms and skips when baseline failed", () => {
@@ -801,6 +833,8 @@ function args(overrides: Partial<Args> = {}): Args {
     proseSemanticConcurrency: 4,
     sceneSemanticReview: true,
     sceneSemanticLive: true,
+    sceneSemanticPersist: false,
+    sceneSemanticReadinessImport: true,
     sceneSemanticConcurrency: 4,
     sceneSemanticMaxTokens: 2200,
     sceneSemanticDimensions: ["endpointLanding", "sceneDramaturgy"],

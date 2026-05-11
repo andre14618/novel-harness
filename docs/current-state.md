@@ -89,12 +89,12 @@ Use deeper docs only when linked by the context pack or needed by code.
   `diagnostics:writer-context` to audit context-surface coverage after runs.
   Fixed-plan drafting evidence can add `--scene-semantic-review` to capture
   endpointLanding, sceneDramaturgy, characterMateriality, and
-  worldFactPressure replay artifacts per arm; replay prefers captured per-scene
-  writer calls before falling back to whole-chapter prose. Use
-  `diagnostics:planning-drafting-context` to audit
-  upstream context availability, scene-contract gaps, reference telemetry, and scene-load pressure;
-  `test-drafting-isolated` writes that audit plus a scene-load readiness
-  sidecar per arm by default.
+  worldFactPressure replay artifacts per arm; `--scene-semantic-persist` stores
+  eval rows and imports readiness lows unless disabled. Replay prefers captured
+  per-scene writer calls before falling back to whole-chapter prose. Use
+  `diagnostics:planning-drafting-context` to audit upstream context
+  availability, scene-contract gaps, reference telemetry, and scene-load
+  pressure; `test-drafting-isolated` writes that audit plus a readiness sidecar.
 - Production drafting defaults to exact-ID character context capsules
   (`thread-character-context-v1`). See L094.
 - Native chapter contracts and story-turn planning are the production planning

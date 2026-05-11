@@ -204,11 +204,12 @@ world-fact, scene-turn, thread, promise, payoff, and source IDs when present.
 Replay judges captured per-scene `beat-writer` responses via
 `llm_calls.scene_id` when available, falling back to whole-chapter prose only
 when scene-level prose telemetry is missing.
-When `scene-semantic-review.ts --persist` is used, the same aggregate is also
-imported as open Plan Readiness items by default through the shared
-target-hash/staleness importer. Pass `--no-readiness-import` to keep a
-persisted eval run artifact-only. Importing readiness items does not create
-proposals or mutate plans.
+When `scene-semantic-review.ts --persist` or
+`test-drafting-isolated --scene-semantic-persist` is used, the same aggregate is
+also imported as open Plan Readiness items by default through the shared
+target-hash/staleness importer. Pass `--no-readiness-import` or
+`--no-scene-semantic-readiness-import` to keep a persisted eval run artifact-only.
+Importing readiness items does not create proposals or mutate plans.
 
 Existing aggregate sidecars can be imported without rerunning their diagnostic:
 

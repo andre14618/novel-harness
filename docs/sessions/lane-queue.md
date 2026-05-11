@@ -26,8 +26,9 @@ unless the user explicitly requests a disposable branch.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context telemetry and scene-load pressure; `test-drafting-isolated`
-  writes it per arm. Scene-contract telemetry now separates broad `dramatic`
-  presence from `choice`, `endpoint`, and `full` completeness.
+  writes it per arm and can persist/import scene-semantic readiness lows.
+  Scene-contract telemetry separates broad `dramatic` presence from `choice`,
+  `endpoint`, and `full` completeness.
   `diagnostics:planning-context-readiness` converts
   overloaded scene-load, future-event anchors, partial scene contracts, and
   narrow fact-status reversals into manual Plan Readiness items. Keep context

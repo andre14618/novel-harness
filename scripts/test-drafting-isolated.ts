@@ -56,6 +56,8 @@
  *     [--writer-only]                                            # set draftCaptureModeV1=true on every arm
  *     [--no-prose-semantic-eval]                                 # opt out of default advisory prose telemetry
  *     [--scene-semantic-review]                                  # opt into endpoint/scene replay telemetry
+ *     [--scene-semantic-persist]                                 # persist scene-semantic eval rows; imports readiness lows unless disabled
+ *     [--no-scene-semantic-readiness-import]                     # keep persisted scene-semantic readiness artifact-only
  *     [--allow-drafted-source]                                   # explicitly allow cloning a source that already has drafts
  *     [--per-arm-timeout-ms 1800000]                             # 30-minute per-arm wallclock cap
  *     [--report-dir output/drafting-isolated/<prefix>]           # override durable run report directory
@@ -95,6 +97,7 @@ import {
 } from "./analysis/prose-semantic-report"
 import {
   buildSceneSemanticReplayReport,
+  persistSceneSemanticReplayReport,
   renderSceneSemanticReplayReport,
   type SceneSemanticReplayReport,
 } from "./evals/scene-semantic-review"
@@ -153,6 +156,8 @@ export interface Args {
    *  per scene × dimension. Diagnostic only. */
   sceneSemanticReview: boolean
   sceneSemanticLive: boolean
+  sceneSemanticPersist: boolean
+  sceneSemanticReadinessImport: boolean
   sceneSemanticConcurrency: number
   sceneSemanticMaxTokens: number
   sceneSemanticDimensions: Dimension[]
@@ -230,6 +235,8 @@ export interface DraftingIsolatedRunReport {
     proseSemanticConcurrency: number
     sceneSemanticReview: boolean
     sceneSemanticLive: boolean
+    sceneSemanticPersist: boolean
+    sceneSemanticReadinessImport: boolean
     sceneSemanticConcurrency: number
     sceneSemanticMaxTokens: number
     sceneSemanticDimensions: Dimension[]
@@ -350,6 +357,8 @@ export interface SceneSemanticTelemetrySummary {
   errorRows: number
   error?: string
   failureArtifact?: string
+  persistence?: SceneSemanticPersistenceTelemetrySummary
+  readinessImport?: SceneSemanticReadinessImportTelemetrySummary
   dimensions: Array<{
     dimension: Dimension
     count: number
@@ -358,6 +367,22 @@ export interface SceneSemanticTelemetrySummary {
     labelCounts: Record<string, number>
   }>
   recommendation: string
+}
+
+export interface SceneSemanticPersistenceTelemetrySummary {
+  requested: true
+  briefRows: number
+  resultRows: number
+  error?: string
+}
+
+export interface SceneSemanticReadinessImportTelemetrySummary {
+  requested: true
+  inserted: number
+  updated: number
+  skipped: number
+  itemIds: string[]
+  error?: string
 }
 
 const DEFAULT_SCENE_SEMANTIC_DIMENSIONS: Dimension[] = [
@@ -671,6 +696,8 @@ interface RunArmOptions {
   proseSemanticConcurrency: number
   sceneSemanticReview: boolean
   sceneSemanticLive: boolean
+  sceneSemanticPersist: boolean
+  sceneSemanticReadinessImport: boolean
   sceneSemanticConcurrency: number
   sceneSemanticMaxTokens: number
   sceneSemanticDimensions: Dimension[]
@@ -1020,8 +1047,8 @@ async function maybeRunSceneSemanticReview(
       outputDir,
       setName: `scene-semantic-review:${targetPrefix}:${arm}`,
       live: opts.sceneSemanticLive,
-      persist: false,
-      readinessImport: false,
+      persist: opts.sceneSemanticPersist,
+      readinessImport: opts.sceneSemanticReadinessImport,
       model: "deepseek-v4-flash",
       thinking: true,
       maxTokens: opts.sceneSemanticMaxTokens,
@@ -1030,8 +1057,14 @@ async function maybeRunSceneSemanticReview(
       dimensions: opts.sceneSemanticDimensions,
       json: false,
     })
-    writeSceneSemanticArtifacts(report, outputDir)
-    return sceneSemanticSummary(report, outputDir)
+    const artifacts = writeSceneSemanticArtifacts(report, outputDir)
+    const persistence = opts.sceneSemanticPersist
+      ? await persistSceneSemanticTelemetry(report)
+      : undefined
+    const readinessImport = opts.sceneSemanticPersist && opts.sceneSemanticReadinessImport
+      ? await importSceneSemanticReadiness(report.novelId, report.setName, artifacts.readiness)
+      : undefined
+    return sceneSemanticSummary(report, outputDir, { persistence, readinessImport })
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err)
     const failureArtifact = writeSceneSemanticFailureArtifacts({
@@ -1118,7 +1151,11 @@ export function writeSceneSemanticFailureArtifacts(input: {
   return jsonPath
 }
 
-function writeSceneSemanticArtifacts(report: SceneSemanticReplayReport, outputDir: string): void {
+function writeSceneSemanticArtifacts(report: SceneSemanticReplayReport, outputDir: string): {
+  reviewJsonPath: string
+  readinessJsonPath: string
+  readiness: ReturnType<typeof buildSceneSemanticReadinessAggregate>
+} {
   mkdirSync(outputDir, { recursive: true })
   const reviewJsonPath = join(outputDir, "scene-semantic-review.json")
   writeFileSync(reviewJsonPath, `${JSON.stringify(report, null, 2)}\n`)
@@ -1127,13 +1164,72 @@ function writeSceneSemanticArtifacts(report: SceneSemanticReplayReport, outputDi
     report,
     sourceReport: reviewJsonPath,
   }])
-  writeFileSync(join(outputDir, "scene-semantic-readiness.json"), `${JSON.stringify(readiness, null, 2)}\n`)
+  const readinessJsonPath = join(outputDir, "scene-semantic-readiness.json")
+  writeFileSync(readinessJsonPath, `${JSON.stringify(readiness, null, 2)}\n`)
   writeFileSync(join(outputDir, "scene-semantic-readiness.md"), renderSceneSemanticReadinessAggregate(readiness))
+  return { reviewJsonPath, readinessJsonPath, readiness }
+}
+
+async function persistSceneSemanticTelemetry(
+  report: SceneSemanticReplayReport,
+): Promise<SceneSemanticPersistenceTelemetrySummary> {
+  try {
+    const persisted = await persistSceneSemanticReplayReport(report)
+    return {
+      requested: true,
+      briefRows: persisted.briefRows,
+      resultRows: persisted.resultRows,
+    }
+  } catch (err) {
+    return {
+      requested: true,
+      briefRows: 0,
+      resultRows: 0,
+      error: err instanceof Error ? err.message : String(err),
+    }
+  }
+}
+
+async function importSceneSemanticReadiness(
+  novelId: string,
+  setName: string,
+  readiness: ReturnType<typeof buildSceneSemanticReadinessAggregate>,
+): Promise<SceneSemanticReadinessImportTelemetrySummary> {
+  try {
+    const { importPlanReadinessAggregateForNovel } = await import("../src/harness/plan-readiness-import")
+    const imported = await importPlanReadinessAggregateForNovel({
+      novelId,
+      aggregate: readiness,
+      importedByKind: "script",
+      importedByRef: `scene-semantic-review:${setName}`,
+      refreshStaleness: true,
+    })
+    return {
+      requested: true,
+      inserted: imported.inserted,
+      updated: imported.updated,
+      skipped: imported.skipped.length,
+      itemIds: imported.items.map(item => item.id),
+    }
+  } catch (err) {
+    return {
+      requested: true,
+      inserted: 0,
+      updated: 0,
+      skipped: 0,
+      itemIds: [],
+      error: err instanceof Error ? err.message : String(err),
+    }
+  }
 }
 
 export function sceneSemanticSummary(
   report: SceneSemanticReplayReport,
   outputDir: string,
+  telemetry: {
+    persistence?: SceneSemanticPersistenceTelemetrySummary
+    readinessImport?: SceneSemanticReadinessImportTelemetrySummary
+  } = {},
 ): SceneSemanticTelemetrySummary {
   const lowRows = report.results.filter(row => row.ordinal <= 1).length
   return {
@@ -1142,6 +1238,8 @@ export function sceneSemanticSummary(
     skipCount: report.skipCount,
     lowRows,
     errorRows: 0,
+    ...(telemetry.persistence ? { persistence: telemetry.persistence } : {}),
+    ...(telemetry.readinessImport ? { readinessImport: telemetry.readinessImport } : {}),
     dimensions: report.summaries,
     recommendation: lowRows > 0
       ? "Diagnostic review: inspect low endpoint/scene-turn rows before promoting this drafting surface."
@@ -1159,6 +1257,8 @@ export function parseArgs(argv: string[]): Args {
   let proseSemanticConcurrency = 4
   let sceneSemanticReview = false
   let sceneSemanticLive = true
+  let sceneSemanticPersist = false
+  let sceneSemanticReadinessImport = true
   let sceneSemanticConcurrency = 4
   let sceneSemanticMaxTokens = DEFAULT_SCENE_SEMANTIC_MAX_TOKENS
   const sceneSemanticDimensions: Dimension[] = []
@@ -1185,7 +1285,10 @@ export function parseArgs(argv: string[]): Args {
     }
     if (a === "--scene-semantic-review") { sceneSemanticReview = true; sceneSemanticLive = true; continue }
     if (a === "--scene-semantic-dry-run") { sceneSemanticReview = true; sceneSemanticLive = false; continue }
-    if (a === "--no-scene-semantic-review") { sceneSemanticReview = false; continue }
+    if (a === "--scene-semantic-persist") { sceneSemanticReview = true; sceneSemanticPersist = true; continue }
+    if (a === "--scene-semantic-readiness-import") { sceneSemanticReview = true; sceneSemanticPersist = true; sceneSemanticReadinessImport = true; continue }
+    if (a === "--no-scene-semantic-readiness-import") { sceneSemanticReadinessImport = false; continue }
+    if (a === "--no-scene-semantic-review") { sceneSemanticReview = false; sceneSemanticPersist = false; continue }
     if (a === "--allow-drafted-source") { allowDraftedSource = true; continue }
     if (a === "--scene-semantic-dimension") {
       sceneSemanticReview = true
@@ -1244,6 +1347,8 @@ export function parseArgs(argv: string[]): Args {
     proseSemanticConcurrency,
     sceneSemanticReview,
     sceneSemanticLive,
+    sceneSemanticPersist,
+    sceneSemanticReadinessImport,
     sceneSemanticConcurrency,
     sceneSemanticMaxTokens,
     sceneSemanticDimensions: sceneSemanticDimensions.length > 0 ? sceneSemanticDimensions : DEFAULT_SCENE_SEMANTIC_DIMENSIONS,
@@ -1280,6 +1385,9 @@ async function main() {
   }
   if (args.sceneSemanticReview) {
     console.log(`scene semantic replay: enabled${args.sceneSemanticLive ? "" : " (dry-run)"}, dimensions=${args.sceneSemanticDimensions.join(",")}, concurrency=${args.sceneSemanticConcurrency}`)
+    if (args.sceneSemanticPersist) {
+      console.log(`scene semantic persistence: enabled; readiness import=${args.sceneSemanticReadinessImport ? "enabled" : "disabled"}`)
+    }
   }
   if (args.allowDraftedSource) {
     console.log(`allow drafted source: true (source may include generated draft state)`)
@@ -1299,6 +1407,8 @@ async function main() {
       proseSemanticConcurrency: args.proseSemanticConcurrency,
       sceneSemanticReview: args.sceneSemanticReview,
       sceneSemanticLive: args.sceneSemanticLive,
+      sceneSemanticPersist: args.sceneSemanticPersist,
+      sceneSemanticReadinessImport: args.sceneSemanticReadinessImport,
       sceneSemanticConcurrency: args.sceneSemanticConcurrency,
       sceneSemanticMaxTokens: args.sceneSemanticMaxTokens,
       sceneSemanticDimensions: args.sceneSemanticDimensions,
@@ -1341,6 +1451,14 @@ async function main() {
     if (r.sceneSemantic) {
       console.log(`  scene semantic: tasks=${r.sceneSemantic.taskCount}, lows=${r.sceneSemantic.lowRows}, errors=${r.sceneSemantic.errorRows}, skips=${r.sceneSemantic.skipCount}`)
       console.log(`    report: ${r.sceneSemantic.outputDir || "(not written)"}`)
+      if (r.sceneSemantic.persistence) {
+        const p = r.sceneSemantic.persistence
+        console.log(`    persisted: briefs=${p.briefRows}, results=${p.resultRows}${p.error ? `, error=${p.error}` : ""}`)
+      }
+      if (r.sceneSemantic.readinessImport) {
+        const imported = r.sceneSemantic.readinessImport
+        console.log(`    readiness import: inserted=${imported.inserted}, updated=${imported.updated}, skipped=${imported.skipped}${imported.error ? `, error=${imported.error}` : ""}`)
+      }
       console.log(`    recommendation: ${r.sceneSemantic.recommendation}`)
       for (const dim of r.sceneSemantic.dimensions) {
         const counts = Object.entries(dim.labelCounts)
@@ -1418,6 +1536,8 @@ export function buildDraftingIsolatedRunReport(input: {
       proseSemanticConcurrency: input.args.proseSemanticConcurrency,
       sceneSemanticReview: input.args.sceneSemanticReview,
       sceneSemanticLive: input.args.sceneSemanticLive,
+      sceneSemanticPersist: input.args.sceneSemanticPersist,
+      sceneSemanticReadinessImport: input.args.sceneSemanticReadinessImport,
       sceneSemanticConcurrency: input.args.sceneSemanticConcurrency,
       sceneSemanticMaxTokens: input.args.sceneSemanticMaxTokens,
       sceneSemanticDimensions: input.args.sceneSemanticDimensions,
@@ -1547,6 +1667,8 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
   lines.push(`- writer-only: ${report.options.writerOnly}`)
   lines.push(`- prose semantic eval: ${report.options.proseSemanticEval ? "enabled" : "disabled"}`)
   lines.push(`- scene semantic replay: ${report.options.sceneSemanticReview ? "enabled" : "disabled"}`)
+  lines.push(`- scene semantic persistence: ${report.options.sceneSemanticPersist ? "enabled" : "disabled"}`)
+  lines.push(`- scene semantic readiness import: ${report.options.sceneSemanticPersist && report.options.sceneSemanticReadinessImport ? "enabled" : "disabled"}`)
   lines.push("")
   lines.push("## Arms")
   for (const result of report.results) {
@@ -1565,6 +1687,14 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
     }
     if (result.sceneSemantic) {
       lines.push(`  sceneSemantic tasks=${result.sceneSemantic.taskCount} lows=${result.sceneSemantic.lowRows} errors=${result.sceneSemantic.errorRows} report=${result.sceneSemantic.outputDir || "(not written)"}`)
+      if (result.sceneSemantic.persistence) {
+        const p = result.sceneSemantic.persistence
+        lines.push(`  sceneSemanticPersistence briefs=${p.briefRows} results=${p.resultRows}${p.error ? ` error=${p.error}` : ""}`)
+      }
+      if (result.sceneSemantic.readinessImport) {
+        const imported = result.sceneSemantic.readinessImport
+        lines.push(`  sceneSemanticReadinessImport inserted=${imported.inserted} updated=${imported.updated} skipped=${imported.skipped}${imported.error ? ` error=${imported.error}` : ""}`)
+      }
     }
   }
   if (report.deltas.length > 0) {
