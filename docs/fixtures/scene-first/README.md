@@ -105,9 +105,10 @@ A/B/C/C runs resistant to that failure shape:
 - `--scene-semantic-review` runs the production scene-semantic replay
   evaluator after each arm and writes endpoint/scene-turn artifacts under
   `output/scene-semantic-review/<target-prefix>/<arm>/`. It is diagnostic-only
-  and default-off; default dimensions are `endpointLanding` and
-  `sceneDramaturgy`. Each replay also writes `scene-semantic-readiness` JSON
-  and Markdown sidecars for manual Plan Readiness review.
+  and default-off; default dimensions are `endpointLanding`,
+  `sceneDramaturgy`, `characterMateriality`, and `worldFactPressure`. Each
+  replay also writes `scene-semantic-readiness` JSON and Markdown sidecars for
+  manual Plan Readiness review.
 
 Example commands (P4 directly via clone-for-variant):
 

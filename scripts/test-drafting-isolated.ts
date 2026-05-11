@@ -296,7 +296,12 @@ export interface SceneSemanticTelemetrySummary {
   recommendation: string
 }
 
-const DEFAULT_SCENE_SEMANTIC_DIMENSIONS: Dimension[] = ["endpointLanding", "sceneDramaturgy"]
+const DEFAULT_SCENE_SEMANTIC_DIMENSIONS: Dimension[] = [
+  "endpointLanding",
+  "sceneDramaturgy",
+  "characterMateriality",
+  "worldFactPressure",
+]
 
 function emptyDraftingBriefTelemetry(): DraftingBriefTelemetrySummary {
   return {

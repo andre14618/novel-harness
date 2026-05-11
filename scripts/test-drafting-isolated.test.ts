@@ -80,7 +80,12 @@ describe("test-drafting-isolated parseArgs", () => {
     const defaults = parseArgs(["--source", "n", "--target-prefix", "ab"])
     expect(defaults.sceneSemanticReview).toBe(false)
     expect(defaults.sceneSemanticLive).toBe(true)
-    expect(defaults.sceneSemanticDimensions).toEqual(["endpointLanding", "sceneDramaturgy"])
+    expect(defaults.sceneSemanticDimensions).toEqual([
+      "endpointLanding",
+      "sceneDramaturgy",
+      "characterMateriality",
+      "worldFactPressure",
+    ])
 
     const live = parseArgs(["--source", "n", "--target-prefix", "ab", "--scene-semantic-review"])
     expect(live.sceneSemanticReview).toBe(true)

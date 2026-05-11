@@ -89,9 +89,10 @@ Use deeper docs only when linked by the context pack or needed by code.
   payload telemetry on `writer-context` trace events; use
   `diagnostics:writer-context` to audit context-surface coverage after runs.
   Fixed-plan drafting evidence can add `--scene-semantic-review` to capture
-  endpointLanding/sceneDramaturgy replay artifacts and readiness candidates
-  per arm; replay prefers captured per-scene writer calls before falling back
-  to whole-chapter prose. Use `diagnostics:planning-drafting-context` to audit
+  endpointLanding, sceneDramaturgy, characterMateriality, and
+  worldFactPressure replay artifacts per arm; replay prefers captured per-scene
+  writer calls before falling back to whole-chapter prose. Use
+  `diagnostics:planning-drafting-context` to audit
   upstream context availability against writer-context/reference telemetry;
   `test-drafting-isolated` writes that audit per arm by default.
 - Production drafting defaults to exact-ID character context capsules
