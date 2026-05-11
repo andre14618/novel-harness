@@ -31,10 +31,21 @@ describe("drafting-run-cohort", () => {
     expect(report.aggregate.contextDeltas.readerInfoStateChars).toBe(50)
     expect(report.aggregate.contextDeltas.referenceAttemptScenes).toBe(1)
     expect(report.aggregate.contextDeltas.referenceAttemptEvents).toBe(1)
+    expect(report.alignment.qualityMovementCounts).toEqual({ improved: 1, regressed: 1 })
+    expect(report.alignment.contextLoadMovementCounts).toEqual({ contracted: 1, expanded: 1 })
+    expect(report.alignment.contextQualityAlignmentCounts).toEqual({
+      "context-contracted-with-quality-regression": 1,
+      "quality-gain-with-load-change": 1,
+    })
+    expect(report.alignment.leanerWithoutQualityLoss).toBe(0)
+    expect(report.alignment.contextContractedWithQualityRegression).toBe(1)
     expect(report.pairs[0]).toMatchObject({
       canonSourceRefsDelta: 2,
       storyRefIdsDelta: 3,
       readerInfoStateCharsDelta: 80,
+      qualityMovement: "improved",
+      contextLoadMovement: "expanded",
+      contextQualityAlignment: "quality-gain-with-load-change",
       referenceAttemptSceneDelta: 2,
       referenceAttemptEventDelta: 3,
     })
@@ -46,14 +57,17 @@ describe("drafting-run-cohort", () => {
 
     const rendered = renderDraftingRunCohortReport(report)
     expect(rendered).toContain("Signal: regressed")
+    expect(rendered).toContain("quality movement: improved: 1, regressed: 1")
+    expect(rendered).toContain("context load movement: contracted: 1, expanded: 1")
+    expect(rendered).toContain("context contracted with quality regression: 1")
     expect(rendered).toContain("canonSourceRefs=+2")
     expect(rendered).toContain("storyRefs=+2")
     expect(rendered).toContain("readerChars=+50")
     expect(rendered).toContain("refAttemptScenes=+1")
     expect(rendered).toContain("refAttemptEvents=+1")
     expect(rendered).toContain("| endpointLanding | 2 |")
-    expect(rendered).toContain("| Source | Baseline | Candidate | Clean | Signal | Words | Scene Lows | Canon Refs | Story Refs | Reader | Reader Chars | Ref Attempt Scenes | Ref Attempt Events | Missing Chars |")
-    expect(rendered).toContain("| corso | drafting-brief-v1 | drafting-brief-tight-v1 | yes | regressed | +224 | +4 | 0 | -1 | 0 | -30 | -1 | -2 | 0 |")
+    expect(rendered).toContain("| Source | Baseline | Candidate | Clean | Signal | Quality | Context Load | Alignment | Words | Scene Lows | Canon Refs | Story Refs | Reader | Reader Chars | Ref Attempt Scenes | Ref Attempt Events | Missing Chars |")
+    expect(rendered).toContain("| corso | drafting-brief-v1 | drafting-brief-tight-v1 | yes | regressed | regressed | contracted | context-contracted-with-quality-regression | +224 | +4 | 0 | -1 | 0 | -30 | -1 | -2 | 0 |")
   })
 
   test("loads comparison JSON artifacts", () => {
@@ -88,7 +102,8 @@ describe("drafting-run-cohort", () => {
     expect(rendered).toContain("canonSourceRefs=+1")
     expect(rendered).toContain("storyRefs=n/a")
     expect(rendered).toContain("readerChars=n/a")
-    expect(rendered).toContain("| legacy | drafting-brief-v1 | drafting-brief-tight-v1 | yes | mixed | 0 | 0 | +1 | n/a | 0 | n/a | 0 | 0 | 0 |")
+    expect(rendered).toContain("context expanded without clear quality gain: 1")
+    expect(rendered).toContain("| legacy | drafting-brief-v1 | drafting-brief-tight-v1 | yes | mixed | mixed | expanded | context-expanded-without-clear-quality-gain | 0 | 0 | +1 | n/a | 0 | n/a | 0 | 0 | 0 |")
   })
 })
 

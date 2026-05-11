@@ -13,6 +13,18 @@ import type { Dimension } from "../evals/planner-discernment-calibration"
 import type { DraftingRunComparison, DraftingRunComparisonReport } from "./drafting-run-compare"
 
 type CohortSignal = DraftingRunComparison["signal"] | "insufficient"
+type QualityMovement = "improved" | "regressed" | "mixed" | "unchanged" | "incomplete"
+type ContextLoadMovement = "expanded" | "contracted" | "mixed" | "unchanged" | "unknown"
+type ContextQualityAlignment =
+  | "leaner-or-stable-quality-gain"
+  | "quality-gain-with-load-change"
+  | "context-expanded-without-clear-quality-gain"
+  | "leaner-without-quality-loss"
+  | "context-contracted-with-quality-regression"
+  | "quality-regression-review"
+  | "mixed-quality-review"
+  | "stable-no-clear-change"
+  | "needs-semantic-evidence"
 
 interface Args {
   comparisons: string[]
@@ -32,6 +44,9 @@ export interface DraftingRunCohortPair {
   candidateArm: string
   cleanSource: boolean
   signal: DraftingRunComparison["signal"]
+  qualityMovement: QualityMovement
+  contextLoadMovement: ContextLoadMovement
+  contextQualityAlignment: ContextQualityAlignment
   totalWordsDelta: number
   meanRatioDelta: number
   proseLowDelta: number | null
@@ -66,6 +81,15 @@ export interface DraftingRunCohortReport {
   signal: CohortSignal
   signalCounts: Record<string, number>
   cleanSignalCounts: Record<string, number>
+  alignment: {
+    qualityMovementCounts: Record<string, number>
+    contextLoadMovementCounts: Record<string, number>
+    contextQualityAlignmentCounts: Record<string, number>
+    contextExpandedWithoutClearQualityGain: number
+    leanerWithoutQualityLoss: number
+    contextContractedWithQualityRegression: number
+    missingSemanticEvidence: number
+  }
   aggregate: {
     meanWordsDelta: number | null
     meanRatioDelta: number | null
@@ -127,6 +151,7 @@ export function buildDraftingRunCohortReport(input: {
   }
   const signalCounts = countBy(pairs, pair => pair.signal)
   const cleanSignalCounts = countBy(cleanPairs, pair => pair.signal)
+  const contextQualityAlignmentCounts = countBy(cleanPairs, pair => pair.contextQualityAlignment)
   return {
     generatedAt: input.generatedAt ?? new Date().toISOString(),
     sourceReports: input.refs.map(ref => ref.path),
@@ -135,6 +160,17 @@ export function buildDraftingRunCohortReport(input: {
     signal: cohortSignal(cleanSignalCounts, cleanPairs.length),
     signalCounts,
     cleanSignalCounts,
+    alignment: {
+      qualityMovementCounts: countBy(cleanPairs, pair => pair.qualityMovement),
+      contextLoadMovementCounts: countBy(cleanPairs, pair => pair.contextLoadMovement),
+      contextQualityAlignmentCounts,
+      contextExpandedWithoutClearQualityGain: contextQualityAlignmentCounts["context-expanded-without-clear-quality-gain"] ?? 0,
+      leanerWithoutQualityLoss:
+        (contextQualityAlignmentCounts["leaner-without-quality-loss"] ?? 0) +
+        (contextQualityAlignmentCounts["leaner-or-stable-quality-gain"] ?? 0),
+      contextContractedWithQualityRegression: contextQualityAlignmentCounts["context-contracted-with-quality-regression"] ?? 0,
+      missingSemanticEvidence: contextQualityAlignmentCounts["needs-semantic-evidence"] ?? 0,
+    },
     aggregate: {
       meanWordsDelta: mean(cleanPairs.map(pair => pair.totalWordsDelta)),
       meanRatioDelta: mean(cleanPairs.map(pair => pair.meanRatioDelta)),
@@ -173,6 +209,16 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
   lines.push(`Signal: ${report.signal}`)
   lines.push(`Signals: ${formatCounts(report.cleanSignalCounts)}`)
   lines.push("")
+  lines.push("## Context-Quality Alignment")
+  lines.push("")
+  lines.push(`- quality movement: ${formatCounts(report.alignment.qualityMovementCounts)}`)
+  lines.push(`- context load movement: ${formatCounts(report.alignment.contextLoadMovementCounts)}`)
+  lines.push(`- alignment: ${formatCounts(report.alignment.contextQualityAlignmentCounts)}`)
+  lines.push(`- context expanded without clear quality gain: ${report.alignment.contextExpandedWithoutClearQualityGain}`)
+  lines.push(`- leaner without quality loss: ${report.alignment.leanerWithoutQualityLoss}`)
+  lines.push(`- context contracted with quality regression: ${report.alignment.contextContractedWithQualityRegression}`)
+  lines.push(`- missing semantic evidence: ${report.alignment.missingSemanticEvidence}`)
+  lines.push("")
   lines.push("## Aggregate")
   lines.push("")
   lines.push(`- mean words delta: ${formatNullableNumber(report.aggregate.meanWordsDelta, 1)}`)
@@ -207,12 +253,13 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
   lines.push("")
   lines.push("## Comparisons")
   lines.push("")
-  lines.push("| Source | Baseline | Candidate | Clean | Signal | Words | Scene Lows | Canon Refs | Story Refs | Reader | Reader Chars | Ref Attempt Scenes | Ref Attempt Events | Missing Chars |")
-  lines.push("| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+  lines.push("| Source | Baseline | Candidate | Clean | Signal | Quality | Context Load | Alignment | Words | Scene Lows | Canon Refs | Story Refs | Reader | Reader Chars | Ref Attempt Scenes | Ref Attempt Events | Missing Chars |")
+  lines.push("| --- | --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
   for (const pair of report.pairs) {
     lines.push(
       `| ${pair.source} | ${pair.baselineArm} | ${pair.candidateArm} | ${pair.cleanSource ? "yes" : "no"} | ` +
-        `${pair.signal} | ${formatSigned(pair.totalWordsDelta)} | ${formatDelta(pair.sceneLowDelta)} | ` +
+        `${pair.signal} | ${pair.qualityMovement} | ${pair.contextLoadMovement} | ${pair.contextQualityAlignment} | ` +
+        `${formatSigned(pair.totalWordsDelta)} | ${formatDelta(pair.sceneLowDelta)} | ` +
         `${formatDelta(pair.canonSourceRefsDelta)} | ${formatDelta(pair.storyRefIdsDelta)} | ` +
         `${formatDelta(pair.readerInfoStateDelta)} | ${formatDelta(pair.readerInfoStateCharsDelta)} | ` +
         `${formatDelta(pair.referenceAttemptSceneDelta)} | ${formatDelta(pair.referenceAttemptEventDelta)} | ` +
@@ -237,27 +284,97 @@ export function loadDraftingRunComparisonReportRef(path: string): DraftingRunCoh
 }
 
 function pairRowsForReport(ref: DraftingRunCohortReportRef): DraftingRunCohortPair[] {
-  return ref.report.comparisons.map(comparison => ({
-    reportPath: ref.path,
-    source: comparison.candidate.source,
-    baselineArm: ref.report.baseline.arm,
-    candidateArm: comparison.candidate.arm,
-    cleanSource: isCleanComparison(ref.report, comparison),
-    signal: comparison.signal,
-    totalWordsDelta: comparison.length.totalWordsDelta,
-    meanRatioDelta: comparison.length.meanRatioDelta,
-    proseLowDelta: comparison.proseSemantic.lowRowsDelta,
-    sceneLowDelta: comparison.sceneSemantic.lowRowsDelta,
-    contextGapDelta: comparison.planningContext.gapDelta,
-    readinessFindingDelta: comparison.planningContext.readinessFindingDelta,
-    canonSourceRefsDelta: comparison.planningContext.canonSourceRefsDelta ?? null,
-    storyRefIdsDelta: comparison.planningContext.storyRefIdsDelta ?? null,
-    readerInfoStateDelta: comparison.planningContext.readerInfoStateDelta ?? null,
-    readerInfoStateCharsDelta: comparison.planningContext.readerInfoStateCharsDelta ?? null,
-    missingCharacterIdsDelta: comparison.planningContext.missingCharacterIdsDelta ?? null,
-    referenceAttemptSceneDelta: comparison.planningContext.referenceAttemptSceneDelta ?? null,
-    referenceAttemptEventDelta: comparison.planningContext.referenceAttemptEventDelta ?? null,
-  }))
+  return ref.report.comparisons.map(comparison => {
+    const qualityMovement = classifyQualityMovement(comparison)
+    const contextLoadMovement = classifyContextLoadMovement(comparison)
+    return {
+      reportPath: ref.path,
+      source: comparison.candidate.source,
+      baselineArm: ref.report.baseline.arm,
+      candidateArm: comparison.candidate.arm,
+      cleanSource: isCleanComparison(ref.report, comparison),
+      signal: comparison.signal,
+      qualityMovement,
+      contextLoadMovement,
+      contextQualityAlignment: classifyContextQualityAlignment(qualityMovement, contextLoadMovement),
+      totalWordsDelta: comparison.length.totalWordsDelta,
+      meanRatioDelta: comparison.length.meanRatioDelta,
+      proseLowDelta: comparison.proseSemantic.lowRowsDelta,
+      sceneLowDelta: comparison.sceneSemantic.lowRowsDelta,
+      contextGapDelta: comparison.planningContext.gapDelta,
+      readinessFindingDelta: comparison.planningContext.readinessFindingDelta,
+      canonSourceRefsDelta: comparison.planningContext.canonSourceRefsDelta ?? null,
+      storyRefIdsDelta: comparison.planningContext.storyRefIdsDelta ?? null,
+      readerInfoStateDelta: comparison.planningContext.readerInfoStateDelta ?? null,
+      readerInfoStateCharsDelta: comparison.planningContext.readerInfoStateCharsDelta ?? null,
+      missingCharacterIdsDelta: comparison.planningContext.missingCharacterIdsDelta ?? null,
+      referenceAttemptSceneDelta: comparison.planningContext.referenceAttemptSceneDelta ?? null,
+      referenceAttemptEventDelta: comparison.planningContext.referenceAttemptEventDelta ?? null,
+    }
+  })
+}
+
+function classifyQualityMovement(comparison: DraftingRunComparison): QualityMovement {
+  if (comparison.signal === "incomplete" || comparison.sceneSemantic.comparisonVerdict === "incomplete") return "incomplete"
+  if (
+    positiveDelta(comparison.sceneSemantic.lowRowsDelta) ||
+    positiveDelta(comparison.proseSemantic.lowRowsDelta) ||
+    comparison.sceneSemantic.comparisonVerdict === "regressed"
+  ) return "regressed"
+  if (
+    negativeDelta(comparison.sceneSemantic.lowRowsDelta) ||
+    negativeDelta(comparison.proseSemantic.lowRowsDelta) ||
+    comparison.sceneSemantic.comparisonVerdict === "improved"
+  ) return "improved"
+  if (comparison.sceneSemantic.comparisonVerdict === "mixed" || comparison.signal === "mixed") return "mixed"
+  return "unchanged"
+}
+
+function classifyContextLoadMovement(comparison: DraftingRunComparison): ContextLoadMovement {
+  const deltas = [
+    comparison.prompt.avgSelectedPromptCharsDelta,
+    comparison.prompt.totalCharsDeltaDelta,
+    comparison.planningContext.characterContextDelta,
+    comparison.planningContext.worldContextDelta,
+    comparison.planningContext.canonFactContextDelta,
+    comparison.planningContext.factContinuityAnchorDelta,
+    comparison.planningContext.canonSourceRefsDelta,
+    comparison.planningContext.storyContextDelta,
+    comparison.planningContext.storyRefIdsDelta,
+    comparison.planningContext.readerInfoStateDelta,
+    comparison.planningContext.readerInfoStateCharsDelta,
+    comparison.planningContext.resolvedReferencesDelta,
+  ].filter((value): value is number => typeof value === "number" && Number.isFinite(value))
+  if (deltas.length === 0) return "unknown"
+  const nonZero = deltas.filter(value => value !== 0)
+  if (nonZero.length === 0) return "unchanged"
+  const expanded = nonZero.some(value => value > 0)
+  const contracted = nonZero.some(value => value < 0)
+  if (expanded && contracted) return "mixed"
+  return expanded ? "expanded" : "contracted"
+}
+
+function classifyContextQualityAlignment(
+  quality: QualityMovement,
+  contextLoad: ContextLoadMovement,
+): ContextQualityAlignment {
+  if (quality === "incomplete" || contextLoad === "unknown") return "needs-semantic-evidence"
+  if (quality === "improved") {
+    return contextLoad === "expanded" || contextLoad === "mixed"
+      ? "quality-gain-with-load-change"
+      : "leaner-or-stable-quality-gain"
+  }
+  if (quality === "regressed") {
+    return contextLoad === "contracted"
+      ? "context-contracted-with-quality-regression"
+      : "quality-regression-review"
+  }
+  if ((quality === "unchanged" || quality === "mixed") && contextLoad === "expanded") {
+    return "context-expanded-without-clear-quality-gain"
+  }
+  if (quality === "unchanged" && contextLoad === "contracted") return "leaner-without-quality-loss"
+  if (quality === "mixed") return "mixed-quality-review"
+  return "stable-no-clear-change"
 }
 
 function isCleanComparison(report: DraftingRunComparisonReport, comparison: DraftingRunComparison): boolean {
@@ -308,6 +425,14 @@ function mean(values: readonly number[]): number | null {
 
 function sumNullable(values: readonly Array<number | null>): number {
   return values.reduce((sum, value) => sum + (value ?? 0), 0)
+}
+
+function positiveDelta(value: number | null): boolean {
+  return value !== null && value > 0
+}
+
+function negativeDelta(value: number | null): boolean {
+  return value !== null && value < 0
 }
 
 function numberOrZero(value: unknown): number {
