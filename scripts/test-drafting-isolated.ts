@@ -109,6 +109,11 @@ import {
   renderPlanningToDraftingContextReport,
   type PlanningToDraftingContextReport,
 } from "./analysis/planning-drafting-context-report"
+import {
+  buildPlanningContextReadinessAggregate,
+  renderPlanningContextReadinessAggregate,
+  type PlanningContextReadinessAggregate,
+} from "./analysis/planning-context-readiness"
 import type { Dimension } from "./evals/planner-discernment-calibration"
 import {
   assessSourceDraftingIsolation,
@@ -233,6 +238,7 @@ export interface DraftingIsolatedRunReport {
     totalWordsByArm: Record<string, number>
     meanRatioByArm: Record<string, number>
     planningContextGapsByArm: Record<string, number | null>
+    planningContextReadinessByArm: Record<string, number | null>
     proseSemanticLowRowsByArm: Record<string, number | null>
     sceneSemanticLowRowsByArm: Record<string, number | null>
   }
@@ -279,6 +285,7 @@ export interface PlanningContextTelemetrySummary {
   outputDir: string
   surfaceCount: number
   gapCount: number
+  readiness?: PlanningContextReadinessTelemetrySummary
   gaps: Array<{
     surface: string
     status: string
@@ -309,6 +316,13 @@ export interface PlanningContextTelemetrySummary {
     withDraftingBriefTrace: number
   }
   error?: string
+}
+
+export interface PlanningContextReadinessTelemetrySummary {
+  outputDir: string
+  groupCount: number
+  findingCount: number
+  labels: Record<string, number>
 }
 
 export interface SceneSemanticTelemetrySummary {
@@ -762,8 +776,8 @@ async function maybeRunPlanningContextAudit(
   console.log(`  planning-to-drafting context audit ...`)
   try {
     const report = await loadPlanningToDraftingContextReport(novelId)
-    writePlanningContextArtifacts(report, outputDir)
-    return planningContextSummary(report, outputDir)
+    const readiness = writePlanningContextArtifacts(report, outputDir)
+    return planningContextSummary(report, outputDir, readiness)
   } catch (err) {
     return {
       outputDir,
@@ -798,20 +812,33 @@ async function maybeRunPlanningContextAudit(
   }
 }
 
-function writePlanningContextArtifacts(report: PlanningToDraftingContextReport, outputDir: string): void {
+export function writePlanningContextArtifacts(
+  report: PlanningToDraftingContextReport,
+  outputDir: string,
+): PlanningContextReadinessTelemetrySummary {
   mkdirSync(outputDir, { recursive: true })
-  writeFileSync(join(outputDir, "planning-drafting-context-report.json"), `${JSON.stringify(report, null, 2)}\n`)
+  const reportPath = join(outputDir, "planning-drafting-context-report.json")
+  writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`)
   writeFileSync(join(outputDir, "planning-drafting-context-report.md"), renderPlanningToDraftingContextReport(report))
+  const readiness = buildPlanningContextReadinessAggregate({
+    report,
+    sourceReport: reportPath,
+  })
+  writeFileSync(join(outputDir, "planning-context-readiness.json"), `${JSON.stringify(readiness, null, 2)}\n`)
+  writeFileSync(join(outputDir, "planning-context-readiness.md"), renderPlanningContextReadinessAggregate(readiness))
+  return planningContextReadinessSummary(readiness, outputDir)
 }
 
 function planningContextSummary(
   report: PlanningToDraftingContextReport,
   outputDir: string,
+  readiness: PlanningContextReadinessTelemetrySummary,
 ): PlanningContextTelemetrySummary {
   return {
     outputDir,
     surfaceCount: report.surfaces.length,
     gapCount: report.gaps.length,
+    readiness,
     gaps: report.gaps.map(row => ({
       surface: row.surface,
       status: row.status,
@@ -841,6 +868,22 @@ function planningContextSummary(
       withObligations: report.downstream.withObligations,
       withDraftingBriefTrace: report.downstream.withDraftingBriefTrace,
     },
+  }
+}
+
+function planningContextReadinessSummary(
+  aggregate: PlanningContextReadinessAggregate,
+  outputDir: string,
+): PlanningContextReadinessTelemetrySummary {
+  const labels = new Map<string, number>()
+  for (const group of aggregate.groups) {
+    for (const finding of group.findings) labels.set(finding.label, (labels.get(finding.label) ?? 0) + 1)
+  }
+  return {
+    outputDir,
+    groupCount: aggregate.groupCount,
+    findingCount: aggregate.findingCount,
+    labels: Object.fromEntries(labels.entries()),
   }
 }
 
@@ -1205,6 +1248,9 @@ async function main() {
     console.log(`  writer drafting brief: ${formatDraftingBriefTelemetry(r.draftingBrief)}`)
     if (r.planningContext) {
       console.log(`  planning context: surfaces=${r.planningContext.surfaceCount}, gaps=${r.planningContext.gapCount}, report=${r.planningContext.outputDir}`)
+      if (r.planningContext.readiness) {
+        console.log(`    readiness: groups=${r.planningContext.readiness.groupCount}, findings=${r.planningContext.readiness.findingCount}`)
+      }
       if (r.planningContext.gaps.length > 0) {
         console.log(`    gaps: ${r.planningContext.gaps.map(gap => `${gap.surface}:${gap.status}`).join(", ")}`)
       }
@@ -1315,6 +1361,7 @@ export function buildDraftingIsolatedRunReport(input: {
       totalWordsByArm: Object.fromEntries(results.map(result => [result.arm, result.totalWords])),
       meanRatioByArm: Object.fromEntries(results.map(result => [result.arm, result.meanRatio])),
       planningContextGapsByArm: Object.fromEntries(results.map(result => [result.arm, result.planningContext?.gapCount ?? null])),
+      planningContextReadinessByArm: Object.fromEntries(results.map(result => [result.arm, result.planningContext?.readiness?.findingCount ?? null])),
       proseSemanticLowRowsByArm: Object.fromEntries(results.map(result => [result.arm, result.proseSemantic?.lowRows ?? null])),
       sceneSemanticLowRowsByArm: Object.fromEntries(results.map(result => [result.arm, result.sceneSemantic?.lowRows ?? null])),
     },
@@ -1438,6 +1485,9 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
     }
     if (result.planningContext) {
       lines.push(`  planningContext surfaces=${result.planningContext.surfaceCount} gaps=${result.planningContext.gapCount} report=${result.planningContext.outputDir}`)
+      if (result.planningContext.readiness) {
+        lines.push(`  planningContextReadiness groups=${result.planningContext.readiness.groupCount} findings=${result.planningContext.readiness.findingCount}`)
+      }
       if (result.planningContext.gaps.length > 0) {
         lines.push(`  planningContextGaps ${result.planningContext.gaps.map(gap => `${gap.surface}:${gap.status}`).join(", ")}`)
       }

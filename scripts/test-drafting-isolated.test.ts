@@ -14,8 +14,10 @@ import {
   sourceDraftingIsolationIssue,
   writeSceneSemanticFailureArtifacts,
   writeDraftingIsolatedSceneSemanticComparison,
+  writePlanningContextArtifacts,
 } from "./test-drafting-isolated"
 import type { ArmResult, Args } from "./test-drafting-isolated"
+import type { PlanningToDraftingContextReport } from "./analysis/planning-drafting-context-report"
 import type { SceneSemanticReplayReport } from "./evals/scene-semantic-review"
 
 describe("test-drafting-isolated parseArgs", () => {
@@ -228,6 +230,12 @@ describe("drafting isolated report", () => {
             outputDir: "output/planning-context",
             surfaceCount: 11,
             gapCount: 1,
+            readiness: {
+              outputDir: "output/planning-context",
+              groupCount: 2,
+              findingCount: 2,
+              labels: { "SCENE-LOAD-OVERLOADED": 2 },
+            },
             gaps: [{
               surface: "resolvedReferences",
               status: "missing_downstream",
@@ -285,6 +293,7 @@ describe("drafting isolated report", () => {
     expect(report.summary.cleanSource).toBe(true)
     expect(report.summary.totalWordsByArm["scene-call-v1"]).toBe(3300)
     expect(report.summary.planningContextGapsByArm["scene-call-v1"]).toBe(1)
+    expect(report.summary.planningContextReadinessByArm["scene-call-v1"]).toBe(2)
     expect(report.summary.proseSemanticLowRowsByArm["scene-call-v1"]).toBe(0)
     expect(report.summary.sceneSemanticLowRowsByArm["scene-call-v1"]).toBe(1)
     expect(report.deltas[0]).toMatchObject({
@@ -299,6 +308,7 @@ describe("drafting isolated report", () => {
     const rendered = renderDraftingIsolatedRunReport(report)
     expect(rendered).toContain("Clean source: yes")
     expect(rendered).toContain("planningContext surfaces=11 gaps=1")
+    expect(rendered).toContain("planningContextReadiness groups=2 findings=2")
     expect(rendered).toContain("planningContextGaps resolvedReferences:missing_downstream")
     expect(rendered).toContain("sceneSemantic tasks=4 lows=1")
   })
@@ -317,6 +327,29 @@ describe("drafting isolated report", () => {
       error: "timeout",
       pocMagnitude: "failed",
     })
+  })
+
+  test("writePlanningContextArtifacts writes readiness sidecars from scene load", () => {
+    const dir = mkdtempSync(join(tmpdir(), "planning-context-artifacts-"))
+    try {
+      const readiness = writePlanningContextArtifacts(planningContextReport(), dir)
+
+      expect(readiness).toMatchObject({
+        outputDir: dir,
+        groupCount: 1,
+        findingCount: 1,
+        labels: { "SCENE-LOAD-OVERLOADED": 1 },
+      })
+      const aggregate = JSON.parse(readFileSync(join(dir, "planning-context-readiness.json"), "utf8"))
+      expect(aggregate.groups[0]).toMatchObject({
+        chapterId: "ch-001",
+        findings: [{ label: "SCENE-LOAD-OVERLOADED" }],
+      })
+      expect(readFileSync(join(dir, "planning-context-readiness.md"), "utf8")).toContain("Should this chapter be split")
+      expect(readFileSync(join(dir, "planning-drafting-context-report.json"), "utf8")).toContain('"chapterId": "ch-001"')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })
 
@@ -588,6 +621,74 @@ function resultRow(dimension: "endpointLanding" | "sceneDramaturgy", label: stri
       missingForNextLevel: "",
       gates: {},
     },
+  }
+}
+
+function planningContextReport(): PlanningToDraftingContextReport {
+  return {
+    novelId: "novel-load",
+    upstream: {
+      worldBibleAvailable: true,
+      storySpineAvailable: true,
+      characterCount: 3,
+      chapterPlanCount: 1,
+      plannedSceneCount: 10,
+      sceneLoad: {
+        maxScenesPerChapter: 10,
+        minTargetWordsPerScene: 120,
+        denseChapterCount: 0,
+        overloadedChapterCount: 1,
+        chapters: [{
+          chapterNumber: 1,
+          chapterId: "ch-001",
+          sceneCount: 10,
+          targetWords: 1200,
+          targetWordsPerScene: 120,
+          signal: "overloaded",
+        }],
+      },
+      scenesWithCharacters: 10,
+      scenesWithSceneIds: 10,
+      scenesWithSceneContract: 0,
+      scenesWithObligations: 8,
+      scenesWithImplicitReferences: 0,
+      chaptersWithSetting: 1,
+      chaptersWithCharactersPresentIds: 1,
+      readerInfoSourceChapters: 0,
+      obligationIds: 8,
+      obligationSourceRefs: 8,
+      activeStoryRefIds: 0,
+    },
+    downstream: {
+      events: 0,
+      beatEvents: 0,
+      chapterEvents: 0,
+      targetWords: 0,
+      withCharacterContext: 0,
+      withCharacterProfiles: 0,
+      withCharacterSnapshots: 0,
+      withCharacterContextCapsules: 0,
+      withSceneContract: 0,
+      withObligations: 0,
+      withWorldContext: 0,
+      withWorldBible: 0,
+      withSetting: 0,
+      withStoryContext: 0,
+      withImplicitReferences: 0,
+      withReaderInfoState: 0,
+      withResolvedReferences: 0,
+      referenceLookups: 0,
+      referenceLlmCalls: 0,
+      withDraftingBriefTrace: 0,
+      draftingBriefEnabledEvents: 0,
+      avgDraftingBriefCharsRatio: null,
+      avgSelectedPromptChars: null,
+      avgFullContextPromptChars: null,
+      totalDraftingBriefCharsDelta: 0,
+      missingCharacterIds: 0,
+    },
+    surfaces: [],
+    gaps: [],
   }
 }
 
