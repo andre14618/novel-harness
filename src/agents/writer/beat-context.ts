@@ -38,7 +38,11 @@
  */
 
 import { getRelationshipBetween } from "../../db"
-import { resolveReferences, type ResolvedReferences } from "./reference-resolver"
+import {
+  beatDescriptionHasImplicitReference,
+  resolveReferences,
+  type ResolvedReferences,
+} from "./reference-resolver"
 import { renderBeatContext } from "./beat-context-render"
 import { selectReaderInfoStateForBeat } from "./enriched-context"
 import {
@@ -209,6 +213,8 @@ export interface BeatContext {
   characterSnapshots: CharacterSnapshot[]
   /** ResolvedReferences.context, or null when empty. */
   resolvedReferencesText: string | null
+  /** Reference-resolution attempt metadata for writer-context telemetry. */
+  referenceResolutionTrace?: WriterReferenceResolutionTrace | null
   /** L38-A reader-state block: prior-chapter establishedFacts + per-present-
    *  character `doesNotKnow` lines, pre-rendered as a `READER-INFO STATE:
    *  …` section. Null when chapterNumber === 1 (nothing prior), when no
@@ -226,6 +232,13 @@ export interface BeatContext {
    *  don't have to thread the slot through; absence is rendered the same
    *  as null (no SCENE CONTRACT section). */
   sceneContract?: SceneContractBlock | null
+}
+
+export interface WriterReferenceResolutionTrace {
+  hasImplicitReference: boolean
+  lookupCount: number
+  llmUsed: boolean
+  contextRendered: boolean
 }
 
 export interface SceneContractBlock {
@@ -329,6 +342,12 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
   // Resolved references slot ──────────────────────────────────────────────
   const refs = input.preResolvedRefs ?? await resolveReferences(beat, outline, novelId, chapterNumber, characters)
   const resolvedReferencesText = refs.context ? refs.context : null
+  const referenceResolutionTrace: WriterReferenceResolutionTrace = {
+    hasImplicitReference: beatDescriptionHasImplicitReference(beat.description),
+    lookupCount: refs.lookupCount,
+    llmUsed: refs.llmUsed,
+    contextRendered: Boolean(resolvedReferencesText),
+  }
 
   // Setting slot ──────────────────────────────────────────────────────────
   // Section visibility heuristic lives in the slot builder — null means
@@ -373,6 +392,7 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
     landingTarget,
     characterSnapshots,
     resolvedReferencesText,
+    referenceResolutionTrace,
     readerInfoState,
     characterContextCapsules,
     setting,

@@ -12,6 +12,7 @@ export interface WriterContextSurfaceTrace {
     worldBible?: boolean
     setting?: boolean
     storySpine?: boolean
+    implicitReferences?: boolean
     resolvedReferences?: boolean
     readerInfoState?: boolean
     transitionBridge?: boolean
@@ -32,6 +33,9 @@ export interface WriterContextSurfaceTrace {
     activeThreadIds?: number
     activePromiseIds?: number
     activePayoffIds?: number
+    implicitReferenceMarkers?: number
+    referenceLookups?: number
+    referenceLlmCalls?: number
     missingCharacterIds?: number
   }
 }
@@ -48,6 +52,7 @@ export function summarizeBeatContextSurface(ctx: BeatContext): WriterContextSurf
       characterContextCapsules: Boolean(capsules),
       worldBible: Boolean(ctx.setting),
       setting: Boolean(ctx.setting),
+      implicitReferences: Boolean(ctx.referenceResolutionTrace?.hasImplicitReference),
       resolvedReferences: Boolean(ctx.resolvedReferencesText),
       readerInfoState: Boolean(ctx.readerInfoState),
       transitionBridge: Boolean(ctx.transitionBridge),
@@ -64,6 +69,9 @@ export function summarizeBeatContextSurface(ctx: BeatContext): WriterContextSurf
       activeThreadIds: capsules?.activeThreadIds.length ?? 0,
       activePromiseIds: capsules?.activePromiseIds.length ?? 0,
       activePayoffIds: capsules?.activePayoffIds.length ?? 0,
+      implicitReferenceMarkers: ctx.referenceResolutionTrace?.hasImplicitReference ? 1 : 0,
+      referenceLookups: ctx.referenceResolutionTrace?.lookupCount ?? 0,
+      referenceLlmCalls: ctx.referenceResolutionTrace?.llmUsed ? 1 : 0,
       missingCharacterIds: capsules?.missingCharacterIds.length ?? 0,
     },
   }

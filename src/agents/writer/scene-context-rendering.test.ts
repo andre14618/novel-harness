@@ -164,6 +164,12 @@ describe("renderBeatContext + scene contract", () => {
         missingCharacterIds: [],
       },
       resolvedReferencesText: "RESOLVED REFERENCES:\n- script",
+      referenceResolutionTrace: {
+        hasImplicitReference: true,
+        lookupCount: 2,
+        llmUsed: true,
+        contextRendered: true,
+      },
       readerInfoState: "READER-INFO STATE:\nReader already knows the script is dangerous.",
       setting: { name: "Imperial Archive", sensoryDetails: "ink and stone" },
     }))
@@ -174,12 +180,16 @@ describe("renderBeatContext + scene contract", () => {
     expect(surface.surfaces.characterContextCapsules).toBe(true)
     expect(surface.surfaces.worldBible).toBe(true)
     expect(surface.surfaces.setting).toBe(true)
+    expect(surface.surfaces.implicitReferences).toBe(true)
     expect(surface.surfaces.resolvedReferences).toBe(true)
     expect(surface.surfaces.readerInfoState).toBe(true)
     expect(surface.counts.characterContextCards).toBe(1)
     expect(surface.counts.sceneContractFields).toBe(3)
     expect(surface.counts.choiceAlternatives).toBe(2)
     expect(surface.counts.activeThreadIds).toBe(1)
+    expect(surface.counts.implicitReferenceMarkers).toBe(1)
+    expect(surface.counts.referenceLookups).toBe(2)
+    expect(surface.counts.referenceLlmCalls).toBe(1)
   })
 
   it("renders a production writer drafting brief from the full context surface", () => {

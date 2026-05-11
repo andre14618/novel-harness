@@ -254,7 +254,8 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
     `Downstream writer-context events: ${report.downstream.events}; ` +
       `character=${report.downstream.withCharacterContext}, world=${report.downstream.withWorldContext}, ` +
       `story=${report.downstream.withStoryContext}, readerInfo=${report.downstream.withReaderInfoState}, ` +
-      `refs=${report.downstream.withResolvedReferences}, sceneContract=${report.downstream.withSceneContract}, ` +
+      `implicitRefs=${report.downstream.withImplicitReferences}, refs=${report.downstream.withResolvedReferences}, ` +
+      `refLookups=${report.downstream.referenceLookups}, sceneContract=${report.downstream.withSceneContract}, ` +
       `obligations=${report.downstream.withObligations}, draftingBrief=${report.downstream.withDraftingBriefTrace}`,
   )
   lines.push(`Gaps: ${report.gaps.length}`)

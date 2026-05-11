@@ -38,6 +38,7 @@ export interface WriterContextEventSummary {
     worldBible: boolean
     setting: boolean
     story: boolean
+    implicitReferences: boolean
     readerInfoState: boolean
     resolvedReferences: boolean
     draftingBrief: boolean
@@ -63,6 +64,8 @@ export interface WriterContextEventSummary {
       sceneContractFields: number
     }
   } | null
+  referenceLookups: number
+  referenceLlmCalls: number
   missingCharacterIds: number
 }
 
@@ -84,8 +87,11 @@ export interface WriterContextTelemetryReport {
     withWorldBible: number
     withSetting: number
     withStoryContext: number
+    withImplicitReferences: number
     withReaderInfoState: number
     withResolvedReferences: number
+    referenceLookups: number
+    referenceLlmCalls: number
     withDraftingBriefTrace: number
     draftingBriefEnabledEvents: number
     avgDraftingBriefCharsRatio: number | null
@@ -133,8 +139,11 @@ export function buildWriterContextTelemetryReport(
       withWorldBible: events.filter(event => event.surfaces.worldBible).length,
       withSetting: events.filter(event => event.surfaces.setting).length,
       withStoryContext: events.filter(event => event.surfaces.story).length,
+      withImplicitReferences: events.filter(event => event.surfaces.implicitReferences).length,
       withReaderInfoState: events.filter(event => event.surfaces.readerInfoState).length,
       withResolvedReferences: events.filter(event => event.surfaces.resolvedReferences).length,
+      referenceLookups: events.reduce((sum, event) => sum + event.referenceLookups, 0),
+      referenceLlmCalls: events.reduce((sum, event) => sum + event.referenceLlmCalls, 0),
       withDraftingBriefTrace: draftingBriefEvents.length,
       draftingBriefEnabledEvents: enabledDraftingBriefEvents.length,
       avgDraftingBriefCharsRatio: average(enabledDraftingBriefEvents.map(event => event.charsRatio)),
@@ -165,8 +174,10 @@ export function renderWriterContextTelemetryReport(report: WriterContextTelemetr
       `world=${formatCoverage(report.totals.withWorldContext, report.totals.events)} ` +
       `(bible=${report.totals.withWorldBible}, setting=${report.totals.withSetting}), ` +
       `story=${formatCoverage(report.totals.withStoryContext, report.totals.events)}, ` +
+      `implicitRefs=${formatCoverage(report.totals.withImplicitReferences, report.totals.events)}, ` +
       `readerInfo=${formatCoverage(report.totals.withReaderInfoState, report.totals.events)}, ` +
       `refs=${formatCoverage(report.totals.withResolvedReferences, report.totals.events)}, ` +
+      `refLookups=${report.totals.referenceLookups}, refLlm=${report.totals.referenceLlmCalls}, ` +
       `missingCharacterIds=${report.totals.missingCharacterIds}`,
   )
   lines.push(
@@ -192,6 +203,7 @@ export function renderWriterContextTelemetryReport(report: WriterContextTelemetr
       event.surfaces.obligations ? "obligations" : null,
       event.surfaces.world ? "world" : null,
       event.surfaces.story ? "story" : null,
+      event.surfaces.implicitReferences ? "implicitRefs" : null,
       event.surfaces.readerInfoState ? "reader" : null,
       event.surfaces.resolvedReferences ? "refs" : null,
     ].filter(Boolean).join(",") || "none"
@@ -247,6 +259,8 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
   const hasSceneContract = readBoolean(surfaces.sceneContract)
     || Boolean(draftingBrief?.sections.sceneContract)
     || positiveNumber(draftingBrief?.counts.sceneContractFields)
+  const referenceLookups = readFiniteNumber(counts.referenceLookups) ?? 0
+  const referenceLlmCalls = readFiniteNumber(counts.referenceLlmCalls) ?? 0
 
   return {
     id: Number(row.id),
@@ -269,11 +283,14 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
       worldBible: hasWorldBible,
       setting: hasSetting,
       story,
+      implicitReferences: readBoolean(surfaces.implicitReferences) || positiveNumber(counts.implicitReferenceMarkers),
       readerInfoState: readBoolean(surfaces.readerInfoState) || Boolean(draftingBrief?.sections.readerInfoState),
       resolvedReferences: readBoolean(surfaces.resolvedReferences) || Boolean(draftingBrief?.sections.resolvedReferences),
       draftingBrief: draftingBrief !== null,
     },
     draftingBrief,
+    referenceLookups,
+    referenceLlmCalls,
     missingCharacterIds: readFiniteNumber(counts.missingCharacterIds) ?? readArray(characterContext.missingCharacterIds).length,
   }
 }
