@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test"
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
 import {
+  loadActionPlan,
   parseArgs,
   renderReport,
   requestBodyForPlanAction,
@@ -75,6 +79,16 @@ describe("plan-readiness-apply", () => {
       proposedValueTemplate: { replaceWithReviewedValue: true },
       proposalCandidate: { action: "field_replace" },
       proposalInstruction: "operator-only scaffold",
+      diagnostic: {
+        label: "ENDPOINT-PLAN-1",
+        dimension: "endpointLanding",
+        severity: "medium",
+        explanation: "endpoint does not land",
+        missingForNextLevel: "visible consequence",
+      },
+      evidence: { score: "1", sourceRef: "fact-ledger" },
+      preserveIds: { sourceIds: ["fact-ledger"], obligationIds: ["obl-ledger"] },
+      sourceReportPaths: ["scene-semantic-review.json"],
       operatorNote: "make endpoint concrete",
       rationale: "operator-reviewed endpoint fix",
     })).toEqual({
@@ -105,6 +119,46 @@ describe("plan-readiness-apply", () => {
       proposedValue: ["scene-1", "scene-2"],
       operatorNote: "operator reviewed the scene order/count",
     })
+  })
+
+  test("loadActionPlan preserves review-only diagnostic context", () => {
+    const dir = mkdtempSync(join(tmpdir(), "plan-readiness-apply-"))
+    try {
+      const path = join(dir, "plan.json")
+      writeFileSync(path, `${JSON.stringify({
+        actions: [{
+          match: { itemId: "item-1", label: "SCENE-1" },
+          diagnostic: {
+            label: "SCENE-1",
+            dimension: "sceneDramaturgy",
+            severity: "medium",
+            fixIntent: "complete_scene_contract",
+            explanation: "Scene has no visible choice turn.",
+            missingForNextLevel: "Add a concrete crisis choice.",
+          },
+          evidence: { score: "1", sourceRef: "fact-ledger" },
+          preserveIds: {
+            sourceIds: ["fact-ledger"],
+            obligationIds: ["obl-ledger"],
+            sceneTurnIds: ["scene-1"],
+          },
+          sourceReportPaths: ["context-report.json"],
+          decision: "deferred",
+        }],
+      }, null, 2)}\n`)
+
+      const plan = loadActionPlan(path)
+      expect(plan.actions[0]?.diagnostic).toMatchObject({
+        label: "SCENE-1",
+        dimension: "sceneDramaturgy",
+        missingForNextLevel: "Add a concrete crisis choice.",
+      })
+      expect(plan.actions[0]?.evidence).toEqual({ score: "1", sourceRef: "fact-ledger" })
+      expect(plan.actions[0]?.preserveIds).toMatchObject({ sourceIds: ["fact-ledger"] })
+      expect(plan.actions[0]?.sourceReportPaths).toEqual(["context-report.json"])
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 
   test("renderReport includes drafting source hygiene telemetry", () => {

@@ -163,6 +163,17 @@ function actionForItem(
       targetRef: item.target.ref,
       ...(item.target.fieldPath ? { targetFieldPath: item.target.fieldPath } : {}),
     },
+    diagnostic: {
+      label: item.diagnosticLabel,
+      dimension: item.dimension,
+      severity: item.severity,
+      fixIntent: item.fixIntent,
+      explanation: item.explanation,
+      missingForNextLevel: item.missingForNextLevel,
+    },
+    evidence: item.evidence,
+    preserveIds: item.preserveIds,
+    sourceReportPaths: item.sourceReportPaths,
     decision: defaultDecision,
     operatorNote: DEFAULT_NOTE,
     ...(proposalCandidate

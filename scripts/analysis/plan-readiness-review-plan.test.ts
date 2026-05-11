@@ -44,6 +44,19 @@ describe("plan-readiness-review-plan", () => {
           severity: "high",
           diagnosticLabel: "CONTINUITY-BLOCKER",
           dimension: "planConsistency",
+          fixIntent: "preserve_immutable_fact",
+          evidence: { sourceRef: "fact-ledger", score: "1" },
+          sourceReportPaths: ["context-report.json"],
+          preserveIds: {
+            obligationIds: ["obl-ledger"],
+            characterIds: [],
+            worldFactIds: [],
+            sceneTurnIds: ["scene-2"],
+            threadIds: [],
+            promiseIds: [],
+            payoffIds: [],
+            sourceIds: ["fact-ledger"],
+          },
           target: { kind: "chapter_outline", ref: "chapter-2", fieldPath: "purpose" },
           metadata: {
             proposalCandidate: {
@@ -71,6 +84,21 @@ describe("plan-readiness-review-plan", () => {
         targetRef: "chapter-2",
         targetFieldPath: "purpose",
       },
+      diagnostic: {
+        label: "CONTINUITY-BLOCKER",
+        dimension: "planConsistency",
+        severity: "high",
+        fixIntent: "preserve_immutable_fact",
+        explanation: "explanation",
+        missingForNextLevel: null,
+      },
+      evidence: { sourceRef: "fact-ledger", score: "1" },
+      preserveIds: {
+        obligationIds: ["obl-ledger"],
+        sceneTurnIds: ["scene-2"],
+        sourceIds: ["fact-ledger"],
+      },
+      sourceReportPaths: ["context-report.json"],
       decision: "deferred",
       proposalCandidate: {
         action: "field_replace",

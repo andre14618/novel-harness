@@ -181,8 +181,8 @@ unless the user explicitly requests a disposable branch.
   `docs/sessions/2026-05-07-planner-discernment-calibration.md`.
 - Plan Readiness Review is now the default bridge from planner diagnostics to
   drafting when diagnostics are available. Backend persistence/import/list,
-  disposition capture, staleness refresh, and manual `planning_edit` proposal
-  creation now supports replacement values and exact required-ID removal. The
+  disposition capture, staleness refresh, and evidence/ID-rich manual `planning_edit`
+  proposal scaffolds now support replacement values and exact required-ID removal. The
   outcome report joins readiness items to proposal resolution, planning
   lineage, approved-draft impact contexts, and exact checker observations where
   available. The data-loop command proved matched diagnostic import, sample
