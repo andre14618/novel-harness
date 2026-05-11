@@ -36,12 +36,28 @@ describe("drafting-run-compare", () => {
         maxScenesPerChapter: 4,
         minTargetWordsPerScene: 450,
         overloadedChapterCount: 0,
+        withCharacterContext: 1,
+        withWorldContext: 1,
+        withCanonFactContext: 1,
+        canonSourceRefs: 1,
+        withFactContinuityAnchors: 0,
+        withStoryContext: 1,
+        withReaderInfoState: 1,
+        withResolvedReferences: 0,
         missingCharacterIds: 0,
       })
       writeContextReport(candidateContextDir, {
         maxScenesPerChapter: 4,
         minTargetWordsPerScene: 450,
         overloadedChapterCount: 0,
+        withCharacterContext: 1,
+        withWorldContext: 1,
+        withCanonFactContext: 1,
+        canonSourceRefs: 3,
+        withFactContinuityAnchors: 1,
+        withStoryContext: 1,
+        withReaderInfoState: 0,
+        withResolvedReferences: 0,
         missingCharacterIds: 2,
       })
 
@@ -84,12 +100,16 @@ describe("drafting-run-compare", () => {
       expect(comparison.sceneSemantic.lowRowsDelta).toBe(1)
       expect(comparison.sceneSemantic.comparisonVerdict).toBe("regressed")
       expect(comparison.planningContext.missingCharacterIdsDelta).toBe(2)
+      expect(comparison.planningContext.canonSourceRefsDelta).toBe(2)
+      expect(comparison.planningContext.factContinuityAnchorDelta).toBe(1)
+      expect(comparison.planningContext.readerInfoStateDelta).toBe(-1)
       expect(comparison.reasons).toContain("Length improved while semantic evidence regressed; treat the candidate as source-sensitive rather than a default candidate.")
       expect(comparison.sceneSemantic.changedRows[0]?.traceIds.relevantWorldFactIds).toEqual(["fact-foreman", "fact-seal"])
       expect(comparison.sceneSemantic.changedRows[0]?.traceIds.relevantCharacterIds).toEqual(["char-maren"])
 
       const rendered = renderDraftingRunComparisonReport(report)
       expect(rendered).toContain("Signal: regressed")
+      expect(rendered).toContain("Context coverage: character=1 -> 1, world=1 -> 1, canon=1 -> 1 (sourceRefs=1 -> 3, factAnchors=0 -> 1), story=1 -> 1, reader=1 -> 0, refs=0 -> 0 (lookups=0 -> 0)")
       expect(rendered).toContain("ids=obligations:obl-file; characters:char-maren; worldFacts:fact-foreman,fact-seal")
       expect(rendered).toContain("Length improved while semantic evidence regressed")
     } finally {
@@ -235,6 +255,14 @@ function writeContextReport(outputDir: string, opts: {
   maxScenesPerChapter: number
   minTargetWordsPerScene: number
   overloadedChapterCount: number
+  withCharacterContext?: number
+  withWorldContext?: number
+  withCanonFactContext?: number
+  withFactContinuityAnchors?: number
+  canonSourceRefs?: number
+  withStoryContext?: number
+  withReaderInfoState?: number
+  withResolvedReferences?: number
   missingCharacterIds: number
 }): void {
   mkdirSync(outputDir, { recursive: true })
@@ -249,8 +277,15 @@ function writeContextReport(outputDir: string, opts: {
     },
     downstream: {
       events: 1,
+      withCharacterContext: opts.withCharacterContext ?? 0,
+      withWorldContext: opts.withWorldContext ?? 0,
+      withCanonFactContext: opts.withCanonFactContext ?? 0,
+      withFactContinuityAnchors: opts.withFactContinuityAnchors ?? 0,
+      canonSourceRefs: opts.canonSourceRefs ?? 0,
+      withStoryContext: opts.withStoryContext ?? 0,
+      withReaderInfoState: opts.withReaderInfoState ?? 0,
       missingCharacterIds: opts.missingCharacterIds,
-      withResolvedReferences: 0,
+      withResolvedReferences: opts.withResolvedReferences ?? 0,
       referenceLookups: 0,
     },
   }, null, 2)}\n`)

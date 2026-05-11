@@ -31,7 +31,7 @@ unless the user explicitly requests a disposable branch.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon-ref telemetry and scene-load pressure; `diagnostics:drafting-run-compare`
-  compares reports with trace IDs; `test-drafting-isolated` writes sidecars.
+  compares reports with trace IDs and context deltas; `test-drafting-isolated` writes sidecars.
   Scene-contract telemetry separates broad `dramatic` presence from `choice`,
   `endpoint`, and `full` completeness.
   `diagnostics:planning-context-readiness` converts

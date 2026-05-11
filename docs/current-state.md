@@ -94,7 +94,7 @@ Use deeper docs only when linked by the context pack or needed by code.
   per-scene writer calls before falling back to whole-chapter prose. Use
   `diagnostics:planning-drafting-context` to audit context/canon-ref surfaces and
   `diagnostics:drafting-run-compare` to compare clean-source reports with
-  semantic trace IDs; `test-drafting-isolated` writes readiness sidecars.
+  semantic trace IDs/context deltas; `test-drafting-isolated` writes sidecars.
 - Production drafting defaults to exact-ID character context capsules
   (`thread-character-context-v1`). See L094.
 - Native chapter contracts and story-turn planning are the production planning

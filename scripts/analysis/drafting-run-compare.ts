@@ -110,6 +110,13 @@ interface PlanningContextDetail {
   } | null
   downstream: {
     events: number | null
+    withCharacterContext: number | null
+    withWorldContext: number | null
+    withCanonFactContext: number | null
+    withFactContinuityAnchors: number | null
+    canonSourceRefs: number | null
+    withStoryContext: number | null
+    withReaderInfoState: number | null
     missingCharacterIds: number | null
     withResolvedReferences: number | null
     referenceLookups: number | null
@@ -200,7 +207,15 @@ export interface DraftingRunComparison {
   planningContext: {
     gapDelta: number | null
     readinessFindingDelta: number | null
+    characterContextDelta: number | null
+    worldContextDelta: number | null
+    canonFactContextDelta: number | null
+    factContinuityAnchorDelta: number | null
+    canonSourceRefsDelta: number | null
+    storyContextDelta: number | null
+    readerInfoStateDelta: number | null
     missingCharacterIdsDelta: number | null
+    resolvedReferencesDelta: number | null
     overloadedChapterDelta: number | null
     minTargetWordsPerSceneDelta: number | null
   }
@@ -271,6 +286,21 @@ export function renderDraftingRunComparisonReport(report: DraftingRunComparisonR
           `${formatNullableNumber(candidateLoad?.minTargetWordsPerScene ?? null)}, ` +
           `overloaded=${formatNullableNumber(baselineLoad?.overloadedChapterCount ?? null)} -> ` +
           `${formatNullableNumber(candidateLoad?.overloadedChapterCount ?? null)}`,
+      )
+    }
+    const baselineContext = report.baseline.planningContext?.downstream
+    const candidateContext = candidate.planningContext?.downstream
+    if (baselineContext || candidateContext) {
+      lines.push(
+        `Context coverage: character=${formatTransition(baselineContext?.withCharacterContext, candidateContext?.withCharacterContext)}, ` +
+          `world=${formatTransition(baselineContext?.withWorldContext, candidateContext?.withWorldContext)}, ` +
+          `canon=${formatTransition(baselineContext?.withCanonFactContext, candidateContext?.withCanonFactContext)} ` +
+          `(sourceRefs=${formatTransition(baselineContext?.canonSourceRefs, candidateContext?.canonSourceRefs)}, ` +
+          `factAnchors=${formatTransition(baselineContext?.withFactContinuityAnchors, candidateContext?.withFactContinuityAnchors)}), ` +
+          `story=${formatTransition(baselineContext?.withStoryContext, candidateContext?.withStoryContext)}, ` +
+          `reader=${formatTransition(baselineContext?.withReaderInfoState, candidateContext?.withReaderInfoState)}, ` +
+          `refs=${formatTransition(baselineContext?.withResolvedReferences, candidateContext?.withResolvedReferences)} ` +
+          `(lookups=${formatTransition(baselineContext?.referenceLookups, candidateContext?.referenceLookups)})`,
       )
     }
     if (comparison.sceneSemantic.comparisonVerdict) {
@@ -380,9 +410,41 @@ function compareCandidate(
         baseline.summary.planningContext?.readinessFindingCount ?? null,
         candidate.summary.planningContext?.readinessFindingCount ?? null,
       ),
+      characterContextDelta: nullableDelta(
+        baseline.summary.planningContext?.downstream?.withCharacterContext ?? null,
+        candidate.summary.planningContext?.downstream?.withCharacterContext ?? null,
+      ),
+      worldContextDelta: nullableDelta(
+        baseline.summary.planningContext?.downstream?.withWorldContext ?? null,
+        candidate.summary.planningContext?.downstream?.withWorldContext ?? null,
+      ),
+      canonFactContextDelta: nullableDelta(
+        baseline.summary.planningContext?.downstream?.withCanonFactContext ?? null,
+        candidate.summary.planningContext?.downstream?.withCanonFactContext ?? null,
+      ),
+      factContinuityAnchorDelta: nullableDelta(
+        baseline.summary.planningContext?.downstream?.withFactContinuityAnchors ?? null,
+        candidate.summary.planningContext?.downstream?.withFactContinuityAnchors ?? null,
+      ),
+      canonSourceRefsDelta: nullableDelta(
+        baseline.summary.planningContext?.downstream?.canonSourceRefs ?? null,
+        candidate.summary.planningContext?.downstream?.canonSourceRefs ?? null,
+      ),
+      storyContextDelta: nullableDelta(
+        baseline.summary.planningContext?.downstream?.withStoryContext ?? null,
+        candidate.summary.planningContext?.downstream?.withStoryContext ?? null,
+      ),
+      readerInfoStateDelta: nullableDelta(
+        baseline.summary.planningContext?.downstream?.withReaderInfoState ?? null,
+        candidate.summary.planningContext?.downstream?.withReaderInfoState ?? null,
+      ),
       missingCharacterIdsDelta: nullableDelta(
         baseline.summary.planningContext?.downstream?.missingCharacterIds ?? null,
         candidate.summary.planningContext?.downstream?.missingCharacterIds ?? null,
+      ),
+      resolvedReferencesDelta: nullableDelta(
+        baseline.summary.planningContext?.downstream?.withResolvedReferences ?? null,
+        candidate.summary.planningContext?.downstream?.withResolvedReferences ?? null,
       ),
       overloadedChapterDelta: nullableDelta(
         baseline.summary.planningContext?.sceneLoad?.overloadedChapterCount ?? null,
@@ -526,6 +588,13 @@ function loadPlanningContextDetail(reportDir: string, outputDir: string | null):
       } : null,
       downstream: downstream ? {
         events: finiteOrNull(downstream.events),
+        withCharacterContext: finiteOrNull(downstream.withCharacterContext),
+        withWorldContext: finiteOrNull(downstream.withWorldContext),
+        withCanonFactContext: finiteOrNull(downstream.withCanonFactContext),
+        withFactContinuityAnchors: finiteOrNull(downstream.withFactContinuityAnchors),
+        canonSourceRefs: finiteOrNull(downstream.canonSourceRefs),
+        withStoryContext: finiteOrNull(downstream.withStoryContext),
+        withReaderInfoState: finiteOrNull(downstream.withReaderInfoState),
         missingCharacterIds: finiteOrNull(downstream.missingCharacterIds),
         withResolvedReferences: finiteOrNull(downstream.withResolvedReferences),
         referenceLookups: finiteOrNull(downstream.referenceLookups),
@@ -714,6 +783,10 @@ function formatNullableDelta(value: number | null, digits: number): string {
 
 function formatNullableNumber(value: number | null | undefined, digits = 0): string {
   return typeof value === "number" && Number.isFinite(value) ? value.toFixed(digits) : "n/a"
+}
+
+function formatTransition(baseline: number | null | undefined, candidate: number | null | undefined): string {
+  return `${formatNullableNumber(baseline ?? null)} -> ${formatNullableNumber(candidate ?? null)}`
 }
 
 function formatTraceIds(traceIds: RowDelta["traceIds"]): string {
