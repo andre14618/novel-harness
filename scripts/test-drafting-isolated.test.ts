@@ -16,10 +16,13 @@ import {
   writeDraftingIsolatedSceneSemanticComparison,
   writePlanningContextArtifacts,
   writePlannerQualityArtifacts,
+  writeCheckerReadinessArtifacts,
 } from "./test-drafting-isolated"
 import type { ArmResult, Args } from "./test-drafting-isolated"
 import type { PlanningToDraftingContextReport } from "./analysis/planning-drafting-context-report"
 import type { PlannerQualityReport } from "./analysis/planner-quality-report"
+import type { CheckerReadinessAggregate } from "./analysis/checker-readiness-report"
+import type { CheckerWarningReport } from "./analysis/checker-warning-report"
 import type { SceneSemanticReplayReport } from "./evals/scene-semantic-review"
 
 describe("test-drafting-isolated parseArgs", () => {
@@ -432,6 +435,28 @@ describe("drafting isolated report", () => {
       expect(aggregate.groups[0].findings[0].label).toBe("ENDPOINT-PLAN-1")
       expect(readFileSync(join(dir, "planner-quality-readiness.md"), "utf8")).toContain("Planner Quality Readiness Candidates")
       expect(readFileSync(join(dir, "planner-quality-report.md"), "utf8")).toContain("Planner quality report for novel-plan")
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test("writeCheckerReadinessArtifacts writes checker warning and readiness sidecars", () => {
+    const dir = mkdtempSync(join(tmpdir(), "checker-readiness-artifacts-"))
+    try {
+      const readiness = writeCheckerReadinessArtifacts(checkerWarningReport(), checkerReadinessAggregate(), dir)
+
+      expect(readiness).toMatchObject({
+        outputDir: dir,
+        checkerItems: 2,
+        blockerItems: 1,
+        warningItems: 1,
+        groupCount: 1,
+        findingCount: 1,
+        labels: { "CONTINUITY-BLOCKER": 1 },
+      })
+      expect(readFileSync(join(dir, "checker-warning-report.json"), "utf8")).toContain('"totalItems": 2')
+      expect(readFileSync(join(dir, "checker-readiness.json"), "utf8")).toContain('"CONTINUITY-BLOCKER"')
+      expect(readFileSync(join(dir, "checker-readiness.md"), "utf8")).toContain("Checker Readiness Candidates")
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -894,6 +919,119 @@ function plannerQualityReport(): PlannerQualityReport {
       obligationErrorChapters: 0,
       overloadedObligationChapters: 0,
     },
+  }
+}
+
+function checkerWarningReport(): CheckerWarningReport {
+  return {
+    novelId: "novel-checker",
+    totalItems: 2,
+    bySeverity: { blocker: 1, warning: 1 },
+    byPolarity: { negative: 1, positive: 0, ambiguous: 1 },
+    byCalibration: { standard: 2, "low-confidence": 0 },
+    chapters: [{
+      chapter: 1,
+      items: [
+        {
+          source: "continuity-facts",
+          severity: "blocker",
+          description: "Draft contradicts the debt-binder file.",
+          polarity: "negative",
+          calibration: "standard",
+          chapter: 1,
+          rowId: 7,
+        },
+        {
+          source: "functional-check",
+          severity: "warning",
+          description: "Planned state is weakly supported.",
+          polarity: "ambiguous",
+          calibration: "standard",
+          chapter: 1,
+          rowId: 8,
+        },
+      ],
+    }],
+  }
+}
+
+function checkerReadinessAggregate(): CheckerReadinessAggregate {
+  return {
+    generatedAt: "2026-05-11T00:00:00.000Z",
+    sourceReports: ["checker-warning-report:novel-checker"],
+    labels: ["CONTINUITY-BLOCKER"],
+    maxOrdinal: 1,
+    findingCount: 1,
+    groupCount: 1,
+    groups: [{
+      groupId: "001",
+      fixtureId: "novel-checker",
+      armId: "checker-warning-report",
+      methodPackEnabled: false,
+      unitType: "chapter",
+      chapterId: "ch-001",
+      sceneId: "",
+      sourceIds: {
+        obligationIds: [],
+        characterIds: [],
+        worldFactIds: [],
+        sceneTurnIds: [],
+        threadIds: [],
+        promiseIds: [],
+        payoffIds: [],
+        sourceIds: [],
+      },
+      highestSeverity: "high",
+      fixIntents: ["resolve_plan_checker_contradiction"],
+      dimensions: ["planConsistency"],
+      findings: [{
+        findingId: "001.1",
+        sourceReport: "checker-warning-report:novel-checker",
+        promptMode: "deterministic-checker-warning",
+        dimension: "planConsistency",
+        label: "CONTINUITY-BLOCKER",
+        severity: "high",
+        fixIntent: "resolve_plan_checker_contradiction",
+        rationale: "continuity blocker found a planning/draft consistency issue in chapter 1.",
+        missingForNextLevel: "Review the upstream plan.",
+        evidence: {
+          source: "continuity-facts",
+          severity: "blocker",
+          description: "Draft contradicts the debt-binder file.",
+          chapter: "1",
+          rowId: "7",
+          polarity: "negative",
+          calibration: "standard",
+        },
+      }],
+      rewritePacket: {
+        targetSummary: "chapter 1 ch-001",
+        rewriteGoals: ["Review the upstream plan."],
+        preserveIds: {
+          obligationIds: [],
+          characterIds: [],
+          worldFactIds: [],
+          sceneTurnIds: [],
+          threadIds: [],
+          promiseIds: [],
+          payoffIds: [],
+          sourceIds: [],
+        },
+        proposalCandidate: {
+          action: "field_replace",
+          target: {
+            kind: "chapter_outline",
+            ref: "ch-001",
+            fieldPath: "purpose",
+          },
+          requiresProposedValue: true,
+          proposedValueStatus: "operator_required",
+          safeToAutoApply: false,
+          sourceAgent: "production-checker-warning-report",
+        },
+      },
+      excerpt: "Draft contradicts the debt-binder file.",
+    }],
   }
 }
 

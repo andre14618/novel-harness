@@ -25,7 +25,7 @@ export interface CheckerReadinessArgs {
   includeWarnings: boolean
 }
 
-interface ChapterTarget {
+export interface CheckerReadinessChapterTarget {
   chapterNumber: number
   chapterId: string
 }
@@ -125,7 +125,7 @@ export function parseArgs(argv = process.argv.slice(2)): CheckerReadinessArgs {
 
 export function buildCheckerReadinessAggregate(input: {
   report: CheckerWarningReport
-  chapterTargets: readonly ChapterTarget[]
+  chapterTargets: readonly CheckerReadinessChapterTarget[]
   includeWarnings?: boolean
   generatedAt?: string
 }): CheckerReadinessAggregate {
@@ -297,7 +297,7 @@ function writeOutput(path: string, content: string): void {
   writeFileSync(abs, content)
 }
 
-async function loadChapterTargets(novelId: string): Promise<ChapterTarget[]> {
+export async function loadCheckerReadinessChapterTargets(novelId: string): Promise<CheckerReadinessChapterTarget[]> {
   const { default: db } = await import("../../src/db/connection")
   const rows = await db`
     SELECT chapter_number, outline_json
@@ -330,7 +330,7 @@ async function main(): Promise<number> {
     const checkerReport = buildCheckerWarningReport(await loadCheckerWarningInputs(args.novelId), args.novelId)
     const aggregate = buildCheckerReadinessAggregate({
       report: checkerReport,
-      chapterTargets: await loadChapterTargets(args.novelId),
+      chapterTargets: await loadCheckerReadinessChapterTargets(args.novelId),
       includeWarnings: args.includeWarnings,
     })
     const rendered = renderCheckerReadinessAggregate(aggregate)

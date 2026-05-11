@@ -130,6 +130,18 @@ import {
   type PlanAssistReadinessAggregate,
 } from "./analysis/plan-assist-readiness-report"
 import {
+  buildCheckerReadinessAggregate,
+  loadCheckerReadinessChapterTargets,
+  renderCheckerReadinessAggregate,
+  type CheckerReadinessAggregate,
+} from "./analysis/checker-readiness-report"
+import {
+  buildCheckerWarningReport,
+  loadCheckerWarningInputs,
+  renderCheckerWarningReport,
+  type CheckerWarningReport,
+} from "./analysis/checker-warning-report"
+import {
   buildPlannerQualityReadinessAggregate,
   buildPlannerQualityReport,
   renderPlannerQualityReport,
@@ -226,6 +238,7 @@ export interface ArmResult {
   }
   sceneSemantic?: SceneSemanticTelemetrySummary
   planAssistReadiness?: PlanAssistReadinessTelemetrySummary
+  checkerReadiness?: CheckerReadinessTelemetrySummary
   error?: string
 }
 
@@ -270,6 +283,7 @@ export interface DraftingIsolatedRunReport {
     planningContextGapsByArm: Record<string, number | null>
     planningContextReadinessByArm: Record<string, number | null>
     planAssistReadinessByArm: Record<string, number | null>
+    checkerReadinessByArm: Record<string, number | null>
     proseSemanticLowRowsByArm: Record<string, number | null>
     sceneSemanticLowRowsByArm: Record<string, number | null>
   }
@@ -386,6 +400,13 @@ export interface PlannerQualityTelemetrySummary {
 export interface PlanAssistReadinessTelemetrySummary extends PlanningContextReadinessTelemetrySummary {
   exhaustionRows: number
   pendingRows: number
+  error?: string
+}
+
+export interface CheckerReadinessTelemetrySummary extends PlanningContextReadinessTelemetrySummary {
+  checkerItems: number
+  blockerItems: number
+  warningItems: number
   error?: string
 }
 
@@ -780,11 +801,13 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
     await runCloneSubprocess(source, novelId)
   } catch (err) {
     const planAssistReadiness = await maybeRunPlanAssistReadinessAudit(arm, novelId, targetPrefix)
+    const checkerReadiness = await maybeRunCheckerReadinessAudit(arm, novelId, targetPrefix)
     return {
       arm, novelId, chapters: [], totalWords: 0, totalTarget: 0, meanRatio: 0,
       draftingBrief: emptyDraftingBriefTelemetry(),
       planningContext: await maybeRunPlanningContextAudit(arm, novelId, targetPrefix),
       planAssistReadiness,
+      checkerReadiness,
       expansionEvents: 0, error: `clone failed: ${err instanceof Error ? err.message : err}`,
     }
   }
@@ -807,12 +830,14 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
       const collected = await collectArmResult(arm, novelId)
       const planningContext = await maybeRunPlanningContextAudit(arm, novelId, targetPrefix)
       const planAssistReadiness = await maybeRunPlanAssistReadinessAudit(arm, novelId, targetPrefix)
+      const checkerReadiness = await maybeRunCheckerReadinessAudit(arm, novelId, targetPrefix)
       const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts)
       const sceneSemantic = await maybeRunSceneSemanticReview(arm, novelId, targetPrefix, opts)
       return {
         arm, novelId, ...collected,
         planningContext,
         planAssistReadiness,
+        checkerReadiness,
         ...(proseSemantic ? { proseSemantic } : {}),
         ...(sceneSemantic ? { sceneSemantic } : {}),
         error: `drafting did not complete: ${result.kind}`,
@@ -877,6 +902,16 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
       pendingRows: 0,
       error: `plan-assist readiness audit failed: ${paErr instanceof Error ? paErr.message : String(paErr)}`,
     }))
+    const checkerReadiness = await maybeRunCheckerReadinessAudit(arm, novelId, targetPrefix).catch(checkerErr => ({
+      outputDir: `output/checker-readiness/${targetPrefix}/${arm}`,
+      groupCount: 0,
+      findingCount: 0,
+      labels: {},
+      checkerItems: 0,
+      blockerItems: 0,
+      warningItems: 0,
+      error: `checker readiness audit failed: ${checkerErr instanceof Error ? checkerErr.message : String(checkerErr)}`,
+    }))
     const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts).catch(proseErr => ({
       outputDir: "",
       resultCount: 0,
@@ -890,6 +925,7 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
       arm, novelId, ...collected,
       planningContext,
       planAssistReadiness,
+      checkerReadiness,
       ...(proseSemantic ? { proseSemantic } : {}),
       ...(sceneSemantic ? { sceneSemantic } : {}),
       error: err instanceof Error ? err.message : String(err),
@@ -899,6 +935,7 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
   const collected = await collectArmResult(arm, novelId)
   const planningContext = await maybeRunPlanningContextAudit(arm, novelId, targetPrefix)
   const planAssistReadiness = await maybeRunPlanAssistReadinessAudit(arm, novelId, targetPrefix)
+  const checkerReadiness = await maybeRunCheckerReadinessAudit(arm, novelId, targetPrefix)
   const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts)
   const sceneSemantic = await maybeRunSceneSemanticReview(arm, novelId, targetPrefix, opts)
   return {
@@ -907,6 +944,7 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
     ...collected,
     planningContext,
     planAssistReadiness,
+    checkerReadiness,
     ...(proseSemantic ? { proseSemantic } : {}),
     ...(sceneSemantic ? { sceneSemantic } : {}),
   }
@@ -1254,6 +1292,70 @@ function planAssistReadinessSummary(
     labels: Object.fromEntries([...labels.entries()].sort(([a], [b]) => a.localeCompare(b))),
     exhaustionRows: aggregate.exhaustionRows,
     pendingRows: aggregate.pendingRows,
+  }
+}
+
+async function maybeRunCheckerReadinessAudit(
+  arm: ArmName,
+  novelId: string,
+  targetPrefix: string,
+): Promise<CheckerReadinessTelemetrySummary> {
+  const outputDir = `output/checker-readiness/${targetPrefix}/${arm}`
+  console.log(`  checker readiness audit ...`)
+  try {
+    const warningReport = buildCheckerWarningReport(await loadCheckerWarningInputs(novelId), novelId)
+    const aggregate = buildCheckerReadinessAggregate({
+      report: warningReport,
+      chapterTargets: await loadCheckerReadinessChapterTargets(novelId),
+      includeWarnings: false,
+    })
+    return writeCheckerReadinessArtifacts(warningReport, aggregate, outputDir)
+  } catch (err) {
+    return {
+      outputDir,
+      groupCount: 0,
+      findingCount: 0,
+      labels: {},
+      checkerItems: 0,
+      blockerItems: 0,
+      warningItems: 0,
+      error: `checker readiness audit failed: ${err instanceof Error ? err.message : String(err)}`,
+    }
+  }
+}
+
+export function writeCheckerReadinessArtifacts(
+  warningReport: CheckerWarningReport,
+  aggregate: CheckerReadinessAggregate,
+  outputDir: string,
+): CheckerReadinessTelemetrySummary {
+  mkdirSync(outputDir, { recursive: true })
+  writeFileSync(join(outputDir, "checker-warning-report.json"), `${JSON.stringify(warningReport, null, 2)}\n`)
+  writeFileSync(join(outputDir, "checker-warning-report.md"), renderCheckerWarningReport(warningReport))
+  writeFileSync(join(outputDir, "checker-readiness.json"), `${JSON.stringify(aggregate, null, 2)}\n`)
+  writeFileSync(join(outputDir, "checker-readiness.md"), renderCheckerReadinessAggregate(aggregate))
+  return checkerReadinessSummary(warningReport, aggregate, outputDir)
+}
+
+function checkerReadinessSummary(
+  warningReport: CheckerWarningReport,
+  aggregate: CheckerReadinessAggregate,
+  outputDir: string,
+): CheckerReadinessTelemetrySummary {
+  const labels = new Map<string, number>()
+  for (const group of aggregate.groups) {
+    for (const finding of group.findings) {
+      labels.set(finding.label, (labels.get(finding.label) ?? 0) + 1)
+    }
+  }
+  return {
+    outputDir,
+    groupCount: aggregate.groupCount,
+    findingCount: aggregate.findingCount,
+    labels: Object.fromEntries([...labels.entries()].sort(([a], [b]) => a.localeCompare(b))),
+    checkerItems: warningReport.totalItems,
+    blockerItems: warningReport.bySeverity.blocker ?? 0,
+    warningItems: warningReport.bySeverity.warning ?? 0,
   }
 }
 
@@ -1718,6 +1820,12 @@ async function main() {
         console.log(`    error: ${r.planAssistReadiness.error}`)
       }
     }
+    if (r.checkerReadiness) {
+      console.log(`  checker readiness: items=${r.checkerReadiness.checkerItems}, blockers=${r.checkerReadiness.blockerItems}, warnings=${r.checkerReadiness.warningItems}, groups=${r.checkerReadiness.groupCount}, findings=${r.checkerReadiness.findingCount}, report=${r.checkerReadiness.outputDir}`)
+      if (r.checkerReadiness.error) {
+        console.log(`    error: ${r.checkerReadiness.error}`)
+      }
+    }
     if (r.proseSemantic) {
       console.log(`  prose semantic: rows=${r.proseSemantic.resultCount}, lows=${r.proseSemantic.lowRows}, errors=${r.proseSemantic.errorRows}`)
       console.log(`    guidance: lengthSignal=${r.proseSemantic.lengthSignal}, qualityRisk=${r.proseSemantic.qualityRisk}`)
@@ -1835,6 +1943,7 @@ export function buildDraftingIsolatedRunReport(input: {
       planningContextGapsByArm: Object.fromEntries(results.map(result => [result.arm, result.planningContext?.gapCount ?? null])),
       planningContextReadinessByArm: Object.fromEntries(results.map(result => [result.arm, result.planningContext?.readiness?.findingCount ?? null])),
       planAssistReadinessByArm: Object.fromEntries(results.map(result => [result.arm, result.planAssistReadiness?.findingCount ?? null])),
+      checkerReadinessByArm: Object.fromEntries(results.map(result => [result.arm, result.checkerReadiness?.findingCount ?? null])),
       proseSemanticLowRowsByArm: Object.fromEntries(results.map(result => [result.arm, result.proseSemantic?.lowRows ?? null])),
       sceneSemanticLowRowsByArm: Object.fromEntries(results.map(result => [result.arm, result.sceneSemantic?.lowRows ?? null])),
     },
@@ -1983,6 +2092,14 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
         `  planAssistReadiness rows=${result.planAssistReadiness.exhaustionRows} pending=${result.planAssistReadiness.pendingRows} ` +
           `groups=${result.planAssistReadiness.groupCount} findings=${result.planAssistReadiness.findingCount} report=${result.planAssistReadiness.outputDir}` +
           (result.planAssistReadiness.error ? ` error=${result.planAssistReadiness.error}` : ""),
+      )
+    }
+    if (result.checkerReadiness) {
+      lines.push(
+        `  checkerReadiness items=${result.checkerReadiness.checkerItems} blockers=${result.checkerReadiness.blockerItems} ` +
+          `warnings=${result.checkerReadiness.warningItems} groups=${result.checkerReadiness.groupCount} ` +
+          `findings=${result.checkerReadiness.findingCount} report=${result.checkerReadiness.outputDir}` +
+          (result.checkerReadiness.error ? ` error=${result.checkerReadiness.error}` : ""),
       )
     }
     if (result.sceneSemantic) {
