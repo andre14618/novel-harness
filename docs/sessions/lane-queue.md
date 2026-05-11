@@ -11,22 +11,21 @@ unless the user explicitly requests a disposable branch.
   outputs are evidence/fixtures only. Do not add POC runners, prompt branches,
   mappers, checkers, or review formats when a thin production wrapper can write
   the same artifacts. Standalone POCs require explicit approval plus flags.
-- **Production writer-brief evidence (2026-05-11).** P1 made
+- **Production writer/planner evidence (2026-05-11).** P1 made
   `drafting-brief-v1` strongest at 1.24x with scene lows 1/33, but replication
-  still holds promotion. Clean-source Corso plan repair reached 4778/3800 =
-  1.26x with scene lows 0/34; LitRPG planning repair stayed mixed at
-  3966/2700 = 1.47x with scene lows 3/45. The default-off tight arm plus two
-  source `planning_edit` endpoint repairs reached 3398/2700 = 1.27x with scene
-  lows 0/45, while Corso replication regressed to 5002/3800 with scene lows
-  4/34. Current clean-source N=3 tight cohort is mixed: mean -90.7 words, scene
-  lows -6, endpoint lows -2, alignment 3 quality-gain-with-load-change rows;
-  event-context deltas looked contracted, but scene-normalized context deltas
-  were zero. Tight-anchored follow-up on fresh P1 shortened 337 words and
-  reduced checker warnings by 5, but expanded event context without clear
-  quality gain: scene dramaturgy +0.10, endpoint -0.20, character materiality
-  -0.20, world fact pressure -0.38, checker negative polarity +1. Keep broad
-  operational-facts and tight-anchored out of defaults. Next lever is selective
-  upstream scene-turn shaping rather than more prompt bulk. See L106.
+  holds promotion. Clean-source repairs reached Corso 4778/3800 = 1.26x with
+  scene lows 0/34 and LitRPG 3966/2700 = 1.47x with scene lows 3/45. Tight
+  brief plus two source `planning_edit` endpoint repairs reached 3398/2700 =
+  1.27x with scene lows 0/45, while Corso replication regressed to 5002/3800
+  with scene lows 4/34. N=3 tight cohort is mixed: mean -90.7 words, scene lows
+  -6, endpoint lows -2, scene-normalized context deltas zero. Tight-anchored
+  P1 shortened 337 words but lowered endpoint/materiality/world means. The
+  default-off `planningSceneTurnShapingV1` upstream control now runs through
+  production planner/state-mapper code and compare supports paired source IDs;
+  on the P1 concept pair it shortened 43 words and cleared one checker blocker,
+  but scene lows regressed +4 with character/world losses and +2 readiness.
+  Keep broad operational-facts, tight-anchored, and scene-turn shaping out of
+  defaults; next lever is load-bearing non-final character/world pressure. See L106/L107.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort
@@ -120,8 +119,9 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: inspect source-sensitive endpoint/world regressions and
-  implement selective upstream scene-turn shaping in the production planner/context path before any default decision. See L103-L106.
+- Next session start: use paired-source compare/cohort artifacts to add only
+  default-off load-bearing non-final character/world obligations in production
+  planner/state-mapper paths; avoid tag spam. See L103-L107.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.

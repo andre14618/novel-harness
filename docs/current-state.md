@@ -113,20 +113,18 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 The active lane is in `docs/sessions/lane-queue.md`.
 
-As of 2026-05-11, L106 has absorbed validated POC evidence into production
-writer-brief telemetry, scene-semantic replay, Plan Readiness import/apply,
-source hygiene, planning-edit replay, scene-contract telemetry, and fact-status
-readiness. Clean-source Corso repair reached 4778/3800 = 1.26x with scene lows
-0/34; LitRPG planning repair stayed mixed at 3966/2700 = 1.47x with scene lows
-3/45. The default-off tight brief plus two source `planning_edit` endpoint
-repairs reached 3398/2700 = 1.27x with scene lows 0/45, but Corso replication
-regressed. The current clean-source N=3 tight cohort is mixed: mean -90.7
-words, scene lows -6, endpoint lows -2, and scene-normalized context deltas
-zero. A P1 tight-anchored follow-up shortened by 337 words but expanded event
-context without clear quality gain: scene dramaturgy +0.10; endpoint,
-materiality, and world fact means fell. No default flip; broad
-operational-facts stays out after 6050/3800. Next production-path lever is
-selective upstream scene-turn shaping, not prompt bulk. See L103-L106.
+As of 2026-05-11, L106/L107 has moved active evidence into production
+writer-brief telemetry, scene-semantic replay, Plan Readiness, source hygiene,
+planning-edit replay, scene-contract telemetry, and compare/cohort artifacts.
+Clean-source tight-brief evidence is mixed; tight-anchored shortened P1 by 337
+words but lowered endpoint, materiality, and world-fact means. The default-off
+`planningSceneTurnShapingV1` upstream control now runs through the production
+planner/state-mapper path and paired-source compare via `--source-pair-id`.
+On the P1 concept-clone pair it shortened by 43 words, improved endpoint lows
+and cleared one checker blocker, but regressed total scene lows by 4 with
+character-materiality/world-pressure losses and +2 readiness findings. No
+default flip; next lever is load-bearing non-final character/world pressure in
+planning, not writer prompt bulk. See L103-L107.
 
 ## Authoring Gates
 

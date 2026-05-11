@@ -28,6 +28,7 @@ interface Args {
   candidates: string[]
   baselineArm: string | null
   candidateArm: string | null
+  sourcePairId: string | null
   output: string | null
   json: string | null
   maxChangedRows: number
@@ -255,12 +256,17 @@ export interface DraftingRunSummary {
 
 export interface DraftingRunComparisonReport {
   generatedAt: string
+  sourcePairId: string | null
   baseline: DraftingRunSummary
   comparisons: DraftingRunComparison[]
 }
 
 export interface DraftingRunComparison {
   candidate: DraftingRunSummary
+  sourceComparison: {
+    mode: "same-source" | "paired-source" | "different-source"
+    sourcePairId: string | null
+  }
   signal: EvidenceSignal
   reasons: string[]
   length: {
@@ -352,15 +358,18 @@ export interface DraftingRunComparison {
 export function buildDraftingRunComparisonReport(input: {
   baseline: DraftingRunRef
   candidates: DraftingRunRef[]
+  sourcePairId?: string | null
   maxChangedRows?: number
   generatedAt?: string
 }): DraftingRunComparisonReport {
   const maxChangedRows = input.maxChangedRows ?? 12
+  const sourcePairId = cleanOptionalString(input.sourcePairId)
   return {
     generatedAt: input.generatedAt ?? new Date().toISOString(),
+    sourcePairId,
     baseline: input.baseline.summary,
     comparisons: input.candidates.map(candidate =>
-      compareCandidate(input.baseline, candidate, maxChangedRows)
+      compareCandidate(input.baseline, candidate, maxChangedRows, sourcePairId)
     ),
   }
 }
@@ -379,6 +388,13 @@ export function renderDraftingRunComparisonReport(report: DraftingRunComparisonR
     lines.push(`## ${summaryLabel(candidate)}`)
     lines.push("")
     lines.push(`Signal: ${comparison.signal}`)
+    if (comparison.sourceComparison.mode !== "same-source") {
+      lines.push(
+        `Source lineage: ${comparison.sourceComparison.mode}` +
+          `${comparison.sourceComparison.sourcePairId ? ` (${comparison.sourceComparison.sourcePairId})` : ""}; ` +
+          `${report.baseline.source} -> ${candidate.source}`,
+      )
+    }
     if (failedArm) {
       lines.push(
         `Words: ${candidate.totalWords}/${candidate.totalTarget} (${candidate.meanRatio.toFixed(3)}) ` +
@@ -541,8 +557,15 @@ function compareCandidate(
   baseline: DraftingRunRef,
   candidate: DraftingRunRef,
   maxChangedRows: number,
+  sourcePairId: string | null,
 ): DraftingRunComparison {
   const sceneComparison = compareSceneSemanticReports(baseline, candidate)
+  const sourceComparison = sourceComparisonFor(baseline.summary.source, candidate.summary.source, sourcePairId)
+  const aggregateSceneComparison =
+    sourceComparison.mode === "paired-source" && sceneComparison?.verdict === "incomplete"
+      ? aggregateSceneSemanticComparison(baseline.summary, candidate.summary)
+      : null
+  const effectiveSceneComparison = aggregateSceneComparison ?? sceneComparison
   const changedRows = sceneComparison
     ? sceneComparison.rowChanges
       .filter(row => row.status !== "unchanged")
@@ -551,6 +574,7 @@ function compareCandidate(
     : []
   const comparison: DraftingRunComparison = {
     candidate: candidate.summary,
+    sourceComparison,
     signal: "unchanged",
     reasons: [],
     length: {
@@ -733,15 +757,15 @@ function compareCandidate(
         baseline.summary.sceneSemantic?.errorRows ?? null,
         candidate.summary.sceneSemantic?.errorRows ?? null,
       ),
-      comparisonVerdict: sceneComparison?.verdict ?? null,
+      comparisonVerdict: effectiveSceneComparison?.verdict ?? null,
       comparedRows: sceneComparison?.comparedRows ?? null,
       missingInCandidate: sceneComparison?.missingInCandidate.length ?? null,
       missingInBaseline: sceneComparison?.missingInBaseline.length ?? null,
-      dimensions: sceneComparison?.dimensions ?? [],
+      dimensions: effectiveSceneComparison?.dimensions ?? [],
       changedRows,
     },
   }
-  comparison.reasons = evidenceReasons(baseline.summary, candidate.summary, comparison)
+  comparison.reasons = evidenceReasons(baseline.summary, candidate.summary, comparison, Boolean(aggregateSceneComparison))
   comparison.signal = evidenceSignal(baseline.summary, comparison)
   return comparison
 }
@@ -1132,10 +1156,89 @@ function sceneSemanticReportRefForArm(run: DraftingRunRef): SceneSemanticReportR
   }
 }
 
+function sourceComparisonFor(
+  baselineSource: string,
+  candidateSource: string,
+  sourcePairId: string | null,
+): DraftingRunComparison["sourceComparison"] {
+  if (candidateSource === baselineSource) {
+    return { mode: "same-source", sourcePairId: null }
+  }
+  if (sourcePairId) {
+    return { mode: "paired-source", sourcePairId }
+  }
+  return { mode: "different-source", sourcePairId: null }
+}
+
+function aggregateSceneSemanticComparison(
+  baseline: DraftingRunSummary,
+  candidate: DraftingRunSummary,
+): Pick<SceneSemanticComparison, "verdict" | "dimensions"> | null {
+  const dimensions = aggregateSceneSemanticDimensions(baseline.sceneSemantic?.dimensions ?? [], candidate.sceneSemantic?.dimensions ?? [])
+  if (dimensions.length === 0) return null
+  return {
+    verdict: aggregateSceneSemanticVerdict(dimensions),
+    dimensions,
+  }
+}
+
+function aggregateSceneSemanticDimensions(
+  baseline: NonNullable<DraftingRunSummary["sceneSemantic"]>["dimensions"],
+  candidate: NonNullable<DraftingRunSummary["sceneSemantic"]>["dimensions"],
+): SceneSemanticComparison["dimensions"] {
+  const baselineByDimension = new Map(baseline.map(row => [row.dimension, row]))
+  const candidateByDimension = new Map(candidate.map(row => [row.dimension, row]))
+  const dimensions = [...new Set([...baselineByDimension.keys(), ...candidateByDimension.keys()])]
+    .sort((a, b) => a.localeCompare(b))
+  return dimensions.map(dimension => {
+    const baselineRow = baselineByDimension.get(dimension)
+    const candidateRow = candidateByDimension.get(dimension)
+    const baselineMean = baselineRow?.meanOrdinal ?? null
+    const candidateMean = candidateRow?.meanOrdinal ?? null
+    const baselineLowRows = baselineRow?.lowCount ?? 0
+    const candidateLowRows = candidateRow?.lowCount ?? 0
+    return {
+      dimension,
+      comparedRows: Math.min(baselineRow?.count ?? 0, candidateRow?.count ?? 0),
+      baselineMean,
+      candidateMean,
+      meanDelta: baselineMean === null || candidateMean === null ? null : candidateMean - baselineMean,
+      baselineLowRows,
+      candidateLowRows,
+      lowDelta: candidateLowRows - baselineLowRows,
+      resolvedLowRows: 0,
+      regressedLowRows: 0,
+      improvedRows: 0,
+      worsenedRows: 0,
+    }
+  })
+}
+
+function aggregateSceneSemanticVerdict(
+  dimensions: SceneSemanticComparison["dimensions"],
+): SceneSemanticComparison["verdict"] {
+  const lowDeltas = dimensions.map(dim => dim.lowDelta).filter(value => value !== 0)
+  const meanDeltas = dimensions
+    .map(dim => dim.meanDelta)
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value) && value !== 0)
+  const improvedLow = lowDeltas.some(value => value < 0)
+  const regressedLow = lowDeltas.some(value => value > 0)
+  if (improvedLow && regressedLow) return "mixed"
+  if (regressedLow) return "regressed"
+  if (improvedLow) return "improved"
+  const improvedMean = meanDeltas.some(value => value > 0)
+  const regressedMean = meanDeltas.some(value => value < 0)
+  if (improvedMean && regressedMean) return "mixed"
+  if (regressedMean) return "regressed"
+  if (improvedMean) return "improved"
+  return "unchanged"
+}
+
 function evidenceReasons(
   baseline: DraftingRunSummary,
   candidate: DraftingRunSummary,
   comparison: DraftingRunComparison,
+  usedAggregateSceneSemantic: boolean,
 ): string[] {
   const reasons: string[] = []
   if (baseline.error) reasons.push(`Baseline arm has error: ${baseline.error}`)
@@ -1147,7 +1250,12 @@ function evidenceReasons(
   if (baseline.cleanSource === false || candidate.cleanSource === false) {
     reasons.push("At least one report is not marked as a clean drafting source.")
   }
-  if (candidate.source !== baseline.source) {
+  if (comparison.sourceComparison.mode === "paired-source") {
+    reasons.push(
+      `Reports use paired-source lineage ${comparison.sourceComparison.sourcePairId}: ` +
+        `${baseline.source} -> ${candidate.source}.`,
+    )
+  } else if (candidate.source !== baseline.source) {
     reasons.push(`Reports use different source ids: ${baseline.source} -> ${candidate.source}.`)
   }
   if (!failedArm && comparison.length.meanRatioDelta <= -0.05) {
@@ -1165,7 +1273,10 @@ function evidenceReasons(
   } else if (!failedArm && negativeDelta(comparison.proseSemantic.lowRowsDelta)) {
     reasons.push(`Prose-semantic lows improved by ${Math.abs(comparison.proseSemantic.lowRowsDelta!)}.`)
   }
-  if (comparison.sceneSemantic.comparisonVerdict) {
+  if (usedAggregateSceneSemantic && comparison.sceneSemantic.comparisonVerdict) {
+    reasons.push(`Paired-source aggregate scene-semantic verdict is ${comparison.sceneSemantic.comparisonVerdict}.`)
+    reasons.push("Exact scene-semantic rows did not fully align; signal uses paired-source aggregate dimension telemetry.")
+  } else if (comparison.sceneSemantic.comparisonVerdict) {
     reasons.push(`Aligned scene-semantic comparison verdict is ${comparison.sceneSemantic.comparisonVerdict}.`)
   } else {
     reasons.push("Aligned scene-semantic comparison was unavailable; inspect scene-semantic sidecars before drawing quality conclusions.")
@@ -1230,6 +1341,7 @@ function rawContextChangedButSceneCoverageStable(comparison: DraftingRunComparis
 
 function evidenceSignal(baseline: DraftingRunSummary, comparison: DraftingRunComparison): EvidenceSignal {
   if (baseline.error || comparison.candidate.error) return "incomplete"
+  if (comparison.sourceComparison.mode === "different-source") return "incomplete"
   if (!comparison.sceneSemantic.comparisonVerdict) return "incomplete"
   if (comparison.sceneSemantic.comparisonVerdict === "incomplete") return "incomplete"
   if (
@@ -1315,6 +1427,11 @@ function numberRecord(value: unknown): Record<string, number> {
     out[cleanKey] = raw
   }
   return out
+}
+
+function cleanOptionalString(value: string | null | undefined): string | null {
+  const clean = typeof value === "string" ? value.trim() : ""
+  return clean.length > 0 ? clean : null
 }
 
 function recordDelta(
@@ -1439,6 +1556,7 @@ function parseArgs(argv: string[]): Args {
   const candidates: string[] = []
   let baselineArm: string | null = null
   let candidateArm: string | null = null
+  let sourcePairId: string | null = null
   let output: string | null = null
   let json: string | null = null
   let maxChangedRows = 12
@@ -1454,6 +1572,7 @@ function parseArgs(argv: string[]): Args {
     if (arg === "--candidate") { candidates.push(next()); continue }
     if (arg === "--baseline-arm") { baselineArm = next(); continue }
     if (arg === "--candidate-arm") { candidateArm = next(); continue }
+    if (arg === "--source-pair-id") { sourcePairId = next(); continue }
     if (arg === "--output") { output = next(); continue }
     if (arg === "--json") { json = next(); continue }
     if (arg === "--max-changed-rows") {
@@ -1465,7 +1584,7 @@ function parseArgs(argv: string[]): Args {
   }
   if (!baseline && positional.length > 0) baseline = positional.shift() ?? null
   candidates.push(...positional)
-  return { baseline, candidates, baselineArm, candidateArm, output, json, maxChangedRows }
+  return { baseline, candidates, baselineArm, candidateArm, sourcePairId, output, json, maxChangedRows }
 }
 
 function positiveInteger(raw: string, label: string): number {
@@ -1489,13 +1608,14 @@ async function main(argv: string[]): Promise<number> {
     }
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err))
-    console.error("usage: bun scripts/analysis/drafting-run-compare.ts --baseline <drafting-isolated-report.json> --candidate <drafting-isolated-report.json> [--candidate ...] [--baseline-arm <arm>] [--candidate-arm <arm>] [--max-changed-rows <n>] [--output report.md] [--json report.json]")
+    console.error("usage: bun scripts/analysis/drafting-run-compare.ts --baseline <drafting-isolated-report.json> --candidate <drafting-isolated-report.json> [--candidate ...] [--baseline-arm <arm>] [--candidate-arm <arm>] [--source-pair-id <id>] [--max-changed-rows <n>] [--output report.md] [--json report.json]")
     return 2
   }
 
   const report = buildDraftingRunComparisonReport({
     baseline: readDraftingRunRef(args.baseline, args.baselineArm),
     candidates: args.candidates.map(candidate => readDraftingRunRef(candidate, args.candidateArm)),
+    sourcePairId: args.sourcePairId,
     maxChangedRows: args.maxChangedRows,
   })
   const rendered = renderDraftingRunComparisonReport(report)

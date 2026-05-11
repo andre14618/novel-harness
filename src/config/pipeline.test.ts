@@ -8,6 +8,7 @@ import {
   resolveDraftCaptureModeV1,
   resolveScenePlanContractV1,
   resolveNativePlanningContractV1,
+  resolvePlanningSceneTurnShapingV1,
   resolveSceneSatisfactionCheckerV1,
   resolveWriterDraftingBriefMode,
 } from "./pipeline"
@@ -21,6 +22,7 @@ describe("pipeline default flag values (production runtime)", () => {
     expect(pipeline.writerDraftingBriefMode).toBe("off")
     expect(pipeline.draftCaptureModeV1).toBe(false)
     expect(pipeline.scenePlanContractV1).toBe(false)
+    expect(pipeline.planningSceneTurnShapingV1).toBe(false)
     expect(pipeline.sceneSatisfactionCheckerV1).toBe(false)
   })
 
@@ -83,6 +85,12 @@ describe("override resolvers fall back to pipeline defaults when override absent
   test("resolveNativePlanningContractV1", () => {
     expect(resolveNativePlanningContractV1(undefined)).toBe(true)
     expect(resolveNativePlanningContractV1({ nativePlanningContractV1: false })).toBe(false)
+  })
+
+  test("resolvePlanningSceneTurnShapingV1", () => {
+    expect(resolvePlanningSceneTurnShapingV1(undefined)).toBe(false)
+    expect(resolvePlanningSceneTurnShapingV1({})).toBe(false)
+    expect(resolvePlanningSceneTurnShapingV1({ planningSceneTurnShapingV1: true })).toBe(true)
   })
 
   test("resolveSceneSatisfactionCheckerV1", () => {

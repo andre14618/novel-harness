@@ -5,7 +5,7 @@ import type { StorySpine } from "../plotter/schema"
 import type { ChapterOutline } from "../planning-plotter/schema"
 import { renderDirectivesForPlanner } from "../../schemas/planning-directives"
 import { resolveStructuralPriors, renderStructuralPriorsForPlanner } from "../../models/roles"
-import { resolveScenePlanContractV1 } from "../../config/pipeline"
+import { resolvePlanningSceneTurnShapingV1, resolveScenePlanContractV1 } from "../../config/pipeline"
 
 export interface StateMapperContextArgs {
   targetChapter: ChapterOutline
@@ -73,8 +73,12 @@ export function buildContext(args: StateMapperContextArgs): string {
   const scenePlanContractSection = renderStateMapperScenePlanContractGuidance(
     resolveScenePlanContractV1(seed.pipelineOverrides),
   )
+  const selectiveSceneTurnSection = renderStateMapperSelectiveSceneTurnGuidance(
+    resolvePlanningSceneTurnShapingV1(seed.pipelineOverrides),
+    resolveScenePlanContractV1(seed.pipelineOverrides),
+  )
 
-  return `Genre: ${seed.genre}\nPremise: ${seed.premise}\n\n${worldSection}\n\n${charSection}\n\n${spineSection}\n\n${allSkelSection}${priorSection}\n\n${targetSection}\n\n${beatSection}${directivesSection}${structuralSection}${scenePlanContractSection}\n\nMap Chapter ${targetChapter.chapterNumber}'s end-of-chapter state and writer-visible beat obligations onto the existing beat list.`
+  return `Genre: ${seed.genre}\nPremise: ${seed.premise}\n\n${worldSection}\n\n${charSection}\n\n${spineSection}\n\n${allSkelSection}${priorSection}\n\n${targetSection}\n\n${beatSection}${directivesSection}${structuralSection}${scenePlanContractSection}${selectiveSceneTurnSection}\n\nMap Chapter ${targetChapter.chapterNumber}'s end-of-chapter state and writer-visible beat obligations onto the existing beat list.`
 }
 
 // L096 Slice 1: scene-plan-contract guidance for the state mapper. Off-flag
@@ -94,4 +98,15 @@ SCENE PLAN CONTRACT (scenePlanContractV1):
   - Use "partial_payoff", "aftermath", or "escalation" for chapter-local landings that should not close the parent debt.
 - When an obligation carries "payoffId", set a unique "payoffEventId" naming the concrete local payoff event (e.g. "evt-script-burn-final-ch01"). Do not set payoffEventId on open/progress/complicate stages, and do not set it without the parent payoffId.
 - The mapper still does not invent thread/promise/payoff IDs. Only emit these refs when the upstream story debt or payoff explicitly provides them.`
+}
+
+function renderStateMapperSelectiveSceneTurnGuidance(enabled: boolean, scenePlanContractV1: boolean): string {
+  if (!enabled || scenePlanContractV1) return ""
+  return `
+
+SELECTIVE SCENE-TURN SHAPING (planningSceneTurnShapingV1):
+- When a scene has optional goal/opposition/outcome/consequence/povPersonalStake fields, map facts, knowledge changes, and character-state changes onto obligations that make those fields operational in drafting.
+- Prefer one to three source-refed obligations per scene. Each obligation should pressure a choice, constrain action, alter the outcome, make a character materially active, or create the endpoint consequence.
+- Do not add obligations for decorative context. If a fact or character does not change the turn, leave it out of writer-visible obligations.
+- Preserve exact source IDs and character IDs so scene semantic lows can trace endpoint, character materiality, and world pressure back to the plan.`
 }

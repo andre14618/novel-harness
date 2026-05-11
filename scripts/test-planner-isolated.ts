@@ -10,6 +10,7 @@
  *   bun scripts/test-planner-isolated.ts fantasy-healer,fantasy-archive,fantasy-cartographer,fantasy-cultivation-void
  *   bun scripts/test-planner-isolated.ts fantasy-healer --native-planning-contract
  *   bun scripts/test-planner-isolated.ts fantasy-healer --scene-plan-contract
+ *   bun scripts/test-planner-isolated.ts fantasy-healer --scene-turn-planning
  *   bun scripts/test-planner-isolated.ts --novel <concept-done-novel-id> [--native-planning-contract] [--scene-plan-contract]
  *   bun scripts/test-planner-isolated.ts --from-fixture docs/fixtures/scene-first/concepts/over-target/P1-fantasy-debt-binder.json
  *     [--report-dir output/planner-isolated/<run-id>]
@@ -82,6 +83,7 @@ interface Args {
   novelId: string | null
   fixturePath: string | null
   nativePlanningContract: boolean
+  planningSceneTurnShaping: boolean
   scenePlanContract: boolean
   reportDir: string | null
 }
@@ -102,6 +104,7 @@ export interface PlannerIsolatedRunReport {
   generatedAt: string
   options: {
     nativePlanningContract: boolean
+    planningSceneTurnShaping: boolean
     scenePlanContract: boolean
     reportDir: string | null
   }
@@ -110,7 +113,7 @@ export interface PlannerIsolatedRunReport {
 
 async function testSeed(
   seedName: string,
-  options: { nativePlanningContract: boolean; scenePlanContract: boolean },
+  options: { nativePlanningContract: boolean; planningSceneTurnShaping: boolean; scenePlanContract: boolean },
 ): Promise<PlannerIsolatedResult> {
   console.log(`\n━━━ ${seedName} ━━━`)
   const seed = await loadSeed(seedName)
@@ -124,6 +127,12 @@ async function testSeed(
     seed.pipelineOverrides = {
       ...(seed.pipelineOverrides ?? {}),
       scenePlanContractV1: true,
+    }
+  }
+  if (options.planningSceneTurnShaping) {
+    seed.pipelineOverrides = {
+      ...(seed.pipelineOverrides ?? {}),
+      planningSceneTurnShapingV1: true,
     }
   }
   const novelId = `test-planner-${seedName}-${Date.now()}`
@@ -142,7 +151,7 @@ async function testSeed(
 
 async function testFromFixture(
   fixturePath: string,
-  options: { nativePlanningContract: boolean; scenePlanContract: boolean },
+  options: { nativePlanningContract: boolean; planningSceneTurnShaping: boolean; scenePlanContract: boolean },
 ): Promise<PlannerIsolatedResult> {
   const { seed: fixtureSeed, profile, metadataNotes } = await loadFixtureConcept(fixturePath)
   const seed: SeedInput = { ...fixtureSeed }
@@ -156,6 +165,12 @@ async function testFromFixture(
     seed.pipelineOverrides = {
       ...(seed.pipelineOverrides ?? {}),
       scenePlanContractV1: true,
+    }
+  }
+  if (options.planningSceneTurnShaping) {
+    seed.pipelineOverrides = {
+      ...(seed.pipelineOverrides ?? {}),
+      planningSceneTurnShapingV1: true,
     }
   }
   const slug = fixtureSlugFromPath(fixturePath)
@@ -175,11 +190,12 @@ async function testFromFixture(
 
 async function testExistingConceptNovel(
   novelId: string,
-  options: { nativePlanningContract: boolean; scenePlanContract: boolean },
+  options: { nativePlanningContract: boolean; planningSceneTurnShaping: boolean; scenePlanContract: boolean },
 ): Promise<PlannerIsolatedResult> {
   console.log(`\n━━━ ${novelId} ━━━`)
   console.log(`  novel: ${novelId}`)
   await setNativePlanningContractOverride(novelId, options.nativePlanningContract)
+  await setPlanningSceneTurnShapingOverride(novelId, options.planningSceneTurnShaping)
   await setScenePlanContractOverride(novelId, options.scenePlanContract)
   await initNovelRun(novelId)
   console.log(`  [1/1] planning phase...`)
@@ -276,6 +292,25 @@ async function setNativePlanningContractOverride(novelId: string, enabled: boole
   `
 }
 
+async function setPlanningSceneTurnShapingOverride(novelId: string, enabled: boolean): Promise<void> {
+  await db`
+    UPDATE novels
+    SET seed_json = jsonb_set(
+          jsonb_set(
+            COALESCE(seed_json, '{}'::jsonb),
+            '{pipelineOverrides}',
+            COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+            true
+          ),
+          '{pipelineOverrides,planningSceneTurnShapingV1}',
+          to_jsonb(${enabled}::boolean),
+          true
+        ),
+        updated_at = now()
+    WHERE id = ${novelId}
+  `
+}
+
 async function setScenePlanContractOverride(novelId: string, enabled: boolean): Promise<void> {
   await db`
     UPDATE novels
@@ -306,12 +341,16 @@ async function main() {
   if (args.scenePlanContract) {
     console.log("  scenePlanContractV1=true")
   }
+  if (args.planningSceneTurnShaping) {
+    console.log("  planningSceneTurnShapingV1=true")
+  }
 
   const results: PlannerIsolatedResult[] = []
   if (args.fixturePath) {
     try {
       results.push(await testFromFixture(args.fixturePath, {
         nativePlanningContract: args.nativePlanningContract,
+        planningSceneTurnShaping: args.planningSceneTurnShaping,
         scenePlanContract: args.scenePlanContract,
       }))
     } catch (err) {
@@ -322,6 +361,7 @@ async function main() {
     try {
       results.push(await testExistingConceptNovel(args.novelId, {
         nativePlanningContract: args.nativePlanningContract,
+        planningSceneTurnShaping: args.planningSceneTurnShaping,
         scenePlanContract: args.scenePlanContract,
       }))
     } catch (err) {
@@ -333,6 +373,7 @@ async function main() {
       try {
         results.push(await testSeed(s, {
           nativePlanningContract: args.nativePlanningContract,
+          planningSceneTurnShaping: args.planningSceneTurnShaping,
           scenePlanContract: args.scenePlanContract,
         }))
       } catch (err) {
@@ -392,6 +433,7 @@ async function main() {
     generatedAt: new Date().toISOString(),
     options: {
       nativePlanningContract: args.nativePlanningContract,
+      planningSceneTurnShaping: args.planningSceneTurnShaping,
       scenePlanContract: args.scenePlanContract,
       reportDir: args.reportDir,
     },
@@ -413,6 +455,7 @@ export function parseArgs(argv: string[]): Args {
   let novelId: string | null = null
   let fixturePath: string | null = null
   let nativePlanningContract = false
+  let planningSceneTurnShaping = false
   let scenePlanContract = false
   let reportDir: string | null = null
   for (let i = 0; i < argv.length; i++) {
@@ -423,6 +466,10 @@ export function parseArgs(argv: string[]): Args {
     }
     if (arg === "--scene-plan-contract" || arg === "--scene-plan-contract-v1") {
       scenePlanContract = true
+      continue
+    }
+    if (arg === "--scene-turn-planning" || arg === "--planning-scene-turn-shaping-v1") {
+      planningSceneTurnShaping = true
       continue
     }
     if (arg === "--novel" || arg === "--novel-id") {
@@ -453,6 +500,7 @@ export function parseArgs(argv: string[]): Args {
     novelId,
     fixturePath,
     nativePlanningContract,
+    planningSceneTurnShaping,
     scenePlanContract,
     reportDir,
   }
@@ -464,6 +512,7 @@ export function renderPlannerIsolatedReport(report: PlannerIsolatedRunReport): s
   lines.push("")
   lines.push(`generatedAt: ${report.generatedAt}`)
   lines.push(`nativePlanningContract: ${report.options.nativePlanningContract ? "on" : "off"}`)
+  lines.push(`planningSceneTurnShaping: ${report.options.planningSceneTurnShaping ? "on" : "off"}`)
   lines.push(`scenePlanContract: ${report.options.scenePlanContract ? "on" : "off"}`)
   for (const result of report.results) {
     lines.push("")

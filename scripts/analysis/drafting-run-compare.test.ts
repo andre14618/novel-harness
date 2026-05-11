@@ -228,6 +228,82 @@ describe("drafting-run-compare", () => {
     }
   })
 
+  test("uses aggregate scene semantics for explicitly paired clean sources", () => {
+    const dir = mkdtempSync(join(tmpdir(), "drafting-run-compare-paired-source-"))
+    try {
+      const baselineSceneDir = join(dir, "baseline-scene")
+      const candidateSceneDir = join(dir, "candidate-scene")
+      writeSceneReport(baselineSceneDir, sceneReport("baseline", [
+        semanticRow("endpointLanding", "ENDPOINT-2", 2, { sceneId: "base-scene" }),
+      ]))
+      writeSceneReport(candidateSceneDir, sceneReport("candidate", [
+        semanticRow("endpointLanding", "ENDPOINT-1", 1, { sceneId: "candidate-scene" }),
+      ]))
+
+      const baselineReport = join(dir, "baseline-report.json")
+      const candidateReport = join(dir, "candidate-report.json")
+      writeRunReport(baselineReport, {
+        source: "concept-pair-baseline",
+        targetPrefix: "baseline-run",
+        arm: "drafting-brief-tight-v1",
+        novelId: "baseline-novel",
+        totalWords: 3293,
+        totalTarget: 2900,
+        meanRatio: 1.141,
+        sceneOutputDir: baselineSceneDir,
+        contextOutputDir: join(dir, "baseline-context"),
+        sceneLowRows: 0,
+        missingReadiness: 0,
+      })
+      writeRunReport(candidateReport, {
+        source: "concept-pair-candidate",
+        targetPrefix: "candidate-run",
+        arm: "drafting-brief-tight-v1",
+        novelId: "candidate-novel",
+        totalWords: 3250,
+        totalTarget: 3000,
+        meanRatio: 1.083,
+        sceneOutputDir: candidateSceneDir,
+        contextOutputDir: join(dir, "candidate-context"),
+        sceneLowRows: 1,
+        missingReadiness: 0,
+      })
+
+      const report = buildDraftingRunComparisonReport({
+        baseline: readDraftingRunRef(baselineReport),
+        candidates: [readDraftingRunRef(candidateReport)],
+        sourcePairId: "concept-snapshot-1778532400",
+        generatedAt: "2026-05-11T00:00:00.000Z",
+      })
+
+      expect(report.sourcePairId).toBe("concept-snapshot-1778532400")
+      const comparison = report.comparisons[0]!
+      expect(comparison.sourceComparison).toEqual({
+        mode: "paired-source",
+        sourcePairId: "concept-snapshot-1778532400",
+      })
+      expect(comparison.sceneSemantic.comparisonVerdict).toBe("regressed")
+      expect(comparison.sceneSemantic.comparedRows).toBe(0)
+      expect(comparison.sceneSemantic.missingInCandidate).toBe(1)
+      expect(comparison.sceneSemantic.missingInBaseline).toBe(1)
+      expect(comparison.sceneSemantic.dimensions[0]).toMatchObject({
+        dimension: "endpointLanding",
+        lowDelta: 1,
+        baselineMean: 2,
+        candidateMean: 1,
+      })
+      expect(comparison.signal).toBe("regressed")
+      expect(comparison.reasons.join("\n")).toContain("Reports use paired-source lineage concept-snapshot-1778532400")
+      expect(comparison.reasons.join("\n")).toContain("signal uses paired-source aggregate dimension telemetry")
+
+      const rendered = renderDraftingRunComparisonReport(report)
+      expect(rendered).toContain("Source lineage: paired-source (concept-snapshot-1778532400); concept-pair-baseline -> concept-pair-candidate")
+      expect(rendered).toContain("Signal: regressed")
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
   test("renders failed arm comparisons as incomplete without comparable semantic deltas", () => {
     const dir = mkdtempSync(join(tmpdir(), "drafting-run-compare-failed-arm-"))
     try {
@@ -298,6 +374,7 @@ describe("drafting-run-compare", () => {
 })
 
 function writeRunReport(path: string, opts: {
+  source?: string
   targetPrefix: string
   arm: string
   novelId: string
@@ -311,7 +388,7 @@ function writeRunReport(path: string, opts: {
 }): void {
   writeFileSync(path, `${JSON.stringify({
     v: "drafting-isolated-report-v1",
-    source: "source-novel",
+    source: opts.source ?? "source-novel",
     targetPrefix: opts.targetPrefix,
     sourceAssessment: { clean: true, issue: null },
     results: [arm({

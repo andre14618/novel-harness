@@ -186,6 +186,7 @@ function comparisonReport(
 ): DraftingRunComparisonReport {
   return {
     generatedAt: "2026-05-11T00:00:00.000Z",
+    sourcePairId: null,
     baseline: {
       reportPath: `${source}-baseline.json`,
       source,
@@ -222,6 +223,10 @@ function comparisonReport(
         manualReadiness: manualReadiness(),
         proseSemantic: null,
         sceneSemantic: null,
+      },
+      sourceComparison: {
+        mode: "same-source",
+        sourcePairId: null,
       },
       signal,
       reasons: [],

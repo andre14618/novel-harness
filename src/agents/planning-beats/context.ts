@@ -6,7 +6,11 @@ import type { ChapterOutline } from "../planning-plotter/schema"
 import { renderDirectivesForPlanner } from "../../schemas/planning-directives"
 import { resolveStructuralPriors, renderStructuralPriorsForPlanner } from "../../models/roles"
 import { planningBeatCountPolicy } from "../../harness/beat-counts"
-import { resolveNativePlanningContractV1, resolveScenePlanContractV1 } from "../../config/pipeline"
+import {
+  resolveNativePlanningContractV1,
+  resolvePlanningSceneTurnShapingV1,
+  resolveScenePlanContractV1,
+} from "../../config/pipeline"
 
 function renderSkeletonLine(sk: ChapterOutline): string {
   const chars = sk.charactersPresent?.length ? ` [${sk.charactersPresent.join(", ")}]` : ""
@@ -36,6 +40,7 @@ export interface BeatExpansionArgs {
 export function buildContext(args: BeatExpansionArgs): string {
   const { targetChapter, allSkeletons, priorChapters, worldBible, characters, spine, seed, retryFeedback } = args
   const scenePlanContractV1 = resolveScenePlanContractV1(seed.pipelineOverrides)
+  const planningSceneTurnShapingV1 = resolvePlanningSceneTurnShapingV1(seed.pipelineOverrides)
   const beatPolicy = planningBeatCountPolicy(
     targetChapter.targetWords,
     seed.pipelineOverrides?.planningMaxBeatsPerChapter,
@@ -74,7 +79,7 @@ Target words: ${targetChapter.targetWords}
 Characters present: ${(targetChapter.charactersPresent ?? []).join(", ")}
 
 ${renderChapterScopeGuidance(beatPolicy, scenePlanContractV1)}
-${renderNativePlanningContractGuidance(beatPolicy, resolveNativePlanningContractV1(seed.pipelineOverrides))}${renderScenePlanContractGuidance(scenePlanContractV1)}`
+${renderNativePlanningContractGuidance(beatPolicy, resolveNativePlanningContractV1(seed.pipelineOverrides))}${renderSelectiveSceneTurnGuidance(planningSceneTurnShapingV1, scenePlanContractV1)}${renderScenePlanContractGuidance(scenePlanContractV1)}`
 
   const directivesSection = seed.directives ? renderDirectivesForPlanner(seed.directives) : ""
   const priors = resolveStructuralPriors(seed.genre)
@@ -131,6 +136,24 @@ function renderNativePlanningContractGuidance(
   if (!enabled) return ""
   return `
 Native planning contract: Author about ${policy.recommendedBeats} complete story-turn entries for this chapter, sized by dramatic load rather than by a word-count quota. Each entry must carry a concrete pressure, choice, reveal, reversal, or consequence. When the entry turns on the POV's motive or choice, include povPersonalStake naming the specific want, need, fear, lie, truth, wound, oath, shame, or relationship pressure that makes the action matter. Do not emit micro-actions, transit-only entries, oversized packed entries, or bullet-list summaries. The final entry must preserve the chapter endpoint/hook named in the skeleton purpose.`
+}
+
+// L106/L107 follow-on evidence control. This is narrower than the full
+// scenePlanContractV1 prompt: it lets a production planner expose the minimum
+// turn fields the writer can use, without forcing every entry into a templated
+// plot builder or adding blocking validation.
+function renderSelectiveSceneTurnGuidance(enabled: boolean, scenePlanContractV1: boolean): string {
+  if (!enabled || scenePlanContractV1) return ""
+  return `
+
+Selective scene-turn shaping (planningSceneTurnShapingV1):
+This flag is active. It is not the full scenePlanContractV1 template, but the final entry MUST include "outcome" and "consequence"; the planner will retry if those endpoint fields are missing.
+- Populate the final entry's "outcome" and "consequence" so the chapter endpoint/hook lands through an on-page action, reveal, refusal, concession, or changed status with an immediate external effect.
+- Use other optional scene-turn fields only when they clarify a load-bearing entry. Do not tag background, transit, or decorative setup just because a field exists.
+- For entries driven by a concrete decision or pressure turn, populate "goal", "opposition", "turningPoint", "outcome", "consequence", and "povPersonalStake". Add "crisisChoice" and two "choiceAlternatives" only when there is a real tradeoff the prose should dramatize.
+- If a world fact, rule, debt, location constraint, or supporting character is load-bearing, make it constrain the goal, opposition, outcome, or consequence. Do not add standalone labels for context that does not change the turn.
+- Keep each scene description concise and playable. The optional fields should sharpen endpoint, character materiality, and world pressure; they must not duplicate the description or inflate the entry with generic theory.
+- Omit optional scene-turn fields on simple connective entries unless the entry creates a new observable cost, deadline, debt, threat, or relationship state.`
 }
 
 // L096 Slice 1: scene plan contract guidance, gated by `scenePlanContractV1`.

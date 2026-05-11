@@ -36,8 +36,9 @@ describe("test-planner-isolated parseArgs", () => {
   })
 
   test("parses planner-shape contract flags", () => {
-    const args = parseArgs(["fantasy-healer", "--native-planning-contract", "--scene-plan-contract"])
+    const args = parseArgs(["fantasy-healer", "--native-planning-contract", "--scene-turn-planning", "--scene-plan-contract"])
     expect(args.nativePlanningContract).toBe(true)
+    expect(args.planningSceneTurnShaping).toBe(true)
     expect(args.scenePlanContract).toBe(true)
   })
 
@@ -78,6 +79,7 @@ describe("renderPlannerIsolatedReport", () => {
       generatedAt: "2026-05-11T00:00:00.000Z",
       options: {
         nativePlanningContract: true,
+        planningSceneTurnShaping: true,
         scenePlanContract: true,
         reportDir: "output/planner-isolated/test",
       },
@@ -150,6 +152,7 @@ describe("renderPlannerIsolatedReport", () => {
     const rendered = renderPlannerIsolatedReport(report)
 
     expect(rendered).toContain("scenePlanContract: on")
+    expect(rendered).toContain("planningSceneTurnShaping: on")
     expect(rendered).toContain("planShape: sceneIds=2/2; sceneContracts=2; dramatic=2; choice=2; endpoint=2; full=2")
     expect(rendered).toContain("sceneLoad: ch1=2sc/600wps/balanced")
     expect(rendered).toContain("planning-beats: 1 calls")

@@ -32,6 +32,12 @@ export interface SeedInput {
     planningMaxBeatsPerChapter?: number | null
     nativePlanningContractV1?: boolean
     /**
+     * Default-off upstream planning control. When on, the planner may add
+     * selective scene-turn fields to load-bearing entries without enabling
+     * the full scenePlanContractV1 contract or blocking validator.
+     */
+    planningSceneTurnShapingV1?: boolean
+    /**
      * L095 Slice 0: scene-contract substrate flag. Default-off in Slice 0.
      * Slice 1 wires the `causal-motivation-v3` planner prompt and
      * `enforceScenePlanContract` under this flag.

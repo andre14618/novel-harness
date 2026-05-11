@@ -16,6 +16,7 @@ test("planning-state-mapper context omits scene plan contract guidance when flag
   })
 
   expect(context).not.toContain("SCENE PLAN CONTRACT (scenePlanContractV1)")
+  expect(context).not.toContain("SELECTIVE SCENE-TURN SHAPING")
   expect(context).not.toContain("materialityTest")
 })
 
@@ -36,6 +37,33 @@ test("planning-state-mapper context renders scene plan contract guidance when fl
   expect(context).toContain("complicate")
   expect(context).toContain("escalation")
   expect(context).toContain("payoffEventId")
+})
+
+test("planning-state-mapper context renders selective scene-turn obligation guidance", () => {
+  const context = buildContext({
+    targetChapter: chapter(),
+    allSkeletons: [chapter()],
+    priorChapters: [],
+    scenes: [beat({
+      description: "Istra discovers the plague ledger was altered.",
+      characters: ["Istra"],
+      goal: "Expose who altered the ledger.",
+      opposition: "The archive seal makes the false entry look official.",
+      outcome: "Istra marks the false entry.",
+      consequence: "The council clerk is forced to summon the accused treasurer.",
+      povPersonalStake: "Istra fears condemning the wrong person.",
+    })],
+    worldBible: worldBible(),
+    characters: [character()],
+    spine: storySpine(),
+    seed: { ...seed(), pipelineOverrides: { planningSceneTurnShapingV1: true } },
+  })
+
+  expect(context).toContain("SELECTIVE SCENE-TURN SHAPING (planningSceneTurnShapingV1)")
+  expect(context).toContain("map facts, knowledge changes, and character-state changes onto obligations")
+  expect(context).toContain("Prefer one to three source-refed obligations per scene")
+  expect(context).toContain("Do not add obligations for decorative context")
+  expect(context).not.toContain("SCENE PLAN CONTRACT (scenePlanContractV1)")
 })
 
 test("planning-state-mapper context carries beat indexes without asking for rewrites", () => {

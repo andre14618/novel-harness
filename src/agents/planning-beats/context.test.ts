@@ -23,6 +23,7 @@ test("planning beat context omits scene plan contract guidance when flag is off"
   } as Parameters<typeof buildContext>[0])
 
   expect(context).not.toContain("Scene plan contract (scenePlanContractV1)")
+  expect(context).not.toContain("Selective scene-turn shaping")
   expect(context).not.toContain("choiceAlternatives")
 })
 
@@ -66,6 +67,40 @@ test("planning beat context renders scene plan contract guidance when flag is on
   expect(context).toContain("Recommended scene contracts for this chapter size: around 5")
   expect(context).toContain("Do not rely on per-scene word targets")
   expect(context).not.toContain("minimum structural floor")
+})
+
+test("planning beat context renders selective scene-turn shaping without full scene-plan contract", () => {
+  const context = buildContext({
+    targetChapter: chapter(1, 1500),
+    allSkeletons: [chapter(1, 1500)],
+    priorChapters: [],
+    worldBible: {
+      setting: "A test city", timePeriod: "now", geography: "g", politicalStructure: "p",
+      technologyConstraints: "t", socialCustoms: [], sensoryPalette: "s",
+      rules: ["r"], locations: [{ name: "L", description: "d" }],
+      culture: "c", history: "h", systems: [], cultures: [],
+    },
+    characters: [{
+      id: "char-x", name: "X", role: "protagonist", backstory: "", traits: [],
+      speechPattern: "plain", goals: "g", fears: "f",
+      relationships: [], culturalBackground: [], systemAwareness: [], exampleLines: [],
+    }],
+    spine: { acts: [], centralConflict: "c", theme: "t", endingDirection: "e" },
+    seed: {
+      genre: "fantasy",
+      premise: "p",
+      characters: [{ name: "X", role: "protagonist", description: "d" }],
+      pipelineOverrides: { planningSceneTurnShapingV1: true },
+    },
+  } as Parameters<typeof buildContext>[0])
+
+  expect(context).toContain("Selective scene-turn shaping (planningSceneTurnShapingV1)")
+  expect(context).toContain("final entry MUST include \"outcome\" and \"consequence\"")
+  expect(context).toContain("Populate the final entry's \"outcome\" and \"consequence\"")
+  expect(context).toContain("Add \"crisisChoice\" and two \"choiceAlternatives\" only when there is a real tradeoff")
+  expect(context).toContain("Do not add standalone labels for context that does not change the turn")
+  expect(context).not.toContain("Scene plan contract (scenePlanContractV1)")
+  expect(context).not.toContain("Compliance rules (validator will fail")
 })
 
 test("planning beat context renders calibrated beat count guidance", () => {

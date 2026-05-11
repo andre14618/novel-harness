@@ -94,6 +94,14 @@ export const pipeline = {
   // legacy comparisons or rollback.
   nativePlanningContractV1: true,
 
+  // Default-off production planning control for selective scene-turn shaping.
+  // When enabled, the planner may populate only the optional scene-contract
+  // fields that make a load-bearing entry more writable: endpoint
+  // outcome/consequence, protagonist pressure, opposition, and world/character
+  // constraints. Unlike scenePlanContractV1, this does not require full
+  // crisis-choice scaffolding and does not change enforcement defaults.
+  planningSceneTurnShapingV1: false,
+
   // L095 Slice 0: scene-contract substrate flag. Default off — Slice 0 only
   // adds optional schema fields, the `enforceScenePlanContract` helper, and
   // this resolver. No prompt or behavior change. Slice 1 wires the
@@ -189,6 +197,12 @@ export function resolveNativePlanningContractV1(
   overrides: { nativePlanningContractV1?: boolean } | undefined,
 ): boolean {
   return overrides?.nativePlanningContractV1 ?? pipeline.nativePlanningContractV1
+}
+
+export function resolvePlanningSceneTurnShapingV1(
+  overrides: { planningSceneTurnShapingV1?: boolean } | undefined,
+): boolean {
+  return overrides?.planningSceneTurnShapingV1 ?? pipeline.planningSceneTurnShapingV1
 }
 
 export function resolveScenePlanContractV1(

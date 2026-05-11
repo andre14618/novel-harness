@@ -19,7 +19,12 @@ import { schema as stateRepairSchema, prompt as PLANNING_STATE_REPAIR_PROMPT, ty
 import { displayPhaseHeader, presentForApproval, formatChapterOutlines } from "../cli"
 import { emit } from "../events"
 import { log } from "../logger"
-import { pipeline, resolveNativePlanningContractV1, resolveScenePlanContractV1 } from "../config/pipeline"
+import {
+  pipeline,
+  resolveNativePlanningContractV1,
+  resolvePlanningSceneTurnShapingV1,
+  resolveScenePlanContractV1,
+} from "../config/pipeline"
 import * as harness from "../harness"
 import { autogenPlannerProposalsAfterPlanning } from "../harness/planner-canon-proposals"
 import type { BeatObligationsContract, SceneBeat } from "../types"
@@ -47,6 +52,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   const targetChapters = novel.seed.chapterCount ?? null
   const planningMaxBeatsPerChapter = novel.seed.pipelineOverrides?.planningMaxBeatsPerChapter ?? pipeline.planningMaxBeatsPerChapter
   const nativePlanningContractV1 = resolveNativePlanningContractV1(novel.seed.pipelineOverrides)
+  const planningSceneTurnShapingV1 = resolvePlanningSceneTurnShapingV1(novel.seed.pipelineOverrides)
   const scenePlanContractV1 = resolveScenePlanContractV1(novel.seed.pipelineOverrides)
 
   // ── Phase 1: chapter skeletons ──────────────────────────────────────
@@ -149,7 +155,11 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   const retryIdx: Array<{ index: number; reason: string }> = []
   for (let i = 0; i < expanded.length; i++) {
     const ch = expanded[i]
-    const reason = planningBeatExpansionRetryReason(ch, { nativePlanningContractV1, scenePlanContractV1 })
+    const reason = planningBeatExpansionRetryReason(ch, {
+      nativePlanningContractV1,
+      planningSceneTurnShapingV1,
+      scenePlanContractV1,
+    })
     if (reason) {
       retryIdx.push({ index: i, reason })
       console.log(`  Ch ${ch.chapterNumber}: ${reason} — retrying expansion`)
@@ -161,7 +171,11 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
     const retries = retryIdx.map(({ index: i, reason }) =>
       expandChapter(novelId, skeletons![i], skeletons!, worldBible, characters, spine, novel.seed, 2, reason)
         .then(full => {
-          const retryReason = planningBeatExpansionRetryReason(full, { nativePlanningContractV1, scenePlanContractV1 })
+          const retryReason = planningBeatExpansionRetryReason(full, {
+            nativePlanningContractV1,
+            planningSceneTurnShapingV1,
+            scenePlanContractV1,
+          })
           if (!retryReason) expanded[i] = full
           else log(novelId, "warn", `Ch ${full.chapterNumber}: retry still failed planning shape (${retryReason})`)
         })
@@ -414,12 +428,17 @@ async function expandChapter(
     (result.output.scenes as SceneBeat[]).map(stripBeatMapperFields),
     seed,
   )
-  return mapChapterState(novelId, skeleton, allSkeletons, worldBible, characters, spine, seed, scenes, attempt)
+  const shapedScenes = applySelectiveSceneTurnShapingFallback(novelId, skeleton, scenes, seed)
+  return mapChapterState(novelId, skeleton, allSkeletons, worldBible, characters, spine, seed, shapedScenes, attempt)
 }
 
 export function planningBeatExpansionRetryReason(
   outline: Pick<ChapterOutline, "chapterNumber" | "targetWords" | "scenes">,
-  options: { nativePlanningContractV1?: boolean; scenePlanContractV1?: boolean } = {},
+  options: {
+    nativePlanningContractV1?: boolean
+    planningSceneTurnShapingV1?: boolean
+    scenePlanContractV1?: boolean
+  } = {},
 ): string | null {
   if (options.scenePlanContractV1) return null
   const target = outline.targetWords ?? 1000
@@ -432,7 +451,81 @@ export function planningBeatExpansionRetryReason(
       return `${count} beats > native planning budget ${assessment.recommendedBeats}+1 for ${target}w target`
     }
   }
+  if (options.planningSceneTurnShapingV1) {
+    const reason = selectiveSceneTurnShapingRetryReason(outline.scenes ?? [])
+    if (reason) return reason
+  }
   return null
+}
+
+function selectiveSceneTurnShapingRetryReason(scenes: readonly SceneBeat[]): string | null {
+  const finalScene = scenes.at(-1)
+  if (!finalScene) return null
+  if (!hasText(finalScene.outcome) || !hasText(finalScene.consequence)) {
+    return "planningSceneTurnShapingV1 final entry missing outcome/consequence endpoint fields"
+  }
+  return null
+}
+
+function hasText(value: unknown): boolean {
+  return typeof value === "string" && value.trim().length > 0
+}
+
+export function applySelectiveSceneTurnShapingFallback(
+  novelId: string,
+  skeleton: Pick<ChapterOutline, "chapterNumber" | "purpose">,
+  scenes: readonly SceneBeat[],
+  seed: Pick<SeedInput, "pipelineOverrides">,
+): SceneBeat[] {
+  if (
+    !resolvePlanningSceneTurnShapingV1(seed.pipelineOverrides) ||
+    resolveScenePlanContractV1(seed.pipelineOverrides)
+  ) {
+    return [...scenes]
+  }
+  const out = scenes.map(scene => ({ ...scene }))
+  const finalScene = out.at(-1)
+  if (!finalScene) return out
+
+  const applied: string[] = []
+  if (!hasText(finalScene.outcome)) {
+    finalScene.outcome = truncatePlanningField(finalScene.description)
+    applied.push("outcome")
+  }
+  if (!hasText(finalScene.consequence)) {
+    finalScene.consequence = truncatePlanningField(
+      `Chapter endpoint consequence: ${extractChapterEndpoint(skeleton.purpose) ?? skeleton.purpose}`,
+    )
+    applied.push("consequence")
+  }
+  if (applied.length > 0) {
+    log(
+      novelId,
+      "info",
+      `Planning scene-turn fallback ch${skeleton.chapterNumber}: filled final ${applied.join("+")} from existing plan text`,
+    )
+  }
+  return out
+}
+
+function extractChapterEndpoint(purpose: string): string | null {
+  const patterns = [
+    /\bchapter ends with\s+(.+?)(?:\.|$)/i,
+    /\bends with\s+(.+?)(?:\.|$)/i,
+    /\bending with\s+(.+?)(?:\.|$)/i,
+    /\bends by\s+(.+?)(?:\.|$)/i,
+  ]
+  for (const pattern of patterns) {
+    const match = purpose.match(pattern)
+    if (match?.[1]) return match[1].trim()
+  }
+  return null
+}
+
+function truncatePlanningField(value: string, max = 320): string {
+  const cleaned = value.replace(/\s+/g, " ").trim()
+  if (cleaned.length <= max) return cleaned
+  return `${cleaned.slice(0, max - 3).trimEnd()}...`
 }
 
 function capExpandedScenesForPlanning(
