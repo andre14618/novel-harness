@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test"
-import { mkdtempSync, readFileSync, rmSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
@@ -13,6 +13,7 @@ import {
   sceneSemanticSummary,
   sourceDraftingIsolationIssue,
   writeSceneSemanticFailureArtifacts,
+  writeDraftingIsolatedSceneSemanticComparison,
 } from "./test-drafting-isolated"
 import type { ArmResult, Args } from "./test-drafting-isolated"
 import type { SceneSemanticReplayReport } from "./evals/scene-semantic-review"
@@ -493,6 +494,69 @@ describe("sceneSemanticSummary", () => {
       rmSync(dir, { recursive: true, force: true })
     }
   })
+
+  test("writes an arm-to-arm scene semantic comparison sidecar", () => {
+    const dir = mkdtempSync(join(tmpdir(), "drafting-scene-semantic-compare-"))
+    try {
+      const baselineDir = join(dir, "scene-semantic-review", "baseline")
+      const candidateDir = join(dir, "scene-semantic-review", "scene-call-v1")
+      writeSceneReport(baselineDir, semanticReport("scene-semantic-review:test:baseline", [
+        resultRow("endpointLanding", "ENDPOINT-1", 1),
+      ]))
+      writeSceneReport(candidateDir, semanticReport("scene-semantic-review:test:scene-call-v1", [
+        resultRow("endpointLanding", "ENDPOINT-2", 2),
+      ]))
+
+      const comparison = writeDraftingIsolatedSceneSemanticComparison([
+        armResult({
+          arm: "baseline",
+          sceneSemantic: sceneSemanticTelemetry(baselineDir),
+        }),
+        armResult({
+          arm: "scene-call-v1",
+          sceneSemantic: sceneSemanticTelemetry(candidateDir),
+        }),
+      ], join(dir, "drafting-report"))
+
+      expect(comparison).not.toBeNull()
+      expect(comparison?.baselineArm).toBe("baseline")
+      expect(comparison?.comparisons[0]).toMatchObject({
+        candidateArm: "scene-call-v1",
+        verdict: "improved",
+        comparedRows: 1,
+      })
+      expect(comparison?.comparisons[0]?.dimensions[0]).toMatchObject({
+        dimension: "endpointLanding",
+        lowDelta: -1,
+        resolvedLowRows: 1,
+      })
+      const markdown = readFileSync(join(dir, "drafting-report", "scene-semantic-compare.md"), "utf8")
+      expect(markdown).toContain("ENDPOINT-1 -> ENDPOINT-2")
+
+      const report = buildDraftingIsolatedRunReport({
+        args: args({ arms: ["baseline", "scene-call-v1"] }),
+        sourceAssessment: {
+          clean: true,
+          issue: null,
+          guidance: null,
+          state: {
+            phase: "drafting",
+            currentChapter: 1,
+            outlineCount: 2,
+            draftCount: 0,
+          },
+        },
+        results: [
+          armResult({ arm: "baseline", sceneSemantic: sceneSemanticTelemetry(baselineDir) }),
+          armResult({ arm: "scene-call-v1", sceneSemantic: sceneSemanticTelemetry(candidateDir) }),
+        ],
+        sceneSemanticComparison: comparison,
+      })
+      expect(renderDraftingIsolatedRunReport(report)).toContain("## Scene Semantic Comparison")
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
 })
 
 function resultRow(dimension: "endpointLanding" | "sceneDramaturgy", label: string, ordinal: number): SceneSemanticReplayReport["results"][number] {
@@ -524,6 +588,49 @@ function resultRow(dimension: "endpointLanding" | "sceneDramaturgy", label: stri
       missingForNextLevel: "",
       gates: {},
     },
+  }
+}
+
+function semanticReport(setName: string, results: SceneSemanticReplayReport["results"]): SceneSemanticReplayReport {
+  return {
+    generatedAt: "2026-05-11T00:00:00.000Z",
+    novelId: "novel",
+    setName,
+    chapters: [1],
+    live: true,
+    model: "deepseek-v4-flash",
+    thinking: true,
+    promptMode: "evidence-first",
+    dimensions: [...new Set(results.map(row => row.dimension))],
+    taskCount: results.length,
+    skipCount: 0,
+    results,
+    skips: [],
+    summaries: [],
+  }
+}
+
+function writeSceneReport(outputDir: string, report: SceneSemanticReplayReport): void {
+  mkdirSync(outputDir, { recursive: true })
+  const path = join(outputDir, "scene-semantic-review.json")
+  writeFileSync(path, `${JSON.stringify(report, null, 2)}\n`)
+}
+
+function sceneSemanticTelemetry(outputDir: string): NonNullable<ArmResult["sceneSemantic"]> {
+  return {
+    outputDir,
+    taskCount: 1,
+    skipCount: 0,
+    lowRows: 0,
+    errorRows: 0,
+    dimensions: [{
+      dimension: "endpointLanding",
+      count: 1,
+      meanOrdinal: 2,
+      lowCount: 0,
+      labelCounts: { "ENDPOINT-2": 1 },
+    }],
+    recommendation: "review",
   }
 }
 

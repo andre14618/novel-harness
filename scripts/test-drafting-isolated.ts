@@ -78,7 +78,7 @@
  */
 
 import { spawn } from "node:child_process"
-import { mkdirSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import db from "../src/db/connection"
 import { runDraftingPhase } from "../src/phases/drafting"
@@ -98,6 +98,12 @@ import {
   buildSceneSemanticReadinessAggregate,
   renderSceneSemanticReadinessAggregate,
 } from "./evals/scene-semantic-readiness"
+import {
+  buildSceneSemanticComparisonReport,
+  renderSceneSemanticComparisonReport,
+  type SceneSemanticComparisonReport,
+  type SceneSemanticReportRef,
+} from "./evals/scene-semantic-compare"
 import {
   loadPlanningToDraftingContextReport,
   renderPlanningToDraftingContextReport,
@@ -232,6 +238,31 @@ export interface DraftingIsolatedRunReport {
   }
   results: ArmResult[]
   deltas: DraftingIsolatedDelta[]
+  sceneSemanticComparison?: DraftingIsolatedSceneSemanticComparisonSummary | null
+}
+
+export interface DraftingIsolatedSceneSemanticComparisonSummary {
+  outputDir: string
+  baselineArm: ArmName
+  baselineReport: string
+  candidateCount: number
+  comparisons: Array<{
+    candidateArm: ArmName
+    candidateReport: string
+    verdict: SceneSemanticComparisonReport["comparisons"][number]["verdict"]
+    comparedRows: number
+    missingInCandidate: number
+    missingInBaseline: number
+    dimensions: Array<{
+      dimension: Dimension
+      meanDelta: number | null
+      lowDelta: number
+      resolvedLowRows: number
+      regressedLowRows: number
+      improvedRows: number
+      worsenedRows: number
+    }>
+  }>
 }
 
 export interface DraftingBriefTelemetrySummary {
@@ -1229,12 +1260,18 @@ async function main() {
     }
   }
 
+  const reportDir = args.reportDir ?? `output/drafting-isolated/${args.targetPrefix}`
+  const sceneSemanticComparison = writeDraftingIsolatedSceneSemanticComparison(results, reportDir)
+  if (sceneSemanticComparison) {
+    console.log(`\nscene semantic comparison: ${sceneSemanticComparison.outputDir}/scene-semantic-compare.json`)
+  }
+
   const report = buildDraftingIsolatedRunReport({
     args,
     results,
     sourceAssessment,
+    sceneSemanticComparison,
   })
-  const reportDir = args.reportDir ?? `output/drafting-isolated/${args.targetPrefix}`
   writeDraftingIsolatedRunReport(report, reportDir)
   console.log(`\nreport: ${reportDir}/drafting-isolated-report.json`)
 
@@ -1245,6 +1282,7 @@ export function buildDraftingIsolatedRunReport(input: {
   args: Args
   results: ArmResult[]
   sourceAssessment: SourceDraftingIsolationAssessment
+  sceneSemanticComparison?: DraftingIsolatedSceneSemanticComparisonSummary | null
   generatedAt?: string
 }): DraftingIsolatedRunReport {
   const results = input.results
@@ -1282,6 +1320,7 @@ export function buildDraftingIsolatedRunReport(input: {
     },
     results,
     deltas,
+    sceneSemanticComparison: input.sceneSemanticComparison ?? null,
   }
 }
 
@@ -1309,6 +1348,68 @@ export function draftingIsolatedDeltas(results: readonly ArmResult[]): DraftingI
                 : "insufficient",
       }
     })
+}
+
+export function writeDraftingIsolatedSceneSemanticComparison(
+  results: readonly ArmResult[],
+  reportDir: string,
+): DraftingIsolatedSceneSemanticComparisonSummary | null {
+  const reportRefs = results.flatMap(result => {
+    const ref = sceneSemanticReportRefForArm(result)
+    return ref ? [ref] : []
+  })
+  if (reportRefs.length < 2) return null
+  const baseline = reportRefs.find(ref => ref.arm === "baseline") ?? reportRefs[0]!
+  const candidates = reportRefs.filter(ref => ref !== baseline)
+  if (candidates.length === 0) return null
+
+  const comparisonReport = buildSceneSemanticComparisonReport({
+    baseline,
+    candidates,
+  })
+  const outputDir = reportDir
+  mkdirSync(outputDir, { recursive: true })
+  writeFileSync(join(outputDir, "scene-semantic-compare.json"), `${JSON.stringify(comparisonReport, null, 2)}\n`)
+  writeFileSync(join(outputDir, "scene-semantic-compare.md"), renderSceneSemanticComparisonReport(comparisonReport))
+  const armByPath = new Map(reportRefs.map(ref => [ref.path, ref.arm]))
+  return {
+    outputDir,
+    baselineArm: baseline.arm,
+    baselineReport: baseline.path,
+    candidateCount: comparisonReport.comparisons.length,
+    comparisons: comparisonReport.comparisons.map(comparison => ({
+      candidateArm: armByPath.get(comparison.candidate.path) ?? candidates[0]!.arm,
+      candidateReport: comparison.candidate.path,
+      verdict: comparison.verdict,
+      comparedRows: comparison.comparedRows,
+      missingInCandidate: comparison.missingInCandidate.length,
+      missingInBaseline: comparison.missingInBaseline.length,
+      dimensions: comparison.dimensions.map(dim => ({
+        dimension: dim.dimension,
+        meanDelta: dim.meanDelta,
+        lowDelta: dim.lowDelta,
+        resolvedLowRows: dim.resolvedLowRows,
+        regressedLowRows: dim.regressedLowRows,
+        improvedRows: dim.improvedRows,
+        worsenedRows: dim.worsenedRows,
+      })),
+    })),
+  }
+}
+
+function sceneSemanticReportRefForArm(result: ArmResult): (SceneSemanticReportRef & { arm: ArmName }) | null {
+  if (!result.sceneSemantic || result.sceneSemantic.errorRows > 0 || result.sceneSemantic.taskCount === 0) return null
+  const path = join(result.sceneSemantic.outputDir, "scene-semantic-review.json")
+  if (!existsSync(path)) return null
+  try {
+    return {
+      arm: result.arm,
+      path,
+      report: JSON.parse(readFileSync(path, "utf8")) as SceneSemanticReplayReport,
+    }
+  } catch {
+    return null
+  }
 }
 
 export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunReport): string {
@@ -1351,6 +1452,20 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
     for (const delta of report.deltas) {
       const sign = delta.meanRatioDelta >= 0 ? "+" : ""
       lines.push(`- ${delta.arm} vs ${delta.baselineArm}: ${sign}${delta.meanRatioDelta.toFixed(3)} expansionEvents=${delta.expansionEvents} verdict=${delta.pocMagnitude}${delta.error ? ` error=${delta.error}` : ""}`)
+    }
+  }
+  if (report.sceneSemanticComparison && report.sceneSemanticComparison.comparisons.length > 0) {
+    lines.push("")
+    lines.push("## Scene Semantic Comparison")
+    lines.push(`- baseline: ${report.sceneSemanticComparison.baselineArm}`)
+    lines.push(`- report: ${report.sceneSemanticComparison.outputDir}/scene-semantic-compare.json`)
+    for (const comparison of report.sceneSemanticComparison.comparisons) {
+      lines.push(`- ${comparison.candidateArm}: verdict=${comparison.verdict} rows=${comparison.comparedRows} missingCandidate=${comparison.missingInCandidate} missingBaseline=${comparison.missingInBaseline}`)
+      for (const dim of comparison.dimensions) {
+        const mean = dim.meanDelta === null ? "n/a" : dim.meanDelta.toFixed(2)
+        const lowSign = dim.lowDelta > 0 ? "+" : ""
+        lines.push(`  ${dim.dimension}: meanDelta=${mean} lowDelta=${lowSign}${dim.lowDelta} resolved=${dim.resolvedLowRows} regressed=${dim.regressedLowRows}`)
+      }
     }
   }
   return `${lines.join("\n")}\n`
