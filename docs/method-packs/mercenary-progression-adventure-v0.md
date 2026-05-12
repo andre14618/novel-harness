@@ -184,6 +184,16 @@ bun scripts/test-drafting-isolated.ts \
   --quality-telemetry-packet
 ```
 
+Successful planner-isolated runs now write `plan.html` in the report
+directory. Existing persisted planner sources can be rendered again with:
+
+```bash
+bun run diagnostics:planner-outline-html -- \
+  --novel <planner-novel-id> \
+  --out output/planner-isolated/mercenary-rillgate/plan.html \
+  --open
+```
+
 Promotion remains evidence-gated: the planner must preserve MPA-01 through
 MPA-10, keep exact story refs, and first-chapter drafting telemetry must avoid
 endpoint, dramaturgy, character-materiality, and world-pressure lows.
