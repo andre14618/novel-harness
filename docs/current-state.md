@@ -59,11 +59,10 @@ Use deeper docs only when linked by the context pack or needed by code.
   `ORCHESTRATOR_AUTH_ENABLED=1` to restore orchestrator API/UI auth.
 - Active LLM calls use DeepSeek V4 Flash or DeepSeek V4 Pro only. Legacy model
   references are historical unless a current decision reopens them. See L90.
-- Evidence-generation flows should collect prose-semantic telemetry by default
-  where wired. Scene-semantic replay, planner-quality diagnostics, existing
-  readiness sidecars, Plan-Assist gate reports, and checker blocker reports can import open Plan
-  Readiness items through production commands; semantic telemetry stays
-  advisory/fail-open data, not a drafting or promotion gate.
+- Evidence-generation flows collect prose-semantic telemetry where wired. Use
+  `test-drafting-isolated --quality-telemetry-packet` for the stable advisory
+  prose+scene packet; semantic telemetry stays fail-open data, not a drafting
+  or promotion gate. See L108.
 
 ## Authoring Direction
 
@@ -88,10 +87,9 @@ Use deeper docs only when linked by the context pack or needed by code.
   tight-anchored variants. They render compact writer-facing briefs from
   production `BeatContext` slots, record `writer-context` prompt telemetry, and
   support `diagnostics:writer-context` scene-normalized audits after runs.
-  Fixed-plan drafting evidence can add `--scene-semantic-review` to capture
+  Fixed-plan drafting evidence can add `--quality-telemetry-packet` to capture
   endpointLanding, sceneDramaturgy, characterMateriality, and
-  worldFactPressure replay artifacts per arm; `--scene-semantic-persist` stores
-  eval rows and imports readiness lows unless disabled. Replay prefers captured
+  worldFactPressure replay artifacts per arm. Replay prefers captured
   per-scene writer calls before falling back to whole-chapter prose. Use
   `diagnostics:planning-drafting-context` to audit context/canon/story-spine/story-ref/reader-state and unresolved reference attempts and
   `diagnostics:drafting-run-compare`/`diagnostics:drafting-run-cohort` to compare
@@ -126,7 +124,7 @@ policing is not the active lever. Tight-anchored writer-brief evidence was
 P2-promising but failed to generalize: P1 regressed with a scene-semantic low,
 P3 was mixed, and the P1/P2/P3 cohort remained regressed. Default flip remains
 blocked; next: mine semantic trace clusters and checker readiness noise for
-endpoint/materiality execution, without reopening POC-to-main workflow. See L103-L107.
+endpoint/materiality execution, without reopening POC-to-main workflow. See L103-L108.
 
 ## Authoring Gates
 

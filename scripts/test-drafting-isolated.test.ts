@@ -72,6 +72,7 @@ describe("test-drafting-isolated parseArgs", () => {
 
   test("prose semantic eval is default-on, can dry-run, and can opt out", () => {
     const defaults = parseArgs(["--source", "n", "--target-prefix", "ab"])
+    expect(defaults.qualityTelemetryPacket).toBe(false)
     expect(defaults.proseSemanticEval).toBe(true)
     expect(defaults.proseSemanticDryRun).toBe(false)
 
@@ -87,6 +88,44 @@ describe("test-drafting-isolated parseArgs", () => {
     const disabled = parseArgs(["--source", "n", "--target-prefix", "ab", "--no-prose-semantic-eval"])
     expect(disabled.proseSemanticEval).toBe(false)
     expect(disabled.proseSemanticDryRun).toBe(false)
+  })
+
+  test("--quality-telemetry-packet enables the stable advisory packet", () => {
+    const args = parseArgs([
+      "--source", "n",
+      "--target-prefix", "ab",
+      "--quality-telemetry-packet",
+    ])
+
+    expect(args.qualityTelemetryPacket).toBe(true)
+    expect(args.proseSemanticEval).toBe(true)
+    expect(args.proseSemanticDryRun).toBe(false)
+    expect(args.sceneSemanticReview).toBe(true)
+    expect(args.sceneSemanticLive).toBe(true)
+    expect(args.sceneSemanticPersist).toBe(true)
+    expect(args.sceneSemanticReadinessImport).toBe(false)
+    expect(args.sceneSemanticMaxTokens).toBe(8000)
+    expect(args.sceneSemanticDimensions).toEqual([
+      "endpointLanding",
+      "sceneDramaturgy",
+      "characterMateriality",
+      "worldFactPressure",
+    ])
+  })
+
+  test("--quality-telemetry-packet allows explicit scene semantic overrides", () => {
+    const args = parseArgs([
+      "--source", "n",
+      "--target-prefix", "ab",
+      "--quality-telemetry-packet",
+      "--scene-semantic-readiness-import",
+      "--scene-semantic-max-tokens", "900",
+    ])
+
+    expect(args.sceneSemanticReview).toBe(true)
+    expect(args.sceneSemanticPersist).toBe(true)
+    expect(args.sceneSemanticReadinessImport).toBe(true)
+    expect(args.sceneSemanticMaxTokens).toBe(900)
   })
 
   test("scene semantic replay is default-off and can be enabled live or dry-run", () => {

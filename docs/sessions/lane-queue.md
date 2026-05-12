@@ -26,8 +26,9 @@ unless the user explicitly requests a disposable branch.
   P1 regressed at 4392/3100 with one scene low; P3 was mixed at 4269/3100 with
   no scene lows but readiness/checker noise. Cohort
   `semantic-exec-p123-tight-anchored-vs-tight` is regressed overall. Default
-  flip remains blocked; keep semantic telemetry advisory and target endpoint/
-  materiality execution plus checker support-echo noise. See L106/L107.
+  flip remains blocked; stable evidence capture is now
+  `--quality-telemetry-packet`; target endpoint/materiality execution plus
+  checker support-echo noise next. See L106-L108.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort
@@ -117,7 +118,7 @@ unless the user explicitly requests a disposable branch.
 - Next session start: use `semantic-exec-p123-tight-anchored-vs-tight` trace
   clusters as the next production-path input. Favor a narrow main-path change
   that improves endpoint landing or character materiality on the regressed rows,
-  with semantic replay/compare as advisory telemetry and no POC branch.
+  with `--quality-telemetry-packet` evidence and no POC branch.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.

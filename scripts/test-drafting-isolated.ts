@@ -59,6 +59,7 @@
  *                                                                # default: baseline,scene-call-v1
  *     [--writer-only]                                            # set draftCaptureModeV1=true on every arm
  *     [--no-prose-semantic-eval]                                 # opt out of default advisory prose telemetry
+ *     [--quality-telemetry-packet]                               # stable advisory prose+scene semantic packet; artifact-only readiness
  *     [--scene-semantic-review]                                  # opt into endpoint/scene replay telemetry
  *     [--scene-semantic-persist]                                 # persist scene-semantic eval rows; imports readiness lows unless disabled
  *     [--no-scene-semantic-readiness-import]                     # keep persisted scene-semantic readiness artifact-only
@@ -179,6 +180,7 @@ export interface Args {
    *  over each arm's drafted chapters after drafting/partial collection. This
    *  does not gate the arm; it only writes artifacts and persists judge
    *  telemetry. */
+  qualityTelemetryPacket: boolean
   proseSemanticEval: boolean
   proseSemanticDryRun: boolean
   proseSemanticConcurrency: number
@@ -271,6 +273,7 @@ export interface DraftingIsolatedRunReport {
   options: {
     arms: ArmName[]
     writerOnly: boolean
+    qualityTelemetryPacket: boolean
     proseSemanticEval: boolean
     proseSemanticDryRun: boolean
     proseSemanticConcurrency: number
@@ -483,6 +486,7 @@ const DEFAULT_SCENE_SEMANTIC_DIMENSIONS: Dimension[] = [
   "worldFactPressure",
 ]
 const DEFAULT_SCENE_SEMANTIC_MAX_TOKENS = 2200
+const QUALITY_TELEMETRY_SCENE_SEMANTIC_MAX_TOKENS = 8000
 
 function emptyDraftingBriefTelemetry(): DraftingBriefTelemetrySummary {
   return {
@@ -1775,6 +1779,7 @@ export function parseArgs(argv: string[]): Args {
   let targetPrefix: string | null = null
   let armsRaw: string | null = null
   let writerOnly = false
+  let qualityTelemetryPacket = false
   let proseSemanticEval = true
   let proseSemanticDryRun = false
   let proseSemanticConcurrency = 4
@@ -1782,8 +1787,10 @@ export function parseArgs(argv: string[]): Args {
   let sceneSemanticLive = true
   let sceneSemanticPersist = false
   let sceneSemanticReadinessImport = true
+  let sceneSemanticReadinessImportExplicit = false
   let sceneSemanticConcurrency = 4
   let sceneSemanticMaxTokens = DEFAULT_SCENE_SEMANTIC_MAX_TOKENS
+  let sceneSemanticMaxTokensExplicit = false
   const sceneSemanticDimensions: Dimension[] = []
   let allowDraftedSource = false
   let targetWordScale = 1
@@ -1795,6 +1802,7 @@ export function parseArgs(argv: string[]): Args {
     if (a === "--target-prefix") { targetPrefix = argv[++i] ?? null; continue }
     if (a === "--writer-arms") { armsRaw = argv[++i] ?? null; continue }
     if (a === "--writer-only") { writerOnly = true; continue }
+    if (a === "--quality-telemetry-packet") { qualityTelemetryPacket = true; continue }
     if (a === "--prose-semantic-eval") { proseSemanticEval = true; continue }
     if (a === "--no-prose-semantic-eval") { proseSemanticEval = false; proseSemanticDryRun = false; continue }
     if (a === "--prose-semantic-dry-run") { proseSemanticEval = true; proseSemanticDryRun = true; continue }
@@ -1810,8 +1818,8 @@ export function parseArgs(argv: string[]): Args {
     if (a === "--scene-semantic-review") { sceneSemanticReview = true; sceneSemanticLive = true; continue }
     if (a === "--scene-semantic-dry-run") { sceneSemanticReview = true; sceneSemanticLive = false; continue }
     if (a === "--scene-semantic-persist") { sceneSemanticReview = true; sceneSemanticPersist = true; continue }
-    if (a === "--scene-semantic-readiness-import") { sceneSemanticReview = true; sceneSemanticPersist = true; sceneSemanticReadinessImport = true; continue }
-    if (a === "--no-scene-semantic-readiness-import") { sceneSemanticReadinessImport = false; continue }
+    if (a === "--scene-semantic-readiness-import") { sceneSemanticReview = true; sceneSemanticPersist = true; sceneSemanticReadinessImport = true; sceneSemanticReadinessImportExplicit = true; continue }
+    if (a === "--no-scene-semantic-readiness-import") { sceneSemanticReadinessImport = false; sceneSemanticReadinessImportExplicit = true; continue }
     if (a === "--no-scene-semantic-review") { sceneSemanticReview = false; sceneSemanticPersist = false; continue }
     if (a === "--allow-drafted-source") { allowDraftedSource = true; continue }
     if (a === "--target-word-scale") {
@@ -1846,6 +1854,7 @@ export function parseArgs(argv: string[]): Args {
         throw new Error(`--scene-semantic-max-tokens requires a positive integer; got ${JSON.stringify(raw)}`)
       }
       sceneSemanticMaxTokens = parsed
+      sceneSemanticMaxTokensExplicit = true
       continue
     }
     if (a === "--per-arm-timeout-ms") {
@@ -1862,6 +1871,15 @@ export function parseArgs(argv: string[]): Args {
   }
   if (!source) throw new Error("--source <planning-done-novel-id> is required")
   if (!targetPrefix) throw new Error("--target-prefix <prefix> is required")
+  if (qualityTelemetryPacket) {
+    proseSemanticEval = true
+    proseSemanticDryRun = false
+    sceneSemanticReview = true
+    sceneSemanticLive = true
+    sceneSemanticPersist = true
+    if (!sceneSemanticReadinessImportExplicit) sceneSemanticReadinessImport = false
+    if (!sceneSemanticMaxTokensExplicit) sceneSemanticMaxTokens = QUALITY_TELEMETRY_SCENE_SEMANTIC_MAX_TOKENS
+  }
   const arms: ArmName[] = (armsRaw ?? "baseline,scene-call-v1")
     .split(",").map(s => s.trim()).filter(Boolean) as ArmName[]
   for (const arm of arms) {
@@ -1875,6 +1893,7 @@ export function parseArgs(argv: string[]): Args {
     targetPrefix,
     arms,
     writerOnly,
+    qualityTelemetryPacket,
     proseSemanticEval,
     proseSemanticDryRun,
     proseSemanticConcurrency,
@@ -1913,6 +1932,9 @@ async function main() {
   console.log(`arms: ${args.arms.join(", ")}`)
   if (args.writerOnly) {
     console.log(`writer-only mode: draftCaptureModeV1=true on every arm — chapter-level checker settle loops are SKIPPED`)
+  }
+  if (args.qualityTelemetryPacket) {
+    console.log(`quality telemetry packet: enabled (advisory prose+scene semantics; scene readiness import=${args.sceneSemanticReadinessImport ? "enabled" : "disabled"})`)
   }
   if (args.proseSemanticEval) {
     console.log(`prose semantic eval: enabled${args.proseSemanticDryRun ? " (dry-run)" : ""}, concurrency=${args.proseSemanticConcurrency}`)
@@ -2091,6 +2113,7 @@ export function buildDraftingIsolatedRunReport(input: {
     options: {
       arms: input.args.arms,
       writerOnly: input.args.writerOnly,
+      qualityTelemetryPacket: input.args.qualityTelemetryPacket,
       proseSemanticEval: input.args.proseSemanticEval,
       proseSemanticDryRun: input.args.proseSemanticDryRun,
       proseSemanticConcurrency: input.args.proseSemanticConcurrency,
@@ -2229,6 +2252,7 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
   lines.push(`- completed arms: ${report.summary.completedArms}`)
   lines.push(`- error arms: ${report.summary.errorArms}`)
   lines.push(`- writer-only: ${report.options.writerOnly}`)
+  lines.push(`- quality telemetry packet: ${report.options.qualityTelemetryPacket ? "enabled" : "disabled"}`)
   lines.push(`- target word scale: ${report.options.targetWordScale}`)
   lines.push(`- prose semantic eval: ${report.options.proseSemanticEval ? "enabled" : "disabled"}`)
   lines.push(`- scene semantic replay: ${report.options.sceneSemanticReview ? "enabled" : "disabled"}`)
