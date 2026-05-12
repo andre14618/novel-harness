@@ -241,6 +241,65 @@ describe("plan-readiness-review-plan", () => {
     expect(rendered).toContain("current description: Maren returns to Halric, her decision made.")
   })
 
+  test("buildReviewPlanReport exposes co-targeted diagnostics without changing action matching", () => {
+    const report = buildReviewPlanReport({
+      novelId: "novel",
+      status: "open",
+      generatedAt: "2026-05-10T00:00:00.000Z",
+      items: [
+        item({
+          id: "motive",
+          diagnosticLabel: "MOTIVE-0",
+          dimension: "motivationSpecificity",
+          explanation: "The scene describes action but not why Doryn chooses it now.",
+          missingForNextLevel: "Tie the scene action to Doryn's immediate pressure.",
+          target: { kind: "scene_plan", ref: "scene-archive", fieldPath: "description" },
+        }),
+        item({
+          id: "rel",
+          diagnosticLabel: "REL-1",
+          dimension: "relationshipDelta",
+          explanation: "The exchange does not change Doryn and Pell's working trust.",
+          missingForNextLevel: "State the trust shift caused by the ledger risk.",
+          target: { kind: "scene_plan", ref: "scene-archive", fieldPath: "description" },
+        }),
+        item({
+          id: "other",
+          diagnosticLabel: "SCENE-0",
+          dimension: "sceneDramaturgy",
+          explanation: "Different target.",
+          target: { kind: "scene_plan", ref: "scene-later", fieldPath: "description" },
+        }),
+      ],
+    })
+
+    const motiveAction = report.plan.actions.find(action => action.match.itemId === "motive")
+    const relAction = report.plan.actions.find(action => action.match.itemId === "rel")
+    const otherAction = report.plan.actions.find(action => action.match.itemId === "other")
+
+    expect(motiveAction?.match).toMatchObject({
+      itemId: "motive",
+      targetRef: "scene-archive",
+      targetFieldPath: "description",
+    })
+    expect(motiveAction?.sameTargetItems).toEqual([{
+      itemId: "rel",
+      label: "REL-1",
+      dimension: "relationshipDelta",
+      severity: "medium",
+      fixIntent: "review",
+      explanation: "The exchange does not change Doryn and Pell's working trust.",
+      missingForNextLevel: "State the trust shift caused by the ledger risk.",
+    }])
+    expect(relAction?.sameTargetItems?.map(item => item.itemId)).toEqual(["motive"])
+    expect(otherAction?.sameTargetItems).toBeUndefined()
+
+    const rendered = renderReviewPlanReport(report)
+    expect(rendered).toContain("related diagnostics on same target: 1")
+    expect(rendered).toContain("REL-1 (relationshipDelta, medium) item=rel")
+    expect(rendered).toContain("missing: State the trust shift caused by the ledger risk.")
+  })
+
   test("buildReviewPlanReport templates narrow scene scalar proposals with field context", () => {
     const targetContexts = buildReviewTargetContextsFromOutlines([{
       chapterNumber: 2,

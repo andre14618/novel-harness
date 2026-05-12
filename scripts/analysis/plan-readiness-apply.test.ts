@@ -143,6 +143,16 @@ describe("plan-readiness-apply", () => {
             sceneTurnIds: ["scene-1"],
           },
           sourceReportPaths: ["context-report.json"],
+          sameTargetItems: [{
+            itemId: "item-related",
+            label: "REL-1",
+            dimension: "relationshipDelta",
+            severity: "medium",
+            fixIntent: "review_relationship_delta",
+            explanation: "Same scene description also lacks a relationship turn.",
+            missingForNextLevel: "Name the relationship shift.",
+            evidence: { score: "1" },
+          }],
           decision: "deferred",
         }, {
           match: {
@@ -166,6 +176,16 @@ describe("plan-readiness-apply", () => {
       expect(plan.actions[0]?.evidence).toEqual({ score: "1", sourceRef: "fact-ledger" })
       expect(plan.actions[0]?.preserveIds).toMatchObject({ sourceIds: ["fact-ledger"] })
       expect(plan.actions[0]?.sourceReportPaths).toEqual(["context-report.json"])
+      expect(plan.actions[0]?.sameTargetItems).toEqual([{
+        itemId: "item-related",
+        label: "REL-1",
+        dimension: "relationshipDelta",
+        severity: "medium",
+        fixIntent: "review_relationship_delta",
+        explanation: "Same scene description also lacks a relationship turn.",
+        missingForNextLevel: "Name the relationship shift.",
+        evidence: { score: "1" },
+      }])
       expect(plan.actions[1]?.match).toMatchObject({
         targetKind: "beat_obligation",
         targetRef: "obl-ledger",

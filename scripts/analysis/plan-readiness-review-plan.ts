@@ -77,7 +77,19 @@ export interface PlanReadinessReviewPlanReport {
     preserveIds: PlanReadinessItem["preserveIds"]
     proposalCandidate: unknown
     currentValueSummary: unknown
+    sameTargetItems: RelatedReadinessItemSummary[]
   }>
+}
+
+interface RelatedReadinessItemSummary {
+  itemId: string
+  label: string
+  dimension: string
+  severity: string
+  fixIntent?: string
+  explanation?: string
+  missingForNextLevel?: string | null
+  evidence?: Record<string, string>
 }
 
 interface PlanReadinessReviewTargetContext {
@@ -138,8 +150,14 @@ export function buildReviewPlanReport(input: {
 }): PlanReadinessReviewPlanReport {
   const defaultDecision = input.defaultDecision ?? "deferred"
   const items = [...input.items].sort(compareReadinessItems)
+  const relatedByItemId = relatedItemsByItemId(items)
   const plan: PlanReadinessActionPlan = {
-    actions: items.map(item => actionForItem(item, defaultDecision, input.targetContexts?.get(formatTarget(item)) ?? null)),
+    actions: items.map(item => actionForItem(
+      item,
+      defaultDecision,
+      input.targetContexts?.get(formatTarget(item)) ?? null,
+      relatedByItemId.get(item.id) ?? [],
+    )),
   }
 
   return {
@@ -169,6 +187,7 @@ export function buildReviewPlanReport(input: {
       preserveIds: item.preserveIds,
       proposalCandidate: item.metadata.proposalCandidate ?? null,
       currentValueSummary: input.targetContexts?.get(formatTarget(item))?.currentValueSummary ?? null,
+      sameTargetItems: relatedByItemId.get(item.id) ?? [],
     })),
   }
 }
@@ -177,6 +196,7 @@ function actionForItem(
   item: PlanReadinessItem,
   defaultDecision: PlanReadinessApplyDecision,
   context: PlanReadinessReviewTargetContext | null,
+  sameTargetItems: readonly RelatedReadinessItemSummary[],
 ): PlanReadinessActionPlan["actions"][number] {
   const proposalCandidate = item.metadata.proposalCandidate ?? null
   return {
@@ -209,6 +229,46 @@ function actionForItem(
       }
       : {}),
     ...(context ? { currentValueSummary: context.currentValueSummary } : {}),
+    ...(sameTargetItems.length > 0 ? { sameTargetItems: [...sameTargetItems] } : {}),
+  }
+}
+
+function relatedItemsByItemId(
+  items: readonly PlanReadinessItem[],
+): Map<string, RelatedReadinessItemSummary[]> {
+  const byTarget = new Map<string, PlanReadinessItem[]>()
+  for (const item of items) {
+    const key = formatTarget(item)
+    const targetItems = byTarget.get(key) ?? []
+    targetItems.push(item)
+    byTarget.set(key, targetItems)
+  }
+
+  const byItem = new Map<string, RelatedReadinessItemSummary[]>()
+  for (const targetItems of byTarget.values()) {
+    if (targetItems.length < 2) continue
+    for (const item of targetItems) {
+      byItem.set(
+        item.id,
+        targetItems
+          .filter(candidate => candidate.id !== item.id)
+          .map(relatedItemSummary),
+      )
+    }
+  }
+  return byItem
+}
+
+function relatedItemSummary(item: PlanReadinessItem): RelatedReadinessItemSummary {
+  return {
+    itemId: item.id,
+    label: item.diagnosticLabel,
+    dimension: item.dimension,
+    severity: item.severity,
+    ...(item.fixIntent ? { fixIntent: item.fixIntent } : {}),
+    ...(item.explanation ? { explanation: item.explanation } : {}),
+    ...(item.missingForNextLevel ? { missingForNextLevel: item.missingForNextLevel } : {}),
+    ...(Object.keys(item.evidence).length > 0 ? { evidence: item.evidence } : {}),
   }
 }
 
@@ -308,6 +368,13 @@ export function renderReviewPlanReport(report: PlanReadinessReviewPlanReport): s
     if (preserve) lines.push(`- preserve IDs: ${preserve}`)
     const current = renderCurrentValueSummary(item.currentValueSummary)
     if (current.length > 0) lines.push(...current)
+    if (item.sameTargetItems.length > 0) {
+      lines.push(`- related diagnostics on same target: ${item.sameTargetItems.length}`)
+      for (const related of item.sameTargetItems.slice(0, 6)) {
+        lines.push(`  - ${related.label} (${related.dimension}, ${related.severity}) item=${related.itemId}: ${truncate(related.explanation ?? "", 220)}`)
+        if (related.missingForNextLevel) lines.push(`    missing: ${truncate(related.missingForNextLevel, 220)}`)
+      }
+    }
     if (item.proposalCandidate) lines.push("- proposal candidate: available in JSON")
     lines.push("")
   }

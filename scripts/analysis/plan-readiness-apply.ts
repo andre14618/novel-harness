@@ -24,6 +24,16 @@ const dispositionDecisionSchema = z.enum([
 ])
 const proposalDecisionSchema = z.enum(["field_replace", "beat_replace", "beat_reorder", "scene_select", "beat_requirement_remove"])
 const decisionSchema = z.union([dispositionDecisionSchema, proposalDecisionSchema])
+const relatedReadinessItemSchema = z.object({
+  itemId: z.string(),
+  label: z.string(),
+  dimension: z.string(),
+  severity: z.string(),
+  fixIntent: z.string().optional(),
+  explanation: z.string().optional(),
+  missingForNextLevel: z.string().nullable().optional(),
+  evidence: z.record(z.string(), z.string()).optional(),
+})
 
 const actionPlanSchema = z.object({
   actions: z.array(z.object({
@@ -52,6 +62,7 @@ const actionPlanSchema = z.object({
     proposalCandidate: z.unknown().optional(),
     proposalInstruction: z.string().optional(),
     currentValueSummary: z.unknown().optional(),
+    sameTargetItems: z.array(relatedReadinessItemSchema).optional(),
     useCandidate: z.boolean().optional(),
     operatorNote: z.string().optional(),
     rationale: z.string().optional(),
