@@ -104,7 +104,16 @@ interface PlanningContextReadinessGroup {
       target: {
         kind: "chapter_outline" | "scene_plan" | "beat_obligation"
         ref: string
-        fieldPath: "scenes" | "description" | "temporalAnchor" | "self" | "materialityTest"
+        fieldPath:
+          | "scenes"
+          | "description"
+          | "temporalAnchor"
+          | "self"
+          | "goal"
+          | "opposition"
+          | "outcome"
+          | "consequence"
+          | "materialityTest"
       }
       requiresProposedValue: true
       proposedValueStatus: "operator_required"
@@ -575,6 +584,21 @@ function sceneContractProposalCandidate(
       sourceAgent: "planning-context-readiness",
     }
   }
+  const scalarField = sceneContractScalarFieldPath(gap)
+  if (scalarField) {
+    return {
+      action: "field_replace",
+      target: {
+        kind: "scene_plan",
+        ref: gap.sceneRef,
+        fieldPath: scalarField,
+      },
+      requiresProposedValue: true,
+      proposedValueStatus: "operator_required",
+      safeToAutoApply: false,
+      sourceAgent: "planning-context-readiness",
+    }
+  }
   return {
     action: "beat_replace",
     target: {
@@ -587,6 +611,22 @@ function sceneContractProposalCandidate(
     safeToAutoApply: false,
     sourceAgent: "planning-context-readiness",
   }
+}
+
+function sceneContractScalarFieldPath(
+  gap: DramaticSceneContractGap,
+): "goal" | "opposition" | "outcome" | "consequence" | null {
+  if (gap.missingFields.length !== 1) return null
+  const field = gap.missingFields[0]
+  if (gap.label === "SCENE-TURN-ENDPOINT-MISSING") {
+    return field === "outcome" || field === "consequence" ? field : null
+  }
+  if (gap.label === "SOURCE-SCENE-TURN-SHAPE-MISSING") {
+    return field === "goal" || field === "opposition" || field === "outcome" || field === "consequence"
+      ? field
+      : null
+  }
+  return null
 }
 
 function sceneContractReadinessLabel(gap: DramaticSceneContractGap): PlanningContextReadinessFinding["label"] {

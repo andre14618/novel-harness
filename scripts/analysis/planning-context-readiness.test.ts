@@ -438,6 +438,27 @@ describe("planning-context-readiness", () => {
             promiseIds: [],
             payoffIds: [],
             missingFields: ["outcome", "consequence"],
+          }, {
+            label: "SCENE-TURN-ENDPOINT-MISSING",
+            severity: "medium",
+            chapterNumber: 2,
+            chapterId: "ch-002",
+            sceneRef: "scene-final-consequence",
+            descriptionExcerpt: "Maren wins the seal but the hook is absent.",
+            hasTemporalAnchor: false,
+            hasPlaceAnchor: false,
+            hasObligations: false,
+            hasChoiceShape: false,
+            hasEndpointShape: false,
+            hasFullDramaticShape: false,
+            characterCount: 1,
+            obligationIds: [],
+            characterIds: [],
+            sourceIds: [],
+            threadIds: [],
+            promiseIds: [],
+            payoffIds: [],
+            missingFields: ["consequence"],
           }],
           missingTurnShape: [{
             label: "SOURCE-SCENE-TURN-SHAPE-MISSING",
@@ -460,6 +481,27 @@ describe("planning-context-readiness", () => {
             promiseIds: [],
             payoffIds: [],
             missingFields: ["goal", "opposition", "outcome", "consequence"],
+          }, {
+            label: "SOURCE-SCENE-TURN-SHAPE-MISSING",
+            severity: "medium",
+            chapterNumber: 2,
+            chapterId: "ch-002",
+            sceneRef: "scene-source-goal",
+            descriptionExcerpt: "Maren pressures the clerk with the seal.",
+            hasTemporalAnchor: false,
+            hasPlaceAnchor: false,
+            hasObligations: true,
+            hasChoiceShape: false,
+            hasEndpointShape: false,
+            hasFullDramaticShape: false,
+            characterCount: 2,
+            obligationIds: ["obl-seal"],
+            characterIds: [],
+            sourceIds: ["fact-seal"],
+            threadIds: [],
+            promiseIds: [],
+            payoffIds: [],
+            missingFields: ["goal"],
           }],
           missingMaterialityTest: [{
             label: "SOURCE-MATERIALITY-TEST-MISSING",
@@ -496,6 +538,24 @@ describe("planning-context-readiness", () => {
     expect(labels).toContain("SCENE-TURN-ENDPOINT-MISSING")
     expect(labels).toContain("SOURCE-SCENE-TURN-SHAPE-MISSING")
     expect(labels).toContain("SOURCE-MATERIALITY-TEST-MISSING")
+    const narrowEndpoint = aggregate.groups.find(group => group.sceneId === "scene-final-consequence")
+    expect(narrowEndpoint).toMatchObject({
+      rewritePacket: {
+        proposalCandidate: {
+          action: "field_replace",
+          target: { kind: "scene_plan", ref: "scene-final-consequence", fieldPath: "consequence" },
+        },
+      },
+    })
+    const narrowTurn = aggregate.groups.find(group => group.sceneId === "scene-source-goal")
+    expect(narrowTurn).toMatchObject({
+      rewritePacket: {
+        proposalCandidate: {
+          action: "field_replace",
+          target: { kind: "scene_plan", ref: "scene-source-goal", fieldPath: "goal" },
+        },
+      },
+    })
     const materiality = aggregate.groups.find(group => group.findings[0]?.label === "SOURCE-MATERIALITY-TEST-MISSING")
     expect(materiality?.rewritePacket.rewriteGoals).toContain("Annotate existing obligations only; do not add new obligations just to satisfy the field.")
     expect(materiality).toMatchObject({
@@ -520,11 +580,21 @@ describe("planning-context-readiness", () => {
       aggregate,
       targetVersions: {
         "scene_plan:scene-final": "scene-hash-final",
+        "scene_plan:scene-final-consequence": "scene-hash-final-consequence",
         "scene_plan:scene-source": "scene-hash-source",
+        "scene_plan:scene-source-goal": "scene-hash-source-goal",
         "beat_obligation:obl-seal": "obl-hash-seal",
       },
     })
     expect(built.skipped).toEqual([])
+    expect(built.drafts.find(draft => draft.target.ref === "scene-final-consequence")).toMatchObject({
+      target: { kind: "scene_plan", ref: "scene-final-consequence", fieldPath: "consequence" },
+      sourceHash: "scene-hash-final-consequence",
+    })
+    expect(built.drafts.find(draft => draft.target.ref === "scene-source-goal")).toMatchObject({
+      target: { kind: "scene_plan", ref: "scene-source-goal", fieldPath: "goal" },
+      sourceHash: "scene-hash-source-goal",
+    })
     expect(built.drafts.find(draft => draft.diagnosticLabel === "SOURCE-MATERIALITY-TEST-MISSING")).toMatchObject({
       target: { kind: "beat_obligation", ref: "obl-seal", fieldPath: "materialityTest" },
       sourceHash: "obl-hash-seal",

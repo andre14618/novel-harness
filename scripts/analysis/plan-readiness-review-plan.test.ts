@@ -1,10 +1,12 @@
 import { describe, expect, test } from "bun:test"
 import {
   buildReviewPlanReport,
+  buildReviewTargetContextsFromOutlines,
   parseArgs,
   renderReviewPlanReport,
 } from "./plan-readiness-review-plan"
 import type { PlanReadinessItem } from "../../src/db/plan-readiness"
+import type { ChapterOutline } from "../../src/types"
 
 describe("plan-readiness-review-plan", () => {
   test("parseArgs requires a novel and parses output controls", () => {
@@ -237,6 +239,92 @@ describe("plan-readiness-review-plan", () => {
     expect(rendered).toContain("### REFERENCE-CONTEXT-UNRESOLVED scene_plan:scene-25:description")
     expect(rendered).toContain("current scene: scene-25 (ch-002) kind=decision")
     expect(rendered).toContain("current description: Maren returns to Halric, her decision made.")
+  })
+
+  test("buildReviewPlanReport templates narrow scene scalar proposals with field context", () => {
+    const targetContexts = buildReviewTargetContextsFromOutlines([{
+      chapterNumber: 2,
+      chapterId: "ch-002",
+      title: "Seal Pressure",
+      povCharacter: "Maren",
+      setting: "archive",
+      purpose: "Force the clerk's help.",
+      targetWords: 900,
+      charactersPresent: ["Maren", "Clerk"],
+      scenes: [{
+        sceneId: "scene-source",
+        kind: "dialogue",
+        description: "Maren pressures the clerk with Halric's seal.",
+        goal: "Get the clerk to open the sealed transfer ledger.",
+        opposition: "The clerk risks punishment if the seal is fraudulent.",
+        outcome: "",
+        consequence: "",
+        obligations: {
+          mustEstablish: [{
+            obligationId: "obl-seal",
+            text: "The clerk's seal proves the transfer can be forged.",
+            sourceId: "fact-seal",
+            sourceKind: "fact",
+          }],
+          mustPayOff: [],
+          mustTransferKnowledge: [],
+          mustShowStateChange: [],
+          mustNotReveal: [],
+          allowedNewEntities: [],
+        },
+      }],
+      establishedFacts: [],
+    } as unknown as ChapterOutline])
+
+    expect(targetContexts.get("scene_plan:scene-source:outcome")?.currentValueSummary).toMatchObject({
+      ref: "scene-source",
+      fieldPath: "outcome",
+      currentValue: "",
+    })
+
+    const report = buildReviewPlanReport({
+      novelId: "novel",
+      status: "open",
+      generatedAt: "2026-05-10T00:00:00.000Z",
+      targetContexts,
+      items: [
+        item({
+          id: "turn-outcome",
+          diagnosticLabel: "SOURCE-SCENE-TURN-SHAPE-MISSING",
+          dimension: "sceneContract",
+          fixIntent: "complete_scene_turn",
+          target: { kind: "scene_plan", ref: "scene-source", fieldPath: "outcome" },
+          evidence: { sceneRef: "scene-source", missingFields: "outcome" },
+          metadata: {
+            proposalCandidate: {
+              action: "field_replace",
+              target: { kind: "scene_plan", ref: "scene-source", fieldPath: "outcome" },
+              requiresProposedValue: true,
+              safeToAutoApply: false,
+            },
+          },
+        }),
+      ],
+    })
+
+    expect(report.plan.actions[0]).toMatchObject({
+      match: {
+        itemId: "turn-outcome",
+        targetKind: "scene_plan",
+        targetRef: "scene-source",
+        targetFieldPath: "outcome",
+      },
+      proposalCandidate: {
+        action: "field_replace",
+        target: { kind: "scene_plan", ref: "scene-source", fieldPath: "outcome" },
+      },
+      proposedValueTemplate: "State what materially changes by the end of the scene.",
+    })
+
+    const rendered = renderReviewPlanReport(report)
+    expect(rendered).toContain("### SOURCE-SCENE-TURN-SHAPE-MISSING scene_plan:scene-source:outcome")
+    expect(rendered).toContain("current scene: scene-source (ch-002) kind=dialogue")
+    expect(rendered).toContain("current outcome: (empty)")
   })
 
   test("buildReviewPlanReport templates materiality edits as scalar obligation proposals", () => {

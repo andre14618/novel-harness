@@ -102,9 +102,9 @@ Use deeper docs only when linked by the context pack or needed by code.
   default with legacy rollback; downstream beat caps/packing are diagnostic
   evidence only. See L088.
 - Plan Readiness Review bridges planner diagnostics to drafting; accepted
-  scalar changes use manual `planning_edit` proposals, including narrow
-  `beat_obligation:materialityTest` fixes when a materiality gap maps to one
-  obligation. Use `diagnostics:plan-readiness-review-plan`, then
+  scalar changes use manual `planning_edit` proposals, including single-field
+  scene-turn/endpoint fixes and `beat_obligation:materialityTest` fixes when
+  a materiality gap maps to one obligation. Use `diagnostics:plan-readiness-review-plan`, then
   `diagnostics:plan-readiness-apply` after review. See L091.
 - Runtime surfaces, traceability, checker posture, and UI inventory are
   summarized in `docs/reference/runtime-surfaces.md`.

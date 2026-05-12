@@ -36,7 +36,7 @@ unless the user explicitly requests a disposable branch.
   `endpoint`, and `full` completeness.
   `diagnostics:planning-context-readiness` converts overloaded scene-load, future-event
   anchors, partial scene contracts, narrow materiality/fact-status gaps, and unresolved
-  refs into manual readiness items; narrow materiality gaps target
+  refs into manual readiness items; narrow semantic gaps target scalar scene fields or
   `beat_obligation:materialityTest`; `diagnostics:plan-assist-readiness` imports Plan-Assist rows. Keep context gaps diagnostic unless downstream context is missing for a needed ref.
 - **Aggressive evidence loops remain authorized (L101, amended by L106/L107).**
   Replace day-based timelines with goal queues and stop conditions. Use

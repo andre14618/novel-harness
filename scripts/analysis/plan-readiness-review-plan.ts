@@ -34,6 +34,12 @@ const OBLIGATION_LIST_KEYS = [
   "mustShowStateChange",
   "mustNotReveal",
 ] as const
+const SCENE_SCALAR_REVIEW_FIELD_PATHS = [
+  "goal",
+  "opposition",
+  "outcome",
+  "consequence",
+] as const
 
 export interface PlanReadinessReviewPlanArgs {
   novelId: string
@@ -224,6 +230,12 @@ function proposedValueTemplateFor(
   ) {
     return "Describe how this obligation changes choice, constraint, relationship behavior, outcome, or future pressure."
   }
+  if (
+    item.target.kind === "scene_plan" &&
+    isSceneScalarReviewFieldPath(item.target.fieldPath)
+  ) {
+    return sceneScalarProposedValueTemplate(item.target.fieldPath)
+  }
   return {
     target: {
       kind: item.target.kind,
@@ -233,6 +245,21 @@ function proposedValueTemplateFor(
     ...(context?.currentValueSummary ? { currentValueSummary: context.currentValueSummary } : {}),
     replaceWithReviewedValue: true,
   }
+}
+
+function isSceneScalarReviewFieldPath(
+  fieldPath: string | undefined,
+): fieldPath is (typeof SCENE_SCALAR_REVIEW_FIELD_PATHS)[number] {
+  return (SCENE_SCALAR_REVIEW_FIELD_PATHS as readonly string[]).includes(fieldPath ?? "")
+}
+
+function sceneScalarProposedValueTemplate(
+  fieldPath: (typeof SCENE_SCALAR_REVIEW_FIELD_PATHS)[number],
+): string {
+  if (fieldPath === "goal") return "State what the POV character is actively trying to do in this scene."
+  if (fieldPath === "opposition") return "State the concrete force, person, constraint, or cost opposing that goal."
+  if (fieldPath === "outcome") return "State what materially changes by the end of the scene."
+  return "State the specific pressure, hook, cost, or future constraint caused by the outcome."
 }
 
 function stringListFromCsv(value: string | undefined): string[] {
@@ -312,6 +339,12 @@ async function loadReviewTargetContexts(
 ): Promise<Map<string, PlanReadinessReviewTargetContext>> {
   const { getChapterOutlines } = await import("../../src/db/outlines")
   const outlines = await getChapterOutlines(novelId).catch(() => [])
+  return buildReviewTargetContextsFromOutlines(outlines)
+}
+
+export function buildReviewTargetContextsFromOutlines(
+  outlines: ChapterOutline[],
+): Map<string, PlanReadinessReviewTargetContext> {
   const out = new Map<string, PlanReadinessReviewTargetContext>()
   for (const outline of outlines) {
     const normalized = canonicalOutlineForReview(outline)
@@ -330,6 +363,17 @@ async function loadReviewTargetContexts(
       })
     }
     for (const [sceneIndex, scene] of (normalized.scenes ?? []).entries()) {
+      const sceneRecord = scene as Record<string, unknown>
+      const summary = { ...sceneSummary(scene, sceneIndex), chapterId: chapterRef }
+      for (const fieldPath of SCENE_SCALAR_REVIEW_FIELD_PATHS) {
+        out.set(`scene_plan:${summary.ref}:${fieldPath}`, {
+          currentValueSummary: {
+            ...summary,
+            fieldPath,
+            currentValue: stringValue(sceneRecord[fieldPath]),
+          },
+        })
+      }
       for (const obligation of obligationSummaries(scene, sceneIndex, chapterRef)) {
         out.set(`beat_obligation:${obligation.ref}:materialityTest`, {
           currentValueSummary: obligation,
@@ -477,10 +521,13 @@ function renderCurrentValueSummary(value: unknown): string[] {
     }
     const kind = stringValue(record.kind)
     const description = stringValue(record.description)
+    const fieldPath = stringValue(record.fieldPath)
+    const currentValue = stringValue(record.currentValue)
     if (!ref && !description) return []
     return [
       `- current scene: ${ref || "(unknown)"}${chapterId ? ` (${chapterId})` : ""}${kind ? ` kind=${kind}` : ""}`,
       ...(description ? [`- current description: ${truncate(description, 420)}`] : []),
+      ...(fieldPath ? [`- current ${fieldPath}: ${currentValue ? truncate(currentValue, 420) : "(empty)"}`] : []),
     ]
   }
   if (value.length === 0) return []
