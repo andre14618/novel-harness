@@ -254,6 +254,41 @@ function entityNamesMatch(a: string, b: string): boolean {
   return lowerA === lowerB || normalizedEntityKey(a) === normalizedEntityKey(b)
 }
 
+function isBenignTemporalLabel(entity: string): boolean {
+  const numberWord = "(?:Zero|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve|Thirteen|Fourteen|Fifteen|Sixteen|Seventeen|Eighteen|Nineteen|Twenty|Thirty|Forty|Fifty|Sixty|Seventy|Eighty|Ninety|Hundred|Thousand|Million|Billion|\\d+)"
+  const pattern = new RegExp(
+    `^Year\\s+${numberWord}(?:-${numberWord})?(?:\\s+of\\s+the\\s+[A-Z][A-Za-z'’\\-]*(?:\\s+[A-Z][A-Za-z'’\\-]*)*)?$`,
+  )
+  return pattern.test(entity.trim())
+}
+
+function isBenignLowercaseDescriptor(entity: string): boolean {
+  const trimmed = entity.trim()
+  if (!trimmed || /[A-Z0-9]/.test(trimmed)) return false
+  if (!/^[a-z][a-z'’ -]*$/u.test(trimmed)) return false
+  const words = trimmed.split(/\s+/).filter(Boolean)
+  if (words.length < 2 || words.length > 4) return false
+
+  const financialOrLegalTerms = new Set([
+    "account", "accounts", "arrears", "asset", "assets", "charter", "clause",
+    "credit", "debt", "debts", "default", "interest", "ledger", "ledgers",
+    "liability", "liabilities", "loan", "loans", "principal", "sovereign",
+    "transfer", "warrant",
+  ])
+  if (words.some(word => financialOrLegalTerms.has(word))) return true
+
+  const directionalDescriptors = new Set([
+    "central", "eastern", "inner", "lower", "northern", "outer", "southern",
+    "upper", "western",
+  ])
+  const regionalCommonNouns = new Set([
+    "border", "coast", "coasts", "district", "districts", "garrison",
+    "garrisons", "market", "markets", "port", "ports", "province",
+    "provinces", "quarter", "quarters", "road", "roads", "ward", "wards",
+  ])
+  return directionalDescriptors.has(words[0]!) && regionalCommonNouns.has(words.at(-1)!)
+}
+
 function titleStrippedPhrase(phrase: string): string | null {
   const tokens = phrase.trim().split(/\s+/).filter(t => t.length > 0)
   if (tokens.length < 2) return null
@@ -671,11 +706,16 @@ export async function checkHallucUngrounded(
     // groundedSurface and preserve prior behavior exactly.
     const rawLlmIssues = output.issues ?? []
     const llmRescuedByNer: typeof rawLlmIssues = []
+    const llmSuppressedByPolicy: typeof rawLlmIssues = []
     const llmKeptRawIssues: typeof rawLlmIssues = []
     if (nerEnabled && groundedSurface) {
       for (const issue of rawLlmIssues) {
         if (isNerGrounded(issue.entity, groundedSurface)) {
           llmRescuedByNer.push(issue)
+        } else if (isBenignTemporalLabel(issue.entity)) {
+          llmSuppressedByPolicy.push(issue)
+        } else if (isBenignLowercaseDescriptor(issue.entity)) {
+          llmSuppressedByPolicy.push(issue)
         } else {
           llmKeptRawIssues.push(issue)
         }
@@ -704,6 +744,7 @@ export async function checkHallucUngrounded(
       issueMetadataForEntity(issue.entity, issue.excerpt ?? "")
     const llmIssueMetadata = llmKeptRawIssues.map(issueMetadataForLlmIssue)
     const llmRescuedIssueMetadata = llmRescuedByNer.map(issueMetadataForLlmIssue)
+    const llmSuppressedIssueMetadata = llmSuppressedByPolicy.map(issueMetadataForLlmIssue)
 
     // Build the final result and determine the AND-gate decision label for
     // persistence. We defer `return` until after the NER patch call so the
@@ -874,11 +915,13 @@ export async function checkHallucUngrounded(
           nerOnlyFindings: finalResult.nerOnlyFindings ?? [],
           issueMetadata: finalResult.issueMetadata ?? [],
           llmRescuedIssueMetadata,
+          llmSuppressedIssueMetadata,
           andGateDecision,
           // L40: count of LLM issues filtered out by NER's grounded-surface
           // post-pass. >0 means NER overrode an LLM-only blocker (or partial
           // blocker) on entities the deterministic surface already grounds.
           llmRescuedByNer: llmRescuedByNer.length,
+          llmSuppressedByPolicy: llmSuppressedByPolicy.length,
           // L68: only set when this is part of a multi-call fan-out so the
           // single-call path stays bit-for-bit identical to pre-L68 patches.
           ...(voteN > 1 ? { voteIndex: i, voteN } : {}),

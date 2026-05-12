@@ -568,7 +568,7 @@ export async function logLLMCall(runId: number, data: LLMCallData): Promise<numb
  * `callAgent` didn't persist a row (e.g. no active run or novel context).
  *
  * Shape persisted:
- *   { nerEnabled, nerFindings, nerOnlyFindings, issueMetadata?, andGateDecision, llmRescuedByNer? }
+ *   { nerEnabled, nerFindings, nerOnlyFindings, issueMetadata?, andGateDecision, llmRescuedByNer?, llmSuppressedByPolicy? }
  *
  * Added in migration 034_llm_call_ner_prepass.sql. `llmRescuedByNer` (L40)
  * is forward-compatible — older runs persist without it; new runs include
@@ -582,9 +582,12 @@ export async function patchLLMCallNerPrepass(
     nerOnlyFindings: Array<{ phrase: string; class: string; entityRefs?: unknown[] }>
     issueMetadata?: unknown[]
     llmRescuedIssueMetadata?: unknown[]
+    llmSuppressedIssueMetadata?: unknown[]
     andGateDecision: "ner+llm-blocker" | "ner-only-warning" | "llm-only-blocker" | "pass" | "disabled"
     /** L40: count of LLM-flagged entities dropped by the NER grounded-surface post-filter. */
     llmRescuedByNer?: number
+    /** Count of LLM-flagged entities suppressed by bounded checker policy calibration. */
+    llmSuppressedByPolicy?: number
     /** L68: zero-based index of this call within the multi-call vote fan-out. Only set when voteN > 1. */
     voteIndex?: number
     /** L68: total number of parallel LLM calls in the vote fan-out for this beat. Only set when > 1. */

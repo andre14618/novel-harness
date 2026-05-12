@@ -115,18 +115,18 @@ The active lane is in `docs/sessions/lane-queue.md`.
 As of 2026-05-12, L106/L107 has moved active evidence into production writer-brief telemetry, scene-semantic replay, Plan Readiness, source hygiene,
 planning-edit replay, scene-contract telemetry, and compare/cohort artifacts.
 Clean-source tight-brief evidence is mixed; tight-anchored shortened P1 by 337
-words but lowered endpoint, materiality, and world-fact means. The default-off
+words but lowered endpoint/materiality/world means. The default-off
 `planningSceneTurnShapingV1` and `planningMaterialPressureV1` now run through
 production planner/state-mapper paths and paired-source compare via
 `--source-pair-id`. Scene-turn shaping now records missing endpoint/turn/materiality
 gaps instead of fallback-filling writer-facing fields; compare/cohort artifacts
-carry those gap deltas. P1 evidence before fallback removal: material pressure alone shortened 575 words and
-improved scene lows -7 but raised checker negatives 2->14; turn scaffold vs
-material pressure shortened 422 words and improved scene lows -6. P2 follow-ups
-through production `planning_edit` plus reference/checker calibration replayed at
-3894/3100 with prose lows 0/8, max-token semantic rerun lows/errors 0/35,
-Plan-Assist/context readiness 0, and checker negatives 1. Replication still
-blocks a default flip. See L103-L107.
+carry those gap deltas. P2 follow-ups through production `planning_edit` plus
+reference/checker calibration replayed at 3894/3100 with prose lows 0/8,
+semantic lows/errors 0/35, Plan-Assist/context readiness 0, and checker
+negatives 1. P3 contract-target repair routed endpoint/dramaturgy lows to
+whole-scene `planning_edit` and replayed at 3806/3100 with Plan-Assist 0,
+checker groups 0, prose lows 0/8, and scene-semantic lows 0/32. Replication
+still blocks a default flip. See L103-L107.
 
 ## Authoring Gates
 

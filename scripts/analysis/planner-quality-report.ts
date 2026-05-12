@@ -379,6 +379,34 @@ export function buildPlannerQualityReadinessAggregate(
         sourceReport,
       }))
     }
+
+    for (const character of chapter.characters.filter(character => !character.visible)) {
+      if (!chapter.chapterRef) continue
+      groups.push(readinessGroup({
+        groupId: `planner-quality:ch${chapter.chapter}:character:${slugForGroup(character.character)}`,
+        report,
+        chapter,
+        target: {
+          kind: "chapter_outline",
+          ref: chapter.chapterRef,
+          fieldPath: "charactersPresent",
+        },
+        dimension: "characterMateriality",
+        label: "CHARACTER-PLAN-1",
+        severity: "medium",
+        fixIntent: "remove_or_materialize_inactive_chapter_character",
+        rationale: "Planner quality diagnostic found a listed chapter character with no visible scene materiality.",
+        missingForNextLevel: "Either make the listed character materially present in a scene or remove them from the chapter-level character list before drafting.",
+        evidence: {
+          character: character.character,
+          listedInBeats: String(character.listedInBeats),
+          mentionedInBeatText: String(character.mentionedInBeatText),
+          charactersPresent: chapter.characters.map(value => value.character).join(","),
+        },
+        preserveIds: EMPTY_PRESERVE_IDS,
+        sourceReport,
+      }))
+    }
   }
 
   const labels = groups.flatMap(group =>
@@ -506,6 +534,10 @@ function extractEndpoint(purpose: string): string | null {
     if (match?.[1]) return match[1].trim()
   }
   return null
+}
+
+function slugForGroup(value: string): string {
+  return contentTokens(value).join("-") || "character"
 }
 
 function textMentionsCharacter(text: string, character: string): boolean {

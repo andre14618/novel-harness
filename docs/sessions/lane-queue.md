@@ -11,28 +11,24 @@ unless the user explicitly requests a disposable branch.
   outputs are evidence/fixtures only; do not add POC runners, prompt branches,
   mappers, checkers, or review formats when a thin production wrapper can write
   the same artifacts.
-- **Production writer/planner evidence (2026-05-12).** P1 made
-  `drafting-brief-v1` strongest at 1.24x with scene lows 1/33, but replication
-  holds promotion. Clean-source repairs reached Corso 4778/3800 = 1.26x with
-  scene lows 0/34 and LitRPG 3966/2700 = 1.47x with scene lows 3/45. Tight
-  brief plus two source `planning_edit` endpoint repairs reached 3398/2700 =
-  1.27x with scene lows 0/45, while Corso replication regressed to 5002/3800
-  with scene lows 4/34. N=3 tight cohort is mixed: mean -90.7 words, scene lows
-  -6, endpoint lows -2, scene-normalized context deltas zero. Tight-anchored
-  P1 shortened 337 words but lowered endpoint/materiality/world means. The
-  default-off `planningSceneTurnShapingV1` and `planningMaterialPressureV1`
-  run through production planner/state-mapper code and paired-source compare.
-  Scene-turn semantic backfill is removed; endpoint, source-refed turn-shape,
-  and materiality gaps now surface as warnings/readiness labels. Scope-guard
-  follow-up kept P1 tight: 3812/3100, checker blockers 2->0, scene lows 15->3.
-  P2 upstream replicated, then landing-target guard cleared the Plan-Assist
-  handoff: 4328/3100, Plan-Assist/context gaps 0, prose lows 0/8, scene lows
-  11/35 raw. Relationship applicability gating marked 4 false-positive rows
-  not_applicable; same-target grouping supported 5 shared scene replacements
-  that cleared the 7 source readiness items through normal `planning_edit`
-  approval/lineage. Endpoint/reference follow-ups imported downstream lows back
-  to the clean source, cleared them through production `planning_edit`, and
-  replayed at 3894/3100, prose lows 0/8, semantic max4000 lows/errors 0/35, Plan-Assist/context readiness 0, checker negatives 1. Replicate before any default flip. See L106/L107.
+- **Production writer/planner evidence (2026-05-12).** P1/P2/P3 evidence now
+  runs through production writer briefs, planner/state-mapper flags,
+  diagnostics, Plan Readiness, and reviewed `planning_edit`. Tight cohorts stay
+  mixed: P1 best was 1.24x with scene lows 1/33, N=3 averaged -90.7 words and
+  scene lows -6, and tight-anchored shortened P1 but lowered endpoint/materiality/world
+  means. Scene-turn semantic backfill is removed; endpoint, source-refed
+  turn-shape, and materiality gaps surface as warnings/readiness labels. P2
+  endpoint/reference follow-ups replayed at 3894/3100 with prose lows 0/8,
+  semantic lows/errors 0/35, Plan-Assist/context readiness 0, checker negatives
+  1. P3 proved scalar description-only endpoint fixes were insufficient because
+  writer prompts use the full scene contract; scene-semantic readiness now
+  targets `scene_plan:self` for endpoint/dramaturgy lows while materiality/world
+  lows stay scalar. After whole-scene `planning_edit`, checker calibration, and
+  one residual source edit, `prod-semantics-p3-residual-repair-1778571656`
+  replayed at 3806/3100 with Plan-Assist groups 0, checker groups 0, prose lows
+  0/8, scene-semantic lows 0/32, source planner-quality readiness 0, and one
+  advisory unresolved-reference diagnostic with downstream context gaps 0.
+  Replicate before any default flip. See L106/L107.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort

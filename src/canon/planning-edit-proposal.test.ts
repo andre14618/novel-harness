@@ -298,6 +298,12 @@ describe("planning edit proposals", () => {
     expect(validatePlanningEditValue("targetWords", "1800")).toMatch(/positive integer/)
   })
 
+  test("chapter charactersPresent can be replaced through reviewed planning edits", () => {
+    expect(validatePlanningEditValue("charactersPresent", ["Maren Ailish", "Head Clerk Ovis Drane"])).toBeNull()
+    expect(validatePlanningEditValue("charactersPresent", "Maren")).toMatch(/array of strings/)
+    expect(validatePlanningEditValue("charactersPresent", ["Maren", ""])).toMatch(/non-empty strings/)
+  })
+
   test("chapter establishedFacts can be replaced through reviewed planning edits", () => {
     expect(validatePlanningEditValue("establishedFacts", [{
       id: "fact-corso-file",

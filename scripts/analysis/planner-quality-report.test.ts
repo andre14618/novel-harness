@@ -75,6 +75,7 @@ describe("planner-quality-report", () => {
       row(chapter({
         chapterId: "ch-readiness",
         purpose: "Maret proves the System can lie. The chapter ends with Theo accepting the oath pact.",
+        charactersPresent: ["Maret"],
         scenes: [
           beat("Maret waits.", ["Maret"], {
             sceneId: "scene-flat",
@@ -128,6 +129,31 @@ describe("planner-quality-report", () => {
     expect(imported.skipped).toEqual([])
     expect(imported.drafts.length).toBeGreaterThanOrEqual(2)
     expect(imported.drafts.every(draft => draft.sourceHashKind === "target_current_version")).toBe(true)
+  })
+
+  test("converts inactive listed characters into Plan Readiness aggregate groups", () => {
+    const report = buildPlannerQualityReport([
+      row(chapter({
+        chapterId: "ch-character",
+        charactersPresent: ["Maret", "Journeyman Theo"],
+        scenes: [
+          beat("Maret chooses to act under pressure.", ["Maret"]),
+        ],
+      })),
+    ], "novel-character")
+
+    const aggregate = buildPlannerQualityReadinessAggregate(report, "planner-quality-report:test")
+    const groups = aggregate.groups as any[]
+    const characterGroup = groups.find(group => group.findings[0].label === "CHARACTER-PLAN-1")
+
+    expect(characterGroup).toBeTruthy()
+    expect(characterGroup.rewritePacket.proposalCandidate.target).toMatchObject({
+      kind: "chapter_outline",
+      ref: "ch-character",
+      fieldPath: "charactersPresent",
+    })
+    expect(characterGroup.findings[0].dimension).toBe("characterMateriality")
+    expect(characterGroup.findings[0].evidence.character).toBe("Journeyman Theo")
   })
 })
 

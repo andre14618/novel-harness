@@ -33,10 +33,11 @@ describe("scene-semantic-readiness", () => {
       },
       rewritePacket: {
         proposalCandidate: {
+          action: "beat_replace",
           target: {
             kind: "scene_plan",
             ref: "scn-001-01",
-            fieldPath: "description",
+            fieldPath: "self",
           },
           sourceAgent: "production-scene-semantic-review",
           safeToAutoApply: false,
@@ -70,7 +71,7 @@ describe("scene-semantic-readiness", () => {
     })
 
     const rendered = renderSceneSemanticReadinessAggregate(aggregate)
-    expect(rendered).toContain("Target: scene_plan:scn-001-01:description")
+    expect(rendered).toContain("Target: scene_plan:scn-001-01:self")
     expect(rendered).toContain("Should the scene contract make the endpoint land")
     expect(rendered).toContain("Preserve threads: thread-key")
     expect(rendered).toContain("ENDPOINT-1 endpointLanding")
@@ -135,6 +136,8 @@ describe("scene-semantic-readiness", () => {
     expect(rendered).toContain("make required characters and world facts operational")
     expect(rendered).toContain("Make required characters materially affect")
     expect(rendered).toContain("Make the required world fact constrain")
+    expect(rendered).toContain("Target: scene_plan:scn-001-01:description")
+    expect(aggregate.groups[0]!.rewritePacket.proposalCandidate.action).toBe("field_replace")
   })
 
   test("ignores errored judge rows instead of importing them as lows", () => {

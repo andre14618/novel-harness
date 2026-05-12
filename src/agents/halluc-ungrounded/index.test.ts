@@ -407,6 +407,52 @@ test("AND-gate: NER passes, LLM fires → LLM-only blocker (nerOnlyFindings empt
   expect(issueText).not.toContain("[NER-only")
 })
 
+test("AND-gate: benign year labels do not become LLM-only blockers", async () => {
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "Year One of the War", excerpt: "Just the date, written in Drane's own hand: Year One of the War." }],
+  }
+  const prose = "Drane tapped the ledger. Just the date, written in his own hand: *Year One of the War.*"
+  const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+
+  expect(result.pass).toBe(true)
+  expect(result.issues).toEqual([])
+  expect(nerPatchCalls.at(-1)?.data.llmSuppressedByPolicy).toBe(1)
+  expect(nerPatchCalls.at(-1)?.data.andGateDecision).toBe("pass")
+})
+
+test("AND-gate: benign lowercase finance and regional descriptors do not become LLM-only blockers", async () => {
+  mockLLMResult = {
+    pass: false,
+    issues: [
+      { entity: "sovereign liability", excerpt: "distribute the sovereign liability across multiple accounts" },
+      { entity: "eastern ports", excerpt: "A shipping magnate from the eastern ports." },
+    ],
+  }
+  const prose = [
+    "Maren said she needed to distribute the sovereign liability across multiple accounts.",
+    "The next ledger named a shipping magnate from the eastern ports.",
+  ].join(" ")
+  const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
+
+  expect(result.pass).toBe(true)
+  expect(result.issues).toEqual([])
+  expect(nerPatchCalls.at(-1)?.data.llmSuppressedByPolicy).toBe(2)
+  expect(nerPatchCalls.at(-1)?.data.andGateDecision).toBe("pass")
+})
+
+test("AND-gate: capitalized regional names remain eligible LLM-only blockers", async () => {
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "Eastern Ports", excerpt: "The Eastern Ports sent a writ." }],
+  }
+  const result = await checkHallucUngrounded("The Eastern Ports sent a writ.", baseBeat, baseOutline, baseChars, emptyWorldBible)
+
+  expect(result.pass).toBe(false)
+  expect(result.issues.join(" ")).toContain("Eastern Ports")
+  expect(nerPatchCalls.at(-1)?.data.llmSuppressedByPolicy).toBe(0)
+})
+
 test("AND-gate: blocker merges NER-extra phrases not in LLM issues", async () => {
   // NER catches TWO entities; LLM only mentions one. The second should be
   // appended as a [NER prepass] extra issue.

@@ -67,11 +67,11 @@ interface SceneSemanticReadinessGroup {
     rewriteGoals: string[]
     preserveIds: SceneSemanticReadinessSourceIds
     proposalCandidate: {
-      action: "field_replace"
+      action: "field_replace" | "beat_replace"
       target: {
         kind: "scene_plan"
         ref: string
-        fieldPath: "description"
+        fieldPath: "description" | "self"
       }
       requiresProposedValue: true
       proposedValueStatus: "semantic_rewrite_required"
@@ -134,6 +134,7 @@ export function buildSceneSemanticReadinessAggregate(
         existing.highestSeverity = higherSeverity(existing.highestSeverity, finding.severity)
         existing.fixIntents = unique([...existing.fixIntents, finding.fixIntent])
         existing.dimensions = unique([...existing.dimensions, finding.dimension])
+        existing.rewritePacket.proposalCandidate = proposalCandidateFor(result.sceneId, existing.dimensions)
         existing.rewritePacket.rewriteGoals = unique([
           ...existing.rewritePacket.rewriteGoals,
           ...rewriteGoalsFor(finding),
@@ -141,6 +142,7 @@ export function buildSceneSemanticReadinessAggregate(
         existing.excerpt = existing.excerpt || result.excerpt
       } else {
         const sourceIds = sourceIdsFor(result)
+        const proposalCandidate = proposalCandidateFor(result.sceneId, [finding.dimension])
         groupsByKey.set(groupKey, {
           groupId: "000",
           fixtureId: input.report.novelId,
@@ -158,18 +160,7 @@ export function buildSceneSemanticReadinessAggregate(
             targetSummary: `chapter ${result.chapterNumber} scene ${result.sceneIndex + 1} ${result.sceneId}`,
             rewriteGoals: rewriteGoalsFor(finding),
             preserveIds: sourceIds,
-            proposalCandidate: {
-              action: "field_replace",
-              target: {
-                kind: "scene_plan",
-                ref: result.sceneId,
-                fieldPath: "description",
-              },
-              requiresProposedValue: true,
-              proposedValueStatus: "semantic_rewrite_required",
-              safeToAutoApply: false,
-              sourceAgent: "production-scene-semantic-review",
-            },
+            proposalCandidate,
           },
           excerpt: result.excerpt,
         })
@@ -214,9 +205,10 @@ export function renderSceneSemanticReadinessAggregate(report: SceneSemanticReadi
   lines.push("These are manual Plan Readiness candidates. They do not auto-mutate the plan.")
   lines.push("")
   for (const group of report.groups) {
+    const target = group.rewritePacket.proposalCandidate.target
     lines.push(`## ${group.groupId} ${group.highestSeverity.toUpperCase()} ${group.chapterId}/${group.sceneId}`)
     lines.push("")
-    lines.push(`Target: scene_plan:${group.sceneId}:description`)
+    lines.push(`Target: scene_plan:${target.ref}:${target.fieldPath}`)
     lines.push(`Dimensions: ${group.dimensions.join(", ")}`)
     lines.push(`Fix intents: ${group.fixIntents.join(", ")}`)
     lines.push(`Preserve obligations: ${group.sourceIds.obligationIds.join(", ") || "none"}`)
@@ -328,8 +320,8 @@ function rewriteGoalsFor(finding: SceneSemanticReadinessFinding): string[] {
 
 function rewriteGoalHintFor(dimension: Dimension): string {
   const map: Record<string, string> = {
-    endpointLanding: "Revise the scene contract so the endpoint lands through concrete action, consequence, and forward pressure.",
-    sceneDramaturgy: "Revise the scene contract so goal, opposition, turn, outcome, and consequence are all playable.",
+    endpointLanding: "Revise the scene contract fields together so description, outcome, and consequence all land through concrete action, consequence, and forward pressure.",
+    sceneDramaturgy: "Revise the scene contract fields together so goal, opposition, turn, outcome, and consequence are all playable.",
     threadProgression: "Clarify how this scene changes the declared thread state and creates downstream pressure.",
     promiseProgress: "Clarify how this scene changes the promise, pursuit, or complication state.",
     promisePayoff: "Make the declared promise/payoff land in visible evidence, reader understanding, and future pressure.",
@@ -343,6 +335,26 @@ function rewriteGoalHintFor(dimension: Dimension): string {
     stakesValueShift: "Make the stakes and value shift concrete through turn, ending state, cost, or escalation.",
   }
   return map[dimension] ?? "Review this scene contract before drafting."
+}
+
+function proposalCandidateFor(
+  sceneId: string,
+  dimensions: Dimension[],
+): SceneSemanticReadinessGroup["rewritePacket"]["proposalCandidate"] {
+  const requiresWholeSceneContract = dimensions.some(dimension =>
+    dimension === "endpointLanding" || dimension === "sceneDramaturgy")
+  return {
+    action: requiresWholeSceneContract ? "beat_replace" : "field_replace",
+    target: {
+      kind: "scene_plan",
+      ref: sceneId,
+      fieldPath: requiresWholeSceneContract ? "self" : "description",
+    },
+    requiresProposedValue: true,
+    proposedValueStatus: "semantic_rewrite_required",
+    safeToAutoApply: false,
+    sourceAgent: "production-scene-semantic-review",
+  }
 }
 
 function operatorQuestionFor(group: SceneSemanticReadinessGroup): string {

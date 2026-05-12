@@ -26,6 +26,7 @@ export const ALLOWED_CHAPTER_OUTLINE_FIELD_PATHS = [
   "purpose",
   "setting",
   "targetWords",
+  "charactersPresent",
   "establishedFacts",
 ] as const
 
@@ -689,6 +690,17 @@ export function validatePlanningEditValue(
       value <= 250_000
       ? null
       : "targetWords must be a positive integer"
+  }
+  if (fieldPath === "charactersPresent") {
+    if (!Array.isArray(value)) return "charactersPresent must be an array of strings"
+    if (value.length > 100) return "charactersPresent may contain at most 100 entries"
+    for (const item of value) {
+      if (typeof item !== "string" || item.trim().length === 0) {
+        return "charactersPresent entries must be non-empty strings"
+      }
+      if (item.length > 160) return "charactersPresent entries must be 160 characters or fewer"
+    }
+    return null
   }
   if (fieldPath === "kind") {
     return typeof value === "string" && (BEAT_KINDS as readonly string[]).includes(value)
