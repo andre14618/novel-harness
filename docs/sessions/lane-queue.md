@@ -15,21 +15,17 @@ unless the user explicitly requests a disposable branch.
   runs through production writer briefs, planner/state-mapper flags,
   diagnostics, Plan Readiness, and reviewed `planning_edit`. Scene-turn semantic
   backfill is removed; endpoint, source-refed turn-shape, and materiality gaps
-  surface as warnings/readiness labels. P2 source cleanup through production
-  `planning_edit` replayed as `prod-semantics-p2-source-clean-1778578799` at
-  4086/3100 with Plan-Assist/context/checker groups 0, prose lows 0/8,
-  scene-semantic lows/errors 0/35, source readiness 0, and 10 checker warnings.
-  P3 proved scalar
-  description-only endpoint fixes were insufficient because writer prompts use
-  the full scene contract; whole-scene `planning_edit` replayed at 3806/3100
-  with Plan-Assist groups 0, checker groups 0, prose lows 0/8, scene-semantic
-  lows 0/32, source planner-quality readiness 0, and one advisory unresolved-ref
-  diagnostic with downstream context gaps 0. P1 replicated the source-readiness
-  loop: after two residual endpoint imports and whole-scene `planning_edit`,
-  `prod-semantics-p1-ch1s2-endpoint-repair-1778577334` replayed at 3741/3100
-  with Plan-Assist/context/checker groups 0, prose lows 0/8, scene-semantic lows
-  0/30, endpoint mean 2.90, and source readiness 0. Length remains over target,
-  so no default flip yet. See L106/L107.
+  surface as warnings/readiness labels. P1/P2/P3 clean replays now hold
+  Plan-Assist/context/checker groups 0 and prose/scene-semantic lows 0, at
+  3741/3100, 4086/3100, and 3806/3100. New
+  `diagnostics:drafting-length-attribution` joins per-scene drafting,
+  planning-context, writer-context, checker, prose-semantic, and
+  scene-semantic sidecars; `prod-semantics-p1-p2-p3-1778585200` classified all
+  three as mixed scope-load plus budget-control, not scene-count overload alone.
+  P2 same-source probe `length-attrib-p2-arms-1778586500` had loose brief stop
+  on Plan-Assist and tight repeat worsen to 4398/3100 with semantic lows 0.
+  Default flip remains blocked; next evidence is budget-elasticity/arm
+  calibration before deleting story payload. See L106/L107.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort

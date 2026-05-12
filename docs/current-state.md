@@ -118,15 +118,13 @@ The default-off `planningSceneTurnShapingV1` and
 `planningMaterialPressureV1` now run through production planner/state-mapper
 paths and paired-source compare via `--source-pair-id`. Scene-turn shaping now
 records missing endpoint/turn/materiality gaps instead of fallback-filling
-writer-facing fields; compare/cohort artifacts carry those gap deltas. P2 source
-cleanup replayed as `prod-semantics-p2-source-clean-1778578799` at 4086/3100
-with Plan-Assist/context/checker groups 0, prose lows 0/8,
-scene-semantic lows/errors 0/35, source readiness 0, and 10 checker warnings. P3 whole-scene
-contract-target repair replayed at 3806/3100 with Plan-Assist 0, checker groups
-0, prose lows 0/8, and scene-semantic lows 0/32. P1 replicated the same source-readiness loop through `planning_edit`; `prod-semantics-p1-ch1s2-endpoint-repair-1778577334`
-replayed at 3741/3100 with Plan-Assist/context/checker groups 0, prose lows
-0/8, scene-semantic lows 0/30, endpoint mean 2.90, and source readiness 0.
-Length is still over target, so a default flip remains blocked. See L103-L107.
+writer-facing fields; compare/cohort artifacts carry those gap deltas. P1/P2/P3
+clean replays now hold Plan-Assist/context/checker groups 0 and prose/scene-semantic lows 0, with P1 3741/3100, P2 4086/3100, and P3
+3806/3100. `diagnostics:drafting-length-attribution` joins drafting, planning-context, writer-context, checker, prose-semantic, and
+scene-semantic sidecars; the P1/P2/P3 report classifies residual length as
+mixed scope-load plus budget-control evidence. P2 tight repeat worsened to
+4398/3100 with clean semantics while loose brief hit Plan-Assist, so default
+flip remains blocked pending budget-elasticity/arm calibration. See L103-L107.
 
 ## Authoring Gates
 
