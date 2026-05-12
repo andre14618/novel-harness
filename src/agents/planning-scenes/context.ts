@@ -41,6 +41,7 @@ export function buildContext(args: SceneExpansionArgs): string {
   const { targetChapter, allSkeletons, priorChapters, worldBible, characters, spine, seed, retryFeedback } = args
   const scenePlanContractV1 = resolveScenePlanContractV1(seed.pipelineOverrides)
   const planningSceneTurnShapingV1 = resolvePlanningSceneTurnShapingV1(seed.pipelineOverrides)
+  const nativePlanningContractV1 = resolveNativePlanningContractV1(seed.pipelineOverrides)
   const scenePolicy = planningSceneCountPolicy(
     targetChapter.targetWords,
     seed.pipelineOverrides?.planningMaxScenesPerChapter,
@@ -78,8 +79,11 @@ Purpose: ${targetChapter.purpose}
 Target words: ${targetChapter.targetWords}
 Characters present: ${(targetChapter.charactersPresent ?? []).join(", ")}
 
-${renderChapterScopeGuidance(scenePolicy, scenePlanContractV1)}
-${renderNativePlanningContractGuidance(scenePolicy, resolveNativePlanningContractV1(seed.pipelineOverrides))}${renderSelectiveSceneTurnGuidance(planningSceneTurnShapingV1, scenePlanContractV1)}${renderScenePlanContractGuidance(scenePlanContractV1)}`
+${renderChapterScopeGuidance(scenePolicy, scenePlanContractV1, {
+  nativePlanningContractV1,
+  planningSceneTurnShapingV1,
+})}
+${renderNativePlanningContractGuidance(scenePolicy, nativePlanningContractV1)}${renderSelectiveSceneTurnGuidance(planningSceneTurnShapingV1, scenePlanContractV1)}${renderScenePlanContractGuidance(scenePlanContractV1)}`
 
   const directivesSection = seed.directives ? renderDirectivesForPlanner(seed.directives) : ""
   const priors = resolveStructuralPriors(seed.genre)
@@ -96,7 +100,11 @@ ${spineSection}
 
 ${allSkelSection}${priorSection}
 
-${targetSection}${directivesSection}${structuralSection}${retryFeedback ? `\n\n--- PREVIOUS SCENE EXPANSION FAILED ---\n${retryFeedback}\nFix this by authoring native story-turn entries for the same chapter contract. Do not drop the endpoint or hide discarded entries inside one run-on description.` : ""}
+${targetSection}${directivesSection}${structuralSection}${retryFeedback ? renderRetryFeedback(retryFeedback, scenePolicy, {
+  scenePlanContractV1,
+  nativePlanningContractV1,
+  planningSceneTurnShapingV1,
+}) : ""}
 
 Expand Chapter ${targetChapter.chapterNumber} into its scene/turn sequence only. Do not emit chapter-level state or obligations; the state mapper assigns those in the next planning step.`
 }
@@ -104,19 +112,30 @@ Expand Chapter ${targetChapter.chapterNumber} into its scene/turn sequence only.
 function renderChapterScopeGuidance(
   policy: ReturnType<typeof planningSceneCountPolicy>,
   scenePlanContractV1: boolean,
+  options: { nativePlanningContractV1: boolean; planningSceneTurnShapingV1: boolean },
 ): string {
+  const countCeiling = planningCountCeiling(policy, scenePlanContractV1, options)
   const countGuide = scenePlanContractV1
     ? `- Recommended scene contracts for this chapter size: around ${policy.recommendedScenes}. This is advisory; content scope and chapter purpose decide the actual count.`
-    : `- Recommended scene/turn entries for this chapter size: ${policy.recommendedScenes}; minimum structural floor: ${policy.minRecommendedScenes}.`
+    : [
+      `- Recommended scene/turn entries for this chapter size: ${policy.recommendedScenes}; minimum structural floor: ${policy.minRecommendedScenes}.`,
+      countCeiling !== null
+        ? `- Count contract: emit ${policy.minRecommendedScenes}-${countCeiling} entries. Output above ${countCeiling} will retry or fail; merge tactical micro-movements into load-bearing turns instead of adding entries.`
+        : "",
+    ].filter(Boolean).join("\n")
   return `Chapter scope guidance:
 - Target words are a rough chapter-size signal, not a prose quota. Do not solve pacing by asking the writer to hit a number.
 ${countGuide}
 - Scope by content load: each entry should have one continuous time/location frame, one main pressure or opposition, one dominant turn or choice, and one outcome/consequence pair.
 - Do not pack multiple full scenes, set pieces, investigations, confrontations, or reveals into one entry. If the skeleton purpose demands more story than fits, preserve the endpoint/hook and choose the load-bearing movement; leave secondary material for adjacent chapters or a later planning revision.
-${renderSceneCapGuidance(policy, scenePlanContractV1)}`
+${renderSceneCapGuidance(policy, scenePlanContractV1, options)}`
 }
 
-function renderSceneCapGuidance(policy: ReturnType<typeof planningSceneCountPolicy>, scenePlanContractV1: boolean): string {
+function renderSceneCapGuidance(
+  policy: ReturnType<typeof planningSceneCountPolicy>,
+  scenePlanContractV1: boolean,
+  options: { nativePlanningContractV1: boolean; planningSceneTurnShapingV1: boolean },
+): string {
   if (policy.effectiveMaxScenes !== null) {
     const floorNote = policy.capRaisedToFloor
       ? scenePlanContractV1
@@ -126,7 +145,41 @@ function renderSceneCapGuidance(policy: ReturnType<typeof planningSceneCountPoli
     const effectiveMax = scenePlanContractV1 ? policy.configuredMaxScenes ?? policy.effectiveMaxScenes : policy.effectiveMaxScenes
     return `Planning max override: ${effectiveMax} entries.${floorNote} Do not exceed this explicit cap.`
   }
+  if (!scenePlanContractV1 && options.planningSceneTurnShapingV1) {
+    return `Turn-shaping scope limit: do not exceed ${policy.recommendedScenes} entries. Preserve the final endpoint by merging adjacent middle movements, not by adding micro-scenes.`
+  }
+  if (!scenePlanContractV1 && options.nativePlanningContractV1) {
+    return `Native planning scope limit: do not exceed ${policy.recommendedScenes + 1} entries. If the chapter feels larger, preserve the endpoint and move secondary material to adjacent chapters.`
+  }
   return `Do not exceed recommended scope by more than 1 entry unless the chapter truly contains multiple distinct set pieces. If it does, prefer moving material across chapters over packing oversized entries.`
+}
+
+function renderRetryFeedback(
+  retryFeedback: string,
+  policy: ReturnType<typeof planningSceneCountPolicy>,
+  options: { scenePlanContractV1: boolean; nativePlanningContractV1: boolean; planningSceneTurnShapingV1: boolean },
+): string {
+  const countCeiling = planningCountCeiling(policy, options.scenePlanContractV1, options)
+  const countRequirement = countCeiling === null
+    ? ""
+    : `\nRetry count requirement: emit ${policy.minRecommendedScenes}-${countCeiling} entries. Preserve the opener and endpoint by merging adjacent middle movements. Do not drop the endpoint, drop the final turn, or hide discarded entries inside one run-on description.`
+  return `\n\n--- PREVIOUS SCENE EXPANSION FAILED ---\n${retryFeedback}${countRequirement}\nFix this by authoring native story-turn entries for the same chapter contract. Repair named semantic fields directly.`
+}
+
+function planningCountCeiling(
+  policy: ReturnType<typeof planningSceneCountPolicy>,
+  scenePlanContractV1: boolean,
+  options: { nativePlanningContractV1: boolean; planningSceneTurnShapingV1: boolean },
+): number | null {
+  if (scenePlanContractV1) return policy.effectiveMaxScenes
+  const semanticCeiling = options.planningSceneTurnShapingV1
+    ? policy.recommendedScenes
+    : options.nativePlanningContractV1
+      ? policy.recommendedScenes + 1
+      : null
+  if (policy.effectiveMaxScenes === null) return semanticCeiling
+  if (semanticCeiling === null) return policy.effectiveMaxScenes
+  return Math.min(policy.effectiveMaxScenes, semanticCeiling)
 }
 
 function renderNativePlanningContractGuidance(

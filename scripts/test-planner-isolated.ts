@@ -111,7 +111,14 @@ export interface PlannerIsolatedRunReport {
     scenePlanContract: boolean
     reportDir: string | null
   }
+  verdict: PlannerIsolatedVerdict
   results: PlannerIsolatedResult[]
+}
+
+export interface PlannerIsolatedVerdict {
+  status: "pass" | "warn" | "fail"
+  message: string
+  exitCode: 0 | 1
 }
 
 async function testSeed(
@@ -463,11 +470,8 @@ async function main() {
   }
 
   console.log(`\n━━━━━━━━━━ VERDICT ━━━━━━━━━━`)
-  const anyTruncated = results.some(r => r.stats.some(s => s.finish_reason === "length"))
-  const anyLowHeadroom = results.some(r => r.stats.some(s => s.headroom_pct < 30))
-  if (anyTruncated) console.log("✗ FAIL: at least one call hit truncation")
-  else if (anyLowHeadroom) console.log("⚠ WARN: at least one call used > 70% of maxTokens")
-  else console.log("✓ PASS: all calls finished cleanly with ≥30% headroom")
+  const verdict = summarizePlannerIsolatedVerdict(results)
+  console.log(verdict.message)
 
   const report: PlannerIsolatedRunReport = {
     v: "planner-isolated-report-v1",
@@ -479,6 +483,7 @@ async function main() {
       scenePlanContract: args.scenePlanContract,
       reportDir: args.reportDir,
     },
+    verdict,
     results,
   }
   const outputDir = args.reportDir ?? defaultReportDir(results)
@@ -487,7 +492,7 @@ async function main() {
   writeFileSync(join(outputDir, "planner-isolated-report.md"), renderPlannerIsolatedReport(report))
   console.log(`report: ${join(outputDir, "planner-isolated-report.json")}`)
 
-  process.exit(0)
+  process.exit(verdict.exitCode)
 }
 
 if (import.meta.main) main()
@@ -563,6 +568,7 @@ export function renderPlannerIsolatedReport(report: PlannerIsolatedRunReport): s
   lines.push(`planningSceneTurnShaping: ${report.options.planningSceneTurnShaping ? "on" : "off"}`)
   lines.push(`planningMaterialPressure: ${report.options.planningMaterialPressure ? "on" : "off"}`)
   lines.push(`scenePlanContract: ${report.options.scenePlanContract ? "on" : "off"}`)
+  lines.push(`verdict: ${report.verdict.status} - ${report.verdict.message}`)
   for (const result of report.results) {
     lines.push("")
     lines.push(`## ${result.seedName}`)
@@ -612,6 +618,59 @@ export function renderPlannerIsolatedReport(report: PlannerIsolatedRunReport): s
     }
   }
   return `${lines.join("\n")}\n`
+}
+
+export function summarizePlannerIsolatedVerdict(results: PlannerIsolatedResult[]): PlannerIsolatedVerdict {
+  const failedRuns = results.filter(result => result.error)
+  if (failedRuns.length > 0) {
+    return {
+      status: "fail",
+      message: `✗ FAIL: ${failedRuns.length} planner run(s) failed`,
+      exitCode: 1,
+    }
+  }
+
+  const emptyPlans = results.filter(result => result.chapters === 0)
+  if (emptyPlans.length > 0) {
+    return {
+      status: "fail",
+      message: `✗ FAIL: ${emptyPlans.length} planner run(s) produced zero chapters`,
+      exitCode: 1,
+    }
+  }
+
+  const missingTelemetry = results.filter(result => result.stats.length === 0)
+  if (missingTelemetry.length > 0) {
+    return {
+      status: "fail",
+      message: `✗ FAIL: ${missingTelemetry.length} planner run(s) produced no token telemetry`,
+      exitCode: 1,
+    }
+  }
+
+  const anyTruncated = results.some(result => result.stats.some(stat => stat.finish_reason === "length"))
+  if (anyTruncated) {
+    return {
+      status: "fail",
+      message: "✗ FAIL: at least one call hit truncation",
+      exitCode: 1,
+    }
+  }
+
+  const anyLowHeadroom = results.some(result => result.stats.some(stat => stat.headroom_pct < 30))
+  if (anyLowHeadroom) {
+    return {
+      status: "warn",
+      message: "⚠ WARN: at least one call used > 70% of maxTokens",
+      exitCode: 0,
+    }
+  }
+
+  return {
+    status: "pass",
+    message: "✓ PASS: all calls finished cleanly with ≥30% headroom",
+    exitCode: 0,
+  }
 }
 
 function defaultReportDir(results: PlannerIsolatedResult[]): string {

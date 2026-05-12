@@ -95,6 +95,8 @@ test("planning scene context renders selective scene-turn shaping without full s
   } as Parameters<typeof buildContext>[0])
 
   expect(context).toContain("Selective scene-turn shaping (planningSceneTurnShapingV1)")
+  expect(context).toContain("Count contract: emit 4-5 entries")
+  expect(context).toContain("Turn-shaping scope limit: do not exceed 5 entries")
   expect(context).toContain("final entry MUST include \"outcome\" and \"consequence\"")
   expect(context).toContain("Preserve the skeleton's scope")
   expect(context).toContain("Populate the final entry's \"outcome\" and \"consequence\"")
@@ -106,6 +108,38 @@ test("planning scene context renders selective scene-turn shaping without full s
   expect(context).toContain("Character hygiene: \"characters\" must contain actual named cast members only")
   expect(context).not.toContain("Scene plan contract (scenePlanContractV1)")
   expect(context).not.toContain("Compliance rules (validator will fail")
+})
+
+test("planning scene context gives long turn-shaped chapters an explicit count ceiling", () => {
+  const context = buildContext({
+    targetChapter: chapter(7, 3100),
+    allSkeletons: [chapter(7, 3100)],
+    priorChapters: [],
+    worldBible: {
+      setting: "A test mine", timePeriod: "now", geography: "g", politicalStructure: "p",
+      technologyConstraints: "t", socialCustoms: [], sensoryPalette: "s",
+      rules: ["Brine wards punish blood"], locations: [{ name: "Mine", description: "d" }],
+      culture: "c", history: "h", systems: [], cultures: [],
+    },
+    characters: [{
+      id: "char-x", name: "X", role: "protagonist", backstory: "", traits: [],
+      speechPattern: "plain", goals: "g", fears: "f",
+      relationships: [], culturalBackground: [], systemAwareness: [], exampleLines: [],
+    }],
+    spine: { acts: [], centralConflict: "c", theme: "t", endingDirection: "e" },
+    seed: {
+      genre: "adult guild mission progression fantasy",
+      premise: "p",
+      characters: [{ name: "X", role: "protagonist", description: "d" }],
+      pipelineOverrides: { planningSceneTurnShapingV1: true },
+    },
+    retryFeedback: "12 scene entries > native planning budget 10+1 for 3100w target",
+  } as Parameters<typeof buildContext>[0])
+
+  expect(context).toContain("Count contract: emit 8-10 entries")
+  expect(context).toContain("Turn-shaping scope limit: do not exceed 10 entries")
+  expect(context).toContain("Retry count requirement: emit 8-10 entries")
+  expect(context).toContain("merging adjacent middle movements")
 })
 
 test("planning scene context renders calibrated scene count guidance", () => {
@@ -158,6 +192,8 @@ test("planning scene context renders calibrated scene count guidance", () => {
   expect(context).toContain("Target words are a rough chapter-size signal")
   expect(context).toContain("Recommended scene/turn entries for this chapter size: 5")
   expect(context).toContain("minimum structural floor: 4")
+  expect(context).toContain("Count contract: emit 4-6 entries")
+  expect(context).toContain("Native planning scope limit: do not exceed 6 entries")
   expect(context).toContain("Scope by content load")
   expect(context).not.toContain("100-140 words")
 })
@@ -369,6 +405,7 @@ test("planning scene context carries native-contract retry feedback", () => {
 
   expect(context).toContain("PREVIOUS SCENE EXPANSION FAILED")
   expect(context).toContain("9 scene entries > native planning budget 5+1")
+  expect(context).toContain("Retry count requirement: emit 4-6 entries")
   expect(context).toContain("Do not drop the endpoint")
 })
 

@@ -1,5 +1,11 @@
 import { expect, test, describe } from "bun:test"
-import { parseArgs, renderPlannerIsolatedReport, type PlannerIsolatedRunReport } from "./test-planner-isolated"
+import {
+  parseArgs,
+  renderPlannerIsolatedReport,
+  summarizePlannerIsolatedVerdict,
+  type PlannerIsolatedResult,
+  type PlannerIsolatedRunReport,
+} from "./test-planner-isolated"
 
 describe("test-planner-isolated parseArgs", () => {
   test("defaults to fantasy-healer when no positional or flag is given", () => {
@@ -85,6 +91,11 @@ describe("renderPlannerIsolatedReport", () => {
         scenePlanContract: true,
         reportDir: "output/planner-isolated/test",
       },
+      verdict: {
+        status: "pass",
+        message: "✓ PASS: all calls finished cleanly with ≥30% headroom",
+        exitCode: 0,
+      },
       results: [{
         seedName: "fixture",
         novelId: "novel-1",
@@ -156,8 +167,89 @@ describe("renderPlannerIsolatedReport", () => {
     expect(rendered).toContain("scenePlanContract: on")
     expect(rendered).toContain("planningSceneTurnShaping: on")
     expect(rendered).toContain("planningMaterialPressure: on")
+    expect(rendered).toContain("verdict: pass")
     expect(rendered).toContain("planShape: sceneIds=2/2; sceneContracts=2; dramatic=2; choice=2; endpoint=2; full=2")
     expect(rendered).toContain("sceneLoad: ch1=2sc/600wps/balanced")
     expect(rendered).toContain("planning-scenes: 1 calls")
+  })
+})
+
+describe("summarizePlannerIsolatedVerdict", () => {
+  const cleanResult = (overrides: Partial<PlannerIsolatedResult> = {}): PlannerIsolatedResult => ({
+    seedName: "seed",
+    novelId: "novel-1",
+    chapters: 1,
+    totalScenes: 2,
+    sceneCounts: [{ chapter: 1, scenes: 2, targetWords: 1200 }],
+    planningArtifacts: null,
+    stats: [{
+      agent: "planning-scenes",
+      attempt: 1,
+      chapter: 1,
+      prompt_tokens: 100,
+      completion_tokens: 200,
+      max_tokens: 1000,
+      finish_reason: "stop",
+      headroom_pct: 80,
+    }],
+    ...overrides,
+  })
+
+  test("fails when any planner run records an error", () => {
+    const verdict = summarizePlannerIsolatedVerdict([
+      cleanResult({ error: "PostgresError: Connection closed", chapters: 0, totalScenes: 0, stats: [] }),
+    ])
+
+    expect(verdict.status).toBe("fail")
+    expect(verdict.exitCode).toBe(1)
+    expect(verdict.message).toContain("planner run(s) failed")
+  })
+
+  test("fails when a completed run has no telemetry", () => {
+    const verdict = summarizePlannerIsolatedVerdict([cleanResult({ stats: [] })])
+
+    expect(verdict.status).toBe("fail")
+    expect(verdict.exitCode).toBe(1)
+    expect(verdict.message).toContain("no token telemetry")
+  })
+
+  test("fails on truncation before checking low headroom warnings", () => {
+    const result = cleanResult({
+      stats: [{
+        agent: "planning-scenes",
+        attempt: 1,
+        chapter: 1,
+        prompt_tokens: 100,
+        completion_tokens: 990,
+        max_tokens: 1000,
+        finish_reason: "length",
+        headroom_pct: 1,
+      }],
+    })
+
+    const verdict = summarizePlannerIsolatedVerdict([result])
+
+    expect(verdict.status).toBe("fail")
+    expect(verdict.message).toContain("truncation")
+  })
+
+  test("warns on low headroom without failing the process", () => {
+    const result = cleanResult({
+      stats: [{
+        agent: "planning-scenes",
+        attempt: 1,
+        chapter: 1,
+        prompt_tokens: 100,
+        completion_tokens: 750,
+        max_tokens: 1000,
+        finish_reason: "stop",
+        headroom_pct: 25,
+      }],
+    })
+
+    const verdict = summarizePlannerIsolatedVerdict([result])
+
+    expect(verdict.status).toBe("warn")
+    expect(verdict.exitCode).toBe(0)
   })
 })

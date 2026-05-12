@@ -111,21 +111,16 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 The active lane is in `docs/sessions/lane-queue.md`.
 
-As of 2026-05-12, L106/L107 has moved active evidence into production writer-brief telemetry, scene-semantic replay, Plan Readiness, source hygiene,
+As of 2026-05-12, L106-L109 keep evidence on production paths: writer-brief
+telemetry, scene-semantic replay, Plan Readiness, source hygiene,
 planning-edit replay, scene-contract telemetry, and compare/cohort artifacts.
-The default-off `planningSceneTurnShapingV1` and
-`planningMaterialPressureV1` run through production planner/state-mapper paths
-and paired-source compare; scene-turn shaping records endpoint/turn/materiality
-gaps instead of fallback-filling writer-facing fields. P1/P2/P3 tight clean
-replays hold Plan-Assist/context/checker groups 0 and prose/scene lows 0 at
-3741/3100, 4086/3100, and 3806/3100; length attribution classifies residual
-length as mixed scope-load plus budget-control. P2 target scaling at 0.85 was
-usable, 0.72 added checker noise, and deterministic compaction/word-count
-policing is not the active lever. Tight-anchored writer-brief evidence was
-P2-promising but failed to generalize: P1 regressed with a scene-semantic low,
-P3 was mixed, and the P1/P2/P3 cohort remained regressed. Default flip remains
-blocked; next: mine semantic trace clusters and checker readiness noise for
-endpoint/materiality execution, without reopening POC-to-main workflow. See L103-L108.
+`planningSceneTurnShapingV1` and `planningMaterialPressureV1` run through
+production planner/state-mapper paths; gaps are recorded instead of
+fallback-filled. Tight-anchored writer-brief evidence was promising but did not
+generalize, so default flip remains blocked. L109 works directly on main:
+`mercenary-rillgate-saltmine` produced 10 chapters / 99 scenes with no
+truncation and only a state-mapper headroom warning. Next: draft from that
+source without reopening POC-to-main workflow. See L103-L109.
 
 ## Authoring Gates
 
