@@ -66,8 +66,9 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 ## Authoring Direction
 
-- Current product focus is upstream concept/planning methodology and
-  scene-first drafting evidence, not broad UI or autonomy expansion.
+- Current product focus is genre-specific plotline shaping for the
+  mercenary-progression adventure lane, then scene-first drafting evidence; not
+  broad UI or autonomy expansion. See L109.
 - Planning should scope the story ask before drafting: scene count, scene
   load, obligation density, endpoint/hook fit, and chapter split decisions.
   Word counts are telemetry and rough chapter-size signals; deterministic prose

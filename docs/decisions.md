@@ -16,6 +16,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
+| L109 | 2026-05-12 | active | First genre-specific plotline lane is adult guild/mercenary mission progression adventure fantasy; use `mercenary-progression-adventure-v0` to shape a Book 1 contract packet before broad drafting. | `docs/decisions/L109-mercenary-progression-adventure-lane.md` |
 | L108 | 2026-05-12 | active | Stable drafting quality telemetry packet: `test-drafting-isolated --quality-telemetry-packet` captures advisory prose and scene semantic data on the production path, persists scene rows artifact-first, and closes further arm-search/word-count loops unless a new plot or writing hypothesis requires evidence. | `docs/decisions/L108-drafting-quality-telemetry-packet.md` |
 | L107 | 2026-05-11 | active | Production-path one-offs over POC-to-main loops: test hypotheses through default-off production arms, diagnostics, shared schemas, readiness artifacts, compare/cohort reports, or thin wrappers that reuse production modules; standalone POCs require explicit approval and disposable flags. | `docs/decisions/L107-production-path-one-offs.md` |
 | L106 | 2026-05-10 | active | Production path integration over POC branching: validated POC learnings should move into production modules, telemetry, tests, and review artifacts; POC artifacts remain evidence/fixtures unless an explicit disposable experiment is requested. | `docs/decisions/L106-production-path-integration.md` |
