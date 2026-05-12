@@ -14,8 +14,20 @@ describe("drafting-run-cohort", () => {
   test("aggregates clean-source comparison reports by signal, semantic dimension, and context delta", () => {
     const report = buildDraftingRunCohortReport({
       refs: [
-        { path: "lit.json", report: comparisonReport("lit", "promising", -500, 0, 0, 2, "improved", 3, 80, 2, 3) },
-        { path: "corso.json", report: comparisonReport("corso", "regressed", 224, 4, 3, 0, "regressed", -1, -30, -1, -2) },
+        {
+          path: "lit.json",
+          report: withSceneContractShapeDeltas(
+            comparisonReport("lit", "promising", -500, 0, 0, 2, "improved", 3, 80, 2, 3),
+            { missingEndpointShapeDelta: -2, missingTurnShapeDelta: -1, missingMaterialityTestDelta: 0 },
+          ),
+        },
+        {
+          path: "corso.json",
+          report: withSceneContractShapeDeltas(
+            comparisonReport("corso", "regressed", 224, 4, 3, 0, "regressed", -1, -30, -1, -2),
+            { missingEndpointShapeDelta: 1, missingTurnShapeDelta: 2, missingMaterialityTestDelta: 1 },
+          ),
+        },
       ],
       generatedAt: "2026-05-11T00:00:00.000Z",
     })
@@ -32,6 +44,11 @@ describe("drafting-run-cohort", () => {
     expect(report.aggregate.contextDeltas.readerInfoStateChars).toBe(50)
     expect(report.aggregate.contextDeltas.referenceAttemptScenes).toBe(1)
     expect(report.aggregate.contextDeltas.referenceAttemptEvents).toBe(1)
+    expect(report.aggregate.sceneContractShapeGapDeltas).toMatchObject({
+      missingEndpointShapeDelta: -1,
+      missingTurnShapeDelta: 1,
+      missingMaterialityTestDelta: 1,
+    })
     expect(report.aggregate.contextIdDeltas).toMatchObject({
       canonSourceRefs: { "fact-lit": 2 },
       activeThreadIds: { "thread-lit": 3, "thread-corso": -1 },
@@ -87,6 +104,7 @@ describe("drafting-run-cohort", () => {
     expect(rendered).toContain("readerChars=+50")
     expect(rendered).toContain("event-context deltas: canonSourceRefs=+2")
     expect(rendered).toContain("scene-normalized context deltas: scenes=0, canonSourceRefs=+2, storyRefs=+2")
+    expect(rendered).toContain("scene-contract semantic gap deltas: endpoint=-1, turn=+1, materiality=+1")
     expect(rendered).toContain("refAttemptScenes=+1")
     expect(rendered).toContain("refAttemptEvents=+1")
     expect(rendered).toContain("context ID deltas: canon=fact-lit=+2; threads=thread-lit=+3, thread-corso=-1")
@@ -121,6 +139,7 @@ describe("drafting-run-cohort", () => {
     delete legacy.comparisons[0]!.planningContext.storyRefIdsDelta
     delete legacy.comparisons[0]!.planningContext.readerInfoStateCharsDelta
     delete legacy.comparisons[0]!.planningContext.sceneCoverage
+    delete legacy.comparisons[0]!.planningContext.sceneContractShape
 
     const report = buildDraftingRunCohortReport({
       refs: [{ path: "legacy.json", report: legacy }],
@@ -130,11 +149,13 @@ describe("drafting-run-cohort", () => {
     expect(report.aggregate.contextDeltas.canonSourceRefs).toBe(1)
     expect(report.aggregate.contextDeltas.storyRefIds).toBeNull()
     expect(report.aggregate.contextDeltas.readerInfoStateChars).toBeNull()
+    expect(report.aggregate.sceneContractShapeGapDeltas.missingEndpointShapeDelta).toBeNull()
 
     const rendered = renderDraftingRunCohortReport(report)
     expect(rendered).toContain("canonSourceRefs=+1")
     expect(rendered).toContain("storyRefs=n/a")
     expect(rendered).toContain("readerChars=n/a")
+    expect(rendered).toContain("scene-contract semantic gap deltas: endpoint=n/a")
     expect(rendered).toContain("context expanded without clear quality gain: 1")
     expect(rendered).toContain("| legacy | drafting-brief-v1 | drafting-brief-tight-v1 | yes | mixed | mixed | expanded | context-expanded-without-clear-quality-gain | 0 | 0 | 0 | +1 | n/a | n/a | n/a | n/a | n/a | 0 | 0 | n/a |")
   })
@@ -257,6 +278,7 @@ function comparisonReport(
         referenceAttemptSceneDelta,
         referenceAttemptEventDelta,
         idDeltas: contextIdDeltas(source, canonSourceRefsDelta, storyRefIdsDelta),
+        sceneContractShape: sceneContractShapeDeltas(),
         sceneCoverage: sceneCoverageDeltas(canonSourceRefsDelta, storyRefIdsDelta, readerInfoStateCharsDelta),
         overloadedChapterDelta: 0,
         minTargetWordsPerSceneDelta: 0,
@@ -297,6 +319,29 @@ function comparisonReport(
         changedRows: semanticChangedRows(source, endpointLowDelta),
       },
     }],
+  }
+}
+
+function withSceneContractShapeDeltas(
+  report: DraftingRunComparisonReport,
+  deltas: Partial<DraftingRunComparisonReport["comparisons"][number]["planningContext"]["sceneContractShape"]>,
+): DraftingRunComparisonReport {
+  report.comparisons[0]!.planningContext.sceneContractShape = {
+    ...sceneContractShapeDeltas(),
+    ...deltas,
+  }
+  return report
+}
+
+function sceneContractShapeDeltas(): DraftingRunComparisonReport["comparisons"][number]["planningContext"]["sceneContractShape"] {
+  return {
+    missingDramaticShapeDelta: 0,
+    missingEndpointShapeDelta: 0,
+    missingTurnShapeDelta: 0,
+    missingMaterialityTestDelta: 0,
+    missingChoiceShapeDelta: 0,
+    missingFullDramaticShapeDelta: 0,
+    anchorOnlyDelta: 0,
   }
 }
 

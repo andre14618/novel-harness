@@ -151,11 +151,22 @@ interface PlanningContextDetail {
     referenceLookups: number | null
     sceneCoverage: PlanningContextSceneCoverage | null
   } | null
+  sceneContractShape: PlanningContextSceneContractShapeGaps | null
   referenceContextAttempts: {
     sceneCount: number | null
     eventCount: number | null
     sceneRefs: string[]
   } | null
+}
+
+interface PlanningContextSceneContractShapeGaps {
+  missingDramaticShape: number | null
+  missingEndpointShape: number | null
+  missingTurnShape: number | null
+  missingMaterialityTest: number | null
+  missingChoiceShape: number | null
+  missingFullDramaticShape: number | null
+  anchorOnly: number | null
 }
 
 interface PlanningContextSceneCoverage {
@@ -215,6 +226,7 @@ export interface DraftingRunSummary {
     readinessLabels: Record<string, number>
     sceneLoad: PlanningContextDetail["sceneLoad"]
     downstream: PlanningContextDetail["downstream"]
+    sceneContractShape: PlanningContextDetail["sceneContractShape"]
     referenceContextAttempts: PlanningContextDetail["referenceContextAttempts"]
   } | null
   manualReadiness: {
@@ -303,6 +315,15 @@ export interface DraftingRunComparison {
       activePromiseIds: Record<string, number>
       activePayoffIds: Record<string, number>
       missingCharacterIds: Record<string, number>
+    }
+    sceneContractShape: {
+      missingDramaticShapeDelta: number | null
+      missingEndpointShapeDelta: number | null
+      missingTurnShapeDelta: number | null
+      missingMaterialityTestDelta: number | null
+      missingChoiceShapeDelta: number | null
+      missingFullDramaticShapeDelta: number | null
+      anchorOnlyDelta: number | null
     }
     sceneCoverage: {
       beatScenesDelta: number | null
@@ -441,6 +462,19 @@ export function renderDraftingRunComparisonReport(report: DraftingRunComparisonR
           `${formatNullableNumber(candidateLoad?.minTargetWordsPerScene ?? null)}, ` +
           `overloaded=${formatNullableNumber(baselineLoad?.overloadedChapterCount ?? null)} -> ` +
           `${formatNullableNumber(candidateLoad?.overloadedChapterCount ?? null)}`,
+      )
+    }
+    const baselineSceneContractShape = report.baseline.planningContext?.sceneContractShape
+    const candidateSceneContractShape = candidate.planningContext?.sceneContractShape
+    if (baselineSceneContractShape || candidateSceneContractShape) {
+      lines.push(
+        `Scene contract semantic gaps: endpoint=${formatTransition(baselineSceneContractShape?.missingEndpointShape, candidateSceneContractShape?.missingEndpointShape)}, ` +
+          `turn=${formatTransition(baselineSceneContractShape?.missingTurnShape, candidateSceneContractShape?.missingTurnShape)}, ` +
+          `materiality=${formatTransition(baselineSceneContractShape?.missingMaterialityTest, candidateSceneContractShape?.missingMaterialityTest)}, ` +
+          `choice=${formatTransition(baselineSceneContractShape?.missingChoiceShape, candidateSceneContractShape?.missingChoiceShape)}, ` +
+          `full=${formatTransition(baselineSceneContractShape?.missingFullDramaticShape, candidateSceneContractShape?.missingFullDramaticShape)}, ` +
+          `dramatic=${formatTransition(baselineSceneContractShape?.missingDramaticShape, candidateSceneContractShape?.missingDramaticShape)}, ` +
+          `anchorOnly=${formatTransition(baselineSceneContractShape?.anchorOnly, candidateSceneContractShape?.anchorOnly)}`,
       )
     }
     const baselineContext = report.baseline.planningContext?.downstream
@@ -687,6 +721,10 @@ function compareCandidate(
           candidate.summary.planningContext?.downstream?.missingCharacterIdCounts,
         ),
       },
+      sceneContractShape: compareSceneContractShapeGaps(
+        baseline.summary.planningContext?.sceneContractShape ?? null,
+        candidate.summary.planningContext?.sceneContractShape ?? null,
+      ),
       sceneCoverage: compareSceneCoverage(
         baseline.summary.planningContext?.downstream?.sceneCoverage ?? null,
         candidate.summary.planningContext?.downstream?.sceneCoverage ?? null,
@@ -821,6 +859,7 @@ function summarizeRun(
       readinessLabels: arm.planningContext.readiness?.labels ?? {},
       sceneLoad: contextDetail?.sceneLoad ?? null,
       downstream: contextDetail?.downstream ?? null,
+      sceneContractShape: contextDetail?.sceneContractShape ?? null,
       referenceContextAttempts: contextDetail?.referenceContextAttempts ?? null,
     } : null,
     manualReadiness,
@@ -1045,6 +1084,7 @@ function loadPlanningContextDetail(reportDir: string, outputDir: string | null):
     const report = JSON.parse(readFileSync(path, "utf8")) as {
       upstream?: {
         sceneLoad?: PlanningContextDetail["sceneLoad"]
+        sceneContractShape?: unknown
       }
       downstream?: PlanningContextDetail["downstream"]
       referenceContextAttempts?: Array<{
@@ -1054,6 +1094,7 @@ function loadPlanningContextDetail(reportDir: string, outputDir: string | null):
       }>
     }
     const sceneLoad = report.upstream?.sceneLoad ?? null
+    const sceneContractShape = readSceneContractShapeGaps(report.upstream?.sceneContractShape)
     const downstream = report.downstream ?? null
     const referenceContextAttempts = Array.isArray(report.referenceContextAttempts)
       ? report.referenceContextAttempts
@@ -1086,6 +1127,7 @@ function loadPlanningContextDetail(reportDir: string, outputDir: string | null):
         referenceLookups: finiteOrNull(downstream.referenceLookups),
         sceneCoverage: readSceneCoverage(downstream.sceneCoverage),
       } : null,
+      sceneContractShape,
       referenceContextAttempts: {
         sceneCount: referenceContextAttempts.length,
         eventCount: referenceContextAttempts.reduce((sum, attempt) => {
@@ -1100,6 +1142,20 @@ function loadPlanningContextDetail(reportDir: string, outputDir: string | null):
     }
   } catch {
     return null
+  }
+}
+
+function readSceneContractShapeGaps(value: unknown): PlanningContextSceneContractShapeGaps | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null
+  const row = value as Record<string, unknown>
+  return {
+    missingDramaticShape: arrayCountOrNull(row.missingDramaticShape),
+    missingEndpointShape: arrayCountOrNull(row.missingEndpointShape),
+    missingTurnShape: arrayCountOrNull(row.missingTurnShape),
+    missingMaterialityTest: arrayCountOrNull(row.missingMaterialityTest),
+    missingChoiceShape: arrayCountOrNull(row.missingChoiceShape),
+    missingFullDramaticShape: arrayCountOrNull(row.missingFullDramaticShape),
+    anchorOnly: arrayCountOrNull(row.anchorOnly),
   }
 }
 
@@ -1287,6 +1343,13 @@ function evidenceReasons(
   if (positiveDelta(comparison.planningContext.gapDelta)) {
     reasons.push(`Planning-to-drafting context gaps increased by ${comparison.planningContext.gapDelta}.`)
   }
+  const sceneContractGapIncrease = formatSceneContractSemanticGapDeltas(
+    comparison.planningContext.sceneContractShape,
+    "positive",
+  )
+  if (sceneContractGapIncrease) {
+    reasons.push(`Scene-contract semantic gaps increased: ${sceneContractGapIncrease}.`)
+  }
   if (positiveDelta(comparison.planningContext.missingCharacterIdsDelta)) {
     reasons.push(`Writer-context missing character ids increased by ${comparison.planningContext.missingCharacterIdsDelta}.`)
   }
@@ -1339,6 +1402,13 @@ function rawContextChangedButSceneCoverageStable(comparison: DraftingRunComparis
     normalizedDeltas.every(value => value === null || value === 0)
 }
 
+function hasPositiveSceneContractSemanticGapDelta(
+  deltas: DraftingRunComparison["planningContext"]["sceneContractShape"],
+): boolean {
+  return sceneContractSemanticGapDeltaEntries(deltas)
+    .some(([, value]) => value !== null && value > 0)
+}
+
 function evidenceSignal(baseline: DraftingRunSummary, comparison: DraftingRunComparison): EvidenceSignal {
   if (baseline.error || comparison.candidate.error) return "incomplete"
   if (comparison.sourceComparison.mode === "different-source") return "incomplete"
@@ -1356,7 +1426,8 @@ function evidenceSignal(baseline: DraftingRunSummary, comparison: DraftingRunCom
   if (
     comparison.sceneSemantic.comparisonVerdict === "mixed" ||
     positiveDelta(comparison.planningContext.gapDelta) ||
-    positiveDelta(comparison.planningContext.readinessFindingDelta)
+    positiveDelta(comparison.planningContext.readinessFindingDelta) ||
+    hasPositiveSceneContractSemanticGapDelta(comparison.planningContext.sceneContractShape)
   ) return "mixed"
   if (
     comparison.length.meanRatioDelta <= -0.05 &&
@@ -1417,6 +1488,10 @@ function finiteOrNull(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 
+function arrayCountOrNull(value: unknown): number | null {
+  return Array.isArray(value) ? value.length : null
+}
+
 function numberRecord(value: unknown): Record<string, number> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {}
   const out: Record<string, number> = {}
@@ -1448,6 +1523,21 @@ function recordDelta(
     if (delta !== 0) out[key] = delta
   }
   return out
+}
+
+function compareSceneContractShapeGaps(
+  baseline: PlanningContextSceneContractShapeGaps | null,
+  candidate: PlanningContextSceneContractShapeGaps | null,
+): DraftingRunComparison["planningContext"]["sceneContractShape"] {
+  return {
+    missingDramaticShapeDelta: nullableDelta(baseline?.missingDramaticShape ?? null, candidate?.missingDramaticShape ?? null),
+    missingEndpointShapeDelta: nullableDelta(baseline?.missingEndpointShape ?? null, candidate?.missingEndpointShape ?? null),
+    missingTurnShapeDelta: nullableDelta(baseline?.missingTurnShape ?? null, candidate?.missingTurnShape ?? null),
+    missingMaterialityTestDelta: nullableDelta(baseline?.missingMaterialityTest ?? null, candidate?.missingMaterialityTest ?? null),
+    missingChoiceShapeDelta: nullableDelta(baseline?.missingChoiceShape ?? null, candidate?.missingChoiceShape ?? null),
+    missingFullDramaticShapeDelta: nullableDelta(baseline?.missingFullDramaticShape ?? null, candidate?.missingFullDramaticShape ?? null),
+    anchorOnlyDelta: nullableDelta(baseline?.anchorOnly ?? null, candidate?.anchorOnly ?? null),
+  }
 }
 
 function compareSceneCoverage(
@@ -1515,6 +1605,33 @@ function formatContextIdDeltas(deltas: DraftingRunComparison["planningContext"][
     contextIdDeltaPart("missingChars", deltas.missingCharacterIds),
   ].filter((part): part is string => part !== null)
   return parts.join("; ")
+}
+
+function formatSceneContractSemanticGapDeltas(
+  deltas: DraftingRunComparison["planningContext"]["sceneContractShape"],
+  polarity: "positive" | "nonzero" = "nonzero",
+): string {
+  return sceneContractSemanticGapDeltaEntries(deltas)
+    .filter(([, value]) => {
+      if (value === null || value === 0) return false
+      return polarity === "positive" ? value > 0 : true
+    })
+    .map(([label, value]) => `${label}=${formatSigned(value!)}`)
+    .join(", ")
+}
+
+function sceneContractSemanticGapDeltaEntries(
+  deltas: DraftingRunComparison["planningContext"]["sceneContractShape"],
+): Array<[string, number | null]> {
+  return [
+    ["endpoint", deltas.missingEndpointShapeDelta],
+    ["turn", deltas.missingTurnShapeDelta],
+    ["materiality", deltas.missingMaterialityTestDelta],
+    ["choice", deltas.missingChoiceShapeDelta],
+    ["full", deltas.missingFullDramaticShapeDelta],
+    ["dramatic", deltas.missingDramaticShapeDelta],
+    ["anchorOnly", deltas.anchorOnlyDelta],
+  ]
 }
 
 function contextIdDeltaPart(label: string, record: Record<string, number>): string | null {

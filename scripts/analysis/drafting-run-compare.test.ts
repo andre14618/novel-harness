@@ -52,6 +52,15 @@ describe("drafting-run-compare", () => {
         withResolvedReferences: 0,
         missingCharacterIds: 0,
         missingCharacterIdCounts: {},
+        sceneContractShape: {
+          missingDramaticShape: 0,
+          missingEndpointShape: 1,
+          missingTurnShape: 2,
+          missingMaterialityTest: 1,
+          missingChoiceShape: 0,
+          missingFullDramaticShape: 2,
+          anchorOnly: 0,
+        },
         referenceContextAttempts: [
           { eventCount: 1, sceneRef: "scene-a" },
         ],
@@ -76,6 +85,15 @@ describe("drafting-run-compare", () => {
         withResolvedReferences: 0,
         missingCharacterIds: 2,
         missingCharacterIdCounts: { "char-missing": 2 },
+        sceneContractShape: {
+          missingDramaticShape: 0,
+          missingEndpointShape: 0,
+          missingTurnShape: 1,
+          missingMaterialityTest: 0,
+          missingChoiceShape: 0,
+          missingFullDramaticShape: 1,
+          anchorOnly: 0,
+        },
         referenceContextAttempts: [
           { eventCount: 2, sceneRef: "scene-a" },
           { eventCount: 1, sceneRef: "scene-b" },
@@ -138,6 +156,12 @@ describe("drafting-run-compare", () => {
       expect(comparison.planningContext.storyRefIdsDelta).toBe(2)
       expect(comparison.planningContext.readerInfoStateDelta).toBe(-1)
       expect(comparison.planningContext.readerInfoStateCharsDelta).toBe(-80)
+      expect(comparison.planningContext.sceneContractShape).toMatchObject({
+        missingEndpointShapeDelta: -1,
+        missingTurnShapeDelta: -1,
+        missingMaterialityTestDelta: -1,
+        missingFullDramaticShapeDelta: -1,
+      })
       expect(comparison.planningContext.idDeltas).toMatchObject({
         canonSourceRefs: { "fact-seal": 2 },
         activeThreadIds: { "thread-appeal": 1 },
@@ -163,6 +187,7 @@ describe("drafting-run-compare", () => {
       const rendered = renderDraftingRunComparisonReport(report)
       expect(rendered).toContain("Signal: regressed")
       expect(rendered).toContain("Context coverage: character=1 -> 1, world=1 -> 1, canon=1 -> 1 (sourceRefs=1 -> 3, factAnchors=0 -> 1), story=1 -> 1 (storyRefs=1 -> 3), reader=1 -> 0 (chars=100 -> 20), refs=0 -> 0 (lookups=0 -> 0)")
+      expect(rendered).toContain("Scene contract semantic gaps: endpoint=1 -> 0, turn=2 -> 1, materiality=1 -> 0")
       expect(rendered).toContain("Context ID deltas: canon=fact-seal=+2; threads=thread-appeal=+1; promises=promise-return=+1; missingChars=char-missing=+2")
       expect(rendered).toContain("Reference attempts: scenes=1 -> 2, events=1 -> 3")
       expect(rendered).toContain("Manual readiness: planAssist=n/a -> n/a (pending=n/a -> n/a), checker=0 -> 1 (items=1 -> 3, blockers=0 -> 1, warnings=1 -> 2, negative=0 -> 1, positive=0 -> 0, ambiguous=1 -> 2, lowConfidence=0 -> 0)")
@@ -223,6 +248,91 @@ describe("drafting-run-compare", () => {
 
       expect(report.comparisons[0]?.signal).toBe("incomplete")
       expect(report.comparisons[0]?.reasons.join("\n")).toContain("Aligned scene-semantic comparison was unavailable")
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test("treats worsened scene-contract semantic gaps as a mixed advisory signal", () => {
+    const dir = mkdtempSync(join(tmpdir(), "drafting-run-compare-scene-contract-gaps-"))
+    try {
+      const baselineSceneDir = join(dir, "baseline-scene")
+      const candidateSceneDir = join(dir, "candidate-scene")
+      const baselineContextDir = join(dir, "baseline-context")
+      const candidateContextDir = join(dir, "candidate-context")
+      writeSceneReport(baselineSceneDir, sceneReport("baseline", [
+        semanticRow("endpointLanding", "ENDPOINT-2", 2),
+      ]))
+      writeSceneReport(candidateSceneDir, sceneReport("candidate", [
+        semanticRow("endpointLanding", "ENDPOINT-2", 2),
+      ]))
+      writeContextReport(baselineContextDir, {
+        maxScenesPerChapter: 2,
+        minTargetWordsPerScene: 600,
+        overloadedChapterCount: 0,
+        missingCharacterIds: 0,
+        sceneContractShape: {
+          missingDramaticShape: 0,
+          missingEndpointShape: 0,
+          missingTurnShape: 0,
+          missingMaterialityTest: 0,
+          missingChoiceShape: 0,
+          missingFullDramaticShape: 0,
+          anchorOnly: 0,
+        },
+      })
+      writeContextReport(candidateContextDir, {
+        maxScenesPerChapter: 2,
+        minTargetWordsPerScene: 600,
+        overloadedChapterCount: 0,
+        missingCharacterIds: 0,
+        sceneContractShape: {
+          missingDramaticShape: 0,
+          missingEndpointShape: 1,
+          missingTurnShape: 2,
+          missingMaterialityTest: 1,
+          missingChoiceShape: 0,
+          missingFullDramaticShape: 0,
+          anchorOnly: 0,
+        },
+      })
+
+      const baselineReport = join(dir, "baseline-report.json")
+      const candidateReport = join(dir, "candidate-report.json")
+      writeRunReport(baselineReport, {
+        targetPrefix: "baseline-run",
+        arm: "drafting-brief-v1",
+        novelId: "baseline-novel",
+        totalWords: 3000,
+        totalTarget: 3000,
+        meanRatio: 1,
+        sceneOutputDir: baselineSceneDir,
+        contextOutputDir: baselineContextDir,
+        sceneLowRows: 0,
+        missingReadiness: 0,
+      })
+      writeRunReport(candidateReport, {
+        targetPrefix: "candidate-run",
+        arm: "drafting-brief-tight-v1",
+        novelId: "candidate-novel",
+        totalWords: 3000,
+        totalTarget: 3000,
+        meanRatio: 1,
+        sceneOutputDir: candidateSceneDir,
+        contextOutputDir: candidateContextDir,
+        sceneLowRows: 0,
+        missingReadiness: 0,
+      })
+
+      const report = buildDraftingRunComparisonReport({
+        baseline: readDraftingRunRef(baselineReport),
+        candidates: [readDraftingRunRef(candidateReport)],
+      })
+      const comparison = report.comparisons[0]!
+
+      expect(comparison.sceneSemantic.comparisonVerdict).toBe("unchanged")
+      expect(comparison.signal).toBe("mixed")
+      expect(comparison.reasons).toContain("Scene-contract semantic gaps increased: endpoint=+1, turn=+2, materiality=+1.")
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
@@ -502,6 +612,15 @@ function writeContextReport(outputDir: string, opts: {
   withResolvedReferences?: number
   missingCharacterIds: number
   missingCharacterIdCounts?: Record<string, number>
+  sceneContractShape?: {
+    missingDramaticShape: number
+    missingEndpointShape: number
+    missingTurnShape: number
+    missingMaterialityTest: number
+    missingChoiceShape: number
+    missingFullDramaticShape: number
+    anchorOnly: number
+  }
   referenceContextAttempts?: Array<{
     eventCount: number
     sceneRef: string
@@ -516,6 +635,7 @@ function writeContextReport(outputDir: string, opts: {
         denseChapterCount: 0,
         overloadedChapterCount: opts.overloadedChapterCount,
       },
+      sceneContractShape: sceneContractShapeArrays(opts.sceneContractShape),
     },
     downstream: {
       events: 1,
@@ -539,6 +659,29 @@ function writeContextReport(outputDir: string, opts: {
     },
     referenceContextAttempts: opts.referenceContextAttempts ?? [],
   }, null, 2)}\n`)
+}
+
+function sceneContractShapeArrays(counts?: {
+  missingDramaticShape: number
+  missingEndpointShape: number
+  missingTurnShape: number
+  missingMaterialityTest: number
+  missingChoiceShape: number
+  missingFullDramaticShape: number
+  anchorOnly: number
+}): Record<string, unknown[]> {
+  const row = counts ?? {
+    missingDramaticShape: 0,
+    missingEndpointShape: 0,
+    missingTurnShape: 0,
+    missingMaterialityTest: 0,
+    missingChoiceShape: 0,
+    missingFullDramaticShape: 0,
+    anchorOnly: 0,
+  }
+  return Object.fromEntries(
+    Object.entries(row).map(([key, count]) => [key, Array.from({ length: count }, (_, index) => ({ sceneRef: `${key}-${index}` }))]),
+  )
 }
 
 function sceneReport(setName: string, results: SceneSemanticReplayReport["results"]): SceneSemanticReplayReport {

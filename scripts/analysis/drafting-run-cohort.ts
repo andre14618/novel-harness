@@ -36,6 +36,7 @@ type SemanticTraceKind =
   | "payoff"
   | "source"
 type ContextIdDeltas = DraftingRunComparison["planningContext"]["idDeltas"]
+type SceneContractShapeGapDeltas = DraftingRunComparison["planningContext"]["sceneContractShape"]
 
 interface Args {
   comparisons: string[]
@@ -85,6 +86,7 @@ export interface DraftingRunCohortPair {
   sceneCoverageReaderInfoStateDelta: number | null
   sceneCoverageReaderInfoStateCharsDelta: number | null
   sceneCoverageMissingCharacterIdsDelta: number | null
+  sceneContractShapeGapDeltas: SceneContractShapeGapDeltas
   contextIdDeltas: ContextIdDeltas
 }
 
@@ -188,6 +190,7 @@ export interface DraftingRunCohortReport {
       readerInfoStateChars: number | null
       missingCharacterIds: number | null
     }
+    sceneContractShapeGapDeltas: SceneContractShapeGapDeltas
     contextIdDeltas: ContextIdDeltas
   }
   dimensions: DraftingRunCohortDimensionSummary[]
@@ -299,6 +302,7 @@ export function buildDraftingRunCohortReport(input: {
         readerInfoStateChars: sumNullable(evidencePairs.map(pair => pair.sceneCoverageReaderInfoStateCharsDelta)),
         missingCharacterIds: sumNullable(evidencePairs.map(pair => pair.sceneCoverageMissingCharacterIdsDelta)),
       },
+      sceneContractShapeGapDeltas: aggregateSceneContractShapeGapDeltas(evidencePairs),
       contextIdDeltas: aggregateContextIdDeltas(input.refs, isEvidenceComparableComparison),
     },
     dimensions: [...dimensionMap.values()].sort((a, b) => a.dimension.localeCompare(b.dimension)),
@@ -371,6 +375,7 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
       `readerChars=${formatDelta(report.aggregate.sceneCoverageDeltas.readerInfoStateChars)}, ` +
       `missingChars=${formatDelta(report.aggregate.sceneCoverageDeltas.missingCharacterIds)}`,
   )
+  lines.push(`- scene-contract semantic gap deltas: ${formatSceneContractShapeGapDeltas(report.aggregate.sceneContractShapeGapDeltas)}`)
   const contextIdDeltas = formatContextIdDeltas(report.aggregate.contextIdDeltas)
   if (contextIdDeltas) lines.push(`- context ID deltas: ${contextIdDeltas}`)
   lines.push("")
@@ -479,6 +484,7 @@ function pairRowsForReport(ref: DraftingRunCohortReportRef): DraftingRunCohortPa
       sceneCoverageReaderInfoStateDelta: comparison.planningContext.sceneCoverage?.readerInfoStateDelta ?? null,
       sceneCoverageReaderInfoStateCharsDelta: comparison.planningContext.sceneCoverage?.readerInfoStateCharsDelta ?? null,
       sceneCoverageMissingCharacterIdsDelta: comparison.planningContext.sceneCoverage?.missingCharacterIdsDelta ?? null,
+      sceneContractShapeGapDeltas: normalizeSceneContractShapeGapDeltas(comparison.planningContext.sceneContractShape),
       contextIdDeltas: normalizeContextIdDeltas(comparison.planningContext.idDeltas),
     }
   })
@@ -799,6 +805,33 @@ function sumComparisonDelta(
   return count > 0 ? sum : null
 }
 
+function aggregateSceneContractShapeGapDeltas(
+  pairs: readonly DraftingRunCohortPair[],
+): SceneContractShapeGapDeltas {
+  return {
+    missingDramaticShapeDelta: sumNullableOrNull(pairs.map(pair => pair.sceneContractShapeGapDeltas.missingDramaticShapeDelta)),
+    missingEndpointShapeDelta: sumNullableOrNull(pairs.map(pair => pair.sceneContractShapeGapDeltas.missingEndpointShapeDelta)),
+    missingTurnShapeDelta: sumNullableOrNull(pairs.map(pair => pair.sceneContractShapeGapDeltas.missingTurnShapeDelta)),
+    missingMaterialityTestDelta: sumNullableOrNull(pairs.map(pair => pair.sceneContractShapeGapDeltas.missingMaterialityTestDelta)),
+    missingChoiceShapeDelta: sumNullableOrNull(pairs.map(pair => pair.sceneContractShapeGapDeltas.missingChoiceShapeDelta)),
+    missingFullDramaticShapeDelta: sumNullableOrNull(pairs.map(pair => pair.sceneContractShapeGapDeltas.missingFullDramaticShapeDelta)),
+    anchorOnlyDelta: sumNullableOrNull(pairs.map(pair => pair.sceneContractShapeGapDeltas.anchorOnlyDelta)),
+  }
+}
+
+function normalizeSceneContractShapeGapDeltas(value: unknown): SceneContractShapeGapDeltas {
+  const row = typeof value === "object" && value !== null ? value as Record<string, unknown> : {}
+  return {
+    missingDramaticShapeDelta: finiteOrNull(row.missingDramaticShapeDelta),
+    missingEndpointShapeDelta: finiteOrNull(row.missingEndpointShapeDelta),
+    missingTurnShapeDelta: finiteOrNull(row.missingTurnShapeDelta),
+    missingMaterialityTestDelta: finiteOrNull(row.missingMaterialityTestDelta),
+    missingChoiceShapeDelta: finiteOrNull(row.missingChoiceShapeDelta),
+    missingFullDramaticShapeDelta: finiteOrNull(row.missingFullDramaticShapeDelta),
+    anchorOnlyDelta: finiteOrNull(row.anchorOnlyDelta),
+  }
+}
+
 function aggregateContextIdDeltas(
   refs: readonly DraftingRunCohortReportRef[],
   includeComparison: (report: DraftingRunComparisonReport, comparison: DraftingRunComparison) => boolean,
@@ -894,6 +927,11 @@ function sumNullable(values: readonly Array<number | null>): number {
   return values.reduce((sum, value) => sum + (value ?? 0), 0)
 }
 
+function sumNullableOrNull(values: readonly Array<number | null>): number | null {
+  const numeric = values.filter((value): value is number => typeof value === "number" && Number.isFinite(value))
+  return numeric.length > 0 ? numeric.reduce((sum, value) => sum + value, 0) : null
+}
+
 function positiveDelta(value: number | null): boolean {
   return value !== null && value > 0
 }
@@ -904,6 +942,10 @@ function negativeDelta(value: number | null): boolean {
 
 function numberOrZero(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0
+}
+
+function finiteOrNull(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 
 function numberRecord(value: unknown): Record<string, number> {
@@ -957,6 +999,18 @@ function formatContextIdDeltas(deltas: ContextIdDeltas): string {
     contextIdDeltaPart("missingChars", deltas.missingCharacterIds),
   ].filter((part): part is string => part !== null)
   return parts.join("; ")
+}
+
+function formatSceneContractShapeGapDeltas(deltas: SceneContractShapeGapDeltas): string {
+  return [
+    ["endpoint", deltas.missingEndpointShapeDelta],
+    ["turn", deltas.missingTurnShapeDelta],
+    ["materiality", deltas.missingMaterialityTestDelta],
+    ["choice", deltas.missingChoiceShapeDelta],
+    ["full", deltas.missingFullDramaticShapeDelta],
+    ["dramatic", deltas.missingDramaticShapeDelta],
+    ["anchorOnly", deltas.anchorOnlyDelta],
+  ].map(([label, value]) => `${label}=${formatDelta(value as number | null)}`).join(", ")
 }
 
 function contextIdDeltaPart(label: string, record: Record<string, number>): string | null {
