@@ -402,6 +402,61 @@ describe.skipIf(!reachable)("handlePlanReadinessRoute (DB-backed)", () => {
     })
   })
 
+  test("creates and applies an obligation materiality planning_edit from readiness", async () => {
+    const imported = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/import`,
+      {
+        aggregate: materialityAggregate(),
+        importedByKind: "test",
+        importedByRef: "materiality-route-test",
+      },
+    ))
+    const itemId = imported.body.items[0].id
+    expect(imported.body.items[0].target).toMatchObject({
+      kind: "beat_obligation",
+      ref: "obl-route-1",
+      fieldPath: "materialityTest",
+    })
+    expect(imported.body.items[0].sourceHashKind).toBe("target_current_version")
+
+    const created = await expectJson(await invoke(
+      "POST",
+      `/api/novel/${novelId}/plan-readiness/${itemId}/create-planning-proposal`,
+      {
+        proposedValue: "The oath road turns Vey's refusal into public proof against him.",
+        operatorNote: "Name why the sourced obligation changes the scene pressure.",
+      },
+    ))
+
+    expect(created.status).toBe(200)
+    expect(created.body.proposal.envelope.target).toMatchObject({
+      kind: "beat_obligation",
+      ref: "obl-route-1",
+      fieldPath: "materialityTest",
+    })
+    expect(created.body.proposal.diff.before.value).toBeUndefined()
+    expect(created.body.proposal.diff.after.value).toBe(
+      "The oath road turns Vey's refusal into public proof against him.",
+    )
+
+    const approved = await resolvePlanningProposal(novelId, created.body.proposal.envelope.id, {
+      status: "approved",
+      resolvedBy: "test",
+      operatorNote: "Approve materiality bridge test.",
+    })
+    expect(approved.status).toBe(200)
+
+    const saved = await getChapterOutline(novelId, 1)
+    expect(saved.scenes?.[0]?.obligations.mustEstablish[0]?.materialityTest).toBe(
+      "The oath road turns Vey's refusal into public proof against him.",
+    )
+    const lineage = await findPlanningMutationLineageByProposal(created.body.proposal.envelope.id)
+    expect(lineage?.targetKind).toBe("beat_obligation")
+    expect(lineage?.previousRef).toBe("obl-route-1")
+    expect(lineage?.nextRef).toBe("obl-route-1")
+  })
+
   test("does not create a proposal when the readiness target is stale", async () => {
     const imported = await expectJson(await invoke(
       "POST",
@@ -518,6 +573,19 @@ function beat(description: string): SceneBeat {
     characters: ["Istra", "Vey"],
     requiredCharacterIds: ["char-istra", "char-vey"],
     requiredWorldFactIds: ["world-oath-road"],
+    obligations: {
+      mustEstablish: [{
+        obligationId: "obl-route-1",
+        text: "The oath road binds testimony.",
+        sourceId: "world-oath-road",
+        sourceKind: "fact",
+      }],
+      mustPayOff: [],
+      mustTransferKnowledge: [],
+      mustShowStateChange: [],
+      mustNotReveal: [],
+      allowedNewEntities: [],
+    },
     mustEstablish: [],
     mustPayOff: [],
     mustTransferKnowledge: [],
@@ -710,6 +778,73 @@ function characterRefAggregate(fieldPath: "requiredCharacterIds" | "affectedChar
           },
         ],
         excerpt: "character char-kael is named in scene contract but missing requiredCharacterIds/source obligation",
+      },
+    ],
+  }
+}
+
+function materialityAggregate() {
+  return {
+    sourceReports: ["/tmp/materiality-context.json"],
+    labels: ["SOURCE-MATERIALITY-TEST-MISSING"],
+    groups: [
+      {
+        groupId: "001",
+        fixtureId: "route-fixture",
+        armId: "planning-context-readiness",
+        methodPackEnabled: false,
+        unitType: "scene",
+        chapterId: "ch-route-1",
+        sceneId: "beat-route-1",
+        sourceIds: {
+          obligationIds: ["obl-route-1"],
+          characterIds: ["char-istra", "char-vey"],
+          worldFactIds: ["world-oath-road"],
+          sceneTurnIds: ["beat-route-1"],
+          threadIds: [],
+          promiseIds: [],
+          payoffIds: [],
+          sourceIds: ["world-oath-road"],
+        },
+        rewritePacket: {
+          preserveIds: {
+            obligationIds: ["obl-route-1"],
+            characterIds: ["char-istra", "char-vey"],
+            worldFactIds: ["world-oath-road"],
+            sceneTurnIds: ["beat-route-1"],
+            threadIds: [],
+            promiseIds: [],
+            payoffIds: [],
+            sourceIds: ["world-oath-road"],
+          },
+          proposalCandidate: {
+            action: "field_replace",
+            target: {
+              kind: "beat_obligation",
+              ref: "obl-route-1",
+              fieldPath: "materialityTest",
+            },
+            requiresProposedValue: true,
+            proposedValueStatus: "operator_required",
+            safeToAutoApply: false,
+            sourceAgent: "planning-context-readiness",
+          },
+        },
+        findings: [
+          {
+            findingId: "001.1",
+            sourceReport: "/tmp/materiality-context.json",
+            promptMode: "deterministic-planning-context",
+            dimension: "sceneContract",
+            label: "SOURCE-MATERIALITY-TEST-MISSING",
+            severity: "medium",
+            fixIntent: "annotate_obligation_materiality",
+            rationale: "Source-refed non-final scene beat-route-1 has an obligation without materialityTest.",
+            missingForNextLevel: "Add materialityTest to the existing source-refed obligation.",
+            evidence: { sceneRef: "beat-route-1", obligationIds: "obl-route-1" },
+          },
+        ],
+        excerpt: "Scene beat-route-1 is missing materialityTest for obl-route-1.",
       },
     ],
   }
