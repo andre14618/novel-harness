@@ -1634,17 +1634,20 @@ export function sceneSemanticSummary(
     readinessImport?: SceneSemanticReadinessImportTelemetrySummary
   } = {},
 ): SceneSemanticTelemetrySummary {
-  const lowRows = report.results.filter(row => row.ordinal <= 1).length
+  const lowRows = report.results.filter(row => !row.error && row.ordinal <= 1).length
+  const errorRows = report.results.filter(row => row.error).length
   return {
     outputDir,
     taskCount: report.taskCount,
     skipCount: report.skipCount,
     lowRows,
-    errorRows: 0,
+    errorRows,
     ...(telemetry.persistence ? { persistence: telemetry.persistence } : {}),
     ...(telemetry.readinessImport ? { readinessImport: telemetry.readinessImport } : {}),
     dimensions: report.summaries,
-    recommendation: lowRows > 0
+    recommendation: errorRows > 0
+      ? "Diagnostic review incomplete: inspect errored scene-semantic judge rows before promoting this drafting surface."
+      : lowRows > 0
       ? "Diagnostic review: inspect low endpoint/scene-turn rows before promoting this drafting surface."
       : "Diagnostic review: no low endpoint/scene-turn rows in selected dimensions.",
   }
@@ -2057,7 +2060,7 @@ export function writeDraftingIsolatedSceneSemanticComparison(
 }
 
 function sceneSemanticReportRefForArm(result: ArmResult): (SceneSemanticReportRef & { arm: ArmName }) | null {
-  if (!result.sceneSemantic || result.sceneSemantic.errorRows > 0 || result.sceneSemantic.taskCount === 0) return null
+  if (!result.sceneSemantic || result.sceneSemantic.taskCount === 0) return null
   const path = join(result.sceneSemantic.outputDir, "scene-semantic-review.json")
   if (!existsSync(path)) return null
   try {

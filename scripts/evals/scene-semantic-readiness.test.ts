@@ -136,6 +136,26 @@ describe("scene-semantic-readiness", () => {
     expect(rendered).toContain("Make required characters materially affect")
     expect(rendered).toContain("Make the required world fact constrain")
   })
+
+  test("ignores errored judge rows instead of importing them as lows", () => {
+    const source = report()
+    source.results = [{
+      ...row("endpointLanding", "ERROR", 0, "scene semantic judge failed"),
+      error: "DeepSeek deepseek-v4-flash hit max token cap",
+      output: {
+        label: "ERROR",
+        confidence: 0,
+        evidence: {},
+        gates: {},
+        missingForNextLevel: "scene semantic judge failed",
+      },
+    }]
+    source.summaries = []
+    const aggregate = buildSceneSemanticReadinessAggregate([{ report: source }])
+
+    expect(aggregate.groupCount).toBe(0)
+    expect(aggregate.findingCount).toBe(0)
+  })
 })
 
 function report(): SceneSemanticReplayReport {

@@ -45,6 +45,7 @@ interface ReportSummary {
   setName: string
   taskCount: number
   skipCount: number
+  errorRows: number
   dimensions: Dimension[]
 }
 
@@ -130,6 +131,9 @@ export function renderSceneSemanticComparisonReport(report: SceneSemanticCompari
     lines.push(`Candidate: ${comparison.candidate.path}`)
     lines.push(`Verdict: ${comparison.verdict}`)
     lines.push(`Compared rows: ${comparison.comparedRows}`)
+    if (report.baseline.errorRows > 0 || comparison.candidate.errorRows > 0) {
+      lines.push(`Judge errors: baseline=${report.baseline.errorRows}, candidate=${comparison.candidate.errorRows}`)
+    }
     if (comparison.missingInCandidate.length > 0) {
       lines.push(`Missing in candidate: ${comparison.missingInCandidate.length}`)
     }
@@ -175,8 +179,10 @@ function compareCandidate(
   baseline: SceneSemanticReportRef,
   candidate: SceneSemanticReportRef,
 ): SceneSemanticComparison {
-  const baselineRows = new Map(baseline.report.results.map(row => [rowKey(row), row]))
-  const candidateRows = new Map(candidate.report.results.map(row => [rowKey(row), row]))
+  const baselineResults = comparableResults(baseline.report.results)
+  const candidateResults = comparableResults(candidate.report.results)
+  const baselineRows = new Map(baselineResults.map(row => [rowKey(row), row]))
+  const candidateRows = new Map(candidateResults.map(row => [rowKey(row), row]))
   const comparedKeys = [...baselineRows.keys()].filter(key => candidateRows.has(key)).sort()
   const missingInCandidate = [...baselineRows.keys()].filter(key => !candidateRows.has(key)).sort()
   const missingInBaseline = [...candidateRows.keys()].filter(key => !baselineRows.has(key)).sort()
@@ -184,7 +190,10 @@ function compareCandidate(
   const dimensions = summarizeDimensionDeltas(rowChanges)
   return {
     candidate: summarizeReport(candidate),
-    verdict: comparisonVerdict(dimensions, missingInCandidate.length + missingInBaseline.length),
+    verdict: comparisonVerdict(
+      dimensions,
+      missingInCandidate.length + missingInBaseline.length + errorRowCount(baseline) + errorRowCount(candidate),
+    ),
     comparedRows: rowChanges.length,
     missingInCandidate,
     missingInBaseline,
@@ -272,8 +281,17 @@ function summarizeReport(ref: SceneSemanticReportRef): ReportSummary {
     setName: ref.report.setName,
     taskCount: ref.report.taskCount,
     skipCount: ref.report.skipCount,
+    errorRows: errorRowCount(ref),
     dimensions: ref.report.dimensions,
   }
+}
+
+function comparableResults(results: SceneSemanticReplayResult[]): SceneSemanticReplayResult[] {
+  return results.filter(row => !row.error)
+}
+
+function errorRowCount(ref: SceneSemanticReportRef): number {
+  return ref.report.results.filter(row => row.error).length
 }
 
 function rowKey(row: SceneSemanticReplayResult): string {

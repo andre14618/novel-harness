@@ -117,6 +117,7 @@ export interface SceneSemanticReplayResult extends SceneSemanticReplayTask {
   evidenceFields: number
   missingForNextLevel: string
   output: JudgeOutput
+  error?: string
 }
 
 export interface SceneSemanticReplayReport {
@@ -416,25 +417,30 @@ export async function buildSceneSemanticReplayReport(args: SceneSemanticReviewAr
 
   const results = await runBounded(
     taskPlan.tasks.map(task => async () => {
-      const judged = await judgePlanningExcerpt({
-        live: args.live,
-        model: args.model,
-        thinking: args.thinking,
-        maxTokens: args.maxTokens,
-        dimension: task.dimension,
-        promptMode: task.promptMode,
-        caseId: task.taskId,
-        text: task.excerpt,
-      })
-      return {
-        ...task,
-        label: judged.label,
-        ordinal: labelOrdinal(judged.label),
-        confidence: clampNumber(Number(judged.output.confidence ?? 0), 0, 1),
-        evidenceFields: Object.values(judged.output.evidence ?? {}).filter(Boolean).length,
-        missingForNextLevel: judged.output.missingForNextLevel ?? "",
-        output: judged.output,
-      } satisfies SceneSemanticReplayResult
+      try {
+        const judged = await judgePlanningExcerpt({
+          live: args.live,
+          model: args.model,
+          thinking: args.thinking,
+          maxTokens: args.maxTokens,
+          dimension: task.dimension,
+          promptMode: task.promptMode,
+          caseId: task.taskId,
+          text: task.excerpt,
+        })
+        return {
+          ...task,
+          label: judged.label,
+          ordinal: labelOrdinal(judged.label),
+          confidence: clampNumber(Number(judged.output.confidence ?? 0), 0, 1),
+          evidenceFields: Object.values(judged.output.evidence ?? {}).filter(Boolean).length,
+          missingForNextLevel: judged.output.missingForNextLevel ?? "",
+          output: judged.output,
+        } satisfies SceneSemanticReplayResult
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err)
+        return sceneSemanticReplayErrorResult(task, error)
+      }
     }),
     args.concurrency,
   )
@@ -453,7 +459,29 @@ export async function buildSceneSemanticReplayReport(args: SceneSemanticReviewAr
     skipCount: taskPlan.skips.length,
     results,
     skips: taskPlan.skips,
-    summaries: summarizeResults(results),
+    summaries: summarizeResults(successfulResults(results)),
+  }
+}
+
+function sceneSemanticReplayErrorResult(
+  task: SceneSemanticReplayTask,
+  error: string,
+): SceneSemanticReplayResult {
+  return {
+    ...task,
+    label: "ERROR",
+    ordinal: 0,
+    confidence: 0,
+    evidenceFields: 0,
+    missingForNextLevel: `scene semantic judge failed: ${error}`,
+    output: {
+      label: "ERROR",
+      confidence: 0,
+      evidence: {},
+      missingForNextLevel: `scene semantic judge failed: ${error}`,
+      gates: {},
+    },
+    error,
   }
 }
 
@@ -478,7 +506,8 @@ export function renderSceneSemanticReplayReport(report: SceneSemanticReplayRepor
       .join(" ")
     lines.push(`- ${summary.dimension}: count=${summary.count}; mean=${summary.meanOrdinal.toFixed(2)}; low=${summary.lowCount}; ${counts}`)
   }
-  const lowRows = report.results.filter(row => row.ordinal <= 1)
+  const lowRows = report.results.filter(row => !row.error && row.ordinal <= 1)
+  const errorRows = report.results.filter(row => row.error)
   lines.push("")
   lines.push("## Low-Signal Findings")
   lines.push("")
@@ -497,10 +526,21 @@ export function renderSceneSemanticReplayReport(report: SceneSemanticReplayRepor
       lines.push(`- ${row.dimension}: ${row.count}; ${row.reason}`)
     }
   }
+  if (errorRows.length > 0) {
+    lines.push("")
+    lines.push("## Judge Errors")
+    lines.push("")
+    for (const row of errorRows) {
+      lines.push(`- ch${row.chapterNumber} ${row.sceneId} ${row.dimension}: ${row.error}`)
+    }
+  }
   lines.push("")
   lines.push("## Next")
   lines.push("")
   lines.push("- Treat findings as diagnostic/readiness evidence, not blockers.")
+  if (errorRows.length > 0) {
+    lines.push("- Rerun errored rows with a narrower dimension set, lower concurrency, or larger token cap before treating row coverage as complete.")
+  }
   lines.push("- Operator review should inspect low-signal scenes before any planner or writer change.")
   lines.push("- L092: scene-satisfaction signal cannot be promoted to blocker without separate parity-panel evidence.")
   return `${lines.join("\n")}\n`
@@ -647,6 +687,10 @@ function summarizeResults(results: SceneSemanticReplayResult[]): SceneSemanticRe
       lowCount: rows.filter(row => row.ordinal <= 1).length,
       labelCounts: countBy(rows.map(row => row.label)),
     }))
+}
+
+function successfulResults(results: SceneSemanticReplayResult[]): SceneSemanticReplayResult[] {
+  return results.filter(row => !row.error)
 }
 
 function summarizeSkips(skips: SceneSemanticReplaySkip[]): Array<{ dimension: Dimension; reason: string; count: number }> {

@@ -246,6 +246,7 @@ function isIncludedResult(
   result: SceneSemanticReplayResult,
   options: { labels: string[] | null; maxOrdinal: number },
 ): boolean {
+  if (result.error) return false
   if (options.labels && options.labels.length > 0) return options.labels.includes(result.label)
   return result.ordinal <= options.maxOrdinal
 }

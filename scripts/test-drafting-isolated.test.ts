@@ -646,6 +646,41 @@ describe("sceneSemanticSummary", () => {
     expect(summary.recommendation).toContain("inspect low")
   })
 
+  test("keeps errored scene-semantic judge rows out of low-row counts", () => {
+    const errored = {
+      ...resultRow("endpointLanding", "ERROR", 0),
+      error: "DeepSeek deepseek-v4-flash hit max token cap",
+      missingForNextLevel: "scene semantic judge failed: DeepSeek deepseek-v4-flash hit max token cap",
+      output: {
+        label: "ERROR",
+        confidence: 0,
+        evidence: {},
+        missingForNextLevel: "scene semantic judge failed: DeepSeek deepseek-v4-flash hit max token cap",
+        gates: {},
+      },
+    } satisfies SceneSemanticReplayReport["results"][number]
+    const summary = sceneSemanticSummary({
+      generatedAt: "2026-05-10T00:00:00.000Z",
+      novelId: "novel-1",
+      setName: "scene-semantic-review:test",
+      chapters: [1],
+      live: true,
+      model: "deepseek-v4-flash",
+      thinking: true,
+      promptMode: "evidence-first",
+      dimensions: ["endpointLanding"],
+      taskCount: 1,
+      skipCount: 0,
+      results: [errored],
+      skips: [],
+      summaries: [],
+    } satisfies SceneSemanticReplayReport, "output/scene-semantic-review/ab/brief")
+
+    expect(summary.lowRows).toBe(0)
+    expect(summary.errorRows).toBe(1)
+    expect(summary.recommendation).toContain("incomplete")
+  })
+
   test("writes durable failure artifacts when scene semantic replay fails", () => {
     const dir = mkdtempSync(join(tmpdir(), "scene-semantic-failure-"))
     try {
