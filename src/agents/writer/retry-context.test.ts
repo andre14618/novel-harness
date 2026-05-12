@@ -31,6 +31,21 @@ test("buildRetryPrompt: includes prior prose beyond 2000 chars up to the 8000-ch
   expect(out.userPrompt).not.toContain("TRUNCATED_AFTER_8000")
 })
 
+test("buildRetryPrompt: event retry tells the writer to obey current actor over a conflicting bridge", () => {
+  const out = buildRetryPrompt({
+    beatContext: { userPrompt: "BASE PROMPT", targetWords: 500 },
+    systemPrompt: "SYSTEM PROMPT",
+    v1Prose: "Pell brought the document to the table.",
+    issues: ["Beat event missing: Doryn retrieves the manumission document from the reading room table."],
+    attempt: 2,
+    priorBeatProse: "\"Pell. Bring me the document.\"",
+  })
+
+  expect(out.userPrompt).toContain("If the prior bridge conflicts with the required event or actor named in the issue")
+  expect(out.userPrompt).toContain("obey this beat's task and issue, not the conflicting handoff")
+  expect(out.userPrompt).toContain("\"Pell. Bring me the document.\"")
+})
+
 test("formatChapterIntegrityRetryContext: empty issues array returns empty string", () => {
   expect(formatChapterIntegrityRetryContext([])).toBe("")
 })

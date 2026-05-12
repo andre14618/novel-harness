@@ -82,7 +82,7 @@ export function buildRetryPrompt(input: RetryPromptInput): RetryPromptOutput {
   const hasEventIssue = issues.some(i => i.includes("not enacted") || i.includes("Beat event missing"))
   const alignmentNote =
     hasEventIssue && priorBeatProse
-      ? `\nNote: The previous beat's prose (below) may already cover some of this beat's actions — this is natural prose flow. Focus on actions NOT yet dramatized. Do not duplicate what the prior beat already covered.\n\nPrevious beat's prose (last 500 chars):\n---\n${priorBeatProse.slice(-500)}\n---\n`
+      ? `\nNote: The previous beat's prose (below) may already cover some of this beat's actions — this is natural prose flow. Focus on actions NOT yet dramatized. Do not duplicate what the prior beat already covered. If the prior bridge conflicts with the required event or actor named in the issue, obey this beat's task and issue, not the conflicting handoff.\n\nPrevious beat's prose (last 500 chars):\n---\n${priorBeatProse.slice(-500)}\n---\n`
       : ""
 
   const retryContext =

@@ -296,7 +296,7 @@ function renderFactContinuityAnchors(ctx: BeatContext): string | null {
     "- Preserve the scene's declared timing and location unless the scene task itself says they change.",
   ]
   if (ctx.transitionBridge) lines.push("- Continue cleanly from the transition bridge; do not contradict already-drafted facts.")
-  if (ctx.landingTarget) lines.push("- Land toward the next scene without resolving or pre-playing it.")
+  if (ctx.landingTarget) lines.push("- Land toward the next scene without resolving, pre-playing, delegating, or reassigning the next scene's named action.")
   for (const anchor of anchors.slice(0, 6)) lines.push(`- Anchor: ${anchor}`)
   return lines.length > 3 ? lines.join("\n") : null
 }
@@ -377,7 +377,10 @@ function renderContinuityAnchors(ctx: BeatContext): string | null {
     lines.push("- Preserve bridge state exactly; do not contradict concrete possession, location, status, or relationship facts from the prior scene.")
   }
   if (ctx.transitionBridge) lines.push(`Continue from: ${ctx.transitionBridge}`)
-  if (ctx.landingTarget) lines.push(`Land toward next scene: ${ctx.landingTarget}`)
+  if (ctx.landingTarget) {
+    lines.push("- Use the landing target as direction only; do not execute, delegate, or reassign the next scene's named action before that scene.")
+    lines.push(`Land toward next scene: ${ctx.landingTarget}`)
+  }
   return lines.length > 0 ? `CONTINUITY ANCHORS:\n${lines.join("\n")}` : null
 }
 

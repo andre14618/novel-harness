@@ -24,9 +24,10 @@ unless the user explicitly requests a disposable branch.
   run through production planner/state-mapper code and paired-source compare.
   Scene-turn semantic backfill is removed; endpoint, source-refed turn-shape,
   and materiality gaps now surface as warnings/readiness labels. Scope-guard
-  follow-up kept P1 to 1500/1600 target words, 5+5 scenes, zero endpoint/turn/
-  materiality gaps, downstream draft 3812/3100, checker blockers 2->0, and
-  scene lows 15->3; mixed on ratio, no default flip. See L106/L107.
+  follow-up kept P1 tight: 3812/3100, checker blockers 2->0, scene lows 15->3.
+  P2 upstream replicated, then landing-target guard cleared the Plan-Assist
+  handoff: 4328/3100, Plan-Assist/context gaps 0, prose lows 0/8, scene lows
+  11/35. Mixed on ratio; no default flip. See L106/L107.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort
@@ -120,8 +121,8 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: replicate tightened `planningSceneTurnShapingV1` plus
-  material pressure; inspect choice-shape readiness before any default flip. See L103-L107.
+- Next session start: inspect P2 scene-semantic lows before any default flip;
+  relationship/motivation gaps dominate after the Plan-Assist handoff fix. See L103-L107.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.

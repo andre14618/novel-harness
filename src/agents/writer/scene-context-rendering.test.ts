@@ -592,6 +592,24 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.draftingBriefTrace.ids.canonSourceRefs).toEqual(["fact-warrant-signed"])
   })
 
+  it("renders landing targets as direction-only so the previous scene does not pre-play the next action", () => {
+    const ctx = baseCtx({
+      transitionBridge: "Calla closed the ledger.",
+      landingTarget: "Calla retrieves the signed warrant from Orvath's desk",
+    })
+    const selected = selectWriterPromptForDraftingBrief({
+      ctx,
+      mode: "scene-budget-tight-v1",
+      fullContextPrompt: renderBeatContext(ctx, { compact: false }),
+      targetWords: 500,
+      idRendering: "raw",
+    })
+
+    expect(selected.userPrompt).toContain("Use the landing target as direction only")
+    expect(selected.userPrompt).toContain("do not execute, delegate, or reassign the next scene's named action before that scene")
+    expect(selected.userPrompt).toContain("Land toward next scene: Calla retrieves the signed warrant from Orvath's desk")
+  })
+
   it("renders tight anchored brief with load control, scene floor, and anchor telemetry", () => {
     const ctx = baseCtx({
       sceneContract: {
@@ -645,6 +663,7 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.userPrompt).toContain("SCENE LOAD CONTROL:")
     expect(selected.userPrompt).toContain("SCENE CONTRACT (dramatize this shape on-page):")
     expect(selected.userPrompt).toContain("FACT AND CONTINUITY ANCHORS:")
+    expect(selected.userPrompt).toContain("without resolving, pre-playing, delegating, or reassigning the next scene's named action")
     expect(selected.userPrompt).toContain("Anchor: establish: The warrant is already signed. [source:fact-warrant-signed]")
     expect(selected.userPrompt).toContain("CHARACTER MATERIALITY:")
     expect(selected.draftingBriefTrace.mode).toBe("scene-budget-tight-anchored-v1")
