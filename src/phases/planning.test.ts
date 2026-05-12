@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test"
 
 import {
-  applyPlanningMaterialPressureFallback,
-  applySelectiveSceneTurnShapingFallback,
+  auditPlanningMaterialPressureGaps,
+  auditSelectiveSceneTurnShapingGaps,
   planningBeatExpansionRetryReason,
 } from "./planning"
 import type { ChapterOutline, SceneBeat, SeedInput } from "../types"
@@ -115,31 +115,89 @@ describe("planningBeatExpansionRetryReason", () => {
     })).toBeNull()
   })
 
-  test("fills final endpoint fields from existing plan text under selective shaping", () => {
-    const scenes = applySelectiveSceneTurnShapingFallback(
+  test("reports final endpoint gaps without fallback-filling from existing plan text", () => {
+    const sourceScenes = [
+      scene("Maren enters the Counting-House."),
+      scene("Maren pockets Halric's sealed summons."),
+    ]
+    const audit = auditSelectiveSceneTurnShapingGaps(
       "unit-novel",
       {
         chapterNumber: 1,
         purpose: "Maren receives Halric's summons. The chapter ends with Tovin escorting her toward the Chancellor's locked chamber.",
       },
-      [
-        scene("Maren enters the Counting-House."),
-        scene("Maren pockets Halric's sealed summons."),
-      ],
+      sourceScenes,
       seed({ planningSceneTurnShapingV1: true }),
     )
 
-    expect(scenes.at(-1)?.outcome).toBe("Maren pockets Halric's sealed summons.")
-    expect(scenes.at(-1)?.consequence).toBe("Chapter endpoint consequence: Tovin escorting her toward the Chancellor's locked chamber")
+    expect(audit).toMatchObject({
+      active: true,
+      finalMissingFields: ["outcome", "consequence"],
+      sourceRefedNonFinalEntriesMissing: 0,
+    })
+    expect(sourceScenes.at(-1)?.outcome).toBeUndefined()
+    expect(sourceScenes.at(-1)?.consequence).toBeUndefined()
   })
 
-  test("fills non-final turn fields from source-refed obligations under selective shaping", () => {
-    const scenes = applySelectiveSceneTurnShapingFallback(
+  test("reports source-refed non-final turn gaps without synthesizing writer-facing fields", () => {
+    const sourceScenes = [
+      scene("Maren uses the summons to force a clerk's help.", {
+        characters: ["Maren", "Clerk"],
+        obligations: {
+          ...emptyObligations(),
+          mustEstablish: [{
+            text: "Halric's seal can compel archive staff.",
+            sourceId: "fact-halric-seal-authority",
+            sourceKind: "fact",
+            obligationId: "obl-seal-authority",
+          }],
+        },
+      }),
+      scene("Maren enters Halric's locked chamber."),
+    ]
+    const audit = auditSelectiveSceneTurnShapingGaps(
       "unit-novel",
       { chapterNumber: 1, purpose: "Maren reaches Halric's locked chamber." },
-      [
+      sourceScenes,
+      seed({ planningSceneTurnShapingV1: true }),
+    )
+
+    expect(audit).toMatchObject({
+      active: true,
+      finalMissingFields: ["outcome", "consequence"],
+      sourceRefedNonFinalEntriesMissing: 1,
+      sourceRefedNonFinalFieldsMissing: 4,
+    })
+    expect(sourceScenes[0]?.goal).toBeUndefined()
+    expect(sourceScenes[0]?.opposition).toBeUndefined()
+    expect(sourceScenes[0]?.outcome).toBeUndefined()
+    expect(sourceScenes[0]?.consequence).toBeUndefined()
+  })
+
+  test("does not audit selective shaping when the control is off", () => {
+    const sourceScenes = [scene("Maren pockets Halric's sealed summons.")]
+    const audit = auditSelectiveSceneTurnShapingGaps(
+      "unit-novel",
+      { chapterNumber: 1, purpose: "Maren receives Halric's summons." },
+      sourceScenes,
+      seed({}),
+    )
+
+    expect(audit).toEqual({
+      active: false,
+      finalMissingFields: [],
+      sourceRefedNonFinalEntriesMissing: 0,
+      sourceRefedNonFinalFieldsMissing: 0,
+    })
+    expect(sourceScenes.at(-1)?.outcome).toBeUndefined()
+    expect(sourceScenes.at(-1)?.consequence).toBeUndefined()
+  })
+
+  test("reports material pressure gaps on source-refed non-final obligations without fallback-filling", () => {
+    const source = chapter({
+      scenes: [
         scene("Maren uses the summons to force a clerk's help.", {
-          characters: ["Maren", "Clerk"],
+          opposition: "The clerk can refuse unless Halric's seal carries immediate risk.",
           obligations: {
             ...emptyObligations(),
             mustEstablish: [{
@@ -148,88 +206,46 @@ describe("planningBeatExpansionRetryReason", () => {
               sourceKind: "fact",
               obligationId: "obl-seal-authority",
             }],
+            mustTransferKnowledge: [{
+              text: "Maren learns the clerk fears Halric.",
+              sourceId: "know-maren-clerk-fears-halric",
+              sourceKind: "knowledge",
+              obligationId: "obl-maren-clerk-fear",
+              characterName: "Maren",
+              characterId: "char-maren",
+            }],
           },
         }),
-        scene("Maren enters Halric's locked chamber."),
+        scene("Maren enters Halric's locked chamber.", {
+          obligations: {
+            ...emptyObligations(),
+            mustEstablish: [{
+              text: "The chamber is locked by Halric's seal.",
+              sourceId: "fact-halric-locked-chamber",
+              sourceKind: "fact",
+              obligationId: "obl-final-lock",
+            }],
+          },
+        }),
       ],
-      seed({ planningSceneTurnShapingV1: true }),
-    )
-
-    expect(scenes[0]?.goal).toContain("Maren must act on")
-    expect(scenes[0]?.opposition).toContain("source pressure")
-    expect(scenes[0]?.turningPoint).toContain("Halric's seal")
-    expect(scenes[0]?.outcome).toBe("Maren uses the summons to force a clerk's help.")
-    expect(scenes[0]?.consequence).toContain("visible changed status")
-    expect(scenes[0]?.povPersonalStake).toContain("Maren cannot treat this as background")
-    expect(scenes[1]?.goal).toBeUndefined()
-  })
-
-  test("does not fill final endpoint fields when selective shaping is off", () => {
-    const scenes = applySelectiveSceneTurnShapingFallback(
+    })
+    const audit = auditPlanningMaterialPressureGaps(
       "unit-novel",
-      { chapterNumber: 1, purpose: "Maren receives Halric's summons." },
-      [scene("Maren pockets Halric's sealed summons.")],
-      seed({}),
-    )
-
-    expect(scenes.at(-1)?.outcome).toBeUndefined()
-    expect(scenes.at(-1)?.consequence).toBeUndefined()
-  })
-
-  test("fills material pressure on existing source-refed non-final obligations", () => {
-    const outline = applyPlanningMaterialPressureFallback(
-      "unit-novel",
-      chapter({
-        scenes: [
-          scene("Maren uses the summons to force a clerk's help.", {
-            opposition: "The clerk can refuse unless Halric's seal carries immediate risk.",
-            obligations: {
-              ...emptyObligations(),
-              mustEstablish: [{
-                text: "Halric's seal can compel archive staff.",
-                sourceId: "fact-halric-seal-authority",
-                sourceKind: "fact",
-                obligationId: "obl-seal-authority",
-              }],
-              mustTransferKnowledge: [{
-                text: "Maren learns the clerk fears Halric.",
-                sourceId: "know-maren-clerk-fears-halric",
-                sourceKind: "knowledge",
-                obligationId: "obl-maren-clerk-fear",
-                characterName: "Maren",
-                characterId: "char-maren",
-              }],
-            },
-          }),
-          scene("Maren enters Halric's locked chamber.", {
-            obligations: {
-              ...emptyObligations(),
-              mustEstablish: [{
-                text: "The chamber is locked by Halric's seal.",
-                sourceId: "fact-halric-locked-chamber",
-                sourceKind: "fact",
-                obligationId: "obl-final-lock",
-              }],
-            },
-          }),
-        ],
-      }),
+      source,
       seed({ planningMaterialPressureV1: true }),
     )
 
-    expect(outline.scenes[0]?.obligations.mustEstablish[0]?.materialityTest).toContain(
-      "make this world fact constrain the scene choice",
-    )
-    expect(outline.scenes[0]?.obligations.mustEstablish[0]?.materialityTest).toContain(
-      "The clerk can refuse",
-    )
-    expect(outline.scenes[0]?.obligations.mustTransferKnowledge[0]?.materialityTest).toContain(
-      "Maren: make this knowledge alter action",
-    )
-    expect(outline.scenes[1]?.obligations.mustEstablish[0]?.materialityTest).toBeUndefined()
+    expect(audit).toEqual({
+      active: true,
+      sourceRefedNonFinalObligationsMissing: 2,
+      sourceRefedNonFinalScenesMissing: 1,
+    })
+    expect(source.scenes[0]?.obligations.mustEstablish[0]?.materialityTest).toBeUndefined()
+    expect(source.scenes[0]?.obligations.mustTransferKnowledge[0]?.materialityTest).toBeUndefined()
+    expect(source.scenes[1]?.obligations.mustEstablish[0]?.materialityTest).toBeUndefined()
   })
 
-  test("does not fill material pressure when the control is off or full scene-plan contract is on", () => {
+  test("does not audit material pressure when the control is off or full scene-plan contract is on", () => {
     const source = chapter({
       scenes: [
         scene("Maren uses the summons.", {
@@ -248,15 +264,14 @@ describe("planningBeatExpansionRetryReason", () => {
     })
 
     expect(
-      applyPlanningMaterialPressureFallback("unit-novel", source, seed({}))
-        .scenes[0]?.obligations.mustEstablish[0]?.materialityTest,
-    ).toBeUndefined()
+      auditPlanningMaterialPressureGaps("unit-novel", source, seed({})),
+    ).toMatchObject({ active: false, sourceRefedNonFinalObligationsMissing: 0 })
     expect(
-      applyPlanningMaterialPressureFallback("unit-novel", source, seed({
+      auditPlanningMaterialPressureGaps("unit-novel", source, seed({
         planningMaterialPressureV1: true,
         scenePlanContractV1: true,
-      })).scenes[0]?.obligations.mustEstablish[0]?.materialityTest,
-    ).toBeUndefined()
+      })),
+    ).toMatchObject({ active: false, sourceRefedNonFinalObligationsMissing: 0 })
   })
 })
 

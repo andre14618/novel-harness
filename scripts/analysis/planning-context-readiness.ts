@@ -54,6 +54,9 @@ interface PlanningContextReadinessFinding {
     | "SCENE-LOAD-OVERLOADED"
     | "SCENE-LOAD-DENSE"
     | "FUTURE-EVENT-ANCHOR-MISSING"
+    | "SCENE-TURN-ENDPOINT-MISSING"
+    | "SOURCE-SCENE-TURN-SHAPE-MISSING"
+    | "SOURCE-MATERIALITY-TEST-MISSING"
     | "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE"
     | "SCENE-CONTRACT-FULL-SHAPE-INCOMPLETE"
     | "PLAN-FACT-STATUS-CONTRADICTION"
@@ -265,11 +268,16 @@ export function renderPlanningContextReadinessAggregate(report: PlanningContextR
 
 function prioritizedSceneContractGaps(report: PlanningToDraftingContextReport): DramaticSceneContractGap[] {
   const shape = report.upstream.sceneContractShape
-  const choiceGaps = shape?.missingChoiceShape ?? []
+  const endpointGaps = shape?.missingEndpointShape ?? []
+  const turnGaps = shape?.missingTurnShape ?? []
+  const materialityGaps = shape?.missingMaterialityTest ?? []
+  const operationalRefs = new Set([...endpointGaps, ...turnGaps, ...materialityGaps].map(gap => gap.sceneRef))
+  const choiceGaps = (shape?.missingChoiceShape ?? [])
+    .filter(gap => !operationalRefs.has(gap.sceneRef))
   const choiceRefs = new Set(choiceGaps.map(gap => gap.sceneRef))
   const fullOnlyGaps = (shape?.missingFullDramaticShape ?? [])
-    .filter(gap => !choiceRefs.has(gap.sceneRef))
-  return [...choiceGaps, ...fullOnlyGaps]
+    .filter(gap => !choiceRefs.has(gap.sceneRef) && !operationalRefs.has(gap.sceneRef) && gap.hasChoiceShape)
+  return [...endpointGaps, ...turnGaps, ...materialityGaps, ...choiceGaps, ...fullOnlyGaps]
 }
 
 function shouldIncludeChapter(chapter: ChapterSceneLoad, includeDense: boolean): boolean {
@@ -495,12 +503,10 @@ function groupForSceneContractGap(args: {
     sourceReport: args.sourceReport,
     promptMode: "deterministic-planning-context",
     dimension: "sceneContract",
-    label: args.gap.label === "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE"
-      ? "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE"
-      : "SCENE-CONTRACT-FULL-SHAPE-INCOMPLETE",
+    label: sceneContractReadinessLabel(args.gap),
     severity: args.gap.severity,
     fixIntent: "complete_scene_contract",
-    rationale: `Scene ${args.gap.sceneRef} has a partial scene contract: missing ${args.gap.missingFields.join(", ")}.`,
+    rationale: sceneContractRationale(args.gap),
     missingForNextLevel: sceneContractMissingForNextLevel(args.gap),
     evidence: {
       chapterNumber: String(args.gap.chapterNumber),
@@ -530,11 +536,7 @@ function groupForSceneContractGap(args: {
     findings: [readinessFinding],
     rewritePacket: {
       targetSummary: `scene ${args.gap.sceneRef}`,
-      rewriteGoals: [
-        readinessFinding.missingForNextLevel,
-        "Prefer a full scene-plan replacement that preserves the existing sceneId, obligations, source refs, endpoint intent, and character/world pressure.",
-        "Do not add a crisis choice to a true transit/establishment scene unless the scene is meant to carry a dramatic turn.",
-      ],
+      rewriteGoals: sceneContractRewriteGoals(args.gap, readinessFinding.missingForNextLevel),
       preserveIds: sourceIds,
       proposalCandidate: {
         action: "beat_replace",
@@ -553,11 +555,67 @@ function groupForSceneContractGap(args: {
   }
 }
 
+function sceneContractReadinessLabel(gap: DramaticSceneContractGap): PlanningContextReadinessFinding["label"] {
+  if (gap.label === "SCENE-TURN-ENDPOINT-MISSING") return "SCENE-TURN-ENDPOINT-MISSING"
+  if (gap.label === "SOURCE-SCENE-TURN-SHAPE-MISSING") return "SOURCE-SCENE-TURN-SHAPE-MISSING"
+  if (gap.label === "SOURCE-MATERIALITY-TEST-MISSING") return "SOURCE-MATERIALITY-TEST-MISSING"
+  if (gap.label === "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE") return "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE"
+  return "SCENE-CONTRACT-FULL-SHAPE-INCOMPLETE"
+}
+
+function sceneContractRationale(gap: DramaticSceneContractGap): string {
+  if (gap.label === "SCENE-TURN-ENDPOINT-MISSING") {
+    return `Final scene ${gap.sceneRef} is missing endpoint fields: ${gap.missingFields.join(", ")}.`
+  }
+  if (gap.label === "SOURCE-SCENE-TURN-SHAPE-MISSING") {
+    return `Source-refed non-final scene ${gap.sceneRef} is missing minimal writer-facing turn fields: ${gap.missingFields.join(", ")}.`
+  }
+  if (gap.label === "SOURCE-MATERIALITY-TEST-MISSING") {
+    return `Source-refed non-final scene ${gap.sceneRef} has obligations without materialityTest annotations.`
+  }
+  return `Scene ${gap.sceneRef} has a partial scene contract: missing ${gap.missingFields.join(", ")}.`
+}
+
 function sceneContractMissingForNextLevel(gap: DramaticSceneContractGap): string {
+  if (gap.label === "SCENE-TURN-ENDPOINT-MISSING") {
+    return "Populate the final scene's outcome and consequence from the planner's actual endpoint/hook decision before drafting."
+  }
+  if (gap.label === "SOURCE-SCENE-TURN-SHAPE-MISSING") {
+    return "Populate goal, opposition, outcome, and consequence for this source-refed non-final scene, or remove the source-refed obligation if the scene is only connective."
+  }
+  if (gap.label === "SOURCE-MATERIALITY-TEST-MISSING") {
+    return "Add materialityTest to the existing source-refed non-final obligations, naming how each source changes choice, constraint, relationship behavior, outcome, or future pressure."
+  }
   if (gap.label === "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE") {
     return "Add a real crisisChoice with at least two concrete choiceAlternatives, or explicitly simplify the scene so it no longer pretends to carry a dramatic decision."
   }
   return "Complete the scene contract with goal, opposition, turningPoint, crisisChoice, two choiceAlternatives, outcome, consequence, povPersonalStake, valueIn, and valueOut where the scene is meant to carry a dramatic turn."
+}
+
+function sceneContractRewriteGoals(gap: DramaticSceneContractGap, primaryGoal: string): string[] {
+  if (gap.label === "SCENE-TURN-ENDPOINT-MISSING") {
+    return [
+      primaryGoal,
+      "Preserve the sceneId and chapter endpoint intent; do not derive the endpoint from generic fallback prose.",
+    ]
+  }
+  if (gap.label === "SOURCE-SCENE-TURN-SHAPE-MISSING") {
+    return [
+      primaryGoal,
+      "Preserve obligation/source IDs that remain load-bearing, but do not add optional scene-turn tags to transit or decorative setup.",
+    ]
+  }
+  if (gap.label === "SOURCE-MATERIALITY-TEST-MISSING") {
+    return [
+      primaryGoal,
+      "Annotate existing obligations only; do not add new obligations just to satisfy the field.",
+    ]
+  }
+  return [
+    primaryGoal,
+    "Prefer a scene-plan replacement that preserves the existing sceneId, obligations, source refs, endpoint intent, and character/world pressure.",
+    "Do not add a crisis choice to a true transit/establishment scene unless the scene is meant to carry a dramatic turn.",
+  ]
 }
 
 function sourceIdsFromSceneContractGap(gap: DramaticSceneContractGap): PlanningContextReadinessSourceIds {

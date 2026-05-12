@@ -146,6 +146,9 @@ export interface DramaticSceneContractGap {
   label:
     | "DRAMATIC-SCENE-CONTRACT-MISSING"
     | "ANCHOR-ONLY-SCENE-CONTRACT"
+    | "SCENE-TURN-ENDPOINT-MISSING"
+    | "SOURCE-SCENE-TURN-SHAPE-MISSING"
+    | "SOURCE-MATERIALITY-TEST-MISSING"
     | "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE"
     | "SCENE-CONTRACT-FULL-SHAPE-INCOMPLETE"
   severity: "medium" | "low"
@@ -171,6 +174,9 @@ export interface DramaticSceneContractGap {
 
 export interface SceneContractShapeSummary {
   missingDramaticShape: DramaticSceneContractGap[]
+  missingEndpointShape?: DramaticSceneContractGap[]
+  missingTurnShape?: DramaticSceneContractGap[]
+  missingMaterialityTest?: DramaticSceneContractGap[]
   missingChoiceShape: DramaticSceneContractGap[]
   missingFullDramaticShape: DramaticSceneContractGap[]
   anchorOnly: DramaticSceneContractGap[]
@@ -449,15 +455,27 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
   )
   const sceneContractShape = report.upstream.sceneContractShape
   const missingDramaticShape = sceneContractShape?.missingDramaticShape ?? []
+  const missingEndpointShape = sceneContractShape?.missingEndpointShape ?? []
+  const missingTurnShape = sceneContractShape?.missingTurnShape ?? []
+  const missingMaterialityTest = sceneContractShape?.missingMaterialityTest ?? []
   const missingChoiceShape = sceneContractShape?.missingChoiceShape ?? []
   const missingFullDramaticShape = sceneContractShape?.missingFullDramaticShape ?? []
   const anchorOnly = sceneContractShape?.anchorOnly ?? []
   lines.push(
     `Scene contract shape gaps: missingDramatic=${missingDramaticShape.length}, ` +
-      `missingChoice=${missingChoiceShape.length}, missingFull=${missingFullDramaticShape.length}, ` +
+      `missingEndpoint=${missingEndpointShape.length}, missingTurn=${missingTurnShape.length}, ` +
+      `missingMateriality=${missingMaterialityTest.length}, missingChoice=${missingChoiceShape.length}, ` +
+      `missingFull=${missingFullDramaticShape.length}, ` +
       `anchorOnly=${anchorOnly.length}`,
   )
-  for (const gap of [...missingDramaticShape, ...missingChoiceShape, ...missingFullDramaticShape].slice(0, 5)) {
+  for (const gap of [
+    ...missingEndpointShape,
+    ...missingTurnShape,
+    ...missingMaterialityTest,
+    ...missingDramaticShape,
+    ...missingChoiceShape,
+    ...missingFullDramaticShape,
+  ].slice(0, 5)) {
     lines.push(
       `- ${gap.label}: ${gap.sceneRef}; missing=${gap.missingFields.join(",")}; ` +
         `obligations=${gap.hasObligations ? "yes" : "no"}; "${gap.descriptionExcerpt}"`,
@@ -1184,9 +1202,12 @@ const FULL_DRAMATIC_SCENE_CONTRACT_FIELDS = [
 ] as const
 
 function summarizeSceneContractShapeGaps(
-  rows: Array<{ outline: ChapterOutline; scene: unknown }>,
+  rows: Array<{ outline: ChapterOutline; scene: unknown; sceneIndex?: number }>,
 ): SceneContractShapeSummary {
   const missingDramaticShape: DramaticSceneContractGap[] = []
+  const missingEndpointShape: DramaticSceneContractGap[] = []
+  const missingTurnShape: DramaticSceneContractGap[] = []
+  const missingMaterialityTest: DramaticSceneContractGap[] = []
   const missingChoiceShape: DramaticSceneContractGap[] = []
   const missingFullDramaticShape: DramaticSceneContractGap[] = []
   const anchorOnly: DramaticSceneContractGap[] = []
@@ -1197,6 +1218,49 @@ function summarizeSceneContractShapeGaps(
     const sceneReference = sceneRef(row.scene)
     if (!sceneReference) continue
     const obligationItems = obligationItemsForScene(row.scene)
+    const sourceRefedMaterialItems = materialPressureObligationItemsForScene(row.scene)
+    const isFinalScene = row.sceneIndex === (row.outline.scenes?.length ?? 0) - 1
+
+    if (isFinalScene && shouldFlagFinalEndpointGap(shape, obligationItems)) {
+      const missingEndpointFields = missingEndpointFieldsForScene(record)
+      if (missingEndpointFields.length > 0) {
+        missingEndpointShape.push(sceneContractGap({
+          row,
+          sceneReference,
+          record,
+          shape,
+          obligationItems,
+          label: "SCENE-TURN-ENDPOINT-MISSING",
+          missingFields: missingEndpointFields,
+        }))
+      }
+    } else if (sourceRefedMaterialItems.length > 0) {
+      const missingTurnFields = missingSourceSceneTurnFields(record)
+      if (missingTurnFields.length > 0) {
+        missingTurnShape.push(sceneContractGap({
+          row,
+          sceneReference,
+          record,
+          shape,
+          obligationItems: sourceRefedMaterialItems,
+          label: "SOURCE-SCENE-TURN-SHAPE-MISSING",
+          missingFields: missingTurnFields,
+        }))
+      }
+
+      const missingMaterialityItems = sourceRefedMaterialItems.filter(item => !hasText(item.materialityTest))
+      if (missingMaterialityItems.length > 0) {
+        missingMaterialityTest.push(sceneContractGap({
+          row,
+          sceneReference,
+          record,
+          shape,
+          obligationItems: missingMaterialityItems,
+          label: "SOURCE-MATERIALITY-TEST-MISSING",
+          missingFields: ["materialityTest"],
+        }))
+      }
+    }
 
     if (!shape.hasDramaticShape) {
       const gap = sceneContractGap({
@@ -1213,7 +1277,7 @@ function summarizeSceneContractShapeGaps(
       continue
     }
 
-    if (!shape.hasChoiceShape && shouldFlagSceneContractCompletenessGap(shape, obligationItems)) {
+    if (!shape.hasChoiceShape && shouldFlagChoiceShapeGap(record)) {
       missingChoiceShape.push(sceneContractGap({
         row,
         sceneReference,
@@ -1238,7 +1302,31 @@ function summarizeSceneContractShapeGaps(
     }
   }
 
-  return { missingDramaticShape, missingChoiceShape, missingFullDramaticShape, anchorOnly }
+  return {
+    missingDramaticShape,
+    missingEndpointShape,
+    missingTurnShape,
+    missingMaterialityTest,
+    missingChoiceShape,
+    missingFullDramaticShape,
+    anchorOnly,
+  }
+}
+
+function missingEndpointFieldsForScene(scene: Record<string, unknown>): string[] {
+  const fields: string[] = []
+  if (!hasText(scene.outcome)) fields.push("outcome")
+  if (!hasText(scene.consequence)) fields.push("consequence")
+  return fields
+}
+
+function missingSourceSceneTurnFields(scene: Record<string, unknown>): string[] {
+  const fields: string[] = []
+  if (!hasText(scene.goal)) fields.push("goal")
+  if (!hasText(scene.opposition)) fields.push("opposition")
+  if (!hasText(scene.outcome)) fields.push("outcome")
+  if (!hasText(scene.consequence)) fields.push("consequence")
+  return fields
 }
 
 function missingDramaticFields(scene: Record<string, unknown>): string[] {
@@ -1265,6 +1353,17 @@ function shouldFlagSceneContractCompletenessGap(
   obligationItems: Array<Record<string, unknown>>,
 ): boolean {
   return shape.hasEndpointShape || shape.hasChoiceShape || shape.dramaticFields >= 4 || obligationItems.length > 0
+}
+
+function shouldFlagChoiceShapeGap(scene: Record<string, unknown>): boolean {
+  return hasText(scene.crisisChoice) || stringArray(scene.choiceAlternatives).length > 0
+}
+
+function shouldFlagFinalEndpointGap(
+  shape: ReturnType<typeof summarizeSceneContractShape>,
+  obligationItems: Array<Record<string, unknown>>,
+): boolean {
+  return shape.hasAny || obligationItems.length > 0
 }
 
 function sceneContractGap(args: {
@@ -1311,18 +1410,33 @@ function idsFromRecords(records: Array<Record<string, unknown>>, key: string): s
 function obligationItemsForScene(scene: unknown): Array<Record<string, unknown>> {
   const obligations = readRecord(readRecord(scene).obligations)
   const rows: Array<Record<string, unknown>> = []
-  for (const value of Object.values(obligations)) {
+  for (const [list, value] of Object.entries(obligations)) {
     if (!Array.isArray(value)) continue
     for (const item of value) {
       const record = readRecord(item)
       if (hasText(record.text) || hasText(record.obligationId) || hasText(record.sourceId)) {
-        rows.push(record)
+        rows.push({ ...record, obligationList: list })
       }
     }
   }
   const allowed = stringArray(obligations.allowedNewEntities)
   for (const entity of allowed) rows.push({ text: entity, allowedNewEntity: true })
   return rows
+}
+
+const MATERIAL_PRESSURE_OBLIGATION_LISTS = new Set([
+  "mustEstablish",
+  "mustPayOff",
+  "mustTransferKnowledge",
+  "mustShowStateChange",
+])
+
+function materialPressureObligationItemsForScene(scene: unknown): Array<Record<string, unknown>> {
+  return obligationItemsForScene(scene).filter(item =>
+    hasText(item.sourceId) &&
+    typeof item.obligationList === "string" &&
+    MATERIAL_PRESSURE_OBLIGATION_LISTS.has(item.obligationList)
+  )
 }
 
 function readRecord(value: unknown): Record<string, unknown> {

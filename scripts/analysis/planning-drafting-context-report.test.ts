@@ -30,6 +30,7 @@ describe("planning-drafting-context-report", () => {
             goal: "Expose the ledger.",
             outcome: "Halric opens the ledger.",
             consequence: "Maren controls the next accusation.",
+            choiceAlternatives: ["Expose Halric in public."],
             obligations: {
               mustEstablish: [{
                 obligationId: "obl-ledger",
@@ -233,8 +234,64 @@ describe("planning-drafting-context-report", () => {
     expect(renderPlanningToDraftingContextReport(report)).toContain("Plan continuity: futureEventAnchors=0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=1, choice=0, endpoint=1, full=0, anchorOnly=0, temporal=1, place=1)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=1, anchorOnly=0, anchors=1)")
-    expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, missingChoice=1, missingFull=1, anchorOnly=0")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, missingEndpoint=0, missingTurn=0, missingMateriality=0, missingChoice=1, missingFull=1, anchorOnly=0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE")
+  })
+
+  test("surfaces source-refed scene-turn and materiality gaps without requiring crisis-choice shape", () => {
+    const upstream = summarizePlanningArtifacts({
+      worldBibleAvailable: true,
+      storySpineAvailable: true,
+      characters: [{ id: "char-maren", name: "Maren" }],
+      outlines: [outline(1, {
+        scenes: [
+          {
+            ...scenes(1)[0]!,
+            sceneId: "scene-source-gap",
+            description: "Maren forces the clerk to honor Halric's seal.",
+            obligations: {
+              mustEstablish: [{
+                obligationId: "obl-seal",
+                sourceId: "fact-seal",
+                text: "Halric's seal compels archive staff.",
+              }],
+              mustPayOff: [],
+              mustTransferKnowledge: [],
+              mustShowStateChange: [],
+              mustNotReveal: [],
+              allowedNewEntities: [],
+            },
+          },
+          {
+            ...scenes(1)[0]!,
+            sceneId: "scene-final-gap",
+            description: "Maren reaches Halric's locked chamber.",
+            goal: "Reach Halric's locked chamber.",
+          },
+        ],
+      })],
+    })
+
+    expect(upstream.sceneContractShape.missingTurnShape).toMatchObject([{
+      label: "SOURCE-SCENE-TURN-SHAPE-MISSING",
+      sceneRef: "scene-source-gap",
+      missingFields: ["goal", "opposition", "outcome", "consequence"],
+      obligationIds: ["obl-seal"],
+      sourceIds: ["fact-seal"],
+    }])
+    expect(upstream.sceneContractShape.missingMaterialityTest).toMatchObject([{
+      label: "SOURCE-MATERIALITY-TEST-MISSING",
+      sceneRef: "scene-source-gap",
+      missingFields: ["materialityTest"],
+      obligationIds: ["obl-seal"],
+      sourceIds: ["fact-seal"],
+    }])
+    expect(upstream.sceneContractShape.missingEndpointShape).toMatchObject([{
+      label: "SCENE-TURN-ENDPOINT-MISSING",
+      sceneRef: "scene-final-gap",
+      missingFields: ["outcome", "consequence"],
+    }])
+    expect(upstream.sceneContractShape.missingChoiceShape).toEqual([])
   })
 
   test("separates anchor-only scene contracts from dramatic scene shape", () => {
@@ -309,7 +366,7 @@ describe("planning-drafting-context-report", () => {
 
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=0, choice=0, endpoint=0, full=0, anchorOnly=1, temporal=1, place=1)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=0, anchorOnly=1, anchors=1)")
-    expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, missingChoice=0, missingFull=0, anchorOnly=1")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, missingEndpoint=1, missingTurn=0, missingMateriality=0, missingChoice=0, missingFull=0, anchorOnly=1")
     expect(renderPlanningToDraftingContextReport(report)).toContain("ANCHOR-ONLY-SCENE-CONTRACT: scene-1")
   })
 

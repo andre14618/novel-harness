@@ -412,6 +412,95 @@ describe("planning-context-readiness", () => {
     })
   })
 
+  test("turns semantic backfill gaps into specific readiness labels", () => {
+    const aggregate = buildPlanningContextReadinessAggregate({
+      report: report({
+        sceneContractShape: {
+          missingDramaticShape: [],
+          missingEndpointShape: [{
+            label: "SCENE-TURN-ENDPOINT-MISSING",
+            severity: "medium",
+            chapterNumber: 2,
+            chapterId: "ch-002",
+            sceneRef: "scene-final",
+            descriptionExcerpt: "Maren reaches Halric's chamber.",
+            hasTemporalAnchor: false,
+            hasPlaceAnchor: false,
+            hasObligations: false,
+            hasChoiceShape: false,
+            hasEndpointShape: false,
+            hasFullDramaticShape: false,
+            characterCount: 1,
+            obligationIds: [],
+            characterIds: [],
+            sourceIds: [],
+            threadIds: [],
+            promiseIds: [],
+            payoffIds: [],
+            missingFields: ["outcome", "consequence"],
+          }],
+          missingTurnShape: [{
+            label: "SOURCE-SCENE-TURN-SHAPE-MISSING",
+            severity: "medium",
+            chapterNumber: 2,
+            chapterId: "ch-002",
+            sceneRef: "scene-source",
+            descriptionExcerpt: "Maren forces a clerk's help.",
+            hasTemporalAnchor: false,
+            hasPlaceAnchor: false,
+            hasObligations: true,
+            hasChoiceShape: false,
+            hasEndpointShape: false,
+            hasFullDramaticShape: false,
+            characterCount: 2,
+            obligationIds: ["obl-seal"],
+            characterIds: [],
+            sourceIds: ["fact-seal"],
+            threadIds: [],
+            promiseIds: [],
+            payoffIds: [],
+            missingFields: ["goal", "opposition", "outcome", "consequence"],
+          }],
+          missingMaterialityTest: [{
+            label: "SOURCE-MATERIALITY-TEST-MISSING",
+            severity: "medium",
+            chapterNumber: 2,
+            chapterId: "ch-002",
+            sceneRef: "scene-source",
+            descriptionExcerpt: "Maren forces a clerk's help.",
+            hasTemporalAnchor: false,
+            hasPlaceAnchor: false,
+            hasObligations: true,
+            hasChoiceShape: false,
+            hasEndpointShape: false,
+            hasFullDramaticShape: false,
+            characterCount: 2,
+            obligationIds: ["obl-seal"],
+            characterIds: [],
+            sourceIds: ["fact-seal"],
+            threadIds: [],
+            promiseIds: [],
+            payoffIds: [],
+            missingFields: ["materialityTest"],
+          }],
+          missingChoiceShape: [],
+          missingFullDramaticShape: [],
+          anchorOnly: [],
+        },
+      }),
+      sourceReport: "context.json",
+      generatedAt: "2026-05-11T00:00:00.000Z",
+    })
+
+    const labels = aggregate.groups.flatMap(group => group.findings.map(finding => finding.label))
+    expect(labels).toContain("SCENE-TURN-ENDPOINT-MISSING")
+    expect(labels).toContain("SOURCE-SCENE-TURN-SHAPE-MISSING")
+    expect(labels).toContain("SOURCE-MATERIALITY-TEST-MISSING")
+    const materiality = aggregate.groups.find(group => group.findings[0]?.label === "SOURCE-MATERIALITY-TEST-MISSING")
+    expect(materiality?.rewritePacket.rewriteGoals).toContain("Annotate existing obligations only; do not add new obligations just to satisfy the field.")
+    expect(renderPlanningContextReadinessAggregate(aggregate)).toContain("SOURCE-MATERIALITY-TEST-MISSING")
+  })
+
   test("turns unresolved reference attempts into manual scene description readiness", () => {
     const contextReport = report()
     contextReport.referenceContextAttempts = [{

@@ -241,6 +241,11 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   }
   emit(novelId, { type: "progress", data: { step: "planning-obligations", status: "complete", chapters: chapters.length } })
 
+  for (const ch of chapters) {
+    auditPlanningMaterialPressureGaps(novelId, ch, novel.seed)
+    auditSelectiveSceneTurnShapingGaps(novelId, ch, ch.scenes ?? [], novel.seed)
+  }
+
   // L096 Slice 1.5: scene plan contract validator runs in ADVISORY mode
   // under `scenePlanContractV1`. Three LXC smokes (r1/r2/r3) showed that
   // DeepSeek V4 Flash does not reliably comply with the multi-field
@@ -429,13 +434,7 @@ async function expandChapter(
     (result.output.scenes as SceneBeat[]).map(stripBeatMapperFields),
     seed,
   )
-  const shapedScenes = applySelectiveSceneTurnShapingFallback(novelId, skeleton, scenes, seed)
-  const mapped = await mapChapterState(novelId, skeleton, allSkeletons, worldBible, characters, spine, seed, shapedScenes, attempt)
-  const pressured = applyPlanningMaterialPressureFallback(novelId, mapped, seed)
-  return {
-    ...pressured,
-    scenes: applySelectiveSceneTurnShapingFallback(novelId, skeleton, pressured.scenes ?? [], seed),
-  }
+  return mapChapterState(novelId, skeleton, allSkeletons, worldBible, characters, spine, seed, scenes, attempt)
 }
 
 export function planningBeatExpansionRetryReason(
@@ -498,150 +497,136 @@ function sceneHasSourceRefedHardObligation(scene: SceneBeat): boolean {
   return false
 }
 
-export function applySelectiveSceneTurnShapingFallback(
+export interface SelectiveSceneTurnShapingGapAudit {
+  active: boolean
+  finalMissingFields: string[]
+  sourceRefedNonFinalEntriesMissing: number
+  sourceRefedNonFinalFieldsMissing: number
+}
+
+export function auditSelectiveSceneTurnShapingGaps(
   novelId: string,
   skeleton: Pick<ChapterOutline, "chapterNumber" | "purpose">,
   scenes: readonly SceneBeat[],
   seed: Pick<SeedInput, "pipelineOverrides">,
-): SceneBeat[] {
+): SelectiveSceneTurnShapingGapAudit {
   if (
     !resolvePlanningSceneTurnShapingV1(seed.pipelineOverrides) ||
     resolveScenePlanContractV1(seed.pipelineOverrides)
   ) {
-    return [...scenes]
-  }
-  const out = scenes.map(scene => ({ ...scene }))
-  const finalScene = out.at(-1)
-  if (!finalScene) return out
-
-  const applied: string[] = []
-  if (!hasText(finalScene.outcome)) {
-    finalScene.outcome = truncatePlanningField(finalScene.description)
-    applied.push("outcome")
-  }
-  if (!hasText(finalScene.consequence)) {
-    finalScene.consequence = truncatePlanningField(
-      `Chapter endpoint consequence: ${extractChapterEndpoint(skeleton.purpose) ?? skeleton.purpose}`,
-    )
-    applied.push("consequence")
-  }
-  let nonFinalEntriesFilled = 0
-  let nonFinalFieldsFilled = 0
-  for (const scene of out.slice(0, -1)) {
-    if (!sceneHasSourceRefedHardObligation(scene)) continue
-    const primary = firstSourceRefedHardObligation(scene)
-    if (!primary) continue
-    const filled = fillMissingSourceRefedSceneTurnFields(scene, primary)
-    if (filled > 0) {
-      nonFinalEntriesFilled += 1
-      nonFinalFieldsFilled += filled
+    return {
+      active: false,
+      finalMissingFields: [],
+      sourceRefedNonFinalEntriesMissing: 0,
+      sourceRefedNonFinalFieldsMissing: 0,
     }
   }
-  if (applied.length > 0) {
+  const finalScene = scenes.at(-1)
+  const finalMissingFields = finalScene ? missingFinalEndpointFields(finalScene) : []
+  let sourceRefedNonFinalEntriesMissing = 0
+  let sourceRefedNonFinalFieldsMissing = 0
+  for (const scene of scenes.slice(0, -1)) {
+    if (!sceneHasSourceRefedHardObligation(scene)) continue
+    const missingFields = missingNonFinalSceneTurnFields(scene)
+    if (missingFields.length > 0) {
+      sourceRefedNonFinalEntriesMissing += 1
+      sourceRefedNonFinalFieldsMissing += missingFields.length
+    }
+  }
+  if (finalMissingFields.length > 0) {
     log(
       novelId,
-      "info",
-      `Planning scene-turn fallback ch${skeleton.chapterNumber}: filled final ${applied.join("+")} from existing plan text`,
+      "warn",
+      `Planning scene-turn gap ch${skeleton.chapterNumber}: final entry missing ${finalMissingFields.join("+")} endpoint fields; retry/readiness must repair rather than fallback-fill from existing plan text`,
     )
   }
-  if (nonFinalEntriesFilled > 0) {
+  if (sourceRefedNonFinalEntriesMissing > 0) {
     log(
       novelId,
-      "info",
-      `Planning scene-turn fallback ch${skeleton.chapterNumber}: filled ${nonFinalFieldsFilled} fields on ${nonFinalEntriesFilled} source-refed non-final entries`,
+      "warn",
+      `Planning scene-turn gap ch${skeleton.chapterNumber}: ${sourceRefedNonFinalEntriesMissing} source-refed non-final entries missing ${sourceRefedNonFinalFieldsMissing} minimal turn fields; retry/readiness must repair rather than fallback-fill writer-facing context`,
     )
   }
-  return out
+  return {
+    active: true,
+    finalMissingFields,
+    sourceRefedNonFinalEntriesMissing,
+    sourceRefedNonFinalFieldsMissing,
+  }
 }
 
-function firstSourceRefedHardObligation(scene: SceneBeat): MaterialPressureObligation | null {
-  for (const list of MATERIAL_PRESSURE_OBLIGATION_LISTS) {
-    const item = scene.obligations[list].find(candidate => hasText(candidate.sourceId))
-    if (item) return item
-  }
-  return null
+function missingFinalEndpointFields(scene: SceneBeat): string[] {
+  const missing: string[] = []
+  if (!hasText(scene.outcome)) missing.push("outcome")
+  if (!hasText(scene.consequence)) missing.push("consequence")
+  return missing
 }
 
-function fillMissingSourceRefedSceneTurnFields(scene: SceneBeat, primary: MaterialPressureObligation): number {
-  let filled = 0
-  const obligationText = truncatePlanningField(primary.text, 140)
-  const characterName = primary.characterName
-  const actor = typeof characterName === "string" && characterName.trim().length > 0
-    ? characterName.trim()
-    : scene.characters.find(hasText)?.trim()
-  if (!hasText(scene.goal)) {
-    scene.goal = truncatePlanningField(`${actor ? `${actor} must` : "The scene must"} act on: ${obligationText}`, 220)
-    filled += 1
-  }
-  if (!hasText(scene.opposition)) {
-    scene.opposition = truncatePlanningField(
-      `The source pressure cannot remain background; it must create resistance, cost, or a harder choice on page.`,
-      220,
-    )
-    filled += 1
-  }
-  if (!hasText(scene.turningPoint)) {
-    scene.turningPoint = truncatePlanningField(`The obligation becomes impossible to ignore: ${obligationText}`, 220)
-    filled += 1
-  }
-  if (!hasText(scene.outcome)) {
-    scene.outcome = truncatePlanningField(scene.description, 260)
-    filled += 1
-  }
-  if (!hasText(scene.consequence)) {
-    scene.consequence = truncatePlanningField(
-      `By the exit, ${obligationText} creates a visible changed status, relationship pressure, or next action.`,
-      260,
-    )
-    filled += 1
-  }
-  if (!hasText(scene.povPersonalStake)) {
-    scene.povPersonalStake = truncatePlanningField(
-      `${actor ?? "The POV"} cannot treat this as background; it changes what they risk, choose, or owe.`,
-      220,
-    )
-    filled += 1
-  }
-  return filled
+function missingNonFinalSceneTurnFields(scene: SceneBeat): string[] {
+  const missing: string[] = []
+  if (!hasText(scene.goal)) missing.push("goal")
+  if (!hasText(scene.opposition)) missing.push("opposition")
+  if (!hasText(scene.outcome)) missing.push("outcome")
+  if (!hasText(scene.consequence)) missing.push("consequence")
+  return missing
 }
 
-export function applyPlanningMaterialPressureFallback(
+export interface PlanningMaterialPressureGapAudit {
+  active: boolean
+  sourceRefedNonFinalObligationsMissing: number
+  sourceRefedNonFinalScenesMissing: number
+}
+
+export function auditPlanningMaterialPressureGaps(
   novelId: string,
   outline: ChapterOutline,
   seed: Pick<SeedInput, "pipelineOverrides">,
-): ChapterOutline {
+): PlanningMaterialPressureGapAudit {
   if (
     !resolvePlanningMaterialPressureV1(seed.pipelineOverrides) ||
     resolveScenePlanContractV1(seed.pipelineOverrides)
   ) {
-    return outline
+    return {
+      active: false,
+      sourceRefedNonFinalObligationsMissing: 0,
+      sourceRefedNonFinalScenesMissing: 0,
+    }
   }
   const scenes = outline.scenes ?? []
-  if (scenes.length <= 1) return outline
+  if (scenes.length <= 1) {
+    return {
+      active: true,
+      sourceRefedNonFinalObligationsMissing: 0,
+      sourceRefedNonFinalScenesMissing: 0,
+    }
+  }
 
-  let filled = 0
-  const mappedScenes = scenes.map((scene, index) => {
-    const cloned = cloneSceneWithObligations(scene)
-    if (index === scenes.length - 1) return cloned
+  let sourceRefedNonFinalObligationsMissing = 0
+  let sourceRefedNonFinalScenesMissing = 0
+  for (const scene of scenes.slice(0, -1)) {
+    let sceneMissing = false
     for (const list of MATERIAL_PRESSURE_OBLIGATION_LISTS) {
-      for (const item of cloned.obligations[list]) {
+      for (const item of scene.obligations[list]) {
         if (!hasText(item.sourceId) || hasText(item.materialityTest)) continue
-        item.materialityTest = materialPressureForObligation(scene, item, list)
-        filled += 1
+        sourceRefedNonFinalObligationsMissing += 1
+        sceneMissing = true
       }
     }
-    return cloned
-  })
+    if (sceneMissing) sourceRefedNonFinalScenesMissing += 1
+  }
 
-  if (filled > 0) {
+  if (sourceRefedNonFinalObligationsMissing > 0) {
     log(
       novelId,
-      "info",
-      `Planning material-pressure fallback ch${outline.chapterNumber}: filled ${filled} non-final obligation materiality notes`,
+      "warn",
+      `Planning material-pressure gap ch${outline.chapterNumber}: ${sourceRefedNonFinalObligationsMissing} source-refed non-final obligations across ${sourceRefedNonFinalScenesMissing} scenes missing materialityTest; readiness must repair rather than fallback-fill semantic pressure`,
     )
-    return { ...outline, scenes: mappedScenes }
   }
-  return outline
+  return {
+    active: true,
+    sourceRefedNonFinalObligationsMissing,
+    sourceRefedNonFinalScenesMissing,
+  }
 }
 
 const MATERIAL_PRESSURE_OBLIGATION_LISTS = [
@@ -650,79 +635,6 @@ const MATERIAL_PRESSURE_OBLIGATION_LISTS = [
   "mustTransferKnowledge",
   "mustShowStateChange",
 ] as const
-
-type MaterialPressureList = typeof MATERIAL_PRESSURE_OBLIGATION_LISTS[number]
-type MaterialPressureObligation = BeatObligationsContract[MaterialPressureList][number]
-
-function cloneSceneWithObligations(scene: SceneBeat): SceneBeat {
-  return {
-    ...scene,
-    obligations: {
-      mustEstablish: scene.obligations.mustEstablish.map(item => ({ ...item })),
-      mustPayOff: scene.obligations.mustPayOff.map(item => ({ ...item })),
-      mustTransferKnowledge: scene.obligations.mustTransferKnowledge.map(item => ({ ...item })),
-      mustShowStateChange: scene.obligations.mustShowStateChange.map(item => ({ ...item })),
-      mustNotReveal: scene.obligations.mustNotReveal.map(item => ({ ...item })),
-      allowedNewEntities: [...scene.obligations.allowedNewEntities],
-    },
-  }
-}
-
-function materialPressureForObligation(
-  scene: SceneBeat,
-  item: MaterialPressureObligation,
-  list: MaterialPressureList,
-): string {
-  const turn = scenePressureAnchor(scene)
-  const actor = hasText(item.characterName) ? `${item.characterName}: ` : ""
-  const prefix = materialPressurePrefix(item, list)
-  return truncatePlanningField(`${actor}${prefix}: ${turn}`, 240)
-}
-
-function materialPressurePrefix(item: MaterialPressureObligation, list: MaterialPressureList): string {
-  if (list === "mustTransferKnowledge") return "make this knowledge alter action, dialogue, or tactics"
-  if (list === "mustShowStateChange") return "make this state visible through behavior or relationship pressure"
-  if (list === "mustPayOff") return "pay this source off through a visible cost, reveal, or changed status"
-  if (hasText(item.worldFactId) || sourceLooksLikeWorldFact(item.sourceId)) {
-    return "make this world fact constrain the scene choice, tactic, or outcome"
-  }
-  return "make this source change the scene choice, constraint, tactic, or outcome"
-}
-
-function scenePressureAnchor(scene: SceneBeat): string {
-  return [
-    scene.opposition,
-    scene.turningPoint,
-    scene.consequence,
-    scene.outcome,
-    scene.goal,
-    scene.description,
-  ].find(hasText) ?? scene.description
-}
-
-function sourceLooksLikeWorldFact(sourceId: unknown): boolean {
-  return typeof sourceId === "string" && /^(fact|world)-/u.test(sourceId.trim())
-}
-
-function extractChapterEndpoint(purpose: string): string | null {
-  const patterns = [
-    /\bchapter ends with\s+(.+?)(?:\.|$)/i,
-    /\bends with\s+(.+?)(?:\.|$)/i,
-    /\bending with\s+(.+?)(?:\.|$)/i,
-    /\bends by\s+(.+?)(?:\.|$)/i,
-  ]
-  for (const pattern of patterns) {
-    const match = purpose.match(pattern)
-    if (match?.[1]) return match[1].trim()
-  }
-  return null
-}
-
-function truncatePlanningField(value: string, max = 320): string {
-  const cleaned = value.replace(/\s+/g, " ").trim()
-  if (cleaned.length <= max) return cleaned
-  return `${cleaned.slice(0, max - 3).trimEnd()}...`
-}
 
 function capExpandedScenesForPlanning(
   novelId: string,

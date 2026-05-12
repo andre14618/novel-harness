@@ -40,6 +40,8 @@ export interface WriterContextEventSummary {
     setting: boolean
     story: boolean
     implicitReferences: boolean
+    semanticRetrieval: boolean
+    minimalFallback: boolean
     readerInfoState: boolean
     resolvedReferences: boolean
     draftingBrief: boolean
@@ -135,6 +137,8 @@ export interface WriterContextTelemetryReport {
     activePromiseIdCounts: Record<string, number>
     activePayoffIdCounts: Record<string, number>
     withImplicitReferences: number
+    withSemanticRetrieval: number
+    withMinimalFallback: number
     withReaderInfoState: number
     readerInfoStateChars: number
     withResolvedReferences: number
@@ -233,6 +237,8 @@ export function buildWriterContextTelemetryReport(
       activePromiseIdCounts: countBy(events.flatMap(event => event.activePromiseIdValues), value => value),
       activePayoffIdCounts: countBy(events.flatMap(event => event.activePayoffIdValues), value => value),
       withImplicitReferences: events.filter(event => event.surfaces.implicitReferences).length,
+      withSemanticRetrieval: events.filter(event => event.surfaces.semanticRetrieval).length,
+      withMinimalFallback: events.filter(event => event.surfaces.minimalFallback).length,
       withReaderInfoState: events.filter(event => event.surfaces.readerInfoState).length,
       readerInfoStateChars: events.reduce((sum, event) => sum + event.readerInfoStateChars, 0),
       withResolvedReferences: events.filter(event => event.surfaces.resolvedReferences).length,
@@ -279,6 +285,8 @@ export function renderWriterContextTelemetryReport(report: WriterContextTelemetr
       `promises=${formatRecordOrNone(report.totals.activePromiseIdCounts)}, ` +
       `payoffs=${formatRecordOrNone(report.totals.activePayoffIdCounts)}), ` +
       `implicitRefs=${formatCoverage(report.totals.withImplicitReferences, report.totals.events)}, ` +
+      `retrieval=${formatCoverage(report.totals.withSemanticRetrieval, report.totals.events)}, ` +
+      `minimalFallback=${formatCoverage(report.totals.withMinimalFallback, report.totals.events)}, ` +
       `readerInfo=${formatCoverage(report.totals.withReaderInfoState, report.totals.events)} ` +
       `(chars=${report.totals.readerInfoStateChars}), ` +
       `refs=${formatCoverage(report.totals.withResolvedReferences, report.totals.events)}, ` +
@@ -329,6 +337,8 @@ export function renderWriterContextTelemetryReport(report: WriterContextTelemetr
       event.surfaces.world ? "world" : null,
       event.surfaces.story ? "story" : null,
       event.surfaces.implicitReferences ? "implicitRefs" : null,
+      event.surfaces.semanticRetrieval ? "retrieval" : null,
+      event.surfaces.minimalFallback ? "minimalFallback" : null,
       event.surfaces.readerInfoState ? "reader" : null,
       event.surfaces.resolvedReferences ? "refs" : null,
     ].filter(Boolean).join(",") || "none"
@@ -477,6 +487,8 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
       setting: hasSetting,
       story,
       implicitReferences: readBoolean(surfaces.implicitReferences) || positiveNumber(counts.implicitReferenceMarkers),
+      semanticRetrieval: readBoolean(surfaces.semanticRetrieval),
+      minimalFallback: readBoolean(surfaces.minimalFallback),
       readerInfoState: readBoolean(surfaces.readerInfoState) || Boolean(draftingBrief?.sections.readerInfoState),
       resolvedReferences: readBoolean(surfaces.resolvedReferences) || Boolean(draftingBrief?.sections.resolvedReferences),
       draftingBrief: draftingBrief !== null,

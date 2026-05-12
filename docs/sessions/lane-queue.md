@@ -23,10 +23,11 @@ unless the user explicitly requests a disposable branch.
   default-off `planningSceneTurnShapingV1` and `planningMaterialPressureV1`
   run through production planner/state-mapper code and paired-source compare.
   Material pressure alone shortened 575 words and scene lows -7 but checker
-  negatives rose 2->14. Tightened scene-turn shaping now retries/fallback-fills
-  source-refed non-final turn fields; P1 vs material pressure shortened 422
-  words with scene lows -6, checker negatives -12, endpoint mean +0.52, and
-  readiness +4. Keep controls default-off pending replication. See L106/L107.
+  negatives rose 2->14. Scene-turn semantic backfill is now removed; missing
+  endpoint, source-refed turn shape, and materiality tests surface as warnings
+  and readiness labels. P1 vs material pressure shortened 422 words with scene
+  lows -6, checker negatives -12, endpoint mean +0.52, and readiness +4 before
+  removal. Keep controls default-off pending replication. See L106/L107.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort

@@ -121,8 +121,9 @@ words but lowered endpoint, materiality, and world-fact means. The default-off
 `planningSceneTurnShapingV1` and `planningMaterialPressureV1` now run through
 production planner/state-mapper paths and paired-source compare via
 `--source-pair-id`. Scene-turn shaping retries source-refed non-final scenes
-missing turn fields and fallback-fills minimal turn fields from existing
-obligations. P1 evidence: material pressure alone shortened 575 words and
+missing turn fields and now records gaps instead of fallback-filling minimal
+writer-facing fields from existing obligations. P1 evidence before fallback
+removal: material pressure alone shortened 575 words and
 improved scene lows -7 but raised checker negatives 2->14; turn scaffold vs
 material pressure shortened 422 words and improved scene lows -6, checker
 negatives -12, endpoint mean +0.52, but readiness +4. No default flip. See L103-L107.

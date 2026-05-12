@@ -30,6 +30,8 @@ describe("writer-context-report", () => {
             setting: false,
             storySpine: false,
             implicitReferences: true,
+            semanticRetrieval: true,
+            minimalFallback: false,
             resolvedReferences: false,
             readerInfoState: false,
           },
@@ -95,7 +97,7 @@ describe("writer-context-report", () => {
       })),
       row(2, 1, null, {
         path: "chapter",
-        stage: "chapter",
+        stage: "beat-fallback",
         writerContextMode: "legacy",
         writerPromptIdRendering: "raw",
         targetWords: null,
@@ -105,6 +107,8 @@ describe("writer-context-report", () => {
             characterProfiles: false,
             worldBible: true,
             storySpine: true,
+            semanticRetrieval: false,
+            minimalFallback: true,
           },
           counts: {},
         },
@@ -147,6 +151,8 @@ describe("writer-context-report", () => {
       withSetting: 1,
       withStoryContext: 2,
       withImplicitReferences: 1,
+      withSemanticRetrieval: 1,
+      withMinimalFallback: 1,
       withReaderInfoState: 1,
       readerInfoStateChars: 32,
       withResolvedReferences: 1,
@@ -166,7 +172,7 @@ describe("writer-context-report", () => {
     expect(report.events[0]?.activeThreadIdValues).toEqual(["thread-report"])
     expect(report.events[0]?.activePromiseIdValues).toEqual(["promise-return"])
     expect(report.byPath).toEqual({ beat: 1, chapter: 1, unknown: 1 })
-    expect(report.byStage).toEqual({ initial: 1, chapter: 1, unknown: 1 })
+    expect(report.byStage).toEqual({ initial: 1, "beat-fallback": 1, unknown: 1 })
     expect(report.byWriterContextMode).toEqual({
       legacy: 1,
       "thread-character-context-v1": 1,
@@ -183,7 +189,10 @@ describe("writer-context-report", () => {
     expect(rendered).toContain("world=2/3 (bible=2, setting=1)")
     expect(rendered).toContain("story=2/3 (refs=2, threads=thread-report=1, promises=promise-return=1, payoffs=none)")
     expect(rendered).toContain("implicitRefs=1/3")
+    expect(rendered).toContain("retrieval=1/3")
+    expect(rendered).toContain("minimalFallback=1/3")
     expect(rendered).toContain("readerInfo=1/3 (chars=32)")
+    expect(rendered).toContain("Stages: beat-fallback=1, initial=1, unknown=1")
     expect(rendered).toContain("refLookups=2, refLlm=1")
     expect(rendered).toContain("missingCharacterIds=1 (char-missing=1)")
     expect(rendered).toContain("avgChars=500/1000")
