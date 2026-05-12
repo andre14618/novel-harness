@@ -124,9 +124,9 @@ production planner/state-mapper paths and paired-source compare via
 gaps instead of fallback-filling writer-facing fields; compare/cohort artifacts
 carry those gap deltas. P1 evidence before fallback removal: material pressure alone shortened 575 words and
 improved scene lows -7 but raised checker negatives 2->14; turn scaffold vs
-material pressure shortened 422 words and improved scene lows -6. P2 semantic
-scene edits cleared source readiness but length worsened to 4506/3100 and left
-3/35 endpoint lows downstream. No default flip. See L103-L107.
+material pressure shortened 422 words and improved scene lows -6. P2 endpoint
+follow-up cleared source readiness and improved replay to 4109/3100 with 2/35
+endpoint lows downstream. No default flip. See L103-L107.
 
 ## Authoring Gates
 

@@ -30,9 +30,9 @@ unless the user explicitly requests a disposable branch.
   11/35 raw. Relationship applicability gating marked 4 false-positive rows
   not_applicable; same-target grouping supported 5 shared scene replacements
   that cleared the 7 source readiness items through normal `planning_edit`
-  approval/lineage. Downstream tight-brief replay on the edited source was
-  4506/3100, prose lows 0/8, scene lows 3/35, Plan-Assist/context gaps 0, and
-  imported 3 endpointLanding readiness rows on the generated candidate. Mixed on ratio; no default flip. See L106/L107.
+  approval/lineage. Endpoint follow-up imported those rows back to the clean
+  source, cleared them through 3 more `planning_edit` proposals, and replayed at
+  4109/3100, prose lows 0/8, scene lows 2/35, Plan-Assist/context gaps 0. Mixed on ratio; no default flip. See L106/L107.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort
@@ -119,9 +119,9 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: inspect the 3 downstream P2 endpointLanding readiness
-  rows from `prod-semantics-p2-scene-edits-1778559597`; decide whether endpoint
-  fixes belong in source planning or expose an over-fragmented scene boundary.
+- Next session start: inspect the 2 downstream P2 endpointLanding rows from
+  `prod-semantics-p2-endpoint-edits-1778560237` on ch2 scenes 2 and 3; decide
+  whether source fixes or scene-boundary consolidation is the right response.
   Do not force relationship changes without declared participants. See L103-L107.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
