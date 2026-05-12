@@ -15,20 +15,19 @@ unless the user explicitly requests a disposable branch.
   runs through production writer briefs, planner/state-mapper flags,
   diagnostics, Plan Readiness, and reviewed `planning_edit`. Scene-turn semantic
   backfill is removed; endpoint, source-refed turn-shape, and materiality gaps
-  surface as warnings/readiness labels. P1/P2/P3 clean replays now hold
-  Plan-Assist/context/checker groups 0 and prose/scene-semantic lows 0, at
-  3741/3100, 4086/3100, and 3806/3100. New
-  `diagnostics:drafting-length-attribution` joins per-scene drafting,
-  planning-context, writer-context, checker, prose-semantic, and
-  scene-semantic sidecars; `prod-semantics-p1-p2-p3-1778585200` classified all
-  three as mixed scope-load plus budget-control, not scene-count overload alone.
-  P2 same-source probe `length-attrib-p2-arms-1778586500` had loose brief stop
-  on Plan-Assist and tight repeat worsen to 4398/3100 with semantic lows 0.
-  Budget elasticity now uses clone-only `--target-word-scale`: P2 scale 0.85
-  landed 3705/2635 with prose/scene lows 0 and checker warnings 0, but scale
-  0.72 landed 3780/2232 with lows 0 and checker warnings 13. This supports
-  mixed scope-load plus budget-control, with naive target scaling bounded;
-  default flip remains blocked. See L106/L107.
+  surface as warnings/readiness labels. P1/P2/P3 tight clean replays hold
+  Plan-Assist/context/checker groups 0 and prose/scene lows 0 at 3741/3100,
+  4086/3100, and 3806/3100; length attribution classifies residual length as
+  mixed scope-load plus budget-control. Bounded target scaling showed 0.85 can
+  work and 0.72 adds checker noise, so deterministic compaction is not the
+  active lever. Selector `semantic-exec-p2-arms-1778590188` rejected scene-turn
+  and anchored arms; tight-anchored was P2-promising at 4272/3100 with no scene
+  lows and better endpoint/dramaturgy. P1/P3 replications blocked promotion:
+  P1 regressed at 4392/3100 with one scene low; P3 was mixed at 4269/3100 with
+  no scene lows but readiness/checker noise. Cohort
+  `semantic-exec-p123-tight-anchored-vs-tight` is regressed overall. Default
+  flip remains blocked; keep semantic telemetry advisory and target endpoint/
+  materiality execution plus checker support-echo noise. See L106/L107.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort
@@ -115,9 +114,10 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: treat `prod-semantics-p2-endpoint4-calib-1778563625` plus
-  max4000 semantic rerun as the current P2 success artifact; replicate on another
-  clean-source fixture before defaults, watching semantic mean drift and checker support-echo noise.
+- Next session start: use `semantic-exec-p123-tight-anchored-vs-tight` trace
+  clusters as the next production-path input. Favor a narrow main-path change
+  that improves endpoint landing or character materiality on the regressed rows,
+  with semantic replay/compare as advisory telemetry and no POC branch.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.

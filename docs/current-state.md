@@ -115,18 +115,18 @@ The active lane is in `docs/sessions/lane-queue.md`.
 As of 2026-05-12, L106/L107 has moved active evidence into production writer-brief telemetry, scene-semantic replay, Plan Readiness, source hygiene,
 planning-edit replay, scene-contract telemetry, and compare/cohort artifacts.
 The default-off `planningSceneTurnShapingV1` and
-`planningMaterialPressureV1` now run through production planner/state-mapper
-paths and paired-source compare via `--source-pair-id`. Scene-turn shaping now
-records missing endpoint/turn/materiality gaps instead of fallback-filling
-writer-facing fields; compare/cohort artifacts carry those gap deltas. P1/P2/P3
-clean replays now hold Plan-Assist/context/checker groups 0 and prose/scene-semantic lows 0, with P1 3741/3100, P2 4086/3100, and P3
-3806/3100. `diagnostics:drafting-length-attribution` joins drafting, planning-context, writer-context, checker, prose-semantic, and
-scene-semantic sidecars; the P1/P2/P3 report classifies residual length as
-mixed scope-load plus budget-control evidence. P2 tight repeat worsened to
-4398/3100 with clean semantics; 0.85 target scaling shortened to 3705/2635
-with zero lows/warnings, while 0.72 scaling worsened to 3780/2232 with 13
-checker warnings. Default flip remains blocked; next implementation should
-target writer budget control/load handling, not deterministic compaction. See L103-L107.
+`planningMaterialPressureV1` run through production planner/state-mapper paths
+and paired-source compare; scene-turn shaping records endpoint/turn/materiality
+gaps instead of fallback-filling writer-facing fields. P1/P2/P3 tight clean
+replays hold Plan-Assist/context/checker groups 0 and prose/scene lows 0 at
+3741/3100, 4086/3100, and 3806/3100; length attribution classifies residual
+length as mixed scope-load plus budget-control. P2 target scaling at 0.85 was
+usable, 0.72 added checker noise, and deterministic compaction/word-count
+policing is not the active lever. Tight-anchored writer-brief evidence was
+P2-promising but failed to generalize: P1 regressed with a scene-semantic low,
+P3 was mixed, and the P1/P2/P3 cohort remained regressed. Default flip remains
+blocked; next: mine semantic trace clusters and checker readiness noise for
+endpoint/materiality execution, without reopening POC-to-main workflow. See L103-L107.
 
 ## Authoring Gates
 
