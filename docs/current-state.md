@@ -120,8 +120,8 @@ paths and paired-source compare via `--source-pair-id`. Scene-turn shaping now
 records missing endpoint/turn/materiality gaps instead of fallback-filling
 writer-facing fields; compare/cohort artifacts carry those gap deltas. P2
 follow-ups through production `planning_edit` plus reference/checker calibration
-replayed at 3894/3100 with prose lows 0/8, semantic lows/errors 0/35,
-Plan-Assist/context readiness 0, and checker negatives 1. P3 whole-scene
+replayed at 3894/3100 with prose lows 0/8, Plan-Assist/context readiness 0,
+checker negatives 1, and max8000 scene-semantic lows/errors 0/35. P3 whole-scene
 contract-target repair replayed at 3806/3100 with Plan-Assist 0, checker groups
 0, prose lows 0/8, and scene-semantic lows 0/32. P1 replicated the same source-readiness loop through `planning_edit`; `prod-semantics-p1-ch1s2-endpoint-repair-1778577334`
 replayed at 3741/3100 with Plan-Assist/context/checker groups 0, prose lows
