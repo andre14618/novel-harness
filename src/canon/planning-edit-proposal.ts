@@ -59,6 +59,7 @@ export const ALLOWED_BEAT_OBLIGATION_FIELD_PATHS = [
   "sourceKind",
   "characterId",
   "sourceLink",
+  "materialityTest",
 ] as const
 
 export type BeatObligationPlanningEditField =

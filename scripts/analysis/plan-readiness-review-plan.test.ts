@@ -239,6 +239,67 @@ describe("plan-readiness-review-plan", () => {
     expect(rendered).toContain("current description: Maren returns to Halric, her decision made.")
   })
 
+  test("buildReviewPlanReport templates materiality edits as scalar obligation proposals", () => {
+    const report = buildReviewPlanReport({
+      novelId: "novel",
+      status: "open",
+      generatedAt: "2026-05-10T00:00:00.000Z",
+      targetContexts: new Map([[
+        "beat_obligation:obl-seal:materialityTest",
+        {
+          currentValueSummary: {
+            ref: "obl-seal",
+            chapterId: "ch-002",
+            sceneRef: "scene-source",
+            listKey: "mustEstablish",
+            text: "The clerk's seal proves the transfer can be forged.",
+            sourceId: "fact-seal",
+            sourceKind: "fact",
+            materialityTest: "",
+          },
+        },
+      ]]),
+      items: [
+        item({
+          id: "materiality",
+          diagnosticLabel: "SOURCE-MATERIALITY-TEST-MISSING",
+          dimension: "sceneContract",
+          fixIntent: "annotate_obligation_materiality",
+          target: { kind: "beat_obligation", ref: "obl-seal", fieldPath: "materialityTest" },
+          evidence: { sceneRef: "scene-source", obligationIds: "obl-seal" },
+          metadata: {
+            proposalCandidate: {
+              action: "field_replace",
+              target: { kind: "beat_obligation", ref: "obl-seal", fieldPath: "materialityTest" },
+              requiresProposedValue: true,
+              safeToAutoApply: false,
+            },
+          },
+        }),
+      ],
+    })
+
+    expect(report.plan.actions[0]).toMatchObject({
+      match: {
+        itemId: "materiality",
+        targetKind: "beat_obligation",
+        targetRef: "obl-seal",
+        targetFieldPath: "materialityTest",
+      },
+      decision: "deferred",
+      proposalCandidate: {
+        action: "field_replace",
+        target: { kind: "beat_obligation", ref: "obl-seal", fieldPath: "materialityTest" },
+      },
+      proposedValueTemplate: "Describe how this obligation changes choice, constraint, relationship behavior, outcome, or future pressure.",
+    })
+
+    const rendered = renderReviewPlanReport(report)
+    expect(rendered).toContain("### SOURCE-MATERIALITY-TEST-MISSING beat_obligation:obl-seal:materialityTest")
+    expect(rendered).toContain("current obligation: obl-seal (ch-002) scene=scene-source list=mustEstablish")
+    expect(rendered).toContain("current text: The clerk's seal proves the transfer can be forged.")
+  })
+
   test("renderReviewPlanReport includes review context without requiring proposals", () => {
     const report = buildReviewPlanReport({
       novelId: "novel",

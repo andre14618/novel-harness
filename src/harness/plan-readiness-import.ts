@@ -53,7 +53,9 @@ export async function loadReadinessTargetVersions(novelId: string): Promise<Map<
   const map = await loadPlanningTargetMap(novelId)
   const out = new Map<string, string>()
   for (const target of map.targets) {
-    if (target.kind === "chapter_outline" || target.kind === "beat_plan") {
+    if (target.kind === "beat_obligation") {
+      setReadinessVersion(out, target.kind, target.ref, target.currentVersion)
+    } else if (target.kind === "chapter_outline" || target.kind === "beat_plan") {
       setReadinessVersion(out, target.kind, target.ref, target.currentVersion)
       if (target.kind === "beat_plan") {
         setReadinessVersion(out, "scene_plan", target.ref, target.currentVersion)
@@ -89,8 +91,13 @@ export function targetVersionsForStaleness(
   const out: Array<{ targetKind: PlanReadinessTargetKind; targetRef: string; sourceHash: string }> = []
   for (const [key, sourceHash] of targetVersions.entries()) {
     const [targetKind, ...rest] = key.split(":")
-    if (targetKind !== "chapter_outline" && targetKind !== "scene_plan" && targetKind !== "beat_plan") continue
-    out.push({ targetKind, targetRef: rest.join(":"), sourceHash })
+    if (
+      targetKind !== "chapter_outline" &&
+      targetKind !== "scene_plan" &&
+      targetKind !== "beat_plan" &&
+      targetKind !== "beat_obligation"
+    ) continue
+    out.push({ targetKind: targetKind as PlanReadinessTargetKind, targetRef: rest.join(":"), sourceHash })
   }
   return out
 }

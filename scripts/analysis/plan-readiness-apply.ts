@@ -15,7 +15,7 @@ import {
   type SourceDraftingIsolationAssessment,
 } from "../../src/harness/drafting-source"
 
-const targetKindSchema = z.enum(["chapter_outline", "scene_plan", "beat_plan"])
+const targetKindSchema = z.enum(["chapter_outline", "scene_plan", "beat_plan", "beat_obligation"])
 const dispositionDecisionSchema = z.enum([
   "accepted_as_is",
   "not_applicable",

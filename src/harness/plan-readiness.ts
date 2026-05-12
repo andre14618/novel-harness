@@ -24,7 +24,7 @@ export const PLAN_READINESS_IMPORTER_KINDS = ["human", "agent", "script", "test"
 export type PlanReadinessStatus = (typeof PLAN_READINESS_STATUSES)[number]
 export type PlanReadinessOperatorDisposition = (typeof PLAN_READINESS_OPERATOR_DISPOSITIONS)[number]
 export type PlanReadinessImporterKind = (typeof PLAN_READINESS_IMPORTER_KINDS)[number]
-export type PlanReadinessTargetKind = "chapter_outline" | "scene_plan" | "beat_plan"
+export type PlanReadinessTargetKind = "chapter_outline" | "scene_plan" | "beat_plan" | "beat_obligation"
 export type PlanReadinessSourceHashKind = "target_current_version" | "diagnostic_excerpt"
 export type PlanReadinessSeverity = "high" | "medium" | "low" | "info"
 
@@ -112,6 +112,12 @@ interface AggregateFindingLike {
 }
 
 type CandidateAction = "field_replace" | "beat_replace" | "beat_reorder" | "scene_select" | "beat_requirement_remove"
+const PLAN_READINESS_TARGET_KINDS = new Set<PlanReadinessTargetKind>([
+  "chapter_outline",
+  "scene_plan",
+  "beat_plan",
+  "beat_obligation",
+])
 
 export function buildPlanReadinessDraftsFromAggregate(
   args: BuildReadinessDraftsArgs,
@@ -240,10 +246,10 @@ function extractTarget(group: AggregateGroupLike): PlanReadinessTarget | null {
   const rawTarget = asRecord(candidate?.target)
   const kind = stringValue(rawTarget?.kind)
   const ref = stringValue(rawTarget?.ref)
-  if ((kind !== "chapter_outline" && kind !== "scene_plan" && kind !== "beat_plan") || !ref) return null
+  if (!PLAN_READINESS_TARGET_KINDS.has(kind as PlanReadinessTargetKind) || !ref) return null
   const fieldPath = stringValue(rawTarget?.fieldPath)
   return {
-    kind,
+    kind: kind as PlanReadinessTargetKind,
     ref,
     ...(fieldPath ? { fieldPath } : {}),
   }
@@ -281,10 +287,10 @@ function normalizeCandidateTarget(raw: Record<string, unknown> | null): PlanRead
   if (!raw) return null
   const kind = stringValue(raw.kind)
   const ref = stringValue(raw.ref)
-  if ((kind !== "chapter_outline" && kind !== "scene_plan" && kind !== "beat_plan") || !ref) return null
+  if (!PLAN_READINESS_TARGET_KINDS.has(kind as PlanReadinessTargetKind) || !ref) return null
   const fieldPath = stringValue(raw.fieldPath)
   return {
-    kind,
+    kind: kind as PlanReadinessTargetKind,
     ref,
     ...(fieldPath ? { fieldPath } : {}),
   }

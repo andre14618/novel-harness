@@ -498,7 +498,46 @@ describe("planning-context-readiness", () => {
     expect(labels).toContain("SOURCE-MATERIALITY-TEST-MISSING")
     const materiality = aggregate.groups.find(group => group.findings[0]?.label === "SOURCE-MATERIALITY-TEST-MISSING")
     expect(materiality?.rewritePacket.rewriteGoals).toContain("Annotate existing obligations only; do not add new obligations just to satisfy the field.")
+    expect(materiality).toMatchObject({
+      fixIntents: ["annotate_obligation_materiality"],
+      rewritePacket: {
+        targetSummary: "obligation obl-seal in scene scene-source",
+        proposalCandidate: {
+          action: "field_replace",
+          target: {
+            kind: "beat_obligation",
+            ref: "obl-seal",
+            fieldPath: "materialityTest",
+          },
+          safeToAutoApply: false,
+        },
+      },
+    })
     expect(renderPlanningContextReadinessAggregate(aggregate)).toContain("SOURCE-MATERIALITY-TEST-MISSING")
+
+    const built = buildPlanReadinessDraftsFromAggregate({
+      novelId: "novel-load",
+      aggregate,
+      targetVersions: {
+        "scene_plan:scene-final": "scene-hash-final",
+        "scene_plan:scene-source": "scene-hash-source",
+        "beat_obligation:obl-seal": "obl-hash-seal",
+      },
+    })
+    expect(built.skipped).toEqual([])
+    expect(built.drafts.find(draft => draft.diagnosticLabel === "SOURCE-MATERIALITY-TEST-MISSING")).toMatchObject({
+      target: { kind: "beat_obligation", ref: "obl-seal", fieldPath: "materialityTest" },
+      sourceHash: "obl-hash-seal",
+      fixIntent: "annotate_obligation_materiality",
+      metadata: {
+        proposalCandidate: {
+          action: "field_replace",
+          target: { kind: "beat_obligation", ref: "obl-seal", fieldPath: "materialityTest" },
+          requiresProposedValue: true,
+          safeToAutoApply: false,
+        },
+      },
+    })
   })
 
   test("turns unresolved reference attempts into manual scene description readiness", () => {

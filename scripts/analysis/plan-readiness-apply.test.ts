@@ -144,6 +144,16 @@ describe("plan-readiness-apply", () => {
           },
           sourceReportPaths: ["context-report.json"],
           decision: "deferred",
+        }, {
+          match: {
+            itemId: "item-2",
+            label: "SOURCE-MATERIALITY-TEST-MISSING",
+            targetKind: "beat_obligation",
+            targetRef: "obl-ledger",
+            targetFieldPath: "materialityTest",
+          },
+          decision: "field_replace",
+          proposedValue: "The ledger fact forces Maren to risk exposing the forged transfer.",
         }],
       }, null, 2)}\n`)
 
@@ -156,6 +166,11 @@ describe("plan-readiness-apply", () => {
       expect(plan.actions[0]?.evidence).toEqual({ score: "1", sourceRef: "fact-ledger" })
       expect(plan.actions[0]?.preserveIds).toMatchObject({ sourceIds: ["fact-ledger"] })
       expect(plan.actions[0]?.sourceReportPaths).toEqual(["context-report.json"])
+      expect(plan.actions[1]?.match).toMatchObject({
+        targetKind: "beat_obligation",
+        targetRef: "obl-ledger",
+        targetFieldPath: "materialityTest",
+      })
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

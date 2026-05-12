@@ -101,11 +101,11 @@ Use deeper docs only when linked by the context pack or needed by code.
 - Native chapter contracts and story-turn planning are the production planning
   default with legacy rollback; downstream beat caps/packing are diagnostic
   evidence only. See L088.
-- Plan Readiness Review is the default bridge from planner diagnostics to
-  drafting when diagnostics are available; accepted scalar plan changes go
-  through manual `planning_edit` proposals. Use `diagnostics:plan-readiness-review-plan` to
-  draft evidence/ID-rich operator-plan scaffolds, then `diagnostics:plan-readiness-apply`
-  after review. See L091.
+- Plan Readiness Review bridges planner diagnostics to drafting; accepted
+  scalar changes use manual `planning_edit` proposals, including narrow
+  `beat_obligation:materialityTest` fixes when a materiality gap maps to one
+  obligation. Use `diagnostics:plan-readiness-review-plan`, then
+  `diagnostics:plan-readiness-apply` after review. See L091.
 - Runtime surfaces, traceability, checker posture, and UI inventory are
   summarized in `docs/reference/runtime-surfaces.md`.
 

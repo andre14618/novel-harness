@@ -56,7 +56,7 @@ describe("plan readiness aggregate import", () => {
   })
 
   test("skips unsupported targets", () => {
-    const report = aggregate()
+    const report: any = aggregate()
     report.groups[0]!.rewritePacket.proposalCandidate.target.kind = "world_bible"
     const result = buildPlanReadinessDraftsFromAggregate({
       novelId: "novel-1",
@@ -70,6 +70,48 @@ describe("plan readiness aggregate import", () => {
   test("formats target keys for target-version lookup", () => {
     expect(readinessTargetKey({ kind: "chapter_outline", ref: "ch-001" })).toBe("chapter_outline:ch-001")
     expect(readinessTargetKey({ kind: "scene_plan", ref: "scn-001-01" })).toBe("scene_plan:scn-001-01")
+    expect(readinessTargetKey({ kind: "beat_obligation", ref: "obl-1" })).toBe("beat_obligation:obl-1")
+  })
+
+  test("accepts narrow beat-obligation readiness targets", () => {
+    const report: any = aggregate()
+    report.groups[0]!.rewritePacket.proposalCandidate = {
+      target: {
+        kind: "beat_obligation",
+        ref: "obl-1",
+        fieldPath: "materialityTest",
+      },
+      action: "field_replace",
+      requiresProposedValue: true,
+      safeToAutoApply: false,
+    }
+    const result = buildPlanReadinessDraftsFromAggregate({
+      novelId: "novel-1",
+      aggregate: report,
+      targetVersions: {
+        "beat_obligation:obl-1": "b".repeat(64),
+      },
+    })
+
+    expect(result.skipped).toEqual([])
+    expect(result.drafts[0]).toMatchObject({
+      target: {
+        kind: "beat_obligation",
+        ref: "obl-1",
+        fieldPath: "materialityTest",
+      },
+      sourceHash: "b".repeat(64),
+      metadata: {
+        proposalCandidate: {
+          action: "field_replace",
+          target: {
+            kind: "beat_obligation",
+            ref: "obl-1",
+            fieldPath: "materialityTest",
+          },
+        },
+      },
+    })
   })
 })
 

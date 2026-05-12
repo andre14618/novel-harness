@@ -31,6 +31,9 @@ type PlanningContextDimension =
 type PlanningContextFixIntent =
   | "rebalance_scene_load"
   | "preserve_future_event_anchor"
+  | "complete_scene_endpoint"
+  | "complete_scene_turn"
+  | "annotate_obligation_materiality"
   | "complete_scene_contract"
   | "preserve_immutable_fact"
   | "resolve_reference_context"
@@ -99,9 +102,9 @@ interface PlanningContextReadinessGroup {
     proposalCandidate: {
       action: "scene_select" | "field_replace" | "beat_replace"
       target: {
-        kind: "chapter_outline" | "scene_plan"
+        kind: "chapter_outline" | "scene_plan" | "beat_obligation"
         ref: string
-        fieldPath: "scenes" | "description" | "temporalAnchor" | "self"
+        fieldPath: "scenes" | "description" | "temporalAnchor" | "self" | "materialityTest"
       }
       requiresProposedValue: true
       proposedValueStatus: "operator_required"
@@ -498,6 +501,8 @@ function groupForSceneContractGap(args: {
   groupIndex: number
 }): PlanningContextReadinessGroup {
   const sourceIds = sourceIdsFromSceneContractGap(args.gap)
+  const fixIntent = sceneContractFixIntent(args.gap)
+  const proposalCandidate = sceneContractProposalCandidate(args.gap)
   const readinessFinding: PlanningContextReadinessFinding = {
     findingId: `${String(args.groupIndex + 1).padStart(3, "0")}.1`,
     sourceReport: args.sourceReport,
@@ -505,7 +510,7 @@ function groupForSceneContractGap(args: {
     dimension: "sceneContract",
     label: sceneContractReadinessLabel(args.gap),
     severity: args.gap.severity,
-    fixIntent: "complete_scene_contract",
+    fixIntent,
     rationale: sceneContractRationale(args.gap),
     missingForNextLevel: sceneContractMissingForNextLevel(args.gap),
     evidence: {
@@ -531,27 +536,56 @@ function groupForSceneContractGap(args: {
     sceneId: args.gap.sceneRef,
     sourceIds,
     highestSeverity: readinessFinding.severity,
-    fixIntents: ["complete_scene_contract"],
+    fixIntents: [fixIntent],
     dimensions: ["sceneContract"],
     findings: [readinessFinding],
     rewritePacket: {
-      targetSummary: `scene ${args.gap.sceneRef}`,
+      targetSummary: proposalCandidate.target.kind === "beat_obligation"
+        ? `obligation ${proposalCandidate.target.ref} in scene ${args.gap.sceneRef}`
+        : `scene ${args.gap.sceneRef}`,
       rewriteGoals: sceneContractRewriteGoals(args.gap, readinessFinding.missingForNextLevel),
       preserveIds: sourceIds,
-      proposalCandidate: {
-        action: "beat_replace",
-        target: {
-          kind: "scene_plan",
-          ref: args.gap.sceneRef,
-          fieldPath: "self",
-        },
-        requiresProposedValue: true,
-        proposedValueStatus: "operator_required",
-        safeToAutoApply: false,
-        sourceAgent: "planning-context-readiness",
-      },
+      proposalCandidate,
     },
     excerpt: `${args.gap.descriptionExcerpt}\nMissing: ${args.gap.missingFields.join(", ")}`,
+  }
+}
+
+function sceneContractFixIntent(gap: DramaticSceneContractGap): PlanningContextFixIntent {
+  if (gap.label === "SCENE-TURN-ENDPOINT-MISSING") return "complete_scene_endpoint"
+  if (gap.label === "SOURCE-SCENE-TURN-SHAPE-MISSING") return "complete_scene_turn"
+  if (gap.label === "SOURCE-MATERIALITY-TEST-MISSING") return "annotate_obligation_materiality"
+  return "complete_scene_contract"
+}
+
+function sceneContractProposalCandidate(
+  gap: DramaticSceneContractGap,
+): PlanningContextReadinessGroup["rewritePacket"]["proposalCandidate"] {
+  if (gap.label === "SOURCE-MATERIALITY-TEST-MISSING" && gap.obligationIds.length === 1) {
+    return {
+      action: "field_replace",
+      target: {
+        kind: "beat_obligation",
+        ref: gap.obligationIds[0]!,
+        fieldPath: "materialityTest",
+      },
+      requiresProposedValue: true,
+      proposedValueStatus: "operator_required",
+      safeToAutoApply: false,
+      sourceAgent: "planning-context-readiness",
+    }
+  }
+  return {
+    action: "beat_replace",
+    target: {
+      kind: "scene_plan",
+      ref: gap.sceneRef,
+      fieldPath: "self",
+    },
+    requiresProposedValue: true,
+    proposedValueStatus: "operator_required",
+    safeToAutoApply: false,
+    sourceAgent: "planning-context-readiness",
   }
 }
 

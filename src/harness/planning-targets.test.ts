@@ -127,6 +127,7 @@ describe("buildPlanningTargetMap", () => {
       target.ref === "obl-ledger-fact"
     )
     expect(obligation?.fieldPaths).toContain("sourceLink")
+    expect(obligation?.fieldPaths).toContain("materialityTest")
     const tonalAnchors = map.targets.find((target) =>
       target.kind === "planning_directive" &&
       target.ref === "tonalAnchors"

@@ -338,6 +338,16 @@ describe("planning edit proposals", () => {
   test("obligation text must be non-empty", () => {
     expect(validatePlanningEditValue("text", "Establish the forged ledger.")).toBeNull()
     expect(validatePlanningEditValue("text", "")).toMatch(/text must be a non-empty string/)
+    expect(validatePlanningEditValue(
+      "materialityTest",
+      "The forged ledger forces Istra to choose public risk over private leverage.",
+    )).toBeNull()
+    expect(validatePlanningEditValue("materialityTest", "")).toMatch(/materialityTest must be a non-empty string/)
+    expect(validatePlanningEditProposedValue("field_replace", {
+      kind: "beat_obligation",
+      ref: "obl-ledger-fact",
+      fieldPath: "materialityTest",
+    }, "The ledger makes the next accusation costly for Istra.")).toBeNull()
   })
 
   test("obligation source-link fields validate stable IDs and kind shape", () => {

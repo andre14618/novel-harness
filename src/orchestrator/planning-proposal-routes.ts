@@ -1354,7 +1354,7 @@ function validatePlanningEditSemantics(
   }
   if (target.kind !== "beat_obligation") return null
   const fieldPath = target.fieldPath as BeatObligationPlanningEditField
-  if (fieldPath === "text") return null
+  if (fieldPath === "text" || fieldPath === "materialityTest") return null
 
   if (!targetState.outline) return "beat obligation target state missing outline"
   const context = findObligationContext(targetState.outline, target.ref)

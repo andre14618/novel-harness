@@ -547,7 +547,15 @@ function normalizeCandidateTarget(raw: unknown): { kind: PlanReadinessTargetKind
   const kind = record.kind
   const ref = record.ref
   const fieldPath = record.fieldPath
-  if ((kind !== "chapter_outline" && kind !== "scene_plan" && kind !== "beat_plan") || typeof ref !== "string" || !ref) {
+  if (
+    kind !== "chapter_outline" &&
+    kind !== "scene_plan" &&
+    kind !== "beat_plan" &&
+    kind !== "beat_obligation"
+  ) {
+    return undefined
+  }
+  if (typeof ref !== "string" || !ref) {
     return undefined
   }
   return {

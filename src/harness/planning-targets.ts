@@ -17,6 +17,7 @@ import {
   type PlanningMutationLineage,
 } from "../db/planning-mutation-lineage"
 import {
+  ALLOWED_BEAT_OBLIGATION_FIELD_PATHS,
   ALLOWED_BEAT_PLAN_FIELD_PATHS,
   ALLOWED_STORY_SPINE_FIELD_PATHS,
   ALLOWED_WORLD_BIBLE_FIELD_PATHS,
@@ -478,7 +479,7 @@ export function buildPlanningTargetMap(artifacts: PlanningArtifacts): PlanningTa
           kind: "beat_obligation",
           ref: obligationId,
           label: `Chapter ${outline.chapterNumber}, scene ${beatIndex + 1} ${key}`,
-          fieldPaths: ["text", "sourceId", "sourceKind", "characterId", "sourceLink"],
+          fieldPaths: [...ALLOWED_BEAT_OBLIGATION_FIELD_PATHS],
           currentVersion: stableHash(item),
           inSnapshot: true,
           location: {

@@ -27,6 +27,13 @@ import type { ChapterOutline } from "../../src/types"
 type StatusFilter = PlanReadinessStatus | "all"
 
 const DEFAULT_NOTE = "Generated default. Replace with an operator judgment before non-dry-run apply."
+const OBLIGATION_LIST_KEYS = [
+  "mustEstablish",
+  "mustPayOff",
+  "mustTransferKnowledge",
+  "mustShowStateChange",
+  "mustNotReveal",
+] as const
 
 export interface PlanReadinessReviewPlanArgs {
   novelId: string
@@ -69,6 +76,18 @@ export interface PlanReadinessReviewPlanReport {
 
 interface PlanReadinessReviewTargetContext {
   currentValueSummary: unknown
+}
+
+interface ObligationReviewSummary {
+  ref: string
+  chapterId: string
+  sceneRef: string
+  sceneIndex: number
+  listKey: string
+  text: string
+  sourceId: string
+  sourceKind: string
+  materialityTest: string
 }
 
 export function parseArgs(argv = process.argv.slice(2)): PlanReadinessReviewPlanArgs {
@@ -199,6 +218,12 @@ function proposedValueTemplateFor(
     const sceneRefs = stringListFromCsv(item.evidence.sceneRefs)
     return sceneRefs.length > 0 ? sceneRefs : ["replace-with-reviewed-scene-id-order"]
   }
+  if (
+    item.target.kind === "beat_obligation" &&
+    item.target.fieldPath === "materialityTest"
+  ) {
+    return "Describe how this obligation changes choice, constraint, relationship behavior, outcome, or future pressure."
+  }
   return {
     target: {
       kind: item.target.kind,
@@ -304,6 +329,13 @@ async function loadReviewTargetContexts(
         currentValueSummary: summary,
       })
     }
+    for (const [sceneIndex, scene] of (normalized.scenes ?? []).entries()) {
+      for (const obligation of obligationSummaries(scene, sceneIndex, chapterRef)) {
+        out.set(`beat_obligation:${obligation.ref}:materialityTest`, {
+          currentValueSummary: obligation,
+        })
+      }
+    }
   }
   return out
 }
@@ -327,6 +359,41 @@ function sceneSummary(scene: NonNullable<ChapterOutline["scenes"]>[number], inde
     kind: stringValue(record.kind) || "(none)",
     description: truncate(stringValue(record.description), 240),
   }
+}
+
+function obligationSummaries(
+  scene: NonNullable<ChapterOutline["scenes"]>[number],
+  sceneIndex: number,
+  chapterId: string,
+): ObligationReviewSummary[] {
+  const sceneRecord = scene as Record<string, unknown>
+  const sceneRef = stringValue(sceneRecord.sceneId) || stringValue(sceneRecord.beatId) || `scene-${sceneIndex + 1}`
+  const obligations = sceneRecord.obligations && typeof sceneRecord.obligations === "object" && !Array.isArray(sceneRecord.obligations)
+    ? sceneRecord.obligations as Record<string, unknown>
+    : {}
+  const out: ObligationReviewSummary[] = []
+  for (const listKey of OBLIGATION_LIST_KEYS) {
+    const rows = obligations[listKey]
+    if (!Array.isArray(rows)) continue
+    for (const row of rows) {
+      if (!row || typeof row !== "object" || Array.isArray(row)) continue
+      const record = row as Record<string, unknown>
+      const ref = stringValue(record.obligationId)
+      if (!ref) continue
+      out.push({
+        ref,
+        chapterId,
+        sceneRef,
+        sceneIndex: sceneIndex + 1,
+        listKey,
+        text: truncate(stringValue(record.text), 240),
+        sourceId: stringValue(record.sourceId),
+        sourceKind: stringValue(record.sourceKind),
+        materialityTest: truncate(stringValue(record.materialityTest), 240),
+      })
+    }
+  }
+  return out
 }
 
 function compareReadinessItems(a: PlanReadinessItem, b: PlanReadinessItem): number {
@@ -394,6 +461,20 @@ function renderCurrentValueSummary(value: unknown): string[] {
     if (!record) return []
     const ref = stringValue(record.ref)
     const chapterId = stringValue(record.chapterId)
+    const listKey = stringValue(record.listKey)
+    const text = stringValue(record.text)
+    if (listKey || text) {
+      const sceneRef = stringValue(record.sceneRef)
+      const sourceId = stringValue(record.sourceId)
+      const sourceKind = stringValue(record.sourceKind)
+      const materialityTest = stringValue(record.materialityTest)
+      return [
+        `- current obligation: ${ref || "(unknown)"}${chapterId ? ` (${chapterId})` : ""}${sceneRef ? ` scene=${sceneRef}` : ""}${listKey ? ` list=${listKey}` : ""}`,
+        ...(text ? [`- current text: ${truncate(text, 420)}`] : []),
+        ...(sourceId || sourceKind ? [`- current source: ${sourceKind || "(kind?)"}:${sourceId || "(id?)"}`] : []),
+        ...(materialityTest ? [`- current materialityTest: ${truncate(materialityTest, 420)}`] : []),
+      ]
+    }
     const kind = stringValue(record.kind)
     const description = stringValue(record.description)
     if (!ref && !description) return []
