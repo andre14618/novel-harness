@@ -8,6 +8,7 @@ import {
   parseArgs,
   renderReport,
   requestBodyForPlanAction,
+  requestBodyForPlanActionWithProposalLinks,
   selectReadinessActions,
 } from "./plan-readiness-apply"
 import type { PlanReadinessItem } from "../../src/db/plan-readiness"
@@ -71,6 +72,38 @@ describe("plan-readiness-apply", () => {
       status: "not_applicable",
       operatorNote: "not a relationship scene",
     })
+
+    expect(requestBodyForPlanAction({
+      match: { itemId: "item-related" },
+      decision: "proposal_created",
+      proposalEnvelopeId: "planning-edit-1",
+      operatorNote: "Covered by the same scene replacement proposal.",
+    })).toEqual({
+      status: "proposal_created",
+      proposalEnvelopeId: "planning-edit-1",
+      operatorNote: "Covered by the same scene replacement proposal.",
+    })
+
+    expect(requestBodyForPlanActionWithProposalLinks({
+      match: { itemId: "item-related" },
+      decision: "proposal_created",
+      proposalFromItemId: "item-primary",
+      operatorNote: "Covered by the primary proposal action.",
+    }, new Map([["item-primary", "planning-edit-2"]]))).toEqual({
+      status: "proposal_created",
+      proposalEnvelopeId: "planning-edit-2",
+      operatorNote: "Covered by the primary proposal action.",
+    })
+
+    expect(() => requestBodyForPlanAction({
+      match: { itemId: "item-related" },
+      decision: "proposal_created",
+    })).toThrow("proposalEnvelopeId")
+    expect(() => requestBodyForPlanActionWithProposalLinks({
+      match: { itemId: "item-related" },
+      decision: "proposal_created",
+      proposalFromItemId: "item-primary",
+    }, new Map())).toThrow("proposalEnvelopeId")
 
     expect(requestBodyForPlanAction({
       match: { label: "ENDPOINT-PLAN-1" },
@@ -155,6 +188,11 @@ describe("plan-readiness-apply", () => {
           }],
           decision: "deferred",
         }, {
+          match: { itemId: "item-related" },
+          decision: "proposal_created",
+          proposalFromItemId: "item-1",
+          operatorNote: "Covered by item-1 proposal.",
+        }, {
           match: {
             itemId: "item-2",
             label: "SOURCE-MATERIALITY-TEST-MISSING",
@@ -186,7 +224,12 @@ describe("plan-readiness-apply", () => {
         missingForNextLevel: "Name the relationship shift.",
         evidence: { score: "1" },
       }])
-      expect(plan.actions[1]?.match).toMatchObject({
+      expect(plan.actions[1]).toMatchObject({
+        decision: "proposal_created",
+        proposalFromItemId: "item-1",
+        operatorNote: "Covered by item-1 proposal.",
+      })
+      expect(plan.actions[2]?.match).toMatchObject({
         targetKind: "beat_obligation",
         targetRef: "obl-ledger",
         targetFieldPath: "materialityTest",

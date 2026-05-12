@@ -20,6 +20,7 @@ const dispositionDecisionSchema = z.enum([
   "accepted_as_is",
   "not_applicable",
   "deferred",
+  "proposal_created",
   "fixed",
 ])
 const proposalDecisionSchema = z.enum(["field_replace", "beat_replace", "beat_reorder", "scene_select", "beat_requirement_remove"])
@@ -63,6 +64,8 @@ const actionPlanSchema = z.object({
     proposalInstruction: z.string().optional(),
     currentValueSummary: z.unknown().optional(),
     sameTargetItems: z.array(relatedReadinessItemSchema).optional(),
+    proposalEnvelopeId: z.string().optional(),
+    proposalFromItemId: z.string().optional(),
     useCandidate: z.boolean().optional(),
     operatorNote: z.string().optional(),
     rationale: z.string().optional(),
@@ -202,10 +205,37 @@ export function requestBodyForPlanAction(action: PlanReadinessPlanAction): Recor
       ...(action.rationale ? { rationale: action.rationale } : {}),
     }
   }
+  const proposalEnvelopeId = proposalEnvelopeIdForDisposition(action)
   return {
     status: action.decision,
+    ...(proposalEnvelopeId ? { proposalEnvelopeId } : {}),
     ...(action.operatorNote ? { operatorNote: action.operatorNote } : {}),
   }
+}
+
+export function requestBodyForPlanActionWithProposalLinks(
+  action: PlanReadinessPlanAction,
+  proposalEnvelopeIdsByItemId: ReadonlyMap<string, string>,
+): Record<string, unknown> {
+  if (isProposalDecision(action.decision)) return requestBodyForPlanAction(action)
+  const proposalEnvelopeId = proposalEnvelopeIdForDisposition(action, proposalEnvelopeIdsByItemId)
+  return {
+    status: action.decision,
+    ...(proposalEnvelopeId ? { proposalEnvelopeId } : {}),
+    ...(action.operatorNote ? { operatorNote: action.operatorNote } : {}),
+  }
+}
+
+function proposalEnvelopeIdForDisposition(
+  action: PlanReadinessPlanAction,
+  proposalEnvelopeIdsByItemId: ReadonlyMap<string, string> = new Map(),
+): string | null {
+  const proposalEnvelopeId = action.proposalEnvelopeId ??
+    (action.proposalFromItemId ? proposalEnvelopeIdsByItemId.get(action.proposalFromItemId) : undefined)
+  if (action.decision === "proposal_created" && !proposalEnvelopeId) {
+    throw new Error("proposal_created disposition requires proposalEnvelopeId or proposalFromItemId")
+  }
+  return proposalEnvelopeId ?? null
 }
 
 async function run(args: PlanReadinessApplyArgs): Promise<PlanReadinessApplyReport> {
@@ -217,6 +247,7 @@ async function run(args: PlanReadinessApplyArgs): Promise<PlanReadinessApplyRepo
   ])
   const selections = selectReadinessActions(items, plan.actions)
   const actions: AppliedReadinessAction[] = []
+  const proposalEnvelopeIdsByItemId = new Map<string, string>()
 
   for (const selection of selections) {
     if (!selection.item) {
@@ -224,6 +255,21 @@ async function run(args: PlanReadinessApplyArgs): Promise<PlanReadinessApplyRepo
       continue
     }
     if (args.dryRun) {
+      try {
+        requestBodyForPlanActionWithProposalLinks(selection.planAction, proposalEnvelopeIdsByItemId)
+        if (isProposalDecision(selection.planAction.decision)) {
+          proposalEnvelopeIdsByItemId.set(selection.item.id, `dry-run:${selection.item.id}`)
+        }
+      } catch (err) {
+        actions.push(actionResultForItem(selection.item, selection.planAction, {
+          dryRun: true,
+          status: null,
+          ok: false,
+          proposalEnvelopeId: null,
+          error: err instanceof Error ? err.message : String(err),
+        }))
+        continue
+      }
       actions.push(actionResultForItem(selection.item, selection.planAction, {
         dryRun: true,
         status: null,
@@ -237,12 +283,29 @@ async function run(args: PlanReadinessApplyArgs): Promise<PlanReadinessApplyRepo
     const path = isProposalDecision(selection.planAction.decision)
       ? `/api/novel/${encodeURIComponent(args.novelId)}/plan-readiness/${encodeURIComponent(selection.item.id)}/create-planning-proposal`
       : `/api/novel/${encodeURIComponent(args.novelId)}/plan-readiness/${encodeURIComponent(selection.item.id)}/disposition`
-    const response = await invokeReadiness("POST", path, requestBodyForPlanAction(selection.planAction))
+    let requestBody: Record<string, unknown>
+    try {
+      requestBody = requestBodyForPlanActionWithProposalLinks(selection.planAction, proposalEnvelopeIdsByItemId)
+    } catch (err) {
+      actions.push(actionResultForItem(selection.item, selection.planAction, {
+        dryRun: false,
+        status: null,
+        ok: false,
+        proposalEnvelopeId: null,
+        error: err instanceof Error ? err.message : String(err),
+      }))
+      continue
+    }
+    const response = await invokeReadiness("POST", path, requestBody)
     const body = await response.json().catch((err) => ({ ok: false, error: String(err) }))
-    const proposalEnvelopeId = stringValue(body?.proposal?.envelope?.id ?? body?.proposal?.id)
-    const approval = response.ok && body?.ok !== false && args.approveProposals && proposalEnvelopeId
+    const proposalEnvelopeId = stringValue(body?.proposal?.envelope?.id ?? body?.proposal?.id ?? body?.item?.proposalEnvelopeId)
+    const approval = isProposalDecision(selection.planAction.decision) &&
+      response.ok && body?.ok !== false && args.approveProposals && proposalEnvelopeId
       ? await approvePlanningProposal(args.novelId, proposalEnvelopeId, selection.planAction.operatorNote)
       : { approved: false, error: null as string | null }
+    if (response.ok && body?.ok !== false && proposalEnvelopeId) {
+      proposalEnvelopeIdsByItemId.set(selection.item.id, proposalEnvelopeId)
+    }
     actions.push(actionResultForItem(selection.item, selection.planAction, {
       dryRun: false,
       status: response.status,
