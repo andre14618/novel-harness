@@ -148,6 +148,7 @@ function renderSelectiveSceneTurnGuidance(enabled: boolean, scenePlanContractV1:
 
 Selective scene-turn shaping (planningSceneTurnShapingV1):
 This flag is active. It is not the full scenePlanContractV1 template, but the final entry MUST include "outcome" and "consequence"; the planner will retry if those endpoint fields are missing.
+- Preserve the skeleton's scope. Do not add entries, transit beats, setup beats, or larger implied chapter load just to carry optional semantic fields; add the fields to existing load-bearing entries.
 - Populate the final entry's "outcome" and "consequence" so the chapter endpoint/hook lands through an on-page action, reveal, refusal, concession, or changed status with an immediate external effect.
 - For source-grounded non-final entries that change fact, knowledge, state, relationship, world rule, or debt pressure, populate "goal", "opposition", "turningPoint", "outcome", "consequence", and "povPersonalStake". Do not leave an obligation-bearing action/revelation entry as description-only.
 - Use optional scene-turn fields only when they clarify a load-bearing entry. Do not tag background, transit, or decorative setup just because a field exists.
@@ -155,6 +156,7 @@ This flag is active. It is not the full scenePlanContractV1 template, but the fi
 - If a world fact, rule, debt, location constraint, or supporting character is load-bearing, make it constrain the goal, opposition, outcome, or consequence. Do not add standalone labels for context that does not change the turn.
 - Keep each scene description concise and playable. The optional fields should sharpen endpoint, character materiality, and world pressure; they must not duplicate the description or inflate the entry with generic theory.
 - Omit optional scene-turn fields on simple connective entries unless the entry creates a new observable cost, deadline, debt, threat, or relationship state.
+- If retry feedback names missing semantic fields, repair those fields directly. Do not answer the retry by splitting the same movement into more entries.
 - Source hygiene: do not invent a new offstage crime, legal incident, conspiracy, official action, named actor, or world mechanism only to make the turn fields more concrete. Ground the pressure in the chapter purpose, world bible, character goals/fears, directives, or this entry's existing action.
 - Character hygiene: "characters" must contain actual named cast members only. Do not put parenthetical roles such as "Minor Debtor (unnamed woman)" or "unnamed clerk" in "characters"; keep one-off unnamed roles in the description.`
 }

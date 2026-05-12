@@ -5,6 +5,7 @@ import {
   auditSelectiveSceneTurnShapingGaps,
   planningBeatsSystemPromptForSeed,
   planningBeatExpansionRetryReason,
+  planningSkeletonRetryReason,
   planningStateMapperSystemPromptForSeed,
 } from "./planning"
 import type { ChapterOutline, SceneBeat, SeedInput } from "../types"
@@ -25,6 +26,7 @@ describe("planningBeatExpansionRetryReason", () => {
     expect(prompt).toContain("`outcome`")
     expect(prompt).toContain("`consequence`")
     expect(prompt).toContain("still do not emit chapter-level state, obligations, or requiredPayoffs")
+    expect(prompt).toContain("Scope discipline: do not add entries")
     expect(prompt).toContain("Source hygiene: do not invent a new offstage crime")
     expect(prompt).toContain("Character hygiene: `characters[]` must contain actual named cast members")
   })
@@ -41,7 +43,7 @@ describe("planningBeatExpansionRetryReason", () => {
   test("retries selective scene-turn shaping when final endpoint fields are absent", () => {
     expect(planningBeatExpansionRetryReason({
       chapterNumber: 1,
-      targetWords: 900,
+      targetWords: 1500,
       scenes: [
         scene("Maren enters the Counting-House."),
         scene("A clerk brings the ledger forward."),
@@ -58,7 +60,7 @@ describe("planningBeatExpansionRetryReason", () => {
   test("accepts selective scene-turn shaping when final endpoint fields are present", () => {
     expect(planningBeatExpansionRetryReason({
       chapterNumber: 1,
-      targetWords: 900,
+      targetWords: 1500,
       scenes: [
         scene("Maren enters the Counting-House."),
         scene("A clerk brings the ledger forward."),
@@ -100,6 +102,53 @@ describe("planningBeatExpansionRetryReason", () => {
     }, {
       planningSceneTurnShapingV1: true,
     })).toContain("source-refed non-final entries missing goal/opposition/outcome/consequence")
+  })
+
+  test("retries selective scene-turn shaping when semantic fields inflate entry count above the recommended budget", () => {
+    expect(planningBeatExpansionRetryReason({
+      chapterNumber: 1,
+      targetWords: 1500,
+      scenes: [
+        scene("Maren enters the Counting-House.", {
+          goal: "Reach her desk before the writ arrives.",
+          opposition: "The hall is already waiting for default news.",
+          outcome: "Maren reaches the ledger.",
+          consequence: "She sees the ruin column before anyone can soften it.",
+        }),
+        scene("A clerk brings the ledger forward.", {
+          goal: "Make the clerk acknowledge the debt column.",
+          opposition: "The clerk wants the numbers treated as routine.",
+          outcome: "The clerk admits the total moved overnight.",
+          consequence: "Maren knows the pressure is active now.",
+        }),
+        scene("Tovin blocks a creditor's witness.", {
+          goal: "Keep the witness from forcing a public confession.",
+          opposition: "Tovin can make obstruction look like treason.",
+          outcome: "Tovin moves the witness aside.",
+          consequence: "Maren owes him an explanation.",
+        }),
+        scene("Halric's seal appears on the debt slip.", {
+          goal: "Trace who authorized the transfer.",
+          opposition: "The seal makes the answer politically dangerous.",
+          outcome: "Maren confirms Halric's authority.",
+          consequence: "She must answer a summons instead of burying the slip.",
+        }),
+        scene("Maren leaves with Halric's summons.", {
+          goal: "Leave without accepting the transfer.",
+          opposition: "The summons makes delay impossible.",
+          outcome: "Maren takes the summons.",
+          consequence: "Halric expects her before dawn.",
+        }),
+        scene("Maren crosses the bridge toward the Treasury.", {
+          goal: "Reach the Treasury before the clerks lock the ledgers.",
+          opposition: "The bridge guard can delay her until dawn.",
+          outcome: "Maren crosses.",
+          consequence: "The city sees her carrying Halric's seal.",
+        }),
+      ],
+    }, {
+      planningSceneTurnShapingV1: true,
+    })).toBe("planningSceneTurnShapingV1 6 entries > semantic scope budget 5 for 1500w target")
   })
 
   test("accepts selective scene-turn shaping when source-refed non-final entries have turn fields", () => {
@@ -170,6 +219,34 @@ describe("planningBeatExpansionRetryReason", () => {
       nativePlanningContractV1: true,
       planningSceneTurnShapingV1: true,
       scenePlanContractV1: true,
+    })).toBeNull()
+  })
+
+  test("retries short fixed-arc skeleton scope when selective semantic planning oversizes target words", () => {
+    expect(planningSkeletonRetryReason([
+      { chapterNumber: 1, targetWords: 2000 },
+      { chapterNumber: 2, targetWords: 1800 },
+    ], {
+      targetChapters: 2,
+      planningSceneTurnShapingV1: true,
+    })).toContain("ch1=2000w")
+  })
+
+  test("does not retry skeleton scope without selective semantic planning or for longer arcs", () => {
+    expect(planningSkeletonRetryReason([
+      { chapterNumber: 1, targetWords: 2000 },
+      { chapterNumber: 2, targetWords: 2000 },
+    ], {
+      targetChapters: 2,
+    })).toBeNull()
+
+    expect(planningSkeletonRetryReason([
+      { chapterNumber: 1, targetWords: 2000 },
+      { chapterNumber: 2, targetWords: 2000 },
+      { chapterNumber: 3, targetWords: 2000 },
+    ], {
+      targetChapters: 3,
+      planningMaterialPressureV1: true,
     })).toBeNull()
   })
 

@@ -18,6 +18,32 @@ test("planning plotter context renders native chapter contract guidance by defau
   expect(legacy).not.toContain("UPSTREAM NATIVE PLANNING CONTRACT")
 })
 
+test("planning plotter context keeps selective semantic telemetry from widening skeleton scope", () => {
+  const context = buildContext(worldBible(), characters(), spine(), {
+    ...seed(),
+    chapterCount: 2,
+    pipelineOverrides: {
+      planningSceneTurnShapingV1: true,
+      planningMaterialPressureV1: true,
+    },
+  })
+  const fullContract = buildContext(worldBible(), characters(), spine(), {
+    ...seed(),
+    chapterCount: 2,
+    pipelineOverrides: {
+      planningSceneTurnShapingV1: true,
+      planningMaterialPressureV1: true,
+      scenePlanContractV1: true,
+    },
+  })
+
+  expect(context).toContain("SEMANTIC PLANNING SCOPE CONTROL")
+  expect(context).toContain("do not raise targetWords")
+  expect(context).toContain("1200-1800")
+  expect(context).toContain("not extra accounting room")
+  expect(fullContract).not.toContain("SEMANTIC PLANNING SCOPE CONTROL")
+})
+
 function seed() {
   return {
     genre: "fantasy",

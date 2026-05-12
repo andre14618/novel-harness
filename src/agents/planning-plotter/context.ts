@@ -4,7 +4,12 @@ import type { CharacterProfile } from "../character-agent/schema"
 import type { StorySpine } from "../plotter/schema"
 import { renderDirectivesForPlanner } from "../../schemas/planning-directives"
 import { resolveStructuralPriors, renderStructuralPriorsForPlanner } from "../../models/roles"
-import { resolveNativePlanningContractV1 } from "../../config/pipeline"
+import {
+  resolveNativePlanningContractV1,
+  resolvePlanningMaterialPressureV1,
+  resolvePlanningSceneTurnShapingV1,
+  resolveScenePlanContractV1,
+} from "../../config/pipeline"
 
 export function buildContext(
   worldBible: WorldBible,
@@ -103,8 +108,22 @@ ${worldSection}${systemsSection}${culturesSection}
 ${charSection}
 
 ${spineSection}${directivesSection}${structuralSection}${nativeContractSection}
+${renderSemanticPlanningScopeGuidance(seed)}
 
 Produce a SKELETON outline${seed.chapterCount ? ` with exactly ${seed.chapterCount} chapters` : ""}. One compact entry per chapter — title, POV, setting, 1–2-sentence purpose, targetWords, charactersPresent. No scene beats, no world-state changes, no knowledge transfers: those come from the downstream per-chapter beat pass.${seed.chapterCount && seed.chapterCount > 5 ? `\n\nWith ${seed.chapterCount} chapters, ensure subplot threads are established early and woven through the middle, rotating POV characters across chapters where the story benefits from multiple perspectives.` : ""}${worldBible.systems?.length ? `\n\nPOV + charactersPresent should reflect that different characters have different awareness of world systems — dramatic tension comes from who-knows-what in each chapter.` : ""}`
 }
 
 export const buildPlanningContext = buildContext
+
+function renderSemanticPlanningScopeGuidance(seed: SeedInput): string {
+  if (resolveScenePlanContractV1(seed.pipelineOverrides)) return ""
+  const selectiveSemantics = resolvePlanningSceneTurnShapingV1(seed.pipelineOverrides)
+    || resolvePlanningMaterialPressureV1(seed.pipelineOverrides)
+  if (!selectiveSemantics) return ""
+  const shortArcGuidance = seed.chapterCount && seed.chapterCount <= 2
+    ? "\nFor a fixed one- or two-chapter request, keep chapter targets in the 1200-1800 range unless the premise explicitly requires a larger set piece."
+    : ""
+  return `SEMANTIC PLANNING SCOPE CONTROL:
+Downstream endpoint/materiality telemetry is active. Preserve the story's natural size: do not raise targetWords, chapter purpose complexity, or implied scene count just because later passes will ask for optional semantic fields.${shortArcGuidance}
+A larger target must correspond to a necessary story set piece named in the purpose, not extra accounting room for endpoint, turn-shape, or materiality notes.`
+}

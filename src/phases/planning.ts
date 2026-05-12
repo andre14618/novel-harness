@@ -53,6 +53,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   const targetChapters = novel.seed.chapterCount ?? null
   const planningMaxBeatsPerChapter = novel.seed.pipelineOverrides?.planningMaxBeatsPerChapter ?? pipeline.planningMaxBeatsPerChapter
   const nativePlanningContractV1 = resolveNativePlanningContractV1(novel.seed.pipelineOverrides)
+  const planningMaterialPressureV1 = resolvePlanningMaterialPressureV1(novel.seed.pipelineOverrides)
   const planningSceneTurnShapingV1 = resolvePlanningSceneTurnShapingV1(novel.seed.pipelineOverrides)
   const scenePlanContractV1 = resolveScenePlanContractV1(novel.seed.pipelineOverrides)
 
@@ -96,6 +97,20 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
         console.log(`  Warning: ${w}`)
       }
       if (enforcement.valid) {
+        const retryReason = planningSkeletonRetryReason(enforcement.chapters, {
+          targetChapters,
+          planningMaterialPressureV1,
+          planningSceneTurnShapingV1,
+          scenePlanContractV1,
+        })
+        if (retryReason) {
+          log(novelId, attempt === 2 ? "warn" : "info", `Skeleton semantic scope: ${retryReason}`)
+          console.log(`  Skeleton scope: ${retryReason}${attempt === 1 ? " — retrying skeletons" : " — accepting after retry"}`)
+          if (attempt === 1) {
+            lastError = retryReason
+            continue
+          }
+        }
         skeletons = enforcement.chapters
         log(novelId, "info", `Skeletons attempt ${attempt}: ${skeletons.length} chapters`)
         break
@@ -434,6 +449,11 @@ pressure, include \`goal\`, \`opposition\`, \`turningPoint\`, \`outcome\`,
 \`consequence\`, and \`povPersonalStake\`. These are beat-shape fields only;
 still do not emit chapter-level state, obligations, or requiredPayoffs.
 
+Scope discipline: do not add entries, transit beats, setup beats, targetWords,
+or larger implied chapter load just to carry these optional fields. Add the
+fields to existing load-bearing entries and preserve the skeleton's story
+size.
+
 Source hygiene: do not invent a new offstage crime, legal incident,
 conspiracy, official action, named actor, or world mechanism only to make
 these fields concrete. Ground every pressure source in the chapter purpose,
@@ -530,6 +550,10 @@ export function planningBeatExpansionRetryReason(
     }
   }
   if (options.planningSceneTurnShapingV1) {
+    const assessment = assessBeatCountForTarget(target, count)
+    if (count > assessment.recommendedBeats) {
+      return `planningSceneTurnShapingV1 ${count} entries > semantic scope budget ${assessment.recommendedBeats} for ${target}w target`
+    }
     const reason = selectiveSceneTurnShapingRetryReason(outline.scenes ?? [])
     if (reason) return reason
     const invalidCharacterLabels = countUndurableCharacterLabels(outline.scenes ?? [])
@@ -538,6 +562,28 @@ export function planningBeatExpansionRetryReason(
     }
   }
   return null
+}
+
+const SHORT_FIXED_ARC_MAX_SEMANTIC_TARGET_WORDS = 1800
+
+export function planningSkeletonRetryReason(
+  chapters: readonly Pick<ChapterOutline, "chapterNumber" | "targetWords">[],
+  options: {
+    targetChapters?: number | null
+    planningMaterialPressureV1?: boolean
+    planningSceneTurnShapingV1?: boolean
+    scenePlanContractV1?: boolean
+  } = {},
+): string | null {
+  if (options.scenePlanContractV1) return null
+  if (!options.planningMaterialPressureV1 && !options.planningSceneTurnShapingV1) return null
+  const fixedChapterCount = options.targetChapters ?? chapters.length
+  if (!fixedChapterCount || fixedChapterCount > 2) return null
+  const oversized = chapters
+    .filter(chapter => (chapter.targetWords ?? 0) > SHORT_FIXED_ARC_MAX_SEMANTIC_TARGET_WORDS)
+    .map(chapter => `ch${chapter.chapterNumber}=${chapter.targetWords}w`)
+  if (oversized.length === 0) return null
+  return `selective semantic planning produced oversized short-arc chapter target(s) ${oversized.join(", ")}; preserve compact fixture scope instead of expanding targetWords for endpoint/materiality fields`
 }
 
 function selectiveSceneTurnShapingRetryReason(scenes: readonly SceneBeat[]): string | null {

@@ -96,10 +96,12 @@ test("planning beat context renders selective scene-turn shaping without full sc
 
   expect(context).toContain("Selective scene-turn shaping (planningSceneTurnShapingV1)")
   expect(context).toContain("final entry MUST include \"outcome\" and \"consequence\"")
+  expect(context).toContain("Preserve the skeleton's scope")
   expect(context).toContain("Populate the final entry's \"outcome\" and \"consequence\"")
   expect(context).toContain("Do not leave an obligation-bearing action/revelation entry as description-only")
   expect(context).toContain("Add \"crisisChoice\" and two \"choiceAlternatives\" only when there is a real tradeoff")
   expect(context).toContain("Do not add standalone labels for context that does not change the turn")
+  expect(context).toContain("repair those fields directly")
   expect(context).toContain("Source hygiene: do not invent a new offstage crime")
   expect(context).toContain("Character hygiene: \"characters\" must contain actual named cast members only")
   expect(context).not.toContain("Scene plan contract (scenePlanContractV1)")
