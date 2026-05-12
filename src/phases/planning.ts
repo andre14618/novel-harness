@@ -396,6 +396,79 @@ export const planningPhase: Phase<ConceptOutput, PlanningOutput> = {
   },
 }
 
+export function planningBeatsSystemPromptForSeed(seed: Pick<SeedInput, "pipelineOverrides">): string {
+  const scenePlanContractV1 = resolveScenePlanContractV1(seed.pipelineOverrides)
+  const planningSceneTurnShapingV1 = resolvePlanningSceneTurnShapingV1(seed.pipelineOverrides)
+  if (scenePlanContractV1) {
+    return `${PLANNING_BEATS_PROMPT}
+
+## Active Output Contract Addendum: scenePlanContractV1
+
+The base JSON structure above is not exhaustive for this active flag. Each
+\`scenes[]\` object may also include the scene-contract fields named in the
+user prompt: \`temporalAnchor\`, \`placeAnchor\`, \`goal\`, \`opposition\`,
+\`turningPoint\`, \`crisisChoice\`, \`choiceAlternatives\`, \`outcome\`,
+\`consequence\`, \`valueIn\`, \`valueOut\`, \`povPersonalStake\`,
+\`beatHints\`, and \`targetWords\`.
+
+When the user prompt says a field is required for the active contract, include
+that field directly on the matching \`scenes[]\` object. These are beat-shape
+fields only; still do not emit chapter-level state, obligations, or
+requiredPayoffs.`
+  }
+  if (planningSceneTurnShapingV1) {
+    return `${PLANNING_BEATS_PROMPT}
+
+## Active Output Contract Addendum: planningSceneTurnShapingV1
+
+The base JSON structure above is not exhaustive for this active flag. A
+\`scenes[]\` object may also include these optional scene-turn fields:
+\`goal\`, \`opposition\`, \`turningPoint\`, \`outcome\`, \`consequence\`,
+\`povPersonalStake\`, \`crisisChoice\`, \`choiceAlternatives\`, \`valueIn\`,
+and \`valueOut\`.
+
+For the final entry, include \`outcome\` and \`consequence\` so the chapter
+endpoint lands on page. For any non-final entry that carries a fact, reveal,
+decision, state change, relationship pressure, world constraint, or debt
+pressure, include \`goal\`, \`opposition\`, \`turningPoint\`, \`outcome\`,
+\`consequence\`, and \`povPersonalStake\`. These are beat-shape fields only;
+still do not emit chapter-level state, obligations, or requiredPayoffs.
+
+Source hygiene: do not invent a new offstage crime, legal incident,
+conspiracy, official action, named actor, or world mechanism only to make
+these fields concrete. Ground every pressure source in the chapter purpose,
+world bible, character goals/fears, directives, or the entry description
+itself. If the plan needs a transfer target or scapegoat, use the already
+stated debt-transfer order, deadline, coercion, and personal cost rather than
+adding a new legal backstory.
+
+Character hygiene: \`characters[]\` must contain actual named cast members
+only. Do not put parenthetical roles such as "Minor Debtor (unnamed woman)" or
+"unnamed clerk" in \`characters[]\`; keep one-off unnamed roles in the
+description so the checker does not require a literal name in prose.`
+  }
+  return PLANNING_BEATS_PROMPT
+}
+
+export function planningStateMapperSystemPromptForSeed(seed: Pick<SeedInput, "pipelineOverrides">): string {
+  const materialPressureV1 = resolvePlanningMaterialPressureV1(seed.pipelineOverrides)
+  const scenePlanContractV1 = resolveScenePlanContractV1(seed.pipelineOverrides)
+  if (!materialPressureV1 && !scenePlanContractV1) return PLANNING_STATE_MAPPER_PROMPT
+  return `${PLANNING_STATE_MAPPER_PROMPT}
+
+## Active Output Contract Addendum: Materiality Pressure
+
+The obligation object examples above are not exhaustive for the active
+planning flags. A hard obligation may include \`materialityTest\` as a string
+next to \`obligationId\`, \`sourceId\`, \`sourceKind\`, and \`text\`.
+
+${scenePlanContractV1
+  ? "For scenePlanContractV1, every hard obligation must include a materialityTest."
+  : "For planningMaterialPressureV1, every selected source-refed non-final fact, knowledge, or state obligation should include materialityTest."} The value must state how that exact source changes the scene's choice, constraint,
+tactic, relationship behavior, outcome, or future pressure. Do not add extra
+obligations only to satisfy this field.`
+}
+
 async function expandChapter(
   novelId: string,
   skeleton: ChapterOutline,
@@ -423,7 +496,7 @@ async function expandChapter(
     agentName: "planning-beats",
     attempt,
     chapter: skeleton.chapterNumber,
-    systemPrompt: PLANNING_BEATS_PROMPT,
+    systemPrompt: planningBeatsSystemPromptForSeed(seed),
     userPrompt,
     schema: beatExpansionSchema,
   })
@@ -459,6 +532,10 @@ export function planningBeatExpansionRetryReason(
   if (options.planningSceneTurnShapingV1) {
     const reason = selectiveSceneTurnShapingRetryReason(outline.scenes ?? [])
     if (reason) return reason
+    const invalidCharacterLabels = countUndurableCharacterLabels(outline.scenes ?? [])
+    if (invalidCharacterLabels > 0) {
+      return `planningSceneTurnShapingV1 ${invalidCharacterLabels} checker-visible character labels are unnamed or parenthetical roles`
+    }
   }
   return null
 }
@@ -488,6 +565,24 @@ function hasNonFinalSceneTurnShape(scene: SceneBeat): boolean {
     && hasText(scene.opposition)
     && hasText(scene.outcome)
     && hasText(scene.consequence)
+}
+
+function countUndurableCharacterLabels(scenes: readonly SceneBeat[]): number {
+  let count = 0
+  for (const scene of scenes) {
+    for (const character of scene.characters ?? []) {
+      if (isUndurableCharacterLabel(character)) count += 1
+    }
+  }
+  return count
+}
+
+function isUndurableCharacterLabel(value: unknown): boolean {
+  if (typeof value !== "string") return false
+  const normalized = value.trim().toLowerCase()
+  if (!normalized) return false
+  return normalized.includes("unnamed")
+    || /\([^)]*\)/.test(normalized)
 }
 
 function sceneHasSourceRefedHardObligation(scene: SceneBeat): boolean {
@@ -820,7 +915,7 @@ async function mapChapterState(
       agentName: "planning-state-mapper",
       attempt,
       chapter: skeleton.chapterNumber,
-      systemPrompt: PLANNING_STATE_MAPPER_PROMPT,
+      systemPrompt: planningStateMapperSystemPromptForSeed(seed),
       userPrompt,
       schema: stateMapperSchema,
     })

@@ -3,11 +3,41 @@ import { describe, expect, test } from "bun:test"
 import {
   auditPlanningMaterialPressureGaps,
   auditSelectiveSceneTurnShapingGaps,
+  planningBeatsSystemPromptForSeed,
   planningBeatExpansionRetryReason,
+  planningStateMapperSystemPromptForSeed,
 } from "./planning"
 import type { ChapterOutline, SceneBeat, SeedInput } from "../types"
 
 describe("planningBeatExpansionRetryReason", () => {
+  test("keeps planning prompt byte-identical when selective shaping is off", () => {
+    const prompt = planningBeatsSystemPromptForSeed(seed({}))
+
+    expect(prompt).not.toContain("Active Output Contract Addendum")
+    expect(prompt).not.toContain("planningSceneTurnShapingV1")
+  })
+
+  test("adds selective scene-turn fields to the system output contract only when flagged", () => {
+    const prompt = planningBeatsSystemPromptForSeed(seed({ planningSceneTurnShapingV1: true }))
+
+    expect(prompt).toContain("Active Output Contract Addendum: planningSceneTurnShapingV1")
+    expect(prompt).toContain("`goal`")
+    expect(prompt).toContain("`outcome`")
+    expect(prompt).toContain("`consequence`")
+    expect(prompt).toContain("still do not emit chapter-level state, obligations, or requiredPayoffs")
+    expect(prompt).toContain("Source hygiene: do not invent a new offstage crime")
+    expect(prompt).toContain("Character hygiene: `characters[]` must contain actual named cast members")
+  })
+
+  test("adds materialityTest to the state-mapper system output contract only when flagged", () => {
+    const offPrompt = planningStateMapperSystemPromptForSeed(seed({}))
+    const onPrompt = planningStateMapperSystemPromptForSeed(seed({ planningMaterialPressureV1: true }))
+
+    expect(offPrompt).not.toContain("Active Output Contract Addendum: Materiality Pressure")
+    expect(onPrompt).toContain("`materialityTest`")
+    expect(onPrompt).toContain("planningMaterialPressureV1")
+  })
+
   test("retries selective scene-turn shaping when final endpoint fields are absent", () => {
     expect(planningBeatExpansionRetryReason({
       chapterNumber: 1,
@@ -101,6 +131,34 @@ describe("planningBeatExpansionRetryReason", () => {
     }, {
       planningSceneTurnShapingV1: true,
     })).toBeNull()
+  })
+
+  test("retries selective scene-turn shaping when characters contain unnamed role labels", () => {
+    expect(planningBeatExpansionRetryReason({
+      chapterNumber: 1,
+      targetWords: 900,
+      scenes: [
+        scene("Maren transfers a small debt while a debtor accepts the burden.", {
+          characters: ["Maren", "Minor Debtor (unnamed woman)"],
+          goal: "Move a small debt without worsening the default.",
+          opposition: "The transfer will still accrue phantom interest.",
+          outcome: "The debtor accepts the transfer.",
+          consequence: "Maren's own ledger worsens.",
+        }),
+        scene("Maren returns to the Counting-House.", {
+          goal: "Hide the new phantom interest.",
+          opposition: "The ledger total has moved beyond her expected margin.",
+          outcome: "Maren conceals the private ledger.",
+          consequence: "She enters Halric's summons with less room to maneuver.",
+        }),
+        scene("Maren leaves with Halric's summons.", {
+          outcome: "Maren leaves with Halric's summons.",
+          consequence: "Halric expects her answer before dawn.",
+        }),
+      ],
+    }, {
+      planningSceneTurnShapingV1: true,
+    })).toContain("checker-visible character labels are unnamed or parenthetical roles")
   })
 
   test("does not apply selective scene-turn retry under full scene-plan contract", () => {

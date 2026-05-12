@@ -154,7 +154,9 @@ This flag is active. It is not the full scenePlanContractV1 template, but the fi
 - For entries driven by a concrete decision or pressure turn, populate "goal", "opposition", "turningPoint", "outcome", "consequence", and "povPersonalStake". Add "crisisChoice" and two "choiceAlternatives" only when there is a real tradeoff the prose should dramatize.
 - If a world fact, rule, debt, location constraint, or supporting character is load-bearing, make it constrain the goal, opposition, outcome, or consequence. Do not add standalone labels for context that does not change the turn.
 - Keep each scene description concise and playable. The optional fields should sharpen endpoint, character materiality, and world pressure; they must not duplicate the description or inflate the entry with generic theory.
-- Omit optional scene-turn fields on simple connective entries unless the entry creates a new observable cost, deadline, debt, threat, or relationship state.`
+- Omit optional scene-turn fields on simple connective entries unless the entry creates a new observable cost, deadline, debt, threat, or relationship state.
+- Source hygiene: do not invent a new offstage crime, legal incident, conspiracy, official action, named actor, or world mechanism only to make the turn fields more concrete. Ground the pressure in the chapter purpose, world bible, character goals/fears, directives, or this entry's existing action.
+- Character hygiene: "characters" must contain actual named cast members only. Do not put parenthetical roles such as "Minor Debtor (unnamed woman)" or "unnamed clerk" in "characters"; keep one-off unnamed roles in the description.`
 }
 
 // L096 Slice 1: scene plan contract guidance, gated by `scenePlanContractV1`.
