@@ -1314,10 +1314,8 @@ function evidenceReasons(
   } else if (candidate.source !== baseline.source) {
     reasons.push(`Reports use different source ids: ${baseline.source} -> ${candidate.source}.`)
   }
-  if (!failedArm && comparison.length.meanRatioDelta <= -0.05) {
-    reasons.push(`Candidate is shorter by ${Math.abs(comparison.length.totalWordsDelta)} words and ${Math.abs(comparison.length.meanRatioDelta).toFixed(3)} ratio points.`)
-  } else if (!failedArm && comparison.length.meanRatioDelta >= 0.05) {
-    reasons.push(`Candidate is longer by ${comparison.length.totalWordsDelta} words and ${comparison.length.meanRatioDelta.toFixed(3)} ratio points.`)
+  if (!failedArm && Math.abs(comparison.length.meanRatioDelta) >= 0.05) {
+    reasons.push(lengthMovementReason(comparison.length))
   }
   if (!failedArm && positiveDelta(comparison.sceneSemantic.lowRowsDelta)) {
     reasons.push(`Scene-semantic lows worsened by ${comparison.sceneSemantic.lowRowsDelta}.`)
@@ -1377,6 +1375,21 @@ function evidenceReasons(
   }
   if (reasons.length === 0) reasons.push("No material telemetry difference was detected.")
   return reasons
+}
+
+function lengthMovementReason(length: DraftingRunComparison["length"]): string {
+  const ratioAbs = Math.abs(length.meanRatioDelta).toFixed(3)
+  if (length.totalWordsDelta === 0) {
+    return length.meanRatioDelta > 0
+      ? `Candidate has a higher target ratio by ${ratioAbs} with unchanged absolute words.`
+      : `Candidate has a lower target ratio by ${ratioAbs} with unchanged absolute words.`
+  }
+  const wordMovement = length.totalWordsDelta > 0
+    ? `${length.totalWordsDelta} more absolute words`
+    : `${Math.abs(length.totalWordsDelta)} fewer absolute words`
+  return length.meanRatioDelta > 0
+    ? `Candidate has a higher target ratio by ${ratioAbs} with ${wordMovement}.`
+    : `Candidate has a lower target ratio by ${ratioAbs} with ${wordMovement}.`
 }
 
 function rawContextChangedButSceneCoverageStable(comparison: DraftingRunComparison): boolean {

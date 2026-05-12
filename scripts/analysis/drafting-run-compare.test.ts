@@ -253,6 +253,39 @@ describe("drafting-run-compare", () => {
     }
   })
 
+  test("separates absolute word movement from target-ratio movement", () => {
+    const dir = mkdtempSync(join(tmpdir(), "drafting-run-compare-length-reason-"))
+    try {
+      const baselineReport = join(dir, "baseline-report.json")
+      const candidateReport = join(dir, "candidate-report.json")
+      writeFileSync(baselineReport, `${JSON.stringify({
+        v: "drafting-isolated-report-v1",
+        source: "source",
+        targetPrefix: "baseline",
+        sourceAssessment: { clean: true, issue: null },
+        results: [arm({ arm: "drafting-brief-v1", totalWords: 3510, totalTarget: 3300, meanRatio: 1.070 })],
+      }, null, 2)}\n`)
+      writeFileSync(candidateReport, `${JSON.stringify({
+        v: "drafting-isolated-report-v1",
+        source: "source",
+        targetPrefix: "candidate",
+        sourceAssessment: { clean: true, issue: null },
+        results: [arm({ arm: "drafting-brief-tight-v1", totalWords: 3050, totalTarget: 2700, meanRatio: 1.122 })],
+      }, null, 2)}\n`)
+
+      const report = buildDraftingRunComparisonReport({
+        baseline: readDraftingRunRef(baselineReport),
+        candidates: [readDraftingRunRef(candidateReport)],
+      })
+      const reasons = report.comparisons[0]!.reasons.join("\n")
+
+      expect(reasons).toContain("Candidate has a higher target ratio by 0.052 with 460 fewer absolute words.")
+      expect(reasons).not.toContain("longer by -460 words")
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
   test("treats worsened scene-contract semantic gaps as a mixed advisory signal", () => {
     const dir = mkdtempSync(join(tmpdir(), "drafting-run-compare-scene-contract-gaps-"))
     try {
