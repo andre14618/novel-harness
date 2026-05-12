@@ -15,9 +15,11 @@ unless the user explicitly requests a disposable branch.
   runs through production writer briefs, planner/state-mapper flags,
   diagnostics, Plan Readiness, and reviewed `planning_edit`. Scene-turn semantic
   backfill is removed; endpoint, source-refed turn-shape, and materiality gaps
-  surface as warnings/readiness labels. P2 endpoint/reference follow-ups replayed
-  at 3894/3100 with prose lows 0/8, Plan-Assist/context readiness 0, checker
-  negatives 1, and max8000 scene-semantic lows/errors 0/35. P3 proved scalar
+  surface as warnings/readiness labels. P2 source cleanup through production
+  `planning_edit` replayed as `prod-semantics-p2-source-clean-1778578799` at
+  4086/3100 with Plan-Assist/context/checker groups 0, prose lows 0/8,
+  scene-semantic lows/errors 0/35, source readiness 0, and 10 checker warnings.
+  P3 proved scalar
   description-only endpoint fixes were insufficient because writer prompts use
   the full scene contract; whole-scene `planning_edit` replayed at 3806/3100
   with Plan-Assist groups 0, checker groups 0, prose lows 0/8, scene-semantic
