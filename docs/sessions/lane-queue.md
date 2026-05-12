@@ -27,7 +27,10 @@ unless the user explicitly requests a disposable branch.
   follow-up kept P1 tight: 3812/3100, checker blockers 2->0, scene lows 15->3.
   P2 upstream replicated, then landing-target guard cleared the Plan-Assist
   handoff: 4328/3100, Plan-Assist/context gaps 0, prose lows 0/8, scene lows
-  11/35. Mixed on ratio; no default flip. See L106/L107.
+  11/35 raw; after relationship applicability gating, clean-source review has
+  7 open semantic items and 4 not_applicable relationship rows. Same-target
+  review groups duplicate scene-description diagnostics. Mixed on ratio; no
+  default flip. See L106/L107.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort
@@ -45,20 +48,13 @@ unless the user explicitly requests a disposable branch.
   production-default risk, traceability loss, repeated same-fingerprint failure,
   unavailable environment, or explicit operator decision. Disposable one-offs must reuse production modules/artifact contracts whenever possible.
 - **Scene-level plan/write lane (operator-adjusted, 2026-05-10).** Operational
-  plan is `docs/research/user-adjusted-backlog-2026-05-10.md` (B1–B5).
-  Inputs: seven Opus deep dives plus audits for ID rendering, structure-*
-  namespace, and fixture design under `docs/research/`. Decision record for
-  the writer-prompt ID question: L099.
-- **Strategic direction (2026-05-10): scene-first migration.** Beats
-  are not the future. The legacy beat-shaped writer was never
-  validated to a production-quality bar and is no longer treated as a
-  control to optimize. Scene is the durable plan/write/check unit (per
-  L092/L095). The migration plan is in
-  `docs/sessions/2026-05-10-scene-migration-plan.md` (S0–S7 slices).
-  S0 (user-facing log + docs cleanup) shipped. S1 (default flip +
-  scenePlanContractV1 calibration) is now a later production slice,
-  deferred behind production-path integration evidence; it will need its own
-  production-default decision record and replay-fixture re-record.
+  plan is `docs/research/user-adjusted-backlog-2026-05-10.md` (B1–B5);
+  research inputs live under `docs/research/`; writer-prompt IDs are L099.
+- **Strategic direction (2026-05-10): scene-first migration.** Scene is the
+  durable plan/write/check unit (L092/L095); beats are legacy annotations.
+  Migration plan: `docs/sessions/2026-05-10-scene-migration-plan.md`. S1
+  default flip is deferred behind production-path integration evidence and
+  needs a production-default decision plus replay-fixture re-record.
 - **Historical scene-first evidence hold (L103).** P3 baseline,
   tight-scope, density-cap, and fixed-plan expansion A/B artifacts landed under
   `poc/scene-first-novella/output/`. Evidence supports scene-count control,
@@ -121,8 +117,9 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: inspect P2 scene-semantic lows before any default flip;
-  relationship/motivation gaps dominate after the Plan-Assist handoff fix. See L103-L107.
+- Next session start: review the 7 open clean-source P2 semantic readiness
+  items; only create planning_edit proposals for operator-approved real issues.
+  Do not force relationship changes without declared relationship participants. See L103-L107.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
