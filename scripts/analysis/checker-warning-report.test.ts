@@ -128,6 +128,18 @@ describe("checker-warning-report", () => {
     expect(classifyFindingPolarity("The draft may be underspecified.")).toBe("ambiguous")
   })
 
+  test("classifies support echoes as positive or ambiguous rather than negative", () => {
+    expect(classifyFindingPolarity(
+      "Doryn confirms the seal cannot be opened from inside, but the planned state specifies she knows 'seal is locked' which is supported.",
+    )).toBe("positive")
+    expect(classifyFindingPolarity(
+      "Pell demonstrates knowledge of the seal's locking mechanism, supporting that he knows it is locked.",
+    )).toBe("positive")
+    expect(classifyFindingPolarity(
+      "Pell is present when the messenger delivers the order, so he likely knows it, but the prose does not explicitly state his knowledge.",
+    )).toBe("ambiguous")
+  })
+
   test("does not treat positive wording inside a violation as support echo", () => {
     expect(classifyFindingPolarity(
       "Vael acknowledges Sable's existence, all direct violations of the rule that teachers ignore Sable.",

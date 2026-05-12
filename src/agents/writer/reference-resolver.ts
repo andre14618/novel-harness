@@ -36,7 +36,17 @@ export const IMPLICIT_REFERENCE_MARKERS = [
 
 export function beatDescriptionHasImplicitReference(description: string): boolean {
   const desc = description.toLowerCase()
-  return IMPLICIT_REFERENCE_MARKERS.some(marker => desc.includes(marker))
+  return IMPLICIT_REFERENCE_MARKERS.some(marker =>
+    desc.includes(marker) && !isSelfContainedTemporalAnchor(desc, marker)
+  )
+}
+
+function isSelfContainedTemporalAnchor(description: string, marker: string): boolean {
+  if (marker !== "before the" && marker !== "after the") return false
+  return [
+    /\bbefore the hall opens\b/,
+    /\bafter the hall closes\b/,
+  ].some(pattern => pattern.test(description))
 }
 
 const lookupResponseSchema = z.object({

@@ -122,11 +122,11 @@ production planner/state-mapper paths and paired-source compare via
 gaps instead of fallback-filling writer-facing fields; compare/cohort artifacts
 carry those gap deltas. P1 evidence before fallback removal: material pressure alone shortened 575 words and
 improved scene lows -7 but raised checker negatives 2->14; turn scaffold vs
-material pressure shortened 422 words and improved scene lows -6. P2 endpoint
-follow-ups cleared source readiness through production `planning_edit` lineage
-and replayed at 4310/3100 with prose lows 0/8, scene lows 0/35, endpoint lows
-0/10, Plan-Assist/context gaps 0. Ratio and checker warnings still block a
-default flip. See L103-L107.
+material pressure shortened 422 words and improved scene lows -6. P2 follow-ups
+through production `planning_edit` plus reference/checker calibration replayed at
+3894/3100 with prose lows 0/8, max-token semantic rerun lows/errors 0/35,
+Plan-Assist/context readiness 0, and checker negatives 1. Replication still
+blocks a default flip. See L103-L107.
 
 ## Authoring Gates
 

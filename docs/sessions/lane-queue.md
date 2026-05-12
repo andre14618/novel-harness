@@ -30,9 +30,9 @@ unless the user explicitly requests a disposable branch.
   11/35 raw. Relationship applicability gating marked 4 false-positive rows
   not_applicable; same-target grouping supported 5 shared scene replacements
   that cleared the 7 source readiness items through normal `planning_edit`
-  approval/lineage. Endpoint follow-ups imported downstream lows back to the clean
-  source, cleared them through 5 more `planning_edit` proposals, and replayed at
-  4310/3100, prose lows 0/8, scene lows 0/35, endpoint lows 0/10, Plan-Assist/context gaps 0. Ratio rose +201 words vs the prior endpoint replay and checker negatives increased, so no default flip. See L106/L107.
+  approval/lineage. Endpoint/reference follow-ups imported downstream lows back
+  to the clean source, cleared them through production `planning_edit`, and
+  replayed at 3894/3100, prose lows 0/8, semantic max4000 lows/errors 0/35, Plan-Assist/context readiness 0, checker negatives 1. Replicate before any default flip. See L106/L107.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort
@@ -119,10 +119,9 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: treat `prod-semantics-p2-endpoint2-edits-1778561012` as the
-  current P2 endpoint success artifact; inspect the +201 word ratio and checker
-  warning/negative increase before any default move, then replicate on another
-  clean-source fixture or tighten checker-facing context if evidence points there.
+- Next session start: treat `prod-semantics-p2-endpoint4-calib-1778563625` plus
+  max4000 semantic rerun as the current P2 success artifact; replicate on another
+  clean-source fixture before defaults, watching semantic mean drift and checker support-echo noise.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
