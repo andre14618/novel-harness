@@ -9,6 +9,7 @@ import {
   flagsForArm,
   renderDraftingIsolatedRunReport,
   WRITER_ARM_NAMES,
+  scaleOutlineTargetWords,
   summarizeDraftingBriefTelemetry,
   sceneSemanticSummary,
   sourceDraftingIsolationIssue,
@@ -184,6 +185,17 @@ describe("test-drafting-isolated parseArgs", () => {
     expect(parseArgs(["--source", "n", "--target-prefix", "ab"]).allowDraftedSource).toBe(false)
     expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--allow-drafted-source"]).allowDraftedSource).toBe(true)
   })
+
+  test("--target-word-scale defaults to 1 and parses positive numbers", () => {
+    expect(parseArgs(["--source", "n", "--target-prefix", "ab"]).targetWordScale).toBe(1)
+    expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--target-word-scale", "0.85"]).targetWordScale).toBe(0.85)
+  })
+
+  test("--target-word-scale rejects non-positive / non-numeric values", () => {
+    expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--target-word-scale", "0"])).toThrow(/positive number/)
+    expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--target-word-scale", "-1"])).toThrow(/positive number/)
+    expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--target-word-scale", "abc"])).toThrow(/positive number/)
+  })
 })
 
 describe("sourceDraftingIsolationIssue", () => {
@@ -264,6 +276,17 @@ describe("drafting isolated report", () => {
           totalWords: 3300,
           meanRatio: 1.12,
           expansionEvents: 2,
+          targetWordScaling: {
+            scale: 0.85,
+            changedChapters: 2,
+            changedScenes: 1,
+            beforeTotalTargetWords: 3000,
+            afterTotalTargetWords: 2550,
+            chapters: [
+              { chapter: 1, beforeTargetWords: 1500, afterTargetWords: 1275, changedSceneTargets: 1 },
+              { chapter: 2, beforeTargetWords: 1500, afterTargetWords: 1275, changedSceneTargets: 0 },
+            ],
+          },
           planningContext: {
             outputDir: "output/planning-context",
             surfaceCount: 11,
@@ -354,6 +377,7 @@ describe("drafting isolated report", () => {
 
     expect(report.v).toBe("drafting-isolated-report-v1")
     expect(report.summary.cleanSource).toBe(true)
+    expect(report.options.targetWordScale).toBe(1)
     expect(report.summary.totalWordsByArm["scene-call-v1"]).toBe(3300)
     expect(report.summary.planningContextGapsByArm["scene-call-v1"]).toBe(1)
     expect(report.summary.planningContextReadinessByArm["scene-call-v1"]).toBe(2)
@@ -371,6 +395,8 @@ describe("drafting isolated report", () => {
 
     const rendered = renderDraftingIsolatedRunReport(report)
     expect(rendered).toContain("Clean source: yes")
+    expect(rendered).toContain("target word scale: 1")
+    expect(rendered).toContain("targetWordScaling scale=0.85 target=3000->2550")
     expect(rendered).toContain("source planner quality: chapters=2 beats=10 endpointIssues=1")
     expect(rendered).toContain("planningContext surfaces=11 gaps=1")
     expect(rendered).toContain("planningContextReadiness groups=2 findings=2")
@@ -379,6 +405,38 @@ describe("drafting isolated report", () => {
     expect(rendered).toContain("scene semantic persistence: enabled")
     expect(rendered).toContain("sceneSemanticPersistence briefs=4 results=4")
     expect(rendered).toContain("sceneSemanticReadinessImport inserted=1 updated=0 skipped=0")
+  })
+
+  test("scaleOutlineTargetWords scales chapter and existing scene budgets without adding scene budgets", () => {
+    const { outline, summary } = scaleOutlineTargetWords({
+      chapterNumber: 1,
+      title: "Budget Probe",
+      povCharacter: "Maret",
+      setting: "vault",
+      purpose: "test budget elasticity",
+      targetWords: 1200,
+      charactersPresent: ["Maret"],
+      charactersPresentIds: [],
+      scenes: [
+        { description: "one", characters: [], targetWords: 500 },
+        { description: "two", characters: [] },
+        { description: "three", characters: [], targetWords: 0 },
+      ],
+      establishedFacts: [],
+      characterStateChanges: [],
+      knowledgeChanges: [],
+    } as any, 0.85)
+
+    expect(outline.targetWords).toBe(1020)
+    expect(outline.scenes[0]?.targetWords).toBe(425)
+    expect(outline.scenes[1]?.targetWords).toBeUndefined()
+    expect(outline.scenes[2]?.targetWords).toBe(0)
+    expect(summary).toEqual({
+      chapter: 1,
+      beforeTargetWords: 1200,
+      afterTargetWords: 1020,
+      changedSceneTargets: 1,
+    })
   })
 
   test("draftingIsolatedDeltas reports failed arms and skips when baseline failed", () => {
@@ -1143,6 +1201,7 @@ function args(overrides: Partial<Args> = {}): Args {
     sceneSemanticMaxTokens: 2200,
     sceneSemanticDimensions: ["endpointLanding", "sceneDramaturgy"],
     allowDraftedSource: false,
+    targetWordScale: 1,
     perArmTimeoutMs: null,
     reportDir: null,
     ...overrides,

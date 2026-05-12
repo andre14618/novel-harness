@@ -123,8 +123,10 @@ clean replays now hold Plan-Assist/context/checker groups 0 and prose/scene-sema
 3806/3100. `diagnostics:drafting-length-attribution` joins drafting, planning-context, writer-context, checker, prose-semantic, and
 scene-semantic sidecars; the P1/P2/P3 report classifies residual length as
 mixed scope-load plus budget-control evidence. P2 tight repeat worsened to
-4398/3100 with clean semantics while loose brief hit Plan-Assist, so default
-flip remains blocked pending budget-elasticity/arm calibration. See L103-L107.
+4398/3100 with clean semantics; 0.85 target scaling shortened to 3705/2635
+with zero lows/warnings, while 0.72 scaling worsened to 3780/2232 with 13
+checker warnings. Default flip remains blocked; next implementation should
+target writer budget control/load handling, not deterministic compaction. See L103-L107.
 
 ## Authoring Gates
 

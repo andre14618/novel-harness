@@ -63,6 +63,7 @@
  *     [--scene-semantic-persist]                                 # persist scene-semantic eval rows; imports readiness lows unless disabled
  *     [--no-scene-semantic-readiness-import]                     # keep persisted scene-semantic readiness artifact-only
  *     [--allow-drafted-source]                                   # explicitly allow cloning a source that already has drafts
+ *     [--target-word-scale 0.85]                                  # default-off clone-only budget elasticity probe
  *     [--per-arm-timeout-ms 1800000]                             # 30-minute per-arm wallclock cap
  *     [--report-dir output/drafting-isolated/<prefix>]           # override durable run report directory
  *
@@ -159,6 +160,7 @@ import {
   type SourceDraftingIsolationAssessment,
   type SourceDraftingIsolationState,
 } from "../src/harness/drafting-source"
+import type { ChapterOutline } from "../src/types"
 
 export {
   sourceDraftingIsolationIssue,
@@ -194,6 +196,11 @@ export interface Args {
    *  done source, not a completed draft artifact with generated facts/states.
    *  This escape hatch is for deliberate contamination/replay investigations. */
   allowDraftedSource: boolean
+  /** Default-off clone-only budget elasticity probe. A value other than 1
+   *  scales chapter outline `targetWords` and any existing per-scene
+   *  `targetWords` fields after clone and before drafting. Source plans and
+   *  production defaults are unchanged. */
+  targetWordScale: number
   /** Optional per-arm wallclock timeout in milliseconds. When the
    *  drafting promise for an arm doesn't resolve in time, the runner
    *  records a timeout result and proceeds to the next arm. The
@@ -228,6 +235,7 @@ export interface ArmResult {
   meanRatio: number
   expansionEvents: number
   draftingBrief: DraftingBriefTelemetrySummary
+  targetWordScaling?: TargetWordScalingSummary | null
   planningContext?: PlanningContextTelemetrySummary
   proseSemantic?: {
     outputDir: string
@@ -274,6 +282,7 @@ export interface DraftingIsolatedRunReport {
     sceneSemanticMaxTokens: number
     sceneSemanticDimensions: Dimension[]
     allowDraftedSource: boolean
+    targetWordScale: number
     perArmTimeoutMs: number | null
   }
   summary: {
@@ -328,6 +337,20 @@ export interface DraftingBriefTelemetrySummary {
   avgSelectedPromptChars: number | null
   avgFullContextPromptChars: number | null
   totalCharsDelta: number
+}
+
+export interface TargetWordScalingSummary {
+  scale: number
+  changedChapters: number
+  changedScenes: number
+  beforeTotalTargetWords: number
+  afterTotalTargetWords: number
+  chapters: Array<{
+    chapter: number
+    beforeTargetWords: number | null
+    afterTargetWords: number | null
+    changedSceneTargets: number
+  }>
 }
 
 export interface PlanningContextTelemetrySummary {
@@ -672,6 +695,84 @@ async function setWriterFlags(novelId: string, arm: ArmName, opts: { writerOnly:
   `
 }
 
+function scaledTargetWords(value: unknown, scale: number, minimum: number): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null
+  if (value < minimum) return value
+  return Math.max(minimum, Math.round(value * scale))
+}
+
+export function scaleOutlineTargetWords(
+  outline: ChapterOutline,
+  scale: number,
+): { outline: ChapterOutline; summary: TargetWordScalingSummary["chapters"][number] } {
+  const scaled = JSON.parse(JSON.stringify(outline)) as ChapterOutline
+  const beforeTargetWords = scaledTargetWords(outline.targetWords, 1, 1)
+  const afterTargetWords = scaledTargetWords(outline.targetWords, scale, 1)
+  if (afterTargetWords !== null) scaled.targetWords = afterTargetWords
+
+  let changedSceneTargets = 0
+  if (Array.isArray(scaled.scenes)) {
+    scaled.scenes = scaled.scenes.map((scene, index) => {
+      const original = outline.scenes?.[index]
+      const before = scaledTargetWords(original?.targetWords, 1, 0)
+      const after = scaledTargetWords(original?.targetWords, scale, 0)
+      if (after === null || after === before) return scene
+      changedSceneTargets++
+      return { ...scene, targetWords: after }
+    })
+  }
+
+  return {
+    outline: scaled,
+    summary: {
+      chapter: scaled.chapterNumber,
+      beforeTargetWords,
+      afterTargetWords,
+      changedSceneTargets,
+    },
+  }
+}
+
+async function applyTargetWordScale(novelId: string, scale: number): Promise<TargetWordScalingSummary | null> {
+  if (scale === 1) return null
+  const rows = await db`
+    SELECT chapter_number, outline_json
+    FROM chapter_outlines
+    WHERE novel_id = ${novelId}
+    ORDER BY chapter_number
+  ` as Array<{ chapter_number: number; outline_json: ChapterOutline }>
+
+  const chapters: TargetWordScalingSummary["chapters"] = []
+  let beforeTotalTargetWords = 0
+  let afterTotalTargetWords = 0
+  let changedChapters = 0
+  let changedScenes = 0
+
+  for (const row of rows) {
+    const { outline, summary } = scaleOutlineTargetWords(row.outline_json, scale)
+    chapters.push(summary)
+    beforeTotalTargetWords += summary.beforeTargetWords ?? 0
+    afterTotalTargetWords += summary.afterTargetWords ?? 0
+    if (summary.beforeTargetWords !== summary.afterTargetWords) changedChapters++
+    changedScenes += summary.changedSceneTargets
+    await db`
+      UPDATE chapter_outlines
+      SET outline_json = ${outline}
+      WHERE novel_id = ${novelId}
+        AND chapter_number = ${row.chapter_number}
+    `
+  }
+
+  return {
+    scale,
+    changedChapters,
+    changedScenes,
+    beforeTotalTargetWords,
+    afterTotalTargetWords,
+    chapters,
+  }
+}
+
 async function collectArmResult(arm: ArmName, novelId: string): Promise<Pick<ArmResult, "chapters" | "totalWords" | "totalTarget" | "meanRatio" | "expansionEvents" | "draftingBrief">> {
   const chapterRows = await db`
     SELECT cd.chapter_number, cd.word_count, cd.version,
@@ -790,6 +891,7 @@ interface RunArmOptions {
   sceneSemanticConcurrency: number
   sceneSemanticMaxTokens: number
   sceneSemanticDimensions: Dimension[]
+  targetWordScale: number
   perArmTimeoutMs: number | null
 }
 
@@ -829,6 +931,18 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
     }
   }
 
+  let targetWordScaling: TargetWordScalingSummary | null = null
+  if (opts.targetWordScale !== 1) {
+    targetWordScaling = await applyTargetWordScale(novelId, opts.targetWordScale)
+    if (targetWordScaling) {
+      console.log(
+        `  target word scale: ${opts.targetWordScale} ` +
+          `(${targetWordScaling.beforeTotalTargetWords} → ${targetWordScaling.afterTotalTargetWords}; ` +
+          `chapters=${targetWordScaling.changedChapters}, scenes=${targetWordScaling.changedScenes})`,
+      )
+    }
+  }
+
   const flags = flagsForArm(arm)
   console.log(`  setting writer flags: sceneCallWriterV1=${flags.sceneCallWriterV1}, writerExpansionMode=${flags.writerExpansionMode}, forceRenderSceneContractWhenAvailable=${flags.forceRenderSceneContractWhenAvailable}, writerPromptIdRendering=${flags.writerPromptIdRendering}, writerDraftingBriefMode=${flags.writerDraftingBriefMode}, draftCaptureModeV1=${opts.writerOnly}`)
   await setWriterFlags(novelId, arm, { writerOnly: opts.writerOnly })
@@ -852,6 +966,7 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
       const sceneSemantic = await maybeRunSceneSemanticReview(arm, novelId, targetPrefix, opts)
       return {
         arm, novelId, ...collected,
+        targetWordScaling,
         planningContext,
         planAssistReadiness,
         checkerReadiness,
@@ -947,6 +1062,7 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
       planningContext,
       planAssistReadiness,
       checkerReadiness,
+      targetWordScaling,
       ...(proseSemantic ? { proseSemantic } : {}),
       ...(sceneSemantic ? { sceneSemantic } : {}),
       error: err instanceof Error ? err.message : String(err),
@@ -963,6 +1079,7 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
     arm,
     novelId,
     ...collected,
+    targetWordScaling,
     planningContext,
     planAssistReadiness,
     checkerReadiness,
@@ -1669,6 +1786,7 @@ export function parseArgs(argv: string[]): Args {
   let sceneSemanticMaxTokens = DEFAULT_SCENE_SEMANTIC_MAX_TOKENS
   const sceneSemanticDimensions: Dimension[] = []
   let allowDraftedSource = false
+  let targetWordScale = 1
   let perArmTimeoutMs: number | null = null
   let reportDir: string | null = null
   for (let i = 0; i < argv.length; i++) {
@@ -1696,6 +1814,15 @@ export function parseArgs(argv: string[]): Args {
     if (a === "--no-scene-semantic-readiness-import") { sceneSemanticReadinessImport = false; continue }
     if (a === "--no-scene-semantic-review") { sceneSemanticReview = false; sceneSemanticPersist = false; continue }
     if (a === "--allow-drafted-source") { allowDraftedSource = true; continue }
+    if (a === "--target-word-scale") {
+      const raw = argv[++i] ?? ""
+      const parsed = Number(raw)
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        throw new Error(`--target-word-scale requires a positive number; got ${JSON.stringify(raw)}`)
+      }
+      targetWordScale = parsed
+      continue
+    }
     if (a === "--scene-semantic-dimension") {
       sceneSemanticReview = true
       sceneSemanticDimensions.push(parseSceneSemanticDimension(argv[++i] ?? ""))
@@ -1759,6 +1886,7 @@ export function parseArgs(argv: string[]): Args {
     sceneSemanticMaxTokens,
     sceneSemanticDimensions: sceneSemanticDimensions.length > 0 ? sceneSemanticDimensions : DEFAULT_SCENE_SEMANTIC_DIMENSIONS,
     allowDraftedSource,
+    targetWordScale,
     perArmTimeoutMs,
     reportDir,
   }
@@ -1798,6 +1926,9 @@ async function main() {
   if (args.allowDraftedSource) {
     console.log(`allow drafted source: true (source may include generated draft state)`)
   }
+  if (args.targetWordScale !== 1) {
+    console.log(`target word scale: ${args.targetWordScale} (clone-only budget elasticity probe; source plan is unchanged)`)
+  }
   if (args.perArmTimeoutMs != null) {
     console.log(`per-arm timeout: ${args.perArmTimeoutMs}ms (a hung arm will not block the next arm; partial chapter_drafts are still collected)`)
   }
@@ -1819,6 +1950,7 @@ async function main() {
       sceneSemanticConcurrency: args.sceneSemanticConcurrency,
       sceneSemanticMaxTokens: args.sceneSemanticMaxTokens,
       sceneSemanticDimensions: args.sceneSemanticDimensions,
+      targetWordScale: args.targetWordScale,
       perArmTimeoutMs: args.perArmTimeoutMs,
     }))
   }
@@ -1833,6 +1965,13 @@ async function main() {
     console.log(`  total words: ${r.totalWords} / target ${r.totalTarget}`)
     console.log(`  mean per-chapter ratio: ${r.meanRatio.toFixed(3)}`)
     console.log(`  writer-expansion events: ${r.expansionEvents}`)
+    if (r.targetWordScaling) {
+      console.log(
+        `  target word scaling: scale=${r.targetWordScaling.scale}, ` +
+          `${r.targetWordScaling.beforeTotalTargetWords}→${r.targetWordScaling.afterTotalTargetWords}, ` +
+          `chapters=${r.targetWordScaling.changedChapters}, scenes=${r.targetWordScaling.changedScenes}`,
+      )
+    }
     console.log(`  writer drafting brief: ${formatDraftingBriefTelemetry(r.draftingBrief)}`)
     if (r.planningContext) {
       console.log(`  planning context: surfaces=${r.planningContext.surfaceCount}, gaps=${r.planningContext.gapCount}, report=${r.planningContext.outputDir}`)
@@ -1963,6 +2102,7 @@ export function buildDraftingIsolatedRunReport(input: {
       sceneSemanticMaxTokens: input.args.sceneSemanticMaxTokens,
       sceneSemanticDimensions: input.args.sceneSemanticDimensions,
       allowDraftedSource: input.args.allowDraftedSource,
+      targetWordScale: input.args.targetWordScale,
       perArmTimeoutMs: input.args.perArmTimeoutMs,
     },
     summary: {
@@ -2089,6 +2229,7 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
   lines.push(`- completed arms: ${report.summary.completedArms}`)
   lines.push(`- error arms: ${report.summary.errorArms}`)
   lines.push(`- writer-only: ${report.options.writerOnly}`)
+  lines.push(`- target word scale: ${report.options.targetWordScale}`)
   lines.push(`- prose semantic eval: ${report.options.proseSemanticEval ? "enabled" : "disabled"}`)
   lines.push(`- scene semantic replay: ${report.options.sceneSemanticReview ? "enabled" : "disabled"}`)
   lines.push(`- scene semantic persistence: ${report.options.sceneSemanticPersist ? "enabled" : "disabled"}`)
@@ -2107,6 +2248,13 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
   lines.push("## Arms")
   for (const result of report.results) {
     lines.push(`- ${result.arm}: novel=${result.novelId} words=${result.totalWords}/${result.totalTarget} meanRatio=${result.meanRatio.toFixed(3)}${result.error ? ` error=${result.error}` : ""}`)
+    if (result.targetWordScaling) {
+      lines.push(
+        `  targetWordScaling scale=${result.targetWordScaling.scale} ` +
+          `target=${result.targetWordScaling.beforeTotalTargetWords}->${result.targetWordScaling.afterTotalTargetWords} ` +
+          `changedChapters=${result.targetWordScaling.changedChapters} changedScenes=${result.targetWordScaling.changedScenes}`,
+      )
+    }
     if (result.proseSemantic) {
       lines.push(`  proseSemantic rows=${result.proseSemantic.resultCount} lows=${result.proseSemantic.lowRows} errors=${result.proseSemantic.errorRows} report=${result.proseSemantic.outputDir || "(not written)"}`)
     }

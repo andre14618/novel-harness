@@ -24,8 +24,11 @@ unless the user explicitly requests a disposable branch.
   three as mixed scope-load plus budget-control, not scene-count overload alone.
   P2 same-source probe `length-attrib-p2-arms-1778586500` had loose brief stop
   on Plan-Assist and tight repeat worsen to 4398/3100 with semantic lows 0.
-  Default flip remains blocked; next evidence is budget-elasticity/arm
-  calibration before deleting story payload. See L106/L107.
+  Budget elasticity now uses clone-only `--target-word-scale`: P2 scale 0.85
+  landed 3705/2635 with prose/scene lows 0 and checker warnings 0, but scale
+  0.72 landed 3780/2232 with lows 0 and checker warnings 13. This supports
+  mixed scope-load plus budget-control, with naive target scaling bounded;
+  default flip remains blocked. See L106/L107.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort
