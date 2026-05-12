@@ -13,22 +13,21 @@ unless the user explicitly requests a disposable branch.
   the same artifacts.
 - **Production writer/planner evidence (2026-05-12).** P1/P2/P3 evidence now
   runs through production writer briefs, planner/state-mapper flags,
-  diagnostics, Plan Readiness, and reviewed `planning_edit`. Tight cohorts stay
-  mixed: P1 best was 1.24x with scene lows 1/33, N=3 averaged -90.7 words and
-  scene lows -6, and tight-anchored shortened P1 but lowered endpoint/materiality/world
-  means. Scene-turn semantic backfill is removed; endpoint, source-refed
-  turn-shape, and materiality gaps surface as warnings/readiness labels. P2
-  endpoint/reference follow-ups replayed at 3894/3100 with prose lows 0/8,
-  semantic lows/errors 0/35, Plan-Assist/context readiness 0, checker negatives
-  1. P3 proved scalar description-only endpoint fixes were insufficient because
-  writer prompts use the full scene contract; scene-semantic readiness now
-  targets `scene_plan:self` for endpoint/dramaturgy lows while materiality/world
-  lows stay scalar. After whole-scene `planning_edit`, checker calibration, and
-  one residual source edit, `prod-semantics-p3-residual-repair-1778571656`
-  replayed at 3806/3100 with Plan-Assist groups 0, checker groups 0, prose lows
-  0/8, scene-semantic lows 0/32, source planner-quality readiness 0, and one
-  advisory unresolved-reference diagnostic with downstream context gaps 0.
-  Replicate before any default flip. See L106/L107.
+  diagnostics, Plan Readiness, and reviewed `planning_edit`. Scene-turn semantic
+  backfill is removed; endpoint, source-refed turn-shape, and materiality gaps
+  surface as warnings/readiness labels. P2 endpoint/reference follow-ups replayed
+  at 3894/3100 with prose lows 0/8, semantic lows/errors 0/35,
+  Plan-Assist/context readiness 0, checker negatives 1. P3 proved scalar
+  description-only endpoint fixes were insufficient because writer prompts use
+  the full scene contract; whole-scene `planning_edit` replayed at 3806/3100
+  with Plan-Assist groups 0, checker groups 0, prose lows 0/8, scene-semantic
+  lows 0/32, source planner-quality readiness 0, and one advisory unresolved-ref
+  diagnostic with downstream context gaps 0. P1 replicated the source-readiness
+  loop: after two residual endpoint imports and whole-scene `planning_edit`,
+  `prod-semantics-p1-ch1s2-endpoint-repair-1778577334` replayed at 3741/3100
+  with Plan-Assist/context/checker groups 0, prose lows 0/8, scene-semantic lows
+  0/30, endpoint mean 2.90, and source readiness 0. Length remains over target,
+  so no default flip yet. See L106/L107.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort

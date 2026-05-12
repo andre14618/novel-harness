@@ -53,6 +53,23 @@ describe("planner-quality-report", () => {
     expect(report.chapters[0]!.flags).not.toContain("endpoint_low_overlap")
   })
 
+  test("accepts explicit chapter endpoint phrasing without forcing ends-with template", () => {
+    const report = buildPlannerQualityReport([
+      row(chapter({
+        purpose: "Maret proves the System can lie. The chapter endpoint is Theo standing beside Maret while Cassel lets them leave.",
+        scenes: [
+          beat("Maret breaks the vault door while Cassel watches his certainty fracture.", ["Maret", "Arbiter Cassel"]),
+          beat("Theo stands beside Maret and offers to help spread the truth.", ["Maret", "Journeyman Theo"]),
+          beat("Cassel lets Maret and Theo leave, choosing not to stop them.", ["Maret", "Journeyman Theo", "Arbiter Cassel"]),
+        ],
+      })),
+    ])
+
+    expect(report.totals.endpointIssues).toBe(0)
+    expect(report.chapters[0]!.endpoint.declared).toContain("Theo standing beside Maret")
+    expect(report.chapters[0]!.flags).not.toContain("endpoint_not_declared")
+  })
+
   test("surfaces over-planned chapters and obligation coverage errors", () => {
     const outline = chapter({
       targetWords: 1500,

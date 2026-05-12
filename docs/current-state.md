@@ -114,19 +114,19 @@ The active lane is in `docs/sessions/lane-queue.md`.
 
 As of 2026-05-12, L106/L107 has moved active evidence into production writer-brief telemetry, scene-semantic replay, Plan Readiness, source hygiene,
 planning-edit replay, scene-contract telemetry, and compare/cohort artifacts.
-Clean-source tight-brief evidence is mixed; tight-anchored shortened P1 by 337
-words but lowered endpoint/materiality/world means. The default-off
-`planningSceneTurnShapingV1` and `planningMaterialPressureV1` now run through
-production planner/state-mapper paths and paired-source compare via
-`--source-pair-id`. Scene-turn shaping now records missing endpoint/turn/materiality
-gaps instead of fallback-filling writer-facing fields; compare/cohort artifacts
-carry those gap deltas. P2 follow-ups through production `planning_edit` plus
-reference/checker calibration replayed at 3894/3100 with prose lows 0/8,
-semantic lows/errors 0/35, Plan-Assist/context readiness 0, and checker
-negatives 1. P3 contract-target repair routed endpoint/dramaturgy lows to
-whole-scene `planning_edit` and replayed at 3806/3100 with Plan-Assist 0,
-checker groups 0, prose lows 0/8, and scene-semantic lows 0/32. Replication
-still blocks a default flip. See L103-L107.
+The default-off `planningSceneTurnShapingV1` and
+`planningMaterialPressureV1` now run through production planner/state-mapper
+paths and paired-source compare via `--source-pair-id`. Scene-turn shaping now
+records missing endpoint/turn/materiality gaps instead of fallback-filling
+writer-facing fields; compare/cohort artifacts carry those gap deltas. P2
+follow-ups through production `planning_edit` plus reference/checker calibration
+replayed at 3894/3100 with prose lows 0/8, semantic lows/errors 0/35,
+Plan-Assist/context readiness 0, and checker negatives 1. P3 whole-scene
+contract-target repair replayed at 3806/3100 with Plan-Assist 0, checker groups
+0, prose lows 0/8, and scene-semantic lows 0/32. P1 replicated the same source-readiness loop through `planning_edit`; `prod-semantics-p1-ch1s2-endpoint-repair-1778577334`
+replayed at 3741/3100 with Plan-Assist/context/checker groups 0, prose lows
+0/8, scene-semantic lows 0/30, endpoint mean 2.90, and source readiness 0.
+Length is still over target, so a default flip remains blocked. See L103-L107.
 
 ## Authoring Gates
 

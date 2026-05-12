@@ -113,6 +113,8 @@ interface Args {
 }
 
 const ENDPOINT_PATTERNS = [
+  /\bchapter endpoint is\s+(.+?)(?:\.|$)/i,
+  /\bendpoint is\s+(.+?)(?:\.|$)/i,
   /\bchapter ends with\s+(.+?)(?:\.|$)/i,
   /\bends with\s+(.+?)(?:\.|$)/i,
   /\bending with\s+(.+?)(?:\.|$)/i,
