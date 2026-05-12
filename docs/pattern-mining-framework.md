@@ -181,7 +181,7 @@ The framework's `pattern-registry.json` records the gate types used per pattern 
 
 ### Schema-prompt drift (Pattern 0c8457d)
 
-The `planning-beats` prompt advertised an enum (`miceActive: ('I'|'C'|'E')[]`) that the schema only accepted as `['I']`. Symptom: planner output silently rejected at validation. Fix: the prompt was updated to match the schema. Generalized rule (memory `feedback_schema_of_record_check`): before landing code that assumes array size / enum / structural shape, grep the production schema-of-record and confirm.
+The planner prompt advertised an enum (`miceActive: ('I'|'C'|'E')[]`) that the schema only accepted as `['I']`. Symptom: planner output silently rejected at validation. Fix: the prompt was updated to match the schema. Generalized rule (memory `feedback_schema_of_record_check`): before landing code that assumes array size / enum / structural shape, grep the production schema-of-record and confirm.
 
 When mining patterns that propose new schema fields (e.g., `openerKind` enum from P49), the pattern script's role is *measurement*; the schema edit is a separate downstream step. Do not assume the schema is what the pattern script wishes it were.
 

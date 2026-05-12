@@ -4613,7 +4613,7 @@ details[open] summary::before { transform: rotate(90deg); }
 .traceability-registry-item span,
 .traceability-section-title,
 .traceability-obligation-main span,
-.traceability-beat-counts span {
+.traceability-beat-metrics span {
   color: var(--text-tertiary);
   font-size: 0.68rem;
   font-weight: 700;
@@ -4695,14 +4695,14 @@ details[open] summary::before { transform: rotate(90deg); }
 .traceability-beat-description {
   margin: 4px 0 6px;
 }
-.traceability-beat-counts {
+.traceability-beat-metrics {
   display: flex;
   flex: 0 0 270px;
   flex-wrap: wrap;
   gap: 6px;
   justify-content: flex-end;
 }
-.traceability-beat-counts span {
+.traceability-beat-metrics span {
   background: var(--bg-inset);
   border: 1px solid var(--border-subtle);
   border-radius: 3px;
@@ -5308,7 +5308,7 @@ details[open] summary::before { transform: rotate(90deg); }
     display: inline-block;
     margin-top: 8px;
   }
-  .traceability-beat-counts {
+  .traceability-beat-metrics {
     justify-content: flex-start;
     margin-top: 8px;
   }

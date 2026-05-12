@@ -97,7 +97,7 @@ Tasks:
 
 - Use exp #265 as a fixture for Aldric’s impossible knowledge reveal and Elara’s role drift.
 - Use exp #268 as a fixture for accepted unresolved checker blockers, continuity blockers approved as diagnostics, malformed dialogue, duplicate seams, and Wren/Istra location drift.
-- Decide whether the fix belongs in planning-beats prompt constraints, chapter-plan-checker scope, continuity prompt scope, or deterministic state validation.
+- Decide whether the fix belongs in `planning-scenes` prompt constraints, chapter-plan-checker scope, continuity prompt scope, or deterministic state validation.
 - Add the smallest guard that catches the class without expanding into broad prose judging.
 
 Exit gate:

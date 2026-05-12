@@ -165,7 +165,7 @@ function TraceabilityBeatCard({
           <div className="traceability-beat-description">{beat.description}</div>
           <RefChips refs={beat.refs} />
         </div>
-        <div className="traceability-beat-counts">
+        <div className="traceability-beat-metrics">
           <span>{beat.obligations.length} obligations</span>
           <span>{writerCalls.length} writer</span>
           <span>{checkerCalls.length} checker</span>

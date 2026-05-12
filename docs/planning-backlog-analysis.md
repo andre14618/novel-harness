@@ -362,7 +362,7 @@ The existing strictness layers are good. Add operator-facing controls:
    not check that _grounded_ world details are actually present in the prose.
 
 3. **Plans can be too thin.** The `SceneBeat.description` is "1-2 sentences, NO dialogue/quoted
-   speech" (`src/agents/planning-beats/schema.ts:18-20`). This is intentional (to avoid
+   speech" (`src/agents/planning-scenes/schema.ts`). This is intentional (to avoid
    truncation with 8K windows), but it means the beat-writer gets only a skeletal
    description. Richness depends on the LLM filling gaps.
 

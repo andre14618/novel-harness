@@ -301,7 +301,7 @@ Open `novels/<novel>/structure-calibration/<book>.json`. Each cell has `metrics`
 
 1. **Derive the empirical distribution** from the tagged file. For value-charge: count the `polarity` distribution across all scenes (e.g. "+": 37%, "-": 41%, "0": 22%). For promise: distribution of open-to-close chapter span. For MICE: thread-type mix. For McKee Gap: gap_size distribution.
 
-2. **Add it to planner context.** The distribution becomes a target constraint in the planning phase. Currently the right channel is the planner agent system prompt in `src/agents/planning-beats/` or, for genre-level constraints, `src/models/roles.ts` `WRITER_GENRE_PACKS`. See the planning section of `CLAUDE.md` for the current planner architecture.
+2. **Add it to planner context.** The distribution becomes a target constraint in the planning phase. Currently the right channel is the planner agent system prompt in `src/agents/planning-scenes/` or, for genre-level constraints, `src/models/roles.ts` `WRITER_GENRE_PACKS`. See the planning section of `CLAUDE.md` for the current planner architecture.
 
 3. **Record the decision.** Add an entry to `docs/decisions.md`: which dim on which book CELL PASSed, the P/R/F1 numbers, and what planner constraint was derived. Commit the calibration file. Create a `tuning_experiment` DB record via `harness.experiments.createTuningExperiment()` linking the commit.
 

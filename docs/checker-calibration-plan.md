@@ -27,9 +27,9 @@ This plan is operational. The broader framework contract remains in
 ## Current Surface Audit
 
 Exp #283 traced the runtime path before the split mapper. Current path after
-exp #289: `planning-plotter` emits chapter skeletons, `planning-beats` emits
-beat shape only, `planning-state-mapper` maps facts/knowledge/state/payoffs and
-beat obligations onto the fixed beat list, `enforcePlanningOutput` sanitizes
+the planning-scenes rename: `planning-plotter` emits chapter skeletons,
+`planning-scenes` emits scene/turn entry shape only, `planning-state-mapper`
+maps facts/knowledge/state/payoffs and beat obligations onto the fixed entry list, `enforcePlanningOutput` sanitizes
 structural defects, and `drafting.ts` renders each beat through
 `buildBeatContext()` before the `beat-writer` call.
 
