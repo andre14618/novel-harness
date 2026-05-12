@@ -71,6 +71,7 @@
     "diagnostics:plan-readiness-apply": "bun scripts/analysis/plan-readiness-apply.ts",
     "diagnostics:plan-readiness-review-plan": "bun scripts/analysis/plan-readiness-review-plan.ts",
     "diagnostics:plan-readiness-import": "bun scripts/analysis/plan-readiness-import.ts",
+    "diagnostics:planner-outline-html": "bun scripts/render-planner-outline-html.ts",
     "diagnostics:planning-edit-replay": "bun scripts/analysis/planning-edit-replay.ts",
     "diagnostics:checker-readiness": "bun scripts/analysis/checker-readiness-report.ts",
     "diagnostics:plan-assist-readiness": "bun scripts/analysis/plan-assist-readiness-report.ts",

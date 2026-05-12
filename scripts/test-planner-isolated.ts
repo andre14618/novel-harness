@@ -43,6 +43,7 @@ import {
   summarizePlanningArtifacts,
   type PlanningArtifactSummary,
 } from "./analysis/planning-drafting-context-report"
+import { writePlannerOutlineHtmlFromDb } from "./render-planner-outline-html"
 
 async function loadSeed(name: string): Promise<SeedInput> {
   const path = new URL(`../src/seeds/${name}.json`, import.meta.url).pathname
@@ -98,6 +99,7 @@ export interface PlannerIsolatedResult {
   totalScenes: number
   sceneCounts: Array<{ chapter: number; scenes: number; targetWords: number }>
   planningArtifacts: PlanningArtifactSummary | null
+  plannerHtmlPath?: string
   error?: string
 }
 
@@ -454,6 +456,9 @@ async function main() {
           `anchorOnly=${p.sceneContractShape.anchorOnly.length}`,
       )
     }
+    if (r.plannerHtmlPath) {
+      console.log(`  plan html: ${r.plannerHtmlPath}`)
+    }
     if ("error" in r && r.error) { console.log(`  FAILED: ${r.error}`); continue }
     const byAgent = new Map<string, CallStat[]>()
     for (const s of r.stats) {
@@ -488,6 +493,7 @@ async function main() {
   }
   const outputDir = args.reportDir ?? defaultReportDir(results)
   mkdirSync(outputDir, { recursive: true })
+  await writePlannerHtmlArtifacts(results, outputDir)
   writeFileSync(join(outputDir, "planner-isolated-report.json"), `${JSON.stringify(report, null, 2)}\n`)
   writeFileSync(join(outputDir, "planner-isolated-report.md"), renderPlannerIsolatedReport(report))
   console.log(`report: ${join(outputDir, "planner-isolated-report.json")}`)
@@ -604,6 +610,9 @@ export function renderPlannerIsolatedReport(report: PlannerIsolatedRunReport): s
       )
       lines.push(`futureEventAnchors: ${p.planContinuity.futureEventAnchors.length}`)
     }
+    if (result.plannerHtmlPath) {
+      lines.push(`plannerHtml: ${result.plannerHtmlPath}`)
+    }
     const byAgent = new Map<string, CallStat[]>()
     for (const stat of result.stats) {
       if (!byAgent.has(stat.agent)) byAgent.set(stat.agent, [])
@@ -618,6 +627,28 @@ export function renderPlannerIsolatedReport(report: PlannerIsolatedRunReport): s
     }
   }
   return `${lines.join("\n")}\n`
+}
+
+async function writePlannerHtmlArtifacts(results: PlannerIsolatedResult[], outputDir: string): Promise<void> {
+  const successful = results.filter(result => result.novelId && !result.error && result.chapters > 0)
+  for (const result of successful) {
+    const outPath = join(outputDir, successful.length === 1 ? "plan.html" : `${safePathSlug(result.seedName)}-plan.html`)
+    try {
+      const artifact = await writePlannerOutlineHtmlFromDb({ novelId: result.novelId, outPath })
+      result.plannerHtmlPath = artifact.outPath
+      console.log(`plan html: ${artifact.outPath}`)
+    } catch (err) {
+      console.error(`  warning: could not render planner HTML for ${result.novelId}: ${err instanceof Error ? err.message : err}`)
+    }
+  }
+}
+
+function safePathSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    || "planner"
 }
 
 export function summarizePlannerIsolatedVerdict(results: PlannerIsolatedResult[]): PlannerIsolatedVerdict {
