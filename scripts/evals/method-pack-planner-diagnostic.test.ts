@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 
 import {
   buildDiagnosticReport,
+  loadFixture,
   normalizePlannerContractPlan,
   scorePlan,
   type PlannerContractPlan,
@@ -89,6 +90,21 @@ describe("method-pack-planner-diagnostic", () => {
     expect(normalized.chapters[0]!.scenes[0]!.opposition).toContain("Ashren")
     expect(normalized.chapters[0]!.scenes[0]!.turningPoint).toContain("true-ink burns")
     expect(normalized.chapters[0]!.obligations[0]!.sourceKind).toBe("world")
+  })
+
+  test("loads mercenary progression planner fixture", () => {
+    const mercenaryFixture = loadFixture("docs/fixtures/method-packs/mercenary-progression-adventure-v0/frozen-concept.json")
+
+    expect(mercenaryFixture.methodPackId).toBe("mercenary-progression-adventure-v0")
+    expect(mercenaryFixture.targetSlots.map(slot => slot.structureSlotId)).toEqual([
+      "MPA-01",
+      "MPA-02",
+      "MPA-04",
+      "MPA-06",
+      "MPA-09",
+      "MPA-10",
+    ])
+    expect(mercenaryFixture.concept.storyDebts.map(debt => debt.storyDebtId)).toContain("debt-bronze-rank")
   })
 })
 

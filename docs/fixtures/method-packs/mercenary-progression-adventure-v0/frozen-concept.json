@@ -1,0 +1,157 @@
+{
+  "diagnosticId": "mpa-v0-rillgate-saltmine-contract",
+  "methodPackId": "mercenary-progression-adventure-v0",
+  "templateId": "mercenary-contract-loop-v0",
+  "targetSlots": [
+    {
+      "structureSlotId": "MPA-01",
+      "structureJob": "Hub pressure",
+      "planningTest": "Show why the protagonist needs a paid contract now: money, rank, access, or leverage."
+    },
+    {
+      "structureSlotId": "MPA-02",
+      "structureJob": "Contract offer",
+      "planningTest": "State the job terms clearly while leaving one risk hidden, minimized, or mispriced."
+    },
+    {
+      "structureSlotId": "MPA-04",
+      "structureJob": "Arena entry",
+      "planningTest": "Make the mission location's rules constrain tactics immediately."
+    },
+    {
+      "structureSlotId": "MPA-06",
+      "structureJob": "Job complication",
+      "planningTest": "Reveal that the mission target, payment, patron, or danger is not what the contract claimed."
+    },
+    {
+      "structureSlotId": "MPA-09",
+      "structureJob": "Contract climax",
+      "planningTest": "Force the hero to complete, subvert, or renegotiate the objective through a costly tactical choice."
+    },
+    {
+      "structureSlotId": "MPA-10",
+      "structureJob": "Return and next hook",
+      "planningTest": "Make the reward change hub status while creating the next mission pressure."
+    }
+  ],
+  "concept": {
+    "genreProfileId": "adult-guild-mission-progression-fantasy",
+    "premise": "Kael Rusk, an under-ranked contract blade in the Rillgate Contract Hall, accepts a cheap salt-mine retrieval job to earn bronze rank before his sister's debt marker is sold. The mine is really a sealed ruin where a rival crew and a hidden patron are harvesting outlaw monster cores.",
+    "readerPromise": "A contained guild-contract fantasy adventure with a clear job, tactical arena pressure, visible progression payoff, crew friction, faction consequence, and a hook into the next paid mission.",
+    "centralConflict": "Kael needs the salt-mine contract to buy rank and protect his family, while guild law, a rival crew, and a concealed patron turn the low-status job into an illegal ruin-rights dispute.",
+    "strategyPacket": {
+      "strategyPacketId": "strategy-rillgate-saltmine-contract-v0",
+      "logline": "An under-ranked contract blade takes a cheap mine job and discovers it is a stolen ruin-rights harvest.",
+      "paragraphSummary": "Kael Rusk needs bronze rank before a creditor sells his sister's debt marker outside Rillgate law. A broker posts a low-status retrieval contract for a flooded salt mine, and Kael accepts because no ranked crew wants the fee. Inside the mine, brine wards, rival crew marks, and illegal core harvesting reveal that the job was mispriced on purpose. Kael must use his iron-thread binding at real bodily cost, save a forced ally instead of grabbing the core cleanly, and return with proof that changes his guild status while pointing to a stronger hidden patron.",
+      "majorReversals": [
+        "The retrieval job was priced cheap because a patron wanted an expendable unranked crew to trigger the old wards.",
+        "Tessa Mire's rival crew is not only competing with Kael; one of her sponsors is using her as a disposable witness.",
+        "The monster core Kael needs for rank is also evidence of illegal ruin-rights theft."
+      ],
+      "endingDirection": "Kael earns provisional bronze rank, keeps the core as contested evidence, and receives a restricted next contract tied to the patron who rigged the mine job.",
+      "readerPromise": "A mission-based progression adventure where contract terms, guild rank, and tactical choices decide who gets paid and who becomes useful.",
+      "protagonistWant": "earn bronze rank and enough marks to keep his sister's debt marker inside Rillgate protection",
+      "protagonistNeed": "treat allies and contract law as force multipliers instead of trying to win alone",
+      "protagonistLie": "a low-ranked blade survives by taking the cleanest payout before anyone can use him",
+      "protagonistTruth": "the right witness and the right cost can make a weak contract into leverage",
+      "antagonistPressure": "A concealed ruin-rights patron uses cheap contracts, rival crews, and guild loopholes to harvest illegal cores without public blame.",
+      "worldPressureRule": "Rillgate contracts bind payment and salvage rights by rank; iron-thread binding can turn monster pressure into techniques only when the user pays a named bodily cost."
+    },
+    "protagonist": {
+      "characterId": "char-kael-rusk",
+      "name": "Kael Rusk",
+      "desire": "earn bronze rank and enough guild marks to keep his sister's debt marker from being sold",
+      "fear": "being trapped as disposable labor who wins jobs for ranked crews without ever gaining leverage",
+      "flaw": "he grabs immediate payouts and withholds trust, even when witnesses or allies would make the win durable"
+    },
+    "characters": [
+      {
+        "characterId": "char-tessa-mire",
+        "name": "Tessa Mire",
+        "role": "rival ally",
+        "materiality": "A rival spearhand from a ranked crew whose sponsor puts her in the mine; her testimony can either ruin Kael's claim or make his evidence legal."
+      },
+      {
+        "characterId": "char-orin-vale",
+        "name": "Orin Vale",
+        "role": "guild clerk",
+        "materiality": "A contract clerk who knows the salvage clauses and can turn Kael's proof into rank only if Kael preserves admissible evidence."
+      },
+      {
+        "characterId": "char-lady-varn",
+        "name": "Lady Varn",
+        "role": "hidden patron",
+        "materiality": "A polite broker who prices the mine job low to make an unranked blade trigger illegal ruin wards for her buyers."
+      }
+    ],
+    "worldFacts": [
+      {
+        "worldFactId": "world-rillgate-rank-law",
+        "fact": "Rillgate crews cannot claim ruin salvage or restricted monster cores without bronze rank or a ranked witness."
+      },
+      {
+        "worldFactId": "world-oathmark-contracts",
+        "fact": "Oathmark contracts bind payment, reputation, and salvage rights; breaking or proving hidden terms changes guild standing."
+      },
+      {
+        "worldFactId": "world-iron-thread-binding",
+        "fact": "Iron-thread binding turns monster pressure into temporary weapon techniques, but each use requires a named bodily cost that lingers."
+      },
+      {
+        "worldFactId": "world-brine-ward-saltmine",
+        "fact": "The flooded Gray Salt Mine sits over a sealed ruin whose brine wards respond to blood, rank tokens, and stolen cores."
+      },
+      {
+        "worldFactId": "world-ruin-rights-patronage",
+        "fact": "Ruin-rights patrons hide illegal harvests by posting cheap recovery jobs through disposable brokers and rival crews."
+      }
+    ],
+    "storyPromise": {
+      "promiseId": "promise-saltmine-contract",
+      "text": "If Kael completes the salt-mine contract, he can earn bronze rank, protect his sister's debt marker, and discover who rigged a cheap job into a ruin-rights trap."
+    },
+    "storyDebts": [
+      {
+        "storyDebtId": "debt-bronze-rank",
+        "promiseText": "Kael must earn a rank or equivalent leverage before his sister's debt marker leaves guild protection.",
+        "openedBySlotId": "MPA-01",
+        "expectedProgressSlotIds": ["MPA-02", "MPA-04", "MPA-06", "MPA-09"],
+        "expectedPayoffSlotId": "MPA-10",
+        "payoffPolicy": "Pay off through provisional bronze rank or guild leverage created by admissible contract evidence."
+      },
+      {
+        "storyDebtId": "debt-mispriced-contract",
+        "promiseText": "The cheap salt-mine job must reveal why the danger, patron, or objective was hidden.",
+        "openedBySlotId": "MPA-02",
+        "expectedProgressSlotIds": ["MPA-04", "MPA-06"],
+        "expectedPayoffSlotId": "MPA-09",
+        "payoffPolicy": "Pay off when Kael proves the retrieval job was a rigged ruin-rights harvest."
+      },
+      {
+        "storyDebtId": "debt-tessa-witness",
+        "promiseText": "Kael and Tessa must shift from rival claimants to necessary witnesses.",
+        "openedBySlotId": "MPA-04",
+        "expectedProgressSlotIds": ["MPA-06", "MPA-09"],
+        "expectedPayoffSlotId": "MPA-10",
+        "payoffPolicy": "Pay off when Tessa's testimony changes Kael's legal standing and future options."
+      },
+      {
+        "storyDebtId": "debt-next-patron",
+        "promiseText": "The mine job must point to a stronger patron or next contract rather than resolving the whole faction problem.",
+        "openedBySlotId": "MPA-06",
+        "expectedProgressSlotIds": ["MPA-09"],
+        "expectedPayoffSlotId": "MPA-10",
+        "payoffPolicy": "Pay off with a restricted next mission tied to Lady Varn's buyers."
+      }
+    ],
+    "constraints": [
+      "Produce planning contracts only, not prose.",
+      "Use scene contracts as the generation and adherence unit.",
+      "Keep the diagnostic to six chapter-contract units.",
+      "Preserve the mercenary progression loop: hub pressure, contract, arena, complication, climax, return hook.",
+      "Make contract terms, guild rank, arena rules, progression cost, ally testimony, or faction pressure materially affect choices and consequences.",
+      "Route storyDebtId values into obligations and scene requiredSourceIds.",
+      "Do not position Book 1 as harem, academy, base-building, chosen-one epic, or stat-sheet LitRPG."
+    ]
+  }
+}

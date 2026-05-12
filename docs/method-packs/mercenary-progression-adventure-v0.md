@@ -153,3 +153,18 @@ running broad drafting. The target artifact is a compact contract packet:
 - next-mission hook;
 - 8-12 chapter job-function outline;
 - scene-level pressure notes for the first two chapters.
+
+## Basic Planner POC
+
+Fixture: `docs/fixtures/method-packs/mercenary-progression-adventure-v0/frozen-concept.json`.
+
+The first frozen concept maps the series engine into six planner slots:
+`MPA-01`, `MPA-02`, `MPA-04`, `MPA-06`, `MPA-09`, and `MPA-10`.
+It uses a Rillgate salt-mine contract to test whether the planner can preserve
+hub pressure, contract terms, arena rules, job complication, contract climax,
+progression cost, return status change, and next-job pressure.
+
+The 2026-05-12 live Flash diagnostic preserved all six slots and produced a
+usable method-pack plan, but deterministic lift was ceilinged against a strong
+control arm. The semantic AB/BA judge was position-biased, so the POC is a
+clean planner-mapping artifact, not promotion evidence by itself.
