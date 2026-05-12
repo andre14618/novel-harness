@@ -11,7 +11,7 @@ unless the user explicitly requests a disposable branch.
   outputs are evidence/fixtures only; do not add POC runners, prompt branches,
   mappers, checkers, or review formats when a thin production wrapper can write
   the same artifacts.
-- **Production writer/planner evidence (2026-05-11).** P1 made
+- **Production writer/planner evidence (2026-05-12).** P1 made
   `drafting-brief-v1` strongest at 1.24x with scene lows 1/33, but replication
   holds promotion. Clean-source repairs reached Corso 4778/3800 = 1.26x with
   scene lows 0/34 and LitRPG 3966/2700 = 1.47x with scene lows 3/45. Tight
@@ -30,9 +30,9 @@ unless the user explicitly requests a disposable branch.
   11/35 raw. Relationship applicability gating marked 4 false-positive rows
   not_applicable; same-target grouping supported 5 shared scene replacements
   that cleared the 7 source readiness items through normal `planning_edit`
-  approval/lineage. Endpoint follow-up imported those rows back to the clean
-  source, cleared them through 3 more `planning_edit` proposals, and replayed at
-  4109/3100, prose lows 0/8, scene lows 2/35, Plan-Assist/context gaps 0. Mixed on ratio; no default flip. See L106/L107.
+  approval/lineage. Endpoint follow-ups imported downstream lows back to the clean
+  source, cleared them through 5 more `planning_edit` proposals, and replayed at
+  4310/3100, prose lows 0/8, scene lows 0/35, endpoint lows 0/10, Plan-Assist/context gaps 0. Ratio rose +201 words vs the prior endpoint replay and checker negatives increased, so no default flip. See L106/L107.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort
@@ -119,10 +119,10 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: inspect the 2 downstream P2 endpointLanding rows from
-  `prod-semantics-p2-endpoint-edits-1778560237` on ch2 scenes 2 and 3; decide
-  whether source fixes or scene-boundary consolidation is the right response.
-  Do not force relationship changes without declared participants. See L103-L107.
+- Next session start: treat `prod-semantics-p2-endpoint2-edits-1778561012` as the
+  current P2 endpoint success artifact; inspect the +201 word ratio and checker
+  warning/negative increase before any default move, then replicate on another
+  clean-source fixture or tighten checker-facing context if evidence points there.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.

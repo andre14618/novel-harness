@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-11
+updated: 2026-05-12
 role: canonical-current-truth
 archive: archive/current-state-2026-05-04-full.md
 references:
@@ -101,11 +101,10 @@ Use deeper docs only when linked by the context pack or needed by code.
 - Native chapter contracts and story-turn planning are the production planning
   default with legacy rollback; downstream beat caps/packing are diagnostic
   evidence only. See L088.
-- Plan Readiness Review bridges planner diagnostics to drafting; accepted
-  scalar changes use manual `planning_edit` proposals, including single-field
-  scene-turn/endpoint fixes and `beat_obligation:materialityTest` fixes when
-  a materiality gap maps to one obligation. Use `diagnostics:plan-readiness-review-plan`, then
-  `diagnostics:plan-readiness-apply` after review. See L091.
+- Plan Readiness Review bridges planner diagnostics to drafting; accepted scalar
+  changes use manual `planning_edit` proposals, including single-field
+  scene-turn/endpoint fixes and `beat_obligation:materialityTest` fixes. Use
+  `diagnostics:plan-readiness-review-plan`, then apply after review. See L091.
 - Runtime surfaces, traceability, checker posture, and UI inventory are
   summarized in `docs/reference/runtime-surfaces.md`.
 
@@ -113,8 +112,7 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 The active lane is in `docs/sessions/lane-queue.md`.
 
-As of 2026-05-11, L106/L107 has moved active evidence into production
-writer-brief telemetry, scene-semantic replay, Plan Readiness, source hygiene,
+As of 2026-05-12, L106/L107 has moved active evidence into production writer-brief telemetry, scene-semantic replay, Plan Readiness, source hygiene,
 planning-edit replay, scene-contract telemetry, and compare/cohort artifacts.
 Clean-source tight-brief evidence is mixed; tight-anchored shortened P1 by 337
 words but lowered endpoint, materiality, and world-fact means. The default-off
@@ -125,8 +123,10 @@ gaps instead of fallback-filling writer-facing fields; compare/cohort artifacts
 carry those gap deltas. P1 evidence before fallback removal: material pressure alone shortened 575 words and
 improved scene lows -7 but raised checker negatives 2->14; turn scaffold vs
 material pressure shortened 422 words and improved scene lows -6. P2 endpoint
-follow-up cleared source readiness and improved replay to 4109/3100 with 2/35
-endpoint lows downstream. No default flip. See L103-L107.
+follow-ups cleared source readiness through production `planning_edit` lineage
+and replayed at 4310/3100 with prose lows 0/8, scene lows 0/35, endpoint lows
+0/10, Plan-Assist/context gaps 0. Ratio and checker warnings still block a
+default flip. See L103-L107.
 
 ## Authoring Gates
 
