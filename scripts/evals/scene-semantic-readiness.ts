@@ -247,6 +247,12 @@ function isIncludedResult(
   options: { labels: string[] | null; maxOrdinal: number },
 ): boolean {
   if (result.error) return false
+  if (
+    result.dimension === "relationshipDelta" &&
+    stringArray(result.relevantCharacterIds).length < 2
+  ) {
+    return false
+  }
   if (options.labels && options.labels.length > 0) return options.labels.includes(result.label)
   return result.ordinal <= options.maxOrdinal
 }

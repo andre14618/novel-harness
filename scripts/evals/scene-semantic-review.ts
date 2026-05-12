@@ -156,13 +156,19 @@ const DEFAULT_MAX_TOKENS = 2200
 export function applicabilitySkipReason(dimension: Dimension, counts: {
   worldFactCount: number
   characterCount: number
+  relationshipParticipantCount?: number
   threadRefCount: number
   promiseOrPayoffRefCount: number
 }): string | null {
   if (dimension === "threadProgression" && counts.threadRefCount === 0) return "no threadId obligation declared for this scene"
   if (dimension === "promisePayoff" && counts.promiseOrPayoffRefCount === 0) return "no promiseId or payoffId obligation declared for this scene"
   if (dimension === "worldFactPressure" && counts.worldFactCount === 0) return "no world-fact sourceId obligation declared for this scene"
-  if (dimension === "relationshipDelta" && counts.characterCount === 0) return "no supporting-character sourceId obligation declared for this scene"
+  if (
+    dimension === "relationshipDelta" &&
+    (counts.relationshipParticipantCount ?? counts.characterCount) < 2
+  ) {
+    return "fewer than two supporting-character IDs declared for this scene"
+  }
   if (dimension === "characterMateriality" && counts.characterCount === 0) return "no supporting-character sourceId obligation declared for this scene"
   return null
 }
@@ -242,6 +248,7 @@ export function buildSceneSemanticReplayTasks(input: {
         const skipReason = applicabilitySkipReason(dimension, {
           worldFactCount,
           characterCount,
+          relationshipParticipantCount: characterIds.length,
           threadRefCount,
           promiseOrPayoffRefCount,
         })

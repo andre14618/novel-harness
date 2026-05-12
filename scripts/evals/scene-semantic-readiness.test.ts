@@ -156,6 +156,30 @@ describe("scene-semantic-readiness", () => {
     expect(aggregate.groupCount).toBe(0)
     expect(aggregate.findingCount).toBe(0)
   })
+
+  test("does not import relationshipDelta rows without two declared character refs", () => {
+    const source = report()
+    source.dimensions = ["relationshipDelta"]
+    source.results = [
+      row("relationshipDelta", "REL-0", 0, "No relationship interaction is present."),
+      {
+        ...row("relationshipDelta", "REL-1", 1, "Trust changes but not enough."),
+        sceneId: "scn-001-02",
+        taskId: "ch1-scn-001-02-relationshipDelta",
+        relevantCharacterIds: ["char-nara", "char-renn"],
+      },
+    ]
+    source.summaries = [
+      { dimension: "relationshipDelta", count: 2, meanOrdinal: 0.5, lowCount: 2, labelCounts: { "REL-0": 1, "REL-1": 1 } },
+    ]
+
+    const aggregate = buildSceneSemanticReadinessAggregate([{ report: source }])
+
+    expect(aggregate.groupCount).toBe(1)
+    expect(aggregate.findingCount).toBe(1)
+    expect(aggregate.groups[0]!.sceneId).toBe("scn-001-02")
+    expect(aggregate.groups[0]!.findings[0]!.label).toBe("REL-1")
+  })
 })
 
 function report(): SceneSemanticReplayReport {

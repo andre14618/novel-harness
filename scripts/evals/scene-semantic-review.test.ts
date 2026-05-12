@@ -49,6 +49,24 @@ describe("scene-semantic-review applicability skip", () => {
   test("relationshipDelta skips with no characters", () => {
     expect(applicabilitySkipReason("relationshipDelta", { worldFactCount: 5, characterCount: 0, threadRefCount: 1, promiseOrPayoffRefCount: 1 })).toContain("supporting-character")
   })
+  test("relationshipDelta skips with only one distinct character id", () => {
+    expect(applicabilitySkipReason("relationshipDelta", {
+      worldFactCount: 5,
+      characterCount: 2,
+      relationshipParticipantCount: 1,
+      threadRefCount: 1,
+      promiseOrPayoffRefCount: 1,
+    })).toContain("fewer than two")
+  })
+  test("relationshipDelta keeps when two distinct character ids are declared", () => {
+    expect(applicabilitySkipReason("relationshipDelta", {
+      worldFactCount: 0,
+      characterCount: 2,
+      relationshipParticipantCount: 2,
+      threadRefCount: 0,
+      promiseOrPayoffRefCount: 0,
+    })).toBeNull()
+  })
   test("sceneDramaturgy never skips on applicability counts", () => {
     expect(applicabilitySkipReason("sceneDramaturgy", { worldFactCount: 0, characterCount: 0, threadRefCount: 0, promiseOrPayoffRefCount: 0 })).toBeNull()
   })
@@ -136,6 +154,50 @@ describe("scene-semantic-review task building", () => {
     const dimensionsSkipped = result.skips.map(s => s.dimension).sort()
     expect(dimensionsSkipped).toEqual(["promisePayoff", "threadProgression", "worldFactPressure"])
     expect(result.skips[0]?.sceneId).toBe("ch1-s1")
+  })
+
+  test("skips relationshipDelta for solo character-state scenes", () => {
+    const ch = chapter(2, [
+      {
+        sceneId: "ch2-solo",
+        beatId: "ch2-b1",
+        description: "Mira decides to burn the ledger alone.",
+        characters: ["Mira"],
+        kind: "interiority",
+        requiredPayoffs: [],
+        obligations: {
+          mustEstablish: [],
+          mustPayOff: [],
+          mustTransferKnowledge: [],
+          mustShowStateChange: [{
+            obligationId: "obl-state",
+            sourceId: "state-mira-resolve",
+            sourceKind: "state",
+            characterId: "char-mira",
+            text: "Mira resolves to burn the ledger.",
+          }],
+          mustNotReveal: [],
+          allowedNewEntities: [],
+        },
+        lifeValueAxes: [],
+        miceActive: [],
+        miceOpens: [],
+        miceCloses: [],
+      },
+    ])
+
+    const result = buildSceneSemanticReplayTasks({
+      chapters: [ch],
+      dimensions: ["characterMateriality", "relationshipDelta"],
+      promptMode: "evidence-first",
+    })
+
+    expect(result.tasks.map(task => task.dimension)).toEqual(["characterMateriality"])
+    expect(result.skips).toMatchObject([{
+      sceneId: "ch2-solo",
+      dimension: "relationshipDelta",
+      reason: expect.stringContaining("fewer than two"),
+    }])
   })
 
   test("excerpt names the chapter, scene contract, and prose", () => {
