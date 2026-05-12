@@ -1,3 +1,3 @@
-// Reuse the planning-beats output schema verbatim — the reviser produces
+// Reuse the planning-scenes output schema verbatim — the reviser produces
 // the same shape so drafting.ts can drop it straight back into outline.scenes.
-export { chapterBeatsSchema, chapterBeatsSchema as schema, type ChapterBeats } from "../planning-beats/schema"
+export { chapterScenePlanSchema, chapterScenePlanSchema as schema, type ChapterScenePlan } from "../planning-scenes/schema"

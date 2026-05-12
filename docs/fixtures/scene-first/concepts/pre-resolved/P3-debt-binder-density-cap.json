@@ -123,7 +123,7 @@
       "rawNotes": "This is a density-isolation experiment, not a new outline. Preserve the tight-scope shape: exactly three chapters, exactly three scene contracts per chapter, Maren sole POV, and the same chapter endpoints. Do not reduce obligation density by adding/removing scenes or dropping endpoint material. Obligation accounting is literal: objects in scene.obligations.mustEstablish, mustPayOff, mustTransferKnowledge, mustShowStateChange, and mustNotReveal are load-bearing obligations; allowedNewEntities is only a permission list. Each scene should declare exactly one load-bearing obligation, except the final Council-choice scene may declare two if the public proposal and personal state turn cannot share one source. Do not create both a fact obligation and a knowledge-transfer obligation for the same story payload. Choose mustTransferKnowledge for discoveries Maren learns, mustEstablish for public facts/actions the scene puts on page, and mustShowStateChange only when the state change is the scene's sole outcome. Do not emit obligations for travel, room setup, mood, already-known deadlines, or restating the scene description. Keep allowedNewEntities empty unless one of the six seed characters cannot plausibly carry the scene. Preserve sourceId and obligationId on every emitted obligation."
     },
     "pipelineOverrides": {
-      "planningMaxBeatsPerChapter": 3
+      "planningMaxScenesPerChapter": 3
     }
   },
   "pre_resolved_entities": {

@@ -89,10 +89,10 @@ describe("renderPlannerIsolatedReport", () => {
         seedName: "fixture",
         novelId: "novel-1",
         chapters: 1,
-        totalBeats: 2,
-        beatCounts: [{ chapter: 1, beats: 2, targetWords: 1200 }],
+        totalScenes: 2,
+        sceneCounts: [{ chapter: 1, scenes: 2, targetWords: 1200 }],
         stats: [{
-          agent: "planning-beats",
+          agent: "planning-scenes",
           attempt: 1,
           chapter: 1,
           prompt_tokens: 100,
@@ -158,6 +158,6 @@ describe("renderPlannerIsolatedReport", () => {
     expect(rendered).toContain("planningMaterialPressure: on")
     expect(rendered).toContain("planShape: sceneIds=2/2; sceneContracts=2; dramatic=2; choice=2; endpoint=2; full=2")
     expect(rendered).toContain("sceneLoad: ch1=2sc/600wps/balanced")
-    expect(rendered).toContain("planning-beats: 1 calls")
+    expect(rendered).toContain("planning-scenes: 1 calls")
   })
 })

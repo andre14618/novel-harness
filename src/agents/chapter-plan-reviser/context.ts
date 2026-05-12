@@ -13,7 +13,7 @@ function skeletonBlocks(outline: ChapterOutline, currentProse: string): string[]
     `PURPOSE: ${outline.purpose}`,
     `TARGET WORDS: ${outline.targetWords}`,
     ``,
-    `ORIGINAL BEATS (scenes):`,
+    `ORIGINAL SCENE ENTRIES:`,
     scenesJson,
     ``,
     `ORIGINAL establishedFacts:`,
@@ -46,7 +46,7 @@ export function buildContext(
 ): string {
   return [
     ...skeletonBlocks(outline, currentProse),
-    `PERSISTENT UNRESOLVED ISSUES (the checker keeps flagging these despite targeted beat rewrites):`,
+    `PERSISTENT UNRESOLVED ISSUES (the checker keeps flagging these despite targeted scene-entry rewrites):`,
     unresolvedIssues.map(i => `- ${i}`).join("\n"),
     ``,
     `Revise the scenes list to make these issues satisfiable. Make the smallest change. Preserve establishedFacts/characterStateChanges/knowledgeChanges unless the revision specifically requires changing them.`,
@@ -76,18 +76,18 @@ export function buildContextForValidation(
   const hints: string[] = []
   if (hasWordCount) {
     hints.push(
-      `Word-count shortfall: targeted beat expansion already ran and could not reach the target. The beat list is likely too sparse — split a high-density beat into 2 simpler beats, OR add 1-2 new beats that deepen existing material (interiority, description, or a dialogue exchange implied by the surrounding beats).`,
+      `Word-count shortfall: targeted scene expansion already ran and could not reach the target. The scene-entry list is likely too sparse — split a high-density entry into 2 simpler entries, OR add 1-2 new entries that deepen existing material (interiority, description, or a dialogue exchange implied by the surrounding entries).`,
     )
   }
   if (hasPovMissing) {
     hints.push(
-      `POV missing: ${outline.povCharacter} is cast in the plan but does not appear on the page. Per §5 of the system prompt, place ${outline.povCharacter} into at least one beat as observer or active participant, or remove them from beats where they should not appear.`,
+      `POV missing: ${outline.povCharacter} is cast in the plan but does not appear on the page. Per §5 of the system prompt, place ${outline.povCharacter} into at least one scene entry as observer or active participant, or remove them from entries where they should not appear.`,
     )
   }
 
   return [
     ...skeletonBlocks(outline, currentProse),
-    `PERSISTENT UNRESOLVED VALIDATION BLOCKERS (deterministic checks that keep failing despite targeted beat rewrites):`,
+    `PERSISTENT UNRESOLVED VALIDATION BLOCKERS (deterministic checks that keep failing despite targeted scene-entry rewrites):`,
     validationBlockers.map(b => `- ${b}`).join("\n"),
     ``,
     ...(hints.length > 0 ? [`GUIDANCE:`, hints.map(h => `- ${h}`).join("\n"), ``] : []),

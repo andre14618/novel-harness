@@ -95,8 +95,8 @@ export interface PlannerIsolatedResult {
   novelId: string
   stats: CallStat[]
   chapters: number
-  totalBeats: number
-  beatCounts: Array<{ chapter: number; beats: number; targetWords: number }>
+  totalScenes: number
+  sceneCounts: Array<{ chapter: number; scenes: number; targetWords: number }>
   planningArtifacts: PlanningArtifactSummary | null
   error?: string
 }
@@ -225,7 +225,7 @@ async function collectPlannerResult(seedName: string, novelId: string): Promise<
            max_tokens, failed, error_text
     FROM llm_calls
     WHERE novel_id = ${novelId}
-      AND agent IN ('planning-plotter', 'planning-beats', 'planning-state-mapper')
+      AND agent IN ('planning-plotter', 'planning-scenes', 'planning-state-mapper')
     ORDER BY timestamp
   ` as any[]
 
@@ -248,23 +248,23 @@ async function collectPlannerResult(seedName: string, novelId: string): Promise<
 
   const chapterRows = await db`SELECT count(*)::int as c FROM chapter_outlines WHERE novel_id = ${novelId}` as any[]
   const chapters = chapterRows[0]?.c ?? 0
-  const beatRows = await db`SELECT chapter_number, outline_json FROM chapter_outlines WHERE novel_id = ${novelId} ORDER BY chapter_number` as any[]
-  const outlines = beatRows.map(r => typeof r.outline_json === "string" ? JSON.parse(r.outline_json) : r.outline_json) as ChapterOutline[]
-  const beatCounts = beatRows.map(r => {
+  const outlineRows = await db`SELECT chapter_number, outline_json FROM chapter_outlines WHERE novel_id = ${novelId} ORDER BY chapter_number` as any[]
+  const outlines = outlineRows.map(r => typeof r.outline_json === "string" ? JSON.parse(r.outline_json) : r.outline_json) as ChapterOutline[]
+  const sceneCounts = outlineRows.map(r => {
     const o = typeof r.outline_json === "string" ? JSON.parse(r.outline_json) : r.outline_json
     return {
       chapter: Number(r.chapter_number),
-      beats: Array.isArray(o?.scenes) ? o.scenes.length : 0,
+      scenes: Array.isArray(o?.scenes) ? o.scenes.length : 0,
       targetWords: Number(o?.targetWords ?? 0),
     }
   })
-  const totalBeats = beatRows.reduce((s, r) => {
+  const totalScenes = outlineRows.reduce((s, r) => {
     const o = typeof r.outline_json === "string" ? JSON.parse(r.outline_json) : r.outline_json
     return s + (Array.isArray(o?.scenes) ? o.scenes.length : 0)
   }, 0)
   const planningArtifacts = await loadPlanningArtifactSummary(novelId, outlines)
 
-  return { seedName, novelId, stats, chapters, totalBeats, beatCounts, planningArtifacts }
+  return { seedName, novelId, stats, chapters, totalScenes, sceneCounts, planningArtifacts }
 }
 
 async function loadPlanningArtifactSummary(
@@ -394,7 +394,7 @@ async function main() {
       }))
     } catch (err) {
       console.error(`✗ ${args.fixturePath}: ${err instanceof Error ? err.message : err}`)
-      results.push({ seedName: args.fixturePath, novelId: "", stats: [], chapters: 0, totalBeats: 0, beatCounts: [], planningArtifacts: null, error: String(err) })
+      results.push({ seedName: args.fixturePath, novelId: "", stats: [], chapters: 0, totalScenes: 0, sceneCounts: [], planningArtifacts: null, error: String(err) })
     }
   } else if (args.novelId) {
     try {
@@ -406,7 +406,7 @@ async function main() {
       }))
     } catch (err) {
       console.error(`✗ ${args.novelId}: ${err instanceof Error ? err.message : err}`)
-      results.push({ seedName: args.novelId, novelId: args.novelId, stats: [], chapters: 0, totalBeats: 0, beatCounts: [], planningArtifacts: null, error: String(err) })
+      results.push({ seedName: args.novelId, novelId: args.novelId, stats: [], chapters: 0, totalScenes: 0, sceneCounts: [], planningArtifacts: null, error: String(err) })
     }
   } else {
     for (const s of args.seedNames) {
@@ -419,7 +419,7 @@ async function main() {
         }))
       } catch (err) {
         console.error(`✗ ${s}: ${err instanceof Error ? err.message : err}`)
-        results.push({ seedName: s, novelId: "", stats: [], chapters: 0, totalBeats: 0, beatCounts: [], planningArtifacts: null, error: String(err) })
+        results.push({ seedName: s, novelId: "", stats: [], chapters: 0, totalScenes: 0, sceneCounts: [], planningArtifacts: null, error: String(err) })
       }
     }
   }
@@ -427,9 +427,9 @@ async function main() {
   // Summary
   console.log(`\n\n━━━━━━━━━━ SUMMARY ━━━━━━━━━━`)
   for (const r of results) {
-    console.log(`\n${r.seedName} → ${r.chapters} chapters, ${r.totalBeats} total beats`)
-    if (r.beatCounts.length) {
-      console.log(`  beat counts: ${r.beatCounts.map(b => `ch${b.chapter}=${b.beats}/${b.targetWords}w`).join(", ")}`)
+    console.log(`\n${r.seedName} → ${r.chapters} chapters, ${r.totalScenes} total scenes`)
+    if (r.sceneCounts.length) {
+      console.log(`  scene counts: ${r.sceneCounts.map(b => `ch${b.chapter}=${b.scenes}/${b.targetWords}w`).join(", ")}`)
     }
     if (r.planningArtifacts) {
       const p = r.planningArtifacts
@@ -571,9 +571,9 @@ export function renderPlannerIsolatedReport(report: PlannerIsolatedRunReport): s
       continue
     }
     lines.push(`novelId: ${result.novelId}`)
-    lines.push(`chapters: ${result.chapters}; scenes: ${result.totalBeats}`)
-    if (result.beatCounts.length > 0) {
-      lines.push(`beatCounts: ${result.beatCounts.map(b => `ch${b.chapter}=${b.beats}/${b.targetWords}w`).join(", ")}`)
+    lines.push(`chapters: ${result.chapters}; scenes: ${result.totalScenes}`)
+    if (result.sceneCounts.length > 0) {
+      lines.push(`sceneCounts: ${result.sceneCounts.map(b => `ch${b.chapter}=${b.scenes}/${b.targetWords}w`).join(", ")}`)
     }
     if (result.planningArtifacts) {
       const p = result.planningArtifacts

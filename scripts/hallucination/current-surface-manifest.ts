@@ -26,9 +26,9 @@ const SURFACE_FILES = [
   "src/agents/planning-plotter/chapter-outline-system.md",
   "src/agents/planning-plotter/context.ts",
   "src/agents/planning-plotter/schema.ts",
-  "src/agents/planning-beats/beat-expansion-system.md",
-  "src/agents/planning-beats/context.ts",
-  "src/agents/planning-beats/schema.ts",
+  "src/agents/planning-scenes/scene-expansion-system.md",
+  "src/agents/planning-scenes/context.ts",
+  "src/agents/planning-scenes/schema.ts",
   "src/agents/planning-state-mapper/state-mapper-system.md",
   "src/agents/planning-state-mapper/context.ts",
   "src/agents/planning-state-mapper/schema.ts",
@@ -203,7 +203,7 @@ async function main() {
     model_roles: Object.fromEntries(
       [
         "planning-plotter",
-        "planning-beats",
+        "planning-scenes",
         "reference-resolver",
         "beat-writer",
         "adherence-events",

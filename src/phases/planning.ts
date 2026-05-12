@@ -10,8 +10,8 @@ import { enrichOutlineIds } from "../harness/ids"
 import { PLANNING_PLOTTER_PROMPT } from "../prompts"
 import { buildContext as buildPlanningContext } from "../agents/planning-plotter/context"
 import { chapterSkeletonsSchema, type ChapterSkeleton } from "../agents/planning-plotter/schema"
-import { buildContext as buildBeatContext } from "../agents/planning-beats/context"
-import { beatExpansionSchema, prompt as PLANNING_BEATS_PROMPT } from "../agents/planning-beats"
+import { buildContext as buildSceneContext } from "../agents/planning-scenes/context"
+import { sceneExpansionSchema, prompt as PLANNING_SCENES_PROMPT } from "../agents/planning-scenes"
 import { buildContext as buildStateMapperContext } from "../agents/planning-state-mapper/context"
 import { schema as stateMapperSchema, prompt as PLANNING_STATE_MAPPER_PROMPT, type PlanningStateMapperOutput } from "../agents/planning-state-mapper"
 import { buildContext as buildStateRepairContext } from "../agents/planning-state-repair/context"
@@ -30,7 +30,7 @@ import * as harness from "../harness"
 import { autogenPlannerProposalsAfterPlanning } from "../harness/planner-canon-proposals"
 import type { BeatObligationsContract, SceneBeat } from "../types"
 import type { BeatObligationCoverageValidation } from "../harness/beat-obligations"
-import { assessBeatCountForTarget, minimumBeatCountForTarget, planningBeatCountPolicy } from "../harness/beat-counts"
+import { assessSceneCountForTarget, minimumSceneCountForTarget, planningSceneCountPolicy } from "../harness/scene-counts"
 
 const PLANNING_OBLIGATION_WARNING_LIMIT = 8
 const PLANNING_OBLIGATION_COVERAGE_MAX_RETRIES = 2
@@ -51,7 +51,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   const characters = await getCharacters(novelId)
   const spine = await getStorySpine(novelId)
   const targetChapters = novel.seed.chapterCount ?? null
-  const planningMaxBeatsPerChapter = novel.seed.pipelineOverrides?.planningMaxBeatsPerChapter ?? pipeline.planningMaxBeatsPerChapter
+  const planningMaxScenesPerChapter = planningMaxScenesOverride(novel.seed.pipelineOverrides)
   const nativePlanningContractV1 = resolveNativePlanningContractV1(novel.seed.pipelineOverrides)
   const planningMaterialPressureV1 = resolvePlanningMaterialPressureV1(novel.seed.pipelineOverrides)
   const planningSceneTurnShapingV1 = resolvePlanningSceneTurnShapingV1(novel.seed.pipelineOverrides)
@@ -80,7 +80,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
         schema: chapterSkeletonsSchema,
       })
 
-      // Skeleton → ChapterOutline shape: beat fields start empty, Phase-2 fills them.
+      // Skeleton → ChapterOutline shape: scene/state fields start empty, Phase 2 fills them.
       const skeletonChapters = (result.output.chapters as ChapterSkeleton[]).map(s => ({
         ...s,
         scenes: [],
@@ -134,9 +134,9 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   if (!skeletons) throw new Error("Skeleton phase produced no valid output")
   console.log(`  ${skeletons.length} skeletons ready.`)
 
-  // ── Phase 2: per-chapter beat expansion + state mapping ─────────────
-  console.log(`  Phase 2/3: expanding beats (parallel across ${skeletons.length} chapters)...`)
-  emit(novelId, { type: "progress", data: { step: "planning-beats", status: "running", chapters: skeletons.length } })
+  // ── Phase 2: per-chapter scene expansion + state mapping ─────────────
+  console.log(`  Phase 2/3: expanding scenes (parallel across ${skeletons.length} chapters)...`)
+  emit(novelId, { type: "progress", data: { step: "planning-scenes", status: "running", chapters: skeletons.length } })
 
   const expanded: ChapterOutline[] = new Array(skeletons.length)
   const expansions = skeletons.map((skeleton, idx) =>
@@ -156,7 +156,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   // Post-expansion enforcement — plan-entry structure, POV, setting. For
   // scene contracts, word-derived count guidance is advisory (L102).
   const postEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters, {
-    maxBeatsPerChapter: planningMaxBeatsPerChapter,
+    maxScenesPerChapter: planningMaxScenesPerChapter,
     nativePlanningContractV1,
     scenePlanContractV1,
   })
@@ -165,13 +165,13 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
     console.log(`  Warning: ${w}`)
   }
 
-  // Targeted retry: legacy/native beat-shaped chapters retry on count-shape
+  // Targeted retry: native scene/turn chapters retry on count-shape
   // misses. Scene-contract chapters do not retry solely on word-derived count
   // guides; scope quality is evaluated downstream as diagnostics.
   const retryIdx: Array<{ index: number; reason: string }> = []
   for (let i = 0; i < expanded.length; i++) {
     const ch = expanded[i]
-    const reason = planningBeatExpansionRetryReason(ch, {
+    const reason = planningSceneExpansionRetryReason(ch, {
       nativePlanningContractV1,
       planningSceneTurnShapingV1,
       scenePlanContractV1,
@@ -183,11 +183,11 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   }
 
   if (retryIdx.length > 0) {
-    emit(novelId, { type: "progress", data: { step: "planning-beats", status: "retrying", chapters: retryIdx.length } })
+    emit(novelId, { type: "progress", data: { step: "planning-scenes", status: "retrying", chapters: retryIdx.length } })
     const retries = retryIdx.map(({ index: i, reason }) =>
       expandChapter(novelId, skeletons![i], skeletons!, worldBible, characters, spine, novel.seed, 2, reason)
         .then(full => {
-          const retryReason = planningBeatExpansionRetryReason(full, {
+          const retryReason = planningSceneExpansionRetryReason(full, {
             nativePlanningContractV1,
             planningSceneTurnShapingV1,
             scenePlanContractV1,
@@ -201,12 +201,12 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   }
 
   let finalEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters, {
-    maxBeatsPerChapter: planningMaxBeatsPerChapter,
+    maxScenesPerChapter: planningMaxScenesPerChapter,
     nativePlanningContractV1,
     scenePlanContractV1,
   })
   if (!finalEnforcement.valid) {
-    throw new Error(`Planning failed after beat expansion + retry: ${finalEnforcement.errors.join("; ")}`)
+    throw new Error(`Planning failed after scene expansion + retry: ${finalEnforcement.errors.join("; ")}`)
   }
 
   let chapters = finalEnforcement.chapters
@@ -229,7 +229,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
       return repairOrRemapChapterState(
         novelId, item.outline, item.validation, skeletons!, worldBible, characters, spine, novel.seed, coverageAttempt,
       ).then(full => {
-        const floor = scenePlanContractV1 ? 1 : minimumBeatCountForTarget(full.targetWords)
+        const floor = scenePlanContractV1 ? 1 : minimumSceneCountForTarget(full.targetWords)
         if (full.scenes && full.scenes.length >= floor) expanded[item.idx] = full
         else log(novelId, "warn", `Ch ${full.chapterNumber}: obligation repair/remap still short (${full.scenes?.length ?? 0} < ${floor})`)
       })
@@ -238,7 +238,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
     await Promise.all(retries)
 
     finalEnforcement = harness.enforce.enforcePlanningOutput(expanded, targetChapters, characters, {
-      maxBeatsPerChapter: planningMaxBeatsPerChapter,
+      maxScenesPerChapter: planningMaxScenesPerChapter,
       nativePlanningContractV1,
       scenePlanContractV1,
     })
@@ -317,7 +317,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   for (const outline of chapters) {
     const obligationPlan = harness.beatObligations.deriveBeatObligations(outline)
     const s = obligationPlan.summary
-    log(novelId, "info", `Planning obligations ch${outline.chapterNumber}: facts=${s.factCount} orphanFacts=${s.orphanFacts} knowledge=${s.knowledgeCount} orphanKnowledge=${s.orphanKnowledgeChanges} state=${s.stateChangeCount} orphanState=${s.orphanStateChanges} overloadedBeats=${s.overloadedBeats}`)
+    log(novelId, "info", `Planning obligations ch${outline.chapterNumber}: facts=${s.factCount} orphanFacts=${s.orphanFacts} knowledge=${s.knowledgeCount} orphanKnowledge=${s.orphanKnowledgeChanges} state=${s.stateChangeCount} orphanState=${s.orphanStateChanges} overloadedEntries=${s.overloadedBeats}`)
     for (const warning of obligationPlan.warnings.slice(0, PLANNING_OBLIGATION_WARNING_LIMIT)) {
       log(novelId, "warn", `Planning obligations: ${warning}`)
     }
@@ -325,8 +325,8 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
       log(novelId, "warn", `Planning obligations: ${obligationPlan.warnings.length - PLANNING_OBLIGATION_WARNING_LIMIT} additional warning(s) suppressed for chapter ${outline.chapterNumber}`)
     }
   }
-  log(novelId, "info", `Planning complete: ${chapters.length} chapters, avg ${Math.round(chapters.reduce((s, c) => s + (c.scenes?.length ?? 0), 0) / chapters.length)} beats/chapter`)
-  emit(novelId, { type: "progress", data: { step: "planning-beats", status: "complete", chapters: chapters.length } })
+  log(novelId, "info", `Planning complete: ${chapters.length} chapters, avg ${Math.round(chapters.reduce((s, c) => s + (c.scenes?.length ?? 0), 0) / chapters.length)} scene entries/chapter`)
+  emit(novelId, { type: "progress", data: { step: "planning-scenes", status: "complete", chapters: chapters.length } })
 
   console.log(`  ${chapters.length} chapter outlines.\n`)
 
@@ -411,11 +411,11 @@ export const planningPhase: Phase<ConceptOutput, PlanningOutput> = {
   },
 }
 
-export function planningBeatsSystemPromptForSeed(seed: Pick<SeedInput, "pipelineOverrides">): string {
+export function planningScenesSystemPromptForSeed(seed: Pick<SeedInput, "pipelineOverrides">): string {
   const scenePlanContractV1 = resolveScenePlanContractV1(seed.pipelineOverrides)
   const planningSceneTurnShapingV1 = resolvePlanningSceneTurnShapingV1(seed.pipelineOverrides)
   if (scenePlanContractV1) {
-    return `${PLANNING_BEATS_PROMPT}
+    return `${PLANNING_SCENES_PROMPT}
 
 ## Active Output Contract Addendum: scenePlanContractV1
 
@@ -427,12 +427,12 @@ user prompt: \`temporalAnchor\`, \`placeAnchor\`, \`goal\`, \`opposition\`,
 \`beatHints\`, and \`targetWords\`.
 
 When the user prompt says a field is required for the active contract, include
-that field directly on the matching \`scenes[]\` object. These are beat-shape
+that field directly on the matching \`scenes[]\` object. These are scene/turn
 fields only; still do not emit chapter-level state, obligations, or
 requiredPayoffs.`
   }
   if (planningSceneTurnShapingV1) {
-    return `${PLANNING_BEATS_PROMPT}
+    return `${PLANNING_SCENES_PROMPT}
 
 ## Active Output Contract Addendum: planningSceneTurnShapingV1
 
@@ -446,10 +446,10 @@ For the final entry, include \`outcome\` and \`consequence\` so the chapter
 endpoint lands on page. For any non-final entry that carries a fact, reveal,
 decision, state change, relationship pressure, world constraint, or debt
 pressure, include \`goal\`, \`opposition\`, \`turningPoint\`, \`outcome\`,
-\`consequence\`, and \`povPersonalStake\`. These are beat-shape fields only;
+\`consequence\`, and \`povPersonalStake\`. These are scene/turn fields only;
 still do not emit chapter-level state, obligations, or requiredPayoffs.
 
-Scope discipline: do not add entries, transit beats, setup beats, targetWords,
+Scope discipline: do not add entries, transit-only entries, setup-only entries, targetWords,
 or larger implied chapter load just to carry these optional fields. Add the
 fields to existing load-bearing entries and preserve the skeleton's story
 size.
@@ -467,7 +467,7 @@ only. Do not put parenthetical roles such as "Minor Debtor (unnamed woman)" or
 "unnamed clerk" in \`characters[]\`; keep one-off unnamed roles in the
 description so the checker does not require a literal name in prose.`
   }
-  return PLANNING_BEATS_PROMPT
+  return PLANNING_SCENES_PROMPT
 }
 
 export function planningStateMapperSystemPromptForSeed(seed: Pick<SeedInput, "pipelineOverrides">): string {
@@ -489,6 +489,11 @@ tactic, relationship behavior, outcome, or future pressure. Do not add extra
 obligations only to satisfy this field.`
 }
 
+function planningMaxScenesOverride(overrides: SeedInput["pipelineOverrides"]): number | null {
+  return overrides?.planningMaxScenesPerChapter
+    ?? pipeline.planningMaxScenesPerChapter
+}
+
 async function expandChapter(
   novelId: string,
   skeleton: ChapterOutline,
@@ -500,7 +505,7 @@ async function expandChapter(
   attempt: number = 1,
   retryFeedback?: string,
 ): Promise<ChapterOutline> {
-  const userPrompt = buildBeatContext({
+  const userPrompt = buildSceneContext({
     targetChapter: skeleton,
     allSkeletons,
     priorChapters: [], // cross-chapter coherence lives in the skeleton tier
@@ -513,12 +518,12 @@ async function expandChapter(
 
   const result = await callAgent({
     novelId,
-    agentName: "planning-beats",
+    agentName: "planning-scenes",
     attempt,
     chapter: skeleton.chapterNumber,
-    systemPrompt: planningBeatsSystemPromptForSeed(seed),
+    systemPrompt: planningScenesSystemPromptForSeed(seed),
     userPrompt,
-    schema: beatExpansionSchema,
+    schema: sceneExpansionSchema,
   })
 
   const scenes = capExpandedScenesForPlanning(
@@ -530,7 +535,7 @@ async function expandChapter(
   return mapChapterState(novelId, skeleton, allSkeletons, worldBible, characters, spine, seed, scenes, attempt)
 }
 
-export function planningBeatExpansionRetryReason(
+export function planningSceneExpansionRetryReason(
   outline: Pick<ChapterOutline, "chapterNumber" | "targetWords" | "scenes">,
   options: {
     nativePlanningContractV1?: boolean
@@ -541,18 +546,18 @@ export function planningBeatExpansionRetryReason(
   if (options.scenePlanContractV1) return null
   const target = outline.targetWords ?? 1000
   const count = outline.scenes?.length ?? 0
-  const floor = minimumBeatCountForTarget(target)
-  if (count < floor) return `${count} beats < floor ${floor} for ${target}w target`
+  const floor = minimumSceneCountForTarget(target)
+  if (count < floor) return `${count} scene entries < floor ${floor} for ${target}w target`
   if (options.nativePlanningContractV1) {
-    const assessment = assessBeatCountForTarget(target, count)
+    const assessment = assessSceneCountForTarget(target, count)
     if (assessment.overPlanned) {
-      return `${count} beats > native planning budget ${assessment.recommendedBeats}+1 for ${target}w target`
+      return `${count} scene entries > native planning budget ${assessment.recommendedScenes}+1 for ${target}w target`
     }
   }
   if (options.planningSceneTurnShapingV1) {
-    const assessment = assessBeatCountForTarget(target, count)
-    if (count > assessment.recommendedBeats) {
-      return `planningSceneTurnShapingV1 ${count} entries > semantic scope budget ${assessment.recommendedBeats} for ${target}w target`
+    const assessment = assessSceneCountForTarget(target, count)
+    if (count > assessment.recommendedScenes) {
+      return `planningSceneTurnShapingV1 ${count} entries > semantic scope budget ${assessment.recommendedScenes} for ${target}w target`
     }
     const reason = selectiveSceneTurnShapingRetryReason(outline.scenes ?? [])
     if (reason) return reason
@@ -784,7 +789,7 @@ function capExpandedScenesForPlanning(
   seed: SeedInput,
 ): SceneBeat[] {
   const explicitSceneContractCap = resolveScenePlanContractV1(seed.pipelineOverrides)
-    ? normalizePlanningMaxEntries(seed.pipelineOverrides?.planningMaxBeatsPerChapter)
+    ? normalizePlanningMaxEntries(planningMaxScenesOverride(seed.pipelineOverrides))
     : null
   if (explicitSceneContractCap !== null) {
     if (scenes.length <= explicitSceneContractCap) return scenes
@@ -792,21 +797,21 @@ function capExpandedScenesForPlanning(
     log(
       novelId,
       "info",
-      `Planning scene contracts ch${skeleton.chapterNumber}: capped ${scenes.length} -> ${capped.length} by explicit planningMaxBeatsPerChapter`,
+      `Planning scene contracts ch${skeleton.chapterNumber}: capped ${scenes.length} -> ${capped.length} by explicit planningMaxScenesPerChapter`,
     )
     return capped
   }
-  const policy = planningBeatCountPolicy(
+  const policy = planningSceneCountPolicy(
     skeleton.targetWords,
-    seed.pipelineOverrides?.planningMaxBeatsPerChapter,
+    planningMaxScenesOverride(seed.pipelineOverrides),
   )
-  if (policy.effectiveMaxBeats === null || scenes.length <= policy.effectiveMaxBeats) return scenes
-  const capped = scenes.slice(0, policy.effectiveMaxBeats)
-  const note = policy.capRaisedToFloor ? `; configured cap ${policy.configuredMaxBeats} raised to floor` : ""
+  if (policy.effectiveMaxScenes === null || scenes.length <= policy.effectiveMaxScenes) return scenes
+  const capped = scenes.slice(0, policy.effectiveMaxScenes)
+  const note = policy.capRaisedToFloor ? `; configured cap ${policy.configuredMaxScenes} raised to floor` : ""
   log(
     novelId,
     "info",
-    `Planning beats ch${skeleton.chapterNumber}: capped ${scenes.length} -> ${capped.length} by planningMaxBeatsPerChapter${note}`,
+    `Planning scene entries ch${skeleton.chapterNumber}: capped ${scenes.length} -> ${capped.length} by planningMaxScenesPerChapter${note}`,
   )
   return capped
 }
@@ -951,7 +956,7 @@ async function mapChapterState(
     seed,
   })
   if (retryFeedback) {
-    userPrompt += `\n\n--- EXISTING STATE MAPPING TO PRESERVE ---\n${renderExistingStateMapping(skeleton)}\n\n--- PREVIOUS STATE MAPPING FAILED COVERAGE VALIDATION ---\n${retryFeedback}\n\nReturn a complete replacement JSON object for this chapter's state mapping only. Keep the existing beat indexes unchanged. Preserve existing valid chapter-level state; fix missing coverage by adding or moving beat obligations rather than deleting valid facts, knowledge changes, or state changes.`
+    userPrompt += `\n\n--- EXISTING STATE MAPPING TO PRESERVE ---\n${renderExistingStateMapping(skeleton)}\n\n--- PREVIOUS STATE MAPPING FAILED COVERAGE VALIDATION ---\n${retryFeedback}\n\nReturn a complete replacement JSON object for this chapter's state mapping only. Keep the existing scene-entry indexes unchanged. Preserve existing valid chapter-level state; fix missing coverage by adding or moving scene obligations rather than deleting valid facts, knowledge changes, or state changes.`
   }
 
   emit(novelId, { type: "progress", data: { step: "planning-state-mapper", status: "running", chapter: skeleton.chapterNumber, attempt } })
@@ -971,7 +976,7 @@ async function mapChapterState(
     const enrichment = enrichOutlineIds(outline)
     if (enrichment.obligationLinkFailures.length > 0) {
       for (const failure of enrichment.obligationLinkFailures.slice(0, 8)) {
-        log(novelId, "warn", `Planning state mapper ch${outline.chapterNumber} unlinked obligation ${failure.obligationKey}#${failure.obligationIndex} on ${failure.beatId}: ${failure.reason} text="${failure.text.slice(0, 80)}"`)
+        log(novelId, "warn", `Planning state mapper ch${outline.chapterNumber} unlinked obligation ${failure.obligationKey}#${failure.obligationIndex} on entry ${failure.beatId}: ${failure.reason} text="${failure.text.slice(0, 80)}"`)
       }
     }
     const validation = harness.beatObligations.validateBeatObligationCoverage(outline)
@@ -1006,14 +1011,14 @@ function mergeStateMapping(
   for (const beatMapping of mapping.beatMappings ?? []) {
     if (!Number.isInteger(beatMapping.beatIndex) || beatMapping.beatIndex < 0 || beatMapping.beatIndex >= mappedScenes.length) continue
     const scene = mappedScenes[beatMapping.beatIndex]
-    // beatId mismatch: log+ignore the echoed beatId rather than crashing
+    // Legacy beatId mismatch: log+ignore the echoed beatId rather than crashing
     // the entire planning phase. beatIndex is the authoritative selector;
     // a stale beatId echo (e.g. mapper retry referencing an earlier
     // chapter's IDs) shouldn't take down a valid mapping. The mismatch is
     // surfaced as a planning-level warning so the operator can spot
     // mapper drift.
     if (beatMapping.beatId && scene.beatId && beatMapping.beatId !== scene.beatId) {
-      console.warn(`  Planning state mapper beatId echo mismatch: beatIndex ${beatMapping.beatIndex} echoed ${beatMapping.beatId}, expected ${scene.beatId} — using beatIndex, ignoring echoed beatId`)
+      console.warn(`  Planning state mapper legacy beatId echo mismatch: entry index ${beatMapping.beatIndex} echoed ${beatMapping.beatId}, expected ${scene.beatId} — using entry index, ignoring echoed beatId`)
     }
     scene.obligations = mergeBeatObligations(scene.obligations, beatMapping.obligations)
     scene.requiredPayoffs = mergeRequiredPayoffs(scene.requiredPayoffs, beatMapping.requiredPayoffs)
@@ -1107,10 +1112,10 @@ function logStateMapperTelemetry(
 ): void {
   const validMappings = (mapping.beatMappings ?? [])
     .filter(m => Number.isInteger(m.beatIndex) && m.beatIndex >= 0 && m.beatIndex < outline.scenes.length)
-  const mappedBeatCount = new Set(validMappings.map(m => m.beatIndex)).size
+  const mappedEntryCount = new Set(validMappings.map(m => m.beatIndex)).size
   const ignoredMappingCount = (mapping.beatMappings ?? []).length - validMappings.length
   const storyRefs = storyRefSummary
     ? ` storyRefs=${storyRefSummary.threadRefCount}/${storyRefSummary.promiseRefCount}/${storyRefSummary.payoffRefCount} storyRefIssues=${storyRefSummary.issueCount}`
     : ""
-  log(novelId, "info", `Planning state mapper ch${outline.chapterNumber} attempt=${attempt}: mappedBeats=${mappedBeatCount}/${outline.scenes.length} ignoredMappings=${ignoredMappingCount} facts=${summary.factCount} orphanFacts=${summary.orphanFacts} knowledge=${summary.knowledgeCount} orphanKnowledge=${summary.orphanKnowledgeChanges} state=${summary.stateChangeCount} orphanState=${summary.orphanStateChanges} overloadedBeats=${summary.overloadedBeats}${storyRefs}`)
+  log(novelId, "info", `Planning state mapper ch${outline.chapterNumber} attempt=${attempt}: mappedEntries=${mappedEntryCount}/${outline.scenes.length} ignoredMappings=${ignoredMappingCount} facts=${summary.factCount} orphanFacts=${summary.orphanFacts} knowledge=${summary.knowledgeCount} orphanKnowledge=${summary.orphanKnowledgeChanges} state=${summary.stateChangeCount} orphanState=${summary.orphanStateChanges} overloadedEntries=${summary.overloadedBeats}${storyRefs}`)
 }

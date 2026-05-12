@@ -27,9 +27,9 @@ export interface MiceContextInput {
   /** Verbatim prose for the scene under tag. */
   prose: string
   /** Beats from the previous chapter (canonical-ordered), ≤ 8 most-recent. */
-  prevChapterBeats: Array<{ chapter: string | number; summary: string }>
+  prevChapterScenePlan: Array<{ chapter: string | number; summary: string }>
   /** Beats from the next chapter (canonical-ordered), ≤ 8 first beats. */
-  nextChapterBeats: Array<{ chapter: string | number; summary: string }>
+  nextChapterScenePlan: Array<{ chapter: string | number; summary: string }>
 }
 
 function fmtBeat(b: { chapter: string | number; summary: string }): string {
@@ -51,9 +51,9 @@ export function buildMiceContext(input: MiceContextInput): string {
   lines.push(`brief_summary: ${input.brief.summary}`)
   lines.push("")
 
-  if (input.prevChapterBeats.length) {
+  if (input.prevChapterScenePlan.length) {
     lines.push("=== PREVIOUS CHAPTER (last beats — leading-in context) ===")
-    for (const b of input.prevChapterBeats.slice(-8)) lines.push(fmtBeat(b))
+    for (const b of input.prevChapterScenePlan.slice(-8)) lines.push(fmtBeat(b))
     lines.push("")
   }
 
@@ -61,9 +61,9 @@ export function buildMiceContext(input: MiceContextInput): string {
   lines.push(input.prose)
   lines.push("")
 
-  if (input.nextChapterBeats.length) {
+  if (input.nextChapterScenePlan.length) {
     lines.push("=== NEXT CHAPTER (first beats — leading-out context) ===")
-    for (const b of input.nextChapterBeats.slice(0, 8)) lines.push(fmtBeat(b))
+    for (const b of input.nextChapterScenePlan.slice(0, 8)) lines.push(fmtBeat(b))
     lines.push("")
   }
 

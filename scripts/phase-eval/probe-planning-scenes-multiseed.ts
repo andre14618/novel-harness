@@ -1,7 +1,7 @@
 /**
- * Phase-eval probe — multi-seed planning-beats variance measurement.
+ * Phase-eval probe — multi-seed planning-scenes variance measurement.
  *
- * Sibling of `probe-planning-beats.ts`. Same child-process model
+ * Sibling of `probe-planning-scenes.ts`. Same child-process model
  * (`run-variant.ts`), same prompt-override env var contract, same
  * `clone-for-variant --target-phase=concept-done` reuse pattern.
  * The single-seed probe stays as the historical paired-variant comparison
@@ -23,12 +23,12 @@
  *        c. Collect outlines.json from disk.
  *
  *   Aggregate across all (seed, rerun) cells:
- *     - Per-cell metrics (facts_median, know_median, total_beats, etc.)
+ *     - Per-cell metrics (facts_median, know_median, total_scenes, etc.)
  *     - Per-seed variance (std deviation across reruns for each seed)
  *     - Across-seed variance (std deviation across seed-medians)
  *     - Across-cell variance (std deviation across all reruns from all seeds)
  *
- * Why a separate script (not a flag on probe-planning-beats.ts):
+ * Why a separate script (not a flag on probe-planning-scenes.ts):
  * - The single-seed probe's verdict shape (G1-G5 control-vs-test) is
  *   completely different from a variance scan. Forcing one script to do
  *   both would tangle the verdict logic. Sibling scripts let each
@@ -38,14 +38,14 @@
  *
  * Usage:
  *
- *   bun scripts/phase-eval/probe-planning-beats-multiseed.ts \
+ *   bun scripts/phase-eval/probe-planning-scenes-multiseed.ts \
  *     --seeds=fantasy-debt,fantasy-system-heretic,fantasy-inscription \
  *     --chapters-per-seed=5 \
  *     --reruns-per-seed=3 \
  *     --variant=default \
- *     --variant-dir=scripts/phase-eval/variants/planning-beats \
+ *     --variant-dir=scripts/phase-eval/variants/planning-scenes \
  *     --output-base=output/phase-eval/multiseed-<run-tag> \
- *     [--prompt-env=PLANNING_BEATS_PROMPT_OVERRIDE] \
+ *     [--prompt-env=PLANNING_SCENES_PROMPT_OVERRIDE] \
  *     [--persist] [--exp-id=<n>] [--note='...']
  *     [--keep-novels]   (default: cleanup created novels at end)
  *
@@ -66,7 +66,7 @@
 import { spawnSync } from "node:child_process"
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { isAbsolute, join, resolve, basename } from "node:path"
-import { chapterBeatsSchema } from "../../src/agents/planning-beats/schema"
+import { chapterScenePlanSchema } from "../../src/agents/planning-scenes/schema"
 import { validateBeatObligationCoverage } from "../../src/harness/beat-obligations"
 
 // ── Argument parsing ─────────────────────────────────────────────────
@@ -79,7 +79,7 @@ interface Args {
   variantDir: string
   outputBase: string
   /** Env var the child run-variant should use to override the system prompt.
-   *  Defaults to PLANNING_BEATS_PROMPT_OVERRIDE — the only mode this
+   *  Defaults to PLANNING_SCENES_PROMPT_OVERRIDE — the only mode this
    *  variance probe is designed for today. The single-seed probe supports
    *  more; keep this one narrow. */
   promptEnv: string
@@ -90,7 +90,7 @@ interface Args {
 }
 
 const SUPPORTED_PROMPT_ENVS = new Set([
-  "PLANNING_BEATS_PROMPT_OVERRIDE",
+  "PLANNING_SCENES_PROMPT_OVERRIDE",
   "PLANNING_PLOTTER_PROMPT_OVERRIDE",
   "PLANNING_STATE_MAPPER_PROMPT_OVERRIDE",
 ])
@@ -110,14 +110,14 @@ function parseArgs(): Args {
   const outputBase = map["output-base"] as string
   if (!seedsRaw || !chaptersRaw || !rerunsRaw || !variant || !variantDir || !outputBase) {
     console.error(
-      "usage: bun probe-planning-beats-multiseed.ts \\\n" +
+      "usage: bun probe-planning-scenes-multiseed.ts \\\n" +
       "  --seeds=<seed1,seed2,seed3> \\\n" +
       "  --chapters-per-seed=<N> \\\n" +
       "  --reruns-per-seed=<M> \\\n" +
       "  --variant=<variant-id> \\\n" +
       "  --variant-dir=<dir-with-{variant}.md-file> \\\n" +
       "  --output-base=<absolute-output-dir> \\\n" +
-      "  [--prompt-env=PLANNING_BEATS_PROMPT_OVERRIDE|PLANNING_PLOTTER_PROMPT_OVERRIDE|PLANNING_STATE_MAPPER_PROMPT_OVERRIDE] \\\n" +
+      "  [--prompt-env=PLANNING_SCENES_PROMPT_OVERRIDE|PLANNING_PLOTTER_PROMPT_OVERRIDE|PLANNING_STATE_MAPPER_PROMPT_OVERRIDE] \\\n" +
       "  [--persist] [--exp-id=<n>] [--note='...']\\\n" +
       "  [--keep-novels]   (default: cleanup created novels at end)"
     )
@@ -138,7 +138,7 @@ function parseArgs(): Args {
     console.error(`--reruns-per-seed must be a positive integer, got: ${rerunsRaw}`)
     process.exit(2)
   }
-  const promptEnv = (map["prompt-env"] as string | undefined)?.trim() || "PLANNING_BEATS_PROMPT_OVERRIDE"
+  const promptEnv = (map["prompt-env"] as string | undefined)?.trim() || "PLANNING_SCENES_PROMPT_OVERRIDE"
   if (!SUPPORTED_PROMPT_ENVS.has(promptEnv)) {
     console.error(`--prompt-env must be one of: ${[...SUPPORTED_PROMPT_ENVS].join(", ")} (got '${promptEnv}')`)
     process.exit(2)
@@ -200,7 +200,7 @@ async function setupConceptSnapshot(seed: string, chaptersPerSeed: number): Prom
   if (result.kind !== "complete") throw new Error(`concept phase paused: ${result.reason}`)
   // Move row from default phase='concept' to 'planning' so
   // clone-for-variant --target-phase=concept-done finds it in the right
-  // state. Same dance as probe-planning-beats.ts.
+  // state. Same dance as probe-planning-scenes.ts.
   const { default: db } = await import("../../src/db/connection")
   await db`UPDATE novels SET phase = 'planning', updated_at = now() WHERE id = ${novelId}`
   console.error(`[probe-ms]   concept complete: characters=${result.output.characterCount} systems=${result.output.worldSystemsCount} cultures=${result.output.culturesCount}`)
@@ -261,10 +261,10 @@ interface CellMetrics {
   facts_median: number
   knowledge_median: number
   state_median: number
-  total_beats: number
+  total_scenes: number
   total_obligations: number
   total_orphans: number
-  overloaded_beats: number
+  overloaded_entries: number
   chapters_total: number
 }
 
@@ -294,8 +294,8 @@ function stddev(xs: number[]): number {
 function computeCellMetrics(seed: string, rerun: number, novelId: string, outlinesPath: string, expectedChapters: number): CellMetrics {
   const empty = {
     seed, rerun, novelId, ok: false,
-    facts_median: 0, knowledge_median: 0, state_median: 0, total_beats: 0,
-    total_obligations: 0, total_orphans: 0, overloaded_beats: 0, chapters_total: 0,
+    facts_median: 0, knowledge_median: 0, state_median: 0, total_scenes: 0,
+    total_obligations: 0, total_orphans: 0, overloaded_entries: 0, chapters_total: 0,
   }
   if (!existsSync(outlinesPath)) {
     return { ...empty, reason: `outlines.json not found: ${outlinesPath}` }
@@ -310,9 +310,9 @@ function computeCellMetrics(seed: string, rerun: number, novelId: string, outlin
   if (raw.length !== expectedChapters) {
     return { ...empty, reason: `expected ${expectedChapters} chapters, got ${raw.length}` }
   }
-  const outlines: ReturnType<typeof chapterBeatsSchema.parse>[] = []
+  const outlines: ReturnType<typeof chapterScenePlanSchema.parse>[] = []
   for (let i = 0; i < raw.length; i++) {
-    const result = chapterBeatsSchema.safeParse(raw[i])
+    const result = chapterScenePlanSchema.safeParse(raw[i])
     if (!result.success) {
       return { ...empty, reason: `chapter ${i + 1} fails schema: ${result.error.issues.slice(0, 2).map(e => `${e.path.join(".")}: ${e.message}`).join("; ")}` }
     }
@@ -321,7 +321,7 @@ function computeCellMetrics(seed: string, rerun: number, novelId: string, outlin
   const facts = outlines.map(o => o.establishedFacts.length)
   const knowledge = outlines.map(o => o.knowledgeChanges.length)
   const state = outlines.map(o => o.characterStateChanges.length)
-  const beatCounts = outlines.map(o => o.scenes.length)
+  const sceneCounts = outlines.map(o => o.scenes.length)
   const coverage = outlines.map(o => validateBeatObligationCoverage(o))
   const totalObligations = sum(outlines.map(o =>
     sum(o.scenes.map(s =>
@@ -337,10 +337,10 @@ function computeCellMetrics(seed: string, rerun: number, novelId: string, outlin
     facts_median: median(facts),
     knowledge_median: median(knowledge),
     state_median: median(state),
-    total_beats: sum(beatCounts),
+    total_scenes: sum(sceneCounts),
     total_obligations: totalObligations,
     total_orphans: sum(coverage.map(c => c.summary.orphanFacts + c.summary.orphanKnowledgeChanges + c.summary.orphanStateChanges)),
-    overloaded_beats: sum(coverage.map(c => c.summary.overloadedBeats)),
+    overloaded_entries: sum(coverage.map(c => c.summary.overloadedBeats)),
     chapters_total: outlines.length,
   }
 }
@@ -351,23 +351,23 @@ interface SeedAggregate {
   ok_count: number
   facts_medians: number[]
   knowledge_medians: number[]
-  total_beats: number[]
+  total_scenes: number[]
   facts_median_mean: number
   facts_median_stddev: number
   facts_median_range: number
   knowledge_median_mean: number
   knowledge_median_stddev: number
   knowledge_median_range: number
-  total_beats_mean: number
-  total_beats_stddev: number
-  total_beats_range: number
+  total_scenes_mean: number
+  total_scenes_stddev: number
+  total_scenes_range: number
 }
 
 function aggregateSeed(cells: CellMetrics[]): SeedAggregate {
   const ok = cells.filter(c => c.ok)
   const facts = ok.map(c => c.facts_median)
   const know = ok.map(c => c.knowledge_median)
-  const beats = ok.map(c => c.total_beats)
+  const scenes = ok.map(c => c.total_scenes)
   const range = (xs: number[]) => xs.length === 0 ? 0 : Math.max(...xs) - Math.min(...xs)
   return {
     seed: cells[0]!.seed,
@@ -375,16 +375,16 @@ function aggregateSeed(cells: CellMetrics[]): SeedAggregate {
     ok_count: ok.length,
     facts_medians: facts,
     knowledge_medians: know,
-    total_beats: beats,
+    total_scenes: scenes,
     facts_median_mean: mean(facts),
     facts_median_stddev: stddev(facts),
     facts_median_range: range(facts),
     knowledge_median_mean: mean(know),
     knowledge_median_stddev: stddev(know),
     knowledge_median_range: range(know),
-    total_beats_mean: mean(beats),
-    total_beats_stddev: stddev(beats),
-    total_beats_range: range(beats),
+    total_scenes_mean: mean(scenes),
+    total_scenes_stddev: stddev(scenes),
+    total_scenes_range: range(scenes),
   }
 }
 
@@ -393,38 +393,38 @@ interface AcrossSeedAggregate {
   /** All ok cells flat (every rerun from every seed). */
   all_facts_medians: number[]
   all_knowledge_medians: number[]
-  all_total_beats: number[]
+  all_total_scenes: number[]
   /** Across-cell variance: std dev across all seed-rerun cells (the
    *  "if you ran the multi-seed probe once, how variable would the
    *  result be?" answer). */
   across_cell_facts_stddev: number
   across_cell_knowledge_stddev: number
-  across_cell_total_beats_stddev: number
+  across_cell_total_scenes_stddev: number
   /** Across-seed variance: std dev across per-seed means (the
    *  "how much do seeds disagree on the typical value?" answer). */
   across_seed_facts_stddev: number
   across_seed_knowledge_stddev: number
-  across_seed_total_beats_stddev: number
+  across_seed_total_scenes_stddev: number
 }
 
 function aggregateAcross(seedAggs: SeedAggregate[]): AcrossSeedAggregate {
   const allFacts = seedAggs.flatMap(s => s.facts_medians)
   const allKnow = seedAggs.flatMap(s => s.knowledge_medians)
-  const allBeats = seedAggs.flatMap(s => s.total_beats)
+  const allScenes = seedAggs.flatMap(s => s.total_scenes)
   const seedMeansFacts = seedAggs.map(s => s.facts_median_mean)
   const seedMeansKnow = seedAggs.map(s => s.knowledge_median_mean)
-  const seedMeansBeats = seedAggs.map(s => s.total_beats_mean)
+  const seedMeansScenes = seedAggs.map(s => s.total_scenes_mean)
   return {
     seeds: seedAggs.map(s => s.seed),
     all_facts_medians: allFacts,
     all_knowledge_medians: allKnow,
-    all_total_beats: allBeats,
+    all_total_scenes: allScenes,
     across_cell_facts_stddev: stddev(allFacts),
     across_cell_knowledge_stddev: stddev(allKnow),
-    across_cell_total_beats_stddev: stddev(allBeats),
+    across_cell_total_scenes_stddev: stddev(allScenes),
     across_seed_facts_stddev: stddev(seedMeansFacts),
     across_seed_knowledge_stddev: stddev(seedMeansKnow),
-    across_seed_total_beats_stddev: stddev(seedMeansBeats),
+    across_seed_total_scenes_stddev: stddev(seedMeansScenes),
   }
 }
 
@@ -457,7 +457,7 @@ async function main() {
         const outlinesPath = join(cellOutputDir, "outlines.json")
         const cell = computeCellMetrics(seed, rerun, targetNovelId, outlinesPath, args.chaptersPerSeed)
         cells.push(cell)
-        console.error(`[probe-ms] cell seed=${seed} r${rerun} → ok=${cell.ok} facts=${cell.facts_median} know=${cell.knowledge_median} beats=${cell.total_beats}${cell.reason ? ` (${cell.reason})` : ""}`)
+        console.error(`[probe-ms] cell seed=${seed} r${rerun} → ok=${cell.ok} facts=${cell.facts_median} know=${cell.knowledge_median} scenes=${cell.total_scenes}${cell.reason ? ` (${cell.reason})` : ""}`)
       }
     }
 
@@ -475,16 +475,16 @@ async function main() {
     console.log()
     console.log("Per-cell metrics:")
     for (const c of cells) {
-      console.log(`  ${c.seed} r${c.rerun}: facts=${c.facts_median} know=${c.knowledge_median} beats=${c.total_beats} chapters=${c.chapters_total} ok=${c.ok}${c.reason ? ` (${c.reason})` : ""}`)
+      console.log(`  ${c.seed} r${c.rerun}: facts=${c.facts_median} know=${c.knowledge_median} scenes=${c.total_scenes} chapters=${c.chapters_total} ok=${c.ok}${c.reason ? ` (${c.reason})` : ""}`)
     }
     console.log()
     console.log("Per-seed aggregates (mean ± stddev across reruns):")
     for (const s of seedAggs) {
-      console.log(`  ${s.seed} (n=${s.ok_count}): facts ${s.facts_median_mean.toFixed(2)} ± ${s.facts_median_stddev.toFixed(2)} (range ${s.facts_median_range})  know ${s.knowledge_median_mean.toFixed(2)} ± ${s.knowledge_median_stddev.toFixed(2)} (range ${s.knowledge_median_range})  beats ${s.total_beats_mean.toFixed(1)} ± ${s.total_beats_stddev.toFixed(1)} (range ${s.total_beats_range})`)
+      console.log(`  ${s.seed} (n=${s.ok_count}): facts ${s.facts_median_mean.toFixed(2)} ± ${s.facts_median_stddev.toFixed(2)} (range ${s.facts_median_range})  know ${s.knowledge_median_mean.toFixed(2)} ± ${s.knowledge_median_stddev.toFixed(2)} (range ${s.knowledge_median_range})  scenes ${s.total_scenes_mean.toFixed(1)} ± ${s.total_scenes_stddev.toFixed(1)} (range ${s.total_scenes_range})`)
     }
     console.log()
-    console.log(`Across-cell stddev (all ${cells.filter(c => c.ok).length} ok cells): facts=${across.across_cell_facts_stddev.toFixed(3)} know=${across.across_cell_knowledge_stddev.toFixed(3)} beats=${across.across_cell_total_beats_stddev.toFixed(2)}`)
-    console.log(`Across-seed stddev (n=${seedAggs.length} seed means): facts=${across.across_seed_facts_stddev.toFixed(3)} know=${across.across_seed_knowledge_stddev.toFixed(3)} beats=${across.across_seed_total_beats_stddev.toFixed(2)}`)
+    console.log(`Across-cell stddev (all ${cells.filter(c => c.ok).length} ok cells): facts=${across.across_cell_facts_stddev.toFixed(3)} know=${across.across_cell_knowledge_stddev.toFixed(3)} scenes=${across.across_cell_total_scenes_stddev.toFixed(2)}`)
+    console.log(`Across-seed stddev (n=${seedAggs.length} seed means): facts=${across.across_seed_facts_stddev.toFixed(3)} know=${across.across_seed_knowledge_stddev.toFixed(3)} scenes=${across.across_seed_total_scenes_stddev.toFixed(2)}`)
     console.log()
 
     // Write summary.json.
@@ -509,7 +509,7 @@ async function main() {
     if (args.persist) {
       const { persistPhaseEvalRun, currentGitCommit } = await import("./persist-run")
       const okCount = cells.filter(c => c.ok).length
-      const verdict = `MULTISEED-VARIANCE — variant=${args.variant} seeds=${args.seeds.length} reruns=${args.rerunsPerSeed} chapters=${args.chaptersPerSeed} ok_cells=${okCount}/${cells.length} | facts_stddev across_cell=${across.across_cell_facts_stddev.toFixed(3)} across_seed=${across.across_seed_facts_stddev.toFixed(3)} | know_stddev across_cell=${across.across_cell_knowledge_stddev.toFixed(3)} across_seed=${across.across_seed_knowledge_stddev.toFixed(3)} | beats_stddev across_cell=${across.across_cell_total_beats_stddev.toFixed(2)} across_seed=${across.across_seed_total_beats_stddev.toFixed(2)}`
+      const verdict = `MULTISEED-VARIANCE — variant=${args.variant} seeds=${args.seeds.length} reruns=${args.rerunsPerSeed} chapters=${args.chaptersPerSeed} ok_cells=${okCount}/${cells.length} | facts_stddev across_cell=${across.across_cell_facts_stddev.toFixed(3)} across_seed=${across.across_seed_facts_stddev.toFixed(3)} | know_stddev across_cell=${across.across_cell_knowledge_stddev.toFixed(3)} across_seed=${across.across_seed_knowledge_stddev.toFixed(3)} | scenes_stddev across_cell=${across.across_cell_total_scenes_stddev.toFixed(2)} across_seed=${across.across_seed_total_scenes_stddev.toFixed(2)}`
       try {
         const runId = await persistPhaseEvalRun({
           probeName: "multi-seed-probe-shape-comparison",

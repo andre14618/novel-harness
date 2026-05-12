@@ -21,7 +21,7 @@ const STEP_LABELS: Record<string, string> = {
   "character-agent": "Creating characters",
   "plotter": "Plotting story spine",
   "planning-plotter": "Generating chapter outlines",
-  "planning-beats": "Expanding chapter beats",
+  "planning-scenes": "Expanding chapter scenes",
   "writer": "Writing chapter",
   "beat-writer": "Writing beat",
   "continuity": "Checking continuity",

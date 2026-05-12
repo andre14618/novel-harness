@@ -25,10 +25,10 @@ Revision 1 (beat-writer-only) was rejected. Codex consult
 `af1875be5a79f4e3b` confirmed: one flat loop spanning all surfaces is
 incoherent because of layer coupling; the loop should be decomposed
 into per-layer sub-loops with an explicit composition rule. The original Phase 0
-proposal started at `planning-beats`, not `buildBeatContext`, because the planner
+proposal started at `planning-scenes`, not `buildBeatContext`, because the planner
 owned the structured state that feeds both drafting and checking.
 
-**Updated 2026-05-01:** exp #289 split that planner surface. `planning-beats`
+**Updated 2026-05-01:** exp #289 split that planner surface. `planning-scenes`
 now owns beat shape only; `planning-state-mapper` owns `establishedFacts`,
 `characterStateChanges`, `knowledgeChanges`, payoff links, and writer-visible
 obligations. Any autonomous planning loop now needs either two sub-loops or a
@@ -50,7 +50,7 @@ token-cost as the budget axis.
 
 The pipeline is coupled and non-stationary:
 
-- `planning-beats` output shape determines the beat descriptions
+- `planning-scenes` output shape determines the beat descriptions
   the writer consumes and the `establishedFacts` / `knowledgeChanges`
   the checkers compare against.
 - `buildBeatContext` prompt shape determines what the writer sees
@@ -71,13 +71,13 @@ one broad loop.
 
 ## Layer decomposition
 
-> **Stale surface note:** Sections below predate exp #289 and exp #272 in places. `planning-beats` is now beat-shape only; state/fact/knowledge/obligation placement belongs to `planning-state-mapper`. There is no live voice-LoRA compact route or Salvatore leak checker in runtime. Use this design as loop architecture, not as a current surface inventory; current surfaces live in `docs/archive/2026-04/harness-optimization-inventory.md` and `docs/current-state.md`.
+> **Stale surface note:** Sections below predate exp #289 and exp #272 in places. `planning-scenes` is now beat-shape only; state/fact/knowledge/obligation placement belongs to `planning-state-mapper`. There is no live voice-LoRA compact route or Salvatore leak checker in runtime. Use this design as loop architecture, not as a current surface inventory; current surfaces live in `docs/archive/2026-04/harness-optimization-inventory.md` and `docs/current-state.md`.
 
 **Current operating overlay (2026-05-02):** each sub-loop below maps to one primary lane at a time. Parallel support work is allowed for replay harnesses, tests, audits, operator summaries, and result docs, but unrelated runtime behavior changes must become separate lanes. Use DeepSeek V4 Flash concurrency for same-lane statistical power: repeated same-family runs, fixed panels, paired replay, or multi-seed confirmation with predeclared sample shape, family key, budget cap, and promotion gate. A tier winner cannot be promoted from a smoke that also changed a different tier's prompt, routing, schema, checker threshold, planner/context surface, or retry policy unless that bundle was declared as the lane before validation.
 
 Four tiers, ordered upstream → downstream. Each tier's winner gates
 on downstream replay before ship. Phase 0 starts at Sub-loop 1
-(`planning-beats`); Sub-loop 0 (concept/world-building) is on the
+(`planning-scenes`); Sub-loop 0 (concept/world-building) is on the
 map per user direction 2026-04-21 ("we can further decompose it to
 world building sections upstream from planning") but is deferred
 pending Sub-loop 1 convergence — concept changes are farthest from
@@ -107,8 +107,8 @@ sub-loop that's closest to the oracle goes first.
 | `plotter` arc-shape prior | free / hero-journey / genre-pack-locked | free |
 
 **Measurement axes (primary):**
-1. Downstream planning-beats quality — when concept output changes,
-   does `planning-beats` produce higher-richness beats on all the
+1. Downstream planning-scenes quality — when concept output changes,
+   does `planning-scenes` produce higher-richness beats on all the
    Sub-loop 1 primary metrics? This is the **load-bearing measurement
    for this tier** because concept output is consumed by planning,
    not by prose directly.
@@ -140,12 +140,12 @@ isolates the upstream variable and prevents cross-tier confounds.
 ### Sub-loop 1: Planning layer
 
 **Scope (ordered by ROI):**
-- `planning-beats` prompt (per-chapter beat expansion; N parallel
+- `planning-scenes` prompt (per-chapter beat expansion; N parallel
   calls per novel; owns `establishedFacts`, `characterStateChanges`,
   `knowledgeChanges`).
 - `planning-plotter` prompt (chapter skeletons).
 
-**Knobs (Phase 0 = `planning-beats` only):**
+**Knobs (Phase 0 = `planning-scenes` only):**
 
 | Knob | Range | Default |
 |---|---|---|
@@ -270,8 +270,8 @@ it.
 
 ```jsonc
 {
-  "iteration_id": "planning-beats-loop-v1-iter-003",
-  "sub_loop": "planning-beats",
+  "iteration_id": "planning-scenes-loop-v1-iter-003",
+  "sub_loop": "planning-scenes",
   "proposed_at": "2026-04-21T18:00:00Z",
   "proposer_reasoning": "<optional LLM-proposer quote>",
   "config": { /* sub-loop-specific knobs */ },
@@ -287,11 +287,11 @@ it.
 }
 ```
 
-## Phase 0 plan — `planning-beats` sub-loop only
+## Phase 0 plan — `planning-scenes` sub-loop only
 
 Per Codex `af1875be5a79f4e3b` recommendation: start with
-`planning-beats`, not `buildBeatContext` and not `world-builder`.
-Rationale: `planning-beats` directly controls beat descriptions plus
+`planning-scenes`, not `buildBeatContext` and not `world-builder`.
+Rationale: `planning-scenes` directly controls beat descriptions plus
 planned state, both of which flow into drafting and checking. It is
 the highest-ROI surface that is still close enough to the audited
 per-beat defects to attribute cleanly.
@@ -306,7 +306,7 @@ per-beat defects to attribute cleanly.
 4. **Carve out a held-out 10-beat replay set** from a different
    novel (NOT `novel-1776690840208`) for final-winner validation.
    Prevents pool-overfitting; flagged as risk below.
-5. Hand-seed 3 starting `planning-beats` configurations:
+5. Hand-seed 3 starting `planning-scenes` configurations:
    (a) current production, (b) richer-facts, (c) explicit-knowledge.
 6. Manually drive 3–5 iterations with Codex-as-proposer reading a
    JSONL history of {config, scores, notes}. No automation yet.
@@ -316,11 +316,11 @@ per-beat defects to attribute cleanly.
 8. Ship to production only if Phase D downstream gates clear AND the
    held-out 10-beat replay set also clears.
 
-**Estimated Phase 0 cost:** ~$0.50 per iteration (planning-beats
+**Estimated Phase 0 cost:** ~$0.50 per iteration (planning-scenes
 call + writer replay + adherence + halluc on 20 beats). 5 iterations
 = ~$2.50. Plus ~$0.30 final held-out validation. Total ~$3.
 
-**Estimated Phase 0 effort:** ~1 day assuming `planning-beats`
+**Estimated Phase 0 effort:** ~1 day assuming `planning-scenes`
 prompt variants can be expressed declaratively (no schema changes).
 
 ## Named risks (from Codex consult)
@@ -347,7 +347,7 @@ prompt variants can be expressed declaratively (no schema changes).
    drops below 60%.
 5. **Hypothesis: concept-agent optimization is lower-yield early.**
    Concept changes are farther from audited per-beat failures than
-   planning-beats changes. Defer the concept sub-loop until planning
+   planning-scenes changes. Defer the concept sub-loop until planning
    sub-loop exhausts its gains.
 
 ## Budget + safety (unchanged from R1 shape)
@@ -377,19 +377,19 @@ prompt variants can be expressed declaratively (no schema changes).
 2. ✅ `llm_calls` persistence fix — shipped in `2f48217`.
 3. ⬜ `character-distinctness-audit-v1` charter green (Revision 2
    landed 2026-04-21; pending calibration + audit run).
-4. ⬜ `planning-beats` knob surface declaratively expressible.
+4. ⬜ `planning-scenes` knob surface declaratively expressible.
    Current planner prompt is a template string; Phase 0 needs a
    small config-driven variant system.
 5. ⬜ Held-out 10-beat replay set built from a second novel.
-6. ⬜ `planning-beats-loop-iteration-history.jsonl` +
+6. ⬜ `planning-scenes-loop-iteration-history.jsonl` +
    `propose-next-planning-config.ts` driver script.
 
 ## Next step
 
-Charter `docs/charters/planning-beats-autonomous-loop-phase-0.md`
+Charter `docs/charters/planning-scenes-autonomous-loop-phase-0.md`
 when ready to start. This design doc is the blueprint it should cite.
 
 **Not charter this session** unless the user explicitly asks — this
 revision is a rescoping, and the user may want to react to the new
-Phase 0 pivot (planning-beats instead of beat-writer) before
+Phase 0 pivot (planning-scenes instead of beat-writer) before
 committing to a Phase 0 charter.

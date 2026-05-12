@@ -3,23 +3,23 @@ import { describe, expect, test } from "bun:test"
 import {
   auditPlanningMaterialPressureGaps,
   auditSelectiveSceneTurnShapingGaps,
-  planningBeatsSystemPromptForSeed,
-  planningBeatExpansionRetryReason,
+  planningScenesSystemPromptForSeed,
+  planningSceneExpansionRetryReason,
   planningSkeletonRetryReason,
   planningStateMapperSystemPromptForSeed,
 } from "./planning"
 import type { ChapterOutline, SceneBeat, SeedInput } from "../types"
 
-describe("planningBeatExpansionRetryReason", () => {
+describe("planningSceneExpansionRetryReason", () => {
   test("keeps planning prompt byte-identical when selective shaping is off", () => {
-    const prompt = planningBeatsSystemPromptForSeed(seed({}))
+    const prompt = planningScenesSystemPromptForSeed(seed({}))
 
     expect(prompt).not.toContain("Active Output Contract Addendum")
     expect(prompt).not.toContain("planningSceneTurnShapingV1")
   })
 
   test("adds selective scene-turn fields to the system output contract only when flagged", () => {
-    const prompt = planningBeatsSystemPromptForSeed(seed({ planningSceneTurnShapingV1: true }))
+    const prompt = planningScenesSystemPromptForSeed(seed({ planningSceneTurnShapingV1: true }))
 
     expect(prompt).toContain("Active Output Contract Addendum: planningSceneTurnShapingV1")
     expect(prompt).toContain("`goal`")
@@ -41,7 +41,7 @@ describe("planningBeatExpansionRetryReason", () => {
   })
 
   test("retries selective scene-turn shaping when final endpoint fields are absent", () => {
-    expect(planningBeatExpansionRetryReason({
+    expect(planningSceneExpansionRetryReason({
       chapterNumber: 1,
       targetWords: 1500,
       scenes: [
@@ -58,7 +58,7 @@ describe("planningBeatExpansionRetryReason", () => {
   })
 
   test("accepts selective scene-turn shaping when final endpoint fields are present", () => {
-    expect(planningBeatExpansionRetryReason({
+    expect(planningSceneExpansionRetryReason({
       chapterNumber: 1,
       targetWords: 1500,
       scenes: [
@@ -78,7 +78,7 @@ describe("planningBeatExpansionRetryReason", () => {
   })
 
   test("retries selective scene-turn shaping when source-refed non-final entries lack turn fields", () => {
-    expect(planningBeatExpansionRetryReason({
+    expect(planningSceneExpansionRetryReason({
       chapterNumber: 1,
       targetWords: 900,
       scenes: [
@@ -105,7 +105,7 @@ describe("planningBeatExpansionRetryReason", () => {
   })
 
   test("retries selective scene-turn shaping when semantic fields inflate entry count above the recommended budget", () => {
-    expect(planningBeatExpansionRetryReason({
+    expect(planningSceneExpansionRetryReason({
       chapterNumber: 1,
       targetWords: 1500,
       scenes: [
@@ -152,7 +152,7 @@ describe("planningBeatExpansionRetryReason", () => {
   })
 
   test("accepts selective scene-turn shaping when source-refed non-final entries have turn fields", () => {
-    expect(planningBeatExpansionRetryReason({
+    expect(planningSceneExpansionRetryReason({
       chapterNumber: 1,
       targetWords: 900,
       scenes: [
@@ -183,7 +183,7 @@ describe("planningBeatExpansionRetryReason", () => {
   })
 
   test("retries selective scene-turn shaping when characters contain unnamed role labels", () => {
-    expect(planningBeatExpansionRetryReason({
+    expect(planningSceneExpansionRetryReason({
       chapterNumber: 1,
       targetWords: 900,
       scenes: [
@@ -211,7 +211,7 @@ describe("planningBeatExpansionRetryReason", () => {
   })
 
   test("does not apply selective scene-turn retry under full scene-plan contract", () => {
-    expect(planningBeatExpansionRetryReason({
+    expect(planningSceneExpansionRetryReason({
       chapterNumber: 1,
       targetWords: 900,
       scenes: [scene("Maren leaves with Halric's summons.")],

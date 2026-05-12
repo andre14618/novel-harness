@@ -29,7 +29,7 @@ export interface SeedInput {
     continuityEditorialFlagProposals?: boolean
     factRoleContextPolicy?: import("./harness/fact-roles").FactRoleContextPolicy
     writerContextMode?: import("./agents/writer/context-mode").WriterContextMode
-    planningMaxBeatsPerChapter?: number | null
+    planningMaxScenesPerChapter?: number | null
     nativePlanningContractV1?: boolean
     /**
      * Default-off upstream planning control. When on, the planner may add
@@ -58,7 +58,7 @@ export interface SeedInput {
      * adjusted-B3 Arm B preparation: render the SCENE CONTRACT block when
      * the planner has populated scene-contract fields, without enabling
      * scene-call writer mode. Default-off. Works with the legacy
-     * beat-shaped writer call unit. Has no effect when no scene-contract
+     * current writer call unit. Has no effect when no scene-contract
      * field is set on the entry, and is redundant when
      * sceneCallWriterV1=true.
      */
@@ -69,7 +69,7 @@ export interface SeedInput {
      * the writer assembles its prose, skipping the chapter-level
      * checker settle loops (plan check, continuity, validation,
      * halluc-ungrounded routing, integrity reviser, validation
-     * reviser, plan-check beat rewrites). Used by writer-arm A/B
+     * reviser, plan-check targeted rewrites). Used by writer-arm A/B
      * runners that need to collect prose evidence even when checker
      * APIs hang. Production runtime stays default-off.
      */

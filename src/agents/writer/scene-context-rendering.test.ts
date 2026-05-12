@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from "bun:test"
 
-import { buildBeatContextSlots, type BeatContext, type BeatContextResult } from "./beat-context"
+import { buildSceneContextSlots, type BeatContext, type BeatContextResult } from "./beat-context"
 import { renderBeatContext } from "./beat-context-render"
 import { summarizeBeatContextSurface } from "./context-surface"
 import { renderWriterDraftingBrief, selectWriterPromptForDraftingBrief } from "./drafting-brief"
@@ -465,7 +465,7 @@ describe("renderBeatContext + scene contract", () => {
     }
 
     for (const writerDraftingBriefMode of ["scene-budget-v1", "scene-budget-tight-v1", "scene-turn-v1", "scene-turn-anchored-v1", "scene-budget-tight-anchored-v1"] as const) {
-      const ctx = await buildBeatContextSlots({
+      const ctx = await buildSceneContextSlots({
         novelId: "unit-novel",
         chapterNumber: 2,
         beatIndex: 0,

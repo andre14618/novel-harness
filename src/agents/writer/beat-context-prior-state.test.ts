@@ -2,7 +2,7 @@
  * L38-A slot-selector gating test.
  *
  * Pins three behaviors of `selectReaderInfoStateForBeat` (the helper that
- * `buildBeatContextSlots` calls to populate the readerInfoState slot):
+ * `buildSceneContextSlots` calls to populate the readerInfoState slot):
  *   1. Chapter 1 → always returns null (no prior chapter).
  *   2. Chapter > 1 with prior facts → returns rendered block surfacing
  *      facts + per-present-character `doesNotKnow`.
@@ -10,9 +10,9 @@
  *      present chars) → returns null.
  *
  * Why this imports the selector directly from `enriched-context` rather
- * than going through `buildBeatContext`: the drafting suite installs a
+ * than going through `buildSceneContext`: the drafting suite installs a
  * process-global `mock.module("../agents/writer/beat-context", …)` that
- * replaces `buildBeatContext` with a stub returning a fixed string, which
+ * replaces `buildSceneContext` with a stub returning a fixed string, which
  * would mask any real slot behavior. The render placement is covered by
  * `beat-context-render.test.ts`.
  */

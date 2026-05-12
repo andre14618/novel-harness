@@ -29,11 +29,11 @@ _Avoid_: exhaustion gate, override gate.
 ### Plan
 
 **Chapter Skeleton**:
-The Phase-1 output of `planning-plotter` — chapter title, POV, target word count, beat list with descriptions only, no scenes or facts.
+The Phase-1 output of `planning-plotter` — chapter title, POV, target word count, chapter purpose, and cast/setting hints only; no scene entries or facts.
 _Avoid_: outline (reserved for the expanded form).
 
 **Chapter Plan**:
-The Phase-2 expanded form of a Chapter Skeleton — beats, scenes, established facts, character state changes, knowledge changes; persisted as `ChapterOutline`.
+The Phase-2 expanded form of a Chapter Skeleton — scene/turn entries, established facts, character state changes, knowledge changes; persisted as `ChapterOutline`.
 _Avoid_: outline (informal — say `ChapterOutline` for the type, Chapter Plan for the concept), skeleton.
 
 **World Bible**:
@@ -70,12 +70,16 @@ _Avoid_: character learning, reveal.
 
 ### Drafting
 
+**Scene Entry**:
+The primary planned dramatic unit within a Chapter Plan — description, POV/setting/cast hints, story-turn fields, and writer-visible obligations. Scene entries are stored in `ChapterOutline.scenes`.
+_Avoid_: beat, section, paragraph.
+
 **Beat**:
-A planned dramatic unit (~100 words) within a Chapter Plan — description, POV, setting, characters present, kind. Beats are drafted serially in Drafting.
-_Avoid_: scene, section, paragraph.
+A legacy/internal runtime label still present in some writer, checker, traceability, and obligation APIs. Do not introduce Beat as a new planning concept; prefer Scene Entry for planner-facing structure.
+_Avoid_: planning beat, beat plan.
 
 **Beat Context**:
-The selective bundle assembled per Beat before writing — Beat spec, Transition Bridge, Landing Target, Character Snapshots, Setting.
+The selective bundle assembled by the current writer adapter for a planned entry — entry spec, Transition Bridge, Landing Target, Character Snapshots, Setting. The name is legacy while drafting internals continue to migrate scene-first.
 _Avoid_: context, prompt.
 
 **Drafting Evidence Source**:
@@ -83,31 +87,31 @@ A Novel used as the source plan/state for fixed-plan Drafting evidence. It shoul
 _Avoid_: treating completed Drafting artifacts as clean planner sources.
 
 **Transition Bridge**:
-The last 2–3 sentences of the prior Beat's prose, injected into Beat Context to maintain continuity.
+The last 2–3 sentences of the prior entry's prose, injected into writer context to maintain continuity.
 _Avoid_: handoff, lead-in.
 
 **Landing Target**:
-The first sentence of the next Beat's description, injected into Beat Context to align where the current Beat must end.
+The first sentence of the next entry's description, injected into writer context to align where the current entry must end.
 _Avoid_: outro, anchor.
 
 **Character Snapshot**:
-A Beat-scoped view of a character — speech pattern, behavioral drivers, current emotional/location state, relationship to POV, doesn't-know constraints.
+A scoped view of a character for the active planned entry — speech pattern, behavioral drivers, current emotional/location state, relationship to POV, doesn't-know constraints.
 _Avoid_: character context, character profile.
 
 **Settle Loop**:
-The check → route-failures-to-issues → targeted-rewrite → recheck loop that runs after a Chapter Plan is checked or a Beat is written.
+The check → route-failures-to-issues → targeted-rewrite → recheck loop that runs after a Chapter Plan is checked or a planned entry is written.
 _Avoid_: retry loop, rewrite loop.
 
 **Retry Context**:
-The string built by `buildRetryPrompt` and appended to a Beat prompt on checker failure — prior prose, issue list, optional alignment note.
+The string built by `buildRetryPrompt` and appended to a writer prompt on checker failure — prior prose, issue list, optional alignment note.
 _Avoid_: retry prompt, rewrite context.
 
 **Targeted Rewrite**:
-A Beat-scoped regeneration triggered by a checker failure, carrying Retry Context.
+A scoped regeneration of the active planned entry triggered by a checker failure, carrying Retry Context.
 _Avoid_: retry, redraft.
 
 **Quality Redraft**:
-A blank-context regeneration of a Beat triggered by a Detector firing (repetition or underlength), distinct from Targeted Rewrite.
+A blank-context regeneration of the active planned entry triggered by a Detector firing (repetition or underlength), distinct from Targeted Rewrite.
 _Avoid_: redraft, regenerate.
 
 ### Discipline Checks
@@ -159,7 +163,7 @@ The per-genre runtime config (`WriterGenrePack`) that wires a Voice LoRA + syste
 _Avoid_: genre pack (use Writer Pack), pack.
 
 **Structural Priors**:
-Genre-specific planning constraints inside a Writer Pack — beat-kind distribution, sustain ranges, opener/closer kinds, max active characters, beats-per-chapter ranges.
+Genre-specific planning constraints inside a Writer Pack — scene-kind distribution, sustain ranges, opener/closer kinds, max active characters, scene-entry count ranges.
 _Avoid_: genre priors, structural constraints.
 
 **Conditioning Mode**:
@@ -200,13 +204,13 @@ _Avoid_: example, sample.
 - A **Phase** may pause at a **Gate** before advancing.
 - **Concept** produces a **World Bible**, characters, and a **Story Spine**.
 - **Planning** produces a **Chapter Skeleton** per chapter (Phase 1), then expands each into a **Chapter Plan** (Phase 2).
-- A **Chapter Plan** contains many **Beats** plus **Established Facts**, character state changes, and **Knowledge Changes**.
+- A **Chapter Plan** contains many **Scene Entries** plus **Established Facts**, character state changes, and **Knowledge Changes**.
 - In the world-bible architecture, committed planning/prose facts roll into **Canon**; each chapter drafts from a **Chapter Bundle** built from the relevant **Canon Snapshot**.
 - Post-draft extraction and **Editorial Review** create **Canon Proposals**; only committed proposals appear in later Canon Snapshots.
-- **Drafting** writes prose **Beat** by **Beat**, assembling a **Beat Context** for each.
-- After every **Beat**, **Beat Adherence** runs; on failure, a **Targeted Rewrite** fires inside the **Settle Loop** carrying a **Retry Context**.
+- **Drafting** writes prose planned entry by planned entry, using the legacy **Beat Context** adapter while the runtime migrates scene-first.
+- After every entry, the current legacy beat-adherence checker runs; on failure, a **Targeted Rewrite** fires inside the **Settle Loop** carrying a **Retry Context**.
 - A **Detector** firing triggers a **Quality Redraft** instead of a Targeted Rewrite.
-- After every chapter, **Plan Adherence** and **Continuity** run; **Plan Adherence** failures route to **Beat**-targeted rewrites; on Settle Loop exhaustion, the **Reviser** edits the **Chapter Plan** once.
+- After every chapter, **Plan Adherence** and **Continuity** run; **Plan Adherence** failures route to targeted entry rewrites; on Settle Loop exhaustion, the **Reviser** edits the **Chapter Plan** once.
 - On Reviser failure, the **Plan-Assist Gate** fires.
 - The **Validator** runs once after Drafting completes — diagnostic only.
 - A **Writer Pack** selects a **Voice LoRA** for the writer based on the **Novel**'s genre.
@@ -214,21 +218,21 @@ _Avoid_: example, sample.
 
 ## Example dialogue
 
-> **Dev:** "When Beat Adherence fails on beat 4, what reruns?"
-> **Domain:** "Just beat 4 — that's a Targeted Rewrite inside the Settle Loop. The Beat Context gets the Retry Context appended. We don't touch the Chapter Plan."
+> **Dev:** "When adherence fails on entry 4, what reruns?"
+> **Domain:** "Just entry 4 — that's a Targeted Rewrite inside the Settle Loop. The writer context gets the Retry Context appended. We don't touch the Chapter Plan."
 
 > **Dev:** "And if it fails three times?"
-> **Domain:** "Settle Loop exhausts. Beat Adherence doesn't escalate to the Reviser — only Plan Adherence does. Beat-level exhaustion just throws."
+> **Domain:** "Settle Loop exhausts. Entry-level adherence doesn't escalate to the Reviser — only Plan Adherence does. Entry-level exhaustion just throws."
 
 > **Dev:** "Is the Salvatore corpus a Writer Pack?"
 > **Domain:** "No — it's a Corpus, decomposed into a Bundle. The Bundle's Pairs trained the Salvatore Voice LoRA. The Writer Pack is the runtime config that *selects* that Voice LoRA when a fantasy Novel runs."
 
 ## Flagged ambiguities
 
-- **"Beat" alone always means the planned-runtime kind.** Extracted-from-prose beats are **Corpus Beats**, never just "beats."
+- **"Beat" is legacy/internal unless explicitly qualified.** Planner-facing structure is **Scene Entry**. Extracted-from-prose beats are **Corpus Beats**, never just "beats."
 - **"Outline" is informal.** The persisted type is `ChapterOutline`; the concept is **Chapter Plan**. The Phase-1 stripped form is **Chapter Skeleton**, not an outline.
 - **"Primer" is retired.** Howard primer methodology was retired 2026-04-16; code surfaces (`STYLE_PRIMER`, the on-demand `/tonal-pass` endpoint) survive for legacy novels but the live mechanism is **Voice LoRA** routed via **Writer Pack**. Do not introduce "primer" as a live concept.
 - **"Check" the verb is overloaded.** Three nouns disambiguate: **Checker** (LLM), **Detector** (pure code), **Validator** (the diagnostic phase).
-- **"Adherence" was historically used for both the property and the per-beat agent.** Resolved: **Adherence** is the property; **Beat Adherence** and **Plan Adherence** are its two scopes.
+- **"Adherence" was historically used for both the property and the per-entry agent.** Resolved: **Adherence** is the property; entry-level adherence and **Plan Adherence** are its two scopes.
 - **"LoRA" is informal.** The canonical term is **Adapter**; **Voice LoRA** is the specific sub-kind. `adapter_registry` is the source of truth.
 - **"Run" is not a Novel-Harness term.** A Novel is the execution and the artifact. If those ever decouple, we'll add Run.

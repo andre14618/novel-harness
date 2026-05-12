@@ -16,7 +16,7 @@
  *
  *   DEBUG_FORCE_REVISER=reject|throw
  *     Intercepts chapter-plan-reviser calls in drafting.ts.
- *       reject → returns a 1-beat plan so the beat-floor sanity check rejects it.
+ *       reject → returns a 1-scene plan so the scene-count sanity check rejects it.
  *       throw  → throws Error so the reviser-error path fires.
  *     Drives R6.
  *

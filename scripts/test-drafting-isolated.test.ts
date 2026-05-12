@@ -294,10 +294,10 @@ describe("drafting isolated report", () => {
       sourcePlannerQuality: {
         outputDir: "output/planner-quality/ab/source",
         chapters: 2,
-        plannedBeats: 10,
+        plannedScenes: 10,
         endpointIssues: 1,
         inactiveCharacterFindings: 1,
-        weakStoryTurnBeats: 2,
+        weakStoryTurnEntries: 2,
         obligationErrorChapters: 0,
         overloadedObligationChapters: 0,
         readiness: {
@@ -436,7 +436,7 @@ describe("drafting isolated report", () => {
     expect(rendered).toContain("Clean source: yes")
     expect(rendered).toContain("target word scale: 1")
     expect(rendered).toContain("targetWordScaling scale=0.85 target=3000->2550")
-    expect(rendered).toContain("source planner quality: chapters=2 beats=10 endpointIssues=1")
+    expect(rendered).toContain("source planner quality: chapters=2 scenes=10 endpointIssues=1")
     expect(rendered).toContain("planningContext surfaces=11 gaps=1")
     expect(rendered).toContain("planningContextReadiness groups=2 findings=2")
     expect(rendered).toContain("planningContextGaps resolvedReferences:missing_downstream")
@@ -1027,20 +1027,20 @@ function plannerQualityReport(): PlannerQualityReport {
       chapterRef: "ch-001",
       title: "The Test",
       targetWords: 1200,
-      plannedBeats: 2,
-      recommendedBeats: 4,
-      beatDeltaFromRecommended: -2,
+      plannedScenes: 2,
+      recommendedScenes: 4,
+      sceneDeltaFromRecommended: -2,
       purpose: "Maret proves the System can lie. The chapter ends with Theo accepting the oath pact.",
       endpoint: {
         declared: "Theo accepting the oath pact",
-        finalBeat: "Maret leaves the vault corridor.",
+        finalEntry: "Maret leaves the vault corridor.",
         finalSceneRef: "scene-final",
         finalScenePreserveIds: preserveIds,
         overlapRatio: 0.12,
         missingTokens: ["theo", "accepting", "oath", "pact"],
       },
       characters: [],
-      weakStoryTurnBeats: [],
+      weakStoryTurnEntries: [],
       obligationHealth: {
         valid: true,
         errors: [],
@@ -1055,12 +1055,12 @@ function plannerQualityReport(): PlannerQualityReport {
     }],
     totals: {
       chapters: 1,
-      plannedBeats: 2,
+      plannedScenes: 2,
       overPlannedChapters: 0,
       underPlannedChapters: 0,
       endpointIssues: 1,
       inactiveCharacterFindings: 0,
-      weakStoryTurnBeats: 0,
+      weakStoryTurnEntries: 0,
       obligationErrorChapters: 0,
       overloadedObligationChapters: 0,
     },

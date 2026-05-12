@@ -122,7 +122,7 @@
       "rawNotes": "This is a scope-control experiment. Plan exactly three chapters. Keep each chapter to at most three scene contracts. Each scene contract should carry one protagonist goal, one opposition source, one turn, one outcome, and at most two load-bearing obligations. If a scene needs more than two obligations, split the story across chapters or drop secondary material. Chapter 1 endpoint: Maren chooses to meet Velo before deciding; do not also require her to discover the whole third path. Chapter 2 endpoint: Velo becomes morally concrete and Maren obtains one piece of actionable evidence. Chapter 3 endpoint: Council vote and Maren's third-path choice. Treat target words as scope signal, not a writer quota."
     },
     "pipelineOverrides": {
-      "planningMaxBeatsPerChapter": 3
+      "planningMaxScenesPerChapter": 3
     }
   },
   "pre_resolved_entities": {

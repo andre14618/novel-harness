@@ -79,8 +79,8 @@ describe("phase parity", () => {
     expect(expansion.totals).toMatchObject({
       outlineChapters: 1,
       draftedChapters: 1,
-      plannedBeats: 5,
-      overPlannedBeatChapters: 0,
+      plannedScenes: 5,
+      overPlannedSceneChapters: 0,
       severeOverTargetChapters: 0,
     })
     expect(expansion.chapters[0]?.wordRatio).toBeLessThanOrEqual(1.25)

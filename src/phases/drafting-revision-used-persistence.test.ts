@@ -173,7 +173,7 @@ mock.module("../llm", () => ({
 mock.module("../transport", () => ({ getTransport: () => ({}) }))
 mock.module("../agents/writer/context", () => ({ buildContext: async () => "ctx" }))
 mock.module("../agents/writer/beat-context", () => ({
-  buildBeatContext: async () => ({ userPrompt: "user prompt" }),
+  buildSceneContext: async () => ({ userPrompt: "user prompt" }),
 }))
 mock.module("../agents/writer/reference-resolver", () => ({
   resolveReferences: async () => ({ context: "", lookupCount: 0, llmUsed: false }),
@@ -209,7 +209,7 @@ mock.module("../agents/chapter-plan-reviser/context", () => ({
   buildContextForValidation: () => "ctx-validation",
 }))
 mock.module("../agents/chapter-plan-reviser", () => ({
-  chapterBeatsSchema: {},
+  chapterScenePlanSchema: {},
   prompt: "reviser-prompt",
 }))
 mock.module("../validation", () => ({

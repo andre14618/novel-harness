@@ -97,7 +97,7 @@ describe("handleSemanticGateCohortMatrixRoute", () => {
         completedVariantRuns: 3,
         cleanPass: 1,
         costUsd: 0.1234,
-        topVariantLabel: "beats 5",
+        topVariantLabel: "scenes 5",
         topMeanRiskScore: 42.5,
         topCompleted: 2,
         topReasons: [
@@ -135,7 +135,7 @@ describe("handleSemanticGateCohortMatrixRoute", () => {
     expect(body.runs[0].completedVariantRuns).toBe(3)
     expect(body.runs[0].cleanPass).toBe(1)
     expect(body.runs[0].costUsd).toBe(0.1234)
-    expect(body.runs[0].topVariantLabel).toBe("beats 5")
+    expect(body.runs[0].topVariantLabel).toBe("scenes 5")
     expect(body.runs[0].topMeanRiskScore).toBe(42.5)
     expect(body.runs[0].topCompleted).toBe(2)
     expect(body.runs[0].topRuns).toBe(1)
@@ -320,12 +320,12 @@ function cohortSummary(input: {
     generatedAt: input.generatedAt ?? "2026-05-06T16:04:25.469Z",
     chapters: 2,
     outputBase: input.outputBase ?? "/tmp/cohort",
-    variantSpecs: ["beats=4", "beats=5"],
+    variantSpecs: ["scenes=4", "scenes=5"],
     runs: [],
     variants: [],
     ranking: [{
-      variantId: "beats-5",
-      label: input.topVariantLabel ?? "beats 5",
+      variantId: "scenes-5",
+      label: input.topVariantLabel ?? "scenes 5",
       meanRiskScore: input.topMeanRiskScore ?? 113.45,
       completed: input.topCompleted ?? 1,
       runs: 1,

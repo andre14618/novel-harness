@@ -1008,8 +1008,8 @@ def _build_levers(result: dict) -> list[str]:
     # 7. Planner-level: tag interiority beats explicitly
     levers.append(
         f"**Planner-level: tag interiority beats with cognitive-density expectation.** "
-        f"`planning-beats` already emits per-beat `kind`. Add a planner-level "
-        f"prompt note for interiority beats: 'this beat's purpose is direct "
+        f"`planning-scenes` already emits per-entry `kind`. Add a planner-level "
+        f"prompt note for interiority entries: 'this entry's purpose is direct "
         f"cognitive access; abstract cognitive verbs (knew / realized / "
         f"understood) are the legitimate vehicle, but each cognitive verb should "
         f"be paired with a concrete sensory anchor (gesture, sensation, fragmentary "

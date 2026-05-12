@@ -416,10 +416,10 @@ export interface PlanningContextReadinessTelemetrySummary {
 export interface PlannerQualityTelemetrySummary {
   outputDir: string
   chapters: number
-  plannedBeats: number
+  plannedScenes: number
   endpointIssues: number
   inactiveCharacterFindings: number
-  weakStoryTurnBeats: number
+  weakStoryTurnEntries: number
   obligationErrorChapters: number
   overloadedObligationChapters: number
   readiness: PlanningContextReadinessTelemetrySummary
@@ -1106,10 +1106,10 @@ async function maybeRunSourcePlannerQualityAudit(
     return {
       outputDir,
       chapters: 0,
-      plannedBeats: 0,
+      plannedScenes: 0,
       endpointIssues: 0,
       inactiveCharacterFindings: 0,
-      weakStoryTurnBeats: 0,
+      weakStoryTurnEntries: 0,
       obligationErrorChapters: 0,
       overloadedObligationChapters: 0,
       readiness: {
@@ -1154,10 +1154,10 @@ function plannerQualitySummary(
   return {
     outputDir,
     chapters: report.totals.chapters,
-    plannedBeats: report.totals.plannedBeats,
+    plannedScenes: report.totals.plannedScenes,
     endpointIssues: report.totals.endpointIssues,
     inactiveCharacterFindings: report.totals.inactiveCharacterFindings,
-    weakStoryTurnBeats: report.totals.weakStoryTurnBeats,
+    weakStoryTurnEntries: report.totals.weakStoryTurnEntries,
     obligationErrorChapters: report.totals.obligationErrorChapters,
     overloadedObligationChapters: report.totals.overloadedObligationChapters,
     readiness,
@@ -2261,9 +2261,9 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
   if (report.sourcePlannerQuality) {
     const quality = report.sourcePlannerQuality
     lines.push(
-      `- source planner quality: chapters=${quality.chapters} beats=${quality.plannedBeats} ` +
+      `- source planner quality: chapters=${quality.chapters} scenes=${quality.plannedScenes} ` +
         `endpointIssues=${quality.endpointIssues} inactiveCharacters=${quality.inactiveCharacterFindings} ` +
-        `weakStoryTurns=${quality.weakStoryTurnBeats} obligationErrors=${quality.obligationErrorChapters} ` +
+        `weakStoryTurns=${quality.weakStoryTurnEntries} obligationErrors=${quality.obligationErrorChapters} ` +
         `readiness=${quality.readiness.findingCount} report=${quality.outputDir}` +
         (quality.error ? ` error=${quality.error}` : ""),
     )

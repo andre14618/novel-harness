@@ -370,7 +370,7 @@ Use these CV values to decide whether a metric is gateable from a single run:
 
 | Metric class | Typical CV | Gateable from 1 run? | Source |
 |--------------|-----------|----------------------|--------|
-| `total_beats` (well-conditioned) | 0.04–0.16 | Yes (if delta is ≥1.5σ) | L10 Family C control |
+| `total_scenes` (well-conditioned) | 0.04–0.16 | Yes (if delta is ≥1.5σ) | L10 Family C control |
 | `facts_median` (typical) | 0.16–0.18 | Suggestive only | L10 Family A/D |
 | `facts_median` (high-noise) | 0.30–0.40 | **No — multi-run required** | L10 Family A test arm |
 | `know_median` | 0.16–0.22 | Suggestive only | L10 Family C |

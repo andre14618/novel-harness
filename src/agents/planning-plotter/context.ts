@@ -94,11 +94,11 @@ ${spine.acts.map(a => `  Act ${a.number} — ${a.name}: ${a.summary} [${a.emotio
 UPSTREAM NATIVE PLANNING CONTRACT:
 For each chapter purpose, name the story function as a native chapter contract:
 the protagonist pressure, the irreversible change/reveal/choice, and the
-endpoint or hook that downstream beat planning must preserve. Include the
+endpoint or hook that downstream scene planning must preserve. Include the
 personal stake behind the pressure when it matters: want, need, fear, lie,
-truth, wound, oath, shame, or relationship pressure. Do not hide a beat list
-inside the purpose. The downstream beat pass will author a small number of
-complete story-turn beats from this contract.` : ""
+truth, wound, oath, shame, or relationship pressure. Do not hide a scene list
+inside the purpose. The downstream scene pass will author a small number of
+complete story-turn entries from this contract.` : ""
 
   return `Genre: ${seed.genre}
 Premise: ${seed.premise}
@@ -110,7 +110,7 @@ ${charSection}
 ${spineSection}${directivesSection}${structuralSection}${nativeContractSection}
 ${renderSemanticPlanningScopeGuidance(seed)}
 
-Produce a SKELETON outline${seed.chapterCount ? ` with exactly ${seed.chapterCount} chapters` : ""}. One compact entry per chapter — title, POV, setting, 1–2-sentence purpose, targetWords, charactersPresent. No scene beats, no world-state changes, no knowledge transfers: those come from the downstream per-chapter beat pass.${seed.chapterCount && seed.chapterCount > 5 ? `\n\nWith ${seed.chapterCount} chapters, ensure subplot threads are established early and woven through the middle, rotating POV characters across chapters where the story benefits from multiple perspectives.` : ""}${worldBible.systems?.length ? `\n\nPOV + charactersPresent should reflect that different characters have different awareness of world systems — dramatic tension comes from who-knows-what in each chapter.` : ""}`
+Produce a SKELETON outline${seed.chapterCount ? ` with exactly ${seed.chapterCount} chapters` : ""}. One compact entry per chapter — title, POV, setting, 1–2-sentence purpose, targetWords, charactersPresent. No scene entries, no world-state changes, no knowledge transfers: those come from the downstream per-chapter scene pass.${seed.chapterCount && seed.chapterCount > 5 ? `\n\nWith ${seed.chapterCount} chapters, ensure subplot threads are established early and woven through the middle, rotating POV characters across chapters where the story benefits from multiple perspectives.` : ""}${worldBible.systems?.length ? `\n\nPOV + charactersPresent should reflect that different characters have different awareness of world systems — dramatic tension comes from who-knows-what in each chapter.` : ""}`
 }
 
 export const buildPlanningContext = buildContext

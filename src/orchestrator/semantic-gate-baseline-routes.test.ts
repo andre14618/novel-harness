@@ -83,7 +83,7 @@ describe("handleSemanticGateBaselineRoute", () => {
         sourceNovelId: "newer",
         novelId: "newer-disposable",
         chapters: 2,
-        maxBeatsPerChapter: 5,
+        maxScenesPerChapter: 5,
         terminalStatus: "pending-plan-assist",
         terminalReason: "stopped at pending plan-assist gate: chapter 2, kind plan-check-exhausted",
         approvedChapters: 1,
@@ -109,7 +109,7 @@ describe("handleSemanticGateBaselineRoute", () => {
     expect(body.runs[0].generatedAt).toBe("2026-05-06T12:00:00.000Z")
     expect(body.runs[0].novelId).toBe("newer-disposable")
     expect(body.runs[0].chapters).toBe(2)
-    expect(body.runs[0].maxBeatsPerChapter).toBe(5)
+    expect(body.runs[0].maxScenesPerChapter).toBe(5)
     expect(body.runs[0].terminalStatus).toBe("pending-plan-assist")
     expect(body.runs[0].terminalReason).toBe("stopped at pending plan-assist gate: chapter 2, kind plan-check-exhausted")
     expect(body.runs[0].approvedChapters).toBe(1)
@@ -149,7 +149,7 @@ describe("handleSemanticGateBaselineRoute", () => {
     expect(body.runs[0].generatedAt).toBeNull()
     expect(body.runs[0].novelId).toBeNull()
     expect(body.runs[0].chapters).toBeNull()
-    expect(body.runs[0].maxBeatsPerChapter).toBeNull()
+    expect(body.runs[0].maxScenesPerChapter).toBeNull()
     expect(body.runs[0].terminalStatus).toBeNull()
     expect(body.runs[0].terminalReason).toBeNull()
     expect(body.runs[0].approvedChapters).toBeNull()
@@ -253,7 +253,7 @@ function baselineSummary(input: {
   sourceNovelId?: unknown
   novelId?: unknown
   chapters?: unknown
-  maxBeatsPerChapter?: unknown
+  maxScenesPerChapter?: unknown
   terminalStatus?: unknown
   terminalReason?: unknown
   approvedChapters?: unknown
@@ -268,7 +268,7 @@ function baselineSummary(input: {
     sourceNovelId: input.sourceNovelId ?? "fantasy-system-heretic",
     novelId: input.novelId ?? "semantic-gate-baseline-test",
     chapters: input.chapters ?? 2,
-    maxBeatsPerChapter: input.maxBeatsPerChapter ?? null,
+    maxScenesPerChapter: input.maxScenesPerChapter ?? null,
     terminal: {
       status: input.terminalStatus ?? "completed",
       reason: input.terminalReason ?? "completed requested chapters",

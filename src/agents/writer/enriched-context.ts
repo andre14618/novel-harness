@@ -8,7 +8,7 @@
  *
  * L38-A (2026-05-02): the READER-INFO STATE sub-block is also exported as
  * `renderReaderInfoStateBlock` and consumed by the production
- * `buildBeatContextSlots` for chapters > 1, so chapter-N writers see prior-
+ * `buildSceneContextSlots` for chapters > 1, so chapter-N writers see prior-
  * chapter establishedFacts and per-character `doesNotKnow` instead of
  * improvising fresh state. The other two sub-blocks (SPEAKER DIRECTIVES,
  * FOCUSED WORLD SLICE) remain Arm-B only.
@@ -149,7 +149,7 @@ function renderSpeakerDirectives(
  * character `doesNotKnow` lines have any signal — caller can use the empty
  * string to skip section emission entirely.
  *
- * Exported for production use by `buildBeatContextSlots` (L38-A); also
+ * Exported for production use by `buildSceneContextSlots` (L38-A); also
  * still consumed internally by `buildEnrichedContext` for the Arm B
  * preflight.
  */

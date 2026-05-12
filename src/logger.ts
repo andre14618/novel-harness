@@ -156,7 +156,7 @@ function getPhaseForAgent(agent: string): string {
     "character-agent": "concept",
     "plotter": "concept",
     "planning-plotter": "planning",
-    "planning-beats": "planning",
+    "planning-scenes": "planning",
     "planning-state-mapper": "planning",
     "planning-state-repair": "planning",
     "planner-semantic-label-flash": "planning",

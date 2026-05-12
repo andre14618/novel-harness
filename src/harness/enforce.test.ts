@@ -38,7 +38,7 @@ test("planning enforcement keeps valid forward payoff links", () => {
   expect(result.warnings).toEqual([])
 })
 
-test("planning enforcement uses calibrated beat count floor", () => {
+test("planning enforcement uses calibrated scene count floor", () => {
   const outline = chapter({
     targetWords: 1500,
     scenes: [
@@ -51,7 +51,7 @@ test("planning enforcement uses calibrated beat count floor", () => {
   const result = enforcePlanningOutput([outline], 1, [character("Istra Venn")])
 
   expect(result.valid).toBe(false)
-  expect(result.errors).toEqual(["Chapter 1: 3 beats below floor 4 for 1500w target"])
+  expect(result.errors).toEqual(["Chapter 1: 3 scene entries below floor 4 for 1500w target"])
 })
 
 test("scene contract planning treats word-derived count floor as advisory", () => {
@@ -73,7 +73,7 @@ test("scene contract planning treats word-derived count floor as advisory", () =
   expect(result.warnings).toContain("Chapter 1: 2 scene contracts below rough scope guide 4 for 1500w target")
 })
 
-test("planning enforcement accepts a compact 1500 word chapter at four beats", () => {
+test("planning enforcement accepts a compact 1500 word chapter at four scene entries", () => {
   const outline = chapter({
     targetWords: 1500,
     scenes: [
@@ -103,10 +103,10 @@ test("planning enforcement rejects outlines above the planning max override", ()
     ],
   })
 
-  const result = enforcePlanningOutput([outline], 1, [character("Istra Venn")], { maxBeatsPerChapter: 5 })
+  const result = enforcePlanningOutput([outline], 1, [character("Istra Venn")], { maxScenesPerChapter: 5 })
 
   expect(result.valid).toBe(false)
-  expect(result.errors).toEqual(["Chapter 1: 6 beats above planning max 5 for 1500w target"])
+  expect(result.errors).toEqual(["Chapter 1: 6 scene entries above planning max 5 for 1500w target"])
 })
 
 test("planning enforcement raises a planning max override below the floor", () => {
@@ -121,7 +121,7 @@ test("planning enforcement raises a planning max override below the floor", () =
     ],
   })
 
-  const result = enforcePlanningOutput([outline], 1, [character("Istra Venn")], { maxBeatsPerChapter: 4 })
+  const result = enforcePlanningOutput([outline], 1, [character("Istra Venn")], { maxScenesPerChapter: 4 })
 
   expect(result.valid).toBe(true)
   expect(result.errors).toEqual([])
@@ -149,7 +149,7 @@ test("planning enforcement rejects over-fragmented native contract outlines with
   expect(legacy.valid).toBe(true)
   expect(native.valid).toBe(false)
   expect(native.errors).toEqual([
-    "Chapter 1: 7 beats above native planning budget 5+1 for 1500w target",
+    "Chapter 1: 7 scene entries above native planning budget 5+1 for 1500w target",
   ])
 })
 

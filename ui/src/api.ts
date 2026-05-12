@@ -898,7 +898,7 @@ export function getChapterTraceability(novelId: string, chapterNumber: number) {
 export interface SemanticGateMatrixVariant {
   id: string
   label: string
-  maxBeatsPerChapter: number | null
+  maxScenesPerChapter: number | null
 }
 
 export interface SemanticGateMatrixAssessment {
@@ -1148,7 +1148,7 @@ export interface SemanticGateBaselineRunSummary {
   generatedAt: string | null
   novelId: string | null
   chapters: number | null
-  maxBeatsPerChapter: number | null
+  maxScenesPerChapter: number | null
   terminalStatus: string | null
   terminalReason: string | null
   approvedChapters: number | null
@@ -1180,7 +1180,7 @@ export interface SemanticGateBaselineReport {
   novelId: string
   chapters: number
   outputBase: string
-  maxBeatsPerChapter: number | null
+  maxScenesPerChapter: number | null
   keptNovel: boolean
   pipelineOverrides?: {
     continuityEditorialFlagProposals?: boolean
@@ -1258,7 +1258,7 @@ export interface SemanticGateBaselineReport {
       chapters?: Array<{
         chapter: number | null
         signals: string[]
-        plannedBeats: number
+        plannedScenes: number
         targetWords: number | null
         draftWords: number | null
       }>

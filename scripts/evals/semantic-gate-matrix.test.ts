@@ -25,12 +25,12 @@ describe("semantic-gate-matrix parseArgs", () => {
     expect(args.variants.map(variant => ({
       id: variant.id,
       label: variant.label,
-      maxBeatsPerChapter: variant.maxBeatsPerChapter,
+      maxScenesPerChapter: variant.maxScenesPerChapter,
       packStrategy: variant.packStrategy,
     }))).toEqual([
-      { id: "beats-4", label: "beats 4", maxBeatsPerChapter: 4, packStrategy: "tail-slice" },
-      { id: "beats-5", label: "beats 5", maxBeatsPerChapter: 5, packStrategy: "tail-slice" },
-      { id: "beats-6", label: "beats 6", maxBeatsPerChapter: 6, packStrategy: "tail-slice" },
+      { id: "scenes-4", label: "scenes 4", maxScenesPerChapter: 4, packStrategy: "tail-slice" },
+      { id: "scenes-5", label: "scenes 5", maxScenesPerChapter: 5, packStrategy: "tail-slice" },
+      { id: "scenes-6", label: "scenes 6", maxScenesPerChapter: 6, packStrategy: "tail-slice" },
     ])
   })
 
@@ -50,7 +50,7 @@ describe("semantic-gate-matrix parseArgs", () => {
       "--chapters", "3",
       "--parallel", "4",
       "--child-timeout-minutes", "14",
-      "--variant", "tight:beats=4",
+      "--variant", "tight:scenes=4",
       "--variant", "control:source",
       "--keep-novels",
       "--continuity-editorial-flag-proposals",
@@ -63,8 +63,8 @@ describe("semantic-gate-matrix parseArgs", () => {
     expect(args.keepNovels).toBe(true)
     expect(args.continuityEditorialFlagProposals).toBe(true)
     expect(args.variants).toEqual([
-      { id: "tight", label: "tight", maxBeatsPerChapter: 4, packStrategy: "tail-slice" },
-      { id: "control", label: "control", maxBeatsPerChapter: null, packStrategy: null },
+      { id: "tight", label: "tight", maxScenesPerChapter: 4, packStrategy: "tail-slice" },
+      { id: "control", label: "control", maxScenesPerChapter: null, packStrategy: null },
     ])
   })
 
@@ -75,16 +75,16 @@ describe("semantic-gate-matrix parseArgs", () => {
     ])
 
     expect(args.variants).toEqual([
-      { id: "calibrated", label: "calibrated", maxBeatsPerChapter: null, packStrategy: "calibrated-packed" },
+      { id: "calibrated", label: "calibrated", maxScenesPerChapter: null, packStrategy: "calibrated-packed" },
     ])
   })
 
   test("rejects duplicate variant ids", () => {
     expect(() => parseArgs([
       "--source", "fixture-novel",
-      "--variant", "beats=4",
-      "--variant", "beats=4",
-    ])).toThrow("duplicate variant id: beats-4")
+      "--variant", "scenes=4",
+      "--variant", "scenes=4",
+    ])).toThrow("duplicate variant id: scenes-4")
   })
 
   test("rejects unsupported variant specs", () => {
@@ -184,7 +184,7 @@ describe("riskScoreBreakdownFor", () => {
 
 describe("buildMatrixReport", () => {
   test("aggregates totals and ranks lower-risk variants first", () => {
-    const clean = variantResult("beats-4", "beats 4", {
+    const clean = variantResult("scenes-4", "scenes 4", {
       riskScore: 0,
       completed: true,
       wordRatio: 1,
@@ -193,7 +193,7 @@ describe("buildMatrixReport", () => {
       pendingPlanAssistGate: false,
       reasons: ["clean"],
     })
-    const drift = variantResult("beats-6", "beats 6", {
+    const drift = variantResult("scenes-6", "scenes 6", {
       riskScore: 110,
       completed: true,
       wordRatio: 1.9,
@@ -230,7 +230,7 @@ describe("buildMatrixReport", () => {
       costUsd: 1.5,
       llmCalls: 0,
     })
-    expect(report.ranking.map(item => item.variantId)).toEqual(["beats-4", "beats-6", "source"])
+    expect(report.ranking.map(item => item.variantId)).toEqual(["scenes-4", "scenes-6", "source"])
   })
 })
 
@@ -305,7 +305,7 @@ function variantResult(
   overrides: Partial<MatrixVariantResult["assessment"]> & { status?: MatrixVariantResult["status"] },
 ): MatrixVariantResult {
   return {
-    variant: { id, label, maxBeatsPerChapter: null, packStrategy: null },
+    variant: { id, label, maxScenesPerChapter: null, packStrategy: null },
     status: overrides.status ?? "reported",
     exitCode: overrides.status === "failed" ? 1 : 0,
     signal: null,

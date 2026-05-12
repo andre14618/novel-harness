@@ -3,8 +3,8 @@
  * Read-only diagnostic for planner semantic allocation quality.
  *
  * This is deliberately not a runtime gate. It exposes whether a chapter plan
- * is writer-ready before spending drafting tokens: beat budget, endpoint
- * overlap, character materiality, beat story-turn readiness, and obligation
+ * is writer-ready before spending drafting tokens: scene budget, endpoint
+ * overlap, character materiality, scene story-turn readiness, and obligation
  * coverage.
  */
 
@@ -12,7 +12,7 @@ import { mkdirSync, writeFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 
 import { chapterOutlineSchema, type ChapterOutline } from "../../src/agents/planning-plotter/schema"
-import { assessBeatCountForTarget } from "../../src/harness/beat-counts"
+import { assessSceneCountForTarget } from "../../src/harness/scene-counts"
 import { validateBeatObligationCoverage } from "../../src/harness/beat-obligations"
 import type { SceneBeat } from "../../src/types"
 
@@ -22,25 +22,25 @@ export interface PlannerQualityOutlineRow {
 }
 
 export type PlannerQualityFlag =
-  | "over_planned_beats"
-  | "under_planned_beats"
+  | "over_planned_scenes"
+  | "under_planned_scenes"
   | "endpoint_not_declared"
   | "endpoint_low_overlap"
-  | "character_not_visible_in_beat_text"
-  | "weak_story_turn_beat"
+  | "character_not_visible_in_scene_text"
+  | "weak_story_turn_entry"
   | "obligation_coverage_error"
   | "overloaded_obligations"
 
 export interface PlannerQualityCharacterMateriality {
   character: string
-  listedInBeats: number
-  mentionedInBeatText: number
+  listedInScenes: number
+  mentionedInSceneText: number
   visible: boolean
 }
 
 export interface PlannerQualityEndpoint {
   declared: string | null
-  finalBeat: string | null
+  finalEntry: string | null
   finalSceneRef: string | null
   finalScenePreserveIds: PlannerQualityPreserveIds
   overlapRatio: number | null
@@ -63,14 +63,14 @@ export interface PlannerQualityChapter {
   chapterRef: string | null
   title: string
   targetWords: number | null
-  plannedBeats: number
-  recommendedBeats: number | null
-  beatDeltaFromRecommended: number | null
+  plannedScenes: number
+  recommendedScenes: number | null
+  sceneDeltaFromRecommended: number | null
   purpose: string
   endpoint: PlannerQualityEndpoint
   characters: PlannerQualityCharacterMateriality[]
-  weakStoryTurnBeats: Array<{
-    beat: number
+  weakStoryTurnEntries: Array<{
+    entry: number
     kind: string
     description: string
     targetRef: string | null
@@ -94,12 +94,12 @@ export interface PlannerQualityReport {
   chapters: PlannerQualityChapter[]
   totals: {
     chapters: number
-    plannedBeats: number
+    plannedScenes: number
     overPlannedChapters: number
     underPlannedChapters: number
     endpointIssues: number
     inactiveCharacterFindings: number
-    weakStoryTurnBeats: number
+    weakStoryTurnEntries: number
     obligationErrorChapters: number
     overloadedObligationChapters: number
   }
@@ -160,9 +160,9 @@ export function buildPlannerQualityReport(
     chapters,
     totals: {
       chapters: chapters.length,
-      plannedBeats: chapters.reduce((sum, chapter) => sum + chapter.plannedBeats, 0),
-      overPlannedChapters: chapters.filter(chapter => chapter.flags.includes("over_planned_beats")).length,
-      underPlannedChapters: chapters.filter(chapter => chapter.flags.includes("under_planned_beats")).length,
+      plannedScenes: chapters.reduce((sum, chapter) => sum + chapter.plannedScenes, 0),
+      overPlannedChapters: chapters.filter(chapter => chapter.flags.includes("over_planned_scenes")).length,
+      underPlannedChapters: chapters.filter(chapter => chapter.flags.includes("under_planned_scenes")).length,
       endpointIssues: chapters.filter(chapter =>
         chapter.flags.includes("endpoint_not_declared") ||
         chapter.flags.includes("endpoint_low_overlap")
@@ -171,7 +171,7 @@ export function buildPlannerQualityReport(
         (sum, chapter) => sum + chapter.characters.filter(character => !character.visible).length,
         0,
       ),
-      weakStoryTurnBeats: chapters.reduce((sum, chapter) => sum + chapter.weakStoryTurnBeats.length, 0),
+      weakStoryTurnEntries: chapters.reduce((sum, chapter) => sum + chapter.weakStoryTurnEntries.length, 0),
       obligationErrorChapters: chapters.filter(chapter => chapter.flags.includes("obligation_coverage_error")).length,
       overloadedObligationChapters: chapters.filter(chapter => chapter.flags.includes("overloaded_obligations")).length,
     },
@@ -183,20 +183,20 @@ function rowToChapter(row: PlannerQualityOutlineRow): PlannerQualityChapter | nu
   if (!parsed.success) return null
   const outline = parsed.data
   const targetWords = positiveNumber(outline.targetWords) ? Number(outline.targetWords) : null
-  const plannedBeats = outline.scenes.length
-  const beatAssessment = targetWords === null ? null : assessBeatCountForTarget(targetWords, plannedBeats)
+  const plannedScenes = outline.scenes.length
+  const sceneAssessment = targetWords === null ? null : assessSceneCountForTarget(targetWords, plannedScenes)
   const endpoint = endpointAssessment(outline)
   const characters = characterMateriality(outline)
-  const weakStoryTurnBeats = storyTurnWeaknesses(outline)
+  const weakStoryTurnEntries = storyTurnWeaknesses(outline)
   const coverage = validateBeatObligationCoverage(outline)
 
   const flags: PlannerQualityFlag[] = []
-  if (beatAssessment?.overPlanned) flags.push("over_planned_beats")
-  if (beatAssessment?.underPlanned) flags.push("under_planned_beats")
+  if (sceneAssessment?.overPlanned) flags.push("over_planned_scenes")
+  if (sceneAssessment?.underPlanned) flags.push("under_planned_scenes")
   if (!endpoint.declared) flags.push("endpoint_not_declared")
   else if ((endpoint.overlapRatio ?? 0) < 0.45) flags.push("endpoint_low_overlap")
-  if (characters.some(character => !character.visible)) flags.push("character_not_visible_in_beat_text")
-  if (weakStoryTurnBeats.length > 0) flags.push("weak_story_turn_beat")
+  if (characters.some(character => !character.visible)) flags.push("character_not_visible_in_scene_text")
+  if (weakStoryTurnEntries.length > 0) flags.push("weak_story_turn_entry")
   if (!coverage.valid) flags.push("obligation_coverage_error")
   if (coverage.summary.overloadedBeats > 0) flags.push("overloaded_obligations")
 
@@ -205,13 +205,13 @@ function rowToChapter(row: PlannerQualityOutlineRow): PlannerQualityChapter | nu
     chapterRef: outline.chapterId ?? null,
     title: outline.title,
     targetWords,
-    plannedBeats,
-    recommendedBeats: beatAssessment?.recommendedBeats ?? null,
-    beatDeltaFromRecommended: beatAssessment?.beatDeltaFromRecommended ?? null,
+    plannedScenes,
+    recommendedScenes: sceneAssessment?.recommendedScenes ?? null,
+    sceneDeltaFromRecommended: sceneAssessment?.sceneDeltaFromRecommended ?? null,
     purpose: outline.purpose,
     endpoint,
     characters,
-    weakStoryTurnBeats,
+    weakStoryTurnEntries,
     obligationHealth: {
       valid: coverage.valid,
       errors: coverage.errors,
@@ -229,15 +229,15 @@ function rowToChapter(row: PlannerQualityOutlineRow): PlannerQualityChapter | nu
 function endpointAssessment(outline: ChapterOutline): PlannerQualityEndpoint {
   const declared = extractEndpoint(outline.purpose)
   const finalScene = outline.scenes.at(-1) as SceneBeat | undefined
-  const finalBeat = finalScene?.description ?? null
+  const finalEntry = finalScene?.description ?? null
   const finalSceneRef = finalScene
     ? sceneTargetRef(outline, finalScene, outline.scenes.length - 1)
     : null
   const finalScenePreserveIds = finalScene ? preserveIdsForScene(finalScene) : EMPTY_PRESERVE_IDS
-  if (!declared || !finalBeat) {
+  if (!declared || !finalEntry) {
     return {
       declared,
-      finalBeat,
+      finalEntry,
       finalSceneRef,
       finalScenePreserveIds,
       overlapRatio: declared ? 0 : null,
@@ -245,11 +245,11 @@ function endpointAssessment(outline: ChapterOutline): PlannerQualityEndpoint {
     }
   }
   const declaredTokens = unique(contentTokens(declared))
-  const finalTokens = new Set(contentTokens(finalBeat))
+  const finalTokens = new Set(contentTokens(finalEntry))
   const matched = declaredTokens.filter(token => finalTokens.has(token))
   return {
     declared,
-    finalBeat,
+    finalEntry,
     finalSceneRef,
     finalScenePreserveIds,
     overlapRatio: declaredTokens.length > 0 ? matched.length / declaredTokens.length : null,
@@ -258,35 +258,35 @@ function endpointAssessment(outline: ChapterOutline): PlannerQualityEndpoint {
 }
 
 function characterMateriality(outline: ChapterOutline): PlannerQualityCharacterMateriality[] {
-  const beats = outline.scenes ?? []
+  const scenes = outline.scenes ?? []
   const pov = normalizeName(outline.povCharacter)
   return unique(outline.charactersPresent ?? []).map(character => {
     const name = normalizeName(character)
-    const listedInBeats = beats.filter(beat =>
-      (beat.characters ?? []).some(beatCharacter => normalizeName(beatCharacter) === name)
+    const listedInScenes = scenes.filter(scene =>
+      (scene.characters ?? []).some(sceneCharacter => normalizeName(sceneCharacter) === name)
     ).length
-    const mentionedInBeatText = beats.filter(beat => textMentionsCharacter(beat.description, character)).length
+    const mentionedInSceneText = scenes.filter(scene => textMentionsCharacter(scene.description, character)).length
     return {
       character,
-      listedInBeats,
-      mentionedInBeatText,
+      listedInScenes,
+      mentionedInSceneText,
       // POV characters can drive a chapter through close interiority even when
-      // the name is not repeated in every beat. Non-POV characters need text
+      // the name is not repeated in every scene entry. Non-POV characters need text
       // visibility to be considered materially present by this deterministic pass.
-      visible: name === pov ? listedInBeats > 0 || mentionedInBeatText > 0 : mentionedInBeatText > 0,
+      visible: name === pov ? listedInScenes > 0 || mentionedInSceneText > 0 : mentionedInSceneText > 0,
     }
   })
 }
 
-function storyTurnWeaknesses(outline: ChapterOutline): PlannerQualityChapter["weakStoryTurnBeats"] {
-  return outline.scenes.flatMap((beat, index) => {
-    const desc = beat.description ?? ""
+function storyTurnWeaknesses(outline: ChapterOutline): PlannerQualityChapter["weakStoryTurnEntries"] {
+  return outline.scenes.flatMap((scene, index) => {
+    const desc = scene.description ?? ""
     const issue = {
-      beat: index + 1,
-      kind: beat.kind,
+      entry: index + 1,
+      kind: scene.kind,
       description: desc,
-      targetRef: sceneTargetRef(outline, beat as SceneBeat, index),
-      preserveIds: preserveIdsForScene(beat as SceneBeat),
+      targetRef: sceneTargetRef(outline, scene as SceneBeat, index),
+      preserveIds: preserveIdsForScene(scene as SceneBeat),
     }
     const tokens = contentTokens(desc)
     if (tokens.length < 6) return [issue]
@@ -345,7 +345,7 @@ export function buildPlannerQualityReadinessAggregate(
         missingForNextLevel: "Revise the final scene contract so the declared endpoint lands through a concrete action, consequence, or hook.",
         evidence: {
           declaredEndpoint: chapter.endpoint.declared,
-          finalScene: chapter.endpoint.finalBeat ?? "",
+          finalScene: chapter.endpoint.finalEntry ?? "",
           overlapRatio: chapter.endpoint.overlapRatio == null ? "" : chapter.endpoint.overlapRatio.toFixed(2),
           missingTokens: chapter.endpoint.missingTokens.join(","),
         },
@@ -354,10 +354,10 @@ export function buildPlannerQualityReadinessAggregate(
       }))
     }
 
-    for (const turn of chapter.weakStoryTurnBeats) {
+    for (const turn of chapter.weakStoryTurnEntries) {
       if (!turn.targetRef) continue
       groups.push(readinessGroup({
-        groupId: `planner-quality:ch${chapter.chapter}:turn:${turn.beat}`,
+        groupId: `planner-quality:ch${chapter.chapter}:turn:${turn.entry}`,
         report,
         chapter,
         sceneId: turn.targetRef,
@@ -373,7 +373,7 @@ export function buildPlannerQualityReadinessAggregate(
         rationale: "Planner quality diagnostic found a scene description without enough concrete turn pressure.",
         missingForNextLevel: "Give the scene a playable turn: goal pressure, opposition, decision, reversal, or consequence.",
         evidence: {
-          beat: String(turn.beat),
+          entry: String(turn.entry),
           kind: turn.kind,
           description: turn.description,
         },
@@ -401,8 +401,8 @@ export function buildPlannerQualityReadinessAggregate(
         missingForNextLevel: "Either make the listed character materially present in a scene or remove them from the chapter-level character list before drafting.",
         evidence: {
           character: character.character,
-          listedInBeats: String(character.listedInBeats),
-          mentionedInBeatText: String(character.mentionedInBeatText),
+          listedInScenes: String(character.listedInScenes),
+          mentionedInSceneText: String(character.mentionedInSceneText),
           charactersPresent: chapter.characters.map(value => value.character).join(","),
         },
         preserveIds: EMPTY_PRESERVE_IDS,
@@ -572,10 +572,10 @@ export function renderPlannerQualityReport(report: PlannerQualityReport): string
   const lines: string[] = []
   lines.push(`Planner quality report${report.novelId ? ` for ${report.novelId}` : ""}`)
   lines.push(
-    `Chapters=${report.totals.chapters}; beats=${report.totals.plannedBeats}; ` +
+    `Chapters=${report.totals.chapters}; scenes=${report.totals.plannedScenes}; ` +
       `overPlanned=${report.totals.overPlannedChapters}; underPlanned=${report.totals.underPlannedChapters}; ` +
       `endpointIssues=${report.totals.endpointIssues}; inactiveCharacters=${report.totals.inactiveCharacterFindings}; ` +
-      `weakStoryTurns=${report.totals.weakStoryTurnBeats}; obligationErrors=${report.totals.obligationErrorChapters}; ` +
+      `weakStoryTurns=${report.totals.weakStoryTurnEntries}; obligationErrors=${report.totals.obligationErrorChapters}; ` +
       `overloadedObligations=${report.totals.overloadedObligationChapters}`,
   )
   if (report.chapters.length === 0) {
@@ -587,8 +587,8 @@ export function renderPlannerQualityReport(report: PlannerQualityReport): string
     lines.push("")
     lines.push(
       `ch${chapter.chapter} "${chapter.title}": target=${chapter.targetWords ?? "?"}, ` +
-        `beats=${chapter.plannedBeats} (rec=${chapter.recommendedBeats ?? "?"}, ` +
-        `delta=${chapter.beatDeltaFromRecommended ?? "?"}), flags=${chapter.flags.join(",") || "none"}`,
+        `scenes=${chapter.plannedScenes} (rec=${chapter.recommendedScenes ?? "?"}, ` +
+        `delta=${chapter.sceneDeltaFromRecommended ?? "?"}), flags=${chapter.flags.join(",") || "none"}`,
     )
     if (chapter.endpoint.declared) {
       lines.push(
@@ -605,14 +605,14 @@ export function renderPlannerQualityReport(report: PlannerQualityReport): string
     if (inactive.length > 0) {
       lines.push(
         `  inactive listed characters=${inactive.map(character =>
-          `${character.character}(beatRefs=${character.listedInBeats}, textRefs=${character.mentionedInBeatText})`
+          `${character.character}(sceneRefs=${character.listedInScenes}, textRefs=${character.mentionedInSceneText})`
         ).join("; ")}`,
       )
     }
-    if (chapter.weakStoryTurnBeats.length > 0) {
+    if (chapter.weakStoryTurnEntries.length > 0) {
       lines.push(
-        `  weak story-turn beats=${chapter.weakStoryTurnBeats.map(beat =>
-          `${beat.beat}:${beat.kind}`
+        `  weak story-turn entries=${chapter.weakStoryTurnEntries.map(entry =>
+          `${entry.entry}:${entry.kind}`
         ).join(",")}`,
       )
     }

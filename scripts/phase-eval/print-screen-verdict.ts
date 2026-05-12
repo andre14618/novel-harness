@@ -3,9 +3,9 @@
  * `docs/designs/phase-variant-comparison.md` (R5) for a selected
  * control/test variant pair.
  *
- * Reads the summary.json produced by `probe-planning-beats.ts` + the
+ * Reads the summary.json produced by `probe-planning-scenes.ts` + the
  * per-variant `outlines.json` files, validates each outline against
- * `chapterBeatsSchema`, applies the charter's ordered predicate table,
+ * `chapterScenePlanSchema`, applies the charter's ordered predicate table,
  * emits a verdict, and exits 0 (SCREEN-PASS) or 1 (SCREEN-FAIL).
  *
  * Charter R5 gates (per docs/designs/phase-variant-comparison.md §G):
@@ -15,11 +15,11 @@
  *   G2 (knowledge-changes directional uptake):
  *       test_know_median ≥ 1.5 × control_know_median  AND
  *       test_know_median ≥ 3
- *   G3 (beat-floor directional uptake):
- *       test_total_beats ≥ 1.10 × control_total_beats
+ *   G3 (scene-count directional uptake):
+ *       test_total_scenes ≥ 1.10 × control_total_scenes
  *   G4 (structural validity):
  *       test variant's planning phase produced N chapter outlines, all
- *       parsing against chapterBeatsSchema. N defaults to the seed's
+ *       parsing against chapterScenePlanSchema. N defaults to the seed's
  *       chapterCount (charter spec is 5; flexible per seed).
  *
  * Verdict order (first match wins, exhaustive):
@@ -39,7 +39,7 @@
  *     --summary=<path-to-summary.json> \
  *     [--control=<variant-id>]        default: default
  *     [--test=<variant-id>]           default: loud
- *     [--metric-set=<name>]           planning-beats | state-mapper
+ *     [--metric-set=<name>]           planning-scenes | state-mapper
  *     [--persist]                    persist a row to phase_eval_runs
  *     [--exp-id=<n>]                 link the row to a tuning_experiments id
  *     [--note='...']                 free-text operator note
@@ -54,10 +54,10 @@
 import { readFileSync, existsSync } from "node:fs"
 import { dirname, join, isAbsolute, basename } from "node:path"
 import { createHash } from "node:crypto"
-import { chapterBeatsSchema } from "../../src/agents/planning-beats/schema"
+import { chapterScenePlanSchema } from "../../src/agents/planning-scenes/schema"
 import { validateBeatObligationCoverage } from "../../src/harness/beat-obligations"
 
-type MetricSet = "planning-beats" | "state-mapper"
+type MetricSet = "planning-scenes" | "state-mapper"
 
 interface VariantBlock {
   id: string
@@ -75,7 +75,7 @@ interface Summary {
   variants: VariantBlock[]
 }
 
-type ParsedOutline = ReturnType<typeof chapterBeatsSchema.parse>
+type ParsedOutline = ReturnType<typeof chapterScenePlanSchema.parse>
 
 interface VariantData {
   id: string
@@ -98,7 +98,7 @@ interface VariantMetrics {
   facts_median: number
   knowledge_median: number
   state_median: number
-  total_beats: number
+  total_scenes: number
   total_payoff_links: number
   total_obligations: number
   must_establish: number
@@ -112,7 +112,7 @@ interface VariantMetrics {
   orphan_knowledge: number
   orphan_state: number
   total_orphans: number
-  overloaded_beats: number
+  overloaded_entries: number
   // Exact-ID coverage metrics (Phase 5+).
   missing_source_ids: number
   unknown_source_ids: number
@@ -120,7 +120,7 @@ interface VariantMetrics {
   source_kind_mismatches: number
   character_id_mismatches: number
   // Pattern 3 chapter-edge kind diagnostics (P3a opener / P3b closer).
-  // Counts of chapters whose first/last beat had each kind. Diagnostic
+  // Counts of chapters whose first/last scene entry had each kind. Diagnostic
   // only — not used as a G-gate today; surfaces whether a plotter
   // variant recovered the corpus-validated closer rule (~41% action /
   // ~35% interiority / NEVER pure description).
@@ -153,7 +153,7 @@ function valueAfter(arg: string, prefix: string): string | undefined {
 }
 
 function usage(): string {
-  return "usage: bun print-screen-verdict.ts --summary=<path-to-summary.json> [--control=<variant-id>] [--test=<variant-id>] [--metric-set=planning-beats|state-mapper] [--persist] [--exp-id=<n>] [--note='...']"
+  return "usage: bun print-screen-verdict.ts --summary=<path-to-summary.json> [--control=<variant-id>] [--test=<variant-id>] [--metric-set=planning-scenes|state-mapper] [--persist] [--exp-id=<n>] [--note='...']"
 }
 
 function parseArgs(argv: string[]): Args {
@@ -172,8 +172,8 @@ function parseArgs(argv: string[]): Args {
 
   const metricSetRaw = argv.map(a => valueAfter(a, "--metric-set=")).find((v): v is string => v !== undefined)
   const metricSet = metricSetRaw as MetricSet | undefined
-  if (metricSetRaw !== undefined && metricSetRaw !== "planning-beats" && metricSetRaw !== "state-mapper") {
-    console.error(`--metric-set must be planning-beats or state-mapper, got: ${metricSetRaw}`)
+  if (metricSetRaw !== undefined && metricSetRaw !== "planning-scenes" && metricSetRaw !== "state-mapper") {
+    console.error(`--metric-set must be planning-scenes or state-mapper, got: ${metricSetRaw}`)
     process.exit(2)
   }
 
@@ -211,12 +211,12 @@ function fmt(n: number, places = 1): string {
 }
 
 function inferMetricSet(summary: Summary): MetricSet {
-  return summary.promptEnv === "PLANNING_STATE_MAPPER_PROMPT_OVERRIDE" ? "state-mapper" : "planning-beats"
+  return summary.promptEnv === "PLANNING_STATE_MAPPER_PROMPT_OVERRIDE" ? "state-mapper" : "planning-scenes"
 }
 
 function countSceneObligations(outlines: ParsedOutline[]): Omit<VariantMetrics,
-  "facts_median" | "knowledge_median" | "state_median" | "total_beats" | "total_payoff_links" |
-  "total_state_items" | "orphan_facts" | "orphan_knowledge" | "orphan_state" | "total_orphans" | "overloaded_beats" |
+  "facts_median" | "knowledge_median" | "state_median" | "total_scenes" | "total_payoff_links" |
+  "total_state_items" | "orphan_facts" | "orphan_knowledge" | "orphan_state" | "total_orphans" | "overloaded_entries" |
   "missing_source_ids" | "unknown_source_ids" | "duplicate_source_ids" | "source_kind_mismatches" | "character_id_mismatches"
 > {
   const counts = {
@@ -249,7 +249,7 @@ function computeVariantMetrics(data: VariantData): VariantMetrics {
       facts_median: 0,
       knowledge_median: 0,
       state_median: 0,
-      total_beats: 0,
+      total_scenes: 0,
       total_payoff_links: 0,
       total_obligations: 0,
       must_establish: 0,
@@ -263,7 +263,7 @@ function computeVariantMetrics(data: VariantData): VariantMetrics {
       orphan_knowledge: 0,
       orphan_state: 0,
       total_orphans: 0,
-      overloaded_beats: 0,
+      overloaded_entries: 0,
       missing_source_ids: 0,
       unknown_source_ids: 0,
       duplicate_source_ids: 0,
@@ -284,7 +284,7 @@ function computeVariantMetrics(data: VariantData): VariantMetrics {
   const facts = data.outlines.map(o => o.establishedFacts.length)
   const knowledge = data.outlines.map(o => o.knowledgeChanges.length)
   const state = data.outlines.map(o => o.characterStateChanges.length)
-  const beatCounts = data.outlines.map(o => o.scenes.length)
+  const sceneCounts = data.outlines.map(o => o.scenes.length)
   const totalPayoffLinks = sum(data.outlines.map(o => sum(o.scenes.map(s => s.requiredPayoffs.length))))
   const obligationCounts = countSceneObligations(data.outlines)
   const coverage = data.outlines.map(o => validateBeatObligationCoverage(o))
@@ -293,12 +293,12 @@ function computeVariantMetrics(data: VariantData): VariantMetrics {
   const orphanState = sum(coverage.map(c => c.summary.orphanStateChanges))
   const totalStateItems = sum(facts) + sum(knowledge) + sum(state)
 
-  // Pattern 3 chapter-edge kind diagnostics — count first/last beat kind
-  // across chapters. Beats with no kind field default to "action" per
+  // Pattern 3 chapter-edge kind diagnostics — count first/last scene kind
+  // across chapters. Entries with no kind field default to "action" per
   // sceneBeatSchema.kind default; that matches how the writer prompt
   // resolves it.
-  const kindAt = (beats: typeof data.outlines[number]["scenes"], idx: number) =>
-    beats[idx]?.kind ?? "action"
+  const kindAt = (entries: typeof data.outlines[number]["scenes"], idx: number) =>
+    entries[idx]?.kind ?? "action"
   const opener_action = data.outlines.filter(o => o.scenes.length > 0 && kindAt(o.scenes, 0) === "action").length
   const opener_dialogue = data.outlines.filter(o => o.scenes.length > 0 && kindAt(o.scenes, 0) === "dialogue").length
   const opener_interiority = data.outlines.filter(o => o.scenes.length > 0 && kindAt(o.scenes, 0) === "interiority").length
@@ -312,7 +312,7 @@ function computeVariantMetrics(data: VariantData): VariantMetrics {
     facts_median: median(facts),
     knowledge_median: median(knowledge),
     state_median: median(state),
-    total_beats: sum(beatCounts),
+    total_scenes: sum(sceneCounts),
     total_payoff_links: totalPayoffLinks,
     ...obligationCounts,
     total_state_items: totalStateItems,
@@ -320,7 +320,7 @@ function computeVariantMetrics(data: VariantData): VariantMetrics {
     orphan_knowledge: orphanKnowledge,
     orphan_state: orphanState,
     total_orphans: orphanFacts + orphanKnowledge + orphanState,
-    overloaded_beats: sum(coverage.map(c => c.summary.overloadedBeats)),
+    overloaded_entries: sum(coverage.map(c => c.summary.overloadedBeats)),
     missing_source_ids: sum(coverage.map(c => c.summary.missingSourceIds)),
     unknown_source_ids: sum(coverage.map(c => c.summary.unknownObligationSourceIds)),
     duplicate_source_ids: sum(coverage.map(c => c.summary.duplicateSourceIds)),
@@ -436,12 +436,12 @@ function loadVariantData(summaryDir: string, v: VariantBlock, expectedChapters: 
   }
   const parsed: ParsedOutline[] = []
   for (let i = 0; i < raw.length; i++) {
-    const result = chapterBeatsSchema.safeParse(raw[i])
+    const result = chapterScenePlanSchema.safeParse(raw[i])
     if (!result.success) {
       return {
         id: v.id,
         ok: false,
-        reason: `chapter ${i + 1} fails chapterBeatsSchema: ${result.error.issues.slice(0, 3).map(e => `${e.path.join(".")}: ${e.message}`).join("; ")}`,
+        reason: `chapter ${i + 1} fails chapterScenePlanSchema: ${result.error.issues.slice(0, 3).map(e => `${e.path.join(".")}: ${e.message}`).join("; ")}`,
         outlines: [],
       }
     }
@@ -508,7 +508,7 @@ async function main(): Promise<void> {
   console.log(`Variants: ${summary.variants.map(v => v.id).join(", ")}`)
   console.log(`Comparison: control=${args.controlId} test=${args.testId}`)
   console.log(metricSet === "state-mapper"
-    ? "Signal provenance: LLMs produce concept artifacts, skeletons, fixed beats, and mapper obligations; this script applies deterministic file/SQL gates over those artifacts and llm_calls telemetry."
+    ? "Signal provenance: LLMs produce concept artifacts, skeletons, fixed scene entries, and mapper obligations; this script applies deterministic file/SQL gates over those artifacts and llm_calls telemetry."
     : "Signal provenance: LLMs produce concept artifacts and planning outlines; this script applies deterministic file gates over those artifacts.")
   console.log()
 
@@ -534,8 +534,8 @@ async function main(): Promise<void> {
     test_facts_median: testMetrics.facts_median,
     control_know_median: controlMetrics.knowledge_median,
     test_know_median: testMetrics.knowledge_median,
-    control_total_beats: controlMetrics.total_beats,
-    test_total_beats: testMetrics.total_beats,
+    control_total_scenes: controlMetrics.total_scenes,
+    test_total_scenes: testMetrics.total_scenes,
     control: controlMetrics,
     test: testMetrics,
   }
@@ -544,25 +544,25 @@ async function main(): Promise<void> {
   // G4 first because it's the predicate-1 gate.
   const G4 = test.ok
   const mapperStateFloor = Math.max(expectedChapters, 0.75 * controlMetrics.total_state_items)
-  // Planning-beats keeps the historical R5 directional gates. State-mapper
+  // Planning-scenes keeps the historical R5 directional gates. State-mapper
   // screens focus on writer-visible coverage and avoiding empty-state wins.
   // G1 for state-mapper is now exact-ID coverage: missing/unknown/duplicate
   // source IDs, sourceKind mismatches, and character-ID mismatches must all
   // be zero. Text/fuzzy overlap is not part of this verdict path.
-  const G1 = metricSet === "planning-beats"
+  const G1 = metricSet === "planning-scenes"
     ? m.test_facts_median >= 1.5 * m.control_facts_median && m.test_facts_median >= 8
     : (testMetrics.missing_source_ids === 0
         && testMetrics.unknown_source_ids === 0
         && testMetrics.duplicate_source_ids === 0
         && testMetrics.source_kind_mismatches === 0
         && testMetrics.character_id_mismatches === 0)
-  const G2 = metricSet === "planning-beats"
+  const G2 = metricSet === "planning-scenes"
     ? m.test_know_median >= 1.5 * m.control_know_median && m.test_know_median >= 3
-    : testMetrics.overloaded_beats === 0
-  const G3 = metricSet === "planning-beats"
-    ? m.test_total_beats >= 1.10 * m.control_total_beats
+    : testMetrics.overloaded_entries === 0
+  const G3 = metricSet === "planning-scenes"
+    ? m.test_total_scenes >= 1.10 * m.control_total_scenes
     : testMetrics.total_state_items >= mapperStateFloor
-  const G5 = metricSet === "planning-beats" ? true : mapperHealthPass(testHealth!)
+  const G5 = metricSet === "planning-scenes" ? true : mapperHealthPass(testHealth!)
 
   // ── Print metrics ───────────────────────────────────────────────────
   console.log("Metrics (deterministic counts from parsed LLM-produced outlines):")
@@ -570,7 +570,7 @@ async function main(): Promise<void> {
     const idCoverage = metricSet === "state-mapper"
       ? `  missing_source_ids=${metrics.missing_source_ids}  unknown_source_ids=${metrics.unknown_source_ids}  duplicate_source_ids=${metrics.duplicate_source_ids}  source_kind_mismatches=${metrics.source_kind_mismatches}  characterId_mismatches=${metrics.character_id_mismatches}`
       : ""
-    console.log(`  ${id}: facts_median=${fmt(metrics.facts_median)}  know_median=${fmt(metrics.knowledge_median)}  state_median=${fmt(metrics.state_median)}  total_beats=${metrics.total_beats}  payoffs=${metrics.total_payoff_links}  obligations=${metrics.total_obligations}  orphans=${metrics.total_orphans}  overloaded=${metrics.overloaded_beats}${idCoverage}  status=${data.ok ? "ok" : `BROKEN (${data.reason})`}`)
+    console.log(`  ${id}: facts_median=${fmt(metrics.facts_median)}  know_median=${fmt(metrics.knowledge_median)}  state_median=${fmt(metrics.state_median)}  total_scenes=${metrics.total_scenes}  payoffs=${metrics.total_payoff_links}  obligations=${metrics.total_obligations}  orphans=${metrics.total_orphans}  overloaded=${metrics.overloaded_entries}${idCoverage}  status=${data.ok ? "ok" : `BROKEN (${data.reason})`}`)
     if (metrics.chapters_total > 0) {
       console.log(`        opener kinds: action=${metrics.opener_action}/dialogue=${metrics.opener_dialogue}/interiority=${metrics.opener_interiority}/description=${metrics.opener_description}  closer kinds: action=${metrics.closer_action}/dialogue=${metrics.closer_dialogue}/interiority=${metrics.closer_interiority}/description=${metrics.closer_description} (P3 diagnostic, of ${metrics.chapters_total} chapters)`)
     }
@@ -588,13 +588,13 @@ async function main(): Promise<void> {
   }
   console.log()
   console.log("Gate evaluation (all gates are deterministic checks; no judge LLM is called here):")
-  if (metricSet === "planning-beats") {
+  if (metricSet === "planning-scenes") {
     console.log(`  G1 rich-facts [code]:        ${args.testId}_facts_median (${fmt(m.test_facts_median)}) ≥ 1.5 × ${args.controlId}_facts_median (${fmt(1.5 * m.control_facts_median)}) AND ≥ 8       → ${G1 ? "PASS" : "FAIL"}`)
     console.log(`  G2 knowledge-changes [code]: ${args.testId}_know_median (${fmt(m.test_know_median)}) ≥ 1.5 × ${args.controlId}_know_median (${fmt(1.5 * m.control_know_median)}) AND ≥ 3        → ${G2 ? "PASS" : "FAIL"}`)
-    console.log(`  G3 beat-floor [code]:        ${args.testId}_total_beats (${m.test_total_beats}) ≥ 1.10 × ${args.controlId}_total_beats (${fmt(1.10 * m.control_total_beats)})                                  → ${G3 ? "PASS" : "FAIL"}`)
+    console.log(`  G3 scene-count [code]:       ${args.testId}_total_scenes (${m.test_total_scenes}) ≥ 1.10 × ${args.controlId}_total_scenes (${fmt(1.10 * m.control_total_scenes)})                                  → ${G3 ? "PASS" : "FAIL"}`)
   } else {
     console.log(`  G1 exact-id coverage [code]: ${args.testId} missing_source_ids=${testMetrics.missing_source_ids}, unknown_source_ids=${testMetrics.unknown_source_ids}, duplicate_source_ids=${testMetrics.duplicate_source_ids}, source_kind_mismatches=${testMetrics.source_kind_mismatches}, characterId_mismatches=${testMetrics.character_id_mismatches} (all = 0 required; text/fuzzy overlap is not evaluated) → ${G1 ? "PASS" : "FAIL"}`)
-    console.log(`  G2 no-overload [code]:       ${args.testId}_overloaded_beats (${testMetrics.overloaded_beats}) = 0                                                            → ${G2 ? "PASS" : "FAIL"}`)
+    console.log(`  G2 no-overload [code]:       ${args.testId}_overloaded_entries (${testMetrics.overloaded_entries}) = 0                                                            → ${G2 ? "PASS" : "FAIL"}`)
     console.log(`  G3 state-retention [code]:   ${args.testId}_state_items (${testMetrics.total_state_items}) ≥ max(${expectedChapters}, 0.75 × ${args.controlId}_state_items=${fmt(0.75 * controlMetrics.total_state_items)}) → ${G3 ? "PASS" : "FAIL"}`)
   }
   console.log(`  G4 structural [code]:        ${args.testId} planning complete + ${expectedChapters} outlines parse                                                                  → ${G4 ? "PASS" : "FAIL"}`)
@@ -628,7 +628,7 @@ async function main(): Promise<void> {
   }
 
   // ── Promotion eligibility check ──────────────────────────────────────
-  // For planning-beats, single-run G1/G2 SCREEN-PASS is not promotion-
+  // For planning-scenes, single-run G1/G2 SCREEN-PASS is not promotion-
   // grade because medians swing 2-3 across reruns of the same prompt
   // (exp #311 r1/r2/r3). Require at least one prior SCREEN-PASS-SUGGESTIVE
   // / PROMOTION-PASS row for the same (probe, test_variant, commit, seed)
@@ -657,7 +657,7 @@ async function main(): Promise<void> {
   }
 
   console.log(`Verdict: ${verdict}`)
-  if (baseVerdictKind === "single-pass" && !promotionUpgrade && metricSet === "planning-beats") {
+  if (baseVerdictKind === "single-pass" && !promotionUpgrade && metricSet === "planning-scenes") {
     console.log(`Promotion gate: SCREEN-PASS-SUGGESTIVE — n=10 single-run G1/G2 medians swing 2-3 across reruns of the same prompt (exp #311). PROMOTION-PASS requires 2+ consecutive passes for the same (probe, variant, commit, seed). Re-run this probe to upgrade. See list-runs.ts for run history.`)
   }
   console.log(`Exit: ${exitCode}`)

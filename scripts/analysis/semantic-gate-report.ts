@@ -44,10 +44,10 @@ export interface SemanticGateChapter {
   chapter: number | null
   signals: SemanticGateSignal[]
   targetWords: number | null
-  plannedBeats: number
+  plannedScenes: number
   draftWords: number | null
   wordRatio: number | null
-  wordsPerBeat: number | null
+  wordsPerScene: number | null
   expansionFlags: string[]
   planDrift: {
     totalCalls: number
@@ -157,10 +157,10 @@ export function buildSemanticGateReport(input: SemanticGateInputs, novelId: stri
         chapter,
         signals,
         targetWords: expansion?.targetWords ?? null,
-        plannedBeats: expansion?.plannedBeats ?? 0,
+        plannedScenes: expansion?.plannedScenes ?? 0,
         draftWords: expansion?.draft?.wordCount ?? null,
         wordRatio: expansion?.wordRatio ?? null,
-        wordsPerBeat: expansion?.wordsPerBeat ?? null,
+        wordsPerScene: expansion?.wordsPerScene ?? null,
         expansionFlags,
         planDrift: {
           totalCalls: drift?.totalCalls ?? 0,
@@ -223,8 +223,8 @@ export function renderSemanticGateReport(report: SemanticGateReport): string {
     lines.push("")
     lines.push(
       `${label}: signals=${signals}; target=${chapter.targetWords ?? "?"}, ` +
-        `beats=${chapter.plannedBeats}, draft=${chapter.draftWords ?? "none"}, ` +
-        `ratio=${formatNullable(chapter.wordRatio, 2)}, wordsPerBeat=${formatNullable(chapter.wordsPerBeat, 0)}`,
+        `scenes=${chapter.plannedScenes}, draft=${chapter.draftWords ?? "none"}, ` +
+        `ratio=${formatNullable(chapter.wordRatio, 2)}, wordsPerScene=${formatNullable(chapter.wordsPerScene, 0)}`,
     )
     if (chapter.expansionFlags.length > 0) {
       lines.push(`  - expansion: ${chapter.expansionFlags.join(",")}`)
@@ -271,11 +271,11 @@ function semanticGateSignals(input: {
 }): SemanticGateSignal[] {
   const signals: SemanticGateSignal[] = []
   if (input.expansionFlags.includes("no_draft")) signals.push("no_draft")
-  if (input.expansionFlags.includes("over_planned_beats")) signals.push("outline_shape")
+  if (input.expansionFlags.includes("over_planned_scenes")) signals.push("outline_shape")
   if (
     input.expansionFlags.includes("over_target") ||
     input.expansionFlags.includes("severe_over_target") ||
-    input.expansionFlags.includes("high_words_per_beat")
+    input.expansionFlags.includes("high_words_per_scene")
   ) {
     signals.push("writer_expansion")
   }

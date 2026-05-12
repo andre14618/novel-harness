@@ -62,7 +62,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
 
   // ── Planners (structured creative output) ─────────────────────────────
   // Most planners emit creative artifacts and don't benefit from think tokens.
-  // planning-beats is now beat-shape only. planning-state-mapper owns the
+  // planning-scenes now owns per-chapter scene/turn structure. planning-state-mapper owns the
   // judgment-heavy state/obligation placement, so it keeps thinking enabled.
   // planning-state-repair is a narrow patch surface: cheap, non-thinking,
   // validator-backed, and used before a full chapter mapper retry.
@@ -70,7 +70,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "character-agent":           { ...deepseekV4Flash, maxTokens: 8192 },
   "plotter":                   { ...deepseekV4Flash, maxTokens: 8192 },
   "planning-plotter":          { ...deepseekV4Flash, temperature: 0.6, maxTokens: 8192 },
-  "planning-beats":            { ...deepseekV4Flash, temperature: 0.6, maxTokens: 8192 },
+  "planning-scenes":            { ...deepseekV4Flash, temperature: 0.6, maxTokens: 8192 },
   "planning-state-mapper":     { ...deepseekV4Flash, thinking: true, temperature: 0.25, maxTokens: 16384 },
   "planning-state-repair":     { ...deepseekV4Flash, thinking: false, temperature: 0.2, maxTokens: 2048 },
   // Offline planner-method diagnostics. Kept on the same base planning model
@@ -147,7 +147,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // satisfiable. Validation-failure paths (word count, pov-missing) do NOT
   // invoke the reviser — those are routed to targeted beat rewrites only.
   // Same DeepSeek model as the checker; higher maxTokens since output is a
-  // full beats+state JSON (matches planning-beats shape). L71 (2026-05-03,
+  // full scene/state JSON (matches planning-scenes shape). L71 (2026-05-03,
   // exp #400) raised the cap 6144 → 12288 after exp #399 surfaced a 1/25
   // long-tail novel (fantasy-system-heretic ch1) hitting finish_reason=length
   // and bailing the whole novel at the plan-assist gate. Thinking-mode
@@ -412,40 +412,40 @@ export function renderStructuralPriorsForPlanner(priors: StructuralPriors): stri
     .join(", ")
 
   const clusters = Object.entries(priors.clusterSustain)
-    .map(([k, [lo, hi]]) => `${k} sequences should sustain ${lo}-${hi} consecutive beats`)
+    .map(([k, [lo, hi]]) => `${k} sequences should sustain ${lo}-${hi} consecutive entries`)
     .join(". ")
 
   return `
 STRUCTURAL PRIORS (derived from published ${priors.maxActiveChars <= 3 ? "fantasy" : "fiction"} analysis):
 
-Beat-type labeling — each beat MUST include a "kind" field:
+Entry-kind labeling — each scene/turn entry MUST include a "kind" field:
 - "action" — physical conflict, chase, combat, urgent movement
 - "dialogue" — conversation-driven, 2+ characters exchanging speech
 - "interiority" — internal thought, reflection, emotional processing
 - "description" — scene-setting, atmosphere, worldbuilding, transition
 
-Beat-type distribution per chapter:
+Entry-kind distribution per chapter:
   Target: ${dist}.
-  Every chapter with 2+ characters MUST have at least 2 dialogue beats.
-  Pure-action chapters can skew to 60%+ action but still need at least 1 interiority beat.
+  Every chapter with 2+ characters MUST have at least 2 dialogue entries.
+  Pure-action chapters can skew to 60%+ action but still need at least 1 interiority entry.
 
 Pacing — sustain sequences, don't fragment them:
   ${clusters}.
   Interiority and description are transitional — they lead INTO action or dialogue, not sustain on their own.
-  Two consecutive description beats is stasis; avoid it.
+  Two consecutive description entries is stasis; avoid it.
 
 Chapter structure:
-  Open with: ${priors.openerKinds.join(" or ")} beat. Do NOT open with interiority unless the POV character is alone.
-  Close with: ${priors.closerKinds.join(" or ")} beat. NEVER close with pure description.
+  Open with: ${priors.openerKinds.join(" or ")} entry. Do NOT open with interiority unless the POV character is alone.
+  Close with: ${priors.closerKinds.join(" or ")} entry. NEVER close with pure description.
 
-Scene structure:
-  ${priors.beatsPerScene[0]}-${priors.beatsPerScene[1]} beats per scene (one continuous location + timeframe).
-  Under ${priors.beatsPerScene[0]} = too sparse (combine with adjacent scene). Over ${priors.beatsPerScene[1]} = too long (split at natural pivot).
+Sequence structure:
+  A continuous location + timeframe usually carries ${priors.beatsPerScene[0]}-${priors.beatsPerScene[1]} scene/turn entries before it needs a natural pivot.
+  Under ${priors.beatsPerScene[0]} = too sparse (combine with adjacent movement). Over ${priors.beatsPerScene[1]} = too long (split at a natural pivot).
 
-Character discipline per beat:
-  CRITICAL: maximum ${priors.maxActiveChars} named characters actively speaking or acting per beat.
+Character discipline per entry:
+  CRITICAL: maximum ${priors.maxActiveChars} named characters actively speaking or acting per entry.
   Additional characters become collective nouns: "the guards," "the goblin scouts," "the crowd."
-  If a scene has 5+ characters present, each beat focuses on the ${priors.maxActiveChars} who matter most for THAT beat's dramatic function.
+  If a sequence has 5+ characters present, each entry focuses on the ${priors.maxActiveChars} who matter most for THAT entry's dramatic function.
   Others can be acknowledged ("Helix waited at the extraction point") but not given active dialogue or action.
 `
 }
@@ -453,7 +453,7 @@ Character discipline per beat:
 // Universal structural rules that go in the base planner prompt regardless
 // of genre pack. These are fiction-universal, not author-specific.
 export const UNIVERSAL_STRUCTURAL_RULES = `
-Beat descriptions — keep to 1-2 sentences. Longer descriptions constrain the writer's creative latitude.
+Scene-entry descriptions — keep to 1-2 sentences. Longer descriptions constrain the writer's creative latitude.
 Chapters should NOT close with pure description — the reader needs momentum or emotional resonance at chapter end.
 `
 

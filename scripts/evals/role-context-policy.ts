@@ -2,7 +2,7 @@
 import { readFile } from "node:fs/promises"
 import { join } from "node:path"
 
-import { buildBeatContext } from "../../src/agents/writer/beat-context"
+import { buildSceneContext } from "../../src/agents/writer/beat-context"
 import {
   selectContinuityFactsForPolicy,
   selectWriterFactsForPolicy,
@@ -121,7 +121,7 @@ export function renderRoleContextPolicyEvidence(evidence: RoleContextPolicyEvide
 
 async function buildWriterPrompt(facts: readonly Fact[], policy: FactRoleContextPolicy): Promise<string> {
   const selectedFacts = selectWriterFactsForPolicy(facts, policy)
-  const result = await buildBeatContext({
+  const result = await buildSceneContext({
     novelId: "role-context-fixture",
     chapterNumber: 2,
     beatIndex: 0,

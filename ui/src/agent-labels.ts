@@ -20,7 +20,7 @@ const SHORT_LABELS: Record<string, string> = {
   "plotter": "Plot",
   // Planning
   "planning-plotter": "Chapter Plan",
-  "planning-beats": "Beat Plan",
+  "planning-scenes": "Scene Plan",
   // Drafting
   "writer": "Writer",
   "beat-writer": "Beat Writer",
@@ -48,7 +48,7 @@ const ACTION_LABELS: Record<string, string> = {
   "plotter": "Sketching the plot",
   // Planning
   "planning-plotter": "Generating chapter outlines",
-  "planning-beats": "Expanding chapter beats",
+  "planning-scenes": "Expanding chapter scenes",
   // Drafting
   "writer": "Writing the chapter",
   "beat-writer": "Writing beat",

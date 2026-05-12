@@ -15,7 +15,7 @@
  * ──────────────────────────────────────────────────────────────────────────
  * D1 (2026-04-28): split into a typed-slot data layer + a pure renderer.
  *
- * - `buildBeatContextSlots` owns ALL async/data selection: conditioning
+ * - `buildSceneContextSlots` owns ALL async/data selection: conditioning
  *   resolution, compact-vs-full async branching, relationship/state lookups,
  *   reference resolution, exampleLines preset selection, location-change
  *   heuristic, setting visibility decision.
@@ -27,7 +27,7 @@
  *   setting block (compact strips the title+description, keeping only the
  *   "Sensory: …" line).
  *
- * - `buildBeatContext` is preserved as a thin composer. Existing call sites
+ * - `buildSceneContext` is preserved as a thin composer. Existing call sites
  *   in drafting.ts:282, 605, 917 keep working without changes; the public
  *   surface (BeatContextInput, BeatContextResult, pickExampleLineSubset)
  *   is unchanged.
@@ -136,7 +136,7 @@ export interface BeatContextResult {
 }
 
 // ── Typed slots (D1) ─────────────────────────────────────────────────────
-// These types describe what `buildBeatContextSlots` produces and what
+// These types describe what `buildSceneContextSlots` produces and what
 // `renderBeatContext` consumes. They are the integration surface for future
 // context levers (voice-shaping, characterStateChanges wiring, etc.) — each
 // such lever becomes a `BeatContext → BeatContext` transform behind a flag.
@@ -266,7 +266,7 @@ export interface SceneContractBlock {
 
 // ── Slot builder (D1) ────────────────────────────────────────────────────
 
-export async function buildBeatContextSlots(input: BeatContextInput): Promise<BeatContext> {
+export async function buildSceneContextSlots(input: BeatContextInput): Promise<BeatContext> {
   const { novelId, chapterNumber, beatIndex, previousBeatProse, outline, characters, characterStates, worldBible } = input
 
   const conditioning = resolveConditioningOverride()
@@ -469,8 +469,8 @@ function resolveConditioningOverride(): "fixed" | "rotation" | undefined {
 
 // ── Public composer (preserved interface) ────────────────────────────────
 
-export async function buildBeatContext(input: BeatContextInput): Promise<BeatContextResult> {
-  const ctx = await buildBeatContextSlots(input)
+export async function buildSceneContext(input: BeatContextInput): Promise<BeatContextResult> {
+  const ctx = await buildSceneContextSlots(input)
   // L097 Slice 2: prefer per-entry scene-contract targetWords when present;
   // falls back to the chapter-divided default. Off-flag (sceneContract === null)
   // the legacy chapter-divided behaviour is preserved.

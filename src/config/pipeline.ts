@@ -82,10 +82,10 @@ export const pipeline = {
   writerDraftingBriefMode: "off" as WriterDraftingBriefMode,
 
   // Diagnostic/A-B planning shape lever. Default null leaves planner behavior
-  // unchanged. Per-novel overrides cap generated planning beats before state
-  // mapping, but the effective cap never drops below the calibrated floor for
-  // the chapter target.
-  planningMaxBeatsPerChapter: null as number | null,
+  // unchanged. Per-novel overrides cap generated planning scene entries before
+  // state mapping, but the effective cap never drops below the calibrated floor
+  // for the chapter target.
+  planningMaxScenesPerChapter: null as number | null,
 
   // Production upstream planning-shape default. Planning prompts ask for
   // native story-turn beats at calibrated granularity and enforcement

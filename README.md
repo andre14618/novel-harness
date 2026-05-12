@@ -25,7 +25,7 @@ Three agents run in parallel, each producing a structured artifact:
 Each artifact gets a human approval gate (or auto-approved with `--auto`).
 
 ### Phase 2: Planning
-All Phase 1 outputs converge into split planning calls: `planning-plotter` creates chapter skeletons, `planning-beats` expands each chapter into beat shape only, and `planning-state-mapper` maps established facts, knowledge changes, character state changes, payoff links, and per-beat obligations onto those existing beats. Planning validates that declared state is writer-visible through beat text or obligations, retries the mapper on coverage gaps, and only falls back to deterministic auto-repair after mapper retries are exhausted.
+All Phase 1 outputs converge into split planning calls: `planning-plotter` creates chapter skeletons, `planning-scenes` expands each chapter into scene/turn entries, and `planning-state-mapper` maps established facts, knowledge changes, character state changes, payoff links, and writer-visible obligations onto those entries. Planning validates that declared state is visible through scene text or obligations, retries the mapper on coverage gaps, and runs deterministic repair only when a validator-backed mapper patch is available.
 
 ### Phase 3: Drafting
 For each chapter, beats are written serially. For each beat:

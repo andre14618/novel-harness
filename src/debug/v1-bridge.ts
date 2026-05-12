@@ -26,8 +26,8 @@
  *   - Translates `DEBUG_FORCE_REVISER=throw` → force-error on
  *     `chapter-plan-reviser`.
  *   - Translates `DEBUG_FORCE_REVISER=reject` → force-result on
- *     `chapter-plan-reviser` with a 1-beat plan (below the 3-beat floor,
- *     so the reviser-policy beat-floor sanity check rejects it; this is
+ *     `chapter-plan-reviser` with a 1-scene plan (below the 3-scene floor,
+ *     so the reviser-policy scene-count sanity check rejects it; this is
  *     what R6 asserts: `gate:plan-assist kind="reviser-rejected"`).
  *   - DOES NOT translate `DEBUG_FORCE_VALIDATION` — V2 cannot reach the
  *     deterministic validation pipeline. That guard stays at V1 until
@@ -143,9 +143,9 @@ export function applyV1EnvVarsAsV2Rules(): BridgeReport {
     translated++
     reasons.push("DEBUG_FORCE_REVISER=throw → force-error on chapter-plan-reviser")
   } else if (reviser === "reject") {
-    // chapterBeatsSchema requires `scenes: SceneBeat[]`; sceneBeatSchema
+    // chapterScenePlanSchema requires `scenes: SceneBeat[]`; sceneBeatSchema
     // requires only `description`. All other fields default. One scene
-    // is below the calibrated beat-floor of 3, so the reviser-policy module
+    // is below the calibrated scene-count floor of 3, so the reviser-policy module
     // rejects this with reason="beat_floor"
     // and emits the `gate:plan-assist kind="reviser-rejected"` event.
     const content = JSON.stringify({

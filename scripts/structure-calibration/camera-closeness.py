@@ -1241,7 +1241,7 @@ def _build_levers(result: dict) -> list[str]:
     # 6. Planner-level: kind-specific camera tag
     levers.append(
         "**Planner-level: tag beats with camera-distance expectation.** "
-        "`planning-beats` already emits per-beat `kind`. Add a one-line "
+        "`planning-scenes` already emits per-entry `kind`. Add a one-line "
         "camera prompt note keyed off kind:"
         " for interiority — 'closest camera; possessive body-frame + cognitive "
         "anchors; avoid `the man` / `there was` / aerial framing'."

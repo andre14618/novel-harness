@@ -4,7 +4,7 @@
  * Default mode: per-probe-family rollup. Groups rows by
  * (probe_name, test_variant, git_commit, seed) and shows aggregate
  * columns: N, PASS, FAIL, consecutive-PASS streak, facts_median range,
- * know_median range, total_beats range, parse_fails total.
+ * know_median range, total_scenes range, parse_fails total.
  *
  * Family key format: "<probe>:<variant>:<commit8>:<seed>"
  *
@@ -95,7 +95,7 @@ interface FamilyStats {
   streak: number        // consecutive PASS from latest backwards; negative = consecutive FAIL
   factsRange: [number, number] | null
   knowRange: [number, number] | null
-  beatsRange: [number, number] | null
+  scenesRange: [number, number] | null
   parseFails: number
   latestRanAt: Date
 }
@@ -240,7 +240,7 @@ export function shortVerdict(verdict: string): string {
 /**
  * Defensively extract a number from g_metrics.
  * Keys vary between probe shapes:
- *   planning-beats: test_facts_median, test_know_median, test_total_beats
+ *   planning-scenes: test_facts_median, test_know_median, test_total_scenes
  *   state-mapper: same keys (prefixed test_)
  * Returns null when key absent or non-numeric.
  */
@@ -250,6 +250,10 @@ export function extractMetric(gMetrics: Record<string, any> | null, key: string)
   if (v === null || v === undefined) return null
   const n = Number(v)
   return Number.isFinite(n) ? n : null
+}
+
+function extractSceneMetric(gMetrics: Record<string, any> | null): number | null {
+  return extractMetric(gMetrics, "test_total_scenes") ?? extractMetric(gMetrics, "test_total_beats")
 }
 
 /**
@@ -291,7 +295,7 @@ export function extractPromptHash(gMetrics: Record<string, any> | null): string 
  *
  * Extended dimensions (L53) are derived from summary_json top-level keys
  * persisted by print-screen-verdict.ts:
- * - metric_set: "planning-beats" | "state-mapper" (charter §G branch)
+ * - metric_set: "planning-scenes" | "state-mapper" (charter §G branch)
  * - chapter_count: expected_chapters (5 by default; varies per seed)
  * - prompt_hash: g_metrics.prompt_hash or summary_json.prompt_hash, if any
  * - model_route: g_metrics.model_route or summary_json.model_route, if any
@@ -493,7 +497,7 @@ export function groupIntoFamilies(rows: RawRow[]): Map<string, FamilyStats> {
         streak: 0,
         factsRange: null,
         knowRange: null,
-        beatsRange: null,
+        scenesRange: null,
         parseFails: 0,
         latestRanAt: new Date(0),
       })
@@ -514,11 +518,11 @@ export function groupIntoFamilies(rows: RawRow[]): Map<string, FamilyStats> {
 
     const factsVals = stats.rows.map(r => extractMetric(r.g_metrics, "test_facts_median"))
     const knowVals = stats.rows.map(r => extractMetric(r.g_metrics, "test_know_median"))
-    const beatsVals = stats.rows.map(r => extractMetric(r.g_metrics, "test_total_beats"))
+    const sceneVals = stats.rows.map(r => extractSceneMetric(r.g_metrics))
 
     stats.factsRange = computeRange(factsVals)
     stats.knowRange = computeRange(knowVals)
-    stats.beatsRange = computeRange(beatsVals)
+    stats.scenesRange = computeRange(sceneVals)
   }
 
   return families
@@ -549,7 +553,7 @@ function printFamilyRollup(families: FamilyStats[], limit: number): void {
     wn("STREAK", 8),
     wn("FACTS_MED", 12),
     wn("KNOW_MED", 12),
-    wn("BEATS", 12),
+    wn("SCENES", 12),
     wn("PARSE_FAILS", 11),
   ].join("  ")
 
@@ -565,7 +569,7 @@ function printFamilyRollup(families: FamilyStats[], limit: number): void {
       wn(formatStreak(fam.streak), 8),
       wn(formatRange(fam.factsRange), 12),
       wn(formatRange(fam.knowRange), 12),
-      wn(formatRange(fam.beatsRange), 12),
+      wn(formatRange(fam.scenesRange), 12),
       wn(String(fam.parseFails), 11),
     ].join("  ")
     console.log(line)
@@ -704,7 +708,7 @@ function printFamilyDrillDown(fam: FamilyStats): void {
     "VERDICT".padEnd(28),
     "FACTS_MED".padStart(10),
     "KNOW_MED".padStart(9),
-    "BEATS".padStart(7),
+    "SCENES".padStart(7),
     "PARSE_FAIL".padStart(11),
     "PROMPT_HASH".padEnd(12),
   ].join("  ")
@@ -716,7 +720,7 @@ function printFamilyDrillDown(fam: FamilyStats): void {
     const gm = row.g_metrics
     const facts = extractMetric(gm, "test_facts_median")
     const know = extractMetric(gm, "test_know_median")
-    const beats = extractMetric(gm, "test_total_beats")
+    const scenes = extractSceneMetric(gm)
     const fmt1 = (v: number | null) => v !== null ? v.toFixed(1) : "—"
     const fmtI = (v: number | null) => v !== null ? String(Math.round(v)) : "—"
     const parseFail = countParseFails(row)
@@ -728,7 +732,7 @@ function printFamilyDrillDown(fam: FamilyStats): void {
       shortVerdict(row.verdict).slice(0, 27).padEnd(28),
       fmt1(facts).padStart(10),
       fmt1(know).padStart(9),
-      fmtI(beats).padStart(7),
+      fmtI(scenes).padStart(7),
       String(parseFail).padStart(11),
       hash.padEnd(12),
     ].join("  ")

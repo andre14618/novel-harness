@@ -1,88 +1,88 @@
 import type { ChapterOutline, SceneBeat, BeatObligationsContract } from "../types"
 import type { PayoffLink } from "../schemas/shared"
-import { recommendedBeatCountForTarget } from "./beat-counts"
+import { recommendedSceneCountForTarget } from "./scene-counts"
 
-// Deterministic calibrated beat-packing for the `calibrated:packed` cohort
-// variant (decision L086). Reduces a chapter outline's beat count to a
+// Deterministic calibrated scene-packing for the `calibrated:packed` cohort
+// variant (decision L086). Reduces a chapter outline's scene-entry count to a
 // per-chapter budget derived from target words while preserving every
 // authored obligation and every forward-looking payoff link.
 //
 // Constraints (per L086 + 2026-05-06 review):
-//   1. First and last source beats are anchors and must survive packing,
+//   1. First and last source scene entries are anchors and must survive packing,
 //      so the chapter opener and endpoint/turn are preserved.
-//   2. `budget = recommendedBeatCountForTarget(targetWords)`. If the source
-//      already has <= budget beats, the helper is a no-op (still emits an
+//   2. `budget = recommendedSceneCountForTarget(targetWords)`. If the source
+//      already has <= budget scene entries, the helper is a no-op (still emits an
 //      audit entry).
 //   3. If anchor count > budget the helper yields `budgetExceeded: true`
-//      and keeps every must-keep beat rather than destroying structure.
-//   4. Reduction merges adjacent middle beats by lowest combined
+//      and keeps every must-keep entry rather than destroying structure.
+//   4. Reduction merges adjacent middle entries by lowest combined
 //      obligation density; merging never drops obligations or payoffs.
-//   5. Merged beat descriptions use a structured "Packed from source
-//      beats X-Y:" bullet list so the writer sees clear sub-actions.
+//   5. Merged descriptions use a structured "Packed from source
+//      scenes X-Y:" bullet list so the writer sees clear sub-actions.
 //
 // This helper is experiment-only. It is invoked from
 // `scripts/evals/semantic-gate-baseline.ts` when the variant pack-strategy
 // is `calibrated`. It must not be wired into production planning.
 
-export interface PackedBeatAudit {
+export interface PackedSceneAudit {
   packedIndex: number
   sourceIndices: number[]
-  sourceBeatIds: string[]
+  sourceSceneIds: string[]
   obligationKeysBefore: string[]
   obligationKeysAfter: string[]
   droppedObligationKeys: string[]
   merged: boolean
 }
 
-export interface ChapterPackingAudit {
+export interface ChapterScenePackingAudit {
   chapterNumber: number
   targetWords: number
   budget: number
-  sourceBeatCount: number
-  packedBeatCount: number
+  sourceSceneCount: number
+  packedSceneCount: number
   noOp: boolean
   budgetExceeded: boolean
   endpointPreserved: boolean
   openerPreserved: boolean
   droppedPayoffLinks: number
-  mapping: PackedBeatAudit[]
+  mapping: PackedSceneAudit[]
 }
 
 export interface PackChapterResult {
   outline: ChapterOutline
-  audit: ChapterPackingAudit
+  audit: ChapterScenePackingAudit
 }
 
-const PACKED_DESCRIPTION_PREFIX = "Packed from source beats"
+const PACKED_DESCRIPTION_PREFIX = "Packed from source scenes"
 
-export function packChapterToBudget(outline: ChapterOutline): PackChapterResult {
+export function packChapterScenesToBudget(outline: ChapterOutline): PackChapterResult {
   const targetWords = outline.targetWords ?? 1000
-  const budget = recommendedBeatCountForTarget(targetWords)
+  const budget = recommendedSceneCountForTarget(targetWords)
   const scenes = outline.scenes ?? []
-  const sourceBeatCount = scenes.length
+  const sourceSceneCount = scenes.length
 
-  // Each "group" represents one packed beat-to-be. Initially every source
-  // beat is its own group.
+  // Each "group" represents one packed scene entry. Initially every source
+  // entry is its own group.
   let groups: number[][] = scenes.map((_, idx) => [idx])
 
-  const mustKeepIndices = sourceBeatCount > 0
-    ? sourceBeatCount === 1 ? [0] : [0, sourceBeatCount - 1]
+  const mustKeepIndices = sourceSceneCount > 0
+    ? sourceSceneCount === 1 ? [0] : [0, sourceSceneCount - 1]
     : []
   const mustKeepCount = mustKeepIndices.length
 
   let budgetExceeded = false
   let noOp = false
 
-  if (sourceBeatCount === 0 || sourceBeatCount <= budget) {
+  if (sourceSceneCount === 0 || sourceSceneCount <= budget) {
     noOp = true
   } else if (mustKeepCount > budget) {
     // Cannot satisfy budget without dropping anchors — keep every must-keep
-    // beat (which here is just first + last) and merge the middle into one
+    // entry (which here is just first + last) and merge the middle into one
     // group. budgetExceeded flags the result so the cohort report can flag
     // the arm even if it completes.
     budgetExceeded = true
-    if (sourceBeatCount > 2) {
-      groups = [[0], scenes.slice(1, -1).map((_, i) => i + 1), [sourceBeatCount - 1]]
+    if (sourceSceneCount > 2) {
+      groups = [[0], scenes.slice(1, -1).map((_, i) => i + 1), [sourceSceneCount - 1]]
     }
   } else {
     groups = mergeGroupsToBudget(groups, scenes, budget, mustKeepIndices)
@@ -94,49 +94,49 @@ export function packChapterToBudget(outline: ChapterOutline): PackChapterResult 
   }
 
   const packedScenes: SceneBeat[] = []
-  const auditMapping: PackedBeatAudit[] = []
+  const auditMapping: PackedSceneAudit[] = []
   let droppedPayoffLinks = 0
 
   for (let g = 0; g < groups.length; g++) {
     const indices = groups[g]!
-    const sourceBeats = indices.map(idx => scenes[idx]!)
-    const obligationKeysBefore = sourceBeats.flatMap(beat => obligationKeysOf(beat))
+    const sourceScenes = indices.map(idx => scenes[idx]!)
+    const obligationKeysBefore = sourceScenes.flatMap(beat => obligationKeysOf(beat))
 
-    const merged = sourceBeats.length > 1
+    const merged = sourceScenes.length > 1
     const description = merged
-      ? renderPackedDescription(indices, sourceBeats)
-      : sourceBeats[0]!.description
+      ? renderPackedDescription(indices, sourceScenes)
+      : sourceScenes[0]!.description
 
     const remappedPayoffs = remapPayoffLinks(
-      sourceBeats.flatMap(beat => beat.requiredPayoffs ?? []),
+      sourceScenes.flatMap(beat => beat.requiredPayoffs ?? []),
       sourceIndexToGroup,
       g,
     )
     droppedPayoffLinks += remappedPayoffs.dropped
 
     const remappedObligations = remapObligations(
-      mergeObligations(sourceBeats.map(beat => beat.obligations)),
+      mergeObligations(sourceScenes.map(beat => beat.obligations)),
       sourceIndexToGroup,
     )
 
     const packed: SceneBeat = {
-      ...sourceBeats[0]!,
+      ...sourceScenes[0]!,
       description,
-      characters: unionStrings(sourceBeats.flatMap(beat => beat.characters ?? [])),
-      kind: sourceBeats[0]!.kind,
-      beatId: sourceBeats[0]!.beatId,
+      characters: unionStrings(sourceScenes.flatMap(beat => beat.characters ?? [])),
+      kind: sourceScenes[0]!.kind,
+      beatId: sourceScenes[0]!.beatId,
       requiredPayoffs: remappedPayoffs.links,
       obligations: remappedObligations,
-      lifeValueAxes: unionStrings(sourceBeats.flatMap(beat => beat.lifeValueAxes ?? [])) as SceneBeat["lifeValueAxes"],
-      miceActive: unionStrings(sourceBeats.flatMap(beat => beat.miceActive ?? [])) as SceneBeat["miceActive"],
-      miceOpens: unionStrings(sourceBeats.flatMap(beat => beat.miceOpens ?? [])) as SceneBeat["miceOpens"],
-      miceCloses: unionStrings(sourceBeats.flatMap(beat => beat.miceCloses ?? [])) as SceneBeat["miceCloses"],
-      valueShifted: sourceBeats.some(beat => beat.valueShifted === true) ? true
-        : sourceBeats.every(beat => beat.valueShifted === false) ? false
-        : sourceBeats[0]!.valueShifted,
-      gapPresent: sourceBeats.some(beat => beat.gapPresent === true) ? true
-        : sourceBeats.every(beat => beat.gapPresent === false) ? false
-        : sourceBeats[0]!.gapPresent,
+      lifeValueAxes: unionStrings(sourceScenes.flatMap(beat => beat.lifeValueAxes ?? [])) as SceneBeat["lifeValueAxes"],
+      miceActive: unionStrings(sourceScenes.flatMap(beat => beat.miceActive ?? [])) as SceneBeat["miceActive"],
+      miceOpens: unionStrings(sourceScenes.flatMap(beat => beat.miceOpens ?? [])) as SceneBeat["miceOpens"],
+      miceCloses: unionStrings(sourceScenes.flatMap(beat => beat.miceCloses ?? [])) as SceneBeat["miceCloses"],
+      valueShifted: sourceScenes.some(beat => beat.valueShifted === true) ? true
+        : sourceScenes.every(beat => beat.valueShifted === false) ? false
+        : sourceScenes[0]!.valueShifted,
+      gapPresent: sourceScenes.some(beat => beat.gapPresent === true) ? true
+        : sourceScenes.every(beat => beat.gapPresent === false) ? false
+        : sourceScenes[0]!.gapPresent,
     }
     packedScenes.push(packed)
 
@@ -148,7 +148,7 @@ export function packChapterToBudget(outline: ChapterOutline): PackChapterResult 
     auditMapping.push({
       packedIndex: g,
       sourceIndices: indices.slice(),
-      sourceBeatIds: sourceBeats.map(beat => beat.beatId ?? ""),
+      sourceSceneIds: sourceScenes.map(beat => beat.beatId ?? ""),
       obligationKeysBefore,
       obligationKeysAfter,
       droppedObligationKeys,
@@ -158,18 +158,18 @@ export function packChapterToBudget(outline: ChapterOutline): PackChapterResult 
 
   const openerPreserved = auditMapping.length > 0 && auditMapping[0]!.sourceIndices[0] === 0
   const endpointPreserved = auditMapping.length > 0 &&
-    auditMapping[auditMapping.length - 1]!.sourceIndices.at(-1) === sourceBeatCount - 1
+    auditMapping[auditMapping.length - 1]!.sourceIndices.at(-1) === sourceSceneCount - 1
 
-  const audit: ChapterPackingAudit = {
+  const audit: ChapterScenePackingAudit = {
     chapterNumber: outline.chapterNumber,
     targetWords,
     budget,
-    sourceBeatCount,
-    packedBeatCount: packedScenes.length,
+    sourceSceneCount,
+    packedSceneCount: packedScenes.length,
     noOp,
     budgetExceeded,
-    endpointPreserved: sourceBeatCount === 0 ? true : endpointPreserved,
-    openerPreserved: sourceBeatCount === 0 ? true : openerPreserved,
+    endpointPreserved: sourceSceneCount === 0 ? true : endpointPreserved,
+    openerPreserved: sourceSceneCount === 0 ? true : openerPreserved,
     droppedPayoffLinks,
     mapping: auditMapping,
   }
@@ -214,7 +214,7 @@ function mergeGroupsToBudget(
       const left = groups[i]!
       const right = groups[i + 1]!
       // A pair is mergeable iff at most one of the two groups contains a
-      // must-keep source beat. Anchors merge into adjacent middle beats but
+      // must-keep source entry. Anchors merge into adjacent middle entries but
       // never into each other.
       const leftHasAnchor = left.some(idx => mustKeep.has(idx))
       const rightHasAnchor = right.some(idx => mustKeep.has(idx))

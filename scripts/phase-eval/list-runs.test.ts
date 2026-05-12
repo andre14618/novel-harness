@@ -382,24 +382,24 @@ describe("groupIntoFamilies", () => {
     expect(fam.streak).toBe(-1)
   })
 
-  test("computes facts/know/beats ranges from g_metrics", () => {
+  test("computes facts/know/scenes ranges from g_metrics", () => {
     const rows = [
       makeRow({
         id: 1, probe: "p", commit: "abc", seed: "s", variants: ["default", "loud"], verdict: PASS,
         ranAt: "2026-05-01T00:00:00Z",
-        gMetrics: { test_facts_median: 6.5, test_know_median: 5.0, test_total_beats: 135 },
+        gMetrics: { test_facts_median: 6.5, test_know_median: 5.0, test_total_scenes: 135 },
       }),
       makeRow({
         id: 2, probe: "p", commit: "abc", seed: "s", variants: ["default", "loud"], verdict: PASS,
         ranAt: "2026-05-01T01:00:00Z",
-        gMetrics: { test_facts_median: 8.5, test_know_median: 7.0, test_total_beats: 223 },
+        gMetrics: { test_facts_median: 8.5, test_know_median: 7.0, test_total_scenes: 223 },
       }),
     ]
     const families = groupIntoFamilies(rows)
     const fam = families.values().next().value as any
     expect(fam.factsRange).toEqual([6.5, 8.5])
     expect(fam.knowRange).toEqual([5.0, 7.0])
-    expect(fam.beatsRange).toEqual([135, 223])
+    expect(fam.scenesRange).toEqual([135, 223])
   })
 
   test("handles null g_metrics gracefully (ranges null)", () => {
@@ -410,7 +410,7 @@ describe("groupIntoFamilies", () => {
     const fam = families.values().next().value as any
     expect(fam.factsRange).toBeNull()
     expect(fam.knowRange).toBeNull()
-    expect(fam.beatsRange).toBeNull()
+    expect(fam.scenesRange).toBeNull()
   })
 
   test("counts parse fails from SCREEN-FAIL (broken) rows", () => {
@@ -462,16 +462,16 @@ describe("familyKeyFor extended dims", () => {
     const r = makeRow({
       id: 1, probe: "phase-variant-comparison", commit: "abc12345", seed: "fantasy-debt",
       variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T00:00:00Z",
-      metricSet: "planning-beats", expectedChapters: 5,
+      metricSet: "planning-scenes", expectedChapters: 5,
       modelRoute: "deepseek-v3.2", promptHash: "abcdef1234567890",
     })
     const key = familyKeyFor(r)
-    expect(key.metric_set).toBe("planning-beats")
+    expect(key.metric_set).toBe("planning-scenes")
     expect(key.chapter_count).toBe("5")
     expect(key.model_route).toBe("deepseek-v3.2")
     expect(key.prompt_hash).toBe("abcdef12")
     expect(familyKeyStr(key)).toBe(
-      "phase-variant-comparison:loud:abc12345:fantasy-debt[planning-beats|5|abcdef12|deepseek-v3.2]",
+      "phase-variant-comparison:loud:abc12345:fantasy-debt[planning-scenes|5|abcdef12|deepseek-v3.2]",
     )
   })
 
@@ -492,7 +492,7 @@ describe("familyKeyFor extended dims", () => {
       makeRow({
         id: 1, probe: "p", commit: "abc", seed: "s",
         variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T00:00:00Z",
-        metricSet: "planning-beats", expectedChapters: 5,
+        metricSet: "planning-scenes", expectedChapters: 5,
       }),
       makeRow({
         id: 2, probe: "p", commit: "abc", seed: "s",
@@ -509,12 +509,12 @@ describe("familyKeyFor extended dims", () => {
       makeRow({
         id: 1, probe: "p", commit: "abc", seed: "s",
         variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T00:00:00Z",
-        metricSet: "planning-beats", expectedChapters: 5,
+        metricSet: "planning-scenes", expectedChapters: 5,
       }),
       makeRow({
         id: 2, probe: "p", commit: "abc", seed: "s",
         variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T01:00:00Z",
-        metricSet: "planning-beats", expectedChapters: 8,
+        metricSet: "planning-scenes", expectedChapters: 8,
       }),
     ]
     expect(groupIntoFamilies(rows).size).toBe(2)
@@ -525,12 +525,12 @@ describe("familyKeyFor extended dims", () => {
       makeRow({
         id: 1, probe: "p", commit: "abc", seed: "s",
         variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T00:00:00Z",
-        promptHash: "aaaaaaaa", metricSet: "planning-beats", expectedChapters: 5,
+        promptHash: "aaaaaaaa", metricSet: "planning-scenes", expectedChapters: 5,
       }),
       makeRow({
         id: 2, probe: "p", commit: "abc", seed: "s",
         variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T01:00:00Z",
-        promptHash: "bbbbbbbb", metricSet: "planning-beats", expectedChapters: 5,
+        promptHash: "bbbbbbbb", metricSet: "planning-scenes", expectedChapters: 5,
       }),
     ]
     expect(groupIntoFamilies(rows).size).toBe(2)
@@ -541,12 +541,12 @@ describe("familyKeyFor extended dims", () => {
       makeRow({
         id: 1, probe: "p", commit: "abc", seed: "s",
         variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T00:00:00Z",
-        modelRoute: "deepseek-v3.2", metricSet: "planning-beats", expectedChapters: 5,
+        modelRoute: "deepseek-v3.2", metricSet: "planning-scenes", expectedChapters: 5,
       }),
       makeRow({
         id: 2, probe: "p", commit: "abc", seed: "s",
         variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T01:00:00Z",
-        modelRoute: "wb-qwen3-14b", metricSet: "planning-beats", expectedChapters: 5,
+        modelRoute: "wb-qwen3-14b", metricSet: "planning-scenes", expectedChapters: 5,
       }),
     ]
     expect(groupIntoFamilies(rows).size).toBe(2)
@@ -564,7 +564,7 @@ describe("familyKeyFor extended dims", () => {
       makeRow({
         id: 2, probe: "p", commit: "abc", seed: "s",
         variants: ["default", "loud"], verdict: PASS, ranAt: "2026-05-01T01:00:00Z",
-        metricSet: "planning-beats", expectedChapters: 5,
+        metricSet: "planning-scenes", expectedChapters: 5,
       }),
     ]
     expect(groupIntoFamilies(rows).size).toBe(2)
@@ -572,13 +572,13 @@ describe("familyKeyFor extended dims", () => {
 
   test("parseFamilyKey round-trips an extended key string", () => {
     const parsed = parseFamilyKey(
-      "phase-variant-comparison:loud:abc12345:fantasy-debt[planning-beats|5|abcdef12|deepseek-v3.2]",
+      "phase-variant-comparison:loud:abc12345:fantasy-debt[planning-scenes|5|abcdef12|deepseek-v3.2]",
     )
     expect(parsed.probe_name).toBe("phase-variant-comparison")
     expect(parsed.test_variant).toBe("loud")
     expect(parsed.git_commit).toBe("abc12345")
     expect(parsed.seed).toBe("fantasy-debt")
-    expect(parsed.metric_set).toBe("planning-beats")
+    expect(parsed.metric_set).toBe("planning-scenes")
     expect(parsed.chapter_count).toBe("5")
     expect(parsed.prompt_hash).toBe("abcdef12")
     expect(parsed.model_route).toBe("deepseek-v3.2")

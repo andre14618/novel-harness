@@ -5,7 +5,7 @@ import type { StorySpine } from "../plotter/schema"
 import type { ChapterOutline } from "../planning-plotter/schema"
 import { renderDirectivesForPlanner } from "../../schemas/planning-directives"
 import { resolveStructuralPriors, renderStructuralPriorsForPlanner } from "../../models/roles"
-import { planningBeatCountPolicy } from "../../harness/beat-counts"
+import { planningSceneCountPolicy } from "../../harness/scene-counts"
 import {
   resolveNativePlanningContractV1,
   resolvePlanningSceneTurnShapingV1,
@@ -26,10 +26,10 @@ function renderPriorState(sk: ChapterOutline): string {
   return `  Ch ${sk.chapterNumber} end-state:\n${state}${facts ? `\n  Facts established:\n${facts}` : ""}`
 }
 
-export interface BeatExpansionArgs {
+export interface SceneExpansionArgs {
   targetChapter: ChapterOutline       // skeleton only at call time
   allSkeletons: ChapterOutline[]      // full skeleton list for cross-chapter context
-  priorChapters: ChapterOutline[]     // already-expanded chapters (with beats/state)
+  priorChapters: ChapterOutline[]     // already-expanded chapters (with scene entries/state)
   worldBible: WorldBible
   characters: CharacterProfile[]
   spine: StorySpine
@@ -37,13 +37,13 @@ export interface BeatExpansionArgs {
   retryFeedback?: string
 }
 
-export function buildContext(args: BeatExpansionArgs): string {
+export function buildContext(args: SceneExpansionArgs): string {
   const { targetChapter, allSkeletons, priorChapters, worldBible, characters, spine, seed, retryFeedback } = args
   const scenePlanContractV1 = resolveScenePlanContractV1(seed.pipelineOverrides)
   const planningSceneTurnShapingV1 = resolvePlanningSceneTurnShapingV1(seed.pipelineOverrides)
-  const beatPolicy = planningBeatCountPolicy(
+  const scenePolicy = planningSceneCountPolicy(
     targetChapter.targetWords,
-    seed.pipelineOverrides?.planningMaxBeatsPerChapter,
+    seed.pipelineOverrides?.planningMaxScenesPerChapter,
   )
 
   const worldSection = `WORLD BIBLE:
@@ -78,8 +78,8 @@ Purpose: ${targetChapter.purpose}
 Target words: ${targetChapter.targetWords}
 Characters present: ${(targetChapter.charactersPresent ?? []).join(", ")}
 
-${renderChapterScopeGuidance(beatPolicy, scenePlanContractV1)}
-${renderNativePlanningContractGuidance(beatPolicy, resolveNativePlanningContractV1(seed.pipelineOverrides))}${renderSelectiveSceneTurnGuidance(planningSceneTurnShapingV1, scenePlanContractV1)}${renderScenePlanContractGuidance(scenePlanContractV1)}`
+${renderChapterScopeGuidance(scenePolicy, scenePlanContractV1)}
+${renderNativePlanningContractGuidance(scenePolicy, resolveNativePlanningContractV1(seed.pipelineOverrides))}${renderSelectiveSceneTurnGuidance(planningSceneTurnShapingV1, scenePlanContractV1)}${renderScenePlanContractGuidance(scenePlanContractV1)}`
 
   const directivesSection = seed.directives ? renderDirectivesForPlanner(seed.directives) : ""
   const priors = resolveStructuralPriors(seed.genre)
@@ -96,46 +96,46 @@ ${spineSection}
 
 ${allSkelSection}${priorSection}
 
-${targetSection}${directivesSection}${structuralSection}${retryFeedback ? `\n\n--- PREVIOUS BEAT EXPANSION FAILED ---\n${retryFeedback}\nFix this by authoring native story-turn beats for the same chapter contract. Do not drop the endpoint or hide discarded beats inside one run-on description.` : ""}
+${targetSection}${directivesSection}${structuralSection}${retryFeedback ? `\n\n--- PREVIOUS SCENE EXPANSION FAILED ---\n${retryFeedback}\nFix this by authoring native story-turn entries for the same chapter contract. Do not drop the endpoint or hide discarded entries inside one run-on description.` : ""}
 
-Expand Chapter ${targetChapter.chapterNumber} into its beat sequence only. Do not emit chapter-level state or beat obligations; the state mapper assigns those in the next planning step.`
+Expand Chapter ${targetChapter.chapterNumber} into its scene/turn sequence only. Do not emit chapter-level state or obligations; the state mapper assigns those in the next planning step.`
 }
 
 function renderChapterScopeGuidance(
-  policy: ReturnType<typeof planningBeatCountPolicy>,
+  policy: ReturnType<typeof planningSceneCountPolicy>,
   scenePlanContractV1: boolean,
 ): string {
   const countGuide = scenePlanContractV1
-    ? `- Recommended scene contracts for this chapter size: around ${policy.recommendedBeats}. This is advisory; content scope and chapter purpose decide the actual count.`
-    : `- Recommended story-turn entries for this chapter size: ${policy.recommendedBeats}; minimum structural floor: ${policy.minRecommendedBeats}.`
+    ? `- Recommended scene contracts for this chapter size: around ${policy.recommendedScenes}. This is advisory; content scope and chapter purpose decide the actual count.`
+    : `- Recommended scene/turn entries for this chapter size: ${policy.recommendedScenes}; minimum structural floor: ${policy.minRecommendedScenes}.`
   return `Chapter scope guidance:
 - Target words are a rough chapter-size signal, not a prose quota. Do not solve pacing by asking the writer to hit a number.
 ${countGuide}
 - Scope by content load: each entry should have one continuous time/location frame, one main pressure or opposition, one dominant turn or choice, and one outcome/consequence pair.
 - Do not pack multiple full scenes, set pieces, investigations, confrontations, or reveals into one entry. If the skeleton purpose demands more story than fits, preserve the endpoint/hook and choose the load-bearing movement; leave secondary material for adjacent chapters or a later planning revision.
-${renderBeatCapGuidance(policy, scenePlanContractV1)}`
+${renderSceneCapGuidance(policy, scenePlanContractV1)}`
 }
 
-function renderBeatCapGuidance(policy: ReturnType<typeof planningBeatCountPolicy>, scenePlanContractV1: boolean): string {
-  if (policy.effectiveMaxBeats !== null) {
+function renderSceneCapGuidance(policy: ReturnType<typeof planningSceneCountPolicy>, scenePlanContractV1: boolean): string {
+  if (policy.effectiveMaxScenes !== null) {
     const floorNote = policy.capRaisedToFloor
       ? scenePlanContractV1
         ? ""
-        : ` Configured cap ${policy.configuredMaxBeats} is below the calibrated floor, so ${policy.effectiveMaxBeats} is the effective cap.`
+        : ` Configured cap ${policy.configuredMaxScenes} is below the calibrated floor, so ${policy.effectiveMaxScenes} is the effective cap.`
       : ""
-    const effectiveMax = scenePlanContractV1 ? policy.configuredMaxBeats ?? policy.effectiveMaxBeats : policy.effectiveMaxBeats
+    const effectiveMax = scenePlanContractV1 ? policy.configuredMaxScenes ?? policy.effectiveMaxScenes : policy.effectiveMaxScenes
     return `Planning max override: ${effectiveMax} entries.${floorNote} Do not exceed this explicit cap.`
   }
   return `Do not exceed recommended scope by more than 1 entry unless the chapter truly contains multiple distinct set pieces. If it does, prefer moving material across chapters over packing oversized entries.`
 }
 
 function renderNativePlanningContractGuidance(
-  policy: ReturnType<typeof planningBeatCountPolicy>,
+  policy: ReturnType<typeof planningSceneCountPolicy>,
   enabled: boolean,
 ): string {
   if (!enabled) return ""
   return `
-Native planning contract: Author about ${policy.recommendedBeats} complete story-turn entries for this chapter, sized by dramatic load rather than by a word-count quota. Each entry must carry a concrete pressure, choice, reveal, reversal, or consequence. When the entry turns on the POV's motive or choice, include povPersonalStake naming the specific want, need, fear, lie, truth, wound, oath, shame, or relationship pressure that makes the action matter. Do not emit micro-actions, transit-only entries, oversized packed entries, or bullet-list summaries. The final entry must preserve the chapter endpoint/hook named in the skeleton purpose.`
+Native planning contract: Author about ${policy.recommendedScenes} complete story-turn entries for this chapter, sized by dramatic load rather than by a word-count quota. Each entry must carry a concrete pressure, choice, reveal, reversal, or consequence. When the entry turns on the POV's motive or choice, include povPersonalStake naming the specific want, need, fear, lie, truth, wound, oath, shame, or relationship pressure that makes the action matter. Do not emit micro-actions, transit-only entries, oversized packed entries, or bullet-list summaries. The final entry must preserve the chapter endpoint/hook named in the skeleton purpose.`
 }
 
 // L106/L107 follow-on evidence control. This is narrower than the full
@@ -148,7 +148,7 @@ function renderSelectiveSceneTurnGuidance(enabled: boolean, scenePlanContractV1:
 
 Selective scene-turn shaping (planningSceneTurnShapingV1):
 This flag is active. It is not the full scenePlanContractV1 template, but the final entry MUST include "outcome" and "consequence"; the planner will retry if those endpoint fields are missing.
-- Preserve the skeleton's scope. Do not add entries, transit beats, setup beats, or larger implied chapter load just to carry optional semantic fields; add the fields to existing load-bearing entries.
+- Preserve the skeleton's scope. Do not add entries, transit-only entries, setup-only entries, or larger implied chapter load just to carry optional semantic fields; add the fields to existing load-bearing entries.
 - Populate the final entry's "outcome" and "consequence" so the chapter endpoint/hook lands through an on-page action, reveal, refusal, concession, or changed status with an immediate external effect.
 - For source-grounded non-final entries that change fact, knowledge, state, relationship, world rule, or debt pressure, populate "goal", "opposition", "turningPoint", "outcome", "consequence", and "povPersonalStake". Do not leave an obligation-bearing action/revelation entry as description-only.
 - Use optional scene-turn fields only when they clarify a load-bearing entry. Do not tag background, transit, or decorative setup just because a field exists.
@@ -163,7 +163,7 @@ This flag is active. It is not the full scenePlanContractV1 template, but the fi
 
 // L096 Slice 1: scene plan contract guidance, gated by `scenePlanContractV1`.
 // Source: POC `corpus-recreation-poc.ts` causal-motivation-v3 prompt language
-// (lines 1234-1307 / 1454-1493). Treat each beat-list entry as a scene
+// (lines 1234-1307 / 1454-1493). Treat each planned entry as a scene
 // contract: declare the dramatic shape the writer must satisfy, with explicit
 // choice alternatives and an externally observable consequence. Default off;
 // when off this function emits an empty string and the planner sees the
@@ -185,7 +185,7 @@ Each entry in "scenes" is a scene contract — a complete dramatic unit, not a m
 - "consequence": the externally observable downstream pressure or change the outcome creates. The consequence must NOT simply restate the outcome; it must be observable in dialogue, action, body language, world state, or relationship state. Internal-only realisation is not a consequence.
 - "valueIn" and "valueOut": the dominant value at the start and end of the entry (e.g. "compliance" → "rupture", "ignorance" → "knowledge").
 - "povPersonalStake": the personal pressure behind the crisis choice — the specific want, need, fear, lie, truth, wound, oath, shame, or relationship pressure that makes the choice matter to this POV.
-- "beatHints" (optional): an array of internal annotation beats inside the scene. Each hint declares "kind" (action|dialogue|interiority|description), "boundarySignal", "gapSize", and "purpose". Beat hints are annotation only; the writer does not see them as separate calls.
+- "beatHints" (optional): an array of internal beat annotations inside the scene. Each hint declares "kind" (action|dialogue|interiority|description), "boundarySignal", "gapSize", and "purpose". Beat hints are annotation only; the writer does not see them as separate calls.
 
 Scene-scope discipline:
 - The scene contract controls how much story the writer is being asked to draft. Do not rely on per-scene word targets to correct over-scoped asks.

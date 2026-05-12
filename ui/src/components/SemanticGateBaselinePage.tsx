@@ -129,7 +129,7 @@ function BaselineRunCard({ run }: { run: SemanticGateBaselineRunSummary }) {
         <div className="semantic-gate-matrix-section-title">Terminal Reason</div>
         <div className="semantic-gate-baseline-reason">{run.terminalReason ?? "n/a"}</div>
         <div className="semantic-gate-matrix-ranking-meta">
-          max beats {run.maxBeatsPerChapter ?? "source"} - proposals {formatNullable(run.proposalTotal)}
+          max scenes {run.maxScenesPerChapter ?? "source"} - proposals {formatNullable(run.proposalTotal)}
         </div>
       </div>
       <div className="semantic-gate-matrix-run-path">
@@ -163,7 +163,7 @@ function BaselineDetail({ report, response }: { report: SemanticGateBaselineRepo
         </div>
         <div>
           <span>Beat Cap</span>
-          <strong>{report.maxBeatsPerChapter ?? "source"}</strong>
+          <strong>{report.maxScenesPerChapter ?? "source"}</strong>
         </div>
         <div className="semantic-gate-matrix-path">
           <span>Output</span>

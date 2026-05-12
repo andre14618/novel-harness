@@ -15,15 +15,15 @@ related:
   - docs/designs/phase-modularization.md (P0-P8 — typed Phase<I,O> contract)
   - docs/designs/autonomous-context-loop.md (Sub-loop 1 — this is its precursor screen)
   - scripts/variant/clone-for-variant.ts (fixture primitive — extended in this charter)
-  - src/agents/planning-beats/index.ts:6-7 (top-level prompt await)
+  - src/agents/planning-scenes/index.ts:6-7 (top-level prompt await)
   - src/agents/chapter-plan-checker/context.ts:13 (verified takes prose — incompatible with planner-only scope)
 ---
 
 # Phase Variant Comparison — Charter (Revision 5)
 
-> **Superseded by exp #289 split mapper:** This charter targeted the old all-in-one `planning-beats` surface. `planning-beats` now emits beat shape only; `planning-state-mapper` owns facts, knowledge, character state, payoff links, and writer-visible obligations. The implemented verdict script can compare arbitrary `--control` / `--test` pairs, but this R5 metric set is historical unless the probe explicitly targets mapper-owned state density or a composed beats+mapper surface.
+> **Superseded by exp #289 split mapper:** This charter targeted the old all-in-one `planning-scenes` surface. `planning-scenes` now emits beat shape only; `planning-state-mapper` owns facts, knowledge, character state, payoff links, and writer-visible obligations. The implemented verdict script can compare arbitrary `--control` / `--test` pairs, but this R5 metric set is historical unless the probe explicitly targets mapper-owned state density or a composed beats+mapper surface.
 
-**Compliance + structural-integrity screen** for a "loud" planning-beats
+**Compliance + structural-integrity screen** for a "loud" planning-scenes
 prompt variant. Asks one question only: did the prompt rider take effect
 without breaking the planner? No LLM calls beyond the planner itself; all
 checks computed from `chapter_outlines` table state.
@@ -58,7 +58,7 @@ in this screen.
 
 ## Question
 
-Does the loud planning-beats prompt variant produce planner output that:
+Does the loud planning-scenes prompt variant produce planner output that:
 
 1. **Complies with each rider** — facts/beat target raised, knowledgeChanges
    are character-named, beat count grew toward 1.2x.
@@ -74,7 +74,7 @@ variant breaks the planner.
 
 ## Hypothesis (falsifiable, directional)
 
-**H1:** Setting `PLANNING_BEATS_PROMPT_OVERRIDE` to the loud variant prompt
+**H1:** Setting `PLANNING_SCENES_PROMPT_OVERRIDE` to the loud variant prompt
 produces planner output that satisfies the four compliance/structural gates
 in §"Decision criteria" below.
 
@@ -93,7 +93,7 @@ the rider as advisory.
 Evaluated **in order** — first matching predicate wins.
 
 Metrics computed from `chapter_outlines.outline_json` for each variant's
-5-chapter clone. Per the actual schema (`src/agents/planning-beats/schema.ts`):
+5-chapter clone. Per the actual schema (`src/agents/planning-scenes/schema.ts`):
 - `establishedFacts` is a CHAPTER-level array, not per-beat.
 - `knowledgeChanges` is a CHAPTER-level array; `characterName` is a required
   field (R4 finding — checking presence is tautological).
@@ -106,7 +106,7 @@ edge cases.
 Let — over each variant's 5 chapters:
 - `*_facts_median` = median over 5 chapters of `establishedFacts.length`.
 - `*_know_median` = median over 5 chapters of `knowledgeChanges.length`.
-- `*_total_beats` = sum over 5 chapters of `scenes.length`.
+- `*_total_scenes` = sum over 5 chapters of `scenes.length`.
 
 **Compliance gates (directional movement signal — NOT literal rider
 compliance):**
@@ -124,8 +124,8 @@ compliance):**
   *more, more-specific* knowledge tracking; volume is the rider's
   observable signature given that `characterName` is already mandatory.)
 
-- **G3 (beat-floor directional uptake):**
-  `loud_total_beats ≥ 1.10 × default_total_beats`. (Rider asks 1.2x;
+- **G3 (scene-count directional uptake):**
+  `loud_total_scenes ≥ 1.10 × default_total_scenes`. (Rider asks 1.2x;
   threshold 1.10 captures partial uptake.)
 
 - **G4 (structural validity):** loud variant's planning phase returned
@@ -178,9 +178,9 @@ gates and document the change.
 
 Two:
 
-1. **`default`** — exact copy of `src/agents/planning-beats/beat-expansion-system.md`.
+1. **`default`** — exact copy of `src/agents/planning-scenes/scene-expansion-system.md`.
 2. **`loud`** — combined intervention: facts/beat 3-5 rider, named-knowledge
-   rider, 1.2x beat-floor rider.
+   rider, 1.2x scene-count rider.
 
 R2 warning #1 (combined-intervention confound) acknowledged: SCREEN-PASS
 on `loud` triggers a follow-up charter that adds single-rider arms. The
@@ -189,18 +189,18 @@ matters at all."
 
 ### Runner
 
-`scripts/phase-eval/probe-planning-beats.ts` — a single thin script.
+`scripts/phase-eval/probe-planning-scenes.ts` — a single thin script.
 **No drafting, no validation, no checker calls beyond the planner itself.**
 
 ```
 1. parseArgs: --source <concept-complete-novel-id>
-2. createTuningExperiment("ticket", "planning-beats-screen-<date>", config) -> expId
+2. createTuningExperiment("ticket", "planning-scenes-screen-<date>", config) -> expId
 3. for each variant in [default, loud] serially:
      a. clone-for-variant.ts --target-phase=concept-done --source X --target X-<variant>
      b. Bun.spawn(['bun', 'scripts/phase-eval/run-variant.ts'])
         with env: NOVEL_ID=X-<variant>, EXPERIMENT_ID=expId,
                   VARIANT_LABEL=<variant>, PHASE=planning,
-                  PLANNING_BEATS_PROMPT_OVERRIDE=variants/planning-beats/<variant>.md
+                  PLANNING_SCENES_PROMPT_OVERRIDE=variants/planning-scenes/<variant>.md
      c. Child: import { setAutoMode } from "./cli"; setAutoMode(true);
         runs runPlanningPhase(NOVEL_ID); on completion emits
         {phase_result_kind, error?: string} to stdout. Parent captures.
@@ -220,7 +220,7 @@ Three module-level globals:
 
 | Hazard | Severity | Verified |
 |---|---|---|
-| `src/agents/planning-beats/index.ts:6-7` — top-level await caches prompt | **LOAD-BEARING** | Codex R1 |
+| `src/agents/planning-scenes/index.ts:6-7` — top-level await caches prompt | **LOAD-BEARING** | Codex R1 |
 | `src/logger.ts:25 currentRunId` | bonus safety | Partially proven |
 | `src/transport.ts:78 setTransport` | bonus safety | Partially proven |
 
@@ -230,9 +230,9 @@ negligible against minutes of planning runtime.
 ### Prompt-override injection seam
 
 ```ts
-// src/agents/planning-beats/index.ts — single change
-const defaultPromptPath = new URL("beat-expansion-system.md", import.meta.url).pathname
-const overridePath = process.env.PLANNING_BEATS_PROMPT_OVERRIDE
+// src/agents/planning-scenes/index.ts — single change
+const defaultPromptPath = new URL("scene-expansion-system.md", import.meta.url).pathname
+const overridePath = process.env.PLANNING_SCENES_PROMPT_OVERRIDE
 const promptPath = overridePath ?? defaultPromptPath
 export const prompt = await Bun.file(promptPath).text()
 ```
@@ -306,12 +306,12 @@ regression test required.
 |---|---|---|---|
 | 0a | `scripts/variant/clone-for-variant.ts` | ~2h | `--target-phase=concept-done` produces correct partition. Default path byte-equal on a regression test. |
 | 0b | `tests/phase-parity/fixtures/reference-run/` | ~1h LXC | `bun test tests/phase-parity/phase-parity.test.ts` passes byte-equal across two replays. Independent of 0a. |
-| 1a | `src/agents/planning-beats/index.ts` | ~30min | `PLANNING_BEATS_PROMPT_OVERRIDE` env var swaps prompt; unset reverts. P0b parity passes. |
+| 1a | `src/agents/planning-scenes/index.ts` | ~30min | `PLANNING_SCENES_PROMPT_OVERRIDE` env var swaps prompt; unset reverts. P0b parity passes. |
 | 1b | `scripts/phase-eval/run-variant.ts` (child) | ~1h | Reads env, runs `runPlanningPhase`, emits PhaseResult kind + error to stdout, exits clean. NO drafting/validation/checker calls. |
-| 1c | `scripts/phase-eval/probe-planning-beats.ts` (parent) | ~2h | Orchestrates 2 variants serially via Bun.spawn, reads chapter_outlines after each, computes G1-G3 from outline_json + targetWords, emits results JSON. |
-| 1d | `scripts/phase-eval/variants/planning-beats/{default,loud}.md` | ~1h | Two prompt files with hypothesis headers. |
+| 1c | `scripts/phase-eval/probe-planning-scenes.ts` (parent) | ~2h | Orchestrates 2 variants serially via Bun.spawn, reads chapter_outlines after each, computes G1-G3 from outline_json + targetWords, emits results JSON. |
+| 1d | `scripts/phase-eval/variants/planning-scenes/{default,loud}.md` | ~1h | Two prompt files with hypothesis headers. |
 | 1e | `scripts/phase-eval/print-screen-verdict.ts` | ~30min | Reads results JSON; applies ordered predicate table; emits verdict; exit code 0 for SCREEN-PASS. |
-| 1f | First screen run + retrospective | ~1h | `docs/sessions/2026-MM-DD-planning-beats-screen.md` records verdict + next action. |
+| 1f | First screen run + retrospective | ~1h | `docs/sessions/2026-MM-DD-planning-scenes-screen.md` records verdict + next action. |
 
 **Total: ~7.5h work + ~$0.10 LXC compute** (just 2 planner runs; no
 drafting/validation/checker calls).
@@ -351,12 +351,12 @@ After Slice 1f, exactly one of:
 ## Tracking
 
 - Charter row: `createTuningExperiment("charter", "phase-variant-comparison-r4-screen", {...})`.
-- Screen run: `createTuningExperiment("ticket", "planning-beats-screen-<date>", {...})` +
+- Screen run: `createTuningExperiment("ticket", "planning-scenes-screen-<date>", {...})` +
   `linkExperiment(screenId, charterId, "child")`.
 - Branch: cut `phase-variant-screen` from current `phase-modularization`
   HEAD, letting `phase-modularization` merge to `autonomous-harness-loop`
   independently.
-- Retrospective: `docs/sessions/2026-MM-DD-planning-beats-screen.md` after
+- Retrospective: `docs/sessions/2026-MM-DD-planning-scenes-screen.md` after
   Slice 1f.
 
 ## Non-goals (R4)

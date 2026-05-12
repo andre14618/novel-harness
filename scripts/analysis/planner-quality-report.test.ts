@@ -26,7 +26,7 @@ describe("planner-quality-report", () => {
 
     expect(report.totals.inactiveCharacterFindings).toBe(1)
     expect(report.totals.endpointIssues).toBe(1)
-    expect(report.chapters[0]!.flags).toContain("character_not_visible_in_beat_text")
+    expect(report.chapters[0]!.flags).toContain("character_not_visible_in_scene_text")
     expect(report.chapters[0]!.flags).toContain("endpoint_low_overlap")
     expect(report.chapters[0]!.characters.find(c => c.character === "Journeyman Theo")?.visible).toBe(false)
 
@@ -49,7 +49,7 @@ describe("planner-quality-report", () => {
 
     expect(report.totals.inactiveCharacterFindings).toBe(0)
     expect(report.chapters[0]!.endpoint.overlapRatio).toBeGreaterThanOrEqual(0.45)
-    expect(report.chapters[0]!.flags).not.toContain("character_not_visible_in_beat_text")
+    expect(report.chapters[0]!.flags).not.toContain("character_not_visible_in_scene_text")
     expect(report.chapters[0]!.flags).not.toContain("endpoint_low_overlap")
   })
 
@@ -83,7 +83,7 @@ describe("planner-quality-report", () => {
 
     expect(report.totals.overPlannedChapters).toBe(1)
     expect(report.totals.obligationErrorChapters).toBe(1)
-    expect(report.chapters[0]!.flags).toContain("over_planned_beats")
+    expect(report.chapters[0]!.flags).toContain("over_planned_scenes")
     expect(report.chapters[0]!.flags).toContain("obligation_coverage_error")
   })
 

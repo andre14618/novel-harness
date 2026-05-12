@@ -120,8 +120,8 @@ describe("handleSemanticGateMatrixRoute", () => {
         sourceNovelId: "newer",
         totals: { variants: 2, completed: 1, failed: 0, cleanPass: 1, costUsd: 0.042 },
         ranking: [{
-          variantId: "beats-5",
-          label: "beats 5",
+          variantId: "scenes-5",
+          label: "scenes 5",
           riskScore: 113.45,
           completed: true,
           wordRatio: 1.34,
@@ -151,7 +151,7 @@ describe("handleSemanticGateMatrixRoute", () => {
     expect(body.runs[0].failed).toBe(0)
     expect(body.runs[0].cleanPass).toBe(1)
     expect(body.runs[0].costUsd).toBe(0.042)
-    expect(body.runs[0].topVariantLabel).toBe("beats 5")
+    expect(body.runs[0].topVariantLabel).toBe("scenes 5")
     expect(body.runs[0].topRiskScore).toBe(113.45)
     expect(body.runs[0].topWordRatio).toBe(1.34)
     expect(body.runs[0].topCompleted).toBe(true)

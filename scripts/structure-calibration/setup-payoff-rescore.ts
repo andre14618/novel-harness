@@ -220,7 +220,7 @@ ${Object.entries(correctedSummary)
 
 ### Harness target (revised — addendum)
 
-The corrected distribution makes a stronger planner-prior recommendation possible. **Recommended writer planner constraint** (for \`src/agents/planning-beats/beat-expansion-system.md\` or \`src/agents/planning-plotter/chapter-outline-system.md\`):
+The corrected distribution makes a stronger planner-prior recommendation possible. **Recommended writer planner constraint** (for \`src/agents/planning-scenes/scene-expansion-system.md\` or \`src/agents/planning-plotter/chapter-outline-system.md\`):
 
 > "When a beat plants something material (object, knowledge, capability, vow, threat), the payoff should land within 1–3 chapters of the setup. Aggregate corpus median is **${agg.median_distance} chapters**; **${(((agg.buckets.same_chapter + agg.buckets.near_1_3) / agg.n_matched) * 100).toFixed(0)}%** of corpus payoffs land within 3 chapters. Setups designed for far-payoff (10+ chapters) should be reserved for the few series-arc threads (~${((agg.buckets.far_10_plus / agg.n_matched) * 100).toFixed(0)}% of all setups in the corpus)."
 

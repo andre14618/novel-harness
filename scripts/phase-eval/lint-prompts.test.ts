@@ -132,7 +132,7 @@ describe("checkNegPriming", () => {
 
   test("does NOT flag illustrative parentheticals like (refuse, reveal, sacrifice)", () => {
     writeFixture(
-      "src/agents/planning-beats/test.md",
+      "src/agents/planning-scenes/test.md",
       "If a character must do something specific (refuse, reveal, sacrifice, discover), the beat description says so directly.\n"
     )
     const findings = checkNegPriming(fixtureRoot)

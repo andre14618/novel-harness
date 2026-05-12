@@ -84,7 +84,7 @@ test("planning-state-mapper context renders material pressure guidance", () => {
   expect(context).not.toContain("SCENE PLAN CONTRACT (scenePlanContractV1)")
 })
 
-test("planning-state-mapper context carries beat indexes without asking for rewrites", () => {
+test("planning-state-mapper context carries scene-entry indexes without asking for rewrites", () => {
   const context = buildContext({
     targetChapter: chapter(),
     allSkeletons: [chapter()],
@@ -96,7 +96,7 @@ test("planning-state-mapper context carries beat indexes without asking for rewr
     seed: seed(),
   })
 
-  expect(context).toContain("BEATS TO MAP (0-based indexes; do not rewrite descriptions)")
+  expect(context).toContain("SCENE ENTRIES TO MAP (0-based indexes; do not rewrite descriptions)")
   expect(context).toContain("  0. [action] chars: Istra")
   expect(context).toContain("Istra discovers the plague ledger was altered.")
   expect(context).toContain("Map Chapter 1's end-of-chapter state")

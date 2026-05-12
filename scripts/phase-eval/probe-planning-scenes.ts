@@ -1,5 +1,5 @@
 /**
- * Phase-eval probe — planning-beats variant comparison.
+ * Phase-eval probe — planning-scenes variant comparison.
  *
  * Runs the experiment defined in
  * `docs/designs/phase-variant-comparison.md` (R5):
@@ -23,7 +23,7 @@
  *      DB rows aren't load-bearing — outlines.json on disk has the data).
  *
  * Why a separate process per variant:
- * - `src/agents/planning-beats/index.ts` reads its system prompt at
+ * - `src/agents/planning-scenes/index.ts` reads its system prompt at
  *   module-load time. In-process variant cycling would cache the first
  *   variant's prompt and silently apply it to subsequent variants.
  * - `src/logger.ts` and `src/transport.ts` carry singletons that aren't
@@ -31,10 +31,10 @@
  *
  * Usage:
  *
- *   bun scripts/phase-eval/probe-planning-beats.ts \
+ *   bun scripts/phase-eval/probe-planning-scenes.ts \
  *     --seed=fantasy-system-heretic \
  *     --variants=default,loud \
- *     --variant-dir=scripts/phase-eval/variants/planning-beats \
+ *     --variant-dir=scripts/phase-eval/variants/planning-scenes \
  *     --output-base=output/phase-eval/<run-tag> \
  *     [--concept-snapshot-id=<existing-snapshot-id>] \
  *     [--keep-novels]
@@ -57,7 +57,7 @@ interface Args {
   variantDir: string
   outputBase: string
   /** Env var the child run-variant should use to override the system
-   *  prompt. Defaults to PLANNING_BEATS_PROMPT_OVERRIDE so existing
+   *  prompt. Defaults to PLANNING_SCENES_PROMPT_OVERRIDE so existing
    *  invocations keep working. Set PLANNING_PLOTTER_PROMPT_OVERRIDE for
    *  chapter-skeleton variants or PLANNING_STATE_MAPPER_PROMPT_OVERRIDE for
    *  mapper variants. */
@@ -67,7 +67,7 @@ interface Args {
 }
 
 const SUPPORTED_PROMPT_ENVS = new Set([
-  "PLANNING_BEATS_PROMPT_OVERRIDE",
+  "PLANNING_SCENES_PROMPT_OVERRIDE",
   "PLANNING_PLOTTER_PROMPT_OVERRIDE",
   "PLANNING_STATE_MAPPER_PROMPT_OVERRIDE",
 ])
@@ -85,12 +85,12 @@ function parseArgs(): Args {
   const outputBase = map["output-base"] as string
   if (!seed || !variantsRaw || !variantDir || !outputBase) {
     console.error(
-      "usage: bun probe-planning-beats.ts \\\n" +
+      "usage: bun probe-planning-scenes.ts \\\n" +
       "  --seed=<seed-key> \\\n" +
       "  --variants=<id1,id2,...> \\\n" +
       "  --variant-dir=<dir-with-{id}.md-files> \\\n" +
       "  --output-base=<absolute-output-dir> \\\n" +
-      "  [--prompt-env=PLANNING_BEATS_PROMPT_OVERRIDE|PLANNING_PLOTTER_PROMPT_OVERRIDE|PLANNING_STATE_MAPPER_PROMPT_OVERRIDE] \\\n" +
+      "  [--prompt-env=PLANNING_SCENES_PROMPT_OVERRIDE|PLANNING_PLOTTER_PROMPT_OVERRIDE|PLANNING_STATE_MAPPER_PROMPT_OVERRIDE] \\\n" +
       "  [--concept-snapshot-id=<existing-snapshot-id>] \\\n" +
       "  [--keep-novels]   (default: cleanup created novels at end)"
     )
@@ -101,7 +101,7 @@ function parseArgs(): Args {
     console.error("--variants must list at least 2 ids (control + test)")
     process.exit(2)
   }
-  const promptEnv = (map["prompt-env"] as string | undefined)?.trim() || "PLANNING_BEATS_PROMPT_OVERRIDE"
+  const promptEnv = (map["prompt-env"] as string | undefined)?.trim() || "PLANNING_SCENES_PROMPT_OVERRIDE"
   if (!SUPPORTED_PROMPT_ENVS.has(promptEnv)) {
     console.error(`--prompt-env must be one of: ${[...SUPPORTED_PROMPT_ENVS].join(", ")} (got '${promptEnv}')`)
     process.exit(2)
@@ -168,7 +168,7 @@ async function setupConceptSnapshot(seed: string): Promise<string> {
   // src/phases/concept.ts only loads the three concept-agent prompts
   // (world-builder, character-agent, plotter) — see commit 7981674's
   // companion change to src/phases/concept.ts which avoids the broad
-  // src/prompts.ts barrel that would also pull in planning-beats.
+  // src/prompts.ts barrel that would also pull in planning-scenes.
   const { runConceptPhase } = await import("../../src/phases/concept")
   const { createNovel } = await import("../../src/db/novels")
 

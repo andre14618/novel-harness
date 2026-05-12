@@ -253,10 +253,10 @@ function VariantCard({ result, rank }: { result: SemanticGateMatrixVariantResult
           </div>
           <div className="semantic-gate-matrix-variant-subtitle">
             <code>{result.variant.id}</code>
-            {result.variant.maxBeatsPerChapter === null ? (
+            {result.variant.maxScenesPerChapter === null ? (
               <span>source outline</span>
             ) : (
-              <span>{result.variant.maxBeatsPerChapter} beats/chapter</span>
+              <span>{result.variant.maxScenesPerChapter} scene entries/chapter</span>
             )}
           </div>
         </div>

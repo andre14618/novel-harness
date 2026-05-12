@@ -15,7 +15,7 @@ import { callAgent, executeAndLog } from "../llm"
 import { getTransport } from "../transport"
 import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CHAPTER_PLAN_CHECKER_PROMPT } from "../prompts"
 import { buildContext as buildWriterContext } from "../agents/writer/context"
-import { buildBeatContext } from "../agents/writer/beat-context"
+import { buildSceneContext } from "../agents/writer/beat-context"
 import type { WriterCharacterContextTrace } from "../agents/writer/character-context"
 import type { WriterContextSurfaceTrace } from "../agents/writer/context-surface"
 import type { WriterDraftingBriefTrace } from "../agents/writer/drafting-brief"
@@ -39,7 +39,7 @@ import {
   buildContext as buildChapterPlanReviseContext,
   buildContextForValidation as buildChapterPlanReviseContextForValidation,
 } from "../agents/chapter-plan-reviser/context"
-import { chapterBeatsSchema as chapterPlanReviseSchema, prompt as CHAPTER_PLAN_REVISER_PROMPT } from "../agents/chapter-plan-reviser"
+import { chapterScenePlanSchema as chapterPlanReviseSchema, prompt as CHAPTER_PLAN_REVISER_PROMPT } from "../agents/chapter-plan-reviser"
 import { validateChapterDraft } from "../validation"
 import { displayPhaseHeader, displayProgress, presentForApproval, presentForExhaustion, getRevisionNotes } from "../cli"
 import { emit } from "../events"
@@ -128,8 +128,8 @@ export function effectivePipeline(seed: SeedInput): typeof pipeline {
     writerPromptIdRendering: o.writerPromptIdRendering ?? pipeline.writerPromptIdRendering,
     writerDraftingBriefMode: o.writerDraftingBriefMode ?? pipeline.writerDraftingBriefMode,
     draftCaptureModeV1: o.draftCaptureModeV1 ?? pipeline.draftCaptureModeV1,
-    planningMaxBeatsPerChapter:
-      o.planningMaxBeatsPerChapter ?? pipeline.planningMaxBeatsPerChapter,
+    planningMaxScenesPerChapter:
+      o.planningMaxScenesPerChapter ?? pipeline.planningMaxScenesPerChapter,
     nativePlanningContractV1:
       o.nativePlanningContractV1 ?? pipeline.nativePlanningContractV1,
   }
@@ -419,7 +419,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           // expansion-retry path is gated consistently across the loop.
           beatProses = []
           for (let bi = 0; bi < outline.scenes.length; bi++) {
-            const beatCtx = await buildBeatContext({
+            const beatCtx = await buildSceneContext({
               novelId, chapterNumber: ch, beatIndex: bi,
               previousBeatProse: beatProses[bi - 1],
               outline, characters, characterStates: charStates, worldBible,
@@ -937,7 +937,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               const beatSpec = outline.scenes[bi]
               const preResolved = await resolveReferences(beatSpec, outline, novelId, ch, characters)
                 .catch(() => ({ context: "", lookupCount: 0, llmUsed: false }))
-              const beatCtx = await buildBeatContext({
+              const beatCtx = await buildSceneContext({
                 novelId, chapterNumber: ch, beatIndex: bi,
                 previousBeatProse: beatProses[bi - 1],
                 outline, characters, characterStates: charStates, worldBible,
@@ -1132,12 +1132,12 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               }).catch((err) => {
                 log(novelId, "warn", `Chapter-plan-reviser lineage failed: ${err instanceof Error ? err.message : err}`)
               })
-              log(novelId, "info", `Chapter plan revised: ${outline.scenes.length} beats (was ${beatProses.length}); persisted to chapter_outlines`)
-              console.log(`  Revised plan: ${outline.scenes.length} beats. Persisted. Restarting chapter draft with revised plan.`)
+              log(novelId, "info", `Chapter plan revised: ${outline.scenes.length} scenes (was ${beatProses.length}); persisted to chapter_outlines`)
+              console.log(`  Revised plan: ${outline.scenes.length} scenes. Persisted. Restarting chapter draft with revised plan.`)
               bail = true
             } else if (outcome.kind === "rejected" && outcome.reason === "beat_floor") {
-              log(novelId, "warn", `Reviser returned too few beats (${outcome.info.revisedBeatCount} < ${outcome.info.minBeats}) — rejecting revision`)
-              console.log(`  Reviser output rejected: ${outcome.info.revisedBeatCount} beats below floor of ${outcome.info.minBeats}`)
+              log(novelId, "warn", `Reviser returned too few scenes (${outcome.info.revisedSceneCount} < ${outcome.info.minScenes}) — rejecting revision`)
+              console.log(`  Reviser output rejected: ${outcome.info.revisedSceneCount} scenes below floor of ${outcome.info.minScenes}`)
               pendingExhaustion = outcome.pendingExhaustion
               bail = true
             } else if (outcome.kind === "rejected" && outcome.reason === "new_characters") {
@@ -1246,7 +1246,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             const beatSpec = outline.scenes[bi]
             const preResolved = await resolveReferences(beatSpec, outline, novelId, ch, characters)
               .catch(() => ({ context: "", lookupCount: 0, llmUsed: false }))
-            const beatCtx = await buildBeatContext({
+            const beatCtx = await buildSceneContext({
               novelId, chapterNumber: ch, beatIndex: bi,
               previousBeatProse: beatProses[bi - 1],
               outline, characters, characterStates: charStates, worldBible,
@@ -1444,11 +1444,11 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             }).catch((err) => {
               log(novelId, "warn", `Validation chapter-plan-reviser lineage failed: ${err instanceof Error ? err.message : err}`)
             })
-            log(novelId, "info", `Chapter plan revised (validation path): ${outline.scenes.length} beats (was ${beatProses.length}); persisted to chapter_outlines`)
-            console.log(`  Revised plan: ${outline.scenes.length} beats. Persisted. Restarting chapter draft with revised plan.`)
+            log(novelId, "info", `Chapter plan revised (validation path): ${outline.scenes.length} scenes (was ${beatProses.length}); persisted to chapter_outlines`)
+            console.log(`  Revised plan: ${outline.scenes.length} scenes. Persisted. Restarting chapter draft with revised plan.`)
           } else if (outcome.kind === "rejected" && outcome.reason === "beat_floor") {
-            log(novelId, "warn", `Reviser returned too few beats (${outcome.info.revisedBeatCount} < ${outcome.info.minBeats}) — rejecting revision (validation path)`)
-            console.log(`  Reviser output rejected: ${outcome.info.revisedBeatCount} beats below floor of ${outcome.info.minBeats}`)
+            log(novelId, "warn", `Reviser returned too few scenes (${outcome.info.revisedSceneCount} < ${outcome.info.minScenes}) — rejecting revision (validation path)`)
+            console.log(`  Reviser output rejected: ${outcome.info.revisedSceneCount} scenes below floor of ${outcome.info.minScenes}`)
             pendingExhaustion = outcome.pendingExhaustion
           } else if (outcome.kind === "rejected" && outcome.reason === "new_characters") {
             log(novelId, "warn", `Reviser introduced new characters [${outcome.info.newCharacters.join(", ")}] — rejecting revision (validation path)`)
@@ -1870,7 +1870,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 const beatSpec = outline.scenes[bi]
                 const preResolved = await resolveReferences(beatSpec, outline, novelId, ch, characters)
                   .catch(() => ({ context: "", lookupCount: 0, llmUsed: false }))
-                const beatCtx = await buildBeatContext({
+                const beatCtx = await buildSceneContext({
                   novelId, chapterNumber: ch, beatIndex: bi,
                   previousBeatProse: beatProses[bi - 1],
                   outline, characters, characterStates: charStates, worldBible,

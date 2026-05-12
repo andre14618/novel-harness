@@ -19,6 +19,10 @@ const stddev = (xs: number[]) => {
 }
 const mean = (xs: number[]) => xs.length === 0 ? 0 : xs.reduce((a, x) => a + x, 0) / xs.length
 const range = (xs: number[]) => xs.length === 0 ? 0 : Math.max(...xs) - Math.min(...xs)
+const sceneMetric = (row: any) => Number(row.total_scenes ?? row.total_beats ?? 0)
+const sceneMetricMean = (row: any) => Number(row.total_scenes_mean ?? row.total_beats_mean ?? 0)
+const sceneMetricStddev = (row: any) => Number(row.total_scenes_stddev ?? row.total_beats_stddev ?? 0)
+const sceneMetricRange = (row: any) => Number(row.total_scenes_range ?? row.total_beats_range ?? 0)
 
 const probeRows = await db`SELECT summary_json FROM phase_eval_runs WHERE id = ${probeRowId}`
 if (probeRows.length === 0) { console.error(`no row id=${probeRowId}`); process.exit(2) }
@@ -28,30 +32,30 @@ console.log(`=== Multi-seed probe-shape variance — phase_eval_runs.id=${probeR
 console.log(`Variant: ${sj.variant}  seeds=${sj.seeds.join(",")}  chapters/seed=${sj.chaptersPerSeed}  reruns/seed=${sj.rerunsPerSeed}\n`)
 console.log(`Per-cell metrics:`)
 for (const c of sj.cells) {
-  console.log(`  ${c.seed} r${c.rerun}: facts=${c.facts_median} know=${c.knowledge_median} beats=${c.total_beats} chapters=${c.chapters_total} ok=${c.ok}${c.reason ? ` (${c.reason})` : ""}`)
+  console.log(`  ${c.seed} r${c.rerun}: facts=${c.facts_median} know=${c.knowledge_median} scenes=${sceneMetric(c)} chapters=${c.chapters_total} ok=${c.ok}${c.reason ? ` (${c.reason})` : ""}`)
 }
 console.log()
 
 const okCells = sj.cells.filter((c: any) => c.ok)
 const allFacts = okCells.map((c: any) => c.facts_median)
 const allKnow = okCells.map((c: any) => c.knowledge_median)
-const allBeats = okCells.map((c: any) => c.total_beats)
+const allScenes = okCells.map((c: any) => sceneMetric(c))
 
 console.log(`Config B (3 seeds × ${sj.chaptersPerSeed} chapters × ${sj.rerunsPerSeed} reruns; ${okCells.length}/${sj.cells.length} ok cells):`)
 console.log(`  facts_median across-cell:    σ=${stddev(allFacts).toFixed(3)}  μ=${mean(allFacts).toFixed(2)}  range=${range(allFacts)}`)
 console.log(`  know_median across-cell:     σ=${stddev(allKnow).toFixed(3)}  μ=${mean(allKnow).toFixed(2)}  range=${range(allKnow)}`)
-console.log(`  total_beats across-cell:     σ=${stddev(allBeats).toFixed(2)}  μ=${mean(allBeats).toFixed(1)}  range=${range(allBeats)}`)
+console.log(`  total_scenes across-cell:    σ=${stddev(allScenes).toFixed(2)}  μ=${mean(allScenes).toFixed(1)}  range=${range(allScenes)}`)
 
 const seedMeansFacts = sj.seedAggregates.map((s: any) => s.facts_median_mean)
 const seedMeansKnow = sj.seedAggregates.map((s: any) => s.knowledge_median_mean)
-const seedMeansBeats = sj.seedAggregates.map((s: any) => s.total_beats_mean)
+const seedMeansScenes = sj.seedAggregates.map((s: any) => sceneMetricMean(s))
 console.log(`  facts_median across-seed:    σ=${stddev(seedMeansFacts).toFixed(3)}`)
 console.log(`  know_median across-seed:     σ=${stddev(seedMeansKnow).toFixed(3)}`)
-console.log(`  total_beats across-seed:     σ=${stddev(seedMeansBeats).toFixed(2)}`)
+console.log(`  total_scenes across-seed:    σ=${stddev(seedMeansScenes).toFixed(2)}`)
 console.log()
 console.log(`Per-seed (within-rerun) aggregates:`)
 for (const s of sj.seedAggregates) {
-  console.log(`  ${s.seed} (n=${s.ok_count}): facts μ=${s.facts_median_mean.toFixed(2)} σ=${s.facts_median_stddev.toFixed(2)} range=${s.facts_median_range} | know μ=${s.knowledge_median_mean.toFixed(2)} σ=${s.knowledge_median_stddev.toFixed(2)} range=${s.knowledge_median_range} | beats μ=${s.total_beats_mean.toFixed(1)} σ=${s.total_beats_stddev.toFixed(2)} range=${s.total_beats_range}`)
+  console.log(`  ${s.seed} (n=${s.ok_count}): facts μ=${s.facts_median_mean.toFixed(2)} σ=${s.facts_median_stddev.toFixed(2)} range=${s.facts_median_range} | know μ=${s.knowledge_median_mean.toFixed(2)} σ=${s.knowledge_median_stddev.toFixed(2)} range=${s.knowledge_median_range} | scenes μ=${sceneMetricMean(s).toFixed(1)} σ=${sceneMetricStddev(s).toFixed(2)} range=${sceneMetricRange(s)}`)
 }
 
 // Also pool the per-seed within-rerun stddevs into a single "typical
@@ -60,24 +64,24 @@ for (const s of sj.seedAggregates) {
 const okSeeds = sj.seedAggregates.filter((s: any) => s.ok_count >= 2)
 const pooledFacts = okSeeds.length === 0 ? 0 : Math.sqrt(mean(okSeeds.map((s: any) => s.facts_median_stddev ** 2)))
 const pooledKnow = okSeeds.length === 0 ? 0 : Math.sqrt(mean(okSeeds.map((s: any) => s.knowledge_median_stddev ** 2)))
-const pooledBeats = okSeeds.length === 0 ? 0 : Math.sqrt(mean(okSeeds.map((s: any) => s.total_beats_stddev ** 2)))
+const pooledScenes = okSeeds.length === 0 ? 0 : Math.sqrt(mean(okSeeds.map((s: any) => sceneMetricStddev(s) ** 2)))
 console.log()
 console.log(`Pooled within-seed across-rerun σ (RMS of per-seed stddevs, n_seeds=${okSeeds.length}):`)
 console.log(`  facts_median pooled-within-seed σ=${pooledFacts.toFixed(3)}`)
 console.log(`  know_median pooled-within-seed σ=${pooledKnow.toFixed(3)}`)
-console.log(`  total_beats pooled-within-seed σ=${pooledBeats.toFixed(2)}`)
+console.log(`  total_scenes pooled-within-seed σ=${pooledScenes.toFixed(2)}`)
 console.log()
 
 // === Config A baseline (exp #311 r1-r5 default control) ===
 const baselineRows = await db`SELECT id, summary_json -> 'g_metrics' -> 'control' AS control FROM phase_eval_runs WHERE id IN (17,18,19,20,21) ORDER BY id`
 const baseFacts = baselineRows.map((r: any) => Number(r.control.facts_median))
 const baseKnow = baselineRows.map((r: any) => Number(r.control.knowledge_median))
-const baseBeats = baselineRows.map((r: any) => Number(r.control.total_beats))
+const baseScenes = baselineRows.map((r: any) => Number(r.control.total_scenes ?? r.control.total_beats))
 
 console.log(`Config A (1 seed × 10 chapters × 5 reruns; default control of #311 r1-r5):`)
 console.log(`  facts_median across-rerun:   σ=${stddev(baseFacts).toFixed(3)}  μ=${mean(baseFacts).toFixed(2)}  range=${range(baseFacts)}`)
 console.log(`  know_median across-rerun:    σ=${stddev(baseKnow).toFixed(3)}  μ=${mean(baseKnow).toFixed(2)}  range=${range(baseKnow)}`)
-console.log(`  total_beats across-rerun:    σ=${stddev(baseBeats).toFixed(2)}  μ=${mean(baseBeats).toFixed(1)}  range=${range(baseBeats)}`)
+console.log(`  total_scenes across-rerun:   σ=${stddev(baseScenes).toFixed(2)}  μ=${mean(baseScenes).toFixed(1)}  range=${range(baseScenes)}`)
 console.log()
 
 // === Comparison table ===
@@ -86,9 +90,9 @@ console.log(`metric            | Config A across-rerun σ | Config B across-cell
 const fmt = (n: number, w: number = 6) => n.toFixed(3).padStart(w)
 console.log(`facts_median      |          ${fmt(stddev(baseFacts))}         |         ${fmt(stddev(allFacts))}        |             ${fmt(stddev(seedMeansFacts))}        |             ${fmt(pooledFacts)}`)
 console.log(`know_median       |          ${fmt(stddev(baseKnow))}         |         ${fmt(stddev(allKnow))}        |             ${fmt(stddev(seedMeansKnow))}        |             ${fmt(pooledKnow)}`)
-console.log(`total_beats       |          ${stddev(baseBeats).toFixed(2).padStart(7)}        |        ${stddev(allBeats).toFixed(2).padStart(7)}         |            ${stddev(seedMeansBeats).toFixed(2).padStart(7)}         |            ${pooledBeats.toFixed(2).padStart(7)}`)
+console.log(`total_scenes      |          ${stddev(baseScenes).toFixed(2).padStart(7)}        |        ${stddev(allScenes).toFixed(2).padStart(7)}         |            ${stddev(seedMeansScenes).toFixed(2).padStart(7)}         |            ${pooledScenes.toFixed(2).padStart(7)}`)
 console.log()
-console.log(`Note: total_beats is sensitive to chapter count (Config A: 10ch novels; Config B: 5ch novels).`)
+console.log(`Note: total_scenes is sensitive to chapter count (Config A: 10ch novels; Config B: 5ch novels).`)
 console.log(`The medians (facts_median, know_median) are per-chapter and so are direct comparisons.`)
 console.log(`Use facts_median + know_median as the primary directionality signal.`)
 

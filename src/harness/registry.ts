@@ -183,9 +183,9 @@ export const COMPONENTS: Component[] = [
     category: "agent-prompt",
   },
   {
-    id: "prompt.planning-beats", name: "Planning Beats Prompt",
-    description: "System prompt for per-chapter beat-shape expansion (phase 2a of planning)",
-    type: "prompt", storage: "file", path: "src/agents/planning-beats/beat-expansion-system.md",
+    id: "prompt.planning-scenes", name: "Planning Scenes Prompt",
+    description: "System prompt for per-chapter scene/turn expansion (phase 2a of planning)",
+    type: "prompt", storage: "file", path: "src/agents/planning-scenes/scene-expansion-system.md",
     measuredBy: ["beat-specificity", "dialogue-cues", "emotional-arc"],
     category: "agent-prompt",
   },

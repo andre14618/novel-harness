@@ -12,9 +12,9 @@ const factCategoryMap: Record<string, string> = {
 
 const knowledgeSourceValid = ["witnessed", "told", "overheard", "deduced", "read", "discovered"]
 
-// Phase-1 output — skeleton fields only. Rejects beat-level detail so the
+// Phase-1 output — skeleton fields only. Rejects scene-level detail so the
 // model can't be coaxed into the 8K-truncation failure mode that blocked
-// the 2026-04-17 v3 sweep. Beat detail is Phase-2's job (planning-beats).
+// the 2026-04-17 v3 sweep. Scene detail is Phase-2's job (planning-scenes).
 export const chapterSkeletonSchema = z.object({
   chapterNumber: z.number(),
   title: z.string(),
@@ -31,7 +31,7 @@ export const chapterSkeletonsSchema = z.object({
 
 export type ChapterSkeleton = z.infer<typeof chapterSkeletonSchema>
 
-// Full ChapterOutline = Phase-1 skeleton + Phase-2 beats, merged in planning.ts.
+// Full ChapterOutline = Phase-1 skeleton + Phase-2 scene entries, merged in planning.ts.
 // Kept permissive (no .strict()) because downstream DB loads/saves round-trip
 // through this shape and may carry legacy fields from older rows.
 export const chapterOutlineSchema = z.object({
@@ -50,10 +50,10 @@ export const chapterOutlineSchema = z.object({
   charactersPresentIds: z.array(z.coerce.string()).default([]),
 
   // World state updates — what changes in this chapter. `id` is a stable
-  // kebab-case slug assigned by planning-beats (see Planner-Phase-2 V1a in
+  // kebab-case slug assigned by planning-scenes (see Planner-Phase-2 V1a in
   // docs/charters/planner-phase2-contract.md); optional here because this
   // outline schema also deserializes legacy rows written before the field
-  // existed. Matches the id field on planning-beats/schema.ts.
+  // existed. Matches the id field on planning-scenes/schema.ts.
   establishedFacts: z.array(z.object({
     id: z.string().default(""),
     fact: z.string(),

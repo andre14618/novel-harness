@@ -39,7 +39,7 @@ import { execSync } from "node:child_process"
 // Add an entry here when introducing a new variant role; the lint
 // will skip roles not in this map (with a single info-level note).
 export const ROLE_TO_LIVE_PROMPT: Record<string, string> = {
-  "planning-beats": "src/agents/planning-beats/beat-expansion-system.md",
+  "planning-scenes": "src/agents/planning-scenes/scene-expansion-system.md",
   "planning-plotter": "src/agents/planning-plotter/chapter-outline-system.md",
   "planning-state-mapper": "src/agents/planning-state-mapper/state-mapper-system.md",
 }

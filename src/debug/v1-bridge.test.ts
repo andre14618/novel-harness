@@ -137,7 +137,7 @@ describe("applyV1EnvVarsAsV2Rules — DEBUG_FORCE_REVISER=throw", () => {
 })
 
 describe("applyV1EnvVarsAsV2Rules — DEBUG_FORCE_REVISER=reject", () => {
-  it("registers a force-result rule with a 1-beat plan (below floor)", () => {
+  it("registers a force-result rule with a 1-scene plan (below floor)", () => {
     process.env.DEBUG_FORCE_REVISER = "reject"
     const report = applyV1EnvVarsAsV2Rules()
     expect(report.translated).toBe(1)
@@ -149,11 +149,11 @@ describe("applyV1EnvVarsAsV2Rules — DEBUG_FORCE_REVISER=reject", () => {
     expect(rule.action.kind).toBe("force-result")
     if (rule.action.kind === "force-result") {
       const parsed = JSON.parse(rule.action.content)
-      // 1 scene → triggers reviser-policy beat-floor rejection (Math.max(3, ...))
+      // 1 scene → triggers reviser-policy scene-count rejection (Math.max(3, ...))
       expect(Array.isArray(parsed.scenes)).toBe(true)
       expect(parsed.scenes).toHaveLength(1)
       expect(parsed.scenes[0].description).toBeDefined()
-      // chapterBeatsSchema requires these fields with default []
+      // chapterScenePlanSchema requires these fields with default []
       expect(parsed.establishedFacts).toEqual([])
       expect(parsed.characterStateChanges).toEqual([])
       expect(parsed.knowledgeChanges).toEqual([])

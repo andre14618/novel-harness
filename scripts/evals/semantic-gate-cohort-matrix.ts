@@ -21,7 +21,7 @@ import {
   type SemanticGateMatrixReport,
 } from "./semantic-gate-matrix"
 
-const DEFAULT_VARIANT_SPECS = ["beats=4", "beats=5", "beats=6"]
+const DEFAULT_VARIANT_SPECS = ["scenes=4", "scenes=5", "scenes=6"]
 
 process.env.BUN_SQL_MAX ??= "1"
 
@@ -350,7 +350,7 @@ async function main(argv: string[]): Promise<number> {
     console.error(
       "usage: bun scripts/evals/semantic-gate-cohort-matrix.ts " +
         "[--source <novel> ...] [--summary <matrix-summary.json> ...] [--candidate-report <json> ...] " +
-        "[--allow-disposable-cohort] [--chapters 2] [--replicates 1] [--variant beats=4] " +
+        "[--allow-disposable-cohort] [--chapters 2] [--replicates 1] [--variant scenes=4] " +
         "[--parallel-sources 2] [--parallel-variants 2]",
     )
     return 2

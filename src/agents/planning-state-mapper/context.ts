@@ -36,17 +36,17 @@ function renderPriorState(sk: ChapterOutline): string {
   return `  Ch ${sk.chapterNumber} end-state:\n${state}${facts ? `\n  Facts established:\n${facts}` : ""}`
 }
 
-function renderBeatLine(beat: SceneBeat, index: number): string {
-  const chars = beat.characters?.length ? beat.characters.join(", ") : "none listed"
+function renderSceneEntryLine(scene: SceneBeat, index: number): string {
+  const chars = scene.characters?.length ? scene.characters.join(", ") : "none listed"
   const soft: string[] = []
-  if (beat.valueShifted !== undefined) soft.push(`valueShifted=${beat.valueShifted}`)
-  if (beat.gapPresent !== undefined) soft.push(`gapPresent=${beat.gapPresent}`)
-  if (beat.lifeValueAxes?.length) soft.push(`lifeValueAxes=${beat.lifeValueAxes.join("/")}`)
-  if (beat.miceActive?.length) soft.push(`miceActive=${beat.miceActive.join("/")}`)
-  if (beat.miceOpens?.length) soft.push(`miceOpens=${beat.miceOpens.join("/")}`)
-  if (beat.miceCloses?.length) soft.push(`miceCloses=${beat.miceCloses.join("/")}`)
-  const idTag = beat.beatId ? ` [${beat.beatId}]` : ""
-  return `  ${index}.${idTag} [${beat.kind}] chars: ${chars}${soft.length ? ` (${soft.join(", ")})` : ""}\n     ${beat.description}`
+  if (scene.valueShifted !== undefined) soft.push(`valueShifted=${scene.valueShifted}`)
+  if (scene.gapPresent !== undefined) soft.push(`gapPresent=${scene.gapPresent}`)
+  if (scene.lifeValueAxes?.length) soft.push(`lifeValueAxes=${scene.lifeValueAxes.join("/")}`)
+  if (scene.miceActive?.length) soft.push(`miceActive=${scene.miceActive.join("/")}`)
+  if (scene.miceOpens?.length) soft.push(`miceOpens=${scene.miceOpens.join("/")}`)
+  if (scene.miceCloses?.length) soft.push(`miceCloses=${scene.miceCloses.join("/")}`)
+  const idTag = scene.beatId ? ` [${scene.beatId}]` : ""
+  return `  ${index}.${idTag} [${scene.kind}] chars: ${chars}${soft.length ? ` (${soft.join(", ")})` : ""}\n     ${scene.description}`
 }
 
 export function buildContext(args: StateMapperContextArgs): string {
@@ -68,7 +68,7 @@ export function buildContext(args: StateMapperContextArgs): string {
 
   const targetSection = `THIS CHAPTER TO MAP:\nChapter ${targetChapter.chapterNumber}: "${targetChapter.title}"\nPOV: ${targetChapter.povCharacter}\nSetting: ${targetChapter.setting}\nPurpose: ${targetChapter.purpose}\nTarget words: ${targetChapter.targetWords}\nCharacters present: ${(targetChapter.charactersPresent ?? []).join(", ")}`
 
-  const beatSection = `BEATS TO MAP (0-based indexes; do not rewrite descriptions):\n${scenes.map(renderBeatLine).join("\n")}`
+  const sceneSection = `SCENE ENTRIES TO MAP (0-based indexes; do not rewrite descriptions):\n${scenes.map(renderSceneEntryLine).join("\n")}`
 
   const directivesSection = seed.directives ? renderDirectivesForPlanner(seed.directives) : ""
   const priors = resolveStructuralPriors(seed.genre)
@@ -86,7 +86,7 @@ export function buildContext(args: StateMapperContextArgs): string {
     resolveScenePlanContractV1(seed.pipelineOverrides),
   )
 
-  return `Genre: ${seed.genre}\nPremise: ${seed.premise}\n\n${worldSection}\n\n${charSection}\n\n${spineSection}\n\n${allSkelSection}${priorSection}\n\n${targetSection}\n\n${beatSection}${directivesSection}${structuralSection}${scenePlanContractSection}${selectiveSceneTurnSection}${materialPressureSection}\n\nMap Chapter ${targetChapter.chapterNumber}'s end-of-chapter state and writer-visible beat obligations onto the existing beat list.`
+  return `Genre: ${seed.genre}\nPremise: ${seed.premise}\n\n${worldSection}\n\n${charSection}\n\n${spineSection}\n\n${allSkelSection}${priorSection}\n\n${targetSection}\n\n${sceneSection}${directivesSection}${structuralSection}${scenePlanContractSection}${selectiveSceneTurnSection}${materialPressureSection}\n\nMap Chapter ${targetChapter.chapterNumber}'s end-of-chapter state and writer-visible scene obligations onto the existing scene-entry list.`
 }
 
 // L096 Slice 1: scene-plan-contract guidance for the state mapper. Off-flag
@@ -98,7 +98,7 @@ function renderStateMapperScenePlanContractGuidance(enabled: boolean): string {
   return `
 
 SCENE PLAN CONTRACT (scenePlanContractV1):
-- Every beat obligation MUST include a "materialityTest" string. The materialityTest names how the exact source ID changes choice, cost, constraint, relationship state, outcome, or future pressure. Example: "Ledger gives Orvath leverage Calla cannot ignore." Generic restatements of the obligation text are not sufficient.
+- Every scene obligation MUST include a "materialityTest" string. The materialityTest names how the exact source ID changes choice, cost, constraint, relationship state, outcome, or future pressure. Example: "Ledger gives Orvath leverage Calla cannot ignore." Generic restatements of the obligation text are not sufficient.
 - "storyDebtStage" accepts seven values: open, progress, complicate, partial_payoff, final_payoff, aftermath, escalation.
   - Use "complicate" when an obligation deepens the story debt with new opposition or cost without paying it off.
   - Use "escalation" when later pressure builds on a prior final_payoff (the debt was paid; this is the aftermath/escalation curve).

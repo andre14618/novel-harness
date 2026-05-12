@@ -1052,7 +1052,7 @@ ${cal.pass && pd
 - **Anchor stability degrades with class count.** This run keeps the binary at the calibration-anchor level and reports raw chapter distance as a number rather than bucketing into 3+ classes. The 0 / 1–3 / 4–9 / 10+ buckets in the table are aggregation-only and do not have anchor-stability measurement.
 - **Setup density is a defensible planner prior even if pair-matching is unstable.** Use the setup-rate per book as the cross-book directional check.
 
-**Harness target.** If signal is stable across books, this becomes a per-chapter setup-density prior in \`src/agents/planning-beats/beat-expansion-system.md\` ("typically 30–50% of beats per chapter plant something that pays off later in the book"). The distance distribution informs how the chapter-skeleton plotter should think about how far ahead to plant — but only ships as a planner constraint after the pair-identification step is validated against a Sonnet anchor (next experiment, deferred).
+**Harness target.** If signal is stable across books, this becomes a per-chapter setup-density prior in \`src/agents/planning-scenes/scene-expansion-system.md\` ("typically 30–50% of beats per chapter plant something that pays off later in the book"). The distance distribution informs how the chapter-skeleton plotter should think about how far ahead to plant — but only ships as a planner constraint after the pair-identification step is validated against a Sonnet anchor (next experiment, deferred).
 
 ### Cost ledger
 

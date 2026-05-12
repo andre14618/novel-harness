@@ -11,7 +11,7 @@ const AGENT_LABELS: Record<string, string> = {
   "character-agent": "Character Agent",
   "plotter": "Plotter",
   "planning-plotter": "Planning Plotter",
-  "planning-beats": "Planning Beats",
+  "planning-scenes": "Planning Scenes",
   "reference-resolver": "Reference Resolver",
   "adherence-events": "Adherence Events",
   "halluc-ungrounded": "Hallucination — Ungrounded Entities",

@@ -13,7 +13,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import db from "../src/db/connection"
-import { chapterBeatsSchema } from "../src/agents/planning-beats/schema"
+import { chapterScenePlanSchema } from "../src/agents/planning-scenes/schema"
 import { validateBeatObligationCoverage } from "../src/harness/beat-obligations"
 
 interface Args {
@@ -46,8 +46,8 @@ interface OutlineRow {
 interface MapperAttemptLog {
   chapter: number
   attempt: number
-  mappedBeats: number
-  totalBeats: number
+  mappedEntries: number
+  totalEntries: number
   ignoredMappings: number
   facts: number
   orphanFacts: number
@@ -55,7 +55,7 @@ interface MapperAttemptLog {
   orphanKnowledge: number
   state: number
   orphanState: number
-  overloadedBeats: number
+  overloadedEntries: number
 }
 
 function parseArgs(): Args {
@@ -82,7 +82,7 @@ function parseAttemptLogs(novelId: string): { path: string; attempts: MapperAtte
   if (!existsSync(path)) return { path, attempts: [] }
 
   const attempts: MapperAttemptLog[] = []
-  const attemptRe = /Planning state mapper ch(\d+) attempt=(\d+): mappedBeats=(\d+)\/(\d+) ignoredMappings=(\d+) facts=(\d+) orphanFacts=(\d+) knowledge=(\d+) orphanKnowledge=(\d+) state=(\d+) orphanState=(\d+) overloadedBeats=(\d+)/
+  const attemptRe = /Planning state mapper ch(\d+) attempt=(\d+): mapped(?:Entries|Beats)=(\d+)\/(\d+) ignoredMappings=(\d+) facts=(\d+) orphanFacts=(\d+) knowledge=(\d+) orphanKnowledge=(\d+) state=(\d+) orphanState=(\d+) overloaded(?:Entries|Beats)=(\d+)/
 
   for (const line of readFileSync(path, "utf-8").split("\n")) {
     const attemptMatch = line.match(attemptRe)
@@ -90,8 +90,8 @@ function parseAttemptLogs(novelId: string): { path: string; attempts: MapperAtte
       attempts.push({
         chapter: Number(attemptMatch[1]),
         attempt: Number(attemptMatch[2]),
-        mappedBeats: Number(attemptMatch[3]),
-        totalBeats: Number(attemptMatch[4]),
+        mappedEntries: Number(attemptMatch[3]),
+        totalEntries: Number(attemptMatch[4]),
         ignoredMappings: Number(attemptMatch[5]),
         facts: Number(attemptMatch[6]),
         orphanFacts: Number(attemptMatch[7]),
@@ -99,7 +99,7 @@ function parseAttemptLogs(novelId: string): { path: string; attempts: MapperAtte
         orphanKnowledge: Number(attemptMatch[9]),
         state: Number(attemptMatch[10]),
         orphanState: Number(attemptMatch[11]),
-        overloadedBeats: Number(attemptMatch[12]),
+        overloadedEntries: Number(attemptMatch[12]),
       })
     }
   }
@@ -136,7 +136,7 @@ function aggregateAttempts(attempts: MapperAttemptLog[]) {
       state: sum(latest.map(item => item.orphanState)),
       total: sum(latest.map(item => item.orphanFacts + item.orphanKnowledge + item.orphanState)),
     },
-    latest_logged_overloaded_beats: sum(latest.map(item => item.overloadedBeats)),
+    latest_logged_overloaded_entries: sum(latest.map(item => item.overloadedEntries)),
   }
 }
 
@@ -162,7 +162,7 @@ function aggregateFinalOutlines(rows: OutlineRow[]) {
   let parseFailures = 0
   const validations = []
   for (const row of rows) {
-    const parsed = chapterBeatsSchema.safeParse(row.outline_json)
+    const parsed = chapterScenePlanSchema.safeParse(row.outline_json)
     if (!parsed.success) {
       parseFailures++
       continue
@@ -183,7 +183,7 @@ function aggregateFinalOutlines(rows: OutlineRow[]) {
       facts: sum(validations.map(item => item.summary.factCount)),
       knowledge: sum(validations.map(item => item.summary.knowledgeCount)),
       state: sum(validations.map(item => item.summary.stateChangeCount)),
-      overloaded_beats: sum(validations.map(item => item.summary.overloadedBeats)),
+      overloaded_entries: sum(validations.map(item => item.summary.overloadedBeats)),
     },
   }
 }
@@ -196,9 +196,9 @@ function printHuman(summary: any): void {
   console.log(`Attempt log: ${summary.attempt_log.log_available ? summary.attempt_log.path : `missing (${summary.attempt_log.path})`}`)
   console.log(`Mapper attempts: logged=${summary.attempts.attempts_logged} retry_chapters=${summary.attempts.retry_chapters} retry_calls=${summary.attempts.retry_calls} max_attempt=${summary.attempts.max_attempt} ignored_mappings=${summary.attempts.ignored_mappings}`)
   console.log(`Initial logged orphans: facts=${summary.attempts.initial_orphans.facts} knowledge=${summary.attempts.initial_orphans.knowledge} state=${summary.attempts.initial_orphans.state} total=${summary.attempts.initial_orphans.total}`)
-  console.log(`Latest logged orphans: facts=${summary.attempts.latest_logged_orphans.facts} knowledge=${summary.attempts.latest_logged_orphans.knowledge} state=${summary.attempts.latest_logged_orphans.state} total=${summary.attempts.latest_logged_orphans.total} overloaded=${summary.attempts.latest_logged_overloaded_beats}`)
+  console.log(`Latest logged orphans: facts=${summary.attempts.latest_logged_orphans.facts} knowledge=${summary.attempts.latest_logged_orphans.knowledge} state=${summary.attempts.latest_logged_orphans.state} total=${summary.attempts.latest_logged_orphans.total} overloaded=${summary.attempts.latest_logged_overloaded_entries}`)
   console.log(`Final outline orphans: facts=${summary.final.final_orphans.facts} knowledge=${summary.final.final_orphans.knowledge} state=${summary.final.final_orphans.state} total=${summary.final.final_orphans.total}`)
-  console.log(`Final outline counts: facts=${summary.final.final_counts.facts} knowledge=${summary.final.final_counts.knowledge} state=${summary.final.final_counts.state} overloaded=${summary.final.final_counts.overloaded_beats} parse_failures=${summary.final.parse_failures}`)
+  console.log(`Final outline counts: facts=${summary.final.final_counts.facts} knowledge=${summary.final.final_counts.knowledge} state=${summary.final.final_counts.state} overloaded=${summary.final.final_counts.overloaded_entries} parse_failures=${summary.final.parse_failures}`)
 }
 
 async function main(): Promise<void> {

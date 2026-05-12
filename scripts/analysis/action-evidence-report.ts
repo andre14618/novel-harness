@@ -190,7 +190,7 @@ async function loadChapterRevisionActionEvidence(novelId: string): Promise<Actio
     beat: null,
     attempt: Number(row.attempt),
     summary: row.outcome === "accepted"
-      ? `accepted Chapter Plan replacement; issues=${row.issue_count}, beats=${row.original_beat_count}->${row.revised_beat_count ?? "?"}`
+      ? `accepted Chapter Plan replacement; issues=${row.issue_count}, entries=${row.original_beat_count}->${row.revised_beat_count ?? "?"}`
       : `outcome=${row.outcome}; issues=${row.issue_count}${row.rejection_reason ? `; reason=${row.rejection_reason}` : ""}`,
     timestamp: row.invoked_at,
   }))

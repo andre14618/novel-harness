@@ -1003,7 +1003,7 @@
         "timestamp": "<TS>"
       },
       {
-        "agent": "planning-beats",
+        "agent": "planning-scenes",
         "beat_index": null,
         "chapter": 1,
         "duration_ms": "<DURATION>",
@@ -1302,7 +1302,7 @@
         "timestamp": "<TS>"
       },
       {
-        "agent": "planning-beats",
+        "agent": "planning-scenes",
         "beat_index": null,
         "chapter": 1,
         "duration_ms": "<DURATION>",

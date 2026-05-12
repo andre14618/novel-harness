@@ -12,20 +12,21 @@ const factCategoryMap: Record<string, string> = {
 
 const knowledgeSourceValid = ["witnessed", "told", "overheard", "deduced", "read", "discovered"]
 
-// Phase-2a output — the beat-level dramatic sequence for a SINGLE chapter.
+// Phase-2a output — the scene/turn sequence for a SINGLE chapter.
 // Chapter-level state and writer-visible obligations are assigned by the
 // follow-up planning-state-mapper surface.
-export const beatExpansionSchema = z.object({
+export const sceneExpansionSchema = z.object({
   scenes: z.array(sceneBeatSchema),
 })
 
 // Full outline-fragment shape retained for the chapter-plan-reviser and legacy
-// parsing paths. The live planner uses beatExpansionSchema first.
-export const chapterBeatsSchema = beatExpansionSchema.extend({
+// parsing paths. The live planner uses sceneExpansionSchema first.
+export const chapterScenePlanSchema = sceneExpansionSchema.extend({
 
-  // Planner-Phase-2 V1a addition: `id` is a stable, kebab-case slug the
-  // planner assigns per fact (e.g. "temple-archive-pre-war-records") so
-  // beats can reference the fact via `sceneBeatSchema.requiredPayoffs[].fact_id`.
+  // Legacy outline-fragment fields are kept for the chapter-plan-reviser and
+  // old rows. The live scene expander does not own state mapping.
+  // `id` is a stable, kebab-case slug assigned per fact so entries can reference
+  // the fact via `sceneBeatSchema.requiredPayoffs[].fact_id`.
   // Default is an empty string so legacy rows round-trip; the prompt asks for
   // a non-empty id going forward.
   // See docs/charters/planner-phase2-contract.md.
@@ -68,6 +69,6 @@ export const chapterBeatsSchema = beatExpansionSchema.extend({
   })).default([]),
 })
 
-export type BeatExpansion = z.infer<typeof beatExpansionSchema>
-export type ChapterBeats = z.infer<typeof chapterBeatsSchema>
-export const schema = chapterBeatsSchema
+export type SceneExpansion = z.infer<typeof sceneExpansionSchema>
+export type ChapterScenePlan = z.infer<typeof chapterScenePlanSchema>
+export const schema = chapterScenePlanSchema

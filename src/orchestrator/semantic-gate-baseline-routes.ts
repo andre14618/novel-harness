@@ -22,7 +22,7 @@ interface ListRunSummary {
   generatedAt: string | null
   novelId: string | null
   chapters: number | null
-  maxBeatsPerChapter: number | null
+  maxScenesPerChapter: number | null
   terminalStatus: string | null
   terminalReason: string | null
   approvedChapters: number | null
@@ -244,7 +244,7 @@ function summarizeReport(report: unknown): Omit<ListRunSummary, "runId" | "summa
     generatedAt: stringValue(object.generatedAt),
     novelId: stringValue(object.novelId),
     chapters: numberValue(object.chapters),
-    maxBeatsPerChapter: nullableNumberValue(object.maxBeatsPerChapter),
+    maxScenesPerChapter: nullableNumberValue(object.maxScenesPerChapter),
     terminalStatus: stringValue(terminal.status),
     terminalReason: stringValue(terminal.reason),
     approvedChapters: numberValue(drafts.approvedChapters),

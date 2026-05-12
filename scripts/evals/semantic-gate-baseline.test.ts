@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test"
 import {
   assertDisposableBaselineAllowed,
   buildBaselineTerminalSummary,
-  capOutlineBeats,
+  capOutlineScenes,
   extractPlanAssistGateLogEvidence,
   parseArgs,
   renderSemanticGateBaselineReport,
@@ -20,7 +20,7 @@ describe("semantic-gate-baseline", () => {
     expect(args.allowDisposableBaseline).toBe(false)
     expect(args.keepNovel).toBe(false)
     expect(args.target).toBeNull()
-    expect(args.maxBeatsPerChapter).toBeNull()
+    expect(args.maxScenesPerChapter).toBeNull()
     expect(args.continuityEditorialFlagProposals).toBe(false)
     expect(args.timeoutMinutes).toBe(30)
     expect(args.outputBase).toContain("output/evals/semantic-gate-baseline")
@@ -40,7 +40,7 @@ describe("semantic-gate-baseline", () => {
       "--allow-disposable-baseline",
       "--source", "source-novel",
       "--chapters", "3",
-      "--max-beats-per-chapter", "5",
+      "--max-scenes-per-chapter", "5",
       "--target", "target-novel",
       "--timeout-minutes", "12",
       "--keep-novel",
@@ -50,7 +50,7 @@ describe("semantic-gate-baseline", () => {
 
     expect(args.chapters).toBe(3)
     expect(args.allowDisposableBaseline).toBe(true)
-    expect(args.maxBeatsPerChapter).toBe(5)
+    expect(args.maxScenesPerChapter).toBe(5)
     expect(args.target).toBe("target-novel")
     expect(args.keepNovel).toBe(true)
     expect(args.continuityEditorialFlagProposals).toBe(true)
@@ -75,13 +75,13 @@ describe("semantic-gate-baseline", () => {
       .toThrow("--pack-strategy: unsupported value")
   })
 
-  test("capOutlineBeats trims clone outlines without mutating the original", () => {
+  test("capOutlineScenes trims clone outlines without mutating the original", () => {
     const outline = {
       chapterNumber: 1,
       scenes: [{ beatId: "a" }, { beatId: "b" }, { beatId: "c" }],
     }
 
-    const capped = capOutlineBeats(outline, 2)
+    const capped = capOutlineScenes(outline, 2)
 
     expect(capped).not.toBe(outline)
     expect(capped.scenes).toEqual([{ beatId: "a" }, { beatId: "b" }])
@@ -158,8 +158,8 @@ Unresolved issues (2):
 
     expect(rendered).toContain("# Semantic Gate Baseline")
     expect(rendered).toContain("Terminal status: pending-plan-assist")
-    expect(rendered).toContain("Max beats per chapter: 5")
-    expect(rendered).toContain("Planning max beats override: 5")
+    expect(rendered).toContain("Max scenes per chapter: 5")
+    expect(rendered).toContain("Planning max scenes override: 5")
     expect(rendered).toContain("Continuity editorial flags: enabled")
     expect(rendered).toContain("Approved: 1/2")
     expect(rendered).toContain("Signals: no_draft=1, outline_shape=2")
@@ -194,11 +194,11 @@ function reportFixture(): SemanticGateBaselineReport {
     novelId: "semantic-gate-baseline-test",
     chapters: 2,
     outputBase: "/tmp/semantic-gate-baseline",
-    maxBeatsPerChapter: 5,
+    maxScenesPerChapter: 5,
     packStrategy: null,
     packing: null,
     pipelineOverrides: {
-      planningMaxBeatsPerChapter: 5,
+      planningMaxScenesPerChapter: 5,
       continuityEditorialFlagProposals: true,
     },
     keptNovel: false,
@@ -271,10 +271,10 @@ function reportFixture(): SemanticGateBaselineReport {
           chapter: 1,
           signals: ["outline_shape", "writer_expansion"],
           targetWords: 1500,
-          plannedBeats: 5,
+          plannedScenes: 5,
           draftWords: 1900,
           wordRatio: 1.27,
-          wordsPerBeat: 380,
+          wordsPerScene: 380,
           expansionFlags: ["over_target"],
           planDrift: { totalCalls: 1, finalPass: true, recovered: false, unresolved: false, deviationCount: 0, driftedBeatRefs: [] },
           checker: {
@@ -293,10 +293,10 @@ function reportFixture(): SemanticGateBaselineReport {
           chapter: 2,
           signals: ["no_draft", "outline_shape", "plan_assist_gate"],
           targetWords: 1800,
-          plannedBeats: 5,
+          plannedScenes: 5,
           draftWords: null,
           wordRatio: null,
-          wordsPerBeat: null,
+          wordsPerScene: null,
           expansionFlags: ["no_draft"],
           planDrift: { totalCalls: 0, finalPass: null, recovered: false, unresolved: false, deviationCount: 0, driftedBeatRefs: [] },
           checker: {

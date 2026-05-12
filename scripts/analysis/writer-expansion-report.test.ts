@@ -28,28 +28,28 @@ describe("writer-expansion-report", () => {
       targetWords: 4500,
       draftedTargetWords: 4500,
       actualWords: 4800,
-      plannedBeats: 21,
-      draftedPlannedBeats: 21,
+      plannedScenes: 21,
+      draftedPlannedScenes: 21,
       overTargetChapters: 1,
       severeOverTargetChapters: 1,
-      highWordsPerBeatChapters: 1,
-      overPlannedBeatChapters: 1,
+      highWordsPerSceneChapters: 1,
+      overPlannedSceneChapters: 1,
     })
     expect(report.chapters[0]!).toMatchObject({
       chapter: 1,
-      plannedBeats: 12,
-      recommendedBeats: 5,
-      beatDeltaFromRecommended: 7,
-      flags: ["low_words_per_beat", "over_planned_beats"],
+      plannedScenes: 12,
+      recommendedScenes: 5,
+      sceneDeltaFromRecommended: 7,
+      flags: ["low_words_per_scene", "over_planned_scenes"],
     })
-    expect(report.chapters[1]!.flags).toEqual(["over_target", "severe_over_target", "high_words_per_beat"])
+    expect(report.chapters[1]!.flags).toEqual(["over_target", "severe_over_target", "high_words_per_scene"])
     expect(report.chapters[2]!.flags).toEqual(["under_target"])
 
     const rendered = renderWriterExpansionReport(report)
     expect(rendered).toContain("Writer expansion report for novel-test")
-    expect(rendered).toContain("highWordsPerBeat=1")
-    expect(rendered).toContain("ch1: target=1500, beats=12")
-    expect(rendered).toContain("over_planned_beats")
+    expect(rendered).toContain("highWordsPerScene=1")
+    expect(rendered).toContain("ch1: target=1500, scenes=12")
+    expect(rendered).toContain("over_planned_scenes")
   })
 
   test("uses latest draft version per chapter and flags missing drafts", () => {
@@ -63,7 +63,7 @@ describe("writer-expansion-report", () => {
 
     expect(report.totals.draftedChapters).toBe(1)
     expect(report.totals.draftedTargetWords).toBe(1200)
-    expect(report.totals.draftedPlannedBeats).toBe(4)
+    expect(report.totals.draftedPlannedScenes).toBe(4)
     expect(report.chapters[0]!.draft).toMatchObject({ version: 2, status: "approved", wordCount: 1100 })
     expect(report.chapters[0]!.flags).toEqual([])
     expect(report.chapters[1]!.flags).toEqual(["no_draft"])

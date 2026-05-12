@@ -32,7 +32,7 @@ export type MatrixVariantPackStrategy = "tail-slice" | "calibrated-packed"
 export interface MatrixVariant {
   id: string
   label: string
-  maxBeatsPerChapter: number | null
+  maxScenesPerChapter: number | null
   packStrategy: MatrixVariantPackStrategy | null
 }
 
@@ -109,7 +109,7 @@ export interface SemanticGateMatrixReport {
   }
 }
 
-const DEFAULT_VARIANTS = ["beats=4", "beats=5", "beats=6"]
+const DEFAULT_VARIANTS = ["scenes=4", "scenes=5", "scenes=6"]
 
 export function parseArgs(argv: string[]): Args {
   const map: Record<string, Array<string | true>> = {}
@@ -175,38 +175,38 @@ export function parseVariantSpec(value: string | true, index = 0): MatrixVariant
   const trimmedSpec = spec.trim()
   const labelPrefix = maybeLabel.trim()
 
-  if (trimmedSpec === "source" || trimmedSpec === "source-outline" || trimmedSpec === "beats=source") {
+  if (trimmedSpec === "source" || trimmedSpec === "source-outline" || trimmedSpec === "scenes=source") {
     const label = labelPrefix.startsWith("variant-") ? "source outline" : labelPrefix
     return {
       id: safeSlug(label),
       label,
-      maxBeatsPerChapter: null,
+      maxScenesPerChapter: null,
       packStrategy: null,
     }
   }
 
   if (trimmedSpec === "packed" || trimmedSpec === "calibrated-packed") {
     // L086 calibrated:packed arm — per-chapter recommended budget with
-    // obligation-preserving merges. Beat budget is derived per chapter
+    // obligation-preserving merges. Scene budget is derived per chapter
     // inside the baseline runner, so no integer cap travels with the
     // variant.
     const label = labelPrefix.startsWith("variant-") ? "calibrated packed" : labelPrefix
     return {
       id: safeSlug(label),
       label,
-      maxBeatsPerChapter: null,
+      maxScenesPerChapter: null,
       packStrategy: "calibrated-packed",
     }
   }
 
-  const beats = trimmedSpec.match(/^beats=(\d+)$/)
-  if (beats) {
-    const maxBeats = Number.parseInt(beats[1]!, 10)
-    const label = labelPrefix.startsWith("variant-") ? `beats ${maxBeats}` : labelPrefix
+  const scenes = trimmedSpec.match(/^scenes=(\d+)$/)
+  if (scenes) {
+    const maxScenes = Number.parseInt(scenes[1]!, 10)
+    const label = labelPrefix.startsWith("variant-") ? `scenes ${maxScenes}` : labelPrefix
     return {
       id: safeSlug(label),
       label,
-      maxBeatsPerChapter: maxBeats,
+      maxScenesPerChapter: maxScenes,
       packStrategy: "tail-slice",
     }
   }
@@ -427,7 +427,7 @@ async function runVariant(args: Args, variant: MatrixVariant, index: number): Pr
     "--output-base", variantOutputBase,
     "--target", targetNovelId,
     "--timeout-minutes", String(args.childTimeoutMinutes),
-    ...(variant.maxBeatsPerChapter == null ? [] : ["--max-beats-per-chapter", String(variant.maxBeatsPerChapter)]),
+    ...(variant.maxScenesPerChapter == null ? [] : ["--max-scenes-per-chapter", String(variant.maxScenesPerChapter)]),
     ...(variant.packStrategy === "calibrated-packed" ? ["--pack-strategy", "calibrated-packed"] : []),
     ...(args.keepNovels ? ["--keep-novel"] : []),
     ...(args.continuityEditorialFlagProposals ? ["--continuity-editorial-flag-proposals"] : []),
@@ -512,7 +512,7 @@ async function main(argv: string[]): Promise<number> {
     console.error(err instanceof Error ? err.message : String(err))
     console.error(
       "usage: bun scripts/evals/semantic-gate-matrix.ts --allow-disposable-matrix --source <novel> " +
-        "[--chapters 2] [--variant beats=4] [--variant beats=5] [--variant source] " +
+        "[--chapters 2] [--variant scenes=4] [--variant scenes=5] [--variant source] " +
         "[--parallel 2] [--child-timeout-minutes 30] [--output-base output/evals/...] [--keep-novels]",
     )
     return 2

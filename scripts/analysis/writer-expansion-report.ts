@@ -3,11 +3,11 @@
  * Read-only diagnostic for chapter length shape.
  *
  * This separates two common failure sources before prompt/runtime changes:
- * over-planned outlines (too many beats for targetWords) and writer expansion
- * (too many prose words per planned beat).
+ * over-planned outlines (too many scene entries for targetWords) and writer
+ * expansion (too many prose words per planned entry).
  */
 
-import { assessBeatCountForTarget } from "../../src/harness/beat-counts"
+import { assessSceneCountForTarget } from "../../src/harness/scene-counts"
 
 export interface WriterExpansionOutlineRow {
   chapter_number: number
@@ -28,17 +28,17 @@ export interface WriterExpansionDraftRow {
 export interface WriterExpansionChapter {
   chapter: number
   targetWords: number | null
-  plannedBeats: number
-  minRecommendedBeats: number | null
-  recommendedBeats: number | null
+  plannedScenes: number
+  minRecommendedScenes: number | null
+  recommendedScenes: number | null
   draft: {
     version: number
     status: string
     wordCount: number
   } | null
   wordRatio: number | null
-  wordsPerBeat: number | null
-  beatDeltaFromRecommended: number | null
+  wordsPerScene: number | null
+  sceneDeltaFromRecommended: number | null
   flags: WriterExpansionFlag[]
 }
 
@@ -47,10 +47,10 @@ export type WriterExpansionFlag =
   | "over_target"
   | "severe_over_target"
   | "under_target"
-  | "high_words_per_beat"
-  | "low_words_per_beat"
-  | "over_planned_beats"
-  | "under_planned_beats"
+  | "high_words_per_scene"
+  | "low_words_per_scene"
+  | "over_planned_scenes"
+  | "under_planned_scenes"
 
 export interface WriterExpansionReport {
   novelId: string | null
@@ -61,14 +61,14 @@ export interface WriterExpansionReport {
     targetWords: number
     draftedTargetWords: number
     actualWords: number
-    plannedBeats: number
-    draftedPlannedBeats: number
+    plannedScenes: number
+    draftedPlannedScenes: number
     wordRatio: number | null
-    averageWordsPerBeat: number | null
+    averageWordsPerScene: number | null
     overTargetChapters: number
     severeOverTargetChapters: number
-    highWordsPerBeatChapters: number
-    overPlannedBeatChapters: number
+    highWordsPerSceneChapters: number
+    overPlannedSceneChapters: number
   }
 }
 
@@ -94,39 +94,39 @@ export function buildWriterExpansionReport(
     .map((row): WriterExpansionChapter => {
       const outline = row.outline_json ?? {}
       const targetWords = positiveNumber(outline.targetWords) ? Number(outline.targetWords) : null
-      const plannedBeats = Array.isArray(outline.scenes) ? outline.scenes.length : 0
-      const beatAssessment = targetWords === null ? null : assessBeatCountForTarget(targetWords, plannedBeats)
-      const minRecommendedBeats = beatAssessment?.minRecommendedBeats ?? null
-      const recommendedBeats = beatAssessment?.recommendedBeats ?? null
+      const plannedScenes = Array.isArray(outline.scenes) ? outline.scenes.length : 0
+      const sceneAssessment = targetWords === null ? null : assessSceneCountForTarget(targetWords, plannedScenes)
+      const minRecommendedScenes = sceneAssessment?.minRecommendedScenes ?? null
+      const recommendedScenes = sceneAssessment?.recommendedScenes ?? null
       const latest = latestDrafts.get(row.chapter_number) ?? null
       const wordCount = latest ? Number(latest.word_count) : null
       const wordRatio = wordCount !== null && targetWords !== null && targetWords > 0
         ? wordCount / targetWords
         : null
-      const wordsPerBeat = wordCount !== null && plannedBeats > 0 ? wordCount / plannedBeats : null
-      const beatDeltaFromRecommended = beatAssessment?.beatDeltaFromRecommended ?? null
+      const wordsPerScene = wordCount !== null && plannedScenes > 0 ? wordCount / plannedScenes : null
+      const sceneDeltaFromRecommended = sceneAssessment?.sceneDeltaFromRecommended ?? null
       const flags = expansionFlags({
         hasDraft: latest !== null,
         wordRatio,
-        wordsPerBeat,
-        underPlannedBeats: beatAssessment?.underPlanned ?? false,
-        overPlannedBeats: beatAssessment?.overPlanned ?? false,
+        wordsPerScene,
+        underPlannedScenes: sceneAssessment?.underPlanned ?? false,
+        overPlannedScenes: sceneAssessment?.overPlanned ?? false,
       })
 
       return {
         chapter: row.chapter_number,
         targetWords,
-        plannedBeats,
-        minRecommendedBeats,
-        recommendedBeats,
+        plannedScenes,
+        minRecommendedScenes,
+        recommendedScenes,
         draft: latest ? {
           version: Number(latest.version),
           status: latest.status,
           wordCount: Number(latest.word_count),
         } : null,
         wordRatio,
-        wordsPerBeat,
-        beatDeltaFromRecommended,
+        wordsPerScene,
+        sceneDeltaFromRecommended,
         flags,
       }
     })
@@ -135,8 +135,8 @@ export function buildWriterExpansionReport(
   const targetWords = chapters.reduce((sum, chapter) => sum + (chapter.targetWords ?? 0), 0)
   const draftedTargetWords = drafted.reduce((sum, chapter) => sum + (chapter.targetWords ?? 0), 0)
   const actualWords = drafted.reduce((sum, chapter) => sum + (chapter.draft?.wordCount ?? 0), 0)
-  const plannedBeats = chapters.reduce((sum, chapter) => sum + chapter.plannedBeats, 0)
-  const draftedPlannedBeats = drafted.reduce((sum, chapter) => sum + chapter.plannedBeats, 0)
+  const plannedScenes = chapters.reduce((sum, chapter) => sum + chapter.plannedScenes, 0)
+  const draftedPlannedScenes = drafted.reduce((sum, chapter) => sum + chapter.plannedScenes, 0)
   return {
     novelId,
     chapters,
@@ -146,14 +146,14 @@ export function buildWriterExpansionReport(
       targetWords,
       draftedTargetWords,
       actualWords,
-      plannedBeats,
-      draftedPlannedBeats,
+      plannedScenes,
+      draftedPlannedScenes,
       wordRatio: draftedTargetWords > 0 && actualWords > 0 ? actualWords / draftedTargetWords : null,
-      averageWordsPerBeat: draftedPlannedBeats > 0 && actualWords > 0 ? actualWords / draftedPlannedBeats : null,
+      averageWordsPerScene: draftedPlannedScenes > 0 && actualWords > 0 ? actualWords / draftedPlannedScenes : null,
       overTargetChapters: chapters.filter(chapter => chapter.flags.includes("over_target")).length,
       severeOverTargetChapters: chapters.filter(chapter => chapter.flags.includes("severe_over_target")).length,
-      highWordsPerBeatChapters: chapters.filter(chapter => chapter.flags.includes("high_words_per_beat")).length,
-      overPlannedBeatChapters: chapters.filter(chapter => chapter.flags.includes("over_planned_beats")).length,
+      highWordsPerSceneChapters: chapters.filter(chapter => chapter.flags.includes("high_words_per_scene")).length,
+      overPlannedSceneChapters: chapters.filter(chapter => chapter.flags.includes("over_planned_scenes")).length,
     },
   }
 }
@@ -166,14 +166,14 @@ export function renderWriterExpansionReport(report: WriterExpansionReport): stri
       `target=${report.totals.targetWords}, draftedTarget=${report.totals.draftedTargetWords}, ` +
       `actual=${report.totals.actualWords}, ` +
       `ratio=${formatNullable(report.totals.wordRatio, 2)}, ` +
-      `plannedBeats=${report.totals.plannedBeats}, draftedBeats=${report.totals.draftedPlannedBeats}, ` +
-      `avgWordsPerDraftedBeat=${formatNullable(report.totals.averageWordsPerBeat, 0)}`,
+      `plannedScenes=${report.totals.plannedScenes}, draftedScenes=${report.totals.draftedPlannedScenes}, ` +
+      `avgWordsPerDraftedScene=${formatNullable(report.totals.averageWordsPerScene, 0)}`,
   )
   lines.push(
     `Flags: overTarget=${report.totals.overTargetChapters}, ` +
       `severeOverTarget=${report.totals.severeOverTargetChapters}, ` +
-      `highWordsPerBeat=${report.totals.highWordsPerBeatChapters}, ` +
-      `overPlannedBeats=${report.totals.overPlannedBeatChapters}`,
+      `highWordsPerScene=${report.totals.highWordsPerSceneChapters}, ` +
+      `overPlannedScenes=${report.totals.overPlannedSceneChapters}`,
   )
   if (report.chapters.length === 0) {
     lines.push("No chapter outlines found.")
@@ -184,10 +184,10 @@ export function renderWriterExpansionReport(report: WriterExpansionReport): stri
     const draft = chapter.draft
     const flags = chapter.flags.length > 0 ? ` flags=${chapter.flags.join(",")}` : ""
     lines.push(
-      `ch${chapter.chapter}: target=${chapter.targetWords ?? "?"}, beats=${chapter.plannedBeats}` +
-        ` (min=${chapter.minRecommendedBeats ?? "?"}, rec=${chapter.recommendedBeats ?? "?"}, delta=${chapter.beatDeltaFromRecommended ?? "?"})` +
+      `ch${chapter.chapter}: target=${chapter.targetWords ?? "?"}, scenes=${chapter.plannedScenes}` +
+        ` (min=${chapter.minRecommendedScenes ?? "?"}, rec=${chapter.recommendedScenes ?? "?"}, delta=${chapter.sceneDeltaFromRecommended ?? "?"})` +
         `, draft=${draft ? `${draft.wordCount}w/${draft.status}/v${draft.version}` : "none"}` +
-        `, ratio=${formatNullable(chapter.wordRatio, 2)}, wordsPerBeat=${formatNullable(chapter.wordsPerBeat, 0)}${flags}`,
+        `, ratio=${formatNullable(chapter.wordRatio, 2)}, wordsPerScene=${formatNullable(chapter.wordsPerScene, 0)}${flags}`,
     )
   }
   return lines.join("\n")
@@ -196,19 +196,19 @@ export function renderWriterExpansionReport(report: WriterExpansionReport): stri
 function expansionFlags(input: {
   hasDraft: boolean
   wordRatio: number | null
-  wordsPerBeat: number | null
-  underPlannedBeats: boolean
-  overPlannedBeats: boolean
+  wordsPerScene: number | null
+  underPlannedScenes: boolean
+  overPlannedScenes: boolean
 }): WriterExpansionFlag[] {
   const flags: WriterExpansionFlag[] = []
   if (!input.hasDraft) flags.push("no_draft")
   if (input.wordRatio !== null && input.wordRatio > 1.25) flags.push("over_target")
   if (input.wordRatio !== null && input.wordRatio > 1.5) flags.push("severe_over_target")
   if (input.wordRatio !== null && input.wordRatio < 0.75) flags.push("under_target")
-  if (input.wordsPerBeat !== null && input.wordsPerBeat > 450) flags.push("high_words_per_beat")
-  if (input.wordsPerBeat !== null && input.wordsPerBeat < 200) flags.push("low_words_per_beat")
-  if (input.overPlannedBeats) flags.push("over_planned_beats")
-  if (input.underPlannedBeats) flags.push("under_planned_beats")
+  if (input.wordsPerScene !== null && input.wordsPerScene > 450) flags.push("high_words_per_scene")
+  if (input.wordsPerScene !== null && input.wordsPerScene < 200) flags.push("low_words_per_scene")
+  if (input.overPlannedScenes) flags.push("over_planned_scenes")
+  if (input.underPlannedScenes) flags.push("under_planned_scenes")
   return flags
 }
 

@@ -9,13 +9,13 @@ import {
 import type { Phase, PhaseResult, ConceptOutput } from "./contract"
 import { callAgent } from "../llm"
 // Import each prompt directly from its agent module instead of the broad
-// `../prompts` barrel. The barrel re-exports planning-beats / writer /
+// `../prompts` barrel. The barrel re-exports planning-scenes / writer /
 // chapter-plan-checker prompts via top-level await; pulling the barrel
 // into concept.ts loaded those prompts as a side effect into any process
 // that imported runConceptPhase. The phase-eval probe parent imports
-// runConceptPhase directly and would otherwise cache planning-beats's
+// runConceptPhase directly and would otherwise cache planning-scenes's
 // default prompt before child processes get a chance to set their
-// PLANNING_BEATS_PROMPT_OVERRIDE env var. Direct imports keep concept.ts's
+// PLANNING_SCENES_PROMPT_OVERRIDE env var. Direct imports keep concept.ts's
 // surface to the three prompts it actually uses.
 import { prompt as WORLD_BUILDER_PROMPT } from "../agents/world-builder"
 import { prompt as CHARACTER_AGENT_PROMPT } from "../agents/character-agent"

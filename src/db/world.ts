@@ -34,7 +34,7 @@ export async function saveCharacter(novelId: string, profile: CharacterProfile):
 
 export async function getCharacters(novelId: string): Promise<CharacterProfile[]> {
   // ORDER BY id guarantees stable result order across runs. Prompt rendering in
-  // buildBeatContext consumes this order directly, so any nondeterminism here
+  // buildSceneContext consumes this order directly, so any nondeterminism here
   // would leak into prompt bytes between A/B arms (Codex conditioning-floor
   // review leak #3, 2026-04-20).
   const rows = await db`SELECT profile_json FROM characters WHERE novel_id = ${novelId} ORDER BY id`

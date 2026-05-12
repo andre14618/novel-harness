@@ -21,7 +21,7 @@
  *     is suppressed even if the issues mention "not enacted", matching the
  *     drafting loop's `bi > 0` guard.
  *   - The function is pure (no DB calls, no side effects). Context
- *     assembly (buildBeatContext) is the caller's responsibility.
+ *     assembly (buildSceneContext) is the caller's responsibility.
  */
 
 import type { BeatContextResult } from "./beat-context"
@@ -29,7 +29,7 @@ import type { BeatContextResult } from "./beat-context"
 const RETRY_PRIOR_PROSE_CHAR_LIMIT = 8000
 
 export interface RetryPromptInput {
-  /** Output of buildBeatContext for this beat. */
+  /** Output of buildSceneContext for this beat. */
   beatContext: BeatContextResult
   /** The system prompt string (packPrompt ?? BEAT_WRITER_PROMPT). */
   systemPrompt: string
@@ -109,7 +109,7 @@ export function buildRetryPrompt(input: RetryPromptInput): RetryPromptOutput {
 const EXPANSION_PRIOR_PROSE_CHAR_LIMIT = 8000
 
 export interface ExpansionPromptInput {
-  /** Output of buildBeatContext for this beat. */
+  /** Output of buildSceneContext for this beat. */
   beatContext: BeatContextResult
   /** The system prompt string (BEAT_WRITER_PROMPT). */
   systemPrompt: string

@@ -2,10 +2,10 @@
  * L26 probe — verify allowedNewEntities mapper behavior.
  *
  * For each seed, runs concept + planning (mapper included), then analyzes
- * every beat's `obligations.allowedNewEntities` list for:
+ * every entry's `obligations.allowedNewEntities` list for:
  *
- *   1. Non-empty rate — what fraction of beats have at least one entry
- *   2. Duplication FP — entities that already appear in the beat's own
+ *   1. Non-empty rate — what fraction of entries have at least one entry
+ *   2. Duplication FP — entities that already appear in the entry's own
  *      `scene.characters` list (= mapper duplicated an existing character)
  *   3. Qualitative sample — first few entries per chapter to sanity-check
  *      whether entries look like walk-ons/props/locations vs hallucinated
@@ -31,7 +31,7 @@
 import { spawnSync } from "node:child_process"
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { isAbsolute, join, resolve } from "node:path"
-import { chapterBeatsSchema } from "../../src/agents/planning-beats/schema"
+import { chapterScenePlanSchema } from "../../src/agents/planning-scenes/schema"
 import { persistPhaseEvalRun, currentGitCommit } from "./persist-run"
 
 // ── Argument parsing ──────────────────────────────────────────────────
@@ -148,13 +148,13 @@ async function cleanupNovel(novelId: string): Promise<void> {
 
 // ── allowedNewEntities analysis ───────────────────────────────────────
 
-interface BeatAnalysis {
-  beatIndex: number
+interface EntryAnalysis {
+  entryIndex: number
   beatId?: string
-  beatDescription: string
-  beatCharacters: string[]
+  entryDescription: string
+  entryCharacters: string[]
   allowedNewEntities: string[]
-  duplicationFPs: string[]   // entities already in beatCharacters
+  duplicationFPs: string[]   // entities already in entryCharacters
   hasEntries: boolean
 }
 
@@ -162,9 +162,9 @@ interface ChapterAnalysis {
   chapterNumber: number
   title: string
   charactersPresent: string[]
-  beats: BeatAnalysis[]
-  beatsWithEntries: number
-  totalBeats: number
+  entries: EntryAnalysis[]
+  entriesWithEntities: number
+  totalEntries: number
   allEntities: string[]
   chapterLevelDupFPs: string[]  // entities already in charactersPresent
 }
@@ -175,10 +175,10 @@ interface SeedAnalysis {
   ok: boolean
   reason?: string
   chapters: ChapterAnalysis[]
-  totalBeats: number
-  beatsWithEntries: number
+  totalEntries: number
+  entriesWithEntities: number
   totalEntities: number
-  beatLevelDupFPs: number
+  entryLevelDupFPs: number
   chapterLevelDupFPs: number
   nonEmptyRate: number
   sampleEntities: string[]  // first 10 entities across all chapters
@@ -187,8 +187,8 @@ interface SeedAnalysis {
 function analyzeOutlines(seed: string, novelId: string, outlinesPath: string, expectedChapters: number): SeedAnalysis {
   const empty: SeedAnalysis = {
     seed, novelId, ok: false,
-    chapters: [], totalBeats: 0, beatsWithEntries: 0, totalEntities: 0,
-    beatLevelDupFPs: 0, chapterLevelDupFPs: 0, nonEmptyRate: 0, sampleEntities: [],
+    chapters: [], totalEntries: 0, entriesWithEntities: 0, totalEntities: 0,
+    entryLevelDupFPs: 0, chapterLevelDupFPs: 0, nonEmptyRate: 0, sampleEntities: [],
   }
 
   if (!existsSync(outlinesPath)) return { ...empty, reason: `outlines.json not found: ${outlinesPath}` }
@@ -206,54 +206,54 @@ function analyzeOutlines(seed: string, novelId: string, outlinesPath: string, ex
   }
 
   const chapters: ChapterAnalysis[] = []
-  let totalBeats = 0
-  let beatsWithEntries = 0
+  let totalEntries = 0
+  let entriesWithEntities = 0
   let totalEntities = 0
-  let beatLevelDupFPs = 0
+  let entryLevelDupFPs = 0
   let chapterLevelDupFPs = 0
   const allEntitySamples: string[] = []
 
   for (let ci = 0; ci < raw.length; ci++) {
-    // Read raw fields first — chapterBeatsSchema doesn't declare title/chapterNumber/charactersPresent
+    // Read raw fields first — chapterScenePlanSchema doesn't declare title/chapterNumber/charactersPresent
     // (they're in chapterOutlineSchema), so we pull them from the raw JSON before schema parse.
     const rawChap = raw[ci] as Record<string, any>
     const rawTitle: string = rawChap?.title ?? `Chapter ${ci + 1}`
     const rawChapterNumber: number = rawChap?.chapterNumber ?? (ci + 1)
     const rawCharactersPresent: string[] = Array.isArray(rawChap?.charactersPresent) ? rawChap.charactersPresent : []
 
-    const result = chapterBeatsSchema.safeParse(raw[ci])
+    const result = chapterScenePlanSchema.safeParse(raw[ci])
     if (!result.success) {
       return { ...empty, reason: `chapter ${ci + 1} schema fail: ${result.error.issues[0]?.message}` }
     }
     const outline = result.data
     const cpSet = new Set(rawCharactersPresent.map((n: string) => n.toLowerCase()))
 
-    const beats: BeatAnalysis[] = []
+    const entries: EntryAnalysis[] = []
     for (let bi = 0; bi < outline.scenes.length; bi++) {
       const scene = outline.scenes[bi]!
-      const beatCharsSet = new Set((scene.characters ?? []).map(n => n.toLowerCase()))
+      const entryCharsSet = new Set((scene.characters ?? []).map(n => n.toLowerCase()))
       const allowed = (scene.obligations?.allowedNewEntities ?? []) as string[]
       const allowedClean = allowed.map(e => (typeof e === "string" ? e.trim() : "")).filter(Boolean)
 
-      // Beat-level duplication: already in the beat's own characters list
-      const beatDups = allowedClean.filter(e => beatCharsSet.has(e.toLowerCase()))
+      // Entry-level duplication: already in the entry's own characters list
+      const entryDups = allowedClean.filter(e => entryCharsSet.has(e.toLowerCase()))
       // Chapter-level duplication: already in the chapter's charactersPresent
       const chDups = allowedClean.filter(e => cpSet.has(e.toLowerCase()))
 
-      beats.push({
-        beatIndex: bi,
+      entries.push({
+        entryIndex: bi,
         beatId: scene.beatId,
-        beatDescription: scene.description?.slice(0, 100) ?? "",
-        beatCharacters: scene.characters ?? [],
+        entryDescription: scene.description?.slice(0, 100) ?? "",
+        entryCharacters: scene.characters ?? [],
         allowedNewEntities: allowedClean,
-        duplicationFPs: beatDups,
+        duplicationFPs: entryDups,
         hasEntries: allowedClean.length > 0,
       })
 
-      if (allowedClean.length > 0) beatsWithEntries++
-      totalBeats++
+      if (allowedClean.length > 0) entriesWithEntities++
+      totalEntries++
       totalEntities += allowedClean.length
-      beatLevelDupFPs += beatDups.length
+      entryLevelDupFPs += entryDups.length
       chapterLevelDupFPs += chDups.length
 
       if (allEntitySamples.length < 15) {
@@ -263,27 +263,27 @@ function analyzeOutlines(seed: string, novelId: string, outlinesPath: string, ex
       }
     }
 
-    const chAllEntities = beats.flatMap(b => b.allowedNewEntities)
+    const chAllEntities = entries.flatMap(b => b.allowedNewEntities)
     const chChapterDupStrs = chAllEntities.filter(e => cpSet.has(e.toLowerCase()))
 
     chapters.push({
       chapterNumber: rawChapterNumber,
       title: rawTitle,
       charactersPresent: rawCharactersPresent,
-      beats,
-      beatsWithEntries: beats.filter(b => b.hasEntries).length,
-      totalBeats: beats.length,
+      entries,
+      entriesWithEntities: entries.filter(b => b.hasEntries).length,
+      totalEntries: entries.length,
       allEntities: chAllEntities,
       chapterLevelDupFPs: chChapterDupStrs,
     })
   }
 
-  const nonEmptyRate = totalBeats > 0 ? beatsWithEntries / totalBeats : 0
+  const nonEmptyRate = totalEntries > 0 ? entriesWithEntities / totalEntries : 0
 
   return {
     seed, novelId, ok: true,
-    chapters, totalBeats, beatsWithEntries, totalEntities,
-    beatLevelDupFPs, chapterLevelDupFPs, nonEmptyRate, sampleEntities: allEntitySamples,
+    chapters, totalEntries, entriesWithEntities, totalEntities,
+    entryLevelDupFPs, chapterLevelDupFPs, nonEmptyRate, sampleEntities: allEntitySamples,
   }
 }
 
@@ -333,17 +333,17 @@ async function main() {
       const outlinesPath = join(seedOutputDir, "outlines.json")
       const analysis = analyzeOutlines(seed, planningId, outlinesPath, args.chaptersPerSeed)
       seedResults.push(analysis)
-      console.error(`[L26] ${seed}: ok=${analysis.ok} beats=${analysis.totalBeats} non-empty=${analysis.beatsWithEntries} (${(analysis.nonEmptyRate * 100).toFixed(0)}%) entities=${analysis.totalEntities} beatDupFPs=${analysis.beatLevelDupFPs} chDupFPs=${analysis.chapterLevelDupFPs}`)
+      console.error(`[L26] ${seed}: ok=${analysis.ok} entries=${analysis.totalEntries} non-empty=${analysis.entriesWithEntities} (${(analysis.nonEmptyRate * 100).toFixed(0)}%) entities=${analysis.totalEntities} entryDupFPs=${analysis.entryLevelDupFPs} chDupFPs=${analysis.chapterLevelDupFPs}`)
     }
 
     // ── Aggregate stats ───────────────────────────────────────────────
     const okResults = seedResults.filter(r => r.ok)
-    const totalBeats = okResults.reduce((a, r) => a + r.totalBeats, 0)
-    const beatsWithEntries = okResults.reduce((a, r) => a + r.beatsWithEntries, 0)
+    const totalEntries = okResults.reduce((a, r) => a + r.totalEntries, 0)
+    const entriesWithEntities = okResults.reduce((a, r) => a + r.entriesWithEntities, 0)
     const totalEntities = okResults.reduce((a, r) => a + r.totalEntities, 0)
-    const totalBeatDupFPs = okResults.reduce((a, r) => a + r.beatLevelDupFPs, 0)
+    const totalEntryDupFPs = okResults.reduce((a, r) => a + r.entryLevelDupFPs, 0)
     const totalChDupFPs = okResults.reduce((a, r) => a + r.chapterLevelDupFPs, 0)
-    const overallNonEmptyRate = totalBeats > 0 ? beatsWithEntries / totalBeats : 0
+    const overallNonEmptyRate = totalEntries > 0 ? entriesWithEntities / totalEntries : 0
 
     // Qualitative classification of all entities
     const allEntities = okResults.flatMap(r => r.chapters.flatMap(c => c.allEntities))
@@ -361,10 +361,10 @@ async function main() {
     // ── Verdict ───────────────────────────────────────────────────────
     // Criteria for "functioning well":
     //   1. Non-empty rate across all seeds >= 10% (mapper actually uses the field)
-    //   2. Beat-level dup FPs == 0 (no entity already in beat.characters)
+    //   2. Entry-level dup FPs == 0 (no entity already in scene.characters)
     //   3. Qualitative: suspicious-class entities < 50% of all entities
     const criteriaPassNonEmpty = overallNonEmptyRate >= 0.10
-    const criteriaPassNoDups = totalBeatDupFPs === 0
+    const criteriaPassNoDups = totalEntryDupFPs === 0
     const suspiciousRate = allEntities.length > 0 ? suspiciousEntities.length / allEntities.length : 0
     const criteriaPassQuality = suspiciousRate < 0.50
 
@@ -374,7 +374,7 @@ async function main() {
 
     const verdictReasons: string[] = []
     if (!criteriaPassNonEmpty) verdictReasons.push(`non-empty rate ${(overallNonEmptyRate * 100).toFixed(1)}% < 10% threshold (mapper under-emitting)`)
-    if (!criteriaPassNoDups) verdictReasons.push(`${totalBeatDupFPs} beat-level duplication FPs (mapper duplicating existing beat characters)`)
+    if (!criteriaPassNoDups) verdictReasons.push(`${totalEntryDupFPs} entry-level duplication FPs (mapper duplicating existing entry characters)`)
     if (!criteriaPassQuality) verdictReasons.push(`${suspiciousEntities.length}/${allEntities.length} (${(suspiciousRate * 100).toFixed(0)}%) entities look like proper nouns (possible hallucination or existing character duplication)`)
 
     // ── Report ─────────────────────────────────────────────────────────
@@ -385,10 +385,10 @@ async function main() {
       `OVERALL: ${verdict}${verdictReasons.length ? ` — ` + verdictReasons.join("; ") : ""}`,
       ``,
       `Aggregate (${okResults.length}/${args.seeds.length} seeds ok):`,
-      `  Total beats:         ${totalBeats}`,
-      `  Beats with entries:  ${beatsWithEntries} (${(overallNonEmptyRate * 100).toFixed(1)}%)`,
+      `  Total entries:         ${totalEntries}`,
+      `  Entries with entities: ${entriesWithEntities} (${(overallNonEmptyRate * 100).toFixed(1)}%)`,
       `  Total entities:      ${totalEntities}`,
-      `  Beat-level dup FPs:  ${totalBeatDupFPs}  (entity already in beat.characters)`,
+      `  Entry-level dup FPs:  ${totalEntryDupFPs}  (entity already in scene.characters)`,
       `  Chapter-level dups:  ${totalChDupFPs}  (entity already in chapter.charactersPresent)`,
       ``,
       `Qualitative classification:`,
@@ -401,11 +401,11 @@ async function main() {
     }
     lines.push(``)
     lines.push(`Per-seed table:`)
-    lines.push(`  Seed                    | ok  | beats | non-empty | entities | beatDupFPs | chDupFPs | non-empty%`)
+    lines.push(`  Seed                    | ok  | entries | non-empty | entities | entryDupFPs | chDupFPs | non-empty%`)
     lines.push(`  ----------------------- | --- | ----- | --------- | -------- | ---------- | -------- | ----------`)
     for (const r of seedResults) {
-      const pct = r.totalBeats > 0 ? (r.nonEmptyRate * 100).toFixed(0) + "%" : "n/a"
-      lines.push(`  ${r.seed.padEnd(23)} | ${r.ok ? "yes" : "no "} | ${String(r.totalBeats).padStart(5)} | ${String(r.beatsWithEntries).padStart(9)} | ${String(r.totalEntities).padStart(8)} | ${String(r.beatLevelDupFPs).padStart(10)} | ${String(r.chapterLevelDupFPs).padStart(8)} | ${pct}`)
+      const pct = r.totalEntries > 0 ? (r.nonEmptyRate * 100).toFixed(0) + "%" : "n/a"
+      lines.push(`  ${r.seed.padEnd(23)} | ${r.ok ? "yes" : "no "} | ${String(r.totalEntries).padStart(5)} | ${String(r.entriesWithEntities).padStart(9)} | ${String(r.totalEntities).padStart(8)} | ${String(r.entryLevelDupFPs).padStart(10)} | ${String(r.chapterLevelDupFPs).padStart(8)} | ${pct}`)
     }
     lines.push(``)
     lines.push(`Sample entities per seed:`)
@@ -421,18 +421,18 @@ async function main() {
       }
       for (const ch of r.chapters) {
         const allE = ch.allEntities.join(", ") || "(none)"
-        const dupFPs = ch.beats.flatMap(b => b.duplicationFPs)
+        const dupFPs = ch.entries.flatMap(b => b.duplicationFPs)
         const dupStr = dupFPs.length > 0 ? ` [DUP FPs: ${dupFPs.join(", ")}]` : ""
-        lines.push(`  ${r.seed} ch${ch.chapterNumber} "${ch.title.slice(0, 40)}" — ${ch.beatsWithEntries}/${ch.totalBeats} beats non-empty; entities: ${allE}${dupStr}`)
+        lines.push(`  ${r.seed} ch${ch.chapterNumber} "${ch.title.slice(0, 40)}" — ${ch.entriesWithEntities}/${ch.totalEntries} entries non-empty; entities: ${allE}${dupStr}`)
       }
     }
     lines.push(``)
     lines.push(`Conclusion:`)
-    if (verdict === "PASS") {
+      if (verdict === "PASS") {
       lines.push(`  mapper emits allowedNewEntities on legitimate walk-ons/props/locations without duplicating existing characters.`)
       lines.push(`  Non-empty rate ${(overallNonEmptyRate * 100).toFixed(1)}% — field is actively used.`)
-      lines.push(`  Beat-level dup FPs: 0 — no existing beat characters leaked into allowedNewEntities.`)
-      lines.push(`  Chapter-level dups: ${totalChDupFPs} — ${totalChDupFPs === 0 ? "none" : "some chapter-wide characters appear (expected if they debut in a beat and are then listed at chapter level)"}.`)
+      lines.push(`  Entry-level dup FPs: 0 — no existing scene characters leaked into allowedNewEntities.`)
+      lines.push(`  Chapter-level dups: ${totalChDupFPs} — ${totalChDupFPs === 0 ? "none" : "some chapter-wide characters appear (expected if they debut in an entry and are then listed at chapter level)"}.`)
       lines.push(`  Action: close todo §7 item. No L27 mapper-fix loop needed.`)
     } else {
       lines.push(`  mapper allowedNewEntities behavior has issues:`)
@@ -450,16 +450,16 @@ async function main() {
       runTag, seeds: args.seeds, chaptersPerSeed: args.chaptersPerSeed,
       verdict, verdictReasons,
       aggregate: {
-        totalBeats, beatsWithEntries, overallNonEmptyRate, totalEntities,
-        totalBeatDupFPs, totalChDupFPs, suspiciousRate,
+        totalEntries, entriesWithEntities, overallNonEmptyRate, totalEntities,
+        totalEntryDupFPs, totalChDupFPs, suspiciousRate,
         classCounts, suspiciousEntities: suspiciousEntities.slice(0, 20),
       },
       seedResults: seedResults.map(r => ({
         ...r,
-        // Truncate beat descriptions in the JSON to keep it readable
+        // Truncate entry descriptions in the JSON to keep it readable
         chapters: r.chapters.map(c => ({
           ...c,
-          beats: c.beats.map(b => ({ ...b, beatDescription: b.beatDescription.slice(0, 80) })),
+          entries: c.entries.map(b => ({ ...b, entryDescription: b.entryDescription.slice(0, 80) })),
         })),
       })),
     }
@@ -478,7 +478,7 @@ async function main() {
           seedsUsed: args.seeds,
           variantLabels: ["default"],
           summaryJson: summary,
-          verdict: `L26 ${verdict} | seeds=${args.seeds.length} ok=${okResults.length} | beats=${totalBeats} non-empty=${beatsWithEntries} (${(overallNonEmptyRate * 100).toFixed(1)}%) | entities=${totalEntities} beatDupFPs=${totalBeatDupFPs} chDupFPs=${totalChDupFPs} | suspicious=${suspiciousEntities.length}/${allEntities.length}`,
+          verdict: `L26 ${verdict} | seeds=${args.seeds.length} ok=${okResults.length} | entries=${totalEntries} non-empty=${entriesWithEntities} (${(overallNonEmptyRate * 100).toFixed(1)}%) | entities=${totalEntities} entryDupFPs=${totalEntryDupFPs} chDupFPs=${totalChDupFPs} | suspicious=${suspiciousEntities.length}/${allEntities.length}`,
           notes: `L26 mapper allowedNewEntities verification — ${verdict}`,
         })
         console.log(`[L26] persisted phase_eval_runs.id=${runId}`)

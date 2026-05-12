@@ -32,7 +32,7 @@ export interface Args {
   allowDisposableAb: boolean
   keepNovels: boolean
   injectFixture: string | null
-  maxBeatsPerChapter: number | null
+  maxScenesPerChapter: number | null
   allowNoRoleDelta: boolean
   allowSingleChapter: boolean
 }
@@ -154,7 +154,7 @@ export interface LiveAbReport {
   chapters: number
   outputBase: string
   injectedFixture: string | null
-  maxBeatsPerChapter: number | null
+  maxScenesPerChapter: number | null
   sourcePreflight: SourcePreflight
   sourceContextPreview: FactRoleContextPreviewReport
   arms: ArmRunSummary[]
@@ -238,7 +238,7 @@ export function parseArgs(argv: string[]): Args {
     allowDisposableAb: boolOpt(map["allow-disposable-ab"]) || boolOpt(map["allow-disposable-eval"]),
     keepNovels: boolOpt(map["keep-novels"]),
     injectFixture: stringOpt(map["inject-fixture"]) ?? null,
-    maxBeatsPerChapter: optionalPositiveInt(map["max-beats-per-chapter"], "--max-beats-per-chapter"),
+    maxScenesPerChapter: optionalPositiveInt(map["max-scenes-per-chapter"], "--max-scenes-per-chapter"),
     allowNoRoleDelta: boolOpt(map["allow-no-role-delta"]),
     allowSingleChapter: boolOpt(map["allow-single-chapter"]),
   }
@@ -253,14 +253,14 @@ export function assertDisposableAbAllowed(args: { allowDisposableAb: boolean }):
   ].join(" "))
 }
 
-export function capOutlineBeatsForEval<T extends { scenes?: unknown[] }>(outline: T, maxBeats: number): T {
-  if (!Number.isInteger(maxBeats) || maxBeats <= 0) {
-    throw new Error(`maxBeats must be a positive integer, got ${maxBeats}`)
+export function capOutlineScenesForEval<T extends { scenes?: unknown[] }>(outline: T, maxScenes: number): T {
+  if (!Number.isInteger(maxScenes) || maxScenes <= 0) {
+    throw new Error(`maxScenes must be a positive integer, got ${maxScenes}`)
   }
-  if (!Array.isArray(outline.scenes) || outline.scenes.length <= maxBeats) return outline
+  if (!Array.isArray(outline.scenes) || outline.scenes.length <= maxScenes) return outline
   return {
     ...outline,
-    scenes: outline.scenes.slice(0, maxBeats),
+    scenes: outline.scenes.slice(0, maxScenes),
   }
 }
 
@@ -377,7 +377,7 @@ export function renderLiveAbReport(report: LiveAbReport): string {
   lines.push(`Source: ${report.sourceNovelId}`)
   lines.push(`Chapters: ${report.chapters}`)
   lines.push(`Injected fixture: ${report.injectedFixture ?? "(none)"}`)
-  lines.push(`Max beats per chapter: ${report.maxBeatsPerChapter ?? "(source outline)"}`)
+  lines.push(`Max scenes per chapter: ${report.maxScenesPerChapter ?? "(source outline)"}`)
   lines.push("")
   lines.push("## Source Preflight")
   lines.push("")
@@ -441,7 +441,7 @@ export function renderLiveAbReport(report: LiveAbReport): string {
       const label = chapter.chapter === null ? "chapter ?" : `chapter ${chapter.chapter}`
       lines.push(
         `- ${label}: ${chapter.signals.join(",")}; target=${chapter.targetWords ?? "?"}; ` +
-          `beats=${chapter.plannedBeats}; draft=${chapter.draftWords ?? "none"}; ` +
+          `scenes=${chapter.plannedScenes}; draft=${chapter.draftWords ?? "none"}; ` +
           `ratio=${formatNullable(chapter.wordRatio, 2)}`,
       )
     }
@@ -500,8 +500,8 @@ async function main(argv: string[]): Promise<number> {
       cloneForPolicy(args.source, novelId, policy)
       createdNovels.push(novelId)
       await capNovelChapters(novelId, args.chapters)
-      if (args.maxBeatsPerChapter !== null) {
-        await capNovelOutlineBeats(novelId, args.chapters, args.maxBeatsPerChapter)
+      if (args.maxScenesPerChapter !== null) {
+        await capNovelOutlineScenes(novelId, args.chapters, args.maxScenesPerChapter)
       }
       if (args.injectFixture) await injectFixtureFacts(novelId, args.injectFixture)
       targets.push({ policy, novelId })
@@ -519,7 +519,7 @@ async function main(argv: string[]): Promise<number> {
       chapters: args.chapters,
       outputBase: args.outputBase,
       injectedFixture: args.injectFixture,
-      maxBeatsPerChapter: args.maxBeatsPerChapter,
+      maxScenesPerChapter: args.maxScenesPerChapter,
       sourcePreflight: preflight,
       sourceContextPreview,
       arms,
@@ -606,7 +606,7 @@ async function capNovelChapters(novelId: string, chapters: number): Promise<void
   `
 }
 
-async function capNovelOutlineBeats(novelId: string, chapters: number, maxBeats: number): Promise<void> {
+async function capNovelOutlineScenes(novelId: string, chapters: number, maxScenes: number): Promise<void> {
   const rows = await db<Array<{ chapter_number: number; outline_json: { scenes?: unknown[] } }>>`
     SELECT chapter_number, outline_json
     FROM chapter_outlines
@@ -616,7 +616,7 @@ async function capNovelOutlineBeats(novelId: string, chapters: number, maxBeats:
   `
   for (const row of rows) {
     const originalCount = Array.isArray(row.outline_json?.scenes) ? row.outline_json.scenes.length : 0
-    const capped = capOutlineBeatsForEval(row.outline_json, maxBeats)
+    const capped = capOutlineScenesForEval(row.outline_json, maxScenes)
     const cappedCount = Array.isArray(capped.scenes) ? capped.scenes.length : 0
     if (cappedCount === originalCount) continue
     await db`
@@ -625,7 +625,7 @@ async function capNovelOutlineBeats(novelId: string, chapters: number, maxBeats:
       WHERE novel_id = ${novelId}
         AND chapter_number = ${row.chapter_number}
     `
-    console.log(`  capped ${novelId} chapter ${row.chapter_number}: ${originalCount} -> ${cappedCount} beats`)
+    console.log(`  capped ${novelId} chapter ${row.chapter_number}: ${originalCount} -> ${cappedCount} scene entries`)
   }
 }
 

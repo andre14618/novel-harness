@@ -2,7 +2,7 @@
 /**
  * Disposable current-runtime baseline for semantic-gate investigation.
  *
- * Clones a frozen planning/drafting source, optionally caps chapters/beats on
+ * Clones a frozen planning/drafting source, optionally caps chapters/scene entries on
  * the disposable clone, resumes drafting in auto mode, then writes the same
  * semantic-gate evidence used by the diagnostics lane. This is intentionally a
  * one-arm baseline runner, not a production runtime change.
@@ -47,7 +47,7 @@ import {
   type WriterExpansionOutlineRow,
   type WriterExpansionReport,
 } from "../analysis/writer-expansion-report"
-import { packChapterToBudget, type ChapterPackingAudit } from "../../src/harness/beat-packing"
+import { packChapterScenesToBudget, type ChapterScenePackingAudit } from "../../src/harness/scene-packing"
 import { chapterOutlineSchema } from "../../src/agents/planning-plotter/schema"
 
 process.env.BUN_SQL_MAX ??= "1"
@@ -61,7 +61,7 @@ export interface Args {
   allowDisposableBaseline: boolean
   keepNovel: boolean
   target: string | null
-  maxBeatsPerChapter: number | null
+  maxScenesPerChapter: number | null
   packStrategy: BaselinePackStrategy | null
   continuityEditorialFlagProposals: boolean
   timeoutMinutes: number
@@ -148,14 +148,14 @@ export interface BaselineTerminalSummary {
 
 export interface BaselinePackingSummary {
   chapters: number
-  totalSourceBeats: number
-  totalPackedBeats: number
+  totalSourceScenes: number
+  totalPackedScenes: number
   totalDroppedObligations: number
   totalDroppedPayoffLinks: number
   budgetExceededChapters: number
   endpointPreservedChapters: number
   openerPreservedChapters: number
-  audits: ChapterPackingAudit[]
+  audits: ChapterScenePackingAudit[]
 }
 
 export interface SemanticGateBaselineReport {
@@ -164,11 +164,11 @@ export interface SemanticGateBaselineReport {
   novelId: string
   chapters: number
   outputBase: string
-  maxBeatsPerChapter: number | null
+  maxScenesPerChapter: number | null
   packStrategy: BaselinePackStrategy | null
   packing: BaselinePackingSummary | null
   pipelineOverrides: {
-    planningMaxBeatsPerChapter: number | null
+    planningMaxScenesPerChapter: number | null
     continuityEditorialFlagProposals: boolean
   }
   keptNovel: boolean
@@ -231,7 +231,7 @@ export function parseArgs(argv: string[]): Args {
     allowDisposableBaseline: boolOpt(map["allow-disposable-baseline"]) || boolOpt(map["allow-disposable-eval"]),
     keepNovel: boolOpt(map["keep-novel"]),
     target: stringOpt(map.target) ?? null,
-    maxBeatsPerChapter: optionalPositiveInt(map["max-beats-per-chapter"], "--max-beats-per-chapter"),
+    maxScenesPerChapter: optionalPositiveInt(map["max-scenes-per-chapter"], "--max-scenes-per-chapter"),
     packStrategy: parsePackStrategy(map["pack-strategy"]),
     continuityEditorialFlagProposals:
       boolOpt(map["continuity-editorial-flags"] ?? map["continuity-editorial-flag-proposals"]),
@@ -248,14 +248,14 @@ export function assertDisposableBaselineAllowed(args: { allowDisposableBaseline:
   ].join(" "))
 }
 
-export function capOutlineBeats<T extends { scenes?: unknown[] }>(outline: T, maxBeats: number): T {
-  if (!Number.isInteger(maxBeats) || maxBeats <= 0) {
-    throw new Error(`maxBeats must be a positive integer, got ${maxBeats}`)
+export function capOutlineScenes<T extends { scenes?: unknown[] }>(outline: T, maxScenes: number): T {
+  if (!Number.isInteger(maxScenes) || maxScenes <= 0) {
+    throw new Error(`maxScenes must be a positive integer, got ${maxScenes}`)
   }
-  if (!Array.isArray(outline.scenes) || outline.scenes.length <= maxBeats) return outline
+  if (!Array.isArray(outline.scenes) || outline.scenes.length <= maxScenes) return outline
   return {
     ...outline,
-    scenes: outline.scenes.slice(0, maxBeats),
+    scenes: outline.scenes.slice(0, maxScenes),
   }
 }
 
@@ -350,18 +350,18 @@ export function renderSemanticGateBaselineReport(report: SemanticGateBaselineRep
   lines.push(`Source: ${report.sourceNovelId}`)
   lines.push(`Disposable novel: ${report.novelId}${report.keptNovel ? " (kept)" : " (cleaned after report)"}`)
   lines.push(`Chapters: ${report.chapters}`)
-  lines.push(`Max beats per chapter: ${report.maxBeatsPerChapter ?? "(source outline)"}`)
+  lines.push(`Max scenes per chapter: ${report.maxScenesPerChapter ?? "(source outline)"}`)
   lines.push(`Pack strategy: ${report.packStrategy ?? "(none)"}`)
   if (report.packing) {
     lines.push(
-      `Calibrated packing: ${report.packing.totalSourceBeats} -> ${report.packing.totalPackedBeats} beats ` +
+      `Calibrated packing: ${report.packing.totalSourceScenes} -> ${report.packing.totalPackedScenes} scene entries ` +
         `across ${report.packing.chapters} chapter(s); obligations dropped=${report.packing.totalDroppedObligations}; ` +
         `payoff links dropped=${report.packing.totalDroppedPayoffLinks}; ` +
         `budgetExceeded=${report.packing.budgetExceededChapters}; ` +
         `endpointsPreserved=${report.packing.endpointPreservedChapters}/${report.packing.chapters}`,
     )
   }
-  lines.push(`Planning max beats override: ${report.pipelineOverrides.planningMaxBeatsPerChapter ?? "(disabled)"}`)
+  lines.push(`Planning max scenes override: ${report.pipelineOverrides.planningMaxScenesPerChapter ?? "(disabled)"}`)
   lines.push(
     `Continuity editorial flags: ${
       report.pipelineOverrides.continuityEditorialFlagProposals ? "enabled" : "disabled"
@@ -389,7 +389,7 @@ export function renderSemanticGateBaselineReport(report: SemanticGateBaselineRep
     if (chapter.signals.length === 0) continue
     lines.push(
       `- ch${chapter.chapter ?? "?"}: ${chapter.signals.join(",")} ` +
-        `(target=${chapter.targetWords ?? "?"}, beats=${chapter.plannedBeats}, draft=${chapter.draftWords ?? "none"})`,
+        `(target=${chapter.targetWords ?? "?"}, scenes=${chapter.plannedScenes}, draft=${chapter.draftWords ?? "none"})`,
     )
   }
   lines.push("")
@@ -444,7 +444,7 @@ async function main(argv: string[]): Promise<number> {
     console.error(err instanceof Error ? err.message : String(err))
     console.error(
       "usage: bun scripts/evals/semantic-gate-baseline.ts --allow-disposable-baseline --source <drafting-source-novel-id> " +
-        "[--chapters 2] [--max-beats-per-chapter 5] [--pack-strategy calibrated-packed] " +
+        "[--chapters 2] [--max-scenes-per-chapter 5] [--pack-strategy calibrated-packed] " +
         "[--timeout-minutes 30] [--output-base output/evals/...] [--keep-novel] " +
         "[--continuity-editorial-flag-proposals]",
     )
@@ -461,11 +461,11 @@ async function main(argv: string[]): Promise<number> {
     cloned = true
     await applyBaselinePipelineOverrides(targetNovelId, args)
     await capNovelChapters(targetNovelId, args.chapters)
-    let packingAudit: ChapterPackingAudit[] | null = null
+    let packingAudit: ChapterScenePackingAudit[] | null = null
     if (args.packStrategy === "calibrated-packed") {
-      packingAudit = await packNovelOutlineBeats(targetNovelId, args.chapters, args.outputBase)
-    } else if (args.maxBeatsPerChapter !== null) {
-      await capNovelOutlineBeats(targetNovelId, args.chapters, args.maxBeatsPerChapter)
+      packingAudit = await packNovelOutlineScenes(targetNovelId, args.chapters, args.outputBase)
+    } else if (args.maxScenesPerChapter !== null) {
+      await capNovelOutlineScenes(targetNovelId, args.chapters, args.maxScenesPerChapter)
     }
 
     const processResult = runBaselineProcess(targetNovelId, args.outputBase, args.timeoutMinutes)
@@ -474,7 +474,7 @@ async function main(argv: string[]): Promise<number> {
       novelId: targetNovelId,
       chapters: args.chapters,
       outputBase: args.outputBase,
-      maxBeatsPerChapter: args.maxBeatsPerChapter,
+      maxScenesPerChapter: args.maxScenesPerChapter,
       packStrategy: args.packStrategy,
       packingAudit,
       continuityEditorialFlagProposals: args.continuityEditorialFlagProposals,
@@ -552,7 +552,7 @@ async function capNovelChapters(novelId: string, chapters: number): Promise<void
 
 async function applyBaselinePipelineOverrides(novelId: string, args: Args): Promise<void> {
   const applied: string[] = []
-  if (args.maxBeatsPerChapter !== null) {
+  if (args.maxScenesPerChapter !== null) {
     await db`
       UPDATE novels
       SET seed_json = jsonb_set(
@@ -562,14 +562,14 @@ async function applyBaselinePipelineOverrides(novelId: string, args: Args): Prom
               COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
               true
             ),
-            '{pipelineOverrides,planningMaxBeatsPerChapter}',
-            to_jsonb(${args.maxBeatsPerChapter}::int),
+            '{pipelineOverrides,planningMaxScenesPerChapter}',
+            to_jsonb(${args.maxScenesPerChapter}::int),
             true
           ),
           updated_at = now()
       WHERE id = ${novelId}
     `
-    applied.push(`planningMaxBeatsPerChapter=${args.maxBeatsPerChapter}`)
+    applied.push(`planningMaxScenesPerChapter=${args.maxScenesPerChapter}`)
   }
 
   if (args.continuityEditorialFlagProposals) {
@@ -595,7 +595,7 @@ async function applyBaselinePipelineOverrides(novelId: string, args: Args): Prom
   if (applied.length > 0) console.log(`  enabled pipeline overrides for ${novelId}: ${applied.join(", ")}`)
 }
 
-async function capNovelOutlineBeats(novelId: string, chapters: number, maxBeats: number): Promise<void> {
+async function capNovelOutlineScenes(novelId: string, chapters: number, maxScenes: number): Promise<void> {
   const rows = await db<Array<{ chapter_number: number; outline_json: { scenes?: unknown[] } }>>`
     SELECT chapter_number, outline_json
     FROM chapter_outlines
@@ -605,7 +605,7 @@ async function capNovelOutlineBeats(novelId: string, chapters: number, maxBeats:
   `
   for (const row of rows) {
     const originalCount = Array.isArray(row.outline_json?.scenes) ? row.outline_json.scenes.length : 0
-    const capped = capOutlineBeats(row.outline_json, maxBeats)
+    const capped = capOutlineScenes(row.outline_json, maxScenes)
     const cappedCount = Array.isArray(capped.scenes) ? capped.scenes.length : 0
     if (cappedCount === originalCount) continue
     await db`
@@ -614,15 +614,15 @@ async function capNovelOutlineBeats(novelId: string, chapters: number, maxBeats:
       WHERE novel_id = ${novelId}
         AND chapter_number = ${row.chapter_number}
     `
-    console.log(`  capped ${novelId} chapter ${row.chapter_number}: ${originalCount} -> ${cappedCount} beats`)
+    console.log(`  capped ${novelId} chapter ${row.chapter_number}: ${originalCount} -> ${cappedCount} scene entries`)
   }
 }
 
-async function packNovelOutlineBeats(
+async function packNovelOutlineScenes(
   novelId: string,
   chapters: number,
   outputBase: string,
-): Promise<ChapterPackingAudit[]> {
+): Promise<ChapterScenePackingAudit[]> {
   const rows = await db<Array<{ chapter_number: number; outline_json: unknown }>>`
     SELECT chapter_number, outline_json
     FROM chapter_outlines
@@ -630,7 +630,7 @@ async function packNovelOutlineBeats(
       AND chapter_number <= ${chapters}
     ORDER BY chapter_number
   `
-  const audits: ChapterPackingAudit[] = []
+  const audits: ChapterScenePackingAudit[] = []
   const auditDir = join(outputBase, "calibrated-packing")
   mkdirSync(auditDir, { recursive: true })
 
@@ -641,7 +641,7 @@ async function packNovelOutlineBeats(
       continue
     }
     const outline = { ...parsed.data, chapterNumber: Number(row.chapter_number) }
-    const result = packChapterToBudget(outline)
+    const result = packChapterScenesToBudget(outline)
     audits.push(result.audit)
     writeFileSync(
       join(auditDir, `${novelId}-ch${row.chapter_number}.json`),
@@ -650,7 +650,7 @@ async function packNovelOutlineBeats(
     if (result.audit.noOp) {
       console.log(
         `  packed ${novelId} chapter ${row.chapter_number}: no-op (` +
-          `${result.audit.sourceBeatCount} beats <= budget ${result.audit.budget})`,
+          `${result.audit.sourceSceneCount} scene entries <= budget ${result.audit.budget})`,
       )
       continue
     }
@@ -666,7 +666,7 @@ async function packNovelOutlineBeats(
     )
     console.log(
       `  packed ${novelId} chapter ${row.chapter_number}: ` +
-        `${result.audit.sourceBeatCount} -> ${result.audit.packedBeatCount} beats ` +
+        `${result.audit.sourceSceneCount} -> ${result.audit.packedSceneCount} scene entries ` +
         `(budget ${result.audit.budget}; obligations dropped=${droppedObligations}; ` +
         `payoff links dropped=${result.audit.droppedPayoffLinks}; ` +
         `endpointPreserved=${result.audit.endpointPreserved}; ` +
@@ -677,9 +677,9 @@ async function packNovelOutlineBeats(
   return audits
 }
 
-function buildPackingSummary(audits: ChapterPackingAudit[]): BaselinePackingSummary {
-  const totalSourceBeats = audits.reduce((sum, a) => sum + a.sourceBeatCount, 0)
-  const totalPackedBeats = audits.reduce((sum, a) => sum + a.packedBeatCount, 0)
+function buildPackingSummary(audits: ChapterScenePackingAudit[]): BaselinePackingSummary {
+  const totalSourceScenes = audits.reduce((sum, a) => sum + a.sourceSceneCount, 0)
+  const totalPackedScenes = audits.reduce((sum, a) => sum + a.packedSceneCount, 0)
   const totalDroppedObligations = audits.reduce(
     (sum, a) => sum + a.mapping.reduce((m, entry) => m + entry.droppedObligationKeys.length, 0),
     0,
@@ -690,8 +690,8 @@ function buildPackingSummary(audits: ChapterPackingAudit[]): BaselinePackingSumm
   const openerPreservedChapters = audits.filter(a => a.openerPreserved).length
   return {
     chapters: audits.length,
-    totalSourceBeats,
-    totalPackedBeats,
+    totalSourceScenes,
+    totalPackedScenes,
     totalDroppedObligations,
     totalDroppedPayoffLinks,
     budgetExceededChapters,
@@ -737,9 +737,9 @@ async function collectBaselineReport(input: {
   novelId: string
   chapters: number
   outputBase: string
-  maxBeatsPerChapter: number | null
+  maxScenesPerChapter: number | null
   packStrategy: BaselinePackStrategy | null
-  packingAudit: ChapterPackingAudit[] | null
+  packingAudit: ChapterScenePackingAudit[] | null
   continuityEditorialFlagProposals: boolean
   keptNovel: boolean
   preflight: SourcePreflight
@@ -784,11 +784,11 @@ async function collectBaselineReport(input: {
     novelId: input.novelId,
     chapters: input.chapters,
     outputBase: input.outputBase,
-    maxBeatsPerChapter: input.maxBeatsPerChapter,
+    maxScenesPerChapter: input.maxScenesPerChapter,
     packStrategy: input.packStrategy,
     packing: input.packingAudit ? buildPackingSummary(input.packingAudit) : null,
     pipelineOverrides: {
-      planningMaxBeatsPerChapter: input.maxBeatsPerChapter,
+      planningMaxScenesPerChapter: input.maxScenesPerChapter,
       continuityEditorialFlagProposals: input.continuityEditorialFlagProposals,
     },
     keptNovel: input.keptNovel,

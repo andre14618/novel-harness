@@ -6,7 +6,7 @@ import {
   buildLiveAbDelta,
   buildLiveAbVerdict,
   buildRolePromptExposure,
-  capOutlineBeatsForEval,
+  capOutlineScenesForEval,
   extractPlanAssistGateLogEvidence,
   parseArgs,
   renderLiveAbReport,
@@ -88,7 +88,7 @@ describe("fact-role-context-live-ab", () => {
       chapters: 2,
       outputBase: "/tmp/fact-role-ab",
       injectedFixture: "tests/role-context-policy-fixtures/reference-hidden-basic.json",
-      maxBeatsPerChapter: 5,
+      maxScenesPerChapter: 5,
       sourcePreflight: {
         sourceNovelId: "source-novel",
         phase: "drafting",
@@ -112,7 +112,7 @@ describe("fact-role-context-live-ab", () => {
 
     expect(rendered).toContain("# Fact Role Context Live A/B")
     expect(rendered).toContain("Status: promote-candidate")
-    expect(rendered).toContain("Max beats per chapter: 5")
+    expect(rendered).toContain("Max scenes per chapter: 5")
     expect(rendered).toContain("role-aware minus legacy")
     expect(rendered).toContain("hiddenWriterFactsWithHit: -1")
     expect(rendered).toContain("| role-aware | novel-role-aware | completed | 2/2")
@@ -199,7 +199,7 @@ Unresolved issues (1):
     expect(args.allowDisposableAb).toBe(false)
     expect(args.keepNovels).toBe(false)
     expect(args.injectFixture).toBeNull()
-    expect(args.maxBeatsPerChapter).toBeNull()
+    expect(args.maxScenesPerChapter).toBeNull()
   })
 
   test("requires explicit disposable A/B acknowledgement", () => {
@@ -209,19 +209,19 @@ Unresolved issues (1):
   })
 
   test("parseArgs accepts bounded clone outline beat cap", () => {
-    const args = parseArgs(["--allow-disposable-ab", "--source", "source-novel", "--max-beats-per-chapter", "5"])
+    const args = parseArgs(["--allow-disposable-ab", "--source", "source-novel", "--max-scenes-per-chapter", "5"])
 
-    expect(args.maxBeatsPerChapter).toBe(5)
+    expect(args.maxScenesPerChapter).toBe(5)
     expect(args.allowDisposableAb).toBe(true)
   })
 
-  test("capOutlineBeatsForEval trims disposable clone scenes without mutating source object", () => {
+  test("capOutlineScenesForEval trims disposable clone scenes without mutating source object", () => {
     const outline = {
       chapterNumber: 1,
       scenes: [{ beatId: "a" }, { beatId: "b" }, { beatId: "c" }],
     }
 
-    const capped = capOutlineBeatsForEval(outline, 2)
+    const capped = capOutlineScenesForEval(outline, 2)
 
     expect(capped).not.toBe(outline)
     expect(capped.scenes).toEqual([{ beatId: "a" }, { beatId: "b" }])

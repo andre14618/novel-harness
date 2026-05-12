@@ -45,7 +45,7 @@
 
 import type { ChapterOutline, SceneBeat } from "../types"
 import type { PlanAssistGatePayload } from "../gates"
-import { minimumBeatCountForTarget } from "../harness/beat-counts"
+import { minimumSceneCountForTarget } from "../harness/scene-counts"
 
 /**
  * Re-export of `PlanAssistGatePayload` under the policy-module vocabulary.
@@ -95,8 +95,8 @@ export interface RevisionLogEntry {
 }
 
 /**
- * The successful reviser response shape. Matches `chapterBeatsSchema`'s
- * runtime output (planning-beats schema). The fields beyond `scenes` are
+ * The successful reviser response shape. Matches `chapterScenePlanSchema`'s
+ * runtime output (planning-scenes schema). The fields beyond `scenes` are
  * optional so a forced/test reviser response can omit them and the policy
  * module falls back to the original outline's values.
  */
@@ -167,7 +167,7 @@ export type ReviserOutcome =
       kind: "rejected"
       reason: "beat_floor"
       pendingExhaustion: PendingExhaustion
-      info: { revisedBeatCount: number; minBeats: number }
+      info: { revisedSceneCount: number; minScenes: number }
     }
   | {
       kind: "rejected"
@@ -189,7 +189,7 @@ export type ReviserOutcome =
  *   - `accepted` → revised outline persisted via `persistAcceptedOutline`
  *     callback + `accepted` row written + return the revised outline so
  *     the caller can restart the attempt with it.
- *   - `rejected` (beat_floor or new_characters) → reject row written +
+ *   - `rejected` (scene-count floor or new_characters) → reject row written +
  *     return `pendingExhaustion` `kind: "reviser-rejected"`.
  *   - `error` (LLM throw) → error row written + return `pendingExhaustion`
  *     `kind: "reviser-rejected"` carrying the error message.
@@ -293,10 +293,10 @@ export async function attemptRevision(input: ReviserPolicyInput): Promise<Revise
     }
   }
 
-  // Post-revision sanity checks stay aligned with the planning beat floor so
+  // Post-revision sanity checks stay aligned with the planning scene-count floor so
   // reviser output is judged against the same chapter-size contract.
   const revisedScenes: SceneBeat[] = (revised.output.scenes ?? []) as SceneBeat[]
-  const minBeats = minimumBeatCountForTarget(outline.targetWords)
+  const minScenes = minimumSceneCountForTarget(outline.targetWords)
   const originalCharacters = new Set(
     [
       outline.povCharacter,
@@ -308,8 +308,8 @@ export async function attemptRevision(input: ReviserPolicyInput): Promise<Revise
   const newCharacters = [...revisedCharacters].filter(c => !originalCharacters.has(c))
   const labelPrefix = strategy.telemetryLabel === "validation" ? "[validation] " : ""
 
-  if (revisedScenes.length < minBeats) {
-    const reason = `${labelPrefix}revised beat count ${revisedScenes.length} < floor ${minBeats}`
+  if (revisedScenes.length < minScenes) {
+    const reason = `${labelPrefix}revised scene count ${revisedScenes.length} < floor ${minScenes}`
     await logRevision({
       novelId, chapter, attempt,
       deviations: rawDeviations,
@@ -328,7 +328,7 @@ export async function attemptRevision(input: ReviserPolicyInput): Promise<Revise
         unresolvedDeviations: unresolvedDeviationsForPayload,
         reviserHistory: { attemptedScenes: revisedScenes, rejectionReason: reason },
       },
-      info: { revisedBeatCount: revisedScenes.length, minBeats },
+      info: { revisedSceneCount: revisedScenes.length, minScenes },
     }
   }
 
@@ -357,7 +357,7 @@ export async function attemptRevision(input: ReviserPolicyInput): Promise<Revise
   }
 
   // Accepted — merge revision into outline, persist, log.
-  // Cast through unknown because chapterBeatsSchema's z.infer resolves some
+  // Cast through unknown because chapterScenePlanSchema's z.infer resolves some
   // defaulted fields as optional while chapterOutlineSchema resolves them
   // as required; both produce the same runtime shape after parse.
   const revisedOutline: ChapterOutline = {

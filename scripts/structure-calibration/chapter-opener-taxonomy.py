@@ -560,7 +560,7 @@ This is a fresh measurement at the spec's 8-bucket charter granularity, distinct
 **Proposed harness lever.** A stable cross-book opener distribution gives the planner a per-chapter prior on opener rhetorical shape. Two concrete moves:
 
 1. **Chapter-skeleton schema extension.** Add an OPTIONAL `openerKind` enum field to chapter outlines (8 buckets above). When the planner doesn't emit one, default the prior to the corpus modal. This lives alongside the existing `setting`/`charactersPresent` fields.
-2. **Beat-expansion prompt prior.** `src/agents/planning-beats/beat-expansion-system.md` already nudges with "Open with action or description. Do NOT open with interiority unless the POV character is alone." Replace this binary nudge with a quantitative distribution that matches the corpus: the planner should bias toward the modal class (~corpus modal) and treat low-frequency openers (sensory_cold_open, character_introduction, flashback_or_recap) as deliberate, sparingly-used choices, not the default.
+2. **Scene-expansion prompt prior.** `src/agents/planning-scenes/scene-expansion-system.md` already nudges with "Open with action or description. Do NOT open with interiority unless the POV character is alone." Replace this binary nudge with a quantitative distribution that matches the corpus: the planner should bias toward the modal class (~corpus modal) and treat low-frequency openers (sensory_cold_open, character_introduction, flashback_or_recap) as deliberate, sparingly-used choices, not the default.
 
 **Per-genre gating.** As with P42 / P48, this is a Salvatore-cluster fantasy prior. Apply only when the seed routes through `WRITER_GENRE_PACKS` fantasy. Other genres (literary, contemporary, romance) need their own corpus-derived opener priors before any cross-genre claim.
 
@@ -612,7 +612,7 @@ This is a fresh measurement at the spec's 8-bucket charter granularity, distinct
     )
     lever = (
         "Chapter-skeleton schema: optional `openerKind` enum (8 buckets). "
-        "`beat-expansion-system.md` quantitative prior matching corpus modal. "
+        "`scene-expansion-system.md` quantitative prior matching corpus modal. "
         "Genre-gate via `WRITER_GENRE_PACKS` (Salvatore-cluster fantasy only)."
     )
 

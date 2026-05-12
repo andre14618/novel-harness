@@ -477,7 +477,7 @@ ${BUCKETS.map((b) => `| ${b} | ${aggDist[b].count} | ${aggDist[b].pct}% |`).join
 
 **Directional verdict.** ${directional}
 
-**Harness target.** Add an *opener rhetorical shape* prior to \`src/agents/planning-beats/beat-expansion-system.md\` alongside the existing line ("Open with action or description. Do NOT open with interiority unless the POV character is alone."). The corpus distribution should drive the planner toward the modal opener kinds and away from rare ones; specifics depend on the per-book rank stability captured above. The chapter-skeleton plotter (\`chapter-outline-system.md\`) does not currently emit per-chapter opener-shape commitments — extending the schema with an optional \`openerKind\` enum field is a follow-up if cross-book ranks are stable.
+**Harness target.** Add an *opener rhetorical shape* prior to \`src/agents/planning-scenes/scene-expansion-system.md\` alongside the existing line ("Open with action or description. Do NOT open with interiority unless the POV character is alone."). The corpus distribution should drive the planner toward the modal opener kinds and away from rare ones; specifics depend on the per-book rank stability captured above. The chapter-skeleton plotter (\`chapter-outline-system.md\`) does not currently emit per-chapter opener-shape commitments — extending the schema with an optional \`openerKind\` enum field is a follow-up if cross-book ranks are stable.
 
 Artifact: \`crystal_shard.${ts}.chapter-opener-taxonomy.json\`
 

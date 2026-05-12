@@ -1,7 +1,7 @@
 /**
  * Phase-eval variant runner — child entry point.
  *
- * Spawned by `scripts/phase-eval/probe-planning-beats.ts` (parent) with one
+ * Spawned by `scripts/phase-eval/probe-planning-scenes.ts` (parent) with one
  * of the planning-phase prompt-override env vars pre-set. Runs the planning
  * phase ONLY against an already-cloned concept-done novel state, then writes
  * the resulting chapter outlines to disk for the parent to aggregate.
@@ -14,13 +14,13 @@
  * prompt cache, with no leakage between variants.
  *
  * Supported override env vars (parent must set EXACTLY ONE before exec):
- *   - PLANNING_BEATS_PROMPT_OVERRIDE        — swaps the beat-expansion prompt
+ *   - PLANNING_SCENES_PROMPT_OVERRIDE        — swaps the scene-expansion prompt
  *   - PLANNING_PLOTTER_PROMPT_OVERRIDE      — swaps the chapter-skeleton prompt
  *   - PLANNING_STATE_MAPPER_PROMPT_OVERRIDE — swaps the state-mapper prompt
  *
  * Usage:
  *
- *   PLANNING_BEATS_PROMPT_OVERRIDE=/abs/path/to/prompt.md \
+ *   PLANNING_SCENES_PROMPT_OVERRIDE=/abs/path/to/prompt.md \
  *     bun scripts/phase-eval/run-variant.ts \
  *       --novel-id=<cloned-concept-done-novel-id> \
  *       --output-dir=<absolute-output-dir>
@@ -53,7 +53,7 @@ function parseArgs(): { novelId: string; outputDir: string } {
 async function main() {
   const { novelId, outputDir } = parseArgs()
 
-  const SUPPORTED = ["PLANNING_BEATS_PROMPT_OVERRIDE", "PLANNING_PLOTTER_PROMPT_OVERRIDE", "PLANNING_STATE_MAPPER_PROMPT_OVERRIDE"] as const
+  const SUPPORTED = ["PLANNING_SCENES_PROMPT_OVERRIDE", "PLANNING_PLOTTER_PROMPT_OVERRIDE", "PLANNING_STATE_MAPPER_PROMPT_OVERRIDE"] as const
   const setVars = SUPPORTED.filter(k => (process.env[k]?.trim()?.length ?? 0) > 0)
   if (setVars.length === 0) {
     console.error(`exactly one of ${SUPPORTED.join(" / ")} must be set by the parent runner`)

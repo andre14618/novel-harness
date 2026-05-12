@@ -22,7 +22,7 @@ describe("semantic-gate-cohort-matrix parseArgs", () => {
       "--parallel-sources", "4",
       "--parallel-variants", "3",
       "--child-timeout-minutes", "16",
-      "--variant", "tight:beats=4",
+      "--variant", "tight:scenes=4",
       "--variant", "control:source",
       "--keep-novels",
       "--continuity-editorial-flag-proposals",
@@ -38,7 +38,7 @@ describe("semantic-gate-cohort-matrix parseArgs", () => {
     expect(args.childTimeoutMinutes).toBe(16)
     expect(args.keepNovels).toBe(true)
     expect(args.continuityEditorialFlagProposals).toBe(true)
-    expect(args.variantSpecs).toEqual(["tight:beats=4", "control:source"])
+    expect(args.variantSpecs).toEqual(["tight:scenes=4", "control:source"])
     expect(args.variants.map(variant => variant.id)).toEqual(["tight", "control"])
   })
 
@@ -49,7 +49,7 @@ describe("semantic-gate-cohort-matrix parseArgs", () => {
     expect(args.allowDisposableCohort).toBe(false)
     expect(args.summaries[0]).toContain("output/evals/semantic-gate-matrix/run/summary.json")
     expect(args.candidateReports).toEqual([])
-    expect(args.variantSpecs).toEqual(["beats=4", "beats=5", "beats=6"])
+    expect(args.variantSpecs).toEqual(["scenes=4", "scenes=5", "scenes=6"])
   })
 
   test("requires explicit disposable cohort acknowledgement for live sources only", () => {
@@ -104,7 +104,7 @@ describe("cohortChaptersFor", () => {
   test("derives chapters from summary-only matrix artifacts", () => {
     const chapters = cohortChaptersFor(
       { sources: [], candidateReports: [], chapters: 2 },
-      [matrixRun("novel-a", [variantResult("beats-4", "beats 4", {})], 1)],
+      [matrixRun("novel-a", [variantResult("scenes-4", "scenes 4", {})], 1)],
     )
 
     expect(chapters).toBe(1)
@@ -113,7 +113,7 @@ describe("cohortChaptersFor", () => {
   test("keeps the configured chapter count for live cohort runs", () => {
     const chapters = cohortChaptersFor(
       { sources: ["novel-a"], candidateReports: [], chapters: 2 },
-      [matrixRun("novel-a", [variantResult("beats-4", "beats 4", {})], 1)],
+      [matrixRun("novel-a", [variantResult("scenes-4", "scenes 4", {})], 1)],
     )
 
     expect(chapters).toBe(2)
@@ -125,15 +125,15 @@ describe("buildCohortReport", () => {
     const report = buildCohortReport({
       chapters: 2,
       outputBase: "/tmp/cohort",
-      variantSpecs: ["beats=4", "beats=5"],
+      variantSpecs: ["scenes=4", "scenes=5"],
       generatedAt: "2026-05-06T00:00:00.000Z",
       runs: [
         matrixRun("novel-a", [
-          variantResult("beats-4", "beats 4", { completed: true, riskScore: 5, wordRatio: 1.1, costUsd: 0.1, reasons: ["clean"] }),
-          variantResult("beats-5", "beats 5", { completed: false, status: "reported", riskScore: 500, wordRatio: 1.4, costUsd: 0.2, pendingPlanAssistGate: true, reasons: ["pending plan-assist gate"] }),
+          variantResult("scenes-4", "scenes 4", { completed: true, riskScore: 5, wordRatio: 1.1, costUsd: 0.1, reasons: ["clean"] }),
+          variantResult("scenes-5", "scenes 5", { completed: false, status: "reported", riskScore: 500, wordRatio: 1.4, costUsd: 0.2, pendingPlanAssistGate: true, reasons: ["pending plan-assist gate"] }),
         ]),
         matrixRun("novel-b", [
-          variantResult("beats-4", "beats 4", {
+          variantResult("scenes-4", "scenes 4", {
             completed: true,
             riskScore: 15,
             wordRatio: 1.2,
@@ -142,7 +142,7 @@ describe("buildCohortReport", () => {
             semanticSignals: { writer_expansion: 1 },
             riskBreakdown: [{ key: "writer_expansion", label: "writer expansion", value: 1, weight: 15, points: 15 }],
           }),
-          variantResult("beats-5", "beats 5", {
+          variantResult("scenes-5", "scenes 5", {
             completed: true,
             riskScore: 100,
             wordRatio: 1.8,
@@ -155,8 +155,8 @@ describe("buildCohortReport", () => {
       ],
     })
 
-    const beats4 = report.variants.find(variant => variant.variantId === "beats-4")
-    expect(beats4).toMatchObject({
+    const scenes4 = report.variants.find(variant => variant.variantId === "scenes-4")
+    expect(scenes4).toMatchObject({
       runs: 2,
       reported: 2,
       completed: 2,
@@ -180,18 +180,18 @@ describe("buildCohortReport", () => {
       costUsd: 1,
       llmCalls: 40,
     })
-    expect(report.ranking[0].variantId).toBe("beats-4")
+    expect(report.ranking[0].variantId).toBe("scenes-4")
   })
 
   test("preserves failed child matrix rows without hiding reported summaries", () => {
     const report = buildCohortReport({
       chapters: 2,
       outputBase: "/tmp/cohort",
-      variantSpecs: ["beats=4"],
+      variantSpecs: ["scenes=4"],
       generatedAt: "2026-05-06T00:00:00.000Z",
       runs: [
         matrixRun("novel-a", [
-          variantResult("beats-4", "beats 4", { completed: true, riskScore: 0, wordRatio: 1, costUsd: 0.1, reasons: ["clean"] }),
+          variantResult("scenes-4", "scenes 4", { completed: true, riskScore: 0, wordRatio: 1, costUsd: 0.1, reasons: ["clean"] }),
         ]),
         failedRun("missing-summary"),
       ],
@@ -247,7 +247,7 @@ function variantResult(
   overrides: Partial<MatrixVariantResult["assessment"]> & { status?: MatrixVariantResult["status"] },
 ): MatrixVariantResult {
   return {
-    variant: { id, label, maxBeatsPerChapter: null, packStrategy: null },
+    variant: { id, label, maxScenesPerChapter: null, packStrategy: null },
     status: overrides.status ?? "reported",
     exitCode: overrides.status === "failed" ? 1 : 0,
     signal: null,

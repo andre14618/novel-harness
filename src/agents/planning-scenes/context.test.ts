@@ -2,7 +2,7 @@ import { expect, test } from "bun:test"
 
 import { buildContext } from "./context"
 
-test("planning beat context omits scene plan contract guidance when flag is off", () => {
+test("planning scene context omits scene plan contract guidance when flag is off", () => {
   const context = buildContext({
     targetChapter: chapter(1, 1500),
     allSkeletons: [chapter(1, 1500)],
@@ -27,7 +27,7 @@ test("planning beat context omits scene plan contract guidance when flag is off"
   expect(context).not.toContain("choiceAlternatives")
 })
 
-test("planning beat context renders scene plan contract guidance when flag is on", () => {
+test("planning scene context renders scene plan contract guidance when flag is on", () => {
   const context = buildContext({
     targetChapter: chapter(1, 1500),
     allSkeletons: [chapter(1, 1500)],
@@ -69,7 +69,7 @@ test("planning beat context renders scene plan contract guidance when flag is on
   expect(context).not.toContain("minimum structural floor")
 })
 
-test("planning beat context renders selective scene-turn shaping without full scene-plan contract", () => {
+test("planning scene context renders selective scene-turn shaping without full scene-plan contract", () => {
   const context = buildContext({
     targetChapter: chapter(1, 1500),
     allSkeletons: [chapter(1, 1500)],
@@ -108,7 +108,7 @@ test("planning beat context renders selective scene-turn shaping without full sc
   expect(context).not.toContain("Compliance rules (validator will fail")
 })
 
-test("planning beat context renders calibrated beat count guidance", () => {
+test("planning scene context renders calibrated scene count guidance", () => {
   const context = buildContext({
     targetChapter: chapter(1, 1500),
     allSkeletons: [chapter(1, 1500)],
@@ -156,13 +156,13 @@ test("planning beat context renders calibrated beat count guidance", () => {
   } as Parameters<typeof buildContext>[0])
 
   expect(context).toContain("Target words are a rough chapter-size signal")
-  expect(context).toContain("Recommended story-turn entries for this chapter size: 5")
+  expect(context).toContain("Recommended scene/turn entries for this chapter size: 5")
   expect(context).toContain("minimum structural floor: 4")
   expect(context).toContain("Scope by content load")
   expect(context).not.toContain("100-140 words")
 })
 
-test("planning beat context renders explicit planning max override guidance", () => {
+test("planning scene context renders explicit planning max override guidance", () => {
   const context = buildContext({
     targetChapter: chapter(1, 1500),
     allSkeletons: [chapter(1, 1500)],
@@ -206,7 +206,7 @@ test("planning beat context renders explicit planning max override guidance", ()
       genre: "fantasy",
       premise: "A scribe hides a dangerous record",
       characters: [{ name: "Istra Venn", role: "protagonist", description: "A precise archivist" }],
-      pipelineOverrides: { planningMaxBeatsPerChapter: 4 },
+      pipelineOverrides: { planningMaxScenesPerChapter: 4 },
     },
   } as Parameters<typeof buildContext>[0])
 
@@ -214,7 +214,7 @@ test("planning beat context renders explicit planning max override guidance", ()
   expect(context).toContain("Do not exceed this explicit cap")
 })
 
-test("planning beat context renders native contract guidance by default with explicit legacy override", () => {
+test("planning scene context renders native contract guidance by default with explicit legacy override", () => {
   const context = buildContext({
     targetChapter: chapter(1, 1500),
     allSkeletons: [chapter(1, 1500)],
@@ -318,7 +318,7 @@ test("planning beat context renders native contract guidance by default with exp
   expect(legacy).not.toContain("Native planning contract")
 })
 
-test("planning beat context carries native-contract retry feedback", () => {
+test("planning scene context carries native-contract retry feedback", () => {
   const context = buildContext({
     targetChapter: chapter(1, 1500),
     allSkeletons: [chapter(1, 1500)],
@@ -364,11 +364,11 @@ test("planning beat context carries native-contract retry feedback", () => {
       characters: [{ name: "Istra Venn", role: "protagonist", description: "A precise archivist" }],
       pipelineOverrides: { nativePlanningContractV1: true },
     },
-    retryFeedback: "9 beats > native planning budget 5+1 for 1500w target",
+    retryFeedback: "9 scene entries > native planning budget 5+1 for 1500w target",
   } as Parameters<typeof buildContext>[0])
 
-  expect(context).toContain("PREVIOUS BEAT EXPANSION FAILED")
-  expect(context).toContain("9 beats > native planning budget 5+1")
+  expect(context).toContain("PREVIOUS SCENE EXPANSION FAILED")
+  expect(context).toContain("9 scene entries > native planning budget 5+1")
   expect(context).toContain("Do not drop the endpoint")
 })
 

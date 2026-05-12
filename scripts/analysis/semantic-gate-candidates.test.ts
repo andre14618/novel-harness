@@ -295,10 +295,10 @@ function semanticReport(
         chapter: 1,
         signals: Object.entries(counts).flatMap(([signal, count]) => count > 0 ? [signal as keyof typeof counts] : []),
         targetWords: 1500,
-        plannedBeats: 5,
+        plannedScenes: 5,
         draftWords: counts.no_draft > 0 ? null : 1600,
         wordRatio: counts.no_draft > 0 ? null : 1.07,
-        wordsPerBeat: counts.no_draft > 0 ? null : 320,
+        wordsPerScene: counts.no_draft > 0 ? null : 320,
         expansionFlags: [],
         planDrift: {
           totalCalls: evidence.unresolvedDrift ? 1 : 0,

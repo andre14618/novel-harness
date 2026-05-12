@@ -1,6 +1,6 @@
 -- 033_phase_eval_runs.sql
 --
--- Append-only mirror of `scripts/phase-eval/probe-planning-beats.ts` runs.
+-- Append-only mirror of `scripts/phase-eval/probe-planning-scenes.ts` runs.
 -- One row per probe invocation that was launched with `--persist`.
 --
 -- Designed per docs/designs/eval-testing-module-v1.md (R6) — the probe

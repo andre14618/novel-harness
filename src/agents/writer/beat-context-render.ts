@@ -2,7 +2,7 @@
  * Pure renderer for the typed `BeatContext`.
  *
  * No async, no DB, no I/O. Takes a fully-prepared `BeatContext` (built by
- * `buildBeatContextSlots`) plus a compact flag and emits the byte-exact
+ * `buildSceneContextSlots`) plus a compact flag and emits the byte-exact
  * user-prompt string the writer model receives.
  *
  * Section order + spacing are load-bearing: the parity gate at

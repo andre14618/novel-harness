@@ -1,9 +1,9 @@
 /**
- * Byte-parity gate for the D1 typed-slot refactor of buildBeatContext.
+ * Byte-parity gate for the D1 typed-slot refactor of buildSceneContext.
  *
  * Every fixture in `tests/beat-context-fixtures/*.json` is run through
  * BOTH the preserved legacy snapshot (`buildBeatContextLegacy`) and the
- * new typed-slot composer (`buildBeatContext`). The test asserts:
+ * new typed-slot composer (`buildSceneContext`). The test asserts:
  *   - byte-equal `userPrompt`
  *   - equal `targetWords`
  *
@@ -24,7 +24,7 @@
 import { describe, expect, test } from "bun:test"
 import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import { buildBeatContext } from "../src/agents/writer/beat-context"
+import { buildSceneContext } from "../src/agents/writer/beat-context"
 import { buildBeatContextLegacy, type BeatContextInputLegacy } from "./beat-context-fixtures/legacy-snapshot"
 
 const FIXTURE_DIR = join(import.meta.dir, "beat-context-fixtures")
@@ -52,7 +52,7 @@ function loadFixtures(): Fixture[] {
 
 const fixtures = loadFixtures()
 
-describe("buildBeatContext byte-parity vs legacy snapshot", () => {
+describe("buildSceneContext byte-parity vs legacy snapshot", () => {
   test("at least 20 fixtures present (diversity gate)", () => {
     expect(fixtures.length).toBeGreaterThanOrEqual(20)
   })
@@ -64,7 +64,7 @@ describe("buildBeatContext byte-parity vs legacy snapshot", () => {
       // in both paths. resolveReferences is bypassed via preResolvedRefs in every
       // fixture so we never hit the LLM.
       const legacy = await buildBeatContextLegacy(fx.input)
-      const next = await buildBeatContext(fx.input)
+      const next = await buildSceneContext(fx.input)
       expect(next.targetWords).toBe(legacy.targetWords)
       expect(next.userPrompt).toBe(legacy.userPrompt)
     })
