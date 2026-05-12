@@ -154,6 +154,40 @@ running broad drafting. The target artifact is a compact contract packet:
 - 8-12 chapter job-function outline;
 - scene-level pressure notes for the first two chapters.
 
+## Production-Path Book 1 Packet
+
+The first executable Book 1 packet is:
+
+- Packet artifact: `docs/fixtures/method-packs/mercenary-progression-adventure-v0/book1-contract-packet.json`
+- Production seed: `src/seeds/mercenary-rillgate-saltmine.json`
+
+The seed uses normal `SeedInput.directives`, not a POC runner. It carries:
+
+- all ten MPA job-function slots as chapter-specific required beats;
+- stable story refs for bronze rank, mispriced contract, Tessa-as-witness,
+  and next-patron pressure;
+- first-two-chapter pressure notes in `rawNotes`;
+- default-off production flags for scene-turn shaping, material pressure, and
+  tight-anchored writer briefs.
+
+Evidence commands:
+
+```bash
+bun scripts/test-planner-isolated.ts mercenary-rillgate-saltmine \
+  --scene-turn-planning \
+  --material-pressure-planning \
+  --report-dir output/planner-isolated/mercenary-rillgate
+
+bun scripts/test-drafting-isolated.ts \
+  --source <novel-id-from-planner> \
+  --target-prefix mpa-rillgate \
+  --quality-telemetry-packet
+```
+
+Promotion remains evidence-gated: the planner must preserve MPA-01 through
+MPA-10, keep exact story refs, and first-chapter drafting telemetry must avoid
+endpoint, dramaturgy, character-materiality, and world-pressure lows.
+
 ## Basic Planner POC
 
 Fixture: `docs/fixtures/method-packs/mercenary-progression-adventure-v0/frozen-concept.json`.

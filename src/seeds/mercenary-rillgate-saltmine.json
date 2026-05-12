@@ -1,0 +1,217 @@
+{
+  "premise": "Kael Rusk, an under-ranked contract blade in the Rillgate Contract Hall, accepts a cheap salt-mine retrieval job to earn bronze rank before his sister's debt marker is sold. The mine is really a sealed ruin where a rival crew and a hidden patron are harvesting outlaw monster cores.",
+  "genre": "adult guild mission progression fantasy",
+  "chapterCount": 10,
+  "characters": [
+    {
+      "name": "Kael Rusk",
+      "role": "protagonist",
+      "description": "Under-ranked contract blade, late 20s. Uses iron-thread binding, a dangerous technique that turns monster pressure into short-lived weapon patterns at a bodily cost. Needs bronze rank to keep his sister Mira's debt marker inside Rillgate protection. Tactical, proud, and too quick to take the cleanest payout before anyone can use him."
+    },
+    {
+      "name": "Tessa Mire",
+      "role": "supporting",
+      "description": "Rival spearhand from a ranked crew. Her sponsor pushes her into the Gray Salt Mine, making her both competition and the witness Kael needs if he wants his evidence to survive guild law."
+    },
+    {
+      "name": "Orin Vale",
+      "role": "supporting",
+      "description": "Rillgate contract clerk who knows salvage clauses, witness rules, and rank-law loopholes. He can turn Kael's proof into legal standing only if Kael preserves admissible evidence."
+    },
+    {
+      "name": "Lady Varn",
+      "role": "antagonist",
+      "description": "Polite contract broker and hidden ruin-rights patron. She prices the mine job low so unranked crews trigger illegal brine wards and leave ranked buyers unblamed."
+    }
+  ],
+  "directives": {
+    "lockedCharacters": [
+      {
+        "name": "Kael Rusk",
+        "role": "protagonist",
+        "mustHaveTraits": ["under-ranked contract blade", "iron-thread binding", "protective of Mira", "tactical but distrustful"],
+        "mustHaveArc": "Moves from grabbing the clean payout alone to using witness testimony and contract law as leverage."
+      },
+      {
+        "name": "Tessa Mire",
+        "role": "rival ally",
+        "mustHaveTraits": ["ranked crew spearhand", "sponsored by a compromised patron", "proud enough to contest Kael"],
+        "mustHaveArc": "Shifts from rival claimant to necessary witness whose testimony changes Kael's legal standing."
+      },
+      {
+        "name": "Orin Vale",
+        "role": "guild clerk",
+        "mustHaveTraits": ["contract-law expert", "cautious", "rank-law gatekeeper"],
+        "mustHaveArc": "Turns from warning Kael off the job to filing the evidence that grants provisional bronze rank."
+      },
+      {
+        "name": "Lady Varn",
+        "role": "hidden patron",
+        "mustHaveTraits": ["civil broker", "ruin-rights manipulator", "uses cheap contracts as disposable triggers"],
+        "mustHaveArc": "Stays partially protected in Book 1 and becomes the pressure behind the next restricted contract."
+      }
+    ],
+    "requiredBeats": [
+      {
+        "chapter": 1,
+        "description": "MPA-01 Hub pressure: Kael learns Mira's debt marker will be sold unless he gains bronze rank or equivalent leverage before the next contract bell.",
+        "mustInclude": ["MPA-01", "Rillgate Contract Hall", "debt-bronze-rank", "Orin Vale warns Kael that law, not courage, decides rank protection"]
+      },
+      {
+        "chapter": 2,
+        "description": "MPA-02 Contract offer: Lady Varn posts a cheap Gray Salt Mine retrieval job with clear terms, low pay, and one minimized risk around brine ward activity.",
+        "mustInclude": ["MPA-02", "debt-mispriced-contract", "contract terms", "hidden or minimized ruin-rights risk"]
+      },
+      {
+        "chapter": 3,
+        "description": "MPA-03 Crew friction: Tessa's ranked crew claim collides with Kael's unranked bid, forcing a witness/salvage problem before the mine opens.",
+        "mustInclude": ["MPA-03", "Tessa Mire", "witness rule", "ally or rival pressure changes the job plan"]
+      },
+      {
+        "chapter": 4,
+        "description": "MPA-04 Arena entry: The flooded Gray Salt Mine immediately constrains tactics with brine wards, rank-token responses, and unsafe salvage routes.",
+        "mustInclude": ["MPA-04", "Gray Salt Mine", "world-brine-ward-saltmine", "arena rules constrain tactics"]
+      },
+      {
+        "chapter": 5,
+        "description": "MPA-05 First tactical win: Kael uses iron-thread binding at a named bodily cost to win information or a resource without solving the job.",
+        "mustInclude": ["MPA-05", "world-iron-thread-binding", "visible cost", "partial tactical gain"]
+      },
+      {
+        "chapter": 6,
+        "description": "MPA-06 Job complication: The retrieval target proves to be part of an illegal ruin-rights harvest, not the harmless mine recovery described on the contract.",
+        "mustInclude": ["MPA-06", "debt-mispriced-contract", "illegal monster core harvest", "mission target is not what the contract claimed"]
+      },
+      {
+        "chapter": 7,
+        "description": "MPA-07 Progression trial: Kael must refine iron-thread binding under pressure, choosing between a stronger technique and a worse lingering injury.",
+        "mustInclude": ["MPA-07", "progression payoff", "costly tactical choice", "capability unlock is dramatized"]
+      },
+      {
+        "chapter": 8,
+        "description": "MPA-08 Faction reveal: Evidence links Lady Varn's brokers to a larger ruin-rights buyer, making the job a faction problem rather than a mine accident.",
+        "mustInclude": ["MPA-08", "Lady Varn", "world-ruin-rights-patronage", "larger conflict exposed but not resolved"]
+      },
+      {
+        "chapter": 9,
+        "description": "MPA-09 Contract climax: Kael completes, subverts, or renegotiates the objective by saving Tessa as a witness instead of taking the clean core payout.",
+        "mustInclude": ["MPA-09", "debt-tessa-witness", "costly tactical choice", "evidence survives because Kael refuses the clean payout"]
+      },
+      {
+        "chapter": 10,
+        "description": "MPA-10 Return and next hook: Kael returns to Rillgate with contested proof, gains provisional bronze status, protects Mira, and receives a restricted next contract tied to Varn's buyers.",
+        "mustInclude": ["MPA-10", "debt-bronze-rank payoff", "debt-next-patron payoff", "status changes and next mission pressure appears"]
+      }
+    ],
+    "forbidden": [
+      "Do not make Kael a chosen-one heir.",
+      "Do not add stat sheets or explicit LitRPG interfaces.",
+      "Do not position Book 1 as harem, academy, or base-building.",
+      "Do not resolve the entire ruin-rights faction problem in Book 1.",
+      "Do not let worldbuilding remain decorative; guild law, mine rules, or monster ecology must constrain choices."
+    ],
+    "tonalAnchors": [
+      "capable adult mission fantasy",
+      "contract terms have teeth",
+      "progression through costly tactical use",
+      "rival-ally pressure matters",
+      "return-to-hub status change"
+    ],
+    "structuralConstraints": {
+      "chapterCount": 10,
+      "povRotation": "Single POV through Kael Rusk unless the planner has a concrete reason to use a brief alternate witness perspective.",
+      "pacing": "One contained paid mission: hub pressure, contract, crew friction, arena, tactical win, complication, progression trial, faction reveal, climax, return hook.",
+      "targetWordsPerChapter": 3100
+    },
+    "storyThreads": [
+      {
+        "threadId": "thread-rillgate-contract-loop",
+        "label": "Rillgate contract loop",
+        "description": "Paid contracts, rank law, salvage rights, and witness rules decide who gets paid and who gains standing.",
+        "kind": "series-engine"
+      },
+      {
+        "threadId": "thread-iron-thread-progression",
+        "label": "Iron-thread progression",
+        "description": "Kael's technique improves only when he pays a named bodily cost under monster pressure.",
+        "kind": "progression"
+      },
+      {
+        "threadId": "thread-ruin-rights-patronage",
+        "label": "Ruin-rights patronage",
+        "description": "Hidden patrons launder illegal ruin harvests through cheap contracts and disposable crews.",
+        "kind": "faction"
+      }
+    ],
+    "storyDebts": [
+      {
+        "storyDebtId": "debt-bronze-rank",
+        "threadId": "thread-rillgate-contract-loop",
+        "promiseText": "Kael must earn bronze rank or equivalent legal leverage before Mira's debt marker leaves guild protection.",
+        "openedByChapter": 1,
+        "expectedPayoffChapter": 10,
+        "payoffPolicy": "Pay off through provisional bronze rank or guild leverage created by admissible contract evidence."
+      },
+      {
+        "storyDebtId": "debt-mispriced-contract",
+        "threadId": "thread-ruin-rights-patronage",
+        "promiseText": "The cheap Gray Salt Mine job must reveal why the danger, patron, or objective was hidden.",
+        "openedByChapter": 2,
+        "expectedPayoffChapter": 9,
+        "payoffPolicy": "Pay off when Kael proves the retrieval job was a rigged ruin-rights harvest."
+      },
+      {
+        "storyDebtId": "debt-tessa-witness",
+        "threadId": "thread-rillgate-contract-loop",
+        "promiseText": "Kael and Tessa must shift from rival claimants to necessary witnesses.",
+        "openedByChapter": 3,
+        "expectedPayoffChapter": 10,
+        "payoffPolicy": "Pay off when Tessa's testimony changes Kael's legal standing and future options."
+      },
+      {
+        "storyDebtId": "debt-next-patron",
+        "threadId": "thread-ruin-rights-patronage",
+        "promiseText": "The mine job must point to a stronger patron or next contract rather than resolving the whole faction problem.",
+        "openedByChapter": 6,
+        "expectedPayoffChapter": 10,
+        "payoffPolicy": "Pay off with a restricted next mission tied to Lady Varn's buyers."
+      }
+    ],
+    "storyPayoffs": [
+      {
+        "payoffId": "payoff-provisional-bronze-rank",
+        "storyDebtId": "debt-bronze-rank",
+        "threadId": "thread-rillgate-contract-loop",
+        "payoffText": "Kael returns with admissible evidence and gains provisional bronze standing before Mira's marker is sold.",
+        "targetChapter": 10
+      },
+      {
+        "payoffId": "payoff-rigged-mine-contract",
+        "storyDebtId": "debt-mispriced-contract",
+        "threadId": "thread-ruin-rights-patronage",
+        "payoffText": "The climax proves the mine retrieval was priced to trigger an illegal ruin-rights harvest.",
+        "targetChapter": 9
+      },
+      {
+        "payoffId": "payoff-tessa-witness",
+        "storyDebtId": "debt-tessa-witness",
+        "threadId": "thread-rillgate-contract-loop",
+        "payoffText": "Tessa's testimony makes Kael's claim legal instead of merely heroic.",
+        "targetChapter": 10
+      },
+      {
+        "payoffId": "payoff-next-restricted-contract",
+        "storyDebtId": "debt-next-patron",
+        "threadId": "thread-ruin-rights-patronage",
+        "payoffText": "Orin offers Kael a restricted next job tied to Lady Varn's hidden buyers.",
+        "targetChapter": 10
+      }
+    ],
+    "rawNotes": "Method pack: mercenary-progression-adventure-v0. Book 1 contract packet: series promise = one paid Rillgate mission changes Kael's rank, technique, ally network, and next-job pressure; protagonist progression axis = iron-thread binding gains a brine-hook pattern only through a lingering bodily cost; guild/hub rule = rank, witness, and salvage clauses decide whether action becomes legal standing; Book 1 contract = retrieve a missing survey chain and salt-sealed core from the Gray Salt Mine for low pay; arena = flooded mine over sealed ruin with brine wards responding to blood, rank tokens, and stolen cores; hidden complication = Lady Varn priced the job to make unranked crews trigger illegal wards for a patron; party shift = Tessa moves from rival claimant to necessary witness; faction consequence = Rillgate learns a polite broker is laundering ruin-rights theft through cheap contracts; next hook = Kael receives a restricted next mission aimed at Varn's buyers.\nFirst two chapter scene pressure notes:\nCh1 scene A objectivePressure=Kael must get a bronze path before Mira's marker sale; tacticalConstraint=rank law blocks direct protection; allyMateriality=Orin explains the clause that makes evidence more useful than bravado; endpoint=Kael needs a contract, not a fight.\nCh1 scene B objectivePressure=Kael tries to buy time with a creditor; tacticalConstraint=the marker can be sold outside guild jurisdiction; worldFactPressure=Rillgate protection depends on active rank; endpoint=the next contract bell becomes a deadline.\nCh2 scene A objectivePressure=Kael evaluates Varn's salt-mine job; tacticalConstraint=low pay signals hidden danger but no ranked crew wants it; factionPressure=Varn's civil terms make the trap legal on paper; endpoint=Kael accepts because the job is the only rank path.\nCh2 scene B objectivePressure=Kael secures tools and clauses before departure; tacticalConstraint=salvage rights require a witness or bronze token; allyMateriality=Orin warns that admissible proof matters more than the retrieved object; endpoint=the job leaves the hall with a legal weakness Kael must solve."
+  },
+  "pipelineOverrides": {
+    "planningSceneTurnShapingV1": true,
+    "planningMaterialPressureV1": true,
+    "writerDraftingBriefMode": "scene-budget-tight-anchored-v1"
+  }
+}

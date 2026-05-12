@@ -1,0 +1,131 @@
+{
+  "packetId": "mpa-v0-rillgate-saltmine-book1",
+  "methodPackId": "mercenary-progression-adventure-v0",
+  "genreProfileId": "adult-guild-mission-progression-fantasy",
+  "seedPath": "src/seeds/mercenary-rillgate-saltmine.json",
+  "status": "production-path-planner-input",
+  "seriesPromise": "A capable under-ranked contract blade takes dangerous paid jobs from a recurring guild hub, wins progression through costly tactical choices, and returns with changed status plus a worse next contract.",
+  "protagonistProgressionAxis": "Kael Rusk's iron-thread binding turns monster pressure into weapon techniques, but every improvement requires a named bodily cost that lingers into later jobs.",
+  "guildHubRule": "Rillgate contracts bind payment, reputation, salvage rights, and rank protection; witness rules and admissible evidence decide whether a win changes standing.",
+  "book1Contract": "Retrieve a missing survey chain and salt-sealed core from the flooded Gray Salt Mine before a creditor sells Mira Rusk's debt marker outside guild protection.",
+  "arena": "The Gray Salt Mine is a flooded saltworks over a sealed ruin; brine wards respond to blood, rank tokens, and stolen monster cores.",
+  "hiddenComplication": "Lady Varn priced the job low so unranked crews would trigger illegal ruin wards for a concealed ruin-rights patron.",
+  "partyRelationshipShift": "Tessa Mire moves from rival claimant to necessary witness, making Kael choose legal leverage over a clean solo payout.",
+  "factionConsequence": "Rillgate learns that polite brokers can launder illegal ruin harvests through cheap contracts and disposable crews.",
+  "nextMissionHook": "Orin Vale offers Kael a restricted next contract tied to Lady Varn's hidden buyers after Kael earns provisional bronze status.",
+  "chapterJobFunctionOutline": [
+    {
+      "chapter": 1,
+      "structureSlotId": "MPA-01",
+      "jobFunction": "Hub pressure",
+      "endpointTest": "Kael needs a contract, not a fight, before Mira's debt marker sale."
+    },
+    {
+      "chapter": 2,
+      "structureSlotId": "MPA-02",
+      "jobFunction": "Contract offer",
+      "endpointTest": "Kael accepts the cheap mine job with clear terms and one legally hidden risk."
+    },
+    {
+      "chapter": 3,
+      "structureSlotId": "MPA-03",
+      "jobFunction": "Crew friction",
+      "endpointTest": "Tessa's rival claim changes how salvage, witness rules, and tactics must work."
+    },
+    {
+      "chapter": 4,
+      "structureSlotId": "MPA-04",
+      "jobFunction": "Arena entry",
+      "endpointTest": "Mine rules constrain tactics immediately through brine wards and rank-token responses."
+    },
+    {
+      "chapter": 5,
+      "structureSlotId": "MPA-05",
+      "jobFunction": "First tactical win",
+      "endpointTest": "Kael gains information or a resource through iron-thread binding at visible cost."
+    },
+    {
+      "chapter": 6,
+      "structureSlotId": "MPA-06",
+      "jobFunction": "Job complication",
+      "endpointTest": "The mission target proves to be illegal ruin-rights harvest evidence."
+    },
+    {
+      "chapter": 7,
+      "structureSlotId": "MPA-07",
+      "jobFunction": "Progression trial",
+      "endpointTest": "Kael refines iron-thread binding under pressure and accepts a lingering injury."
+    },
+    {
+      "chapter": 8,
+      "structureSlotId": "MPA-08",
+      "jobFunction": "Faction reveal",
+      "endpointTest": "The mine points to Lady Varn's buyers without resolving the whole faction problem."
+    },
+    {
+      "chapter": 9,
+      "structureSlotId": "MPA-09",
+      "jobFunction": "Contract climax",
+      "endpointTest": "Kael saves Tessa as witness and preserves evidence instead of taking a clean core payout."
+    },
+    {
+      "chapter": 10,
+      "structureSlotId": "MPA-10",
+      "jobFunction": "Return and next hook",
+      "endpointTest": "Kael gains provisional bronze, protects Mira, and receives the next restricted mission."
+    }
+  ],
+  "firstTwoChapterScenePressureNotes": [
+    {
+      "chapter": 1,
+      "structureSlotId": "MPA-01",
+      "scenes": [
+        {
+          "sceneKey": "ch1-a",
+          "objectivePressure": "Kael must find a bronze-rank path before Mira's debt marker sale.",
+          "tacticalConstraint": "Rank law blocks direct protection and makes violence useless.",
+          "allyMateriality": "Orin explains the clause that makes admissible evidence more valuable than bravado.",
+          "endpoint": "Kael needs a contract, not a fight."
+        },
+        {
+          "sceneKey": "ch1-b",
+          "objectivePressure": "Kael tries to buy time with the creditor handling Mira's marker.",
+          "tacticalConstraint": "The marker can leave Rillgate jurisdiction unless Kael gains legal standing.",
+          "worldFactPressure": "Guild protection depends on active rank, not sympathy.",
+          "endpoint": "The next contract bell becomes a hard deadline."
+        }
+      ]
+    },
+    {
+      "chapter": 2,
+      "structureSlotId": "MPA-02",
+      "scenes": [
+        {
+          "sceneKey": "ch2-a",
+          "objectivePressure": "Kael evaluates Lady Varn's Gray Salt Mine retrieval contract.",
+          "tacticalConstraint": "Low pay signals hidden danger, but no ranked crew wants the fee.",
+          "factionPressure": "Varn's civil terms make the trap legal on paper.",
+          "endpoint": "Kael accepts because the job is his only rank path."
+        },
+        {
+          "sceneKey": "ch2-b",
+          "objectivePressure": "Kael secures tools, clauses, and departure terms before the mine road.",
+          "tacticalConstraint": "Salvage rights require a witness or bronze token he does not have.",
+          "allyMateriality": "Orin warns that proof matters more than the retrieved object.",
+          "endpoint": "The job leaves the hall with a legal weakness Kael must solve."
+        }
+      ]
+    }
+  ],
+  "productionEvidenceCommands": {
+    "planner": "bun scripts/test-planner-isolated.ts mercenary-rillgate-saltmine --scene-turn-planning --material-pressure-planning --report-dir output/planner-isolated/mercenary-rillgate",
+    "drafting": "bun scripts/test-drafting-isolated.ts --source <novel-id-from-planner> --target-prefix mpa-rillgate --quality-telemetry-packet"
+  },
+  "evidenceGate": [
+    "Planner preserves MPA-01 through MPA-10 in chapter purposes or required story movement.",
+    "Planner preserves story refs for debt-bronze-rank, debt-mispriced-contract, debt-tessa-witness, and debt-next-patron.",
+    "First two chapters carry objective pressure, tactical constraint, endpoint landing, and either ally materiality or world/faction pressure.",
+    "Drafting telemetry has no endpointLanding, sceneDramaturgy, characterMateriality, or worldFactPressure lows on the first two chapters.",
+    "Plan-Assist/checker readiness does not introduce new blocker groups that invalidate the method-pack shape."
+  ]
+}
