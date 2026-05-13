@@ -50,6 +50,7 @@ describe("writer genre pack routing", () => {
   })
 
   test("runtime analytical checkers have cap headroom for long chapters", () => {
+    expect(getAgentConfig("adherence-events")!.maxTokens).toBeGreaterThanOrEqual(4096)
     expect(getAgentConfig("functional-state-checker")!.maxTokens).toBeGreaterThanOrEqual(4096)
     expect(getAgentConfig("continuity-facts")!.maxTokens).toBeGreaterThanOrEqual(8192)
     expect(getAgentConfig("continuity-state")!.maxTokens).toBeGreaterThanOrEqual(4096)

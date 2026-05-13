@@ -100,7 +100,10 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // Runtime checkers default to bounded DeepSeek V4 Flash non-thinking calls.
   // Existing W&B checker adapters are retained only as historical artifacts;
   // they are not the active base-writer workflow.
-  "adherence-events":          { ...deepseekV4Flash, temperature: 0.1, maxTokens: 512 },
+  // Long scene prose can force the checker to quote/structure multiple
+  // obligated events. Keep enough headroom that checker truncation does not
+  // become a false Plan-Assist blocker.
+  "adherence-events":          { ...deepseekV4Flash, temperature: 0.1, maxTokens: 4096 },
 
   // ── Entity grounding ───────────────────────────────────────────────────
   // Corpus-leak detection was tied to the retired Salvatore writer LoRA path.
