@@ -30,7 +30,7 @@ unless the user explicitly requests a disposable branch.
   `--quality-telemetry-packet`; target endpoint/materiality execution plus
   checker support-echo noise next. See L106-L108.
 - **Genre-specific plotline lane is open (L109).** First commercial POC is adult guild/mercenary mission progression fantasy; shape one Book 1 contract packet from `docs/method-packs/mercenary-progression-adventure-v0.md` before broad drafting.
-- **Rillgate drafting follow-up (L110).** Production beat-shaped drafting now renders populated scene contracts by default and analytical checker caps have more headroom; next evidence should verify baseline scene-contract coverage and no continuity cap hits.
+- **Rillgate drafting follow-up (L110/L111).** Use planner source `test-planner-mercenary-rillgate-saltmine-1778674224711`: 10 chapters / 49 scenes, balanced load, boundary redaction active, `futureEventAnchors: 0`, and no sequence-guard retry. Draft from this source and verify scene-contract coverage plus no continuity cap hits.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort
@@ -121,8 +121,7 @@ unless the user explicitly requests a disposable branch.
   clusters as the next production-path input. Favor a narrow main-path change
   that improves endpoint landing or character materiality on the regressed rows,
   with `--quality-telemetry-packet` evidence and no POC branch.
-- Plotline start: create the mercenary-progression Book 1 contract packet
-  plus first two chapters' scene pressure notes.
+- Plotline start: use the wired Rillgate Book 1 contract packet; keep seeds story-owned and free of process/count instructions.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run
   shows missing downstream context for a genuinely needed background reference.
@@ -135,10 +134,7 @@ unless the user explicitly requests a disposable branch.
   hydration (load-frozen-plan currently writes only novels +
   chapter_outlines; clone-for-variant carries the full state today, so
   P4 is usable via --source). See `docs/fixtures/scene-first/README.md`.
-- Native chapter contracts and story-turn planning are the production runtime
-  default, with legacy rollback via seed override. Scoped chapter-contract
-  expansion passed for `mercenary-rillgate-saltmine` at 10 chapters / 98 scenes
-  (`test-planner-mercenary-rillgate-saltmine-1778630130371`); next draft from that source. See L088/L109.
+- Native chapter contracts and story-turn planning are the production runtime default, with legacy rollback via seed override. Scoped chapter-contract expansion plus boundary redaction passed for `mercenary-rillgate-saltmine` at 10 chapters / 49 scenes (`test-planner-mercenary-rillgate-saltmine-1778674224711`); next draft from that source. See L088/L109/L111.
 - Evaluate upstream structure-template scaffolds, including commercial
   chapter-function templates, as concept/planning diagnostics before touching
   drafting/checking/UI. Hold other layers steady unless the test explicitly

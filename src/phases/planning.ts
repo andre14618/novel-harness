@@ -596,7 +596,7 @@ export function planningSceneExpansionRetryReason(
 function planningSequenceGuardRetryReason(outline: ChapterOutline, seed: Pick<SeedInput, "directives">): string | null {
   const errors = harness.enforce.validateChapterSequenceGuards([outline], seed.directives)
   if (errors.length === 0) return null
-  return `chapter sequence guard failed: ${errors.join("; ")}`
+  return `chapter sequence guard failed: ${errors.length} future-boundary violation(s). Repair by keeping this chapter inside its owned movement and required endpoint. Do not name, paraphrase, hint at, or foreshadow withheld future reveals, objects, operations, locations, or legal conclusions.`
 }
 
 const SHORT_FIXED_ARC_MAX_SEMANTIC_TARGET_WORDS = 1800

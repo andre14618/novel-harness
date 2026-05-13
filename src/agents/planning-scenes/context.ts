@@ -3,7 +3,11 @@ import type { WorldBible } from "../world-builder/schema"
 import type { CharacterProfile } from "../character-agent/schema"
 import type { StorySpine } from "../plotter/schema"
 import type { ChapterOutline } from "../planning-plotter/schema"
-import { renderDirectivesForSceneExpansion } from "../../schemas/planning-directives"
+import {
+  planningBoundaryTermsForChapter,
+  redactBoundaryText,
+  renderDirectivesForSceneExpansion,
+} from "../../schemas/planning-directives"
 import {
   renderScopedCharacterSection,
   renderScopedSeedHeader,
@@ -19,14 +23,25 @@ import {
   resolveScenePlanContractV1,
 } from "../../config/pipeline"
 
-function renderSkeletonLine(sk: ChapterOutline): string {
+function renderSkeletonLine(sk: ChapterOutline, purposeOverride?: string): string {
   const chars = sk.charactersPresent?.length ? ` [${sk.charactersPresent.join(", ")}]` : ""
-  return `  Ch ${sk.chapterNumber}: "${sk.title}" — POV: ${sk.povCharacter} — ${sk.setting} — ${sk.targetWords}w\n    Purpose: ${sk.purpose}${chars}`
+  return `  Ch ${sk.chapterNumber}: "${sk.title}" — POV: ${sk.povCharacter} — ${sk.setting} — ${sk.targetWords}w\n    Purpose: ${purposeOverride ?? sk.purpose}${chars}`
 }
 
-function renderBoundaryLine(sk: ChapterOutline, targetChapter: number): string {
-  if (sk.chapterNumber <= targetChapter) return renderSkeletonLine(sk)
+function renderBoundaryLine(sk: ChapterOutline, targetChapter: number, boundaryTerms: readonly string[]): string {
+  if (sk.chapterNumber < targetChapter) return renderSkeletonLine(sk)
+  if (sk.chapterNumber === targetChapter) {
+    return renderSkeletonLine(sk, safeCurrentChapterPurpose(sk.purpose, boundaryTerms))
+  }
   return `  Ch ${sk.chapterNumber}: "${sk.title}" — FUTURE CHAPTER BOUNDARY ONLY. Do not stage this chapter's purpose, reveals, endpoint, or set pieces while expanding Chapter ${targetChapter}.`
+}
+
+function safeCurrentChapterPurpose(purpose: string, boundaryTerms: readonly string[]): string {
+  return redactBoundaryText(
+    purpose,
+    boundaryTerms,
+    "Withheld here because it includes future-boundary material; use the target chapter contract and scoped directives.",
+  )
 }
 
 function renderPriorState(sk: ChapterOutline): string {
@@ -55,6 +70,9 @@ export function buildContext(args: SceneExpansionArgs): string {
   const scenePlanContractV1 = resolveScenePlanContractV1(seed.pipelineOverrides)
   const planningSceneTurnShapingV1 = resolvePlanningSceneTurnShapingV1(seed.pipelineOverrides)
   const nativePlanningContractV1 = resolveNativePlanningContractV1(seed.pipelineOverrides)
+  const boundaryTerms = seed.directives
+    ? planningBoundaryTermsForChapter(seed.directives, targetChapter.chapterNumber)
+    : []
   const scenePolicy = planningSceneCountPolicy(
     targetChapter.targetWords,
     seed.pipelineOverrides?.planningMaxScenesPerChapter,
@@ -66,7 +84,7 @@ export function buildContext(args: SceneExpansionArgs): string {
   const spineSection = renderScopedSpineSection(spine, scope)
 
   const allSkelSection = `CHAPTER BOUNDARY MAP (past/current detail plus future ownership boundaries):
-${allSkeletons.map(skeleton => renderBoundaryLine(skeleton, targetChapter.chapterNumber)).join("\n")}`
+${allSkeletons.map(skeleton => renderBoundaryLine(skeleton, targetChapter.chapterNumber, boundaryTerms)).join("\n")}`
 
   const priorSection = priorChapters.length
     ? `\n\nPRIOR CHAPTERS (already expanded — state at their end):\n${priorChapters.map(renderPriorState).filter(Boolean).join("\n\n")}`
@@ -76,7 +94,7 @@ ${allSkeletons.map(skeleton => renderBoundaryLine(skeleton, targetChapter.chapte
 Chapter ${targetChapter.chapterNumber}: "${targetChapter.title}"
 POV: ${targetChapter.povCharacter}
 Setting: ${targetChapter.setting}
-Purpose: ${targetChapter.purpose}
+Purpose: ${safeCurrentChapterPurpose(targetChapter.purpose, boundaryTerms)}
 Target words: ${targetChapter.targetWords}
 Characters present: ${(targetChapter.charactersPresent ?? []).join(", ")}
 
@@ -118,11 +136,11 @@ function renderChapterScopeGuidance(
 ): string {
   const countCeiling = planningCountCeiling(policy, scenePlanContractV1, options)
   const countGuide = scenePlanContractV1
-    ? `- Recommended scene contracts for this chapter size: around ${policy.recommendedScenes}. This is advisory; content scope and chapter purpose decide the actual count.`
+    ? `- Scene budget for this chapter size: around ${renderCountTarget(policy.minRecommendedScenes, policy.recommendedScenes)} scene contracts. Treat higher counts as evidence the chapter is over-scoped or should split.`
     : [
       `- Recommended scene/turn entries for this chapter size: ${policy.recommendedScenes}; minimum structural floor: ${policy.minRecommendedScenes}.`,
       countCeiling !== null
-        ? `- Count contract: emit ${policy.minRecommendedScenes}-${countCeiling} entries. Output above ${countCeiling} will retry or fail; merge tactical micro-movements into load-bearing turns instead of adding entries.`
+        ? `- Count contract: emit ${renderCountTarget(policy.minRecommendedScenes, countCeiling)} entries. Output above ${countCeiling} will retry or fail; merge tactical micro-movements into load-bearing turns instead of adding entries.`
         : "",
     ].filter(Boolean).join("\n")
   return `Chapter scope guidance:
@@ -164,8 +182,12 @@ function renderRetryFeedback(
   const countCeiling = planningCountCeiling(policy, options.scenePlanContractV1, options)
   const countRequirement = countCeiling === null
     ? ""
-    : `\nRetry count requirement: emit ${policy.minRecommendedScenes}-${countCeiling} entries. Preserve the opener and endpoint by merging adjacent middle movements. Do not drop the endpoint, drop the final turn, or hide discarded entries inside one run-on description.`
+    : `\nRetry count requirement: emit ${renderCountTarget(policy.minRecommendedScenes, countCeiling)} entries. Preserve the opener and endpoint by merging adjacent middle movements. Do not drop the endpoint, drop the final turn, or hide discarded entries inside one run-on description.`
   return `\n\n--- PREVIOUS SCENE EXPANSION FAILED ---\n${retryFeedback}${countRequirement}\nFix this by authoring native story-turn entries for the same chapter contract. Repair named semantic fields directly.`
+}
+
+function renderCountTarget(min: number, max: number): string {
+  return min === max ? `${max}` : `${min}-${max}`
 }
 
 function planningCountCeiling(

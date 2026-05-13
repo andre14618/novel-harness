@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-12
+updated: 2026-05-13
 role: canonical-current-truth
 archive: archive/current-state-2026-05-04-full.md
 references:
@@ -72,7 +72,9 @@ Use deeper docs only when linked by the context pack or needed by code.
 - Planning should scope the story ask before drafting: scene count, scene
   load, obligation density, endpoint/hook fit, and chapter split decisions.
   Word counts are telemetry and rough chapter-size signals; deterministic prose
-  repairs handle syntax/integrity artifacts but are not plan substitutes. See L102.
+  repairs handle syntax/integrity artifacts but are not plan substitutes. Future
+  reveal terms should be boundary-redacted from current-chapter generation
+  context instead of repeated as "do not reveal X" prompt material. See L102/L111.
 - Scene is the future plan/write/check unit. Beats remain annotations,
   obligations, legacy compatibility, or internal hints; `beatId` should be used
   only for real beat-specific records. See L092/L095.
@@ -111,18 +113,20 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 The active lane is in `docs/sessions/lane-queue.md`.
 
-As of 2026-05-12, L106-L109 keep evidence on production paths: writer-brief
+As of 2026-05-13, L106-L111 keep evidence on production paths: writer-brief
 telemetry, scene-semantic replay, Plan Readiness, source hygiene,
   planning-edit replay, scene-contract telemetry, and compare/cohort artifacts.
 `planningSceneTurnShapingV1` and `planningMaterialPressureV1` run through
 production planner/state-mapper paths; gaps are recorded instead of
 fallback-filled. Tight-anchored writer-brief evidence was promising but did not
 generalize, so default flip remains blocked. L109 works directly on main:
-`mercenary-rillgate-saltmine` now uses chapter-contract scoped scene expansion;
-planner evidence `test-planner-mercenary-rillgate-saltmine-1778630130371`
-produced 10 chapters / 98 scenes with no truncation and only a state-mapper
-headroom warning. Next: draft from that source without reopening POC-to-main
-workflow. See L103-L109.
+`mercenary-rillgate-saltmine` now uses chapter-contract scoped scene expansion,
+scene-scale budgets, seed process-instruction scrub, and future-boundary
+redaction. Planner evidence
+`test-planner-mercenary-rillgate-saltmine-1778674224711` completed at 10
+chapters / 49 scenes with balanced load, `futureEventAnchors: 0`, and no
+sequence-guard retry; state-mapper headroom remains telemetry. Drafting should
+use this source rather than the earlier 98-scene plan. See L103-L111.
 
 ## Authoring Gates
 

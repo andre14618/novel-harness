@@ -157,6 +157,62 @@ test("planning-state-mapper context hides future skeleton purposes behind bounda
   expect(context).not.toContain("The murderer confesses in public.")
 })
 
+test("planning-state-mapper context redacts future-boundary terms from current chapter purpose", () => {
+  const target = {
+    ...chapter(),
+    chapterNumber: 5,
+    purpose: "Istra gains a route clue, but the illegal archive engine remains hidden until the sealed chamber reveal.",
+  }
+  const context = buildContext({
+    targetChapter: target,
+    allSkeletons: [
+      target,
+      { ...chapter(), chapterNumber: 6, title: "The Engine", purpose: "The illegal archive engine is revealed in the sealed chamber." },
+    ],
+    priorChapters: [],
+    scenes: [beat({ description: "Istra copies a route clue.", characters: ["Istra"] })],
+    worldBible: worldBible(),
+    characters: [character()],
+    spine: storySpine(),
+    seed: {
+      ...seed(),
+      directives: {
+        lockedCharacters: [],
+        requiredBeats: [],
+        forbidden: [],
+        tonalAnchors: [],
+        structuralConstraints: { povRotation: "", pacing: "" },
+        storyThreads: [],
+        storyDebts: [],
+        storyPayoffs: [],
+        chapterContracts: [{
+          chapter: 5,
+          contractId: "ch5-route-clue",
+          storyFunction: "Route clue",
+          ownedMovement: "Istra wins a route clue while the illegal archive engine remains hidden.",
+          allowedStoryTerritory: ["Archive corridor"],
+          requiredEndpoint: "Istra has a route clue but has not opened the sealed chamber.",
+          handoffToNext: "",
+          lockedFutureEvents: ["sealed chamber reveal", "illegal archive engine"],
+          prohibitedMovement: ["sealed chamber"],
+        }],
+        chapterSequenceGuards: [{
+          chapter: 5,
+          guardId: "ch5-no-engine",
+          description: "Chapter 5 must not reveal the engine.",
+          mustContainAny: [],
+          mustNotContain: ["illegal archive engine", "sealed chamber"],
+        }],
+        rawNotes: "",
+      },
+    },
+  })
+
+  expect(context).toContain("Withheld here because it includes future-boundary material")
+  expect(context.toLowerCase()).not.toContain("illegal archive engine")
+  expect(context.toLowerCase()).not.toContain("sealed chamber")
+})
+
 function chapter(): ChapterOutline {
   return {
     chapterNumber: 1,

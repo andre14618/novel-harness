@@ -1,9 +1,10 @@
 const MIN_SCENES_PER_CHAPTER = 3
 
-// Current writer runs are closer to 300-450 words per planned scene entry than the
-// older 100-150w assumption. Keep this deterministic and easy to recalibrate.
-const MIN_TARGET_WORDS_PER_SCENE = 400
-const RECOMMENDED_TARGET_WORDS_PER_SCENE = 325
+// Treat planned entries as scene-scale story turns, not micro-beats. Recent
+// drafting evidence shows a real dramatized entry usually needs hundreds of
+// words; a 3k chapter can carry about 3-5 entries, not 8-10.
+const MIN_TARGET_WORDS_PER_SCENE = 1100
+const RECOMMENDED_TARGET_WORDS_PER_SCENE = 750
 const RECOMMENDED_SCENE_COUNT_OVERAGE_ALLOWED = 1
 
 export interface SceneCountAssessment {

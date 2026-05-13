@@ -2,6 +2,7 @@ import type { CharacterProfile, ChapterOutline, SeedInput, StorySpine, WorldBibl
 import {
   directiveTextContainsBoundaryTerm,
   planningBoundaryTermsForChapter,
+  redactBoundaryText,
   type ChapterPlanningContract,
 } from "../schemas/planning-directives"
 
@@ -30,8 +31,20 @@ export function renderScopedSeedHeader(seed: SeedInput, targetChapter: ChapterOu
   const contractLines = scope.contracts.map(contract => {
     const parts = [`- Ch ${contract.chapter}${contract.contractId ? ` [${contract.contractId}]` : ""}`]
     if (contract.storyFunction) parts.push(`  Function: ${contract.storyFunction}`)
-    if (contract.ownedMovement) parts.push(`  Owned movement: ${contract.ownedMovement}`)
-    if (contract.requiredEndpoint) parts.push(`  Required endpoint: ${contract.requiredEndpoint}`)
+    if (contract.ownedMovement) {
+      parts.push(`  Owned movement: ${redactBoundaryText(
+        contract.ownedMovement,
+        scope.boundaryTerms,
+        "Withheld here because it includes future-boundary material; use allowed story territory and required endpoint.",
+      )}`)
+    }
+    if (contract.requiredEndpoint) {
+      parts.push(`  Required endpoint: ${redactBoundaryText(
+        contract.requiredEndpoint,
+        scope.boundaryTerms,
+        "Execute the owned movement without consuming withheld future-boundary material.",
+      )}`)
+    }
     return parts.join("\n")
   }).join("\n")
   return `Genre: ${seed.genre}
@@ -131,7 +144,12 @@ Theme: ${spine.theme}
 Ending Direction: ${spine.endingDirection}`
   }
   const functions = scope.contracts
-    .map(contract => contract.storyFunction || contract.ownedMovement)
+    .map(contract => {
+      const text = contract.storyFunction || contract.ownedMovement
+      return text
+        ? redactBoundaryText(text, scope.boundaryTerms, "Execute the target chapter contract.")
+        : text
+    })
     .filter(Boolean)
     .join("; ")
   return `STORY SPINE (chapter-scoped):

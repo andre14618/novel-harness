@@ -49,10 +49,10 @@ function chapter(scenes: SceneBeat[], targetWords = 2000): ChapterOutline {
 }
 
 test("no-op when source beat count is at or below budget", () => {
-  // recommendedSceneCountForTarget(2000) === 7
+  // recommendedSceneCountForTarget(3100) === 5
   const scenes = Array.from({ length: 5 }, (_, i) => beat(i, `desc-${i}`))
-  const result = packChapterScenesToBudget(chapter(scenes, 2000))
-  expect(result.audit.budget).toBe(7)
+  const result = packChapterScenesToBudget(chapter(scenes, 3100))
+  expect(result.audit.budget).toBe(5)
   expect(result.audit.noOp).toBe(true)
   expect(result.audit.sourceSceneCount).toBe(5)
   expect(result.audit.packedSceneCount).toBe(5)
@@ -69,9 +69,9 @@ test("packs from 10 to recommended budget while keeping anchors", () => {
   scenes[3]!.obligations.mustEstablish = [{ text: "fact-A" } as any]
   scenes[7]!.obligations.mustPayOff = [{ text: "fact-A" } as any]
 
-  const result = packChapterScenesToBudget(chapter(scenes, 2000))
-  expect(result.audit.budget).toBe(7)
-  expect(result.audit.packedSceneCount).toBe(7)
+  const result = packChapterScenesToBudget(chapter(scenes, 3100))
+  expect(result.audit.budget).toBe(5)
+  expect(result.audit.packedSceneCount).toBe(5)
   expect(result.audit.openerPreserved).toBe(true)
   expect(result.audit.endpointPreserved).toBe(true)
 
@@ -166,8 +166,8 @@ test("merges middle beats from lowest combined obligation density first", () => 
     { text: "high-density", obligationId: "obl-1" } as any,
     { text: "high-density-2", obligationId: "obl-1b" } as any,
   ]
-  // budget=4 (1500w-equivalent); we'll use 1500 to force a real merge.
-  const result = packChapterScenesToBudget(chapter(scenes, 1500))
+  // budget=5 for a 3100w chapter; force one merge while preserving high-density beats.
+  const result = packChapterScenesToBudget(chapter(scenes, 3100))
   expect(result.audit.budget).toBe(5)
   expect(result.audit.packedSceneCount).toBe(5)
   // Beat 1 should remain its own packed group (high density preserved).
@@ -191,7 +191,7 @@ test("balances merges across the chapter when obligation density is uniform", ()
   // Without the smaller-merged-group tie-break the merger collapses every
   // adjacent pair from the left, putting 9 source beats into beat 0.
   const scenes = Array.from({ length: 13 }, (_, i) => beat(i, `desc-${i}`))
-  const result = packChapterScenesToBudget(chapter(scenes, 1500))
+  const result = packChapterScenesToBudget(chapter(scenes, 3100))
   expect(result.audit.budget).toBe(5)
   expect(result.audit.packedSceneCount).toBe(5)
   // No single packed group should swallow the entire opening half. With

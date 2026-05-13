@@ -43,7 +43,7 @@ describe("planningSceneExpansionRetryReason", () => {
   test("retries selective scene-turn shaping when final endpoint fields are absent", () => {
     expect(planningSceneExpansionRetryReason({
       chapterNumber: 1,
-      targetWords: 1500,
+      targetWords: 3100,
       scenes: [
         scene("Maren enters the Counting-House."),
         scene("A clerk brings the ledger forward."),
@@ -60,7 +60,7 @@ describe("planningSceneExpansionRetryReason", () => {
   test("accepts selective scene-turn shaping when final endpoint fields are present", () => {
     expect(planningSceneExpansionRetryReason({
       chapterNumber: 1,
-      targetWords: 1500,
+      targetWords: 3100,
       scenes: [
         scene("Maren enters the Counting-House."),
         scene("A clerk brings the ledger forward."),
@@ -148,7 +148,7 @@ describe("planningSceneExpansionRetryReason", () => {
       ],
     }, {
       planningSceneTurnShapingV1: true,
-    })).toBe("planningSceneTurnShapingV1 6 entries > semantic scope budget 5 for 1500w target")
+    })).toBe("planningSceneTurnShapingV1 6 entries > semantic scope budget 3 for 1500w target")
   })
 
   test("accepts selective scene-turn shaping when source-refed non-final entries have turn fields", () => {

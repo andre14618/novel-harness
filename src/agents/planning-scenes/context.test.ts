@@ -66,7 +66,7 @@ test("planning scene context renders scene plan contract guidance when flag is o
   expect(context).toContain("Do not make the endpoint a promised later confrontation")
   expect(context).toContain("through the existing outcome/consequence pair")
   expect(context).toContain("Spend the scene's limited scope on executing the endpoint")
-  expect(context).toContain("Recommended scene contracts for this chapter size: around 5")
+  expect(context).toContain("Scene budget for this chapter size: around 3 scene contracts")
   expect(context).toContain("Do not rely on per-scene word targets")
   expect(context).not.toContain("minimum structural floor")
 })
@@ -97,8 +97,8 @@ test("planning scene context renders selective scene-turn shaping without full s
   } as Parameters<typeof buildContext>[0])
 
   expect(context).toContain("Selective scene-turn shaping (planningSceneTurnShapingV1)")
-  expect(context).toContain("Count contract: emit 4-5 entries")
-  expect(context).toContain("Turn-shaping scope limit: do not exceed 5 entries")
+  expect(context).toContain("Count contract: emit 3 entries")
+  expect(context).toContain("Turn-shaping scope limit: do not exceed 3 entries")
   expect(context).toContain("final entry MUST include \"outcome\" and \"consequence\"")
   expect(context).toContain("Preserve the skeleton's scope")
   expect(context).toContain("Populate the final entry's \"outcome\" and \"consequence\"")
@@ -135,12 +135,12 @@ test("planning scene context gives long turn-shaped chapters an explicit count c
       characters: [{ name: "X", role: "protagonist", description: "d" }],
       pipelineOverrides: { planningSceneTurnShapingV1: true },
     },
-    retryFeedback: "12 scene entries > native planning budget 10+1 for 3100w target",
+    retryFeedback: "7 scene entries > native planning budget 5+1 for 3100w target",
   } as Parameters<typeof buildContext>[0])
 
-  expect(context).toContain("Count contract: emit 8-10 entries")
-  expect(context).toContain("Turn-shaping scope limit: do not exceed 10 entries")
-  expect(context).toContain("Retry count requirement: emit 8-10 entries")
+  expect(context).toContain("Count contract: emit 3-5 entries")
+  expect(context).toContain("Turn-shaping scope limit: do not exceed 5 entries")
+  expect(context).toContain("Retry count requirement: emit 3-5 entries")
   expect(context).toContain("merging adjacent middle movements")
 })
 
@@ -192,10 +192,10 @@ test("planning scene context renders calibrated scene count guidance", () => {
   } as Parameters<typeof buildContext>[0])
 
   expect(context).toContain("Target words are a rough chapter-size signal")
-  expect(context).toContain("Recommended scene/turn entries for this chapter size: 5")
-  expect(context).toContain("minimum structural floor: 4")
-  expect(context).toContain("Count contract: emit 4-6 entries")
-  expect(context).toContain("Native planning scope limit: do not exceed 6 entries")
+  expect(context).toContain("Recommended scene/turn entries for this chapter size: 3")
+  expect(context).toContain("minimum structural floor: 3")
+  expect(context).toContain("Count contract: emit 3-4 entries")
+  expect(context).toContain("Native planning scope limit: do not exceed 4 entries")
   expect(context).toContain("Scope by content load")
   expect(context).not.toContain("100-140 words")
 })
@@ -346,7 +346,7 @@ test("planning scene context renders native contract guidance by default with ex
   } as Parameters<typeof buildContext>[0])
 
   expect(context).toContain("Native planning contract")
-  expect(context).toContain("Author about 5 complete story-turn entries")
+  expect(context).toContain("Author about 3 complete story-turn entries")
   expect(context).toContain("include povPersonalStake")
   expect(context).toContain("want, need, fear")
   expect(context).toContain("Do not emit micro-actions")
@@ -402,12 +402,12 @@ test("planning scene context carries native-contract retry feedback", () => {
       characters: [{ name: "Istra Venn", role: "protagonist", description: "A precise archivist" }],
       pipelineOverrides: { nativePlanningContractV1: true },
     },
-    retryFeedback: "9 scene entries > native planning budget 5+1 for 1500w target",
+    retryFeedback: "5 scene entries > native planning budget 3+1 for 1500w target",
   } as Parameters<typeof buildContext>[0])
 
   expect(context).toContain("PREVIOUS SCENE EXPANSION FAILED")
-  expect(context).toContain("9 scene entries > native planning budget 5+1")
-  expect(context).toContain("Retry count requirement: emit 4-6 entries")
+  expect(context).toContain("5 scene entries > native planning budget 3+1")
+  expect(context).toContain("Retry count requirement: emit 3-4 entries")
   expect(context).toContain("Do not drop the endpoint")
 })
 
@@ -563,6 +563,89 @@ test("planning scene context redacts future reveal vocabulary from current chara
   expect(context).not.toContain("monster core broker")
   expect(context).not.toContain("Complete the illegal core harvest")
   expect(context).not.toContain("Sealed Ruin Chamber")
+})
+
+test("planning scene context redacts future-boundary terms from current chapter purpose and story debts", () => {
+  const mercenarySeed = JSON.parse(readFileSync("src/seeds/mercenary-rillgate-saltmine.json", "utf8")) as SeedInput
+  const ch5 = {
+    ...chapter(5, 3100),
+    title: "The Iron Cost",
+    povCharacter: "Kael Rusk",
+    setting: "Gray Salt Mine, side tunnel",
+    purpose: "Kael gains a ward-pattern read, but the illegal harvest remains hidden until the sealed chamber reveal.",
+    charactersPresent: ["Kael Rusk", "Tessa Mire"],
+  }
+  const ch6 = {
+    ...chapter(6, 3100),
+    title: "The Core Vault",
+    purpose: "Kael discovers the illegal monster-core harvest in the sealed chamber.",
+  }
+  const context = buildContext({
+    targetChapter: ch5,
+    allSkeletons: [ch5, ch6],
+    priorChapters: [],
+    worldBible: {
+      setting: "Rillgate",
+      timePeriod: "now",
+      geography: "salt flats",
+      politicalStructure: "guild",
+      technologyConstraints: "contracts",
+      socialCustoms: [],
+      sensoryPalette: "salt and ink",
+      rules: ["Monster cores degrade unless sealed in brine", "Rank law matters"],
+      locations: [
+        { name: "Gray Salt Mine", description: "A flooded mine" },
+        { name: "Sealed Ruin Chamber", description: "A monster core vault" },
+      ],
+      culture: "ranked",
+      history: "old mines",
+      systems: [],
+      cultures: [],
+    },
+    characters: [
+      {
+        id: "kael-rusk",
+        name: "Kael Rusk",
+        role: "protagonist",
+        backstory: "",
+        traits: ["tactical"],
+        speechPattern: "clipped",
+        goals: "earn bronze",
+        fears: "losing Mira",
+        relationships: [],
+        culturalBackground: [],
+        systemAwareness: [],
+        exampleLines: [],
+      },
+      {
+        id: "tessa-mire",
+        name: "Tessa Mire",
+        role: "supporting",
+        backstory: "",
+        traits: ["witness"],
+        speechPattern: "legal",
+        goals: "uncover sponsor pressure",
+        fears: "the illegal operation",
+        relationships: [],
+        culturalBackground: [],
+        systemAwareness: [],
+        exampleLines: [],
+      },
+    ],
+    spine: {
+      acts: [],
+      centralConflict: "rank versus debt",
+      theme: "law has teeth",
+      endingDirection: "provisional victory",
+    },
+    seed: mercenarySeed,
+  } as Parameters<typeof buildContext>[0])
+
+  expect(context).toContain("Withheld here because it includes future-boundary material")
+  expect(context).toContain("Withheld here because it belongs to a later payoff boundary")
+  expect(context.toLowerCase()).not.toContain("illegal")
+  expect(context.toLowerCase()).not.toContain("monster core")
+  expect(context.toLowerCase()).not.toContain("sealed chamber")
 })
 
 function chapter(chapterNumber: number, targetWords: number) {

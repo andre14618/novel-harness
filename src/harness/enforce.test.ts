@@ -44,14 +44,13 @@ test("planning enforcement uses calibrated scene count floor", () => {
     scenes: [
       beat({ description: "Istra finds the missing dose." }),
       beat({ description: "Wren refuses the treatment." }),
-      beat({ description: "Istra proves the danger." }),
     ],
   })
 
   const result = enforcePlanningOutput([outline], 1, [character("Istra Venn")])
 
   expect(result.valid).toBe(false)
-  expect(result.errors).toEqual(["Chapter 1: 3 scene entries below floor 4 for 1500w target"])
+  expect(result.errors).toEqual(["Chapter 1: 2 scene entries below floor 3 for 1500w target"])
 })
 
 test("scene contract planning treats word-derived count floor as advisory", () => {
@@ -70,7 +69,7 @@ test("scene contract planning treats word-derived count floor as advisory", () =
 
   expect(result.valid).toBe(true)
   expect(result.errors).toEqual([])
-  expect(result.warnings).toContain("Chapter 1: 2 scene contracts below rough scope guide 4 for 1500w target")
+  expect(result.warnings).toContain("Chapter 1: 2 scene contracts below rough scope guide 3 for 1500w target")
 })
 
 test("planning enforcement accepts a compact 1500 word chapter at four scene entries", () => {
@@ -116,12 +115,10 @@ test("planning enforcement raises a planning max override below the floor", () =
       beat({ description: "Istra finds the missing dose." }),
       beat({ description: "Wren refuses the treatment." }),
       beat({ description: "Istra proves the danger." }),
-      beat({ description: "Wren accepts the cost." }),
-      beat({ description: "The council arrives." }),
     ],
   })
 
-  const result = enforcePlanningOutput([outline], 1, [character("Istra Venn")], { maxScenesPerChapter: 4 })
+  const result = enforcePlanningOutput([outline], 1, [character("Istra Venn")], { maxScenesPerChapter: 2 })
 
   expect(result.valid).toBe(true)
   expect(result.errors).toEqual([])
@@ -149,7 +146,7 @@ test("planning enforcement rejects over-fragmented native contract outlines with
   expect(legacy.valid).toBe(true)
   expect(native.valid).toBe(false)
   expect(native.errors).toEqual([
-    "Chapter 1: 7 scene entries above native planning budget 5+1 for 1500w target",
+    "Chapter 1: 7 scene entries above native planning budget 3+1 for 1500w target",
   ])
 })
 
@@ -174,7 +171,7 @@ test("scene contract planning treats word-derived overage as advisory", () => {
 
   expect(result.valid).toBe(true)
   expect(result.errors).toEqual([])
-  expect(result.warnings).toContain("Chapter 1: 7 scene contracts above rough scope guide 5+1 for 1500w target")
+  expect(result.warnings).toContain("Chapter 1: 7 scene contracts above rough scope guide 3+1 for 1500w target")
 })
 
 test("chapter sequence guards reject events that drift into the wrong chapter", () => {

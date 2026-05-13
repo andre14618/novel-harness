@@ -33,16 +33,16 @@ describe("writer-expansion-report", () => {
       overTargetChapters: 1,
       severeOverTargetChapters: 1,
       highWordsPerSceneChapters: 1,
-      overPlannedSceneChapters: 1,
+      overPlannedSceneChapters: 2,
     })
     expect(report.chapters[0]!).toMatchObject({
       chapter: 1,
       plannedScenes: 12,
-      recommendedScenes: 5,
-      sceneDeltaFromRecommended: 7,
+      recommendedScenes: 3,
+      sceneDeltaFromRecommended: 9,
       flags: ["low_words_per_scene", "over_planned_scenes"],
     })
-    expect(report.chapters[1]!.flags).toEqual(["over_target", "severe_over_target", "high_words_per_scene"])
+    expect(report.chapters[1]!.flags).toEqual(["over_target", "severe_over_target", "high_words_per_scene", "over_planned_scenes"])
     expect(report.chapters[2]!.flags).toEqual(["under_target"])
 
     const rendered = renderWriterExpansionReport(report)

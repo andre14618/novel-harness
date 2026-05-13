@@ -55,7 +55,7 @@ test("planning plotter context carries mercenary progression Book 1 packet throu
   expect(context).toContain("MPA-10 Return and next hook")
   expect(context).toContain("threadId=thread-rillgate-contract-loop")
   expect(context).toContain("promiseId=debt-mispriced-contract")
-  expect(context).toContain("First two chapter scene pressure notes")
+  expect(context).toContain("First two chapter pressure notes")
   expect(context).toContain("Produce a SKELETON outline with exactly 10 chapters")
 })
 

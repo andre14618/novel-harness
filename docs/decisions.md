@@ -16,6 +16,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
+| L111 | 2026-05-13 | active | Production planning now treats future reveals as boundary-redacted constraints, not repeated "do not reveal X" prompt material; scene-count policy is scene-scale and seeds should not carry arbitrary 8-10 scene process instructions. | `docs/decisions/L111-planner-boundary-redaction-scene-budget.md` |
 | L110 | 2026-05-13 | active | Production beat-shaped drafting now renders populated scene-contract fields by default and gives runtime analytical checkers more token headroom after Rillgate exposed downstream scene-contract coverage 0/94 and continuity-facts cap hits. | `docs/decisions/L110-production-scene-contract-rendering.md` |
 | L109 | 2026-05-12 | active | First genre-specific plotline lane is adult guild/mercenary mission progression adventure fantasy; use `mercenary-progression-adventure-v0` to shape a Book 1 contract packet before broad drafting. | `docs/decisions/L109-mercenary-progression-adventure-lane.md` |
 | L108 | 2026-05-12 | active | Stable drafting quality telemetry packet: `test-drafting-isolated --quality-telemetry-packet` captures advisory prose and scene semantic data on the production path, persists scene rows artifact-first, and closes further arm-search/word-count loops unless a new plot or writing hypothesis requires evidence. | `docs/decisions/L108-drafting-quality-telemetry-packet.md` |

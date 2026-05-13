@@ -3,7 +3,11 @@ import type { WorldBible } from "../world-builder/schema"
 import type { CharacterProfile } from "../character-agent/schema"
 import type { StorySpine } from "../plotter/schema"
 import type { ChapterOutline } from "../planning-plotter/schema"
-import { renderDirectivesForSceneExpansion } from "../../schemas/planning-directives"
+import {
+  planningBoundaryTermsForChapter,
+  redactBoundaryText,
+  renderDirectivesForSceneExpansion,
+} from "../../schemas/planning-directives"
 import {
   renderScopedCharacterSection,
   renderScopedSeedHeader,
@@ -29,14 +33,25 @@ export interface StateMapperContextArgs {
   seed: SeedInput
 }
 
-function renderSkeletonLine(sk: ChapterOutline): string {
+function renderSkeletonLine(sk: ChapterOutline, purposeOverride?: string): string {
   const chars = sk.charactersPresent?.length ? ` [${sk.charactersPresent.join(", ")}]` : ""
-  return `  Ch ${sk.chapterNumber}: "${sk.title}" -- POV: ${sk.povCharacter} -- ${sk.setting} -- ${sk.targetWords}w\n    Purpose: ${sk.purpose}${chars}`
+  return `  Ch ${sk.chapterNumber}: "${sk.title}" -- POV: ${sk.povCharacter} -- ${sk.setting} -- ${sk.targetWords}w\n    Purpose: ${purposeOverride ?? sk.purpose}${chars}`
 }
 
-function renderBoundaryLine(sk: ChapterOutline, targetChapter: number): string {
-  if (sk.chapterNumber <= targetChapter) return renderSkeletonLine(sk)
+function renderBoundaryLine(sk: ChapterOutline, targetChapter: number, boundaryTerms: readonly string[]): string {
+  if (sk.chapterNumber < targetChapter) return renderSkeletonLine(sk)
+  if (sk.chapterNumber === targetChapter) {
+    return renderSkeletonLine(sk, safeCurrentChapterPurpose(sk.purpose, boundaryTerms))
+  }
   return `  Ch ${sk.chapterNumber}: "${sk.title}" -- FUTURE CHAPTER BOUNDARY ONLY. Do not map this chapter's purpose, reveals, endpoint, or set pieces while mapping Chapter ${targetChapter}.`
+}
+
+function safeCurrentChapterPurpose(purpose: string, boundaryTerms: readonly string[]): string {
+  return redactBoundaryText(
+    purpose,
+    boundaryTerms,
+    "Withheld here because it includes future-boundary material; use the target chapter contract and scoped directives.",
+  )
 }
 
 function renderPriorState(sk: ChapterOutline): string {
@@ -64,19 +79,22 @@ function renderSceneEntryLine(scene: SceneBeat, index: number): string {
 export function buildContext(args: StateMapperContextArgs): string {
   const { targetChapter, allSkeletons, priorChapters, scenes, worldBible, characters, spine, seed } = args
   const scope = resolveScopedPlanningContext(seed, targetChapter)
+  const boundaryTerms = seed.directives
+    ? planningBoundaryTermsForChapter(seed.directives, targetChapter.chapterNumber)
+    : []
 
   const headerSection = renderScopedSeedHeader(seed, targetChapter, scope)
   const worldSection = renderScopedWorldSection(worldBible, targetChapter, scope)
   const charSection = renderScopedCharacterSection(characters, targetChapter, scope)
   const spineSection = renderScopedSpineSection(spine, scope)
 
-  const allSkelSection = `CHAPTER BOUNDARY MAP (past/current detail plus future ownership boundaries):\n${allSkeletons.map(skeleton => renderBoundaryLine(skeleton, targetChapter.chapterNumber)).join("\n")}`
+  const allSkelSection = `CHAPTER BOUNDARY MAP (past/current detail plus future ownership boundaries):\n${allSkeletons.map(skeleton => renderBoundaryLine(skeleton, targetChapter.chapterNumber, boundaryTerms)).join("\n")}`
 
   const priorSection = priorChapters.length
     ? `\n\nPRIOR CHAPTERS (already expanded -- state at their end):\n${priorChapters.map(renderPriorState).filter(Boolean).join("\n\n")}`
     : ""
 
-  const targetSection = `THIS CHAPTER TO MAP:\nChapter ${targetChapter.chapterNumber}: "${targetChapter.title}"\nPOV: ${targetChapter.povCharacter}\nSetting: ${targetChapter.setting}\nPurpose: ${targetChapter.purpose}\nTarget words: ${targetChapter.targetWords}\nCharacters present: ${(targetChapter.charactersPresent ?? []).join(", ")}`
+  const targetSection = `THIS CHAPTER TO MAP:\nChapter ${targetChapter.chapterNumber}: "${targetChapter.title}"\nPOV: ${targetChapter.povCharacter}\nSetting: ${targetChapter.setting}\nPurpose: ${safeCurrentChapterPurpose(targetChapter.purpose, boundaryTerms)}\nTarget words: ${targetChapter.targetWords}\nCharacters present: ${(targetChapter.charactersPresent ?? []).join(", ")}`
 
   const sceneSection = `SCENE ENTRIES TO MAP (0-based indexes; do not rewrite descriptions):\n${scenes.map(renderSceneEntryLine).join("\n")}`
 

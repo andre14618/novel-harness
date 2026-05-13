@@ -306,7 +306,7 @@ export function renderDirectivesForSceneExpansion(d: PlanningDirectives, targetC
 
   const targetContracts = (d.chapterContracts ?? []).filter(contract => contract.chapter === targetChapter)
   if (targetContracts.length) {
-    sections.push(renderTargetChapterContracts(targetContracts))
+    sections.push(renderTargetChapterContracts(targetContracts, boundaryTerms))
   }
 
   const targetBeats = d.requiredBeats.filter(beat => beat.chapter === targetChapter || beat.chapter === undefined)
@@ -314,7 +314,7 @@ export function renderDirectivesForSceneExpansion(d: PlanningDirectives, targetC
     sections.push(renderTargetRequiredBeats(targetBeats, boundaryTerms, targetChapter))
   }
 
-  const adjacent = renderAdjacentChapterHandoffs(d.chapterContracts ?? [], targetChapter)
+  const adjacent = renderAdjacentChapterHandoffs(d.chapterContracts ?? [], targetChapter, boundaryTerms)
   if (adjacent) sections.push(adjacent)
 
   if (d.forbidden.length) {
@@ -330,7 +330,7 @@ export function renderDirectivesForSceneExpansion(d: PlanningDirectives, targetC
     sections.push(`TONAL ANCHORS: ${d.tonalAnchors.join("; ")}`)
   }
 
-  const scopedStoryRefs = renderScopedStoryThreadSections(refs, targetChapter)
+  const scopedStoryRefs = renderScopedStoryThreadSections(refs, targetChapter, boundaryTerms)
   sections.push(...scopedStoryRefs)
 
   if (!sections.length) return ""
@@ -353,17 +353,38 @@ function renderChapterContractsForPlanner(contracts: readonly ChapterPlanningCon
   }`
 }
 
-function renderTargetChapterContracts(targetContracts: readonly ChapterPlanningContract[]): string {
+function renderTargetChapterContracts(
+  targetContracts: readonly ChapterPlanningContract[],
+  boundaryTerms: readonly string[],
+): string {
   const rendered = targetContracts.map(contract => {
     const allowedStoryTerritory = contract.allowedStoryTerritory ?? []
     const lockedFutureEvents = contract.lockedFutureEvents ?? []
     const prohibitedMovement = contract.prohibitedMovement ?? []
     const parts = [`- Ch ${contract.chapter}${contract.contractId ? ` [${contract.contractId}]` : ""}`]
     if (contract.storyFunction) parts.push(`  Story function: ${contract.storyFunction}`)
-    if (contract.ownedMovement) parts.push(`  Owned movement: ${contract.ownedMovement}`)
+    if (contract.ownedMovement) {
+      parts.push(`  Owned movement: ${redactBoundaryText(
+        contract.ownedMovement,
+        boundaryTerms,
+        "Withheld here because it includes future-boundary material; use allowed story territory and required endpoint.",
+      )}`)
+    }
     if (allowedStoryTerritory.length) parts.push(`  Allowed story territory: ${allowedStoryTerritory.join("; ")}`)
-    if (contract.requiredEndpoint) parts.push(`  Required endpoint: ${contract.requiredEndpoint}`)
-    if (contract.handoffToNext) parts.push(`  Handoff to next chapter: ${contract.handoffToNext}`)
+    if (contract.requiredEndpoint) {
+      parts.push(`  Required endpoint: ${redactBoundaryText(
+        contract.requiredEndpoint,
+        boundaryTerms,
+        "Execute the owned movement without consuming withheld future-boundary material.",
+      )}`)
+    }
+    if (contract.handoffToNext) {
+      parts.push(`  Handoff to next chapter: ${redactBoundaryText(
+        contract.handoffToNext,
+        boundaryTerms,
+        "Withheld here because it names future-boundary material.",
+      )}`)
+    }
     const withheldBoundaryCount = lockedFutureEvents.length + prohibitedMovement.length
     if (withheldBoundaryCount > 0) {
       parts.push(`  Boundary locks: ${withheldBoundaryCount} future/prohibited movements are withheld from this expansion; fill only the owned movement and required endpoint.`)
@@ -394,15 +415,27 @@ function renderTargetRequiredBeats(
   return `TARGET REQUIRED BEATS (only this chapter may execute these now):\n${rendered}`
 }
 
-function renderAdjacentChapterHandoffs(contracts: readonly ChapterPlanningContract[], targetChapter: number): string {
+function renderAdjacentChapterHandoffs(
+  contracts: readonly ChapterPlanningContract[],
+  targetChapter: number,
+  boundaryTerms: readonly string[],
+): string {
   const previous = contracts.find(contract => contract.chapter === targetChapter - 1)
   const next = contracts.find(contract => contract.chapter === targetChapter + 1)
   const lines: string[] = []
   if (previous?.requiredEndpoint || previous?.handoffToNext) {
-    lines.push(`Previous chapter arrives with: ${previous.requiredEndpoint || previous.handoffToNext}`)
+    lines.push(`Previous chapter arrives with: ${redactBoundaryText(
+      previous.requiredEndpoint || previous.handoffToNext,
+      boundaryTerms,
+      "Withheld here because it names future-boundary material.",
+    )}`)
   }
   if (next?.storyFunction || next?.ownedMovement) {
-    lines.push(`Next chapter owns after this handoff: ${next.storyFunction || next.ownedMovement}`)
+    lines.push(`Next chapter owns after this handoff: ${redactBoundaryText(
+      next.storyFunction || next.ownedMovement,
+      boundaryTerms,
+      "Withheld here because it names future-boundary material.",
+    )}`)
   }
   if (lines.length === 0) return ""
   return `ADJACENT HANDOFFS (boundary awareness, not extra content):\n${lines.map(line => `- ${line}`).join("\n")}`
@@ -503,8 +536,14 @@ export function directiveTextContainsBoundaryTerm(text: string, terms: readonly 
     if (normalizedText.includes(normalizedTerm)) return true
     if (/\bcores?\b/.test(normalizedTerm) && /\bcores?\b/.test(normalizedText)) return true
     if (/\bharvest\b/.test(normalizedTerm) && /\bharvest\w*\b/.test(normalizedText)) return true
+    if (/\bsealed chamber\b/.test(normalizedTerm) && /\bsealed chamber\b/.test(normalizedText)) return true
+    if (/\boperation\b/.test(normalizedTerm) && /\boperation\b/.test(normalizedText)) return true
     return false
   })
+}
+
+export function redactBoundaryText(text: string, terms: readonly string[], fallback: string): string {
+  return directiveTextContainsBoundaryTerm(text, terms) ? fallback : text
 }
 
 function normalizeBoundaryText(text: string): string {
@@ -555,7 +594,11 @@ function renderStoryThreadSections(refs: NormalizedPlanningDirectiveRefs): strin
   return sections
 }
 
-function renderScopedStoryThreadSections(refs: NormalizedPlanningDirectiveRefs, targetChapter: number): string[] {
+function renderScopedStoryThreadSections(
+  refs: NormalizedPlanningDirectiveRefs,
+  targetChapter: number,
+  boundaryTerms: readonly string[],
+): string[] {
   const sections: string[] = []
   if (refs.storyThreads.length) {
     sections.push(
@@ -577,9 +620,20 @@ function renderScopedStoryThreadSections(refs: NormalizedPlanningDirectiveRefs, 
     sections.push(
       `ACTIVE STORY DEBTS (use only if this chapter's contract touches them):\n${
         activeDebts.map(debt => {
-          const parts = [`- promiseId=${debt.storyDebtId} threadId=${debt.threadId}: ${debt.promiseText}`]
+          const promiseText = redactBoundaryText(
+            debt.promiseText,
+            boundaryTerms,
+            "Withheld here because it names future-boundary payoff material; preserve the ID without opening or resolving it early.",
+          )
+          const parts = [`- promiseId=${debt.storyDebtId} threadId=${debt.threadId}: ${promiseText}`]
           if (debt.expectedPayoffChapter) parts.push(`  Expected payoff chapter: ${debt.expectedPayoffChapter}`)
-          if (debt.payoffPolicy) parts.push(`  Payoff policy: ${debt.payoffPolicy}`)
+          if (debt.payoffPolicy) {
+            parts.push(`  Payoff policy: ${redactBoundaryText(
+              debt.payoffPolicy,
+              boundaryTerms,
+              "Withheld here because it belongs to a later payoff boundary.",
+            )}`)
+          }
           return parts.join("\n")
         }).join("\n")
       }`,
@@ -598,7 +652,14 @@ function renderScopedStoryThreadSections(refs: NormalizedPlanningDirectiveRefs, 
   if (targetPayoffs.length) {
     sections.push(
       `PAYOFF TARGETS AVAILABLE OR UNSCHEDULED BY THIS CHAPTER:\n${
-        targetPayoffs.map(payoff => `- payoffId=${payoff.payoffId} promiseId=${payoff.storyDebtId}: ${payoff.payoffText}`).join("\n")
+        targetPayoffs.map(payoff => {
+          const payoffText = redactBoundaryText(
+            payoff.payoffText,
+            boundaryTerms,
+            "Withheld here because it names future-boundary material.",
+          )
+          return `- payoffId=${payoff.payoffId} promiseId=${payoff.storyDebtId}: ${payoffText}`
+        }).join("\n")
       }`,
     )
   }
