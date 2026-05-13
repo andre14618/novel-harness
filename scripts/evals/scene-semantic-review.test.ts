@@ -250,6 +250,8 @@ describe("scene-semantic-review task building", () => {
     expect(excerpt).toContain("Legacy/beat-specific beat id: ch7-b2")
     expect(excerpt).toContain("Goal: win the council's vote")
     expect(excerpt).toContain("Crisis choice: expose the steward or yield")
+    expect(excerpt).toContain("Declared scene endpoint: Outcome: council demands a vote Consequence: renn is now a target")
+    expect(excerpt).toContain("For endpointLanding, use the declared scene endpoint above.")
     expect(excerpt).toContain("APPLICABILITY TARGETS:")
     expect(excerpt).toContain("characterMateriality targets: char-renn (char-renn, state-renn-exposed)")
     expect(excerpt).toContain("Judge characterMateriality only against declared characterId")

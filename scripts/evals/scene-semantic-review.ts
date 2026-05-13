@@ -322,9 +322,14 @@ function renderSceneExcerpt(input: {
     `Crisis choice: ${(scene as Record<string, unknown>).crisisChoice ?? "(none declared)"}`,
     `Outcome: ${(scene as Record<string, unknown>).outcome ?? "(none declared)"}`,
     `Consequence: ${(scene as Record<string, unknown>).consequence ?? "(none declared)"}`,
+    `Declared scene endpoint: ${declaredSceneEndpoint(scene)}`,
     `POV personal stake: ${scene.povPersonalStake ?? "(none declared)"}`,
     `Value shift: ${valueShift}`,
     `MICE/thread: ${(scene as Record<string, unknown>).miceThread ?? "(none declared)"}`,
+    "",
+    "JUDGE LENS:",
+    "- For endpointLanding, use the declared scene endpoint above. The chapter purpose is background, not the sole endpoint target.",
+    "- Judge the final action and consequence inside this scene's prose; forward propulsion can point to the next scene or next chapter.",
     "",
     "APPLICABILITY TARGETS:",
     `- characterMateriality targets: ${characterTargets.length > 0 ? characterTargets.join("; ") : "(none declared)"}`,
@@ -355,6 +360,20 @@ function renderSceneExcerpt(input: {
       : "CHAPTER PROSE (fallback; no per-scene writer call found, judge against this scene's contract):",
     input.sceneProse,
   ].join("\n")
+}
+
+function declaredSceneEndpoint(scene: SceneBeat): string {
+  const outcome = textField(scene, "outcome")
+  const consequence = textField(scene, "consequence")
+  if (outcome && consequence) return `Outcome: ${outcome} Consequence: ${consequence}`
+  if (outcome) return `Outcome: ${outcome}`
+  if (consequence) return `Consequence: ${consequence}`
+  return "(none declared)"
+}
+
+function textField(scene: SceneBeat, field: string): string {
+  const value = (scene as Record<string, unknown>)[field]
+  return typeof value === "string" ? value.trim() : ""
 }
 
 function declaredCharacterTargets(obligations: ReturnType<typeof flattenObligations>): string[] {

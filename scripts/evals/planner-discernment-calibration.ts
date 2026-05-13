@@ -376,10 +376,11 @@ function labelDefinitions(dimension: Dimension): string {
   }
   if (dimension === "endpointLanding") {
     return `Endpoint landing labels:
-- ENDPOINT-0: Declared endpoint is absent or disconnected from the final scene.
+- The judged unit may be a whole chapter or one scene. In scene-semantic replay, treat the SCENE CONTRACT outcome+consequence as the declared endpoint.
+- ENDPOINT-0: Declared endpoint is absent or disconnected from the unit's final action.
 - ENDPOINT-1: Endpoint is stated weakly, delayed, or left as intention without concrete consequence.
-- ENDPOINT-2: Endpoint lands through final action and consequence.
-- ENDPOINT-3: Endpoint lands and creates forward propulsion: new danger, pursuit, obligation, reversal, or unavoidable next chapter.`
+- ENDPOINT-2: Endpoint lands through final action and consequence inside the judged unit.
+- ENDPOINT-3: Endpoint lands and creates forward propulsion: new danger, pursuit, obligation, reversal, or unavoidable next scene/chapter.`
   }
   if (dimension === "causalMomentum") {
     return `Causal momentum labels:

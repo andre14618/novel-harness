@@ -93,6 +93,8 @@ describe("renderBeatContext + scene contract", () => {
     expect(out).toContain("- Burn the script and force a public reckoning.")
     expect(out).toContain("Outcome (what happens): Calla burns the script.")
     expect(out).toContain("Consequence (observable downstream pressure — different from outcome): Davan is exiled and the empire begins hunting Calla.")
+    expect(out).toContain("Endpoint landing: enact the outcome before this scene exits, then show the immediate consequence on page.")
+    expect(out).toContain("If the scene ends with intention, unanswered setup, or a later confrontation")
     expect(out).toContain("POV personal stake: Calla cannot let Davan be reduced to leverage again.")
     expect(out).toContain("Value polarity: compliance → rupture")
   })
