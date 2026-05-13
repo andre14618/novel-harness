@@ -569,7 +569,7 @@ describe("flagsForArm", () => {
     expect(flagsForArm("baseline")).toEqual({
       sceneCallWriterV1: false,
       writerExpansionMode: "off",
-      forceRenderSceneContractWhenAvailable: false,
+      forceRenderSceneContractWhenAvailable: true,
       writerPromptIdRendering: "raw",
       writerDraftingBriefMode: "off",
     })
@@ -582,11 +582,11 @@ describe("flagsForArm", () => {
     // the prompt-rendering effect.
     expect(flags.sceneCallWriterV1).toBe(false)
     expect(flags.writerExpansionMode).toBe("off")
-    expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
+    expect(flags.forceRenderSceneContractWhenAvailable).toBe(true)
     expect(flags.writerDraftingBriefMode).toBe("off")
   })
 
-  test("contract-render-only arm flips ONLY the scene-contract-render flag", () => {
+  test("contract-render-only arm remains an explicit production-contract alias", () => {
     const flags = flagsForArm("contract-render-only")
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(true)
     expect(flags.sceneCallWriterV1).toBe(false)

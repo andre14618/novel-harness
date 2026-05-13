@@ -116,28 +116,17 @@ export const pipeline = {
   // slices flip the default to true after evidence gates clear.
   scenePlanContractV1: false,
 
-  // L097 Slice 2: scene-call writer rendering flag. Default off. When on
-  // AND the entry has scene-contract fields populated by the planner
-  // (Slice 1), the writer prompt surfaces the scene contract (goal,
-  // crisisChoice, choiceAlternatives, outcome, consequence,
-  // povPersonalStake, valueIn, valueOut). Off-flag the writer prompt is
-  // byte-identical to today's beat-shaped prompt.
+  // L097 Slice 2: scene-call writer architecture flag. Default off. When on,
+  // the writer uses the scene-call path; L110 separately renders populated
+  // scene-contract fields on the beat-shaped writer without this flag.
   sceneCallWriterV1: false,
 
-  // adjusted-B3 Arm B preparation: render the SCENE CONTRACT block when
-  // the planner has populated scene-contract fields, without switching
-  // to scene-call writer mode. Default off. When this flag is true and
-  // sceneCallWriterV1 is false, the writer keeps its beat-shaped call
-  // unit but the SCENE CONTRACT section is rendered if any
-  // scene-contract field is populated. Off-flag (both flags false) the
-  // prompt is byte-identical to legacy. When sceneCallWriterV1=true,
-  // this flag is redundant — scene-call mode already implies the
-  // contract render. Decoupling lets adjusted-B3 isolate "contract
-  // rendering effect" (Arm B) from "scene-call writer architecture
-  // shift" (Arm C). The flag does NOT cause deterministic field
-  // population — when no field is set on the entry, no SCENE CONTRACT
-  // section emits.
-  forceRenderSceneContractWhenAvailable: false,
+  // L110: render the SCENE CONTRACT block on the production beat-shaped
+  // writer whenever the planner populated scene-contract fields. This does
+  // NOT enable sceneCallWriterV1, expansion retries, or deterministic field
+  // population; entries with no scene-contract fields still render no block.
+  // Per-novel overrides can set false for legacy no-contract comparisons.
+  forceRenderSceneContractWhenAvailable: true,
 
   // adjusted-B1/B3 experiment lane: draft-capture mode. Default off.
   // When on, after the writer assembles each chapter's prose, drafting

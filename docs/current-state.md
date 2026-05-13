@@ -79,10 +79,9 @@ Use deeper docs only when linked by the context pack or needed by code.
 - Traceability IDs are mandatory across state, DB, telemetry, checker findings,
   proposal targets, eval artifacts, and audit logs. Raw ID visibility inside
   prose-writer prompts is a narrower per-site question. See L099.
-- Scene-first runtime substrate exists behind default-off flags from L095-L098:
-  `scenePlanContractV1`, `sceneCallWriterV1`, writer expansion mode, and
-  scene-satisfaction diagnostic wiring. Do not flip defaults without a new
-  production decision and evidence gate.
+- Scene-first runtime substrate remains default-off for `sceneCallWriterV1`,
+  writer expansion, and scene-satisfaction diagnostics; L110 only renders
+  populated scene-contract fields on the beat-shaped writer by default.
 - L106 writer-brief integration exists behind default-off
   `writerDraftingBriefMode` values including tight, scene-turn, anchored, and
   tight-anchored variants. They render compact writer-facing briefs from
@@ -95,6 +94,7 @@ Use deeper docs only when linked by the context pack or needed by code.
   `diagnostics:planning-drafting-context` to audit context/canon/story-spine/story-ref/reader-state and unresolved reference attempts and
   `diagnostics:drafting-run-compare`/`diagnostics:drafting-run-cohort` to compare
   clean-source reports with semantic trace IDs/clusters, context, and manual-readiness deltas; `test-drafting-isolated` writes context, Plan-Assist, and checker-readiness sidecars.
+  Runtime analytical checkers have expanded token headroom after L110.
 - Production drafting defaults to exact-ID character context capsules
   (`thread-character-context-v1`). See L094.
 - Native chapter contracts and story-turn planning are the production planning

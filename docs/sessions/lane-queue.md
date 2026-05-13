@@ -29,8 +29,8 @@ unless the user explicitly requests a disposable branch.
   flip remains blocked; stable evidence capture is now
   `--quality-telemetry-packet`; target endpoint/materiality execution plus
   checker support-echo noise next. See L106-L108.
-- **Genre-specific plotline lane is open (L109).** First commercial POC is
-  adult guild/mercenary mission progression fantasy; shape one Book 1 contract packet from `docs/method-packs/mercenary-progression-adventure-v0.md` before broad drafting.
+- **Genre-specific plotline lane is open (L109).** First commercial POC is adult guild/mercenary mission progression fantasy; shape one Book 1 contract packet from `docs/method-packs/mercenary-progression-adventure-v0.md` before broad drafting.
+- **Rillgate drafting follow-up (L110).** Production beat-shaped drafting now renders populated scene contracts by default and analytical checker caps have more headroom; next evidence should verify baseline scene-contract coverage and no continuity cap hits.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort

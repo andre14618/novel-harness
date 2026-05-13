@@ -15,10 +15,10 @@ import {
 } from "./pipeline"
 
 describe("pipeline default flag values (production runtime)", () => {
-  test("writer-arm experiment flags are all default-off", () => {
+  test("writer-arm experiment flags preserve production defaults", () => {
     expect(pipeline.sceneCallWriterV1).toBe(false)
     expect(pipeline.writerExpansionMode).toBe("off")
-    expect(pipeline.forceRenderSceneContractWhenAvailable).toBe(false)
+    expect(pipeline.forceRenderSceneContractWhenAvailable).toBe(true)
     expect(pipeline.writerPromptIdRendering).toBe("raw")
     expect(pipeline.writerDraftingBriefMode).toBe("off")
     expect(pipeline.draftCaptureModeV1).toBe(false)
@@ -51,9 +51,10 @@ describe("override resolvers fall back to pipeline defaults when override absent
   })
 
   test("resolveForceRenderSceneContractWhenAvailable", () => {
-    expect(resolveForceRenderSceneContractWhenAvailable(undefined)).toBe(false)
-    expect(resolveForceRenderSceneContractWhenAvailable({})).toBe(false)
+    expect(resolveForceRenderSceneContractWhenAvailable(undefined)).toBe(true)
+    expect(resolveForceRenderSceneContractWhenAvailable({})).toBe(true)
     expect(resolveForceRenderSceneContractWhenAvailable({ forceRenderSceneContractWhenAvailable: true })).toBe(true)
+    expect(resolveForceRenderSceneContractWhenAvailable({ forceRenderSceneContractWhenAvailable: false })).toBe(false)
   })
 
   test("resolveWriterPromptIdRendering", () => {

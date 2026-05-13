@@ -48,4 +48,12 @@ describe("writer genre pack routing", () => {
       maxTokens: 32000,
     })
   })
+
+  test("runtime analytical checkers have cap headroom for long chapters", () => {
+    expect(getAgentConfig("functional-state-checker")!.maxTokens).toBeGreaterThanOrEqual(4096)
+    expect(getAgentConfig("continuity-facts")!.maxTokens).toBeGreaterThanOrEqual(8192)
+    expect(getAgentConfig("continuity-state")!.maxTokens).toBeGreaterThanOrEqual(4096)
+    expect(getAgentConfig("chapter-plan-checker")!.maxTokens).toBeGreaterThanOrEqual(8192)
+    expect(getAgentConfig("chapter-plan-reviser")!.maxTokens).toBeGreaterThanOrEqual(16384)
+  })
 })

@@ -11,6 +11,7 @@
  * Arms:
  *   baseline           — current production writer (sceneCallWriterV1=false,
  *                        writerExpansionMode="off",
+ *                        forceRenderSceneContractWhenAvailable=true,
  *                        writerPromptIdRendering="raw")
  *   id-suppress        — adjusted-B1 ablation: same writer as baseline, but
  *                        Cluster-1 raw-ID lines suppressed in the
@@ -19,17 +20,12 @@
  *                        checker findings, proposals, evals, and audit
  *                        logs are unaffected — the flag is render-only.
  *                        See docs/decisions/L099-writer-prompt-id-rendering.md.
- *   contract-render-only — adjusted-B3 Arm B preparation: render the
- *                        SCENE CONTRACT block whenever the planner has
- *                        populated scene-contract fields, without
- *                        switching to scene-call writer mode. Requires
- *                        the new `forceRenderSceneContractWhenAvailable`
- *                        pipeline override (default-off). When the
- *                        underlying plan has no scene-contract fields
- *                        (the common production case while
- *                        scenePlanContractV1 stays default-off), the
- *                        rendered prompt remains byte-identical to
- *                        baseline.
+ *   contract-render-only — historical adjusted-B3 Arm B: explicitly render
+ *                        the SCENE CONTRACT block whenever the planner has
+ *                        populated scene-contract fields, without switching
+ *                        to scene-call writer mode. After L110 this is an
+ *                        alias for production baseline kept for old command
+ *                        lines and report comparisons.
  *   scene-call-no-expansion — scene-call writer with the same SCENE
  *                        CONTRACT rendering as scene-call-v1, but with
  *                        writerExpansionMode="off". Use this to isolate
@@ -551,7 +547,7 @@ export function flagsForArm(arm: ArmName): ArmFlags {
       return {
         sceneCallWriterV1: false,
         writerExpansionMode: "off",
-        forceRenderSceneContractWhenAvailable: false,
+        forceRenderSceneContractWhenAvailable: true,
         writerPromptIdRendering: "raw",
         writerDraftingBriefMode: "off",
       }
@@ -561,15 +557,14 @@ export function flagsForArm(arm: ArmName): ArmFlags {
       return {
         sceneCallWriterV1: false,
         writerExpansionMode: "off",
-        forceRenderSceneContractWhenAvailable: false,
+        forceRenderSceneContractWhenAvailable: true,
         writerPromptIdRendering: "suppress",
         writerDraftingBriefMode: "off",
       }
     case "contract-render-only":
-      // adjusted-B3 Arm B preparation: render the scene contract block
-      // when populated, but keep the beat-shaped writer call unit. No
-      // expansion-retry path. ID rendering stays raw so this arm is a
-      // pure isolation of "contract rendering effect."
+      // Historical adjusted-B3 Arm B. Kept for scripts that still name it;
+      // after L110 it is equivalent to production baseline except for the
+      // explicit flag spelling.
       return {
         sceneCallWriterV1: false,
         writerExpansionMode: "off",

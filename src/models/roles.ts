@@ -110,7 +110,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
 
   // Planned story-state grounding. Warning-only until oracle calibration;
   // deterministic payoff-link integrity remains in src/phases/functional-checks.ts.
-  "functional-state-checker":  { ...deepseekV4Flash, temperature: 0.1, maxTokens: 1536 },
+  "functional-state-checker":  { ...deepseekV4Flash, temperature: 0.1, maxTokens: 4096 },
   "editorial-beat-coverage":  { ...deepseekV4Flash, temperature: 0.1, maxTokens: 4096 },
 
   // ── Extractors (structured extraction from prose) ─────────────────────
@@ -123,8 +123,11 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Validators (analytical checks) ────────────────────────────────────
   // continuity: decomposed into 2 parallel calls (facts + state) via check.ts.
   // Sub-check aliases — same model, distinct agent names for tracing in llm_calls.
-  "continuity-facts":          { ...deepseekV4Flash, temperature: 0.1, maxTokens: 2048 },
-  "continuity-state":          { ...deepseekV4Flash, temperature: 0.1, maxTokens: 2048 },
+  // L110: long drafted chapters can need more than 2K output tokens just to
+  // return structured continuity evidence. These caps are headroom, not a
+  // target; output cost is still metered on emitted tokens.
+  "continuity-facts":          { ...deepseekV4Flash, temperature: 0.1, maxTokens: 8192 },
+  "continuity-state":          { ...deepseekV4Flash, temperature: 0.1, maxTokens: 4096 },
 
   // ── Lint fixer (per-sentence creative fixes via LLM) ──────────────────
   "lint-fixer":                { ...deepseekV4Flash, temperature: 0.2 },
@@ -137,7 +140,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // vs validated 96% accuracy on Phase C.3 evals (exp #178) — distribution
   // drift on real fantasy plans. SFT recalibration on TODO as low-priority;
   // context engineering takes precedence over local-model SFT for now.
-  "chapter-plan-checker":      { ...deepseekV4Flash, thinking: true, temperature: 0.2, maxTokens: 4096 },
+  "chapter-plan-checker":      { ...deepseekV4Flash, thinking: true, temperature: 0.2, maxTokens: 8192 },
 
   // ── Chapter plan reviser ─────────────────────────────────────────────
   // Invoked ONCE per chapter (across all drafting attempts) when the
@@ -153,7 +156,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // and bailing the whole novel at the plan-assist gate. Thinking-mode
   // reasoning tokens consume budget alongside structured output, so the old
   // cap was tight on chapters needing substantial re-plans.
-  "chapter-plan-reviser":      { ...deepseekV4Flash, thinking: true, temperature: 0.3, maxTokens: 12288 },
+  "chapter-plan-reviser":      { ...deepseekV4Flash, thinking: true, temperature: 0.3, maxTokens: 16384 },
 
   // ── Lint research (offline scripts only — NOT in the pipeline) ─────
   // Used by scripts/lint/lint-discover.ts + scripts/lint/lint-discover-lib.ts
