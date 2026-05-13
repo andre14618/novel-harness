@@ -25,12 +25,12 @@ const BASELINE_TSC_ERRORS = 26
 /**
  * Baseline of pre-existing `bun test src/` failures. Now 0: T3 (exp #246)
  * resolved the cross-file `bun:test` mock-pollution issue that previously
- * caused `src/phases/beat-checks.test.ts` to SyntaxError when a sibling
+ * caused `src/phases/scene-checks.test.ts` to SyntaxError when a sibling
  * drafting test ran first in the same process. The fix extends the two
- * `mock.module("./beat-checks", ...)` bodies in
+ * `mock.module("./scene-checks", ...)` bodies in
  * `src/phases/drafting-reviser-escalation.test.ts` and
  * `src/phases/drafting-revision-used-persistence.test.ts` to re-export
- * the full beat-checks shape (`aggregateIssues` / `formatRetryLine` /
+ * the full scene-checks shape (`aggregateIssues` / `formatRetryLine` /
  * `summarizeIssues` with real-signature parity). With the baseline at 0,
  * any new failure fails preflight immediately instead of hiding in the
  * tolerance window.

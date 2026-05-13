@@ -421,23 +421,27 @@ test("AND-gate: benign year labels do not become LLM-only blockers", async () =>
   expect(nerPatchCalls.at(-1)?.data.andGateDecision).toBe("pass")
 })
 
-test("AND-gate: benign lowercase finance and regional descriptors do not become LLM-only blockers", async () => {
+test("AND-gate: all-lowercase descriptor phrases do not become LLM-only blockers", async () => {
   mockLLMResult = {
     pass: false,
     issues: [
       { entity: "sovereign liability", excerpt: "distribute the sovereign liability across multiple accounts" },
       { entity: "eastern ports", excerpt: "A shipping magnate from the eastern ports." },
+      { entity: "bronze witness", excerpt: "Your contract says you need a bronze witness to make the cores admissible." },
+      { entity: "bronze-ranked retrieval", excerpt: "A bronze-ranked retrieval with full salvage rights? That doesn't happen." },
     ],
   }
   const prose = [
     "Maren said she needed to distribute the sovereign liability across multiple accounts.",
     "The next ledger named a shipping magnate from the eastern ports.",
+    "Your contract says you need a bronze witness to make the cores admissible.",
+    "A bronze-ranked retrieval with full salvage rights? That doesn't happen.",
   ].join(" ")
   const result = await checkHallucUngrounded(prose, baseBeat, baseOutline, baseChars, emptyWorldBible)
 
   expect(result.pass).toBe(true)
   expect(result.issues).toEqual([])
-  expect(nerPatchCalls.at(-1)?.data.llmSuppressedByPolicy).toBe(2)
+  expect(nerPatchCalls.at(-1)?.data.llmSuppressedByPolicy).toBe(4)
   expect(nerPatchCalls.at(-1)?.data.andGateDecision).toBe("pass")
 })
 
@@ -450,6 +454,24 @@ test("AND-gate: capitalized regional names remain eligible LLM-only blockers", a
 
   expect(result.pass).toBe(false)
   expect(result.issues.join(" ")).toContain("Eastern Ports")
+  expect(nerPatchCalls.at(-1)?.data.llmSuppressedByPolicy).toBe(0)
+})
+
+test("AND-gate: capitalized contract-law phrases remain eligible LLM-only blockers", async () => {
+  mockLLMResult = {
+    pass: false,
+    issues: [{ entity: "Bronze Witness", excerpt: "The Bronze Witness signed the retrieval writ." }],
+  }
+  const result = await checkHallucUngrounded(
+    "The Bronze Witness signed the retrieval writ.",
+    baseBeat,
+    baseOutline,
+    baseChars,
+    emptyWorldBible,
+  )
+
+  expect(result.pass).toBe(false)
+  expect(result.issues.join(" ")).toContain("Bronze Witness")
   expect(nerPatchCalls.at(-1)?.data.llmSuppressedByPolicy).toBe(0)
 })
 
@@ -1405,12 +1427,12 @@ test("L68 fan-out: voteN=2 with disjoint flag-sets → both entities surface", a
   // in turn. Both calls flag a single ungrounded entity each, but on
   // disjoint sets — exactly the exp #389 stochasticity pattern.
   mockLLMResultsByCall = [
-    { pass: false, issues: [{ entity: "central spire", excerpt: "central spire's heartbeat records" }] },
+    { pass: false, issues: [{ entity: "Central Spire", excerpt: "Central Spire's heartbeat records" }] },
     { pass: false, issues: [{ entity: "Senior Cataloguer", excerpt: "the Senior Cataloguer signed" }] },
   ]
   mockLLMCallIdsByCall = [101, 102]
 
-  const prose = "Below the central spire the Senior Cataloguer signed the ledger."
+  const prose = "Below the Central Spire the Senior Cataloguer signed the ledger."
   const result = await checkHallucUngrounded(
     prose,
     baseBeat,
@@ -1425,7 +1447,7 @@ test("L68 fan-out: voteN=2 with disjoint flag-sets → both entities surface", a
   // Both entities should be surfaced as issues (LLM-only-blocker path: NER
   // doesn't fire here because the prose doesn't have suffix-class shapes).
   const issueText = result.issues.join(" | ")
-  expect(issueText).toContain("central spire")
+  expect(issueText).toContain("Central Spire")
   expect(issueText).toContain("Senior Cataloguer")
 })
 

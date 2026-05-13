@@ -2,14 +2,14 @@ import { describe, expect, test } from "bun:test"
 import { buildCheckerBlockerDeviations } from "./checker-blockers"
 
 describe("buildCheckerBlockerDeviations", () => {
-  test("promotes accepted beat-check blockers to beat-indexed deviations", () => {
+  test("promotes accepted scene-check blockers to scene-indexed deviations", () => {
     const deviations = buildCheckerBlockerDeviations({
-      acceptedBeatIssues: [
+      acceptedSceneIssues: [
         {
-          beatIndex: 4,
+          sceneIndex: 4,
           beatId: "ch-001-test-beat-005",
           issues: [
-            { source: "adherence", severity: "blocker", description: "Beat events not enacted" },
+            { source: "adherence", severity: "blocker", description: "Scene events not enacted" },
             { source: "halluc-ungrounded", severity: "warning", description: "soft signal" },
           ],
         },
@@ -18,15 +18,15 @@ describe("buildCheckerBlockerDeviations", () => {
     })
 
     expect(deviations).toEqual([
-      { beat_index: 4, beatId: "ch-001-test-beat-005", description: "[beat-check:adherence] Beat 5: Beat events not enacted" },
+      { beat_index: 4, beatId: "ch-001-test-beat-005", description: "[scene-check:adherence] Scene 5: Scene events not enacted" },
     ])
   })
 
   test("preserves halluc-ungrounded stable entity metadata on blocker deviations", () => {
     const deviations = buildCheckerBlockerDeviations({
-      acceptedBeatIssues: [
+      acceptedSceneIssues: [
         {
-          beatIndex: 0,
+          sceneIndex: 0,
           beatId: "ch-001-test-beat-001",
           issues: [{
             source: "halluc-ungrounded",
@@ -53,7 +53,7 @@ describe("buildCheckerBlockerDeviations", () => {
 
   test("keeps continuity blockers diagnostic-only", () => {
     const deviations = buildCheckerBlockerDeviations({
-      acceptedBeatIssues: [],
+      acceptedSceneIssues: [],
       continuityIssues: [
         { severity: "warning", description: "minor", conflictsWith: undefined, suggestedFix: undefined },
         { severity: "blocker", description: "Wren location violation", conflictsWith: "home", suggestedFix: undefined },
@@ -65,7 +65,7 @@ describe("buildCheckerBlockerDeviations", () => {
 
   test("does not promote continuity-state warnings into plan-assist blockers", () => {
     const deviations = buildCheckerBlockerDeviations({
-      acceptedBeatIssues: [],
+      acceptedSceneIssues: [],
       continuityIssues: [
         {
           severity: "warning",
@@ -81,7 +81,7 @@ describe("buildCheckerBlockerDeviations", () => {
 
   test("promotes functional blockers with their checker source", () => {
     const deviations = buildCheckerBlockerDeviations({
-      acceptedBeatIssues: [],
+      acceptedSceneIssues: [],
       continuityIssues: [],
       functionalIssues: [
         { checker: "functional-state-grounding", severity: "warning", beat_index: null, description: "soft" },

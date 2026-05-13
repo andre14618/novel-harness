@@ -135,6 +135,24 @@ const STORY_TURN_TERMS = [
   "sacrifice", "threaten", "warn",
 ]
 
+const ENDPOINT_FALLBACK_TERMS = [
+  "accept", "accepts", "agree", "agrees", "arrive", "arrives", "choose",
+  "chooses", "commit", "commits", "depart", "departs", "enter", "enters",
+  "escape", "escapes", "exit", "exits", "file", "files", "gain", "gains",
+  "leave", "leaves", "leaving", "protect", "protects", "receive", "receives",
+  "return", "returns", "save", "saves", "settle", "settles", "shift", "shifts",
+  "sign", "signs", "survive", "survives",
+]
+
+const TURN_FIELD_KEYS = [
+  "goal",
+  "opposition",
+  "turningPoint",
+  "crisisChoice",
+  "outcome",
+  "consequence",
+] as const
+
 const EMPTY_PRESERVE_IDS: PlannerQualityPreserveIds = {
   obligationIds: [],
   characterIds: [],
@@ -229,7 +247,7 @@ function rowToChapter(row: PlannerQualityOutlineRow): PlannerQualityChapter | nu
 function endpointAssessment(outline: ChapterOutline): PlannerQualityEndpoint {
   const declared = extractEndpoint(outline.purpose)
   const finalScene = outline.scenes.at(-1) as SceneBeat | undefined
-  const finalEntry = finalScene?.description ?? null
+  const finalEntry = finalScene ? sceneEndpointText(finalScene) : null
   const finalSceneRef = finalScene
     ? sceneTargetRef(outline, finalScene, outline.scenes.length - 1)
     : null
@@ -288,6 +306,7 @@ function storyTurnWeaknesses(outline: ChapterOutline): PlannerQualityChapter["we
       targetRef: sceneTargetRef(outline, scene as SceneBeat, index),
       preserveIds: preserveIdsForScene(scene as SceneBeat),
     }
+    if (hasStructuredTurnPressure(scene as SceneBeat)) return []
     const tokens = contentTokens(desc)
     if (tokens.length < 6) return [issue]
     const hasTurnTerm = STORY_TURN_TERMS.some(term => tokens.includes(term))
@@ -535,7 +554,41 @@ function extractEndpoint(purpose: string): string | null {
     const match = purpose.match(pattern)
     if (match?.[1]) return match[1].trim()
   }
+  const finalSentence = purpose
+    .split(/(?<=[.!?])\s+/)
+    .map(sentence => sentence.trim())
+    .filter(Boolean)
+    .at(-1)
+  if (finalSentence && looksLikeEndpointSentence(finalSentence)) return finalSentence
   return null
+}
+
+function looksLikeEndpointSentence(sentence: string): boolean {
+  const tokens = new Set(contentTokens(sentence))
+  if (ENDPOINT_FALLBACK_TERMS.some(term => tokens.has(term))) return true
+  return /\bwith\b.+\b(unresolved|unsigned|protected|saved|ready|outside|ahead)\b/i.test(sentence) ||
+    /\bcan no longer\b/i.test(sentence) ||
+    /\bsetting up\b|\bnext\b.+\b(hook|mission|contract|chapter)\b/i.test(sentence)
+}
+
+function sceneEndpointText(scene: SceneBeat): string {
+  return [
+    scene.description,
+    scene.outcome,
+    scene.consequence,
+  ].filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .join(" ")
+}
+
+function hasStructuredTurnPressure(scene: SceneBeat): boolean {
+  const presentFields = TURN_FIELD_KEYS.filter(key => {
+    const value = scene[key]
+    return typeof value === "string" && value.trim().length > 0
+  })
+  if (presentFields.includes("turningPoint") && presentFields.includes("outcome")) return true
+  if (presentFields.includes("goal") && presentFields.includes("opposition") && presentFields.length >= 3) return true
+  if (presentFields.includes("crisisChoice")) return true
+  return false
 }
 
 function slugForGroup(value: string): string {
@@ -551,7 +604,8 @@ function textMentionsCharacter(text: string, character: string): boolean {
 function contentTokens(text: string): string[] {
   return text
     .toLowerCase()
-    .replace(/['']/g, "")
+    .replace(/['\u2019]s\b/g, "")
+    .replace(/['\u2019]/g, "")
     .split(/[^a-z0-9]+/)
     .filter(token => token.length > 3 && !STOPWORDS.has(token))
 }

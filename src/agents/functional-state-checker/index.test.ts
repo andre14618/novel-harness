@@ -422,6 +422,52 @@ describe("routeFunctionalStateFinding — structured verdict routing", () => {
       verdict: "missing",
     })).toBe("self_contradiction")
   })
+
+  test("suppresses missing verdicts when the rationale says the item is supported", () => {
+    expect(routeFunctionalStateFinding({
+      kind: "established_fact_missing",
+      verdict: "missing",
+      planned_item: "The brine-hook mechanism is a key to a deeper chamber.",
+      explanation: "The prose states the hook opens whatever is below; context implies the deeper chamber, so this is supported.",
+    })).toBe("support_echo")
+
+    expect(routeFunctionalStateFinding({
+      kind: "character_state_missing",
+      verdict: "missing",
+      planned_item: "Kael Rusk location: side route.",
+      explanation: "The prose places Kael in the side route throughout, so this is supported.",
+    })).toBe("support_echo")
+
+    expect(routeFunctionalStateFinding({
+      kind: "established_fact_missing",
+      verdict: "missing",
+      planned_item: "Kael refused an early sale of Mira's debt marker.",
+      explanation: "The prose shows a trader offering an early buyout and Kael saying 'No', but does not explicitly state that he refused an early sale of Mira's debt marker.",
+    })).toBe("support_echo")
+
+    expect(routeFunctionalStateFinding({
+      kind: "knowledge_change_missing",
+      verdict: "missing",
+      planned_item: "Gray Salt Mine is contested by a rival crew.",
+      explanation: "The prose mentions a crew staking a claim, but does not explicitly state that Kael knows the mine is contested by a rival crew.",
+    })).toBe("support_echo")
+  })
+
+  test("does not suppress true missing rows just because they use the word support negatively", () => {
+    expect(routeFunctionalStateFinding({
+      kind: "established_fact_missing",
+      verdict: "missing",
+      planned_item: "The altar runs cold to the touch",
+      explanation: "The prose contains no supporting evidence and the fact is not supported.",
+    })).toBe("actionable")
+
+    expect(routeFunctionalStateFinding({
+      kind: "character_state_missing",
+      verdict: "missing",
+      planned_item: "Kael Rusk emotionalState: pale and focused on the tactical win.",
+      explanation: "The prose describes the numb arm and shaking left hand, but does not mention a pale face or emotional focus on the tactical win.",
+    })).toBe("actionable")
+  })
 })
 
 describe("buildContext — beat_id surfacing", () => {

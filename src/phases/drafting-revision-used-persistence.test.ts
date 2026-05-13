@@ -20,7 +20,7 @@
  * Mocks at the module boundary — no LLM or DB state is touched.
  */
 import { mock, test, expect, beforeEach, afterEach } from "bun:test"
-import { buildBeatChecksMock } from "./beat-checks.mock-shape"
+import { buildSceneChecksMock } from "./scene-checks.mock-shape"
 
 // ── Shared mock state (reset per test) ─────────────────────────────────
 let isRevisionUsedInitial = false
@@ -55,13 +55,27 @@ mock.module("../config/pipeline", () => ({
     forceRenderSceneContractWhenAvailable: false,
     writerPromptIdRendering: "raw",
     writerDraftingBriefMode: "off",
+    sceneEntityGroundingMode: "off",
     draftCaptureModeV1: false,
+    nativePlanningContractV1: true,
+    planningSceneTurnShapingV1: false,
+    planningMaterialPressureV1: false,
+    scenePlanContractV1: false,
   },
+  resolveNativePlanningContractV1: (overrides?: { nativePlanningContractV1?: boolean }) =>
+    overrides?.nativePlanningContractV1 ?? true,
+  resolvePlanningSceneTurnShapingV1: (overrides?: { planningSceneTurnShapingV1?: boolean }) =>
+    overrides?.planningSceneTurnShapingV1 ?? false,
+  resolvePlanningMaterialPressureV1: (overrides?: { planningMaterialPressureV1?: boolean }) =>
+    overrides?.planningMaterialPressureV1 ?? false,
+  resolveScenePlanContractV1: (overrides?: { scenePlanContractV1?: boolean }) =>
+    overrides?.scenePlanContractV1 ?? false,
   resolveSceneCallWriterV1: () => false,
   resolveWriterExpansionMode: () => "off",
   resolveForceRenderSceneContractWhenAvailable: () => false,
   resolveWriterPromptIdRendering: () => "raw",
   resolveWriterDraftingBriefMode: () => "off",
+  resolveSceneEntityGroundingMode: () => "off",
   resolveDraftCaptureModeV1: () => false,
 }))
 
@@ -179,8 +193,8 @@ mock.module("../agents/writer/reference-resolver", () => ({
   resolveReferences: async () => ({ context: "", lookupCount: 0, llmUsed: false }),
 }))
 // NOTE: `bun:test` module mocks are process-global. See comment in
-// drafting-reviser-escalation.test.ts — shape lives in `./beat-checks.mock-shape.ts`.
-mock.module("./beat-checks", buildBeatChecksMock)
+// drafting-reviser-escalation.test.ts — shape lives in `./scene-checks.mock-shape.ts`.
+mock.module("./scene-checks", buildSceneChecksMock)
 mock.module("../agents/continuity/check", () => ({
   checkContinuity: async () => ({ issues: [] }),
 }))
@@ -250,7 +264,10 @@ mock.module("../lint/fix", () => ({
   fixLintIssues: async () => ({ prose: "", deterministicFixes: 0, llmFixes: 0, unfixed: 0, llmCalls: 0, costUsd: 0 }),
 }))
 mock.module("../models/roles", () => ({
+  AGENT_MODELS: {},
   getModelForAgent: () => ({ provider: "deepseek", model: "deepseek-v4-flash", temperature: 0.8, maxTokens: 4000 }),
+  resolveStructuralPriors: () => null,
+  renderStructuralPriorsForPlanner: () => "",
 }))
 mock.module("../prompts", () => ({
   WRITER_AGENT_PROMPT: "w", BEAT_WRITER_PROMPT: "bw", CHAPTER_PLAN_CHECKER_PROMPT: "pc",

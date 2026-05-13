@@ -70,10 +70,10 @@ describe("test-drafting-isolated parseArgs", () => {
     expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--writer-only"]).writerOnly).toBe(true)
   })
 
-  test("prose semantic eval is default-on, can dry-run, and can opt out", () => {
+  test("prose semantic eval is default-off, can run live, can dry-run, and can opt out", () => {
     const defaults = parseArgs(["--source", "n", "--target-prefix", "ab"])
     expect(defaults.qualityTelemetryPacket).toBe(false)
-    expect(defaults.proseSemanticEval).toBe(true)
+    expect(defaults.proseSemanticEval).toBe(false)
     expect(defaults.proseSemanticDryRun).toBe(false)
 
     const live = parseArgs(["--source", "n", "--target-prefix", "ab", "--prose-semantic-eval", "--prose-semantic-concurrency", "2"])

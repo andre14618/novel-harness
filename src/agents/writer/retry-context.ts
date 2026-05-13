@@ -1,8 +1,8 @@
 /**
- * retry-context.ts — Production retry-context builder for the beat-writer.
+ * retry-context.ts — Production retry-context builder for the scene writer path.
  *
  * Extracted from src/phases/drafting.ts (the adherence-retry site at the
- * inner beat-writing loop, lines ~279-295). The purpose is to give the
+ * inner scene-writing loop, lines ~279-295). The purpose is to give the
  * parity harness a callable function that returns the exact prompt bytes
  * production would send on a checker-failure retry, so arm (b) of the
  * rewrite-capability-probe can invoke the real retry shape without
@@ -14,7 +14,7 @@
  *
  * Design decisions made beyond the brief:
  *   - The alignment-note heuristic (detecting "not enacted" in the issues
- *     array to inject a "prior-beat already covers some actions" note) is
+ *     array to inject a "prior scene already covers some actions" note) is
  *     preserved here verbatim. The brief said "match byte-for-byte" and this
  *     branch is part of production.
  *   - `priorBeatProse` is optional. When null/undefined, the alignment note
@@ -29,20 +29,20 @@ import type { BeatContextResult } from "./beat-context"
 const RETRY_PRIOR_PROSE_CHAR_LIMIT = 8000
 
 export interface RetryPromptInput {
-  /** Output of buildSceneContext for this beat. */
+  /** Output of buildSceneContext for this scene entry. */
   beatContext: BeatContextResult
   /** The system prompt string (packPrompt ?? BEAT_WRITER_PROMPT). */
   systemPrompt: string
   /** The prior-attempt prose that failed checks. Truncated to 8,000 chars. */
   v1Prose: string
-  /** Checker/detector issue strings — the retryLines from BeatCheckResult. */
+  /** Checker/detector issue strings — the retryLines from SceneCheckResult. */
   issues: string[]
   /** 1-based attempt number. Purely for logging; does not alter prompt bytes. */
   attempt: number
   /**
-   * The last beat's prose, if this is not the first beat in the chapter.
+   * The last scene's prose, if this is not the first scene in the chapter.
    * Used to inject an alignment note when the issues mention "not enacted"
-   * (legacy single-line) or "Beat event missing" (per-event two-stage,
+   * (legacy single-line) or "Scene event missing" (per-event two-stage,
    * 2026-05-01) — both phrases indicate the adherence-events checker
    * found at least one required action missing on-page.
    * Pass undefined or null to suppress the note regardless of issue content.
@@ -56,7 +56,7 @@ export interface RetryPromptOutput {
 }
 
 /**
- * Build the exact prompt bytes the production beat-writer retry path sends
+ * Build the exact prompt bytes the production scene-writer retry path sends
  * after a checker failure.
  *
  * The returned `userPrompt` is `beatCtx.userPrompt + retryContext`, exactly
@@ -79,14 +79,14 @@ export function buildRetryPrompt(input: RetryPromptInput): RetryPromptOutput {
     }
   }
 
-  const hasEventIssue = issues.some(i => i.includes("not enacted") || i.includes("Beat event missing"))
+  const hasEventIssue = issues.some(i => i.includes("not enacted") || i.includes("Scene event missing") || i.includes("Beat event missing"))
   const alignmentNote =
     hasEventIssue && priorBeatProse
-      ? `\nNote: The previous beat's prose (below) may already cover some of this beat's actions — this is natural prose flow. Focus on actions NOT yet dramatized. Do not duplicate what the prior beat already covered. If the prior bridge conflicts with the required event or actor named in the issue, obey this beat's task and issue, not the conflicting handoff.\n\nPrevious beat's prose (last 500 chars):\n---\n${priorBeatProse.slice(-500)}\n---\n`
+      ? `\nNote: The previous scene's prose (below) may already cover some of this scene's actions — this is natural prose flow. Focus on actions NOT yet dramatized. Do not duplicate what the prior scene already covered. If the prior bridge conflicts with the required event or actor named in the issue, obey this scene's task and issue, not the conflicting handoff.\n\nPrevious scene's prose (last 500 chars):\n---\n${priorBeatProse.slice(-500)}\n---\n`
       : ""
 
   const retryContext =
-    `\n\n--- TARGETED REWRITE ---\nYour previous prose for this beat:\n---\n${v1Prose.slice(0, RETRY_PRIOR_PROSE_CHAR_LIMIT)}\n---\nIssues found:\n${issues.map(i => `- ${i}`).join("\n")}${alignmentNote}\nRewrite this beat to address the issues above while preserving what works.`
+    `\n\n--- TARGETED REWRITE ---\nYour previous prose for this scene:\n---\n${v1Prose.slice(0, RETRY_PRIOR_PROSE_CHAR_LIMIT)}\n---\nIssues found:\n${issues.map(i => `- ${i}`).join("\n")}${alignmentNote}\nRewrite this scene to address the issues above while preserving what works.`
 
   return {
     systemPrompt,
@@ -109,7 +109,7 @@ export function buildRetryPrompt(input: RetryPromptInput): RetryPromptOutput {
 const EXPANSION_PRIOR_PROSE_CHAR_LIMIT = 8000
 
 export interface ExpansionPromptInput {
-  /** Output of buildSceneContext for this beat. */
+  /** Output of buildSceneContext for this scene entry. */
   beatContext: BeatContextResult
   /** The system prompt string (BEAT_WRITER_PROMPT). */
   systemPrompt: string
@@ -145,13 +145,13 @@ export function buildExpansionPrompt(input: ExpansionPromptInput): ExpansionProm
 
 /**
  * Format chapter-level prose-integrity issues from a prior chapter-attempt
- * into a context block to append to every beat's userPrompt in the next
+ * into a context block to append to every scene entry's userPrompt in the next
  * chapter-attempt.
  *
  * Returns an empty string when `issues` is empty (no chapter retry, or the
  * prior attempt's integrity passed). The block is intended to be appended
- * to each beat's `userPrompt` AFTER any beat-level retry context, so the
- * writer reads a chapter-wide structural reminder alongside their per-beat
+ * to each scene entry's `userPrompt` AFTER any scene-level retry context, so the
+ * writer reads a chapter-wide structural reminder alongside their per-scene
  * brief.
  *
  * L41 (exp #368): closes the prose-integrity-instability cluster surfaced
@@ -234,7 +234,7 @@ export function extractUngroundedEntitiesFromDescriptions(
 
 /**
  * Format chapter-level halluc-ungrounded issues from a prior chapter-attempt
- * into a context block to append to every beat's userPrompt in the next
+ * into a context block to append to every scene entry's userPrompt in the next
  * chapter-attempt.
  *
  * L65 / Lever G-A (exp #391): mirrors `formatChapterIntegrityRetryContext`.

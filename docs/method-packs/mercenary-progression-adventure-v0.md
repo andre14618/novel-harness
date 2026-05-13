@@ -93,6 +93,21 @@ Slots may merge for shorter work, but Book 1 must preserve the full loop:
 hub pressure, contract, arena, complication, progression payoff, consequence,
 and next hook.
 
+## Commercial Story-Shape V1 Fields
+
+The production seed carries the chapter-function template in structured
+`chapterContracts[]` fields, not only in prose notes:
+
+- `structureSlotId`: the MPA slot, such as `MPA-01`;
+- `jobFunction`: the commercial mission function for the chapter;
+- `endpointTest`: the concrete condition the chapter endpoint must satisfy;
+- `pressureFocus`: one to four pressure dimensions the scenes should make
+  operational.
+
+This is intentionally smaller than a rigid plot builder. It tells the planner
+what job the chapter must perform, but leaves the scene count, exact obstacle,
+dialogue, and prose execution to the normal planning and drafting path.
+
 ## Scene Contract Bias
 
 Every scene should make at least one of these pressures operational:

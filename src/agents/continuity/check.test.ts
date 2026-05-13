@@ -267,9 +267,20 @@ test("isExplicitFactNonContradiction filters support echoes and omissions", () =
     reasoning: "The draft does not mention Halric's personal ruin, but it does not contradict it either.",
   })).toBe(true)
   expect(isExplicitFactNonContradiction({
+    fact: "factId=board; ch1; category=physical] No bronze-tier contracts are available on the Contract Hall board; all existing ones are already claimed.",
+    evidence: "Tessa Mire is a bronze-ranked crew leader working a contract at the mine.",
+    reasoning: "The established fact states no bronze-tier contracts are available, yet Tessa's crew is bronze-ranked and working on a contract, implying a bronze-tier contract exists.",
+  })).toBe(true)
+  expect(isExplicitFactNonContradiction({
     classification: "logical_contradiction",
     reasoning: "The draft states verification requires no witness, contradicting the fact.",
   })).toBe(false)
+})
+
+test("fact continuity prompt tells the checker board availability is scoped", () => {
+  const prompt = buildFactUserPrompt("Draft", [], undefined)
+  expect(prompt).toContain("Board/listing availability is scoped")
+  expect(prompt).toContain("does not mean such contracts, ranks, or crews do not exist elsewhere")
 })
 
 function characterState(overrides: Partial<CharacterState> = {}): CharacterState {

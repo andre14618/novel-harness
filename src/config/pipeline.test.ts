@@ -11,6 +11,7 @@ import {
   resolvePlanningMaterialPressureV1,
   resolvePlanningSceneTurnShapingV1,
   resolveSceneSatisfactionCheckerV1,
+  resolveSceneEntityGroundingMode,
   resolveWriterDraftingBriefMode,
 } from "./pipeline"
 
@@ -26,6 +27,7 @@ describe("pipeline default flag values (production runtime)", () => {
     expect(pipeline.planningSceneTurnShapingV1).toBe(false)
     expect(pipeline.planningMaterialPressureV1).toBe(false)
     expect(pipeline.sceneSatisfactionCheckerV1).toBe(false)
+    expect(pipeline.sceneEntityGroundingMode).toBe("off")
   })
 
   test("writerContextMode default is the production-wired thread-character-context-v1", () => {
@@ -105,5 +107,11 @@ describe("override resolvers fall back to pipeline defaults when override absent
   test("resolveSceneSatisfactionCheckerV1", () => {
     expect(resolveSceneSatisfactionCheckerV1(undefined)).toBe(false)
     expect(resolveSceneSatisfactionCheckerV1({ sceneSatisfactionCheckerV1: true })).toBe(true)
+  })
+
+  test("resolveSceneEntityGroundingMode", () => {
+    expect(resolveSceneEntityGroundingMode(undefined)).toBe("off")
+    expect(resolveSceneEntityGroundingMode({})).toBe("off")
+    expect(resolveSceneEntityGroundingMode({ sceneEntityGroundingMode: "llm-blocking" })).toBe("llm-blocking")
   })
 })

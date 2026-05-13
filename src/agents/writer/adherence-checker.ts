@@ -1,5 +1,5 @@
 /**
- * Beat adherence checker — deterministic checks + bounded LLM calls
+ * Scene adherence checker — deterministic checks + bounded LLM calls
  * on the configured adherence-checker model.
  *
  * Two-stage LLM design (2026-05-01, exp #317):
@@ -14,7 +14,7 @@
  * Character call merged into events after ground-truth eval (2026-04-12)
  * showed 6/8 catches redundant. Setting and tangent removed after production
  * data showed 0 tangent fires (563 calls) and setting's 4.3% fire rate
- * catches planner-level issues unfixable by the beat writer.
+ * catches planner-level issues unfixable by the scene writer.
  * See docs/retry-surface-audit.md.
  */
 
@@ -51,19 +51,19 @@ const missingEventsSchema = z.object({
 // feedback_priming_suppression_ab. See docs/adherence-events-v3-causal-ordering-2026-05-01.md.
 // Remaining FN: two-of-three-fail-02 (candle-lighting) — model self-consistency failure,
 // requires per-event extraction redesign (deferred).
-const EVENTS_SYSTEM = `You verify whether the prose ENACTS the scene beat on-page.
+const EVENTS_SYSTEM = `You verify whether the prose ENACTS the scene entry on-page.
 
-Read the beat description carefully. Identify every distinct action or event it specifies — whether dramatic, mechanical, or ambient — there may be one or several. Then check whether EACH is dramatized in the prose.
+Read the scene entry carefully. Identify every distinct action or event it specifies — whether dramatic, mechanical, or ambient — there may be one or several. Then check whether EACH is dramatized in the prose.
 
 Rules:
 - "Enacted" means the action happens IN SCENE during this prose — characters performing the action, dialogue, or narration of the action as it occurs. Paraphrase, dialogue rewording, and atmospheric expansion are fine.
 - A reference to the action as having happened earlier (off-page, past-tense, summarized as backstory) does NOT count as enacted.
-- Characters being merely present is NOT enough — the beat's specific actions must occur.
-- If the beat specifies multiple actions, ALL must appear in the prose. A partially enacted beat is not fully enacted.
-- Each action must be performed by the character the beat assigns it to. If the beat says Character A does something but the prose has Character B do it, the action is NOT correctly enacted.
-- Treat every listed action as equally obligated regardless of dramatic weight. Mechanical or ambient actions (lighting candles, opening doors, picking up objects, asking sub-questions) are as obligated as dramatic actions if the beat specifies them. Do not distinguish between major and minor events — if the beat names it, it must appear.
-- When the beat sequences events with "then", "after", "before", "next", or implicit causal logic (where X is a prerequisite for Y to occur), verify that the prose enacts them in the same order. If a prerequisite action occurs after its consequence in the prose, return events_present=false even when all events are present.
-- If ANY action from the beat is missing, return events_present=false. Do NOT default to true.
+- Characters being merely present is NOT enough — the scene entry's specific actions must occur.
+- If the scene entry specifies multiple actions, ALL must appear in the prose. A partially enacted scene entry is not fully enacted.
+- Each action must be performed by the character the scene entry assigns it to. If the scene entry says Character A does something but the prose has Character B do it, the action is NOT correctly enacted.
+- Treat every listed action as equally obligated regardless of dramatic weight. Mechanical or ambient actions (lighting candles, opening doors, picking up objects, asking sub-questions) are as obligated as dramatic actions if the scene entry specifies them. Do not distinguish between major and minor events — if the scene entry names it, it must appear.
+- When the scene entry sequences events with "then", "after", "before", "next", or implicit causal logic (where X is a prerequisite for Y to occur), verify that the prose enacts them in the same order. If a prerequisite action occurs after its consequence in the prose, return events_present=false even when all events are present.
+- If ANY action from the scene entry is missing, return events_present=false. Do NOT default to true.
 
 Respond with ONLY valid JSON in this exact shape:
 {
@@ -72,14 +72,14 @@ Respond with ONLY valid JSON in this exact shape:
   "reasoning": "<one sentence>"
 }`
 
-const MISSING_EVENTS_SYSTEM = `You enumerate which obligated events from a beat description are missing from the prose.
+const MISSING_EVENTS_SYSTEM = `You enumerate which obligated events from a scene entry are missing from the prose.
 
-Step 1: Read the beat description and identify EVERY discrete event it specifies — there are usually 1 to 4 distinct events per beat. An event is a single action, decision, discovery, or state-change-on-page. Compound clauses joined by "and" / ";" / commas usually contain multiple events.
+Step 1: Read the scene entry and identify EVERY discrete event it specifies — there are usually 1 to 4 distinct events per scene entry. An event is a single action, decision, discovery, or state-change-on-page. Compound clauses joined by "and" / ";" / commas usually contain multiple events.
 
 Step 2: For EACH identified event, scan the prose for an on-page enactment.
 - "Enacted" means the action happens IN SCENE during this prose — characters performing the action, dialogue, or narration of the action as it occurs.
 - A reference to the action as having happened earlier (off-page, past-tense, summarized as backstory) does NOT count as enacted.
-- The action must be performed by the character the beat assigns it to. If the beat says A asks B but the prose has B volunteer without A asking, the "ask" event is NOT enacted.
+- The action must be performed by the character the scene entry assigns it to. If the scene entry says A asks B but the prose has B volunteer without A asking, the "ask" event is NOT enacted.
 - Paraphrase, dialogue rewording, and atmospheric expansion are fine — judge by the underlying action, not the wording.
 
 Step 3: For each event, return enacted: true | false and a short prose quote as evidence. If enacted is false, evidence_quote should still cite the closest passage so the reviewer can see what the prose did instead (or an empty string if nothing relevant exists in the prose).
@@ -92,13 +92,13 @@ Respond with ONLY valid JSON in this exact shape:
   "reasoning": "<one sentence summarizing the verdict>"
 }`
 
-export async function checkBeatAdherence(
+export async function checkSceneAdherence(
   prose: string,
   beat: SceneBeat,
   outline: ChapterOutline,
   characters: CharacterProfile[],
   // Tags so this call lands in llm_calls with the same drill-down keys
-  // as the beat-writer call it's checking. Optional for backwards compat
+  // as the scene writer call it's checking. Optional for backwards compat
   // (callers outside the drafting loop pass nothing → call is logged untagged).
   tags?: { novelId?: string; chapter?: number; beatIndex?: number; sceneId?: string; beatId?: string; attempt?: number },
 ): Promise<AdherenceResult> {
@@ -106,16 +106,16 @@ export async function checkBeatAdherence(
 
   // ── Deterministic checks (instant) ──────────────────────────────────
 
-  // Character presence: every named character in beat should appear in prose
+  // Character presence: every named character in the scene entry should appear in prose
   issues.push(...findMissingCharacterMentions(prose, beat, outline))
 
   // Word count check removed 2026-04-16: the metric was never load-bearing for
-  // prose quality. Beat size is driven by the brief's dramatic function, not a
+  // prose quality. Scene size is driven by the brief's dramatic function, not a
   // numeric target.
   //
   // Dialogue check also removed: false-positive rate too high for scenes where
   // silence is intentional. The events+attribution LLM call catches missing
-  // dialogue when the beat actually requires it.
+  // dialogue when the scene entry actually requires it.
 
   // Trace deterministic results
   if (tags?.novelId) {
@@ -140,16 +140,16 @@ export async function checkBeatAdherence(
   // L39 (2026-05-02, exp #363): raised from 2000 → 8000 chars after
   // discovering 52% of writer outputs exceed 2000 (heretic ch1 evidence
   // novel-1777709036403). Truncation was dropping resolution actions in
-  // long action beats — e.g., heretic ch1 beat 4 emitted "She slid it
+  // long action scene entries — e.g., heretic ch1 scene 4 emitted "She slid it
   // back into its slot" near char 2400, the obligated reshelve event
   // was off-screen, and adherence stage 1 + stage 2 both flagged it
   // missing. Per cross-novel sample: 8000 covers 100% of observed
-  // beats. DeepSeek V4 Flash 32K context easily fits + prompt cache
+  // scene entries. DeepSeek V4 Flash 32K context easily fits + prompt cache
   // dominates cost — per-call uncached prose tokens go from ~500 →
   // ~2000, marginal $.
   const proseTrimmed = prose.slice(0, 8000)
   const charsLine = beat.characters.join(", ")
-  const userPrompt = `BEAT: ${beat.description}
+  const userPrompt = `SCENE ENTRY: ${beat.description}
 CHARACTERS EXPECTED: ${charsLine}
 
 PROSE:
@@ -180,7 +180,7 @@ ${proseTrimmed}
       // the b12 partial-enactment cluster).
       //
       // L31c (2026-05-02, exp #346): when stage 2 reports ALL events as
-      // enacted, override the stage-1 fail and accept the beat. Stage 2
+      // enacted, override the stage-1 fail and accept the scene. Stage 2
       // is more authoritative — it provides per-event quote evidence.
       // The override is traced for audit.
       const stage2Result = await enumerateMissingEvents({
@@ -205,7 +205,7 @@ ${proseTrimmed}
         log(
           tags?.novelId ?? "",
           "info",
-          `Beat ${(tags?.beatIndex ?? 0) + 1} adherence: stage-2 override — all events enacted, stage-1 false-negative suppressed`,
+          `Scene ${(tags?.beatIndex ?? 0) + 1} adherence: stage-2 override — all events enacted, stage-1 false-negative suppressed`,
         )
       } else {
         issues.push(...stage2Result.issues)
@@ -234,7 +234,7 @@ ${proseTrimmed}
  * ALL events enacted, the stage-1 `events_present=false` is treated as a
  * stochastic false negative (temperature self-inconsistency on implicit-
  * action edge cases, e.g. "filling out a complaint form = deciding to
- * report"). The beat is accepted; the override is traced for audit.
+ * report"). The scene is accepted; the override is traced for audit.
  *
  * On any failure (transport / schema error), falls back to the original
  * generic single-line message so the retry loop never silently loses the
@@ -249,7 +249,7 @@ async function enumerateMissingEvents(input: {
   tags?: { novelId?: string; chapter?: number; beatIndex?: number; sceneId?: string; beatId?: string; attempt?: number }
 }): Promise<{ issues: string[]; stage2Override: boolean }> {
   const { userPrompt, fallbackReasoning, tags } = input
-  const fallback = `Beat events not enacted on-page: ${fallbackReasoning || "no evidence found"}`
+  const fallback = `Scene events not enacted on-page: ${fallbackReasoning || "no evidence found"}`
   try {
     const stage2 = await callAgent({
       novelId: tags?.novelId,
@@ -279,8 +279,8 @@ async function enumerateMissingEvents(input: {
       issues: missing.map(e => {
         const quote = e.evidence_quote?.trim() ?? ""
         return quote
-          ? `Beat event missing: ${e.event} — closest prose: "${quote}"`
-          : `Beat event missing: ${e.event}`
+          ? `Scene event missing: ${e.event} — closest prose: "${quote}"`
+          : `Scene event missing: ${e.event}`
       }),
       stage2Override: false,
     }
@@ -288,6 +288,8 @@ async function enumerateMissingEvents(input: {
     return { issues: [fallback], stage2Override: false }
   }
 }
+
+export const checkBeatAdherence = checkSceneAdherence
 
 export function findMissingCharacterMentions(prose: string, beat: SceneBeat, outline: ChapterOutline): string[] {
   const issues: string[] = []

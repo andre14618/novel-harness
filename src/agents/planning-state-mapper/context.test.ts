@@ -188,6 +188,10 @@ test("planning-state-mapper context redacts future-boundary terms from current c
         chapterContracts: [{
           chapter: 5,
           contractId: "ch5-route-clue",
+          structureSlotId: "",
+          jobFunction: "",
+          endpointTest: "",
+          pressureFocus: [],
           storyFunction: "Route clue",
           ownedMovement: "Istra wins a route clue while the illegal archive engine remains hidden.",
           allowedStoryTerritory: ["Archive corridor"],

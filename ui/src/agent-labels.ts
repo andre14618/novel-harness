@@ -2,7 +2,7 @@
  * Shared display labels for harness agents.
  *
  * Agents are referenced by their registry name (`src/models/roles.ts`
- * AGENT_MODELS keys + `src/phases/beat-checks.ts` BeatIssueSource names).
+ * AGENT_MODELS keys + `src/phases/scene-checks.ts` SceneIssueSource names).
  * Several UI surfaces render the same agent under different phrasing
  * (pipeline pills, activity feed verbs, config-page headings), which
  * previously drifted — e.g. continuity had three distinct labels across
@@ -25,7 +25,7 @@ const SHORT_LABELS: Record<string, string> = {
   "writer": "Writer",
   "beat-writer": "Beat Writer",
   "reference-resolver": "References",
-  // Beat-level checkers
+  // Scene-level checkers
   "adherence-events": "Adherence",
   "halluc-ungrounded": "Halluc",
   // Chapter-level checkers

@@ -78,16 +78,32 @@ test("mercenary progression seed renders Book 1 contract packet for the planner"
     "mpa-ch09-contract-climax",
     "mpa-ch10-return-hook",
   ])
+  expect(directives.chapterContracts.map(contract => contract.structureSlotId)).toEqual([
+    "MPA-01",
+    "MPA-02",
+    "MPA-03",
+    "MPA-04",
+    "MPA-05",
+    "MPA-06",
+    "MPA-07",
+    "MPA-08",
+    "MPA-09",
+    "MPA-10",
+  ])
 
   const rendered = renderDirectivesForPlanner(directives)
   expect(rendered).toContain("MPA-01 Hub pressure")
   expect(rendered).toContain("MPA-10 Return and next hook")
   expect(rendered).toContain("CHAPTER CONTRACTS")
   expect(rendered).toContain("mpa-ch01-hub-debt-pressure")
+  expect(rendered).toContain("Slot: MPA-01")
+  expect(rendered).toContain("Job function: Hub pressure")
+  expect(rendered).toContain("Endpoint test: Hero needs rank/legal leverage")
+  expect(rendered).toContain("Pressure focus: objectivePressure; tacticalConstraint")
   expect(rendered).toContain("Required endpoint: Kael understands he needs a contract")
   expect(rendered).toContain("CHAPTER SEQUENCE GUARDS")
   expect(rendered).toContain("ch1-no-contract-acceptance")
-  expect(rendered).toContain("Must not contain: Lady Varn's office")
+  expect(rendered).toContain("Must not contain: enters Lady Varn's office")
   expect(rendered).toContain("signs the contract")
   expect(rendered).toContain("Must not contain: enters the mine")
   expect(rendered).toContain("ch6-harvest-reveal")
@@ -112,6 +128,10 @@ test("scene expansion directives are scoped to the target chapter contract", () 
   expect(chapterOne).toContain("CHAPTER-SCOPED DIRECTIVES")
   expect(chapterOne).toContain("TARGET CHAPTER CONTRACT")
   expect(chapterOne).toContain("mpa-ch01-hub-debt-pressure")
+  expect(chapterOne).toContain("Slot: MPA-01")
+  expect(chapterOne).toContain("Job function: Hub pressure")
+  expect(chapterOne).toContain("Endpoint test: Hero needs rank/legal leverage")
+  expect(chapterOne).toContain("Pressure focus: objectivePressure; tacticalConstraint")
   expect(chapterOne).toContain("Boundary locks:")
   expect(chapterOne).toContain("MPA-01 Hub pressure")
   expect(chapterOne).toContain("Next chapter owns after this handoff: Contract decision and mission launch")

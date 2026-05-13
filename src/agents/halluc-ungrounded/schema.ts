@@ -70,7 +70,7 @@ export interface HallucUngroundedResult {
    * implicitly blocker-class when the prepass is disabled).
    *
    * L31a: NER-only-warning issues carry `"warning"`; all other issue paths
-   * carry `"blocker"`. Consumers (`runBeatChecks`) use this to avoid spending
+   * carry `"blocker"`. Consumers (`runSceneChecks`) use this to avoid spending
    * beat retry budget on warning-class entities the LLM already approved.
    */
   issuesSeverity?: Array<"blocker" | "warning">

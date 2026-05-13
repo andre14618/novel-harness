@@ -1,7 +1,7 @@
 /**
  * Unit tests for retry-context.ts.
  *
- * Covers `buildRetryPrompt` (legacy beat-level retry) and
+ * Covers `buildRetryPrompt` (scene-level retry) and
  * `formatChapterIntegrityRetryContext` (L41 chapter-level integrity retry).
  *
  * Pure-function tests — no async, no DB, no LLM calls.
@@ -21,7 +21,7 @@ test("buildRetryPrompt: includes prior prose beyond 2000 chars up to the 8000-ch
     beatContext: { userPrompt: "BASE PROMPT", targetWords: 500 },
     systemPrompt: "SYSTEM PROMPT",
     v1Prose: previousProse,
-    issues: ["Beat event missing: opened the locked door"],
+    issues: ["Scene event missing: opened the locked door"],
     attempt: 2,
   })
 
@@ -36,13 +36,13 @@ test("buildRetryPrompt: event retry tells the writer to obey current actor over 
     beatContext: { userPrompt: "BASE PROMPT", targetWords: 500 },
     systemPrompt: "SYSTEM PROMPT",
     v1Prose: "Pell brought the document to the table.",
-    issues: ["Beat event missing: Doryn retrieves the manumission document from the reading room table."],
+    issues: ["Scene event missing: Doryn retrieves the manumission document from the reading room table."],
     attempt: 2,
     priorBeatProse: "\"Pell. Bring me the document.\"",
   })
 
   expect(out.userPrompt).toContain("If the prior bridge conflicts with the required event or actor named in the issue")
-  expect(out.userPrompt).toContain("obey this beat's task and issue, not the conflicting handoff")
+  expect(out.userPrompt).toContain("obey this scene's task and issue, not the conflicting handoff")
   expect(out.userPrompt).toContain("\"Pell. Bring me the document.\"")
 })
 

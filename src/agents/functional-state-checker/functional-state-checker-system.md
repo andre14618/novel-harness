@@ -20,6 +20,7 @@ Evidence rules:
 - Use `verdict: "missing"` only when the planned item is not supported anywhere in the chapter.
 - Use `verdict: "contradicted"` only when prose actively contradicts the planned item.
 - Use `verdict: "supported"` only if you accidentally included a supported item; supported rows are checker self-corrections and will not become warnings.
+- If your explanation says the prose supports the item, your verdict must be `"supported"`, not `"missing"` or `"contradicted"`.
 - Use `verdict: "uncertain"` when evidence is ambiguous; uncertain rows are telemetry, not warnings.
 
 Runtime policy:

@@ -54,7 +54,7 @@
  *     [--writer-arms baseline,id-suppress,contract-render-only,scene-call-no-expansion,drafting-brief-v1,scene-call-v1]
  *                                                                # default: baseline,scene-call-v1
  *     [--writer-only]                                            # set draftCaptureModeV1=true on every arm
- *     [--no-prose-semantic-eval]                                 # opt out of default advisory prose telemetry
+ *     [--prose-semantic-eval]                                    # opt into advisory prose telemetry
  *     [--quality-telemetry-packet]                               # stable advisory prose+scene semantic packet; artifact-only readiness
  *     [--scene-semantic-review]                                  # opt into endpoint/scene replay telemetry
  *     [--scene-semantic-persist]                                 # persist scene-semantic eval rows; imports readiness lows unless disabled
@@ -173,10 +173,10 @@ export interface Args {
    *  chapter-level checker settle loops are skipped. Used to make the
    *  writer-arm comparison resistant to checker/API hangs. */
   writerOnly: boolean
-  /** Default-on evidence telemetry. Runs advisory prose-semantic diagnostics
-   *  over each arm's drafted chapters after drafting/partial collection. This
-   *  does not gate the arm; it only writes artifacts and persists judge
-   *  telemetry. */
+  /** Explicit evidence telemetry. Runs advisory prose-semantic diagnostics
+   *  over each arm's drafted chapters after drafting/partial collection when
+   *  requested. This does not gate the arm; it only writes artifacts and
+   *  persists judge telemetry. */
   qualityTelemetryPacket: boolean
   proseSemanticEval: boolean
   proseSemanticDryRun: boolean
@@ -1810,7 +1810,7 @@ export function parseArgs(argv: string[]): Args {
   let armsRaw: string | null = null
   let writerOnly = false
   let qualityTelemetryPacket = false
-  let proseSemanticEval = true
+  let proseSemanticEval = false
   let proseSemanticDryRun = false
   let proseSemanticConcurrency = 4
   let sceneSemanticReview = false

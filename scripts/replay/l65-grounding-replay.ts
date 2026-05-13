@@ -31,10 +31,10 @@ async function main() {
   const parsed = parseJsonbArray<{ description?: string }>(raw)
   const exhDescriptions: string[] = parsed.map(d => d.description ?? "").filter(s => s.length > 0)
 
-  // Strip the [beat-check:halluc-ungrounded] Beat N: prefix that
+  // Strip the scene-check/legacy beat-check halluc prefix that
   // chapter_exhaustions prepends, leaving the raw checker line.
   const cleaned = exhDescriptions.map(d => {
-    const m = /^(?:\[beat \d+\]\s*)?\[beat-check:halluc-ungrounded\]\s*(?:Beat \d+:\s*)?(.+)$/.exec(d)
+    const m = /^(?:\[beat \d+\]\s*)?\[(?:scene|beat)-check:halluc-ungrounded\]\s*(?:(?:Scene|Beat) \d+:\s*)?(.+)$/.exec(d)
     return m ? m[1]! : d
   })
 

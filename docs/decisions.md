@@ -16,6 +16,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
+| L112 | 2026-05-13 | active | Default drafting now prioritizes scene-contract/adherence fulfillment over paid false-positive-heavy semantic gates: `scene-checks` replaces `beat-checks`, halluc-ungrounded LLM blocking is explicit via `sceneEntityGroundingMode`, and prose/scene semantic telemetry is opt-in. | `docs/decisions/L112-scene-check-cost-posture.md` |
 | L111 | 2026-05-13 | active | Production planning now treats future reveals as boundary-redacted constraints, not repeated "do not reveal X" prompt material; scene-count policy is scene-scale and seeds should not carry arbitrary 8-10 scene process instructions. | `docs/decisions/L111-planner-boundary-redaction-scene-budget.md` |
 | L110 | 2026-05-13 | active | Production beat-shaped drafting now renders populated scene-contract fields by default and gives runtime analytical checkers more token headroom after Rillgate exposed downstream scene-contract coverage 0/94 and continuity-facts cap hits. | `docs/decisions/L110-production-scene-contract-rendering.md` |
 | L109 | 2026-05-12 | active | First genre-specific plotline lane is adult guild/mercenary mission progression adventure fantasy; use `mercenary-progression-adventure-v0` to shape a Book 1 contract packet before broad drafting. | `docs/decisions/L109-mercenary-progression-adventure-lane.md` |

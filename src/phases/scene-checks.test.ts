@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test"
-import { aggregateIssues, summarizeIssues, formatRetryLine, type BeatIssue } from "./beat-checks"
+import { aggregateIssues, summarizeIssues, formatRetryLine, type SceneIssue } from "./scene-checks"
 
 test("aggregate: zero issues => pass=true, empty arrays", () => {
   const r = aggregateIssues({ adherence: [], ungrounded: [] })
@@ -8,7 +8,7 @@ test("aggregate: zero issues => pass=true, empty arrays", () => {
   expect(r.retryLines).toEqual([])
 })
 
-test("aggregate: OR semantics — any single source with a blocker fails the beat", () => {
+test("aggregate: OR semantics — any single source with a blocker fails the scene", () => {
   const onlyAdherence = aggregateIssues({ adherence: ["x"], ungrounded: [] })
   const onlyUngrounded = aggregateIssues({ adherence: [], ungrounded: ["y"] })
   expect(onlyAdherence.pass).toBe(false)
@@ -31,7 +31,7 @@ test("aggregate: retryLines preserves order (adherence, then ungrounded)", () =>
   expect(r.retryLines.length).toBe(2)
   expect(r.retryLines[0]).toBe("A")
   expect(r.retryLines[1]).toContain("U")
-  expect(r.retryLines[1]).toContain("beat brief, world bible, character roster, or planner-sanctioned new entities")
+  expect(r.retryLines[1]).toContain("scene brief, world bible, character roster, or planner-sanctioned new entities")
 })
 
 test("aggregate: descriptions round-trip verbatim in `issues[]`", () => {
@@ -68,7 +68,7 @@ test("summarizeIssues: empty returns 'no issues'", () => {
 })
 
 test("summarizeIssues: groups by source with counts + joins descriptions", () => {
-  const issues: BeatIssue[] = [
+  const issues: SceneIssue[] = [
     { source: "adherence", severity: "blocker", description: "A1" },
     { source: "adherence", severity: "blocker", description: "A2" },
     { source: "halluc-ungrounded", severity: "blocker", description: "U1" },
@@ -93,16 +93,16 @@ test("formatRetryLine: adherence passes through; ungrounded appends pinned resol
   expect(
     formatRetryLine({ source: "halluc-ungrounded", severity: "blocker", description: "D" }),
   ).toBe(
-    "D — Fix: use only entities from the beat brief, world bible, character roster, or planner-sanctioned new entities; otherwise remove the reference.",
+    "D — Fix: use only entities from the scene brief, world bible, character roster, or planner-sanctioned new entities; otherwise remove the reference.",
   )
 })
 
 // ── L31a: warning-severity handling in aggregateIssues ─────────────────────────
 //
 // Warnings should appear in issues[] and retryLines[] (writer awareness) but
-// must NOT set pass=false. Only severity:"blocker" issues block the beat.
+// must NOT set pass=false. Only severity:"blocker" issues block the scene.
 
-test("L31a: aggregate — warning-only ungrounded issues do NOT block the beat (pass=true)", () => {
+test("L31a: aggregate — warning-only ungrounded issues do NOT block the scene (pass=true)", () => {
   const r = aggregateIssues({
     adherence: [],
     ungrounded: ['Ungrounded entity "the Ministry of Accounts" [NER-only warning — LLM passed]'],
@@ -121,7 +121,7 @@ test("L31a: aggregate — warning-only ungrounded issues do NOT block the beat (
 test("L31a: aggregate — warning does not block even when combined with adherence blocker", () => {
   // adherence blocker is present → pass=false. The warning is still surfaced.
   const r = aggregateIssues({
-    adherence: ["Beat events not enacted."],
+    adherence: ["Scene events not enacted."],
     ungrounded: ['Ungrounded entity "Ministry of Accounts" [NER-only warning — LLM passed]'],
     ungroundedSeverity: ["warning"],
   })

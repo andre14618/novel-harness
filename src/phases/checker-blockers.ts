@@ -1,16 +1,16 @@
 import type { ContinuityIssue } from "../types"
-import type { BeatIssue } from "./beat-checks"
+import type { SceneIssue } from "./scene-checks"
 import type { FunctionalIssue } from "./functional-checks"
 
-export interface AcceptedBeatCheckIssues {
-  beatIndex: number
+export interface AcceptedSceneCheckIssues {
+  sceneIndex: number
   sceneId?: string
   beatId?: string
-  issues: BeatIssue[]
+  issues: SceneIssue[]
 }
 
 export interface CheckerBlockerInput {
-  acceptedBeatIssues: AcceptedBeatCheckIssues[]
+  acceptedSceneIssues: AcceptedSceneCheckIssues[]
   continuityIssues: ContinuityIssue[]
   functionalIssues?: FunctionalIssue[]
 }
@@ -26,14 +26,14 @@ export interface CheckerBlockerDeviation {
 export function buildCheckerBlockerDeviations(input: CheckerBlockerInput): CheckerBlockerDeviation[] {
   const deviations: CheckerBlockerDeviation[] = []
 
-  for (const accepted of input.acceptedBeatIssues) {
+  for (const accepted of input.acceptedSceneIssues) {
     for (const issue of accepted.issues) {
       if (issue.severity !== "blocker") continue
       deviations.push({
-        beat_index: accepted.beatIndex,
+        beat_index: accepted.sceneIndex,
         ...(accepted.sceneId ? { sceneId: accepted.sceneId } : {}),
         ...(accepted.beatId ? { beatId: accepted.beatId } : {}),
-        description: `[beat-check:${issue.source}] Beat ${accepted.beatIndex + 1}: ${issue.description}`,
+        description: `[scene-check:${issue.source}] Scene ${accepted.sceneIndex + 1}: ${issue.description}`,
         ...(issue.metadata ? { metadata: issue.metadata } : {}),
       })
     }

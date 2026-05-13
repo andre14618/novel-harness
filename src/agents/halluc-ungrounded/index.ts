@@ -267,26 +267,12 @@ function isBenignLowercaseDescriptor(entity: string): boolean {
   if (!trimmed || /[A-Z0-9]/.test(trimmed)) return false
   if (!/^[a-z][a-z'’ -]*$/u.test(trimmed)) return false
   const words = trimmed.split(/\s+/).filter(Boolean)
-  if (words.length < 2 || words.length > 4) return false
+  if (words.length < 2 || words.length > 5) return false
 
-  const financialOrLegalTerms = new Set([
-    "account", "accounts", "arrears", "asset", "assets", "charter", "clause",
-    "credit", "debt", "debts", "default", "interest", "ledger", "ledgers",
-    "liability", "liabilities", "loan", "loans", "principal", "sovereign",
-    "transfer", "warrant",
-  ])
-  if (words.some(word => financialOrLegalTerms.has(word))) return true
-
-  const directionalDescriptors = new Set([
-    "central", "eastern", "inner", "lower", "northern", "outer", "southern",
-    "upper", "western",
-  ])
-  const regionalCommonNouns = new Set([
-    "border", "coast", "coasts", "district", "districts", "garrison",
-    "garrisons", "market", "markets", "port", "ports", "province",
-    "provinces", "quarter", "quarters", "road", "roads", "ward", "wards",
-  ])
-  return directionalDescriptors.has(words[0]!) && regionalCommonNouns.has(words.at(-1)!)
+  // Halluc-ungrounded is a named-entity checker. If the LLM returns an
+  // all-lowercase phrase as an "entity", treat it as a generic descriptor
+  // rather than maintaining story-specific lexical allowlists.
+  return true
 }
 
 function titleStrippedPhrase(phrase: string): string | null {
@@ -784,7 +770,7 @@ export async function checkHallucUngrounded(
       // The distinction is carried in:
       //   - issue message prefixes ([NER-only warning — LLM passed] / [NER prepass])
       //   - nerOnlyFindings field (populated only for NER-only warnings)
-      //   - issuesSeverity[] parallel array consumed by aggregateIssues in beat-checks.ts
+      //   - issuesSeverity[] parallel array consumed by aggregateIssues in scene-checks.ts
 
       const nerFires = nerUngrounded.length > 0
       const llmFires = llmEffectivelyFires // L40: post-rescue signal

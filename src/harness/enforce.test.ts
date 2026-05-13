@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test"
+import { readFileSync } from "node:fs"
 
 import { enforcePlanningOutput, validateChapterSequenceGuards } from "./enforce"
+import { planningDirectivesSchema } from "../schemas/planning-directives"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../types"
 
 test("planning enforcement drops same-beat payoff links before drafting", () => {
@@ -350,6 +352,33 @@ test("chapter sequence guards catch concrete arena entry drift", () => {
   )
   expect(errors).toContain(
     'Chapter 3 sequence guard ch3-no-arena-entry: forbidden phrase "pressurized jet" found in scene 1 description',
+  )
+})
+
+test("Rillgate chapter 1 guard allows a Varn office handoff lead but blocks the office scene", () => {
+  const seed = JSON.parse(readFileSync("src/seeds/mercenary-rillgate-saltmine.json", "utf8")) as { directives?: unknown }
+  const directives = planningDirectivesSchema.parse(seed.directives)
+
+  const handoff = chapter({
+    chapterNumber: 1,
+    scenes: [
+      beat({
+        consequence: "Orin gives Kael Lady Varn's office address as the next lead, while the contract remains unsigned.",
+      }),
+    ],
+  })
+  expect(validateChapterSequenceGuards([handoff], directives)).toEqual([])
+
+  const officeScene = chapter({
+    chapterNumber: 1,
+    scenes: [
+      beat({
+        description: "Kael enters Lady Varn's office and hears the Gray Salt Mine terms before the debt bell.",
+      }),
+    ],
+  })
+  expect(validateChapterSequenceGuards([officeScene], directives)).toContain(
+    'Chapter 1 sequence guard ch1-no-contract-acceptance: forbidden phrase "enters Lady Varn\'s office" found in scene 1 description',
   )
 })
 

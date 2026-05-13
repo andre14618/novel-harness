@@ -14,14 +14,14 @@ describe("plan-assist allow entities", () => {
       unresolvedDeviations: [
         {
           beat_index: 0,
-          description: "[beat-check:halluc-ungrounded] Beat 1: fallback",
+          description: "[scene-check:halluc-ungrounded] Scene 1: fallback",
           metadata: {
             hallucUngrounded: { entity: "Tomas Vogler", excerpt: "", entityRefs: [] },
           },
         },
         {
           beat_index: 0,
-          description: "[beat-check:halluc-ungrounded] Beat 1: Ungrounded entity \"Harvest\" — context: x",
+          description: "[scene-check:halluc-ungrounded] Scene 1: Ungrounded entity \"Harvest\" — context: x",
         },
         {
           beat_index: null,

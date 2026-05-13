@@ -1,29 +1,30 @@
 /**
- * Beat-level check aggregator.
+ * Scene-level check aggregator.
  *
- * Runs every narrow checker that applies to a just-generated beat in
- * parallel, normalizes results into one `BeatIssue[]`, and formats the
+ * Runs every narrow checker that applies to a just-generated scene entry,
+ * normalizes results into one `SceneIssue[]`, and formats the
  * unified "targeted rewrite" section that feeds back into the writer on
- * retry. Beat retries are OR-gated: any blocker issue from any checker
- * forces a retry; warnings are logged but don't block accept.
+ * retry. Scene retries are OR-gated only for blocker-class checks; warnings
+ * are logged but do not block acceptance.
  *
  * Current checkers:
  *   - adherence-events  (always)
- *   - halluc-ungrounded (always)
+ *   - halluc-ungrounded (optional; default off because it is paid and
+ *     false-positive-heavy compared with deterministic plan fulfillment)
  */
 
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../types"
-import { checkBeatAdherence } from "../agents/writer/adherence-checker"
+import { checkSceneAdherence } from "../agents/writer/adherence-checker"
 import { checkHallucUngrounded } from "../agents/halluc-ungrounded"
-import type { HallucIssueMetadata } from "../agents/halluc-ungrounded"
+import type { HallucIssueMetadata, HallucUngroundedResult } from "../agents/halluc-ungrounded"
 import { pipeline } from "../config/pipeline"
 
-export type BeatIssueSource =
+export type SceneIssueSource =
   | "adherence"
   | "halluc-ungrounded"
 
-export interface BeatIssue {
-  source: BeatIssueSource
+export interface SceneIssue {
+  source: SceneIssueSource
   severity: "blocker" | "warning"
   description: string
   metadata?: {
@@ -32,55 +33,67 @@ export interface BeatIssue {
   }
 }
 
-export interface BeatCheckResult {
+export interface SceneCheckResult {
   pass: boolean              // true iff zero blockers
-  issues: BeatIssue[]
+  issues: SceneIssue[]
   /** Convenience helper — the merged issue list as human-readable lines
    *  for the targeted-rewrite prompt and the retry log. */
   retryLines: string[]
 }
 
-export interface RunBeatChecksInput {
+export interface RunSceneChecksInput {
   prose: string
-  beat: SceneBeat
+  scene: SceneBeat
   outline: ChapterOutline
   characters: CharacterProfile[]
   worldBible: any
-  /** Immediately-preceding scene beat in the same chapter, if any.
-   *  Consumed by the halluc-ungrounded checker under the beat-entity-list
-   *  charter (v1/v3) to surface prior-beat entities as grounded. */
-  prevBeat?: SceneBeat
+  /** Immediately-preceding scene entry in the same chapter, if any.
+   *  Consumed by the optional halluc-ungrounded checker to surface prior-scene
+   *  entities as grounded when that paid checker is explicitly enabled. */
+  prevScene?: SceneBeat
+  entityGroundingMode?: "off" | "llm-blocking"
   tags?: { novelId?: string; chapter?: number; beatIndex?: number; sceneId?: string; beatId?: string; attempt?: number }
 }
 
 /**
- * Run all applicable beat-level checks in parallel and normalize
- * results into one `BeatIssue[]`. Every underlying helper already
+ * Run all applicable scene-level checks in parallel and normalize
+ * results into one `SceneIssue[]`. Every underlying helper already
  * converts transport/schema failures into issues instead of throwing,
  * so `Promise.all` is safe — no rejection path to handle.
  */
-export async function runBeatChecks(input: RunBeatChecksInput): Promise<BeatCheckResult> {
-  const { prose, beat, outline, characters, worldBible, prevBeat, tags } = input
+export async function runSceneChecks(input: RunSceneChecksInput): Promise<SceneCheckResult> {
+  const {
+    prose,
+    scene,
+    outline,
+    characters,
+    worldBible,
+    prevScene,
+    tags,
+    entityGroundingMode = pipeline.sceneEntityGroundingMode,
+  } = input
 
-  // Parallelize the fan-out. Both helpers normalize failures into
-  // issues and never throw, so Promise.all is safe here. If a future
-  // checker violates that invariant, switch this site to allSettled.
-  const [adh, ung] = await Promise.all([
-    checkBeatAdherence(prose, beat, outline, characters, tags),
-    // L68: thread pipeline.hallucVoteN so production deploy can flip the
-    // multi-call vote/union via env (`HALLUC_UNGROUNDED_VOTE_N`) without a
-    // new release. Default 1 = pre-L68 single-call behavior.
-    checkHallucUngrounded(prose, beat, outline, characters, worldBible, tags, {
-      prevBeat,
-      voteN: pipeline.hallucVoteN,
-    }),
-  ])
+  const adhPromise = checkSceneAdherence(prose, scene, outline, characters, tags)
+  const skippedEntityGrounding: HallucUngroundedResult = {
+    pass: true,
+    issues: [],
+    issuesSeverity: [],
+    issueMetadata: [],
+  }
+  const ungPromise = entityGroundingMode === "llm-blocking"
+    ? checkHallucUngrounded(prose, scene, outline, characters, worldBible, tags, {
+        prevBeat: prevScene,
+        voteN: pipeline.hallucVoteN,
+      })
+    : Promise.resolve(skippedEntityGrounding)
+
+  const [adh, ung] = await Promise.all([adhPromise, ungPromise])
 
   return aggregateIssues({
     adherence: adh.issues,
     ungrounded: ung.issues,
     // L31a: pass per-issue severity from the halluc checker so NER-only warnings
-    // (severity: "warning") do not consume beat retry budget. When issuesSeverity
+    // (severity: "warning") do not consume scene retry budget. When issuesSeverity
     // is absent (v0/v2 variant), aggregateIssues defaults all issues to "blocker".
     ungroundedSeverity: ung.issuesSeverity,
     ungroundedMetadata: ung.issueMetadata,
@@ -104,17 +117,17 @@ export interface RawCheckerOutputs {
 }
 
 /**
- * Pure, synchronous assembly of the `BeatIssue[]` from raw checker
- * string-lists. Exported separately from `runBeatChecks` so unit
+ * Pure, synchronous assembly of the `SceneIssue[]` from raw checker
+ * string-lists. Exported separately from `runSceneChecks` so unit
  * tests can exercise OR-aggregation, severity tagging, and retry-
  * line formatting without an LLM call.
  *
  * L31a: warnings do NOT set `pass: false`. Only `severity: "blocker"` issues
- * block the beat. Warnings are included in `retryLines` so the writer has
- * awareness of NER-flagged entities, but the beat is not retried on their behalf.
+ * block the scene. Warnings are included in `retryLines` so the writer has
+ * awareness of NER-flagged entities, but the scene is not retried on their behalf.
  */
-export function aggregateIssues(outputs: RawCheckerOutputs): BeatCheckResult {
-  const issues: BeatIssue[] = []
+export function aggregateIssues(outputs: RawCheckerOutputs): SceneCheckResult {
+  const issues: SceneIssue[] = []
   for (const s of outputs.adherence) issues.push({ source: "adherence", severity: "blocker", description: s })
   for (let idx = 0; idx < outputs.ungrounded.length; idx++) {
     const s = outputs.ungrounded[idx]!
@@ -152,15 +165,15 @@ export function aggregateIssues(outputs: RawCheckerOutputs): BeatCheckResult {
  * reference.
  *
  * 2026-05-01 (L29): expanded source enumeration to match the L9/L20-era
- * grounded surface (beat brief, world bible, character roster, planner-
+ * grounded surface (scene brief, world bible, character roster, planner-
  * sanctioned new-entities list). Reframed from negative-prime "Do not invent"
  * to positive "use only [...]" per `feedback_priming_suppression_ab` (L21
  * showed negative-prime variants WORSEN compliance).
  */
-export function formatRetryLine(issue: BeatIssue): string {
+export function formatRetryLine(issue: SceneIssue): string {
   switch (issue.source) {
     case "halluc-ungrounded":
-      return `${issue.description} — Fix: use only entities from the beat brief, world bible, character roster, or planner-sanctioned new entities; otherwise remove the reference.`
+      return `${issue.description} — Fix: use only entities from the scene brief, world bible, character roster, or planner-sanctioned new entities; otherwise remove the reference.`
     case "adherence":
     default:
       return issue.description
@@ -171,7 +184,7 @@ export function formatRetryLine(issue: BeatIssue): string {
  * Group issues by source for the retry log — keeps the operator's
  * "what broke" summary readable when multiple checkers fire at once.
  */
-export function summarizeIssues(issues: BeatIssue[]): string {
+export function summarizeIssues(issues: SceneIssue[]): string {
   if (issues.length === 0) return "no issues"
   const bySource: Record<string, string[]> = {}
   for (const i of issues) {

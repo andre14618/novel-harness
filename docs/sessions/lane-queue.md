@@ -26,11 +26,11 @@ unless the user explicitly requests a disposable branch.
   P1 regressed at 4392/3100 with one scene low; P3 was mixed at 4269/3100 with
   no scene lows but readiness/checker noise. Cohort
   `semantic-exec-p123-tight-anchored-vs-tight` is regressed overall. Default
-  flip remains blocked; stable evidence capture is now
-  `--quality-telemetry-packet`; target endpoint/materiality execution plus
-  checker support-echo noise next. See L106-L108.
+  flip remains blocked; semantic evidence is explicit via
+  `--quality-telemetry-packet`, while default drafting now prioritizes
+  scene-contract/adherence mechanics over paid semantic gates. See L106-L108/L112.
 - **Genre-specific plotline lane is open (L109).** First commercial POC is adult guild/mercenary mission progression fantasy; shape one Book 1 contract packet from `docs/method-packs/mercenary-progression-adventure-v0.md` before broad drafting.
-- **Rillgate drafting follow-up (L110/L111).** Use repaired planner source `test-planner-mercenary-rillgate-saltmine-1778674224711`: 10 chapters / 49 scenes, balanced load, boundary redaction active, `futureEventAnchors: 0`, and no sequence-guard retry. 2026-05-13 Plan Readiness repairs landed through approved `planning_edit` proposals; planner-quality endpoint/inactive-character/weak-turn/obligation errors are 0, and planning-context missing dramatic/endpoint/turn/materiality shape is 0. Draft from this source and verify downstream writer-context telemetry, scene-semantic rows, and no continuity cap hits.
+- **Rillgate drafting follow-up (L110-L112).** Use repaired planner source `test-planner-mercenary-rillgate-saltmine-1778674224711`: 10 chapters / 49 scenes, balanced load, boundary redaction active, `futureEventAnchors: 0`, and no sequence-guard retry. 2026-05-13 Plan Readiness repairs landed through approved `planning_edit` proposals; planner-quality endpoint/inactive-character/weak-turn/obligation errors are 0, and planning-context missing dramatic/endpoint/turn/materiality shape is 0. Draft from this source with default `scene-checks`, verify writer-context/checker-readiness telemetry, and keep halluc/semantic judges opt-in unless evidence is explicitly needed.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort

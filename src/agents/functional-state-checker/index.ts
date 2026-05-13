@@ -31,7 +31,7 @@ export interface FunctionalStateWarning {
 }
 
 export interface FunctionalStateSuppressedFinding {
-  reason: "supported" | "uncertain" | "self_contradiction"
+  reason: "supported" | "uncertain" | "self_contradiction" | "support_echo"
   kind: FunctionalStateCheckerFinding["kind"]
   verdict: FunctionalStateCheckerFinding["verdict"]
   plannedItem: string
@@ -129,12 +129,42 @@ export function findingToWarning(
 }
 
 export function routeFunctionalStateFinding(
-  finding: Pick<FunctionalStateCheckerFinding, "kind" | "verdict">,
+  finding: Pick<FunctionalStateCheckerFinding, "kind" | "verdict"> & Partial<Pick<FunctionalStateCheckerFinding, "planned_item" | "evidence_quote" | "explanation">>,
 ): "actionable" | FunctionalStateSuppressedFinding["reason"] {
   if (finding.verdict === "supported") return "supported"
   if (finding.verdict === "uncertain") return "uncertain"
   const expected = finding.kind === "planned_state_contradicted" ? "contradicted" : "missing"
+  if (finding.verdict === expected && hasSupportEcho(finding)) return "support_echo"
   return finding.verdict === expected ? "actionable" : "self_contradiction"
+}
+
+function hasSupportEcho(
+  finding: Partial<Pick<FunctionalStateCheckerFinding, "planned_item" | "evidence_quote" | "explanation">>,
+): boolean {
+  const text = [
+    finding.planned_item,
+    finding.evidence_quote,
+    finding.explanation,
+  ].filter(Boolean).join(" ").toLowerCase()
+  if (!text) return false
+  if (/\b(not supported|unsupported|no support|no supporting evidence|not clearly supported|not fully supported)\b/.test(text)) {
+    return false
+  }
+  const supportLanguage = /\b(supported|supports|supporting)\b/.test(text) &&
+    /\b(so|therefore|thus|actually|however|but|context|prose|scene|beat|draft)\b/.test(text)
+  const positiveEvidenceLanguage =
+    /\b(prose|draft|scene|beat)\s+(?:shows|describes|mentions|states|places|implies|establishes|depicts)\b/.test(text) ||
+    /\b(?:shows|describes|mentions|states|places|implies|establishes|depicts)\b.+\b(prose|draft|scene|beat)\b/.test(text)
+  const explicitnessOnlyGap =
+    /\bdoes not explicitly state\b/.test(text) ||
+    /\bnot explicitly stated\b/.test(text) ||
+    /\bnever explicitly states\b/.test(text) ||
+    /\bnot articulated as (?:a |an )?(?:discovery|knowledge|state change)\b/.test(text) ||
+    /\bdoes not show (?:him|her|them|[a-z]+) (?:explicitly )?know(?:ing)?\b/.test(text)
+  const concreteMismatch =
+    /\bcontradicts?\b|\bconflicts?\b|\bnot (?:the same|in the same|actually|present|shown|mentioned|described)\b/.test(text) ||
+    /\bdoes not (?:mention|describe|show|state)\b(?!\s+explicitly)/.test(text)
+  return supportLanguage || (positiveEvidenceLanguage && explicitnessOnlyGap && !concreteMismatch)
 }
 
 function normalizeQuote(value: string | undefined): string {

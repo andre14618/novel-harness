@@ -22,7 +22,7 @@ Writing layer:
 - `beat-writer`: freeze `BeatContextResult.userPrompt`, system prompt, and model config from `src/models/roles.ts`; measure prose length, paragraph breaks, and downstream checker fire rate. The harness should mirror the `executeAndLog()` request assembled in `src/phases/drafting.ts`.
 
 Checking layer:
-- `runBeatChecks`: freeze prose, beat, outline, world bible, and prior beat; measure normalized `BeatIssue[]` and retry lines. Pure aggregation plugs into `src/phases/beat-checks.ts`; inference replay plugs into historical `llm_calls` rows.
+- `runSceneChecks`: freeze prose, scene entry, outline, world bible, and prior scene; measure normalized `SceneIssue[]` and retry lines. Pure aggregation plugs into `src/phases/scene-checks.ts`; inference replay plugs into historical `llm_calls` rows when optional LLM entity grounding is enabled.
 - `chapter-plan-checker`: freeze prose plus outline; measure `{pass, deviations, setting_match, emotional_arc_correct}`. Harness plugs into `src/agents/chapter-plan-checker/context.ts` + `src/agents/chapter-plan-checker/schema.ts`, as invoked from `src/phases/drafting.ts`.
 - `chapter-plan-reviser`: freeze outline, current prose, and unresolved issues/blockers; measure revised `scenes` plus acceptance vs rejection under the sanity rules in `src/phases/drafting.ts`. Harness plugs into `src/agents/chapter-plan-reviser/context.ts` + `src/agents/chapter-plan-reviser/schema.ts`.
 

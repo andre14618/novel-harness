@@ -28,7 +28,7 @@ import {
   extractUngroundedEntitiesFromDescriptions,
 } from "../agents/writer/retry-context"
 import { detectSyncDefects } from "../lint/quality-detectors"
-import { runBeatChecks, summarizeIssues } from "./beat-checks"
+import { runSceneChecks, summarizeIssues } from "./scene-checks"
 import { checkContinuity } from "../agents/continuity/check"
 import { buildContext as buildChapterPlanCheckContext } from "../agents/chapter-plan-checker/context"
 import {
@@ -55,6 +55,7 @@ import {
   resolveForceRenderSceneContractWhenAvailable,
   resolveDraftCaptureModeV1,
   resolveWriterDraftingBriefMode,
+  resolveSceneEntityGroundingMode,
 } from "../config/pipeline"
 import type { SeedInput } from "../types"
 import {
@@ -80,7 +81,7 @@ import {
   repairMechanicalQuoteIntegrity,
   validateLintFixIntegrity,
 } from "../lint/integrity"
-import { buildCheckerBlockerDeviations, type AcceptedBeatCheckIssues } from "./checker-blockers"
+import { buildCheckerBlockerDeviations, type AcceptedSceneCheckIssues } from "./checker-blockers"
 import { runFunctionalStoryChecks, type FunctionalIssue } from "./functional-checks"
 import { checkFunctionalStateGrounding } from "../agents/functional-state-checker"
 import { getModelForAgent } from "../models/roles"
@@ -127,6 +128,8 @@ export function effectivePipeline(seed: SeedInput): typeof pipeline {
     writerContextMode: o.writerContextMode ?? pipeline.writerContextMode,
     writerPromptIdRendering: o.writerPromptIdRendering ?? pipeline.writerPromptIdRendering,
     writerDraftingBriefMode: o.writerDraftingBriefMode ?? pipeline.writerDraftingBriefMode,
+    sceneEntityGroundingMode:
+      o.sceneEntityGroundingMode ?? pipeline.sceneEntityGroundingMode,
     draftCaptureModeV1: o.draftCaptureModeV1 ?? pipeline.draftCaptureModeV1,
     planningMaxScenesPerChapter:
       o.planningMaxScenesPerChapter ?? pipeline.planningMaxScenesPerChapter,
@@ -137,12 +140,12 @@ export function effectivePipeline(seed: SeedInput): typeof pipeline {
 
 export interface BeatLevelFallbackState {
   beatProses: string[]
-  acceptedBeatCheckIssues: AcceptedBeatCheckIssues[]
+  acceptedSceneCheckIssues: AcceptedSceneCheckIssues[]
 }
 
 export function clearAbandonedBeatLevelState(state: BeatLevelFallbackState): void {
   state.beatProses.length = 0
-  state.acceptedBeatCheckIssues.length = 0
+  state.acceptedSceneCheckIssues.length = 0
 }
 
 async function traceWriterContextEvent(
@@ -238,6 +241,9 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
   if (eff.writerDraftingBriefMode !== pipeline.writerDraftingBriefMode) {
     log(novelId, "info", `Drafting: pipelineOverrides applied — writerDraftingBriefMode=${eff.writerDraftingBriefMode}`)
   }
+  if (eff.sceneEntityGroundingMode !== pipeline.sceneEntityGroundingMode) {
+    log(novelId, "info", `Drafting: pipelineOverrides applied — sceneEntityGroundingMode=${eff.sceneEntityGroundingMode}`)
+  }
   if (eff.draftCaptureModeV1 !== pipeline.draftCaptureModeV1) {
     log(novelId, "info", `Drafting: pipelineOverrides applied — draftCaptureModeV1=${eff.draftCaptureModeV1} (chapter-level checker settle loops will be SKIPPED — writer-arm experiment lane only)`)
   }
@@ -321,7 +327,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
     // L65 (exp #391): same lever, halluc-ungrounded surface. Carry the prior
     // chapter-attempt's LLM-confirmed ungrounded entities forward so the next
     // attempt's beat-writer prompts include an entity-avoidance reminder.
-    // Sourced from `acceptedBeatCheckIssues` (entries that survived per-beat
+    // Sourced from `acceptedSceneCheckIssues` (entries that survived per-scene
     // retry budget and got accepted-with-warnings into the chapter prose).
     // Reset per chapter alongside `priorIntegrityIssues`.
     let priorUngroundedEntities: Array<{ entity: string; excerpt?: string }> = []
@@ -361,17 +367,18 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       const forceRenderSceneContractWhenAvailable =
         resolveForceRenderSceneContractWhenAvailable(novel.seed.pipelineOverrides)
       const writerDraftingBriefMode = resolveWriterDraftingBriefMode(novel.seed.pipelineOverrides)
+      const sceneEntityGroundingMode = resolveSceneEntityGroundingMode(novel.seed.pipelineOverrides)
 
-      // 1-2. Context assembly + writer (beat-level or chapter-level)
+      // 1-2. Context assembly + writer (scene-entry or chapter-level)
       let prose: string
       let wordCount: number
       // Hoisted so the chapter-plan-checker settle loop (further down) can
       // run targeted beat rewrites without rebuilding state.
       let beatProses: string[] = []
-      let acceptedBeatCheckIssues: AcceptedBeatCheckIssues[] = []
+      let acceptedSceneCheckIssues: AcceptedSceneCheckIssues[] = []
 
       if (pipeline.beatLevelWriting && outline.scenes.length > 0) {
-        // ── Beat-level generation ───────────────────────────────────────
+        // ── Scene-entry generation ──────────────────────────────────────
         try {
           // outline.scenes[] entries are scenes per L092 / L095. The legacy
           // "beat" terminology survives in BeatSpec / beat-writer agent name
@@ -495,22 +502,19 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 const prose = response.content?.trim()
                 if (!prose || prose.length < 50) continue
 
-                // Beat-level check fan-out — adherence + hallucination checkers
-                // run in parallel and their issues are aggregated. Any blocker
-                // from any checker forces retry (OR semantics). All calls are
-                // tagged with the same keys as the beat-writer call above so
-                // they group together in the inspector view.
-                const checks = await runBeatChecks({
+                // Scene-level check fan-out. Adherence remains active; the
+                // costly halluc-ungrounded LLM checker runs only when
+                // sceneEntityGroundingMode explicitly asks for LLM blocking.
+                // Any blocker forces a retry, while warning-class findings
+                // stay visible without burning retry budget.
+                const checks = await runSceneChecks({
                   prose,
-                  beat: outline.scenes[bi],
+                  scene: outline.scenes[bi],
                   outline,
                   characters,
                   worldBible,
-                  // Prior beat in the same chapter — consumed by the
-                  // halluc-ungrounded checker under the beat-entity-list
-                  // charter (v1/v3) to ground legitimate continuity
-                  // references.
-                  prevBeat: bi > 0 ? outline.scenes[bi - 1] : undefined,
+                  prevScene: bi > 0 ? outline.scenes[bi - 1] : undefined,
+                  entityGroundingMode: sceneEntityGroundingMode,
                   tags: { novelId, chapter: ch, beatIndex: bi, sceneId: beatSpec.sceneId, beatId: beatSpec.beatId, attempt: retry + 1 },
                 })
                 // Quality defects (repetition / underlength) detected AFTER existing
@@ -528,10 +532,10 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 if ((checks.pass && !hasQualityDefect) || retry === pipeline.maxBeatRetries) {
                   beatProse = prose
                   if (!checks.pass) {
-                    log(novelId, "warn", `Beat ${bi + 1} issues accepted after max retries: ${summarizeIssues(checks.issues)}`)
-                    acceptedBeatCheckIssues.push({ beatIndex: bi, sceneId: beatSpec.sceneId, beatId: beatSpec.beatId, issues: checks.issues })
+                    log(novelId, "warn", `Scene ${bi + 1} issues accepted after max retries: ${summarizeIssues(checks.issues)}`)
+                    acceptedSceneCheckIssues.push({ sceneIndex: bi, sceneId: beatSpec.sceneId, beatId: beatSpec.beatId, issues: checks.issues })
                   } else if (hasQualityDefect) {
-                    log(novelId, "warn", `Beat ${bi + 1} quality defect(s) accepted after max retries: ${qualityDefects.map(d => d.kind).join(",")}`)
+                    log(novelId, "warn", `Scene ${bi + 1} quality defect(s) accepted after max retries: ${qualityDefects.map(d => d.kind).join(",")}`)
                   }
                   break
                 }
@@ -540,7 +544,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   // Existing retry-with-critique path — same as before.
                   previousProse = prose
                   previousIssues = checks.retryLines
-                  log(novelId, "info", `Beat ${bi + 1} retry ${retry + 1}: ${summarizeIssues(checks.issues)}`)
+                  log(novelId, "info", `Scene ${bi + 1} retry ${retry + 1}: ${summarizeIssues(checks.issues)}`)
                 } else {
                   // Quality-defect redraft path — no V1, no critique. Next loop
                   // iteration's buildRetryPrompt short-circuits to vanilla
@@ -674,7 +678,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             prose = beatProses.join("\n\n")
             wordCount = prose.split(/\s+/).filter(Boolean).length
             console.log(`  Draft (${outline.scenes.length} beats): ${wordCount} words`)
-            log(novelId, "info", `Beat-level draft: ${wordCount} words from ${outline.scenes.length} beats`)
+            log(novelId, "info", `Scene-level draft: ${wordCount} words from ${outline.scenes.length} scenes`)
             emit(novelId, { type: "progress", data: { step: "beat-writer", chapter: ch, status: "complete", wordCount } })
 
             // L65: capture LLM-confirmed ungrounded entities accepted-with-warnings
@@ -684,7 +688,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             // with its own findings, so stale entries don't bleed across attempts.
             // NER-only-warning entries are filtered out by severity before the
             // descriptions reach the parser.
-            const ungroundedDescriptions = acceptedBeatCheckIssues.flatMap(b =>
+            const ungroundedDescriptions = acceptedSceneCheckIssues.flatMap(b =>
               b.issues
                 .filter(i => i.source === "halluc-ungrounded" && i.severity === "blocker")
                 .map(i => i.description),
@@ -692,9 +696,9 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             priorUngroundedEntities = extractUngroundedEntitiesFromDescriptions(ungroundedDescriptions)
           } else {
             // Fallback to chapter-level
-            console.log("  Beat generation incomplete, falling back to chapter-level...")
-            log(novelId, "info", `Beat fallback → chapter-level for chapter ${ch}`)
-            clearAbandonedBeatLevelState({ beatProses, acceptedBeatCheckIssues })
+            console.log("  Scene generation incomplete, falling back to chapter-level...")
+            log(novelId, "info", `Scene fallback → chapter-level for chapter ${ch}`)
+            clearAbandonedBeatLevelState({ beatProses, acceptedSceneCheckIssues })
             let chapterCharacterContextTrace: WriterCharacterContextTrace | null = null
             let chapterContextSurfaceTrace: WriterContextSurfaceTrace | null = null
             const writerContext = await buildWriterContext(novelId, ch, {
@@ -724,8 +728,8 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             console.log(`  Draft (fallback): ${wordCount} words`)
           }
         } catch (err) {
-          log(novelId, "error", `Beat-level writing failed for chapter ${ch}: ${err}`)
-          console.error(`  Beat writer error: ${err instanceof Error ? err.message : err}`)
+          log(novelId, "error", `Scene-level writing failed for chapter ${ch}: ${err}`)
+          console.error(`  Scene writer error: ${err instanceof Error ? err.message : err}`)
           emit(novelId, { type: "error", data: { step: "beat-writer", chapter: ch, error: String(err) } })
           continue
         }
@@ -1076,7 +1080,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 ? "already revised this chapter"
                 : issueSig === lastUnresolvedSig
                   ? "identical issue signature as last revision"
-                  : "beat-level state not available"
+                  : "scene-level state not available"
               log(novelId, "warn", `Plan check still failing — not escalating to reviser (${reasonText}); falling through to plan-assist gate`)
             }
 
@@ -1385,7 +1389,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           } else {
             const reason = revisionUsed
               ? "already revised this chapter"
-              : "beat-level state not available"
+              : "scene-level state not available"
             log(novelId, "warn", `Validation still failing — not escalating to reviser (${reason}); falling through to plan-assist gate`)
           }
 
@@ -1521,7 +1525,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       }
 
       const checkerBlockers = buildCheckerBlockerDeviations({
-        acceptedBeatIssues: acceptedBeatCheckIssues,
+        acceptedSceneIssues: acceptedSceneCheckIssues,
         continuityIssues: issues,
         functionalIssues,
       })
@@ -1967,8 +1971,8 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               // `integrity-settle-complete` trace already records that the
               // pass came via the settle path; emitting two pass-traces
               // would double-count in analytics.
-              log(novelId, "info", `Chapter ${ch} integrity cleared via per-beat targeted rewrite (${settleOutcome.passes} pass)`)
-              console.log(`  Prose integrity CLEARED via L70b per-beat targeted rewrite`)
+              log(novelId, "info", `Chapter ${ch} integrity cleared via per-scene targeted rewrite (${settleOutcome.passes} pass)`)
+              console.log(`  Prose integrity CLEARED via L70b per-scene targeted rewrite`)
             }
           }
         }

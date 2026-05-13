@@ -165,6 +165,7 @@ export function resolveFactId(modelFact: string | undefined, facts: readonly Fac
 }
 
 export function isExplicitFactNonContradiction(item: {
+  fact?: string
   classification?: string
   evidence?: string
   reasoning?: string
@@ -177,9 +178,25 @@ export function isExplicitFactNonContradiction(item: {
     return true
   }
   const text = `${item.reasoning ?? ""}\n${item.evidence ?? ""}`.toLowerCase()
+  const factText = (item.fact ?? "").toLowerCase()
+  if (isScopedAvailabilityFalsePositive(factText, text)) return true
   return /\b(no contradiction|not a contradiction|does not contradict|doesn't contradict|do not contradict)\b/.test(text)
     || /\b(consistent with|matches the fact|matches the established fact|confirms the fact|confirms the established fact)\b/.test(text)
     || /\b(simply not addressed|not addressed|simply not mentioned|not mentioned|simply not referenced|not referenced)\b/.test(text)
+}
+
+function isScopedAvailabilityFalsePositive(factText: string, findingText: string): boolean {
+  const boardScopedAvailability =
+    /\bno\b.+\bavailable\b.+\b(board|list|listing|slate)\b/.test(factText) ||
+    /\b(board|list|listing|slate)\b.+\bno\b.+\bavailable\b/.test(factText) ||
+    /\b(board|list|listing|slate)\b.+\ball\b.+\bclaimed\b/.test(factText)
+  if (!boardScopedAvailability) return false
+  const laterClaimedOrPrivateContract =
+    /\bbronze[- ]rank(?:ed)?\b.+\bcrew\b/.test(findingText) ||
+    /\bcrew\b.+\bbronze[- ]rank(?:ed)?\b/.test(findingText) ||
+    /\bworking on a contract\b/.test(findingText) ||
+    /\bcontract exists\b/.test(findingText)
+  return laterClaimedOrPrivateContract
 }
 
 // ── User prompt builders ─────────────────────────────────────────────────────
@@ -198,6 +215,7 @@ export function buildFactUserPrompt(draft: string, facts: Fact[], outline?: Chap
   prompt += `CONTRADICTION DISAMBIGUATION:\n`
   prompt += `- Role-qualified marks are distinct. Do not collapse one person's authorization, signature, witness mark, administrative seal, or office seal into another person's required binding seal.\n`
   prompt += `- If a fact says only a named person's binding seal remains missing, draft mentions of another named person's authorization/signature/seal do not contradict it unless the draft says the missing person's seal was applied or the order is fully bound/complete.\n`
+  prompt += `- Board/listing availability is scoped. A fact like "no contracts are available on the board" or "all listed jobs are claimed" does not mean such contracts, ranks, or crews do not exist elsewhere; do not flag a later private, claimed, or off-board contract/crew unless the draft says the same board had an available unclaimed listing at that earlier moment.\n`
   prompt += `- When reporting a contradiction for a fact line with factId=..., copy that exact factId into the JSON "fact" field.\n\n`
   if (facts.length > 0) {
     prompt += `ESTABLISHED FACTS:\n${facts.map(f => `- ${formatFactForContinuityPrompt(f)}`).join("\n")}\n`

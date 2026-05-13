@@ -10,7 +10,7 @@ import {
 export const pipeline = {
   // Drafting
   maxDraftAttempts: 3,
-  beatLevelWriting: true,     // use beat-level context + generation
+  beatLevelWriting: true,     // legacy flag name; uses scene-entry context + generation
   maxBeatRetries: 2,          // retries per beat on adherence failure
   chapterPlanCheck: true,     // validate assembled prose against chapter plan
   maxChapterPlanRewritePasses: 2, // when chapter-plan-checker fails, rewrite affected beats in place up to N times before escalating to full chapter restart
@@ -118,10 +118,10 @@ export const pipeline = {
 
   // L097 Slice 2: scene-call writer architecture flag. Default off. When on,
   // the writer uses the scene-call path; L110 separately renders populated
-  // scene-contract fields on the beat-shaped writer without this flag.
+  // scene-contract fields on the legacy writer without this flag.
   sceneCallWriterV1: false,
 
-  // L110: render the SCENE CONTRACT block on the production beat-shaped
+  // L110: render the SCENE CONTRACT block on the production legacy
   // writer whenever the planner populated scene-contract fields. This does
   // NOT enable sceneCallWriterV1, expansion retries, or deterministic field
   // population; entries with no scene-contract fields still render no block.
@@ -133,7 +133,7 @@ export const pipeline = {
   // saves+approves the draft and SKIPS the post-writer settle loops
   // (chapter-plan-checker, continuity, validation, halluc-ungrounded
   // routing, integrity reviser, validation reviser, plan-check beat
-  // rewrites). The writer's own per-beat retries inside its checker
+  // rewrites). The writer's own per-scene retries inside its checker
   // budget are unaffected; only the chapter-level settle loops are
   // skipped. This exists because writer-arm A/B comparisons should
   // collect prose evidence even when checker/API hangs would otherwise
@@ -162,13 +162,22 @@ export const pipeline = {
   // promotion decision.
   sceneSatisfactionCheckerV1: false,
 
+  // Scene entity-grounding posture for the writer retry loop.
+  // "off" removes the costly/noisy halluc-ungrounded LLM checker from default
+  // scene retries. The writer still receives deterministic ID/context surfaces;
+  // plan/adherence checks remain active. Use "llm-blocking" only for deliberate
+  // calibration or regression runs where high-recall entity policing is worth
+  // the false-positive and retry cost.
+  sceneEntityGroundingMode: "off" as "off" | "llm-blocking",
+
   // State management
-  embeddings: false,          // skip embedding step (beat path uses deterministic DB lookups)
+  embeddings: false,          // skip embedding step (scene path uses deterministic DB lookups)
 
   // Halluc-ungrounded multi-call vote/union (L68 / Grounding Lever G-D).
-  // When >1, runBeatChecks issues N parallel halluc-ungrounded LLM calls per
-  // beat and unions their LLM-confirmed flagged entities before the L40
-  // grounded-surface filter and AND-gate assembly. Addresses checker
+  // When sceneEntityGroundingMode="llm-blocking" and this is >1, runSceneChecks
+  // issues N parallel halluc-ungrounded LLM calls per scene entry and unions
+  // their LLM-confirmed flagged entities before the L40 grounded-surface filter
+  // and AND-gate assembly. Addresses checker
   // stochasticity surfaced by exp #389+#395 trace (same byte-identical prose
   // produced disjoint flagged-entity sets across 3 calls).
   // Resolves at module load time from `HALLUC_UNGROUNDED_VOTE_N` env, falling
@@ -241,6 +250,12 @@ export function resolveSceneSatisfactionCheckerV1(
   overrides: { sceneSatisfactionCheckerV1?: boolean } | undefined,
 ): boolean {
   return overrides?.sceneSatisfactionCheckerV1 ?? pipeline.sceneSatisfactionCheckerV1
+}
+
+export function resolveSceneEntityGroundingMode(
+  overrides: { sceneEntityGroundingMode?: "off" | "llm-blocking" } | undefined,
+): "off" | "llm-blocking" {
+  return overrides?.sceneEntityGroundingMode ?? pipeline.sceneEntityGroundingMode
 }
 
 export function resolveWriterPromptIdRendering(

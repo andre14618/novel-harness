@@ -22,7 +22,7 @@ const SURFACE_FILES = [
   "src/harness/stable-id-trace.ts",
   "src/phases/planning.ts",
   "src/phases/drafting.ts",
-  "src/phases/beat-checks.ts",
+  "src/phases/scene-checks.ts",
   "src/agents/planning-plotter/chapter-outline-system.md",
   "src/agents/planning-plotter/context.ts",
   "src/agents/planning-plotter/schema.ts",

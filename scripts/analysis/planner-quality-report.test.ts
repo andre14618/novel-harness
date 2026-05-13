@@ -70,6 +70,73 @@ describe("planner-quality-report", () => {
     expect(report.chapters[0]!.flags).not.toContain("endpoint_not_declared")
   })
 
+  test("accepts terminal purpose movement as declared endpoint", () => {
+    const report = buildPlannerQualityReport([
+      row(chapter({
+        purpose: "Maret exhausts every safe option. She leaves with Theo as her only lead, the oath unsigned.",
+        scenes: [
+          beat("Maret tests the last safe option while Cassel blocks her path.", ["Maret", "Arbiter Cassel"]),
+          beat("Maret leaves with Theo as her only lead and the oath still unsigned.", ["Maret", "Journeyman Theo"]),
+        ],
+      })),
+    ])
+
+    expect(report.totals.endpointIssues).toBe(0)
+    expect(report.chapters[0]!.endpoint.declared).toContain("leaves with Theo")
+    expect(report.chapters[0]!.flags).not.toContain("endpoint_not_declared")
+  })
+
+  test("accepts structured scene-turn fields even when the description is plain", () => {
+    const report = buildPlannerQualityReport([
+      row(chapter({
+        scenes: [
+          beat("Maret waits.", ["Maret"], {
+            goal: "Get the clerk to name the hidden contract.",
+            opposition: "The clerk will not speak while Cassel watches.",
+            turningPoint: "Maret offers public witness protection instead of a bribe.",
+            outcome: "The clerk names the contract.",
+            consequence: "Maret has a lead but draws Cassel's attention.",
+          }),
+        ],
+      })),
+    ])
+
+    expect(report.totals.weakStoryTurnEntries).toBe(0)
+    expect(report.chapters[0]!.flags).not.toContain("weak_story_turn_entry")
+  })
+
+  test("uses final scene outcome and consequence for endpoint overlap", () => {
+    const report = buildPlannerQualityReport([
+      row(chapter({
+        purpose: "Maret chooses the witness over the clean payout. They escape with enough proof to make a legal claim.",
+        scenes: [
+          beat("Maret waits under pressure while Theo watches.", ["Maret", "Journeyman Theo"]),
+          beat("Maret reaches the ravine.", ["Maret"], {
+            outcome: "They escape into the hills with the witness alive.",
+            consequence: "Maret has enough proof to make a legal claim, but the clean payout is gone.",
+          }),
+        ],
+      })),
+    ])
+
+    expect(report.totals.endpointIssues).toBe(0)
+    expect(report.chapters[0]!.endpoint.overlapRatio).toBeGreaterThanOrEqual(0.45)
+  })
+
+  test("recognizes possessive character mentions as material scene visibility", () => {
+    const report = buildPlannerQualityReport([
+      row(chapter({
+        charactersPresent: ["Maret", "Mira Rusk"],
+        scenes: [
+          beat("Maret finds Mira's marker on the debt board and chooses to act.", ["Maret"]),
+        ],
+      })),
+    ])
+
+    expect(report.totals.inactiveCharacterFindings).toBe(0)
+    expect(report.chapters[0]!.characters.find(c => c.character === "Mira Rusk")?.visible).toBe(true)
+  })
+
   test("surfaces over-planned chapters and obligation coverage errors", () => {
     const outline = chapter({
       targetWords: 1500,

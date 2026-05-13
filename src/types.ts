@@ -87,6 +87,12 @@ export interface SeedInput {
      */
     sceneSatisfactionCheckerV1?: boolean
     /**
+     * Scene retry entity-grounding mode. Default "off" removes the costly
+     * halluc-ungrounded LLM checker from default drafting retries; opt into
+     * "llm-blocking" only for deliberate entity-grounding calibration runs.
+     */
+    sceneEntityGroundingMode?: "off" | "llm-blocking"
+    /**
      * L099 / adjusted-B1: writer-prompt ID rendering ablation lever.
      * Default "raw" preserves production prompt byte-for-byte. Override to
      * "suppress" per novel to omit Cluster-1 raw-ID lines from the prose-

@@ -14,6 +14,7 @@ test("migrate() path resolves to repo-root sql/ (not src/sql/)", async () => {
   expect(files).toContain("029_plan_check_overridden.sql")
   expect(files).toContain("030_chapter_exhaustions.sql")
   expect(files).toContain("031_chapter_outlines_revision_used.sql")
+  expect(files).toContain("056_chapter_outline_json_object_guard.sql")
 
   // migrate() applies files in lexical sort order. All files must follow
   // the `NNN_description.sql` convention so their lexical order matches

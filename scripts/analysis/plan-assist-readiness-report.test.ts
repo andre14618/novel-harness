@@ -26,13 +26,13 @@ describe("plan-assist-readiness-report", () => {
     })
   })
 
-  test("converts pending Plan-Assist beat blockers into beat readiness groups", () => {
+  test("converts pending Plan-Assist scene-check blockers into beat readiness groups", () => {
     const aggregate = buildPlanAssistReadinessAggregate({
       novelId: "novel",
       exhaustions: [
         exhaustion({
           unresolvedDeviations: [{
-            description: "[beat-check:halluc-ungrounded] Beat 1: Ungrounded entity \"Silver Audit Writ\"",
+            description: "[scene-check:halluc-ungrounded] Scene 1: Ungrounded entity \"Silver Audit Writ\"",
             beat_index: 0,
             metadata: { hallucUngrounded: { entity: "Silver Audit Writ" } },
           }],
@@ -106,7 +106,7 @@ describe("plan-assist-readiness-report", () => {
       exhaustions: [
         exhaustion({
           unresolvedDeviations: [{
-            description: "[beat-check:adherence] Beat 1: missing exit action",
+            description: "[scene-check:adherence] Scene 1: missing exit action",
             beat_index: 0,
             sceneId: "scene-a",
           }],

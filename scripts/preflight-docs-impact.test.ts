@@ -22,7 +22,7 @@ describe("isRuntimeFile", () => {
   test.each([
     "src/agents/halluc-ungrounded/index.ts",
     "src/agents/writer/adherence-checker.ts",
-    "src/phases/beat-checks.ts",
+    "src/phases/scene-checks.ts",
     "src/lint/entity-candidates.ts",
     "src/llm.ts",
     "src/transport.ts",

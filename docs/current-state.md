@@ -59,10 +59,9 @@ Use deeper docs only when linked by the context pack or needed by code.
   `ORCHESTRATOR_AUTH_ENABLED=1` to restore orchestrator API/UI auth.
 - Active LLM calls use DeepSeek V4 Flash or DeepSeek V4 Pro only. Legacy model
   references are historical unless a current decision reopens them. See L90.
-- Evidence-generation flows collect prose-semantic telemetry where wired. Use
-  `test-drafting-isolated --quality-telemetry-packet` for the stable advisory
-  prose+scene packet; semantic telemetry stays fail-open data, not a drafting
-  or promotion gate. See L108.
+- Semantic telemetry is explicit opt-in. Use `test-drafting-isolated
+  --quality-telemetry-packet` for the stable advisory prose+scene packet; it
+  stays fail-open data, not a drafting or promotion gate. See L108/L112.
 
 ## Authoring Direction
 
@@ -82,21 +81,12 @@ Use deeper docs only when linked by the context pack or needed by code.
   proposal targets, eval artifacts, and audit logs. Raw ID visibility inside
   prose-writer prompts is a narrower per-site question. See L099.
 - Scene-first runtime substrate remains default-off for `sceneCallWriterV1`,
-  writer expansion, and scene-satisfaction diagnostics; L110 only renders
-  populated scene-contract fields on the beat-shaped writer by default.
-- L106 writer-brief integration exists behind default-off
-  `writerDraftingBriefMode` values including tight, scene-turn, anchored, and
-  tight-anchored variants. They render compact writer-facing briefs from
-  production `BeatContext` slots, record `writer-context` prompt telemetry, and
-  support `diagnostics:writer-context` scene-normalized audits after runs.
-  Fixed-plan drafting evidence can add `--quality-telemetry-packet` to capture
-  endpointLanding, sceneDramaturgy, characterMateriality, and
-  worldFactPressure replay artifacts per arm. Replay prefers captured
-  per-scene writer calls before falling back to whole-chapter prose. Use
-  `diagnostics:planning-drafting-context` to audit context/canon/story-spine/story-ref/reader-state and unresolved reference attempts and
-  `diagnostics:drafting-run-compare`/`diagnostics:drafting-run-cohort` to compare
-  clean-source reports with semantic trace IDs/clusters, context, and manual-readiness deltas; `test-drafting-isolated` writes context, Plan-Assist, and checker-readiness sidecars.
-  Runtime analytical checkers have expanded token headroom after L110.
+  writer expansion, and scene-satisfaction diagnostics; L110 renders populated
+  scene-contract fields on the legacy writer, and L112 moves default retry
+  checks to `scene-checks` with halluc-ungrounded LLM blocking opt-in only.
+- L106 writer-brief arms remain default-off. They render compact briefs,
+  record `writer-context` telemetry, and support context/readiness/compare
+  artifacts; semantic prose/scene packets are explicit evidence add-ons.
 - Production drafting defaults to exact-ID character context capsules
   (`thread-character-context-v1`). See L094.
 - Native chapter contracts and story-turn planning are the production planning

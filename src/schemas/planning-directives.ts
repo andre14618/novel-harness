@@ -123,6 +123,10 @@ export type ChapterSequenceGuard = z.infer<typeof chapterSequenceGuardSchema>
 export const chapterPlanningContractSchema = z.object({
   contractId: z.coerce.string().default(""),
   chapter: coerceRequiredNumber,
+  structureSlotId: z.coerce.string().default(""),
+  jobFunction: z.string().default(""),
+  endpointTest: z.string().default(""),
+  pressureFocus: z.array(z.string()).default([]),
   storyFunction: z.string().default(""),
   ownedMovement: z.string().default(""),
   allowedStoryTerritory: z.array(z.string()).default([]),
@@ -132,10 +136,11 @@ export const chapterPlanningContractSchema = z.object({
   prohibitedMovement: z.array(z.string()).default([]),
 }).refine(
   contract =>
+    contract.jobFunction.trim().length > 0 ||
     contract.storyFunction.trim().length > 0 ||
     contract.ownedMovement.trim().length > 0 ||
     contract.requiredEndpoint.trim().length > 0,
-  { message: "Chapter planning contract must declare storyFunction, ownedMovement, or requiredEndpoint" },
+  { message: "Chapter planning contract must declare jobFunction, storyFunction, ownedMovement, or requiredEndpoint" },
 )
 export type ChapterPlanningContract = z.infer<typeof chapterPlanningContractSchema>
 
@@ -340,7 +345,12 @@ export function renderDirectivesForSceneExpansion(d: PlanningDirectives, targetC
 function renderChapterContractsForPlanner(contracts: readonly ChapterPlanningContract[]): string {
   return `CHAPTER CONTRACTS (chapter ownership decomposition; scene expansion must fill, not reinterpret):\n${
     contracts.map(contract => {
+      const pressureFocus = contract.pressureFocus ?? []
       const parts = [`- Ch ${contract.chapter}${contract.contractId ? ` [${contract.contractId}]` : ""}`]
+      if (contract.structureSlotId) parts.push(`  Slot: ${contract.structureSlotId}`)
+      if (contract.jobFunction) parts.push(`  Job function: ${contract.jobFunction}`)
+      if (contract.endpointTest) parts.push(`  Endpoint test: ${contract.endpointTest}`)
+      if (pressureFocus.length) parts.push(`  Pressure focus: ${pressureFocus.join("; ")}`)
       if (contract.storyFunction) parts.push(`  Function: ${contract.storyFunction}`)
       if (contract.ownedMovement) parts.push(`  Owns: ${contract.ownedMovement}`)
       if (contract.allowedStoryTerritory.length) parts.push(`  Allowed territory: ${contract.allowedStoryTerritory.join("; ")}`)
@@ -361,7 +371,16 @@ function renderTargetChapterContracts(
     const allowedStoryTerritory = contract.allowedStoryTerritory ?? []
     const lockedFutureEvents = contract.lockedFutureEvents ?? []
     const prohibitedMovement = contract.prohibitedMovement ?? []
+    const pressureFocus = contract.pressureFocus ?? []
     const parts = [`- Ch ${contract.chapter}${contract.contractId ? ` [${contract.contractId}]` : ""}`]
+    if (contract.structureSlotId) parts.push(`  Slot: ${contract.structureSlotId}`)
+    if (contract.jobFunction) parts.push(`  Job function: ${contract.jobFunction}`)
+    if (contract.endpointTest) parts.push(`  Endpoint test: ${redactBoundaryText(
+      contract.endpointTest,
+      boundaryTerms,
+      "Execute this chapter's job function without consuming future-boundary material.",
+    )}`)
+    if (pressureFocus.length) parts.push(`  Pressure focus: ${pressureFocus.join("; ")}`)
     if (contract.storyFunction) parts.push(`  Story function: ${contract.storyFunction}`)
     if (contract.ownedMovement) {
       parts.push(`  Owned movement: ${redactBoundaryText(
