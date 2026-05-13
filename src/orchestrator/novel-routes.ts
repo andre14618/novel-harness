@@ -957,11 +957,17 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       const [novelRow] = await db`SELECT seed_json, phase, total_chapters FROM novels WHERE id = ${novelId}`
       if (!novelRow) return Response.json({ error: "Novel not found" }, { status: 404 })
 
-      const chapterRows = await db`
-        SELECT DISTINCT ON (chapter_number) chapter_number, prose, word_count, status, version
-        FROM chapter_drafts
-        WHERE novel_id = ${novelId}${approvedOnly ? db` AND status = 'approved'` : db``}
-        ORDER BY chapter_number, version DESC`
+      const chapterRows = approvedOnly
+        ? await db`
+            SELECT DISTINCT ON (chapter_number) chapter_number, prose, word_count, status, version
+            FROM chapter_drafts
+            WHERE novel_id = ${novelId} AND status = 'approved'
+            ORDER BY chapter_number, version DESC`
+        : await db`
+            SELECT DISTINCT ON (chapter_number) chapter_number, prose, word_count, status, version
+            FROM chapter_drafts
+            WHERE novel_id = ${novelId}
+            ORDER BY chapter_number, version DESC`
 
       const outlineRows = await db`SELECT outline_json FROM chapter_outlines WHERE novel_id = ${novelId} ORDER BY chapter_number`
       const outlines = new Map<number, any>(outlineRows.map((r: any) => [r.outline_json?.chapterNumber, r.outline_json]))

@@ -225,6 +225,17 @@ describe("test-drafting-isolated parseArgs", () => {
     expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--allow-drafted-source"]).allowDraftedSource).toBe(true)
   })
 
+  test("--chapter-limit defaults to null and parses positive integers", () => {
+    expect(parseArgs(["--source", "n", "--target-prefix", "ab"]).chapterLimit).toBeNull()
+    expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--chapter-limit", "2"]).chapterLimit).toBe(2)
+  })
+
+  test("--chapter-limit rejects non-positive / non-numeric values", () => {
+    expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--chapter-limit", "0"])).toThrow(/positive integer/)
+    expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--chapter-limit", "-1"])).toThrow(/positive integer/)
+    expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--chapter-limit", "abc"])).toThrow(/positive integer/)
+  })
+
   test("--target-word-scale defaults to 1 and parses positive numbers", () => {
     expect(parseArgs(["--source", "n", "--target-prefix", "ab"]).targetWordScale).toBe(1)
     expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--target-word-scale", "0.85"]).targetWordScale).toBe(0.85)
@@ -416,6 +427,7 @@ describe("drafting isolated report", () => {
 
     expect(report.v).toBe("drafting-isolated-report-v1")
     expect(report.summary.cleanSource).toBe(true)
+    expect(report.options.chapterLimit).toBeNull()
     expect(report.options.targetWordScale).toBe(1)
     expect(report.summary.totalWordsByArm["scene-call-v1"]).toBe(3300)
     expect(report.summary.planningContextGapsByArm["scene-call-v1"]).toBe(1)
@@ -1240,6 +1252,7 @@ function args(overrides: Partial<Args> = {}): Args {
     sceneSemanticMaxTokens: 2200,
     sceneSemanticDimensions: ["endpointLanding", "sceneDramaturgy"],
     allowDraftedSource: false,
+    chapterLimit: null,
     targetWordScale: 1,
     perArmTimeoutMs: null,
     reportDir: null,

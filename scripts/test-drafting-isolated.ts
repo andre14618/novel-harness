@@ -60,6 +60,7 @@
  *     [--scene-semantic-persist]                                 # persist scene-semantic eval rows; imports readiness lows unless disabled
  *     [--no-scene-semantic-readiness-import]                     # keep persisted scene-semantic readiness artifact-only
  *     [--allow-drafted-source]                                   # explicitly allow cloning a source that already has drafts
+ *     [--chapter-limit 1]                                        # clone-only bounded production-path pass
  *     [--target-word-scale 0.85]                                  # default-off clone-only budget elasticity probe
  *     [--per-arm-timeout-ms 1800000]                             # 30-minute per-arm wallclock cap
  *     [--report-dir output/drafting-isolated/<prefix>]           # override durable run report directory
@@ -194,6 +195,9 @@ export interface Args {
    *  done source, not a completed draft artifact with generated facts/states.
    *  This escape hatch is for deliberate contamination/replay investigations. */
   allowDraftedSource: boolean
+  /** Optional clone-only chapter cap for bounded evidence passes. Source
+   *  plans and production defaults are unchanged. */
+  chapterLimit: number | null
   /** Default-off clone-only budget elasticity probe. A value other than 1
    *  scales chapter outline `targetWords` and any existing per-scene
    *  `targetWords` fields after clone and before drafting. Source plans and
@@ -281,6 +285,7 @@ export interface DraftingIsolatedRunReport {
     sceneSemanticMaxTokens: number
     sceneSemanticDimensions: Dimension[]
     allowDraftedSource: boolean
+    chapterLimit: number | null
     targetWordScale: number
     perArmTimeoutMs: number | null
   }
@@ -772,6 +777,27 @@ async function applyTargetWordScale(novelId: string, scale: number): Promise<Tar
   }
 }
 
+async function applyChapterLimit(
+  novelId: string,
+  chapterLimit: number | null,
+): Promise<{ beforeTotalChapters: number; afterTotalChapters: number } | null> {
+  if (chapterLimit === null) return null
+  const rows = await db`
+    SELECT total_chapters
+    FROM novels
+    WHERE id = ${novelId}
+  ` as Array<{ total_chapters: number }>
+  const beforeTotalChapters = rows[0]?.total_chapters ?? chapterLimit
+  const afterTotalChapters = Math.min(beforeTotalChapters, chapterLimit)
+  await db`
+    UPDATE novels
+    SET total_chapters = ${afterTotalChapters},
+        updated_at = now()
+    WHERE id = ${novelId}
+  `
+  return { beforeTotalChapters, afterTotalChapters }
+}
+
 async function collectArmResult(arm: ArmName, novelId: string): Promise<Pick<ArmResult, "chapters" | "totalWords" | "totalTarget" | "meanRatio" | "expansionEvents" | "draftingBrief">> {
   const chapterRows = await db`
     SELECT cd.chapter_number, cd.word_count, cd.version,
@@ -890,6 +916,7 @@ interface RunArmOptions {
   sceneSemanticConcurrency: number
   sceneSemanticMaxTokens: number
   sceneSemanticDimensions: Dimension[]
+  chapterLimit: number | null
   targetWordScale: number
   perArmTimeoutMs: number | null
 }
@@ -928,6 +955,14 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
       checkerReadiness,
       expansionEvents: 0, error: `clone failed: ${err instanceof Error ? err.message : err}`,
     }
+  }
+
+  const chapterLimit = await applyChapterLimit(novelId, opts.chapterLimit)
+  if (chapterLimit) {
+    console.log(
+      `  chapter limit: ${opts.chapterLimit} ` +
+        `(${chapterLimit.beforeTotalChapters} → ${chapterLimit.afterTotalChapters}; clone-only)`,
+    )
   }
 
   let targetWordScaling: TargetWordScalingSummary | null = null
@@ -1788,6 +1823,7 @@ export function parseArgs(argv: string[]): Args {
   let sceneSemanticMaxTokensExplicit = false
   const sceneSemanticDimensions: Dimension[] = []
   let allowDraftedSource = false
+  let chapterLimit: number | null = null
   let targetWordScale = 1
   let perArmTimeoutMs: number | null = null
   let reportDir: string | null = null
@@ -1817,6 +1853,15 @@ export function parseArgs(argv: string[]): Args {
     if (a === "--no-scene-semantic-readiness-import") { sceneSemanticReadinessImport = false; sceneSemanticReadinessImportExplicit = true; continue }
     if (a === "--no-scene-semantic-review") { sceneSemanticReview = false; sceneSemanticPersist = false; continue }
     if (a === "--allow-drafted-source") { allowDraftedSource = true; continue }
+    if (a === "--chapter-limit") {
+      const raw = argv[++i] ?? ""
+      const parsed = Number.parseInt(raw, 10)
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        throw new Error(`--chapter-limit requires a positive integer; got ${JSON.stringify(raw)}`)
+      }
+      chapterLimit = parsed
+      continue
+    }
     if (a === "--target-word-scale") {
       const raw = argv[++i] ?? ""
       const parsed = Number(raw)
@@ -1900,6 +1945,7 @@ export function parseArgs(argv: string[]): Args {
     sceneSemanticMaxTokens,
     sceneSemanticDimensions: sceneSemanticDimensions.length > 0 ? sceneSemanticDimensions : DEFAULT_SCENE_SEMANTIC_DIMENSIONS,
     allowDraftedSource,
+    chapterLimit,
     targetWordScale,
     perArmTimeoutMs,
     reportDir,
@@ -1943,6 +1989,9 @@ async function main() {
   if (args.allowDraftedSource) {
     console.log(`allow drafted source: true (source may include generated draft state)`)
   }
+  if (args.chapterLimit !== null) {
+    console.log(`chapter limit: ${args.chapterLimit} (clone-only bounded production-path pass; source plan is unchanged)`)
+  }
   if (args.targetWordScale !== 1) {
     console.log(`target word scale: ${args.targetWordScale} (clone-only budget elasticity probe; source plan is unchanged)`)
   }
@@ -1967,6 +2016,7 @@ async function main() {
       sceneSemanticConcurrency: args.sceneSemanticConcurrency,
       sceneSemanticMaxTokens: args.sceneSemanticMaxTokens,
       sceneSemanticDimensions: args.sceneSemanticDimensions,
+      chapterLimit: args.chapterLimit,
       targetWordScale: args.targetWordScale,
       perArmTimeoutMs: args.perArmTimeoutMs,
     }))
@@ -2120,6 +2170,7 @@ export function buildDraftingIsolatedRunReport(input: {
       sceneSemanticMaxTokens: input.args.sceneSemanticMaxTokens,
       sceneSemanticDimensions: input.args.sceneSemanticDimensions,
       allowDraftedSource: input.args.allowDraftedSource,
+      chapterLimit: input.args.chapterLimit,
       targetWordScale: input.args.targetWordScale,
       perArmTimeoutMs: input.args.perArmTimeoutMs,
     },
@@ -2248,6 +2299,7 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
   lines.push(`- error arms: ${report.summary.errorArms}`)
   lines.push(`- writer-only: ${report.options.writerOnly}`)
   lines.push(`- quality telemetry packet: ${report.options.qualityTelemetryPacket ? "enabled" : "disabled"}`)
+  lines.push(`- chapter limit: ${report.options.chapterLimit ?? "none"}`)
   lines.push(`- target word scale: ${report.options.targetWordScale}`)
   lines.push(`- prose semantic eval: ${report.options.proseSemanticEval ? "enabled" : "disabled"}`)
   lines.push(`- scene semantic replay: ${report.options.sceneSemanticReview ? "enabled" : "disabled"}`)
