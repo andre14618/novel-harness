@@ -21,6 +21,12 @@ const factCheckSchema = z.object({
   contradictions: z.array(z.object({
     fact: z.string(),
     severity: z.enum(["blocker", "warning", "nit"]),
+    classification: z.enum([
+      "logical_contradiction",
+      "contextual_narrowing",
+      "omission",
+      "uncertain",
+    ]).default("logical_contradiction"),
     evidence: z.string(),
     reasoning: z.string(),
   })).default([]),
@@ -159,9 +165,17 @@ export function resolveFactId(modelFact: string | undefined, facts: readonly Fac
 }
 
 export function isExplicitFactNonContradiction(item: {
+  classification?: string
   evidence?: string
   reasoning?: string
 }): boolean {
+  if (
+    item.classification === "contextual_narrowing" ||
+    item.classification === "omission" ||
+    item.classification === "uncertain"
+  ) {
+    return true
+  }
   const text = `${item.reasoning ?? ""}\n${item.evidence ?? ""}`.toLowerCase()
   return /\b(no contradiction|not a contradiction|does not contradict|doesn't contradict|do not contradict)\b/.test(text)
     || /\b(consistent with|matches the fact|matches the established fact|confirms the fact|confirms the established fact)\b/.test(text)

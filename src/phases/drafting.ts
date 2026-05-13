@@ -1489,10 +1489,12 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
         await trace(novelId, {
           eventType: "functional-check", chapter: ch,
           payload: {
+            attempt: attempts,
             passed: functionalIssues.every(i => i.severity !== "blocker"),
             blockers: functionalIssues.filter(i => i.severity === "blocker"),
             warnings: functionalIssues.filter(i => i.severity === "warning"),
             semanticCheckerError: semanticFunctionalChecks.error ?? null,
+            semanticCheckerSuppressed: semanticFunctionalChecks.suppressedFindings ?? [],
           },
         })
         if (functionalIssues.length > 0) {

@@ -2,18 +2,26 @@
 
 export interface FunctionalEventRow {
   id: number
+  runId?: number | null
   chapter: number | null
   payload: unknown
+  attempt?: number | null
   timestamp?: string | Date | null
 }
 
 export interface ContinuityCallRow {
   id: number
+  runId?: number | null
   agent: string
   chapter: number | null
   attempt: number | null
   response_content: string | null
   timestamp?: string | Date | null
+}
+
+export interface CheckerFinalAttempt {
+  attempt: number
+  runId?: number | null
 }
 
 export interface CheckerWarningItem {
@@ -156,6 +164,7 @@ function functionalEventToItems(row: FunctionalEventRow): CheckerWarningItem[] {
       beatId: stringField(item.beatId),
       plannedItemId: stringField(item.plannedItemId),
       rowId: row.id,
+      attempt: row.attempt,
     })
   }
   for (const raw of blockers) {
@@ -171,6 +180,7 @@ function functionalEventToItems(row: FunctionalEventRow): CheckerWarningItem[] {
       beatId: stringField(item.beatId),
       plannedItemId: stringField(item.plannedItemId),
       rowId: row.id,
+      attempt: row.attempt,
     })
   }
   return out
@@ -186,10 +196,11 @@ function continuityRowToItems(row: ContinuityCallRow): CheckerWarningItem[] {
   }
   const payload = asRecord(parsed)
   if (row.agent === "continuity-facts") {
-    return asArray(payload.contradictions).map(raw => {
+    return asArray(payload.contradictions).flatMap(raw => {
       const item = asRecord(raw)
+      if (isNonActionableContinuityClassification(stringField(item.classification))) return []
       const description = stringField(item.reasoning) ?? stringField(item.evidence) ?? JSON.stringify(raw)
-      return {
+      return [{
         source: "continuity-facts",
         severity: severityField(item.severity),
         description,
@@ -198,7 +209,7 @@ function continuityRowToItems(row: ContinuityCallRow): CheckerWarningItem[] {
         chapter: row.chapter,
         rowId: row.id,
         attempt: row.attempt,
-      }
+      }]
     })
   }
   if (row.agent === "continuity-state") {
@@ -229,6 +240,12 @@ function continuityStateCalibration(severity: CheckerWarningItem["severity"]): C
   return severity === "warning" ? "low-confidence" : "standard"
 }
 
+function isNonActionableContinuityClassification(classification: string | undefined): boolean {
+  return classification === "contextual_narrowing" ||
+    classification === "omission" ||
+    classification === "uncertain"
+}
+
 function normalizeContinuityStateSeverity(
   severity: CheckerWarningItem["severity"],
   violationType: string | undefined,
@@ -247,6 +264,36 @@ export function classifyFindingPolarity(description: string): CheckerWarningPola
   if (positive && negative) return "ambiguous"
   if (positive) return "positive"
   return negative ? "negative" : "ambiguous"
+}
+
+export function filterCheckerInputsToFinalAttempts(
+  input: {
+    functionalEvents: FunctionalEventRow[]
+    continuityRows: ContinuityCallRow[]
+  },
+  finalAttemptByChapter: ReadonlyMap<number, CheckerFinalAttempt>,
+): {
+  functionalEvents: FunctionalEventRow[]
+  continuityRows: ContinuityCallRow[]
+} {
+  return {
+    functionalEvents: input.functionalEvents.filter(row => rowMatchesFinalAttempt(row.chapter, row.attempt, row.runId, finalAttemptByChapter)),
+    continuityRows: input.continuityRows.filter(row => rowMatchesFinalAttempt(row.chapter, row.attempt, row.runId, finalAttemptByChapter)),
+  }
+}
+
+function rowMatchesFinalAttempt(
+  chapter: number | null,
+  attempt: number | null | undefined,
+  runId: number | null | undefined,
+  finalAttemptByChapter: ReadonlyMap<number, CheckerFinalAttempt>,
+): boolean {
+  if (chapter === null) return true
+  const final = finalAttemptByChapter.get(chapter)
+  if (final === undefined) return true
+  if (final.runId !== null && final.runId !== undefined && runId !== null && runId !== undefined && runId !== final.runId) return false
+  if (attempt === null || attempt === undefined) return true
+  return attempt === final.attempt
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -328,21 +375,56 @@ export async function loadCheckerWarningInputs(novelId: string): Promise<{
   continuityRows: ContinuityCallRow[]
 }> {
   const { default: db } = await import("../../src/db/connection")
-  const functionalEvents = await db`
-    SELECT id, chapter, payload, timestamp
+  const functionalEventRows = await db`
+    SELECT id, run_id AS "runId", chapter, payload, timestamp
     FROM pipeline_events
     WHERE novel_id = ${novelId}
       AND event_type = 'functional-check'
     ORDER BY chapter, id
   ` as FunctionalEventRow[]
+  const functionalEvents = functionalEventRows.map(row => ({
+    ...row,
+    attempt: numberOrNull(asRecord(row.payload).attempt),
+  }))
   const continuityRows = await db`
-    SELECT id, agent, chapter, attempt, response_content, timestamp
+    SELECT id, run_id AS "runId", agent, chapter, attempt, response_content, timestamp
     FROM llm_calls
     WHERE novel_id = ${novelId}
       AND agent IN ('continuity-facts', 'continuity-state')
     ORDER BY chapter, attempt NULLS LAST, agent, id
   ` as ContinuityCallRow[]
-  return { functionalEvents, continuityRows }
+  const finalChapterRows = await db`
+    SELECT DISTINCT ON (chapter)
+      chapter,
+      run_id AS "runId",
+      (payload->>'attempts')::int AS attempt
+    FROM pipeline_events
+    WHERE novel_id = ${novelId}
+      AND event_type = 'chapter-complete'
+      AND chapter IS NOT NULL
+      AND payload->>'approved' = 'true'
+      AND (payload->>'attempts') IS NOT NULL
+    ORDER BY chapter, timestamp DESC, id DESC
+  ` as Array<{ chapter: number; runId: number | null; attempt: number | null }>
+  const finalRows = await db`
+    SELECT chapter_number, MAX(version)::int AS attempt
+    FROM chapter_drafts
+    WHERE novel_id = ${novelId}
+      AND status = 'approved'
+    GROUP BY chapter_number
+  ` as Array<{ chapter_number: number; attempt: number }>
+  const finalAttemptByChapter = new Map<number, CheckerFinalAttempt>()
+  for (const row of finalChapterRows) {
+    if (typeof row.attempt === "number") {
+      finalAttemptByChapter.set(row.chapter, { attempt: row.attempt, runId: row.runId })
+    }
+  }
+  for (const row of finalRows) {
+    if (!finalAttemptByChapter.has(row.chapter_number)) {
+      finalAttemptByChapter.set(row.chapter_number, { attempt: row.attempt, runId: null })
+    }
+  }
+  return filterCheckerInputsToFinalAttempts({ functionalEvents, continuityRows }, finalAttemptByChapter)
 }
 
 async function main(argv: string[]): Promise<number> {

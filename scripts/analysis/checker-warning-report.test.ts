@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import {
   buildCheckerWarningReport,
   classifyFindingPolarity,
+  filterCheckerInputsToFinalAttempts,
   renderCheckerWarningReport,
   type ContinuityCallRow,
   type FunctionalEventRow,
@@ -120,6 +121,75 @@ describe("checker-warning-report", () => {
     expect(report.byCalibration).toEqual({ standard: 2, "low-confidence": 0 })
     expect(report.chapters[0]!.items.map(item => item.polarity).sort()).toEqual(["negative", "positive"])
     expect(renderCheckerWarningReport(report)).toContain("polarity=positive")
+  })
+
+  test("skips non-actionable continuity classifications", () => {
+    const continuityRows: ContinuityCallRow[] = [{
+      id: 21,
+      agent: "continuity-facts",
+      chapter: 3,
+      attempt: 1,
+      response_content: JSON.stringify({
+        contradictions: [{
+          fact: "salvage requires witness or bronze token",
+          severity: "blocker",
+          classification: "contextual_narrowing",
+          evidence: "No witness. No bronze token.",
+          reasoning: "Kael needs a witness because the bronze-token path is unavailable.",
+        }, {
+          fact: "bronze tokens are valid",
+          severity: "blocker",
+          classification: "logical_contradiction",
+          evidence: "Bronze tokens never count.",
+          reasoning: "The draft denies the bronze-token alternative.",
+        }],
+      }),
+    }]
+
+    const report = buildCheckerWarningReport({ continuityRows }, "novel-continuity")
+
+    expect(report.totalItems).toBe(1)
+    expect(report.chapters[0]?.items[0]?.description).toBe("The draft denies the bronze-token alternative.")
+  })
+
+  test("filters checker inputs to final accepted attempts when attempt is available", () => {
+    const functionalEvents: FunctionalEventRow[] = [
+      { id: 1, chapter: 2, attempt: 1, payload: { warnings: [] } },
+      { id: 2, chapter: 2, attempt: 2, payload: { warnings: [] } },
+      { id: 3, chapter: 3, payload: { warnings: [] } },
+    ]
+    const continuityRows: ContinuityCallRow[] = [
+      { id: 4, agent: "continuity-facts", chapter: 2, attempt: 1, response_content: "{}" },
+      { id: 5, agent: "continuity-facts", chapter: 2, attempt: 2, response_content: "{}" },
+      { id: 6, agent: "continuity-facts", chapter: 3, attempt: null, response_content: "{}" },
+    ]
+
+    const filtered = filterCheckerInputsToFinalAttempts(
+      { functionalEvents, continuityRows },
+      new Map([[2, { attempt: 2 }], [3, { attempt: 1 }]]),
+    )
+
+    expect(filtered.functionalEvents.map(row => row.id)).toEqual([2, 3])
+    expect(filtered.continuityRows.map(row => row.id)).toEqual([5, 6])
+  })
+
+  test("filters final accepted attempts by run id when the approval trace provides it", () => {
+    const functionalEvents: FunctionalEventRow[] = [
+      { id: 1, runId: 10, chapter: 2, attempt: 1, payload: { warnings: [] } },
+      { id: 2, runId: 11, chapter: 2, attempt: 1, payload: { warnings: [] } },
+    ]
+    const continuityRows: ContinuityCallRow[] = [
+      { id: 3, runId: 10, agent: "continuity-facts", chapter: 2, attempt: 1, response_content: "{}" },
+      { id: 4, runId: 11, agent: "continuity-facts", chapter: 2, attempt: 1, response_content: "{}" },
+    ]
+
+    const filtered = filterCheckerInputsToFinalAttempts(
+      { functionalEvents, continuityRows },
+      new Map([[2, { attempt: 1, runId: 11 }]]),
+    )
+
+    expect(filtered.functionalEvents.map(row => row.id)).toEqual([2])
+    expect(filtered.continuityRows.map(row => row.id)).toEqual([4])
   })
 
   test("classifies explicit non-contradictions as positive polarity", () => {

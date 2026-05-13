@@ -30,8 +30,17 @@ export interface FunctionalStateWarning {
   plannedItemId?: string
 }
 
+export interface FunctionalStateSuppressedFinding {
+  reason: "supported" | "uncertain" | "self_contradiction"
+  kind: FunctionalStateCheckerFinding["kind"]
+  verdict: FunctionalStateCheckerFinding["verdict"]
+  plannedItem: string
+  beatIndex: number | null
+}
+
 export interface FunctionalStateCheckResult {
   warnings: FunctionalStateWarning[]
+  suppressedFindings?: FunctionalStateSuppressedFinding[]
   error?: string
 }
 
@@ -62,14 +71,29 @@ export async function checkFunctionalStateGrounding(
       },
     })
 
-    const warnings = (result.output.findings ?? [])
+    const warnings: FunctionalStateWarning[] = []
+    const suppressedFindings: FunctionalStateSuppressedFinding[] = []
+    for (const finding of (result.output.findings ?? [])
       .slice(0, 10)
-      .map((f: any) => findingToWarning({
+      .map((f: any) => ({
         ...f,
         beat_index: f.beat_index ?? null,
         evidence_quote: f.evidence_quote ?? "",
-      } as FunctionalStateCheckerFinding, prose, outline))
-    return { warnings }
+      } as FunctionalStateCheckerFinding))) {
+      const routing = routeFunctionalStateFinding(finding)
+      if (routing !== "actionable") {
+        suppressedFindings.push({
+          reason: routing,
+          kind: finding.kind,
+          verdict: finding.verdict,
+          plannedItem: finding.planned_item,
+          beatIndex: finding.beat_index,
+        })
+        continue
+      }
+      warnings.push(findingToWarning(finding, prose, outline))
+    }
+    return { warnings, suppressedFindings }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     return { warnings: [], error: msg }
@@ -102,6 +126,15 @@ export function findingToWarning(
     if (plannedItemId) warning.plannedItemId = plannedItemId
   }
   return warning
+}
+
+export function routeFunctionalStateFinding(
+  finding: Pick<FunctionalStateCheckerFinding, "kind" | "verdict">,
+): "actionable" | FunctionalStateSuppressedFinding["reason"] {
+  if (finding.verdict === "supported") return "supported"
+  if (finding.verdict === "uncertain") return "uncertain"
+  const expected = finding.kind === "planned_state_contradicted" ? "contradicted" : "missing"
+  return finding.verdict === expected ? "actionable" : "self_contradiction"
 }
 
 function normalizeQuote(value: string | undefined): string {

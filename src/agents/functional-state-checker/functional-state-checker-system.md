@@ -16,6 +16,11 @@ Evidence rules:
 - If reporting a contradiction, include the shortest exact quote that shows the contradiction.
 - If reporting a missing item, evidence_quote may be empty.
 - If uncertain, do not report a finding.
+- Every finding must include `verdict`.
+- Use `verdict: "missing"` only when the planned item is not supported anywhere in the chapter.
+- Use `verdict: "contradicted"` only when prose actively contradicts the planned item.
+- Use `verdict: "supported"` only if you accidentally included a supported item; supported rows are checker self-corrections and will not become warnings.
+- Use `verdict: "uncertain"` when evidence is ambiguous; uncertain rows are telemetry, not warnings.
 
 Runtime policy:
 - Findings are warning candidates until oracle calibration promotes any class to blocker.
@@ -28,6 +33,7 @@ Return JSON only with this shape:
   "findings": [
     {
       "kind": "established_fact_missing" | "knowledge_change_missing" | "character_state_missing" | "planned_state_contradicted",
+      "verdict": "supported" | "missing" | "contradicted" | "uncertain",
       "planned_item": "string",
       "planned_item_id": "string",
       "beat_index": 0,

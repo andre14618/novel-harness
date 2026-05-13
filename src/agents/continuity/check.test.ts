@@ -248,6 +248,18 @@ test("resolveFactId skips facts without an id field even when the text matches",
 
 test("isExplicitFactNonContradiction filters support echoes and omissions", () => {
   expect(isExplicitFactNonContradiction({
+    classification: "contextual_narrowing",
+    reasoning: "Kael needs a witness because he has no bronze token.",
+  })).toBe(true)
+  expect(isExplicitFactNonContradiction({
+    classification: "omission",
+    reasoning: "The fact is not referenced.",
+  })).toBe(true)
+  expect(isExplicitFactNonContradiction({
+    classification: "uncertain",
+    reasoning: "The evidence is ambiguous.",
+  })).toBe(true)
+  expect(isExplicitFactNonContradiction({
     evidence: "The transfer order bears Halric's seal.",
     reasoning: "This is consistent with the fact. No contradiction.",
   })).toBe(true)
@@ -255,6 +267,7 @@ test("isExplicitFactNonContradiction filters support echoes and omissions", () =
     reasoning: "The draft does not mention Halric's personal ruin, but it does not contradict it either.",
   })).toBe(true)
   expect(isExplicitFactNonContradiction({
+    classification: "logical_contradiction",
     reasoning: "The draft states verification requires no witness, contradicting the fact.",
   })).toBe(false)
 })

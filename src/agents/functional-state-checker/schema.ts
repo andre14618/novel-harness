@@ -7,6 +7,12 @@ export const functionalStateFindingSchema = z.object({
     "character_state_missing",
     "planned_state_contradicted",
   ]),
+  verdict: z.enum([
+    "supported",
+    "missing",
+    "contradicted",
+    "uncertain",
+  ]).default("uncertain"),
   planned_item: z.string(),
   // Stable-ID coverage (2026-05-04, additive). The model is instructed in the
   // system prompt to copy this only when the matched PLANNED_STATE item has

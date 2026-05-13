@@ -12,7 +12,7 @@
  */
 
 import { describe, expect, test } from "bun:test"
-import { findingToWarning, resolvePlannedItemId } from "./index"
+import { findingToWarning, resolvePlannedItemId, routeFunctionalStateFinding } from "./index"
 import { buildContext } from "./context"
 import { enrichOutlineIds } from "../../harness/ids"
 import type { ChapterOutline, SceneBeat } from "../../types"
@@ -381,6 +381,46 @@ describe("findingToWarning — plannedItemId on warning", () => {
     )
     expect(w.plannedItemId).toBeUndefined()
     expect(w.beatId).toBe(outline.scenes[1]!.beatId)
+  })
+})
+
+describe("routeFunctionalStateFinding — structured verdict routing", () => {
+  test("promotes only kind/verdict pairs that agree", () => {
+    expect(routeFunctionalStateFinding({
+      kind: "established_fact_missing",
+      verdict: "missing",
+    })).toBe("actionable")
+    expect(routeFunctionalStateFinding({
+      kind: "knowledge_change_missing",
+      verdict: "missing",
+    })).toBe("actionable")
+    expect(routeFunctionalStateFinding({
+      kind: "character_state_missing",
+      verdict: "missing",
+    })).toBe("actionable")
+    expect(routeFunctionalStateFinding({
+      kind: "planned_state_contradicted",
+      verdict: "contradicted",
+    })).toBe("actionable")
+  })
+
+  test("suppresses supported, uncertain, and mismatched rows", () => {
+    expect(routeFunctionalStateFinding({
+      kind: "knowledge_change_missing",
+      verdict: "supported",
+    })).toBe("supported")
+    expect(routeFunctionalStateFinding({
+      kind: "knowledge_change_missing",
+      verdict: "uncertain",
+    })).toBe("uncertain")
+    expect(routeFunctionalStateFinding({
+      kind: "knowledge_change_missing",
+      verdict: "contradicted",
+    })).toBe("self_contradiction")
+    expect(routeFunctionalStateFinding({
+      kind: "planned_state_contradicted",
+      verdict: "missing",
+    })).toBe("self_contradiction")
   })
 })
 
