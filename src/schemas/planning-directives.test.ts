@@ -6,6 +6,8 @@ import {
   normalizePlanningDirectiveRefs,
   planningDirectivesSchema,
   renderDirectivesForPlanner,
+  renderDirectivesForSceneExpansion,
+  type PlanningDirectives,
 } from "./planning-directives"
 
 test("planning directives render stable story thread and debt refs for planner", () => {
@@ -64,13 +66,72 @@ test("mercenary progression seed renders Book 1 contract packet for the planner"
     "MPA-09",
     "MPA-10",
   ])
+  expect(directives.chapterContracts.map(contract => contract.contractId)).toEqual([
+    "mpa-ch01-hub-debt-pressure",
+    "mpa-ch02-contract-offer-departure",
+    "mpa-ch03-witness-problem",
+    "mpa-ch04-arena-entry",
+    "mpa-ch05-false-tactical-win",
+    "mpa-ch06-midpoint-reveal",
+    "mpa-ch07-progression-trial",
+    "mpa-ch08-faction-trail",
+    "mpa-ch09-contract-climax",
+    "mpa-ch10-return-hook",
+  ])
 
   const rendered = renderDirectivesForPlanner(directives)
   expect(rendered).toContain("MPA-01 Hub pressure")
   expect(rendered).toContain("MPA-10 Return and next hook")
+  expect(rendered).toContain("CHAPTER CONTRACTS")
+  expect(rendered).toContain("mpa-ch01-hub-debt-pressure")
+  expect(rendered).toContain("Required endpoint: Kael understands he needs a contract")
+  expect(rendered).toContain("CHAPTER SEQUENCE GUARDS")
+  expect(rendered).toContain("ch1-no-contract-acceptance")
+  expect(rendered).toContain("Must not contain: Lady Varn's office")
+  expect(rendered).toContain("signs the contract")
+  expect(rendered).toContain("Must not contain: enters the mine")
+  expect(rendered).toContain("ch6-harvest-reveal")
+  expect(rendered).toContain("Chapter separation guard")
+  expect(rendered).toContain("Ch1 is hub/debt pressure only")
+  expect(rendered).toContain("Ch3 is rival claimant and salvage/witness friction at the mine approach or threshold only")
+  expect(rendered).toContain("Ch6 is the midpoint reveal and first sealed-chamber/core-harvest reveal")
   expect(rendered).toContain("threadId=thread-rillgate-contract-loop")
   expect(rendered).toContain("promiseId=debt-bronze-rank")
   expect(rendered).toContain("payoffId=payoff-provisional-bronze-rank")
   expect(rendered).toContain("First two chapter scene pressure notes")
   expect(rendered).toContain("objectivePressure=Kael must get a bronze path")
+})
+
+test("scene expansion directives are scoped to the target chapter contract", () => {
+  const seed = JSON.parse(readFileSync("src/seeds/mercenary-rillgate-saltmine.json", "utf8")) as {
+    directives?: unknown
+  }
+  const directives = planningDirectivesSchema.parse(seed.directives)
+
+  const chapterOne = renderDirectivesForSceneExpansion(directives, 1)
+  expect(chapterOne).toContain("CHAPTER-SCOPED DIRECTIVES")
+  expect(chapterOne).toContain("TARGET CHAPTER CONTRACT")
+  expect(chapterOne).toContain("mpa-ch01-hub-debt-pressure")
+  expect(chapterOne).toContain("Boundary locks:")
+  expect(chapterOne).toContain("MPA-01 Hub pressure")
+  expect(chapterOne).toContain("Next chapter owns after this handoff: Contract decision and mission launch")
+  expect(chapterOne).not.toContain("First Lady Varn office meeting")
+  expect(chapterOne).not.toContain("Lady Varn's office")
+  expect(chapterOne).not.toContain("MPA-06 Job complication")
+  expect(chapterOne).not.toContain("First two chapter scene pressure notes")
+  expect(chapterOne).not.toContain("Chapter separation guard")
+
+  const chapterSix = renderDirectivesForSceneExpansion(directives, 6)
+  expect(chapterSix).toContain("mpa-ch06-midpoint-reveal")
+  expect(chapterSix).toContain("MPA-06 Job complication")
+  expect(chapterSix).toContain("illegal monster-core harvest")
+})
+
+test("scene expansion directives tolerate raw must-contain-only guards", () => {
+  const seed = JSON.parse(readFileSync("src/seeds/mercenary-rillgate-saltmine.json", "utf8")) as {
+    directives: PlanningDirectives
+  }
+
+  expect(() => renderDirectivesForSceneExpansion(seed.directives, 2)).not.toThrow()
+  expect(() => renderDirectivesForSceneExpansion(seed.directives, 6)).not.toThrow()
 })

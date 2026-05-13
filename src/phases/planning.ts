@@ -171,11 +171,15 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   const retryIdx: Array<{ index: number; reason: string }> = []
   for (let i = 0; i < expanded.length; i++) {
     const ch = expanded[i]
-    const reason = planningSceneExpansionRetryReason(ch, {
-      nativePlanningContractV1,
-      planningSceneTurnShapingV1,
-      scenePlanContractV1,
-    })
+    const reasons = [
+      planningSceneExpansionRetryReason(ch, {
+        nativePlanningContractV1,
+        planningSceneTurnShapingV1,
+        scenePlanContractV1,
+      }),
+      planningSequenceGuardRetryReason(ch, novel.seed),
+    ].filter((reason): reason is string => Boolean(reason))
+    const reason = reasons.length ? reasons.join("; ") : null
     if (reason) {
       retryIdx.push({ index: i, reason })
       console.log(`  Ch ${ch.chapterNumber}: ${reason} — retrying expansion`)
@@ -187,13 +191,22 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
     const retries = retryIdx.map(({ index: i, reason }) =>
       expandChapter(novelId, skeletons![i], skeletons!, worldBible, characters, spine, novel.seed, 2, reason)
         .then(full => {
-          const retryReason = planningSceneExpansionRetryReason(full, {
-            nativePlanningContractV1,
-            planningSceneTurnShapingV1,
-            scenePlanContractV1,
-          })
-          if (!retryReason) expanded[i] = full
-          else log(novelId, "warn", `Ch ${full.chapterNumber}: retry still failed planning shape (${retryReason})`)
+          const retryReason = [
+            planningSceneExpansionRetryReason(full, {
+              nativePlanningContractV1,
+              planningSceneTurnShapingV1,
+              scenePlanContractV1,
+            }),
+            planningSequenceGuardRetryReason(full, novel.seed),
+          ].filter(Boolean).join("; ")
+          if (full.scenes?.length) {
+            expanded[i] = full
+            if (retryReason) {
+              log(novelId, "warn", `Ch ${full.chapterNumber}: retry kept improved chapter with remaining planning diagnostic (${retryReason})`)
+            }
+          } else {
+            log(novelId, "warn", `Ch ${full.chapterNumber}: retry still produced no scene entries (${retryReason || "empty retry output"})`)
+          }
         })
         .catch(err => log(novelId, "warn", `Ch ${skeletons![i].chapterNumber} retry failed: ${err.message}`))
     )
@@ -207,6 +220,13 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   })
   if (!finalEnforcement.valid) {
     throw new Error(`Planning failed after scene expansion + retry: ${finalEnforcement.errors.join("; ")}`)
+  }
+  const finalSequenceErrors = harness.enforce.validateChapterSequenceGuards(
+    finalEnforcement.chapters,
+    novel.seed.directives,
+  )
+  if (finalSequenceErrors.length > 0) {
+    throw new Error(`Planning failed chapter sequence guards after scene expansion + retry: ${finalSequenceErrors.join("; ")}`)
   }
 
   let chapters = finalEnforcement.chapters
@@ -253,6 +273,10 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   )
   if (remainingCoverageErrors.length > 0) {
     throw new Error(`Planning obligation coverage failed after mapper retries: ${remainingCoverageErrors.join("; ")}`)
+  }
+  const remainingSequenceErrors = harness.enforce.validateChapterSequenceGuards(chapters, novel.seed.directives)
+  if (remainingSequenceErrors.length > 0) {
+    throw new Error(`Planning failed chapter sequence guards after mapper retries: ${remainingSequenceErrors.join("; ")}`)
   }
   emit(novelId, { type: "progress", data: { step: "planning-obligations", status: "complete", chapters: chapters.length } })
 
@@ -567,6 +591,12 @@ export function planningSceneExpansionRetryReason(
     }
   }
   return null
+}
+
+function planningSequenceGuardRetryReason(outline: ChapterOutline, seed: Pick<SeedInput, "directives">): string | null {
+  const errors = harness.enforce.validateChapterSequenceGuards([outline], seed.directives)
+  if (errors.length === 0) return null
+  return `chapter sequence guard failed: ${errors.join("; ")}`
 }
 
 const SHORT_FIXED_ARC_MAX_SEMANTIC_TARGET_WORDS = 1800

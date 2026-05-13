@@ -10,6 +10,7 @@
 
 import type { CharacterProfile, ChapterOutline, SceneBeat } from "../types"
 import type { BeatObligationItem } from "../schemas/shared"
+import type { PlanningDirectives } from "../schemas/planning-directives"
 import { assessSceneCountForTarget, planningSceneCountPolicy } from "./scene-counts"
 
 // ── Planning Phase ────────────────────────────────────────────────────────
@@ -119,6 +120,121 @@ export function enforcePlanningOutput(
   for (const ch of chapters) sanitizePayoffLinks(ch, warnings)
 
   return { valid: errors.length === 0, chapters, errors, warnings }
+}
+
+export function validateChapterSequenceGuards(
+  chapters: readonly ChapterOutline[],
+  directives: PlanningDirectives | undefined,
+): string[] {
+  const guards = directives?.chapterSequenceGuards ?? []
+  if (guards.length === 0) return []
+  const errors: string[] = []
+  for (const chapter of chapters) {
+    const matching = guards.filter(guard => guard.chapter === chapter.chapterNumber)
+    if (matching.length === 0) continue
+    const segments = chapterTextSegments(chapter)
+    const nonChapterSegments = segments.filter(segment => segment.kind !== "chapter")
+    for (const guard of matching) {
+      const label = guard.guardId ? `${guard.guardId}` : "unnamed"
+      for (const phrase of guard.mustNotContain ?? []) {
+        const needle = phrase.trim()
+        if (!needle) continue
+        const found = nonChapterSegments.find(segment =>
+          segmentContains(segment.text, needle) && !isWithheldMention(segment.text, needle),
+        )
+        if (found) {
+          errors.push(
+            `Chapter ${chapter.chapterNumber} sequence guard ${label}: forbidden phrase "${needle}" found in ${found.label}`,
+          )
+        }
+      }
+
+      const required = (guard.mustContainAny ?? []).map(v => v.trim()).filter(Boolean)
+      if (required.length > 0) {
+        const hasRequired = required.some(phrase =>
+          segments.some(segment => segmentContains(segment.text, phrase)),
+        )
+        if (!hasRequired) {
+          errors.push(
+            `Chapter ${chapter.chapterNumber} sequence guard ${label}: expected at least one phrase but found none: ${required.join("; ")}`,
+          )
+        }
+      }
+    }
+  }
+  return errors
+}
+
+function chapterTextSegments(chapter: ChapterOutline): Array<{ label: string; text: string; kind: "chapter" | "scene" | "state" }> {
+  const segments: Array<{ label: string; text: string; kind: "chapter" | "scene" | "state" }> = []
+  const add = (kind: "chapter" | "scene" | "state", label: string, value: unknown) => {
+    if (typeof value !== "string" || !value.trim()) return
+    segments.push({ kind, label, text: value })
+  }
+
+  add("chapter", "chapter title", chapter.title)
+  add("chapter", "chapter setting", chapter.setting)
+  add("chapter", "chapter purpose", chapter.purpose)
+  chapter.scenes?.forEach((scene, index) => {
+    const prefix = `scene ${index + 1}`
+    add("scene", `${prefix} description`, scene.description)
+    add("scene", `${prefix} goal`, scene.goal)
+    add("scene", `${prefix} opposition`, scene.opposition)
+    add("scene", `${prefix} turningPoint`, scene.turningPoint)
+    add("scene", `${prefix} crisisChoice`, scene.crisisChoice)
+    add("scene", `${prefix} outcome`, scene.outcome)
+    add("scene", `${prefix} consequence`, scene.consequence)
+  })
+  chapter.establishedFacts?.forEach((fact, index) => add("state", `established fact ${index + 1}`, fact.fact))
+  chapter.knowledgeChanges?.forEach((knowledge, index) => add("state", `knowledge change ${index + 1}`, knowledge.knowledge))
+  chapter.characterStateChanges?.forEach((state, index) => {
+    add("state", `state change ${index + 1} location`, state.location)
+    add("state", `state change ${index + 1} emotionalState`, state.emotionalState)
+    for (const [knowIndex, item] of (state.knows ?? []).entries()) {
+      add("state", `state change ${index + 1} knows ${knowIndex + 1}`, item)
+    }
+  })
+  return segments
+}
+
+function segmentContains(haystack: string, needle: string): boolean {
+  return normalizeText(haystack).includes(normalizeText(needle))
+}
+
+const WITHHELD_MENTION_MARKERS = [
+  "does not know",
+  "do not reveal",
+  "lacks full understanding",
+  "not reveal",
+  "not revealed",
+  "not yet",
+  "remain undiscovered",
+  "remains undiscovered",
+  "remain unrevealed",
+  "remains unrevealed",
+  "unaware",
+  "undiscovered",
+  "unrevealed",
+  "unknown",
+  "without learning",
+  "without revealing",
+  "still lacks",
+]
+
+function isWithheldMention(haystack: string, needle: string): boolean {
+  const normalizedHaystack = normalizeText(haystack)
+  const normalizedNeedle = normalizeText(needle)
+  const index = normalizedHaystack.indexOf(normalizedNeedle)
+  if (index < 0) return false
+  const window = normalizedHaystack.slice(
+    Math.max(0, index - 100),
+    Math.min(normalizedHaystack.length, index + normalizedNeedle.length + 100),
+  )
+  return WITHHELD_MENTION_MARKERS.some(marker => window.includes(marker))
+}
+
+function normalizeText(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, " ").trim()
 }
 
 function normalizeExplicitEntryMax(value: number | null | undefined): number | null {

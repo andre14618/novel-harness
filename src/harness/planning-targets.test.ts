@@ -23,6 +23,8 @@ describe("buildPlanningTargetMap", () => {
           storyThreads: [],
           storyDebts: [],
           storyPayoffs: [],
+          chapterContracts: [],
+          chapterSequenceGuards: [],
           rawNotes: "Keep the narration spare.",
         },
       },

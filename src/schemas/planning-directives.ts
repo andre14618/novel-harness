@@ -62,6 +62,17 @@ const coerceOptionalNumber = z.preprocess(
   z.number().optional(),
 )
 
+const coerceRequiredNumber = z.preprocess(
+  (v) => {
+    if (typeof v === "string") {
+      const n = Number(v.trim())
+      return Number.isFinite(n) ? n : v
+    }
+    return v
+  },
+  z.number(),
+)
+
 export const structuralConstraintsSchema = z.object({
   chapterCount: coerceOptionalNumber,
   povRotation: z.string().default(""),
@@ -97,6 +108,37 @@ export const storyPayoffDirectiveSchema = z.object({
 })
 export type StoryPayoffDirective = z.infer<typeof storyPayoffDirectiveSchema>
 
+export const chapterSequenceGuardSchema = z.object({
+  guardId: z.coerce.string().default(""),
+  chapter: coerceRequiredNumber,
+  description: z.string().default(""),
+  mustContainAny: z.array(z.string()).default([]),
+  mustNotContain: z.array(z.string()).default([]),
+}).refine(
+  guard => guard.mustContainAny.length > 0 || guard.mustNotContain.length > 0,
+  { message: "Chapter sequence guard must declare mustContainAny or mustNotContain" },
+)
+export type ChapterSequenceGuard = z.infer<typeof chapterSequenceGuardSchema>
+
+export const chapterPlanningContractSchema = z.object({
+  contractId: z.coerce.string().default(""),
+  chapter: coerceRequiredNumber,
+  storyFunction: z.string().default(""),
+  ownedMovement: z.string().default(""),
+  allowedStoryTerritory: z.array(z.string()).default([]),
+  requiredEndpoint: z.string().default(""),
+  handoffToNext: z.string().default(""),
+  lockedFutureEvents: z.array(z.string()).default([]),
+  prohibitedMovement: z.array(z.string()).default([]),
+}).refine(
+  contract =>
+    contract.storyFunction.trim().length > 0 ||
+    contract.ownedMovement.trim().length > 0 ||
+    contract.requiredEndpoint.trim().length > 0,
+  { message: "Chapter planning contract must declare storyFunction, ownedMovement, or requiredEndpoint" },
+)
+export type ChapterPlanningContract = z.infer<typeof chapterPlanningContractSchema>
+
 export const planningDirectivesSchema = z.object({
   lockedCharacters: z.array(lockedCharacterSchema).default([]),
   requiredBeats: z.array(requiredBeatSchema).default([]),
@@ -106,6 +148,8 @@ export const planningDirectivesSchema = z.object({
   storyThreads: z.array(storyThreadDirectiveSchema).default([]),
   storyDebts: z.array(storyDebtDirectiveSchema).default([]),
   storyPayoffs: z.array(storyPayoffDirectiveSchema).default([]),
+  chapterContracts: z.array(chapterPlanningContractSchema).default([]),
+  chapterSequenceGuards: z.array(chapterSequenceGuardSchema).default([]),
   rawNotes: z.string().default(""),
 })
 export type PlanningDirectives = z.infer<typeof planningDirectivesSchema>
@@ -137,6 +181,8 @@ export const emptyDirectives: PlanningDirectives = {
   storyThreads: [],
   storyDebts: [],
   storyPayoffs: [],
+  chapterContracts: [],
+  chapterSequenceGuards: [],
   rawNotes: "",
 }
 
@@ -216,12 +262,150 @@ export function renderDirectivesForPlanner(d: PlanningDirectives): string {
   if (sc.targetWordsPerChapter) scParts.push(`Target words/chapter: ${sc.targetWordsPerChapter}`)
   if (scParts.length) sections.push(`STRUCTURAL CONSTRAINTS:\n${scParts.map(p => `- ${p}`).join("\n")}`)
 
+  const chapterContracts = d.chapterContracts ?? []
+  if (chapterContracts.length) sections.push(renderChapterContractsForPlanner(chapterContracts))
+
+  const chapterSequenceGuards = d.chapterSequenceGuards ?? []
+  if (chapterSequenceGuards.length) {
+    sections.push(
+      `CHAPTER SEQUENCE GUARDS (hard order constraints; keep events in their owning chapter):\n${
+        chapterSequenceGuards.map(guard => {
+          const mustContainAny = guard.mustContainAny ?? []
+          const mustNotContain = guard.mustNotContain ?? []
+          const parts = [`- Ch ${guard.chapter}${guard.guardId ? ` [${guard.guardId}]` : ""}: ${guard.description || "sequence guard"}`]
+          if (mustContainAny.length) parts.push(`  Must contain at least one: ${mustContainAny.join("; ")}`)
+          if (mustNotContain.length) parts.push(`  Must not contain: ${mustNotContain.join("; ")}`)
+          return parts.join("\n")
+        }).join("\n")
+      }`,
+    )
+  }
+
   sections.push(...renderStoryThreadSections(refs))
 
   if (d.rawNotes.trim()) sections.push(`AUTHOR NOTES:\n${d.rawNotes.trim()}`)
 
   if (!sections.length) return ""
   return `\n\nDIRECTIVES (author-specified, override planner defaults where they conflict):\n${sections.join("\n\n")}`
+}
+
+export function renderDirectivesForSceneExpansion(d: PlanningDirectives, targetChapter: number): string {
+  const sections: string[] = []
+  const refs = normalizePlanningDirectiveRefs(d)
+  const boundaryTerms = planningBoundaryTermsForChapter(d, targetChapter)
+
+  if (d.lockedCharacters.length) {
+    sections.push(
+      `LOCKED CHARACTER ROSTER (names/roles only; use the chapter character context for current-scene traits):\n${
+        d.lockedCharacters.map(c => {
+          return `- ${c.name}${c.role ? ` (${c.role})` : ""}`
+        }).join("\n")
+      }`,
+    )
+  }
+
+  const targetContracts = (d.chapterContracts ?? []).filter(contract => contract.chapter === targetChapter)
+  if (targetContracts.length) {
+    sections.push(renderTargetChapterContracts(targetContracts))
+  }
+
+  const targetBeats = d.requiredBeats.filter(beat => beat.chapter === targetChapter || beat.chapter === undefined)
+  if (targetBeats.length) {
+    sections.push(renderTargetRequiredBeats(targetBeats, boundaryTerms, targetChapter))
+  }
+
+  const adjacent = renderAdjacentChapterHandoffs(d.chapterContracts ?? [], targetChapter)
+  if (adjacent) sections.push(adjacent)
+
+  if (d.forbidden.length) {
+    const safeForbidden = d.forbidden.filter(item => !directiveTextContainsBoundaryTerm(item, boundaryTerms))
+    const withheld = d.forbidden.length - safeForbidden.length
+    const lines = safeForbidden.map(f => `- ${f}`)
+    if (withheld > 0) {
+      lines.push(`- ${withheld} future-boundary forbidden item${withheld === 1 ? "" : "s"} withheld from the prompt; sequence guards enforce timing.`)
+    }
+    if (lines.length) sections.push(`GLOBAL FORBIDDEN (applies to this chapter too):\n${lines.join("\n")}`)
+  }
+  if (d.tonalAnchors.length) {
+    sections.push(`TONAL ANCHORS: ${d.tonalAnchors.join("; ")}`)
+  }
+
+  const scopedStoryRefs = renderScopedStoryThreadSections(refs, targetChapter)
+  sections.push(...scopedStoryRefs)
+
+  if (!sections.length) return ""
+  return `\n\nCHAPTER-SCOPED DIRECTIVES (decomposed before scene expansion; do not borrow future-chapter movement):\n${sections.join("\n\n")}`
+}
+
+function renderChapterContractsForPlanner(contracts: readonly ChapterPlanningContract[]): string {
+  return `CHAPTER CONTRACTS (chapter ownership decomposition; scene expansion must fill, not reinterpret):\n${
+    contracts.map(contract => {
+      const parts = [`- Ch ${contract.chapter}${contract.contractId ? ` [${contract.contractId}]` : ""}`]
+      if (contract.storyFunction) parts.push(`  Function: ${contract.storyFunction}`)
+      if (contract.ownedMovement) parts.push(`  Owns: ${contract.ownedMovement}`)
+      if (contract.allowedStoryTerritory.length) parts.push(`  Allowed territory: ${contract.allowedStoryTerritory.join("; ")}`)
+      if (contract.requiredEndpoint) parts.push(`  Required endpoint: ${contract.requiredEndpoint}`)
+      if (contract.handoffToNext) parts.push(`  Handoff: ${contract.handoffToNext}`)
+      if (contract.lockedFutureEvents.length) parts.push(`  Locked future events: ${contract.lockedFutureEvents.join("; ")}`)
+      if (contract.prohibitedMovement.length) parts.push(`  Prohibited movement: ${contract.prohibitedMovement.join("; ")}`)
+      return parts.join("\n")
+    }).join("\n")
+  }`
+}
+
+function renderTargetChapterContracts(targetContracts: readonly ChapterPlanningContract[]): string {
+  const rendered = targetContracts.map(contract => {
+    const allowedStoryTerritory = contract.allowedStoryTerritory ?? []
+    const lockedFutureEvents = contract.lockedFutureEvents ?? []
+    const prohibitedMovement = contract.prohibitedMovement ?? []
+    const parts = [`- Ch ${contract.chapter}${contract.contractId ? ` [${contract.contractId}]` : ""}`]
+    if (contract.storyFunction) parts.push(`  Story function: ${contract.storyFunction}`)
+    if (contract.ownedMovement) parts.push(`  Owned movement: ${contract.ownedMovement}`)
+    if (allowedStoryTerritory.length) parts.push(`  Allowed story territory: ${allowedStoryTerritory.join("; ")}`)
+    if (contract.requiredEndpoint) parts.push(`  Required endpoint: ${contract.requiredEndpoint}`)
+    if (contract.handoffToNext) parts.push(`  Handoff to next chapter: ${contract.handoffToNext}`)
+    const withheldBoundaryCount = lockedFutureEvents.length + prohibitedMovement.length
+    if (withheldBoundaryCount > 0) {
+      parts.push(`  Boundary locks: ${withheldBoundaryCount} future/prohibited movements are withheld from this expansion; fill only the owned movement and required endpoint.`)
+    }
+    return parts.join("\n")
+  }).join("\n")
+  return `TARGET CHAPTER CONTRACT (primary expansion source; fill this contract only):\n${rendered}\n\nExpansion rule: author scene entries that execute the owned movement and required endpoint. Treat withheld boundary details as unavailable story material for this chapter.`
+}
+
+function renderTargetRequiredBeats(
+  beats: readonly RequiredBeat[],
+  boundaryTerms: readonly string[],
+  targetChapter: number,
+): string {
+  const rendered = beats.map(beat => {
+    const mustInclude = beat.mustInclude ?? []
+    const description = directiveTextContainsBoundaryTerm(beat.description, boundaryTerms)
+      ? `Chapter ${targetChapter} required movement from the target contract`
+      : beat.description
+    const safeIncludes = mustInclude.filter(item => !directiveTextContainsBoundaryTerm(item, boundaryTerms))
+    const inc = safeIncludes.length ? ` [must include: ${safeIncludes.join(", ")}]` : ""
+    const withheld = mustInclude.length - safeIncludes.length
+    const withheldNote = withheld > 0
+      ? ` [${withheld} future-boundary item${withheld === 1 ? "" : "s"} withheld; sequence guards enforce timing]`
+      : ""
+    return `- ${description}${inc}${withheldNote}`
+  }).join("\n")
+  return `TARGET REQUIRED BEATS (only this chapter may execute these now):\n${rendered}`
+}
+
+function renderAdjacentChapterHandoffs(contracts: readonly ChapterPlanningContract[], targetChapter: number): string {
+  const previous = contracts.find(contract => contract.chapter === targetChapter - 1)
+  const next = contracts.find(contract => contract.chapter === targetChapter + 1)
+  const lines: string[] = []
+  if (previous?.requiredEndpoint || previous?.handoffToNext) {
+    lines.push(`Previous chapter arrives with: ${previous.requiredEndpoint || previous.handoffToNext}`)
+  }
+  if (next?.storyFunction || next?.ownedMovement) {
+    lines.push(`Next chapter owns after this handoff: ${next.storyFunction || next.ownedMovement}`)
+  }
+  if (lines.length === 0) return ""
+  return `ADJACENT HANDOFFS (boundary awareness, not extra content):\n${lines.map(line => `- ${line}`).join("\n")}`
 }
 
 /**
@@ -278,12 +462,53 @@ export function isEmpty(d: PlanningDirectives): boolean {
     d.storyThreads.length === 0 &&
     d.storyDebts.length === 0 &&
     d.storyPayoffs.length === 0 &&
+    d.chapterContracts.length === 0 &&
+    d.chapterSequenceGuards.length === 0 &&
     !d.structuralConstraints.chapterCount &&
     !d.structuralConstraints.povRotation &&
     !d.structuralConstraints.pacing &&
     !d.structuralConstraints.targetWordsPerChapter &&
     !d.rawNotes.trim()
   )
+}
+
+export function planningBoundaryTermsForChapter(d: PlanningDirectives, targetChapter: number): string[] {
+  const terms: string[] = []
+  for (const guard of d.chapterSequenceGuards ?? []) {
+    if (guard.chapter < targetChapter) continue
+    terms.push(...(guard.mustNotContain ?? []))
+  }
+  for (const contract of d.chapterContracts ?? []) {
+    if (contract.chapter < targetChapter) continue
+    terms.push(...(contract.lockedFutureEvents ?? []), ...(contract.prohibitedMovement ?? []))
+  }
+  const seen = new Set<string>()
+  return terms
+    .map(term => term.trim())
+    .filter(term => term.length > 2)
+    .filter(term => {
+      const key = normalizeBoundaryText(term)
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+}
+
+export function directiveTextContainsBoundaryTerm(text: string, terms: readonly string[]): boolean {
+  const normalizedText = normalizeBoundaryText(text)
+  if (!normalizedText) return false
+  return terms.some(term => {
+    const normalizedTerm = normalizeBoundaryText(term)
+    if (normalizedTerm.length <= 2) return false
+    if (normalizedText.includes(normalizedTerm)) return true
+    if (/\bcores?\b/.test(normalizedTerm) && /\bcores?\b/.test(normalizedText)) return true
+    if (/\bharvest\b/.test(normalizedTerm) && /\bharvest\w*\b/.test(normalizedText)) return true
+    return false
+  })
+}
+
+function normalizeBoundaryText(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim()
 }
 
 function renderStoryThreadSections(refs: NormalizedPlanningDirectiveRefs): string[] {
@@ -326,6 +551,59 @@ function renderStoryThreadSections(refs: NormalizedPlanningDirectiveRefs): strin
   }
   if (sections.length) {
     sections.push("STORY REF RULE: preserve threadId, promiseId, and payoffId exactly. Do not invent new story refs when none apply.")
+  }
+  return sections
+}
+
+function renderScopedStoryThreadSections(refs: NormalizedPlanningDirectiveRefs, targetChapter: number): string[] {
+  const sections: string[] = []
+  if (refs.storyThreads.length) {
+    sections.push(
+      `STORY THREAD IDS (reference only; do not widen this chapter):\n${
+        refs.storyThreads.map(t => {
+          const kind = t.kind ? ` (${t.kind})` : ""
+          return `- threadId=${t.threadId}${kind}: ${t.label}`
+        }).join("\n")
+      }`,
+    )
+  }
+  const activeDebts = refs.storyDebts.filter(debt =>
+    (debt.openedByChapter ?? 1) <= targetChapter,
+  )
+  const futureDebts = refs.storyDebts.filter(debt =>
+    (debt.openedByChapter ?? 1) > targetChapter,
+  )
+  if (activeDebts.length) {
+    sections.push(
+      `ACTIVE STORY DEBTS (use only if this chapter's contract touches them):\n${
+        activeDebts.map(debt => {
+          const parts = [`- promiseId=${debt.storyDebtId} threadId=${debt.threadId}: ${debt.promiseText}`]
+          if (debt.expectedPayoffChapter) parts.push(`  Expected payoff chapter: ${debt.expectedPayoffChapter}`)
+          if (debt.payoffPolicy) parts.push(`  Payoff policy: ${debt.payoffPolicy}`)
+          return parts.join("\n")
+        }).join("\n")
+      }`,
+    )
+  }
+  if (futureDebts.length) {
+    sections.push(
+      `LOCKED FUTURE STORY DEBTS (ID/timing awareness only; do not open early):\n${
+        futureDebts.map(debt => `- promiseId=${debt.storyDebtId} opens by chapter ${debt.openedByChapter ?? "later"}`).join("\n")
+      }`,
+    )
+  }
+  const targetPayoffs = refs.storyPayoffs.filter(payoff =>
+    payoff.targetChapter === undefined || payoff.targetChapter <= targetChapter,
+  )
+  if (targetPayoffs.length) {
+    sections.push(
+      `PAYOFF TARGETS AVAILABLE OR UNSCHEDULED BY THIS CHAPTER:\n${
+        targetPayoffs.map(payoff => `- payoffId=${payoff.payoffId} promiseId=${payoff.storyDebtId}: ${payoff.payoffText}`).join("\n")
+      }`,
+    )
+  }
+  if (sections.length) {
+    sections.push("STORY REF RULE: preserve existing IDs exactly. Do not invent new story refs and do not pay off a future target early.")
   }
   return sections
 }

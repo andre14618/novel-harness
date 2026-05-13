@@ -122,16 +122,39 @@ test("planning-state-mapper context carries runtime story refs from directives",
         storyThreads: [{ threadId: "thread-ledger-truth", label: "Ledger truth", description: "Istra tracks who falsified the plague ledger.", kind: "" }],
         storyDebts: [{ storyDebtId: "debt-ledger-betrayal", threadId: "thread-ledger-truth", promiseText: "The altered ledger points to a civic betrayal.", payoffPolicy: "" }],
         storyPayoffs: [{ payoffId: "payoff-ledger-betrayal-proved", storyDebtId: "debt-ledger-betrayal", threadId: "thread-ledger-truth", payoffText: "Istra proves who falsified the plague ledger." }],
+        chapterContracts: [],
+        chapterSequenceGuards: [],
         rawNotes: "",
       },
     },
   })
 
-  expect(context).toContain("STORY THREADS")
+  expect(context).toContain("CHAPTER-SCOPED DIRECTIVES")
+  expect(context).toContain("STORY THREAD IDS")
   expect(context).toContain("threadId=thread-ledger-truth")
   expect(context).toContain("promiseId=debt-ledger-betrayal")
   expect(context).toContain("payoffId=payoff-ledger-betrayal-proved")
   expect(context).toContain("STORY REF RULE")
+})
+
+test("planning-state-mapper context hides future skeleton purposes behind boundaries", () => {
+  const context = buildContext({
+    targetChapter: chapter(),
+    allSkeletons: [
+      chapter(),
+      { ...chapter(), chapterNumber: 2, title: "The Murderer Confesses", purpose: "The murderer confesses in public." },
+    ],
+    priorChapters: [],
+    scenes: [beat({ description: "Istra discovers the plague ledger was altered.", characters: ["Istra"] })],
+    worldBible: worldBible(),
+    characters: [character()],
+    spine: storySpine(),
+    seed: seed(),
+  })
+
+  expect(context).toContain("CHAPTER BOUNDARY MAP")
+  expect(context).toContain("Ch 2: \"The Murderer Confesses\" -- FUTURE CHAPTER BOUNDARY ONLY")
+  expect(context).not.toContain("The murderer confesses in public.")
 })
 
 function chapter(): ChapterOutline {

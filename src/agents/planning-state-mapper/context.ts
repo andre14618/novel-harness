@@ -3,7 +3,14 @@ import type { WorldBible } from "../world-builder/schema"
 import type { CharacterProfile } from "../character-agent/schema"
 import type { StorySpine } from "../plotter/schema"
 import type { ChapterOutline } from "../planning-plotter/schema"
-import { renderDirectivesForPlanner } from "../../schemas/planning-directives"
+import { renderDirectivesForSceneExpansion } from "../../schemas/planning-directives"
+import {
+  renderScopedCharacterSection,
+  renderScopedSeedHeader,
+  renderScopedSpineSection,
+  renderScopedWorldSection,
+  resolveScopedPlanningContext,
+} from "../planning-context-scope"
 import { resolveStructuralPriors, renderStructuralPriorsForPlanner } from "../../models/roles"
 import {
   resolvePlanningMaterialPressureV1,
@@ -25,6 +32,11 @@ export interface StateMapperContextArgs {
 function renderSkeletonLine(sk: ChapterOutline): string {
   const chars = sk.charactersPresent?.length ? ` [${sk.charactersPresent.join(", ")}]` : ""
   return `  Ch ${sk.chapterNumber}: "${sk.title}" -- POV: ${sk.povCharacter} -- ${sk.setting} -- ${sk.targetWords}w\n    Purpose: ${sk.purpose}${chars}`
+}
+
+function renderBoundaryLine(sk: ChapterOutline, targetChapter: number): string {
+  if (sk.chapterNumber <= targetChapter) return renderSkeletonLine(sk)
+  return `  Ch ${sk.chapterNumber}: "${sk.title}" -- FUTURE CHAPTER BOUNDARY ONLY. Do not map this chapter's purpose, reveals, endpoint, or set pieces while mapping Chapter ${targetChapter}.`
 }
 
 function renderPriorState(sk: ChapterOutline): string {
@@ -51,16 +63,14 @@ function renderSceneEntryLine(scene: SceneBeat, index: number): string {
 
 export function buildContext(args: StateMapperContextArgs): string {
   const { targetChapter, allSkeletons, priorChapters, scenes, worldBible, characters, spine, seed } = args
+  const scope = resolveScopedPlanningContext(seed, targetChapter)
 
-  const worldSection = `WORLD BIBLE:\nSetting: ${worldBible.setting}\nRules:\n${worldBible.rules.map(r => `- ${r}`).join("\n")}\nLocations:\n${worldBible.locations.map(l => `- ${l.name}: ${l.description}${l.sensoryDetails ? ` [${l.sensoryDetails}]` : ""}`).join("\n")}`
+  const headerSection = renderScopedSeedHeader(seed, targetChapter, scope)
+  const worldSection = renderScopedWorldSection(worldBible, targetChapter, scope)
+  const charSection = renderScopedCharacterSection(characters, targetChapter, scope)
+  const spineSection = renderScopedSpineSection(spine, scope)
 
-  const charSection = `CHARACTERS:\n${characters.map(c =>
-    `- ${c.name} (${c.role}) -- ${c.traits.join(", ")}\n  Speech: ${c.speechPattern}\n  Goals: ${c.goals}  Fears: ${c.fears}`
-  ).join("\n")}`
-
-  const spineSection = `STORY SPINE:\nCentral Conflict: ${spine.centralConflict}\nTheme: ${spine.theme}\nEnding Direction: ${spine.endingDirection}`
-
-  const allSkelSection = `ALL CHAPTER SKELETONS (for cross-chapter awareness):\n${allSkeletons.map(renderSkeletonLine).join("\n")}`
+  const allSkelSection = `CHAPTER BOUNDARY MAP (past/current detail plus future ownership boundaries):\n${allSkeletons.map(skeleton => renderBoundaryLine(skeleton, targetChapter.chapterNumber)).join("\n")}`
 
   const priorSection = priorChapters.length
     ? `\n\nPRIOR CHAPTERS (already expanded -- state at their end):\n${priorChapters.map(renderPriorState).filter(Boolean).join("\n\n")}`
@@ -70,7 +80,9 @@ export function buildContext(args: StateMapperContextArgs): string {
 
   const sceneSection = `SCENE ENTRIES TO MAP (0-based indexes; do not rewrite descriptions):\n${scenes.map(renderSceneEntryLine).join("\n")}`
 
-  const directivesSection = seed.directives ? renderDirectivesForPlanner(seed.directives) : ""
+  const directivesSection = seed.directives
+    ? renderDirectivesForSceneExpansion(seed.directives, targetChapter.chapterNumber)
+    : ""
   const priors = resolveStructuralPriors(seed.genre)
   const structuralSection = priors ? renderStructuralPriorsForPlanner(priors) : ""
 
@@ -86,7 +98,7 @@ export function buildContext(args: StateMapperContextArgs): string {
     resolveScenePlanContractV1(seed.pipelineOverrides),
   )
 
-  return `Genre: ${seed.genre}\nPremise: ${seed.premise}\n\n${worldSection}\n\n${charSection}\n\n${spineSection}\n\n${allSkelSection}${priorSection}\n\n${targetSection}\n\n${sceneSection}${directivesSection}${structuralSection}${scenePlanContractSection}${selectiveSceneTurnSection}${materialPressureSection}\n\nMap Chapter ${targetChapter.chapterNumber}'s end-of-chapter state and writer-visible scene obligations onto the existing scene-entry list.`
+  return `${headerSection}\n\n${worldSection}\n\n${charSection}\n\n${spineSection}\n\n${allSkelSection}${priorSection}\n\n${targetSection}\n\n${sceneSection}${directivesSection}${structuralSection}${scenePlanContractSection}${selectiveSceneTurnSection}${materialPressureSection}\n\nMap Chapter ${targetChapter.chapterNumber}'s end-of-chapter state and writer-visible scene obligations onto the existing scene-entry list.`
 }
 
 // L096 Slice 1: scene-plan-contract guidance for the state mapper. Off-flag

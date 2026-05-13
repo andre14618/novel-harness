@@ -113,14 +113,16 @@ The active lane is in `docs/sessions/lane-queue.md`.
 
 As of 2026-05-12, L106-L109 keep evidence on production paths: writer-brief
 telemetry, scene-semantic replay, Plan Readiness, source hygiene,
-planning-edit replay, scene-contract telemetry, and compare/cohort artifacts.
+  planning-edit replay, scene-contract telemetry, and compare/cohort artifacts.
 `planningSceneTurnShapingV1` and `planningMaterialPressureV1` run through
 production planner/state-mapper paths; gaps are recorded instead of
 fallback-filled. Tight-anchored writer-brief evidence was promising but did not
 generalize, so default flip remains blocked. L109 works directly on main:
-`mercenary-rillgate-saltmine` produced 10 chapters / 99 scenes with no
-truncation and only a state-mapper headroom warning. Next: draft from that
-source without reopening POC-to-main workflow. See L103-L109.
+`mercenary-rillgate-saltmine` now uses chapter-contract scoped scene expansion;
+planner evidence `test-planner-mercenary-rillgate-saltmine-1778630130371`
+produced 10 chapters / 98 scenes with no truncation and only a state-mapper
+headroom warning. Next: draft from that source without reopening POC-to-main
+workflow. See L103-L109.
 
 ## Authoring Gates
 

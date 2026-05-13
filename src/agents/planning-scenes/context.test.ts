@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test"
+import { readFileSync } from "node:fs"
 
 import { buildContext } from "./context"
+import type { SeedInput } from "../../types"
 
 test("planning scene context omits scene plan contract guidance when flag is off", () => {
   const context = buildContext({
@@ -407,6 +409,160 @@ test("planning scene context carries native-contract retry feedback", () => {
   expect(context).toContain("9 scene entries > native planning budget 5+1")
   expect(context).toContain("Retry count requirement: emit 4-6 entries")
   expect(context).toContain("Do not drop the endpoint")
+})
+
+test("planning scene context scopes mercenary directives and hides future skeleton purpose detail", () => {
+  const mercenarySeed = JSON.parse(readFileSync("src/seeds/mercenary-rillgate-saltmine.json", "utf8")) as SeedInput
+  const ch1 = {
+    ...chapter(1, 3100),
+    title: "The Debt Bell",
+    purpose: "Kael learns Mira's marker will be sold and leaves with Lady Varn only as a lead.",
+  }
+  const ch2 = {
+    ...chapter(2, 3100),
+    title: "The Varn Offer",
+    purpose: "Kael first meets Lady Varn, signs the contract, and leaves Rillgate.",
+  }
+  const ch6 = {
+    ...chapter(6, 3100),
+    title: "The Core Vault",
+    purpose: "Kael discovers the illegal monster-core harvest in the sealed chamber.",
+  }
+  const context = buildContext({
+    targetChapter: ch1,
+    allSkeletons: [ch1, ch2, ch6],
+    priorChapters: [],
+    worldBible: {
+      setting: "Rillgate",
+      timePeriod: "now",
+      geography: "salt flats",
+      politicalStructure: "guild",
+      technologyConstraints: "contracts",
+      socialCustoms: [],
+      sensoryPalette: "salt and ink",
+      rules: ["Rank law matters"],
+      locations: [{ name: "Contract Hall", description: "A contract hub" }],
+      culture: "ranked",
+      history: "old mines",
+      systems: [],
+      cultures: [],
+    },
+    characters: [{
+      id: "kael-rusk",
+      name: "Kael Rusk",
+      role: "protagonist",
+      backstory: "",
+      traits: ["tactical"],
+      speechPattern: "clipped",
+      goals: "earn bronze",
+      fears: "losing Mira",
+      relationships: [],
+      culturalBackground: [],
+      systemAwareness: [],
+      exampleLines: [],
+    }],
+    spine: {
+      acts: [],
+      centralConflict: "rank versus debt",
+      theme: "law has teeth",
+      endingDirection: "provisional victory",
+    },
+    seed: mercenarySeed,
+  } as Parameters<typeof buildContext>[0])
+
+  expect(context).toContain("CHAPTER-SCOPED DIRECTIVES")
+  expect(context).toContain("mpa-ch01-hub-debt-pressure")
+  expect(context).toContain("CHAPTER STORY SCOPE")
+  expect(context).toContain("Boundary locks:")
+  expect(context).toContain("TARGET REQUIRED BEATS")
+  expect(context).toContain("MPA-01 Hub pressure")
+  expect(context).toContain("Ch 2: \"The Varn Offer\" — FUTURE CHAPTER BOUNDARY ONLY")
+  expect(context).not.toContain("First Lady Varn office meeting")
+  expect(context).not.toContain("Lady Varn's office")
+  expect(context).not.toContain("Kael first meets Lady Varn, signs the contract")
+  expect(context).not.toContain("Kael discovers the illegal monster-core harvest")
+  expect(context).not.toContain("First two chapter scene pressure notes")
+  expect(context).not.toContain("Chapter separation guard")
+})
+
+test("planning scene context redacts future reveal vocabulary from current character and world context", () => {
+  const mercenarySeed = JSON.parse(readFileSync("src/seeds/mercenary-rillgate-saltmine.json", "utf8")) as SeedInput
+  const ch2 = {
+    ...chapter(2, 3100),
+    title: "The Salt-Mine Contract",
+    povCharacter: "Kael Rusk",
+    setting: "Lady Varn's Office, Rillgate Contract Hall",
+    purpose: "Kael first meets Lady Varn, evaluates the contract, signs, checks Orin, and leaves.",
+    charactersPresent: ["Kael Rusk", "Lady Varn", "Orin Vale"],
+  }
+  const context = buildContext({
+    targetChapter: ch2,
+    allSkeletons: [ch2],
+    priorChapters: [],
+    worldBible: {
+      setting: "Rillgate hides monster cores under contract law",
+      timePeriod: "now",
+      geography: "salt flats",
+      politicalStructure: "guild",
+      technologyConstraints: "contracts",
+      socialCustoms: [],
+      sensoryPalette: "salt and ink",
+      rules: ["Contract law matters", "Monster cores degrade unless sealed in brine", "Brine wards react to stolen cores"],
+      locations: [
+        { name: "Lady Varn's Office", description: "A contract office" },
+        { name: "Sealed Ruin Chamber", description: "A future monster core vault" },
+      ],
+      culture: "ranked",
+      history: "old mines",
+      systems: [],
+      cultures: [],
+    },
+    characters: [
+      {
+        id: "kael-rusk",
+        name: "Kael Rusk",
+        role: "protagonist",
+        backstory: "",
+        traits: ["tactical"],
+        speechPattern: "clipped",
+        goals: "earn bronze",
+        fears: "losing Mira",
+        relationships: [],
+        culturalBackground: [],
+        systemAwareness: [],
+        exampleLines: [],
+      },
+      {
+        id: "lady-varn",
+        name: "Lady Varn",
+        role: "antagonist",
+        backstory: "",
+        traits: ["polite", "monster core broker"],
+        speechPattern: "formal",
+        goals: "Complete the illegal core harvest before Kael understands the job.",
+        fears: "Admissible evidence exposes the monster core operation.",
+        relationships: [],
+        culturalBackground: [],
+        systemAwareness: [],
+        exampleLines: [],
+      },
+    ],
+    spine: {
+      acts: [],
+      centralConflict: "rank versus debt",
+      theme: "law has teeth",
+      endingDirection: "provisional victory",
+    },
+    seed: mercenarySeed,
+  } as Parameters<typeof buildContext>[0])
+
+  expect(context).toContain("Lady Varn's Office")
+  expect(context).toContain("Withheld here because it belongs to a later chapter boundary")
+  expect(context).not.toContain("Monster cores degrade")
+  expect(context).not.toContain("stolen cores")
+  expect(context).not.toContain("monster core broker")
+  expect(context).not.toContain("Complete the illegal core harvest")
+  expect(context).not.toContain("Sealed Ruin Chamber")
 })
 
 function chapter(chapterNumber: number, targetWords: number) {

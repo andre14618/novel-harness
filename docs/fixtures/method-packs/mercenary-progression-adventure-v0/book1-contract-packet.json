@@ -13,24 +13,53 @@
   "partyRelationshipShift": "Tessa Mire moves from rival claimant to necessary witness, making Kael choose legal leverage over a clean solo payout.",
   "factionConsequence": "Rillgate learns that polite brokers can launder illegal ruin harvests through cheap contracts and disposable crews.",
   "nextMissionHook": "Orin Vale offers Kael a restricted next contract tied to Lady Varn's hidden buyers after Kael earns provisional bronze status.",
+  "chapterSeparationRules": [
+    "Chapter 1 is hub/debt pressure only; fill 8-10 scenes with contract hall search, Orin's warning, debt market proof, creditor pressure, failed safe-job options, rank-law constraint, Mira stakes, and Lady Varn only as a next lead. No Lady Varn office scene, contract offer, signature, or departure occurs.",
+    "Chapter 2 owns the first Lady Varn meeting, contract evaluation, signing, preparation, and departure; do not repeat that movement later.",
+    "Chapter 3 owns rival claimant and salvage/witness friction at the mine approach or threshold only; use outside story work such as road arrival, Tessa's camp, contract comparison, sponsor-pressure suspicion, witness-term negotiation, equipment limits, night watch, and a joint entry plan. It must not enter the tunnel, open the flooded chamber, trigger brine wards, or create rank-token danger.",
+    "Chapter 4 owns first mine entry, first real brine-ward danger, and arena-rule discovery.",
+    "Chapter 5 owns only a costly route, ward-pattern, brine-hook hint, or survival-resource gain and is a false tactical gain before the midpoint reveal; it may reach a sealed door or route clue but must not open the sealed chamber or explain the harvest.",
+    "Chapter 6 is the midpoint reveal and first chapter that may enter the sealed chamber and reveal the illegal monster-core harvest."
+  ],
+  "productionSequenceGuardIds": [
+    "ch1-no-contract-acceptance",
+    "ch2-contract-acceptance",
+    "ch2-departure-not-arrival",
+    "ch3-no-arena-danger-or-harvest-reveal",
+    "ch4-arena-danger-not-harvest-reveal",
+    "ch5-no-harvest-reveal",
+    "ch6-harvest-reveal"
+  ],
+  "productionChapterContractIds": [
+    "mpa-ch01-hub-debt-pressure",
+    "mpa-ch02-contract-offer-departure",
+    "mpa-ch03-witness-problem",
+    "mpa-ch04-arena-entry",
+    "mpa-ch05-false-tactical-win",
+    "mpa-ch06-midpoint-reveal",
+    "mpa-ch07-progression-trial",
+    "mpa-ch08-faction-trail",
+    "mpa-ch09-contract-climax",
+    "mpa-ch10-return-hook"
+  ],
   "chapterJobFunctionOutline": [
     {
       "chapter": 1,
       "structureSlotId": "MPA-01",
       "jobFunction": "Hub pressure",
-      "endpointTest": "Kael needs a contract, not a fight, before Mira's debt marker sale."
+      "endpointTest": "Kael needs a contract, not a fight, before Mira's debt marker sale; Lady Varn is only a next lead, not an on-page meeting yet, and the chapter has enough hub/debt pressure to stand without borrowing Ch2."
     },
     {
       "chapter": 2,
       "structureSlotId": "MPA-02",
       "jobFunction": "Contract offer",
-      "endpointTest": "Kael accepts the cheap mine job with clear terms and one legally hidden risk."
+      "endpointTest": "Kael first meets Lady Varn, evaluates the cheap mine job, accepts it with one legally hidden risk, and leaves Rillgate."
     },
     {
       "chapter": 3,
       "structureSlotId": "MPA-03",
       "jobFunction": "Crew friction",
-      "endpointTest": "Tessa's rival claim changes how salvage, witness rules, and tactics must work."
+      "endpointTest": "Tessa's rival claim changes how salvage, witness rules, and tactics must work, and the chapter ends outside the mine with a joint entry plan."
     },
     {
       "chapter": 4,
@@ -42,13 +71,13 @@
       "chapter": 5,
       "structureSlotId": "MPA-05",
       "jobFunction": "First tactical win",
-      "endpointTest": "Kael gains information or a resource through iron-thread binding at visible cost."
+      "endpointTest": "Kael gains a route, ward-pattern read, brine-hook hint, or survival resource through iron-thread binding at visible cost, maybe reaching a sealed door or route clue but not opening the sealed chamber or understanding the harvest."
     },
     {
       "chapter": 6,
       "structureSlotId": "MPA-06",
       "jobFunction": "Job complication",
-      "endpointTest": "The mission target proves to be illegal ruin-rights harvest evidence."
+      "endpointTest": "At the midpoint reveal, Kael and Tessa first reach the sealed chamber and the mission target proves to be illegal ruin-rights harvest evidence."
     },
     {
       "chapter": 7,
@@ -92,7 +121,7 @@
           "objectivePressure": "Kael tries to buy time with the creditor handling Mira's marker.",
           "tacticalConstraint": "The marker can leave Rillgate jurisdiction unless Kael gains legal standing.",
           "worldFactPressure": "Guild protection depends on active rank, not sympathy.",
-          "endpoint": "The next contract bell becomes a hard deadline."
+          "endpoint": "The next contract bell becomes a hard deadline, and Kael leaves with a lead but no signed contract; the first Lady Varn meeting is deferred to Chapter 2."
         }
       ]
     },
@@ -102,7 +131,7 @@
       "scenes": [
         {
           "sceneKey": "ch2-a",
-          "objectivePressure": "Kael evaluates Lady Varn's Gray Salt Mine retrieval contract.",
+          "objectivePressure": "Kael first meets Lady Varn and evaluates her Gray Salt Mine retrieval contract.",
           "tacticalConstraint": "Low pay signals hidden danger, but no ranked crew wants the fee.",
           "factionPressure": "Varn's civil terms make the trap legal on paper.",
           "endpoint": "Kael accepts because the job is his only rank path."

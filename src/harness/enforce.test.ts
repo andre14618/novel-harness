@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 
-import { enforcePlanningOutput } from "./enforce"
+import { enforcePlanningOutput, validateChapterSequenceGuards } from "./enforce"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../types"
 
 test("planning enforcement drops same-beat payoff links before drafting", () => {
@@ -175,6 +175,185 @@ test("scene contract planning treats word-derived overage as advisory", () => {
   expect(result.valid).toBe(true)
   expect(result.errors).toEqual([])
   expect(result.warnings).toContain("Chapter 1: 7 scene contracts above rough scope guide 5+1 for 1500w target")
+})
+
+test("chapter sequence guards reject events that drift into the wrong chapter", () => {
+  const outline = chapter({
+    purpose: "Maren should only learn the debt pressure.",
+    scenes: [
+      beat({ description: "Maren finds the risky writ on the board." }),
+      beat({ description: "Maren signs the contract before she understands the creditor trap." }),
+    ],
+  })
+
+  const errors = validateChapterSequenceGuards([outline], {
+    lockedCharacters: [],
+    requiredBeats: [],
+    forbidden: [],
+    tonalAnchors: [],
+    structuralConstraints: { povRotation: "", pacing: "" },
+    storyThreads: [],
+    storyDebts: [],
+    storyPayoffs: [],
+    chapterContracts: [],
+    chapterSequenceGuards: [{
+      guardId: "ch1-no-signing",
+      chapter: 1,
+      description: "Signing belongs to chapter 2.",
+      mustContainAny: [],
+      mustNotContain: ["signs the contract"],
+    }],
+    rawNotes: "",
+  })
+
+  expect(errors).toEqual([
+    'Chapter 1 sequence guard ch1-no-signing: forbidden phrase "signs the contract" found in scene 2 description',
+  ])
+})
+
+test("chapter sequence guards can require a chapter-owned event", () => {
+  const outline = chapter({
+    chapterNumber: 2,
+    purpose: "Maren evaluates the contract but does not make a decision.",
+    scenes: [
+      beat({ description: "Maren audits the terms." }),
+      beat({ description: "The clerk warns that delay will cost her the witness." }),
+    ],
+  })
+
+  const errors = validateChapterSequenceGuards([outline], {
+    lockedCharacters: [],
+    requiredBeats: [],
+    forbidden: [],
+    tonalAnchors: [],
+    structuralConstraints: { povRotation: "", pacing: "" },
+    storyThreads: [],
+    storyDebts: [],
+    storyPayoffs: [],
+    chapterContracts: [],
+    chapterSequenceGuards: [{
+      guardId: "ch2-signing",
+      chapter: 2,
+      description: "Contract decision belongs here.",
+      mustContainAny: ["signs the contract", "accepts the contract"],
+      mustNotContain: [],
+    }],
+    rawNotes: "",
+  })
+
+  expect(errors).toEqual([
+    "Chapter 2 sequence guard ch2-signing: expected at least one phrase but found none: signs the contract; accepts the contract",
+  ])
+})
+
+test("chapter sequence guards do not treat doesNotKnow as an in-story reveal", () => {
+  const outline = chapter({
+    characterStateChanges: [{
+      id: "state-maren-withheld-truth",
+      characterId: "char-maren",
+      name: "Maren",
+      location: "Counting-House",
+      emotionalState: "alert",
+      knows: [],
+      doesNotKnow: ["The creditor's contract hides an illegal core harvest."],
+    }],
+  })
+
+  const errors = validateChapterSequenceGuards([outline], {
+    lockedCharacters: [],
+    requiredBeats: [],
+    forbidden: [],
+    tonalAnchors: [],
+    structuralConstraints: { povRotation: "", pacing: "" },
+    storyThreads: [],
+    storyDebts: [],
+    storyPayoffs: [],
+    chapterContracts: [],
+    chapterSequenceGuards: [{
+      guardId: "no-early-harvest-reveal",
+      chapter: 1,
+      description: "Hidden truth may exist as withheld knowledge but not as revealed state.",
+      mustContainAny: [],
+      mustNotContain: ["illegal core harvest"],
+    }],
+    rawNotes: "",
+  })
+
+  expect(errors).toEqual([])
+})
+
+test("chapter sequence guards ignore withheld-language mentions in scene fields", () => {
+  const outline = chapter({
+    scenes: [
+      beat({
+        description: "Maren marks a safe route through the ward.",
+        consequence: "The illegal core harvest remains undiscovered while Maren keeps moving toward the lower door.",
+      }),
+    ],
+  })
+
+  const errors = validateChapterSequenceGuards([outline], {
+    lockedCharacters: [],
+    requiredBeats: [],
+    forbidden: [],
+    tonalAnchors: [],
+    structuralConstraints: { povRotation: "", pacing: "" },
+    storyThreads: [],
+    storyDebts: [],
+    storyPayoffs: [],
+    chapterContracts: [],
+    chapterSequenceGuards: [{
+      guardId: "no-early-harvest-reveal",
+      chapter: 1,
+      description: "The harvest should remain hidden.",
+      mustContainAny: [],
+      mustNotContain: ["illegal core harvest"],
+    }],
+    rawNotes: "",
+  })
+
+  expect(errors).toEqual([])
+})
+
+test("chapter sequence guards catch concrete arena entry drift", () => {
+  const outline = chapter({
+    chapterNumber: 3,
+    scenes: [
+      beat({
+        description: "Maren enters the mine and sees the brine wards flare as a pressurized jet crosses the chamber.",
+      }),
+    ],
+  })
+
+  const errors = validateChapterSequenceGuards([outline], {
+    lockedCharacters: [],
+    requiredBeats: [],
+    forbidden: [],
+    tonalAnchors: [],
+    structuralConstraints: { povRotation: "", pacing: "" },
+    storyThreads: [],
+    storyDebts: [],
+    storyPayoffs: [],
+    chapterContracts: [],
+    chapterSequenceGuards: [{
+      guardId: "ch3-no-arena-entry",
+      chapter: 3,
+      description: "Arena entry belongs to chapter 4.",
+      mustContainAny: [],
+      mustNotContain: ["enters the mine", "brine wards", "pressurized jet"],
+    }],
+    rawNotes: "",
+  })
+
+  expect(errors).toContain(
+    'Chapter 3 sequence guard ch3-no-arena-entry: forbidden phrase "enters the mine" found in scene 1 description',
+  )
+  expect(errors).toContain(
+    'Chapter 3 sequence guard ch3-no-arena-entry: forbidden phrase "brine wards" found in scene 1 description',
+  )
+  expect(errors).toContain(
+    'Chapter 3 sequence guard ch3-no-arena-entry: forbidden phrase "pressurized jet" found in scene 1 description',
+  )
 })
 
 function chapter(overrides: Partial<ChapterOutline> = {}): ChapterOutline {

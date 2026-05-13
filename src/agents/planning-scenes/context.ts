@@ -3,7 +3,14 @@ import type { WorldBible } from "../world-builder/schema"
 import type { CharacterProfile } from "../character-agent/schema"
 import type { StorySpine } from "../plotter/schema"
 import type { ChapterOutline } from "../planning-plotter/schema"
-import { renderDirectivesForPlanner } from "../../schemas/planning-directives"
+import { renderDirectivesForSceneExpansion } from "../../schemas/planning-directives"
+import {
+  renderScopedCharacterSection,
+  renderScopedSeedHeader,
+  renderScopedSpineSection,
+  renderScopedWorldSection,
+  resolveScopedPlanningContext,
+} from "../planning-context-scope"
 import { resolveStructuralPriors, renderStructuralPriorsForPlanner } from "../../models/roles"
 import { planningSceneCountPolicy } from "../../harness/scene-counts"
 import {
@@ -15,6 +22,11 @@ import {
 function renderSkeletonLine(sk: ChapterOutline): string {
   const chars = sk.charactersPresent?.length ? ` [${sk.charactersPresent.join(", ")}]` : ""
   return `  Ch ${sk.chapterNumber}: "${sk.title}" — POV: ${sk.povCharacter} — ${sk.setting} — ${sk.targetWords}w\n    Purpose: ${sk.purpose}${chars}`
+}
+
+function renderBoundaryLine(sk: ChapterOutline, targetChapter: number): string {
+  if (sk.chapterNumber <= targetChapter) return renderSkeletonLine(sk)
+  return `  Ch ${sk.chapterNumber}: "${sk.title}" — FUTURE CHAPTER BOUNDARY ONLY. Do not stage this chapter's purpose, reveals, endpoint, or set pieces while expanding Chapter ${targetChapter}.`
 }
 
 function renderPriorState(sk: ChapterOutline): string {
@@ -39,6 +51,7 @@ export interface SceneExpansionArgs {
 
 export function buildContext(args: SceneExpansionArgs): string {
   const { targetChapter, allSkeletons, priorChapters, worldBible, characters, spine, seed, retryFeedback } = args
+  const scope = resolveScopedPlanningContext(seed, targetChapter)
   const scenePlanContractV1 = resolveScenePlanContractV1(seed.pipelineOverrides)
   const planningSceneTurnShapingV1 = resolvePlanningSceneTurnShapingV1(seed.pipelineOverrides)
   const nativePlanningContractV1 = resolveNativePlanningContractV1(seed.pipelineOverrides)
@@ -47,25 +60,13 @@ export function buildContext(args: SceneExpansionArgs): string {
     seed.pipelineOverrides?.planningMaxScenesPerChapter,
   )
 
-  const worldSection = `WORLD BIBLE:
-Setting: ${worldBible.setting}
-Rules:
-${worldBible.rules.map(r => `- ${r}`).join("\n")}
-Locations:
-${worldBible.locations.map(l => `- ${l.name}: ${l.description}${l.sensoryDetails ? ` [${l.sensoryDetails}]` : ""}`).join("\n")}`
+  const headerSection = renderScopedSeedHeader(seed, targetChapter, scope)
+  const worldSection = renderScopedWorldSection(worldBible, targetChapter, scope)
+  const charSection = renderScopedCharacterSection(characters, targetChapter, scope)
+  const spineSection = renderScopedSpineSection(spine, scope)
 
-  const charSection = `CHARACTERS:
-${characters.map(c =>
-  `- ${c.name} (${c.role}) — ${c.traits.join(", ")}\n  Speech: ${c.speechPattern}\n  Goals: ${c.goals}  Fears: ${c.fears}`
-).join("\n")}`
-
-  const spineSection = `STORY SPINE:
-Central Conflict: ${spine.centralConflict}
-Theme: ${spine.theme}
-Ending Direction: ${spine.endingDirection}`
-
-  const allSkelSection = `ALL CHAPTER SKELETONS (for cross-chapter awareness):
-${allSkeletons.map(renderSkeletonLine).join("\n")}`
+  const allSkelSection = `CHAPTER BOUNDARY MAP (past/current detail plus future ownership boundaries):
+${allSkeletons.map(skeleton => renderBoundaryLine(skeleton, targetChapter.chapterNumber)).join("\n")}`
 
   const priorSection = priorChapters.length
     ? `\n\nPRIOR CHAPTERS (already expanded — state at their end):\n${priorChapters.map(renderPriorState).filter(Boolean).join("\n\n")}`
@@ -85,12 +86,13 @@ ${renderChapterScopeGuidance(scenePolicy, scenePlanContractV1, {
 })}
 ${renderNativePlanningContractGuidance(scenePolicy, nativePlanningContractV1)}${renderSelectiveSceneTurnGuidance(planningSceneTurnShapingV1, scenePlanContractV1)}${renderScenePlanContractGuidance(scenePlanContractV1)}`
 
-  const directivesSection = seed.directives ? renderDirectivesForPlanner(seed.directives) : ""
+  const directivesSection = seed.directives
+    ? renderDirectivesForSceneExpansion(seed.directives, targetChapter.chapterNumber)
+    : ""
   const priors = resolveStructuralPriors(seed.genre)
   const structuralSection = priors ? renderStructuralPriorsForPlanner(priors) : ""
 
-  return `Genre: ${seed.genre}
-Premise: ${seed.premise}
+  return `${headerSection}
 
 ${worldSection}
 

@@ -135,10 +135,10 @@ unless the user explicitly requests a disposable branch.
   hydration (load-frozen-plan currently writes only novels +
   chapter_outlines; clone-for-variant carries the full state today, so
   P4 is usable via --source). See `docs/fixtures/scene-first/README.md`.
-- Native chapter contracts and story-turn planning are now the production
-  runtime default, with legacy rollback via seed override. Next gather direct
-  runtime drafting evidence and improve endpoint satisfaction plus listed-
-  character materiality in the main planner path; see L088.
+- Native chapter contracts and story-turn planning are the production runtime
+  default, with legacy rollback via seed override. Scoped chapter-contract
+  expansion passed for `mercenary-rillgate-saltmine` at 10 chapters / 98 scenes
+  (`test-planner-mercenary-rillgate-saltmine-1778630130371`); next draft from that source. See L088/L109.
 - Evaluate upstream structure-template scaffolds, including commercial
   chapter-function templates, as concept/planning diagnostics before touching
   drafting/checking/UI. Hold other layers steady unless the test explicitly

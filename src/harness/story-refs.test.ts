@@ -66,6 +66,8 @@ function directives(): PlanningDirectives {
     storyPayoffs: [
       { payoffId: "payoff-folio-reveal", storyDebtId: "debt-folio", threadId: "thread-folio", payoffText: "Noor reveals the folio truth." },
     ],
+    chapterContracts: [],
+    chapterSequenceGuards: [],
     rawNotes: "",
   }
 }
