@@ -122,11 +122,11 @@ fallback-filled. Tight-anchored writer-brief evidence was promising but did not
 generalize, so default flip remains blocked. L109 works directly on main:
 `mercenary-rillgate-saltmine` now uses chapter-contract scoped scene expansion,
 scene-scale budgets, seed process-instruction scrub, and future-boundary
-redaction. Planner evidence
-`test-planner-mercenary-rillgate-saltmine-1778674224711` completed at 10
-chapters / 49 scenes with balanced load, `futureEventAnchors: 0`, and no
-sequence-guard retry; state-mapper headroom remains telemetry. Drafting should
-use this source rather than the earlier 98-scene plan. See L103-L111.
+redaction. Drafting source `test-planner-mercenary-rillgate-saltmine-1778674224711`
+is repaired and preferred over the earlier 98-scene plan: 10 chapters / 49
+scenes, balanced load, `futureEventAnchors: 0`, no sequence-guard retry, and
+2026-05-13 Plan Readiness fixes via approved `planning_edit`; planner-quality
+and planning-context core shape errors are 0. See L103-L111.
 
 ## Authoring Gates
 
