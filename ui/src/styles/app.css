@@ -538,6 +538,7 @@ input[type="checkbox"] {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+  min-height: 0;
 }
 .reader-novel-select {
   width: 100%;
@@ -744,8 +745,7 @@ input[type="checkbox"] {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  flex: 1;
-  overflow-y: auto;
+  flex: 0 0 auto;
   padding-top: 0.4rem;
   border-top: 1px solid var(--border-subtle);
 }
@@ -846,6 +846,12 @@ input[type="checkbox"] {
   letter-spacing: 0.01em;
   user-select: text;
   -webkit-user-select: text;
+}
+.reader-prose-paragraph {
+  margin: 0 0 1.35rem;
+}
+.reader-prose-paragraph:last-child {
+  margin-bottom: 0;
 }
 
 .connected-dot {

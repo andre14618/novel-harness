@@ -8,6 +8,14 @@ function splitParagraphs(prose: string): string[] {
   return prose.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
 }
 
+function renderProseParagraphs(prose: string) {
+  const paragraphs = splitParagraphs(prose)
+  if (paragraphs.length === 0) return null
+  return paragraphs.map((paragraph, index) => (
+    <p key={index} className="reader-prose-paragraph">{paragraph}</p>
+  ))
+}
+
 export function NovelReadView() {
   const { novelId } = useParams<{ novelId: string }>()
   const navigate = useNavigate()
@@ -249,7 +257,7 @@ export function NovelReadView() {
                     })}
                   </div>
                 ) : (
-                  <div className="prose-content">{activeProse}</div>
+                  <div className="prose-content">{renderProseParagraphs(activeProse)}</div>
                 )}
               </div>
             )
