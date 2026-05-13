@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test"
+import { existsSync, readdirSync } from "node:fs"
 import {
   buildNovelRunOverlay,
   defaultAtlasOutPath,
   parseArgs,
   renderHarnessWorkflowAtlasHtml,
+  WORKFLOW_ATLAS_LANES,
 } from "./render-harness-workflow-atlas"
 import type { ChapterOutline, NovelState } from "../src/types"
 
@@ -95,6 +97,70 @@ describe("renderHarnessWorkflowAtlasHtml", () => {
     expect(html).toContain("1234 draft words")
   })
 })
+
+describe("workflow atlas drift guard", () => {
+  test("all mapped source links still resolve on disk", () => {
+    const missing = atlasSourcePaths().filter(source => !existsSync(source))
+
+    expect(missing).toEqual([])
+  })
+
+  test("covers active production agent directories and major report surfaces", () => {
+    const ignoredAgentDirs = new Set([
+      // Corpus-structure extraction agents are historical/reference tooling, not
+      // active production novel generation surfaces.
+      "structure-character-arcs",
+      "structure-mckee-gap",
+      "structure-mice",
+      "structure-promise",
+      "structure-value-charge",
+    ])
+    const agentDirs = readdirSync("src/agents", { withFileTypes: true })
+      .filter(entry => entry.isDirectory())
+      .map(entry => `src/agents/${entry.name}`)
+      .filter(path => !ignoredAgentDirs.has(path.replace(/^src\/agents\//, "")))
+      .sort()
+
+    const requiredSurfaces = [
+      ...agentDirs,
+      "scripts/analysis/planning-drafting-context-report.ts",
+      "scripts/analysis/drafting-run-compare.ts",
+      "scripts/analysis/drafting-run-cohort.ts",
+      "scripts/analysis/planning-context-readiness.ts",
+      "scripts/analysis/plan-readiness-review-plan.ts",
+      "scripts/analysis/prose-semantic-report.ts",
+      "src/trace.ts",
+      "src/harness/chapter-traceability.ts",
+      "ui/src/components/ChapterTraceabilityPage.tsx",
+      "ui/src/components/PlanningStudioPage.tsx",
+      "ui/src/components/PipelineView.tsx",
+    ]
+
+    const missingCoverage = requiredSurfaces.filter(surface => !atlasCovers(surface))
+
+    expect(missingCoverage).toEqual([])
+  })
+})
+
+function atlasSourcePaths(): string[] {
+  return WORKFLOW_ATLAS_LANES.flatMap(lane =>
+    lane.components.flatMap(component => component.sources),
+  ).sort()
+}
+
+function atlasCovers(surface: string): boolean {
+  const normalized = normalizePath(surface)
+  return atlasSourcePaths().some(source => {
+    const mapped = normalizePath(source)
+    return normalized === mapped ||
+      normalized.startsWith(`${mapped}/`) ||
+      mapped.startsWith(`${normalized}/`)
+  })
+}
+
+function normalizePath(path: string): string {
+  return path.replace(/\\/g, "/").replace(/\/+$/, "")
+}
 
 function novel(): NovelState {
   return {

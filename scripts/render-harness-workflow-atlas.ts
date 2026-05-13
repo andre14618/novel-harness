@@ -168,7 +168,7 @@ export async function writeHarnessWorkflowAtlas(args: WorkflowAtlasArgs): Promis
   return {
     outPath,
     mode: args.novelId ? "novel" : "static",
-    componentCount: STATIC_LANES.reduce((sum, lane) => sum + lane.components.length, 0),
+    componentCount: WORKFLOW_ATLAS_LANES.reduce((sum, lane) => sum + lane.components.length, 0),
     timelineCount: overlay?.timeline.length ?? 0,
   }
 }
@@ -304,7 +304,7 @@ export function buildNovelRunOverlay(input: BuildOverlayInput): NovelRunOverlay 
 export function renderHarnessWorkflowAtlasHtml(input: { overlay?: NovelRunOverlay | null } = {}): string {
   const overlay = input.overlay ?? null
   const generatedAt = new Date().toISOString()
-  const componentCount = STATIC_LANES.reduce((sum, lane) => sum + lane.components.length, 0)
+  const componentCount = WORKFLOW_ATLAS_LANES.reduce((sum, lane) => sum + lane.components.length, 0)
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -356,7 +356,7 @@ export function renderHarnessWorkflowAtlasHtml(input: { overlay?: NovelRunOverla
         <h2>Component Inventory</h2>
         <p>${componentCount} mapped components with ownership, inputs, outputs, telemetry, and source links.</p>
       </div>
-      ${STATIC_LANES.map(renderLane).join("\n")}
+      ${WORKFLOW_ATLAS_LANES.map(renderLane).join("\n")}
     </section>
 
     <section id="edges" class="section">
@@ -474,7 +474,7 @@ function renderStaticRunPlaceholder(): string {
 
 function renderPipelineMap(): string {
   return `<div class="pipeline-map">
-    ${STATIC_LANES.map(lane => `<section class="pipeline-column">
+    ${WORKFLOW_ATLAS_LANES.map(lane => `<section class="pipeline-column">
       <h3>${escapeHtml(lane.title)}</h3>
       ${lane.components.slice(0, 4).map(component => `<div class="mini-card ${statusClass(component.status)}">
         <strong>${escapeHtml(component.name)}</strong>
@@ -560,7 +560,7 @@ function listBlock(label: string, items: readonly string[]): string {
   return `<div class="list-block"><strong>${escapeHtml(label)}</strong><ul>${items.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>`
 }
 
-const STATIC_LANES: WorkflowLane[] = [
+export const WORKFLOW_ATLAS_LANES: WorkflowLane[] = [
   {
     id: "intent",
     title: "Intent And Configuration",
@@ -582,7 +582,11 @@ const STATIC_LANES: WorkflowLane[] = [
         name: "Planning Directives",
         status: "production-default",
         role: "Normalizes locked characters, chapter contracts, story debts, sequence guards, and future-boundary redaction.",
-        sources: ["src/schemas/planning-directives.ts"],
+        sources: [
+          "src/schemas/planning-directives.ts",
+          "src/agents/planning-conversationalist",
+          "src/agents/planning-extractor",
+        ],
         inputs: ["Seed directives", "Chapter number"],
         outputs: ["Planner directives", "Chapter-scoped expansion directives", "Boundary terms"],
         telemetry: ["Sequence guard retry reasons", "futureEventAnchors diagnostics"],
@@ -673,7 +677,7 @@ const STATIC_LANES: WorkflowLane[] = [
         name: "Planning State Mapper",
         status: "seed-enabled",
         role: "Maps end-of-chapter state and writer-visible obligations onto existing scene entries.",
-        sources: ["src/agents/planning-state-mapper/context.ts"],
+        sources: ["src/agents/planning-state-mapper/context.ts", "src/agents/planning-state-repair"],
         inputs: ["Expanded scenes", "Story refs", "World facts", "Characters"],
         outputs: ["Established facts", "Knowledge changes", "Character state changes", "Beat obligations"],
         telemetry: ["state-mapper headroom", "materialityTest coverage", "obligation IDs"],
@@ -735,7 +739,17 @@ const STATIC_LANES: WorkflowLane[] = [
         name: "Writer Checkers",
         status: "production-default",
         role: "Checks adherence, hallucination, plan fit, continuity, functional state, and prose integrity.",
-        sources: ["src/agents/writer/adherence-checker.test.ts", "src/agents/chapter-plan-checker", "src/agents/functional-state-checker", "src/phases/validation-routing.ts"],
+        sources: [
+          "src/agents/writer/adherence-checker.test.ts",
+          "src/agents/chapter-plan-checker",
+          "src/agents/chapter-plan-reviser",
+          "src/agents/functional-state-checker",
+          "src/agents/halluc-ungrounded",
+          "src/agents/continuity",
+          "src/agents/lint-discoverer",
+          "src/agents/lint-improver",
+          "src/phases/validation-routing.ts",
+        ],
         inputs: ["Prose", "Plan", "World/character state", "Obligations"],
         outputs: ["Pass/fail findings", "Retry context", "Plan-Assist gates"],
         telemetry: ["checker calls", "checker readiness", "semantic gate reports"],
@@ -775,7 +789,7 @@ const STATIC_LANES: WorkflowLane[] = [
         name: "Canon Proposal Workflow",
         status: "manual-review",
         role: "Routes canon/artifact changes through proposal envelopes rather than direct writes.",
-        sources: ["src/orchestrator/canon-proposal-routes.test.ts", "src/canon"],
+        sources: ["src/orchestrator/canon-proposal-routes.test.ts", "src/canon", "src/agents/artifact-adjuster"],
         inputs: ["Canon/artifact proposal", "Review policy"],
         outputs: ["Accepted/rejected proposal", "Impact observations"],
         telemetry: ["proposal-outcome events", "checker observations"],
@@ -815,7 +829,12 @@ const STATIC_LANES: WorkflowLane[] = [
         name: "Quality Telemetry Packet",
         status: "diagnostic-only",
         role: "Captures prose-semantic and scene-semantic diagnostics as fail-open evidence.",
-        sources: ["scripts/test-drafting-isolated.ts", "scripts/analysis/prose-semantic-report.ts", "scripts/analysis/drafting-run-compare.ts"],
+        sources: [
+          "scripts/test-drafting-isolated.ts",
+          "scripts/analysis",
+          "scripts/analysis/prose-semantic-report.ts",
+          "scripts/analysis/drafting-run-compare.ts",
+        ],
         inputs: ["Drafted prose", "Captured writer calls", "Semantic judges"],
         outputs: ["Semantic reports", "Run compare/cohort artifacts"],
         telemetry: ["endpointLanding", "sceneDramaturgy", "characterMateriality", "worldFactPressure"],
@@ -844,7 +863,7 @@ const STATIC_LANES: WorkflowLane[] = [
         name: "Pipeline UI",
         status: "artifact",
         role: "Shows live phase, active agents, prose, gates, and event log.",
-        sources: ["ui/src/components/PipelineView.tsx", "ui/src/components/PipelineFlow.tsx"],
+        sources: ["ui/src/components", "ui/src/components/PipelineView.tsx", "ui/src/components/PipelineFlow.tsx"],
         inputs: ["SSE events", "Novel API routes"],
         outputs: ["Live operator view"],
         telemetry: ["TraceTimeline", "EventLog"],
