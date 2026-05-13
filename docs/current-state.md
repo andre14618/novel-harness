@@ -116,7 +116,12 @@ redaction. Drafting source `test-planner-mercenary-rillgate-saltmine-17786742247
 is repaired and preferred over the earlier 98-scene plan: 10 chapters / 49
 scenes, balanced load, `futureEventAnchors: 0`, no sequence-guard retry, and
 2026-05-13 Plan Readiness fixes via approved `planning_edit`; planner-quality
-and planning-context core shape errors are 0. See L103-L111.
+and planning-context core shape errors are 0. Post-L112 main-path draft
+`rillgate-mainpath-1778714560-baseline` completed 10/10 chapters with
+Plan-Assist 0, checker blockers 0, prose-semantic lows 0/40, and scene-semantic
+lows 5/166; next tuning targets are endpoint landing in a few mid-book scenes,
+functional-state explicit-knowledge warning noise, and lint/integrity repair
+behavior. See L103-L112.
 
 ## Authoring Gates
 
