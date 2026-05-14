@@ -13,6 +13,8 @@ import { z } from "zod"
 
 import db from "../../src/db/connection"
 import { callAgent } from "../../src/llm"
+import { resolveAuthoringBiblePackIds } from "../../src/config/pipeline"
+import { initNovelRun } from "../../src/logger"
 import type { ChapterOutline, CharacterProfile, SceneBeat, SeedInput, StorySpine, WorldBible } from "../../src/types"
 import {
   buildAuthoringBiblePacket,
@@ -82,6 +84,13 @@ interface AuthoringBibleReviewReport {
   repairLayers: Array<{ repairLayer: AuthoringBibleRepairLayer; count: number }>
 }
 
+const evidenceSchema = z.preprocess(normalizeEvidencePayload, z.object({
+  ruleText: z.string().default(""),
+  proseMoment: z.string().default(""),
+  mismatch: z.string().default(""),
+  satisfaction: z.string().default(""),
+}).default({}))
+
 const reviewSchema = z.object({
   applicable: z.boolean().nullable(),
   proseEvidencePresent: z.boolean(),
@@ -89,15 +98,28 @@ const reviewSchema = z.object({
   contradictionPresent: z.boolean(),
   evidenceSpecific: z.boolean(),
   repairLayer: z.enum(["none", "planning", "character_bible", "voice_bible", "prose"]),
-  evidence: z.object({
-    ruleText: z.string().default(""),
-    proseMoment: z.string().default(""),
-    mismatch: z.string().default(""),
-    satisfaction: z.string().default(""),
-  }).default({}),
+  evidence: evidenceSchema,
 })
 
 type ReviewOutput = z.infer<typeof reviewSchema>
+
+export function normalizeAuthoringBibleReviewEvidencePayload(value: unknown): unknown {
+  if (value == null || typeof value === "object" && !Array.isArray(value)) return value
+  if (typeof value === "string") return { satisfaction: value }
+  if (Array.isArray(value)) {
+    return {
+      satisfaction: value
+        .map(item => typeof item === "string" ? item : JSON.stringify(item))
+        .join("; ")
+        .slice(0, 800),
+    }
+  }
+  return { satisfaction: String(value) }
+}
+
+function normalizeEvidencePayload(value: unknown): unknown {
+  return normalizeAuthoringBibleReviewEvidencePayload(value)
+}
 
 export async function buildAuthoringBibleReviewReport(
   args: Args,
@@ -107,7 +129,7 @@ export async function buildAuthoringBibleReviewReport(
   const chapters = await loadChapterRows(args.novelId, args.chapters)
   const packIds = args.packIds.length > 0
     ? args.packIds
-    : novel.seed.pipelineOverrides?.authoringBiblePackIds ?? []
+    : resolveAuthoringBiblePackIds(novel.seed.pipelineOverrides)
   const packet = buildAuthoringBiblePacket({
     genre: novel.seed.genre,
     worldBible: novel.worldBible,
@@ -499,6 +521,7 @@ function parseModel(raw: string): ModelId {
 
 async function main(argv: string[]): Promise<number> {
   const args = parseArgs(argv)
+  if (args.live) await initNovelRun(args.novelId)
   const report = await buildAuthoringBibleReviewReport(args)
   const outputDir = args.outputDir ?? join("output", "authoring-bible-review", args.novelId, args.setName.replace(/[^a-zA-Z0-9_.-]+/g, "-"))
   mkdirSync(outputDir, { recursive: true })

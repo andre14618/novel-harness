@@ -304,7 +304,24 @@ export function resolveAuthoringBibleMode(
 }
 
 export function resolveAuthoringBiblePackIds(
-  overrides: { authoringBiblePackIds?: string[] } | undefined,
+  overrides: { authoringBiblePackIds?: string[] | string } | undefined,
 ): string[] {
-  return overrides?.authoringBiblePackIds ?? pipeline.authoringBiblePackIds
+  const raw = overrides?.authoringBiblePackIds
+  if (Array.isArray(raw)) return cleanAuthoringBiblePackIds(raw)
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw) as unknown
+      if (Array.isArray(parsed)) return cleanAuthoringBiblePackIds(parsed)
+    } catch {
+      return cleanAuthoringBiblePackIds(raw.split(","))
+    }
+  }
+  return pipeline.authoringBiblePackIds
+}
+
+function cleanAuthoringBiblePackIds(values: readonly unknown[]): string[] {
+  return [...new Set(values
+    .filter((value): value is string => typeof value === "string")
+    .map(value => value.trim())
+    .filter(Boolean))]
 }

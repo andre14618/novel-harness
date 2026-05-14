@@ -767,7 +767,7 @@ async function setWriterFlags(novelId: string, arm: ArmName, opts: { writerOnly:
               'writerPromptIdRendering', ${flags.writerPromptIdRendering}::text,
               'writerDraftingBriefMode', ${flags.writerDraftingBriefMode}::text,
               'authoringBibleMode', ${flags.authoringBibleMode}::text,
-              'authoringBiblePackIds', ${JSON.stringify(flags.authoringBiblePackIds)}::jsonb,
+              'authoringBiblePackIds', (${JSON.stringify(flags.authoringBiblePackIds)}::jsonb #>> '{}')::jsonb,
               'draftCaptureModeV1', ${draftCaptureModeV1}::boolean
             ),
           true

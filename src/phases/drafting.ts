@@ -132,7 +132,7 @@ export function effectivePipeline(seed: SeedInput): typeof pipeline {
     writerPromptIdRendering: o.writerPromptIdRendering ?? pipeline.writerPromptIdRendering,
     writerDraftingBriefMode: o.writerDraftingBriefMode ?? pipeline.writerDraftingBriefMode,
     authoringBibleMode: o.authoringBibleMode ?? pipeline.authoringBibleMode,
-    authoringBiblePackIds: o.authoringBiblePackIds ?? pipeline.authoringBiblePackIds,
+    authoringBiblePackIds: resolveAuthoringBiblePackIds(seed.pipelineOverrides),
     sceneEntityGroundingMode:
       o.sceneEntityGroundingMode ?? pipeline.sceneEntityGroundingMode,
     draftCaptureModeV1: o.draftCaptureModeV1 ?? pipeline.draftCaptureModeV1,

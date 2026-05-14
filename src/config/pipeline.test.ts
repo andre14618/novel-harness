@@ -92,6 +92,8 @@ describe("override resolvers fall back to pipeline defaults when override absent
     expect(resolveAuthoringBiblePackIds(undefined)).toEqual([])
     expect(resolveAuthoringBiblePackIds({})).toEqual([])
     expect(resolveAuthoringBiblePackIds({ authoringBiblePackIds: ["rillgate-contrast-v1"] })).toEqual(["rillgate-contrast-v1"])
+    expect(resolveAuthoringBiblePackIds({ authoringBiblePackIds: "[\"rillgate-contrast-v1\"]" })).toEqual(["rillgate-contrast-v1"])
+    expect(resolveAuthoringBiblePackIds({ authoringBiblePackIds: "rillgate-contrast-v1, rillgate-contrast-v1" })).toEqual(["rillgate-contrast-v1"])
   })
 
   test("resolveDraftCaptureModeV1", () => {
