@@ -117,16 +117,13 @@ redaction. Drafting source `test-planner-mercenary-rillgate-saltmine-17786742247
 is repaired and preferred over the earlier 98-scene plan: 10 chapters / 49
 scenes, balanced load, `futureEventAnchors: 0`, no sequence-guard retry, and
 2026-05-13/14 Plan Readiness fixes via approved `planning_edit`; planner-quality
-and planning-context core shape errors are 0. Post-L112 main-path draft
-`rillgate-mainpath-1778714560-baseline` completed 10/10 chapters with
-Plan-Assist 0, checker blockers 0, prose-semantic lows 0/40, and scene-semantic
-lows 4/166 after high-cap replay. Follow-up production-path bounded run
-`rillgate-endpoint-landing-1778717740-production-path` preserved the seed's
-tight-anchored writer brief on 40/40 writer events and hit 18,396/18,600 words,
-but endpoint lows stayed 4/30; chapter 4 duplicate-consequence defects and the
-remaining action-level endpoint low were repaired as scalar `consequence`
-planning edits and verified by a clean narrow redraft. LLM style lint auto-fix
-is default-off after L113. See L103-L114.
+and planning-context core shape errors are 0. Full production-path draft
+`rillgate-coherent-prod-1778761633-production-path` completed 10/10 chapters at
+31,676/31,000 words with Plan-Assist 0, prose-semantic lows 0/40, scene-semantic
+lows 4/166, and 2 weight-bearing checker blockers. Endpoint-only lows imported
+as scalar `consequence` readiness items; next weight-bearing work is chapter 9
+plan/checker contradiction handling and checker-readiness import fidelity. LLM
+style lint auto-fix is default-off after L113. See L103-L114.
 
 ## Authoring Gates
 
