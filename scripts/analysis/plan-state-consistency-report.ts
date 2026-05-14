@@ -301,6 +301,9 @@ export function buildPlanStateConsistencyPairPackets(
       nextChapter: {
         ...next,
         scenes: next.scenes.slice(0, 3),
+        establishedFacts: [],
+        characterStateChanges: [],
+        knowledgeChanges: [],
       },
       targetOptions: [
         chapterTargetOption(prior, "purpose"),
@@ -340,7 +343,9 @@ Compare one adjacent chapter pair. Decide whether chapter N's declared end state
 Important distinction:
 - A character deciding, intending, preparing, or planning to do X is not the same as X being completed.
 - If prior chapter state says an action is completed, chapter N+1 must honor that completed state.
-- If prior state only says an action is intended/pending, chapter N+1 may interrupt it, delay it, or convert it into pressure, but the plan should not describe it as already completed.
+- If prior state only says an action is intended/pending, chapter N+1 may show that the intended action happened offscreen during the chapter break, as long as the transition is plausible and the next opening honors the planned route, participants, and consequences.
+- Do not require an intended/pending state to be rewritten as completed just because chapter N+1 opens after the intended action has occurred.
+- Flag intended/pending transitions only when the next opening contradicts the intended plan, skips a material required scene turn, or makes an impossible spatial/physical jump.
 
 Flag only chapter-handoff issues, not prose quality. Prefer "status_ambiguity" when the likely fix is to label or word a state as intended rather than completed. Use "contradiction" when the two plans cannot both be true as written.
 
@@ -629,7 +634,7 @@ function chapterTargetOption(chapter: ChapterPacket, fieldPath: string): PlanSta
 }
 
 function sceneTargetOptions(scene: ScenePacket): PlanStateConsistencyPairPacket["targetOptions"] {
-  return ["description", "outcome", "consequence"].map(fieldPath => ({
+  return ["description", "opposition", "outcome", "consequence"].map(fieldPath => ({
     key: targetKey({ kind: "scene_plan", ref: scene.sceneId, fieldPath }),
     kind: "scene_plan" as const,
     ref: scene.sceneId,

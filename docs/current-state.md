@@ -104,21 +104,18 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 The active lane is in `docs/sessions/lane-queue.md`.
 
-As of 2026-05-14, L106-L115 keep evidence on production paths: writer-brief
-telemetry, scene-semantic replay, source hygiene, planning-edit replay,
-scene-contract telemetry, checker readiness, source plan-state consistency, and
-compare/cohort artifacts. `planningSceneTurnShapingV1` and
-`planningMaterialPressureV1` run through production planner/state-mapper paths;
-gaps are recorded instead of fallback-filled. Rillgate source
-`test-planner-mercenary-rillgate-saltmine-1778674224711` remains the preferred
-10-chapter / 49-scene plan. Full draft
-`rillgate-coherent-prod-1778761633-production-path` completed 31,676/31,000
-words with Plan-Assist 0, prose-semantic lows 0/40, scene-semantic lows 4/166,
-and 2 weight-bearing checker blockers. L115 adds optional `factStatus`,
-pre-draft adjacent-chapter plan-state consistency readiness, grouped
-checker-readiness import, and production-clean telemetry for weight-bearing
-checker rows; repeated plan-state imports stale absent same-import rows. LLM
-style lint auto-fix is default-off after L113. See L103-L115.
+As of 2026-05-14, L106-L115 keep evidence on production paths: writer briefs,
+semantic replay, source hygiene, planning-edit replay, scene-contract telemetry,
+checker readiness, source plan-state consistency, and compare/cohort artifacts.
+Rillgate source `rillgate-ch4-endpoint-hygiene-1778723371` is the active
+10-chapter / 49-scene source. Plan-state readiness repairs now close to 9/9
+clean adjacent pairs; the audit excludes next-chapter output facts/state from
+opening handoff context, can target scene `opposition`, and allows plausible
+offscreen execution of intended plans. Latest coherent draft
+`rillgate-planstate-clean-1778788667-production-path` completed 31,889/31,000
+words with Plan-Assist 0, prose-semantic lows 0/40, scene-semantic lows 5/166,
+and 0 weight-bearing checker blockers. LLM style lint auto-fix is default-off
+after L113. See L103-L115.
 
 ## Authoring Gates
 

@@ -15,7 +15,13 @@ describe("plan-state-consistency-report", () => {
       id: "fact-escape-separately",
       factStatus: "intended",
     })
-    expect(packets[0]?.targetOptions.map(target => target.key)).toContain("scene_plan:scene-ch8-5:consequence")
+    expect(packets[0]?.nextChapter.establishedFacts).toEqual([])
+    expect(packets[0]?.nextChapter.characterStateChanges).toEqual([])
+    expect(packets[0]?.nextChapter.knowledgeChanges).toEqual([])
+    expect(packets[0]?.targetOptions.map(target => target.key)).toEqual(expect.arrayContaining([
+      "scene_plan:scene-ch8-5:consequence",
+      "scene_plan:scene-ch8-5:opposition",
+    ]))
   })
 
   test("turns semantic handoff findings into deterministic readiness targets", async () => {
@@ -115,9 +121,27 @@ function outlines(): ChapterOutline[] {
         outcome: "The buyer demands Tessa be left behind.",
         consequence: "Kael must choose witness testimony or clean payment.",
       }],
-      establishedFacts: [],
-      characterStateChanges: [],
-      knowledgeChanges: [],
+      establishedFacts: [{
+        id: "fact-tessa-wounded",
+        fact: "Tessa is wounded during the exit fight.",
+        category: "physical",
+      }],
+      characterStateChanges: [{
+        id: "state-kael-later",
+        characterId: "char-kael",
+        name: "Kael",
+        location: "later in chapter nine",
+        emotionalState: "under pressure",
+        knows: ["Tessa can testify"],
+        doesNotKnow: [],
+      }],
+      knowledgeChanges: [{
+        id: "know-kael-later",
+        characterId: "char-kael",
+        characterName: "Kael",
+        knowledge: "Tessa can testify after the confrontation.",
+        source: "later chapter outcome",
+      }],
     },
   ] as ChapterOutline[]
 }

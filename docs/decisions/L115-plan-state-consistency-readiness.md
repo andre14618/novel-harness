@@ -28,6 +28,15 @@ Repeated plan-state imports replace the same import lane by staling open or
 deferred rows absent from the fresh aggregate while preserving current item IDs
 and resolved operator dispositions.
 
+Amended 2026-05-14: the adjacent-pair packet treats chapter N+1
+`establishedFacts`, `characterStateChanges`, and `knowledgeChanges` as later
+chapter outputs, not opening handoff state. They are excluded from the
+next-chapter packet so the judge compares chapter N's end state only against
+chapter N+1's purpose and opening scenes. Scene `opposition` is now an explicit
+repair target, and the judge prompt allows plausible offscreen execution of an
+intended plan across a chapter break instead of forcing every intended action to
+be rewritten as completed.
+
 ## Rationale
 
 The Rillgate full draft exposed an upstream plan contradiction: chapter 8
@@ -44,9 +53,12 @@ before drafting/promotion without reviving noisy generation stops.
 
 - `scripts/analysis/plan-state-consistency-report.ts`
 - `output/plan-state-consistency/rillgate-ch4-endpoint-hygiene-1778723371/source/`
-- Live source audit on `rillgate-ch4-endpoint-hygiene-1778723371`: 9 chapter
-  pairs, latest pass 3 findings, 3 open imported readiness items after staling
-  8 prior same-import rows.
+- `output/plan-state-consistency/rillgate-ch4-endpoint-hygiene-1778723371/source-post-draft-repair/`
+- Live source audit on `rillgate-ch4-endpoint-hygiene-1778723371`: latest pass
+  9 chapter pairs, 0 findings after reviewed `planning_edit` repairs.
+- `rillgate-planstate-clean-1778788667-production-path`: 10/10 chapters,
+  31,889/31,000 words, Plan-Assist 0, prose-semantic lows 0/40,
+  scene-semantic lows 5/166, checker blockers 0, weight-bearing checker rows 0.
 - Targeted tests:
   - `bun test scripts/analysis/plan-state-consistency-report.test.ts`
   - `bun test scripts/analysis/checker-readiness-report.test.ts`
