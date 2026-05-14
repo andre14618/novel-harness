@@ -35,10 +35,17 @@ export const pipeline = {
 
   // Phase 7 proposal persistence hook. When true, deterministic lint issues
   // are persisted as prose_edit proposal envelopes after the draft is saved,
-  // and the legacy inline lint-fix apply path is skipped for that chapter.
-  // Default off so existing drafting behavior is unchanged until an
-  // evaluation/scheduler lane explicitly opts into review-before-apply.
+  // and the inline lint auto-fix path is skipped for that chapter. Default
+  // off until an evaluation/scheduler lane explicitly opts into
+  // review-before-apply.
   lintProseEditProposals: false,
+
+  // Style lint auto-fix is default-off. Lint detection still records
+  // deterministic telemetry, but automatic prose rewriting is opt-in because
+  // recent production runs showed paid style repairs can introduce fused
+  // sentence boundaries or quote-integrity defects. Deterministic prose
+  // integrity repair/checks below remain active regardless of this flag.
+  lintAutoFixEnabled: false,
 
   // Phase 7 proposal persistence hook. When true, run the existing
   // validator-backed editorial beat-coverage producer after a chapter draft
@@ -238,6 +245,12 @@ export function resolveDraftCaptureModeV1(
   overrides: { draftCaptureModeV1?: boolean } | undefined,
 ): boolean {
   return overrides?.draftCaptureModeV1 ?? pipeline.draftCaptureModeV1
+}
+
+export function resolveLintAutoFixEnabled(
+  overrides: { lintAutoFixEnabled?: boolean } | undefined,
+): boolean {
+  return overrides?.lintAutoFixEnabled ?? pipeline.lintAutoFixEnabled
 }
 
 export function resolveWriterExpansionMode(

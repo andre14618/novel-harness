@@ -25,6 +25,12 @@ export interface SeedInput {
     qualityRedraftEnabled?: boolean
     qualityRedraftMinWords?: number
     lintProseEditProposals?: boolean
+    /**
+     * Opt-in automatic style lint repair. Default false keeps lint in
+     * detect-only telemetry mode; deterministic prose-integrity repair/checks
+     * still run after drafting.
+     */
+    lintAutoFixEnabled?: boolean
     editorialBeatCoverageProposals?: boolean
     continuityEditorialFlagProposals?: boolean
     factRoleContextPolicy?: import("./harness/fact-roles").FactRoleContextPolicy

@@ -59,9 +59,9 @@ Use deeper docs only when linked by the context pack or needed by code.
   `ORCHESTRATOR_AUTH_ENABLED=1` to restore orchestrator API/UI auth.
 - Active LLM calls use DeepSeek V4 Flash or DeepSeek V4 Pro only. Legacy model
   references are historical unless a current decision reopens them. See L90.
-- Semantic telemetry is explicit opt-in. Use `test-drafting-isolated
-  --quality-telemetry-packet` for the stable advisory prose+scene packet; it
-  stays fail-open data, not a drafting or promotion gate. See L108/L112.
+- Semantic telemetry and LLM style lint auto-fix are explicit opt-in. Use
+  `test-drafting-isolated --quality-telemetry-packet` for advisory semantics;
+  lint detection/integrity checks still run by default. See L108/L112/L113.
 
 ## Authoring Direction
 
@@ -123,8 +123,8 @@ lows 4/166 after high-cap replay. Follow-up production-path bounded run
 `rillgate-endpoint-landing-1778717740-production-path` preserved the seed's
 tight-anchored writer brief on 40/40 writer events and hit 18,396/18,600 words,
 but endpoint lows stayed 4/30; this points upstream to endpoint-contract
-alignment/duplicate-consequence defects, plus functional-state warning noise
-and lint/integrity repair behavior. See L103-L112.
+alignment/duplicate-consequence defects and functional-state warning noise;
+LLM style lint auto-fix is default-off after L113. See L103-L113.
 
 ## Authoring Gates
 

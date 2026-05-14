@@ -120,6 +120,7 @@ export function effectivePipeline(seed: SeedInput): typeof pipeline {
     qualityRedraftEnabled: o.qualityRedraftEnabled ?? pipeline.qualityRedraftEnabled,
     qualityRedraftMinWords: o.qualityRedraftMinWords ?? pipeline.qualityRedraftMinWords,
     lintProseEditProposals: o.lintProseEditProposals ?? pipeline.lintProseEditProposals,
+    lintAutoFixEnabled: o.lintAutoFixEnabled ?? pipeline.lintAutoFixEnabled,
     editorialBeatCoverageProposals:
       o.editorialBeatCoverageProposals ?? pipeline.editorialBeatCoverageProposals,
     continuityEditorialFlagProposals:
@@ -222,6 +223,9 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
   }
   if (eff.lintProseEditProposals !== pipeline.lintProseEditProposals) {
     log(novelId, "info", `Drafting: pipelineOverrides applied — lintProseEditProposals=${eff.lintProseEditProposals}`)
+  }
+  if (eff.lintAutoFixEnabled !== pipeline.lintAutoFixEnabled) {
+    log(novelId, "info", `Drafting: pipelineOverrides applied — lintAutoFixEnabled=${eff.lintAutoFixEnabled}`)
   }
   if (eff.editorialBeatCoverageProposals !== pipeline.editorialBeatCoverageProposals) {
     log(novelId, "info", `Drafting: pipelineOverrides applied — editorialBeatCoverageProposals=${eff.editorialBeatCoverageProposals}`)
@@ -1622,7 +1626,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       await saveChapterDraft(novelId, ch, prose, wordCount)
       log(novelId, "checkpoint", `Draft saved for chapter ${ch} v${attempts}`)
 
-      // 4b. Lint and fix prose
+      // 4b. Lint prose; auto-fix only when the seed explicitly opts in.
       let lintSummary = ""
       try {
         emit(novelId, { type: "progress", data: { step: "lint", chapter: ch, status: "running" } })
@@ -1631,7 +1635,12 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
         await trace(novelId, {
           eventType: "lint-detect", chapter: ch,
           durationMs: Date.now() - lintStart,
-          payload: { totalIssues: lintResult.totalIssues, counts: lintResult.counts },
+          payload: {
+            totalIssues: lintResult.totalIssues,
+            counts: lintResult.counts,
+            autoFixEnabled: eff.lintAutoFixEnabled,
+            proposalMode: eff.lintProseEditProposals,
+          },
         })
         if (lintResult.totalIssues > 0) {
           console.log(`  Lint: ${lintResult.totalIssues} issues (${Object.entries(lintResult.counts).map(([k, v]) => `${k}:${v}`).join(", ")})`)
@@ -1666,58 +1675,62 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             if (proposalResult.errors.length > 0) {
               lintSummary += `\n  Persistence errors: ${proposalResult.errors.map((e) => `${e.envelopeId}: ${e.error}`).join("; ")}`
             }
-          } else {
-          const fixer = getModelForAgent("lint-fixer")
-          const fixStart = Date.now()
-          const fixResult = await fixLintIssues(
-            prose,
-            lintResult.issues,
-            fixer ? { provider: fixer.provider, model: fixer.model, temperature: fixer.temperature } : undefined,
-            { novelId, chapter: ch },
-          )
+          } else if (eff.lintAutoFixEnabled) {
+            const fixer = getModelForAgent("lint-fixer")
+            const fixStart = Date.now()
+            const fixResult = await fixLintIssues(
+              prose,
+              lintResult.issues,
+              fixer ? { provider: fixer.provider, model: fixer.model, temperature: fixer.temperature } : undefined,
+              { novelId, chapter: ch },
+            )
 
-          if (fixResult.deterministicFixes > 0) {
-            await trace(novelId, {
-              eventType: "lint-fix-deterministic", chapter: ch,
-              payload: { fixed: fixResult.deterministicFixes },
-            })
-          }
-          if (fixResult.llmFixes > 0 || fixResult.llmCalls > 0) {
-            await trace(novelId, {
-              eventType: "lint-fix-llm", chapter: ch,
-              durationMs: Date.now() - fixStart,
-              payload: { fixed: fixResult.llmFixes, unfixed: fixResult.unfixed, llmCalls: fixResult.llmCalls, cost: fixResult.costUsd },
-            })
-          }
-
-          const totalFixed = fixResult.deterministicFixes + fixResult.llmFixes
-          if (totalFixed > 0) {
-            const integrity = validateLintFixIntegrity(prose, fixResult.prose)
-            if (!integrity.pass) {
+            if (fixResult.deterministicFixes > 0) {
               await trace(novelId, {
-                eventType: "lint-fix-rejected", chapter: ch,
-                durationMs: Date.now() - fixStart,
-                payload: { issues: integrity.issues },
+                eventType: "lint-fix-deterministic", chapter: ch,
+                payload: { fixed: fixResult.deterministicFixes },
               })
-              const summary = integrity.issues.map(i => `${i.kind}: ${i.excerpt}`).join("; ")
-              console.log(`  Lint fix rejected by integrity guard (${integrity.issues.length} issues); keeping raw draft`)
-              log(novelId, "warn", `Lint fix rejected for chapter ${ch}: ${summary}`)
-              lintSummary = `\n\n--- LINT (${lintResult.totalIssues} found, fix rejected by integrity guard) ---\n` +
-                Object.entries(lintResult.counts).map(([cat, count]) => `  ${cat}: ${count}`).join("\n") +
-                `\n  Guard: ${summary}`
-            } else {
-              prose = fixResult.prose
-              wordCount = prose.split(/\s+/).filter(Boolean).length
-              await saveChapterDraft(novelId, ch, prose, wordCount)
-              console.log(`  Fixed: ${fixResult.deterministicFixes} deterministic, ${fixResult.llmFixes} LLM (${fixResult.unfixed} unfixed, $${fixResult.costUsd.toFixed(4)})`)
-              log(novelId, "info", `Lint fixed ${totalFixed}/${lintResult.totalIssues} issues ($${fixResult.costUsd.toFixed(4)})`)
             }
-          }
+            if (fixResult.llmFixes > 0 || fixResult.llmCalls > 0) {
+              await trace(novelId, {
+                eventType: "lint-fix-llm", chapter: ch,
+                durationMs: Date.now() - fixStart,
+                payload: { fixed: fixResult.llmFixes, unfixed: fixResult.unfixed, llmCalls: fixResult.llmCalls, cost: fixResult.costUsd },
+              })
+            }
 
-          if (!lintSummary) {
-            lintSummary = `\n\n--- LINT (${lintResult.totalIssues} found, ${totalFixed} fixed, ${fixResult.unfixed} remaining) ---\n` +
+            const totalFixed = fixResult.deterministicFixes + fixResult.llmFixes
+            if (totalFixed > 0) {
+              const integrity = validateLintFixIntegrity(prose, fixResult.prose)
+              if (!integrity.pass) {
+                await trace(novelId, {
+                  eventType: "lint-fix-rejected", chapter: ch,
+                  durationMs: Date.now() - fixStart,
+                  payload: { issues: integrity.issues },
+                })
+                const summary = integrity.issues.map(i => `${i.kind}: ${i.excerpt}`).join("; ")
+                console.log(`  Lint fix rejected by integrity guard (${integrity.issues.length} issues); keeping raw draft`)
+                log(novelId, "warn", `Lint fix rejected for chapter ${ch}: ${summary}`)
+                lintSummary = `\n\n--- LINT (${lintResult.totalIssues} found, fix rejected by integrity guard) ---\n` +
+                  Object.entries(lintResult.counts).map(([cat, count]) => `  ${cat}: ${count}`).join("\n") +
+                  `\n  Guard: ${summary}`
+              } else {
+                prose = fixResult.prose
+                wordCount = prose.split(/\s+/).filter(Boolean).length
+                await saveChapterDraft(novelId, ch, prose, wordCount)
+                console.log(`  Fixed: ${fixResult.deterministicFixes} deterministic, ${fixResult.llmFixes} LLM (${fixResult.unfixed} unfixed, $${fixResult.costUsd.toFixed(4)})`)
+                log(novelId, "info", `Lint fixed ${totalFixed}/${lintResult.totalIssues} issues ($${fixResult.costUsd.toFixed(4)})`)
+              }
+            }
+
+            if (!lintSummary) {
+              lintSummary = `\n\n--- LINT (${lintResult.totalIssues} found, ${totalFixed} fixed, ${fixResult.unfixed} remaining) ---\n` +
+                Object.entries(lintResult.counts).map(([cat, count]) => `  ${cat}: ${count}`).join("\n")
+            }
+          } else {
+            lintSummary = `\n\n--- LINT (${lintResult.totalIssues} found, detect-only) ---\n` +
               Object.entries(lintResult.counts).map(([cat, count]) => `  ${cat}: ${count}`).join("\n")
-          }
+            log(novelId, "info", `Lint auto-fix disabled for chapter ${ch}; detection telemetry only`)
           }
         } else {
           console.log("  Lint: clean")

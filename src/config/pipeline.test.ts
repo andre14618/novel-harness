@@ -6,6 +6,7 @@ import {
   resolveForceRenderSceneContractWhenAvailable,
   resolveWriterPromptIdRendering,
   resolveDraftCaptureModeV1,
+  resolveLintAutoFixEnabled,
   resolveScenePlanContractV1,
   resolveNativePlanningContractV1,
   resolvePlanningMaterialPressureV1,
@@ -23,6 +24,7 @@ describe("pipeline default flag values (production runtime)", () => {
     expect(pipeline.writerPromptIdRendering).toBe("raw")
     expect(pipeline.writerDraftingBriefMode).toBe("off")
     expect(pipeline.draftCaptureModeV1).toBe(false)
+    expect(pipeline.lintAutoFixEnabled).toBe(false)
     expect(pipeline.scenePlanContractV1).toBe(false)
     expect(pipeline.planningSceneTurnShapingV1).toBe(false)
     expect(pipeline.planningMaterialPressureV1).toBe(false)
@@ -80,6 +82,12 @@ describe("override resolvers fall back to pipeline defaults when override absent
     expect(resolveDraftCaptureModeV1(undefined)).toBe(false)
     expect(resolveDraftCaptureModeV1({})).toBe(false)
     expect(resolveDraftCaptureModeV1({ draftCaptureModeV1: true })).toBe(true)
+  })
+
+  test("resolveLintAutoFixEnabled", () => {
+    expect(resolveLintAutoFixEnabled(undefined)).toBe(false)
+    expect(resolveLintAutoFixEnabled({})).toBe(false)
+    expect(resolveLintAutoFixEnabled({ lintAutoFixEnabled: true })).toBe(true)
   })
 
   test("resolveScenePlanContractV1", () => {
