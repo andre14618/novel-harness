@@ -13,6 +13,7 @@ import {
   planningEditPayloadSchema,
   type PlanningEditPayload,
 } from "../../src/canon/planning-edit-proposal"
+import type { PlanningTargetRef } from "../../src/harness/planning-targets"
 import { previewPlanningImpact } from "../../src/harness/planning-targets"
 import { handlePlanningProposalRoute } from "../../src/orchestrator/planning-proposal-routes"
 
@@ -222,7 +223,7 @@ async function replayOne(
   }
 
   try {
-    await previewPlanningImpact(args.toNovel, source.payload.target)
+    await previewPlanningImpact(args.toNovel, previewTargetForReplay(source.payload.target))
   } catch (err) {
     return {
       ...base,
@@ -294,6 +295,23 @@ async function replayOne(
       ? null
       : stringValue(resolveBody?.error ?? resolveResponse.statusText) ?? "proposal approval failed",
   }
+}
+
+export function previewTargetForReplay(target: PlanningEditPayload["target"]): PlanningTargetRef {
+  if (
+    (target.fieldPath === "self" || target.fieldPath === "requirements") &&
+    (
+      target.kind === "scene_plan" ||
+      target.kind === "beat_plan" ||
+      target.kind === "beat_obligation"
+    )
+  ) {
+    return {
+      kind: target.kind,
+      ref: target.ref,
+    }
+  }
+  return target
 }
 
 export function renderReport(report: PlanningEditReplayReport): string {

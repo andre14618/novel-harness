@@ -3,6 +3,7 @@ import {
   createPlanningProposalBodyForReplay,
   effectivePlanningEditPayload,
   parseArgs,
+  previewTargetForReplay,
   renderReport,
   type PlanningEditReplayReport,
   type PlanningEditReplaySource,
@@ -67,6 +68,31 @@ describe("planning-edit-replay", () => {
         agent: "planning-edit-replay",
         parentEnvelopeId: "planning_edit:source:abc",
       },
+    })
+  })
+
+  test("previewTargetForReplay strips structural pseudo-fields for target lookup", () => {
+    expect(previewTargetForReplay({
+      action: "beat_replace",
+      target: {
+        kind: "scene_plan",
+        ref: "scene-1",
+        fieldPath: "self",
+      },
+      previousValue: {},
+      proposedValue: {
+        sceneId: "scene-1",
+        description: "Replacement scene.",
+      },
+    }.target)).toEqual({
+      kind: "scene_plan",
+      ref: "scene-1",
+    })
+
+    expect(previewTargetForReplay(planningPayload("replacement").target)).toEqual({
+      kind: "scene_plan",
+      ref: "scene-1",
+      fieldPath: "description",
     })
   })
 

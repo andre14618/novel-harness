@@ -110,16 +110,14 @@ As of 2026-05-14, L106-L117 keep evidence on production paths: writer briefs,
 semantic replay, source hygiene, planning-edit replay, scene-contract telemetry,
 checker readiness, source plan-state consistency, and compare/cohort artifacts.
 Rillgate source `rillgate-ch4-endpoint-hygiene-1778723371` is the active
-10-chapter / 49-scene source. Plan-state readiness repairs now close to 9/9
-clean adjacent pairs; the audit excludes next-chapter output facts/state from
-opening handoff context, can target scene `opposition`, and allows plausible
-offscreen execution of intended plans. The ch9 buyer/ledger miss was repaired
-upstream as buyer-escapes-with-key-pages plus hollow ledger shell, and ch10's
-marker payoff was tightened through reviewed `planning_edit`. Latest bounded
-evidence: `rillgate-ch10-marker-endpoint-1778794476-production-path` drafted
-ch10 at 2,611/3,100 with Plan-Assist 0, checker readiness 0, prose lows 0/4,
-scene lows 0/15, and source plan-state 0. LLM style lint auto-fix is
-default-off after L113. See L103-L117.
+10-chapter / 49-scene source. Story-shape run
+`rillgate-storyshape-full-1778795211-production-path` drafted 30,899/31,000
+words with Plan-Assist 0, checker blockers 0, prose lows 0/40, and scene lows
+1/166. The real ch2 departure world-pressure low was repaired upstream and
+proved by `rillgate-ch2-departure-pressure-1778796781-production-path` with
+scene lows 0/18; final source audits are planner-quality readiness 0 and
+plan-state 9/9 clean. LLM style lint auto-fix is default-off after L113. See
+L103-L117 and `docs/sessions/2026-05-14-rillgate-story-shape-evidence.md`.
 
 ## Authoring Gates
 
