@@ -119,6 +119,12 @@ export interface SeedInput {
      * binary gates rather than numeric model confidence.
      */
     authoringBibleMode?: import("./harness/authoring-bible").AuthoringBibleMode
+    /**
+     * Optional modular authoring-bible pack IDs layered into
+     * authoringBibleMode="v1". Packs add explicit world, character,
+     * relationship, and voice insertion rules with stable IDs.
+     */
+    authoringBiblePackIds?: string[]
   }
 }
 

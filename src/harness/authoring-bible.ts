@@ -1,8 +1,9 @@
 import type { ChapterOutline, CharacterProfile, SceneBeat, StorySpine, WorldBible } from "../types"
+import { resolveAuthoringBiblePacks } from "./authoring-bible-packs"
 
 export type AuthoringBibleMode = "off" | "v1"
 
-export type AuthoringBibleRuleKind = "story" | "character" | "relationship" | "voice"
+export type AuthoringBibleRuleKind = "story" | "world" | "character" | "relationship" | "voice"
 
 export interface AuthoringBibleRule {
   id: string
@@ -19,7 +20,9 @@ export interface AuthoringBibleRule {
 export interface AuthoringBiblePacket {
   mode: "authoring-bible-v1"
   genre: string
+  packIds: string[]
   storyRules: AuthoringBibleRule[]
+  worldRules: AuthoringBibleRule[]
   characterRules: AuthoringBibleRule[]
   relationshipRules: AuthoringBibleRule[]
   voiceRules: AuthoringBibleRule[]
@@ -31,6 +34,7 @@ export interface AuthoringBibleSlice {
   chapterNumber: number
   sceneNumber: number
   storyRules: AuthoringBibleRule[]
+  worldRules: AuthoringBibleRule[]
   characterRules: AuthoringBibleRule[]
   relationshipRules: AuthoringBibleRule[]
   voiceRules: AuthoringBibleRule[]
@@ -43,16 +47,29 @@ export interface AuthoringBibleSliceTrace {
   sceneNumber: number
   ruleIds: string[]
   storyRuleIds: string[]
+  worldRuleIds: string[]
   characterRuleIds: string[]
   relationshipRuleIds: string[]
   voiceRuleIds: string[]
   counts: {
     rules: number
     storyRules: number
+    worldRules: number
     characterRules: number
     relationshipRules: number
     voiceRules: number
   }
+}
+
+export interface AuthoringBiblePack {
+  id: string
+  title: string
+  description: string
+  storyRules?: AuthoringBibleRule[]
+  worldRules?: AuthoringBibleRule[]
+  characterRules?: AuthoringBibleRule[]
+  relationshipRules?: AuthoringBibleRule[]
+  voiceRules?: AuthoringBibleRule[]
 }
 
 export type AuthoringBibleVerdict = "pass" | "miss" | "uncertain" | "not_applicable"
@@ -88,15 +105,34 @@ export function buildAuthoringBiblePacket(args: {
   worldBible?: WorldBible | null
   storySpine?: StorySpine | null
   characters: CharacterProfile[]
+  packIds?: string[]
 }): AuthoringBiblePacket {
   const genre = args.genre?.trim() ?? ""
+  const packs = resolveAuthoringBiblePacks(args.packIds ?? [])
   return {
     mode: "authoring-bible-v1",
     genre,
-    storyRules: buildStoryRules(genre, args.worldBible, args.storySpine),
-    characterRules: args.characters.flatMap(buildCharacterRules),
-    relationshipRules: args.characters.flatMap(buildRelationshipRules),
-    voiceRules: buildVoiceRules(genre, args.worldBible),
+    packIds: packs.map(pack => pack.id),
+    storyRules: uniqueRules([
+      ...buildStoryRules(genre, args.worldBible, args.storySpine),
+      ...packs.flatMap(pack => pack.storyRules ?? []),
+    ]),
+    worldRules: uniqueRules([
+      ...buildWorldRules(args.worldBible),
+      ...packs.flatMap(pack => pack.worldRules ?? []),
+    ]),
+    characterRules: uniqueRules([
+      ...args.characters.flatMap(buildCharacterRules),
+      ...packs.flatMap(pack => pack.characterRules ?? []),
+    ]),
+    relationshipRules: uniqueRules([
+      ...args.characters.flatMap(buildRelationshipRules),
+      ...packs.flatMap(pack => pack.relationshipRules ?? []),
+    ]),
+    voiceRules: uniqueRules([
+      ...buildVoiceRules(genre, args.worldBible),
+      ...packs.flatMap(pack => pack.voiceRules ?? []),
+    ]),
   }
 }
 
@@ -107,7 +143,10 @@ export function selectAuthoringBibleSlice(args: {
   sceneIndex: number
 }): AuthoringBibleSlice | null {
   const { packet, outline, scene, sceneIndex } = args
-  const sceneNames = new Set(
+  const sceneNames = [outline.povCharacter, ...(scene.characters ?? [])]
+    .map(name => name?.trim() ?? "")
+    .filter(Boolean)
+  const sceneNameKeys = new Set(
     [outline.povCharacter, ...(scene.characters ?? [])]
       .map(name => cleanKey(name))
       .filter(Boolean),
@@ -115,16 +154,23 @@ export function selectAuthoringBibleSlice(args: {
   const storyRules = packet.storyRules
     .filter(rule => storyRuleApplies(rule, scene, sceneIndex, outline.scenes.length))
     .slice(0, 4)
+  const worldRules = packet.worldRules
+    .filter(rule => worldRuleApplies(rule, scene))
+    .slice(0, 5)
   const characterRules = packet.characterRules
-    .filter(rule => sceneNames.has(cleanKey(rule.characterName)))
-    .slice(0, 8)
+    .filter(rule => nameAppearsInScene(rule.characterName, sceneNames, sceneNameKeys))
+    .slice(0, 12)
   const relationshipRules = packet.relationshipRules
-    .filter(rule => sceneNames.has(cleanKey(rule.characterName)) && sceneNames.has(cleanKey(rule.relatedCharacterName)))
-    .slice(0, 4)
-  const voiceRules = packet.voiceRules.slice(0, 4)
+    .filter(rule =>
+      nameAppearsInScene(rule.characterName, sceneNames, sceneNameKeys) &&
+      nameAppearsInScene(rule.relatedCharacterName, sceneNames, sceneNameKeys)
+    )
+    .slice(0, 6)
+  const voiceRules = packet.voiceRules.slice(0, 6)
 
   if (
     storyRules.length === 0 &&
+    worldRules.length === 0 &&
     characterRules.length === 0 &&
     relationshipRules.length === 0 &&
     voiceRules.length === 0
@@ -138,6 +184,7 @@ export function selectAuthoringBibleSlice(args: {
     chapterNumber: outline.chapterNumber,
     sceneNumber: sceneIndex + 1,
     storyRules,
+    worldRules,
     characterRules,
     relationshipRules,
     voiceRules,
@@ -147,6 +194,7 @@ export function selectAuthoringBibleSlice(args: {
 export function renderAuthoringBibleSlice(slice: AuthoringBibleSlice): string {
   const sections = ["AUTHORING BIBLE SLICE:"]
   pushRuleSection(sections, "Story engine", slice.storyRules)
+  pushRuleSection(sections, "World", slice.worldRules)
   pushRuleSection(sections, "Character", slice.characterRules)
   pushRuleSection(sections, "Relationship", slice.relationshipRules)
   pushRuleSection(sections, "Voice", slice.voiceRules)
@@ -155,11 +203,13 @@ export function renderAuthoringBibleSlice(slice: AuthoringBibleSlice): string {
 
 export function summarizeAuthoringBibleSlice(slice: AuthoringBibleSlice): AuthoringBibleSliceTrace {
   const storyRuleIds = slice.storyRules.map(rule => rule.id)
+  const worldRuleIds = slice.worldRules.map(rule => rule.id)
   const characterRuleIds = slice.characterRules.map(rule => rule.id)
   const relationshipRuleIds = slice.relationshipRules.map(rule => rule.id)
   const voiceRuleIds = slice.voiceRules.map(rule => rule.id)
   const ruleIds = [
     ...storyRuleIds,
+    ...worldRuleIds,
     ...characterRuleIds,
     ...relationshipRuleIds,
     ...voiceRuleIds,
@@ -171,12 +221,14 @@ export function summarizeAuthoringBibleSlice(slice: AuthoringBibleSlice): Author
     sceneNumber: slice.sceneNumber,
     ruleIds,
     storyRuleIds,
+    worldRuleIds,
     characterRuleIds,
     relationshipRuleIds,
     voiceRuleIds,
     counts: {
       rules: ruleIds.length,
       storyRules: storyRuleIds.length,
+      worldRules: worldRuleIds.length,
       characterRules: characterRuleIds.length,
       relationshipRules: relationshipRuleIds.length,
       voiceRules: voiceRuleIds.length,
@@ -265,6 +317,39 @@ function buildStoryRules(
       text: ruleText,
       appliesWhen: `Scenes using ${system.name}, its institutions, rules, vocabulary, or practitioners.`,
       source: "world_bible.systems",
+    })
+  }
+  return uniqueRules(rules)
+}
+
+function buildWorldRules(
+  worldBible: WorldBible | null | undefined,
+): AuthoringBibleRule[] {
+  const rules: AuthoringBibleRule[] = []
+  for (const system of (worldBible?.systems ?? []).slice(0, 4)) {
+    const constraints = system.constraints?.filter(Boolean).join("; ")
+    const vocabulary = system.vocabulary?.filter(Boolean).join(", ")
+    rules.push({
+      id: `world-rule:system:${slug(system.id || system.name)}`,
+      kind: "world",
+      title: `${system.name} operational pressure`,
+      text: [
+        `${system.name} should change what characters can try, risk, prove, buy, enter, claim, or survive.`,
+        constraints ? `Constraints: ${constraints}.` : "",
+        vocabulary ? `Use vocabulary only when it has consequence: ${vocabulary}.` : "",
+      ].filter(Boolean).join(" "),
+      appliesWhen: `Scenes invoking ${system.name}, its institutions, vocabulary, practitioners, law, resources, or consequences.`,
+      source: "world_bible.systems",
+    })
+  }
+  if (worldBible?.sensoryPalette) {
+    rules.push({
+      id: "world-rule:sensory-palette-operational",
+      kind: "world",
+      title: "Operational sensory palette",
+      text: `World texture should carry pressure, not wallpaper. Sensory palette: ${worldBible.sensoryPalette}`,
+      appliesWhen: "Scenes that ground location, danger, travel, combat, work, rank, law, magic, or fatigue.",
+      source: "world_bible.sensoryPalette",
     })
   }
   return uniqueRules(rules)
@@ -403,6 +488,27 @@ function storyRuleApplies(
   return true
 }
 
+function worldRuleApplies(rule: AuthoringBibleRule, scene: SceneBeat): boolean {
+  const text = [
+    scene.description,
+    scene.goal,
+    scene.opposition,
+    scene.turningPoint,
+    scene.outcome,
+    scene.consequence,
+    scene.placeAnchor,
+    scene.temporalAnchor,
+  ].filter(Boolean).join(" ").toLowerCase()
+  if (rule.id === "world-rule:sensory-palette-operational") return true
+  const titleTerms = rule.title
+    .toLowerCase()
+    .replace(/\b(operational|pressure|world|rule|system)\b/gu, "")
+    .split(/[^a-z0-9]+/u)
+    .filter(term => term.length > 3)
+  if (titleTerms.length === 0) return true
+  return titleTerms.some(term => text.includes(term)) || /guild|contract|rank|law|debt|marker|witness|salvage|salt|brine|mine|ruin|core|ward|patron|broker/.test(text)
+}
+
 function pushRuleSection(lines: string[], label: string, rules: AuthoringBibleRule[]): void {
   if (rules.length === 0) return
   lines.push(`${label}:`)
@@ -424,6 +530,24 @@ function uniqueRules(rules: AuthoringBibleRule[]): AuthoringBibleRule[] {
 
 function cleanKey(value: string | undefined | null): string {
   return value?.trim().toLowerCase() ?? ""
+}
+
+function nameAppearsInScene(
+  value: string | undefined | null,
+  sceneNames: readonly string[],
+  sceneNameKeys: ReadonlySet<string>,
+): boolean {
+  const key = cleanKey(value)
+  if (!key) return false
+  if (sceneNameKeys.has(key)) return true
+  const parts = key.split(/\s+/u).filter(part => part.length > 1)
+  for (const sceneName of sceneNames) {
+    const sceneKey = cleanKey(sceneName)
+    if (!sceneKey) continue
+    if (key.includes(sceneKey) || sceneKey.includes(key)) return true
+    if (parts.some(part => sceneKey === part || sceneKey.includes(part))) return true
+  }
+  return false
 }
 
 function slug(value: string): string {

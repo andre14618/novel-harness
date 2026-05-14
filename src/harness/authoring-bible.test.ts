@@ -18,6 +18,7 @@ describe("authoring bible packet and slice", () => {
     })
 
     expect(packet.storyRules.map(rule => rule.id)).toContain("story-rule:mission-contract-loop")
+    expect(packet.worldRules.map(rule => rule.id)).toContain("world-rule:system:guild-law")
     expect(packet.storyRules.map(rule => rule.id)).toContain("story-rule:earned-progression-payoff")
     expect(packet.characterRules.map(rule => rule.id)).toContain("char-rule:char-kael:driver")
     expect(packet.characterRules.map(rule => rule.id)).toContain("char-rule:char-kael:voice")
@@ -42,6 +43,7 @@ describe("authoring bible packet and slice", () => {
     expect(slice).not.toBeNull()
     const trace = summarizeAuthoringBibleSlice(slice!)
     expect(trace.ruleIds).toContain("story-rule:mission-contract-loop")
+    expect(trace.ruleIds).toContain("world-rule:system:guild-law")
     expect(trace.ruleIds).toContain("char-rule:char-kael:driver")
     expect(trace.ruleIds).toContain("rel-rule:kael:tessa")
     expect(trace.counts.rules).toBeGreaterThan(0)
@@ -49,8 +51,34 @@ describe("authoring bible packet and slice", () => {
     const rendered = renderAuthoringBibleSlice(slice!)
     expect(rendered).toContain("AUTHORING BIBLE SLICE")
     expect(rendered).toContain("[story-rule:mission-contract-loop]")
+    expect(rendered).toContain("[world-rule:system:guild-law]")
     expect(rendered).toContain("[char-rule:char-kael:driver]")
     expect(rendered).toContain("[voice-rule:close-pov-tactical]")
+  })
+
+  test("layers modular pack rules into the scene slice", () => {
+    const packet = buildAuthoringBiblePacket({
+      genre: "adult mercenary progression fantasy",
+      worldBible: worldBible(),
+      characters: characters(),
+      packIds: ["rillgate-contrast-v1"],
+    })
+    const outline = chapterOutline()
+    const slice = selectAuthoringBibleSlice({
+      packet,
+      outline,
+      scene: outline.scenes[0]!,
+      sceneIndex: 0,
+    })
+
+    expect(packet.packIds).toEqual(["rillgate-contrast-v1"])
+    expect(slice).not.toBeNull()
+    const ids = summarizeAuthoringBibleSlice(slice!).ruleIds
+    expect(ids).toContain("pack:rillgate-contrast-v1:world:paper-is-weapon")
+    expect(ids).toContain("pack:rillgate-contrast-v1:char:kael:risk-math")
+    expect(ids).toContain("pack:rillgate-contrast-v1:char:tessa:line-and-point")
+    expect(ids).toContain("pack:rillgate-contrast-v1:rel:kael-tessa:competence-before-trust")
+    expect(ids).toContain("pack:rillgate-contrast-v1:voice:dialogue-fingerprints")
   })
 })
 

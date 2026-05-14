@@ -15,6 +15,7 @@ import {
   resolveSceneEntityGroundingMode,
   resolveWriterDraftingBriefMode,
   resolveAuthoringBibleMode,
+  resolveAuthoringBiblePackIds,
 } from "./pipeline"
 
 describe("pipeline default flag values (production runtime)", () => {
@@ -25,6 +26,7 @@ describe("pipeline default flag values (production runtime)", () => {
     expect(pipeline.writerPromptIdRendering).toBe("raw")
     expect(pipeline.writerDraftingBriefMode).toBe("off")
     expect(pipeline.authoringBibleMode).toBe("off")
+    expect(pipeline.authoringBiblePackIds).toEqual([])
     expect(pipeline.draftCaptureModeV1).toBe(false)
     expect(pipeline.lintAutoFixEnabled).toBe(false)
     expect(pipeline.scenePlanContractV1).toBe(false)
@@ -84,6 +86,12 @@ describe("override resolvers fall back to pipeline defaults when override absent
     expect(resolveAuthoringBibleMode(undefined)).toBe("off")
     expect(resolveAuthoringBibleMode({})).toBe("off")
     expect(resolveAuthoringBibleMode({ authoringBibleMode: "v1" })).toBe("v1")
+  })
+
+  test("resolveAuthoringBiblePackIds", () => {
+    expect(resolveAuthoringBiblePackIds(undefined)).toEqual([])
+    expect(resolveAuthoringBiblePackIds({})).toEqual([])
+    expect(resolveAuthoringBiblePackIds({ authoringBiblePackIds: ["rillgate-contrast-v1"] })).toEqual(["rillgate-contrast-v1"])
   })
 
   test("resolveDraftCaptureModeV1", () => {

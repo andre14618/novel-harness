@@ -599,6 +599,7 @@ describe("flagsForArm", () => {
       writerPromptIdRendering: "raw",
       writerDraftingBriefMode: "off",
       authoringBibleMode: "off",
+      authoringBiblePackIds: [],
     })
   })
 
@@ -612,6 +613,7 @@ describe("flagsForArm", () => {
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(true)
     expect(flags.writerDraftingBriefMode).toBe("off")
     expect(flags.authoringBibleMode).toBe("off")
+    expect(flags.authoringBiblePackIds).toEqual([])
   })
 
   test("contract-render-only arm remains an explicit production-contract alias", () => {
@@ -622,6 +624,7 @@ describe("flagsForArm", () => {
     expect(flags.writerPromptIdRendering).toBe("raw")
     expect(flags.writerDraftingBriefMode).toBe("off")
     expect(flags.authoringBibleMode).toBe("off")
+    expect(flags.authoringBiblePackIds).toEqual([])
   })
 
   test("scene-call-v1 arm enables scene-call writer + expansion-retry; ID rendering stays raw", () => {
@@ -631,6 +634,7 @@ describe("flagsForArm", () => {
     expect(flags.writerPromptIdRendering).toBe("raw")
     expect(flags.writerDraftingBriefMode).toBe("off")
     expect(flags.authoringBibleMode).toBe("off")
+    expect(flags.authoringBiblePackIds).toEqual([])
   })
 
   test("scene-call-no-expansion isolates scene-call from expansion retry", () => {
@@ -641,6 +645,7 @@ describe("flagsForArm", () => {
     expect(flags.writerPromptIdRendering).toBe("raw")
     expect(flags.writerDraftingBriefMode).toBe("off")
     expect(flags.authoringBibleMode).toBe("off")
+    expect(flags.authoringBiblePackIds).toEqual([])
   })
 
   test("drafting-brief-v1 flips only the production drafting brief mode", () => {
@@ -651,6 +656,7 @@ describe("flagsForArm", () => {
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
     expect(flags.writerPromptIdRendering).toBe("raw")
     expect(flags.authoringBibleMode).toBe("off")
+    expect(flags.authoringBiblePackIds).toEqual([])
   })
 
   test("drafting-brief-tight-v1 flips only the production drafting brief mode", () => {
@@ -661,6 +667,7 @@ describe("flagsForArm", () => {
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
     expect(flags.writerPromptIdRendering).toBe("raw")
     expect(flags.authoringBibleMode).toBe("off")
+    expect(flags.authoringBiblePackIds).toEqual([])
   })
 
   test("drafting-brief-scene-turn-v1 flips only the production drafting brief mode", () => {
@@ -671,6 +678,7 @@ describe("flagsForArm", () => {
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
     expect(flags.writerPromptIdRendering).toBe("raw")
     expect(flags.authoringBibleMode).toBe("off")
+    expect(flags.authoringBiblePackIds).toEqual([])
   })
 
   test("drafting-brief-anchored-v1 flips only the production drafting brief mode", () => {
@@ -681,6 +689,7 @@ describe("flagsForArm", () => {
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
     expect(flags.writerPromptIdRendering).toBe("raw")
     expect(flags.authoringBibleMode).toBe("off")
+    expect(flags.authoringBiblePackIds).toEqual([])
   })
 
   test("drafting-brief-tight-anchored-v1 flips only the production drafting brief mode", () => {
@@ -691,12 +700,14 @@ describe("flagsForArm", () => {
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
     expect(flags.writerPromptIdRendering).toBe("raw")
     expect(flags.authoringBibleMode).toBe("off")
+    expect(flags.authoringBiblePackIds).toEqual([])
   })
 
   test("drafting-brief-authoring-bible-v1 enables bible slices without scene-call architecture", () => {
     const flags = flagsForArm("drafting-brief-authoring-bible-v1")
     expect(flags.writerDraftingBriefMode).toBe("scene-budget-tight-anchored-v1")
     expect(flags.authoringBibleMode).toBe("v1")
+    expect(flags.authoringBiblePackIds).toEqual(["rillgate-contrast-v1"])
     expect(flags.sceneCallWriterV1).toBe(false)
     expect(flags.writerExpansionMode).toBe("off")
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)

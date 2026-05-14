@@ -97,6 +97,11 @@ export const pipeline = {
   // confidence scores.
   authoringBibleMode: "off" as AuthoringBibleMode,
 
+  // Modular authoring-bible pack IDs layered into authoringBibleMode=v1.
+  // Empty by default so production prompt shape remains unchanged until a
+  // novel/arm deliberately selects a pack.
+  authoringBiblePackIds: [] as string[],
+
   // Diagnostic/A-B planning shape lever. Default null leaves planner behavior
   // unchanged. Per-novel overrides cap generated planning scene entries before
   // state mapping, but the effective cap never drops below the calibrated floor
@@ -296,4 +301,10 @@ export function resolveAuthoringBibleMode(
   overrides: { authoringBibleMode?: AuthoringBibleMode } | undefined,
 ): AuthoringBibleMode {
   return overrides?.authoringBibleMode ?? pipeline.authoringBibleMode
+}
+
+export function resolveAuthoringBiblePackIds(
+  overrides: { authoringBiblePackIds?: string[] } | undefined,
+): string[] {
+  return overrides?.authoringBiblePackIds ?? pipeline.authoringBiblePackIds
 }

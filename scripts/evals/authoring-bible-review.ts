@@ -39,6 +39,7 @@ interface Args {
   outputDir: string | null
   setName: string
   maxRulesPerScene: number
+  packIds: string[]
   json: boolean
 }
 
@@ -72,6 +73,7 @@ interface AuthoringBibleReviewReport {
   generatedAt: string
   novelId: string
   setName: string
+  packIds: string[]
   live: boolean
   model: ModelId
   taskCount: number
@@ -103,11 +105,15 @@ export async function buildAuthoringBibleReviewReport(
 ): Promise<AuthoringBibleReviewReport> {
   const novel = await loadNovelArtifacts(args.novelId)
   const chapters = await loadChapterRows(args.novelId, args.chapters)
+  const packIds = args.packIds.length > 0
+    ? args.packIds
+    : novel.seed.pipelineOverrides?.authoringBiblePackIds ?? []
   const packet = buildAuthoringBiblePacket({
     genre: novel.seed.genre,
     worldBible: novel.worldBible,
     storySpine: novel.storySpine,
     characters: novel.characters,
+    packIds,
   })
   const tasks = buildReviewTasks(chapters, packet, args.maxRulesPerScene)
   const results = await runBounded(tasks.map(task => async () => {
@@ -130,6 +136,7 @@ export async function buildAuthoringBibleReviewReport(
     generatedAt,
     novelId: args.novelId,
     setName: args.setName,
+    packIds: packet.packIds,
     live: args.live,
     model: args.model,
     taskCount: tasks.length,
@@ -145,6 +152,7 @@ export function renderAuthoringBibleReviewReport(report: AuthoringBibleReviewRep
     "",
     `Novel: ${report.novelId}`,
     `Set: ${report.setName}`,
+    `Packs: ${report.packIds.join(", ") || "none"}`,
     `Live: ${report.live}`,
     `Model: ${report.model}`,
     `Tasks: ${report.taskCount}`,
@@ -188,6 +196,7 @@ function buildReviewTasks(
       const sceneProse = proseForScene({ chapter, scene, sceneIndex, sceneId })
       const rules = [
         ...slice.storyRules,
+        ...slice.worldRules,
         ...slice.characterRules,
         ...slice.relationshipRules,
         ...slice.voiceRules,
@@ -429,6 +438,7 @@ function parseArgs(argv: string[]): Args {
   let outputDir: string | null = null
   let setName = `authoring-bible-review:${new Date().toISOString().slice(0, 10)}`
   let maxRulesPerScene = 12
+  let packIds: string[] = []
   let json = false
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!
@@ -442,11 +452,13 @@ function parseArgs(argv: string[]): Args {
     if (arg === "--output-dir") { outputDir = argv[++i] ?? null; continue }
     if (arg === "--set-name") { setName = argv[++i] ?? setName; continue }
     if (arg === "--max-rules-per-scene") { maxRulesPerScene = positiveInt(argv[++i] ?? "", "--max-rules-per-scene"); continue }
+    if (arg === "--pack-id") { packIds = uniqueStrings([...packIds, argv[++i] ?? ""]); continue }
+    if (arg === "--pack-ids") { packIds = uniqueStrings([...packIds, ...parseStringList(argv[++i] ?? "")]); continue }
     if (arg === "--json") { json = true; continue }
     throw new Error(`unknown arg: ${arg}`)
   }
   if (!novelId) throw new Error("--novel-id is required")
-  return { novelId, chapters, live, model, maxTokens, concurrency, outputDir, setName, maxRulesPerScene, json }
+  return { novelId, chapters, live, model, maxTokens, concurrency, outputDir, setName, maxRulesPerScene, packIds, json }
 }
 
 function parseChapterList(raw: string): number[] {
@@ -470,6 +482,14 @@ function positiveInt(raw: string, name: string): number {
   const parsed = Number.parseInt(raw, 10)
   if (!Number.isFinite(parsed) || parsed <= 0) throw new Error(`${name} requires a positive integer`)
   return parsed
+}
+
+function parseStringList(raw: string): string[] {
+  return raw.split(",").map(value => value.trim()).filter(Boolean)
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.map(value => value.trim()).filter(Boolean))]
 }
 
 function parseModel(raw: string): ModelId {

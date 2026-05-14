@@ -64,8 +64,9 @@ Use deeper docs only when linked by the context pack or needed by code.
   lint detection/integrity checks still run by default. Checker readiness
   separates weight-bearing, advisory, and noise rows. See L108/L112-L114.
 - Authoring-bible context/eval is default-off through `authoringBibleMode="v1"`:
-  story/character/relationship/voice rule IDs render into writer context and
-  advisory review derives verdicts from binary gates, not confidence scores. See L118.
+  story/world/character/relationship/voice rule IDs render into writer context;
+  optional pack IDs add genre-specific layers. Advisory review uses binary
+  gates, not confidence scores. See L118.
 
 ## Authoring Direction
 
@@ -93,8 +94,8 @@ Use deeper docs only when linked by the context pack or needed by code.
   artifacts; semantic prose/scene packets are explicit evidence add-ons.
 - Production drafting defaults to exact-ID character context capsules
   (`thread-character-context-v1`). See L094.
-- Authoring-bible slices can now add compact story, character, relationship,
-  and voice rules to writer briefs with rule-ID telemetry. See L118.
+- Authoring-bible slices can now add compact story/world/character/relationship
+  and voice rules, including modular packs, to writer briefs with rule-ID telemetry. See L118.
 - Native chapter contracts and story-turn planning are the production planning
   default with legacy rollback; downstream beat caps/packing are diagnostic
   evidence only. See L088.

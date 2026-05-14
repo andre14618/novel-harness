@@ -138,6 +138,9 @@ export interface BeatContextInput {
    *  slots render compact story/character/relationship/voice rules with
    *  stable rule IDs for advisory post-draft review. */
   authoringBibleMode?: AuthoringBibleMode
+  /** Optional modular authoring-bible pack IDs layered on top of derived
+   *  story/world/character data when authoringBibleMode=v1. */
+  authoringBiblePackIds?: string[]
 }
 
 export interface BeatContextResult {
@@ -420,6 +423,7 @@ export async function buildSceneContextSlots(input: BeatContextInput): Promise<B
           worldBible,
           storySpine: input.storySpine,
           characters,
+          packIds: input.authoringBiblePackIds,
         }),
         outline,
         scene: beat,

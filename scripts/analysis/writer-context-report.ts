@@ -34,6 +34,7 @@ export interface WriterContextEventSummary {
     characterContextCapsules: boolean
     authoringBible: boolean
     storyBible: boolean
+    worldAuthoringBible: boolean
     characterBible: boolean
     relationshipBible: boolean
     voiceBible: boolean
@@ -68,6 +69,7 @@ export interface WriterContextEventSummary {
       characterContextCapsules: boolean
       authoringBible: boolean
       storyBible: boolean
+      worldAuthoringBible: boolean
       characterBible: boolean
       relationshipBible: boolean
       voiceBible: boolean
@@ -92,6 +94,7 @@ export interface WriterContextEventSummary {
       choiceAlternatives: number
       authoringBibleRules: number
       storyBibleRules: number
+      worldAuthoringBibleRules: number
       characterBibleRules: number
       relationshipBibleRules: number
       voiceBibleRules: number
@@ -103,6 +106,7 @@ export interface WriterContextEventSummary {
       activePayoffIds: string[]
       authoringBibleRuleIds: string[]
       storyBibleRuleIds: string[]
+      worldAuthoringBibleRuleIds: string[]
       characterBibleRuleIds: string[]
       relationshipBibleRuleIds: string[]
       voiceBibleRuleIds: string[]
@@ -540,6 +544,7 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
       characterContextCapsules: hasCharacterContextCapsules,
       authoringBible: hasAuthoringBible,
       storyBible: readBoolean(surfaces.storyBible) || Boolean(draftingBrief?.sections.storyBible),
+      worldAuthoringBible: readBoolean(surfaces.worldAuthoringBible) || Boolean(draftingBrief?.sections.worldAuthoringBible),
       characterBible: readBoolean(surfaces.characterBible) || Boolean(draftingBrief?.sections.characterBible),
       relationshipBible: readBoolean(surfaces.relationshipBible) || Boolean(draftingBrief?.sections.relationshipBible),
       voiceBible: readBoolean(surfaces.voiceBible) || Boolean(draftingBrief?.sections.voiceBible),
@@ -727,6 +732,7 @@ function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingB
       characterContextCapsules: readBoolean(sections.characterContextCapsules),
       authoringBible: readBoolean(sections.authoringBible),
       storyBible: readBoolean(sections.storyBible),
+      worldAuthoringBible: readBoolean(sections.worldAuthoringBible),
       characterBible: readBoolean(sections.characterBible),
       relationshipBible: readBoolean(sections.relationshipBible),
       voiceBible: readBoolean(sections.voiceBible),
@@ -751,6 +757,7 @@ function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingB
       choiceAlternatives: readFiniteNumber(counts.choiceAlternatives) ?? 0,
       authoringBibleRules: readFiniteNumber(counts.authoringBibleRules) ?? 0,
       storyBibleRules: readFiniteNumber(counts.storyBibleRules) ?? 0,
+      worldAuthoringBibleRules: readFiniteNumber(counts.worldAuthoringBibleRules) ?? 0,
       characterBibleRules: readFiniteNumber(counts.characterBibleRules) ?? 0,
       relationshipBibleRules: readFiniteNumber(counts.relationshipBibleRules) ?? 0,
       voiceBibleRules: readFiniteNumber(counts.voiceBibleRules) ?? 0,
@@ -762,6 +769,7 @@ function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingB
       activePayoffIds: cleanStringArray(ids.activePayoffIds),
       authoringBibleRuleIds: cleanStringArray(ids.authoringBibleRuleIds),
       storyBibleRuleIds: cleanStringArray(ids.storyBibleRuleIds),
+      worldAuthoringBibleRuleIds: cleanStringArray(ids.worldAuthoringBibleRuleIds),
       characterBibleRuleIds: cleanStringArray(ids.characterBibleRuleIds),
       relationshipBibleRuleIds: cleanStringArray(ids.relationshipBibleRuleIds),
       voiceBibleRuleIds: cleanStringArray(ids.voiceBibleRuleIds),
