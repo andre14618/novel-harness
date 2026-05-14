@@ -3,6 +3,7 @@ import { renderCharacterContextCapsules } from "./character-context"
 import type { WriterPromptIdRendering } from "./context-mode"
 import { collectCanonSourceRefIds, collectStoryRefIds, countCanonSourceRefs, countStoryRefs } from "./context-trace-counts"
 import { summarizeSceneContractShape } from "./scene-contract-shape"
+import { renderAuthoringBibleSlice, summarizeAuthoringBibleSlice } from "../../harness/authoring-bible"
 
 export type WriterDraftingBriefMode =
   | "off"
@@ -29,6 +30,11 @@ export interface WriterDraftingBriefTrace {
     factContinuityAnchors: boolean
     characterSnapshots: boolean
     characterContextCapsules: boolean
+    authoringBible: boolean
+    storyBible: boolean
+    characterBible: boolean
+    relationshipBible: boolean
+    voiceBible: boolean
     resolvedReferences: boolean
     readerInfoState: boolean
     setting: boolean
@@ -48,12 +54,22 @@ export interface WriterDraftingBriefTrace {
     sceneContractEndpointFields: number
     sceneContractBudgetFields: number
     choiceAlternatives: number
+    authoringBibleRules: number
+    storyBibleRules: number
+    characterBibleRules: number
+    relationshipBibleRules: number
+    voiceBibleRules: number
   }
   ids: {
     canonSourceRefs: string[]
     activeThreadIds: string[]
     activePromiseIds: string[]
     activePayoffIds: string[]
+    authoringBibleRuleIds: string[]
+    storyBibleRuleIds: string[]
+    characterBibleRuleIds: string[]
+    relationshipBibleRuleIds: string[]
+    voiceBibleRuleIds: string[]
   }
 }
 
@@ -106,6 +122,7 @@ export function renderWriterDraftingBrief(
   }
 
   if (ctx.sceneContract) sections.push(renderSceneContractBrief(ctx.sceneContract, opts.mode))
+  if (ctx.authoringBible) sections.push(renderAuthoringBibleSlice(ctx.authoringBible))
 
   const obligations = renderObligationsBrief(ctx.beatSpec.obligations, opts.idRendering)
   if (obligations) sections.push(`OBLIGATIONS:\n${obligations}`)
@@ -439,6 +456,7 @@ function summarizeWriterDraftingBrief(args: {
   const selectedPromptChars = args.selectedPrompt.length
   const fullContextPromptChars = args.fullContextPrompt.length
   const sceneContractShape = args.ctx.sceneContract ? summarizeSceneContractShape(args.ctx.sceneContract) : null
+  const authoringBibleTrace = args.ctx.authoringBible ? summarizeAuthoringBibleSlice(args.ctx.authoringBible) : null
   const storyRefs = countStoryRefs(args.ctx)
   const canonSourceRefIds = collectCanonSourceRefIds(args.ctx)
   const storyRefIds = collectStoryRefIds(args.ctx)
@@ -462,6 +480,11 @@ function summarizeWriterDraftingBrief(args: {
           Boolean(args.ctx.landingTarget)),
       characterSnapshots: args.ctx.characterSnapshots.length > 0,
       characterContextCapsules: Boolean(args.ctx.characterContextCapsules),
+      authoringBible: Boolean(authoringBibleTrace),
+      storyBible: (authoringBibleTrace?.counts.storyRules ?? 0) > 0,
+      characterBible: (authoringBibleTrace?.counts.characterRules ?? 0) > 0,
+      relationshipBible: (authoringBibleTrace?.counts.relationshipRules ?? 0) > 0,
+      voiceBible: (authoringBibleTrace?.counts.voiceRules ?? 0) > 0,
       resolvedReferences: Boolean(args.ctx.resolvedReferencesText),
       readerInfoState: Boolean(args.ctx.readerInfoState),
       setting: Boolean(args.ctx.setting),
@@ -481,12 +504,22 @@ function summarizeWriterDraftingBrief(args: {
       sceneContractEndpointFields: sceneContractShape?.endpointFields ?? 0,
       sceneContractBudgetFields: sceneContractShape?.budgetFields ?? 0,
       choiceAlternatives: sceneContractShape?.choiceAlternatives ?? 0,
+      authoringBibleRules: authoringBibleTrace?.counts.rules ?? 0,
+      storyBibleRules: authoringBibleTrace?.counts.storyRules ?? 0,
+      characterBibleRules: authoringBibleTrace?.counts.characterRules ?? 0,
+      relationshipBibleRules: authoringBibleTrace?.counts.relationshipRules ?? 0,
+      voiceBibleRules: authoringBibleTrace?.counts.voiceRules ?? 0,
     },
     ids: {
       canonSourceRefs: canonSourceRefIds,
       activeThreadIds: storyRefIds.threadIds,
       activePromiseIds: storyRefIds.promiseIds,
       activePayoffIds: storyRefIds.payoffIds,
+      authoringBibleRuleIds: authoringBibleTrace?.ruleIds ?? [],
+      storyBibleRuleIds: authoringBibleTrace?.storyRuleIds ?? [],
+      characterBibleRuleIds: authoringBibleTrace?.characterRuleIds ?? [],
+      relationshipBibleRuleIds: authoringBibleTrace?.relationshipRuleIds ?? [],
+      voiceBibleRuleIds: authoringBibleTrace?.voiceRuleIds ?? [],
     },
   }
 }

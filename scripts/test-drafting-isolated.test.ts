@@ -44,9 +44,9 @@ describe("test-drafting-isolated parseArgs", () => {
     const args = parseArgs([
       "--source", "n",
       "--target-prefix", "ab",
-      "--writer-arms", "production-path,baseline,id-suppress,contract-render-only,scene-call-no-expansion,drafting-brief-v1,drafting-brief-tight-v1,drafting-brief-scene-turn-v1,drafting-brief-anchored-v1,drafting-brief-tight-anchored-v1,scene-call-v1",
+      "--writer-arms", "production-path,baseline,id-suppress,contract-render-only,scene-call-no-expansion,drafting-brief-v1,drafting-brief-tight-v1,drafting-brief-scene-turn-v1,drafting-brief-anchored-v1,drafting-brief-tight-anchored-v1,drafting-brief-authoring-bible-v1,scene-call-v1",
     ])
-    expect(args.arms).toEqual(["production-path", "baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "drafting-brief-v1", "drafting-brief-tight-v1", "drafting-brief-scene-turn-v1", "drafting-brief-anchored-v1", "drafting-brief-tight-anchored-v1", "scene-call-v1"])
+    expect(args.arms).toEqual(["production-path", "baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "drafting-brief-v1", "drafting-brief-tight-v1", "drafting-brief-scene-turn-v1", "drafting-brief-anchored-v1", "drafting-brief-tight-anchored-v1", "drafting-brief-authoring-bible-v1", "scene-call-v1"])
   })
 
   test("rejects unknown arm names", () => {
@@ -598,6 +598,7 @@ describe("flagsForArm", () => {
       forceRenderSceneContractWhenAvailable: true,
       writerPromptIdRendering: "raw",
       writerDraftingBriefMode: "off",
+      authoringBibleMode: "off",
     })
   })
 
@@ -610,6 +611,7 @@ describe("flagsForArm", () => {
     expect(flags.writerExpansionMode).toBe("off")
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(true)
     expect(flags.writerDraftingBriefMode).toBe("off")
+    expect(flags.authoringBibleMode).toBe("off")
   })
 
   test("contract-render-only arm remains an explicit production-contract alias", () => {
@@ -619,6 +621,7 @@ describe("flagsForArm", () => {
     expect(flags.writerExpansionMode).toBe("off")
     expect(flags.writerPromptIdRendering).toBe("raw")
     expect(flags.writerDraftingBriefMode).toBe("off")
+    expect(flags.authoringBibleMode).toBe("off")
   })
 
   test("scene-call-v1 arm enables scene-call writer + expansion-retry; ID rendering stays raw", () => {
@@ -627,6 +630,7 @@ describe("flagsForArm", () => {
     expect(flags.writerExpansionMode).toBe("retry-short-scenes-v1")
     expect(flags.writerPromptIdRendering).toBe("raw")
     expect(flags.writerDraftingBriefMode).toBe("off")
+    expect(flags.authoringBibleMode).toBe("off")
   })
 
   test("scene-call-no-expansion isolates scene-call from expansion retry", () => {
@@ -636,6 +640,7 @@ describe("flagsForArm", () => {
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
     expect(flags.writerPromptIdRendering).toBe("raw")
     expect(flags.writerDraftingBriefMode).toBe("off")
+    expect(flags.authoringBibleMode).toBe("off")
   })
 
   test("drafting-brief-v1 flips only the production drafting brief mode", () => {
@@ -645,6 +650,7 @@ describe("flagsForArm", () => {
     expect(flags.writerExpansionMode).toBe("off")
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
     expect(flags.writerPromptIdRendering).toBe("raw")
+    expect(flags.authoringBibleMode).toBe("off")
   })
 
   test("drafting-brief-tight-v1 flips only the production drafting brief mode", () => {
@@ -654,6 +660,7 @@ describe("flagsForArm", () => {
     expect(flags.writerExpansionMode).toBe("off")
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
     expect(flags.writerPromptIdRendering).toBe("raw")
+    expect(flags.authoringBibleMode).toBe("off")
   })
 
   test("drafting-brief-scene-turn-v1 flips only the production drafting brief mode", () => {
@@ -663,6 +670,7 @@ describe("flagsForArm", () => {
     expect(flags.writerExpansionMode).toBe("off")
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
     expect(flags.writerPromptIdRendering).toBe("raw")
+    expect(flags.authoringBibleMode).toBe("off")
   })
 
   test("drafting-brief-anchored-v1 flips only the production drafting brief mode", () => {
@@ -672,6 +680,7 @@ describe("flagsForArm", () => {
     expect(flags.writerExpansionMode).toBe("off")
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
     expect(flags.writerPromptIdRendering).toBe("raw")
+    expect(flags.authoringBibleMode).toBe("off")
   })
 
   test("drafting-brief-tight-anchored-v1 flips only the production drafting brief mode", () => {
@@ -681,10 +690,21 @@ describe("flagsForArm", () => {
     expect(flags.writerExpansionMode).toBe("off")
     expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
     expect(flags.writerPromptIdRendering).toBe("raw")
+    expect(flags.authoringBibleMode).toBe("off")
+  })
+
+  test("drafting-brief-authoring-bible-v1 enables bible slices without scene-call architecture", () => {
+    const flags = flagsForArm("drafting-brief-authoring-bible-v1")
+    expect(flags.writerDraftingBriefMode).toBe("scene-budget-tight-anchored-v1")
+    expect(flags.authoringBibleMode).toBe("v1")
+    expect(flags.sceneCallWriterV1).toBe(false)
+    expect(flags.writerExpansionMode).toBe("off")
+    expect(flags.forceRenderSceneContractWhenAvailable).toBe(false)
+    expect(flags.writerPromptIdRendering).toBe("raw")
   })
 
   test("WRITER_ARM_NAMES enumerates the supported arms in declaration order", () => {
-    expect(WRITER_ARM_NAMES).toEqual(["production-path", "baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "drafting-brief-v1", "drafting-brief-tight-v1", "drafting-brief-scene-turn-v1", "drafting-brief-anchored-v1", "drafting-brief-tight-anchored-v1", "scene-call-v1"])
+    expect(WRITER_ARM_NAMES).toEqual(["production-path", "baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "drafting-brief-v1", "drafting-brief-tight-v1", "drafting-brief-scene-turn-v1", "drafting-brief-anchored-v1", "drafting-brief-tight-anchored-v1", "drafting-brief-authoring-bible-v1", "scene-call-v1"])
   })
 })
 

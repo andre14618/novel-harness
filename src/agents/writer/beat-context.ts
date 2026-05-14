@@ -59,6 +59,13 @@ import {
 } from "./drafting-brief"
 import type { WriterContextMode, WriterPromptIdRendering } from "./context-mode"
 import type { BeatObligationsContract, ChapterOutline, CharacterProfile, Fact, SceneBeat } from "../../types"
+import type { StorySpine } from "../../types"
+import {
+  buildAuthoringBiblePacket,
+  selectAuthoringBibleSlice,
+  type AuthoringBibleMode,
+  type AuthoringBibleSlice,
+} from "../../harness/authoring-bible"
 
 // ── exampleLines conditioning presets ────────────────────────────────────
 // Implementation lives in `./example-line-subset.ts`; re-exported here so
@@ -93,6 +100,8 @@ export interface BeatContextInput {
   /** Seed genre string — used to resolve the writer pack's conditioning mode
    *  for exampleLines subset selection. When omitted, falls back to "fixed". */
   genre?: string
+  /** Optional story spine used by the authoring-bible compiler. */
+  storySpine?: StorySpine | null
   /** L38-A: facts established in chapters 1..chapterNumber-1, surfaced as
    *  the READER-INFO STATE section so the writer sees what the reader
    *  already knows before drafting chapter N. Caller is expected to pass
@@ -125,6 +134,10 @@ export interface BeatContextInput {
    *  rendered from the same BeatContext slots. Default "off" preserves the
    *  full existing prompt shape. */
   writerDraftingBriefMode?: WriterDraftingBriefMode
+  /** Default-off authoring-bible context. When v1, the same production
+   *  slots render compact story/character/relationship/voice rules with
+   *  stable rule IDs for advisory post-draft review. */
+  authoringBibleMode?: AuthoringBibleMode
 }
 
 export interface BeatContextResult {
@@ -234,6 +247,9 @@ export interface BeatContext {
    *  don't have to thread the slot through; absence is rendered the same
    *  as null (no SCENE CONTRACT section). */
   sceneContract?: SceneContractBlock | null
+  /** Compact story/character/relationship/voice rule slice. Default absent
+   *  unless authoringBibleMode=v1, preserving legacy prompt shape. */
+  authoringBible?: AuthoringBibleSlice | null
 }
 
 export interface WriterReferenceResolutionTrace {
@@ -397,6 +413,19 @@ export async function buildSceneContextSlots(input: BeatContextInput): Promise<B
   const sceneContract = renderSceneContractFlagOn
     ? buildSceneContractBlock(beat)
     : null
+  const authoringBible = input.authoringBibleMode === "v1"
+    ? selectAuthoringBibleSlice({
+        packet: buildAuthoringBiblePacket({
+          genre: input.genre,
+          worldBible,
+          storySpine: input.storySpine,
+          characters,
+        }),
+        outline,
+        scene: beat,
+        sceneIndex: beatIndex,
+      })
+    : null
 
   return {
     beatSpec,
@@ -409,6 +438,7 @@ export async function buildSceneContextSlots(input: BeatContextInput): Promise<B
     characterContextCapsules,
     setting,
     sceneContract,
+    authoringBible,
   }
 }
 

@@ -1,4 +1,5 @@
 import type { FactRoleContextPolicy } from "../harness/fact-roles"
+import type { AuthoringBibleMode } from "../harness/authoring-bible"
 import type { WriterDraftingBriefMode } from "../agents/writer/drafting-brief"
 import {
   DEFAULT_WRITER_CONTEXT_MODE,
@@ -87,6 +88,14 @@ export const pipeline = {
   // full existing writer prompt. Override per novel to a default-off
   // writer-brief mode to test production brief paths with telemetry.
   writerDraftingBriefMode: "off" as WriterDraftingBriefMode,
+
+  // Default-off production context/eval lever. When set per novel to "v1",
+  // drafting compiles compact story/character/relationship/voice authoring
+  // bible rules from existing world/story/character surfaces, renders a
+  // scene-specific slice into writer context, and records rule IDs in
+  // writer-context telemetry. Advisory review uses binary gates, not model
+  // confidence scores.
+  authoringBibleMode: "off" as AuthoringBibleMode,
 
   // Diagnostic/A-B planning shape lever. Default null leaves planner behavior
   // unchanged. Per-novel overrides cap generated planning scene entries before
@@ -281,4 +290,10 @@ export function resolveWriterDraftingBriefMode(
   overrides: { writerDraftingBriefMode?: WriterDraftingBriefMode } | undefined,
 ): WriterDraftingBriefMode {
   return overrides?.writerDraftingBriefMode ?? pipeline.writerDraftingBriefMode
+}
+
+export function resolveAuthoringBibleMode(
+  overrides: { authoringBibleMode?: AuthoringBibleMode } | undefined,
+): AuthoringBibleMode {
+  return overrides?.authoringBibleMode ?? pipeline.authoringBibleMode
 }

@@ -49,6 +49,7 @@ function baseCtx(overrides: Partial<BeatContext> = {}): BeatContext {
     readerInfoState: null,
     setting: null,
     sceneContract: null,
+    authoringBible: null,
     ...overrides,
   }
 }

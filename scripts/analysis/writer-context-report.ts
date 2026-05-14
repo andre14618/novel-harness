@@ -32,6 +32,11 @@ export interface WriterContextEventSummary {
     characterProfiles: boolean
     characterSnapshots: boolean
     characterContextCapsules: boolean
+    authoringBible: boolean
+    storyBible: boolean
+    characterBible: boolean
+    relationshipBible: boolean
+    voiceBible: boolean
     sceneContract: boolean
     sceneEndpointLandingGuidance: boolean
     canonFacts: boolean
@@ -61,6 +66,11 @@ export interface WriterContextEventSummary {
       factContinuityAnchors: boolean
       characterSnapshots: boolean
       characterContextCapsules: boolean
+      authoringBible: boolean
+      storyBible: boolean
+      characterBible: boolean
+      relationshipBible: boolean
+      voiceBible: boolean
       resolvedReferences: boolean
       readerInfoState: boolean
       setting: boolean
@@ -80,12 +90,22 @@ export interface WriterContextEventSummary {
       sceneContractEndpointFields: number
       sceneContractBudgetFields: number
       choiceAlternatives: number
+      authoringBibleRules: number
+      storyBibleRules: number
+      characterBibleRules: number
+      relationshipBibleRules: number
+      voiceBibleRules: number
     }
     ids: {
       canonSourceRefs: string[]
       activeThreadIds: string[]
       activePromiseIds: string[]
       activePayoffIds: string[]
+      authoringBibleRuleIds: string[]
+      storyBibleRuleIds: string[]
+      characterBibleRuleIds: string[]
+      relationshipBibleRuleIds: string[]
+      voiceBibleRuleIds: string[]
     }
   } | null
   sceneContractFields: number
@@ -93,6 +113,8 @@ export interface WriterContextEventSummary {
   sceneContractDramaticFields: number
   sceneContractEndpointFields: number
   sceneContractBudgetFields: number
+  authoringBibleRules: number
+  authoringBibleRuleIdValues: string[]
   canonSourceRefs: number
   canonSourceRefValues: string[]
   storyRefIds: number
@@ -118,6 +140,9 @@ export interface WriterContextTelemetryReport {
     withCharacterProfiles: number
     withCharacterSnapshots: number
     withCharacterContextCapsules: number
+    withAuthoringBible: number
+    authoringBibleRules: number
+    authoringBibleRuleCounts: Record<string, number>
     withSceneContract: number
     withSceneEndpointLandingGuidance: number
     withSceneContractShapeCounts: number
@@ -216,6 +241,9 @@ export function buildWriterContextTelemetryReport(
       withCharacterProfiles: events.filter(event => event.surfaces.characterProfiles).length,
       withCharacterSnapshots: events.filter(event => event.surfaces.characterSnapshots).length,
       withCharacterContextCapsules: events.filter(event => event.surfaces.characterContextCapsules).length,
+      withAuthoringBible: events.filter(event => event.surfaces.authoringBible).length,
+      authoringBibleRules: events.reduce((sum, event) => sum + event.authoringBibleRules, 0),
+      authoringBibleRuleCounts: countBy(events.flatMap(event => event.authoringBibleRuleIdValues), id => id),
       withSceneContract: events.filter(event => event.surfaces.sceneContract).length,
       withSceneEndpointLandingGuidance: events.filter(event => event.surfaces.sceneEndpointLandingGuidance).length,
       withSceneContractShapeCounts: events.filter(event =>
@@ -279,6 +307,8 @@ export function renderWriterContextTelemetryReport(report: WriterContextTelemetr
   lines.push(
     `Context surfaces: character=${formatCoverage(report.totals.withCharacterContext, report.totals.events)} ` +
       `(profiles=${report.totals.withCharacterProfiles}, snapshots=${report.totals.withCharacterSnapshots}, capsules=${report.totals.withCharacterContextCapsules}), ` +
+      `authoringBible=${formatCoverage(report.totals.withAuthoringBible, report.totals.events)} ` +
+      `(rules=${report.totals.authoringBibleRules}${recordSuffix(report.totals.authoringBibleRuleCounts)}), ` +
       `sceneContract=${formatCoverage(report.totals.withSceneContract, report.totals.events)} ` +
       `(shapeCounts=${report.totals.withSceneContractShapeCounts}, dramatic=${report.totals.withDramaticSceneContract}, ` +
       `endpointGuidance=${report.totals.withSceneEndpointLandingGuidance}, anchorOnly=${report.totals.withAnchorOnlySceneContract}, anchors=${report.totals.withSceneContractAnchors}), ` +
@@ -339,6 +369,7 @@ export function renderWriterContextTelemetryReport(report: WriterContextTelemetr
   for (const event of report.events) {
     const surfaces = [
       event.surfaces.character ? "char" : null,
+      event.surfaces.authoringBible ? "bible" : null,
       event.surfaces.sceneContract ? "scene" : null,
       event.surfaces.sceneEndpointLandingGuidance ? "endpointGuidance" : null,
       event.surfaces.canonFacts ? "canon" : null,
@@ -392,6 +423,18 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
     || hasCharacterSnapshots
     || hasCharacterContextCapsules
     || positiveNumber(draftingBrief?.counts.characters)
+  const authoringBibleRuleIdValues = uniqueStrings([
+    ...cleanStringArray(contextSurfaceIds.authoringBibleRuleIds),
+    ...(draftingBrief?.ids.authoringBibleRuleIds ?? []),
+  ])
+  const authoringBibleRules = maxNumber(
+    readFiniteNumber(counts.authoringBibleRules),
+    draftingBrief?.counts.authoringBibleRules,
+    authoringBibleRuleIdValues.length,
+  )
+  const hasAuthoringBible = readBoolean(surfaces.authoringBible)
+    || Boolean(draftingBrief?.sections.authoringBible)
+    || authoringBibleRules > 0
   const targetWords = readFiniteNumber(payload.targetWords)
   const hasObligations = positiveNumber(counts.obligations)
     || Boolean(draftingBrief?.sections.obligations)
@@ -495,6 +538,11 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
       characterProfiles: hasCharacterProfiles,
       characterSnapshots: hasCharacterSnapshots,
       characterContextCapsules: hasCharacterContextCapsules,
+      authoringBible: hasAuthoringBible,
+      storyBible: readBoolean(surfaces.storyBible) || Boolean(draftingBrief?.sections.storyBible),
+      characterBible: readBoolean(surfaces.characterBible) || Boolean(draftingBrief?.sections.characterBible),
+      relationshipBible: readBoolean(surfaces.relationshipBible) || Boolean(draftingBrief?.sections.relationshipBible),
+      voiceBible: readBoolean(surfaces.voiceBible) || Boolean(draftingBrief?.sections.voiceBible),
       sceneContract: hasSceneContract,
       sceneEndpointLandingGuidance: hasSceneEndpointLandingGuidance,
       canonFacts: hasCanonFacts,
@@ -516,6 +564,8 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
     sceneContractDramaticFields,
     sceneContractEndpointFields,
     sceneContractBudgetFields,
+    authoringBibleRules,
+    authoringBibleRuleIdValues,
     canonSourceRefs,
     canonSourceRefValues,
     storyRefIds,
@@ -675,6 +725,11 @@ function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingB
       factContinuityAnchors: readBoolean(sections.factContinuityAnchors),
       characterSnapshots: readBoolean(sections.characterSnapshots),
       characterContextCapsules: readBoolean(sections.characterContextCapsules),
+      authoringBible: readBoolean(sections.authoringBible),
+      storyBible: readBoolean(sections.storyBible),
+      characterBible: readBoolean(sections.characterBible),
+      relationshipBible: readBoolean(sections.relationshipBible),
+      voiceBible: readBoolean(sections.voiceBible),
       resolvedReferences: readBoolean(sections.resolvedReferences),
       readerInfoState: readBoolean(sections.readerInfoState),
       setting: readBoolean(sections.setting),
@@ -694,12 +749,22 @@ function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingB
       sceneContractEndpointFields: readFiniteNumber(counts.sceneContractEndpointFields) ?? 0,
       sceneContractBudgetFields: readFiniteNumber(counts.sceneContractBudgetFields) ?? 0,
       choiceAlternatives: readFiniteNumber(counts.choiceAlternatives) ?? 0,
+      authoringBibleRules: readFiniteNumber(counts.authoringBibleRules) ?? 0,
+      storyBibleRules: readFiniteNumber(counts.storyBibleRules) ?? 0,
+      characterBibleRules: readFiniteNumber(counts.characterBibleRules) ?? 0,
+      relationshipBibleRules: readFiniteNumber(counts.relationshipBibleRules) ?? 0,
+      voiceBibleRules: readFiniteNumber(counts.voiceBibleRules) ?? 0,
     },
     ids: {
       canonSourceRefs: cleanStringArray(ids.canonSourceRefs),
       activeThreadIds: cleanStringArray(ids.activeThreadIds),
       activePromiseIds: cleanStringArray(ids.activePromiseIds),
       activePayoffIds: cleanStringArray(ids.activePayoffIds),
+      authoringBibleRuleIds: cleanStringArray(ids.authoringBibleRuleIds),
+      storyBibleRuleIds: cleanStringArray(ids.storyBibleRuleIds),
+      characterBibleRuleIds: cleanStringArray(ids.characterBibleRuleIds),
+      relationshipBibleRuleIds: cleanStringArray(ids.relationshipBibleRuleIds),
+      voiceBibleRuleIds: cleanStringArray(ids.voiceBibleRuleIds),
     },
   }
 }
@@ -788,6 +853,7 @@ function formatRecordOrNone(record: Record<string, number>): string {
 
 function formatEventTraceIds(event: WriterContextEventSummary): string {
   const parts = [
+    event.authoringBibleRuleIdValues.length > 0 ? `bible:${event.authoringBibleRuleIdValues.join(",")}` : null,
     event.canonSourceRefValues.length > 0 ? `canon:${event.canonSourceRefValues.join(",")}` : null,
     event.activeThreadIdValues.length > 0 ? `threads:${event.activeThreadIdValues.join(",")}` : null,
     event.activePromiseIdValues.length > 0 ? `promises:${event.activePromiseIdValues.join(",")}` : null,

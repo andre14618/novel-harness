@@ -47,6 +47,9 @@
  *                        anchors for advisory evidence loops.
  *   drafting-brief-tight-anchored-v1 — tight load control plus scene-turn
  *                        floor and fact/continuity anchors.
+ *   drafting-brief-authoring-bible-v1 — tight anchored brief plus
+ *                        authoring-bible story/character/relationship/voice
+ *                        rule slices and rule-ID telemetry.
  *   scene-call-v1      — L097 Slice 2: scene-call writer + retry-short-
  *                        scenes-v1 expansion path. The full B3 Arm C.
  *
@@ -238,6 +241,7 @@ export const WRITER_ARM_NAMES = [
   "drafting-brief-scene-turn-v1",
   "drafting-brief-anchored-v1",
   "drafting-brief-tight-anchored-v1",
+  "drafting-brief-authoring-bible-v1",
   "scene-call-v1",
 ] as const
 
@@ -585,6 +589,7 @@ type ArmFlags =
     forceRenderSceneContractWhenAvailable: boolean
     writerPromptIdRendering: "raw" | "suppress"
     writerDraftingBriefMode: "off" | "scene-budget-v1" | "scene-budget-tight-v1" | "scene-turn-v1" | "scene-turn-anchored-v1" | "scene-budget-tight-anchored-v1"
+    authoringBibleMode: "off" | "v1"
   }
 
 export function flagsForArm(arm: ArmName): ArmFlags {
@@ -598,6 +603,7 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         forceRenderSceneContractWhenAvailable: true,
         writerPromptIdRendering: "raw",
         writerDraftingBriefMode: "off",
+        authoringBibleMode: "off",
       }
     case "id-suppress":
       // adjusted-B1 ablation: same writer + plan path as baseline; only the
@@ -608,6 +614,7 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         forceRenderSceneContractWhenAvailable: true,
         writerPromptIdRendering: "suppress",
         writerDraftingBriefMode: "off",
+        authoringBibleMode: "off",
       }
     case "contract-render-only":
       // Historical adjusted-B3 Arm B. Kept for scripts that still name it;
@@ -619,6 +626,7 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         forceRenderSceneContractWhenAvailable: true,
         writerPromptIdRendering: "raw",
         writerDraftingBriefMode: "off",
+        authoringBibleMode: "off",
       }
     case "scene-call-no-expansion":
       // Scene-call writer with expansion disabled. This isolates the
@@ -630,6 +638,7 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         forceRenderSceneContractWhenAvailable: false, // implied by sceneCallWriterV1=true
         writerPromptIdRendering: "raw",
         writerDraftingBriefMode: "off",
+        authoringBibleMode: "off",
       }
     case "drafting-brief-v1":
       // L106 production-path integration: render a compact writer-facing
@@ -641,6 +650,7 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         forceRenderSceneContractWhenAvailable: false,
         writerPromptIdRendering: "raw",
         writerDraftingBriefMode: "scene-budget-v1",
+        authoringBibleMode: "off",
       }
     case "drafting-brief-tight-v1":
       // Follow-on evidence arm: keep the compact production brief path and
@@ -652,6 +662,7 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         forceRenderSceneContractWhenAvailable: false,
         writerPromptIdRendering: "raw",
         writerDraftingBriefMode: "scene-budget-tight-v1",
+        authoringBibleMode: "off",
       }
     case "drafting-brief-scene-turn-v1":
       // Follow-on evidence arm: keep the compact brief path but add an
@@ -663,6 +674,7 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         forceRenderSceneContractWhenAvailable: false,
         writerPromptIdRendering: "raw",
         writerDraftingBriefMode: "scene-turn-v1",
+        authoringBibleMode: "off",
       }
     case "drafting-brief-anchored-v1":
       // Follow-on evidence arm: preserve scene-turn floor and add
@@ -673,6 +685,7 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         forceRenderSceneContractWhenAvailable: false,
         writerPromptIdRendering: "raw",
         writerDraftingBriefMode: "scene-turn-anchored-v1",
+        authoringBibleMode: "off",
       }
     case "drafting-brief-tight-anchored-v1":
       // Follow-on evidence arm: preserve tight load control while adding
@@ -683,6 +696,16 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         forceRenderSceneContractWhenAvailable: false,
         writerPromptIdRendering: "raw",
         writerDraftingBriefMode: "scene-budget-tight-anchored-v1",
+        authoringBibleMode: "off",
+      }
+    case "drafting-brief-authoring-bible-v1":
+      return {
+        sceneCallWriterV1: false,
+        writerExpansionMode: "off",
+        forceRenderSceneContractWhenAvailable: false,
+        writerPromptIdRendering: "raw",
+        writerDraftingBriefMode: "scene-budget-tight-anchored-v1",
+        authoringBibleMode: "v1",
       }
     case "scene-call-v1":
       // L097 Slice 2: scene-call writer + expansion-retry. The full B3 Arm C.
@@ -692,6 +715,7 @@ export function flagsForArm(arm: ArmName): ArmFlags {
         forceRenderSceneContractWhenAvailable: false, // implied by sceneCallWriterV1=true
         writerPromptIdRendering: "raw",
         writerDraftingBriefMode: "off",
+        authoringBibleMode: "off",
       }
   }
 }
@@ -721,39 +745,18 @@ async function setWriterFlags(novelId: string, arm: ArmName, opts: { writerOnly:
   await db`
     UPDATE novels
     SET seed_json = jsonb_set(
-          jsonb_set(
-            jsonb_set(
-              jsonb_set(
-                jsonb_set(
-                  jsonb_set(
-                    jsonb_set(
-                      COALESCE(seed_json, '{}'::jsonb),
-                      '{pipelineOverrides}',
-                      COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
-                      true
-                    ),
-                    '{pipelineOverrides,sceneCallWriterV1}',
-                    to_jsonb(${flags.sceneCallWriterV1}::boolean),
-                    true
-                  ),
-                  '{pipelineOverrides,writerExpansionMode}',
-                  to_jsonb(${flags.writerExpansionMode}::text),
-                  true
-                ),
-                '{pipelineOverrides,forceRenderSceneContractWhenAvailable}',
-                to_jsonb(${flags.forceRenderSceneContractWhenAvailable}::boolean),
-                true
-              ),
-              '{pipelineOverrides,writerPromptIdRendering}',
-              to_jsonb(${flags.writerPromptIdRendering}::text),
-              true
+          COALESCE(seed_json, '{}'::jsonb),
+          '{pipelineOverrides}',
+          COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb) ||
+            jsonb_build_object(
+              'sceneCallWriterV1', ${flags.sceneCallWriterV1}::boolean,
+              'writerExpansionMode', ${flags.writerExpansionMode}::text,
+              'forceRenderSceneContractWhenAvailable', ${flags.forceRenderSceneContractWhenAvailable}::boolean,
+              'writerPromptIdRendering', ${flags.writerPromptIdRendering}::text,
+              'writerDraftingBriefMode', ${flags.writerDraftingBriefMode}::text,
+              'authoringBibleMode', ${flags.authoringBibleMode}::text,
+              'draftCaptureModeV1', ${draftCaptureModeV1}::boolean
             ),
-            '{pipelineOverrides,writerDraftingBriefMode}',
-            to_jsonb(${flags.writerDraftingBriefMode}::text),
-            true
-          ),
-          '{pipelineOverrides,draftCaptureModeV1}',
-          to_jsonb(${draftCaptureModeV1}::boolean),
           true
         ),
         updated_at = now()
@@ -1081,7 +1084,7 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
   if (flags.preserveSourcePipelineOverrides) {
     console.log(`  preserving source writer flags; setting draftCaptureModeV1=${opts.writerOnly}`)
   } else {
-    console.log(`  setting writer flags: sceneCallWriterV1=${flags.sceneCallWriterV1}, writerExpansionMode=${flags.writerExpansionMode}, forceRenderSceneContractWhenAvailable=${flags.forceRenderSceneContractWhenAvailable}, writerPromptIdRendering=${flags.writerPromptIdRendering}, writerDraftingBriefMode=${flags.writerDraftingBriefMode}, draftCaptureModeV1=${opts.writerOnly}`)
+    console.log(`  setting writer flags: sceneCallWriterV1=${flags.sceneCallWriterV1}, writerExpansionMode=${flags.writerExpansionMode}, forceRenderSceneContractWhenAvailable=${flags.forceRenderSceneContractWhenAvailable}, writerPromptIdRendering=${flags.writerPromptIdRendering}, writerDraftingBriefMode=${flags.writerDraftingBriefMode}, authoringBibleMode=${flags.authoringBibleMode}, draftCaptureModeV1=${opts.writerOnly}`)
   }
   await setWriterFlags(novelId, arm, { writerOnly: opts.writerOnly })
 

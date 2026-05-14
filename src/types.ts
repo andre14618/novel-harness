@@ -112,6 +112,13 @@ export interface SeedInput {
      * "off" preserves the full existing writer prompt.
      */
     writerDraftingBriefMode?: import("./agents/writer/drafting-brief").WriterDraftingBriefMode
+    /**
+     * Default-off authoring-bible context/eval lever. "v1" renders compact
+     * story/character/relationship/voice rule slices with stable rule IDs
+     * into writer context and telemetry; advisory checks derive verdicts from
+     * binary gates rather than numeric model confidence.
+     */
+    authoringBibleMode?: import("./harness/authoring-bible").AuthoringBibleMode
   }
 }
 

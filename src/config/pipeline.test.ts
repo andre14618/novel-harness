@@ -14,6 +14,7 @@ import {
   resolveSceneSatisfactionCheckerV1,
   resolveSceneEntityGroundingMode,
   resolveWriterDraftingBriefMode,
+  resolveAuthoringBibleMode,
 } from "./pipeline"
 
 describe("pipeline default flag values (production runtime)", () => {
@@ -23,6 +24,7 @@ describe("pipeline default flag values (production runtime)", () => {
     expect(pipeline.forceRenderSceneContractWhenAvailable).toBe(true)
     expect(pipeline.writerPromptIdRendering).toBe("raw")
     expect(pipeline.writerDraftingBriefMode).toBe("off")
+    expect(pipeline.authoringBibleMode).toBe("off")
     expect(pipeline.draftCaptureModeV1).toBe(false)
     expect(pipeline.lintAutoFixEnabled).toBe(false)
     expect(pipeline.scenePlanContractV1).toBe(false)
@@ -76,6 +78,12 @@ describe("override resolvers fall back to pipeline defaults when override absent
     expect(resolveWriterDraftingBriefMode({ writerDraftingBriefMode: "scene-turn-v1" })).toBe("scene-turn-v1")
     expect(resolveWriterDraftingBriefMode({ writerDraftingBriefMode: "scene-turn-anchored-v1" })).toBe("scene-turn-anchored-v1")
     expect(resolveWriterDraftingBriefMode({ writerDraftingBriefMode: "scene-budget-tight-anchored-v1" })).toBe("scene-budget-tight-anchored-v1")
+  })
+
+  test("resolveAuthoringBibleMode", () => {
+    expect(resolveAuthoringBibleMode(undefined)).toBe("off")
+    expect(resolveAuthoringBibleMode({})).toBe("off")
+    expect(resolveAuthoringBibleMode({ authoringBibleMode: "v1" })).toBe("v1")
   })
 
   test("resolveDraftCaptureModeV1", () => {

@@ -121,10 +121,10 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: use `semantic-exec-p123-tight-anchored-vs-tight` trace
-  clusters as the next production-path input. Favor a narrow main-path change
-  that improves endpoint landing or character materiality on the regressed rows,
-  with `--quality-telemetry-packet` evidence and no POC branch.
+- Next session start: run a bounded/full production-path comparison with
+  `drafting-brief-authoring-bible-v1`, then replay
+  `scripts/evals/authoring-bible-review.ts --live` to measure binary-gated
+  story/character/relationship/voice adherence. See L118.
 - Plotline start: use the wired Rillgate Book 1 contract packet; keep seeds story-owned and free of process/count instructions.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run

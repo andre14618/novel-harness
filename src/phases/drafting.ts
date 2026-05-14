@@ -55,6 +55,7 @@ import {
   resolveForceRenderSceneContractWhenAvailable,
   resolveDraftCaptureModeV1,
   resolveWriterDraftingBriefMode,
+  resolveAuthoringBibleMode,
   resolveSceneEntityGroundingMode,
 } from "../config/pipeline"
 import type { SeedInput } from "../types"
@@ -129,6 +130,7 @@ export function effectivePipeline(seed: SeedInput): typeof pipeline {
     writerContextMode: o.writerContextMode ?? pipeline.writerContextMode,
     writerPromptIdRendering: o.writerPromptIdRendering ?? pipeline.writerPromptIdRendering,
     writerDraftingBriefMode: o.writerDraftingBriefMode ?? pipeline.writerDraftingBriefMode,
+    authoringBibleMode: o.authoringBibleMode ?? pipeline.authoringBibleMode,
     sceneEntityGroundingMode:
       o.sceneEntityGroundingMode ?? pipeline.sceneEntityGroundingMode,
     draftCaptureModeV1: o.draftCaptureModeV1 ?? pipeline.draftCaptureModeV1,
@@ -257,6 +259,9 @@ export async function runDraftingPhase(
   }
   if (eff.writerDraftingBriefMode !== pipeline.writerDraftingBriefMode) {
     log(novelId, "info", `Drafting: pipelineOverrides applied — writerDraftingBriefMode=${eff.writerDraftingBriefMode}`)
+  }
+  if (eff.authoringBibleMode !== pipeline.authoringBibleMode) {
+    log(novelId, "info", `Drafting: pipelineOverrides applied — authoringBibleMode=${eff.authoringBibleMode}`)
   }
   if (eff.sceneEntityGroundingMode !== pipeline.sceneEntityGroundingMode) {
     log(novelId, "info", `Drafting: pipelineOverrides applied — sceneEntityGroundingMode=${eff.sceneEntityGroundingMode}`)
@@ -395,6 +400,7 @@ export async function runDraftingPhase(
       const forceRenderSceneContractWhenAvailable =
         resolveForceRenderSceneContractWhenAvailable(novel.seed.pipelineOverrides)
       const writerDraftingBriefMode = resolveWriterDraftingBriefMode(novel.seed.pipelineOverrides)
+      const authoringBibleMode = resolveAuthoringBibleMode(novel.seed.pipelineOverrides)
       const sceneEntityGroundingMode = resolveSceneEntityGroundingMode(novel.seed.pipelineOverrides)
 
       // 1-2. Context assembly + writer (scene-entry or chapter-level)
@@ -464,6 +470,7 @@ export async function runDraftingPhase(
               writerContextMode: eff.writerContextMode,
               writerPromptIdRendering: eff.writerPromptIdRendering,
               writerDraftingBriefMode,
+              authoringBibleMode,
               sceneCallWriterV1,
               forceRenderSceneContractWhenAvailable,
             })
@@ -979,6 +986,7 @@ export async function runDraftingPhase(
                 writerContextMode: eff.writerContextMode,
                 writerPromptIdRendering: eff.writerPromptIdRendering,
                 writerDraftingBriefMode,
+                authoringBibleMode,
                 sceneCallWriterV1,
                 forceRenderSceneContractWhenAvailable,
               })
@@ -1288,6 +1296,7 @@ export async function runDraftingPhase(
               writerContextMode: eff.writerContextMode,
               writerPromptIdRendering: eff.writerPromptIdRendering,
               writerDraftingBriefMode,
+              authoringBibleMode,
               sceneCallWriterV1,
               forceRenderSceneContractWhenAvailable,
             })
@@ -1923,6 +1932,7 @@ export async function runDraftingPhase(
                   writerContextMode: eff.writerContextMode,
                   writerPromptIdRendering: eff.writerPromptIdRendering,
                   writerDraftingBriefMode,
+                  authoringBibleMode,
                   sceneCallWriterV1,
                   forceRenderSceneContractWhenAvailable,
                 })

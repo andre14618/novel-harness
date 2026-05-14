@@ -26,6 +26,7 @@
 import type { BeatContext, BeatSpec, CharacterSnapshot, SceneContractBlock, SettingBlock } from "./beat-context"
 import { renderCharacterContextCapsules } from "./character-context"
 import type { WriterPromptIdRendering } from "./context-mode"
+import { renderAuthoringBibleSlice } from "../../harness/authoring-bible"
 
 export interface RenderBeatContextOptions {
   compact: boolean
@@ -46,6 +47,10 @@ export function renderBeatContext(ctx: BeatContext, opts: RenderBeatContextOptio
   // section is suppressed — preserves byte-parity for legacy outlines.
   if (ctx.sceneContract) {
     sections.push(renderSceneContract(ctx.sceneContract))
+  }
+
+  if (ctx.authoringBible) {
+    sections.push(renderAuthoringBibleSlice(ctx.authoringBible))
   }
 
   // ── 2. Transition bridge ──────────────────────────────────────────────
