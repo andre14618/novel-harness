@@ -486,7 +486,7 @@ const DEFAULT_SCENE_SEMANTIC_DIMENSIONS: Dimension[] = [
   "characterMateriality",
   "worldFactPressure",
 ]
-const DEFAULT_SCENE_SEMANTIC_MAX_TOKENS = 2200
+const DEFAULT_SCENE_SEMANTIC_MAX_TOKENS = 8000
 const QUALITY_TELEMETRY_SCENE_SEMANTIC_MAX_TOKENS = 8000
 
 function emptyDraftingBriefTelemetry(): DraftingBriefTelemetrySummary {

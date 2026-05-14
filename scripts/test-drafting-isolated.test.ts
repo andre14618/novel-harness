@@ -134,7 +134,7 @@ describe("test-drafting-isolated parseArgs", () => {
     expect(defaults.sceneSemanticLive).toBe(true)
     expect(defaults.sceneSemanticPersist).toBe(false)
     expect(defaults.sceneSemanticReadinessImport).toBe(true)
-    expect(defaults.sceneSemanticMaxTokens).toBe(2200)
+    expect(defaults.sceneSemanticMaxTokens).toBe(8000)
     expect(defaults.sceneSemanticDimensions).toEqual([
       "endpointLanding",
       "sceneDramaturgy",

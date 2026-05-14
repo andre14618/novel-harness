@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import {
   applicabilitySkipReason,
   buildSceneSemanticReplayTasks,
+  parseArgs,
 } from "./scene-semantic-review"
 import type { ChapterOutline } from "../../src/types"
 
@@ -35,6 +36,20 @@ function chapter(num: number, scenesData: Array<Record<string, unknown>>, opts: 
     sceneProseBySceneId: new Map(),
   }
 }
+
+describe("scene-semantic-review parseArgs", () => {
+  test("uses quality-packet token headroom by default", () => {
+    const args = parseArgs(["--novel-id", "novel-1"])
+
+    expect(args.maxTokens).toBe(8000)
+  })
+
+  test("allows explicit max-token override", () => {
+    const args = parseArgs(["--novel-id", "novel-1", "--max-tokens", "12000"])
+
+    expect(args.maxTokens).toBe(12000)
+  })
+})
 
 describe("scene-semantic-review applicability skip", () => {
   test("threadProgression skips when no threadId obligation declared", () => {

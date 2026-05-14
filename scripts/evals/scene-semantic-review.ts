@@ -30,6 +30,7 @@
  *     [--persist]                      # writes eval rows and imports readiness lows
  *     [--no-readiness-import]          # keep readiness as artifact-only when persisting
  *     [--concurrency 4]
+ *     [--max-tokens 8000]              # default: 8000, aligned with quality telemetry packet
  *     [--set-name <slug>]              # default: scene-semantic-review:YYYYMMDD
  *     [--output-dir <path>]
  */
@@ -151,7 +152,7 @@ const DEFAULT_DIMENSIONS: Dimension[] = [
   "worldFactPressure",
   "relationshipDelta",
 ]
-const DEFAULT_MAX_TOKENS = 2200
+export const DEFAULT_MAX_TOKENS = 8000
 
 export function applicabilitySkipReason(dimension: Dimension, counts: {
   worldFactCount: number
@@ -803,7 +804,7 @@ function parseChapterRange(value: string | null): number[] | null {
   return [...out].sort((a, b) => a - b)
 }
 
-function parseArgs(argv = process.argv.slice(2)): SceneSemanticReviewArgs {
+export function parseArgs(argv = process.argv.slice(2)): SceneSemanticReviewArgs {
   let novelId: string | null = null
   let chapters: string | null = null
   let outputDir: string | null = null

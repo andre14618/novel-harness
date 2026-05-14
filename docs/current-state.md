@@ -119,7 +119,7 @@ scenes, balanced load, `futureEventAnchors: 0`, no sequence-guard retry, and
 and planning-context core shape errors are 0. Post-L112 main-path draft
 `rillgate-mainpath-1778714560-baseline` completed 10/10 chapters with
 Plan-Assist 0, checker blockers 0, prose-semantic lows 0/40, and scene-semantic
-lows 5/166; next tuning targets are endpoint landing in a few mid-book scenes,
+lows 4/166 after high-cap replay; next tuning targets are endpoint landing in a few mid-book scenes,
 functional-state explicit-knowledge warning noise, and lint/integrity repair
 behavior. See L103-L112.
 
