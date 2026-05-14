@@ -610,6 +610,63 @@ describe("planning-context-readiness", () => {
     })
   })
 
+  test("turns duplicate endpoint fields into scene replacement readiness", () => {
+    const aggregate = buildPlanningContextReadinessAggregate({
+      report: report({
+        sceneContractShape: {
+          missingDramaticShape: [],
+          missingChoiceShape: [],
+          missingFullDramaticShape: [],
+          endpointHygiene: [{
+            label: "SCENE-ENDPOINT-DUPLICATE",
+            severity: "medium",
+            chapterNumber: 4,
+            chapterId: "ch-004",
+            sceneRef: "scene-duplicate-endpoint",
+            descriptionExcerpt: "Maren agrees to wait outside the archive.",
+            hasTemporalAnchor: false,
+            hasPlaceAnchor: false,
+            hasObligations: false,
+            hasChoiceShape: false,
+            hasEndpointShape: true,
+            hasFullDramaticShape: false,
+            characterCount: 1,
+            obligationIds: [],
+            characterIds: ["char-maren"],
+            sourceIds: [],
+            threadIds: [],
+            promiseIds: [],
+            payoffIds: [],
+            missingFields: ["consequence-duplicates-outcome"],
+          }],
+          anchorOnly: [],
+        },
+      }),
+      sourceReport: "context.json",
+      generatedAt: "2026-05-11T00:00:00.000Z",
+    })
+
+    const group = aggregate.groups.find(candidate => candidate.sceneId === "scene-duplicate-endpoint")
+    expect(group).toMatchObject({
+      unitType: "scene",
+      chapterId: "ch-004",
+      sceneId: "scene-duplicate-endpoint",
+      dimensions: ["sceneContract"],
+      fixIntents: ["complete_scene_endpoint"],
+      rewritePacket: {
+        proposalCandidate: {
+          action: "beat_replace",
+          target: { kind: "scene_plan", ref: "scene-duplicate-endpoint", fieldPath: "self" },
+        },
+      },
+    })
+    expect(group?.findings[0]).toMatchObject({
+      label: "SCENE-ENDPOINT-DUPLICATE",
+      fixIntent: "complete_scene_endpoint",
+      missingForNextLevel: expect.stringContaining("distinct downstream effect"),
+    })
+  })
+
   test("turns unresolved reference attempts into manual scene description readiness", () => {
     const contextReport = report()
     contextReport.referenceContextAttempts = [{

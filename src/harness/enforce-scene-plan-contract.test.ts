@@ -194,6 +194,18 @@ test("enforceScenePlanContract requires consequence to differ from outcome", () 
   expect(result.errors.some(e => e.includes("consequence must differ from outcome"))).toBe(true)
 })
 
+test("enforceScenePlanContract requires consequence to differ from turningPoint", () => {
+  const scene = {
+    ...FILLED_SCENE,
+    turningPoint: "Calla burns the script.",
+    consequence: "Calla burns the script.",
+  }
+  const result = enforceScenePlanContract(chapter([scene]))
+
+  expect(result.valid).toBe(false)
+  expect(result.errors.some(e => e.includes("consequence must differ from turningPoint"))).toBe(true)
+})
+
 test("enforceScenePlanContract requires materialityTest on every obligation when flagged", () => {
   const scene = {
     ...FILLED_SCENE,

@@ -149,6 +149,7 @@ export interface DramaticSceneContractGap {
     | "SCENE-TURN-ENDPOINT-MISSING"
     | "SOURCE-SCENE-TURN-SHAPE-MISSING"
     | "SOURCE-MATERIALITY-TEST-MISSING"
+    | "SCENE-ENDPOINT-DUPLICATE"
     | "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE"
     | "SCENE-CONTRACT-FULL-SHAPE-INCOMPLETE"
   severity: "medium" | "low"
@@ -177,6 +178,7 @@ export interface SceneContractShapeSummary {
   missingEndpointShape?: DramaticSceneContractGap[]
   missingTurnShape?: DramaticSceneContractGap[]
   missingMaterialityTest?: DramaticSceneContractGap[]
+  endpointHygiene?: DramaticSceneContractGap[]
   missingChoiceShape: DramaticSceneContractGap[]
   missingFullDramaticShape: DramaticSceneContractGap[]
   anchorOnly: DramaticSceneContractGap[]
@@ -458,18 +460,21 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
   const missingEndpointShape = sceneContractShape?.missingEndpointShape ?? []
   const missingTurnShape = sceneContractShape?.missingTurnShape ?? []
   const missingMaterialityTest = sceneContractShape?.missingMaterialityTest ?? []
+  const endpointHygiene = sceneContractShape?.endpointHygiene ?? []
   const missingChoiceShape = sceneContractShape?.missingChoiceShape ?? []
   const missingFullDramaticShape = sceneContractShape?.missingFullDramaticShape ?? []
   const anchorOnly = sceneContractShape?.anchorOnly ?? []
   lines.push(
     `Scene contract shape gaps: missingDramatic=${missingDramaticShape.length}, ` +
       `missingEndpoint=${missingEndpointShape.length}, missingTurn=${missingTurnShape.length}, ` +
-      `missingMateriality=${missingMaterialityTest.length}, missingChoice=${missingChoiceShape.length}, ` +
+      `missingMateriality=${missingMaterialityTest.length}, endpointHygiene=${endpointHygiene.length}, ` +
+      `missingChoice=${missingChoiceShape.length}, ` +
       `missingFull=${missingFullDramaticShape.length}, ` +
       `anchorOnly=${anchorOnly.length}`,
   )
   for (const gap of [
     ...missingEndpointShape,
+    ...endpointHygiene,
     ...missingTurnShape,
     ...missingMaterialityTest,
     ...missingDramaticShape,
@@ -1208,6 +1213,7 @@ function summarizeSceneContractShapeGaps(
   const missingEndpointShape: DramaticSceneContractGap[] = []
   const missingTurnShape: DramaticSceneContractGap[] = []
   const missingMaterialityTest: DramaticSceneContractGap[] = []
+  const endpointHygiene: DramaticSceneContractGap[] = []
   const missingChoiceShape: DramaticSceneContractGap[] = []
   const missingFullDramaticShape: DramaticSceneContractGap[] = []
   const anchorOnly: DramaticSceneContractGap[] = []
@@ -1262,6 +1268,19 @@ function summarizeSceneContractShapeGaps(
       }
     }
 
+    const endpointHygieneFields = endpointHygieneFieldsForScene(record)
+    if (shape.hasEndpointShape && endpointHygieneFields.length > 0) {
+      endpointHygiene.push(sceneContractGap({
+        row,
+        sceneReference,
+        record,
+        shape,
+        obligationItems,
+        label: "SCENE-ENDPOINT-DUPLICATE",
+        missingFields: endpointHygieneFields,
+      }))
+    }
+
     if (!shape.hasDramaticShape) {
       const gap = sceneContractGap({
         row,
@@ -1307,6 +1326,7 @@ function summarizeSceneContractShapeGaps(
     missingEndpointShape,
     missingTurnShape,
     missingMaterialityTest,
+    endpointHygiene,
     missingChoiceShape,
     missingFullDramaticShape,
     anchorOnly,
@@ -1318,6 +1338,32 @@ function missingEndpointFieldsForScene(scene: Record<string, unknown>): string[]
   if (!hasText(scene.outcome)) fields.push("outcome")
   if (!hasText(scene.consequence)) fields.push("consequence")
   return fields
+}
+
+function endpointHygieneFieldsForScene(scene: Record<string, unknown>): string[] {
+  const fields: string[] = []
+  const outcome = sceneTurnText(scene.outcome)
+  const consequence = sceneTurnText(scene.consequence)
+  const turningPoint = sceneTurnText(scene.turningPoint)
+  if (!outcome || !consequence) return fields
+  if (normalizedSceneTurn(outcome) === normalizedSceneTurn(consequence)) {
+    fields.push("consequence-duplicates-outcome")
+  }
+  if (turningPoint && normalizedSceneTurn(turningPoint) === normalizedSceneTurn(consequence)) {
+    fields.push("consequence-duplicates-turningPoint")
+  }
+  return unique(fields)
+}
+
+function sceneTurnText(value: unknown): string {
+  return typeof value === "string" ? value.trim() : ""
+}
+
+function normalizedSceneTurn(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
 }
 
 function missingSourceSceneTurnFields(scene: Record<string, unknown>): string[] {

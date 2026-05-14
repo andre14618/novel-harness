@@ -13,12 +13,14 @@ describe("checker-readiness-report", () => {
       "--novel", "n",
       "--output", "report.md",
       "--json", "report.json",
+      "--output-dir", "output/checker-readiness/n/baseline",
       "--import-readiness",
       "--include-warnings",
     ])).toEqual({
       novelId: "n",
       outputPath: "report.md",
       jsonPath: "report.json",
+      outputDirPath: "output/checker-readiness/n/baseline",
       importReadiness: true,
       includeWarnings: true,
     })

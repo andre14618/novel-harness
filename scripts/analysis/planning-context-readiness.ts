@@ -60,6 +60,7 @@ interface PlanningContextReadinessFinding {
     | "SCENE-TURN-ENDPOINT-MISSING"
     | "SOURCE-SCENE-TURN-SHAPE-MISSING"
     | "SOURCE-MATERIALITY-TEST-MISSING"
+    | "SCENE-ENDPOINT-DUPLICATE"
     | "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE"
     | "SCENE-CONTRACT-FULL-SHAPE-INCOMPLETE"
     | "PLAN-FACT-STATUS-CONTRADICTION"
@@ -281,15 +282,16 @@ export function renderPlanningContextReadinessAggregate(report: PlanningContextR
 function prioritizedSceneContractGaps(report: PlanningToDraftingContextReport): DramaticSceneContractGap[] {
   const shape = report.upstream.sceneContractShape
   const endpointGaps = shape?.missingEndpointShape ?? []
+  const endpointHygieneGaps = shape?.endpointHygiene ?? []
   const turnGaps = shape?.missingTurnShape ?? []
   const materialityGaps = shape?.missingMaterialityTest ?? []
-  const operationalRefs = new Set([...endpointGaps, ...turnGaps, ...materialityGaps].map(gap => gap.sceneRef))
+  const operationalRefs = new Set([...endpointGaps, ...endpointHygieneGaps, ...turnGaps, ...materialityGaps].map(gap => gap.sceneRef))
   const choiceGaps = (shape?.missingChoiceShape ?? [])
     .filter(gap => !operationalRefs.has(gap.sceneRef))
   const choiceRefs = new Set(choiceGaps.map(gap => gap.sceneRef))
   const fullOnlyGaps = (shape?.missingFullDramaticShape ?? [])
     .filter(gap => !choiceRefs.has(gap.sceneRef) && !operationalRefs.has(gap.sceneRef) && gap.hasChoiceShape)
-  return [...endpointGaps, ...turnGaps, ...materialityGaps, ...choiceGaps, ...fullOnlyGaps]
+  return [...endpointGaps, ...endpointHygieneGaps, ...turnGaps, ...materialityGaps, ...choiceGaps, ...fullOnlyGaps]
 }
 
 function shouldIncludeChapter(chapter: ChapterSceneLoad, includeDense: boolean): boolean {
@@ -562,6 +564,7 @@ function groupForSceneContractGap(args: {
 
 function sceneContractFixIntent(gap: DramaticSceneContractGap): PlanningContextFixIntent {
   if (gap.label === "SCENE-TURN-ENDPOINT-MISSING") return "complete_scene_endpoint"
+  if (gap.label === "SCENE-ENDPOINT-DUPLICATE") return "complete_scene_endpoint"
   if (gap.label === "SOURCE-SCENE-TURN-SHAPE-MISSING") return "complete_scene_turn"
   if (gap.label === "SOURCE-MATERIALITY-TEST-MISSING") return "annotate_obligation_materiality"
   return "complete_scene_contract"
@@ -631,6 +634,7 @@ function sceneContractScalarFieldPath(
 
 function sceneContractReadinessLabel(gap: DramaticSceneContractGap): PlanningContextReadinessFinding["label"] {
   if (gap.label === "SCENE-TURN-ENDPOINT-MISSING") return "SCENE-TURN-ENDPOINT-MISSING"
+  if (gap.label === "SCENE-ENDPOINT-DUPLICATE") return "SCENE-ENDPOINT-DUPLICATE"
   if (gap.label === "SOURCE-SCENE-TURN-SHAPE-MISSING") return "SOURCE-SCENE-TURN-SHAPE-MISSING"
   if (gap.label === "SOURCE-MATERIALITY-TEST-MISSING") return "SOURCE-MATERIALITY-TEST-MISSING"
   if (gap.label === "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE") return "SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE"
@@ -640,6 +644,9 @@ function sceneContractReadinessLabel(gap: DramaticSceneContractGap): PlanningCon
 function sceneContractRationale(gap: DramaticSceneContractGap): string {
   if (gap.label === "SCENE-TURN-ENDPOINT-MISSING") {
     return `Final scene ${gap.sceneRef} is missing endpoint fields: ${gap.missingFields.join(", ")}.`
+  }
+  if (gap.label === "SCENE-ENDPOINT-DUPLICATE") {
+    return `Scene ${gap.sceneRef} has duplicate endpoint contract fields: ${gap.missingFields.join(", ")}.`
   }
   if (gap.label === "SOURCE-SCENE-TURN-SHAPE-MISSING") {
     return `Source-refed non-final scene ${gap.sceneRef} is missing minimal writer-facing turn fields: ${gap.missingFields.join(", ")}.`
@@ -653,6 +660,9 @@ function sceneContractRationale(gap: DramaticSceneContractGap): string {
 function sceneContractMissingForNextLevel(gap: DramaticSceneContractGap): string {
   if (gap.label === "SCENE-TURN-ENDPOINT-MISSING") {
     return "Populate the final scene's outcome and consequence from the planner's actual endpoint/hook decision before drafting."
+  }
+  if (gap.label === "SCENE-ENDPOINT-DUPLICATE") {
+    return "Revise the scene endpoint so consequence is a distinct downstream effect, not a restatement of outcome or turningPoint."
   }
   if (gap.label === "SOURCE-SCENE-TURN-SHAPE-MISSING") {
     return "Populate goal, opposition, outcome, and consequence for this source-refed non-final scene, or remove the source-refed obligation if the scene is only connective."
@@ -671,6 +681,12 @@ function sceneContractRewriteGoals(gap: DramaticSceneContractGap, primaryGoal: s
     return [
       primaryGoal,
       "Preserve the sceneId and chapter endpoint intent; do not derive the endpoint from generic fallback prose.",
+    ]
+  }
+  if (gap.label === "SCENE-ENDPOINT-DUPLICATE") {
+    return [
+      primaryGoal,
+      "Revise only the duplicated endpoint contract fields unless the surrounding scene plan also needs a manual rewrite.",
     ]
   }
   if (gap.label === "SOURCE-SCENE-TURN-SHAPE-MISSING") {

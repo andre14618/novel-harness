@@ -237,7 +237,7 @@ describe("planning-drafting-context-report", () => {
     expect(renderPlanningToDraftingContextReport(report)).toContain("Plan continuity: futureEventAnchors=0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=1, choice=0, endpoint=1, full=0, anchorOnly=0, temporal=1, place=1)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=1, anchorOnly=0, anchors=1, endpointGuidance=1)")
-    expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, missingEndpoint=0, missingTurn=0, missingMateriality=0, missingChoice=1, missingFull=1, anchorOnly=0")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, missingEndpoint=0, missingTurn=0, missingMateriality=0, endpointHygiene=0, missingChoice=1, missingFull=1, anchorOnly=0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE")
   })
 
@@ -295,6 +295,57 @@ describe("planning-drafting-context-report", () => {
       missingFields: ["outcome", "consequence"],
     }])
     expect(upstream.sceneContractShape.missingChoiceShape).toEqual([])
+  })
+
+  test("flags duplicate endpoint contract fields before drafting", () => {
+    const upstream = summarizePlanningArtifacts({
+      worldBibleAvailable: true,
+      storySpineAvailable: true,
+      characters: [{ id: "char-maren", name: "Maren" }],
+      outlines: [outline(1, {
+        scenes: [
+          {
+            ...scenes(1)[0]!,
+            sceneId: "scene-duplicate-endpoint",
+            description: "Maren and the clerk debate whether to wait.",
+            goal: "Decide how to reach the archive.",
+            opposition: "The clerk wants caution while Maren is under deadline.",
+            turningPoint: "Maren agrees to wait for the patrol to pass.",
+            outcome: "Maren agrees to wait for the patrol to pass.",
+            consequence: "Maren agrees to wait for the patrol to pass.",
+          },
+          {
+            ...scenes(1)[0]!,
+            sceneId: "scene-cognitive-endpoint",
+            description: "Maren studies the forged seal.",
+            goal: "Determine whether the seal is legitimate.",
+            opposition: "The mark contradicts the public ledger.",
+            turningPoint: "Maren recognizes the seal as a forgery.",
+            outcome: "Maren realizes the contract is a trap.",
+            consequence: "The contract is a trap and the council file may be useless.",
+          },
+        ],
+      })],
+    })
+
+    expect(upstream.sceneContractShape.endpointHygiene).toMatchObject([
+      {
+        label: "SCENE-ENDPOINT-DUPLICATE",
+        sceneRef: "scene-duplicate-endpoint",
+        missingFields: [
+          "consequence-duplicates-outcome",
+          "consequence-duplicates-turningPoint",
+        ],
+      },
+    ])
+    expect(upstream.sceneContractShape.endpointHygiene?.map(gap => gap.sceneRef)).not.toContain("scene-cognitive-endpoint")
+    const report = buildPlanningToDraftingContextReport({
+      novelId: "novel-weak-endpoint",
+      upstream,
+      writerContext: buildWriterContextTelemetryReport([], "novel-weak-endpoint"),
+    })
+    expect(renderPlanningToDraftingContextReport(report)).toContain("endpointHygiene=1")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("SCENE-ENDPOINT-DUPLICATE: scene-duplicate-endpoint")
   })
 
   test("separates anchor-only scene contracts from dramatic scene shape", () => {
@@ -370,7 +421,7 @@ describe("planning-drafting-context-report", () => {
 
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=0, choice=0, endpoint=0, full=0, anchorOnly=1, temporal=1, place=1)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=0, anchorOnly=1, anchors=1, endpointGuidance=0)")
-    expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, missingEndpoint=1, missingTurn=0, missingMateriality=0, missingChoice=0, missingFull=0, anchorOnly=1")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, missingEndpoint=1, missingTurn=0, missingMateriality=0, endpointHygiene=0, missingChoice=0, missingFull=0, anchorOnly=1")
     expect(renderPlanningToDraftingContextReport(report)).toContain("ANCHOR-ONLY-SCENE-CONTRACT: scene-1")
   })
 

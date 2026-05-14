@@ -21,6 +21,7 @@ export interface CheckerReadinessArgs {
   novelId: string
   outputPath: string | null
   jsonPath: string | null
+  outputDirPath: string | null
   importReadiness: boolean
   includeWarnings: boolean
 }
@@ -99,6 +100,7 @@ export function parseArgs(argv = process.argv.slice(2)): CheckerReadinessArgs {
   let novelId = ""
   let outputPath: string | null = null
   let jsonPath: string | null = null
+  let outputDirPath: string | null = null
   let importReadiness = false
   let includeWarnings = false
 
@@ -110,6 +112,8 @@ export function parseArgs(argv = process.argv.slice(2)): CheckerReadinessArgs {
       outputPath = requireValue(argv[++i], "--output")
     } else if (arg === "--json") {
       jsonPath = requireValue(argv[++i], "--json")
+    } else if (arg === "--output-dir") {
+      outputDirPath = requireValue(argv[++i], "--output-dir")
     } else if (arg === "--import-readiness") {
       importReadiness = true
     } else if (arg === "--include-warnings") {
@@ -120,7 +124,7 @@ export function parseArgs(argv = process.argv.slice(2)): CheckerReadinessArgs {
   }
 
   if (!novelId) throw new Error("--novel is required")
-  return { novelId, outputPath, jsonPath, importReadiness, includeWarnings }
+  return { novelId, outputPath, jsonPath, outputDirPath, importReadiness, includeWarnings }
 }
 
 export function buildCheckerReadinessAggregate(input: {
@@ -302,6 +306,17 @@ function writeOutput(path: string, content: string): void {
   writeFileSync(abs, content)
 }
 
+function writeSidecarOutput(
+  outputDirPath: string,
+  warningReport: CheckerWarningReport,
+  aggregate: CheckerReadinessAggregate,
+): void {
+  writeOutput(`${outputDirPath}/checker-warning-report.json`, `${JSON.stringify(warningReport, null, 2)}\n`)
+  writeOutput(`${outputDirPath}/checker-warning-report.md`, renderCheckerWarningReport(warningReport))
+  writeOutput(`${outputDirPath}/checker-readiness.json`, `${JSON.stringify(aggregate, null, 2)}\n`)
+  writeOutput(`${outputDirPath}/checker-readiness.md`, renderCheckerReadinessAggregate(aggregate))
+}
+
 export async function loadCheckerReadinessChapterTargets(novelId: string): Promise<CheckerReadinessChapterTarget[]> {
   const { default: db } = await import("../../src/db/connection")
   const rows = await db`
@@ -327,7 +342,7 @@ async function main(): Promise<number> {
     args = parseArgs()
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err))
-    console.error("usage: bun scripts/analysis/checker-readiness-report.ts --novel <novelId> [--output <report.md>] [--json <report.json>] [--import-readiness] [--include-warnings]")
+    console.error("usage: bun scripts/analysis/checker-readiness-report.ts --novel <novelId> [--output <report.md>] [--json <report.json>] [--output-dir <dir>] [--import-readiness] [--include-warnings]")
     return 2
   }
 
@@ -341,6 +356,7 @@ async function main(): Promise<number> {
     const rendered = renderCheckerReadinessAggregate(aggregate)
     if (args.outputPath) writeOutput(args.outputPath, rendered)
     if (args.jsonPath) writeOutput(args.jsonPath, `${JSON.stringify(aggregate, null, 2)}\n`)
+    if (args.outputDirPath) writeSidecarOutput(args.outputDirPath, checkerReport, aggregate)
     console.log(rendered)
     console.log(renderCheckerWarningReport(checkerReport))
     if (args.importReadiness) {

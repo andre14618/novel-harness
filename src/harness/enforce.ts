@@ -375,12 +375,18 @@ export function enforceScenePlanContract(
     }
 
     // (4) Observable consequence: when both fields are present, the
-    //     consequence must not simply restate the outcome.
+    //     consequence must not simply restate the outcome or turning point.
     const outcome = (scene.outcome ?? "").trim()
     const consequence = (scene.consequence ?? "").trim()
-    if (outcome.length > 0 && consequence.length > 0 && outcome === consequence) {
+    const turningPoint = (scene.turningPoint ?? "").trim()
+    if (outcome.length > 0 && consequence.length > 0 && normalizedSceneTurn(outcome) === normalizedSceneTurn(consequence)) {
       errors.push(
         `Scene ${sceneRef}: consequence must differ from outcome (consequence is the observable downstream effect, not a restatement)`,
+      )
+    }
+    if (turningPoint.length > 0 && consequence.length > 0 && normalizedSceneTurn(turningPoint) === normalizedSceneTurn(consequence)) {
+      errors.push(
+        `Scene ${sceneRef}: consequence must differ from turningPoint (consequence is the terminal downstream pressure, not the turn itself)`,
       )
     }
 
@@ -429,6 +435,13 @@ export function enforceScenePlanContract(
   }
 
   return { valid: errors.length === 0, errors }
+}
+
+function normalizedSceneTurn(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
 }
 
 function collectSceneObligations(scene: SceneBeat): BeatObligationItem[] {
