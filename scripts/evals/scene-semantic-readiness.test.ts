@@ -45,6 +45,7 @@ describe("scene-semantic-readiness", () => {
       },
     })
     expect(aggregate.groups[0]!.dimensions.sort()).toEqual(["endpointLanding", "sceneDramaturgy"])
+    expect(aggregate.groups[0]!.adjudicationStatus).toBe("raw")
 
     const readiness = buildPlanReadinessDraftsFromAggregate({
       novelId: "novel-abc",
@@ -72,6 +73,7 @@ describe("scene-semantic-readiness", () => {
 
     const rendered = renderSceneSemanticReadinessAggregate(aggregate)
     expect(rendered).toContain("Target: scene_plan:scn-001-01:self")
+    expect(rendered).toContain("Adjudication: raw=2, false_positive=0, real=0, upstream_repair_needed=0")
     expect(rendered).toContain("Should the scene contract make the endpoint land")
     expect(rendered).toContain("Preserve threads: thread-key")
     expect(rendered).toContain("ENDPOINT-1 endpointLanding")
@@ -161,8 +163,77 @@ describe("scene-semantic-readiness", () => {
     expect(rendered).toContain("make required characters and world facts operational")
     expect(rendered).toContain("Make required characters materially affect")
     expect(rendered).toContain("Make the required world fact constrain")
-    expect(rendered).toContain("Target: scene_plan:scn-001-01:description")
-    expect(aggregate.groups[0]!.rewritePacket.proposalCandidate.action).toBe("field_replace")
+    expect(rendered).toContain("Target: scene_plan:scn-001-01:self")
+    expect(aggregate.groups[0]!.rewritePacket.proposalCandidate.action).toBe("beat_replace")
+  })
+
+  test("targets world-fact-only lows to the whole scene contract", () => {
+    const source = report()
+    source.results = [
+      row("worldFactPressure", "WFACT-0", 0, "The required fact contradicts the scene outcome."),
+    ]
+    source.summaries = [
+      { dimension: "worldFactPressure", count: 1, meanOrdinal: 0, lowCount: 1, labelCounts: { "WFACT-0": 1 } },
+    ]
+    const aggregate = buildSceneSemanticReadinessAggregate([{
+      report: source,
+      sourceReport: "scene-semantic-review.json",
+    }], { generatedAt: "2026-05-10T00:00:00.000Z" })
+
+    expect(aggregate.groups[0]!.rewritePacket.proposalCandidate).toMatchObject({
+      action: "beat_replace",
+      target: {
+        kind: "scene_plan",
+        ref: "scn-001-01",
+        fieldPath: "self",
+      },
+    })
+  })
+
+  test("carries adjudication statuses while keeping false positives out of Plan Readiness imports", () => {
+    const source = report()
+    source.results = [
+      row("endpointLanding", "ENDPOINT-1", 1, "The endpoint needs an executed consequence."),
+    ]
+    source.summaries = [
+      { dimension: "endpointLanding", count: 1, meanOrdinal: 1, lowCount: 1, labelCounts: { "ENDPOINT-1": 1 } },
+    ]
+    const aggregate = buildSceneSemanticReadinessAggregate([{
+      report: source,
+      sourceReport: "scene-semantic-review.json",
+    }], {
+      generatedAt: "2026-05-10T00:00:00.000Z",
+      adjudications: [{
+        taskId: "ch1-scn-001-01-endpointLanding",
+        status: "false_positive",
+        note: "Offer pressure satisfies this endpoint contract.",
+        reviewer: "agent",
+        reviewedAt: "2026-05-14T00:00:00.000Z",
+        evidenceReport: "docs/sessions/example.md",
+      }],
+    })
+
+    expect(aggregate.findingCount).toBe(1)
+    expect(aggregate.groups[0]!.adjudicationStatus).toBe("false_positive")
+    expect(aggregate.groups[0]!.findings[0]).toMatchObject({
+      adjudicationStatus: "false_positive",
+      adjudicationNote: "Offer pressure satisfies this endpoint contract.",
+      adjudicationEvidenceReport: "docs/sessions/example.md",
+    })
+
+    const readiness = buildPlanReadinessDraftsFromAggregate({
+      novelId: "novel-abc",
+      aggregate,
+      importedByKind: "test",
+    })
+    expect(readiness.drafts).toEqual([])
+    expect(readiness.skipped).toContainEqual(expect.objectContaining({
+      reason: "all findings adjudicated false-positive",
+    }))
+
+    const rendered = renderSceneSemanticReadinessAggregate(aggregate)
+    expect(rendered).toContain("Adjudication: raw=0, false_positive=1, real=0, upstream_repair_needed=0")
+    expect(rendered).toContain("false_positive: Offer pressure satisfies this endpoint contract.")
   })
 
   test("ignores errored judge rows instead of importing them as lows", () => {

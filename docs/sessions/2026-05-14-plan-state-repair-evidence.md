@@ -83,3 +83,45 @@ open: the scene contract says the buyer escapes with the main core ledger, but
 the prose has him drop a hollow ledger after removing key pages. Next work is
 to reconcile the plan/prose fact shape by either changing the required fact to
 buyer-escapes-with-key-pages or redrafting the scene so he keeps the ledger.
+
+## Ch9/Ch10 Follow-Up Repairs
+
+The ch9 buyer/ledger miss was repaired upstream on source
+`rillgate-ch4-endpoint-hygiene-1778723371` through reviewed `planning_edit`
+proposals:
+
+- `planning_edit:rillgate-ch4-endpoint-hygiene-1778723371:7017a70dda22e1a3`
+  updated ch9 `establishedFacts`.
+- `planning_edit:rillgate-ch4-endpoint-hygiene-1778723371:64a2028e22343ab7`
+  replaced ch9 scene 2 so the buyer escapes with key identifying pages and
+  leaves the hollow ledger shell.
+- `planning_edit:rillgate-ch4-endpoint-hygiene-1778723371:583baa27196466d7`
+  replaced ch9 scene 3 so Kael finds a torn partial page in that shell.
+- `planning_edit:rillgate-ch4-endpoint-hygiene-1778723371:0a83861538a4e406`
+  tightened ch9 scene 5 endpoint wording around the torn page.
+
+Bounded evidence:
+`rillgate-ch9-ledger-repair-1778793880-production-path` drafted ch9-ch10 at
+`6,622/6,200` with Plan-Assist readiness `0`, checker readiness `0`,
+prose-semantic lows `0/8`, scene-semantic lows `1/30`, and
+world-fact lows `0/7`. The repaired ch9 WFACT row cleared. The lone new low was
+a real ch10 scene 3 endpoint miss: the plan said Mira's marker was protected,
+but the draft left Hask contesting the marker.
+
+That ch10 endpoint row was adjudicated as `upstream_repair_needed` in
+`output/scene-semantic-review/rillgate-ch9-ledger-repair-1778793880/production-path/scene-semantic-readiness-adjudicated.json`
+and imported to source Plan Readiness as
+`readiness-41ce6df2a0ec6d3bdb865334908f5942`. The source repair was applied
+through `planning_edit:rillgate-ch4-endpoint-hygiene-1778723371:d195a3ea8c9d2cea`,
+replacing ch10 scene 3 so Hask stamps and surrenders the canceled marker on
+page while Kael's pledged token carries the future cost.
+
+Verification:
+`rillgate-ch10-marker-endpoint-1778794476-production-path` drafted ch10 at
+`2,611/3,100` with Plan-Assist readiness `0`, checker readiness `0`,
+prose-semantic lows `0/4`, scene-semantic lows `0/15`, endpoint lows `0/4`,
+world-fact lows `0/4`, and source plan-state findings `0`. The ch10-only
+planning-context audit reported bounded-window gaps for reader-info state and
+resolved references, but generated no readiness items; this is an artifact of
+starting at chapter 10 without prior drafted chapters, not a source-plan repair
+blocker.

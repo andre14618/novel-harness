@@ -96,6 +96,7 @@ interface AggregateGroupLike {
   rewritePacket?: unknown
   findings?: unknown
   excerpt?: unknown
+  adjudicationStatus?: unknown
 }
 
 interface AggregateFindingLike {
@@ -109,6 +110,11 @@ interface AggregateFindingLike {
   rationale?: unknown
   missingForNextLevel?: unknown
   evidence?: unknown
+  adjudicationStatus?: unknown
+  adjudicationNote?: unknown
+  adjudicationReviewer?: unknown
+  adjudicationReviewedAt?: unknown
+  adjudicationEvidenceReport?: unknown
 }
 
 type CandidateAction = "field_replace" | "beat_replace" | "beat_reorder" | "scene_select" | "beat_requirement_remove"
@@ -155,9 +161,17 @@ export function buildPlanReadinessDraftsFromAggregate(
       skipped.push({ reason: "group contained no findings", target })
       continue
     }
+    const actionableFindings = findings.filter(finding => !isFalsePositiveFinding(finding))
+    if (actionableFindings.length === 0) {
+      skipped.push({ reason: "all findings adjudicated false-positive", target })
+      continue
+    }
+    if (actionableFindings.length !== findings.length) {
+      skipped.push({ reason: "some findings adjudicated false-positive", target })
+    }
 
     if (!shouldImportFindingsAsGroup(proposalCandidate)) {
-      for (const finding of findings) {
+      for (const finding of actionableFindings) {
         const dimension = stringValue(finding.dimension)
         const diagnosticLabel = stringValue(finding.label)
         const fixIntent = stringValue(finding.fixIntent) || "review_only"
@@ -207,6 +221,11 @@ export function buildPlanReadinessDraftsFromAggregate(
             chapterId: stringValue(group.chapterId),
             sceneId: stringValue(group.sceneId),
             promptMode: stringValue(finding.promptMode),
+            adjudicationStatus: stringValue(finding.adjudicationStatus) || stringValue(group.adjudicationStatus) || "raw",
+            adjudicationNote: stringValue(finding.adjudicationNote),
+            adjudicationReviewer: stringValue(finding.adjudicationReviewer),
+            adjudicationReviewedAt: stringValue(finding.adjudicationReviewedAt),
+            adjudicationEvidenceReport: stringValue(finding.adjudicationEvidenceReport),
             sourceHashKind,
             ...(proposalCandidate ? { proposalCandidate } : {}),
           },
@@ -215,7 +234,7 @@ export function buildPlanReadinessDraftsFromAggregate(
       continue
     }
 
-    const usableFindings = findings.filter(finding =>
+    const usableFindings = actionableFindings.filter(finding =>
       Boolean(stringValue(finding.dimension)) && Boolean(stringValue(finding.label))
     )
     if (usableFindings.length === 0) {
@@ -273,6 +292,9 @@ export function buildPlanReadinessDraftsFromAggregate(
         chapterId: stringValue(group.chapterId),
         sceneId: stringValue(group.sceneId),
         promptMode: groupedString(usableFindings.map(finding => stringValue(finding.promptMode)), "unknown"),
+        adjudicationStatus: groupedString(usableFindings.map(finding => stringValue(finding.adjudicationStatus) || stringValue(group.adjudicationStatus) || "raw"), "raw"),
+        adjudicationNotes: usableFindings.map(finding => stringValue(finding.adjudicationNote)).filter(Boolean),
+        adjudicationEvidenceReports: usableFindings.map(finding => stringValue(finding.adjudicationEvidenceReport)).filter(Boolean),
         sourceHashKind,
         ...(usableFindings.length > 1 ? { groupedFindingCount: usableFindings.length } : {}),
         ...(proposalCandidate ? { proposalCandidate } : {}),
@@ -404,6 +426,10 @@ function shouldImportFindingsAsGroup(proposalCandidate: Record<string, unknown> 
   const sourceAgent = stringValue(proposalCandidate?.sourceAgent)
   return sourceAgent === "production-checker-warning-report" ||
     sourceAgent === "plan-state-consistency"
+}
+
+function isFalsePositiveFinding(finding: AggregateFindingLike): boolean {
+  return stringValue(finding.adjudicationStatus) === "false_positive"
 }
 
 function groupedString(values: string[], fallback: string): string {

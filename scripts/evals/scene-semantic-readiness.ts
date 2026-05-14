@@ -16,6 +16,13 @@ import type { SceneSemanticReplayReport, SceneSemanticReplayResult } from "./sce
 
 type Severity = "high" | "medium" | "low" | "info"
 type SceneSemanticSourceAgent = "production-scene-semantic-review"
+export const SCENE_SEMANTIC_ADJUDICATION_STATUSES = [
+  "raw",
+  "false_positive",
+  "real",
+  "upstream_repair_needed",
+] as const
+export type SceneSemanticAdjudicationStatus = (typeof SCENE_SEMANTIC_ADJUDICATION_STATUSES)[number]
 
 interface Args {
   reports: string[]
@@ -23,6 +30,7 @@ interface Args {
   maxOrdinal: number
   output: string | null
   json: string | null
+  adjudication: string | null
 }
 
 interface SceneSemanticReadinessFinding {
@@ -36,6 +44,11 @@ interface SceneSemanticReadinessFinding {
   rationale: string
   missingForNextLevel: string
   evidence: Record<string, string>
+  adjudicationStatus: SceneSemanticAdjudicationStatus
+  adjudicationNote: string
+  adjudicationReviewer: string
+  adjudicationReviewedAt: string
+  adjudicationEvidenceReport: string
 }
 
 interface SceneSemanticReadinessSourceIds {
@@ -58,6 +71,7 @@ interface SceneSemanticReadinessGroup {
   chapterId: string
   sceneId: string
   sourceIds: SceneSemanticReadinessSourceIds
+  adjudicationStatus: SceneSemanticAdjudicationStatus
   highestSeverity: Severity
   fixIntents: string[]
   dimensions: Dimension[]
@@ -101,6 +115,27 @@ export interface SceneSemanticReadinessOptions {
   labels?: string[] | null
   maxOrdinal?: number
   generatedAt?: string
+  adjudications?: SceneSemanticReadinessAdjudication[]
+}
+
+export interface SceneSemanticReadinessAdjudication {
+  taskId?: string
+  sceneId?: string
+  dimension?: Dimension
+  label?: string
+  status: SceneSemanticAdjudicationStatus
+  note?: string
+  reviewer?: string
+  reviewedAt?: string
+  evidenceReport?: string
+}
+
+interface NormalizedAdjudication {
+  status: SceneSemanticAdjudicationStatus
+  note: string
+  reviewer: string
+  reviewedAt: string
+  evidenceReport: string
 }
 
 export function buildSceneSemanticReadinessAggregate(
@@ -109,6 +144,7 @@ export function buildSceneSemanticReadinessAggregate(
 ): SceneSemanticReadinessAggregate {
   const labels = options.labels?.filter(Boolean) ?? null
   const maxOrdinal = options.maxOrdinal ?? 1
+  const adjudications = normalizeAdjudications(options.adjudications ?? [])
   const groupsByKey = new Map<string, SceneSemanticReadinessGroup>()
   const sourceReports = unique(inputs.map(input => input.sourceReport ?? "").filter(Boolean))
 
@@ -116,6 +152,7 @@ export function buildSceneSemanticReadinessAggregate(
     const sourceReport = input.sourceReport ?? ""
     for (const result of input.report.results) {
       if (!isIncludedResult(result, { labels, maxOrdinal })) continue
+      const adjudication = adjudicationForResult(result, adjudications)
       const groupKey = [
         input.report.novelId,
         input.report.setName,
@@ -127,10 +164,12 @@ export function buildSceneSemanticReadinessAggregate(
         report: input.report,
         sourceReport,
         findingIndex: 1,
+        adjudication,
       })
       const existing = groupsByKey.get(groupKey)
       if (existing) {
         existing.findings.push(finding)
+        existing.adjudicationStatus = groupAdjudicationStatus(existing.findings)
         existing.highestSeverity = higherSeverity(existing.highestSeverity, finding.severity)
         existing.fixIntents = unique([...existing.fixIntents, finding.fixIntent])
         existing.dimensions = unique([...existing.dimensions, finding.dimension])
@@ -152,6 +191,7 @@ export function buildSceneSemanticReadinessAggregate(
           chapterId: `chapter:${result.chapterNumber}`,
           sceneId: result.sceneId,
           sourceIds,
+          adjudicationStatus: finding.adjudicationStatus,
           highestSeverity: finding.severity,
           fixIntents: [finding.fixIntent],
           dimensions: [finding.dimension],
@@ -201,6 +241,8 @@ export function renderSceneSemanticReadinessAggregate(report: SceneSemanticReadi
   lines.push(`Findings: ${report.findingCount}`)
   lines.push(`Max ordinal: ${report.maxOrdinal}`)
   if (report.labels.length > 0) lines.push(`Labels: ${report.labels.join(", ")}`)
+  const adjudicationCounts = countAdjudicationStatuses(report.groups.flatMap(group => group.findings))
+  lines.push(`Adjudication: ${SCENE_SEMANTIC_ADJUDICATION_STATUSES.map(status => `${status}=${adjudicationCounts[status]}`).join(", ")}`)
   lines.push("")
   lines.push("These are manual Plan Readiness candidates. They do not auto-mutate the plan.")
   lines.push("")
@@ -210,6 +252,7 @@ export function renderSceneSemanticReadinessAggregate(report: SceneSemanticReadi
     lines.push("")
     lines.push(`Target: scene_plan:${target.ref}:${target.fieldPath}`)
     lines.push(`Dimensions: ${group.dimensions.join(", ")}`)
+    lines.push(`Adjudication status: ${group.adjudicationStatus}`)
     lines.push(`Fix intents: ${group.fixIntents.join(", ")}`)
     lines.push(`Preserve obligations: ${group.sourceIds.obligationIds.join(", ") || "none"}`)
     lines.push(`Preserve characters: ${group.sourceIds.characterIds.join(", ") || "none"}`)
@@ -227,7 +270,8 @@ export function renderSceneSemanticReadinessAggregate(report: SceneSemanticReadi
     lines.push("")
     lines.push("Findings:")
     for (const finding of group.findings) {
-      lines.push(`- ${finding.findingId} ${finding.label} ${finding.dimension}: ${finding.missingForNextLevel || finding.rationale}`)
+      const note = finding.adjudicationNote ? ` (${finding.adjudicationStatus}: ${finding.adjudicationNote})` : ` (${finding.adjudicationStatus})`
+      lines.push(`- ${finding.findingId} ${finding.label} ${finding.dimension}${note}: ${finding.missingForNextLevel || finding.rationale}`)
     }
     lines.push("")
   }
@@ -254,8 +298,22 @@ function toFinding(args: {
   report: SceneSemanticReplayReport
   sourceReport: string
   findingIndex: number
+  adjudication: NormalizedAdjudication
 }): SceneSemanticReadinessFinding {
   const { result, report } = args
+  const evidence: Record<string, string> = {
+    ...normalizeEvidence(result.output?.evidence),
+    taskId: result.taskId,
+    chapterNumber: String(result.chapterNumber),
+    sceneIndex: String(result.sceneIndex),
+    confidence: String(result.confidence),
+    evidenceFields: String(result.evidenceFields),
+  }
+  if (args.adjudication.status !== "raw") {
+    evidence.adjudicationStatus = args.adjudication.status
+    if (args.adjudication.note) evidence.adjudicationNote = args.adjudication.note
+    if (args.adjudication.evidenceReport) evidence.adjudicationEvidenceReport = args.adjudication.evidenceReport
+  }
   return {
     findingId: `pending.${args.findingIndex}`,
     sourceReport: args.sourceReport,
@@ -266,14 +324,12 @@ function toFinding(args: {
     fixIntent: fixIntentFor(result.dimension),
     rationale: `Production scene-semantic replay labeled ${result.dimension} as ${result.label} for ${report.novelId} (${report.setName}).`,
     missingForNextLevel: result.missingForNextLevel || result.output?.missingForNextLevel || "",
-    evidence: {
-      ...normalizeEvidence(result.output?.evidence),
-      taskId: result.taskId,
-      chapterNumber: String(result.chapterNumber),
-      sceneIndex: String(result.sceneIndex),
-      confidence: String(result.confidence),
-      evidenceFields: String(result.evidenceFields),
-    },
+    evidence,
+    adjudicationStatus: args.adjudication.status,
+    adjudicationNote: args.adjudication.note,
+    adjudicationReviewer: args.adjudication.reviewer,
+    adjudicationReviewedAt: args.adjudication.reviewedAt,
+    adjudicationEvidenceReport: args.adjudication.evidenceReport,
   }
 }
 
@@ -343,8 +399,9 @@ function proposalCandidateFor(
 ): SceneSemanticReadinessGroup["rewritePacket"]["proposalCandidate"] {
   const hasEndpoint = dimensions.includes("endpointLanding")
   const hasSceneDramaturgy = dimensions.includes("sceneDramaturgy")
+  const hasWorldFactPressure = dimensions.includes("worldFactPressure")
   const endpointOnly = hasEndpoint && dimensions.length === 1
-  const requiresWholeSceneContract = hasSceneDramaturgy || (hasEndpoint && !endpointOnly)
+  const requiresWholeSceneContract = hasSceneDramaturgy || hasWorldFactPressure || (hasEndpoint && !endpointOnly)
   return {
     action: requiresWholeSceneContract ? "beat_replace" : "field_replace",
     target: {
@@ -440,12 +497,85 @@ function unique<T>(values: T[]): T[] {
   return [...new Set(values)]
 }
 
+function normalizeAdjudications(
+  adjudications: readonly SceneSemanticReadinessAdjudication[],
+): Map<string, NormalizedAdjudication> {
+  const map = new Map<string, NormalizedAdjudication>()
+  for (const raw of adjudications) {
+    const normalized = normalizeAdjudication(raw)
+    if (!normalized) continue
+    for (const key of adjudicationKeys(raw)) {
+      if (!map.has(key)) map.set(key, normalized)
+    }
+  }
+  return map
+}
+
+function normalizeAdjudication(raw: SceneSemanticReadinessAdjudication): NormalizedAdjudication | null {
+  if (!SCENE_SEMANTIC_ADJUDICATION_STATUSES.includes(raw.status)) return null
+  return {
+    status: raw.status,
+    note: raw.note ?? "",
+    reviewer: raw.reviewer ?? "",
+    reviewedAt: raw.reviewedAt ?? "",
+    evidenceReport: raw.evidenceReport ?? "",
+  }
+}
+
+function adjudicationKeys(raw: SceneSemanticReadinessAdjudication): string[] {
+  const keys: string[] = []
+  if (raw.taskId) keys.push(`task:${raw.taskId}`)
+  if (raw.sceneId && raw.dimension) keys.push(`scene-dimension:${raw.sceneId}:${raw.dimension}`)
+  if (raw.sceneId && raw.dimension && raw.label) keys.push(`scene-dimension-label:${raw.sceneId}:${raw.dimension}:${raw.label}`)
+  return keys
+}
+
+function adjudicationForResult(
+  result: SceneSemanticReplayResult,
+  adjudications: ReadonlyMap<string, NormalizedAdjudication>,
+): NormalizedAdjudication {
+  return adjudications.get(`task:${result.taskId}`)
+    ?? adjudications.get(`scene-dimension-label:${result.sceneId}:${result.dimension}:${result.label}`)
+    ?? adjudications.get(`scene-dimension:${result.sceneId}:${result.dimension}`)
+    ?? {
+      status: "raw",
+      note: "",
+      reviewer: "",
+      reviewedAt: "",
+      evidenceReport: "",
+    }
+}
+
+function groupAdjudicationStatus(
+  findings: readonly SceneSemanticReadinessFinding[],
+): SceneSemanticAdjudicationStatus {
+  const statuses = new Set(findings.map(finding => finding.adjudicationStatus))
+  if (statuses.has("upstream_repair_needed")) return "upstream_repair_needed"
+  if (statuses.has("real")) return "real"
+  if (statuses.has("raw")) return "raw"
+  return "false_positive"
+}
+
+function countAdjudicationStatuses(
+  findings: readonly SceneSemanticReadinessFinding[],
+): Record<SceneSemanticAdjudicationStatus, number> {
+  const counts: Record<SceneSemanticAdjudicationStatus, number> = {
+    raw: 0,
+    false_positive: 0,
+    real: 0,
+    upstream_repair_needed: 0,
+  }
+  for (const finding of findings) counts[finding.adjudicationStatus] += 1
+  return counts
+}
+
 function parseArgs(argv = process.argv.slice(2)): Args {
   const reports: string[] = []
   let labels: string[] | null = null
   let maxOrdinal = 1
   let output: string | null = null
   let json: string | null = null
+  let adjudication: string | null = null
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
@@ -474,6 +604,11 @@ function parseArgs(argv = process.argv.slice(2)): Args {
       if (!value) throw new Error("--json requires a path")
       json = value
       index += 1
+    } else if (arg === "--adjudication") {
+      const value = argv[index + 1]
+      if (!value) throw new Error("--adjudication requires a path")
+      adjudication = value
+      index += 1
     } else if (arg === "--help" || arg === "-h") {
       printHelp()
       process.exit(0)
@@ -485,7 +620,7 @@ function parseArgs(argv = process.argv.slice(2)): Args {
   }
 
   if (reports.length === 0) throw new Error("at least one --report or positional scene-semantic-review JSON path is required")
-  return { reports, labels, maxOrdinal, output, json }
+  return { reports, labels, maxOrdinal, output, json, adjudication }
 }
 
 function positiveInt(value: string, flag: string): number {
@@ -499,6 +634,29 @@ function readJson(path: string): SceneSemanticReplayReport {
   return JSON.parse(readFileSync(path, "utf8")) as SceneSemanticReplayReport
 }
 
+function readAdjudications(path: string): SceneSemanticReadinessAdjudication[] {
+  if (!existsSync(path)) throw new Error(`missing adjudication file: ${path}`)
+  const raw = JSON.parse(readFileSync(path, "utf8")) as unknown
+  const values = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === "object" && !Array.isArray(raw) && Array.isArray((raw as { items?: unknown }).items)
+      ? (raw as { items: unknown[] }).items
+      : []
+  return values
+    .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object" && !Array.isArray(item))
+    .map((item) => ({
+      ...(typeof item.taskId === "string" ? { taskId: item.taskId } : {}),
+      ...(typeof item.sceneId === "string" ? { sceneId: item.sceneId } : {}),
+      ...(typeof item.dimension === "string" ? { dimension: item.dimension as Dimension } : {}),
+      ...(typeof item.label === "string" ? { label: item.label } : {}),
+      status: item.status as SceneSemanticAdjudicationStatus,
+      ...(typeof item.note === "string" ? { note: item.note } : {}),
+      ...(typeof item.reviewer === "string" ? { reviewer: item.reviewer } : {}),
+      ...(typeof item.reviewedAt === "string" ? { reviewedAt: item.reviewedAt } : {}),
+      ...(typeof item.evidenceReport === "string" ? { evidenceReport: item.evidenceReport } : {}),
+    }))
+}
+
 function writeOutput(path: string, content: string): void {
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, content)
@@ -510,6 +668,7 @@ function printHelp(): void {
   bun scripts/evals/scene-semantic-readiness.ts <report.json> --output readiness.md --json readiness.json
 
 Default selection is ordinal <= 1. Use --labels ENDPOINT-1,SCENE-1 for a narrower queue.
+Use --adjudication adjudication.json to annotate rows as raw, false_positive, real, or upstream_repair_needed.
 `)
 }
 
@@ -523,6 +682,7 @@ if (import.meta.main) {
     const aggregate = buildSceneSemanticReadinessAggregate(inputs, {
       labels: args.labels,
       maxOrdinal: args.maxOrdinal,
+      adjudications: args.adjudication ? readAdjudications(resolve(args.adjudication)) : [],
     })
     const rendered = renderSceneSemanticReadinessAggregate(aggregate)
     if (args.output) writeOutput(args.output, rendered)

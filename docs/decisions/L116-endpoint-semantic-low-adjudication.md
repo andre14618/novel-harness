@@ -37,13 +37,15 @@ Readiness with false positives.
   reproduced the ch9 scene 2 `WFACT-0` row.
 - Plan Readiness dispositions on
   `rillgate-planstate-clean-1778788667-production-path`: four endpoint rows are
-  `not_applicable`; the ch9 buyer-with-ledger world-fact row remains `open`.
+  `not_applicable`; the ch9 buyer-with-ledger world-fact row was later repaired
+  upstream under L117.
 
 ## Implications
 
 - Endpoint semantic lows remain advisory data, not blockers.
 - Future endpoint readiness imports should be less noisy around valid
   unresolved-choice scene endings.
-- The remaining real Rillgate issue is a contract/prose mismatch: the plan says
-  the buyer escapes with the main core ledger, while the draft has the buyer
-  escape after removing key pages and dropping the hollow ledger.
+- The remaining real Rillgate issue from this pass was a contract/prose
+  mismatch: the plan said the buyer escapes with the main core ledger, while
+  the draft had the buyer escape after removing key pages and dropping the
+  hollow ledger. L117 records the follow-up repair posture.

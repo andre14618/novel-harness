@@ -95,8 +95,10 @@ Use deeper docs only when linked by the context pack or needed by code.
   evidence only. See L088.
 - Plan Readiness Review bridges diagnostics to drafting through manual
   `planning_edit` proposals; endpoint-only semantic lows target
-  `scene_plan:<sceneId>:consequence` alongside other scalar scene-turn and
-  `beat_obligation:materialityTest` fixes. See L091.
+  `scene_plan:<sceneId>:consequence`, while world-fact semantic lows target
+  whole scene contracts so facts, outcomes, and obligations can be synchronized.
+  Scene-semantic readiness artifacts carry raw/false-positive/real/upstream
+  repair-needed adjudication status. See L091/L117.
 - Runtime surfaces, traceability, checker posture, and UI inventory are
   summarized in `docs/reference/runtime-surfaces.md`.
 
@@ -104,18 +106,20 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 The active lane is in `docs/sessions/lane-queue.md`.
 
-As of 2026-05-14, L106-L116 keep evidence on production paths: writer briefs,
+As of 2026-05-14, L106-L117 keep evidence on production paths: writer briefs,
 semantic replay, source hygiene, planning-edit replay, scene-contract telemetry,
 checker readiness, source plan-state consistency, and compare/cohort artifacts.
 Rillgate source `rillgate-ch4-endpoint-hygiene-1778723371` is the active
 10-chapter / 49-scene source. Plan-state readiness repairs now close to 9/9
 clean adjacent pairs; the audit excludes next-chapter output facts/state from
 opening handoff context, can target scene `opposition`, and allows plausible
-offscreen execution of intended plans. Latest coherent draft
-`rillgate-planstate-clean-1778788667-production-path` completed 31,889/31,000
-words with Plan-Assist 0, prose-semantic lows 0/40, raw scene-semantic lows
-5/166, adjudicated lows 1 real world-fact miss, and 0 weight-bearing checker
-blockers. LLM style lint auto-fix is default-off after L113. See L103-L116.
+offscreen execution of intended plans. The ch9 buyer/ledger miss was repaired
+upstream as buyer-escapes-with-key-pages plus hollow ledger shell, and ch10's
+marker payoff was tightened through reviewed `planning_edit`. Latest bounded
+evidence: `rillgate-ch10-marker-endpoint-1778794476-production-path` drafted
+ch10 at 2,611/3,100 with Plan-Assist 0, checker readiness 0, prose lows 0/4,
+scene lows 0/15, and source plan-state 0. LLM style lint auto-fix is
+default-off after L113. See L103-L117.
 
 ## Authoring Gates
 
