@@ -225,12 +225,17 @@ describe("test-drafting-isolated parseArgs", () => {
     expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--allow-drafted-source"]).allowDraftedSource).toBe(true)
   })
 
-  test("--chapter-limit defaults to null and parses positive integers", () => {
+  test("--chapter-start defaults to 1 and chapter limit defaults to null", () => {
+    expect(parseArgs(["--source", "n", "--target-prefix", "ab"]).chapterStart).toBe(1)
     expect(parseArgs(["--source", "n", "--target-prefix", "ab"]).chapterLimit).toBeNull()
+    expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--chapter-start", "4"]).chapterStart).toBe(4)
     expect(parseArgs(["--source", "n", "--target-prefix", "ab", "--chapter-limit", "2"]).chapterLimit).toBe(2)
   })
 
-  test("--chapter-limit rejects non-positive / non-numeric values", () => {
+  test("--chapter-start and --chapter-limit reject non-positive / non-numeric values", () => {
+    expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--chapter-start", "0"])).toThrow(/positive integer/)
+    expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--chapter-start", "-1"])).toThrow(/positive integer/)
+    expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--chapter-start", "abc"])).toThrow(/positive integer/)
     expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--chapter-limit", "0"])).toThrow(/positive integer/)
     expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--chapter-limit", "-1"])).toThrow(/positive integer/)
     expect(() => parseArgs(["--source", "n", "--target-prefix", "ab", "--chapter-limit", "abc"])).toThrow(/positive integer/)
@@ -428,6 +433,7 @@ describe("drafting isolated report", () => {
 
     expect(report.v).toBe("drafting-isolated-report-v1")
     expect(report.summary.cleanSource).toBe(true)
+    expect(report.options.chapterStart).toBe(1)
     expect(report.options.chapterLimit).toBeNull()
     expect(report.options.targetWordScale).toBe(1)
     expect(report.summary.totalWordsByArm["scene-call-v1"]).toBe(3300)
@@ -447,6 +453,7 @@ describe("drafting isolated report", () => {
 
     const rendered = renderDraftingIsolatedRunReport(report)
     expect(rendered).toContain("Clean source: yes")
+    expect(rendered).toContain("chapter start: 1")
     expect(rendered).toContain("target word scale: 1")
     expect(rendered).toContain("targetWordScaling scale=0.85 target=3000->2550")
     expect(rendered).toContain("source planner quality: chapters=2 scenes=10 endpointIssues=1")
@@ -1266,6 +1273,7 @@ function args(overrides: Partial<Args> = {}): Args {
     sceneSemanticMaxTokens: 2200,
     sceneSemanticDimensions: ["endpointLanding", "sceneDramaturgy"],
     allowDraftedSource: false,
+    chapterStart: 1,
     chapterLimit: null,
     targetWordScale: 1,
     perArmTimeoutMs: null,

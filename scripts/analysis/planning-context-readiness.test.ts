@@ -610,7 +610,7 @@ describe("planning-context-readiness", () => {
     })
   })
 
-  test("turns duplicate endpoint fields into scene replacement readiness", () => {
+  test("turns duplicate endpoint fields into scalar consequence readiness", () => {
     const aggregate = buildPlanningContextReadinessAggregate({
       report: report({
         sceneContractShape: {
@@ -655,8 +655,8 @@ describe("planning-context-readiness", () => {
       fixIntents: ["complete_scene_endpoint"],
       rewritePacket: {
         proposalCandidate: {
-          action: "beat_replace",
-          target: { kind: "scene_plan", ref: "scene-duplicate-endpoint", fieldPath: "self" },
+          action: "field_replace",
+          target: { kind: "scene_plan", ref: "scene-duplicate-endpoint", fieldPath: "consequence" },
         },
       },
     })

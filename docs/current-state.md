@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-13
+updated: 2026-05-14
 role: canonical-current-truth
 archive: archive/current-state-2026-05-04-full.md
 references:
@@ -116,16 +116,17 @@ scene-scale budgets, seed process-instruction scrub, and future-boundary
 redaction. Drafting source `test-planner-mercenary-rillgate-saltmine-1778674224711`
 is repaired and preferred over the earlier 98-scene plan: 10 chapters / 49
 scenes, balanced load, `futureEventAnchors: 0`, no sequence-guard retry, and
-2026-05-13 Plan Readiness fixes via approved `planning_edit`; planner-quality
+2026-05-13/14 Plan Readiness fixes via approved `planning_edit`; planner-quality
 and planning-context core shape errors are 0. Post-L112 main-path draft
 `rillgate-mainpath-1778714560-baseline` completed 10/10 chapters with
 Plan-Assist 0, checker blockers 0, prose-semantic lows 0/40, and scene-semantic
 lows 4/166 after high-cap replay. Follow-up production-path bounded run
 `rillgate-endpoint-landing-1778717740-production-path` preserved the seed's
 tight-anchored writer brief on 40/40 writer events and hit 18,396/18,600 words,
-but endpoint lows stayed 4/30; this points upstream to endpoint-contract
-alignment/duplicate-consequence defects and functional-state warning noise;
-LLM style lint auto-fix is default-off after L113. See L103-L113.
+but endpoint lows stayed 4/30; chapter 4 duplicate-consequence defects are now
+scalar `consequence` readiness repairs with a clean narrow redraft, while the
+remaining endpoint issue is semantic action-level consequence fulfillment. LLM
+style lint auto-fix is default-off after L113. See L103-L114.
 
 ## Authoring Gates
 

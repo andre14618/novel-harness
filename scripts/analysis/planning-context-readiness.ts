@@ -619,6 +619,7 @@ function sceneContractProposalCandidate(
 function sceneContractScalarFieldPath(
   gap: DramaticSceneContractGap,
 ): "goal" | "opposition" | "outcome" | "consequence" | null {
+  if (gap.label === "SCENE-ENDPOINT-DUPLICATE") return "consequence"
   if (gap.missingFields.length !== 1) return null
   const field = gap.missingFields[0]
   if (gap.label === "SCENE-TURN-ENDPOINT-MISSING") {

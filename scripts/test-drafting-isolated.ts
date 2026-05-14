@@ -63,6 +63,7 @@
  *     [--scene-semantic-persist]                                 # persist scene-semantic eval rows; imports readiness lows unless disabled
  *     [--no-scene-semantic-readiness-import]                     # keep persisted scene-semantic readiness artifact-only
  *     [--allow-drafted-source]                                   # explicitly allow cloning a source that already has drafts
+ *     [--chapter-start 4]                                        # clone-only bounded production-path pass start
  *     [--chapter-limit 1]                                        # clone-only bounded production-path pass
  *     [--target-word-scale 0.85]                                  # default-off clone-only budget elasticity probe
  *     [--per-arm-timeout-ms 1800000]                             # 30-minute per-arm wallclock cap
@@ -200,6 +201,7 @@ export interface Args {
   allowDraftedSource: boolean
   /** Optional clone-only chapter cap for bounded evidence passes. Source
    *  plans and production defaults are unchanged. */
+  chapterStart: number
   chapterLimit: number | null
   /** Default-off clone-only budget elasticity probe. A value other than 1
    *  scales chapter outline `targetWords` and any existing per-scene
@@ -289,6 +291,7 @@ export interface DraftingIsolatedRunReport {
     sceneSemanticMaxTokens: number
     sceneSemanticDimensions: Dimension[]
     allowDraftedSource: boolean
+    chapterStart: number
     chapterLimit: number | null
     targetWordScale: number
     perArmTimeoutMs: number | null
@@ -830,6 +833,19 @@ async function applyChapterLimit(
   return { beforeTotalChapters, afterTotalChapters }
 }
 
+async function loadTotalChapters(novelId: string): Promise<number> {
+  const rows = await db`
+    SELECT total_chapters
+    FROM novels
+    WHERE id = ${novelId}
+  ` as Array<{ total_chapters: number }>
+  const totalChapters = rows[0]?.total_chapters
+  if (!Number.isInteger(totalChapters) || totalChapters <= 0) {
+    throw new Error(`novel ${novelId} has invalid total_chapters=${JSON.stringify(totalChapters)}`)
+  }
+  return totalChapters
+}
+
 async function collectArmResult(arm: ArmName, novelId: string): Promise<Pick<ArmResult, "chapters" | "totalWords" | "totalTarget" | "meanRatio" | "expansionEvents" | "draftingBrief">> {
   const chapterRows = await db`
     SELECT cd.chapter_number, cd.word_count, cd.version,
@@ -948,6 +964,7 @@ interface RunArmOptions {
   sceneSemanticConcurrency: number
   sceneSemanticMaxTokens: number
   sceneSemanticDimensions: Dimension[]
+  chapterStart: number
   chapterLimit: number | null
   targetWordScale: number
   perArmTimeoutMs: number | null
@@ -989,11 +1006,35 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
     }
   }
 
-  const chapterLimit = await applyChapterLimit(novelId, opts.chapterLimit)
-  if (chapterLimit) {
+  const totalChaptersBeforeLimit = await loadTotalChapters(novelId)
+  const chapterEnd = opts.chapterLimit === null
+    ? totalChaptersBeforeLimit
+    : Math.min(totalChaptersBeforeLimit, opts.chapterStart + opts.chapterLimit - 1)
+  if (opts.chapterStart > totalChaptersBeforeLimit) {
+    return {
+      arm, novelId, chapters: [], totalWords: 0, totalTarget: 0, meanRatio: 0,
+      draftingBrief: emptyDraftingBriefTelemetry(),
+      planningContext: await maybeRunPlanningContextAudit(arm, novelId, targetPrefix),
+      planAssistReadiness: await maybeRunPlanAssistReadinessAudit(arm, novelId, targetPrefix),
+      checkerReadiness: await maybeRunCheckerReadinessAudit(arm, novelId, targetPrefix),
+      expansionEvents: 0,
+      error: `chapter start ${opts.chapterStart} is after source total_chapters ${totalChaptersBeforeLimit}`,
+    }
+  }
+
+  let chapterLimit: Awaited<ReturnType<typeof applyChapterLimit>> = null
+  if (opts.chapterStart === 1) {
+    chapterLimit = await applyChapterLimit(novelId, opts.chapterLimit)
+    if (chapterLimit) {
+      console.log(
+        `  chapter limit: ${opts.chapterLimit} ` +
+          `(${chapterLimit.beforeTotalChapters} → ${chapterLimit.afterTotalChapters}; clone-only)`,
+      )
+    }
+  } else {
     console.log(
-      `  chapter limit: ${opts.chapterLimit} ` +
-        `(${chapterLimit.beforeTotalChapters} → ${chapterLimit.afterTotalChapters}; clone-only)`,
+      `  chapter window: ${opts.chapterStart}-${chapterEnd} ` +
+        `(source total_chapters stays ${totalChaptersBeforeLimit}; clone-only)`,
     )
   }
 
@@ -1020,7 +1061,9 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
   await initNovelRun(novelId)
   console.log(`  drafting ...`)
   try {
-    const draftingPromise = runDraftingPhase(novelId)
+    const draftingPromise = opts.chapterStart === 1 && opts.chapterLimit !== null
+      ? runDraftingPhase(novelId)
+      : runDraftingPhase(novelId, { chapterStart: opts.chapterStart, chapterEnd })
     const result = opts.perArmTimeoutMs != null
       ? await withArmTimeout(draftingPromise, opts.perArmTimeoutMs, arm)
       : await draftingPromise
@@ -1871,6 +1914,7 @@ export function parseArgs(argv: string[]): Args {
   let sceneSemanticMaxTokensExplicit = false
   const sceneSemanticDimensions: Dimension[] = []
   let allowDraftedSource = false
+  let chapterStart = 1
   let chapterLimit: number | null = null
   let targetWordScale = 1
   let perArmTimeoutMs: number | null = null
@@ -1901,6 +1945,15 @@ export function parseArgs(argv: string[]): Args {
     if (a === "--no-scene-semantic-readiness-import") { sceneSemanticReadinessImport = false; sceneSemanticReadinessImportExplicit = true; continue }
     if (a === "--no-scene-semantic-review") { sceneSemanticReview = false; sceneSemanticPersist = false; continue }
     if (a === "--allow-drafted-source") { allowDraftedSource = true; continue }
+    if (a === "--chapter-start") {
+      const raw = argv[++i] ?? ""
+      const parsed = Number.parseInt(raw, 10)
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        throw new Error(`--chapter-start requires a positive integer; got ${JSON.stringify(raw)}`)
+      }
+      chapterStart = parsed
+      continue
+    }
     if (a === "--chapter-limit") {
       const raw = argv[++i] ?? ""
       const parsed = Number.parseInt(raw, 10)
@@ -1993,6 +2046,7 @@ export function parseArgs(argv: string[]): Args {
     sceneSemanticMaxTokens,
     sceneSemanticDimensions: sceneSemanticDimensions.length > 0 ? sceneSemanticDimensions : DEFAULT_SCENE_SEMANTIC_DIMENSIONS,
     allowDraftedSource,
+    chapterStart,
     chapterLimit,
     targetWordScale,
     perArmTimeoutMs,
@@ -2037,6 +2091,9 @@ async function main() {
   if (args.allowDraftedSource) {
     console.log(`allow drafted source: true (source may include generated draft state)`)
   }
+  if (args.chapterStart !== 1) {
+    console.log(`chapter start: ${args.chapterStart} (clone-only bounded production-path pass; source plan is unchanged)`)
+  }
   if (args.chapterLimit !== null) {
     console.log(`chapter limit: ${args.chapterLimit} (clone-only bounded production-path pass; source plan is unchanged)`)
   }
@@ -2064,6 +2121,7 @@ async function main() {
       sceneSemanticConcurrency: args.sceneSemanticConcurrency,
       sceneSemanticMaxTokens: args.sceneSemanticMaxTokens,
       sceneSemanticDimensions: args.sceneSemanticDimensions,
+      chapterStart: args.chapterStart,
       chapterLimit: args.chapterLimit,
       targetWordScale: args.targetWordScale,
       perArmTimeoutMs: args.perArmTimeoutMs,
@@ -2218,6 +2276,7 @@ export function buildDraftingIsolatedRunReport(input: {
       sceneSemanticMaxTokens: input.args.sceneSemanticMaxTokens,
       sceneSemanticDimensions: input.args.sceneSemanticDimensions,
       allowDraftedSource: input.args.allowDraftedSource,
+      chapterStart: input.args.chapterStart,
       chapterLimit: input.args.chapterLimit,
       targetWordScale: input.args.targetWordScale,
       perArmTimeoutMs: input.args.perArmTimeoutMs,
@@ -2347,6 +2406,7 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
   lines.push(`- error arms: ${report.summary.errorArms}`)
   lines.push(`- writer-only: ${report.options.writerOnly}`)
   lines.push(`- quality telemetry packet: ${report.options.qualityTelemetryPacket ? "enabled" : "disabled"}`)
+  lines.push(`- chapter start: ${report.options.chapterStart}`)
   lines.push(`- chapter limit: ${report.options.chapterLimit ?? "none"}`)
   lines.push(`- target word scale: ${report.options.targetWordScale}`)
   lines.push(`- prose semantic eval: ${report.options.proseSemanticEval ? "enabled" : "disabled"}`)

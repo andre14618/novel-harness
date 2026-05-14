@@ -191,7 +191,20 @@ async function traceWriterContextEvent(
  *  drafting-reviser-escalation.test.ts) that exercise the phase body
  *  directly. Driver consumers should use `draftingPhase` (the Phase<I,O>
  *  wrapper) instead. */
-export async function runDraftingPhase(novelId: string): Promise<PhaseResult<DraftingOutput>> {
+export interface DraftingPhaseRunOptions {
+  chapterStart?: number
+  chapterEnd?: number
+}
+
+function positiveIntOrDefault(value: number | undefined, fallback: number): number {
+  if (value === undefined || !Number.isFinite(value)) return fallback
+  return Math.max(1, Math.trunc(value))
+}
+
+export async function runDraftingPhase(
+  novelId: string,
+  opts: DraftingPhaseRunOptions = {},
+): Promise<PhaseResult<DraftingOutput>> {
   displayPhaseHeader("Drafting — Writing chapters")
   emit(novelId, { type: "phase:changed", data: { phase: "drafting" } })
 
@@ -252,10 +265,21 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
     log(novelId, "info", `Drafting: pipelineOverrides applied — draftCaptureModeV1=${eff.draftCaptureModeV1} (chapter-level checker settle loops will be SKIPPED — writer-arm experiment lane only)`)
   }
 
-  console.log(`  Drafting ${totalChapters} chapters (approved chapters will be skipped)\n`)
-  log(novelId, "info", `Drafting phase: ${totalChapters} chapters`)
+  const chapterWindowStart = positiveIntOrDefault(opts.chapterStart, 1)
+  const chapterWindowEnd = Math.min(totalChapters, positiveIntOrDefault(opts.chapterEnd, totalChapters))
+  if (chapterWindowStart > chapterWindowEnd) {
+    const reason = `invalid drafting chapter window: start ${chapterWindowStart} is after end ${chapterWindowEnd}`
+    log(novelId, "error", reason)
+    return { kind: "paused", reason }
+  }
 
-  for (let ch = 1; ch <= totalChapters; ch++) {
+  const windowSuffix = chapterWindowStart === 1 && chapterWindowEnd === totalChapters
+    ? ""
+    : `; bounded window ${chapterWindowStart}-${chapterWindowEnd}`
+  console.log(`  Drafting ${totalChapters} chapters (approved chapters will be skipped${windowSuffix})\n`)
+  log(novelId, "info", `Drafting phase: ${totalChapters} chapters${windowSuffix}`)
+
+  for (let ch = chapterWindowStart; ch <= chapterWindowEnd; ch++) {
     const chapterStart = Date.now()
 
     // Skip chapters that already have an approved draft. Per-chapter redraft
@@ -270,7 +294,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       continue
     }
 
-    displayProgress(ch - 1, totalChapters, `Chapter ${ch}`)
+    displayProgress(ch - chapterWindowStart, chapterWindowEnd - chapterWindowStart + 1, `Chapter ${ch}`)
     emit(novelId, { type: "progress", data: { step: "drafting", chapter: ch, totalChapters, status: "starting" } })
 
     let outline: ChapterOutline
