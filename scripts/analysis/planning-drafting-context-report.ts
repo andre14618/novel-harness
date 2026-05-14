@@ -539,7 +539,7 @@ export function renderPlanningToDraftingContextReport(report: PlanningToDrafting
       `implicitRefs=${report.downstream.withImplicitReferences}, refs=${report.downstream.withResolvedReferences}, ` +
       `refLookups=${report.downstream.referenceLookups}, sceneContract=${report.downstream.withSceneContract} ` +
       `(shapeCounts=${report.downstream.withSceneContractShapeCounts}, dramatic=${report.downstream.withDramaticSceneContract}, anchorOnly=${report.downstream.withAnchorOnlySceneContract}, ` +
-      `anchors=${report.downstream.withSceneContractAnchors}), ` +
+      `anchors=${report.downstream.withSceneContractAnchors}, endpointGuidance=${report.downstream.withSceneEndpointLandingGuidance}), ` +
       `obligations=${report.downstream.withObligations}, draftingBrief=${report.downstream.withDraftingBriefTrace}`,
   )
   const sceneCoverage = report.downstream.sceneCoverage

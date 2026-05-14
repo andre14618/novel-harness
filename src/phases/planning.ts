@@ -473,6 +473,12 @@ pressure, include \`goal\`, \`opposition\`, \`turningPoint\`, \`outcome\`,
 \`consequence\`, and \`povPersonalStake\`. These are scene/turn fields only;
 still do not emit chapter-level state, obligations, or requiredPayoffs.
 
+The outcome/consequence pair is the entry's terminal landing, not mid-entry
+setup. It must match the terminal action or change promised by the description.
+Do not let the description say the characters probe one tactic while the
+outcome says they choose a different tactic. Consequence must add external
+downstream pressure that differs from both outcome and turningPoint.
+
 Scope discipline: do not add entries, transit-only entries, setup-only entries, targetWords,
 or larger implied chapter load just to carry these optional fields. Add the
 fields to existing load-bearing entries and preserve the skeleton's story
@@ -627,6 +633,8 @@ function selectiveSceneTurnShapingRetryReason(scenes: readonly SceneBeat[]): str
   if (!hasText(finalScene.outcome) || !hasText(finalScene.consequence)) {
     return "planningSceneTurnShapingV1 final entry missing outcome/consequence endpoint fields"
   }
+  const endpointShapeReason = sceneEndpointShapeRetryReason(scenes)
+  if (endpointShapeReason) return endpointShapeReason
   const missingTurnShape = scenes
     .slice(0, -1)
     .filter(sceneHasSourceRefedHardObligation)
@@ -635,6 +643,30 @@ function selectiveSceneTurnShapingRetryReason(scenes: readonly SceneBeat[]): str
     return `planningSceneTurnShapingV1 ${missingTurnShape.length} source-refed non-final entries missing goal/opposition/outcome/consequence fields`
   }
   return null
+}
+
+function sceneEndpointShapeRetryReason(scenes: readonly SceneBeat[]): string | null {
+  for (const [index, scene] of scenes.entries()) {
+    const outcome = normalizedSceneTurnText(scene.outcome)
+    const consequence = normalizedSceneTurnText(scene.consequence)
+    if (!outcome || !consequence) continue
+    if (outcome === consequence) {
+      return `planningSceneTurnShapingV1 scene ${index + 1} outcome duplicates consequence; make consequence an external downstream pressure`
+    }
+    const turningPoint = normalizedSceneTurnText(scene.turningPoint)
+    if (turningPoint && turningPoint === consequence) {
+      return `planningSceneTurnShapingV1 scene ${index + 1} consequence duplicates turningPoint; make consequence the terminal downstream pressure`
+    }
+  }
+  return null
+}
+
+function normalizedSceneTurnText(value: unknown): string {
+  if (typeof value !== "string") return ""
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
 }
 
 function hasText(value: unknown): boolean {

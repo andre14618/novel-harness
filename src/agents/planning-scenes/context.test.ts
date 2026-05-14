@@ -103,6 +103,8 @@ test("planning scene context renders selective scene-turn shaping without full s
   expect(context).toContain("Preserve the skeleton's scope")
   expect(context).toContain("Populate the final entry's \"outcome\" and \"consequence\"")
   expect(context).toContain("Do not leave an obligation-bearing action/revelation entry as description-only")
+  expect(context).toContain("Outcome/consequence are the entry's terminal landing")
+  expect(context).toContain("Consequence must add external downstream pressure")
   expect(context).toContain("Add \"crisisChoice\" and two \"choiceAlternatives\" only when there is a real tradeoff")
   expect(context).toContain("Do not add standalone labels for context that does not change the turn")
   expect(context).toContain("repair those fields directly")

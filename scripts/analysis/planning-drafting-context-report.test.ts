@@ -155,6 +155,7 @@ describe("planning-drafting-context-report", () => {
             sceneContractFields: 5,
             sceneContractAnchorFields: 2,
             sceneContractDramaticFields: 3,
+            sceneContractEndpointFields: 2,
             sceneContractBudgetFields: 0,
           },
           ids: {
@@ -171,6 +172,7 @@ describe("planning-drafting-context-report", () => {
           charsRatio: 0.667,
           sections: {
             sceneContract: true,
+            sceneEndpointLandingGuidance: true,
             obligations: true,
             factContinuityAnchors: false,
             characterSnapshots: true,
@@ -191,6 +193,7 @@ describe("planning-drafting-context-report", () => {
             sceneContractFields: 5,
             sceneContractAnchorFields: 2,
             sceneContractDramaticFields: 3,
+            sceneContractEndpointFields: 2,
             sceneContractBudgetFields: 0,
             choiceAlternatives: 0,
           },
@@ -233,7 +236,7 @@ describe("planning-drafting-context-report", () => {
     expect(renderPlanningToDraftingContextReport(report)).toContain("Scene load: maxScenesPerChapter=1")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Plan continuity: futureEventAnchors=0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=1, choice=0, endpoint=1, full=0, anchorOnly=0, temporal=1, place=1)")
-    expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=1, anchorOnly=0, anchors=1)")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=1, anchorOnly=0, anchors=1, endpointGuidance=1)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, missingEndpoint=0, missingTurn=0, missingMateriality=0, missingChoice=1, missingFull=1, anchorOnly=0")
     expect(renderPlanningToDraftingContextReport(report)).toContain("SCENE-CONTRACT-CHOICE-SHAPE-INCOMPLETE")
   })
@@ -356,6 +359,7 @@ describe("planning-drafting-context-report", () => {
             sceneContractFields: 3,
             sceneContractAnchorFields: 2,
             sceneContractDramaticFields: 0,
+            sceneContractEndpointFields: 0,
             sceneContractBudgetFields: 1,
           },
         },
@@ -365,7 +369,7 @@ describe("planning-drafting-context-report", () => {
     const report = buildPlanningToDraftingContextReport({ novelId: "novel-anchor-only", upstream, writerContext })
 
     expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContracts=1 (dramatic=0, choice=0, endpoint=0, full=0, anchorOnly=1, temporal=1, place=1)")
-    expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=0, anchorOnly=1, anchors=1)")
+    expect(renderPlanningToDraftingContextReport(report)).toContain("sceneContract=1 (shapeCounts=1, dramatic=0, anchorOnly=1, anchors=1, endpointGuidance=0)")
     expect(renderPlanningToDraftingContextReport(report)).toContain("Scene contract shape gaps: missingDramatic=1, missingEndpoint=1, missingTurn=0, missingMateriality=0, missingChoice=0, missingFull=0, anchorOnly=1")
     expect(renderPlanningToDraftingContextReport(report)).toContain("ANCHOR-ONLY-SCENE-CONTRACT: scene-1")
   })

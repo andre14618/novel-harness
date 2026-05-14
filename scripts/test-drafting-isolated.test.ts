@@ -44,9 +44,9 @@ describe("test-drafting-isolated parseArgs", () => {
     const args = parseArgs([
       "--source", "n",
       "--target-prefix", "ab",
-      "--writer-arms", "baseline,id-suppress,contract-render-only,scene-call-no-expansion,drafting-brief-v1,drafting-brief-tight-v1,drafting-brief-scene-turn-v1,drafting-brief-anchored-v1,drafting-brief-tight-anchored-v1,scene-call-v1",
+      "--writer-arms", "production-path,baseline,id-suppress,contract-render-only,scene-call-no-expansion,drafting-brief-v1,drafting-brief-tight-v1,drafting-brief-scene-turn-v1,drafting-brief-anchored-v1,drafting-brief-tight-anchored-v1,scene-call-v1",
     ])
-    expect(args.arms).toEqual(["baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "drafting-brief-v1", "drafting-brief-tight-v1", "drafting-brief-scene-turn-v1", "drafting-brief-anchored-v1", "drafting-brief-tight-anchored-v1", "scene-call-v1"])
+    expect(args.arms).toEqual(["production-path", "baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "drafting-brief-v1", "drafting-brief-tight-v1", "drafting-brief-scene-turn-v1", "drafting-brief-anchored-v1", "drafting-brief-tight-anchored-v1", "scene-call-v1"])
   })
 
   test("rejects unknown arm names", () => {
@@ -382,6 +382,7 @@ describe("drafting isolated report", () => {
               withResolvedReferences: 0,
               referenceLookups: 0,
               withSceneContract: 11,
+              withSceneEndpointLandingGuidance: 11,
               withSceneContractShapeCounts: 11,
               withSceneContractAnchors: 0,
               withDramaticSceneContract: 11,
@@ -577,6 +578,12 @@ describe("drafting isolated report", () => {
 })
 
 describe("flagsForArm", () => {
+  test("production-path arm preserves source pipeline writer overrides", () => {
+    expect(flagsForArm("production-path")).toEqual({
+      preserveSourcePipelineOverrides: true,
+    })
+  })
+
   test("baseline arm preserves production defaults across all writer flags", () => {
     expect(flagsForArm("baseline")).toEqual({
       sceneCallWriterV1: false,
@@ -670,7 +677,7 @@ describe("flagsForArm", () => {
   })
 
   test("WRITER_ARM_NAMES enumerates the supported arms in declaration order", () => {
-    expect(WRITER_ARM_NAMES).toEqual(["baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "drafting-brief-v1", "drafting-brief-tight-v1", "drafting-brief-scene-turn-v1", "drafting-brief-anchored-v1", "drafting-brief-tight-anchored-v1", "scene-call-v1"])
+    expect(WRITER_ARM_NAMES).toEqual(["production-path", "baseline", "id-suppress", "contract-render-only", "scene-call-no-expansion", "drafting-brief-v1", "drafting-brief-tight-v1", "drafting-brief-scene-turn-v1", "drafting-brief-anchored-v1", "drafting-brief-tight-anchored-v1", "scene-call-v1"])
   })
 })
 
@@ -985,6 +992,7 @@ function planningContextReport(): PlanningToDraftingContextReport {
       withCharacterSnapshots: 0,
       withCharacterContextCapsules: 0,
       withSceneContract: 0,
+      withSceneEndpointLandingGuidance: 0,
       withSceneContractShapeCounts: 0,
       withSceneContractAnchors: 0,
       withDramaticSceneContract: 0,
@@ -992,6 +1000,7 @@ function planningContextReport(): PlanningToDraftingContextReport {
       sceneContractFields: 0,
       sceneContractAnchorFields: 0,
       sceneContractDramaticFields: 0,
+      sceneContractEndpointFields: 0,
       sceneContractBudgetFields: 0,
       withObligations: 0,
       withCanonFactContext: 0,

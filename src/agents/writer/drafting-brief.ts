@@ -21,6 +21,7 @@ export interface WriterDraftingBriefTrace {
   charsRatio: number
   sections: {
     sceneContract: boolean
+    sceneEndpointLandingGuidance: boolean
     sceneLoadControl: boolean
     obligations: boolean
     transitionBridge: boolean
@@ -44,6 +45,7 @@ export interface WriterDraftingBriefTrace {
     sceneContractFields: number
     sceneContractAnchorFields: number
     sceneContractDramaticFields: number
+    sceneContractEndpointFields: number
     sceneContractBudgetFields: number
     choiceAlternatives: number
   }
@@ -258,6 +260,8 @@ function renderSceneContractBrief(scene: SceneContractBlock, mode: WriterDraftin
   if (scene.consequence) lines.push(`- Consequence: ${scene.consequence}`)
   if (scene.outcome || scene.consequence) {
     lines.push("- Endpoint landing: execute the outcome and show the consequence in this scene; do not only point toward a later confrontation.")
+    lines.push("- Treat the listed outcome/consequence as the terminal landing; do not swap in a different final tactic, hook, or intention.")
+    lines.push("- Final paragraph check: a named character does, chooses, refuses, reveals, takes, leaves, enters, or commits on page; do not stop at planning, discussion, or intention.")
     lines.push("- If the outcome is delay, investigation, or refusal to decide, show the immediate record, custody, access, debt, threat, or relationship change that makes the delay costly, then exit.")
   }
   if (scene.povPersonalStake) lines.push(`- POV personal stake: ${scene.povPersonalStake}`)
@@ -447,6 +451,7 @@ function summarizeWriterDraftingBrief(args: {
     charsRatio: fullContextPromptChars > 0 ? selectedPromptChars / fullContextPromptChars : 1,
     sections: {
       sceneContract: Boolean(args.ctx.sceneContract),
+      sceneEndpointLandingGuidance: (sceneContractShape?.endpointFields ?? 0) > 0,
       sceneLoadControl: hasSceneLoadControl(args.mode),
       obligations: countObligations(args.ctx.beatSpec.obligations) > 0,
       transitionBridge: Boolean(args.ctx.transitionBridge),
@@ -473,6 +478,7 @@ function summarizeWriterDraftingBrief(args: {
       sceneContractFields: sceneContractShape?.fieldCount ?? 0,
       sceneContractAnchorFields: sceneContractShape?.anchorFields ?? 0,
       sceneContractDramaticFields: sceneContractShape?.dramaticFields ?? 0,
+      sceneContractEndpointFields: sceneContractShape?.endpointFields ?? 0,
       sceneContractBudgetFields: sceneContractShape?.budgetFields ?? 0,
       choiceAlternatives: sceneContractShape?.choiceAlternatives ?? 0,
     },

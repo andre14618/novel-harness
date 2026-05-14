@@ -26,6 +26,7 @@ describe("writer-context-report", () => {
             characterProfiles: true,
             canonFacts: true,
             sceneContract: false,
+            sceneEndpointLandingGuidance: true,
             worldBible: true,
             setting: false,
             storySpine: false,
@@ -42,6 +43,7 @@ describe("writer-context-report", () => {
             sceneContractFields: 5,
             sceneContractAnchorFields: 2,
             sceneContractDramaticFields: 2,
+            sceneContractEndpointFields: 2,
             sceneContractBudgetFields: 1,
             activeThreadIds: 1,
             readerInfoStateChars: 0,
@@ -64,6 +66,7 @@ describe("writer-context-report", () => {
           charsRatio: 0.5,
           sections: {
             sceneContract: true,
+            sceneEndpointLandingGuidance: true,
             obligations: true,
             factContinuityAnchors: true,
             characterSnapshots: true,
@@ -84,6 +87,7 @@ describe("writer-context-report", () => {
             sceneContractFields: 5,
             sceneContractAnchorFields: 2,
             sceneContractDramaticFields: 2,
+            sceneContractEndpointFields: 2,
             sceneContractBudgetFields: 1,
             choiceAlternatives: 1,
           },
@@ -129,6 +133,7 @@ describe("writer-context-report", () => {
       withCharacterSnapshots: 1,
       withCharacterContextCapsules: 1,
       withSceneContract: 1,
+      withSceneEndpointLandingGuidance: 1,
       withSceneContractShapeCounts: 1,
       withSceneContractAnchors: 1,
       withDramaticSceneContract: 1,
@@ -136,6 +141,7 @@ describe("writer-context-report", () => {
       sceneContractFields: 5,
       sceneContractAnchorFields: 2,
       sceneContractDramaticFields: 2,
+      sceneContractEndpointFields: 2,
       sceneContractBudgetFields: 1,
       withObligations: 1,
       withCanonFactContext: 1,
@@ -183,7 +189,7 @@ describe("writer-context-report", () => {
     const rendered = renderWriterContextTelemetryReport(report)
     expect(rendered).toContain("Writer context telemetry for novel-a")
     expect(rendered).toContain("character=1/3 (profiles=1, snapshots=1, capsules=1)")
-    expect(rendered).toContain("sceneContract=1/3 (shapeCounts=1, dramatic=1, anchorOnly=0, anchors=1)")
+    expect(rendered).toContain("sceneContract=1/3 (shapeCounts=1, dramatic=1, endpointGuidance=1, anchorOnly=0, anchors=1)")
     expect(rendered).toContain("obligations=1/3")
     expect(rendered).toContain("canon=1/3 (sourceRefs=2; fact-ledger=1, fact-warrant=1, factAnchors=1)")
     expect(rendered).toContain("world=2/3 (bible=2, setting=1)")
@@ -197,7 +203,7 @@ describe("writer-context-report", () => {
     expect(rendered).toContain("missingCharacterIds=1 (char-missing=1)")
     expect(rendered).toContain("avgChars=500/1000")
     expect(rendered).toContain("avgRatio=0.500")
-    expect(rendered).toContain("#1 ch1 beat1 beat/initial: surfaces=char,scene,canon,obligations")
+    expect(rendered).toContain("#1 ch1 beat1 beat/initial: surfaces=char,scene,endpointGuidance,canon,obligations")
     expect(rendered).toContain("missingCharacterIds=char-missing")
     expect(rendered).toContain("traceIds=canon:fact-ledger,fact-warrant; threads:thread-report; promises:promise-return")
     expect(rendered).toContain("brief=scene-budget-v1 500/1000 (0.500)")

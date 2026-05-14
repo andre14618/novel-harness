@@ -20,6 +20,7 @@ export interface WriterContextSurfaceTrace {
     readerInfoState?: boolean
     transitionBridge?: boolean
     landingTarget?: boolean
+    sceneEndpointLandingGuidance?: boolean
     povWorldView?: boolean
     craftReminders?: boolean
     semanticRetrieval?: boolean
@@ -35,6 +36,7 @@ export interface WriterContextSurfaceTrace {
     sceneContractFields?: number
     sceneContractAnchorFields?: number
     sceneContractDramaticFields?: number
+    sceneContractEndpointFields?: number
     sceneContractBudgetFields?: number
     choiceAlternatives?: number
     storyRefIds?: number
@@ -78,6 +80,7 @@ export function summarizeBeatContextSurface(ctx: BeatContext): WriterContextSurf
       readerInfoState: Boolean(ctx.readerInfoState),
       transitionBridge: Boolean(ctx.transitionBridge),
       landingTarget: Boolean(ctx.landingTarget),
+      sceneEndpointLandingGuidance: (sceneContractShape?.endpointFields ?? 0) > 0,
     },
     counts: {
       charactersPresent: ctx.beatSpec.charactersPresent.length,
@@ -89,6 +92,7 @@ export function summarizeBeatContextSurface(ctx: BeatContext): WriterContextSurf
       sceneContractFields: sceneContractShape?.fieldCount ?? 0,
       sceneContractAnchorFields: sceneContractShape?.anchorFields ?? 0,
       sceneContractDramaticFields: sceneContractShape?.dramaticFields ?? 0,
+      sceneContractEndpointFields: sceneContractShape?.endpointFields ?? 0,
       sceneContractBudgetFields: sceneContractShape?.budgetFields ?? 0,
       choiceAlternatives: sceneContractShape?.choiceAlternatives ?? 0,
       storyRefIds: storyRefs.total,

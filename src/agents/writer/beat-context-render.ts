@@ -150,7 +150,9 @@ function renderSceneContract(scene: SceneContractBlock): string {
   if (scene.consequence) lines.push(`Consequence (observable downstream pressure — different from outcome): ${scene.consequence}`)
   if (scene.outcome || scene.consequence) {
     lines.push("Endpoint landing: enact the outcome before this scene exits, then show the immediate consequence on page.")
-    lines.push("If the scene ends with intention, unanswered setup, or a later confrontation, first show the immediate consequence that changes the next scene's starting conditions.")
+    lines.push("Use the listed outcome/consequence as the terminal landing; do not replace it with a different final tactic, hook, or intention.")
+    lines.push("Final paragraph check: a named character must do, choose, refuse, reveal, take, leave, enter, or commit on page; do not stop at planning, discussion, or intention.")
+    lines.push("If the scene ends with unanswered setup or a later confrontation, first show the immediate consequence that changes the next scene's starting conditions.")
   }
   if (scene.povPersonalStake) lines.push(`POV personal stake: ${scene.povPersonalStake}`)
   if (scene.valueIn || scene.valueOut) {

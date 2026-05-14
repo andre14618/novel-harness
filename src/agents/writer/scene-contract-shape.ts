@@ -4,6 +4,7 @@ export interface SceneContractShapeCounts {
   fieldCount: number
   anchorFields: number
   dramaticFields: number
+  endpointFields: number
   budgetFields: number
   choiceAlternatives: number
   hasAny: boolean
@@ -32,6 +33,7 @@ export function summarizeSceneContractShape(scene: SceneContractShapeInput | nul
   const crisisChoice = hasText(scene?.crisisChoice)
   const outcome = hasText(scene?.outcome)
   const consequence = hasText(scene?.consequence)
+  const endpointFields = Number(outcome) + Number(consequence)
   const povPersonalStake = hasText(scene?.povPersonalStake)
   const valueIn = hasText(scene?.valueIn)
   const valueOut = hasText(scene?.valueOut)
@@ -57,6 +59,7 @@ export function summarizeSceneContractShape(scene: SceneContractShapeInput | nul
     fieldCount,
     anchorFields,
     dramaticFields,
+    endpointFields,
     budgetFields,
     choiceAlternatives,
     hasAny: fieldCount > 0,

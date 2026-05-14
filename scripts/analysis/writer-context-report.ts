@@ -33,6 +33,7 @@ export interface WriterContextEventSummary {
     characterSnapshots: boolean
     characterContextCapsules: boolean
     sceneContract: boolean
+    sceneEndpointLandingGuidance: boolean
     canonFacts: boolean
     obligations: boolean
     world: boolean
@@ -54,6 +55,7 @@ export interface WriterContextEventSummary {
     charsDelta: number
     sections: {
       sceneContract: boolean
+      sceneEndpointLandingGuidance: boolean
       sceneLoadControl: boolean
       obligations: boolean
       factContinuityAnchors: boolean
@@ -75,6 +77,7 @@ export interface WriterContextEventSummary {
       sceneContractFields: number
       sceneContractAnchorFields: number
       sceneContractDramaticFields: number
+      sceneContractEndpointFields: number
       sceneContractBudgetFields: number
       choiceAlternatives: number
     }
@@ -88,6 +91,7 @@ export interface WriterContextEventSummary {
   sceneContractFields: number
   sceneContractAnchorFields: number
   sceneContractDramaticFields: number
+  sceneContractEndpointFields: number
   sceneContractBudgetFields: number
   canonSourceRefs: number
   canonSourceRefValues: string[]
@@ -115,6 +119,7 @@ export interface WriterContextTelemetryReport {
     withCharacterSnapshots: number
     withCharacterContextCapsules: number
     withSceneContract: number
+    withSceneEndpointLandingGuidance: number
     withSceneContractShapeCounts: number
     withSceneContractAnchors: number
     withDramaticSceneContract: number
@@ -122,6 +127,7 @@ export interface WriterContextTelemetryReport {
     sceneContractFields: number
     sceneContractAnchorFields: number
     sceneContractDramaticFields: number
+    sceneContractEndpointFields: number
     sceneContractBudgetFields: number
     withObligations: number
     withCanonFactContext: number
@@ -211,6 +217,7 @@ export function buildWriterContextTelemetryReport(
       withCharacterSnapshots: events.filter(event => event.surfaces.characterSnapshots).length,
       withCharacterContextCapsules: events.filter(event => event.surfaces.characterContextCapsules).length,
       withSceneContract: events.filter(event => event.surfaces.sceneContract).length,
+      withSceneEndpointLandingGuidance: events.filter(event => event.surfaces.sceneEndpointLandingGuidance).length,
       withSceneContractShapeCounts: events.filter(event =>
         event.sceneContractAnchorFields + event.sceneContractDramaticFields + event.sceneContractBudgetFields > 0
       ).length,
@@ -222,6 +229,7 @@ export function buildWriterContextTelemetryReport(
       sceneContractFields: events.reduce((sum, event) => sum + event.sceneContractFields, 0),
       sceneContractAnchorFields: events.reduce((sum, event) => sum + event.sceneContractAnchorFields, 0),
       sceneContractDramaticFields: events.reduce((sum, event) => sum + event.sceneContractDramaticFields, 0),
+      sceneContractEndpointFields: events.reduce((sum, event) => sum + event.sceneContractEndpointFields, 0),
       sceneContractBudgetFields: events.reduce((sum, event) => sum + event.sceneContractBudgetFields, 0),
       withObligations: events.filter(event => event.surfaces.obligations).length,
       withCanonFactContext: events.filter(event => event.surfaces.canonFacts).length,
@@ -273,7 +281,7 @@ export function renderWriterContextTelemetryReport(report: WriterContextTelemetr
       `(profiles=${report.totals.withCharacterProfiles}, snapshots=${report.totals.withCharacterSnapshots}, capsules=${report.totals.withCharacterContextCapsules}), ` +
       `sceneContract=${formatCoverage(report.totals.withSceneContract, report.totals.events)} ` +
       `(shapeCounts=${report.totals.withSceneContractShapeCounts}, dramatic=${report.totals.withDramaticSceneContract}, ` +
-      `anchorOnly=${report.totals.withAnchorOnlySceneContract}, anchors=${report.totals.withSceneContractAnchors}), ` +
+      `endpointGuidance=${report.totals.withSceneEndpointLandingGuidance}, anchorOnly=${report.totals.withAnchorOnlySceneContract}, anchors=${report.totals.withSceneContractAnchors}), ` +
       `obligations=${formatCoverage(report.totals.withObligations, report.totals.events)}, ` +
       `canon=${formatCoverage(report.totals.withCanonFactContext, report.totals.events)} ` +
       `(sourceRefs=${report.totals.canonSourceRefs}${recordSuffix(report.totals.canonSourceRefCounts)}, ` +
@@ -332,6 +340,7 @@ export function renderWriterContextTelemetryReport(report: WriterContextTelemetr
     const surfaces = [
       event.surfaces.character ? "char" : null,
       event.surfaces.sceneContract ? "scene" : null,
+      event.surfaces.sceneEndpointLandingGuidance ? "endpointGuidance" : null,
       event.surfaces.canonFacts ? "canon" : null,
       event.surfaces.obligations ? "obligations" : null,
       event.surfaces.world ? "world" : null,
@@ -453,6 +462,10 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
     readFiniteNumber(counts.sceneContractDramaticFields),
     draftingBrief?.counts.sceneContractDramaticFields,
   )
+  const sceneContractEndpointFields = maxNumber(
+    readFiniteNumber(counts.sceneContractEndpointFields),
+    draftingBrief?.counts.sceneContractEndpointFields,
+  )
   const sceneContractBudgetFields = maxNumber(
     readFiniteNumber(counts.sceneContractBudgetFields),
     draftingBrief?.counts.sceneContractBudgetFields,
@@ -460,6 +473,9 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
   const hasSceneContract = readBoolean(surfaces.sceneContract)
     || Boolean(draftingBrief?.sections.sceneContract)
     || sceneContractFields > 0
+  const hasSceneEndpointLandingGuidance = readBoolean(surfaces.sceneEndpointLandingGuidance)
+    || Boolean(draftingBrief?.sections.sceneEndpointLandingGuidance)
+    || sceneContractEndpointFields > 0
   const referenceLookups = readFiniteNumber(counts.referenceLookups) ?? 0
   const referenceLlmCalls = readFiniteNumber(counts.referenceLlmCalls) ?? 0
   const missingCharacterIdValues = cleanStringArray(characterContext.missingCharacterIds)
@@ -480,6 +496,7 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
       characterSnapshots: hasCharacterSnapshots,
       characterContextCapsules: hasCharacterContextCapsules,
       sceneContract: hasSceneContract,
+      sceneEndpointLandingGuidance: hasSceneEndpointLandingGuidance,
       canonFacts: hasCanonFacts,
       obligations: hasObligations,
       world: hasWorldBible || hasSetting,
@@ -497,6 +514,7 @@ function normalizeWriterContextEvent(row: WriterContextEventRow): WriterContextE
     sceneContractFields,
     sceneContractAnchorFields,
     sceneContractDramaticFields,
+    sceneContractEndpointFields,
     sceneContractBudgetFields,
     canonSourceRefs,
     canonSourceRefValues,
@@ -651,6 +669,7 @@ function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingB
     charsDelta,
     sections: {
       sceneContract: readBoolean(sections.sceneContract),
+      sceneEndpointLandingGuidance: readBoolean(sections.sceneEndpointLandingGuidance),
       sceneLoadControl: readBoolean(sections.sceneLoadControl),
       obligations: readBoolean(sections.obligations),
       factContinuityAnchors: readBoolean(sections.factContinuityAnchors),
@@ -672,6 +691,7 @@ function readDraftingBrief(value: unknown): WriterContextEventSummary["draftingB
       sceneContractFields: readFiniteNumber(counts.sceneContractFields) ?? 0,
       sceneContractAnchorFields: readFiniteNumber(counts.sceneContractAnchorFields) ?? 0,
       sceneContractDramaticFields: readFiniteNumber(counts.sceneContractDramaticFields) ?? 0,
+      sceneContractEndpointFields: readFiniteNumber(counts.sceneContractEndpointFields) ?? 0,
       sceneContractBudgetFields: readFiniteNumber(counts.sceneContractBudgetFields) ?? 0,
       choiceAlternatives: readFiniteNumber(counts.choiceAlternatives) ?? 0,
     },

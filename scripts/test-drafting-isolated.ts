@@ -9,6 +9,9 @@
  * chapter_outlines.
  *
  * Arms:
+ *   production-path    — clone source and preserve its existing
+ *                        seed.pipelineOverrides writer configuration;
+ *                        only draftCaptureModeV1 is set from --writer-only.
  *   baseline           — current production writer (sceneCallWriterV1=false,
  *                        writerExpansionMode="off",
  *                        forceRenderSceneContractWhenAvailable=true,
@@ -51,7 +54,7 @@
  *   bun scripts/test-drafting-isolated.ts \
  *     --source <planning-done-novel-id> \
  *     --target-prefix <prefix>                                   # e.g. "ab-1778378900"
- *     [--writer-arms baseline,id-suppress,contract-render-only,scene-call-no-expansion,drafting-brief-v1,scene-call-v1]
+ *     [--writer-arms production-path,baseline,id-suppress,contract-render-only,scene-call-no-expansion,drafting-brief-v1,scene-call-v1]
  *                                                                # default: baseline,scene-call-v1
  *     [--writer-only]                                            # set draftCaptureModeV1=true on every arm
  *     [--prose-semantic-eval]                                    # opt into advisory prose telemetry
@@ -214,6 +217,7 @@ export interface Args {
 }
 
 export const WRITER_ARM_NAMES = [
+  "production-path",
   "baseline",
   "id-suppress",
   "contract-render-only",
@@ -397,6 +401,7 @@ export interface PlanningContextTelemetrySummary {
     withResolvedReferences: number
     referenceLookups: number
     withSceneContract: number
+    withSceneEndpointLandingGuidance: number
     withSceneContractShapeCounts: number
     withSceneContractAnchors: number
     withDramaticSceneContract: number
@@ -538,16 +543,21 @@ function runCloneSubprocess(source: string, target: string): Promise<void> {
   })
 }
 
-interface ArmFlags {
-  sceneCallWriterV1: boolean
-  writerExpansionMode: "off" | "retry-short-scenes-v1"
-  forceRenderSceneContractWhenAvailable: boolean
-  writerPromptIdRendering: "raw" | "suppress"
-  writerDraftingBriefMode: "off" | "scene-budget-v1" | "scene-budget-tight-v1" | "scene-turn-v1" | "scene-turn-anchored-v1" | "scene-budget-tight-anchored-v1"
-}
+type ArmFlags =
+  | { preserveSourcePipelineOverrides: true }
+  | {
+    preserveSourcePipelineOverrides?: false
+    sceneCallWriterV1: boolean
+    writerExpansionMode: "off" | "retry-short-scenes-v1"
+    forceRenderSceneContractWhenAvailable: boolean
+    writerPromptIdRendering: "raw" | "suppress"
+    writerDraftingBriefMode: "off" | "scene-budget-v1" | "scene-budget-tight-v1" | "scene-turn-v1" | "scene-turn-anchored-v1" | "scene-budget-tight-anchored-v1"
+  }
 
 export function flagsForArm(arm: ArmName): ArmFlags {
   switch (arm) {
+    case "production-path":
+      return { preserveSourcePipelineOverrides: true }
     case "baseline":
       return {
         sceneCallWriterV1: false,
@@ -656,6 +666,25 @@ export function flagsForArm(arm: ArmName): ArmFlags {
 async function setWriterFlags(novelId: string, arm: ArmName, opts: { writerOnly: boolean }): Promise<void> {
   const flags = flagsForArm(arm)
   const draftCaptureModeV1 = opts.writerOnly
+  if (flags.preserveSourcePipelineOverrides) {
+    await db`
+      UPDATE novels
+      SET seed_json = jsonb_set(
+            jsonb_set(
+              COALESCE(seed_json, '{}'::jsonb),
+              '{pipelineOverrides}',
+              COALESCE(seed_json->'pipelineOverrides', '{}'::jsonb),
+              true
+            ),
+            '{pipelineOverrides,draftCaptureModeV1}',
+            to_jsonb(${draftCaptureModeV1}::boolean),
+            true
+          ),
+          updated_at = now()
+      WHERE id = ${novelId}
+    `
+    return
+  }
   await db`
     UPDATE novels
     SET seed_json = jsonb_set(
@@ -978,7 +1007,11 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
   }
 
   const flags = flagsForArm(arm)
-  console.log(`  setting writer flags: sceneCallWriterV1=${flags.sceneCallWriterV1}, writerExpansionMode=${flags.writerExpansionMode}, forceRenderSceneContractWhenAvailable=${flags.forceRenderSceneContractWhenAvailable}, writerPromptIdRendering=${flags.writerPromptIdRendering}, writerDraftingBriefMode=${flags.writerDraftingBriefMode}, draftCaptureModeV1=${opts.writerOnly}`)
+  if (flags.preserveSourcePipelineOverrides) {
+    console.log(`  preserving source writer flags; setting draftCaptureModeV1=${opts.writerOnly}`)
+  } else {
+    console.log(`  setting writer flags: sceneCallWriterV1=${flags.sceneCallWriterV1}, writerExpansionMode=${flags.writerExpansionMode}, forceRenderSceneContractWhenAvailable=${flags.forceRenderSceneContractWhenAvailable}, writerPromptIdRendering=${flags.writerPromptIdRendering}, writerDraftingBriefMode=${flags.writerDraftingBriefMode}, draftCaptureModeV1=${opts.writerOnly}`)
+  }
   await setWriterFlags(novelId, arm, { writerOnly: opts.writerOnly })
 
   await initNovelRun(novelId)
@@ -1050,6 +1083,7 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
         withResolvedReferences: 0,
         referenceLookups: 0,
         withSceneContract: 0,
+        withSceneEndpointLandingGuidance: 0,
         withSceneContractShapeCounts: 0,
         withSceneContractAnchors: 0,
         withDramaticSceneContract: 0,
@@ -1309,6 +1343,7 @@ async function maybeRunPlanningContextAudit(
         withResolvedReferences: 0,
         referenceLookups: 0,
         withSceneContract: 0,
+        withSceneEndpointLandingGuidance: 0,
         withSceneContractShapeCounts: 0,
         withSceneContractAnchors: 0,
         withDramaticSceneContract: 0,
@@ -1383,6 +1418,7 @@ function planningContextSummary(
       withResolvedReferences: report.downstream.withResolvedReferences,
       referenceLookups: report.downstream.referenceLookups,
       withSceneContract: report.downstream.withSceneContract,
+      withSceneEndpointLandingGuidance: report.downstream.withSceneEndpointLandingGuidance,
       withSceneContractShapeCounts: report.downstream.withSceneContractShapeCounts,
       withSceneContractAnchors: report.downstream.withSceneContractAnchors,
       withDramaticSceneContract: report.downstream.withDramaticSceneContract,

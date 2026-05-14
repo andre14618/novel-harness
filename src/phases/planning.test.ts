@@ -27,6 +27,8 @@ describe("planningSceneExpansionRetryReason", () => {
     expect(prompt).toContain("`consequence`")
     expect(prompt).toContain("still do not emit chapter-level state, obligations, or requiredPayoffs")
     expect(prompt).toContain("Scope discipline: do not add entries")
+    expect(prompt).toContain("outcome/consequence pair is the entry's terminal landing")
+    expect(prompt).toContain("Consequence must add external")
     expect(prompt).toContain("Source hygiene: do not invent a new offstage crime")
     expect(prompt).toContain("Character hygiene: `characters[]` must contain actual named cast members")
   })
@@ -75,6 +77,52 @@ describe("planningSceneExpansionRetryReason", () => {
       nativePlanningContractV1: false,
       planningSceneTurnShapingV1: true,
     })).toBeNull()
+  })
+
+  test("retries selective scene-turn shaping when endpoint consequence duplicates outcome or turning point", () => {
+    expect(planningSceneExpansionRetryReason({
+      chapterNumber: 1,
+      targetWords: 3100,
+      scenes: [
+        scene("Maren studies the sealed stair.", {
+          turningPoint: "Maren sees the lower lock is already open.",
+          outcome: "Maren sees the lower lock is already open.",
+          consequence: "Maren sees the lower lock is already open.",
+        }),
+        scene("Maren crosses the archive bridge.", {
+          outcome: "Maren reaches the west door.",
+          consequence: "The guards lock the east door behind her.",
+        }),
+        scene("Maren leaves with Halric's summons.", {
+          outcome: "Maren pockets Halric's sealed summons.",
+          consequence: "Tovin must escort her into the Chancellor's chambers before dawn.",
+        }),
+      ],
+    }, {
+      planningSceneTurnShapingV1: true,
+    })).toBe("planningSceneTurnShapingV1 scene 1 outcome duplicates consequence; make consequence an external downstream pressure")
+
+    expect(planningSceneExpansionRetryReason({
+      chapterNumber: 1,
+      targetWords: 3100,
+      scenes: [
+        scene("Maren studies the sealed stair.", {
+          turningPoint: "Maren sees the lower lock is already open.",
+          outcome: "Maren chooses the lower stair.",
+          consequence: "Maren sees the lower lock is already open.",
+        }),
+        scene("Maren crosses the archive bridge.", {
+          outcome: "Maren reaches the west door.",
+          consequence: "The guards lock the east door behind her.",
+        }),
+        scene("Maren leaves with Halric's summons.", {
+          outcome: "Maren pockets Halric's sealed summons.",
+          consequence: "Tovin must escort her into the Chancellor's chambers before dawn.",
+        }),
+      ],
+    }, {
+      planningSceneTurnShapingV1: true,
+    })).toBe("planningSceneTurnShapingV1 scene 1 consequence duplicates turningPoint; make consequence the terminal downstream pressure")
   })
 
   test("retries selective scene-turn shaping when source-refed non-final entries lack turn fields", () => {
