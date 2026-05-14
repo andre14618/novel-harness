@@ -29,8 +29,18 @@ describe("planningSceneExpansionRetryReason", () => {
     expect(prompt).toContain("Scope discipline: do not add entries")
     expect(prompt).toContain("outcome/consequence pair is the entry's terminal landing")
     expect(prompt).toContain("Consequence must add external")
+    expect(prompt).toContain("observable action/result the writer can execute on page")
     expect(prompt).toContain("Source hygiene: do not invent a new offstage crime")
     expect(prompt).toContain("Character hygiene: `characters[]` must contain actual named cast members")
+  })
+
+  test("adds executable consequence guidance under full scene-plan contract", () => {
+    const prompt = planningScenesSystemPromptForSeed(seed({ scenePlanContractV1: true }))
+
+    expect(prompt).toContain("Active Output Contract Addendum: scenePlanContractV1")
+    expect(prompt).toContain("`consequence` must be an observable endpoint action")
+    expect(prompt).toContain("Do not make consequence only")
+    expect(prompt).toContain("intent, mood, static noticing")
   })
 
   test("adds materialityTest to the state-mapper system output contract only when flagged", () => {

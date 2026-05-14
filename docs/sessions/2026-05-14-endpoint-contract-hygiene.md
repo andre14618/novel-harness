@@ -91,3 +91,16 @@ probes the edge, finds a crack with a draft, and identifies another way in.
 Interpretation: this supports semantic adjudication plus scalar upstream repair
 for ambiguous endpoint lows. It does not support adding brittle deterministic
 word-index checks for endpoint fulfillment.
+
+## Production Wiring Follow-Up
+
+`diagnostics:scene-semantic-readiness` now maps endpoint-only semantic lows to
+`field_replace` candidates on `scene_plan:<sceneId>:consequence`; mixed
+endpoint/dramaturgy groups still request whole scene-contract review. Planner
+scene-contract prompts now define `consequence` as an observable action, result,
+or downstream pressure the writer can execute on page, not merely intent, mood,
+static noticing, or a restatement of outcome/turning point.
+
+This keeps the loop semantic and manual-reviewable: scene-semantic evidence can
+feed Plan Readiness and reviewed `planning_edit`, but it does not add a
+deterministic endpoint-word blocker or mutate source plans automatically.

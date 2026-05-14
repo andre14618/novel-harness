@@ -453,7 +453,12 @@ user prompt: \`temporalAnchor\`, \`placeAnchor\`, \`goal\`, \`opposition\`,
 When the user prompt says a field is required for the active contract, include
 that field directly on the matching \`scenes[]\` object. These are scene/turn
 fields only; still do not emit chapter-level state, obligations, or
-requiredPayoffs.`
+requiredPayoffs.
+
+\`consequence\` must be an observable endpoint action, result, or downstream
+pressure that the writer can execute on page. Do not make consequence only
+intent, mood, static noticing, or a restatement of \`outcome\` or
+\`turningPoint\`.`
   }
   if (planningSceneTurnShapingV1) {
     return `${PLANNING_SCENES_PROMPT}
@@ -477,7 +482,9 @@ The outcome/consequence pair is the entry's terminal landing, not mid-entry
 setup. It must match the terminal action or change promised by the description.
 Do not let the description say the characters probe one tactic while the
 outcome says they choose a different tactic. Consequence must add external
-downstream pressure that differs from both outcome and turningPoint.
+downstream pressure that differs from both outcome and turningPoint. It must be
+an observable action/result the writer can execute on page, not only intent,
+mood, static noticing, or implied future behavior.
 
 Scope discipline: do not add entries, transit-only entries, setup-only entries, targetWords,
 or larger implied chapter load just to carry these optional fields. Add the

@@ -71,7 +71,7 @@ interface SceneSemanticReadinessGroup {
       target: {
         kind: "scene_plan"
         ref: string
-        fieldPath: "description" | "self"
+        fieldPath: "description" | "consequence" | "self"
       }
       requiresProposedValue: true
       proposedValueStatus: "semantic_rewrite_required"
@@ -320,7 +320,7 @@ function rewriteGoalsFor(finding: SceneSemanticReadinessFinding): string[] {
 
 function rewriteGoalHintFor(dimension: Dimension): string {
   const map: Record<string, string> = {
-    endpointLanding: "Revise the scene contract fields together so description, outcome, and consequence all land through concrete action, consequence, and forward pressure.",
+    endpointLanding: "Revise the consequence so it names an observable endpoint action/result and forward pressure the writer can execute on page.",
     sceneDramaturgy: "Revise the scene contract fields together so goal, opposition, turn, outcome, and consequence are all playable.",
     threadProgression: "Clarify how this scene changes the declared thread state and creates downstream pressure.",
     promiseProgress: "Clarify how this scene changes the promise, pursuit, or complication state.",
@@ -341,14 +341,16 @@ function proposalCandidateFor(
   sceneId: string,
   dimensions: Dimension[],
 ): SceneSemanticReadinessGroup["rewritePacket"]["proposalCandidate"] {
-  const requiresWholeSceneContract = dimensions.some(dimension =>
-    dimension === "endpointLanding" || dimension === "sceneDramaturgy")
+  const hasEndpoint = dimensions.includes("endpointLanding")
+  const hasSceneDramaturgy = dimensions.includes("sceneDramaturgy")
+  const endpointOnly = hasEndpoint && dimensions.length === 1
+  const requiresWholeSceneContract = hasSceneDramaturgy || (hasEndpoint && !endpointOnly)
   return {
     action: requiresWholeSceneContract ? "beat_replace" : "field_replace",
     target: {
       kind: "scene_plan",
       ref: sceneId,
-      fieldPath: requiresWholeSceneContract ? "self" : "description",
+      fieldPath: requiresWholeSceneContract ? "self" : endpointOnly ? "consequence" : "description",
     },
     requiresProposedValue: true,
     proposedValueStatus: "semantic_rewrite_required",

@@ -91,6 +91,31 @@ describe("scene-semantic-readiness", () => {
     expect(aggregate.groups[0]!.findings[0]!.label).toBe("SCENE-1")
   })
 
+  test("targets endpoint-only lows to the scene consequence scalar", () => {
+    const source = report()
+    source.results = [
+      row("endpointLanding", "ENDPOINT-1", 1, "The endpoint needs an executed consequence."),
+    ]
+    source.summaries = [
+      { dimension: "endpointLanding", count: 1, meanOrdinal: 1, lowCount: 1, labelCounts: { "ENDPOINT-1": 1 } },
+    ]
+    const aggregate = buildSceneSemanticReadinessAggregate([{
+      report: source,
+      sourceReport: "scene-semantic-review.json",
+    }], { generatedAt: "2026-05-10T00:00:00.000Z" })
+
+    expect(aggregate.groups[0]!.rewritePacket.proposalCandidate).toMatchObject({
+      action: "field_replace",
+      target: {
+        kind: "scene_plan",
+        ref: "scn-001-01",
+        fieldPath: "consequence",
+      },
+    })
+    expect(renderSceneSemanticReadinessAggregate(aggregate)).toContain("Target: scene_plan:scn-001-01:consequence")
+    expect(aggregate.groups[0]!.rewritePacket.rewriteGoals.join("\n")).toContain("observable endpoint action/result")
+  })
+
   test("gives character/world materiality findings specific review intents", () => {
     const aggregate = buildSceneSemanticReadinessAggregate([{
       report: {
