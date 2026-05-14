@@ -104,7 +104,7 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 The active lane is in `docs/sessions/lane-queue.md`.
 
-As of 2026-05-14, L106-L115 keep evidence on production paths: writer briefs,
+As of 2026-05-14, L106-L116 keep evidence on production paths: writer briefs,
 semantic replay, source hygiene, planning-edit replay, scene-contract telemetry,
 checker readiness, source plan-state consistency, and compare/cohort artifacts.
 Rillgate source `rillgate-ch4-endpoint-hygiene-1778723371` is the active
@@ -113,9 +113,9 @@ clean adjacent pairs; the audit excludes next-chapter output facts/state from
 opening handoff context, can target scene `opposition`, and allows plausible
 offscreen execution of intended plans. Latest coherent draft
 `rillgate-planstate-clean-1778788667-production-path` completed 31,889/31,000
-words with Plan-Assist 0, prose-semantic lows 0/40, scene-semantic lows 5/166,
-and 0 weight-bearing checker blockers. LLM style lint auto-fix is default-off
-after L113. See L103-L115.
+words with Plan-Assist 0, prose-semantic lows 0/40, raw scene-semantic lows
+5/166, adjudicated lows 1 real world-fact miss, and 0 weight-bearing checker
+blockers. LLM style lint auto-fix is default-off after L113. See L103-L116.
 
 ## Authoring Gates
 

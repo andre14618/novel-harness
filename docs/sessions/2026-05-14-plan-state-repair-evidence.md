@@ -65,8 +65,21 @@ the prior full draft's weight-bearing chapter 9 checker blockers are gone.
 This does not promote the draft surface as globally better because the
 scene-semantic replay is mixed and one row regressed.
 
-The next useful work is not word-count policing. It is reviewing the five
-scene-semantic readiness rows, especially ch9 scene 2 `worldFactPressure`
-where the draft appears not to execute the required buyer-with-ledger fact, and
-the four endpoint-landing rows where scenes do not land their concrete endpoint
-inside the scene unit.
+## Semantic Low Adjudication
+
+Follow-up review found that the four endpoint rows were false positives from an
+over-strict endpoint rubric. The rubric required the final action itself to
+resolve the choice, even when the scene contract declared an unresolved choice,
+offer, pressure point, or valid follow-through hook. After the rubric patch,
+targeted endpoint replay over chapters 2, 3, 5, and 6 produced 20 endpoint
+tasks, 0 lows, `ENDPOINT-2:3`, and `ENDPOINT-3:17`.
+
+Those four endpoint Plan Readiness rows on
+`rillgate-planstate-clean-1778788667-production-path` were marked
+`not_applicable`.
+
+The ch9 scene 2 `worldFactPressure` low reproduced and is real enough to keep
+open: the scene contract says the buyer escapes with the main core ledger, but
+the prose has him drop a hollow ledger after removing key pages. Next work is
+to reconcile the plan/prose fact shape by either changing the required fact to
+buyer-escapes-with-key-pages or redrafting the scene so he keeps the ledger.

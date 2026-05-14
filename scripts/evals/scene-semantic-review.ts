@@ -331,6 +331,8 @@ function renderSceneExcerpt(input: {
     "JUDGE LENS:",
     "- For endpointLanding, use the declared scene endpoint above. The chapter purpose is background, not the sole endpoint target.",
     "- Judge the final action and consequence inside this scene's prose; forward propulsion can point to the next scene or next chapter.",
+    "- If the declared endpoint is an unresolved choice, offer, or pressure point, it can land by creating that concrete pressure; do not require resolution unless the contract declares resolution.",
+    "- A brief hook or follow-through beat after the endpoint is valid when it directly follows from the endpoint consequence.",
     "",
     "APPLICABILITY TARGETS:",
     `- characterMateriality targets: ${characterTargets.length > 0 ? characterTargets.join("; ") : "(none declared)"}`,

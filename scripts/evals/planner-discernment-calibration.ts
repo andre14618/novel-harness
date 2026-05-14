@@ -377,6 +377,8 @@ function labelDefinitions(dimension: Dimension): string {
   if (dimension === "endpointLanding") {
     return `Endpoint landing labels:
 - The judged unit may be a whole chapter or one scene. In scene-semantic replay, treat the SCENE CONTRACT outcome+consequence as the declared endpoint.
+- If the declared endpoint is a dilemma, offer, pressure point, forced consideration, or unresolved choice, it can land by creating that concrete pressure. Do not require the choice to be resolved unless the declared endpoint says it resolves.
+- A short follow-through hook after the endpoint does not make the landing weak when it directly comes from the endpoint consequence.
 - ENDPOINT-0: Declared endpoint is absent or disconnected from the unit's final action.
 - ENDPOINT-1: Endpoint is stated weakly, delayed, or left as intention without concrete consequence.
 - ENDPOINT-2: Endpoint lands through final action and consequence inside the judged unit.

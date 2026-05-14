@@ -73,6 +73,7 @@ describe("planner-discernment-calibration", () => {
     const endpointPrompt = buildDiscernmentSystemPrompt("endpointLanding", "evidence-first")
     expect(endpointPrompt).toContain("SCENE CONTRACT outcome+consequence")
     expect(endpointPrompt).toContain("next scene/chapter")
+    expect(endpointPrompt).toContain("Do not require the choice to be resolved")
   })
 
   test("derives anchored labels from binary gates", () => {
