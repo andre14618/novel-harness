@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import {
   buildCheckerWarningReport,
   classifyFindingPolarity,
+  classifyTelemetryWeight,
   filterCheckerInputsToFinalAttempts,
   renderCheckerWarningReport,
   type ContinuityCallRow,
@@ -41,6 +42,8 @@ describe("checker-warning-report", () => {
           beatId: "ch-001-beat-003",
           plannedItemId: "fact-1",
           calibration: "standard",
+          telemetryWeight: "noise",
+          telemetryWeightReason: "positive-or-supportive-finding",
           description: "supported fact is only implied",
         }],
       }],
@@ -86,6 +89,7 @@ describe("checker-warning-report", () => {
     expect(report.totalItems).toBe(2)
     expect(report.bySeverity).toEqual({ warning: 1, nit: 1 })
     expect(report.byCalibration).toEqual({ standard: 1, "low-confidence": 1 })
+    expect(report.byTelemetryWeight).toEqual({ "weight-bearing": 0, advisory: 1, noise: 1 })
     expect(report.chapters[0]!.items.map(item => item.source)).toEqual([
       "continuity-state",
       "continuity-facts",
@@ -119,6 +123,7 @@ describe("checker-warning-report", () => {
     expect(report.bySeverity).toEqual({ blocker: 2 })
     expect(report.byPolarity).toEqual({ negative: 1, positive: 1, ambiguous: 0 })
     expect(report.byCalibration).toEqual({ standard: 2, "low-confidence": 0 })
+    expect(report.byTelemetryWeight).toEqual({ "weight-bearing": 1, advisory: 0, noise: 1 })
     expect(report.chapters[0]!.items.map(item => item.polarity).sort()).toEqual(["negative", "positive"])
     expect(renderCheckerWarningReport(report)).toContain("polarity=positive")
   })
@@ -196,6 +201,7 @@ describe("checker-warning-report", () => {
     expect(classifyFindingPolarity("The draft does not contradict this fact.")).toBe("positive")
     expect(classifyFindingPolarity("The draft states the rule changed, contradicting the fact.")).toBe("negative")
     expect(classifyFindingPolarity("The draft may be underspecified.")).toBe("ambiguous")
+    expect(classifyFindingPolarity("The draft does not explicitly state he knows the key is false.")).toBe("ambiguous")
   })
 
   test("classifies support echoes as positive or ambiguous rather than negative", () => {
@@ -217,5 +223,38 @@ describe("checker-warning-report", () => {
     expect(classifyFindingPolarity(
       "Aldric's own words confirm his daughter is still sick, but the fact states she is recovering.",
     )).toBe("ambiguous")
+  })
+
+  test("classifies telemetry weight separately from raw checker count", () => {
+    expect(classifyTelemetryWeight({
+      source: "continuity-facts",
+      severity: "blocker",
+      description: "The draft contradicts the planned fact.",
+      polarity: "negative",
+      calibration: "standard",
+    })).toEqual({
+      telemetryWeight: "weight-bearing",
+      telemetryWeightReason: "negative-standard-blocker",
+    })
+    expect(classifyTelemetryWeight({
+      source: "functional-check",
+      severity: "warning",
+      description: "knowledge_missing: The draft does not explicitly state he knows the route.",
+      polarity: "negative",
+      calibration: "standard",
+    })).toEqual({
+      telemetryWeight: "noise",
+      telemetryWeightReason: "explicitness-only-gap",
+    })
+    expect(classifyTelemetryWeight({
+      source: "continuity-state",
+      severity: "warning",
+      description: "Maret location violation: she may be elsewhere.",
+      polarity: "negative",
+      calibration: "low-confidence",
+    })).toEqual({
+      telemetryWeight: "noise",
+      telemetryWeightReason: "low-confidence-calibration",
+    })
   })
 })

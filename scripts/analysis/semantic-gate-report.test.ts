@@ -36,7 +36,7 @@ describe("semantic-gate-report", () => {
           chapter: 2,
           payload: {
             blockers: [
-              { description: "Ungrounded invention", beat_index: 3, beatId: "beat-2-4" },
+              { description: "Missing required functional state.", beat_index: 3, beatId: "beat-2-4" },
             ],
           },
         },

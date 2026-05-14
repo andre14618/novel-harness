@@ -164,6 +164,7 @@ Unresolved issues (2):
     expect(rendered).toContain("Approved: 1/2")
     expect(rendered).toContain("Signals: no_draft=1, outline_shape=2")
     expect(rendered).toContain("calibration=standard=2, low-confidence=3")
+    expect(rendered).toContain("weight=weight-bearing=0, advisory=2, noise=3")
     expect(rendered).toContain("Halluc-ungrounded raw: calls=2; blockerIssues=0 (pre-retry checker output)")
     expect(rendered).toContain("Action Evidence")
     expect(rendered).toContain("targeted-rewrite:chapter-plan-check")
@@ -332,6 +333,7 @@ function reportFixture(): SemanticGateBaselineReport {
         bySeverity: { warning: 5 },
         byPolarity: { negative: 0, positive: 0, ambiguous: 5 },
         byCalibration: { standard: 2, "low-confidence": 3 },
+        byTelemetryWeight: { "weight-bearing": 0, advisory: 2, noise: 3 },
         chapters: [],
       },
       planAssistLineage: {} as SemanticGateBaselineReport["checker"]["planAssistLineage"],

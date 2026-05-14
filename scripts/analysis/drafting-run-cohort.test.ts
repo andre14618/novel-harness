@@ -108,7 +108,7 @@ describe("drafting-run-cohort", () => {
     expect(rendered).toContain("refAttemptScenes=+1")
     expect(rendered).toContain("refAttemptEvents=+1")
     expect(rendered).toContain("context ID deltas: canon=fact-lit=+2; threads=thread-lit=+3, thread-corso=-1")
-    expect(rendered).toContain("manual readiness deltas: planAssist=0, checker=0, checkerBlockers=0, checkerWarnings=0, checkerNegative=0, checkerPositive=0, checkerAmbiguous=0, checkerLowConfidence=0")
+    expect(rendered).toContain("manual readiness deltas: planAssist=0, checker=0, checkerBlockers=0, checkerWarnings=0, checkerWeightBearing=0, checkerAdvisory=0, checkerNoise=0, checkerNegative=0, checkerPositive=0, checkerAmbiguous=0, checkerLowConfidence=0")
     expect(rendered).toContain("| endpointLanding | 2 |")
     expect(rendered).toContain("## Semantic Row Examples")
     expect(rendered).toContain("Advisory examples for manual review")
@@ -295,6 +295,9 @@ function comparisonReport(
         checkerPositiveDelta: 0,
         checkerAmbiguousDelta: 0,
         checkerLowConfidenceDelta: 0,
+        checkerWeightBearingDelta: 0,
+        checkerAdvisoryDelta: 0,
+        checkerNoiseDelta: 0,
       },
       proseSemantic: {
         lowRowsDelta: 0,
@@ -475,6 +478,9 @@ function manualReadiness(): DraftingRunComparisonReport["baseline"]["manualReadi
     checkerPositiveItems: 0,
     checkerAmbiguousItems: 0,
     checkerLowConfidenceItems: 0,
+    checkerWeightBearingItems: 0,
+    checkerAdvisoryItems: 0,
+    checkerNoiseItems: 0,
   }
 }
 

@@ -160,6 +160,8 @@ export function buildCheckerReadinessAggregate(input: {
           rowId: String(item.rowId),
           polarity: item.polarity,
           calibration: item.calibration,
+          telemetryWeight: item.telemetryWeight,
+          telemetryWeightReason: item.telemetryWeightReason,
           ...(item.attempt == null ? {} : { attempt: String(item.attempt) }),
           ...(item.beatId ? { beatId: item.beatId } : {}),
           ...(item.plannedItemId ? { plannedItemId: item.plannedItemId } : {}),
@@ -251,9 +253,12 @@ export function renderCheckerReadinessAggregate(report: CheckerReadinessAggregat
 }
 
 function itemShouldBecomeReadiness(item: CheckerWarningItem, includeWarnings: boolean): boolean {
-  if (item.polarity === "positive") return false
-  if (item.severity === "blocker") return true
-  return includeWarnings && item.severity === "warning" && item.calibration === "standard"
+  if (item.telemetryWeight === "weight-bearing") return true
+  return includeWarnings
+    && item.telemetryWeight === "advisory"
+    && item.severity === "warning"
+    && item.polarity === "negative"
+    && item.calibration === "standard"
 }
 
 function checkerReadinessLabel(item: CheckerWarningItem): string {

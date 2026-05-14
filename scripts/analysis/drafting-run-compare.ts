@@ -97,6 +97,9 @@ interface DraftingArmArtifact {
     positiveItems?: number
     ambiguousItems?: number
     lowConfidenceItems?: number
+    weightBearingItems?: number
+    advisoryItems?: number
+    noiseItems?: number
     error?: string
   }
   proseSemantic?: {
@@ -241,6 +244,9 @@ export interface DraftingRunSummary {
     checkerPositiveItems: number | null
     checkerAmbiguousItems: number | null
     checkerLowConfidenceItems: number | null
+    checkerWeightBearingItems: number | null
+    checkerAdvisoryItems: number | null
+    checkerNoiseItems: number | null
   }
   proseSemantic: {
     outputDir: string | null
@@ -359,6 +365,9 @@ export interface DraftingRunComparison {
     checkerPositiveDelta: number | null
     checkerAmbiguousDelta: number | null
     checkerLowConfidenceDelta: number | null
+    checkerWeightBearingDelta: number | null
+    checkerAdvisoryDelta: number | null
+    checkerNoiseDelta: number | null
   }
   proseSemantic: {
     lowRowsDelta: number | null
@@ -446,6 +455,9 @@ export function renderDraftingRunComparisonReport(report: DraftingRunComparisonR
           `(items=${formatTransition(baseManual.checkerItems, candidateManual.checkerItems)}, ` +
           `blockers=${formatTransition(baseManual.checkerBlockerItems, candidateManual.checkerBlockerItems)}, ` +
           `warnings=${formatTransition(baseManual.checkerWarningItems, candidateManual.checkerWarningItems)}, ` +
+          `weightBearing=${formatTransition(baseManual.checkerWeightBearingItems, candidateManual.checkerWeightBearingItems)}, ` +
+          `advisory=${formatTransition(baseManual.checkerAdvisoryItems, candidateManual.checkerAdvisoryItems)}, ` +
+          `noise=${formatTransition(baseManual.checkerNoiseItems, candidateManual.checkerNoiseItems)}, ` +
           `negative=${formatTransition(baseManual.checkerNegativeItems, candidateManual.checkerNegativeItems)}, ` +
           `positive=${formatTransition(baseManual.checkerPositiveItems, candidateManual.checkerPositiveItems)}, ` +
           `ambiguous=${formatTransition(baseManual.checkerAmbiguousItems, candidateManual.checkerAmbiguousItems)}, ` +
@@ -775,6 +787,18 @@ function compareCandidate(
         baseline.summary.manualReadiness.checkerLowConfidenceItems,
         candidate.summary.manualReadiness.checkerLowConfidenceItems,
       ),
+      checkerWeightBearingDelta: nullableDelta(
+        baseline.summary.manualReadiness.checkerWeightBearingItems,
+        candidate.summary.manualReadiness.checkerWeightBearingItems,
+      ),
+      checkerAdvisoryDelta: nullableDelta(
+        baseline.summary.manualReadiness.checkerAdvisoryItems,
+        candidate.summary.manualReadiness.checkerAdvisoryItems,
+      ),
+      checkerNoiseDelta: nullableDelta(
+        baseline.summary.manualReadiness.checkerNoiseItems,
+        candidate.summary.manualReadiness.checkerNoiseItems,
+      ),
     },
     proseSemantic: {
       lowRowsDelta: nullableDelta(
@@ -911,6 +935,9 @@ function loadManualReadinessSummary(
     checkerPositiveItems: checker.positiveItems,
     checkerAmbiguousItems: checker.ambiguousItems,
     checkerLowConfidenceItems: checker.lowConfidenceItems,
+    checkerWeightBearingItems: checker.weightBearingItems,
+    checkerAdvisoryItems: checker.advisoryItems,
+    checkerNoiseItems: checker.noiseItems,
   }
 }
 
@@ -966,6 +993,9 @@ function loadCheckerReadinessSummary(
   positiveItems: number | null
   ambiguousItems: number | null
   lowConfidenceItems: number | null
+  weightBearingItems: number | null
+  advisoryItems: number | null
+  noiseItems: number | null
 } {
   const sidecar = loadCheckerReadinessSidecarSummary(reportDir, targetPrefix, armName)
   if (arm.checkerReadiness) {
@@ -978,6 +1008,9 @@ function loadCheckerReadinessSummary(
       positiveItems: finiteOrNull(arm.checkerReadiness.positiveItems) ?? sidecar.positiveItems,
       ambiguousItems: finiteOrNull(arm.checkerReadiness.ambiguousItems) ?? sidecar.ambiguousItems,
       lowConfidenceItems: finiteOrNull(arm.checkerReadiness.lowConfidenceItems) ?? sidecar.lowConfidenceItems,
+      weightBearingItems: finiteOrNull(arm.checkerReadiness.weightBearingItems) ?? sidecar.weightBearingItems,
+      advisoryItems: finiteOrNull(arm.checkerReadiness.advisoryItems) ?? sidecar.advisoryItems,
+      noiseItems: finiteOrNull(arm.checkerReadiness.noiseItems) ?? sidecar.noiseItems,
     }
   }
   return sidecar
@@ -996,6 +1029,9 @@ function loadCheckerReadinessSidecarSummary(
   positiveItems: number | null
   ambiguousItems: number | null
   lowConfidenceItems: number | null
+  weightBearingItems: number | null
+  advisoryItems: number | null
+  noiseItems: number | null
 } {
   const dir = join("output/checker-readiness", targetPrefix, armName)
   const readinessPath = resolveArtifactPath(reportDir, join(dir, "checker-readiness.json"))
@@ -1008,6 +1044,9 @@ function loadCheckerReadinessSidecarSummary(
   let positiveItems: number | null = null
   let ambiguousItems: number | null = null
   let lowConfidenceItems: number | null = null
+  let weightBearingItems: number | null = null
+  let advisoryItems: number | null = null
+  let noiseItems: number | null = null
   if (readinessPath) {
     try {
       const aggregate = JSON.parse(readFileSync(readinessPath, "utf8")) as { findingCount?: unknown }
@@ -1023,6 +1062,7 @@ function loadCheckerReadinessSidecarSummary(
         bySeverity?: Record<string, unknown>
         byPolarity?: Record<string, unknown>
         byCalibration?: Record<string, unknown>
+        byTelemetryWeight?: Record<string, unknown>
       }
       checkerItems = finiteOrNull(warning.totalItems)
       blockerItems = finiteOrNull(warning.bySeverity?.blocker)
@@ -1031,6 +1071,9 @@ function loadCheckerReadinessSidecarSummary(
       positiveItems = finiteOrNull(warning.byPolarity?.positive)
       ambiguousItems = finiteOrNull(warning.byPolarity?.ambiguous)
       lowConfidenceItems = finiteOrNull(warning.byCalibration?.["low-confidence"])
+      weightBearingItems = finiteOrNull(warning.byTelemetryWeight?.["weight-bearing"])
+      advisoryItems = finiteOrNull(warning.byTelemetryWeight?.advisory)
+      noiseItems = finiteOrNull(warning.byTelemetryWeight?.noise)
     } catch {
       checkerItems = null
       blockerItems = null
@@ -1039,6 +1082,9 @@ function loadCheckerReadinessSidecarSummary(
       positiveItems = null
       ambiguousItems = null
       lowConfidenceItems = null
+      weightBearingItems = null
+      advisoryItems = null
+      noiseItems = null
     }
   }
   return {
@@ -1050,6 +1096,9 @@ function loadCheckerReadinessSidecarSummary(
     positiveItems,
     ambiguousItems,
     lowConfidenceItems,
+    weightBearingItems,
+    advisoryItems,
+    noiseItems,
   }
 }
 
@@ -1067,6 +1116,9 @@ function hasManualReadinessSignal(readiness: DraftingRunSummary["manualReadiness
     readiness.checkerPositiveItems,
     readiness.checkerAmbiguousItems,
     readiness.checkerLowConfidenceItems,
+    readiness.checkerWeightBearingItems,
+    readiness.checkerAdvisoryItems,
+    readiness.checkerNoiseItems,
   ].some(value => typeof value === "number" && Number.isFinite(value) && value !== 0)
 }
 
@@ -1359,6 +1411,9 @@ function evidenceReasons(
   }
   if (positiveDelta(comparison.manualReadiness.checkerBlockerDelta)) {
     reasons.push(`Checker blocker items increased by ${comparison.manualReadiness.checkerBlockerDelta}.`)
+  }
+  if (positiveDelta(comparison.manualReadiness.checkerWeightBearingDelta)) {
+    reasons.push(`Checker weight-bearing items increased by ${comparison.manualReadiness.checkerWeightBearingDelta}.`)
   }
   if (positiveDelta(comparison.manualReadiness.checkerNegativeDelta)) {
     reasons.push(`Checker negative-polarity items increased by ${comparison.manualReadiness.checkerNegativeDelta}.`)

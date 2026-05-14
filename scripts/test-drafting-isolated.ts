@@ -446,6 +446,9 @@ export interface CheckerReadinessTelemetrySummary extends PlanningContextReadine
   positiveItems: number
   ambiguousItems: number
   lowConfidenceItems: number
+  weightBearingItems: number
+  advisoryItems: number
+  noiseItems: number
   error?: string
 }
 
@@ -1114,6 +1117,9 @@ async function runArm(arm: ArmName, source: string, targetPrefix: string, opts: 
       positiveItems: 0,
       ambiguousItems: 0,
       lowConfidenceItems: 0,
+      weightBearingItems: 0,
+      advisoryItems: 0,
+      noiseItems: 0,
       error: `checker readiness audit failed: ${checkerErr instanceof Error ? checkerErr.message : String(checkerErr)}`,
     }))
     const proseSemantic = await maybeRunProseSemanticEval(arm, novelId, targetPrefix, opts).catch(proseErr => ({
@@ -1531,6 +1537,9 @@ async function maybeRunCheckerReadinessAudit(
       positiveItems: 0,
       ambiguousItems: 0,
       lowConfidenceItems: 0,
+      weightBearingItems: 0,
+      advisoryItems: 0,
+      noiseItems: 0,
       error: `checker readiness audit failed: ${err instanceof Error ? err.message : String(err)}`,
     }
   }
@@ -1572,6 +1581,9 @@ function checkerReadinessSummary(
     positiveItems: warningReport.byPolarity.positive ?? 0,
     ambiguousItems: warningReport.byPolarity.ambiguous ?? 0,
     lowConfidenceItems: warningReport.byCalibration["low-confidence"] ?? 0,
+    weightBearingItems: warningReport.byTelemetryWeight["weight-bearing"] ?? 0,
+    advisoryItems: warningReport.byTelemetryWeight.advisory ?? 0,
+    noiseItems: warningReport.byTelemetryWeight.noise ?? 0,
   }
 }
 
@@ -2095,7 +2107,7 @@ async function main() {
       }
     }
     if (r.checkerReadiness) {
-      console.log(`  checker readiness: items=${r.checkerReadiness.checkerItems}, blockers=${r.checkerReadiness.blockerItems}, warnings=${r.checkerReadiness.warningItems}, negative=${r.checkerReadiness.negativeItems}, positive=${r.checkerReadiness.positiveItems}, ambiguous=${r.checkerReadiness.ambiguousItems}, lowConfidence=${r.checkerReadiness.lowConfidenceItems}, groups=${r.checkerReadiness.groupCount}, findings=${r.checkerReadiness.findingCount}, report=${r.checkerReadiness.outputDir}`)
+      console.log(`  checker readiness: items=${r.checkerReadiness.checkerItems}, blockers=${r.checkerReadiness.blockerItems}, warnings=${r.checkerReadiness.warningItems}, weightBearing=${r.checkerReadiness.weightBearingItems}, advisory=${r.checkerReadiness.advisoryItems}, noise=${r.checkerReadiness.noiseItems}, negative=${r.checkerReadiness.negativeItems}, positive=${r.checkerReadiness.positiveItems}, ambiguous=${r.checkerReadiness.ambiguousItems}, lowConfidence=${r.checkerReadiness.lowConfidenceItems}, groups=${r.checkerReadiness.groupCount}, findings=${r.checkerReadiness.findingCount}, report=${r.checkerReadiness.outputDir}`)
       if (r.checkerReadiness.error) {
         console.log(`    error: ${r.checkerReadiness.error}`)
       }
@@ -2384,7 +2396,9 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
     if (result.checkerReadiness) {
       lines.push(
         `  checkerReadiness items=${result.checkerReadiness.checkerItems} blockers=${result.checkerReadiness.blockerItems} ` +
-          `warnings=${result.checkerReadiness.warningItems} negative=${result.checkerReadiness.negativeItems} ` +
+          `warnings=${result.checkerReadiness.warningItems} weightBearing=${result.checkerReadiness.weightBearingItems} ` +
+          `advisory=${result.checkerReadiness.advisoryItems} noise=${result.checkerReadiness.noiseItems} ` +
+          `negative=${result.checkerReadiness.negativeItems} ` +
           `positive=${result.checkerReadiness.positiveItems} ambiguous=${result.checkerReadiness.ambiguousItems} ` +
           `lowConfidence=${result.checkerReadiness.lowConfidenceItems} groups=${result.checkerReadiness.groupCount} ` +
           `findings=${result.checkerReadiness.findingCount} report=${result.checkerReadiness.outputDir}` +

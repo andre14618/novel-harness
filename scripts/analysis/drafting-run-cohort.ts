@@ -167,6 +167,9 @@ export interface DraftingRunCohortReport {
     checkerPositiveDeltaSum: number
     checkerAmbiguousDeltaSum: number
     checkerLowConfidenceDeltaSum: number
+    checkerWeightBearingDeltaSum: number
+    checkerAdvisoryDeltaSum: number
+    checkerNoiseDeltaSum: number
     contextDeltas: {
       characterContext: number | null
       worldContext: number | null
@@ -279,6 +282,9 @@ export function buildDraftingRunCohortReport(input: {
       checkerPositiveDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerPositiveDelta)),
       checkerAmbiguousDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerAmbiguousDelta)),
       checkerLowConfidenceDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerLowConfidenceDelta)),
+      checkerWeightBearingDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerWeightBearingDelta)),
+      checkerAdvisoryDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerAdvisoryDelta)),
+      checkerNoiseDeltaSum: sumNullable(evidencePairs.map(pair => pair.checkerNoiseDelta)),
       contextDeltas: {
         characterContext: sumComparisonDelta(input.refs, "characterContextDelta", isEvidenceComparableComparison),
         worldContext: sumComparisonDelta(input.refs, "worldContextDelta", isEvidenceComparableComparison),
@@ -351,6 +357,9 @@ export function renderDraftingRunCohortReport(report: DraftingRunCohortReport): 
       `checker=${formatSigned(report.aggregate.checkerReadinessDeltaSum)}, ` +
       `checkerBlockers=${formatSigned(report.aggregate.checkerBlockerDeltaSum)}, ` +
       `checkerWarnings=${formatSigned(report.aggregate.checkerWarningDeltaSum)}, ` +
+      `checkerWeightBearing=${formatSigned(report.aggregate.checkerWeightBearingDeltaSum)}, ` +
+      `checkerAdvisory=${formatSigned(report.aggregate.checkerAdvisoryDeltaSum)}, ` +
+      `checkerNoise=${formatSigned(report.aggregate.checkerNoiseDeltaSum)}, ` +
       `checkerNegative=${formatSigned(report.aggregate.checkerNegativeDeltaSum)}, ` +
       `checkerPositive=${formatSigned(report.aggregate.checkerPositiveDeltaSum)}, ` +
       `checkerAmbiguous=${formatSigned(report.aggregate.checkerAmbiguousDeltaSum)}, ` +
@@ -471,6 +480,9 @@ function pairRowsForReport(ref: DraftingRunCohortReportRef): DraftingRunCohortPa
       checkerPositiveDelta: manualReadiness?.checkerPositiveDelta ?? null,
       checkerAmbiguousDelta: manualReadiness?.checkerAmbiguousDelta ?? null,
       checkerLowConfidenceDelta: manualReadiness?.checkerLowConfidenceDelta ?? null,
+      checkerWeightBearingDelta: manualReadiness?.checkerWeightBearingDelta ?? null,
+      checkerAdvisoryDelta: manualReadiness?.checkerAdvisoryDelta ?? null,
+      checkerNoiseDelta: manualReadiness?.checkerNoiseDelta ?? null,
       canonSourceRefsDelta: comparison.planningContext.canonSourceRefsDelta ?? null,
       storyRefIdsDelta: comparison.planningContext.storyRefIdsDelta ?? null,
       readerInfoStateDelta: comparison.planningContext.readerInfoStateDelta ?? null,

@@ -30,7 +30,9 @@ describe("checker-readiness-report", () => {
         severity: "blocker",
         source: "continuity-facts",
         description: "Draft says the debt is sovereign, but the plan says Halric's ruin is personal.",
-        polarity: "ambiguous",
+        polarity: "negative",
+        telemetryWeight: "weight-bearing",
+        telemetryWeightReason: "negative-standard-blocker",
       }),
       chapterTargets: [{ chapterNumber: 2, chapterId: "ch-002-chancellor-s-arithmetic" }],
       generatedAt: "2026-05-10T00:00:00.000Z",
@@ -63,19 +65,31 @@ describe("checker-readiness-report", () => {
     })
   })
 
-  test("buildCheckerReadinessAggregate skips positive and warning items by default", () => {
+  test("buildCheckerReadinessAggregate skips non-weight-bearing items by default", () => {
     const base = report(
       {
         severity: "warning",
         source: "continuity-facts",
         description: "Draft omits a minor continuity detail.",
-        polarity: "ambiguous",
+        polarity: "negative",
+        telemetryWeight: "advisory",
+        telemetryWeightReason: "negative-nonblocking-finding",
       },
       {
         severity: "blocker",
         source: "continuity-facts",
         description: "This is consistent with the plan.",
         polarity: "positive",
+        telemetryWeight: "noise",
+        telemetryWeightReason: "positive-or-supportive-finding",
+      },
+      {
+        severity: "blocker",
+        source: "continuity-facts",
+        description: "The checker might be seeing a mismatch.",
+        polarity: "ambiguous",
+        telemetryWeight: "advisory",
+        telemetryWeightReason: "ambiguous-polarity",
       },
     )
 
@@ -99,6 +113,7 @@ function report(...items: Array<Partial<CheckerWarningReport["chapters"][number]
     bySeverity: {},
     byPolarity: { negative: 0, positive: 0, ambiguous: 0 },
     byCalibration: { standard: 0, "low-confidence": 0 },
+    byTelemetryWeight: { "weight-bearing": 0, advisory: 0, noise: 0 },
     chapters: [{
       chapter: 2,
       items: items.map((item, index) => ({
@@ -107,6 +122,8 @@ function report(...items: Array<Partial<CheckerWarningReport["chapters"][number]
         description: "issue",
         polarity: "negative",
         calibration: "standard",
+        telemetryWeight: "weight-bearing",
+        telemetryWeightReason: "negative-standard-blocker",
         chapter: 2,
         rowId: index + 1,
         ...item,

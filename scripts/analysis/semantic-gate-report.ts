@@ -133,7 +133,7 @@ export function buildSemanticGateReport(input: SemanticGateInputs, novelId: stri
       const checkerItems = checker?.items ?? []
       const blockers = checkerItems.filter(item => item.severity === "blocker").length
       const loadBearingBlockers = checkerItems.filter(item =>
-        item.severity === "blocker" && isLoadBearingCheckerSource(item.source)
+        item.telemetryWeight === "weight-bearing" && isLoadBearingCheckerSource(item.source)
       ).length
       const continuityBlockers = blockers - loadBearingBlockers
       const warnings = checkerItems.filter(item => item.severity === "warning").length

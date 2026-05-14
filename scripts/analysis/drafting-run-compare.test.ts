@@ -178,8 +178,12 @@ describe("drafting-run-compare", () => {
       expect(comparison.manualReadiness.checkerPositiveDelta).toBe(0)
       expect(comparison.manualReadiness.checkerAmbiguousDelta).toBe(1)
       expect(comparison.manualReadiness.checkerLowConfidenceDelta).toBe(0)
+      expect(comparison.manualReadiness.checkerWeightBearingDelta).toBe(1)
+      expect(comparison.manualReadiness.checkerAdvisoryDelta).toBe(1)
+      expect(comparison.manualReadiness.checkerNoiseDelta).toBe(0)
       expect(comparison.reasons).toContain("Length improved while semantic evidence regressed; treat the candidate as source-sensitive rather than a default candidate.")
       expect(comparison.reasons).toContain("Checker blocker items increased by 1.")
+      expect(comparison.reasons).toContain("Checker weight-bearing items increased by 1.")
       expect(comparison.reasons).toContain("Checker negative-polarity items increased by 1.")
       expect(comparison.sceneSemantic.changedRows[0]?.traceIds.relevantWorldFactIds).toEqual(["fact-foreman", "fact-seal"])
       expect(comparison.sceneSemantic.changedRows[0]?.traceIds.relevantCharacterIds).toEqual(["char-maren"])
@@ -190,7 +194,7 @@ describe("drafting-run-compare", () => {
       expect(rendered).toContain("Scene contract semantic gaps: endpoint=1 -> 0, turn=2 -> 1, materiality=1 -> 0")
       expect(rendered).toContain("Context ID deltas: canon=fact-seal=+2; threads=thread-appeal=+1; promises=promise-return=+1; missingChars=char-missing=+2")
       expect(rendered).toContain("Reference attempts: scenes=1 -> 2, events=1 -> 3")
-      expect(rendered).toContain("Manual readiness: planAssist=n/a -> n/a (pending=n/a -> n/a), checker=0 -> 1 (items=1 -> 3, blockers=0 -> 1, warnings=1 -> 2, negative=0 -> 1, positive=0 -> 0, ambiguous=1 -> 2, lowConfidence=0 -> 0)")
+      expect(rendered).toContain("Manual readiness: planAssist=n/a -> n/a (pending=n/a -> n/a), checker=0 -> 1 (items=1 -> 3, blockers=0 -> 1, warnings=1 -> 2, weightBearing=0 -> 1, advisory=1 -> 2, noise=0 -> 0, negative=0 -> 1, positive=0 -> 0, ambiguous=1 -> 2, lowConfidence=0 -> 0)")
       expect(rendered).toContain("ids=obligations:obl-file; characters:char-maren; worldFacts:fact-foreman,fact-seal")
       expect(rendered).toContain("Length improved while semantic evidence regressed")
     } finally {
@@ -595,6 +599,7 @@ function writeCheckerReadinessSidecar(root: string, targetPrefix: string, armNam
     },
     byPolarity: { negative: counts.blockers, positive: 0, ambiguous: counts.warnings },
     byCalibration: { standard: counts.items, "low-confidence": 0 },
+    byTelemetryWeight: { "weight-bearing": counts.blockers, advisory: counts.warnings, noise: 0 },
     chapters: [],
   }, null, 2)}\n`)
 }

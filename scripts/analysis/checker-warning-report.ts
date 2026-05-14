@@ -30,6 +30,8 @@ export interface CheckerWarningItem {
   description: string
   polarity: CheckerWarningPolarity
   calibration: CheckerWarningCalibration
+  telemetryWeight: CheckerTelemetryWeight
+  telemetryWeightReason: string
   chapter: number | null
   beatIndex?: number | null
   beatId?: string
@@ -40,6 +42,7 @@ export interface CheckerWarningItem {
 
 export type CheckerWarningPolarity = "negative" | "positive" | "ambiguous"
 export type CheckerWarningCalibration = "standard" | "low-confidence"
+export type CheckerTelemetryWeight = "weight-bearing" | "advisory" | "noise"
 
 export interface CheckerWarningChapter {
   chapter: number | null
@@ -52,6 +55,7 @@ export interface CheckerWarningReport {
   bySeverity: Record<string, number>
   byPolarity: Record<CheckerWarningPolarity, number>
   byCalibration: Record<CheckerWarningCalibration, number>
+  byTelemetryWeight: Record<CheckerTelemetryWeight, number>
   chapters: CheckerWarningChapter[]
 }
 
@@ -98,6 +102,12 @@ export function buildCheckerWarningReport(
     "low-confidence": 0,
   }
   for (const item of items) byCalibration[item.calibration]++
+  const byTelemetryWeight: Record<CheckerTelemetryWeight, number> = {
+    "weight-bearing": 0,
+    advisory: 0,
+    noise: 0,
+  }
+  for (const item of items) byTelemetryWeight[item.telemetryWeight]++
 
   return {
     novelId,
@@ -105,6 +115,7 @@ export function buildCheckerWarningReport(
     bySeverity,
     byPolarity,
     byCalibration,
+    byTelemetryWeight,
     chapters: [...byChapter.values()].map(chapterItems => ({
       chapter: chapterItems[0]?.chapter ?? null,
       items: chapterItems,
@@ -119,6 +130,7 @@ export function renderCheckerWarningReport(report: CheckerWarningReport): string
   if (report.totalItems > 0) {
     lines.push(`Polarity: ${formatPolarityCounts(report.byPolarity)}`)
     lines.push(`Calibration: ${formatCalibrationCounts(report.byCalibration)}`)
+    lines.push(`Telemetry weight: ${formatTelemetryWeightCounts(report.byTelemetryWeight)}`)
   }
   if (report.chapters.length === 0) {
     lines.push("No functional or continuity warning items found.")
@@ -140,11 +152,14 @@ export function renderCheckerWarningReport(report: CheckerWarningReport): string
       const attempt = item.attempt == null ? "" : ` attempt=${item.attempt}`
       const polarity = item.polarity === "negative" ? "" : ` polarity=${item.polarity}`
       const calibration = item.calibration === "standard" ? "" : ` calibration=${item.calibration}`
-      lines.push(`  - [${item.severity}] ${item.source}${beat}${ref}${planned}${attempt}${polarity}${calibration}: ${item.description}`)
+      const weight = item.telemetryWeight === "weight-bearing" ? "" : ` weight=${item.telemetryWeight}:${item.telemetryWeightReason}`
+      lines.push(`  - [${item.severity}] ${item.source}${beat}${ref}${planned}${attempt}${polarity}${calibration}${weight}: ${item.description}`)
     }
   }
   return lines.join("\n")
 }
+
+type CheckerWarningItemBase = Omit<CheckerWarningItem, "telemetryWeight" | "telemetryWeightReason">
 
 function functionalEventToItems(row: FunctionalEventRow): CheckerWarningItem[] {
   const payload = asRecord(row.payload)
@@ -153,7 +168,7 @@ function functionalEventToItems(row: FunctionalEventRow): CheckerWarningItem[] {
   const out: CheckerWarningItem[] = []
   for (const raw of warnings) {
     const item = asRecord(raw)
-    out.push({
+    out.push(withTelemetryWeight({
       source: "functional-check",
       severity: "warning",
       description: itemDescription(item, raw),
@@ -165,11 +180,11 @@ function functionalEventToItems(row: FunctionalEventRow): CheckerWarningItem[] {
       plannedItemId: stringField(item.plannedItemId),
       rowId: row.id,
       attempt: row.attempt,
-    })
+    }))
   }
   for (const raw of blockers) {
     const item = asRecord(raw)
-    out.push({
+    out.push(withTelemetryWeight({
       source: "functional-check",
       severity: "blocker",
       description: itemDescription(item, raw),
@@ -181,7 +196,7 @@ function functionalEventToItems(row: FunctionalEventRow): CheckerWarningItem[] {
       plannedItemId: stringField(item.plannedItemId),
       rowId: row.id,
       attempt: row.attempt,
-    })
+    }))
   }
   return out
 }
@@ -200,7 +215,7 @@ function continuityRowToItems(row: ContinuityCallRow): CheckerWarningItem[] {
       const item = asRecord(raw)
       if (isNonActionableContinuityClassification(stringField(item.classification))) return []
       const description = stringField(item.reasoning) ?? stringField(item.evidence) ?? JSON.stringify(raw)
-      return [{
+      return [withTelemetryWeight({
         source: "continuity-facts",
         severity: severityField(item.severity),
         description,
@@ -209,7 +224,7 @@ function continuityRowToItems(row: ContinuityCallRow): CheckerWarningItem[] {
         chapter: row.chapter,
         rowId: row.id,
         attempt: row.attempt,
-      }]
+      })]
     })
   }
   if (row.agent === "continuity-state") {
@@ -218,7 +233,7 @@ function continuityRowToItems(row: ContinuityCallRow): CheckerWarningItem[] {
       const violationType = stringField(item.type)
       const description = `${stringField(item.character) ?? "unknown"} ${violationType ?? "state"} violation: ${stringField(item.reasoning) ?? stringField(item.evidence) ?? JSON.stringify(raw)}`
       const severity = normalizeContinuityStateSeverity(severityField(item.severity), violationType)
-      return {
+      return withTelemetryWeight({
         source: "continuity-state",
         severity,
         description,
@@ -227,10 +242,40 @@ function continuityRowToItems(row: ContinuityCallRow): CheckerWarningItem[] {
         chapter: row.chapter,
         rowId: row.id,
         attempt: row.attempt,
-      }
+      })
     })
   }
   return []
+}
+
+function withTelemetryWeight(item: CheckerWarningItemBase): CheckerWarningItem {
+  const classification = classifyTelemetryWeight(item)
+  return {
+    ...item,
+    telemetryWeight: classification.telemetryWeight,
+    telemetryWeightReason: classification.telemetryWeightReason,
+  }
+}
+
+export function classifyTelemetryWeight(
+  item: Pick<CheckerWarningItem, "severity" | "description" | "polarity" | "calibration" | "source">,
+): Pick<CheckerWarningItem, "telemetryWeight" | "telemetryWeightReason"> {
+  if (isExplicitnessOnlyGap(item.description)) {
+    return { telemetryWeight: "noise", telemetryWeightReason: "explicitness-only-gap" }
+  }
+  if (item.polarity === "positive") {
+    return { telemetryWeight: "noise", telemetryWeightReason: "positive-or-supportive-finding" }
+  }
+  if (item.calibration === "low-confidence") {
+    return { telemetryWeight: "noise", telemetryWeightReason: "low-confidence-calibration" }
+  }
+  if (item.polarity === "ambiguous") {
+    return { telemetryWeight: "advisory", telemetryWeightReason: "ambiguous-polarity" }
+  }
+  if (item.severity === "blocker") {
+    return { telemetryWeight: "weight-bearing", telemetryWeightReason: "negative-standard-blocker" }
+  }
+  return { telemetryWeight: "advisory", telemetryWeightReason: "negative-nonblocking-finding" }
 }
 
 function continuityStateCalibration(severity: CheckerWarningItem["severity"]): CheckerWarningCalibration {
@@ -260,10 +305,25 @@ export function classifyFindingPolarity(description: string): CheckerWarningPola
   const positive = explicitNonContradiction ||
     /\b(consistent with|matching the|matches the|confirms?|acknowledges?|supports?|supported|supporting|likely knows?|mentions?|demonstrates?|witnesses?|observes?|reports?|simply not referenced|not referenced)\b/.test(text)
   const negative = !explicitNonContradiction &&
-    /\b(contradicts?|contradicting|contradiction|inconsistent|conflicts?|violates?|violation|violations|missing|omits?|does not mention|not explicitly|states .+ but|requires .+ but|but the fact (?:says|states))\b/.test(text)
+    /\b(contradicts?|contradicting|contradiction|inconsistent|conflicts?|violates?|violation|violations|missing|omits?|does not mention|states .+ but|requires .+ but|but the fact (?:says|states))\b/.test(text)
+  if (positive && isExplicitnessOnlyGap(description)) return "ambiguous"
   if (positive && negative) return "ambiguous"
   if (positive) return "positive"
   return negative ? "negative" : "ambiguous"
+}
+
+function isExplicitnessOnlyGap(description: string): boolean {
+  const text = description.toLowerCase()
+  const explicitnessOnly =
+    /\bdoes not explicitly (?:state|show|say|name|articulate)\b/.test(text) ||
+    /\bnot explicitly (?:stated|shown|said|named|articulated)\b/.test(text) ||
+    /\bnever explicitly (?:states|shows|says|names|articulates)\b/.test(text) ||
+    /\bnot articulated as (?:a |an )?(?:discovery|knowledge|state change)\b/.test(text) ||
+    /\bdoes not show (?:him|her|them|[a-z]+) (?:explicitly )?know(?:ing)?\b/.test(text)
+  if (!explicitnessOnly) return false
+  const concreteMismatch =
+    /\bcontradicts?|contradiction|inconsistent|conflicts?|violates?|violation|omits?|does not mention|not present|not shown|not described\b/.test(text)
+  return !concreteMismatch
 }
 
 export function filterCheckerInputsToFinalAttempts(
@@ -349,6 +409,12 @@ function formatPolarityCounts(counts: Record<CheckerWarningPolarity, number>): s
 function formatCalibrationCounts(counts: Record<CheckerWarningCalibration, number>): string {
   return (["standard", "low-confidence"] as const)
     .map(calibration => `${calibration}: ${counts[calibration]}`)
+    .join(", ")
+}
+
+function formatTelemetryWeightCounts(counts: Record<CheckerTelemetryWeight, number>): string {
+  return (["weight-bearing", "advisory", "noise"] as const)
+    .map(weight => `${weight}: ${counts[weight]}`)
     .join(", ")
 }
 

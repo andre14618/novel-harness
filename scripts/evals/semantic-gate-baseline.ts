@@ -397,7 +397,8 @@ export function renderSemanticGateBaselineReport(report: SemanticGateBaselineRep
   lines.push(
     `Warnings: total=${report.checker.warnings.totalItems}; ` +
       `severity=${formatRecord(report.checker.warnings.bySeverity)}; ` +
-      `calibration=${formatRecord(report.checker.warnings.byCalibration)}`,
+      `calibration=${formatRecord(report.checker.warnings.byCalibration)}; ` +
+      `weight=${formatRecord(report.checker.warnings.byTelemetryWeight)}`,
   )
   lines.push(
     `Halluc-ungrounded raw: calls=${report.checker.hallucUngrounded.calls}; ` +

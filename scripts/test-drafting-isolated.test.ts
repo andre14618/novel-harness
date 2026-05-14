@@ -1095,6 +1095,7 @@ function checkerWarningReport(): CheckerWarningReport {
     bySeverity: { blocker: 1, warning: 1 },
     byPolarity: { negative: 1, positive: 0, ambiguous: 1 },
     byCalibration: { standard: 2, "low-confidence": 0 },
+    byTelemetryWeight: { "weight-bearing": 1, advisory: 1, noise: 0 },
     chapters: [{
       chapter: 1,
       items: [
@@ -1104,6 +1105,8 @@ function checkerWarningReport(): CheckerWarningReport {
           description: "Draft contradicts the debt-binder file.",
           polarity: "negative",
           calibration: "standard",
+          telemetryWeight: "weight-bearing",
+          telemetryWeightReason: "negative-standard-blocker",
           chapter: 1,
           rowId: 7,
         },
@@ -1113,6 +1116,8 @@ function checkerWarningReport(): CheckerWarningReport {
           description: "Planned state is weakly supported.",
           polarity: "ambiguous",
           calibration: "standard",
+          telemetryWeight: "advisory",
+          telemetryWeightReason: "ambiguous-polarity",
           chapter: 1,
           rowId: 8,
         },

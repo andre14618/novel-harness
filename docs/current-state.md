@@ -61,7 +61,8 @@ Use deeper docs only when linked by the context pack or needed by code.
   references are historical unless a current decision reopens them. See L90.
 - Semantic telemetry and LLM style lint auto-fix are explicit opt-in. Use
   `test-drafting-isolated --quality-telemetry-packet` for advisory semantics;
-  lint detection/integrity checks still run by default. See L108/L112/L113.
+  lint detection/integrity checks still run by default. Checker readiness
+  separates weight-bearing, advisory, and noise rows. See L108/L112-L114.
 
 ## Authoring Direction
 
