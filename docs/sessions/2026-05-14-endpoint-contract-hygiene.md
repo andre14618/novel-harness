@@ -48,7 +48,7 @@ endpoint hygiene lane is promotable.
   separate `REFERENCE-CONTEXT-UNRESOLVED` item on chapter 4 scene 5, tied to an
   implicit guild-salvage marker reference.
 
-## Decision
+## Initial Decision
 
 Promote the mechanics, not the quality conclusion.
 
@@ -57,7 +57,37 @@ useful production-path harness improvements. The specific Rillgate duplicate
 endpoint defects are repaired deterministically and no longer appear as
 planning-context readiness findings.
 
-Do not treat this as endpoint-quality solved. The narrow redraft still has one
-semantic endpoint low, so the next endpoint-quality work should target
-action-level consequence fulfillment in scene contracts/prose, not duplicate
-field hygiene or generic word-count control.
+At this point, do not treat this as endpoint-quality solved. The narrow redraft
+still has one semantic endpoint low, so the next endpoint-quality work should
+target action-level consequence fulfillment in scene contracts/prose, not
+duplicate field hygiene or generic word-count control.
+
+## Semantic Adjudication Follow-Up
+
+The remaining scene 3 endpoint low was not handled with a deterministic
+keyword rule. A small semantic adjudication panel reviewed the exact scene
+contract, prior prose endpoint, and prior semantic finding. The completed
+Flash/Pro rows agreed the issue was real enough to repair: the source contract
+asked Kael to search/probe the ward edge, while the prose only implied the
+action through noticing ripples.
+
+Plan Readiness imported this as a scalar
+`scene_plan:ch-004-brine-wards-scene-003-kael-tessa-debate-whether-risk:consequence`
+item with label `ENDPOINT-ACTION-NOT-EXECUTED`. Reviewed `planning_edit`
+changed the consequence to:
+
+> With the reset window closing, Kael begins probing the ward's edge and
+> follows the faint draft toward a possible side passage before they commit to
+> the cooldown crossing.
+
+Bounded production-path redraft:
+`rillgate-ch4-endpoint-action-redraft-1778760152-production-path`.
+
+Evidence: chapter 4 only, `2852/3100` words, ratio `0.92`; Plan-Assist `0`;
+checker readiness `0`; prose semantic lows `0/4`; scene semantic lows `0/14`.
+The repaired scene 3 endpoint row was `ENDPOINT-3` with final action: Kael
+probes the edge, finds a crack with a draft, and identifies another way in.
+
+Interpretation: this supports semantic adjudication plus scalar upstream repair
+for ambiguous endpoint lows. It does not support adding brittle deterministic
+word-index checks for endpoint fulfillment.

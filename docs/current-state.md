@@ -123,10 +123,10 @@ Plan-Assist 0, checker blockers 0, prose-semantic lows 0/40, and scene-semantic
 lows 4/166 after high-cap replay. Follow-up production-path bounded run
 `rillgate-endpoint-landing-1778717740-production-path` preserved the seed's
 tight-anchored writer brief on 40/40 writer events and hit 18,396/18,600 words,
-but endpoint lows stayed 4/30; chapter 4 duplicate-consequence defects are now
-scalar `consequence` readiness repairs with a clean narrow redraft, while the
-remaining endpoint issue is semantic action-level consequence fulfillment. LLM
-style lint auto-fix is default-off after L113. See L103-L114.
+but endpoint lows stayed 4/30; chapter 4 duplicate-consequence defects and the
+remaining action-level endpoint low were repaired as scalar `consequence`
+planning edits and verified by a clean narrow redraft. LLM style lint auto-fix
+is default-off after L113. See L103-L114.
 
 ## Authoring Gates
 
