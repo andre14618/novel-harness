@@ -71,6 +71,8 @@
  *
  * Each arm becomes a clone novel id `<target-prefix>-<arm>`. Arms run
  * sequentially (parallel runs would race on shared DB resources).
+ * Before any arm drafts, source planner-quality and L115 adjacent-chapter
+ * plan-state consistency audits write fail-open readiness telemetry.
  *
  * `--writer-only` (draft-capture mode):
  *   Skips the post-writer chapter-level settle loops (plan-check,
@@ -153,6 +155,13 @@ import {
   type PlannerQualityOutlineRow,
   type PlannerQualityReport,
 } from "./analysis/planner-quality-report"
+import {
+  buildPlanStateConsistencyReport,
+  loadPlanStateConsistencyOutlines,
+  writePlanStateConsistencyArtifacts,
+  type PlanStateConsistencyAggregate,
+  type PlanStateConsistencyReport,
+} from "./analysis/plan-state-consistency-report"
 import type { Dimension } from "./evals/planner-discernment-calibration"
 import {
   assessSourceDraftingIsolation,
@@ -307,10 +316,13 @@ export interface DraftingIsolatedRunReport {
     planningContextReadinessByArm: Record<string, number | null>
     planAssistReadinessByArm: Record<string, number | null>
     checkerReadinessByArm: Record<string, number | null>
+    productionCleanByArm: Record<string, boolean | null>
+    promotionIssuesByArm: Record<string, string[]>
     proseSemanticLowRowsByArm: Record<string, number | null>
     sceneSemanticLowRowsByArm: Record<string, number | null>
   }
   sourcePlannerQuality?: PlannerQualityTelemetrySummary | null
+  sourcePlanConsistency?: PlanStateConsistencyTelemetrySummary | null
   results: ArmResult[]
   deltas: DraftingIsolatedDelta[]
   sceneSemanticComparison?: DraftingIsolatedSceneSemanticComparisonSummary | null
@@ -432,6 +444,21 @@ export interface PlannerQualityTelemetrySummary {
   obligationErrorChapters: number
   overloadedObligationChapters: number
   readiness: PlanningContextReadinessTelemetrySummary
+  error?: string
+}
+
+export interface PlanStateConsistencyTelemetrySummary extends PlanningContextReadinessTelemetrySummary {
+  pairCount: number
+  mode: PlanStateConsistencyReport["mode"]
+  readinessImport?: {
+    requested: true
+    inserted: number
+    updated: number
+    staleReplaced: number
+    skipped: number
+    itemIds: string[]
+    error?: string
+  }
   error?: string
 }
 
@@ -1277,6 +1304,92 @@ function plannerQualitySummary(
   }
 }
 
+async function maybeRunSourcePlanStateConsistencyAudit(
+  novelId: string,
+  targetPrefix: string,
+): Promise<PlanStateConsistencyTelemetrySummary> {
+  const outputDir = `output/plan-state-consistency/${targetPrefix}/source`
+  console.log(`source plan-state consistency audit ...`)
+  try {
+    await initNovelRun(novelId)
+    const { report, aggregate } = await buildPlanStateConsistencyReport({
+      novelId,
+      outlines: await loadPlanStateConsistencyOutlines(novelId),
+      live: true,
+    })
+    writePlanStateConsistencyArtifacts({ report, aggregate, outputDirPath: outputDir })
+    const readiness = planStateConsistencySummary(report, aggregate, outputDir)
+    readiness.readinessImport = await importPlanStateConsistencyReadiness(novelId, aggregate)
+    return readiness
+  } catch (err) {
+    return {
+      outputDir,
+      pairCount: 0,
+      groupCount: 0,
+      findingCount: 0,
+      labels: {},
+      mode: "semantic-live",
+      error: `plan-state consistency audit failed: ${err instanceof Error ? err.message : String(err)}`,
+    }
+  }
+}
+
+function planStateConsistencySummary(
+  report: PlanStateConsistencyReport,
+  aggregate: PlanStateConsistencyAggregate,
+  outputDir: string,
+): PlanStateConsistencyTelemetrySummary {
+  const labels = new Map<string, number>()
+  for (const group of aggregate.groups) {
+    for (const finding of group.findings) {
+      labels.set(finding.label, (labels.get(finding.label) ?? 0) + 1)
+    }
+  }
+  return {
+    outputDir,
+    pairCount: report.pairCount,
+    mode: report.mode,
+    groupCount: aggregate.groupCount,
+    findingCount: aggregate.findingCount,
+    labels: Object.fromEntries([...labels.entries()].sort(([a], [b]) => a.localeCompare(b))),
+  }
+}
+
+async function importPlanStateConsistencyReadiness(
+  novelId: string,
+  aggregate: PlanStateConsistencyAggregate,
+): Promise<NonNullable<PlanStateConsistencyTelemetrySummary["readinessImport"]>> {
+  try {
+    const { importPlanReadinessAggregateForNovel } = await import("../src/harness/plan-readiness-import")
+    const imported = await importPlanReadinessAggregateForNovel({
+      novelId,
+      aggregate,
+      importedByKind: "script",
+      importedByRef: "plan-state-consistency",
+      refreshStaleness: true,
+      replaceExistingImport: true,
+    })
+    return {
+      requested: true,
+      inserted: imported.inserted,
+      updated: imported.updated,
+      staleReplaced: imported.staleReplaced,
+      skipped: imported.skipped.length,
+      itemIds: imported.items.map(item => item.id),
+    }
+  } catch (err) {
+    return {
+      requested: true,
+      inserted: 0,
+      updated: 0,
+      staleReplaced: 0,
+      skipped: 0,
+      itemIds: [],
+      error: err instanceof Error ? err.message : String(err),
+    }
+  }
+}
+
 function plannerQualityReadinessSummary(
   aggregate: ReturnType<typeof buildPlannerQualityReadinessAggregate>,
   outputDir: string,
@@ -2106,6 +2219,7 @@ async function main() {
 
   const sourceAssessment = await ensureSourceExists(args.source, { allowDraftedSource: args.allowDraftedSource })
   const sourcePlannerQuality = await maybeRunSourcePlannerQualityAudit(args.source, args.targetPrefix)
+  const sourcePlanConsistency = await maybeRunSourcePlanStateConsistencyAudit(args.source, args.targetPrefix)
 
   const results: ArmResult[] = []
   for (const arm of args.arms) {
@@ -2237,6 +2351,7 @@ async function main() {
     results,
     sourceAssessment,
     sourcePlannerQuality,
+    sourcePlanConsistency,
     sceneSemanticComparison,
   })
   writeDraftingIsolatedRunReport(report, reportDir)
@@ -2250,6 +2365,7 @@ export function buildDraftingIsolatedRunReport(input: {
   results: ArmResult[]
   sourceAssessment: SourceDraftingIsolationAssessment
   sourcePlannerQuality?: PlannerQualityTelemetrySummary | null
+  sourcePlanConsistency?: PlanStateConsistencyTelemetrySummary | null
   sceneSemanticComparison?: DraftingIsolatedSceneSemanticComparisonSummary | null
   generatedAt?: string
 }): DraftingIsolatedRunReport {
@@ -2292,10 +2408,13 @@ export function buildDraftingIsolatedRunReport(input: {
       planningContextReadinessByArm: Object.fromEntries(results.map(result => [result.arm, result.planningContext?.readiness?.findingCount ?? null])),
       planAssistReadinessByArm: Object.fromEntries(results.map(result => [result.arm, result.planAssistReadiness?.findingCount ?? null])),
       checkerReadinessByArm: Object.fromEntries(results.map(result => [result.arm, result.checkerReadiness?.findingCount ?? null])),
+      productionCleanByArm: Object.fromEntries(results.map(result => [result.arm, productionCleanForArm(result)])),
+      promotionIssuesByArm: Object.fromEntries(results.map(result => [result.arm, promotionIssuesForArm(result)])),
       proseSemanticLowRowsByArm: Object.fromEntries(results.map(result => [result.arm, result.proseSemantic?.lowRows ?? null])),
       sceneSemanticLowRowsByArm: Object.fromEntries(results.map(result => [result.arm, result.sceneSemantic?.lowRows ?? null])),
     },
     sourcePlannerQuality: input.sourcePlannerQuality ?? null,
+    sourcePlanConsistency: input.sourcePlanConsistency ?? null,
     results,
     deltas,
     sceneSemanticComparison: input.sceneSemanticComparison ?? null,
@@ -2423,6 +2542,17 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
         (quality.error ? ` error=${quality.error}` : ""),
     )
   }
+  if (report.sourcePlanConsistency) {
+    const consistency = report.sourcePlanConsistency
+    lines.push(
+        `- source plan-state consistency: mode=${consistency.mode} pairs=${consistency.pairCount} ` +
+        `groups=${consistency.groupCount} findings=${consistency.findingCount} report=${consistency.outputDir}` +
+        (consistency.readinessImport
+          ? ` readinessImport=inserted:${consistency.readinessImport.inserted},updated:${consistency.readinessImport.updated},stale:${consistency.readinessImport.staleReplaced},skipped:${consistency.readinessImport.skipped}`
+          : "") +
+        (consistency.error ? ` error=${consistency.error}` : ""),
+    )
+  }
   lines.push("")
   lines.push("## Arms")
   for (const result of report.results) {
@@ -2464,6 +2594,8 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
           `findings=${result.checkerReadiness.findingCount} report=${result.checkerReadiness.outputDir}` +
           (result.checkerReadiness.error ? ` error=${result.checkerReadiness.error}` : ""),
       )
+      const promotionIssues = promotionIssuesForArm(result)
+      lines.push(`  productionClean=${promotionIssues.length === 0 ? "yes" : "no"}${promotionIssues.length > 0 ? ` promotionIssues=${promotionIssues.join(",")}` : ""}`)
     }
     if (result.sceneSemantic) {
       lines.push(`  sceneSemantic tasks=${result.sceneSemantic.taskCount} lows=${result.sceneSemantic.lowRows} errors=${result.sceneSemantic.errorRows} report=${result.sceneSemantic.outputDir || "(not written)"}`)
@@ -2500,6 +2632,22 @@ export function renderDraftingIsolatedRunReport(report: DraftingIsolatedRunRepor
     }
   }
   return `${lines.join("\n")}\n`
+}
+
+function productionCleanForArm(result: ArmResult): boolean | null {
+  if (result.error) return false
+  if (!result.checkerReadiness) return null
+  return promotionIssuesForArm(result).length === 0
+}
+
+function promotionIssuesForArm(result: ArmResult): string[] {
+  const issues: string[] = []
+  if (result.error) issues.push(`arm-error:${result.error}`)
+  if ((result.checkerReadiness?.weightBearingItems ?? 0) > 0) {
+    issues.push(`checker-weight-bearing:${result.checkerReadiness!.weightBearingItems}`)
+  }
+  if (result.checkerReadiness?.error) issues.push(`checker-readiness-error:${result.checkerReadiness.error}`)
+  return issues
 }
 
 function writeDraftingIsolatedRunReport(report: DraftingIsolatedRunReport, reportDir: string): void {

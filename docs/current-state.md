@@ -104,26 +104,21 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 The active lane is in `docs/sessions/lane-queue.md`.
 
-As of 2026-05-13, L106-L111 keep evidence on production paths: writer-brief
-telemetry, scene-semantic replay, Plan Readiness, source hygiene,
-  planning-edit replay, scene-contract telemetry, and compare/cohort artifacts.
-`planningSceneTurnShapingV1` and `planningMaterialPressureV1` run through
-production planner/state-mapper paths; gaps are recorded instead of
-fallback-filled. Tight-anchored writer-brief evidence was promising but did not
-generalize, so default flip remains blocked. L109 works directly on main:
-`mercenary-rillgate-saltmine` now uses chapter-contract scoped scene expansion,
-scene-scale budgets, seed process-instruction scrub, and future-boundary
-redaction. Drafting source `test-planner-mercenary-rillgate-saltmine-1778674224711`
-is repaired and preferred over the earlier 98-scene plan: 10 chapters / 49
-scenes, balanced load, `futureEventAnchors: 0`, no sequence-guard retry, and
-2026-05-13/14 Plan Readiness fixes via approved `planning_edit`; planner-quality
-and planning-context core shape errors are 0. Full production-path draft
-`rillgate-coherent-prod-1778761633-production-path` completed 10/10 chapters at
-31,676/31,000 words with Plan-Assist 0, prose-semantic lows 0/40, scene-semantic
-lows 4/166, and 2 weight-bearing checker blockers. Endpoint-only lows imported
-as scalar `consequence` readiness items; next weight-bearing work is chapter 9
-plan/checker contradiction handling and checker-readiness import fidelity. LLM
-style lint auto-fix is default-off after L113. See L103-L114.
+As of 2026-05-14, L106-L115 keep evidence on production paths: writer-brief
+telemetry, scene-semantic replay, source hygiene, planning-edit replay,
+scene-contract telemetry, checker readiness, source plan-state consistency, and
+compare/cohort artifacts. `planningSceneTurnShapingV1` and
+`planningMaterialPressureV1` run through production planner/state-mapper paths;
+gaps are recorded instead of fallback-filled. Rillgate source
+`test-planner-mercenary-rillgate-saltmine-1778674224711` remains the preferred
+10-chapter / 49-scene plan. Full draft
+`rillgate-coherent-prod-1778761633-production-path` completed 31,676/31,000
+words with Plan-Assist 0, prose-semantic lows 0/40, scene-semantic lows 4/166,
+and 2 weight-bearing checker blockers. L115 adds optional `factStatus`,
+pre-draft adjacent-chapter plan-state consistency readiness, grouped
+checker-readiness import, and production-clean telemetry for weight-bearing
+checker rows; repeated plan-state imports stale absent same-import rows. LLM
+style lint auto-fix is default-off after L113. See L103-L115.
 
 ## Authoring Gates
 

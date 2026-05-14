@@ -27,6 +27,7 @@ export const planningStateMapperSchema = z.object({
     id: z.string().default(""),
     fact: z.string(),
     category: z.string().transform(v => factCategoryMap[v.toLowerCase()] ?? v.toLowerCase()),
+    factStatus: z.enum(["completed", "intended", "pending", "belief"]).optional(),
   })).default([]),
 
   characterStateChanges: z.array(

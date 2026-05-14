@@ -427,7 +427,7 @@ export function buildPlanningTargetMap(artifacts: PlanningArtifacts): PlanningTa
         kind: "world_fact",
         ref: fact.id,
         label: `Chapter ${outline.chapterNumber} fact: ${fact.fact}`,
-        fieldPaths: ["fact", "category"],
+        fieldPaths: ["fact", "category", "factStatus"],
         currentVersion: stableHash(fact),
         inSnapshot: true,
         location: {

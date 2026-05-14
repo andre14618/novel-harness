@@ -270,6 +270,46 @@ export async function markStalePlanReadinessItems(
   return { staleCount: staleIds.length, staleIds }
 }
 
+export async function markStalePlanReadinessItemsByImportRef(
+  novelId: string,
+  importedByRef: string,
+  keepItemIds: readonly string[] = [],
+  executor: Executor = db,
+): Promise<{ staleCount: number; staleIds: string[] }> {
+  const uniqueKeepIds = [...new Set(keepItemIds.filter(Boolean))]
+  const staleMetadata = {
+    stale: {
+      reason: "import_ref_replaced",
+      importedByRef,
+      currentItemCount: uniqueKeepIds.length,
+    },
+  }
+  const rows = uniqueKeepIds.length === 0
+    ? await executor`
+        UPDATE plan_readiness_items
+        SET status = 'stale',
+            updated_at = now(),
+            metadata = metadata || ${staleMetadata}
+        WHERE novel_id = ${novelId}
+          AND imported_by_ref = ${importedByRef}
+          AND status IN ('open', 'deferred')
+        RETURNING id
+      `
+    : await executor`
+        UPDATE plan_readiness_items
+        SET status = 'stale',
+            updated_at = now(),
+            metadata = metadata || ${staleMetadata}
+        WHERE novel_id = ${novelId}
+          AND imported_by_ref = ${importedByRef}
+          AND status IN ('open', 'deferred')
+          AND NOT (id = ANY(${pgTextArray(uniqueKeepIds)}::text[]))
+        RETURNING id
+      `
+  const staleIds = (rows as Array<{ id: string }>).map(row => row.id)
+  return { staleCount: staleIds.length, staleIds }
+}
+
 function planReadinessTargetKindAliases(kind: PlanReadinessTargetKind): PlanReadinessTargetKind[] {
   if (kind === "scene_plan") return ["scene_plan", "beat_plan"]
   if (kind === "beat_plan") return ["beat_plan", "scene_plan"]
@@ -338,4 +378,8 @@ function toIso(value: string | Date): string {
 
 function toIsoOrNull(value: string | Date | null): string | null {
   return value == null ? null : toIso(value)
+}
+
+function pgTextArray(values: readonly string[]): string {
+  return `{${values.map(value => `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`).join(",")}}`
 }

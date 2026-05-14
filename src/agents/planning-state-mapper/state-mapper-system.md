@@ -12,7 +12,7 @@ Respond with ONLY valid JSON in this exact structure:
 
 {
   "establishedFacts": [
-    { "id": "fact-temple-archive-pre-war-records", "fact": "The archive beneath the temple contains pre-war records", "category": "physical" }
+    { "id": "fact-temple-archive-pre-war-records", "fact": "The archive beneath the temple contains pre-war records", "category": "physical", "factStatus": "completed" }
   ],
   "characterStateChanges": [
     {
@@ -105,6 +105,7 @@ Respond with ONLY valid JSON in this exact structure:
 ## Chapter-Level State
 
 - `establishedFacts`: continuity-relevant facts only. Include world rules, spatial relationships, character decisions, object states, identities, deadlines, and relationship facts. Do not include generic plot summary. Every fact needs a stable kebab-case `id` (prefix `fact-`) unique within this chapter.
+- Every `establishedFacts[]` item must distinguish status with `factStatus`: `completed` for facts/actions already true by chapter end, `intended` for a plan or decision not yet executed, `pending` for an unresolved process/deadline/obligation, and `belief` for a character belief that may be wrong. A decision to do X is not the same as X happening. If characters decide to split routes but the split has not happened on page, write the fact as intended and make the text say they intend/plan to split, not that they have split.
 - `characterStateChanges`: end-of-chapter state only. Include characters whose location, emotional state, knowledge, relationship stance, decision, or physical condition meaningfully changed. Each item needs `id` (prefix `state-`) and `characterId` (prefix `char-`).
 - `knowledgeChanges`: information transfer only. Include who learns what and how. Source must be one of: witnessed, told, overheard, deduced, read, discovered. Each item needs `id` (prefix `know-`) and `characterId` (prefix `char-`).
 

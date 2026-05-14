@@ -156,61 +156,128 @@ export function buildPlanReadinessDraftsFromAggregate(
       continue
     }
 
-    for (const finding of findings) {
-      const dimension = stringValue(finding.dimension)
-      const diagnosticLabel = stringValue(finding.label)
-      const fixIntent = stringValue(finding.fixIntent) || "review_only"
-      if (!dimension || !diagnosticLabel) {
-        skipped.push({ reason: "finding missing dimension or label", target })
-        continue
-      }
-      const severity = normalizeSeverity(finding.severity)
-      const explanation = stringValue(finding.rationale) || "planner readiness diagnostic"
-      const missingForNextLevel = stringValue(finding.missingForNextLevel) || null
-      const sourceReportPaths = unique([
-        ...sourceReports,
-        ...[stringValue(finding.sourceReport)].filter(Boolean),
-      ])
-      const id = planReadinessItemId({
-        novelId: args.novelId,
-        target,
-        sourceHash,
-        dimension,
-        diagnosticLabel,
-        fixIntent,
-      })
-      drafts.push({
-        id,
-        novelId: args.novelId,
-        target,
-        sourceHash,
-        sourceHashKind,
-        diagnosticLabel,
-        dimension,
-        fixIntent,
-        severity,
-        explanation,
-        missingForNextLevel,
-        preserveIds,
-        evidence: normalizeStringRecord(finding.evidence),
-        sourceReportPaths,
-        importedByKind,
-        importedByRef,
-        metadata: {
-          aggregateGroupId: stringValue(group.groupId),
-          aggregateFindingId: stringValue(finding.findingId),
-          fixtureId: stringValue(group.fixtureId),
-          armId: stringValue(group.armId),
-          methodPackEnabled: Boolean(group.methodPackEnabled),
-          unitType: stringValue(group.unitType),
-          chapterId: stringValue(group.chapterId),
-          sceneId: stringValue(group.sceneId),
-          promptMode: stringValue(finding.promptMode),
+    if (!shouldImportFindingsAsGroup(proposalCandidate)) {
+      for (const finding of findings) {
+        const dimension = stringValue(finding.dimension)
+        const diagnosticLabel = stringValue(finding.label)
+        const fixIntent = stringValue(finding.fixIntent) || "review_only"
+        if (!dimension || !diagnosticLabel) {
+          skipped.push({ reason: "finding missing dimension or label", target })
+          continue
+        }
+        const severity = normalizeSeverity(finding.severity)
+        const explanation = stringValue(finding.rationale) || "planner readiness diagnostic"
+        const missingForNextLevel = stringValue(finding.missingForNextLevel) || null
+        const sourceReportPaths = unique([
+          ...sourceReports,
+          ...[stringValue(finding.sourceReport)].filter(Boolean),
+        ])
+        const id = planReadinessItemId({
+          novelId: args.novelId,
+          target,
+          sourceHash,
+          dimension,
+          diagnosticLabel,
+          fixIntent,
+        })
+        drafts.push({
+          id,
+          novelId: args.novelId,
+          target,
+          sourceHash,
           sourceHashKind,
-          ...(proposalCandidate ? { proposalCandidate } : {}),
-        },
-      })
+          diagnosticLabel,
+          dimension,
+          fixIntent,
+          severity,
+          explanation,
+          missingForNextLevel,
+          preserveIds,
+          evidence: normalizeStringRecord(finding.evidence),
+          sourceReportPaths,
+          importedByKind,
+          importedByRef,
+          metadata: {
+            aggregateGroupId: stringValue(group.groupId),
+            aggregateFindingId: stringValue(finding.findingId),
+            fixtureId: stringValue(group.fixtureId),
+            armId: stringValue(group.armId),
+            methodPackEnabled: Boolean(group.methodPackEnabled),
+            unitType: stringValue(group.unitType),
+            chapterId: stringValue(group.chapterId),
+            sceneId: stringValue(group.sceneId),
+            promptMode: stringValue(finding.promptMode),
+            sourceHashKind,
+            ...(proposalCandidate ? { proposalCandidate } : {}),
+          },
+        })
+      }
+      continue
     }
+
+    const usableFindings = findings.filter(finding =>
+      Boolean(stringValue(finding.dimension)) && Boolean(stringValue(finding.label))
+    )
+    if (usableFindings.length === 0) {
+      skipped.push({ reason: "finding missing dimension or label", target })
+      continue
+    }
+    if (usableFindings.length !== findings.length) {
+      skipped.push({ reason: "some grouped findings missing dimension or label", target })
+    }
+
+    const dimension = groupedString(usableFindings.map(finding => stringValue(finding.dimension)), "grouped")
+    const diagnosticLabel = groupedString(usableFindings.map(finding => stringValue(finding.label)), "GROUPED-DIAGNOSTIC")
+    const fixIntent = groupedString(usableFindings.map(finding => stringValue(finding.fixIntent) || "review_only"), "grouped_review")
+    const severity = highestSeverity(usableFindings.map(finding => normalizeSeverity(finding.severity)))
+    const explanation = groupedExplanation(usableFindings)
+    const missingForNextLevel = groupedMissingForNextLevel(usableFindings)
+    const sourceReportPaths = unique([
+      ...sourceReports,
+      ...usableFindings.map(finding => stringValue(finding.sourceReport)).filter(Boolean),
+    ])
+    const evidence = groupedEvidence(usableFindings)
+    const id = planReadinessItemId({
+      novelId: args.novelId,
+      target,
+      sourceHash,
+      dimension,
+      diagnosticLabel,
+      fixIntent,
+    })
+    drafts.push({
+      id,
+      novelId: args.novelId,
+      target,
+      sourceHash,
+      sourceHashKind,
+      diagnosticLabel,
+      dimension,
+      fixIntent,
+      severity,
+      explanation,
+      missingForNextLevel,
+      preserveIds,
+      evidence,
+      sourceReportPaths,
+      importedByKind,
+      importedByRef,
+      metadata: {
+        aggregateGroupId: stringValue(group.groupId),
+        aggregateFindingId: stringValue(usableFindings[0]?.findingId),
+        aggregateFindingIds: usableFindings.map(finding => stringValue(finding.findingId)).filter(Boolean),
+        fixtureId: stringValue(group.fixtureId),
+        armId: stringValue(group.armId),
+        methodPackEnabled: Boolean(group.methodPackEnabled),
+        unitType: stringValue(group.unitType),
+        chapterId: stringValue(group.chapterId),
+        sceneId: stringValue(group.sceneId),
+        promptMode: groupedString(usableFindings.map(finding => stringValue(finding.promptMode)), "unknown"),
+        sourceHashKind,
+        ...(usableFindings.length > 1 ? { groupedFindingCount: usableFindings.length } : {}),
+        ...(proposalCandidate ? { proposalCandidate } : {}),
+      },
+    })
   }
 
   return { drafts, skipped }
@@ -331,6 +398,59 @@ function normalizeStringRecord(raw: unknown): Record<string, string> {
   const out: Record<string, string> = {}
   for (const [key, value] of Object.entries(record)) out[key] = stringValue(value)
   return out
+}
+
+function shouldImportFindingsAsGroup(proposalCandidate: Record<string, unknown> | null): boolean {
+  const sourceAgent = stringValue(proposalCandidate?.sourceAgent)
+  return sourceAgent === "production-checker-warning-report" ||
+    sourceAgent === "plan-state-consistency"
+}
+
+function groupedString(values: string[], fallback: string): string {
+  const uniqueValues = unique(values.filter(Boolean))
+  if (uniqueValues.length === 0) return fallback
+  if (uniqueValues.length === 1) return uniqueValues[0]!
+  return uniqueValues.join("+")
+}
+
+function highestSeverity(values: PlanReadinessSeverity[]): PlanReadinessSeverity {
+  return values.sort((a, b) => severityRank(b) - severityRank(a))[0] ?? "info"
+}
+
+function severityRank(value: PlanReadinessSeverity): number {
+  return value === "high" ? 4 : value === "medium" ? 3 : value === "low" ? 2 : 1
+}
+
+function groupedExplanation(findings: AggregateFindingLike[]): string {
+  if (findings.length === 1) {
+    return stringValue(findings[0]?.rationale) || "planner readiness diagnostic"
+  }
+  const rationales = unique(findings.map(finding => stringValue(finding.rationale)).filter(Boolean))
+  return `${findings.length} grouped readiness findings target the same upstream plan field.${rationales.length > 0 ? ` ${rationales.join(" ")}` : ""}`
+}
+
+function groupedMissingForNextLevel(findings: AggregateFindingLike[]): string | null {
+  const values = unique(findings.map(finding => stringValue(finding.missingForNextLevel)).filter(Boolean))
+  if (values.length === 0) return null
+  return values.join("\n")
+}
+
+function groupedEvidence(findings: AggregateFindingLike[]): Record<string, string> {
+  if (findings.length === 1) return normalizeStringRecord(findings[0]?.evidence)
+  const rows = findings.map(finding => ({
+    findingId: stringValue(finding.findingId),
+    label: stringValue(finding.label),
+    severity: stringValue(finding.severity),
+    dimension: stringValue(finding.dimension),
+    fixIntent: stringValue(finding.fixIntent),
+    evidence: normalizeStringRecord(finding.evidence),
+  }))
+  return {
+    findingCount: String(findings.length),
+    findingIds: rows.map(row => row.findingId).filter(Boolean).join(","),
+    findingLabels: unique(rows.map(row => row.label).filter(Boolean)).join(","),
+    findingsJson: JSON.stringify(rows),
+  }
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {

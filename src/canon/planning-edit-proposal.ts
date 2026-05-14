@@ -788,6 +788,15 @@ function validateEstablishedFactsValue(value: unknown): string | null {
       return `establishedFacts[${index}].category must be a non-empty string`
     }
     if (record.category.length > 120) return `establishedFacts[${index}].category must be 120 characters or fewer`
+    if (
+      record.factStatus !== undefined &&
+      record.factStatus !== "completed" &&
+      record.factStatus !== "intended" &&
+      record.factStatus !== "pending" &&
+      record.factStatus !== "belief"
+    ) {
+      return `establishedFacts[${index}].factStatus must be completed, intended, pending, or belief`
+    }
     if (/[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(record.fact) || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(record.category)) {
       return `establishedFacts[${index}] must not contain control characters`
     }

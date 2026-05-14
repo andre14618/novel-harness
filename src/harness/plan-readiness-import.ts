@@ -6,6 +6,7 @@ import {
 } from "./plan-readiness"
 import {
   markStalePlanReadinessItems,
+  markStalePlanReadinessItemsByImportRef,
   upsertPlanReadinessItems,
   type PlanReadinessItem,
 } from "../db/plan-readiness"
@@ -17,11 +18,13 @@ export interface ImportPlanReadinessAggregateArgs {
   importedByKind?: PlanReadinessImporterKind
   importedByRef?: string | null
   refreshStaleness?: boolean
+  replaceExistingImport?: boolean
 }
 
 export interface ImportPlanReadinessAggregateResult {
   inserted: number
   updated: number
+  staleReplaced: number
   skipped: Array<{ reason: string; target?: unknown }>
   items: PlanReadinessItem[]
 }
@@ -40,10 +43,18 @@ export async function importPlanReadinessAggregateForNovel(
     importedByKind: args.importedByKind ?? "script",
     importedByRef: args.importedByRef ?? null,
   })
+  const replaced = args.replaceExistingImport && args.importedByRef
+    ? await markStalePlanReadinessItemsByImportRef(
+      args.novelId,
+      args.importedByRef,
+      built.drafts.map(draft => draft.id),
+    )
+    : { staleCount: 0, staleIds: [] }
   const result = await upsertPlanReadinessItems(built.drafts)
   return {
     inserted: result.inserted,
     updated: result.updated,
+    staleReplaced: replaced.staleCount,
     skipped: built.skipped,
     items: result.items,
   }

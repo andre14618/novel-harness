@@ -106,6 +106,49 @@ describe("checker-readiness-report", () => {
       includeWarnings: true,
     }).groupCount).toBe(1)
   })
+
+  test("groups same-target checker findings so readiness import keeps all evidence", () => {
+    const aggregate = buildCheckerReadinessAggregate({
+      report: report(
+        {
+          severity: "blocker",
+          source: "continuity-facts",
+          description: "Draft shows Tessa refusing testimony after the plan already made her testimony necessary.",
+          polarity: "negative",
+          telemetryWeight: "weight-bearing",
+          telemetryWeightReason: "negative-standard-blocker",
+        },
+        {
+          severity: "blocker",
+          source: "continuity-facts",
+          description: "Draft has Kael and Tessa leave together after the plan established separate routes.",
+          polarity: "negative",
+          telemetryWeight: "weight-bearing",
+          telemetryWeightReason: "negative-standard-blocker",
+        },
+      ),
+      chapterTargets: [{ chapterNumber: 2, chapterId: "ch-002-witness-choice" }],
+      generatedAt: "2026-05-10T00:00:00.000Z",
+    })
+
+    expect(aggregate.groupCount).toBe(1)
+    expect(aggregate.findingCount).toBe(2)
+    expect(aggregate.groups[0]?.findings.map(finding => finding.findingId)).toEqual(["001.1", "001.2"])
+
+    const readiness = buildPlanReadinessDraftsFromAggregate({
+      novelId: "novel",
+      aggregate,
+      targetVersions: {
+        "chapter_outline:ch-002-witness-choice": "b".repeat(64),
+      },
+    })
+
+    expect(readiness.skipped).toHaveLength(0)
+    expect(readiness.drafts).toHaveLength(1)
+    expect(readiness.drafts[0]?.evidence.findingCount).toBe("2")
+    expect(readiness.drafts[0]?.evidence.findingsJson).toContain("separate routes")
+    expect(readiness.drafts[0]?.metadata.groupedFindingCount).toBe(2)
+  })
 })
 
 function report(...items: Array<Partial<CheckerWarningReport["chapters"][number]["items"][number]>>): CheckerWarningReport {

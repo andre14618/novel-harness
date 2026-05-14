@@ -73,6 +73,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "planning-scenes":            { ...deepseekV4Flash, temperature: 0.6, maxTokens: 8192 },
   "planning-state-mapper":     { ...deepseekV4Flash, thinking: true, temperature: 0.25, maxTokens: 16384 },
   "planning-state-repair":     { ...deepseekV4Flash, thinking: false, temperature: 0.2, maxTokens: 2048 },
+  "plan-state-consistency":    { ...deepseekV4Flash, thinking: true, temperature: 0.1, maxTokens: 3000 },
   // Offline planner-method diagnostics. Kept on the same base planning model
   // family so method-pack A/B evidence is not confounded by the generic
   // process default model.

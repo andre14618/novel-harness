@@ -6,6 +6,7 @@ import {
   deletePlanReadinessItemsForNovel,
   listPlanReadinessItems,
   markStalePlanReadinessItems,
+  markStalePlanReadinessItemsByImportRef,
   updatePlanReadinessDisposition,
   upsertPlanReadinessItem,
 } from "./plan-readiness"
@@ -103,6 +104,69 @@ describe.skipIf(!reachable)("plan readiness persistence", () => {
 
     expect(stale.staleCount).toBe(2)
     expect((await listPlanReadinessItems(novelId, { status: "stale" }))).toHaveLength(2)
+  })
+
+  test("marks replaced import-ref rows stale while preserving current and resolved rows", async () => {
+    await upsertPlanReadinessItem(draft({
+      id: "readiness-old-open",
+      importedByRef: "replace-test",
+    }))
+    const deferred = await upsertPlanReadinessItem(draft({
+      id: "readiness-old-deferred",
+      importedByRef: "replace-test",
+      diagnosticLabel: "OLD-DEFERRED",
+      dimension: "oldDeferred",
+    }))
+    await updatePlanReadinessDisposition({
+      id: deferred.item.id,
+      novelId,
+      status: "deferred",
+      operatorDisposition: "defer_to_drafting",
+      operatorNote: null,
+      proposalEnvelopeId: null,
+    })
+    await upsertPlanReadinessItem(draft({
+      id: "readiness-current-open",
+      importedByRef: "replace-test",
+      diagnosticLabel: "CURRENT",
+      dimension: "current",
+    }))
+    await upsertPlanReadinessItem(draft({
+      id: "readiness-other-ref",
+      importedByRef: "other-import",
+      diagnosticLabel: "OTHER",
+      dimension: "other",
+    }))
+    const resolved = await upsertPlanReadinessItem(draft({
+      id: "readiness-resolved",
+      importedByRef: "replace-test",
+      diagnosticLabel: "RESOLVED",
+      dimension: "resolved",
+    }))
+    await updatePlanReadinessDisposition({
+      id: resolved.item.id,
+      novelId,
+      status: "accepted_as_is",
+      operatorDisposition: "acceptable_choice",
+      operatorNote: null,
+      proposalEnvelopeId: null,
+    })
+
+    const stale = await markStalePlanReadinessItemsByImportRef(
+      novelId,
+      "replace-test",
+      ["readiness-current-open"],
+    )
+
+    expect(stale.staleCount).toBe(2)
+    expect(stale.staleIds.sort()).toEqual(["readiness-old-deferred", "readiness-old-open"])
+    const all = await listPlanReadinessItems(novelId, { status: "all", limit: 10 })
+    const statuses = Object.fromEntries(all.map(item => [item.id, item.status]))
+    expect(statuses["readiness-old-open"]).toBe("stale")
+    expect(statuses["readiness-old-deferred"]).toBe("stale")
+    expect(statuses["readiness-current-open"]).toBe("open")
+    expect(statuses["readiness-other-ref"]).toBe("open")
+    expect(statuses["readiness-resolved"]).toBe("accepted_as_is")
   })
 })
 

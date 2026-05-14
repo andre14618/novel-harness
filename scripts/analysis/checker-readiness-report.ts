@@ -134,7 +134,7 @@ export function buildCheckerReadinessAggregate(input: {
   generatedAt?: string
 }): CheckerReadinessAggregate {
   const chapterTargetByNumber = new Map(input.chapterTargets.map(target => [target.chapterNumber, target.chapterId]))
-  const groups: CheckerReadinessGroup[] = []
+  const groupsByKey = new Map<string, CheckerReadinessGroup>()
   const includeWarnings = input.includeWarnings === true
 
   for (const chapter of input.report.chapters) {
@@ -171,44 +171,57 @@ export function buildCheckerReadinessAggregate(input: {
           ...(item.plannedItemId ? { plannedItemId: item.plannedItemId } : {}),
         },
       }
-      groups.push({
-        groupId: "000",
-        fixtureId: input.report.novelId ?? "unknown",
-        armId: "checker-warning-report",
-        methodPackEnabled: false,
-        unitType: "chapter",
+      const groupKey = [
         chapterId,
-        sceneId: "",
-        sourceIds,
-        highestSeverity: severity,
-        fixIntents: [finding.fixIntent],
-        dimensions: ["planConsistency"],
-        findings: [finding],
-        rewritePacket: {
-          targetSummary: `chapter ${chapter.chapter} ${chapterId}`,
-          rewriteGoals: [
-            finding.missingForNextLevel,
-            "Keep checker findings advisory/manual until an operator chooses a planning edit.",
-          ],
-          preserveIds: sourceIds,
-          proposalCandidate: {
-            action: "field_replace",
-            target: {
-              kind: "chapter_outline",
-              ref: chapterId,
-              fieldPath: "purpose",
+        label,
+        finding.fixIntent,
+        "chapter_outline",
+        "purpose",
+      ].join("|")
+      const existing = groupsByKey.get(groupKey)
+      if (existing) {
+        existing.findings.push(finding)
+        if (severityRank(severity) > severityRank(existing.highestSeverity)) existing.highestSeverity = severity
+        existing.excerpt = checkerGroupExcerpt(existing.findings)
+        existing.rewritePacket.rewriteGoals = checkerRewriteGoals(existing.findings)
+      } else {
+        groupsByKey.set(groupKey, {
+          groupId: "000",
+          fixtureId: input.report.novelId ?? "unknown",
+          armId: "checker-warning-report",
+          methodPackEnabled: false,
+          unitType: "chapter",
+          chapterId,
+          sceneId: "",
+          sourceIds,
+          highestSeverity: severity,
+          fixIntents: [finding.fixIntent],
+          dimensions: ["planConsistency"],
+          findings: [finding],
+          rewritePacket: {
+            targetSummary: `chapter ${chapter.chapter} ${chapterId}`,
+            rewriteGoals: checkerRewriteGoals([finding]),
+            preserveIds: sourceIds,
+            proposalCandidate: {
+              action: "field_replace",
+              target: {
+                kind: "chapter_outline",
+                ref: chapterId,
+                fieldPath: "purpose",
+              },
+              requiresProposedValue: true,
+              proposedValueStatus: "operator_required",
+              safeToAutoApply: false,
+              sourceAgent: "production-checker-warning-report",
             },
-            requiresProposedValue: true,
-            proposedValueStatus: "operator_required",
-            safeToAutoApply: false,
-            sourceAgent: "production-checker-warning-report",
           },
-        },
-        excerpt: item.description,
-      })
+          excerpt: item.description,
+        })
+      }
     }
   }
 
+  const groups = [...groupsByKey.values()]
   groups.sort((a, b) =>
     severityRank(b.highestSeverity) - severityRank(a.highestSeverity)
     || a.chapterId.localeCompare(b.chapterId)
@@ -216,15 +229,18 @@ export function buildCheckerReadinessAggregate(input: {
   )
   groups.forEach((group, index) => {
     group.groupId = `${index + 1}`.padStart(3, "0")
-    group.findings[0]!.findingId = `${group.groupId}.1`
+    group.findings.forEach((finding, findingIndex) => {
+      finding.findingId = `${group.groupId}.${findingIndex + 1}`
+    })
   })
+  const findingCount = groups.reduce((sum, group) => sum + group.findings.length, 0)
 
   return {
     generatedAt: input.generatedAt ?? new Date().toISOString(),
     sourceReports: [`checker-warning-report:${input.report.novelId ?? "unknown"}`],
-    labels: [],
+    labels: [...new Set(groups.flatMap(group => group.findings.map(finding => finding.label)))].sort(),
     maxOrdinal: 1,
-    findingCount: groups.length,
+    findingCount,
     groupCount: groups.length,
     groups,
   }
@@ -241,19 +257,34 @@ export function renderCheckerReadinessAggregate(report: CheckerReadinessAggregat
   lines.push("These are manual Plan Readiness candidates from checker evidence. They do not auto-mutate the plan.")
   lines.push("")
   for (const group of report.groups) {
-    const finding = group.findings[0]!
     lines.push(`## ${group.groupId} ${group.highestSeverity.toUpperCase()} ${group.chapterId}`)
     lines.push("")
     lines.push(`Target: chapter_outline:${group.chapterId}:purpose`)
-    lines.push(`Label: ${finding.label}`)
-    lines.push(`Source: ${finding.evidence.source}`)
-    lines.push(`Issue: ${finding.evidence.description}`)
+    lines.push(`Labels: ${[...new Set(group.findings.map(row => row.label))].join(", ")}`)
+    lines.push(`Findings: ${group.findings.length}`)
+    for (const row of group.findings) {
+      lines.push(`- ${row.findingId} ${row.evidence.source}: ${row.evidence.description}`)
+    }
     lines.push("")
     lines.push("Operator question:")
     lines.push("- Is this a real upstream plan-consistency issue that needs a planning edit, or a checker false positive/acceptable drafting choice?")
     lines.push("")
   }
   return `${lines.join("\n")}\n`
+}
+
+function checkerRewriteGoals(findings: readonly CheckerReadinessFinding[]): string[] {
+  return [
+    ...new Set(findings.map(finding => finding.missingForNextLevel)),
+    findings.length > 1
+      ? `Resolve the ${findings.length} grouped checker findings together if they share one upstream plan cause.`
+      : "Keep checker findings advisory/manual until an operator chooses a planning edit.",
+  ]
+}
+
+function checkerGroupExcerpt(findings: readonly CheckerReadinessFinding[]): string {
+  if (findings.length <= 1) return findings[0]?.evidence.description ?? ""
+  return `${findings.length} checker findings: ${findings.map(finding => finding.evidence.description).join(" | ")}`
 }
 
 function itemShouldBecomeReadiness(item: CheckerWarningItem, includeWarnings: boolean): boolean {

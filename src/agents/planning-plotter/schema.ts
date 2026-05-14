@@ -58,6 +58,7 @@ export const chapterOutlineSchema = z.object({
     id: z.string().default(""),
     fact: z.string(),
     category: z.string().transform(v => factCategoryMap[v.toLowerCase()] ?? v.toLowerCase()),
+    factStatus: z.enum(["completed", "intended", "pending", "belief"]).optional(),
   })).default([]),
   characterStateChanges: z.array(
     z.preprocess(
@@ -140,6 +141,7 @@ export const persistedChapterOutlineSchema = chapterOutlineSchema.extend({
     id: z.string().default(""),
     fact: z.string(),
     category: z.string().transform(v => factCategoryMap[v.toLowerCase()] ?? v.toLowerCase()),
+    factStatus: z.enum(["completed", "intended", "pending", "belief"]).optional(),
   })),
   characterStateChanges: z.array(
     z.preprocess(
