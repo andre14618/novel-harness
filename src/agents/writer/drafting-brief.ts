@@ -4,7 +4,7 @@ import type { WriterPromptIdRendering } from "./context-mode"
 import { collectCanonSourceRefIds, collectStoryRefIds, countCanonSourceRefs, countStoryRefs } from "./context-trace-counts"
 import { summarizeSceneContractShape } from "./scene-contract-shape"
 import {
-  renderAuthoringBibleSlice,
+  renderAuthoringBiblePromptSections,
   summarizeAuthoringBibleSlice,
   type AuthoringBibleRuleSelection,
 } from "../../harness/authoring-bible"
@@ -40,6 +40,8 @@ export interface WriterDraftingBriefTrace {
     characterBible: boolean
     relationshipBible: boolean
     voiceBible: boolean
+    authoringBibleStablePrelude: boolean
+    authoringBibleSceneSlice: boolean
     resolvedReferences: boolean
     readerInfoState: boolean
     setting: boolean
@@ -65,6 +67,8 @@ export interface WriterDraftingBriefTrace {
     characterBibleRules: number
     relationshipBibleRules: number
     voiceBibleRules: number
+    authoringBibleStablePreludeRules: number
+    authoringBibleSceneSliceRules: number
   }
   ids: {
     canonSourceRefs: string[]
@@ -77,6 +81,8 @@ export interface WriterDraftingBriefTrace {
     characterBibleRuleIds: string[]
     relationshipBibleRuleIds: string[]
     voiceBibleRuleIds: string[]
+    authoringBibleStablePreludeRuleIds: string[]
+    authoringBibleSceneSliceRuleIds: string[]
     authoringBibleRuleSelections: AuthoringBibleRuleSelection[]
   }
 }
@@ -117,20 +123,27 @@ export function renderWriterDraftingBrief(
   ctx: BeatContext,
   opts: { targetWords: number; idRendering?: WriterPromptIdRendering; mode?: WriterDraftingBriefMode },
 ): string {
-  const sections: string[] = [
-    renderBriefHeader(ctx, opts),
-  ]
+  const authoringBibleSections = ctx.authoringBible ? renderAuthoringBiblePromptSections(ctx.authoringBible) : null
+  const sections: string[] = []
 
   if (hasSceneTurnFloor(opts.mode)) {
     sections.push(renderSceneExecutionFloor(opts.mode))
   }
+
+  if (authoringBibleSections?.stablePrelude) {
+    sections.push(authoringBibleSections.stablePrelude)
+  }
+
+  sections.push(renderBriefHeader(ctx, opts))
 
   if (hasSceneLoadControl(opts.mode)) {
     sections.push(renderSceneLoadControl(opts.targetWords))
   }
 
   if (ctx.sceneContract) sections.push(renderSceneContractBrief(ctx.sceneContract, opts.mode))
-  if (ctx.authoringBible) sections.push(renderAuthoringBibleSlice(ctx.authoringBible))
+  if (authoringBibleSections?.sceneSlice) {
+    sections.push(authoringBibleSections.sceneSlice)
+  }
 
   const obligations = renderObligationsBrief(ctx.beatSpec.obligations, opts.idRendering)
   if (obligations) sections.push(`OBLIGATIONS:\n${obligations}`)
@@ -465,6 +478,7 @@ function summarizeWriterDraftingBrief(args: {
   const fullContextPromptChars = args.fullContextPrompt.length
   const sceneContractShape = args.ctx.sceneContract ? summarizeSceneContractShape(args.ctx.sceneContract) : null
   const authoringBibleTrace = args.ctx.authoringBible ? summarizeAuthoringBibleSlice(args.ctx.authoringBible) : null
+  const authoringBibleSections = args.ctx.authoringBible ? renderAuthoringBiblePromptSections(args.ctx.authoringBible) : null
   const storyRefs = countStoryRefs(args.ctx)
   const canonSourceRefIds = collectCanonSourceRefIds(args.ctx)
   const storyRefIds = collectStoryRefIds(args.ctx)
@@ -494,6 +508,8 @@ function summarizeWriterDraftingBrief(args: {
       characterBible: (authoringBibleTrace?.counts.characterRules ?? 0) > 0,
       relationshipBible: (authoringBibleTrace?.counts.relationshipRules ?? 0) > 0,
       voiceBible: (authoringBibleTrace?.counts.voiceRules ?? 0) > 0,
+      authoringBibleStablePrelude: (authoringBibleSections?.stablePreludeRuleIds.length ?? 0) > 0,
+      authoringBibleSceneSlice: (authoringBibleSections?.sceneSliceRuleIds.length ?? 0) > 0,
       resolvedReferences: Boolean(args.ctx.resolvedReferencesText),
       readerInfoState: Boolean(args.ctx.readerInfoState),
       setting: Boolean(args.ctx.setting),
@@ -519,6 +535,8 @@ function summarizeWriterDraftingBrief(args: {
       characterBibleRules: authoringBibleTrace?.counts.characterRules ?? 0,
       relationshipBibleRules: authoringBibleTrace?.counts.relationshipRules ?? 0,
       voiceBibleRules: authoringBibleTrace?.counts.voiceRules ?? 0,
+      authoringBibleStablePreludeRules: authoringBibleSections?.stablePreludeRuleIds.length ?? 0,
+      authoringBibleSceneSliceRules: authoringBibleSections?.sceneSliceRuleIds.length ?? 0,
     },
     ids: {
       canonSourceRefs: canonSourceRefIds,
@@ -531,6 +549,8 @@ function summarizeWriterDraftingBrief(args: {
       characterBibleRuleIds: authoringBibleTrace?.characterRuleIds ?? [],
       relationshipBibleRuleIds: authoringBibleTrace?.relationshipRuleIds ?? [],
       voiceBibleRuleIds: authoringBibleTrace?.voiceRuleIds ?? [],
+      authoringBibleStablePreludeRuleIds: authoringBibleSections?.stablePreludeRuleIds ?? [],
+      authoringBibleSceneSliceRuleIds: authoringBibleSections?.sceneSliceRuleIds ?? [],
       authoringBibleRuleSelections: authoringBibleTrace?.ruleSelections ?? [],
     },
   }

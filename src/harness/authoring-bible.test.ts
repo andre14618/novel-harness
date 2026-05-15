@@ -4,6 +4,7 @@ import type { ChapterOutline, CharacterProfile, WorldBible } from "../types"
 import {
   buildAuthoringBiblePacket,
   deriveAuthoringBibleVerdict,
+  renderAuthoringBiblePromptSections,
   renderAuthoringBibleSlice,
   selectAuthoringBibleSlice,
   summarizeAuthoringBibleSlice,
@@ -228,6 +229,40 @@ describe("authoring bible packet and slice", () => {
 
     expect(ids).toContain("char-rule:char-lady-varn:driver")
   })
+
+  test("splits cache-stable prelude from scene-local rules without dropping selected IDs", () => {
+    const packet = buildAuthoringBiblePacket({
+      genre: "adult mercenary progression fantasy",
+      worldBible: worldBible(),
+      characters: characters(),
+      packIds: ["rillgate-contrast-v1"],
+    })
+    const outline = chapterOutline()
+    const slice = selectAuthoringBibleSlice({
+      packet,
+      outline,
+      scene: outline.scenes[0]!,
+      sceneIndex: 0,
+    })
+
+    expect(slice).not.toBeNull()
+    const sections = renderAuthoringBiblePromptSections(slice!)
+    const trace = summarizeAuthoringBibleSlice(slice!)
+    const renderedIds = [
+      ...extractRuleIds(sections.stablePrelude),
+      ...extractRuleIds(sections.sceneSlice),
+    ]
+
+    expect(sections.stablePrelude).toContain("AUTHORING BIBLE STABLE PRELUDE")
+    expect(sections.sceneSlice).toContain("AUTHORING BIBLE SCENE SLICE")
+    expect(sections.stablePreludeRuleIds).toContain("story-rule:scene-pressure-consequence")
+    expect(sections.stablePreludeRuleIds).toContain("world-rule:sensory-palette-operational")
+    expect(sections.stablePreludeRuleIds).toContain("voice-rule:close-pov-tactical")
+    expect(sections.sceneSliceRuleIds).toContain("char-rule:char-kael:driver")
+    expect(sections.sceneSliceRuleIds).not.toContain("voice-rule:close-pov-tactical")
+    expect(new Set(renderedIds)).toEqual(new Set(trace.ruleIds))
+    expect(renderedIds.length).toBe(trace.ruleIds.length)
+  })
 })
 
 describe("authoring bible binary verdicts", () => {
@@ -401,4 +436,8 @@ function chapterOutline(): ChapterOutline {
       },
     }],
   } as unknown as ChapterOutline
+}
+
+function extractRuleIds(value: string | null): string[] {
+  return [...(value ?? "").matchAll(/\[([^\]]+)\]/g)].map(match => match[1]!)
 }

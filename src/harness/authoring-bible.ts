@@ -73,6 +73,13 @@ export interface AuthoringBibleSliceTrace {
   }
 }
 
+export interface AuthoringBiblePromptSections {
+  stablePrelude: string | null
+  sceneSlice: string | null
+  stablePreludeRuleIds: string[]
+  sceneSliceRuleIds: string[]
+}
+
 export interface AuthoringBiblePack {
   id: string
   title: string
@@ -238,6 +245,52 @@ export function renderAuthoringBibleSlice(slice: AuthoringBibleSlice): string {
   return sections.join("\n")
 }
 
+export function renderAuthoringBiblePromptSections(slice: AuthoringBibleSlice): AuthoringBiblePromptSections {
+  const stableRuleIds = new Set(
+    slice.ruleSelections
+      .filter(selection => cacheStableSelectionReasons.has(selection.reason))
+      .map(selection => selection.ruleId),
+  )
+  const stableStoryRules = slice.storyRules.filter(rule => stableRuleIds.has(rule.id))
+  const stableWorldRules = slice.worldRules.filter(rule => stableRuleIds.has(rule.id))
+  const stableVoiceRules = slice.voiceRules.filter(rule => stableRuleIds.has(rule.id))
+  const sceneStoryRules = slice.storyRules.filter(rule => !stableRuleIds.has(rule.id))
+  const sceneWorldRules = slice.worldRules.filter(rule => !stableRuleIds.has(rule.id))
+  const sceneVoiceRules = slice.voiceRules.filter(rule => !stableRuleIds.has(rule.id))
+
+  const stableLines = ["AUTHORING BIBLE STABLE PRELUDE:"]
+  pushRuleSection(stableLines, "Story engine", stableStoryRules)
+  pushRuleSection(stableLines, "World", stableWorldRules)
+  pushRuleSection(stableLines, "Voice", stableVoiceRules)
+
+  const sceneLines = ["AUTHORING BIBLE SCENE SLICE:"]
+  pushRuleSection(sceneLines, "Story engine", sceneStoryRules)
+  pushRuleSection(sceneLines, "World", sceneWorldRules)
+  pushRuleSection(sceneLines, "Character", slice.characterRules)
+  pushRuleSection(sceneLines, "Relationship", slice.relationshipRules)
+  pushRuleSection(sceneLines, "Voice", sceneVoiceRules)
+
+  const stablePreludeRuleIds = [
+    ...stableStoryRules,
+    ...stableWorldRules,
+    ...stableVoiceRules,
+  ].map(rule => rule.id)
+  const sceneSliceRuleIds = [
+    ...sceneStoryRules,
+    ...sceneWorldRules,
+    ...slice.characterRules,
+    ...slice.relationshipRules,
+    ...sceneVoiceRules,
+  ].map(rule => rule.id)
+
+  return {
+    stablePrelude: stablePreludeRuleIds.length > 0 ? stableLines.join("\n") : null,
+    sceneSlice: sceneSliceRuleIds.length > 0 ? sceneLines.join("\n") : null,
+    stablePreludeRuleIds,
+    sceneSliceRuleIds,
+  }
+}
+
 export function summarizeAuthoringBibleSlice(slice: AuthoringBibleSlice): AuthoringBibleSliceTrace {
   const storyRuleIds = slice.storyRules.map(rule => rule.id)
   const worldRuleIds = slice.worldRules.map(rule => rule.id)
@@ -288,6 +341,12 @@ export function deriveAuthoringBibleOutcome(review: AuthoringBibleGateReview): A
     verdict: deriveAuthoringBibleVerdict(review.gates),
   }
 }
+
+const cacheStableSelectionReasons = new Set([
+  "always_scene_pressure",
+  "always_sensory_palette",
+  "baseline_voice",
+])
 
 function buildStoryRules(
   genre: string,

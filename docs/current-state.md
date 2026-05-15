@@ -125,8 +125,8 @@ proved by `rillgate-ch2-departure-pressure-1778796781-production-path` with
 scene lows 0/18; final source audits are planner-quality readiness 0 and
 plan-state 9/9 clean. LLM style lint auto-fix is default-off after L113. See
 L103-L117 and `docs/sessions/2026-05-14-rillgate-story-shape-evidence.md`.
-Authoring-bible selector evidence is functional on the production writer path:
-ch1 post-fix review was 106/106 pass and Tessa/Varn was 254/254 pass. See `docs/sessions/2026-05-15-authoring-bible-selector-evidence.md`.
+Authoring-bible selector/cache evidence is functional on the production writer path:
+ch1 post-fix review was 106/106 pass, Tessa/Varn was 254/254 pass, and cache-layout ch1 kept review 106/106 while improving deterministic shared prompt prefix; provider cache savings need more sampling. See `docs/sessions/2026-05-15-authoring-bible-selector-evidence.md` and `docs/sessions/2026-05-15-authoring-bible-cache-layout.md`.
 
 ## Authoring Gates
 

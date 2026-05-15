@@ -54,6 +54,73 @@ function baseCtx(overrides: Partial<BeatContext> = {}): BeatContext {
   }
 }
 
+function authoringBibleSlice(): NonNullable<BeatContext["authoringBible"]> {
+  return {
+    mode: "authoring-bible-slice-v1",
+    sceneId: "scene-archive-1",
+    chapterNumber: 1,
+    sceneNumber: 1,
+    storyRules: [
+      {
+        id: "story-rule:scene-pressure-consequence",
+        kind: "story",
+        title: "Scene pressure creates consequence",
+        text: "Convert pressure into an observable cost or changed option.",
+        appliesWhen: "All scenes.",
+        source: "authoring-bible-default",
+      },
+      {
+        id: "story-rule:mission-contract-loop",
+        kind: "story",
+        title: "Mission contract loop",
+        text: "Keep the contract pressure active as operational pressure.",
+        appliesWhen: "Contract scenes.",
+        source: "genre-method",
+      },
+    ],
+    worldRules: [
+      {
+        id: "world-rule:sensory-palette-operational",
+        kind: "world",
+        title: "Operational sensory palette",
+        text: "World texture should carry pressure, not wallpaper.",
+        appliesWhen: "All grounded scenes.",
+        source: "world_bible.sensoryPalette",
+      },
+    ],
+    characterRules: [
+      {
+        id: "char-rule:char-calla:driver",
+        kind: "character",
+        title: "Calla driver",
+        text: "Under pressure, Calla chooses leverage over comfort.",
+        appliesWhen: "Calla is present.",
+        source: "characters.profile_json",
+        characterId: "char-calla",
+        characterName: "Calla",
+      },
+    ],
+    relationshipRules: [],
+    voiceRules: [
+      {
+        id: "voice-rule:close-pov-tactical",
+        kind: "voice",
+        title: "Close tactical POV",
+        text: "Anchor prose in what the POV can perceive, decide, risk, and misread.",
+        appliesWhen: "All drafted scenes.",
+        source: "authoring-bible-default",
+      },
+    ],
+    ruleSelections: [
+      { ruleId: "story-rule:scene-pressure-consequence", kind: "story", reason: "always_scene_pressure" },
+      { ruleId: "story-rule:mission-contract-loop", kind: "story", reason: "mission_contract_terms" },
+      { ruleId: "world-rule:sensory-palette-operational", kind: "world", reason: "always_sensory_palette" },
+      { ruleId: "char-rule:char-calla:driver", kind: "character", reason: "scene_character_present", characterName: "Calla" },
+      { ruleId: "voice-rule:close-pov-tactical", kind: "voice", reason: "baseline_voice" },
+    ],
+  }
+}
+
 describe("renderBeatContext + scene contract", () => {
   it("omits the SCENE CONTRACT block when sceneContract is null", () => {
     const out = renderBeatContext(baseCtx(), { compact: false })
@@ -436,6 +503,54 @@ describe("renderBeatContext + scene contract", () => {
     expect(selected.userPrompt).toContain("CHARACTER MATERIALITY:")
     expect(selected.userPrompt).toContain("Use these details to shape concrete behavior")
     expect(selected.draftingBriefTrace.mode).toBe("scene-turn-v1")
+  })
+
+  it("places cache-stable authoring-bible rules before volatile scene fields", () => {
+    const ctx = baseCtx({
+      authoringBible: authoringBibleSlice(),
+      sceneContract: {
+        goal: "Force Orvath to confess.",
+        opposition: "Orvath holds Davan's safety as leverage.",
+        outcome: "Calla burns the script.",
+        consequence: "Davan is exiled and the empire begins hunting Calla.",
+        choiceAlternatives: [],
+      },
+    })
+    const full = renderBeatContext(ctx, { compact: false })
+    const selected = selectWriterPromptForDraftingBrief({
+      ctx,
+      mode: "scene-budget-tight-anchored-v1",
+      fullContextPrompt: full,
+      targetWords: 500,
+      idRendering: "raw",
+    })
+
+    const floorIdx = selected.userPrompt.indexOf("SCENE EXECUTION FLOOR:")
+    const preludeIdx = selected.userPrompt.indexOf("AUTHORING BIBLE STABLE PRELUDE:")
+    const headerIdx = selected.userPrompt.indexOf("WRITER DRAFTING BRIEF")
+    const contractIdx = selected.userPrompt.indexOf("SCENE CONTRACT")
+    const sceneSliceIdx = selected.userPrompt.indexOf("AUTHORING BIBLE SCENE SLICE:")
+
+    expect(floorIdx).toBe(0)
+    expect(preludeIdx).toBeGreaterThan(floorIdx)
+    expect(headerIdx).toBeGreaterThan(preludeIdx)
+    expect(contractIdx).toBeGreaterThan(headerIdx)
+    expect(sceneSliceIdx).toBeGreaterThan(contractIdx)
+    expect(selected.userPrompt.match(/\[voice-rule:close-pov-tactical\]/g)?.length).toBe(1)
+    expect(selected.userPrompt.match(/\[char-rule:char-calla:driver\]/g)?.length).toBe(1)
+    expect(selected.draftingBriefTrace.sections.authoringBibleStablePrelude).toBe(true)
+    expect(selected.draftingBriefTrace.sections.authoringBibleSceneSlice).toBe(true)
+    expect(selected.draftingBriefTrace.counts.authoringBibleStablePreludeRules).toBe(3)
+    expect(selected.draftingBriefTrace.counts.authoringBibleSceneSliceRules).toBe(2)
+    expect(selected.draftingBriefTrace.ids.authoringBibleStablePreludeRuleIds).toEqual([
+      "story-rule:scene-pressure-consequence",
+      "world-rule:sensory-palette-operational",
+      "voice-rule:close-pov-tactical",
+    ])
+    expect(selected.draftingBriefTrace.ids.authoringBibleSceneSliceRuleIds).toEqual([
+      "story-rule:mission-contract-loop",
+      "char-rule:char-calla:driver",
+    ])
   })
 
   it("constructs scene-contract anchors for every drafting brief mode", async () => {
