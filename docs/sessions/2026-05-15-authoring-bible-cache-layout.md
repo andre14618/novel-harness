@@ -36,6 +36,17 @@ scene-specific task, contract, obligations, character, reader-state, and setting
 stay after it. The split also avoids duplicating stable bible rules in the
 scene-local slice.
 
+## Inclusion Constraint
+
+Prefix stability is not permission to overinclude context. The stable prelude
+must be made from writer-useful material already selected for the arm, not from
+extra cards or rules added only because they would cache well. Scene-local
+character, relationship, world-system, obligation, reference, reader-state, and
+setting context should stay local unless evidence shows the writer needs a
+stable global rule. If a future slice wants a larger stable prefix, it should
+prove that the added context improves prose or harness behavior, not only cache
+tokens.
+
 ## Evidence
 
 Local gates:
