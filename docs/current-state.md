@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-14
+updated: 2026-05-15
 role: canonical-current-truth
 archive: archive/current-state-2026-05-04-full.md
 references:
@@ -126,7 +126,7 @@ scene lows 0/18; final source audits are planner-quality readiness 0 and
 plan-state 9/9 clean. LLM style lint auto-fix is default-off after L113. See
 L103-L117 and `docs/sessions/2026-05-14-rillgate-story-shape-evidence.md`.
 Authoring-bible selector/cache evidence is functional on the production writer path:
-ch1 post-fix review was 106/106 pass, Tessa/Varn was 254/254 pass, and cache-layout ch1 kept review 106/106 while exact-prefix tests/telemetry guard the deterministic shared prompt prefix; provider cache savings need more sampling. See `docs/sessions/2026-05-15-authoring-bible-selector-evidence.md` and `docs/sessions/2026-05-15-authoring-bible-cache-layout.md`.
+ch1 post-fix review was 106/106 pass, Tessa/Varn was 254/254 pass, and cache-layout ch1 kept review 106/106 while exact-prefix tests/telemetry guard the deterministic shared prompt prefix; do not add irrelevant context for cache stability. See L120 plus `docs/sessions/2026-05-15-authoring-bible-selector-evidence.md` and `docs/sessions/2026-05-15-authoring-bible-cache-layout.md`.
 
 ## Authoring Gates
 

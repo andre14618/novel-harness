@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-05-14
+updated: 2026-05-15
 role: decision-index
 archive: decisions/full-log-2026-05-04.md
 ---
@@ -16,6 +16,7 @@ Full historical log archived at `docs/decisions/full-log-2026-05-04.md`.
 
 | ID | Date | Status | Summary | Detail |
 | --- | --- | --- | --- | --- |
+| L120 | 2026-05-15 | active | Writer prompt cache engineering may reorder or split already-needed context to create an exact byte-stable prefix, but must not add irrelevant context for cache stability. Stable-prefix changes need exact-byte tests, `cacheStablePrefix` telemetry, and normal drafting/quality evidence; provider cache tokens are telemetry, not the governing proof. | `docs/decisions/L120-writer-cache-prefix-context-boundary.md` |
 | L119 | 2026-05-14 | active | Authoring-bible packs should be compact positive performance cards: operating model, dialogue model, interior attention, action texture, world pressure, and a few short examples; avoid long tone essays and contrastive "do not" lists except for repeated observed failures. These bibles should become interactive planning artifacts before drafting. | `docs/decisions/L119-authoring-bible-pack-convention.md` |
 | L118 | 2026-05-14 | active | Authoring-bible context/eval is default-off through `authoringBibleMode="v1"`: production writer context can render compact story/character/relationship/voice rule slices with stable rule IDs, telemetry records those IDs, and advisory review derives verdicts from binary gates instead of model confidence scores. | `docs/decisions/L118-authoring-bible-binary-gates.md` |
 | L117 | 2026-05-14 | active | Scene-semantic readiness now carries adjudication status (`raw`, `false_positive`, `real`, `upstream_repair_needed`) and keeps false positives out of Plan Readiness imports. World-fact semantic lows target whole scene contracts because fixing them often requires synchronizing facts, scene outcomes, and attached obligations. | `docs/decisions/L117-semantic-readiness-adjudication.md` |
