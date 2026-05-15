@@ -35,6 +35,7 @@ unless the user explicitly requests a disposable branch.
 - **Plan-state consistency + semantic-low adjudication (2026-05-14, L115-L117).** Source `rillgate-ch4-endpoint-hygiene-1778723371` has reviewed `planning_edit` repairs for the prior high/medium handoff gaps plus ch6-to-ch7 costly iron-thread use. The audit now excludes next-chapter output facts/state from opening handoff context, targets scene `opposition`, and allows plausible offscreen execution of intended plans.
   Final source audit: 9 pairs, 0 findings. Follow-up draft `rillgate-planstate-clean-1778788667-production-path` finished 31,889/31,000 words with Plan-Assist 0, prose lows 0/40, scene lows 5/166, checker blockers 0, weight-bearing rows 0, production-clean yes.
   L116 adjudicated the five scene lows: four endpoint rows were old-rubric false positives and the ch9 WFACT row was real. L117 added semantic adjudication statuses, targets world-fact lows to whole-scene repairs, fixed ch9 buyer/key-pages source shape, and fixed the surfaced ch10 marker-payoff endpoint. The story-shape slice also repaired ch2 departure pressure, removed the ch8 un-obligated future-offer fact, and clarified the ch8-to-ch9 split-route handoff. Final source audits are planner-quality readiness 0 and plan-state 9/9 clean; next work can attempt a fresh full coherent candidate draft from this source. See `docs/sessions/2026-05-14-plan-state-repair-evidence.md` and `docs/sessions/2026-05-14-rillgate-story-shape-evidence.md`.
+- **Authoring-bible selector evidence (2026-05-15, L118-L119).** Writer context now records selector reasons, review writes per-scene selected/omitted bible-slice artifacts, and planning-card artifacts convert into runtime packs. Fixed shared-surname relationship over-selection and faction/world-state wording; ch1 post-fix review was 106/106 pass and ch2-3 Tessa/Varn was 254/254 pass. See `docs/sessions/2026-05-15-authoring-bible-selector-evidence.md`.
 - **Planning-to-drafting context audit is production evidence now (2026-05-11).**
   `diagnostics:planning-drafting-context` compares upstream artifacts with
   writer-context/canon/story-spine/story-ref/reader-state telemetry, scene-normalized coverage, and scene-load pressure; run-compare/cohort
@@ -121,10 +122,7 @@ unless the user explicitly requests a disposable branch.
 
 ## Next
 
-- Next session start: run a bounded/full production-path comparison with
-  `drafting-brief-authoring-bible-v1` and its `rillgate-contrast-v1` pack, then replay
-  `scripts/evals/authoring-bible-review.ts --live` to measure binary-gated
-  story/world/character/relationship/voice adherence. See L118.
+- Next session start: use authoring-bible scene-review artifacts to decide whether the larger coherent draft should run with `drafting-brief-authoring-bible-v1`, or move directly into a broader candidate draft from the repaired Rillgate source. See L118/L119.
 - Plotline start: use the wired Rillgate Book 1 contract packet; keep seeds story-owned and free of process/count instructions.
 - Planning-to-drafting context next step: use `attempted_no_context` reference
   telemetry as a diagnostic only; escalate to Plan Readiness only after a run

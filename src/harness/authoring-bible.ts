@@ -18,6 +18,15 @@ export interface AuthoringBibleRule {
   selectionHints?: string[]
 }
 
+export interface AuthoringBibleRuleSelection {
+  ruleId: string
+  kind: AuthoringBibleRuleKind
+  reason: string
+  matchedHints?: string[]
+  characterName?: string
+  relatedCharacterName?: string
+}
+
 export interface AuthoringBiblePacket {
   mode: "authoring-bible-v1"
   genre: string
@@ -39,6 +48,7 @@ export interface AuthoringBibleSlice {
   characterRules: AuthoringBibleRule[]
   relationshipRules: AuthoringBibleRule[]
   voiceRules: AuthoringBibleRule[]
+  ruleSelections: AuthoringBibleRuleSelection[]
 }
 
 export interface AuthoringBibleSliceTrace {
@@ -52,6 +62,7 @@ export interface AuthoringBibleSliceTrace {
   characterRuleIds: string[]
   relationshipRuleIds: string[]
   voiceRuleIds: string[]
+  ruleSelections: AuthoringBibleRuleSelection[]
   counts: {
     rules: number
     storyRules: number
@@ -152,22 +163,40 @@ export function selectAuthoringBibleSlice(args: {
       .map(name => cleanKey(name))
       .filter(Boolean),
   )
-  const storyRules = packet.storyRules
-    .filter(rule => storyRuleApplies(rule, scene, sceneIndex, outline.scenes.length))
-    .slice(0, 4)
-  const worldRules = packet.worldRules
-    .filter(rule => worldRuleApplies(rule, scene))
-    .slice(0, 5)
-  const characterRules = packet.characterRules
-    .filter(rule => nameAppearsInScene(rule.characterName, sceneNames, sceneNameKeys))
-    .slice(0, 12)
-  const relationshipRules = packet.relationshipRules
-    .filter(rule =>
-      nameAppearsInScene(rule.characterName, sceneNames, sceneNameKeys) &&
-      nameAppearsInScene(rule.relatedCharacterName, sceneNames, sceneNameKeys)
-    )
-    .slice(0, 6)
-  const voiceRules = packet.voiceRules.slice(0, 6)
+  const story = selectMatchingRules(
+    packet.storyRules,
+    rule => storyRuleSelection(rule, scene, sceneIndex, outline.scenes.length),
+    4,
+  )
+  const world = selectMatchingRules(
+    packet.worldRules,
+    rule => worldRuleSelection(rule, scene),
+    5,
+  )
+  const character = selectMatchingRules(
+    packet.characterRules,
+    rule => characterRuleSelection(rule, sceneNames, sceneNameKeys),
+    12,
+  )
+  const relationship = selectMatchingRules(
+    packet.relationshipRules,
+    rule => relationshipRuleSelection(rule, sceneNames, sceneNameKeys),
+    6,
+  )
+  const voice = selectMatchingRules(
+    packet.voiceRules,
+    rule => ({
+      ruleId: rule.id,
+      kind: rule.kind,
+      reason: "baseline_voice",
+    }),
+    6,
+  )
+  const storyRules = story.rules
+  const worldRules = world.rules
+  const characterRules = character.rules
+  const relationshipRules = relationship.rules
+  const voiceRules = voice.rules
 
   if (
     storyRules.length === 0 &&
@@ -189,6 +218,13 @@ export function selectAuthoringBibleSlice(args: {
     characterRules,
     relationshipRules,
     voiceRules,
+    ruleSelections: [
+      ...story.selections,
+      ...world.selections,
+      ...character.selections,
+      ...relationship.selections,
+      ...voice.selections,
+    ],
   }
 }
 
@@ -226,6 +262,7 @@ export function summarizeAuthoringBibleSlice(slice: AuthoringBibleSlice): Author
     characterRuleIds,
     relationshipRuleIds,
     voiceRuleIds,
+    ruleSelections: slice.ruleSelections,
     counts: {
       rules: ruleIds.length,
       storyRules: storyRuleIds.length,
@@ -290,8 +327,8 @@ function buildStoryRules(
         id: "story-rule:faction-worldstate-consequence",
         kind: "story",
         title: "Faction/world-state consequence",
-        text: "Mission outcomes should alter faction leverage, legal standing, reputation, resource access, or future danger.",
-        appliesWhen: "Scenes that touch guild law, rank, patrons, rivals, salvage, contracts, or political/world systems.",
+        text: "Scenes touching guild law, rank, patrons, rivals, salvage, contracts, or political/world systems should make the concrete state of leverage visible: legal standing, reputation, resource access, future danger, or options changed, narrowed, or newly explicit by the endpoint.",
+        appliesWhen: "Scenes that clarify, narrow, or change faction leverage, legal standing, reputation, resource access, future danger, or political/world-system options.",
         source: "genre-method:mercenary-progression-adventure",
       },
     )
@@ -466,17 +503,47 @@ function buildVoiceRules(genre: string, worldBible: WorldBible | null | undefine
   return rules
 }
 
+function selectMatchingRules(
+  rules: AuthoringBibleRule[],
+  select: (rule: AuthoringBibleRule) => AuthoringBibleRuleSelection | null,
+  limit: number,
+): { rules: AuthoringBibleRule[]; selections: AuthoringBibleRuleSelection[] } {
+  const selectedRules: AuthoringBibleRule[] = []
+  const selections: AuthoringBibleRuleSelection[] = []
+  for (const rule of rules) {
+    const selection = select(rule)
+    if (!selection) continue
+    selectedRules.push(rule)
+    selections.push(selection)
+    if (selectedRules.length >= limit) break
+  }
+  return { rules: selectedRules, selections }
+}
+
 function storyRuleApplies(
   rule: AuthoringBibleRule,
   scene: SceneBeat,
   sceneIndex: number,
   totalScenes: number,
 ): boolean {
-  if (rule.id === "story-rule:scene-pressure-consequence") return true
+  return storyRuleSelection(rule, scene, sceneIndex, totalScenes) !== null
+}
+
+function storyRuleSelection(
+  rule: AuthoringBibleRule,
+  scene: SceneBeat,
+  sceneIndex: number,
+  totalScenes: number,
+): AuthoringBibleRuleSelection | null {
+  if (rule.id === "story-rule:scene-pressure-consequence") return selectionForRule(rule, "always_scene_pressure")
   const text = sceneSearchText(scene)
-  if (rule.selectionHints?.length) return selectionHintsMatch(rule.selectionHints, text)
+  const matchedHints = matchedSelectionHints(rule.selectionHints ?? [], text)
+  if (matchedHints.length > 0) return selectionForRule(rule, "selection_hint", matchedHints)
+  if (rule.selectionHints?.length) return null
   if (rule.id === "story-rule:mission-contract-loop") {
     return /contract|guild|job|mission|bounty|patron|rank|salvage|witness|debt|toll/.test(text)
+      ? selectionForRule(rule, "mission_contract_terms")
+      : null
   }
   if (rule.id === "story-rule:earned-progression-payoff") {
     const resultText = normalizeSearchText([
@@ -485,33 +552,89 @@ function storyRuleApplies(
       scene.consequence,
     ].filter(Boolean).join(" "))
     if (/\b(no|without)\s+(rank|progress|gain|gains|promotion|new tactic)|\bnot\s+(gain|gained|earned)/u.test(resultText)) {
-      return false
+      return null
     }
     return /skill|progress|learn|train|core|salvage|resource|magic|tactic|trial|gain|iron thread|iron-thread|rank/.test(text) &&
       /earn|earned|gain|gains|learn|learns|unlock|use|uses|promot|advance|survive|sacrifice|cost|discovers|tactic|iron thread|salvage/.test(resultText)
+      ? selectionForRule(rule, "earned_progression_result")
+      : null
   }
   if (rule.id === "story-rule:faction-worldstate-consequence") {
     return /guild|faction|rank|law|patron|buyer|rival|contract|standing|reputation|witness/.test(text)
+      ? selectionForRule(rule, "faction_worldstate_terms")
+      : null
   }
-  if (rule.id === "story-rule:central-conflict-pressure") return sceneIndex === 0 || sceneIndex === totalScenes - 1 || Boolean(scene.outcome || scene.consequence)
+  if (rule.id === "story-rule:central-conflict-pressure") {
+    return sceneIndex === 0 || sceneIndex === totalScenes - 1 || Boolean(scene.outcome || scene.consequence)
+      ? selectionForRule(rule, "central_conflict_scene_position")
+      : null
+  }
   if (rule.id.startsWith("story-rule:world-system:")) {
     const systemName = rule.title.replace(/\s+pressure$/u, "").toLowerCase()
     return text.includes(systemName) || systemName.split(/\s+/u).some(part => part.length > 3 && text.includes(part))
+      ? selectionForRule(rule, "world_system_terms")
+      : null
   }
-  return true
+  return selectionForRule(rule, "default_story_rule")
 }
 
 function worldRuleApplies(rule: AuthoringBibleRule, scene: SceneBeat): boolean {
+  return worldRuleSelection(rule, scene) !== null
+}
+
+function worldRuleSelection(rule: AuthoringBibleRule, scene: SceneBeat): AuthoringBibleRuleSelection | null {
   const text = sceneSearchText(scene)
-  if (rule.id === "world-rule:sensory-palette-operational") return true
-  if (rule.selectionHints?.length) return selectionHintsMatch(rule.selectionHints, text)
+  if (rule.id === "world-rule:sensory-palette-operational") return selectionForRule(rule, "always_sensory_palette")
+  const matchedHints = matchedSelectionHints(rule.selectionHints ?? [], text)
+  if (matchedHints.length > 0) return selectionForRule(rule, "selection_hint", matchedHints)
+  if (rule.selectionHints?.length) return null
   const titleTerms = rule.title
     .toLowerCase()
     .replace(/\b(operational|pressure|world|rule|system)\b/gu, "")
     .split(/[^a-z0-9]+/u)
     .filter(term => term.length > 3)
-  if (titleTerms.length === 0) return true
+  if (titleTerms.length === 0) return selectionForRule(rule, "world_title_terms")
   return titleTerms.every(term => text.includes(term))
+    ? selectionForRule(rule, "world_title_terms")
+    : null
+}
+
+function characterRuleSelection(
+  rule: AuthoringBibleRule,
+  sceneNames: readonly string[],
+  sceneNameKeys: ReadonlySet<string>,
+): AuthoringBibleRuleSelection | null {
+  if (!nameAppearsInScene(rule.characterName, sceneNames, sceneNameKeys)) return null
+  return selectionForRule(rule, "scene_character_present")
+}
+
+function relationshipRuleSelection(
+  rule: AuthoringBibleRule,
+  sceneNames: readonly string[],
+  sceneNameKeys: ReadonlySet<string>,
+): AuthoringBibleRuleSelection | null {
+  if (
+    !nameAppearsInScene(rule.characterName, sceneNames, sceneNameKeys) ||
+    !nameAppearsInScene(rule.relatedCharacterName, sceneNames, sceneNameKeys)
+  ) {
+    return null
+  }
+  return selectionForRule(rule, "scene_relationship_pair_present")
+}
+
+function selectionForRule(
+  rule: AuthoringBibleRule,
+  reason: string,
+  matchedHints: string[] = [],
+): AuthoringBibleRuleSelection {
+  return {
+    ruleId: rule.id,
+    kind: rule.kind,
+    reason,
+    ...(matchedHints.length > 0 ? { matchedHints } : {}),
+    ...(rule.characterName ? { characterName: rule.characterName } : {}),
+    ...(rule.relatedCharacterName ? { relatedCharacterName: rule.relatedCharacterName } : {}),
+  }
 }
 
 function pushRuleSection(lines: string[], label: string, rules: AuthoringBibleRule[]): void {
@@ -578,8 +701,8 @@ function normalizeSearchText(value: string): string {
     .trim()} `
 }
 
-function selectionHintsMatch(hints: readonly string[], normalizedText: string): boolean {
-  return hints.some(hint => selectionHintMatches(hint, normalizedText))
+function matchedSelectionHints(hints: readonly string[], normalizedText: string): string[] {
+  return hints.filter(hint => selectionHintMatches(hint, normalizedText))
 }
 
 function selectionHintMatches(hint: string, normalizedText: string): boolean {
@@ -692,15 +815,25 @@ function nameAppearsInScene(
   const key = cleanKey(value)
   if (!key) return false
   if (sceneNameKeys.has(key)) return true
-  const parts = key.split(/\s+/u).filter(part => part.length > 1)
+  const primaryTokens = primaryNameTokens(key)
   for (const sceneName of sceneNames) {
     const sceneKey = cleanKey(sceneName)
     if (!sceneKey) continue
     if (key.includes(sceneKey) || sceneKey.includes(key)) return true
-    if (parts.some(part => sceneKey === part || sceneKey.includes(part))) return true
+    const sceneTokens = new Set(sceneKey.split(/\s+/u).filter(Boolean))
+    if (primaryTokens.some(part => sceneTokens.has(part))) return true
   }
   return false
 }
+
+function primaryNameTokens(key: string): string[] {
+  const parts = key.split(/\s+/u).filter(part => part.length > 1)
+  if (parts.length === 0) return []
+  if (honorificNameTokens.has(parts[0]!) && parts[1]) return [parts[1]!]
+  return [parts[0]!]
+}
+
+const honorificNameTokens = new Set(["lady", "lord", "sir", "dame", "master", "mistress"])
 
 function slug(value: string): string {
   const clean = value

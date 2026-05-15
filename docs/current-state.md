@@ -94,9 +94,8 @@ Use deeper docs only when linked by the context pack or needed by code.
   artifacts; semantic prose/scene packets are explicit evidence add-ons.
 - Production drafting defaults to exact-ID character context capsules
   (`thread-character-context-v1`). See L094.
-- Authoring-bible slices can add compact story/world/character/relationship
-  and voice rules to writer briefs; packs should use positive operating cards
-  with short examples and minimal avoidance language. See L118/L119.
+- Authoring-bible slices add compact story/world/character/relationship/voice rules
+  to writer briefs with selector telemetry and planning-card conversion. See L118/L119.
 - Native chapter contracts and story-turn planning are the production planning
   default with legacy rollback; downstream beat caps/packing are diagnostic
   evidence only. See L088.
@@ -113,9 +112,10 @@ Use deeper docs only when linked by the context pack or needed by code.
 
 The active lane is in `docs/sessions/lane-queue.md`.
 
-As of 2026-05-14, L106-L117 keep evidence on production paths: writer briefs,
-semantic replay, source hygiene, planning-edit replay, scene-contract telemetry,
-checker readiness, source plan-state consistency, and compare/cohort artifacts.
+As of 2026-05-15, L106-L119 keep evidence on production paths: writer briefs,
+semantic replay, source hygiene, planning edits, scene-contract telemetry,
+checker readiness, source plan-state consistency, authoring-bible selector
+telemetry, and compare/cohort artifacts.
 Rillgate source `rillgate-ch4-endpoint-hygiene-1778723371` is the active
 10-chapter / 49-scene source. Story-shape run
 `rillgate-storyshape-full-1778795211-production-path` drafted 30,899/31,000
@@ -125,6 +125,8 @@ proved by `rillgate-ch2-departure-pressure-1778796781-production-path` with
 scene lows 0/18; final source audits are planner-quality readiness 0 and
 plan-state 9/9 clean. LLM style lint auto-fix is default-off after L113. See
 L103-L117 and `docs/sessions/2026-05-14-rillgate-story-shape-evidence.md`.
+Authoring-bible selector evidence is functional on the production writer path:
+ch1 post-fix review was 106/106 pass and Tessa/Varn was 254/254 pass. See `docs/sessions/2026-05-15-authoring-bible-selector-evidence.md`.
 
 ## Authoring Gates
 

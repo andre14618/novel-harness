@@ -15,7 +15,8 @@ The first implementation is default-off via `authoringBibleMode: "v1"`. It
 compiles compact rule slices from existing Story Spine, World Bible, and
 Character Profile surfaces plus optional modular authoring-bible packs selected
 by `authoringBiblePackIds`, renders them into production writer context, and
-records rule IDs in writer-context telemetry. Advisory replay review derives
+records rule IDs and deterministic selector reasons in writer-context telemetry.
+Advisory replay review derives
 `pass`, `miss`, `uncertain`, or `not_applicable` from binary gates:
 applicability, prose evidence, rule satisfaction, contradiction, and evidence
 specificity.
@@ -41,11 +42,15 @@ bible, voice bible, or prose as the likely repair layer.
   character rules, relationship posture rules, and hardboiled ledger-fantasy
   voice guidance.
 - Writer context and drafting-brief telemetry now carry authoring-bible
-  surface counts and rule IDs when `authoringBibleMode="v1"`, including
-  separate world-authoring-bible counts/IDs.
+  surface counts, rule IDs, and rule-selection reasons when
+  `authoringBibleMode="v1"`, including separate world-authoring-bible
+  counts/IDs.
 - `scripts/evals/authoring-bible-review.ts` runs advisory binary-gated replay
   review over persisted drafts and can evaluate seed-selected or explicit
   `--pack-id` packs; dry-run produces uncertain rows without model confidence.
+  It also writes `authoring-bible-scene-review.md`, which shows each scene's
+  selected bible slice, selector reason/hints, omitted packet rules, and prose
+  source/excerpt.
 - `scripts/test-drafting-isolated.ts` adds the
   `drafting-brief-authoring-bible-v1` production-path arm for bounded evidence
   and activates `rillgate-contrast-v1` on that arm.

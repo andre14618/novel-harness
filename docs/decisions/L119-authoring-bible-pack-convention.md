@@ -14,6 +14,11 @@ This convention applies to manually authored packs now and should become part
 of the planning phase later, ideally through an interactive operator step that
 shapes the bibles before drafting.
 
+The planning artifact shape now exists in code as
+`AuthoringBiblePlanningArtifact` (`authoring-bible-planning-artifact-v1`).
+Interactive or prompt-authored cards can be validated and converted into the
+same `AuthoringBiblePack` rule arrays consumed by production writer context.
+
 ## Convention
 
 Each important character should get a short performance card:
@@ -70,6 +75,8 @@ usable imitation target without creating a prompt full of forbidden patterns.
   profiles.
 - Interactive planning should let the operator edit character/world/voice cards
   directly and preserve their stable rule IDs through drafting telemetry.
+- Planning-card artifacts should convert into runtime packs rather than a
+  parallel prompt format.
 - Authoring-bible evaluation should continue judging binary adherence to the
   cards; it should not introduce numeric confidence as a control signal.
 - Future pack revisions should add short positive examples before adding more

@@ -47,6 +47,12 @@ describe("authoring bible packet and slice", () => {
     expect(trace.ruleIds).toContain("char-rule:char-kael:driver")
     expect(trace.ruleIds).toContain("rel-rule:kael:tessa")
     expect(trace.counts.rules).toBeGreaterThan(0)
+    expect(trace.ruleSelections).toContainEqual({
+      ruleId: "char-rule:char-kael:driver",
+      kind: "character",
+      reason: "scene_character_present",
+      characterName: "Kael",
+    })
 
     const rendered = renderAuthoringBibleSlice(slice!)
     expect(rendered).toContain("AUTHORING BIBLE SLICE")
@@ -100,10 +106,14 @@ describe("authoring bible packet and slice", () => {
       placeAnchor: "Rillgate street outside the Contract Hall",
     }
     const slice = selectAuthoringBibleSlice({ packet, outline, scene: streetScene, sceneIndex: 0 })
-    const ids = summarizeAuthoringBibleSlice(slice!).ruleIds
+    const trace = summarizeAuthoringBibleSlice(slice!)
+    const ids = trace.ruleIds
 
     expect(ids).toContain("world-rule:system:sys-debt-market")
     expect(ids).not.toContain("world-rule:system:sys-brine-wards")
+    const debtSelection = trace.ruleSelections.find(selection => selection.ruleId === "world-rule:system:sys-debt-market")
+    expect(debtSelection?.reason).toBe("selection_hint")
+    expect(debtSelection?.matchedHints).toContain("marker")
   })
 
   test("includes brine-ward rules when the scene actually invokes ward pressure", () => {
@@ -147,6 +157,76 @@ describe("authoring bible packet and slice", () => {
     const ids = summarizeAuthoringBibleSlice(slice!).ruleIds
 
     expect(ids).not.toContain("story-rule:earned-progression-payoff")
+  })
+
+  test("does not select relationship rules through a shared surname", () => {
+    const packet = buildAuthoringBiblePacket({
+      genre: "adult mercenary progression fantasy",
+      characters: [{
+        id: "char-kael-rusk",
+        name: "Kael Rusk",
+        role: "protagonist",
+        backstory: "Debt-pressed salvager.",
+        traits: ["guarded"],
+        speechPattern: "short",
+        goals: "Protect Mira's marker.",
+        fears: "Losing leverage.",
+        relationships: [{ characterName: "Mira Rusk", nature: "sibling debt pressure" }],
+        culturalBackground: [],
+        systemAwareness: [],
+        exampleLines: [],
+      }],
+    })
+    const outline = chapterOutline()
+    const scene = {
+      ...outline.scenes[0]!,
+      characters: ["Kael Rusk"],
+      description: "Kael Rusk scans the contract hall board alone.",
+    }
+    const slice = selectAuthoringBibleSlice({
+      packet,
+      outline: { ...outline, povCharacter: "Kael Rusk", scenes: [scene] },
+      scene,
+      sceneIndex: 0,
+    })
+    const ids = summarizeAuthoringBibleSlice(slice!).ruleIds
+
+    expect(ids).not.toContain("rel-rule:kael-rusk:mira-rusk")
+  })
+
+  test("still matches honorific names by operative name", () => {
+    const packet = buildAuthoringBiblePacket({
+      genre: "adult mercenary progression fantasy",
+      characters: [{
+        id: "char-lady-varn",
+        name: "Lady Varn",
+        role: "patron",
+        backstory: "Broker with polite pressure.",
+        traits: ["controlled"],
+        speechPattern: "precise velvet threats",
+        goals: "Buy risk cheaply.",
+        fears: "Public exposure.",
+        relationships: [],
+        culturalBackground: [],
+        systemAwareness: [],
+        exampleLines: [],
+      }],
+    })
+    const outline = chapterOutline()
+    const scene = {
+      ...outline.scenes[0]!,
+      characters: ["Varn"],
+      description: "Varn reviews the contract from behind her desk.",
+    }
+    const slice = selectAuthoringBibleSlice({
+      packet,
+      outline: { ...outline, povCharacter: "Kael", scenes: [scene] },
+      scene,
+      sceneIndex: 0,
+    })
+    const ids = summarizeAuthoringBibleSlice(slice!).ruleIds
+
+    expect(ids).toContain("char-rule:char-lady-varn:driver")
   })
 })
 

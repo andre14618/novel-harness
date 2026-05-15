@@ -25,6 +25,7 @@ import {
   type AuthoringBibleGateReview,
   type AuthoringBibleRepairLayer,
   type AuthoringBibleRule,
+  type AuthoringBibleRuleKind,
   type AuthoringBibleSlice,
   type AuthoringBibleVerdict,
 } from "../../src/harness/authoring-bible"
@@ -80,8 +81,30 @@ interface AuthoringBibleReviewReport {
   model: ModelId
   taskCount: number
   results: AuthoringBibleReviewResult[]
+  scenes: AuthoringBibleSceneReview[]
   summaries: Array<{ verdict: AuthoringBibleVerdict; count: number }>
   repairLayers: Array<{ repairLayer: AuthoringBibleRepairLayer; count: number }>
+}
+
+interface AuthoringBibleSceneReview {
+  chapterNumber: number
+  sceneIndex: number
+  sceneId: string
+  proseSource: ProseSource
+  selectedRules: AuthoringBibleSceneRuleReview[]
+  omittedRuleIds: Record<AuthoringBibleRuleKind, string[]>
+  proseExcerpt: string
+}
+
+interface AuthoringBibleSceneRuleReview {
+  ruleId: string
+  kind: AuthoringBibleRuleKind
+  title: string
+  reason: string
+  matchedHints: string[]
+  verdict?: AuthoringBibleVerdict
+  repairLayer?: AuthoringBibleRepairLayer
+  evidence?: AuthoringBibleGateOutcome["evidence"]
 }
 
 const evidenceSchema = z.preprocess(normalizeEvidencePayload, z.object({
@@ -163,6 +186,7 @@ export async function buildAuthoringBibleReviewReport(
     model: args.model,
     taskCount: tasks.length,
     results,
+    scenes: buildSceneReviews(chapters, packet, results),
     summaries: summarizeVerdicts(results),
     repairLayers: summarizeRepairLayers(results),
   }
@@ -203,6 +227,40 @@ export function renderAuthoringBibleReviewReport(report: AuthoringBibleReviewRep
   return lines.join("\n")
 }
 
+export function renderAuthoringBibleSceneReviewReport(report: AuthoringBibleReviewReport): string {
+  const lines = [
+    "# Authoring Bible Scene Review",
+    "",
+    `Novel: ${report.novelId}`,
+    `Packs: ${report.packIds.join(", ") || "none"}`,
+    `Scenes: ${report.scenes.length}`,
+  ]
+  for (const scene of report.scenes) {
+    lines.push(
+      "",
+      `## ch${scene.chapterNumber} scene${scene.sceneIndex + 1} ${scene.sceneId}`,
+      "",
+      `Prose source: ${scene.proseSource}`,
+      "",
+      "Selected rules:",
+    )
+    for (const rule of scene.selectedRules) {
+      const verdict = rule.verdict ? ` verdict=${rule.verdict}` : ""
+      const hints = rule.matchedHints.length > 0 ? ` hints=${rule.matchedHints.join("|")}` : ""
+      lines.push(`- ${rule.kind} ${rule.ruleId}: ${rule.reason}${hints}${verdict}`)
+    }
+    const omitted = compactOmittedRuleRows(scene.omittedRuleIds)
+    if (omitted.length > 0) {
+      lines.push("", "Omitted packet rules:")
+      for (const row of omitted) lines.push(row)
+    }
+    if (scene.proseExcerpt) {
+      lines.push("", "Prose excerpt:", "", `> ${scene.proseExcerpt}`)
+    }
+  }
+  return lines.join("\n")
+}
+
 function buildReviewTasks(
   chapters: ChapterRow[],
   packet: ReturnType<typeof buildAuthoringBiblePacket>,
@@ -238,6 +296,91 @@ function buildReviewTasks(
     }
   }
   return tasks
+}
+
+function buildSceneReviews(
+  chapters: ChapterRow[],
+  packet: ReturnType<typeof buildAuthoringBiblePacket>,
+  results: AuthoringBibleReviewResult[],
+): AuthoringBibleSceneReview[] {
+  const resultBySceneRule = new Map<string, AuthoringBibleReviewResult>()
+  for (const result of results) {
+    resultBySceneRule.set(sceneRuleKey(result.chapterNumber, result.sceneIndex, result.rule.id), result)
+  }
+  const reviews: AuthoringBibleSceneReview[] = []
+  for (const chapter of chapters) {
+    for (let sceneIndex = 0; sceneIndex < chapter.outline.scenes.length; sceneIndex++) {
+      const scene = chapter.outline.scenes[sceneIndex]!
+      const slice = selectAuthoringBibleSlice({ packet, outline: chapter.outline, scene, sceneIndex })
+      if (!slice) continue
+      const sceneId = scene.sceneId ?? scene.beatId ?? `ch${chapter.chapterNumber}-scene${sceneIndex + 1}`
+      const sceneProse = proseForScene({ chapter, scene, sceneIndex, sceneId })
+      const selectedRules = rulesFromSlice(slice)
+      const selectedIds = new Set(selectedRules.map(rule => rule.id))
+      const selectionByRuleId = new Map(slice.ruleSelections.map(selection => [selection.ruleId, selection]))
+      reviews.push({
+        chapterNumber: chapter.chapterNumber,
+        sceneIndex,
+        sceneId,
+        proseSource: sceneProse.source,
+        selectedRules: selectedRules.map(rule => {
+          const result = resultBySceneRule.get(sceneRuleKey(chapter.chapterNumber, sceneIndex, rule.id))
+          const selection = selectionByRuleId.get(rule.id)
+          return {
+            ruleId: rule.id,
+            kind: rule.kind,
+            title: rule.title,
+            reason: selection?.reason ?? "selected",
+            matchedHints: selection?.matchedHints ?? [],
+            ...(result ? { verdict: result.outcome.verdict } : {}),
+            ...(result ? { repairLayer: result.outcome.repairLayer } : {}),
+            ...(result ? { evidence: result.outcome.evidence } : {}),
+          }
+        }),
+        omittedRuleIds: omittedRuleIds(packet, selectedIds),
+        proseExcerpt: excerpt(sceneProse.prose, 900),
+      })
+    }
+  }
+  return reviews
+}
+
+function rulesFromSlice(slice: AuthoringBibleSlice): AuthoringBibleRule[] {
+  return [
+    ...slice.storyRules,
+    ...slice.worldRules,
+    ...slice.characterRules,
+    ...slice.relationshipRules,
+    ...slice.voiceRules,
+  ]
+}
+
+function omittedRuleIds(
+  packet: ReturnType<typeof buildAuthoringBiblePacket>,
+  selectedIds: ReadonlySet<string>,
+): Record<AuthoringBibleRuleKind, string[]> {
+  return {
+    story: packet.storyRules.filter(rule => !selectedIds.has(rule.id)).map(rule => rule.id),
+    world: packet.worldRules.filter(rule => !selectedIds.has(rule.id)).map(rule => rule.id),
+    character: packet.characterRules.filter(rule => !selectedIds.has(rule.id)).map(rule => rule.id),
+    relationship: packet.relationshipRules.filter(rule => !selectedIds.has(rule.id)).map(rule => rule.id),
+    voice: packet.voiceRules.filter(rule => !selectedIds.has(rule.id)).map(rule => rule.id),
+  }
+}
+
+function compactOmittedRuleRows(omittedRuleIds: Record<AuthoringBibleRuleKind, string[]>): string[] {
+  const rows: string[] = []
+  for (const kind of ["story", "world", "character", "relationship", "voice"] as AuthoringBibleRuleKind[]) {
+    const ids = omittedRuleIds[kind]
+    if (ids.length === 0) continue
+    const suffix = ids.length > 12 ? ` (+${ids.length - 12} more)` : ""
+    rows.push(`- ${kind}: ${ids.slice(0, 12).join(", ")}${suffix}`)
+  }
+  return rows
+}
+
+function sceneRuleKey(chapterNumber: number, sceneIndex: number, ruleId: string): string {
+  return `${chapterNumber}:${sceneIndex}:${ruleId}`
 }
 
 async function judgeTaskLive(task: AuthoringBibleReviewTask, args: Args): Promise<AuthoringBibleGateReview> {
@@ -417,6 +560,12 @@ function proseForScene(input: {
   return { prose: input.chapter.prose, source: "chapter_draft" }
 }
 
+function excerpt(value: string, maxChars: number): string {
+  const compact = value.replace(/\s+/gu, " ").trim()
+  if (compact.length <= maxChars) return compact
+  return `${compact.slice(0, maxChars).trim()}...`
+}
+
 async function runBounded<T>(tasks: Array<() => Promise<T>>, concurrency: number): Promise<T[]> {
   const results: T[] = new Array(tasks.length)
   let next = 0
@@ -527,6 +676,7 @@ async function main(argv: string[]): Promise<number> {
   mkdirSync(outputDir, { recursive: true })
   writeFileSync(join(outputDir, "authoring-bible-review.json"), JSON.stringify(report, null, 2))
   writeFileSync(join(outputDir, "authoring-bible-review.md"), renderAuthoringBibleReviewReport(report))
+  writeFileSync(join(outputDir, "authoring-bible-scene-review.md"), renderAuthoringBibleSceneReviewReport(report))
   if (args.json) {
     console.log(JSON.stringify({ ok: true, outputDir, taskCount: report.taskCount, summaries: report.summaries }, null, 2))
   } else {

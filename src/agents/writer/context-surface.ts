@@ -1,7 +1,7 @@
 import type { BeatContext } from "./beat-context"
 import { collectCanonSourceRefIds, collectStoryRefIds, countCanonSourceRefs, countStoryRefs } from "./context-trace-counts"
 import { summarizeSceneContractShape } from "./scene-contract-shape"
-import { summarizeAuthoringBibleSlice } from "../../harness/authoring-bible"
+import { summarizeAuthoringBibleSlice, type AuthoringBibleRuleSelection } from "../../harness/authoring-bible"
 
 export interface WriterContextSurfaceTrace {
   path: "beat" | "chapter"
@@ -73,6 +73,7 @@ export interface WriterContextSurfaceTrace {
     characterBibleRuleIds?: string[]
     relationshipBibleRuleIds?: string[]
     voiceBibleRuleIds?: string[]
+    authoringBibleRuleSelections?: AuthoringBibleRuleSelection[]
   }
 }
 
@@ -148,6 +149,7 @@ export function summarizeBeatContextSurface(ctx: BeatContext): WriterContextSurf
       characterBibleRuleIds: authoringBibleTrace?.characterRuleIds ?? [],
       relationshipBibleRuleIds: authoringBibleTrace?.relationshipRuleIds ?? [],
       voiceBibleRuleIds: authoringBibleTrace?.voiceRuleIds ?? [],
+      authoringBibleRuleSelections: authoringBibleTrace?.ruleSelections ?? [],
     },
   }
 }

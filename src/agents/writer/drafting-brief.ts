@@ -3,7 +3,11 @@ import { renderCharacterContextCapsules } from "./character-context"
 import type { WriterPromptIdRendering } from "./context-mode"
 import { collectCanonSourceRefIds, collectStoryRefIds, countCanonSourceRefs, countStoryRefs } from "./context-trace-counts"
 import { summarizeSceneContractShape } from "./scene-contract-shape"
-import { renderAuthoringBibleSlice, summarizeAuthoringBibleSlice } from "../../harness/authoring-bible"
+import {
+  renderAuthoringBibleSlice,
+  summarizeAuthoringBibleSlice,
+  type AuthoringBibleRuleSelection,
+} from "../../harness/authoring-bible"
 
 export type WriterDraftingBriefMode =
   | "off"
@@ -73,6 +77,7 @@ export interface WriterDraftingBriefTrace {
     characterBibleRuleIds: string[]
     relationshipBibleRuleIds: string[]
     voiceBibleRuleIds: string[]
+    authoringBibleRuleSelections: AuthoringBibleRuleSelection[]
   }
 }
 
@@ -526,6 +531,7 @@ function summarizeWriterDraftingBrief(args: {
       characterBibleRuleIds: authoringBibleTrace?.characterRuleIds ?? [],
       relationshipBibleRuleIds: authoringBibleTrace?.relationshipRuleIds ?? [],
       voiceBibleRuleIds: authoringBibleTrace?.voiceRuleIds ?? [],
+      authoringBibleRuleSelections: authoringBibleTrace?.ruleSelections ?? [],
     },
   }
 }
