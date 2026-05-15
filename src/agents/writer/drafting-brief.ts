@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto"
+
 import type { BeatContext, CharacterSnapshot, SceneContractBlock, SettingBlock } from "./beat-context"
 import { renderCharacterContextCapsules } from "./character-context"
 import type { WriterPromptIdRendering } from "./context-mode"
@@ -24,6 +26,7 @@ export interface WriterDraftingBriefTrace {
   targetWords: number
   charsDelta: number
   charsRatio: number
+  cacheStablePrefix: WriterDraftingBriefCacheStablePrefixTrace
   sections: {
     sceneContract: boolean
     sceneEndpointLandingGuidance: boolean
@@ -87,12 +90,35 @@ export interface WriterDraftingBriefTrace {
   }
 }
 
+export interface WriterDraftingBriefCacheStablePrefixTrace {
+  chars: number
+  hash: string | null
+  boundary: "before-writer-drafting-brief" | null
+}
+
 export interface SelectWriterPromptInput {
   ctx: BeatContext
   mode: WriterDraftingBriefMode
   fullContextPrompt: string
   targetWords: number
   idRendering?: WriterPromptIdRendering
+}
+
+export function extractWriterDraftingBriefCacheStablePrefix(prompt: string): string | null {
+  const markerIndex = prompt.indexOf(WRITER_DRAFTING_BRIEF_BOUNDARY)
+  if (markerIndex <= 0) return null
+  return prompt.slice(0, markerIndex)
+}
+
+export function summarizeWriterDraftingBriefCacheStablePrefix(
+  prompt: string,
+): WriterDraftingBriefCacheStablePrefixTrace {
+  const prefix = extractWriterDraftingBriefCacheStablePrefix(prompt)
+  return {
+    chars: prefix?.length ?? 0,
+    hash: prefix ? stablePrefixHash(prefix) : null,
+    boundary: prefix ? "before-writer-drafting-brief" : null,
+  }
 }
 
 export function selectWriterPromptForDraftingBrief(input: SelectWriterPromptInput): {
@@ -118,6 +144,8 @@ export function selectWriterPromptForDraftingBrief(input: SelectWriterPromptInpu
     }),
   }
 }
+
+const WRITER_DRAFTING_BRIEF_BOUNDARY = "\n\nWRITER DRAFTING BRIEF"
 
 export function renderWriterDraftingBrief(
   ctx: BeatContext,
@@ -171,6 +199,10 @@ export function renderWriterDraftingBrief(
   if (setting) sections.push(setting)
 
   return sections.filter(Boolean).join("\n\n")
+}
+
+function stablePrefixHash(prefix: string): string {
+  return createHash("sha256").update(prefix).digest("hex").slice(0, 16)
 }
 
 function renderBriefHeader(
@@ -489,6 +521,7 @@ function summarizeWriterDraftingBrief(args: {
     targetWords: args.targetWords,
     charsDelta: selectedPromptChars - fullContextPromptChars,
     charsRatio: fullContextPromptChars > 0 ? selectedPromptChars / fullContextPromptChars : 1,
+    cacheStablePrefix: summarizeWriterDraftingBriefCacheStablePrefix(args.selectedPrompt),
     sections: {
       sceneContract: Boolean(args.ctx.sceneContract),
       sceneEndpointLandingGuidance: (sceneContractShape?.endpointFields ?? 0) > 0,

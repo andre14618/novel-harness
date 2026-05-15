@@ -15,7 +15,11 @@ import { describe, expect, it } from "bun:test"
 import { buildSceneContextSlots, type BeatContext, type BeatContextResult } from "./beat-context"
 import { renderBeatContext } from "./beat-context-render"
 import { summarizeBeatContextSurface } from "./context-surface"
-import { renderWriterDraftingBrief, selectWriterPromptForDraftingBrief } from "./drafting-brief"
+import {
+  extractWriterDraftingBriefCacheStablePrefix,
+  renderWriterDraftingBrief,
+  selectWriterPromptForDraftingBrief,
+} from "./drafting-brief"
 import { buildExpansionPrompt } from "./retry-context"
 import type { ChapterOutline } from "../../types"
 
@@ -551,6 +555,90 @@ describe("renderBeatContext + scene contract", () => {
       "story-rule:mission-contract-loop",
       "char-rule:char-calla:driver",
     ])
+  })
+
+  it("keeps the cache-stable prefix byte-identical across different scene briefs", () => {
+    const firstCtx = baseCtx({
+      authoringBible: authoringBibleSlice(),
+      sceneContract: {
+        goal: "Force Orvath to confess.",
+        opposition: "Orvath holds Davan's safety as leverage.",
+        outcome: "Calla burns the script.",
+        consequence: "Davan is exiled and the empire begins hunting Calla.",
+        choiceAlternatives: [],
+      },
+    })
+    const secondSlice = authoringBibleSlice()
+    secondSlice.sceneId = "scene-archive-2"
+    secondSlice.sceneNumber = 2
+    secondSlice.characterRules = [{
+      id: "char-rule:char-orvath:driver",
+      kind: "character",
+      title: "Orvath driver",
+      text: "Under pressure, Orvath trades truth for procedural cover.",
+      appliesWhen: "Orvath is present.",
+      source: "characters.profile_json",
+      characterId: "char-orvath",
+      characterName: "Orvath",
+    }]
+    secondSlice.ruleSelections = secondSlice.ruleSelections
+      .filter(selection => selection.kind !== "character")
+      .concat([{ ruleId: "char-rule:char-orvath:driver", kind: "character", reason: "scene_character_present", characterName: "Orvath" }])
+    const secondCtx = baseCtx({
+      authoringBible: secondSlice,
+      beatSpec: {
+        ...baseCtx().beatSpec,
+        sceneId: "scene-archive-2",
+        beatId: "beat-archive-2",
+        beatNumber: 2,
+        description: "Orvath stalls Calla with procedure until the guards arrive.",
+        charactersPresent: ["Calla", "Orvath"],
+      },
+      sceneContract: {
+        goal: "Stop Orvath from delaying the hearing.",
+        opposition: "Orvath can make procedure sound like mercy.",
+        outcome: "Calla forces the delay into the record.",
+        consequence: "The next scene starts with Orvath publicly exposed.",
+        choiceAlternatives: [],
+      },
+    })
+    const first = selectWriterPromptForDraftingBrief({
+      ctx: firstCtx,
+      mode: "scene-budget-tight-anchored-v1",
+      fullContextPrompt: renderBeatContext(firstCtx, { compact: false }),
+      targetWords: 500,
+      idRendering: "raw",
+    })
+    const second = selectWriterPromptForDraftingBrief({
+      ctx: secondCtx,
+      mode: "scene-budget-tight-anchored-v1",
+      fullContextPrompt: renderBeatContext(secondCtx, { compact: false }),
+      targetWords: 700,
+      idRendering: "raw",
+    })
+
+    const firstPrefix = extractWriterDraftingBriefCacheStablePrefix(first.userPrompt)
+    const secondPrefix = extractWriterDraftingBriefCacheStablePrefix(second.userPrompt)
+
+    expect(firstPrefix).not.toBeNull()
+    expect(firstPrefix).toBe(secondPrefix)
+    expect(firstPrefix).toContain("SCENE EXECUTION FLOOR:")
+    expect(firstPrefix).toContain("AUTHORING BIBLE STABLE PRELUDE:")
+    expect(firstPrefix).toContain("[voice-rule:close-pov-tactical]")
+    expect(firstPrefix).not.toContain("WRITER DRAFTING BRIEF")
+    expect(firstPrefix).not.toContain("Scene:")
+    expect(firstPrefix).not.toContain("Budget:")
+    expect(firstPrefix).not.toContain("SCENE CONTRACT")
+    expect(firstPrefix).not.toContain("[char-rule:")
+    expect(first.userPrompt.slice(firstPrefix!.length).startsWith("\n\nWRITER DRAFTING BRIEF")).toBe(true)
+    expect(second.userPrompt.slice(secondPrefix!.length).startsWith("\n\nWRITER DRAFTING BRIEF")).toBe(true)
+    expect(first.userPrompt).toContain("[char-rule:char-calla:driver]")
+    expect(second.userPrompt).toContain("[char-rule:char-orvath:driver]")
+    expect(first.draftingBriefTrace.cacheStablePrefix.chars).toBe(firstPrefix!.length)
+    expect(second.draftingBriefTrace.cacheStablePrefix.chars).toBe(secondPrefix!.length)
+    expect(first.draftingBriefTrace.cacheStablePrefix.hash).toMatch(/^[a-f0-9]{16}$/)
+    expect(first.draftingBriefTrace.cacheStablePrefix.hash).toBe(second.draftingBriefTrace.cacheStablePrefix.hash)
+    expect(first.draftingBriefTrace.cacheStablePrefix.boundary).toBe("before-writer-drafting-brief")
   })
 
   it("constructs scene-contract anchors for every drafting brief mode", async () => {

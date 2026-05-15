@@ -14,6 +14,27 @@ two rendered sections:
 The stable prelude renders before the volatile `WRITER DRAFTING BRIEF` scene
 header. The scene slice remains after the scene contract. The selected rule set
 is unchanged; telemetry now records stable-prelude and scene-slice rule IDs.
+The writer-context trace also records `cacheStablePrefix` chars/hash, with the
+boundary set immediately before `WRITER DRAFTING BRIEF`; isolated-run reports
+summarize average prefix length and distinct prefix hashes.
+
+## Prefix Ordering
+
+The current order is:
+
+1. Stable system prompt, outside the user prompt.
+2. `SCENE EXECUTION FLOOR`, stable for the writer arm/mode.
+3. `AUTHORING BIBLE STABLE PRELUDE`, byte-identical for baseline story, sensory,
+   and voice rules selected by stable reasons.
+4. `WRITER DRAFTING BRIEF`, the first volatile scene boundary.
+5. Scene budget/load control, scene contract, scene-local authoring-bible slice,
+   obligations, anchors, character context, references, reader state, and setting.
+
+This is the cache-maximizing order that does not starve the writer of needed
+local context: stable global material moves before the volatile scene boundary;
+scene-specific task, contract, obligations, character, reader-state, and setting
+stay after it. The split also avoids duplicating stable bible rules in the
+scene-local slice.
 
 ## Evidence
 
@@ -52,6 +73,9 @@ Result:
   `authoringBibleSceneSlice=true`.
 - Prompt common prefix across ch1 beat-writer prompts increased from the prior
   layout's 29 chars to 2857 chars.
+- Unit tests now assert exact byte-identical stable prefixes across different
+  scene briefs and require volatile fields to appear only after the prefix
+  boundary.
 
 Authoring-bible live review:
 

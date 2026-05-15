@@ -728,6 +728,7 @@ describe("summarizeDraftingBriefTelemetry", () => {
         fullContextPromptChars: 1000,
         charsRatio: 1,
         charsDelta: 0,
+        cacheStablePrefix: { chars: 0, hash: null, boundary: null },
       },
     }, {
       draftingBrief: {
@@ -736,6 +737,7 @@ describe("summarizeDraftingBriefTelemetry", () => {
         fullContextPromptChars: 1200,
         charsRatio: 0.5,
         charsDelta: -600,
+        cacheStablePrefix: { chars: 1800, hash: "abc123abc123abcd", boundary: "before-writer-drafting-brief" },
       },
     }, {
       eventType: "other",
@@ -748,6 +750,8 @@ describe("summarizeDraftingBriefTelemetry", () => {
     expect(summary.avgSelectedPromptChars).toBe(800)
     expect(summary.avgFullContextPromptChars).toBe(1100)
     expect(summary.totalCharsDelta).toBe(-600)
+    expect(summary.avgCacheStablePrefixChars).toBe(900)
+    expect(summary.cacheStablePrefixHashes).toEqual({ abc123abc123abcd: 1 })
   })
 
   test("returns an empty summary when no drafting brief trace exists", () => {
@@ -756,6 +760,8 @@ describe("summarizeDraftingBriefTelemetry", () => {
     expect(summary.enabledEvents).toBe(0)
     expect(summary.modes).toEqual({})
     expect(summary.avgCharsRatio).toBeNull()
+    expect(summary.avgCacheStablePrefixChars).toBeNull()
+    expect(summary.cacheStablePrefixHashes).toEqual({})
   })
 })
 
@@ -1330,6 +1336,8 @@ function armResult(overrides: Partial<ArmResult> = {}): ArmResult {
       avgSelectedPromptChars: null,
       avgFullContextPromptChars: null,
       totalCharsDelta: 0,
+      avgCacheStablePrefixChars: null,
+      cacheStablePrefixHashes: {},
     },
     ...overrides,
   }

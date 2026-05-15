@@ -364,6 +364,8 @@ export interface DraftingBriefTelemetrySummary {
   avgSelectedPromptChars: number | null
   avgFullContextPromptChars: number | null
   totalCharsDelta: number
+  avgCacheStablePrefixChars: number | null
+  cacheStablePrefixHashes: Record<string, number>
 }
 
 export interface TargetWordScalingSummary {
@@ -540,6 +542,8 @@ function emptyDraftingBriefTelemetry(): DraftingBriefTelemetrySummary {
     avgSelectedPromptChars: null,
     avgFullContextPromptChars: null,
     totalCharsDelta: 0,
+    avgCacheStablePrefixChars: null,
+    cacheStablePrefixHashes: {},
   }
 }
 
@@ -948,6 +952,9 @@ export function summarizeDraftingBriefTelemetry(payloads: unknown[]): DraftingBr
   let ratioCount = 0
   let totalCharsDelta = 0
   let enabledEvents = 0
+  let cacheStablePrefixCharsTotal = 0
+  let cacheStablePrefixCharsCount = 0
+  const cacheStablePrefixHashes: Record<string, number> = {}
   for (const row of rows) {
     modes[row.mode] = (modes[row.mode] ?? 0) + 1
     selectedTotal += row.selectedPromptChars
@@ -957,6 +964,13 @@ export function summarizeDraftingBriefTelemetry(payloads: unknown[]): DraftingBr
     if (Number.isFinite(row.charsRatio)) {
       ratioTotal += row.charsRatio
       ratioCount++
+    }
+    if (row.cacheStablePrefixChars !== null) {
+      cacheStablePrefixCharsTotal += row.cacheStablePrefixChars
+      cacheStablePrefixCharsCount++
+    }
+    if (row.cacheStablePrefixHash) {
+      cacheStablePrefixHashes[row.cacheStablePrefixHash] = (cacheStablePrefixHashes[row.cacheStablePrefixHash] ?? 0) + 1
     }
   }
 
@@ -968,6 +982,8 @@ export function summarizeDraftingBriefTelemetry(payloads: unknown[]): DraftingBr
     avgSelectedPromptChars: selectedTotal / rows.length,
     avgFullContextPromptChars: fullTotal / rows.length,
     totalCharsDelta,
+    avgCacheStablePrefixChars: cacheStablePrefixCharsCount > 0 ? cacheStablePrefixCharsTotal / cacheStablePrefixCharsCount : null,
+    cacheStablePrefixHashes,
   }
 }
 
@@ -977,6 +993,8 @@ function readDraftingBriefTelemetry(payload: unknown): {
   fullContextPromptChars: number
   charsRatio: number
   charsDelta: number
+  cacheStablePrefixChars: number | null
+  cacheStablePrefixHash: string | null
 } | null {
   if (!payload || typeof payload !== "object") return null
   const draftingBrief = (payload as { draftingBrief?: unknown }).draftingBrief
@@ -987,8 +1005,13 @@ function readDraftingBriefTelemetry(payload: unknown): {
   const fullContextPromptChars = readFiniteNumber(row.fullContextPromptChars)
   const charsRatio = readFiniteNumber(row.charsRatio)
   const charsDelta = readFiniteNumber(row.charsDelta)
+  const cacheStablePrefix = row.cacheStablePrefix && typeof row.cacheStablePrefix === "object"
+    ? row.cacheStablePrefix as Record<string, unknown>
+    : null
+  const cacheStablePrefixChars = readFiniteNumber(cacheStablePrefix?.chars)
+  const cacheStablePrefixHash = typeof cacheStablePrefix?.hash === "string" ? cacheStablePrefix.hash : null
   if (!mode || selectedPromptChars === null || fullContextPromptChars === null || charsRatio === null || charsDelta === null) return null
-  return { mode, selectedPromptChars, fullContextPromptChars, charsRatio, charsDelta }
+  return { mode, selectedPromptChars, fullContextPromptChars, charsRatio, charsDelta, cacheStablePrefixChars, cacheStablePrefixHash }
 }
 
 function readFiniteNumber(value: unknown): number | null {
@@ -2680,7 +2703,9 @@ function formatDraftingBriefTelemetry(summary: DraftingBriefTelemetrySummary): s
   const ratio = summary.avgCharsRatio === null ? "n/a" : summary.avgCharsRatio.toFixed(3)
   const selected = summary.avgSelectedPromptChars === null ? "n/a" : Math.round(summary.avgSelectedPromptChars)
   const full = summary.avgFullContextPromptChars === null ? "n/a" : Math.round(summary.avgFullContextPromptChars)
-  return `events=${summary.events}, enabled=${summary.enabledEvents}, modes=${modeText || "none"}, avgChars=${selected}/${full}, avgRatio=${ratio}, delta=${summary.totalCharsDelta}`
+  const prefix = summary.avgCacheStablePrefixChars === null ? "n/a" : Math.round(summary.avgCacheStablePrefixChars)
+  const prefixHashes = Object.keys(summary.cacheStablePrefixHashes).length
+  return `events=${summary.events}, enabled=${summary.enabledEvents}, modes=${modeText || "none"}, avgChars=${selected}/${full}, avgRatio=${ratio}, delta=${summary.totalCharsDelta}, avgCachePrefixChars=${prefix}, cachePrefixHashes=${prefixHashes}`
 }
 
 if (import.meta.main) {
