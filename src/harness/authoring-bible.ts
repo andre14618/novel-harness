@@ -15,6 +15,7 @@ export interface AuthoringBibleRule {
   characterId?: string
   characterName?: string
   relatedCharacterName?: string
+  selectionHints?: string[]
 }
 
 export interface AuthoringBiblePacket {
@@ -317,6 +318,7 @@ function buildStoryRules(
       text: ruleText,
       appliesWhen: `Scenes using ${system.name}, its institutions, rules, vocabulary, or practitioners.`,
       source: "world_bible.systems",
+      selectionHints: worldSystemSelectionHints(system),
     })
   }
   return uniqueRules(rules)
@@ -340,6 +342,7 @@ function buildWorldRules(
       ].filter(Boolean).join(" "),
       appliesWhen: `Scenes invoking ${system.name}, its institutions, vocabulary, practitioners, law, resources, or consequences.`,
       source: "world_bible.systems",
+      selectionHints: worldSystemSelectionHints(system),
     })
   }
   if (worldBible?.sensoryPalette) {
@@ -470,12 +473,22 @@ function storyRuleApplies(
   totalScenes: number,
 ): boolean {
   if (rule.id === "story-rule:scene-pressure-consequence") return true
-  const text = `${scene.description ?? ""} ${scene.goal ?? ""} ${scene.opposition ?? ""} ${scene.outcome ?? ""} ${scene.consequence ?? ""}`.toLowerCase()
+  const text = sceneSearchText(scene)
+  if (rule.selectionHints?.length) return selectionHintsMatch(rule.selectionHints, text)
   if (rule.id === "story-rule:mission-contract-loop") {
     return /contract|guild|job|mission|bounty|patron|rank|salvage|witness|debt|toll/.test(text)
   }
   if (rule.id === "story-rule:earned-progression-payoff") {
-    return /skill|rank|progress|learn|train|core|salvage|resource|magic|tactic|trial|gain/.test(text)
+    const resultText = normalizeSearchText([
+      scene.turningPoint,
+      scene.outcome,
+      scene.consequence,
+    ].filter(Boolean).join(" "))
+    if (/\b(no|without)\s+(rank|progress|gain|gains|promotion|new tactic)|\bnot\s+(gain|gained|earned)/u.test(resultText)) {
+      return false
+    }
+    return /skill|progress|learn|train|core|salvage|resource|magic|tactic|trial|gain|iron thread|iron-thread|rank/.test(text) &&
+      /earn|earned|gain|gains|learn|learns|unlock|use|uses|promot|advance|survive|sacrifice|cost|discovers|tactic|iron thread|salvage/.test(resultText)
   }
   if (rule.id === "story-rule:faction-worldstate-consequence") {
     return /guild|faction|rank|law|patron|buyer|rival|contract|standing|reputation|witness/.test(text)
@@ -489,24 +502,16 @@ function storyRuleApplies(
 }
 
 function worldRuleApplies(rule: AuthoringBibleRule, scene: SceneBeat): boolean {
-  const text = [
-    scene.description,
-    scene.goal,
-    scene.opposition,
-    scene.turningPoint,
-    scene.outcome,
-    scene.consequence,
-    scene.placeAnchor,
-    scene.temporalAnchor,
-  ].filter(Boolean).join(" ").toLowerCase()
+  const text = sceneSearchText(scene)
   if (rule.id === "world-rule:sensory-palette-operational") return true
+  if (rule.selectionHints?.length) return selectionHintsMatch(rule.selectionHints, text)
   const titleTerms = rule.title
     .toLowerCase()
     .replace(/\b(operational|pressure|world|rule|system)\b/gu, "")
     .split(/[^a-z0-9]+/u)
     .filter(term => term.length > 3)
   if (titleTerms.length === 0) return true
-  return titleTerms.some(term => text.includes(term)) || /guild|contract|rank|law|debt|marker|witness|salvage|salt|brine|mine|ruin|core|ward|patron|broker/.test(text)
+  return titleTerms.every(term => text.includes(term))
 }
 
 function pushRuleSection(lines: string[], label: string, rules: AuthoringBibleRule[]): void {
@@ -530,6 +535,153 @@ function uniqueRules(rules: AuthoringBibleRule[]): AuthoringBibleRule[] {
 
 function cleanKey(value: string | undefined | null): string {
   return value?.trim().toLowerCase() ?? ""
+}
+
+function sceneSearchText(scene: SceneBeat): string {
+  const obligations = scene.obligations
+  return normalizeSearchText([
+    scene.description,
+    scene.goal,
+    scene.opposition,
+    scene.turningPoint,
+    scene.outcome,
+    scene.consequence,
+    scene.placeAnchor,
+    scene.temporalAnchor,
+    ...(scene.characters ?? []),
+    ...flattenSearchItems(obligations?.mustEstablish),
+    ...flattenSearchItems(obligations?.mustPayOff),
+    ...flattenSearchItems(obligations?.mustTransferKnowledge),
+    ...flattenSearchItems(obligations?.mustShowStateChange),
+    ...flattenSearchItems(obligations?.mustNotReveal),
+    ...flattenSearchItems(obligations?.allowedNewEntities),
+  ].filter(Boolean).join(" "))
+}
+
+function flattenSearchItems(values: unknown[] | undefined): string[] {
+  return (values ?? []).flatMap(value => {
+    if (typeof value === "string") return [value]
+    if (value && typeof value === "object") {
+      return Object.values(value as Record<string, unknown>)
+        .filter((entry): entry is string => typeof entry === "string")
+    }
+    return []
+  })
+}
+
+function normalizeSearchText(value: string): string {
+  return ` ${value
+    .toLowerCase()
+    .replace(/[_-]+/gu, " ")
+    .replace(/[^a-z0-9]+/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim()} `
+}
+
+function selectionHintsMatch(hints: readonly string[], normalizedText: string): boolean {
+  return hints.some(hint => selectionHintMatches(hint, normalizedText))
+}
+
+function selectionHintMatches(hint: string, normalizedText: string): boolean {
+  const clean = normalizeSearchText(hint).trim()
+  if (!clean) return false
+  const terms = clean.split(/\s+/u).filter(Boolean)
+  if (terms.length >= 2) return normalizedText.includes(` ${clean} `)
+  const term = terms[0]
+  if (!term || weakSingleHintTerms.has(term)) return false
+  return normalizedText.includes(` ${term} `)
+}
+
+const weakSingleHintTerms = new Set([
+  "cost",
+  "law",
+  "line",
+  "paper",
+  "pressure",
+  "proof",
+  "standing",
+  "trigger",
+])
+
+function worldSystemSelectionHints(system: NonNullable<WorldBible["systems"]>[number]): string[] {
+  const id = slug(system.id || system.name)
+  const lower = `${system.id ?? ""} ${system.name}`.toLowerCase()
+  if (id.includes("brine-ward") || lower.includes("brine ward")) {
+    return uniqueStrings([
+      system.name,
+      "brine ward",
+      "brine wards",
+      "ward line",
+      "salt bloom",
+      "brine cloud",
+      "chemical seal",
+      "mine wall",
+      "inscribed symbol",
+      "stolen core",
+    ])
+  }
+  if (id.includes("iron-thread") || lower.includes("iron thread")) {
+    return uniqueStrings([
+      system.name,
+      "iron thread",
+      "iron-thread",
+      "thread binding",
+      "pressure draw",
+      "brine hook",
+      "monster pressure",
+      "body heat",
+      "internal bruising",
+    ])
+  }
+  if (id.includes("debt-market") || lower.includes("debt market")) {
+    return uniqueStrings([
+      system.name,
+      "debt market",
+      "debt board",
+      "debt marker",
+      "marker",
+      "sale date",
+      "creditor",
+      "protection",
+    ])
+  }
+  if (id.includes("guild-rank") || lower.includes("guild rank")) {
+    return uniqueStrings([
+      system.name,
+      "guild rank",
+      "rank law",
+      "rank token",
+      "bronze token",
+      "silver seal",
+      "gold badge",
+      "witness",
+      "contract rights",
+      "rank promotion",
+    ])
+  }
+  if (id.includes("guild-law") || lower.includes("guild law")) {
+    return uniqueStrings([
+      system.name,
+      "guild law",
+      "guild contract",
+      "contract",
+      "witness",
+      "witnessed contract",
+      "unwitnessed",
+      "salvage rights",
+      "ranked contract",
+    ])
+  }
+  return uniqueStrings([
+    system.name,
+    system.id?.replace(/[_-]+/gu, " "),
+    ...(system.vocabulary ?? []),
+    ...(system.manifestations ?? []),
+  ].filter((value): value is string => Boolean(value?.trim())))
+}
+
+function uniqueStrings(values: readonly string[]): string[] {
+  return [...new Set(values.map(value => value.trim()).filter(Boolean))]
 }
 
 function nameAppearsInScene(

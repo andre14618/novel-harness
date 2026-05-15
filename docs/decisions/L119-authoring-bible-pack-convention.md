@@ -39,6 +39,18 @@ positive replacements over "do not" lists:
 - Prefer: "Orin shows care by stating limits precisely."
 - Avoid: "Do not make Orin heroic."
 
+## Context Inclusion
+
+Bible cards are selected by scene need, not by blanket availability:
+
+- Include POV and present-speaker cards.
+- Include relationship cards only when the relationship is present or changed.
+- Include world-system cards only when the scene invokes that system's pressure,
+  vocabulary, cost, status, legality, or available action.
+- Include examples for active voices, not the whole cast.
+- Treat a semantic miss as possible selector noise when the rule should not
+  have been fed to that scene.
+
 ## Rationale
 
 The first Rillgate authoring-bible smoke showed useful prose movement from

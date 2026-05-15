@@ -79,6 +79,74 @@ describe("authoring bible packet and slice", () => {
     expect(ids).toContain("pack:rillgate-contrast-v1:char:tessa:line-and-point")
     expect(ids).toContain("pack:rillgate-contrast-v1:rel:kael-tessa:competence-before-trust")
     expect(ids).toContain("pack:rillgate-contrast-v1:voice:dialogue-fingerprints")
+    expect(renderAuthoringBibleSlice(slice!)).toContain("Four days. No witness. One patron")
+  })
+
+  test("keeps world-system rules out of scenes that do not need that system", () => {
+    const packet = buildAuthoringBiblePacket({
+      genre: "adult mercenary progression fantasy",
+      worldBible: worldBibleWithBrineWards(),
+      characters: characters(),
+      packIds: ["rillgate-contrast-v1"],
+    })
+    const outline = chapterOutline()
+    const streetScene = {
+      ...outline.scenes[0]!,
+      description: "Kael leaves the contract hall with Mira's debt marker and Lady Varn's address.",
+      goal: "Choose whether to approach the patron before the sale date.",
+      opposition: "The debt bell makes the marker feel transferable.",
+      outcome: "Kael starts toward Copper Alley.",
+      consequence: "He accepts that a patron owns the next move.",
+      placeAnchor: "Rillgate street outside the Contract Hall",
+    }
+    const slice = selectAuthoringBibleSlice({ packet, outline, scene: streetScene, sceneIndex: 0 })
+    const ids = summarizeAuthoringBibleSlice(slice!).ruleIds
+
+    expect(ids).toContain("world-rule:system:sys-debt-market")
+    expect(ids).not.toContain("world-rule:system:sys-brine-wards")
+  })
+
+  test("includes brine-ward rules when the scene actually invokes ward pressure", () => {
+    const packet = buildAuthoringBiblePacket({
+      genre: "adult mercenary progression fantasy",
+      worldBible: worldBibleWithBrineWards(),
+      characters: characters(),
+    })
+    const outline = chapterOutline()
+    const wardScene = {
+      ...outline.scenes[0]!,
+      description: "Kael enters the mine and sees a ward line bloom with salt under old blood.",
+      goal: "Cross the brine ward without triggering the salt cloud.",
+      opposition: "The ward line reacts to unranked blood near the stolen core.",
+      outcome: "He marks the ward line and backs away.",
+      consequence: "The route through the mine is narrower.",
+      placeAnchor: "Gray Salt Mine wall",
+    }
+    const slice = selectAuthoringBibleSlice({ packet, outline, scene: wardScene, sceneIndex: 0 })
+    const ids = summarizeAuthoringBibleSlice(slice!).ruleIds
+
+    expect(ids).toContain("world-rule:system:sys-brine-wards")
+  })
+
+  test("does not feed earned-progression payoff for mere rank desire", () => {
+    const packet = buildAuthoringBiblePacket({
+      genre: "adult mercenary progression fantasy",
+      worldBible: worldBible(),
+      characters: characters(),
+    })
+    const outline = chapterOutline()
+    const searchScene = {
+      ...outline.scenes[0]!,
+      description: "Kael searches postings for a rank path before Mira's marker sale.",
+      goal: "Find a contract that might eventually earn bronze rank.",
+      opposition: "Every posting is too slow or requires a witness.",
+      outcome: "He asks Orin for a legal path.",
+      consequence: "No rank is gained yet.",
+    }
+    const slice = selectAuthoringBibleSlice({ packet, outline, scene: searchScene, sceneIndex: 0 })
+    const ids = summarizeAuthoringBibleSlice(slice!).ruleIds
+
+    expect(ids).not.toContain("story-rule:earned-progression-payoff")
   })
 })
 
@@ -186,6 +254,35 @@ function worldBible(): WorldBible {
       constraints: ["Unwitnessed salvage claims can be challenged."],
     }],
     cultures: [],
+  }
+}
+
+function worldBibleWithBrineWards(): WorldBible {
+  return {
+    ...worldBible(),
+    systems: [
+      ...worldBible().systems,
+      {
+        id: "sys_brine_wards",
+        name: "Brine Wards",
+        type: "technology",
+        description: "Chemical seals inscribed on mine walls that react to blood, rank tokens, and stolen cores.",
+        rules: ["Blood triggers a ward within 5 feet.", "They do not work in open air."],
+        manifestations: ["Inscribed symbols on mine walls.", "Salt crystals forming on surfaces."],
+        vocabulary: ["ward line", "salt bloom", "brine cloud", "trigger"],
+        constraints: ["Wards reset after a few hours."],
+      },
+      {
+        id: "sys_debt_market",
+        name: "Debt Market",
+        type: "economy",
+        description: "Creditors buy and sell debt markers.",
+        rules: ["Markers can be sold without the debtor's consent."],
+        manifestations: ["Creditors display markers on boards."],
+        vocabulary: ["marker", "debt board", "sale date", "creditor"],
+        constraints: ["Only physical markers can be traded."],
+      },
+    ],
   }
 }
 
