@@ -94,8 +94,9 @@ Use deeper docs only when linked by the context pack or needed by code.
   artifacts; semantic prose/scene packets are explicit evidence add-ons.
 - Production drafting defaults to exact-ID character context capsules
   (`thread-character-context-v1`). See L094.
-- Authoring-bible slices can now add compact story/world/character/relationship
-  and voice rules, including modular packs, to writer briefs with rule-ID telemetry. See L118.
+- Authoring-bible slices can add compact story/world/character/relationship
+  and voice rules to writer briefs; packs should use positive operating cards
+  with short examples and minimal avoidance language. See L118/L119.
 - Native chapter contracts and story-turn planning are the production planning
   default with legacy rollback; downstream beat caps/packing are diagnostic
   evidence only. See L088.
